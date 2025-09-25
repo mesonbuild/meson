@@ -94,7 +94,7 @@ def generate_guid_from_path(path, path_type) -> str:
 def detect_microsoft_gdk(platform: str) -> bool:
     return re.match(r'Gaming\.(Desktop|Xbox.XboxOne|Xbox.Scarlett)\.x64', platform, re.IGNORECASE) is not None
 
-def filtered_src_langs_generator(sources: T.List[str]):
+def filtered_src_langs_generator(sources: T.List[File]):
     for src in sources:
         ext = src.split('.')[-1]
         if compilers.compilers.is_source_suffix(ext):
@@ -106,7 +106,7 @@ def filtered_src_langs_generator(sources: T.List[str]):
 # simply refer to the project's shared intellisense define and include fields, rather than have to fill out their
 # own duplicate full set of defines/includes/opts intellisense fields.  All of which helps keep the vcxproj file
 # size down.
-def get_primary_source_lang(target_sources: T.List[File], custom_sources: T.List[str]) -> T.Optional[str]:
+def get_primary_source_lang(target_sources: T.List[File], custom_sources: T.List[File]) -> T.Optional[str]:
     lang_counts = Counter([compilers.compilers.SUFFIX_TO_LANG[src.suffix] for src in target_sources if compilers.compilers.is_source_suffix(src.suffix)])
     lang_counts += Counter(filtered_src_langs_generator(custom_sources))
     most_common_lang_list = lang_counts.most_common(1)
@@ -288,7 +288,7 @@ class Vs2010Backend(backends.Backend):
         Vs2010Backend.touch_regen_timestamp(self.environment.get_build_dir())
 
     @staticmethod
-    def get_regen_stampfile(build_dir: str) -> None:
+    def get_regen_stampfile(build_dir: str) -> str:
         return os.path.join(os.path.join(build_dir, Environment.private_dir), 'regen.stamp')
 
     @staticmethod
@@ -395,7 +395,7 @@ class Vs2010Backend(backends.Backend):
         ret.update(all_deps)
         return ret
 
-    def generate_solution_dirs(self, ofile: str, parents: T.Sequence[Path]) -> None:
+    def generate_solution_dirs(self, ofile: T.TextIO, parents: T.Sequence[Path]) -> None:
         prj_templ = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
         iterpaths = reversed(parents)
         # Skip first path
