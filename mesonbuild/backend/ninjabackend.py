@@ -518,7 +518,7 @@ class NinjaBackend(backends.Backend):
 
         return NinjaBuildElement(self.all_outputs, to_name, rulename, phony_infilename)
 
-    def detect_vs_dep_prefix(self, tempfilename):
+    def detect_vs_dep_prefix(self, tempfilename: str) -> T.TextIO:
         '''VS writes its dependency in a locale dependent format.
         Detect the search prefix to use.'''
         # TODO don't hard-code host
@@ -568,7 +568,7 @@ class NinjaBackend(backends.Backend):
         # \MyDir\include\stdio.h.
         matchre = re.compile(rb"^(.*\s)([a-zA-Z]:[\\/]|[\\\/]).*stdio.h$")
 
-        def detect_prefix(out):
+        def detect_prefix(out: bytes) -> T.TextIO:
             for line in re.split(rb'\r?\n', out):
                 match = matchre.match(line)
                 if match:
@@ -786,7 +786,7 @@ class NinjaBackend(backends.Backend):
             srcs[f] = s
         return srcs
 
-    def get_target_source_can_unity(self, target, source):
+    def get_target_source_can_unity(self, target, source: FileOrString) -> bool:
         if isinstance(source, File):
             source = source.fname
         if self.environment.is_llvm_ir(source) or \
@@ -871,7 +871,7 @@ class NinjaBackend(backends.Backend):
             }
             tgt[lnk_hash] = lnk_block
 
-    def generate_target(self, target) -> None:
+    def generate_target(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.RunTarget]) -> None:
         if isinstance(target, build.BuildTarget):
             os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
         if isinstance(target, build.CustomTarget):
@@ -1201,7 +1201,7 @@ class NinjaBackend(backends.Backend):
             if isinstance(s, build.GeneratedList):
                 self.generate_genlist_for_target(s, target)
 
-    def unwrap_dep_list(self, target):
+    def unwrap_dep_list(self, target: T.Union[build.CustomTarget, build.RunTarget]) -> T.List[str]:
         deps = []
         for i in target.get_dependencies():
             # FIXME, should not grab element at zero but rather expand all.
@@ -1255,7 +1255,7 @@ class NinjaBackend(backends.Backend):
         self.add_build(elem)
         self.processed_targets.add(target.get_id())
 
-    def build_run_target_name(self, target) -> str:
+    def build_run_target_name(self, target: build.RunTarget) -> str:
         if target.subproject != '':
             subproject_prefix = f'{target.subproject}@@'
         else:
@@ -1584,7 +1584,7 @@ class NinjaBackend(backends.Backend):
         args += ['-sourcepath', sourcepath]
         return args
 
-    def generate_java_compile(self, srcs, target, compiler, args):
+    def generate_java_compile(self, srcs, target, compiler, args) -> str:
         deps = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
         generated_sources = self.get_target_generated_sources(target)
         for rel_src in generated_sources.keys():
@@ -1622,7 +1622,7 @@ class NinjaBackend(backends.Backend):
         the same name as the BuildTarget and return the path to it relative to
         the build directory.
         """
-        result = OrderedSet()
+        result: OrderedSet[str] = OrderedSet()
         for dep in itertools.chain(target.link_targets, target.link_whole_targets):
             if not dep.is_linkable_target():
                 continue
@@ -2043,7 +2043,7 @@ class NinjaBackend(backends.Backend):
         else:
             verbatim = ''
 
-        def _link_library(libname: str, static: bool, bundle: bool = False):
+        def _link_library(libname: str, static: bool, bundle: bool = False) -> None:
             type_ = 'static' if static else 'dylib'
             modifiers = []
             if not bundle and static:
@@ -2234,18 +2234,18 @@ class NinjaBackend(backends.Backend):
     def compiler_to_pch_rule_name(cls, compiler: Compiler) -> str:
         return cls.get_compiler_rule_name(compiler.get_language(), compiler.for_machine, 'PCH')
 
-    def swift_module_file_name(self, target):
+    def swift_module_file_name(self, target) -> str:
         return os.path.join(self.get_target_private_dir(target),
                             target.swift_module_name + '.swiftmodule')
 
-    def determine_swift_dep_modules(self, target):
+    def determine_swift_dep_modules(self, target) -> T.List[str]:
         result = []
         for l in target.link_targets:
             if self.is_swift_target(l):
                 result.append(self.swift_module_file_name(l))
         return result
 
-    def get_swift_link_deps(self, target):
+    def get_swift_link_deps(self, target) -> T.List[str]:
         result = []
         for l in target.link_targets:
             result.append(self.get_target_filename(l))
@@ -2728,7 +2728,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 continue
             self.generate_genlist_for_target(genlist, target)
 
-    def replace_paths(self, target, args, override_subdir=None):
+    def replace_paths(self, target, args: T.List[str], override_subdir=None) -> T.List[str]:
         if override_subdir:
             source_target_dir = os.path.join(self.build_to_src, override_subdir)
         else:
@@ -2870,12 +2870,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         mod_files = _scan_fortran_file_deps(src, srcdir, dirname, tdeps, compiler)
         return mod_files
 
-    def get_no_stdlib_link_args(self, target, linker):
+    def get_no_stdlib_link_args(self, target, linker) -> T.List[str]:
         if hasattr(linker, 'language') and linker.language in self.build.stdlibs[target.for_machine]:
             return linker.get_no_stdlib_link_args()
         return []
 
-    def get_compile_debugfile_args(self, compiler, target, objfile):
+    def get_compile_debugfile_args(self, compiler, target, objfile) -> T.List[str]:
         # The way MSVC uses PDB files is documented exactly nowhere so
         # the following is what we have been able to decipher via
         # reverse engineering.
@@ -2944,7 +2944,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return linker.get_link_debugfile_args(filename)
         return []
 
-    def generate_llvm_ir_compile(self, target, src: FileOrString):
+    def generate_llvm_ir_compile(self, target, src: FileOrString) -> T.Tuple[str, str]:
         compiler = get_compiler_for_source(target.compilers.values(), src)
         commands = compiler.compiler_args()
         # Compiler args for compiling this target
@@ -3274,7 +3274,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         priv = self.get_target_private_dir(target)
         return os.path.join(priv, 'depscan.json'), os.path.join(priv, 'depscan.dd')
 
-    def add_header_deps(self, target, ninja_element, header_deps):
+    def add_header_deps(self, target, ninja_element, header_deps) -> None:
         for d in header_deps:
             if isinstance(d, File):
                 d = d.rel_to_builddir(self.build_to_src)
@@ -3389,7 +3389,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             self.all_pch[compiler.id].update(objs + [dst])
         return pch_objects
 
-    def get_target_shsym_filename(self, target):
+    def get_target_shsym_filename(self, target) -> str:
         # Always name the .symbols file after the primary build output because it always exists
         targetdir = self.get_target_private_dir(target)
         return os.path.join(targetdir, target.get_filename() + '.symbols')
@@ -3565,7 +3565,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         return guessed_dependencies + absolute_libs
 
-    def generate_prelink(self, target, obj_list):
+    def generate_prelink(self, target, obj_list) -> T.List[str]:
         assert isinstance(target, build.StaticLibrary)
         prelink_name = os.path.join(self.get_target_private_dir(target), target.name + '-prelink.o')
         elem = NinjaBuildElement(self.all_outputs, [prelink_name], 'CUSTOM_COMMAND', obj_list)
@@ -3752,7 +3752,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.create_target_linker_introspection(target, linker, commands)
         return elem
 
-    def get_dependency_filename(self, t):
+    def get_dependency_filename(self, t) -> str:
         if isinstance(t, build.SharedLibrary):
             if t.uses_rust() and t.rust_crate_type == 'proc-macro':
                 return self.get_target_filename(t)
@@ -3874,6 +3874,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             extra_args.append(f'--{extra_arg}')
         colorout = self.environment.coredata.optstore.get_value('b_colorout') \
             if OptionKey('b_colorout') in self.environment.coredata.optstore else 'always'
+        assert isinstance(colorout, str), 'for mypy'
         extra_args.extend(['--color', colorout])
         if not os.path.exists(os.path.join(self.environment.source_dir, '.clang-' + name)) and \
                 not os.path.exists(os.path.join(self.environment.source_dir, '_clang-' + name)):

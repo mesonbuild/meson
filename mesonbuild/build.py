@@ -251,7 +251,7 @@ class Build:
         self.project_name = 'name of master project'
         self.project_version: T.Optional[str] = None
         self.environment = environment
-        self.projects = {}
+        self.projects: T.Dict[str, str] = {}
         self.targets: 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]' = OrderedDict()
         self.targetnames: T.Set[T.Tuple[str, str]] = set() # Set of executable names and their subdir
         self.global_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
@@ -291,14 +291,14 @@ class Build:
         Needed for tracking whether a modules options needs to be exposed to the user.
         """
 
-    def get_build_targets(self):
+    def get_build_targets(self) -> OrderedDict[str, BuildTarget]:
         build_targets = OrderedDict()
         for name, t in self.targets.items():
             if isinstance(t, BuildTarget):
                 build_targets[name] = t
         return build_targets
 
-    def get_custom_targets(self):
+    def get_custom_targets(self) -> OrderedDict[str, CustomTarget]:
         custom_targets = OrderedDict()
         for name, t in self.targets.items():
             if isinstance(t, CustomTarget):
@@ -322,7 +322,7 @@ class Build:
         if self.static_linker[compiler.for_machine] is None and compiler.needs_static_linker():
             self.static_linker[compiler.for_machine] = detect_static_linker(self.environment, compiler)
 
-    def get_project(self):
+    def get_project(self) -> T.Dict[str, str]:
         return self.projects['']
 
     def get_subproject_dir(self):
@@ -1623,7 +1623,7 @@ class BuildTarget(Target):
 
         return langs
 
-    def get_prelinker(self):
+    def get_prelinker(self) -> Compiler:
         if self.link_language:
             comp = self.all_compilers[self.link_language]
             return comp
@@ -3145,10 +3145,10 @@ class Jar(BuildTarget):
         self.main_class = kwargs.get('main_class', '')
         self.java_resources: T.Optional[StructuredSources] = kwargs.get('java_resources', None)
 
-    def get_main_class(self):
+    def get_main_class(self) -> str:
         return self.main_class
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@jar"
 
     def get_java_args(self):
@@ -3164,7 +3164,7 @@ class Jar(BuildTarget):
     def is_linkable_target(self):
         return True
 
-    def get_classpath_args(self):
+    def get_classpath_args(self) -> T.List[str]:
         cp_paths = [os.path.join(l.get_subdir(), l.get_filename()) for l in self.link_targets]
         cp_string = os.pathsep.join(cp_paths)
         if cp_string:
