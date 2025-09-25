@@ -269,7 +269,7 @@ class XCodeBackend(backends.Backend):
         # that is used in two targets gets a total of four unique ID numbers.
         self.fileref_ids = {}
 
-    def write_pbxfile(self, top_level_dict, ofilename) -> None:
+    def write_pbxfile(self, top_level_dict: PbxDict, ofilename: str) -> None:
         tmpname = ofilename + '.tmp'
         with open(tmpname, 'w', encoding='utf-8') as ofile:
             ofile.write('// !$*UTF8*$!\n')
@@ -491,7 +491,7 @@ class XCodeBackend(backends.Backend):
             self.build_rules[name] = languages
 
     def generate_custom_target_map(self) -> None:
-        self.shell_targets = {}
+        self.shell_targets: T.Dict[T.Union[str, T.Tuple[str, int]], str] = {}
         self.custom_target_output_buildfile = {}
         self.custom_target_output_fileref = {}
         for tname, t in self.custom_targets.items():
@@ -524,7 +524,8 @@ class XCodeBackend(backends.Backend):
                 self.gen_single_target_map(genlist, tname, t, generator_id)
                 generator_id += 1
 
-    def gen_single_target_map(self, genlist, tname, t, generator_id) -> None:
+    def gen_single_target_map(self, genlist: build.GeneratedList, tname: str,
+                              t: T.Union[build.BuildTarget, build.CustomTarget], generator_id: int) -> None:
         k = (tname, generator_id)
         assert k not in self.shell_targets
         self.shell_targets[k] = self.gen_id()
@@ -554,7 +555,7 @@ class XCodeBackend(backends.Backend):
                         self.native_frameworks_fileref[f] = self.gen_id()
 
     def generate_target_dependency_map(self) -> None:
-        self.target_dependency_map = {}
+        self.target_dependency_map: T.Dict[T.Union[str, T.Tuple[str, str]], str] = {}
         for tname, t in self.build_targets.items():
             for target in t.link_targets:
                 if isinstance(target, build.CustomTargetIndex):
@@ -789,7 +790,7 @@ class XCodeBackend(backends.Backend):
                 self.create_generator_shellphase(objects_dict, tname, generator_id)
                 generator_id += 1
 
-    def create_generator_shellphase(self, objects_dict, tname, generator_id) -> None:
+    def create_generator_shellphase(self, objects_dict: PbxDict, tname: str, generator_id: int) -> None:
         file_ids = self.generator_buildfile_ids[(tname, generator_id)]
         ref_ids = self.generator_fileref_ids[(tname, generator_id)]
         assert len(ref_ids) == len(file_ids)
@@ -1157,7 +1158,7 @@ class XCodeBackend(backends.Backend):
         product_dict.add_item('name', 'Products')
         product_dict.add_item('sourceTree', '<group>')
 
-    def write_group_target_entry(self, objects_dict, t):
+    def write_group_target_entry(self, objects_dict: PbxDict, t) -> str:
         tid = t.get_id()
         group_id = self.gen_id()
         target_dict = PbxDict()
@@ -1210,7 +1211,7 @@ class XCodeBackend(backends.Backend):
         source_files_dict.add_item('sourceTree', '<group>')
         return group_id
 
-    def add_projecttree(self, objects_dict, projecttree_id) -> None:
+    def add_projecttree(self, objects_dict: PbxDict, projecttree_id: str) -> None:
         root_dict = PbxDict()
         objects_dict.add_item(projecttree_id, root_dict, "Root of project tree")
         root_dict.add_item('isa', 'PBXGroup')
@@ -1222,7 +1223,7 @@ class XCodeBackend(backends.Backend):
         project_tree = self.generate_project_tree()
         self.write_tree(objects_dict, project_tree, target_children, '')
 
-    def write_tree(self, objects_dict, tree_node, children_array, current_subdir) -> None:
+    def write_tree(self, objects_dict: PbxDict, tree_node: FileTreeEntry, children_array: PbxArray, current_subdir: str) -> None:
         for subdir_name, subdir_node in tree_node.subdirs.items():
             subdir_dict = PbxDict()
             subdir_children = PbxArray()
@@ -1438,7 +1439,8 @@ class XCodeBackend(backends.Backend):
                     self.generate_single_generator_phase(tname, t, genlist, generator_id, objects_dict)
                     generator_id += 1
 
-    def generate_single_generator_phase(self, tname, t, genlist, generator_id, objects_dict) -> None:
+    def generate_single_generator_phase(self, tname: str, t: T.Union[build.BuildTarget, build.CustomTarget],
+                                        genlist: build.GeneratedList, generator_id: int, objects_dict: PbxDict) -> None:
         # TODO: this should be rewritten to use the meson wrapper, like the other generators do
         # Currently it doesn't handle a host binary that requires an exe wrapper correctly.
         generator = genlist.get_generator()
@@ -1617,7 +1619,7 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('SDKROOT', 'macosx')
             bt_dict.add_item('name', buildtype)
 
-    def determine_internal_dep_link_args(self, target, buildtype):
+    def determine_internal_dep_link_args(self, target: build.BuildTarget, buildtype: str) -> T.Tuple[T.List[str], bool]:
         links_dylib = False
         dep_libs = []
         for l in target.link_targets:
@@ -1642,9 +1644,9 @@ class XCodeBackend(backends.Backend):
                 links_dylib = links_dylib or sub_links_dylib
         return (dep_libs, links_dylib)
 
-    def generate_single_build_target(self, objects_dict, target_name, target) -> None:
+    def generate_single_build_target(self, objects_dict: PbxDict, target_name: str, target: build.BuildTarget) -> None:
         for buildtype in self.buildtypes:
-            dep_libs = []
+            dep_libs: T.List[str] = []
             links_dylib = False
             headerdirs = []
             bridging_header = ""
@@ -1732,7 +1734,7 @@ class XCodeBackend(backends.Backend):
                 ldargs += linker.get_std_shared_lib_link_args()
             ldstr = ' '.join(ldargs)
             valid = self.buildconfmap[target_name][buildtype]
-            langargs = {}
+            langargs: T.Dict[str, T.List[str]] = {}
             for lang in self.environment.coredata.compilers[target.for_machine]:
                 if lang not in LANGNAMEMAP:
                     continue
@@ -1846,7 +1848,7 @@ class XCodeBackend(backends.Backend):
             warn_array.add_item('"$(inherited)"')
             bt_dict.add_item('name', buildtype)
 
-    def normalize_header_search_paths(self, header_dirs) -> PbxArray:
+    def normalize_header_search_paths(self, header_dirs: T.List[str]) -> PbxArray:
         header_arr = PbxArray()
         for i in header_dirs:
             np = os.path.normpath(i)
@@ -1855,7 +1857,7 @@ class XCodeBackend(backends.Backend):
             header_arr.add_item(item)
         return header_arr
 
-    def add_otherargs(self, settings_dict, langargs):
+    def add_otherargs(self, settings_dict: PbxDict, langargs: T.Dict[str, T.List[str]]) -> None:
         for langname, args in langargs.items():
             if args:
                 quoted_args = []
