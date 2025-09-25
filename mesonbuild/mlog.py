@@ -394,7 +394,7 @@ class _Logger:
                 _colorize_console = os.isatty(output.fileno()) and os.environ.get('TERM', 'dumb') != 'dumb'
         except Exception:
             _colorize_console = False
-        output.colorize_console = _colorize_console  # type: ignore[attr-defined]
+        output.colorize_console = _colorize_console  # type: ignore
         return _colorize_console
 
     def setup_console(self) -> None:
