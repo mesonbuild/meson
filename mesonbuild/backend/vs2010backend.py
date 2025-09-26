@@ -30,7 +30,7 @@ if T.TYPE_CHECKING:
     from ..arglist import CompilerArgs
     from ..interpreter import Interpreter
 
-    Project = T.Tuple[str, Path, str, MachineChoice]
+    Project = T.Tuple[str, PurePath, str, MachineChoice]
 
 def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]) -> backends.Backend:
     vs_version = os.getenv('VisualStudioVersion', None)
@@ -88,7 +88,7 @@ def split_o_flags_args(args: T.List[str]) -> T.List[str]:
             o_flags += ['/O' + f for f in flags]
     return o_flags
 
-def generate_guid_from_path(path, path_type) -> str:
+def generate_guid_from_path(path: PurePath, path_type) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_URL, 'meson-vs-' + path_type + ':' + str(path))).upper()
 
 def detect_microsoft_gdk(platform: str) -> bool:
@@ -395,7 +395,7 @@ class Vs2010Backend(backends.Backend):
         ret.update(all_deps)
         return ret
 
-    def generate_solution_dirs(self, ofile: T.TextIO, parents: T.Sequence[Path]) -> None:
+    def generate_solution_dirs(self, ofile: T.TextIO, parents: T.Sequence[PurePath]) -> None:
         prj_templ = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
         iterpaths = reversed(parents)
         # Skip first path
