@@ -20,8 +20,11 @@ Compiles Windows `rc` files specified in the positional arguments.
 Returns a list of `CustomTarget` objects that you put in the list of sources for
 the target you want to have the resources in.
 
-*Since 0.61.0* CustomTargetIndexes and CustomTargets with more than out output
-*may be used as positional arguments.
+*Since 0.61.0* `CustomTargetIndexes` and `CustomTargets` with more than one output
+may be used as positional arguments.
+
+*Since 1.10.0* Changes to included header files are now detected when using
+`rc.exe` resource compiler.
 
 This method has the following keyword arguments:
 
