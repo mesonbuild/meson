@@ -472,7 +472,7 @@ def get_compiler_for_source(compilers: T.Iterable['Compiler'], src: 'FileOrStrin
     raise MesonException(f'No specified compiler can handle file {src!s}')
 
 
-def classify_unity_sources(compilers: T.Iterable['Compiler'], sources: T.Sequence['FileOrString']) -> T.Dict['Compiler', T.List['FileOrString']]:
+def classify_unity_sources(compilers: T.Iterable['Compiler'], sources: T.Union[T.List['FileOrString'], T.List[File]]) -> T.Dict['Compiler', T.List['FileOrString']]:
     compsrclist: T.Dict['Compiler', T.List['FileOrString']] = {}
     for src in sources:
         comp = get_compiler_for_source(compilers, src)
