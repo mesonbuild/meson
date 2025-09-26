@@ -199,7 +199,7 @@ class RustCompiler(Compiler):
         if version_compare(self.version, '< 1.67.0'):
             return False
         # GNU ld support '-l:PATH'
-        if 'ld.' in self.linker.id:
+        if 'ld.' in self.linker.id and 'ld.wasm' != self.linker.id:
             return True
         # -l:+verbatim does not work (yet?) with MSVC link or Apple ld64
         # (https://github.com/rust-lang/rust/pull/138753).  For ld64, it
