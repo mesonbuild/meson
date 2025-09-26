@@ -1196,8 +1196,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def name_string(self) -> str:
         return ' '.join(self.exelist)
 
-    @abc.abstractmethod
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str, env: Environment) -> None:
         """Check that this compiler actually works.
 
         This should provide a simple compile/link test. Something as simple as:
@@ -1205,24 +1204,103 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         main(): return 0
         ```
         is good enough here.
+
+        :param work_dir: A directory to put temporary artifacts
+        :param env: The :class:`environment.Environment` instance to use with
+            this  check
+        :raises mesonlib.EnvironmentException: If building the binary fails
+        :raises mesonlib.EnvironmentException: If running the binary is attempted and fails
+        """
+        sourcename, binname = self._sanity_check_filenames()
+        cmdlist = self._sanity_check_compile_args(env, sourcename, binname)
+
+        with open(os.path.join(work_dir, sourcename), 'w', encoding='utf-8') as f:
+            f.write(self._sanity_check_source_code())
+
+        pc, stdo, stde = mesonlib.Popen_safe(cmdlist, cwd=work_dir)
+        mlog.debug('Sanity check compiler command line:', mesonlib.join_args(cmdlist))
+        mlog.debug('Sanity check compile stdout:')
+        mlog.debug(stdo)
+        mlog.debug('-----\nSanity check compile stderr:')
+        mlog.debug(stde)
+        mlog.debug('-----')
+        if pc.returncode != 0:
+            raise mesonlib.EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
+
+        self._run_sanity_check(env, [os.path.join(work_dir, binname)], work_dir)
+
+    def _sanity_check_filenames(self) -> T.Tuple[str, str]:
+        """Generate the name of the source and binary file for the sanity check.
+
+        The returned names should be just the names of the files with
+        extensions, but no paths.
+
+        :return: A tuple of (sourcename, binaryname)
+        """
+        default_ext = lang_suffixes[self.language][0]
+        template = f'sanity_check_for_{self.language}'
+        sourcename = f'{template}.{default_ext}'
+        binaryname = f'{template}{"_cross" if self.is_cross else ""}.exe'
+        return sourcename, binaryname
+
+    @abc.abstractmethod
+    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
+        """Get arguments to run compiler for sanity check.
+
+        :param env: The :class:`environment.Environment` instance to use
+        :param sourcename: the name of the source file to generate
+        :param binname: the name of the binary file to generate
+        :return: a list of strings to pass to :func:`subprocess.run` or equivalent
         """
 
-    def run_sanity_check(self, environment: Environment, cmdlist: T.List[str], work_dir: str, use_exe_wrapper_for_cross: bool = True) -> T.Tuple[str, str]:
-        # Run sanity check
-        if self.is_cross and use_exe_wrapper_for_cross:
-            if not environment.has_exe_wrapper():
-                # Can't check if the binaries run so we have to assume they do
-                return ('', '')
-            cmdlist = environment.exe_wrapper.get_command() + cmdlist
-        mlog.debug('Running test binary command: ', mesonlib.join_args(cmdlist))
+    @abc.abstractmethod
+    def _sanity_check_source_code(self) -> str:
+        """Get the source code to run for a sanity check
+
+        :return: A string to be written into a file and ran.
+        """
+
+    def _sanity_check_run_with_exe_wrapper(self, env: Environment, command: T.List[str]) -> T.List[str]:
+        """Wrap the binary to run in the test with the exe_wrapper if necessary
+
+        Languages that do no want to use an exe_wrapper (or always want to use
+        some kind of wrapper) should override this method
+
+        :param env: the :class:`environment.Environment` instance to use
+        :param command: The string list of commands to run
+        :return: The list of commands wrapped by the exe_wrapper if it is needed, otherwise the original commands
+        """
+        if self.is_cross and env.has_exe_wrapper():
+            assert env.exe_wrapper is not None, 'for mypy'
+            return env.exe_wrapper.get_command() + command
+        return command
+
+    def _run_sanity_check(self, env: Environment, cmdlist: T.List[str], work_dir: str) -> None:
+        """Run a sanity test binary
+
+        :param env: the :class:`environment.Environment` instance to use
+        :param cmdlist: A list of strings to pass to :func:`subprocess.run` or equivalent to run the test
+        :param work_dir: A directory to place temporary artifacts
+        :raises mesonlib.EnvironmentException: If the binary cannot be run or if it returns a non-zero exit code
+        """
+        # Can't check binaries, so we have to assume they work
+        if self.is_cross and not env.has_exe_wrapper():
+            mlog.debug('Cannot run cross check')
+            return
+
+        cmdlist = self._sanity_check_run_with_exe_wrapper(env, cmdlist)
+        mlog.debug('Sanity check built target output for', self.for_machine, self.language, 'compiler')
+        mlog.debug(' -- Running test binary command: ', mesonlib.join_args(cmdlist))
         try:
             pe, stdo, stde = Popen_safe_logged(cmdlist, 'Sanity check', cwd=work_dir)
+            mlog.debug(' -- stdout:\n', stdo)
+            mlog.debug(' -- stderr:\n', stde)
+            mlog.debug(' -- returncode:', pe.returncode)
         except Exception as e:
             raise mesonlib.EnvironmentException(f'Could not invoke sanity check executable: {e!s}.')
 
         if pe.returncode != 0:
             raise mesonlib.EnvironmentException(f'Executables created by {self.language} compiler {self.name_string()} are not runnable.')
-        return stdo, stde
 
     def split_shlib_to_parts(self, fname: str) -> T.Tuple[T.Optional[str], str]:
         return None, fname
