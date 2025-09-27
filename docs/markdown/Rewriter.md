@@ -94,7 +94,8 @@ It is also possible to set kwargs of specific functions with the
 rewriter. The general command for setting or removing kwargs is:
 
 ```bash
-meson rewrite kwargs {set/delete} <function type> <function ID> <key1> <value1> <key2> <value2> ...
+meson rewrite kwargs set <function type> <function ID> <key1> <value1> <key2> <value2> ...
+meson rewrite kwargs delete <function type> <function ID> <key1> <key2> ...
 ```
 
 For instance, setting the project version can be achieved with this command:
@@ -116,13 +117,22 @@ converted to `/` by msys bash but in order to keep usage
 shell-agnostic, the rewrite command also allows `//` as the function
 ID such that it will work in both msys bash and other shells.
 
+*Before 1.10.0*, the `delete` command expected `<key> <value>` pairs as
+in `set`; the `<value>` was ignored.  For backward compatibility, Meson
+accepts this syntax with a warning if all `<value>`s are the empty string.
+
 ### Setting the project default options
 
 For setting and deleting default options, use the following command:
 
 ```bash
-meson rewrite default-options {set/delete} <opt1> <value1> <opt2> <value2> ...
+meson rewrite default-options set <opt1> <value1> <opt2> <value2> ...
+meson rewrite default-options delete <opt1> <opt2> ...
 ```
+
+*Before 1.10.0*, the `delete` command expected `<opt> <value>` pairs as
+in `set`; the `<value>` was ignored.  For backward compatibility, Meson
+accepts this syntax with a warning if all `<value>`s are the empty string.
 
 ## Limitations
 
@@ -229,6 +239,9 @@ The format for the type `target` is defined as follows:
 }
 ```
 
+For operation `delete`, the values of the `options` can be anything
+(including `null`).
+
 ### Default options modification format
 
 The format for the type `default_options` is defined as follows:
@@ -246,7 +259,7 @@ The format for the type `default_options` is defined as follows:
 ```
 
 For operation `delete`, the values of the `options` can be anything
-(including `null`)
+(including `null`).
 
 ## Extracting information
 
