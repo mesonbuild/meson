@@ -722,6 +722,7 @@ BUILTIN_CORE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
         UserBooleanOption('errorlogs', "Whether to print the logs from failing tests", True),
         UserUmaskOption('install_umask', 'Default umask to apply on permissions of installed files', OctalInt(0o022)),
         UserComboOption('layout', 'Build directory layout', 'mirror', choices=['mirror', 'flat']),
+        UserComboOption('namingscheme', 'How target file names are formed', 'classic', choices=['platform', 'classic']),
         UserComboOption('optimization', 'Optimization level', '0', choices=['plain', '0', 'g', '1', '2', '3', 's']),
         UserBooleanOption('prefer_static', 'Whether to try static linking before shared linking', False),
         UserBooleanOption('stdsplit', 'Split stdout and stderr in test logs', True),

@@ -62,6 +62,20 @@ if T.TYPE_CHECKING:
         import_dirs: T.List[IncludeDirs]
         versions: T.List[T.Union[str, int]]
 
+DEFAULT_STATIC_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str]] = {
+    'unix': ('lib', 'a'),
+    'windows': ('', 'lib'),
+    'darwin': ('lib', 'a'),
+    'cygwin': ('lib', 'a'),
+}
+
+DEFAULT_SHARED_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str, str]] = {
+    'unix': ('lib', 'so', ''),
+    'windows': ('', 'dll', 'dll.lib'),
+    'darwin': ('lib', 'dylib', ''),
+    'cygwin': ('cyg', 'dll', 'dll.a'),
+}
+
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
 lang_arg_kwargs = {f'{lang}_args' for lang in all_languages}
@@ -1920,6 +1934,17 @@ class BuildTarget(Target):
                         raise MesonException(f'Invalid arg for --just-symbols, {dir} is a directory.')
         return dirs
 
+    def get_platform_scheme_name(self) -> str:
+        m = self.environment.machines[self.for_machine]
+        if m.is_cygwin():
+            return 'cygwin'
+        elif m.is_windows():
+            return 'windows'
+        elif m.is_darwin():
+            return 'darwin'
+        else:
+            return 'unix'
+
 
 class FileInTargetPrivateDir:
     """Represents a file with the path '/path/to/build/target_private_dir/fname'.
@@ -2312,6 +2337,24 @@ class StaticLibrary(BuildTarget):
                                                     [], [], [], [], [], {}, [], [], [],
                                                     '_rust_native_static_libs')
                 self.external_deps.append(d)
+
+        default_prefix, default_suffix = self.determine_default_prefix_and_suffix()
+        if not self.name_prefix_set:
+            self.prefix = default_prefix
+        if not self.name_suffix_set:
+            self.suffix = default_suffix
+        self.filename = self.prefix + self.name + '.' + self.suffix
+        self.outputs[0] = self.filename
+
+    def determine_default_prefix_and_suffix(self) -> T.Tuple[str, str]:
+        scheme = self.environment.coredata.get_option_for_target(self, 'namingscheme')
+        assert isinstance(scheme, str), 'for mypy'
+        if scheme == 'platform':
+            schemename = self.get_platform_scheme_name()
+            prefix, suffix = DEFAULT_STATIC_LIBRARY_NAMES[schemename]
+        else:
+            prefix = ''
+            suffix = ''
         # By default a static library is named libfoo.a even on Windows because
         # MSVC does not have a consistent convention for what static libraries
         # are called. The MSVC CRT uses libfoo.lib syntax but nothing else uses
@@ -2323,16 +2366,16 @@ class StaticLibrary(BuildTarget):
         # See our FAQ for more detailed rationale:
         # https://mesonbuild.com/FAQ.html#why-does-building-my-project-with-msvc-output-static-libraries-called-libfooa
         if not hasattr(self, 'prefix'):
-            self.prefix = 'lib'
+            prefix = 'lib'
         if not hasattr(self, 'suffix'):
             if self.uses_rust():
                 if self.rust_crate_type == 'rlib':
                     # default Rust static library suffix
-                    self.suffix = 'rlib'
+                    suffix = 'rlib'
                 elif self.rust_crate_type == 'staticlib':
-                    self.suffix = 'a'
+                    suffix = 'a'
             else:
-                self.suffix = 'a'
+                suffix = 'a'
                 if 'c' in self.compilers and self.compilers['c'].get_id() == 'tasking' and not self.prelink:
                     key = OptionKey('b_lto', self.subproject, self.for_machine)
                     try:
@@ -2341,9 +2384,8 @@ class StaticLibrary(BuildTarget):
                         v = self.environment.coredata.optstore.get_value_for(key)
                     assert isinstance(v, bool), 'for mypy'
                     if v:
-                        self.suffix = 'ma'
-        self.filename = self.prefix + self.name + '.' + self.suffix
-        self.outputs[0] = self.filename
+                        suffix = 'ma'
+        return (prefix, suffix)
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         return {}
@@ -2454,6 +2496,102 @@ class SharedLibrary(BuildTarget):
     def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
         return self.environment.get_shared_lib_dir(), '{libdir_shared}'
 
+    def determine_naming_info(self) -> T.Tuple[str, str, str, str, bool]:
+        scheme = self.environment.coredata.get_option_for_target(self, 'namingscheme')
+        assert isinstance(scheme, str), 'for mypy'
+        if scheme == 'platform':
+            schemename = self.get_platform_scheme_name()
+            prefix, suffix, import_suffix = DEFAULT_SHARED_LIBRARY_NAMES[schemename]
+        else:
+            prefix = None
+            suffix = None
+            import_suffix = None
+        filename_tpl = self.basic_filename_tpl
+        create_debug_file = False
+        create_debug_file = False
+        self.filename_tpl = self.basic_filename_tpl
+        import_filename_tpl = None
+        # NOTE: manual prefix/suffix override is currently only tested for C/C++
+        # C# and Mono
+        if 'cs' in self.compilers:
+            prefix = ''
+            suffix = 'dll'
+            filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+            create_debug_file = True
+        # C, C++, Swift, Vala
+        # Only Windows uses a separate import library for linking
+        # For all other targets/platforms import_filename stays None
+        elif self.environment.machines[self.for_machine].is_windows():
+            suffix = suffix if suffix is not None else 'dll'
+            if self.uses_rust():
+                # Shared library is of the form foo.dll
+                prefix = prefix if prefix is not None else ''
+                # Import library is called foo.dll.lib
+                import_filename_tpl = '{0.prefix}{0.name}.dll.lib'
+                # .pdb file is only created when debug symbols are enabled
+                create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
+            elif self.get_using_msvc():
+                # Shared library is of the form foo.dll
+                prefix = prefix if prefix is not None else ''
+                # Import library is called foo.lib
+                import_suffix = import_suffix if import_suffix is not None else '.lib'
+                import_filename_tpl = '{0.prefix}{0.name}' + import_suffix
+                # .pdb file is only created when debug symbols are enabled
+                create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
+            # Assume GCC-compatible naming
+            else:
+                # Shared library is of the form libfoo.dll
+                prefix = prefix if prefix is not None else 'lib'
+                # Import library is called libfoo.dll.a
+                import_suffix = import_suffix if import_suffix is not None else '.dll.a'
+                import_filename_tpl = '{0.prefix}{0.name}' + import_suffix
+            # Shared library has the soversion if it is defined
+            if self.soversion:
+                filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
+            else:
+                filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        elif self.environment.machines[self.for_machine].is_cygwin():
+            suffix = 'dll'
+            # Shared library is of the form cygfoo.dll
+            # (ld --dll-search-prefix=cyg is the default)
+            prefix = 'cyg'
+            # Import library is called libfoo.dll.a
+            import_suffix = import_suffix if import_suffix is not None else '.dll.a'
+            import_prefix = self.prefix if self.prefix is not None else 'lib'
+            import_filename_tpl = import_prefix + '{0.name}' + import_suffix
+            if self.soversion:
+                filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
+            else:
+                filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        elif self.environment.machines[self.for_machine].is_darwin():
+            prefix = prefix if prefix is not None else 'lib'
+            suffix = suffix if suffix is not None else 'dylib'
+            # On macOS, the filename can only contain the major version
+            if self.soversion:
+                # libfoo.X.dylib
+                filename_tpl = '{0.prefix}{0.name}.{0.soversion}.{0.suffix}'
+            else:
+                # libfoo.dylib
+                filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        elif self.environment.machines[self.for_machine].is_android():
+            prefix = prefix if prefix is not None else 'lib'
+            suffix = suffix if suffix is not None else 'so'
+            # Android doesn't support shared_library versioning
+            filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        else:
+            prefix = prefix if prefix is not None else 'lib'
+            suffix = suffix if suffix is not None else 'so'
+            if self.ltversion:
+                # libfoo.so.X[.Y[.Z]] (.Y and .Z are optional)
+                filename_tpl = '{0.prefix}{0.name}.{0.suffix}.{0.ltversion}'
+            elif self.soversion:
+                # libfoo.so.X
+                filename_tpl = '{0.prefix}{0.name}.{0.suffix}.{0.soversion}'
+            else:
+                # No versioning, libfoo.so
+                filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        return (prefix, suffix, filename_tpl, import_filename_tpl, create_debug_file)
+
     def determine_filenames(self):
         """
         See https://github.com/mesonbuild/meson/pull/417 for details.
@@ -2469,91 +2607,12 @@ class SharedLibrary(BuildTarget):
         separate library called the "import library" during linking instead of
         the shared library (DLL).
         """
-        prefix = ''
-        suffix = ''
-        create_debug_file = False
-        self.filename_tpl = self.basic_filename_tpl
-        import_filename_tpl = None
-        # NOTE: manual prefix/suffix override is currently only tested for C/C++
-        # C# and Mono
-        if 'cs' in self.compilers:
-            prefix = ''
-            suffix = 'dll'
-            self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-            create_debug_file = True
-        # C, C++, Swift, Vala
-        # Only Windows uses a separate import library for linking
-        # For all other targets/platforms import_filename stays None
-        elif self.environment.machines[self.for_machine].is_windows():
-            suffix = 'dll'
-            if self.uses_rust():
-                # Shared library is of the form foo.dll
-                prefix = ''
-                # Import library is called foo.dll.lib
-                import_filename_tpl = '{0.prefix}{0.name}.dll.lib'
-                # .pdb file is only created when debug symbols are enabled
-                create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
-            elif self.get_using_msvc():
-                # Shared library is of the form foo.dll
-                prefix = ''
-                # Import library is called foo.lib
-                import_filename_tpl = '{0.prefix}{0.name}.lib'
-                # .pdb file is only created when debug symbols are enabled
-                create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
-            # Assume GCC-compatible naming
-            else:
-                # Shared library is of the form libfoo.dll
-                prefix = 'lib'
-                # Import library is called libfoo.dll.a
-                import_filename_tpl = '{0.prefix}{0.name}.dll.a'
-            # Shared library has the soversion if it is defined
-            if self.soversion:
-                self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
-            else:
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-        elif self.environment.machines[self.for_machine].is_cygwin():
-            suffix = 'dll'
-            # Shared library is of the form cygfoo.dll
-            # (ld --dll-search-prefix=cyg is the default)
-            prefix = 'cyg'
-            # Import library is called libfoo.dll.a
-            import_prefix = self.prefix if self.prefix is not None else 'lib'
-            import_filename_tpl = import_prefix + '{0.name}.dll.a'
-            if self.soversion:
-                self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
-            else:
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-        elif self.environment.machines[self.for_machine].is_darwin():
-            prefix = 'lib'
-            suffix = 'dylib'
-            # On macOS, the filename can only contain the major version
-            if self.soversion:
-                # libfoo.X.dylib
-                self.filename_tpl = '{0.prefix}{0.name}.{0.soversion}.{0.suffix}'
-            else:
-                # libfoo.dylib
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-        elif self.environment.machines[self.for_machine].is_android():
-            prefix = 'lib'
-            suffix = 'so'
-            # Android doesn't support shared_library versioning
-            self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-        else:
-            prefix = 'lib'
-            suffix = 'so'
-            if self.ltversion:
-                # libfoo.so.X[.Y[.Z]] (.Y and .Z are optional)
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}.{0.ltversion}'
-            elif self.soversion:
-                # libfoo.so.X
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}.{0.soversion}'
-            else:
-                # No versioning, libfoo.so
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        prefix, suffix, filename_tpl, import_filename_tpl, create_debug_file = self.determine_naming_info()
         if self.prefix is None:
             self.prefix = prefix
         if self.suffix is None:
             self.suffix = suffix
+        self.filename_tpl = filename_tpl
         self.filename = self.filename_tpl.format(self)
         if import_filename_tpl:
             self.import_filename = import_filename_tpl.format(self)
