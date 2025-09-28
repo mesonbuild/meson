@@ -1782,6 +1782,7 @@ class InternalTests(unittest.TestCase):
                 'g-ir-generate': [f'/usr/bin/{gnu_tuple}-g-ir-generate'],
                 'g-ir-inspect': [f'/usr/bin/{gnu_tuple}-g-ir-inspect'],
                 'g-ir-scanner': [f'/usr/bin/{gnu_tuple}-g-ir-scanner'],
+                'vapigen': [f'/usr/bin/{gnu_tuple}-vapigen'],
             }
 
         for title, dpkg_arch, gccsuffix, env, expected in [
