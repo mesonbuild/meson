@@ -234,6 +234,7 @@ def dpkg_architecture_to_machine_info(output: str, options: T.Any) -> MachineInf
         'g-ir-inspect',
         'g-ir-scanner',
         'pkg-config',
+        'vapigen',
     ]:
         try:
             infos.binaries[tool] = locate_path("%s-%s" % (host_arch, tool))
