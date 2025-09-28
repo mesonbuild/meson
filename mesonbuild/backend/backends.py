@@ -464,7 +464,7 @@ class Backend:
         return result
 
     @staticmethod
-    def relpath(todir: str, fromdir: str) -> str:
+    def relpath(todir: T.Union[str, os.PathLike], fromdir: T.Union[str, os.PathLike]) -> str:
         return os.path.relpath(os.path.join('dummyprefixdir', todir),
                                os.path.join('dummyprefixdir', fromdir))
 
