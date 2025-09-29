@@ -5,6 +5,10 @@
         { "val": "config-tool" },
         { "val": "qmake" },
         { "val": "pkg-config" }
+      ],
+      "debug": [
+        { "val": "true" },
+        { "val": "false" }
       ]
     }
   },
