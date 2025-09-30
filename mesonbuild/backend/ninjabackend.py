@@ -410,6 +410,12 @@ class NinjaBuildElement:
             line = f' {name} = '
             newelems = []
             for i in elems:
+                if mesonlib.is_windows():
+                    # Support network paths with double-backslash (UNC)
+                    # Officially //foo/bar is not an UNC and mostly doesn't work
+                    # in Windows
+                    if i.startswith('//'):
+                        i = i.replace('//', '\\\\', 1)
                 if not should_quote or i == '&&': # Hackety hack hack
                     newelems.append(ninja_quote(i))
                 else:
