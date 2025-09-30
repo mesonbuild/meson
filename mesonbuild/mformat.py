@@ -371,7 +371,7 @@ class TrimWhitespaces(FullAstVisitor):
             if node.is_fstring and '@' not in node.value:
                 node.is_fstring = False
 
-        self.exit_node(node)
+        node.whitespaces.accept(self)
 
     def visit_UnaryOperatorNode(self, node: mparser.UnaryOperatorNode) -> None:
         super().visit_UnaryOperatorNode(node)
