@@ -86,6 +86,7 @@ buildtarget_kwargs = {
     'link_with',
     'link_whole',
     'link_args',
+    'link_early_args',
     'link_depends',
     'implicit_include_directories',
     'include_directories',
@@ -1180,6 +1181,10 @@ class BuildTarget(Target):
                     or build_rpath properties instead.
                     This will become a hard error in a future Meson release.
                 '''))
+        self.link_early_args = extract_as_list(kwargs, 'link_early_args')
+        for i in self.link_early_args:
+            if not isinstance(i, str):
+                raise InvalidArguments('link_early_args values must be strings.')
         self.process_link_depends(kwargs.get('link_depends', []))
         # Target-specific include dirs must be added BEFORE include dirs from
         # internal deps (added inside self.add_deps()) to override them.

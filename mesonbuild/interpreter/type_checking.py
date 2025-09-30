@@ -656,6 +656,13 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
         validator=in_set_validator(set(compilers.all_languages)),
         since='0.51.0',
     ),
+    KwargInfo(
+        'link_early_args',
+        (ContainerTypeInfo(list, str), NoneType),
+        listify=True,
+        default=None,
+        since='1.7.0',
+    ),
 ]
 
 def _validate_win_subsystem(value: T.Optional[str]) -> T.Optional[str]:

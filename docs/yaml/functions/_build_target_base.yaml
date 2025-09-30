@@ -103,6 +103,14 @@ kwargs:
       Flags to use during linking. You can use UNIX-style
       flags here for all platforms.
 
+  link_early_args:
+    type: list[str]
+    description: |
+      Flags to use during linking. These are just like link_args,
+      except that they are inserted into the linker command line
+      before any object files or libraries. You can use UNIX-style
+      flags here for all platforms.
+
   link_depends:
     type: str | file | custom_tgt | custom_idx
     description: |
