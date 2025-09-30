@@ -79,7 +79,7 @@ ALL_TESTS = ['cmake', 'common', 'native', 'warning-meson', 'failing-meson', 'fai
              'keyval', 'platform-osx', 'platform-windows', 'platform-linux', 'platform-android',
              'java', 'C#', 'vala', 'cython', 'rust', 'd', 'objective c', 'objective c++',
              'fortran', 'swift', 'cuda', 'python3', 'python', 'fpga', 'frameworks', 'nasm', 'wasm', 'wayland',
-             'format',
+             'format', 'selinux',
              ]
 
 
@@ -1079,6 +1079,9 @@ def should_skip_wayland() -> bool:
         return True
     return False
 
+def have_selinux() -> bool:
+    return shutil.which('checkmodule') is not None
+
 def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List[T.Tuple[str, T.List[TestDef], bool]]:
     """
     Parameters
@@ -1145,6 +1148,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
         TestCategory('wasm', 'wasm', shutil.which('emcc') is None or backend is not Backend.ninja),
         TestCategory('wayland', 'wayland', should_skip_wayland()),
         TestCategory('format', 'format'),
+        TestCategory('selinux', 'selinux', not have_selinux()),
     ]
 
     categories = [t.category for t in all_tests]

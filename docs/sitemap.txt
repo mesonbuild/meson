@@ -54,6 +54,7 @@ index.md
 			Qt5-module.md
 			Qt6-module.md
 			Rust-module.md
+			SELinux-module.md
 			Simd-module.md
 			SourceSet-module.md
 			Windows-module.md
