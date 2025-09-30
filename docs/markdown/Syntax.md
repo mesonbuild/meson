@@ -344,7 +344,7 @@ my_sources += files('bar.c')
 # than they're defined in
 
 # Example to set an API version for use in library(), install_header(), etc
-project('project', 'c', version: '0.2.3')
+project('project', host_machine_languages : 'c', version: '0.2.3')
 version_array = meson.project_version().split('.')
 # version_array now has the value ['0', '2', '3']
 api_version = '.'.join([version_array[0], version_array[1]])

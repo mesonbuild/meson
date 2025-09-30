@@ -20,7 +20,7 @@ Generally Cython is most useful when combined with the python module's
 extension_module method:
 
 ```meson
-project('my project', 'cython')
+project('my project', host_machine_languages : 'cython')
 
 py = import('python').find_installation()
 dep_py = py.dependency()
@@ -57,7 +57,7 @@ allows options only on a per-target granularity. This means that if you need to 
 cython files being transpiled to C and to C++ you need two targets:
 
 ```meson
-project('my project', 'cython')
+project('my project', host_machine_languages : 'cython')
 
 cython_cpp_lib = static_library(
     'helper_lib',

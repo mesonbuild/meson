@@ -9,7 +9,7 @@ Meson supports compiling applications and libraries written in
 [Genie](https://wiki.gnome.org/Projects/Genie) . A skeleton `meson.build` file:
 
 ```meson
-project('vala app', 'vala', 'c')
+project('vala app', host_machine_languages : 'vala')
 
 dependencies = [
     dependency('glib-2.0'),
@@ -60,7 +60,7 @@ Everything works seamlessly in the background and only a single extra line is
 needed:
 
 ```meson
-project('vala app', 'vala', 'c')
+project('vala app', host_machine_languages : 'vala')
 
 dependencies = [
     dependency('glib-2.0'),
@@ -98,7 +98,7 @@ This requires `--target-glib 2.38`, or a newer version, to be passed
 to Vala. With Meson this is simply done with:
 
 ```meson
-project('vala app', 'vala', 'c')
+project('vala app', host_machine_languages : 'vala')
 
 dependencies = [
     dependency('glib-2.0', version: '>=2.38'),
@@ -116,7 +116,7 @@ files to be built into the binary as GResources. For completeness,
 the next example shows this:
 
 ```meson
-project('vala app', 'vala', 'c')
+project('vala app', host_machine_languages : 'vala')
 
 dependencies = [
     dependency('glib-2.0', version: '>=2.38'),
@@ -152,7 +152,7 @@ directory to the VAPI search path. In Meson this is done with the
 `add_project_arguments()` function:
 
 ```meson
-project('vala app', 'vala', 'c')
+project('vala app', host_machine_languages : 'vala')
 
 vapi_dir = meson.current_source_dir() / 'vapi'
 
@@ -198,7 +198,7 @@ with Vala and installed in Vala's standard search path. Meson just
 needs to be told to only find the library for the Vala compiler:
 
 ```meson
-project('vala app', 'vala', 'c')
+project('vala app', host_machine_languages : 'vala')
 
 dependencies = [
     dependency('glib-2.0'),
@@ -218,7 +218,7 @@ the maths library separately. In this example Meson is told to find
 the library only for the C compiler:
 
 ```meson
-project('vala app', 'vala', 'c')
+project('vala app', host_machine_languages : 'vala')
 
 dependencies = [
     dependency('glib-2.0'),
@@ -240,7 +240,7 @@ pkg-config file and the VAPI is in the `vapi` directory of your
 project source files:
 
 ```meson
-project('vala app', 'vala', 'c')
+project('vala app', host_machine_languages : 'vala')
 
 vapi_dir = meson.current_source_dir() / 'vapi'
 

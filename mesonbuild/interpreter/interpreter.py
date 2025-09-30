@@ -1174,6 +1174,12 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs(
         'project',
         DEFAULT_OPTIONS,
+        KwargInfo('build_machine_languages', ContainerTypeInfo(list, str),
+                  listify=True, default=[], since='1.9.0',
+                  since_message='Use add_languages(..., native : true) after the project() call'),
+        KwargInfo('host_machine_languages', ContainerTypeInfo(list, str),
+                  listify=True, default=[], since='1.9.0',
+                  since_message='Use add_languages(..., native : false) after the project() call'),
         KwargInfo('meson_version', (str, NoneType)),
         KwargInfo(
             'version',
@@ -1299,7 +1305,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         mlog.log('Project version:', mlog.bold(self.project_version))
 
         self.add_languages(proj_langs, True, MachineChoice.HOST)
+        self.add_languages(kwargs['host_machine_languages'], True, MachineChoice.HOST)
         self.add_languages(proj_langs, False, MachineChoice.BUILD)
+        self.add_languages(kwargs['build_machine_languages'], True, MachineChoice.BUILD)
 
         if not self.is_subproject():
             self.check_stdlibs()

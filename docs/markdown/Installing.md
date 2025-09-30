@@ -21,7 +21,7 @@ By default Meson will not install anything. Build targets can be
 installed by tagging them as installable in the definition.
 
 ```meson
-project('install', 'c')
+project('install', host_machine_languages : 'c')
 shared_library('mylib', 'libfile.c', install : true)
 ```
 

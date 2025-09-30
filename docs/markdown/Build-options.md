@@ -266,7 +266,7 @@ visual studio. It should be the same name as an executable target
 name.
 
 ```meson
-project('my_project', 'c', default_options: ['backend_startup_project=my_exe'])
+project('my_project', host_machine_languages : 'c', default_options: ['backend_startup_project=my_exe'])
 executable('my_exe', ...)
 ```
 
