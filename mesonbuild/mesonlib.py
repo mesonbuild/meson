@@ -12,12 +12,4 @@ from .utils.core import *
 from .utils.vsenv import *
 
 from .utils.universal import *
-
-# Here we import either the posix implementations, the windows implementations,
-# or a generic no-op implementation
-if os.name == 'posix':
-    from .utils.posix import *
-elif os.name == 'nt':
-    from .utils.win32 import *
-else:
-    from .utils.platform import *
+from .utils.platform import *

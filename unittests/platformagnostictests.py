@@ -296,10 +296,10 @@ class PlatformAgnosticTests(BasePlatformTests):
                 data = json.load(f)['meson']
 
         with open(os.path.join(testdir, 'expected_mods.json'), encoding='utf-8') as f:
-            expected = json.load(f)['meson']['modules']
+            expected = json.load(f)['meson']
 
-        self.assertEqual(data['modules'], expected)
-        self.assertEqual(data['count'], 70)
+        self.assertEqual(data['modules'], expected['modules'])
+        self.assertEqual(data['count'], expected['count'])
 
     def test_meson_package_cache_dir(self):
         # Copy testdir into temporary directory to not pollute meson source tree.
