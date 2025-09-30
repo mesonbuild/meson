@@ -973,7 +973,8 @@ class TestRun:
         self.additional_error = ''
         self.cmd: T.Optional[T.List[str]] = None
         self.env = test_env
-        self.should_fail = test.should_fail
+        self.expected_fail = test.expected_fail
+        self.expected_exitcode = test.expected_exitcode
         self.project = test.project_name
         self.junit: T.Optional[et.ElementTree] = None
         self.is_parallel = is_parallel
@@ -1033,7 +1034,7 @@ class TestRun:
         if self.needs_parsing and self.console_mode is ConsoleUser.INTERACTIVE:
             self.res = TestResult.IGNORED
         assert isinstance(self.res, TestResult)
-        if self.should_fail and self.res in (TestResult.OK, TestResult.FAIL):
+        if self.expected_fail and self.res in (TestResult.OK, TestResult.FAIL):
             self.res = TestResult.UNEXPECTEDPASS if self.res is TestResult.OK else TestResult.EXPECTEDFAIL
         if self.stdo and not self.stdo.endswith('\n'):
             self.stdo += '\n'
@@ -1089,12 +1090,24 @@ class TestRunExitCode(TestRun):
     def complete(self) -> None:
         if self.res != TestResult.RUNNING:
             pass
-        elif self.returncode == GNU_SKIP_RETURNCODE:
-            self.res = TestResult.SKIP
-        elif self.returncode == GNU_ERROR_RETURNCODE:
-            self.res = TestResult.ERROR
-        else:
-            self.res = TestResult.FAIL if bool(self.returncode) else TestResult.OK
+        exitcode_map = [
+            # Default behaviour without specified expected exit code
+            ((0, None), TestResult.OK),
+            # Returned exitcode matches the specified exitcode
+            ((self.expected_exitcode, self.expected_exitcode), TestResult.OK),
+            # Returned exitcode matches the skip exit code
+            ((GNU_SKIP_RETURNCODE, self.expected_exitcode), TestResult.SKIP),
+            ((GNU_SKIP_RETURNCODE, None), TestResult.SKIP),
+            # Returned exitcode matches the error exit code
+            ((GNU_ERROR_RETURNCODE, self.expected_exitcode), TestResult.ERROR),
+            ((GNU_ERROR_RETURNCODE, None), TestResult.ERROR)
+        ]
+        self.res = TestResult.FAIL
+        key = (self.returncode, self.expected_exitcode)
+        for mapping, result in exitcode_map:
+            if key == mapping:
+                self.res = result
+                break
         super().complete()
 
 TestRun.PROTOCOL_TO_CLASS[TestProtocol.EXITCODE] = TestRunExitCode
