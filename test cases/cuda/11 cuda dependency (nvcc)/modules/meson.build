@@ -1,2 +1,2 @@
-exe = executable('prog', 'prog.cu', dependencies: dependency('cuda', modules: ['cublas', 'nvidia-ml']))
+exe = executable('prog', 'prog.cu', dependencies: dependency('cuda', modules: ['cublas', 'nvidia-ml', 'cupti']))
 test('cudatest', exe)
