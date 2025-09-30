@@ -75,7 +75,7 @@ if T.TYPE_CHECKING:
         install_dir: T.Optional[str]
         install_tag: T.Optional[str]
 
-    SourcesType = T.Union[str, mesonlib.File, build.BuildTarget, build.BothLibraries, build.CustomTarget]
+    SourcesType = T.Union[str, mesonlib.File, build.BuildTarget, build.BothLibraries, build.CustomTarget, build.CustomTargetIndex]
 
 
 _ARGS: KwargInfo[T.List[str]] = KwargInfo(
@@ -202,6 +202,8 @@ class XgettextProgram:
                 source_files.update(source.get_sources())
             elif isinstance(source, build.BothLibraries):
                 source_files.update(source.get('shared').get_sources())
+            elif isinstance(source, (build.CustomTarget, build.CustomTargetIndex)):
+                source_files.update(mesonlib.File.from_built_file(source.get_subdir(), f) for f in source.get_outputs())
         return source_files
 
     def _get_depends(self, sources: T.Iterable[SourcesType]) -> T.Set[build.CustomTarget]:
@@ -531,7 +533,7 @@ class I18nModule(ExtensionModule):
         return ModuleReturnValue(ct, [ct])
 
     @FeatureNew('i18n.xgettext', '1.8.0')
-    @typed_pos_args('i18n.xgettext', str, varargs=(str, mesonlib.File, build.BuildTarget, build.BothLibraries, build.CustomTarget), min_varargs=1)
+    @typed_pos_args('i18n.xgettext', str, varargs=(str, mesonlib.File, build.BuildTarget, build.BothLibraries, build.CustomTarget, build.CustomTargetIndex), min_varargs=1)
     @typed_kwargs(
         'i18n.xgettext',
         _ARGS,
@@ -541,6 +543,11 @@ class I18nModule(ExtensionModule):
         INSTALL_TAG_KW,
     )
     def xgettext(self, state: ModuleState, args: T.Tuple[str, T.List[SourcesType]], kwargs: XgettextProgramT) -> build.CustomTarget:
+        if any(isinstance(a, build.CustomTarget) for a in args[1]):
+            FeatureNew.single_use('i18n.xgettext with custom_target is broken until 1.10', '1.10.0', self.interpreter.subproject, location=self.interpreter.current_node)
+        if any(isinstance(a, build.CustomTargetIndex) for a in args[1]):
+            FeatureNew.single_use('i18n.xgettext with custom_target index', '1.10.0', self.interpreter.subproject, location=self.interpreter.current_node)
+
         toolname = 'xgettext'
         if self.tools[toolname] is None or not self.tools[toolname].found():
             self.tools[toolname] = state.find_program(toolname, required=True, for_machine=mesonlib.MachineChoice.BUILD)
