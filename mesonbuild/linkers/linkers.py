@@ -11,7 +11,7 @@ import re
 
 from .base import ArLikeLinker, RSPFileSyntax
 from .. import mesonlib
-from ..mesonlib import EnvironmentException, MesonException
+from ..mesonlib import EnvironmentException, MesonException, get_meson_command
 from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
@@ -447,6 +447,32 @@ class DLinker(StaticLinker):
     def rsp_file_syntax(self) -> RSPFileSyntax:
         return self.__rsp_syntax
 
+class TlibLinker(StaticLinker):
+
+    def __init__(self, exelist: T.List[str], bcc64: bool):
+        exelist = get_meson_command() + ['--internal', 'tlib'] + exelist
+        super().__init__(exelist)
+        self.id = 'tlib'
+        self._use_elf = bcc64
+        self._bcc64 = bcc64
+
+    def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
+        return ['/u']
+
+    def get_output_args(self, target: str) -> T.List[str]:
+        return [target]
+
+    def can_linker_accept_rsp(self) -> bool:
+        return True
+
+    def rsp_file_syntax(self) -> RSPFileSyntax:
+        return RSPFileSyntax.GCC
+
+    def get_linker_always_args(self) -> T.List[str]:
+        args = ['/p2048' if self._bcc64 else '/p512', '/N', '/B']
+        if self._use_elf:
+            args += ['/A'] # write GNU AR format archive with ELF objs
+        return args
 
 class CcrxLinker(StaticLinker):
 
@@ -1153,6 +1179,49 @@ class CompCertDynamicLinker(DynamicLinker):
     def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
                          target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
         return ([], set())
+
+class TurboDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
+
+    """Representation of Turbo Incremental Linker."""
+
+    id = 'ilink'
+
+    _SUBSYSTEMS: T.Dict[str, str] = {
+        "windows": "-tW",
+        "console": "-tC",
+    }
+
+    def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
+                 *, version: str = 'unknown version'):
+        super().__init__(exelist, for_machine, '', [],
+                         version=version)
+
+    def get_accepts_rsp(self) -> bool:
+        return True
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return []
+
+    def get_std_shared_lib_args(self) -> T.List[str]:
+        return ['-tD']
+
+    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+        versionsuffix = None
+        if ',' in value:
+            value, versionsuffix = value.split(',', 1)
+        newvalue = self._SUBSYSTEMS.get(value)
+        if newvalue is not None:
+            args = [newvalue]
+            if versionsuffix is not None:
+                args += [f'-V{versionsuffix}']
+        else:
+            raise mesonlib.MesonBugException(f'win_subsystem: {value!r} not handled in Turbo linker. This should not be possible.')
+
+        return args
+
+    def get_always_args(self) -> T.List[str]:
+        parent = super().get_always_args()
+        return ['-q'] + parent
 
 class TIDynamicLinker(DynamicLinker):
 
