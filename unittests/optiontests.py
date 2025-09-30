@@ -474,3 +474,21 @@ class OptionTests(unittest.TestCase):
         optstore.set_option(OptionKey(name), True)
         value = optstore.get_value(name)
         self.assertEqual(value, '1')
+
+    def test_pending_augment_validation(self):
+        name = 'b_lto'
+        subproject = 'mysubproject'
+
+        optstore = OptionStore(False)
+        prefix = UserStringOption('prefix', 'This is needed by OptionStore', '/usr')
+        optstore.add_system_option('prefix', prefix)
+
+        optstore.initialize_from_top_level_project_call({}, {}, {})
+        optstore.initialize_from_subproject_call(subproject, {}, {OptionKey(name): 'true'}, {}, {})
+
+        bo = UserBooleanOption(name, 'LTO', False)
+        key = OptionKey(name, subproject=subproject)
+        optstore.add_system_option(key, bo)
+        stored_value = optstore.get_value_for(key)
+        self.assertIsInstance(stored_value, bool)
+        self.assertTrue(stored_value)
