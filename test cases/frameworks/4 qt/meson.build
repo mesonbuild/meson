@@ -53,7 +53,7 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     else
       assert(not qtmodule.has_tools(), 'Unexpectedly found lrelease')
       assert(not qtmodule.has_tools(tools: ['lrelease']), 'Unexpectedly found lrelease')
-      assert(qtmodule.has_tools(tools: ['moc', 'uic', 'rcc']), 'You may be missing a devel package. (qttools5-dev-tools on Debian based systems)')
+      assert(qtmodule.has_tools(tools: ['moc', 'uic', 'rcc', 'lupdate']), 'You may be missing a devel package. (qttools5-dev-tools on Debian based systems)')
     endif
 
     # Test that fetching a variable works and yields a non-empty value
