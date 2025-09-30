@@ -90,7 +90,7 @@ for each executable.
 Positional arguments are the following:
 
 * name `str`: the name of the resulting pot file.
-* sources `array[str|File|build_tgt|custom_tgt]`:
+* sources `array[str|File|build_tgt|custom_tgt|custom_idx]`:
           source files or targets. May be a list of `string`, `File`, [[@build_tgt]],
           or [[@custom_tgt]] returned from other calls to this function.
 
@@ -119,5 +119,8 @@ given, all generated pot files from dependencies of the source targets are
 included to generate the final pot file. Therefore, adding a dependency to
 source target will automatically add the translations of that dependency to the
 needed translations for that source target.
+
+*New in 1.10.0* sources can be result of [[@custom_tgt]] or [[@custom_idx]].
+Before 1.10.0, custom targets were silently ignored.
 
 *Added 1.8.0*
