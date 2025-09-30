@@ -910,7 +910,7 @@ class OptionStore:
             proj_key = key.evolve(subproject=None)
             self.add_system_option_internal(proj_key, valobj)
             if pval is not None:
-                self.augments[key] = pval
+                self.augments[key] = valobj.validate_value(pval)
         else:
             self.options[key] = valobj
             if pval is not None:
