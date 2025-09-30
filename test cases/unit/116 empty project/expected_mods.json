@@ -233,7 +233,6 @@
       "mesonbuild.utils",
       "mesonbuild.utils.core",
       "mesonbuild.utils.platform",
-      "mesonbuild.utils.posix",
       "mesonbuild.utils.universal",
       "mesonbuild.utils.vsenv",
       "mesonbuild.wrap",
