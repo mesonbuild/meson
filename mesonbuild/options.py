@@ -909,12 +909,10 @@ class OptionStore:
         if key.subproject:
             proj_key = key.evolve(subproject=None)
             self.add_system_option_internal(proj_key, valobj)
-            if pval is not None:
-                self.augments[key] = pval
         else:
             self.options[key] = valobj
-            if pval is not None:
-                self.set_option(key, pval)
+        if pval is not None:
+            self.set_option(key, pval)
 
     def add_compiler_option(self, language: str, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
