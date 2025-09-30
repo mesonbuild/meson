@@ -2062,7 +2062,16 @@ def detect_subprojects(spdir_name: str, current_dir: str = '',
             continue
         append_this = True
         if os.path.isdir(trial):
-            detect_subprojects(spdir_name, trial, result)
+            # get subproject's spdir name from it's meson.build
+            from ..ast import IntrospectionInterpreter
+            from ..interpreterbase import InvalidArguments
+            intr = IntrospectionInterpreter(trial, '', 'none')
+            try:
+                intr.load_root_meson_file()
+                spdir_name = intr.extract_subproject_dir() or 'subprojects'
+                detect_subprojects(spdir_name, trial, result)
+            except InvalidArguments:  # subproject meson.build file cannot be found
+                append_this = False
         elif trial.endswith('.wrap') and os.path.isfile(trial):
             basename = os.path.splitext(basename)[0]
         else:
