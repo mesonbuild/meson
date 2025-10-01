@@ -1,6 +1,8 @@
 project('answer', 'rust', default_options: ['rust_std=2021'])
 
 rust = import('rust')
+cargo_ws = rust.workspace()
+assert(cargo_ws.packages() == ['answer'])
 
 l = static_library('answer', 'src/lib.rs')
 dep = declare_dependency(link_with: l)
