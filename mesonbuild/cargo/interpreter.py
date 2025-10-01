@@ -86,6 +86,17 @@ class Interpreter:
             build_def_files.append(os.path.join(self.subdir, 'Cargo.lock'))
         return build_def_files
 
+    def load_root_package(self) -> PackageState:
+        """Load the root Cargo.toml package and prepare it with features and dependencies."""
+        # Load the root manifest
+        manifest = self._load_manifest('.')
+        pkg = PackageState(manifest, False)
+        key = PackageKey(manifest.package.name, manifest.package.api)
+        self.packages[key] = pkg
+        self._prepare_package(pkg)
+        self._enable_feature(pkg, 'default')
+        return pkg
+
     def interpret(self, subdir: str) -> mparser.CodeBlockNode:
         manifest = self._load_manifest(subdir)
         pkg, cached = self._fetch_package(manifest.package.name, manifest.package.api)

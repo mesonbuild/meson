@@ -9,7 +9,7 @@ import typing as T
 
 from mesonbuild.interpreterbase.decorators import FeatureNew
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo
+from . import ExtensionModule, ModuleReturnValue, ModuleInfo, MutableModuleObject
 from .. import mesonlib, mlog
 from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
                      CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary, StaticLibrary)
@@ -18,7 +18,7 @@ from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
     OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator
 )
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
+from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs, permittedKwargs
 from ..interpreter.interpreterobjects import Doctest
 from ..mesonlib import File, MesonException, PerMachine
 from ..programs import ExternalProgram, NonExistingExternalProgram
@@ -80,6 +80,15 @@ def no_spaces_validator(arg: T.Optional[T.Union[str, T.List]]) -> T.Optional[str
     return None
 
 
+class RustWorkspace(MutableModuleObject):
+    """Represents a Rust workspace, controlling the build of packages
+       recorded in a Cargo.lock file."""
+
+    def __init__(self, interpreter: 'Interpreter') -> None:
+        super().__init__()
+        self.interpreter = interpreter
+
+
 class RustModule(ExtensionModule):
 
     """A module that holds helper functions for rust."""
@@ -87,6 +96,7 @@ class RustModule(ExtensionModule):
     INFO = ModuleInfo('rust', '0.57.0', stabilized='1.0.0')
     _bindgen_rust_target: T.Optional[str]
     rustdoc: PerMachine[T.Optional[ExternalProgram]] = PerMachine(None, None)
+    _workspace_cache: T.Dict[T.Any, RustWorkspace] = {}
 
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
@@ -102,6 +112,7 @@ class RustModule(ExtensionModule):
             'doctest': self.doctest,
             'bindgen': self.bindgen,
             'proc_macro': self.proc_macro,
+            'workspace': self.workspace,
         })
 
     def test_common(self, funcname: str, state: ModuleState, args: T.Tuple[str, BuildTarget], kwargs: FuncRustTest) -> T.Tuple[Executable, _kwargs.FuncTest]:
@@ -482,6 +493,24 @@ class RustModule(ExtensionModule):
         kwargs['rust_args'] = kwargs['rust_args'] + ['--extern', 'proc_macro']
         target = state._interpreter.build_target(state.current_node, args, kwargs, SharedLibrary)
         return target
+
+    @noPosargs
+    @noKwargs
+    def workspace(self, state: ModuleState, args: T.List, kwargs: T.Dict[str, T.Any]) -> RustWorkspace:
+        """Creates a Rust workspace object, controlling the build of
+           all the packages in a Cargo.lock file."""
+        if self.interpreter.cargo is None:
+            raise MesonException("rust.workspace() requires a Cargo project (Cargo.toml and Cargo.lock)")
+
+        # Check if we already have a cached workspace for this cargo interpreter
+        # TODO: this should be per-subproject
+        ws_obj = self._workspace_cache.get(self.interpreter.cargo)
+        if ws_obj is None:
+            self.interpreter.cargo.load_root_package()
+            ws_obj = RustWorkspace(self.interpreter)
+            self._workspace_cache[self.interpreter.cargo] = ws_obj
+
+        return ws_obj
 
 
 def initialize(interp: Interpreter) -> RustModule:
