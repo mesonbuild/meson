@@ -103,8 +103,16 @@ class RustWorkspace(ModuleObject):
         self.interpreter = interpreter
         self.ws = ws
         self.methods.update({
+            'packages': self.packages_method,
             'subproject': self.subproject_method,
         })
+
+    @noPosargs
+    @noKwargs
+    def packages_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
+        """Returns list of package names in workspace."""
+        package_names = [pkg.manifest.package.name for pkg in self.ws.packages.values()]
+        return sorted(package_names)
 
     def _do_subproject(self, pkg: cargo.PackageState) -> None:
         kw: _kwargs.DoSubproject = {
