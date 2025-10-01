@@ -3258,6 +3258,10 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     def depend_files(self) -> T.List[File]:
         return self.target.depend_files
 
+    @property
+    def subdir(self) -> str:
+        return self.target.subdir
+
     def __repr__(self):
         return '<CustomTargetIndex: {!r}[{}]>'.format(self.target, self.output)
 
