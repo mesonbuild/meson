@@ -204,6 +204,14 @@ automatically included.
 
 ## Workspace object
 
+### workspace.packages()
+
+```meson
+packages = ws.packages()
+```
+
+Returns a list of package names in the workspace.
+
 ### workspace.subproject()
 
 ```meson
