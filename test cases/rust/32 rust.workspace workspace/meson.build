@@ -3,6 +3,9 @@ project('workspace test', 'rust', default_options: ['rust_std=2021'])
 rust = import('rust')
 cargo = rust.workspace()
 
+# Test workspace.packages() method
+assert(cargo.packages() == ['answer', 'hello', 'workspace_test'])
+
 hello_rs = cargo.subproject('hello')
 answer_rs = cargo.subproject('answer', '2')
 
