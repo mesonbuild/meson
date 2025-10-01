@@ -20,7 +20,7 @@ import typing as T
 from . import builder, version, cfg
 from .toml import load_toml
 from .manifest import Manifest, CargoLock, fixup_meson_varname
-from ..mesonlib import MesonException, MachineChoice, version_compare
+from ..mesonlib import MesonException, MachineChoice, unique_list, version_compare
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
 
@@ -65,6 +65,8 @@ class PackageKey:
 
 
 class Interpreter:
+    _features: T.Optional[T.List[str]] = None
+
     def __init__(self, env: Environment, subdir: str, subprojects_dir: str) -> None:
         self.environment = env
         # Map Cargo.toml's subdir to loaded manifest.
@@ -80,6 +82,21 @@ class Interpreter:
             self.subdir = subdir
             self.environment.wrap_resolver.merge_wraps(self.cargolock.wraps)
 
+    @property
+    def features(self) -> T.List[str]:
+        """Get the features list. Once read, it cannot be modified."""
+        if self._features is None:
+            self._features = ['default']
+        return self._features
+
+    @features.setter
+    def features(self, value: T.List[str]) -> None:
+        """Set the features list. Can only be set before first read."""
+        value_unique = sorted(unique_list(value))
+        if self._features is not None and value_unique != self._features:
+            raise MesonException("Cannot modify features after they have been selected or used")
+        self._features = value_unique
+
     def get_build_def_files(self) -> T.List[str]:
         build_def_files = [os.path.join(subdir, 'Cargo.toml') for subdir in self.manifests]
         if self.cargolock:
@@ -94,7 +111,8 @@ class Interpreter:
         key = PackageKey(manifest.package.name, manifest.package.api)
         self.packages[key] = pkg
         self._prepare_package(pkg)
-        self._enable_feature(pkg, 'default')
+        for feature in self.features:
+            self._enable_feature(pkg, feature)
         return pkg
 
     def interpret(self, subdir: str) -> mparser.CodeBlockNode:

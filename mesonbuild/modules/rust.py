@@ -18,7 +18,7 @@ from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
     OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator
 )
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs, permittedKwargs
+from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
 from ..interpreter.interpreterobjects import Doctest
 from ..mesonlib import File, MesonException, PerMachine
 from ..programs import ExternalProgram, NonExistingExternalProgram
@@ -495,12 +495,33 @@ class RustModule(ExtensionModule):
         return target
 
     @noPosargs
-    @noKwargs
+    @typed_kwargs(
+        'rust.workspace',
+        KwargInfo('default_features', (bool, NoneType), default=None),
+        KwargInfo(
+            'features',
+            (ContainerTypeInfo(list, str), NoneType),
+            default=None,
+            listify=True,
+        ),
+    )
     def workspace(self, state: ModuleState, args: T.List, kwargs: T.Dict[str, T.Any]) -> RustWorkspace:
         """Creates a Rust workspace object, controlling the build of
            all the packages in a Cargo.lock file."""
         if self.interpreter.cargo is None:
             raise MesonException("rust.workspace() requires a Cargo project (Cargo.toml and Cargo.lock)")
+
+        default_features = kwargs['default_features']
+        features = kwargs['features']
+        if default_features is not None or features is not None:
+            # If custom features are provided, default_features = None should be treated as True
+            if default_features is None:
+                default_features = True
+
+            cargo_features = ['default'] if default_features else []
+            if features is not None:
+                cargo_features.extend(features)
+            self.interpreter.cargo.features = cargo_features
 
         # Check if we already have a cached workspace for this cargo interpreter
         # TODO: this should be per-subproject
