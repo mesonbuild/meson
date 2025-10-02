@@ -3401,12 +3401,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         sources = [s for s in sources
                    if not isinstance(s, (build.BuildTarget, build.ExtractedObjects))]
 
-        # due to lack of type checking, these are "allowed" for legacy reasons
-        if not isinstance(kwargs['install'], bool):
-            FeatureBroken.single_use('install kwarg with non-boolean value', '1.3.0', self.subproject,
-                                     'This was never intended to work, and is essentially the same as using `install: true` regardless of value.',
-                                     node)
-
         sources = self.source_strings_to_files(sources)
         objs = kwargs['objects']
         kwargs['dependencies'] = extract_as_list(kwargs, 'dependencies')
@@ -3488,11 +3482,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             elif kwargs['export_dynamic']:
                 if kwargs['implib'] is False:
                     raise InvalidArguments('"implib" keyword" must not be false if "export_dynamic" is set and not false.')
-                kwargs['implib'] = True
             if kwargs['export_dynamic'] is None:
                 kwargs['export_dynamic'] = False
-            if kwargs['implib'] is None:
-                kwargs['implib'] = False
+            if isinstance(kwargs['implib'], bool):
+                kwargs['implib'] = None
 
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
                              self.environment, self.compilers[for_machine], kwargs)

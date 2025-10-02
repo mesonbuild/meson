@@ -13,7 +13,7 @@ from ..build import (CustomTarget, BuildTarget,
                      BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources)
 from ..options import OptionKey, UserFeatureOption
 from ..dependencies import Dependency, InternalDependency
-from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
+from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken
 from ..mesonlib import (File, FileMode, MachineChoice, has_path_sep, listify, stringlistify,
                         EnvironmentVariables)
 from ..programs import ExternalProgram
@@ -28,6 +28,7 @@ if T.TYPE_CHECKING:
     from ..interpreterbase import TYPE_var
     from ..options import ElementaryOptionValues
     from ..mesonlib import EnvInitValueType
+    from ..interpreterbase.decorators import FeatureCheckBase
 
     _FullEnvInitValueType = T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], EnvInitValueType, str, None]
     PkgConfigDefineType = T.Optional[T.Tuple[T.Tuple[str, str], ...]]
@@ -570,13 +571,29 @@ def _objects_validator(vals: T.List[ObjectTypes]) -> T.Optional[str]:
     return None
 
 
+def _target_install_feature_validator(val: object) -> T.Iterable[FeatureCheckBase]:
+    # due to lack of type checking, these are "allowed" for legacy reasons
+    if not isinstance(val, bool):
+        yield FeatureBroken('install kwarg with non-boolean value', '1.3.0',
+                            'This was never intended to work, and is essentially the same as using `install: true` regardless of value.')
+
+
+def _target_install_convertor(val: object) -> bool:
+    return bool(val)
+
+
 # Applies to all build_target like classes
 _ALL_TARGET_KWS: T.List[KwargInfo] = [
     OVERRIDE_OPTIONS_KW,
     KwargInfo('build_by_default', bool, default=True, since='0.38.0'),
     KwargInfo('extra_files', ContainerTypeInfo(list, (str, File)), default=[], listify=True),
-    # Accursed. We allow this for backwards compat and warn in the interpreter.
-    KwargInfo('install', object, default=False),
+    KwargInfo(
+        'install',
+        object,
+        default=False,
+        convertor=_target_install_convertor,
+        feature_validator=_target_install_feature_validator,
+    ),
     INSTALL_MODE_KW,
     KwargInfo('implicit_include_directories', bool, default=True, since='0.42.0'),
     NATIVE_KW,
@@ -712,7 +729,14 @@ _DARWIN_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
 _EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
     KwargInfo('export_dynamic', (bool, NoneType), since='0.45.0'),
     KwargInfo('gui_app', (bool, NoneType), deprecated='0.56.0', deprecated_message="Use 'win_subsystem' instead"),
-    KwargInfo('implib', (bool, str, NoneType), since='0.42.0'),
+    KwargInfo(
+        'implib',
+        (bool, str, NoneType),
+        since='0.42.0',
+        deprecated_values={
+            bool: ('1.10.0', 'Use "export_dynamic" keyword instead'),
+        },
+    ),
     KwargInfo('pie', (bool, NoneType)),
     KwargInfo(
         'win_subsystem',
