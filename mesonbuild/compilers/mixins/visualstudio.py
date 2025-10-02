@@ -512,6 +512,7 @@ class ClangClCompiler(VisualStudioLikeCompiler):
         return args
 
     def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
+                          legal_code: bool = False,
                           thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         args = []
         if mode == 'thin' and thinlto_cache_dir is not None:
