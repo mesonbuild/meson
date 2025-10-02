@@ -54,6 +54,7 @@ if T.TYPE_CHECKING:
     LibTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
     BuildTargetTypes: TypeAlias = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
     ObjectTypes: TypeAlias = T.Union[str, 'File', 'ExtractedObjects', 'GeneratedTypes']
+    AnyTargetType: TypeAlias = T.Union['Target', 'CustomTargetIndex']
 
     class DFeatures(TypedDict):
 
