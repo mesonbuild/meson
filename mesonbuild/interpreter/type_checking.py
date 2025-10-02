@@ -24,14 +24,14 @@ NoneType: T.Type[None] = type(None)
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
-    from ..build import ObjectTypes
+    from ..build import ObjectTypes, GeneratedTypes, BuildTargetTypes
     from ..interpreterbase import TYPE_var
     from ..options import ElementaryOptionValues
     from ..mesonlib import EnvInitValueType
 
     _FullEnvInitValueType = T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], EnvInitValueType, str, None]
     PkgConfigDefineType = T.Optional[T.Tuple[T.Tuple[str, str], ...]]
-    SourcesVarargsType = T.List[T.Union[str, File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget]]
+    SourcesVarargsType = T.List[T.Union[str, File, GeneratedTypes, StructuredSources, ExtractedObjects, BuildTarget]]
 
 
 def in_set_validator(choices: T.Set[str]) -> T.Callable[[str], T.Optional[str]]:
@@ -269,7 +269,7 @@ DEPFILE_KW: KwargInfo[T.Optional[str]] = KwargInfo(
     validator=lambda x: 'Depfile must be a plain filename with a subdirectory' if has_path_sep(x) else None
 )
 
-DEPENDS_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]] = KwargInfo(
+DEPENDS_KW: KwargInfo[T.List[BuildTargetTypes]] = KwargInfo(
     'depends',
     ContainerTypeInfo(list, (BuildTarget, CustomTarget, CustomTargetIndex)),
     listify=True,
@@ -284,7 +284,7 @@ DEPEND_FILES_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
     default=[],
 )
 
-COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTarget, CustomTarget, CustomTargetIndex, ExternalProgram, File]]] = KwargInfo(
+COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTargetTypes, ExternalProgram, File]]] = KwargInfo(
     'command',
     ContainerTypeInfo(list, (str, BuildTarget, CustomTarget, CustomTargetIndex, ExternalProgram, File), allow_empty=False),
     required=True,
@@ -349,7 +349,7 @@ OUTPUT_KW: KwargInfo[str] = KwargInfo(
     validator=lambda x: _output_validator([x])
 )
 
-CT_INPUT_KW: KwargInfo[T.List[T.Union[str, File, ExternalProgram, BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects, GeneratedList]]] = KwargInfo(
+CT_INPUT_KW: KwargInfo[T.List[T.Union[str, File, ExternalProgram, BuildTarget, GeneratedTypes, ExtractedObjects]]] = KwargInfo(
     'input',
     ContainerTypeInfo(list, (str, File, ExternalProgram, BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects, GeneratedList)),
     listify=True,
@@ -461,7 +461,7 @@ LINK_WHOLE_KW: KwargInfo[T.List[T.Union[BothLibraries, StaticLibrary, CustomTarg
     validator=link_whole_validator,
 )
 
-DEPENDENCY_SOURCES_KW: KwargInfo[T.List[T.Union[str, File, CustomTarget, CustomTargetIndex, GeneratedList]]] = KwargInfo(
+DEPENDENCY_SOURCES_KW: KwargInfo[T.List[T.Union[str, File, GeneratedTypes]]] = KwargInfo(
     'sources',
     ContainerTypeInfo(list, (str, File, CustomTarget, CustomTargetIndex, GeneratedList)),
     listify=True,

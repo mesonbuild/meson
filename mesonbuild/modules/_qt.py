@@ -39,7 +39,7 @@ if T.TYPE_CHECKING:
         """Keyword arguments for the Resource Compiler method."""
 
         name: T.Optional[str]
-        sources: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
+        sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
         extra_args: T.List[str]
         method: str
 
@@ -47,7 +47,7 @@ if T.TYPE_CHECKING:
 
         """Keyword arguments for the Ui Compiler method."""
 
-        sources: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
+        sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
         extra_args: T.List[str]
         method: str
         preserve_paths: bool
@@ -56,8 +56,8 @@ if T.TYPE_CHECKING:
 
         """Keyword arguments for the Moc Compiler method."""
 
-        sources: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
-        headers: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
+        sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
+        headers: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
         extra_args: T.List[str]
         method: str
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
@@ -94,7 +94,7 @@ if T.TYPE_CHECKING:
         method: str
         qresource: T.Optional[str]
         rcc_extra_arguments: T.List[str]
-        ts_files: T.List[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
+        ts_files: T.List[T.Union[str, File, build.GeneratedTypes]]
 
     class GenQrcKwArgs(TypedDict):
 
@@ -325,7 +325,7 @@ class QtBaseModule(ExtensionModule):
             raise MesonException(f'Unable to parse resource file {abspath}')
 
     def _parse_qrc_deps(self, state: ModuleState,
-                        rcc_file_: T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]) -> T.List[File]:
+                        rcc_file_: T.Union[FileOrString, build.GeneratedTypes]) -> T.List[File]:
         result: T.List[File] = []
         inputs: T.Sequence['FileOrString'] = []
         if isinstance(rcc_file_, (str, File)):
