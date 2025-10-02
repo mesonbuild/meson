@@ -96,7 +96,7 @@ if T.TYPE_CHECKING:
         compile_args: T.List[str]
         include_directories: T.List[build.IncludeDirs]
         dependencies: T.List[dependencies.Dependency]
-        depends: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]
+        depends: T.List[build.BuildTargetTypes]
 
 
 class _TestMode(enum.Enum):
@@ -148,7 +148,7 @@ _DEPENDENCIES_KW: KwargInfo[T.List['dependencies.Dependency']] = KwargInfo(
     listify=True,
     default=[],
 )
-_DEPENDS_KW: KwargInfo[T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]] = KwargInfo(
+_DEPENDS_KW: KwargInfo[T.List[build.BuildTargetTypes]] = KwargInfo(
     'depends',
     ContainerTypeInfo(list, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)),
     listify=True,
