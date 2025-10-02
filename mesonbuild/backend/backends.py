@@ -46,7 +46,7 @@ if T.TYPE_CHECKING:
 
     from typing_extensions import TypedDict, NotRequired
 
-    _ALL_SOURCES_TYPE = T.List[T.Union[File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
+    _ALL_SOURCES_TYPE = T.List[T.Union[File, build.GeneratedTypes]]
 
     class TargetIntrospectionData(TypedDict):
 
@@ -295,7 +295,7 @@ class Backend:
     def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict] = None) -> T.Optional[T.Dict]:
         raise RuntimeError(f'generate is not implemented in {type(self).__name__}')
 
-    def get_target_filename(self, t: T.Union[build.Target, build.CustomTargetIndex], *, warn_multi_output: bool = True) -> str:
+    def get_target_filename(self, t: build.AnyTargetType, *, warn_multi_output: bool = True) -> str:
         if isinstance(t, build.CustomTarget):
             if warn_multi_output and len(t.get_outputs()) != 1:
                 mlog.warning(f'custom_target {t.name!r} has more than one output! '
@@ -308,7 +308,7 @@ class Backend:
             filename = t.get_filename()
         return os.path.join(self.get_target_dir(t), filename)
 
-    def get_target_filename_abs(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
+    def get_target_filename_abs(self, target: build.AnyTargetType) -> str:
         return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
 
     def get_target_debug_filename(self, target: build.BuildTarget) -> T.Optional[str]:
@@ -343,7 +343,7 @@ class Backend:
                 curdir = '.'
         return compiler.get_include_args(curdir, False)
 
-    def get_target_filename_for_linking(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> T.Optional[str]:
+    def get_target_filename_for_linking(self, target: build.AnyTargetType) -> T.Optional[str]:
         # On some platforms (msvc for instance), the file that is used for
         # dynamic linking is not the same as the dynamic library itself. This
         # file is called an import library, and we want to link against that.
@@ -368,7 +368,7 @@ class Backend:
         raise AssertionError(f'BUG: Tried to link to {target!r} which is not linkable')
 
     @lru_cache(maxsize=None)
-    def get_target_dir(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
+    def get_target_dir(self, target: build.AnyTargetType) -> str:
         if isinstance(target, build.RunTarget):
             # this produces no output, only a dummy top-level name
             dirname = ''
@@ -394,16 +394,16 @@ class Backend:
             return os.path.join(self.build_to_src, target_dir)
         return self.build_to_src
 
-    def get_target_private_dir(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]) -> str:
+    def get_target_private_dir(self, target: build.BuildTargetTypes) -> str:
         return os.path.join(self.get_target_filename(target, warn_multi_output=False) + '.p')
 
-    def get_target_private_dir_abs(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]) -> str:
+    def get_target_private_dir_abs(self, target: build.BuildTargetTypes) -> str:
         return os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
 
     @lru_cache(maxsize=None)
     def get_target_generated_dir(
-            self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex],
-            gensrc: T.Union[build.CustomTarget, build.CustomTargetIndex, build.GeneratedList],
+            self, target: build.BuildTargetTypes,
+            gensrc: build.GeneratedTypes,
             src: str) -> str:
         """
         Takes a BuildTarget, a generator source (CustomTarget or GeneratedList),
@@ -417,7 +417,7 @@ class Backend:
         # target that the GeneratedList is used in
         return os.path.join(self.get_target_private_dir(target), src)
 
-    def get_unity_source_file(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex],
+    def get_unity_source_file(self, target: build.BuildTargetTypes,
                               suffix: str, number: int) -> mesonlib.File:
         # There is a potential conflict here, but it is unlikely that
         # anyone both enables unity builds and has a file called foo-unity.cpp.
@@ -1117,8 +1117,8 @@ class Backend:
         return results
 
     def determine_windows_extra_paths(
-            self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, programs.ExternalProgram, mesonlib.File, str],
-            extra_bdeps: T.Sequence[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]) -> T.List[str]:
+            self, target: T.Union[build.BuildTargetTypes, programs.ExternalProgram, mesonlib.File, str],
+            extra_bdeps: T.Sequence[build.BuildTargetTypes]) -> T.List[str]:
         """On Windows there is no such thing as an rpath.
 
         We must determine all locations of DLLs that this exe
@@ -1184,7 +1184,7 @@ class Backend:
             exe_wrapper = self.environment.get_exe_wrapper()
             machine = self.environment.machines[exe.for_machine]
             if machine.is_windows() or machine.is_cygwin():
-                extra_bdeps: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]] = []
+                extra_bdeps: T.List[build.BuildTargetTypes] = []
                 if isinstance(exe, build.CustomTarget):
                     extra_bdeps = list(exe.get_transitive_build_target_deps())
                 extra_bdeps.extend(t.depends)
@@ -1252,7 +1252,7 @@ class Backend:
     def write_test_serialisation(self, tests: T.List['Test'], datafile: T.BinaryIO) -> None:
         pickle.dump(self.create_test_serialisation(tests), datafile)
 
-    def construct_target_rel_paths(self, t: T.Union[build.Target, build.CustomTargetIndex], workdir: T.Optional[str]) -> T.List[str]:
+    def construct_target_rel_paths(self, t: build.AnyTargetType, workdir: T.Optional[str]) -> T.List[str]:
         target_dir = self.get_target_dir(t)
         # ensure that test executables can be run when passed as arguments
         if isinstance(t, build.Executable) and workdir is None:
@@ -1452,7 +1452,7 @@ class Backend:
                     deps.append(os.path.join(self.build_to_src, target.subdir, i))
         return deps
 
-    def get_custom_target_output_dir(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
+    def get_custom_target_output_dir(self, target: build.AnyTargetType) -> str:
         # The XCode backend is special. A target foo/bar does
         # not go to ${BUILDDIR}/foo/bar but instead to
         # ${BUILDDIR}/${BUILDTYPE}/foo/bar.
@@ -2025,7 +2025,7 @@ class Backend:
                               compiler: 'Compiler',
                               sources: _ALL_SOURCES_TYPE,
                               output_templ: str,
-                              depends: T.Optional[T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]] = None,
+                              depends: T.Optional[T.List[build.BuildTargetTypes]] = None,
                               ) -> build.GeneratedList:
         '''
         Some backends don't support custom compilers. This is a convenience
