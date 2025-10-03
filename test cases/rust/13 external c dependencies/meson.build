@@ -21,3 +21,10 @@ e = executable(
 )
 
 test('cdepstest', e)
+
+e2 = executable(
+  'prog2', 'prog.rs',
+  dependencies : declare_dependency(link_with: l, sources: files('foo.h')),
+)
+
+test('cdepstest', e2)
