@@ -19,6 +19,7 @@ from typing_extensions import Protocol
 
 
 T = typing.TypeVar('T')
+T_co = typing.TypeVar('T_co', covariant=True)
 
 
 class StringProtocol(Protocol):
@@ -67,3 +68,32 @@ class ImmutableListProtocol(Protocol[T]):
     def index(self, item: T, /) -> int: ...
 
     def copy(self) -> typing.List[T]: ...
+
+
+class Sequence(Protocol[T_co]):
+
+    """A Sequence like type that does not allow str.
+
+    There are times where one wants to use a string as a sequence, but in that
+    case it would be better to write a `str | Sequence[str]` to be explicit.
+
+    This works because the `__contains__` method for `str` doesn't accept `object`.
+    """
+
+    @typing.overload
+    def __getitem__(self, index: typing.SupportsIndex, /) -> T_co: ...
+
+    @typing.overload
+    def __getitem__(self, index: slice, /) -> typing.Sequence[T_co]: ...
+
+    def __contains__(self, value: object, /) -> bool: ...
+
+    def __len__(self) -> int: ...
+
+    def __iter__(self) -> typing.Iterator[T_co]: ...
+
+    def index(self, value: typing.Any, start: int = 0, stop: int = ..., /) -> int: ...
+
+    def count(self, value: typing.Any, /) -> int: ...
+
+    def __reversed__(self) -> typing.Iterator[T_co]: ...
