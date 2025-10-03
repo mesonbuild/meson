@@ -1985,7 +1985,7 @@ class NinjaBackend(backends.Backend):
             return orderdeps, main_rust_file
 
         for i in target.get_sources():
-            if main_rust_file is None:
+            if main_rust_file is None and i.endswith('.rs'):
                 main_rust_file = i.rel_to_builddir(self.build_to_src)
         for g in target.get_generated_sources():
             for i in g.get_outputs():
@@ -1993,7 +1993,7 @@ class NinjaBackend(backends.Backend):
                     fname = os.path.join(self.get_target_private_dir(target), i)
                 else:
                     fname = os.path.join(g.get_subdir(), i)
-                if main_rust_file is None:
+                if main_rust_file is None and fname.endswith('.rs'):
                     main_rust_file = fname
                 orderdeps.append(fname)
 
