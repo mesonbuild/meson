@@ -2062,7 +2062,7 @@ class Generator(HoldableObject):
                     if not is_parent_path(preserve_path_from, abs_f):
                         raise InvalidArguments('generator.process: When using preserve_path_from, all input files must be in a subdirectory of the given dir.')
                 f = FileMaybeInTargetPrivateDir(f)
-                output.add_file(f, state)
+                output.add_file(f, state.environment)
         return output
 
 
@@ -2101,9 +2101,9 @@ class GeneratedList(HoldableObject):
                 # know the absolute path of
                 self.depend_files.append(File.from_absolute_file(path))
 
-    def add_preserved_path_segment(self, infile: FileMaybeInTargetPrivateDir, outfiles: T.List[str], state: T.Union['Interpreter', 'ModuleState']) -> T.List[str]:
+    def add_preserved_path_segment(self, infile: FileMaybeInTargetPrivateDir, outfiles: T.List[str], environment: Environment) -> T.List[str]:
         result: T.List[str] = []
-        in_abs = infile.absolute_path(state.environment.source_dir, state.environment.build_dir)
+        in_abs = infile.absolute_path(environment.source_dir, environment.build_dir)
         assert os.path.isabs(self.preserve_path_from)
         rel = os.path.relpath(in_abs, self.preserve_path_from)
         path_segment = os.path.dirname(rel)
@@ -2111,11 +2111,11 @@ class GeneratedList(HoldableObject):
             result.append(os.path.join(path_segment, of))
         return result
 
-    def add_file(self, newfile: FileMaybeInTargetPrivateDir, state: T.Union['Interpreter', 'ModuleState']) -> None:
+    def add_file(self, newfile: FileMaybeInTargetPrivateDir, environment: Environment) -> None:
         self.infilelist.append(newfile)
         outfiles = self.generator.get_base_outnames(newfile.fname)
         if self.preserve_path_from:
-            outfiles = self.add_preserved_path_segment(newfile, outfiles, state)
+            outfiles = self.add_preserved_path_segment(newfile, outfiles, environment)
         self.outfilelist += outfiles
         self.outmap[newfile] = outfiles
 
