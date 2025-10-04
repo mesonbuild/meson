@@ -178,6 +178,7 @@ class CommandLineParser:
 
         from . import mesonlib
         args = mesonlib.expand_arguments(args)
+        validate_args(args)
         options = parser.parse_args(args)
 
         if command is None:
@@ -234,7 +235,7 @@ def set_meson_command(mainfile: str) -> None:
     from . import mesonlib
     mesonlib.set_meson_command(mainfile)
 
-def validate_original_args(args):
+def validate_args(args):
     import mesonbuild.options
     import itertools
 
@@ -300,7 +301,6 @@ def run(original_args: T.List[str], mainfile: str) -> int:
             return run_script_command(args[1], args[2:])
 
     set_meson_command(mainfile)
-    validate_original_args(args)
     return CommandLineParser().run(args)
 
 def main() -> int:
