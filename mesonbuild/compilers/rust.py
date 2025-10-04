@@ -11,7 +11,7 @@ import re
 import typing as T
 
 from .. import options
-from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged
+from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged, version_compare
 from ..options import OptionKey
 from .compilers import Compiler, CompileCheckMode, clike_debug_args
 
@@ -193,6 +193,20 @@ class RustCompiler(Compiler):
     @functools.lru_cache(maxsize=None)
     def get_crt_static(self) -> bool:
         return 'target_feature="crt-static"' in self.get_cfgs()
+
+    @functools.lru_cache(maxsize=None)
+    def has_verbatim(self) -> bool:
+        if version_compare(self.version, '< 1.67.0'):
+            return False
+        # GNU ld support '-l:PATH'
+        if 'ld.' in self.linker.id:
+            return True
+        # -l:+verbatim does not work (yet?) with MSVC link or Apple ld64
+        # (https://github.com/rust-lang/rust/pull/138753).  For ld64, it
+        # works together with -l:+whole_archive because -force_load (the macOS
+        # equivalent of --whole-archive), receives the full path to the library
+        # being linked.  However, Meson uses "bundle", not "whole_archive".
+        return False
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return clike_debug_args[is_debug]
