@@ -47,7 +47,6 @@ if T.TYPE_CHECKING:
     from .interpreterbase import SubProject
     from .linkers.linkers import StaticLinker
     from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
-    from .modules import ModuleState
     from .mparser import BaseNode
     from .interpreter.kwargs import RustAbi
 
@@ -2033,13 +2032,13 @@ class Generator(HoldableObject):
         return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
 
     def process_files(self, files: T.Iterable[T.Union[str, File, GeneratedTypes]],
-                      state: T.Union['Interpreter', 'ModuleState'],
+                      subdir: str = '',
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None,
                       env: T.Optional[EnvironmentVariables] = None) -> 'GeneratedList':
         output = GeneratedList(
             self,
-            state.subdir,
+            subdir,
             preserve_path_from,
             extra_args=extra_args if extra_args is not None else [],
             env=env if env is not None else EnvironmentVariables())
@@ -2054,7 +2053,7 @@ class Generator(HoldableObject):
                 output.depends.add(e)
                 fs = [FileInTargetPrivateDir(f) for f in e.get_outputs()]
             elif isinstance(e, str):
-                fs = [File.from_source_file(self.environment.source_dir, state.subdir, e)]
+                fs = [File.from_source_file(self.environment.source_dir, subdir, e)]
             else:
                 fs = [e]
 
