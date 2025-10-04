@@ -138,7 +138,7 @@ class AstPrinter(AstVisitor):
 
     def visit_ComparisonNode(self, node: mparser.ComparisonNode) -> None:
         node.left.accept(self)
-        self.append_padded(node.ctype if node.ctype != 'notin' else 'not in', node)
+        self.append_padded(node.ctype, node)
         node.lineno = self.curr_line or node.lineno
         node.right.accept(self)
 

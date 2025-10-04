@@ -347,7 +347,7 @@ class InterpreterBase:
         # New code based on InterpreterObjects
         operator = {
             'in': MesonOperator.IN,
-            'notin': MesonOperator.NOT_IN,
+            'not in': MesonOperator.NOT_IN,
             '==': MesonOperator.EQUALS,
             '!=': MesonOperator.NOT_EQUALS,
             '>': MesonOperator.GREATER,
