@@ -407,7 +407,7 @@ class PythonModule(ExtensionModule):
         if not any(PythonExternalProgram.run_bytecompile.values()):
             return ret
 
-        installdata = backend.create_install_data()
+        installdata = backend.install_data
         py_files = []
 
         def should_append(f, isdir: bool = False):

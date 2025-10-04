@@ -60,7 +60,7 @@ def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
     if backend and builddata:
         benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
         testdata = backend.create_test_serialisation(builddata.get_tests())
-        installdata = backend.create_install_data()
+        installdata = backend.install_data
     else:
         benchmarkdata = testdata = installdata = None
 
