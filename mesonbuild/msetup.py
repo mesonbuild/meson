@@ -340,6 +340,7 @@ class MesonApp:
         b.devenv.append(intr.backend.get_devenv())
         for mod in intr.modules.values():
             mod.postconf_hook(b)
+        b.def_files = intr.get_build_def_files()
 
 def run_genvslite_setup(options: CMDOptions) -> None:
     # With --genvslite, we essentially want to invoke multiple 'setup' iterations. I.e. -

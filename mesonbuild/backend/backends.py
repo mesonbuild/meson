@@ -1303,7 +1303,7 @@ class Backend:
         '''List of all files whose alteration means that the build
         definition needs to be regenerated.'''
         deps = OrderedSet([str(Path(self.build_to_src) / df)
-                           for df in self.interpreter.get_build_def_files()])
+                           for df in self.build.def_files])
         if self.environment.is_cross_build():
             deps.update(self.environment.coredata.cross_files)
         deps.update(self.environment.coredata.config_files)
