@@ -1988,7 +1988,8 @@ class FileMaybeInTargetPrivateDir:
         return self.fname
 
 class Generator(HoldableObject):
-    def __init__(self, exe: T.Union['Executable', programs.ExternalProgram],
+    def __init__(self, env: Environment,
+                 exe: T.Union['Executable', programs.ExternalProgram],
                  arguments: T.List[str],
                  output: T.List[str],
                  # how2dataclass
@@ -1997,6 +1998,7 @@ class Generator(HoldableObject):
                  capture: bool = False,
                  depends: T.Optional[T.List[BuildTargetTypes]] = None,
                  name: str = 'Generator'):
+        self.environment = env
         self.exe = exe
         self.depfile = depfile
         self.capture = capture
@@ -2052,17 +2054,17 @@ class Generator(HoldableObject):
                 output.depends.add(e)
                 fs = [FileInTargetPrivateDir(f) for f in e.get_outputs()]
             elif isinstance(e, str):
-                fs = [File.from_source_file(state.environment.source_dir, state.subdir, e)]
+                fs = [File.from_source_file(self.environment.source_dir, state.subdir, e)]
             else:
                 fs = [e]
 
             for f in fs:
                 if preserve_path_from:
-                    abs_f = f.absolute_path(state.environment.source_dir, state.environment.build_dir)
+                    abs_f = f.absolute_path(self.environment.source_dir, self.environment.build_dir)
                     if not is_parent_path(preserve_path_from, abs_f):
                         raise InvalidArguments('generator.process: When using preserve_path_from, all input files must be in a subdirectory of the given dir.')
                 f = FileMaybeInTargetPrivateDir(f)
-                output.add_file(f, state.environment)
+                output.add_file(f, self.environment)
         return output
 
 
