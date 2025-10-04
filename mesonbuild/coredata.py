@@ -18,7 +18,6 @@ import textwrap
 from .mesonlib import (
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
-    default_prefix,
     pickle_load
 )
 
@@ -283,7 +282,7 @@ class CoreData:
         # Only to print a warning if it changes between Meson invocations.
         self.config_files = self.__load_config_files(cmd_options, scratch_dir, 'native')
         self.builtin_options_libdir_cross_fixup()
-        self.init_builtins()
+        self.optstore.init_builtins()
 
     @staticmethod
     def __load_config_files(cmd_options: SharedCMDOptions, scratch_dir: str, ftype: str) -> T.List[str]:
@@ -350,34 +349,6 @@ class CoreData:
         if self.cross_files:
             options.BUILTIN_OPTIONS[OptionKey('libdir')].default = 'lib'
 
-    def init_builtins(self) -> None:
-        # Create builtin options with default values
-        for key, opt in options.BUILTIN_OPTIONS.items():
-            self.add_builtin_option(self.optstore, key, opt)
-        for for_machine in iter(MachineChoice):
-            for key, opt in options.BUILTIN_OPTIONS_PER_MACHINE.items():
-                self.add_builtin_option(self.optstore, key.evolve(machine=for_machine), opt)
-
-    @staticmethod
-    def add_builtin_option(optstore: options.OptionStore, key: OptionKey,
-                           opt: options.AnyOptionType) -> None:
-        # Create a copy of the object, as we're going to mutate it
-        opt = copy.copy(opt)
-        if key.subproject:
-            if opt.yielding:
-                # This option is global and not per-subproject
-                return
-        else:
-            new_value = options.argparse_prefixed_default(
-                opt, key, default_prefix())
-            opt.set_value(new_value)
-
-        modulename = key.get_module_prefix()
-        if modulename:
-            optstore.add_module_option(modulename, key, opt)
-        else:
-            optstore.add_system_option(key, opt)
-
     def init_backend_options(self, backend_name: str) -> None:
         if backend_name == 'ninja':
             self.optstore.add_system_option('backend_max_links', options.UserIntegerOption(
@@ -411,19 +382,6 @@ class CoreData:
 
     def set_from_configure_command(self, options: SharedCMDOptions) -> bool:
         return self.optstore.set_from_configure_command(options.cmd_line_options)
-
-    def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
-        dirty = False
-        try:
-            changed = self.optstore.set_option(key, value, first_invocation)
-        except KeyError:
-            raise MesonException(f'Tried to set unknown builtin option {str(key)}')
-        dirty |= changed
-
-        if key.name == 'buildtype':
-            dirty |= self._set_others_from_buildtype(value)
-
-        return dirty
 
     def clear_cache(self) -> None:
         self.deps.host.clear()
@@ -460,37 +418,10 @@ class CoreData:
             result.append(('debug', actual_debug, debug))
         return result
 
-    def _set_others_from_buildtype(self, value: str) -> bool:
-        dirty = False
-
-        if value == 'plain':
-            opt = 'plain'
-            debug = False
-        elif value == 'debug':
-            opt = '0'
-            debug = True
-        elif value == 'debugoptimized':
-            opt = '2'
-            debug = True
-        elif value == 'release':
-            opt = '3'
-            debug = False
-        elif value == 'minsize':
-            opt = 's'
-            debug = True
-        else:
-            assert value == 'custom'
-            return False
-
-        dirty |= self.optstore.set_option(OptionKey('optimization'), opt)
-        dirty |= self.optstore.set_option(OptionKey('debug'), debug)
-
-        return dirty
-
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         key = OptionKey(f'{lang}_args', machine=for_machine)
-        return T.cast('T.List[str]', self.optstore.get_value(key))
+        return T.cast('T.List[str]', self.optstore.get_value_for(key))
 
     @lru_cache(maxsize=None)
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
@@ -502,68 +433,6 @@ class CoreData:
         if when_building_for == MachineChoice.BUILD:
             return False
         return len(self.cross_files) > 0
-
-    def copy_build_options_from_regular_ones(self, shut_up_pylint: bool = True) -> bool:
-        # FIXME, needs cross compilation support.
-        if shut_up_pylint:
-            return False
-        dirty = False
-        assert not self.is_cross_build()
-        for k in options.BUILTIN_OPTIONS_PER_MACHINE:
-            o = self.optstore.get_value_object_for(k.name)
-            dirty |= self.optstore.set_option(k, o.value, True)
-        for bk, bv in self.optstore.items():
-            if bk.machine is MachineChoice.BUILD:
-                hk = bk.as_host()
-                try:
-                    hv = self.optstore.get_value_object(hk)
-                    dirty |= bv.set_value(hv.value)
-                except KeyError:
-                    continue
-
-        return dirty
-
-    def set_options(self, opts_to_set: T.Dict[OptionKey, T.Any], subproject: str = '', first_invocation: bool = False) -> bool:
-        dirty = False
-        if not self.is_cross_build():
-            opts_to_set = {k: v for k, v in opts_to_set.items() if k.machine is not MachineChoice.BUILD}
-        # Set prefix first because it's needed to sanitize other options
-        pfk = OptionKey('prefix')
-        if pfk in opts_to_set:
-            prefix = self.optstore.sanitize_prefix(opts_to_set[pfk])
-            for key in options.BUILTIN_DIR_NOPREFIX_OPTIONS:
-                if key not in opts_to_set:
-                    val = options.BUILTIN_OPTIONS[key].prefixed_default(key, prefix)
-                    dirty |= self.optstore.set_option(key, val)
-
-        unknown_options: T.List[OptionKey] = []
-        for k, v in opts_to_set.items():
-            if k == pfk:
-                continue
-            elif k.evolve(subproject=None) in self.optstore:
-                dirty |= self.set_option(k, v, first_invocation)
-            elif k.machine != MachineChoice.BUILD and not self.optstore.is_compiler_option(k):
-                unknown_options.append(k)
-        if unknown_options:
-            if subproject:
-                # The subproject may have top-level options that should be used
-                # when it is not a subproject. Ignore those for now. With option
-                # refactor they will get per-subproject values.
-                really_unknown = []
-                for uo in unknown_options:
-                    topkey = uo.as_root()
-                    if topkey not in self.optstore:
-                        really_unknown.append(uo)
-                unknown_options = really_unknown
-            if unknown_options:
-                unknown_options_str = ', '.join(sorted(str(s) for s in unknown_options))
-                sub = f'In subproject {subproject}: ' if subproject else ''
-                raise MesonException(f'{sub}Unknown options: "{unknown_options_str}"')
-
-        if not self.is_cross_build():
-            dirty |= self.copy_build_options_from_regular_ones()
-
-        return dirty
 
     def add_compiler_options(self, c_options: MutableKeyedOptionDictType, lang: str, for_machine: MachineChoice,
                              subproject: str) -> None:
@@ -604,7 +473,7 @@ class CoreData:
 
     def emit_base_options_warnings(self) -> None:
         bcodekey = OptionKey('b_bitcode')
-        if bcodekey in self.optstore and self.optstore.get_value(bcodekey):
+        if bcodekey in self.optstore and self.optstore.get_value_for(bcodekey):
             msg = textwrap.dedent('''Base option 'b_bitcode' is enabled, which is incompatible with many linker options.
                                      Incompatible options such as \'b_asneeded\' have been disabled.'
                                      Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.''')

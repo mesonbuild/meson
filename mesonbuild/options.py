@@ -715,8 +715,7 @@ BUILTIN_CORE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
         ),
         UserComboOption('buildtype', 'Build type to use', 'debug', choices=buildtypelist),
         UserBooleanOption('debug', 'Enable debug symbols and other information', True),
-        UserComboOption('default_library', 'Default library type', 'shared', choices=['shared', 'static', 'both'],
-                        yielding=False),
+        UserComboOption('default_library', 'Default library type', 'shared', choices=['shared', 'static', 'both']),
         UserComboOption('default_both_libraries', 'Default library type for both_libraries', 'shared',
                         choices=['shared', 'static', 'auto']),
         UserBooleanOption('errorlogs', "Whether to print the logs from failing tests", True),
@@ -729,9 +728,8 @@ BUILTIN_CORE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
         UserBooleanOption('strip', 'Strip targets on install', False),
         UserComboOption('unity', 'Unity build', 'off', choices=['on', 'off', 'subprojects']),
         UserIntegerOption('unity_size', 'Unity block size', 4, min_value=2),
-        UserComboOption('warning_level', 'Compiler warning level to use', '1', choices=['0', '1', '2', '3', 'everything'],
-                        yielding=False),
-        UserBooleanOption('werror', 'Treat warnings as errors', False, yielding=False),
+        UserComboOption('warning_level', 'Compiler warning level to use', '1', choices=['0', '1', '2', '3', 'everything']),
+        UserBooleanOption('werror', 'Treat warnings as errors', False),
         UserComboOption('wrap_mode', 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote']),
         UserStringArrayOption('force_fallback_for', 'Force fallback for those subprojects', []),
         UserBooleanOption('vsenv', 'Activate Visual Studio environment', False, readonly=True),
@@ -845,9 +843,6 @@ class OptionStore:
             return self.options[key].value
         return self.pending_options.get(key, default)
 
-    def get_value(self, key: T.Union[OptionKey, str]) -> ElementaryOptionValues:
-        return self.get_value_for(key)
-
     def __len__(self) -> int:
         return len(self.options)
 
@@ -954,6 +949,27 @@ class OptionStore:
             raise MesonException('Internal error: module option name {key.name} does not start with module prefix {modulename}.')
         self.add_system_option_internal(key, valobj)
         self.module_options.add(key)
+
+    def add_builtin_option(self, key: OptionKey, opt: AnyOptionType) -> None:
+        # Create a copy of the object, as we're going to mutate it
+        opt = copy.copy(opt)
+        assert key.subproject is None
+        new_value = argparse_prefixed_default(opt, key, default_prefix())
+        opt.set_value(new_value)
+
+        modulename = key.get_module_prefix()
+        if modulename:
+            self.add_module_option(modulename, key, opt)
+        else:
+            self.add_system_option(key, opt)
+
+    def init_builtins(self) -> None:
+        # Create builtin options with default values
+        for key, opt in BUILTIN_OPTIONS.items():
+            self.add_builtin_option(key, opt)
+        for for_machine in iter(MachineChoice):
+            for key, opt in BUILTIN_OPTIONS_PER_MACHINE.items():
+                self.add_builtin_option(key.evolve(machine=for_machine), opt)
 
     def sanitize_prefix(self, prefix: str) -> str:
         prefix = os.path.expanduser(prefix)
@@ -1149,21 +1165,9 @@ class OptionStore:
                     new_value = prefix_mapping[new_prefix]
             valobj.set_value(new_value)
 
-    # FIXME, this should be removed.or renamed to "change_type_of_existing_object" or something like that
-    def set_value_object(self, key: T.Union[OptionKey, str], new_object: AnyOptionType) -> None:
-        key = self.ensure_and_validate_key(key)
-        self.options[key] = new_object
-
     def get_value_object(self, key: T.Union[OptionKey, str]) -> AnyOptionType:
         key = self.ensure_and_validate_key(key)
         return self.options[key]
-
-    def get_default_for_b_option(self, key: OptionKey) -> ElementaryOptionValues:
-        assert self.is_base_option(key)
-        try:
-            return COMPILER_BASE_OPTIONS[key.evolve(subproject=None)].default
-        except KeyError:
-            raise MesonBugException(f'Requested base option {key} which does not exist.')
 
     def remove(self, key: OptionKey) -> None:
         del self.options[key]
@@ -1187,12 +1191,6 @@ class OptionStore:
 
     def items(self) -> T.ItemsView['OptionKey', 'AnyOptionType']:
         return self.options.items()
-
-    def setdefault(self, k: OptionKey, o: AnyOptionType) -> AnyOptionType:
-        return self.options.setdefault(k, o)
-
-    def get(self, o: OptionKey, default: T.Optional[AnyOptionType] = None, **kwargs: T.Any) -> T.Optional[AnyOptionType]:
-        return self.options.get(o, default, **kwargs)
 
     def is_project_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a project option."""
@@ -1321,14 +1319,7 @@ class OptionStore:
 
         # ignore subprojects for now for machine file and command line
         # options; they are applied later
-        for key, valstr in machine_file_options.items():
-            # Due to backwards compatibility we ignore all build-machine options
-            # when building natively.
-            if not self.is_cross and key.is_for_build():
-                continue
-            if not key.subproject:
-                self.set_user_option(key, valstr, True)
-        for key, valstr in cmd_line_options.items():
+        for key, valstr in itertools.chain(machine_file_options.items(), cmd_line_options.items()):
             # Due to backwards compatibility we ignore all build-machine options
             # when building natively.
             if not self.is_cross and key.is_for_build():
@@ -1423,6 +1414,7 @@ class OptionStore:
 
     def update_project_options(self, project_options: MutableKeyedOptionDictType, subproject: SubProject) -> None:
         for key, value in project_options.items():
+            assert key.machine == MachineChoice.HOST
             if key not in self.options:
                 self.add_project_option(key, value)
                 continue
@@ -1436,7 +1428,7 @@ class OptionStore:
                 # If the choices have changed, use the new value, but attempt
                 # to keep the old options. If they are not valid keep the new
                 # defaults but warn.
-                self.set_value_object(key, value)
+                self.options[key] = value
                 try:
                     value.set_value(oldval.value)
                 except MesonException:

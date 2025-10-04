@@ -1144,7 +1144,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertPathExists(os.path.join(pkg_dir, 'librelativepath.pc'))
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        env.coredata.set_options({OptionKey('pkg_config_path'): pkg_dir}, subproject='')
+        env.coredata.optstore.set_option(OptionKey('pkg_config_path'), pkg_dir)
         kwargs = {'required': True, 'silent': True}
         relative_path_dep = PkgConfigDependency('librelativepath', env, kwargs)
         self.assertTrue(relative_path_dep.found())
@@ -1160,13 +1160,13 @@ class LinuxlikeTests(BasePlatformTests):
         pkg_dir = os.path.join(testdir, 'pkgconfig')
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        env.coredata.set_options({OptionKey('pkg_config_path'): pkg_dir}, subproject='')
+        env.coredata.optstore.set_option(OptionKey('pkg_config_path'), pkg_dir)
 
         # Regression test: This used to modify the value of `pkg_config_path`
         # option, adding the meson-uninstalled directory to it.
         PkgConfigInterface.setup_env({}, env, MachineChoice.HOST, uninstalled=True)
 
-        pkg_config_path = env.coredata.optstore.get_value('pkg_config_path')
+        pkg_config_path = env.coredata.optstore.get_value_for('pkg_config_path')
         self.assertEqual(pkg_config_path, [pkg_dir])
 
     def test_pkgconfig_uninstalled_env_added(self):
@@ -1195,8 +1195,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
 
-        env.coredata.set_options({OptionKey('pkg_config_path'): external_pkg_config_path_dir},
-                                 subproject='')
+        env.coredata.optstore.set_option(OptionKey('pkg_config_path'), external_pkg_config_path_dir)
 
         newEnv = PkgConfigInterface.setup_env({}, env, MachineChoice.HOST, uninstalled=True)
 

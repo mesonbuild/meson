@@ -1084,7 +1084,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         if optname_regex.search(optname.split('.', maxsplit=1)[-1]) is not None:
             raise InterpreterException(f'Invalid option name {optname!r}')
 
-        # Will be None only if the value comes from the default
         value_object: T.Optional[options.AnyOptionType]
 
         try:
@@ -1094,14 +1093,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             if self.coredata.optstore.is_base_option(optkey):
                 # Due to backwards compatibility return the default
                 # option for base options instead of erroring out.
-                #
-                # TODO: This will have issues if we expect to return a user FeatureOption
-                #       Of course, there's a bit of a layering violation here in
-                #       that we return a UserFeatureOption, but otherwise the held value
-                #       We probably need a lower level feature thing, or an enum
-                #       instead of strings
-                value = self.coredata.optstore.get_default_for_b_option(optkey)
-                value_object = None
+                value_object = options.COMPILER_BASE_OPTIONS[optkey.evolve(subproject=None)]
+                value = value_object.default
             else:
                 if self.subproject:
                     raise MesonException(f'Option {optname} does not exist for subproject {self.subproject}.')
@@ -1112,7 +1105,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             ocopy.value = value
             return ocopy
         elif optname == 'b_sanitize':
-            assert value_object is None or isinstance(value_object, options.UserStringArrayOption)
+            assert isinstance(value_object, options.UserStringArrayOption)
             # To ensure backwards compatibility this always returns a string.
             # We may eventually want to introduce a new "format" kwarg that
             # allows the user to modify this behaviour, but for now this is
@@ -1160,15 +1153,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                 mlog.log('Auto detected Visual Studio backend:', mlog.bold(self.backend.name))
             if not self.environment.first_invocation:
                 raise MesonBugException(f'Backend changed from {backend_name} to {self.backend.name}')
-            self.coredata.set_option(OptionKey('backend'), self.backend.name, first_invocation=True)
+            self.coredata.optstore.set_option(OptionKey('backend'), self.backend.name, first_invocation=True)
 
-        # Only init backend options on first invocation otherwise it would
-        # override values previously set from command line.
-        if self.environment.first_invocation:
-            self.coredata.init_backend_options(backend_name)
-
-        options = {k: v for k, v in self.environment.options.items() if self.environment.coredata.optstore.is_backend_option(k)}
-        self.coredata.set_options(options)
+        self.environment.init_backend_options(backend_name)
 
     @typed_pos_args('project', str, varargs=str)
     @typed_kwargs(
@@ -1483,8 +1470,6 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def add_languages(self, args: T.List[str], required: bool, for_machine: MachineChoice) -> bool:
         success = self.add_languages_for(args, required, for_machine)
-        if not self.coredata.is_cross_build():
-            self.coredata.copy_build_options_from_regular_ones()
         self._redetect_machines()
         return success
 
@@ -3081,9 +3066,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             return
         if OptionKey('b_sanitize') not in self.coredata.optstore:
             return
-        if (self.coredata.optstore.get_value('b_lundef') and
-                self.coredata.optstore.get_value('b_sanitize')):
-            value = self.coredata.optstore.get_value('b_sanitize')
+        if (self.coredata.optstore.get_value_for('b_lundef') and
+                self.coredata.optstore.get_value_for('b_sanitize')):
+            value = self.coredata.optstore.get_value_for('b_sanitize')
             mlog.warning(textwrap.dedent(f'''\
                     Trying to use {value} sanitizer on Clang with b_lundef.
                     This will probably not work.

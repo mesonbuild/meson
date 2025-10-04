@@ -833,9 +833,6 @@ class Environment:
                             env_opts[key].extend(p_list)
                     else:
                         key = OptionKey.from_string(keyname).evolve(machine=for_machine)
-                        if evar in compilers.compilers.CFLAGS_MAPPING.values():
-                            lang = key.name.split('_', 1)[0]
-                            key = key.evolve(f'{lang}_args')
                         env_opts[key].extend(p_list)
 
         # If this is an environment variable, we have to
@@ -908,6 +905,17 @@ class Environment:
             meson_command = meson_command.copy()
         self.coredata = coredata.CoreData(options, self.scratch_dir, meson_command)
         self.first_invocation = True
+
+    def init_backend_options(self, backend_name: str) -> None:
+        # Only init backend options on first invocation otherwise it would
+        # override values previously set from command line.
+        if not self.first_invocation:
+            return
+
+        self.coredata.init_backend_options(backend_name)
+        for k, v in self.options.items():
+            if self.coredata.optstore.is_backend_option(k):
+                self.coredata.optstore.set_option(k, v)
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         return self.coredata.is_cross_build(when_building_for)

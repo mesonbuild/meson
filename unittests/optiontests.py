@@ -261,7 +261,6 @@ class OptionTests(unittest.TestCase):
         cmd_line = {key: opt_value}
         optstore.initialize_from_top_level_project_call({}, cmd_line, {})
         self.assertEqual(optstore.get_value_object_and_value_for(key.as_build())[1], opt_value)
-        self.assertEqual(optstore.get_value(key.as_build()), opt_value)
         self.assertEqual(optstore.get_value_for(key.as_build()), opt_value)
 
     def test_build_to_host_subproject(self):
@@ -282,8 +281,6 @@ class OptionTests(unittest.TestCase):
         optstore.initialize_from_subproject_call(subp, spcall, {}, {}, {})
         self.assertEqual(optstore.get_value_object_and_value_for(key.evolve(subproject=subp,
                                                                             machine=MachineChoice.BUILD))[1], opt_value)
-        self.assertEqual(optstore.get_value(key.evolve(subproject=subp,
-                                                       machine=MachineChoice.BUILD)), opt_value)
         self.assertEqual(optstore.get_value_for(key.evolve(subproject=subp,
                                                            machine=MachineChoice.BUILD)), opt_value)
 
@@ -306,15 +303,8 @@ class OptionTests(unittest.TestCase):
 
         self.assertEqual(optstore.get_value_object_and_value_for(key)[1], opt_value)
         self.assertEqual(optstore.get_value_object_and_value_for(key.as_build())[1], def_value)
-        self.assertEqual(optstore.get_value(key), opt_value)
-        self.assertEqual(optstore.get_value(key.as_build()), def_value)
         self.assertEqual(optstore.get_value_for(key), opt_value)
         self.assertEqual(optstore.get_value_for(key.as_build()), def_value)
-
-    def test_b_default(self):
-        optstore = OptionStore(False)
-        value = optstore.get_default_for_b_option(OptionKey('b_vscrt'))
-        self.assertEqual(value, 'from_buildtype')
 
     def test_b_nonexistent(self):
         optstore = OptionStore(False)
@@ -472,7 +462,7 @@ class OptionTests(unittest.TestCase):
                               deprecated={'true': '1'})
         optstore.add_system_option(name, do)
         optstore.set_option(OptionKey(name), True)
-        value = optstore.get_value(name)
+        value = optstore.get_value_for(name)
         self.assertEqual(value, '1')
 
     def test_pending_augment_validation(self):

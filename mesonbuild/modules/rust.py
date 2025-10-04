@@ -443,7 +443,7 @@ class RustModule(ExtensionModule):
         if self._bindgen_rust_target and '--rust-target' not in cmd:
             cmd.extend(['--rust-target', self._bindgen_rust_target])
         if self._bindgen_set_std and '--rust-edition' not in cmd:
-            rust_std = state.environment.coredata.optstore.get_value('rust_std')
+            rust_std = state.environment.coredata.optstore.get_value_for('rust_std')
             assert isinstance(rust_std, str), 'for mypy'
             if rust_std != 'none':
                 cmd.extend(['--rust-edition', rust_std])
