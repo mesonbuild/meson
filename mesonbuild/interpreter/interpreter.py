@@ -536,10 +536,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if isinstance(val, mparser.StringNode):
                     self.handle_meson_version(val.value, val)
 
-    def get_build_def_files(self) -> mesonlib.OrderedSet[str]:
+    def get_build_def_files(self) -> T.List[str]:
         if self.cargo:
             self.build_def_files.update(self.cargo.get_build_def_files())
-        return self.build_def_files
+        return list(self.build_def_files)
 
     def add_build_def_file(self, f: mesonlib.FileOrString) -> None:
         # Use relative path for files within source directory, and absolute path
