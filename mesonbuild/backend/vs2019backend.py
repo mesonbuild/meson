@@ -11,15 +11,14 @@ from .vs2010backend import Vs2010Backend
 
 if T.TYPE_CHECKING:
     from ..build import Build
-    from ..interpreter import Interpreter
 
 
 class Vs2019Backend(Vs2010Backend):
 
     name = 'vs2019'
 
-    def __init__(self, build: T.Optional[Build], interpreter: T.Optional[Interpreter]):
-        super().__init__(build, interpreter)
+    def __init__(self, build: T.Optional[Build]):
+        super().__init__(build)
         self.sln_file_version = '12.00'
         self.sln_version_comment = 'Version 16'
 
