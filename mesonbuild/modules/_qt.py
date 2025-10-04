@@ -514,6 +514,7 @@ class QtBaseModule(ExtensionModule):
 
         preserve_path_from = os.path.join(state.source_root, state.subdir) if kwargs['preserve_paths'] else None
         gen = build.Generator(
+            state.environment,
             self.tools['uic'],
             kwargs['extra_args'] + ['-o', '@OUTPUT@', '@INPUT@'],
             ['ui_@BASENAME@.h'],
@@ -589,6 +590,7 @@ class QtBaseModule(ExtensionModule):
             if do_output_json:
                 header_gen_output.append('moc_@BASENAME@.cpp.json')
             moc_gen = build.Generator(
+                state.environment,
                 self.tools['moc'], arguments, header_gen_output,
                 depfile='moc_@BASENAME@.cpp.d',
                 name=f'Qt{self.qt_version} moc header')
@@ -598,6 +600,7 @@ class QtBaseModule(ExtensionModule):
             if do_output_json:
                 source_gen_output.append('@BASENAME@.moc.json')
             moc_gen = build.Generator(
+                state.environment,
                 self.tools['moc'], arguments, source_gen_output,
                 depfile='@BASENAME@.moc.d',
                 name=f'Qt{self.qt_version} moc source')
@@ -892,6 +895,7 @@ class QtBaseModule(ExtensionModule):
         command_args.append('@INPUT@')
 
         cache_gen = build.Generator(
+            state.environment,
             self.tools['qmlcachegen'],
             command_args,
             [f'{target_name}_@BASENAME@.cpp'],
