@@ -41,7 +41,6 @@ if T.TYPE_CHECKING:
 
     from .._typing import ImmutableListProtocol
     from ..build import ExtractedObjects, LibTypes
-    from ..interpreter import Interpreter
     from ..linkers.linkers import DynamicLinker, StaticLinker
     from ..compilers.cs import CsCompiler
     from ..compilers.fortran import FortranCompiler
@@ -479,8 +478,8 @@ class RustCrate:
 
 class NinjaBackend(backends.Backend):
 
-    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
-        super().__init__(build, interpreter)
+    def __init__(self, build: T.Optional[build.Build]):
+        super().__init__(build)
         self.name = 'ninja'
         self.ninja_filename = 'build.ninja'
         self.fortran_deps: T.Dict[str, T.Dict[str, File]] = {}

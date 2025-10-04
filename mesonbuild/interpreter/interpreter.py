@@ -1158,10 +1158,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             # Use of the '--genvslite vsxxxx' option ultimately overrides any '--backend xxx'
             # option the user may specify.
             backend_name = self.coredata.optstore.get_value_for(OptionKey('genvslite'))
-            self.backend = backends.get_genvslite_backend(backend_name, self.build, self)
+            self.backend = backends.get_genvslite_backend(backend_name, self.build)
         else:
             backend_name = self.coredata.optstore.get_value_for(OptionKey('backend'))
-            self.backend = backends.get_backend_from_name(backend_name, self.build, self)
+            self.backend = backends.get_backend_from_name(backend_name, self.build)
 
         if self.backend is None:
             raise InterpreterException(f'Unknown backend "{backend_name}".')
