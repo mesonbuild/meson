@@ -17,7 +17,6 @@ from ..options import OptionKey
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
     from ..compilers import Compiler
-    from ..interpreter import Interpreter
 
 INDENT = '\t'
 XCODETYPEMAP = {'c': 'sourcecode.c.c',
@@ -236,8 +235,8 @@ class XCodeBackend(backends.Backend):
 
     name = 'xcode'
 
-    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
-        super().__init__(build, interpreter)
+    def __init__(self, build: T.Optional[build.Build]):
+        super().__init__(build)
         self.project_uid = self.environment.coredata.lang_guids['default'].replace('-', '')[:24]
         self.buildtype = T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype')))
         self.project_conflist = self.gen_id()
