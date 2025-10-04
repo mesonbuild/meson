@@ -2038,7 +2038,7 @@ class Backend:
                                     exe, args + commands.to_native(),
                                     [output_templ], depfile='@PLAINNAME@.d',
                                     depends=depends)
-        return generator.process_files(sources, self.interpreter)
+        return generator.process_files(sources)
 
     def compile_target_to_generator(self, target: build.CompileTarget) -> build.GeneratedList:
         all_sources = T.cast('_ALL_SOURCES_TYPE', target.sources) + T.cast('_ALL_SOURCES_TYPE', target.generated)
