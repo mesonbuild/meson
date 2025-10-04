@@ -280,12 +280,12 @@ class XCodeBackend(backends.Backend):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
 
     @functools.lru_cache(maxsize=None)
-    def get_target_dir(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
+    def get_target_dir(self, target: build.AnyTargetType) -> str:
         dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))))
         #os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
-    def get_custom_target_output_dir(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
+    def get_custom_target_output_dir(self, target: build.AnyTargetType) -> str:
         dirname = target.get_subdir()
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
@@ -525,7 +525,7 @@ class XCodeBackend(backends.Backend):
                 generator_id += 1
 
     def gen_single_target_map(self, genlist: build.GeneratedList, tname: str,
-                              t: T.Union[build.BuildTarget, build.CustomTarget], generator_id: int) -> None:
+                              t: build.AnyTargetType, generator_id: int) -> None:
         k = (tname, generator_id)
         assert k not in self.shell_targets
         self.shell_targets[k] = self.gen_id()
@@ -1439,7 +1439,7 @@ class XCodeBackend(backends.Backend):
                     self.generate_single_generator_phase(tname, t, genlist, generator_id, objects_dict)
                     generator_id += 1
 
-    def generate_single_generator_phase(self, tname: str, t: T.Union[build.BuildTarget, build.CustomTarget],
+    def generate_single_generator_phase(self, tname: str, t: build.AnyTargetType,
                                         genlist: build.GeneratedList, generator_id: int, objects_dict: PbxDict) -> None:
         # TODO: this should be rewritten to use the meson wrapper, like the other generators do
         # Currently it doesn't handle a host binary that requires an exe wrapper correctly.

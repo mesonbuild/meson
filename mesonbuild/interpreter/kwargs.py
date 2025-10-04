@@ -182,16 +182,15 @@ class CustomTarget(TypedDict):
     build_always_stale: T.Optional[bool]
     build_by_default: T.Optional[bool]
     capture: bool
-    command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget,
-                            build.CustomTargetIndex, ExternalProgram, File]]
+    command: T.List[T.Union[str, build.BuildTargetTypes, ExternalProgram, File]]
     console: bool
     depend_files: T.List[FileOrString]
     depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
     depfile: T.Optional[str]
     env: EnvironmentVariables
     feed: bool
-    input: T.List[T.Union[str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
-                          build.ExtractedObjects, build.GeneratedList, ExternalProgram, File]]
+    input: T.List[T.Union[str, build.BuildTarget, build.GeneratedTypes,
+                          build.ExtractedObjects, ExternalProgram, File]]
     install: bool
     install_dir: T.List[T.Union[str, T.Literal[False]]]
     install_mode: FileMode
@@ -282,11 +281,10 @@ class ConfigurationDataSet(TypedDict):
 
 class VcsTag(TypedDict):
 
-    command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget,
-                            build.CustomTargetIndex, ExternalProgram, File]]
+    command: T.List[T.Union[str, build.GeneratedTypes, ExternalProgram, File]]
     fallback: T.Optional[str]
-    input: T.List[T.Union[str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
-                          build.ExtractedObjects, build.GeneratedList, ExternalProgram, File]]
+    input: T.List[T.Union[str, build.BuildTarget, build.GeneratedTypes,
+                          build.ExtractedObjects, ExternalProgram, File]]
     output: T.List[str]
     replace_string: str
     install: bool
@@ -343,7 +341,7 @@ class _BaseBuildTarget(TypedDict):
     install_mode: FileMode
     install_rpath: str
     implicit_include_directories: bool
-    link_depends: T.List[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex, build.BuildTarget]]
+    link_depends: T.List[T.Union[str, File, build.GeneratedTypes]]
     link_language: T.Optional[str]
     name_prefix: T.Optional[str]
     name_suffix: T.Optional[str]
@@ -469,7 +467,7 @@ class Jar(_BaseBuildTarget):
 
     main_class: str
     java_resources: T.Optional[build.StructuredSources]
-    sources: T.Union[str, File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.ExtractedObjects, build.BuildTarget]
+    sources: T.Union[str, File, build.GeneratedTypes, build.ExtractedObjects, build.BuildTarget]
     java_args: T.List[str]
 
 
@@ -492,4 +490,4 @@ class FuncDeclareDependency(TypedDict):
 
 class FuncDependency(TypedDict):
 
-    default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
+    default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
