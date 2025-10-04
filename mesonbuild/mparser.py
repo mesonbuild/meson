@@ -459,10 +459,9 @@ class ComparisonNode(BinaryOperatorNode):
 @dataclass(unsafe_hash=True)
 class ArithmeticNode(BinaryOperatorNode):
 
-    # TODO: use a Literal for operation
-    operation: str
+    operation: ARITH_OPERATORS
 
-    def __init__(self, operation: str, left: BaseNode, operator: SymbolNode, right: BaseNode):
+    def __init__(self, operation: ARITH_OPERATORS, left: BaseNode, operator: SymbolNode, right: BaseNode):
         super().__init__(left, operator, right)
         self.operation = operation
 
@@ -675,6 +674,7 @@ class ParenthesizedNode(BaseNode):
 
 if T.TYPE_CHECKING:
     COMPARISONS = Literal['==', '!=', '<', '<=', '>=', '>', 'in', 'not in']
+    ARITH_OPERATORS = Literal['add', 'sub', 'mul', 'div', 'mod']
 
 comparison_map: T.Mapping[str, COMPARISONS] = {
     'equal': '==',
