@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: Apache-2.
 # Copyright 2022 The Meson development team
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ if T.TYPE_CHECKING:
     from .factory import DependencyGenerator
     from ..environment import Environment
     from ..mesonlib import MachineChoice
+    from .base import DependencyObjectKWs
 
     class PythonIntrospectionDict(TypedDict):
 
@@ -56,7 +57,7 @@ class Pybind11ConfigToolDependency(ConfigToolDependency):
     # in the meantime
     skip_version = '--pkgconfigdir'
 
-    def __init__(self, name: str, environment: Environment, kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
@@ -67,7 +68,7 @@ class NumPyConfigToolDependency(ConfigToolDependency):
 
     tools = ['numpy-config']
 
-    def __init__(self, name: str, environment: Environment, kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
@@ -456,7 +457,7 @@ class _PythonDependencyBase(_Base):
 
 class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 
-    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any],
+    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs,
                  installation: 'BasicPythonExternalProgram', embed: bool,
                  for_machine: 'MachineChoice'):
         pkg_embed = '-embed' if embed and mesonlib.version_compare(installation.info['version'], '>=3.8') else ''
@@ -508,7 +509,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase):
 
     def __init__(self, name: str, environment: 'Environment',
-                 kwargs: T.Dict[str, T.Any], installation: 'BasicPythonExternalProgram',
+                 kwargs: DependencyObjectKWs, installation: 'BasicPythonExternalProgram',
                  for_machine: 'MachineChoice'):
         ExtraFrameworkDependency.__init__(self, name, environment, kwargs)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False), for_machine)
@@ -517,7 +518,7 @@ class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase)
 class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
     def __init__(self, name: str, environment: 'Environment',
-                 kwargs: T.Dict[str, T.Any], installation: 'BasicPythonExternalProgram',
+                 kwargs: DependencyObjectKWs, installation: 'BasicPythonExternalProgram',
                  for_machine: 'MachineChoice'):
         SystemDependency.__init__(self, name, environment, kwargs)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False), for_machine)
@@ -563,7 +564,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         return 'sysconfig'
 
 def python_factory(env: 'Environment', for_machine: 'MachineChoice',
-                   kwargs: T.Dict[str, T.Any],
+                   kwargs: DependencyObjectKWs,
                    installation: T.Optional['BasicPythonExternalProgram'] = None) -> T.List['DependencyGenerator']:
     # We can't use the factory_methods decorator here, as we need to pass the
     # extra installation argument

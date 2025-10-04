@@ -19,6 +19,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..compilers import Compiler
     from ..envconfig import MachineInfo
+    from .base import DependencyObjectKWs
 
     TV_ResultTuple = T.Tuple[T.Optional[str], T.Optional[str], bool]
 
@@ -27,8 +28,8 @@ class CudaDependency(SystemDependency):
     supported_languages = ['cpp', 'c', 'cuda'] # see also _default_language
     targets_dir = 'targets' # Directory containing CUDA targets.
 
-    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
-        for_machine = self.get_for_machine_from_kwargs(kwargs)
+    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        for_machine = kwargs.get('native', mesonlib.MachineChoice.HOST)
         compilers = environment.coredata.compilers[for_machine]
         machine = environment.machines[for_machine]
         language = self._detect_language(compilers)
@@ -38,12 +39,12 @@ class CudaDependency(SystemDependency):
 
         super().__init__('cuda', environment, kwargs, language=language)
         self.lib_modules: T.Dict[str, T.List[str]] = {}
-        self.requested_modules = self.get_requested(kwargs)
+        self.requested_modules = kwargs.get('modules', [])
         if not any(runtime in self.requested_modules for runtime in ['cudart', 'cudart_static']):
             # By default, we prefer to link the static CUDA runtime, since this is what nvcc also does by default:
             # https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#cudart-none-shared-static-cudart
             req_modules = ['cudart']
-            if kwargs.get('static', True):
+            if kwargs.get('static') is not False:
                 req_modules = ['cudart_static']
             self.requested_modules = req_modules + self.requested_modules
 
@@ -67,7 +68,10 @@ class CudaDependency(SystemDependency):
         self.libdir = os.path.join(self.cuda_path, self.target_path, arch_libdir)
         mlog.debug('CUDA library directory is', mlog.bold(self.libdir))
 
-        if 'static' not in kwargs:
+        # For legacy reasons cuda ignores the `prefer_static` option, and treats
+        # anything short of `static : false` as `static : true`. This is the
+        # opposite behavior of all other languages.
+        if kwargs.get('static') is None:
             self.libtype = LibType.PREFER_STATIC
 
         self.is_found = self._find_requested_libraries()
@@ -309,13 +313,6 @@ class CudaDependency(SystemDependency):
 
     def log_info(self) -> str:
         return self.cuda_path if self.cuda_path else ''
-
-    def get_requested(self, kwargs: T.Dict[str, T.Any]) -> T.List[str]:
-        candidates = mesonlib.extract_as_list(kwargs, 'modules')
-        for c in candidates:
-            if not isinstance(c, str):
-                raise DependencyException('CUDA module argument is not a string.')
-        return candidates
 
     def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
         # when using nvcc to link, we should instead use the native driver options

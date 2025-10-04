@@ -13,7 +13,7 @@ from .. import build, mesonlib, mlog, dependencies
 from ..options import OptionKey
 from ..cmake import TargetOptions, cmake_defines_to_args
 from ..interpreter import SubprojectHolder
-from ..interpreter.type_checking import REQUIRED_KW, INSTALL_DIR_KW, NoneType, in_set_validator
+from ..interpreter.type_checking import REQUIRED_KW, INSTALL_DIR_KW, INCLUDE_TYPE, NoneType, in_set_validator
 from ..interpreterbase import (
     FeatureNew,
 
@@ -34,6 +34,7 @@ if T.TYPE_CHECKING:
 
     from . import ModuleState
     from ..cmake.common import SingleTargetOptions
+    from ..dependencies.base import IncludeType
     from ..environment import Environment
     from ..interpreter import Interpreter, kwargs
     from ..interpreterbase import TYPE_kwargs, TYPE_var, InterpreterObject
@@ -61,6 +62,10 @@ if T.TYPE_CHECKING:
     class TargetKW(TypedDict):
 
         target: T.Optional[str]
+
+    class DependencyKW(TypedDict):
+
+        include_type: IncludeType
 
 
 _TARGET_KW = KwargInfo('target', (str, NoneType))
@@ -129,17 +134,8 @@ class CMakeSubproject(ModuleObject):
         return self.subp.get_variable(args, kwargs)
 
     @typed_pos_args('cmake.subproject.dependency', str)
-    @typed_kwargs(
-        'cmake.subproject.dependency',
-        KwargInfo(
-            'include_type',
-            str,
-            default='preserve',
-            since='0.56.0',
-            validator=in_set_validator({'preserve', 'system', 'non-system'})
-        ),
-    )
-    def dependency(self, state: ModuleState, args: T.Tuple[str], kwargs: T.Dict[str, str]) -> dependencies.Dependency:
+    @typed_kwargs('cmake.subproject.dependency', INCLUDE_TYPE.evolve(since='0.56.0'))
+    def dependency(self, state: ModuleState, args: T.Tuple[str], kwargs: DependencyKW) -> dependencies.Dependency:
         info = self._args_to_info(args[0])
         if info['func'] == 'executable':
             raise InvalidArguments(f'{args[0]} is an executable and does not support the dependency() method. Use target() instead.')
@@ -439,7 +435,7 @@ class CmakeModule(ExtensionModule):
             'required': kwargs_['required'],
             'options': kwargs_['options'],
             'cmake_options': kwargs_['cmake_options'],
-            'default_options': [],
+            'default_options': {},
             'version': [],
         }
         subp = self.interpreter.do_subproject(dirname, kw, force_method='cmake')

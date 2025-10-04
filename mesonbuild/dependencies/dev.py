@@ -16,7 +16,7 @@ from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 
 from .. import mesonlib, mlog
 from ..environment import get_llvm_tool_names
-from ..mesonlib import version_compare, version_compare_many, search_version, stringlistify, extract_as_list
+from ..mesonlib import version_compare, version_compare_many, search_version
 from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyTypeName
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
@@ -30,14 +30,8 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..compilers import Compiler
     from ..mesonlib import MachineChoice
-    from typing_extensions import TypedDict
     from ..interpreter.type_checking import PkgConfigDefineType
-
-    class JNISystemDependencyKW(TypedDict):
-        modules: T.List[str]
-        # FIXME: When dependency() moves to typed Kwargs, this should inherit
-        # from its TypedDict type.
-        version: T.Optional[str]
+    from .base import DependencyObjectKWs
 
 
 def get_shared_library_suffix(environment: 'Environment', for_machine: MachineChoice) -> str:
@@ -53,7 +47,7 @@ def get_shared_library_suffix(environment: 'Environment', for_machine: MachineCh
 
 
 class GTestDependencySystem(SystemDependency):
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
         super().__init__(name, environment, kwargs, language='cpp')
         self.main = kwargs.get('main', False)
 
@@ -110,7 +104,7 @@ class GTestDependencySystem(SystemDependency):
 
 class GTestDependencyPC(PkgConfigDependency):
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
         assert name == 'gtest'
         if kwargs.get('main'):
             name = 'gtest_main'
@@ -118,7 +112,7 @@ class GTestDependencyPC(PkgConfigDependency):
 
 
 class GMockDependencySystem(SystemDependency):
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
         super().__init__(name, environment, kwargs, language='cpp')
         self.main = kwargs.get('main', False)
         if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
@@ -178,7 +172,7 @@ class GMockDependencySystem(SystemDependency):
 
 class GMockDependencyPC(PkgConfigDependency):
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
         assert name == 'gmock'
         if kwargs.get('main'):
             name = 'gmock_main'
@@ -193,14 +187,14 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
     tool_name = 'llvm-config'
     __cpp_blacklist = {'-DNDEBUG'}
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
         self.tools = get_llvm_tool_names('llvm-config')
 
         # Fedora starting with Fedora 30 adds a suffix of the number
         # of bits in the isa that llvm targets, for example, on x86_64
         # and aarch64 the name will be llvm-config-64, on x86 and arm
         # it will be llvm-config-32.
-        if environment.machines[self.get_for_machine_from_kwargs(kwargs)].is_64_bit:
+        if environment.machines[kwargs.get('native', mesonlib.MachineChoice.HOST)].is_64_bit:
             self.tools.append('llvm-config-64')
         else:
             self.tools.append('llvm-config-32')
@@ -215,9 +209,9 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
             return
 
         self.provided_modules = self.get_config_value(['--components'], 'modules')
-        modules = stringlistify(extract_as_list(kwargs, 'modules'))
+        modules = kwargs.get('modules', [])
         self.check_components(modules)
-        opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
+        opt_modules = kwargs.get('optional_modules', [])
         self.check_components(opt_modules, required=False)
 
         cargs = mesonlib.OrderedSet(self.get_config_value(['--cppflags'], 'compile_args'))
@@ -388,15 +382,12 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
         return ''
 
 class LLVMDependencyCMake(CMakeDependency):
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
-        self.llvm_modules = stringlistify(extract_as_list(kwargs, 'modules'))
-        self.llvm_opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        self.llvm_modules = kwargs.get('modules', [])
+        self.llvm_opt_modules = kwargs.get('optional_modules', [])
 
-        compilers = None
-        if kwargs.get('native', False):
-            compilers = env.coredata.compilers.build
-        else:
-            compilers = env.coredata.compilers.host
+        for_machine = kwargs.get('native', mesonlib.MachineChoice.HOST)
+        compilers = env.coredata.compilers[for_machine]
         if not compilers or not {'c', 'cpp'}.issubset(compilers):
             # Initialize basic variables
             ExternalDependency.__init__(self, DependencyTypeName('cmake'), env, kwargs)
@@ -515,7 +506,7 @@ class ValgrindDependency(PkgConfigDependency):
     Consumers of Valgrind usually only need the compile args and do not want to
     link to its (static) libraries.
     '''
-    def __init__(self, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, env: 'Environment', kwargs: DependencyObjectKWs):
         super().__init__('valgrind', env, kwargs)
 
     def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
@@ -526,7 +517,7 @@ packages['valgrind'] = ValgrindDependency
 
 class ZlibSystemDependency(SystemDependency):
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
         super().__init__(name, environment, kwargs)
         from ..compilers.c import AppleClangCCompiler
         from ..compilers.cpp import AppleClangCPPCompiler
@@ -563,8 +554,8 @@ class ZlibSystemDependency(SystemDependency):
 
 
 class JNISystemDependency(SystemDependency):
-    def __init__(self, environment: 'Environment', kwargs: JNISystemDependencyKW):
-        super().__init__('jni', environment, T.cast('T.Dict[str, T.Any]', kwargs))
+    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__('jni', environment, kwargs)
 
         self.feature_since = ('0.62.0', '')
 
@@ -575,7 +566,7 @@ class JNISystemDependency(SystemDependency):
         self.javac = environment.coredata.compilers[self.for_machine]['java']
         self.version = self.javac.version
 
-        modules: T.List[str] = mesonlib.listify(kwargs.get('modules', []))
+        modules = kwargs.get('modules', [])
         for module in modules:
             if module not in {'jvm', 'awt'}:
                 msg = f'Unknown JNI module ({module})'
@@ -586,7 +577,7 @@ class JNISystemDependency(SystemDependency):
                 self.is_found = False
                 return
 
-        if 'version' in kwargs and not version_compare_many(self.version, kwargs['version'])[0]:
+        if kwargs.get('version') and not version_compare_many(self.version, kwargs['version'])[0]:
             mlog.error(f'Incorrect JDK version found ({self.version}), wanted {kwargs["version"]}')
             self.is_found = False
             return
@@ -691,7 +682,7 @@ packages['jni'] = JNISystemDependency
 
 
 class JDKSystemDependency(JNISystemDependency):
-    def __init__(self, environment: 'Environment', kwargs: JNISystemDependencyKW):
+    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
         super().__init__(environment, kwargs)
 
         self.feature_since = ('0.59.0', '')
@@ -757,7 +748,7 @@ class DiaSDKSystemDependency(SystemDependency):
         defval, _ = compiler.get_define(dname, '', env, [], [])
         return defval is not None
 
-    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
         super().__init__('diasdk', environment, kwargs)
         self.is_found = False
 
