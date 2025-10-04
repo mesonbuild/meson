@@ -11,7 +11,6 @@ Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
 
 from contextlib import redirect_stdout
-import collections
 import dataclasses
 import json
 import os
@@ -48,64 +47,20 @@ def get_meson_introspection_required_version() -> T.List[str]:
 class IntroCommand:
     def __init__(self,
                  desc: str,
-                 func: T.Optional[T.Callable[[], T.Union[dict, list]]] = None,
+                 func: T.Optional[T.Callable[[cdata.CoreData, build.Build, backends.Backend], T.Union[dict, list]]] = None,
                  no_bd: T.Optional[T.Callable[[IntrospectionInterpreter], T.Union[dict, list]]] = None) -> None:
         self.desc = desc + '.'
         self.func = func
         self.no_bd = no_bd
-
-def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
-                                  builddata: T.Optional[build.Build] = None,
-                                  backend: T.Optional[backends.Backend] = None) -> T.Mapping[str, IntroCommand]:
-    if backend and builddata:
-        benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
-        testdata = backend.create_test_serialisation(builddata.get_tests())
-        installdata = backend.create_install_data()
-    else:
-        benchmarkdata = testdata = installdata = None
-
-    # Enforce key order for argparse
-    return collections.OrderedDict([
-        ('ast', IntroCommand('Dump the AST of the meson file', no_bd=dump_ast)),
-        ('benchmarks', IntroCommand('List all benchmarks', func=lambda: list_benchmarks(benchmarkdata))),
-        ('buildoptions', IntroCommand('List all build options', func=lambda: list_buildoptions(coredata), no_bd=list_buildoptions_from_source)),
-        ('buildsystem_files', IntroCommand('List files that make up the build system', func=lambda: list_buildsystem_files(builddata))),
-        ('compilers', IntroCommand('List used compilers', func=lambda: list_compilers(coredata))),
-        ('dependencies', IntroCommand('List external dependencies', func=lambda: list_deps(coredata, backend), no_bd=list_deps_from_source)),
-        ('scan_dependencies', IntroCommand('Scan for dependencies used in the meson.build file', no_bd=list_deps_from_source)),
-        ('installed', IntroCommand('List all installed files and directories', func=lambda: list_installed(installdata))),
-        ('install_plan', IntroCommand('List all installed files and directories with their details', func=lambda: list_install_plan(installdata))),
-        ('machines', IntroCommand('Information about host, build, and target machines', func=lambda: list_machines(builddata))),
-        ('projectinfo', IntroCommand('Information about projects', func=lambda: list_projinfo(builddata), no_bd=list_projinfo_from_source)),
-        ('targets', IntroCommand('List top level targets', func=lambda: list_targets(builddata, installdata, backend), no_bd=list_targets_from_source)),
-        ('tests', IntroCommand('List all unit tests', func=lambda: list_tests(testdata))),
-    ])
-
-# Note: when adding arguments, please also add them to the completion
-# scripts in $MESONSRC/data/shell-completions/
-def add_arguments(parser: argparse.ArgumentParser) -> None:
-    intro_types = get_meson_introspection_types()
-    for key, val in intro_types.items():
-        flag = '--' + key.replace('_', '-')
-        parser.add_argument(flag, action='store_true', dest=key, default=False, help=val.desc)
-
-    parser.add_argument('--backend', choices=sorted(options.backendlist), dest='backend', default='ninja',
-                        help='The backend to use for the --buildoptions introspection.')
-    parser.add_argument('-a', '--all', action='store_true', dest='all', default=False,
-                        help='Print all available information.')
-    parser.add_argument('-i', '--indent', action='store_true', dest='indent', default=False,
-                        help='Enable pretty printed JSON.')
-    parser.add_argument('-f', '--force-object-output', action='store_true', dest='force_dict', default=False,
-                        help='Always use the new JSON format for multiple entries (even for 0 and 1 introspection commands)')
-    parser.add_argument('builddir', nargs='?', default='.', help='The build directory')
 
 def dump_ast(intr: IntrospectionInterpreter) -> T.Dict[str, T.Any]:
     printer = AstJSONPrinter()
     intr.ast.accept(printer)
     return printer.result
 
-def list_installed(installdata: backends.InstallData) -> T.Dict[str, str]:
+def list_installed(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.Dict[str, str]:
     res = {}
+    installdata = backend.create_install_data()
     if installdata is not None:
         for t in installdata.targets:
             res[os.path.join(installdata.build_dir, t.fname)] = \
@@ -123,7 +78,8 @@ def list_installed(installdata: backends.InstallData) -> T.Dict[str, str]:
             res[basename] = os.path.join(installdata.prefix, s.install_path, basename)
     return res
 
-def list_install_plan(installdata: backends.InstallData) -> T.Dict[str, T.Dict[str, T.Dict[str, T.Union[str, T.List[str], None]]]]:
+def list_install_plan(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.Dict[str, T.Dict[str, T.Dict[str, T.Union[str, T.List[str], None]]]]:
+    installdata = backend.create_install_data()
     plan: T.Dict[str, T.Dict[str, T.Dict[str, T.Union[str, T.List[str], None]]]] = {
         'targets': {
             os.path.join(installdata.build_dir, target.fname): {
@@ -204,13 +160,14 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
 
     return tlist
 
-def list_targets(builddata: build.Build, installdata: backends.InstallData, backend: backends.Backend) -> T.List[T.Any]:
+def list_targets(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Any]:
     tlist: T.List[T.Any] = []
     build_dir = builddata.environment.get_build_dir()
     src_dir = builddata.environment.get_source_dir()
 
     # Fast lookup table for installation files
     install_lookuptable = {}
+    installdata = backend.create_install_data()
     for i in installdata.targets:
         basename = os.path.basename(i.fname)
         install_lookuptable[basename] = [str(PurePath(installdata.prefix, i.outdir, basename))]
@@ -259,11 +216,14 @@ def list_targets(builddata: build.Build, installdata: backends.InstallData, back
         tlist.append(t)
     return tlist
 
+def list_buildoptions(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]:
+    return _list_buildoptions(coredata)
+
 def list_buildoptions_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]:
     subprojects = [i['name'] for i in intr.project_data['subprojects']]
-    return list_buildoptions(intr.coredata, subprojects)
+    return _list_buildoptions(intr.coredata, subprojects)
 
-def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[str]] = None) -> T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]:
+def _list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[str]] = None) -> T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]:
     optlist: T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]] = []
     subprojects = subprojects or []
 
@@ -338,12 +298,12 @@ def find_buildsystem_files_list(src_dir: str) -> T.List[str]:
                         for f in build_files.intersection(files))
     return filelist
 
-def list_buildsystem_files(builddata: build.Build) -> T.List[str]:
+def list_buildsystem_files(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[str]:
     src_dir = builddata.environment.get_source_dir()
     filelist = [PurePath(src_dir, x).as_posix() for x in builddata.def_files]
     return filelist
 
-def list_compilers(coredata: cdata.CoreData) -> T.Dict[str, T.Dict[str, T.Dict[str, str]]]:
+def list_compilers(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.Dict[str, T.Dict[str, T.Dict[str, str]]]:
     compilers: T.Dict[str, T.Dict[str, T.Dict[str, str]]] = {}
     for machine in ('host', 'build'):
         compilers[machine] = {}
@@ -372,7 +332,7 @@ def list_deps_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, 
         }]
     return result
 
-def list_deps(coredata: cdata.CoreData, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[str, T.List[str]]]]:
+def list_deps(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[str, T.List[str]]]]:
     result: T.Dict[str, T.Dict[str, T.Union[str, T.List[str]]]] = {}
 
     def _src_to_str(src_file: T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.StructuredSources]) -> T.List[str]:
@@ -432,13 +392,15 @@ def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict
         result.append(to)
     return result
 
-def list_tests(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+def list_tests(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+    testdata = backend.create_test_serialisation(builddata.get_tests())
     return get_test_list(testdata)
 
-def list_benchmarks(benchdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+def list_benchmarks(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+    benchdata = backend.create_test_serialisation(builddata.get_benchmarks())
     return get_test_list(benchdata)
 
-def list_machines(builddata: build.Build) -> T.Dict[str, T.Dict[str, T.Union[str, bool]]]:
+def list_machines(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.Dict[str, T.Dict[str, T.Union[str, bool]]]:
     machines: T.Dict[str, T.Dict[str, T.Union[str, bool]]] = {}
     for m in ('host', 'build', 'target'):
         machine = getattr(builddata.environment.machines, m)
@@ -448,7 +410,7 @@ def list_machines(builddata: build.Build) -> T.Dict[str, T.Dict[str, T.Union[str
         machines[m]['object_suffix'] = machine.get_object_suffix()
     return machines
 
-def list_projinfo(builddata: build.Build) -> T.Dict[str, T.Union[str, T.List[str], T.List[T.Dict[str, str]]]]:
+def list_projinfo(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.Dict[str, T.Union[str, T.List[str], T.List[T.Dict[str, str]]]]:
     result: T.Dict[str, T.Union[str, T.List[str], T.List[T.Dict[str, str]]]] = {
         'version': builddata.project_version,
         'descriptive_name': builddata.project_name,
@@ -511,6 +473,39 @@ def load_info_file(infodir: str, kind: T.Optional[str] = None) -> T.Any:
     with open(get_info_file(infodir, kind), encoding='utf-8') as fp:
         return json.load(fp)
 
+INTRO_TYPES: T.Mapping[str, IntroCommand] = {
+    'ast': IntroCommand('Dump the AST of the meson file', no_bd=dump_ast),
+    'benchmarks': IntroCommand('List all benchmarks', func=list_benchmarks),
+    'buildoptions': IntroCommand('List all build options', func=list_buildoptions, no_bd=list_buildoptions_from_source),
+    'buildsystem_files': IntroCommand('List files that make up the build system', func=list_buildsystem_files),
+    'compilers': IntroCommand('List used compilers', func=list_compilers),
+    'dependencies': IntroCommand('List external dependencies', func=list_deps, no_bd=list_deps_from_source),
+    'scan_dependencies': IntroCommand('Scan for dependencies used in the meson.build file', no_bd=list_deps_from_source),
+    'installed': IntroCommand('List all installed files and directories', func=list_installed),
+    'install_plan': IntroCommand('List all installed files and directories with their details', func=list_install_plan),
+    'machines': IntroCommand('Information about host, build, and target machines', func=list_machines),
+    'projectinfo': IntroCommand('Information about projects', func=list_projinfo, no_bd=list_projinfo_from_source),
+    'targets': IntroCommand('List top level targets', func=list_targets, no_bd=list_targets_from_source),
+    'tests': IntroCommand('List all unit tests', func=list_tests),
+}
+
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
+def add_arguments(parser: argparse.ArgumentParser) -> None:
+    for key, val in INTRO_TYPES.items():
+        flag = '--' + key.replace('_', '-')
+        parser.add_argument(flag, action='store_true', dest=key, default=False, help=val.desc)
+
+    parser.add_argument('--backend', choices=sorted(options.backendlist), dest='backend', default='ninja',
+                        help='The backend to use for the --buildoptions introspection.')
+    parser.add_argument('-a', '--all', action='store_true', dest='all', default=False,
+                        help='Print all available information.')
+    parser.add_argument('-i', '--indent', action='store_true', dest='indent', default=False,
+                        help='Enable pretty printed JSON.')
+    parser.add_argument('-f', '--force-object-output', action='store_true', dest='force_dict', default=False,
+                        help='Always use the new JSON format for multiple entries (even for 0 and 1 introspection commands)')
+    parser.add_argument('builddir', nargs='?', default='.', help='The build directory')
+
 def run(options: argparse.Namespace) -> int:
     datadir = 'meson-private'
     infodir = get_infodir(options.builddir)
@@ -518,7 +513,6 @@ def run(options: argparse.Namespace) -> int:
         datadir = os.path.join(options.builddir, datadir)
     indent = 4 if options.indent else None
     results: T.List[T.Tuple[str, T.Union[dict, T.List[T.Any]]]] = []
-    intro_types = get_meson_introspection_types()
 
     # TODO: This if clause is undocumented.
     if os.path.basename(options.builddir) == environment.build_filename:
@@ -530,7 +524,7 @@ def run(options: argparse.Namespace) -> int:
             intr = IntrospectionInterpreter(sourcedir, '', backend.name, visitors = [AstIDGenerator(), AstIndentationGenerator(), AstConditionLevel()])
             intr.analyze()
 
-        for key, val in intro_types.items():
+        for key, val in INTRO_TYPES.items():
             if (not options.all and not getattr(options, key, False)) or not val.no_bd:
                 continue
             results += [(key, val.no_bd(intr))]
@@ -558,7 +552,7 @@ def run(options: argparse.Namespace) -> int:
             return 1
 
     # Extract introspection information from JSON
-    for i, v in intro_types.items():
+    for i, v in INTRO_TYPES.items():
         if not v.func:
             continue
         if not options.all and not getattr(options, i, False):
@@ -585,19 +579,18 @@ def write_intro_info(intro_info: T.Sequence[T.Tuple[str, T.Union[dict, T.List[T.
 
 def generate_introspection_file(builddata: build.Build, backend: backends.Backend) -> None:
     coredata = builddata.environment.get_coredata()
-    intro_types = get_meson_introspection_types(coredata=coredata, builddata=builddata, backend=backend)
     intro_info: T.List[T.Tuple[str, T.Union[dict, T.List[T.Any]]]] = []
 
-    for key, val in intro_types.items():
+    for key, val in INTRO_TYPES.items():
         if not val.func:
             continue
-        intro_info += [(key, val.func())]
+        intro_info += [(key, val.func(coredata, builddata, backend))]
 
     write_intro_info(intro_info, builddata.environment.info_dir)
 
 def update_build_options(coredata: cdata.CoreData, info_dir: str) -> None:
     intro_info = [
-        ('buildoptions', list_buildoptions(coredata))
+        ('buildoptions', _list_buildoptions(coredata))
     ]
 
     write_intro_info(intro_info, info_dir)
@@ -614,10 +607,9 @@ def split_version_string(version: str) -> T.Dict[str, T.Union[str, int]]:
 def write_meson_info_file(builddata: build.Build, errors: list, build_files_updated: bool = False) -> None:
     info_dir = builddata.environment.info_dir
     info_file = get_meson_info_file(info_dir)
-    intro_types = get_meson_introspection_types()
     intro_info = {}
 
-    for i, v in intro_types.items():
+    for i, v in INTRO_TYPES.items():
         if not v.func:
             continue
         intro_info[i] = {
