@@ -1153,7 +1153,7 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
                 'Calling generator.process with CustomTarget or Index of CustomTarget.',
                 '0.57.0', self.interpreter.subproject)
 
-        gl = self.held_object.process_files(args[0], self.interpreter,
+        gl = self.held_object.process_files(args[0], self.interpreter.subdir,
                                             preserve_path_from, extra_args=kwargs['extra_args'], env=kwargs['env'])
 
         return gl
