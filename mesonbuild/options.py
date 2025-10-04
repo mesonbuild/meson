@@ -715,8 +715,7 @@ BUILTIN_CORE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
         ),
         UserComboOption('buildtype', 'Build type to use', 'debug', choices=buildtypelist),
         UserBooleanOption('debug', 'Enable debug symbols and other information', True),
-        UserComboOption('default_library', 'Default library type', 'shared', choices=['shared', 'static', 'both'],
-                        yielding=False),
+        UserComboOption('default_library', 'Default library type', 'shared', choices=['shared', 'static', 'both']),
         UserComboOption('default_both_libraries', 'Default library type for both_libraries', 'shared',
                         choices=['shared', 'static', 'auto']),
         UserBooleanOption('errorlogs', "Whether to print the logs from failing tests", True),
@@ -729,9 +728,8 @@ BUILTIN_CORE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
         UserBooleanOption('strip', 'Strip targets on install', False),
         UserComboOption('unity', 'Unity build', 'off', choices=['on', 'off', 'subprojects']),
         UserIntegerOption('unity_size', 'Unity block size', 4, min_value=2),
-        UserComboOption('warning_level', 'Compiler warning level to use', '1', choices=['0', '1', '2', '3', 'everything'],
-                        yielding=False),
-        UserBooleanOption('werror', 'Treat warnings as errors', False, yielding=False),
+        UserComboOption('warning_level', 'Compiler warning level to use', '1', choices=['0', '1', '2', '3', 'everything']),
+        UserBooleanOption('werror', 'Treat warnings as errors', False),
         UserComboOption('wrap_mode', 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote']),
         UserStringArrayOption('force_fallback_for', 'Force fallback for those subprojects', []),
         UserBooleanOption('vsenv', 'Activate Visual Studio environment', False, readonly=True),
@@ -955,14 +953,9 @@ class OptionStore:
     def add_builtin_option(self, key: OptionKey, opt: AnyOptionType) -> None:
         # Create a copy of the object, as we're going to mutate it
         opt = copy.copy(opt)
-        if key.subproject:
-            if opt.yielding:
-                # This option is global and not per-subproject
-                return
-        else:
-            new_value = argparse_prefixed_default(
-                opt, key, default_prefix())
-            opt.set_value(new_value)
+        assert key.subproject is None
+        new_value = argparse_prefixed_default(opt, key, default_prefix())
+        opt.set_value(new_value)
 
         modulename = key.get_module_prefix()
         if modulename:
