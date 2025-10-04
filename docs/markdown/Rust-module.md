@@ -137,7 +137,7 @@ were never turned on by Meson.
 
 ```ini
 [properties]
-bindgen_clang_arguments = ['-target', 'x86_64-linux-gnu']
+bindgen_clang_arguments = ['--target', 'x86_64-linux-gnu']
 ```
 
 ### proc_macro()
