@@ -619,7 +619,7 @@ class AstInterpreter(InterpreterBase):
                 return left != right
             elif node.ctype == 'in':
                 return left in right
-            elif node.ctype == 'notin':
+            elif node.ctype == 'not in':
                 return left not in right
         elif isinstance(node, mparser.TernaryNode):
             cond = self.node_to_runtime_value(node.condition)
