@@ -1,3 +1,28 @@
+[project]
+name = "python-forms-app"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "German Diago Gomez",email = "germandiago@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.9"
+
+[tool.poetry]
+packages = [{include = "meson", from = "mesonbuild"}]
+package-mode = false
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.17.0"
+python-lsp-server = "^1.13.0"
+pyright = "^1.1.403"
+flake8 = "^7.3.0"
+pytest = "^8.4.1"
+requests = "^2.32.4"
+types-sqlalchemy = "^1.4.53.38"
+types-jinja2 = "^2.11.9"
+types-flask = "^1.1.6"
+
 [build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
