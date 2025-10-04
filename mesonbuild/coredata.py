@@ -18,7 +18,6 @@ import textwrap
 from .mesonlib import (
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
-    default_prefix,
     pickle_load
 )
 
@@ -283,7 +282,7 @@ class CoreData:
         # Only to print a warning if it changes between Meson invocations.
         self.config_files = self.__load_config_files(cmd_options, scratch_dir, 'native')
         self.builtin_options_libdir_cross_fixup()
-        self.init_builtins()
+        self.optstore.init_builtins()
 
     @staticmethod
     def __load_config_files(cmd_options: SharedCMDOptions, scratch_dir: str, ftype: str) -> T.List[str]:
@@ -349,34 +348,6 @@ class CoreData:
         # platforms as it gets a value like lib/x86_64-linux-gnu.
         if self.cross_files:
             options.BUILTIN_OPTIONS[OptionKey('libdir')].default = 'lib'
-
-    def init_builtins(self) -> None:
-        # Create builtin options with default values
-        for key, opt in options.BUILTIN_OPTIONS.items():
-            self.add_builtin_option(self.optstore, key, opt)
-        for for_machine in iter(MachineChoice):
-            for key, opt in options.BUILTIN_OPTIONS_PER_MACHINE.items():
-                self.add_builtin_option(self.optstore, key.evolve(machine=for_machine), opt)
-
-    @staticmethod
-    def add_builtin_option(optstore: options.OptionStore, key: OptionKey,
-                           opt: options.AnyOptionType) -> None:
-        # Create a copy of the object, as we're going to mutate it
-        opt = copy.copy(opt)
-        if key.subproject:
-            if opt.yielding:
-                # This option is global and not per-subproject
-                return
-        else:
-            new_value = options.argparse_prefixed_default(
-                opt, key, default_prefix())
-            opt.set_value(new_value)
-
-        modulename = key.get_module_prefix()
-        if modulename:
-            optstore.add_module_option(modulename, key, opt)
-        else:
-            optstore.add_system_option(key, opt)
 
     def init_backend_options(self, backend_name: str) -> None:
         if backend_name == 'ninja':

@@ -952,6 +952,32 @@ class OptionStore:
         self.add_system_option_internal(key, valobj)
         self.module_options.add(key)
 
+    def add_builtin_option(self, key: OptionKey, opt: AnyOptionType) -> None:
+        # Create a copy of the object, as we're going to mutate it
+        opt = copy.copy(opt)
+        if key.subproject:
+            if opt.yielding:
+                # This option is global and not per-subproject
+                return
+        else:
+            new_value = argparse_prefixed_default(
+                opt, key, default_prefix())
+            opt.set_value(new_value)
+
+        modulename = key.get_module_prefix()
+        if modulename:
+            self.add_module_option(modulename, key, opt)
+        else:
+            self.add_system_option(key, opt)
+
+    def init_builtins(self) -> None:
+        # Create builtin options with default values
+        for key, opt in BUILTIN_OPTIONS.items():
+            self.add_builtin_option(key, opt)
+        for for_machine in iter(MachineChoice):
+            for key, opt in BUILTIN_OPTIONS_PER_MACHINE.items():
+                self.add_builtin_option(key.evolve(machine=for_machine), opt)
+
     def sanitize_prefix(self, prefix: str) -> str:
         prefix = os.path.expanduser(prefix)
         if not os.path.isabs(prefix):
