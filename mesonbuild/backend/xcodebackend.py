@@ -17,7 +17,6 @@ from ..options import OptionKey
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
     from ..compilers import Compiler
-    from ..interpreter import Interpreter
 
 INDENT = '\t'
 XCODETYPEMAP = {'c': 'sourcecode.c.c',
@@ -236,8 +235,8 @@ class XCodeBackend(backends.Backend):
 
     name = 'xcode'
 
-    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
-        super().__init__(build, interpreter)
+    def __init__(self, build: T.Optional[build.Build]):
+        super().__init__(build)
         self.project_uid = self.environment.coredata.lang_guids['default'].replace('-', '')[:24]
         self.buildtype = T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype')))
         self.project_conflist = self.gen_id()
@@ -629,7 +628,7 @@ class XCodeBackend(backends.Backend):
                     self.fileref_ids[k] = self.gen_id()
 
     def generate_build_file_maps(self) -> None:
-        for buildfile in self.interpreter.get_build_def_files():
+        for buildfile in self.build.def_files:
             assert isinstance(buildfile, str)
             self.buildfile_ids[buildfile] = self.gen_id()
             self.fileref_ids[buildfile] = self.gen_id()
@@ -1025,7 +1024,7 @@ class XCodeBackend(backends.Backend):
                 custom_dict.add_item('sourceTree', 'SOURCE_ROOT')
                 objects_dict.add_item(self.custom_target_output_fileref[o], custom_dict)
 
-        for buildfile in self.interpreter.get_build_def_files():
+        for buildfile in self.build.def_files:
             basename = os.path.split(buildfile)[1]
             buildfile_dict = PbxDict()
             typestr = self.get_xcodetype(buildfile)

@@ -39,7 +39,7 @@ if T.TYPE_CHECKING:
     from ..arglist import CompilerArgs
     from ..compilers import Compiler
     from ..environment import Environment
-    from ..interpreter import Interpreter, Test
+    from ..interpreter import Test
     from ..linkers.linkers import StaticLinker
     from ..mesonlib import FileMode, FileOrString
     from ..options import ElementaryOptionValues
@@ -217,47 +217,47 @@ class TestSerialisation:
             assert isinstance(self.exe_wrapper, programs.ExternalProgram)
 
 
-def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None, interpreter: T.Optional['Interpreter'] = None) -> T.Optional['Backend']:
+def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None) -> T.Optional['Backend']:
     if backend == 'ninja':
         from . import ninjabackend
-        return ninjabackend.NinjaBackend(build, interpreter)
+        return ninjabackend.NinjaBackend(build)
     elif backend == 'vs':
         from . import vs2010backend
-        return vs2010backend.autodetect_vs_version(build, interpreter)
+        return vs2010backend.autodetect_vs_version(build)
     elif backend == 'vs2010':
         from . import vs2010backend
-        return vs2010backend.Vs2010Backend(build, interpreter)
+        return vs2010backend.Vs2010Backend(build)
     elif backend == 'vs2012':
         from . import vs2012backend
-        return vs2012backend.Vs2012Backend(build, interpreter)
+        return vs2012backend.Vs2012Backend(build)
     elif backend == 'vs2013':
         from . import vs2013backend
-        return vs2013backend.Vs2013Backend(build, interpreter)
+        return vs2013backend.Vs2013Backend(build)
     elif backend == 'vs2015':
         from . import vs2015backend
-        return vs2015backend.Vs2015Backend(build, interpreter)
+        return vs2015backend.Vs2015Backend(build)
     elif backend == 'vs2017':
         from . import vs2017backend
-        return vs2017backend.Vs2017Backend(build, interpreter)
+        return vs2017backend.Vs2017Backend(build)
     elif backend == 'vs2019':
         from . import vs2019backend
-        return vs2019backend.Vs2019Backend(build, interpreter)
+        return vs2019backend.Vs2019Backend(build)
     elif backend == 'vs2022':
         from . import vs2022backend
-        return vs2022backend.Vs2022Backend(build, interpreter)
+        return vs2022backend.Vs2022Backend(build)
     elif backend == 'xcode':
         from . import xcodebackend
-        return xcodebackend.XCodeBackend(build, interpreter)
+        return xcodebackend.XCodeBackend(build)
     elif backend == 'none':
         from . import nonebackend
-        return nonebackend.NoneBackend(build, interpreter)
+        return nonebackend.NoneBackend(build)
     return None
 
 
-def get_genvslite_backend(genvsname: str, build: T.Optional[build.Build] = None, interpreter: T.Optional['Interpreter'] = None) -> T.Optional['Backend']:
+def get_genvslite_backend(genvsname: str, build: T.Optional[build.Build] = None) -> T.Optional['Backend']:
     if genvsname == 'vs2022':
         from . import vs2022backend
-        return vs2022backend.Vs2022Backend(build, interpreter, gen_lite = True)
+        return vs2022backend.Vs2022Backend(build, gen_lite = True)
     return None
 
 # This class contains the basic functionality that is needed by all backends.
@@ -267,14 +267,13 @@ class Backend:
     environment: T.Optional['Environment']
     name = '<UNKNOWN>'
 
-    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional['Interpreter']):
+    def __init__(self, build: T.Optional[build.Build]):
         # Make it possible to construct a dummy backend
         # This is used for introspection without a build directory
         if build is None:
             self.environment = None
             return
         self.build = build
-        self.interpreter = interpreter
         self.environment = build.environment
         self.processed_targets: T.Set[str] = set()
         self.build_dir = self.environment.get_build_dir()
@@ -1303,7 +1302,7 @@ class Backend:
         '''List of all files whose alteration means that the build
         definition needs to be regenerated.'''
         deps = OrderedSet([str(Path(self.build_to_src) / df)
-                           for df in self.interpreter.get_build_def_files()])
+                           for df in self.build.def_files])
         if self.environment.is_cross_build():
             deps.update(self.environment.coredata.cross_files)
         deps.update(self.environment.coredata.config_files)
@@ -2034,10 +2033,11 @@ class Backend:
         exe = programs.ExternalProgram(compiler.get_exe())
         args = compiler.get_exe_args()
         commands = self.compiler_to_generator_args(target, compiler)
-        generator = build.Generator(exe, args + commands.to_native(),
+        generator = build.Generator(self.environment,
+                                    exe, args + commands.to_native(),
                                     [output_templ], depfile='@PLAINNAME@.d',
                                     depends=depends)
-        return generator.process_files(sources, self.interpreter)
+        return generator.process_files(sources)
 
     def compile_target_to_generator(self, target: build.CompileTarget) -> build.GeneratedList:
         all_sources = T.cast('_ALL_SOURCES_TYPE', target.sources) + T.cast('_ALL_SOURCES_TYPE', target.generated)
