@@ -513,7 +513,6 @@ class QtBaseModule(ExtensionModule):
             raise MesonException(err_msg.format('UIC', f'uic-qt{self.qt_version}', self.qt_version))
 
         preserve_path_from = os.path.join(state.source_root, state.subdir) if kwargs['preserve_paths'] else None
-        # TODO: This generator isn't added to the generator list in the Interpreter
         gen = build.Generator(
             self.tools['uic'],
             kwargs['extra_args'] + ['-o', '@OUTPUT@', '@INPUT@'],
