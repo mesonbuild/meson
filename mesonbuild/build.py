@@ -333,6 +333,7 @@ class Build:
 
     def __init__(self, environment: Environment):
         self.version = coredata.version
+        self._def_files: T.Optional[T.List[str]] = None
         self.project_name = 'name of master project'
         self.project_version: T.Optional[str] = None
         self.environment = environment
@@ -375,6 +376,18 @@ class Build:
 
         Needed for tracking whether a modules options needs to be exposed to the user.
         """
+
+    @property
+    def def_files(self) -> T.List[str]:
+        if self._def_files is None:
+            raise MesonBugException('build.def_files has not been set yet')
+        return self._def_files
+
+    @def_files.setter
+    def def_files(self, value: T.List[str]):
+        if self._def_files is not None:
+            raise MesonBugException('build.def_files already set')
+        self._def_files = value
 
     def get_build_targets(self) -> OrderedDict[str, BuildTarget]:
         build_targets = OrderedDict()

@@ -29,8 +29,6 @@ from .options import OptionKey
 if T.TYPE_CHECKING:
     import argparse
 
-    from .interpreter import Interpreter
-
 class IntrospectionEncoder(json.JSONEncoder):
     def default(self, obj: T.Any) -> T.Any:
         if isinstance(obj, UnknownValue):
@@ -62,7 +60,6 @@ def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
         benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
         testdata = backend.create_test_serialisation(builddata.get_tests())
         installdata = backend.create_install_data()
-        interpreter = backend.interpreter
     else:
         benchmarkdata = testdata = installdata = None
 
@@ -71,7 +68,7 @@ def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
         ('ast', IntroCommand('Dump the AST of the meson file', no_bd=dump_ast)),
         ('benchmarks', IntroCommand('List all benchmarks', func=lambda: list_benchmarks(benchmarkdata))),
         ('buildoptions', IntroCommand('List all build options', func=lambda: list_buildoptions(coredata), no_bd=list_buildoptions_from_source)),
-        ('buildsystem_files', IntroCommand('List files that make up the build system', func=lambda: list_buildsystem_files(builddata, interpreter))),
+        ('buildsystem_files', IntroCommand('List files that make up the build system', func=lambda: list_buildsystem_files(builddata))),
         ('compilers', IntroCommand('List used compilers', func=lambda: list_compilers(coredata))),
         ('dependencies', IntroCommand('List external dependencies', func=lambda: list_deps(coredata, backend), no_bd=list_deps_from_source)),
         ('scan_dependencies', IntroCommand('Scan for dependencies used in the meson.build file', no_bd=list_deps_from_source)),
@@ -340,10 +337,9 @@ def find_buildsystem_files_list(src_dir: str) -> T.List[str]:
                         for f in build_files.intersection(files))
     return filelist
 
-def list_buildsystem_files(builddata: build.Build, interpreter: Interpreter) -> T.List[str]:
+def list_buildsystem_files(builddata: build.Build) -> T.List[str]:
     src_dir = builddata.environment.get_source_dir()
-    filelist = list(interpreter.get_build_def_files())
-    filelist = [PurePath(src_dir, x).as_posix() for x in filelist]
+    filelist = [PurePath(src_dir, x).as_posix() for x in builddata.def_files]
     return filelist
 
 def list_compilers(coredata: cdata.CoreData) -> T.Dict[str, T.Dict[str, T.Dict[str, str]]]:
