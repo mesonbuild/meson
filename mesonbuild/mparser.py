@@ -674,7 +674,7 @@ class ParenthesizedNode(BaseNode):
         self.is_multiline = False
 
 if T.TYPE_CHECKING:
-    COMPARISONS = Literal['==', '!=', '<', '<=', '>=', '>', 'in', 'notin']
+    COMPARISONS = Literal['==', '!=', '<', '<=', '>=', '>', 'in', 'not in']
 
 comparison_map: T.Mapping[str, COMPARISONS] = {
     'equal': '==',
@@ -684,7 +684,7 @@ comparison_map: T.Mapping[str, COMPARISONS] = {
     'gt': '>',
     'ge': '>=',
     'in': 'in',
-    'not in': 'notin',
+    'not in': 'not in',
 }
 
 # Recursive descent parser for Meson's definition language.
@@ -844,7 +844,7 @@ class Parser:
                 not_token.bytespan = (not_token.bytespan[0], in_token.bytespan[1])
                 not_token.value += temp_node.whitespaces.value + in_token.value
                 operator = self.create_node(SymbolNode, not_token)
-                return self.create_node(ComparisonNode, 'notin', left, operator, self.e5())
+                return self.create_node(ComparisonNode, 'not in', left, operator, self.e5())
         return left
 
     def e5(self) -> BaseNode:
