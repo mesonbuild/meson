@@ -1,0 +1,7 @@
+[package]
+name = "member1"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+member2 = { workspace = true, features=["f2"] }
