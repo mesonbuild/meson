@@ -2034,7 +2034,8 @@ class Backend:
         exe = programs.ExternalProgram(compiler.get_exe())
         args = compiler.get_exe_args()
         commands = self.compiler_to_generator_args(target, compiler)
-        generator = build.Generator(exe, args + commands.to_native(),
+        generator = build.Generator(self.environment,
+                                    exe, args + commands.to_native(),
                                     [output_templ], depfile='@PLAINNAME@.d',
                                     depends=depends)
         return generator.process_files(sources, self.interpreter)
