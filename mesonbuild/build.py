@@ -38,7 +38,7 @@ from .interpreterbase import FeatureNew, FeatureDeprecated
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypeAlias, TypedDict
 
-    from . import environment
+    from .environment import Environment
     from ._typing import ImmutableListProtocol
     from .backend.backends import Backend
     from .compilers import Compiler
@@ -332,7 +332,7 @@ class Build:
     all dependencies and so on.
     """
 
-    def __init__(self, environment: environment.Environment):
+    def __init__(self, environment: Environment):
         self.version = coredata.version
         self.project_name = 'name of master project'
         self.project_version: T.Optional[str] = None
@@ -605,7 +605,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     subproject: 'SubProject'
     build_by_default: bool
     for_machine: MachineChoice
-    environment: environment.Environment
+    environment: Environment
     install: bool = False
     build_always_stale: bool = False
     extra_files: T.List[File] = field(default_factory=list)
@@ -761,7 +761,7 @@ class BuildTarget(Target):
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
-            environment: environment.Environment,
+            environment: Environment,
             compilers: T.Dict[str, 'Compiler'],
             kwargs: BuildTargetKeywordArguments):
         super().__init__(name, subdir, subproject, True, for_machine, environment, install=kwargs.get('install', False))
@@ -2152,7 +2152,7 @@ class Executable(BuildTarget):
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
-            environment: environment.Environment,
+            environment: Environment,
             compilers: T.Dict[str, 'Compiler'],
             kwargs: ExecutableKeywordArguments):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
@@ -2305,7 +2305,7 @@ class StaticLibrary(BuildTarget):
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
-            environment: environment.Environment,
+            environment: Environment,
             compilers: T.Dict[str, 'Compiler'],
             kwargs: StaticLibraryKeywordArguments):
         self.prelink = kwargs.get('prelink', False)
@@ -2450,7 +2450,7 @@ class SharedLibrary(BuildTarget):
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
-            environment: environment.Environment,
+            environment: Environment,
             compilers: T.Dict[str, 'Compiler'],
             kwargs):
         self.soversion: T.Optional[str] = None
@@ -2744,7 +2744,7 @@ class SharedModule(SharedLibrary):
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
-            environment: environment.Environment,
+            environment: Environment,
             compilers: T.Dict[str, 'Compiler'],
             kwargs):
         if 'version' in kwargs:
@@ -2860,7 +2860,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  name: T.Optional[str],
                  subdir: str,
                  subproject: str,
-                 environment: environment.Environment,
+                 environment: Environment,
                  command: T.Sequence[T.Union[
                      str, BuildTargetTypes, GeneratedList,
                      programs.ExternalProgram, File]],
@@ -3071,7 +3071,7 @@ class CompileTarget(BuildTarget):
                  name: str,
                  subdir: str,
                  subproject: str,
-                 environment: environment.Environment,
+                 environment: Environment,
                  sources: T.List['SourceOutputs'],
                  output_templ: str,
                  compiler: Compiler,
@@ -3127,7 +3127,7 @@ class RunTarget(Target, CommandBase):
                  dependencies: T.Sequence[AnyTargetType],
                  subdir: str,
                  subproject: str,
-                 environment: environment.Environment,
+                 environment: Environment,
                  env: T.Optional[EnvironmentVariables] = None,
                  default_env: bool = True):
         # These don't produce output artifacts
@@ -3174,7 +3174,7 @@ class AliasTarget(RunTarget):
     typename = 'alias'
 
     def __init__(self, name: str, dependencies: T.Sequence[Target],
-                 subdir: str, subproject: str, environment: environment.Environment):
+                 subdir: str, subproject: str, environment: Environment):
         super().__init__(name, [], dependencies, subdir, subproject, environment)
 
     def __repr__(self):
@@ -3188,7 +3188,7 @@ class Jar(BuildTarget):
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
-                 objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
+                 objects, environment: Environment, compilers: T.Dict[str, 'Compiler'],
                  kwargs):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
