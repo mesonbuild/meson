@@ -22,12 +22,13 @@ import typing as T
 from . import build, environment, mesonlib, options, coredata as cdata
 from .ast import IntrospectionInterpreter, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
 from .backend import backends
-from .dependencies import Dependency
-from .interpreterbase import ObjectHolder, UnknownValue
+from .interpreterbase import UnknownValue
 from .options import OptionKey
 
 if T.TYPE_CHECKING:
     import argparse
+
+    from .dependencies import Dependency
 
 class IntrospectionEncoder(json.JSONEncoder):
     def default(self, obj: T.Any) -> T.Any:
@@ -385,7 +386,7 @@ def list_deps(coredata: cdata.CoreData, backend: backends.Backend) -> T.List[T.D
             return [f for s in src_file.as_list() for f in _src_to_str(s)]
         raise mesonlib.MesonBugException(f'Invalid file type {type(src_file)}.')
 
-    def _create_result(d: Dependency, varname: T.Optional[str] = None) -> T.Dict[str, T.Any]:
+    def _create_result(d: Dependency) -> T.Dict[str, T.Any]:
         return {
             'name': d.name,
             'type': d.type_name,
@@ -397,21 +398,12 @@ def list_deps(coredata: cdata.CoreData, backend: backends.Backend) -> T.List[T.D
             'extra_files': [f for s in d.get_extra_files() for f in _src_to_str(s)],
             'dependencies': [e.name for e in d.ext_deps],
             'depends': [lib.get_id() for lib in getattr(d, 'libraries', [])],
-            'meson_variables': [varname] if varname else [],
+            'meson_variables': d.meson_variables,
         }
 
     for d in coredata.deps.host.values():
         if d.found():
             result[d.name] = _create_result(d)
-
-    for varname, holder in backend.interpreter.variables.items():
-        if isinstance(holder, ObjectHolder):
-            d = holder.held_object
-            if isinstance(d, Dependency) and d.found():
-                if d.name in result:
-                    T.cast('T.List[str]', result[d.name]['meson_variables']).append(varname)
-                else:
-                    result[d.name] = _create_result(d, varname)
 
     return list(result.values())
 
