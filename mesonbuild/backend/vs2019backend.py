@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 from .vs2010backend import Vs2010Backend
 
 if T.TYPE_CHECKING:
+    from ..arglist import CompilerArgs
     from ..build import Build
     from ..interpreter import Interpreter
 
@@ -41,11 +42,11 @@ class Vs2019Backend(Vs2010Backend):
         if sdk_version:
             self.windows_target_platform_version = sdk_version.rstrip('\\')
 
-    def generate_debug_information(self, link):
+    def generate_debug_information(self, link: ET.Element) -> None:
         # valid values for vs2019 is 'false', 'true', 'DebugFastLink', 'DebugFull'
         ET.SubElement(link, 'GenerateDebugInformation').text = 'DebugFull'
 
-    def generate_lang_standard_info(self, file_args, clconf):
+    def generate_lang_standard_info(self, file_args: T.Dict[str, CompilerArgs], clconf: ET.Element) -> None:
         if 'cpp' in file_args:
             optargs = [x for x in file_args['cpp'] if x.startswith('/std:c++')]
             if optargs:
