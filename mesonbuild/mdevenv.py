@@ -201,6 +201,8 @@ def run(options: argparse.Namespace) -> int:
     args = options.devcmd
     if not args:
         prompt_prefix = f'[{b.project_name}]'
+        if os.environ.get("MESON_DISABLE_PS1_OVERRIDE"):
+            prompt_prefix = None
         shell_env = os.environ.get("SHELL")
         # Prefer $SHELL in a MSYS2 bash despite it being Windows
         if shell_env and os.path.exists(shell_env):
@@ -211,8 +213,9 @@ def run(options: argparse.Namespace) -> int:
                 mlog.warning('Failed to determine Windows shell, fallback to cmd.exe')
             if shell in POWERSHELL_EXES:
                 args = [shell, '-NoLogo', '-NoExit']
-                prompt = f'function global:prompt {{  "{prompt_prefix} PS " + $PWD + "> "}}'
-                args += ['-Command', prompt]
+                if prompt_prefix:
+                    prompt = f'function global:prompt {{  "{prompt_prefix} PS " + $PWD + "> "}}'
+                    args += ['-Command', prompt]
             else:
                 args = [os.environ.get("COMSPEC", r"C:\WINDOWS\system32\cmd.exe")]
                 args += ['/k', f'prompt {prompt_prefix} $P$G']
@@ -222,7 +225,7 @@ def run(options: argparse.Namespace) -> int:
             # Let the GC remove the tmp file
             tmprc = tempfile.NamedTemporaryFile(mode='w')
             tmprc.write('[ -e ~/.bashrc ] && . ~/.bashrc\n')
-            if not os.environ.get("MESON_DISABLE_PS1_OVERRIDE"):
+            if prompt_prefix:
                 tmprc.write(f'export PS1="{prompt_prefix} $PS1"\n')
             for f in bash_completion_files(b, install_data):
                 tmprc.write(f'. "{f}"\n')
