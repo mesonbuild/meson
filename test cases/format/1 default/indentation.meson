@@ -110,3 +110,13 @@ if (host_cpu_family == 'x86' and host_system in [
 ])
     message('hi')
 endif
+
+# Underindent in files() (issue #14998)
+sources = files(
+    # bar
+    # more bar
+    'bar.c',
+    # foo
+    # more foo
+    'foo.c',
+)

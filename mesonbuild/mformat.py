@@ -359,6 +359,7 @@ class TrimWhitespaces(FullAstVisitor):
         super().visit_SymbolNode(node)
         if node.value in "([{" and node.whitespaces.value == '\n':
             node.whitespaces.value = ''
+        node.whitespaces.accept(self)
 
     def visit_StringNode(self, node: mparser.StringNode) -> None:
         self.enter_node(node)
@@ -599,8 +600,8 @@ class ArgumentFormatter(FullAstVisitor):
         if not node.whitespaces.value or node.whitespaces.value == ' ':
             node.whitespaces.value = '\n'
         indent_by = (node.condition_level + indent) * self.config.indent_by
-        if indent_by and node.whitespaces.value.endswith('\n'):
-            node.whitespaces.value += indent_by
+        if indent_by:
+            node.whitespaces.value = re.sub(rf'\n({self.config.indent_by})*', '\n' + indent_by, node.whitespaces.value)
 
     def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:
         self.enter_node(node)
