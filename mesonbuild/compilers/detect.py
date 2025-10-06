@@ -22,7 +22,6 @@ import os
 import typing as T
 
 if T.TYPE_CHECKING:
-    from .asm import ASMCompiler
     from .compilers import Compiler
     from .c import CCompiler
     from .cpp import CPPCompiler
@@ -1336,20 +1335,20 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         if 'NASM' in output:
             comp_class = NasmCompiler
             env.add_lang_args(comp_class.language, comp_class, for_machine)
-            return comp_class([], comp, version, for_machine, info, cc, is_cross=is_cross)
+            return comp_class([], comp, version, for_machine, info, cc.linker, is_cross=is_cross)
         elif 'yasm' in output:
             comp_class = YasmCompiler
             env.add_lang_args(comp_class.language, comp_class, for_machine)
-            return comp_class([], comp, version, for_machine, info, cc, is_cross=is_cross)
+            return comp_class([], comp, version, for_machine, info, cc.linker, is_cross=is_cross)
         elif 'Metrowerks' in output or 'Freescale' in output:
             if 'ARM' in output:
                 comp_class_mwasmarm = MetrowerksAsmCompilerARM
                 env.add_lang_args(comp_class_mwasmarm.language, comp_class_mwasmarm, for_machine)
-                return comp_class_mwasmarm([], comp, version, for_machine, info, cc, is_cross=is_cross)
+                return comp_class_mwasmarm([], comp, version, for_machine, info, cc.linker, is_cross=is_cross)
             else:
                 comp_class_mwasmeppc = MetrowerksAsmCompilerEmbeddedPowerPC
                 env.add_lang_args(comp_class_mwasmeppc.language, comp_class_mwasmeppc, for_machine)
-                return comp_class_mwasmeppc([], comp, version, for_machine, info, cc, is_cross=is_cross)
+                return comp_class_mwasmeppc([], comp, version, for_machine, info, cc.linker, is_cross=is_cross)
 
     _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
@@ -1365,7 +1364,7 @@ def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         info = env.machines[for_machine]
 
     from .asm import MasmCompiler, MasmARMCompiler
-    comp_class: T.Type[ASMCompiler]
+    comp_class: T.Type[Compiler]
     if info.cpu_family == 'x86':
         comp = ['ml']
         comp_class = MasmCompiler
@@ -1390,7 +1389,7 @@ def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         output = Popen_safe(comp + [arg])[2]
         version = search_version(output)
         env.add_lang_args(comp_class.language, comp_class, for_machine)
-        return comp_class([], comp, version, for_machine, info, cc, is_cross=is_cross)
+        return comp_class([], comp, version, for_machine, info, cc.linker, is_cross=is_cross)
     except OSError as e:
         popen_exceptions[' '.join(comp + [arg])] = e
     _handle_exceptions(popen_exceptions, [comp])
