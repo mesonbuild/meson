@@ -5,14 +5,15 @@
 from __future__ import annotations
 
 import enum
+import os.path
 import string
 import typing as T
 
 from .. import options
 from .. import mlog
-from .. import mesonlib
 from ..mesonlib import (
-    EnvironmentException, is_windows, LibType, version_compare
+    EnvironmentException, Popen_safe,
+    is_windows, LibType, version_compare
 )
 from .compilers import Compiler, CompileCheckMode
 
@@ -186,7 +187,6 @@ class CudaCompiler(Compiler):
                  host_compiler: Compiler, info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
-        self.detected_cc = ''
         super().__init__(ccache, exelist, version, for_machine, info, linker=linker, full_version=full_version, is_cross=is_cross)
         self.host_compiler = host_compiler
         self.base_options = host_compiler.base_options
@@ -499,36 +499,55 @@ class CudaCompiler(Compiler):
     def thread_link_flags(self, environment: 'Environment') -> T.List[str]:
         return self._to_host_flags(self.host_compiler.thread_link_flags(environment), Phase.LINKER)
 
-    def _sanity_check_source_code(self) -> str:
-        return r'''
-            #include <cuda_runtime.h>
-            #include <stdio.h>
+    def sanity_check(self, work_dir: str, env: 'Environment') -> None:
+        mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
+        mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
 
-            __global__ void kernel (void) {}
+        sname = 'sanitycheckcuda.cu'
+        code = r'''
+        #include <cuda_runtime.h>
+        #include <stdio.h>
 
-            int main(void){
-                struct cudaDeviceProp prop;
-                int count, i;
-                cudaError_t ret = cudaGetDeviceCount(&count);
-                if(ret != cudaSuccess){
-                    fprintf(stderr, "%d\n", (int)ret);
-                }else{
-                    for(i=0;i<count;i++){
-                        if(cudaGetDeviceProperties(&prop, i) == cudaSuccess){
-                            fprintf(stdout, "%d.%d\n", prop.major, prop.minor);
-                        }
+        __global__ void kernel (void) {}
+
+        int main(void){
+            struct cudaDeviceProp prop;
+            int count, i;
+            cudaError_t ret = cudaGetDeviceCount(&count);
+            if(ret != cudaSuccess){
+                fprintf(stderr, "%d\n", (int)ret);
+            }else{
+                for(i=0;i<count;i++){
+                    if(cudaGetDeviceProperties(&prop, i) == cudaSuccess){
+                        fprintf(stdout, "%d.%d\n", prop.major, prop.minor);
                     }
                 }
-                fflush(stderr);
-                fflush(stdout);
-                return 0;
             }
-            '''
+            fflush(stderr);
+            fflush(stdout);
+            return 0;
+        }
+        '''
+        binname = sname.rsplit('.', 1)[0]
+        binname += '_cross' if self.is_cross else ''
+        source_name = os.path.join(work_dir, sname)
+        binary_name = os.path.join(work_dir, binname + '.exe')
+        with open(source_name, 'w', encoding='utf-8') as ofile:
+            ofile.write(code)
 
-    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
+        # The Sanity Test for CUDA language will serve as both a sanity test
+        # and a native-build GPU architecture detection test, useful later.
+        #
+        # For this second purpose, NVCC has very handy flags, --run and
+        # --run-args, that allow one to run an application with the
+        # environment set up properly. Of course, this only works for native
+        # builds; For cross builds we must still use the exe_wrapper (if any).
+        self.detected_cc = ''
+        flags = []
+
         # Disable warnings, compile with statically-linked runtime for minimum
         # reliance on the system.
-        flags = ['-w', '-cudart', 'static', sourcename]
+        flags += ['-w', '-cudart', 'static', source_name]
 
         # Use the -ccbin option, if available, even during sanity checking.
         # Otherwise, on systems where CUDA does not support the default compiler,
@@ -543,30 +562,33 @@ class CudaCompiler(Compiler):
             # a ton of compiler flags to differentiate between
             # arm and x86_64. So just compile.
             flags += self.get_compile_only_args()
-        flags += self.get_output_args(binname)
+        flags += self.get_output_args(binary_name)
 
-        return self.exelist + flags
+        # Compile sanity check
+        cmdlist = self.exelist + flags
+        mlog.debug('Sanity check compiler command line: ', ' '.join(cmdlist))
+        pc, stdo, stde = Popen_safe(cmdlist, cwd=work_dir)
+        mlog.debug('Sanity check compile stdout: ')
+        mlog.debug(stdo)
+        mlog.debug('-----\nSanity check compile stderr:')
+        mlog.debug(stde)
+        mlog.debug('-----')
+        if pc.returncode != 0:
+            raise EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
 
-    def _run_sanity_check(self, env: Environment, cmdlist: T.List[str], work_dir: str) -> None:
-        # Can't check binaries, so we have to assume they work
-        if self.is_cross and not env.has_exe_wrapper():
-            mlog.debug('Cannot run cross check')
+        # Run sanity check (if possible)
+        if self.is_cross:
             return
 
-        cmdlist = self._sanity_check_run_with_exe_wrapper(env, cmdlist)
-        mlog.debug('Sanity check built target output for', self.for_machine, self.language, 'compiler')
-        mlog.debug(' -- Running test binary command: ', mesonlib.join_args(cmdlist))
+        cmdlist = self.exelist + ['--run', f'"{binary_name}"']
         try:
-            pe, stdo, stde = mesonlib.Popen_safe_logged(cmdlist, 'Sanity check', cwd=work_dir)
-            mlog.debug(' -- stdout:\n', stdo)
-            mlog.debug(' -- stderr:\n', stde)
-            mlog.debug(' -- returncode:', pe.returncode)
-        except Exception as e:
-            raise EnvironmentException(f'Could not invoke sanity check executable: {e!s}.')
-
-        if pe.returncode != 0:
+            stdo, stde = self.run_sanity_check(env, cmdlist, work_dir)
+        except EnvironmentException:
             raise EnvironmentException(f'Executables created by {self.language} compiler {self.name_string()} are not runnable.')
 
+        # Interpret the result of the sanity test.
+        # As mentioned above, it is not only a sanity test but also a GPU
+        # architecture detection test.
         if stde == '':
             self.detected_cc = stdo
 

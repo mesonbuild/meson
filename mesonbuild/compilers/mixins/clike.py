@@ -268,15 +268,50 @@ class CLikeCompiler(Compiler):
     def gen_import_library_args(self, implibname: str) -> T.List[str]:
         return self.linker.import_library_args(implibname)
 
-    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
-        # Cross-compiling is hard. For example, you might need -nostdlib, or to pass --target, etc.
-        mode = CompileCheckMode.COMPILE if self.is_cross and not env.has_exe_wrapper() else CompileCheckMode.LINK
-        cargs, largs = self._get_basic_compiler_args(env, mode)
+    def _sanity_check_impl(self, work_dir: str, environment: 'Environment',
+                           sname: str, code: str) -> None:
+        mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', mesonlib.join_args(self.exelist))
+        mlog.debug(f'Is cross compiler: {self.is_cross!s}.')
+
+        source_name = os.path.join(work_dir, sname)
+        binname = sname.rsplit('.', 1)[0]
+        mode = CompileCheckMode.LINK
+        if self.is_cross:
+            binname += '_cross'
+            if not environment.has_exe_wrapper():
+                # Linking cross built C/C++ apps is painful. You can't really
+                # tell if you should use -nostdlib or not and for example
+                # on OSX the compiler binary is the same but you need
+                # a ton of compiler flags to differentiate between
+                # arm and x86_64. So just compile.
+                mode = CompileCheckMode.COMPILE
+        cargs, largs = self._get_basic_compiler_args(environment, mode)
         extra_flags = cargs + self.linker_to_compiler_args(largs)
-        # It is important that extra_flags is last as it may contain `/link`
-        # directives, MSVC-compatible compilers will pass all arguments after
-        # that to the linker
-        return self.exelist + [sourcename] + self.get_output_args(binname) + extra_flags
+
+        # Is a valid executable output for all toolchains and platforms
+        binname += '.exe'
+        # Write binary check source
+        binary_name = os.path.join(work_dir, binname)
+        with open(source_name, 'w', encoding='utf-8') as ofile:
+            ofile.write(code)
+        # Compile sanity check
+        # NOTE: extra_flags must be added at the end. On MSVC, it might contain a '/link' argument
+        # after which all further arguments will be passed directly to the linker
+        cmdlist = self.exelist + [sname] + self.get_output_args(binname) + extra_flags
+        pc, stdo, stde = mesonlib.Popen_safe(cmdlist, cwd=work_dir)
+        mlog.debug('Sanity check compiler command line:', mesonlib.join_args(cmdlist))
+        mlog.debug('Sanity check compile stdout:')
+        mlog.debug(stdo)
+        mlog.debug('-----\nSanity check compile stderr:')
+        mlog.debug(stde)
+        mlog.debug('-----')
+        if pc.returncode != 0:
+            raise mesonlib.EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
+        self.run_sanity_check(environment, [binary_name], work_dir)
+
+    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+        code = 'int main(void) { int class=0; return class; }\n'
+        return self._sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
 
     def check_header(self, hname: str, prefix: str, env: 'Environment', *,
                      extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,

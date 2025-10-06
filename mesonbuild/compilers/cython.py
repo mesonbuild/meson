@@ -1,14 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright © 2021-2025 Intel Corporation
+from __future__ import annotations
 
 """Abstraction for Cython language compilers."""
 
-from __future__ import annotations
-import os
 import typing as T
 
 from .. import options
-from ..mesonlib import version_compare
+from ..mesonlib import EnvironmentException, version_compare
 from .compilers import Compiler
 
 if T.TYPE_CHECKING:
@@ -50,21 +49,15 @@ class CythonCompiler(Compiler):
     def get_depfile_suffix(self) -> str:
         return 'dep'
 
+    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+        code = 'print("hello world")'
+        with self.cached_compile(code, environment.coredata) as p:
+            if p.returncode != 0:
+                raise EnvironmentException(f'Cython compiler {self.id!r} cannot compile programs')
+
     def get_pic_args(self) -> T.List[str]:
         # We can lie here, it's fine
         return []
-
-    def _sanity_check_source_code(self) -> str:
-        return 'print("Hello world")'
-
-    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
-        return self.exelist + self.get_always_args() + self.get_output_args(binname) + [sourcename]
-
-    def _run_sanity_check(self, env: Environment, cmdlist: T.List[str], work_dir: str) -> None:
-        # Cython will do a Cython -> C -> Exe, so the output file will actually have
-        # the name of the C compiler.
-        # TODO: find a way to not make this so hacky
-        return super()._run_sanity_check(env, [os.path.join(work_dir, 'sanity_check_for_c.exe')], work_dir)
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
