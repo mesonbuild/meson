@@ -50,8 +50,9 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
     def get_display_language() -> str:
         return 'Objective-C++'
 
-    def _sanity_check_source_code(self) -> str:
-        return '#import<stdio.h>\nclass MyClass;int main(void) { return 0; }\n'
+    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+        code = '#import<stdio.h>\nclass MyClass;int main(void) { return 0; }\n'
+        return self._sanity_check_impl(work_dir, environment, 'sanitycheckobjcpp.mm', code)
 
     def get_options(self) -> MutableKeyedOptionDictType:
         opts = super().get_options()

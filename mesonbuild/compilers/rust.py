@@ -107,43 +107,44 @@ class RustCompiler(Compiler):
     def needs_static_linker(self) -> bool:
         return False
 
-    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
-        cmdlist = self.exelist.copy()
-        assert self.linker is not None, 'for mypy'
-        if self.info.kernel == 'none' and 'ld.' in self.linker.id:
-            cmdlist.extend(['-C', 'link-arg=-nostartfiles'])
-        cmdlist.extend(self.get_output_args(binname))
-        cmdlist.append(sourcename)
-        return cmdlist
-
-    def _sanity_check_source_code(self) -> str:
-        if self.info.kernel != 'none':
-            return textwrap.dedent(
-                '''fn main() {
-                }
-                ''')
-        return textwrap.dedent(
-            '''#![no_std]
-            #![no_main]
-            #[no_mangle]
-            pub fn _start() {
-            }
-            #[panic_handler]
-            fn panic(_info: &core::panic::PanicInfo) -> ! {
-                loop {}
-            }
-            ''')
-
     def sanity_check(self, work_dir: str, environment: Environment) -> None:
-        super().sanity_check(work_dir, environment)
-        source_name = self._sanity_check_filenames()[0]
+        source_name = os.path.join(work_dir, 'sanity.rs')
+        output_name = os.path.join(work_dir, 'rusttest.exe')
+        cmdlist = self.exelist.copy()
+
+        with open(source_name, 'w', encoding='utf-8') as ofile:
+            # If machine kernel is not `none`, try to compile a dummy program.
+            # If 'none', this is likely a `no-std`(i.e. bare metal) project.
+            if self.info.kernel != 'none':
+                ofile.write(textwrap.dedent(
+                    '''fn main() {
+                    }
+                    '''))
+            else:
+                # If rustc linker is gcc, add `-nostartfiles`
+                if 'ld.' in self.linker.id:
+                    cmdlist.extend(['-C', 'link-arg=-nostartfiles'])
+                ofile.write(textwrap.dedent(
+                    '''#![no_std]
+                    #![no_main]
+                    #[no_mangle]
+                    pub fn _start() {
+                    }
+                    #[panic_handler]
+                    fn panic(_info: &core::panic::PanicInfo) -> ! {
+                        loop {}
+                    }
+                    '''))
+
+        cmdlist.extend(['-o', output_name, source_name])
+        pc, stdo, stde = Popen_safe_logged(cmdlist, cwd=work_dir)
+        if pc.returncode != 0:
+            raise EnvironmentException(f'Rust compiler {self.name_string()} cannot compile programs.')
         self._native_static_libs(work_dir, source_name)
+        self.run_sanity_check(environment, [output_name], work_dir)
 
     def _native_static_libs(self, work_dir: str, source_name: str) -> None:
         # Get libraries needed to link with a Rust staticlib
-        if self.native_static_libs:
-            return
-
         cmdlist = self.exelist + ['--crate-type', 'staticlib', '--print', 'native-static-libs', source_name]
         p, stdo, stde = Popen_safe_logged(cmdlist, cwd=work_dir)
         if p.returncode != 0:
