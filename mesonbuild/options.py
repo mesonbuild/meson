@@ -1152,10 +1152,7 @@ class OptionStore:
 
     def get_default_for_b_option(self, key: OptionKey) -> ElementaryOptionValues:
         assert self.is_base_option(key)
-        try:
-            return COMPILER_BASE_OPTIONS[key.evolve(subproject=None)].default
-        except KeyError:
-            raise MesonBugException(f'Requested base option {key} which does not exist.')
+        return COMPILER_BASE_OPTIONS[key.evolve(subproject=None, machine=MachineChoice.HOST)].default
 
     def remove(self, key: OptionKey) -> None:
         del self.options[key]
@@ -1210,7 +1207,8 @@ class OptionStore:
 
     def is_base_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a base option."""
-        return key.name.startswith('b_')
+        # The "startswith" check is just an optimization
+        return key.name.startswith('b_') and key.evolve(subproject=None, machine=MachineChoice.HOST) in COMPILER_BASE_OPTIONS
 
     def is_backend_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a backend option."""
@@ -1322,8 +1320,7 @@ class OptionStore:
             return True
         if first_invocation and self.is_backend_option(key):
             return True
-        return (self.is_base_option(key) and
-                key.evolve(subproject=None, machine=MachineChoice.HOST) in COMPILER_BASE_OPTIONS)
+        return self.is_base_option(key)
 
     def validate_cmd_line_options(self, cmd_line_options: OptionDict) -> None:
         unknown_options = []
