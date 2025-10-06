@@ -3,8 +3,7 @@ from __future__ import annotations
 import os
 import typing as T
 
-from .. import mlog
-from ..mesonlib import EnvironmentException, Popen_safe, join_args, get_meson_command
+from ..mesonlib import EnvironmentException, get_meson_command
 from ..options import OptionKey
 from .compilers import Compiler
 from .mixins.metrowerks import MetrowerksCompiler, mwasmarm_instruction_set_args, mwasmeppc_instruction_set_args
@@ -26,10 +25,6 @@ nasm_optimization_args: T.Dict[str, T.List[str]] = {
 }
 
 
-class _CheckUnimplementedException(Exception):
-    pass
-
-
 class ASMCompiler(Compiler):
 
     """Shared base class for all ASM Compilers (Assemblers)"""
@@ -46,57 +41,10 @@ class ASMCompiler(Compiler):
         self._compiler = compiler
 
     def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
-        # TODO: fallback back to this is always wrong, it means that the
-        # concrete implementation is missing the sanity check implementation
         return []
 
-    def _sanity_check_filenames(self) -> T.Tuple[str, str]:
-        src, bin = super()._sanity_check_filenames()
-        bin = '{}.obj'.format(os.path.splitext(bin)[0])
-        return src, bin
-
     def _sanity_check_source_code(self) -> str:
-        raise _CheckUnimplementedException()
-
-    def _run_sanity_check(self, env: Environment, cmdlist: T.List[str], work_dir: str) -> None:
-        # This is a bit of a hack
-        return
-
-    def sanity_check(self, work_dir: str, env: Environment) -> None:
-        try:
-            super().sanity_check(work_dir, env)
-        except _CheckUnimplementedException:
-            if self.info.kernel:
-                name = self.info.kernel
-                if self.info.subsystem:
-                    name = f'{name} {self.info.subsystem}'
-            else:
-                name = self.info.system
-            mlog.warning(
-                f'Missing {self.id} sanity check code for {name}.',
-                'You can help by providing such an implementation',
-                fatal=False, once=True)
-            return
-
-        # This is the object from the compilation
-        src = self._sanity_check_filenames()[1]
-        bin = self._compiler._sanity_check_filenames()[1]
-
-        cmdlist = self._compiler._sanity_check_compile_args(env, src, bin)
-
-        pc, stdo, stde = Popen_safe(cmdlist, cwd=work_dir)
-        mlog.debug('Sanity check linker command line:', join_args(cmdlist))
-        mlog.debug('Sanity check linker stdout:')
-        mlog.debug(stdo)
-        mlog.debug('-----\nSanity check linker stderr:')
-        mlog.debug(stde)
-        mlog.debug('-----')
-        if pc.returncode != 0:
-            raise EnvironmentError(
-                f'Compiler {self._compiler.name_string()} could not link an object from the {self.name_string()} assembler')
-
-        # This is also a hack
-        return super()._run_sanity_check(env, [os.path.join(work_dir, bin)], work_dir)
+        return ''
 
 
 class NasmCompiler(ASMCompiler):
