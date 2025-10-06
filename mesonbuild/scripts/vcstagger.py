@@ -8,7 +8,7 @@ import typing as T
 
 def config_vcs_tag(infile: str, outfile: str, fallback: str, source_dir: str, replace_string: str, regex_selector: str, cmd: T.List[str]) -> None:
     try:
-        output = subprocess.check_output(cmd, cwd=source_dir)
+        output = subprocess.check_output(cmd, cwd=source_dir, stderr=subprocess.DEVNULL)
         new_string = re.search(regex_selector, output.decode()).group(1).rstrip('\r\n')
     except Exception:
         new_string = fallback
