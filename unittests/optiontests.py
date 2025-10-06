@@ -306,11 +306,6 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(optstore.get_value_for(key), opt_value)
         self.assertEqual(optstore.get_value_for(key.as_build()), def_value)
 
-    def test_b_default(self):
-        optstore = OptionStore(False)
-        value = optstore.get_default_for_b_option(OptionKey('b_vscrt'))
-        self.assertEqual(value, 'from_buildtype')
-
     def test_b_nonexistent(self):
         optstore = OptionStore(False)
         self.assertTrue(optstore.accept_as_pending_option(OptionKey('b_ndebug')))

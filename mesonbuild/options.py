@@ -1150,10 +1150,6 @@ class OptionStore:
         key = self.ensure_and_validate_key(key)
         return self.options[key]
 
-    def get_default_for_b_option(self, key: OptionKey) -> ElementaryOptionValues:
-        assert self.is_base_option(key)
-        return COMPILER_BASE_OPTIONS[key.evolve(subproject=None, machine=MachineChoice.HOST)].default
-
     def remove(self, key: OptionKey) -> None:
         del self.options[key]
         try:
