@@ -10,6 +10,7 @@ from .mixins.metrowerks import MetrowerksCompiler, mwasmarm_instruction_set_args
 from .mixins.ti import TICompiler
 
 if T.TYPE_CHECKING:
+    from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..envconfig import MachineInfo
@@ -38,6 +39,13 @@ class ASMCompiler(Compiler):
         if self._SUPPORTED_ARCHES and info.cpu_family not in self._SUPPORTED_ARCHES:
             raise EnvironmentException(f'ASM Compiler {self.id} does not support building for {info.cpu_family} CPU family.')
         super().__init__(ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
+
+    def sanity_check(self, work_dir: str, env: Environment) -> None:
+        return
+
+    def _sanity_check_source_code(self) -> str:
+        # TODO: Stub implementation to be replaced in future patch
+        return ''
 
 
 class NasmCompiler(ASMCompiler):

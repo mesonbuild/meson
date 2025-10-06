@@ -8,7 +8,7 @@ import typing as T
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import EnvironmentException, version_compare, LibType
+from ..mesonlib import version_compare, LibType
 from ..options import OptionKey
 from .compilers import CompileCheckMode, Compiler
 
@@ -99,18 +99,16 @@ class ValaCompiler(Compiler):
 
         return parameter_list
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
-        code = 'class MesonSanityCheck : Object { }'
-        extra_flags: T.List[str] = []
-        extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
-        if self.is_cross:
-            extra_flags += self.get_compile_only_args()
-        else:
-            extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
-        with self.cached_compile(code, environment.coredata, extra_args=extra_flags, mode=CompileCheckMode.COMPILE) as p:
-            if p.returncode != 0:
-                msg = f'Vala compiler {self.name_string()!r} cannot compile programs'
-                raise EnvironmentException(msg)
+    def _sanity_check_source_code(self) -> str:
+        return 'public static int main() { return 0; }'
+
+    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
+        # Use the posix profile to remove glib dependency
+        return super()._sanity_check_compile_args(env, sourcename, binname) + ['--profile=posix']
+
+    def _sanity_check_filenames(self, env: Environment) -> T.Tuple[str, T.Optional[str], str]:
+        sourcename, _, binname = super()._sanity_check_filenames(env)
+        return sourcename, f'{os.path.splitext(sourcename)[0]}.c', binname
 
     def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
                      libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True, ignore_system_dirs: bool = False) -> T.Optional[T.List[str]]:
