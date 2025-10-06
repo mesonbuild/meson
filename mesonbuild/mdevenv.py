@@ -11,7 +11,7 @@ import typing as T
 from pathlib import Path
 from . import build, minstall
 from .mesonlib import (EnvironmentVariables, MesonException, join_args, is_windows, setup_vsenv,
-                       get_wine_shortpath, MachineChoice, relpath)
+                       get_wine_shortpath, MachineChoice, relpath, is_osx)
 from .options import OptionKey
 from . import mlog
 
@@ -151,6 +151,14 @@ def write_gdb_script(privatedir: Path, install_data: 'InstallData', workdir: Pat
                 mlog.log(' - Change current workdir to', mlog.bold(str(rel_path.parent)),
                          'or use', mlog.bold(f'--init-command {rel_path}'))
 
+def macos_sip_enabled() -> bool:
+    if not is_osx():
+        return False
+    ret = subprocess.run(["csrutil", "status"], text=True, capture_output=True, encoding='utf-8')
+    if not ret.stdout:
+        return True
+    return 'enabled' in ret.stdout
+
 def dump(devenv: T.Dict[str, str], varnames: T.Set[str], dump_format: T.Optional[str], output: T.Optional[T.TextIO] = None) -> None:
     for name in varnames:
         print(f'{name}="{devenv[name]}"', file=output)
@@ -221,6 +229,10 @@ def run(options: argparse.Namespace) -> int:
             tmprc.flush()
             args.append("--rcfile")
             args.append(tmprc.name)
+        if 'DYLD_LIBRARY_PATH' in devenv and macos_sip_enabled():
+            mlog.warning('macOS System Integrity Protection is enabled: DYLD_LIBRARY_PATH cannot be set in the subshell')
+            mlog.warning('To fix that, use `meson devenv --dump dev.env && source dev.env`')
+            del devenv['DYLD_LIBRARY_PATH']
     else:
         # Try to resolve executable using devenv's PATH
         abs_path = shutil.which(args[0], path=devenv.get('PATH', None))
