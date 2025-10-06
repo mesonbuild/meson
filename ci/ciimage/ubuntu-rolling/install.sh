@@ -29,6 +29,8 @@ pkgs=(
   itstool
   openjdk-11-jre
   jq
+  libblas-dev liblapack-dev liblapacke-dev libblas64-dev liblapack64-dev liblapacke64-dev
+  libopenblas-dev libopenblas64-dev libmkl-dev
 )
 
 sed -i '/^Types: deb/s/deb/deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources
