@@ -1084,7 +1084,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         if optname_regex.search(optname.split('.', maxsplit=1)[-1]) is not None:
             raise InterpreterException(f'Invalid option name {optname!r}')
 
-        # Will be None only if the value comes from the default
         value_object: T.Optional[options.AnyOptionType]
 
         try:
@@ -1094,14 +1093,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             if self.coredata.optstore.is_base_option(optkey):
                 # Due to backwards compatibility return the default
                 # option for base options instead of erroring out.
-                #
-                # TODO: This will have issues if we expect to return a user FeatureOption
-                #       Of course, there's a bit of a layering violation here in
-                #       that we return a UserFeatureOption, but otherwise the held value
-                #       We probably need a lower level feature thing, or an enum
-                #       instead of strings
-                value = self.coredata.optstore.get_default_for_b_option(optkey)
-                value_object = None
+                value_object = options.COMPILER_BASE_OPTIONS[optkey.evolve(subproject=None, machine=MachineChoice.HOST)]
+                value = value_object.default
             else:
                 if self.subproject:
                     raise MesonException(f'Option {optname} does not exist for subproject {self.subproject}.')
@@ -1112,7 +1105,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             ocopy.value = value
             return ocopy
         elif optname == 'b_sanitize':
-            assert value_object is None or isinstance(value_object, options.UserStringArrayOption)
+            assert isinstance(value_object, options.UserStringArrayOption)
             # To ensure backwards compatibility this always returns a string.
             # We may eventually want to introduce a new "format" kwarg that
             # allows the user to modify this behaviour, but for now this is
