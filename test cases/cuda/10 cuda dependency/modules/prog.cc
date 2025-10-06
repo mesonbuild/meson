@@ -1,5 +1,6 @@
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
+#include <cupti.h>
 #include <iostream>
 
 int cuda_devices(void) {
@@ -9,6 +10,12 @@ int cuda_devices(void) {
 }
 
 int main(void) {
+    uint32_t version;
+    if (cuptiGetVersion(&version) != CUPTI_SUCCESS) {
+        std::cout << "CUPTI version query failed. Exiting.\n";
+        return -1;
+    }
+
     int n = cuda_devices();
     if (n == 0) {
         std::cout << "No CUDA hardware found. Exiting.\n";
