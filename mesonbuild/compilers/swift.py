@@ -177,21 +177,22 @@ class SwiftCompiler(Compiler):
 
         return parameter_list
 
-    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
-        cmdlist = self.exelist.copy()
-        # TODO: I can't test this, but it doesn't seem right
+    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+        src = 'swifttest.swift'
+        source_name = os.path.join(work_dir, src)
+        output_name = os.path.join(work_dir, 'swifttest')
+        extra_flags: T.List[str] = []
+        extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
         if self.is_cross:
-            cmdlist.extend(self.get_compile_only_args())
+            extra_flags += self.get_compile_only_args()
         else:
-            cmdlist.extend(env.coredata.get_external_link_args(self.for_machine, self.language))
-        cmdlist.extend(self.get_std_exe_link_args())
-        cmdlist.extend(self.get_output_args(binname))
-        cmdlist.append(sourcename)
-
-        return cmdlist
-
-    def _sanity_check_source_code(self) -> str:
-        return 'print("Swift compilation is working.")'
+            extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
+        with open(source_name, 'w', encoding='utf-8') as ofile:
+            ofile.write('''print("Swift compilation is working.")
+''')
+        pc = subprocess.Popen(self.exelist + extra_flags + ['-emit-executable', '-o', output_name, src], cwd=work_dir)
+        pc.wait()
+        self.run_sanity_check(environment, [output_name], work_dir)
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return clike_debug_args[is_debug]
