@@ -605,7 +605,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
             raise InterpreterException('as_shared method is only supported on declare_dependency() objects')
         return self.held_object.get_as_shared(kwargs['recursive'])
 
-    @FeatureNew('dependency.as_json', '1.10.0')
+    @FeatureNew('dependency.as_dict', '1.10.0')
     @noPosargs
     @noKwargs
     @InterpreterObject.method('as_dict')
