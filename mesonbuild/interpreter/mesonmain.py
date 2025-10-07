@@ -9,8 +9,8 @@ import typing as T
 
 from .. import mesonlib
 from .. import dependencies
-from .. import build
-from .. import mlog, coredata
+from .. import build, cmdline
+from .. import mlog
 
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
@@ -485,4 +485,4 @@ class MesonMain(MesonInterpreterObject):
         options = self.interpreter.user_defined_options
         if options is None:
             return ''
-        return coredata.format_cmd_line_options(options)
+        return cmdline.format_cmd_line_options(options)
