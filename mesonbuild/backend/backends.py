@@ -24,6 +24,7 @@ from .. import dependencies
 from .. import programs
 from .. import mesonlib
 from .. import mlog
+from .. import compilers
 from ..compilers import detect, lang_suffixes
 from ..mesonlib import (
     File, MachineChoice, MesonException, MesonBugException, OrderedSet,
@@ -812,9 +813,9 @@ class Backend:
         # Filter out headers and all non-source files
         sources: T.List['FileOrString'] = []
         for s in raw_sources:
-            if self.environment.is_source(s):
+            if compilers.is_source(s):
                 sources.append(s)
-            elif self.environment.is_object(s):
+            elif compilers.is_object(s):
                 result.append(s.relative_name())
 
         # MSVC generate an object file for PCH
@@ -1393,7 +1394,7 @@ class Backend:
     def get_custom_target_provided_by_generated_source(self, generated_source: build.CustomTarget) -> 'ImmutableListProtocol[str]':
         libs: T.List[str] = []
         for f in generated_source.get_outputs():
-            if self.environment.is_library(f):
+            if compilers.is_library(f):
                 libs.append(os.path.join(self.get_target_dir(generated_source), f))
         return libs
 
