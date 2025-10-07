@@ -328,3 +328,25 @@ kwargs:
 
       This allows renaming similar to the dependency renaming feature of cargo
       or `extern crate foo as bar` inside rust code.
+
+  vala_header:
+    type: str
+    description: |
+      On Vala targets, this provides a way to override the name of the generated
+      C compatible header for targets that generate them.
+
+      If it is not set the default will be calculated from the target's name.
+
+  vala_vapi:
+    type: str
+    description: |
+      On Vala targets, this provides a way to override the name of the generated
+      VAPI file.
+
+      If it is not set the default will be calculated from the target's name.
+
+  vala_gir:
+    type: str
+    description: |
+      If set, generates a GIR file with the given name. If this is unset then
+      no GIR file will be generated.
