@@ -28,15 +28,6 @@ from .envconfig import (
     BinaryTable, MachineInfo, Properties, known_cpu_families, CMakeVariables,
 )
 from . import compilers
-from .compilers import (
-    is_assembly,
-    is_header,
-    is_library,
-    is_llvm_ir,
-    is_object,
-    is_separate_compile,
-    is_source,
-)
 
 from mesonbuild import envconfig
 
@@ -933,27 +924,6 @@ class Environment:
         if unbuffered and 'python' in os.path.basename(cmd[0]):
             cmd.insert(1, '-u')
         return cmd
-
-    def is_header(self, fname: 'mesonlib.FileOrString') -> bool:
-        return is_header(fname)
-
-    def is_source(self, fname: 'mesonlib.FileOrString') -> bool:
-        return is_source(fname)
-
-    def is_assembly(self, fname: 'mesonlib.FileOrString') -> bool:
-        return is_assembly(fname)
-
-    def is_separate_compile(self, fname: 'mesonlib.FileOrString') -> bool:
-        return is_separate_compile(fname)
-
-    def is_llvm_ir(self, fname: 'mesonlib.FileOrString') -> bool:
-        return is_llvm_ir(fname)
-
-    def is_object(self, fname: 'mesonlib.FileOrString') -> bool:
-        return is_object(fname)
-
-    def is_library(self, fname: mesonlib.FileOrString) -> bool:
-        return is_library(fname)
 
     def lookup_binary_entry(self, for_machine: MachineChoice, name: str) -> T.Optional[T.List[str]]:
         return self.binaries[for_machine].lookup_entry(name)
