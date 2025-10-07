@@ -233,7 +233,7 @@ def option_enabled(boptions: T.Set[OptionKey],
     try:
         if option not in boptions:
             return False
-        ret = env.coredata.get_option_for_target(target, option)
+        ret = target.get_option(option)
         assert isinstance(ret, bool), 'must return bool'  # could also be str
         return ret
     except KeyError:
@@ -243,7 +243,7 @@ def option_enabled(boptions: T.Set[OptionKey],
 def get_option_value_for_target(env: 'Environment', target: 'BuildTarget', opt: OptionKey, fallback: '_T') -> '_T':
     """Get the value of an option, or the fallback value."""
     try:
-        v = env.coredata.get_option_for_target(target, opt)
+        v = target.get_option(opt)
     except (KeyError, AttributeError):
         return fallback
 
@@ -259,9 +259,9 @@ def are_asserts_disabled(target: 'BuildTarget', env: 'Environment') -> bool:
     :param env: the environment
     :return: whether to disable assertions or not
     """
-    return (env.coredata.get_option_for_target(target, 'b_ndebug') == 'true' or
-            (env.coredata.get_option_for_target(target, 'b_ndebug') == 'if-release' and
-             env.coredata.get_option_for_target(target, 'buildtype') in {'release', 'plain'}))
+    return (target.get_option('b_ndebug') == 'true' or
+            (target.get_option('b_ndebug') == 'if-release' and
+             target.get_option('buildtype') in {'release', 'plain'}))
 
 
 def are_asserts_disabled_for_subproject(subproject: str, env: 'Environment') -> bool:
@@ -274,7 +274,7 @@ def are_asserts_disabled_for_subproject(subproject: str, env: 'Environment') -> 
 def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Environment') -> T.List[str]:
     args: T.List[str] = []
     try:
-        if env.coredata.get_option_for_target(target, 'b_lto'):
+        if target.get_option('b_lto'):
             num_threads = get_option_value_for_target(env, target, OptionKey('b_lto_threads'), 0)
             ltomode = get_option_value_for_target(env, target, OptionKey('b_lto_mode'), 'default')
             args.extend(compiler.get_lto_compile_args(
@@ -283,13 +283,13 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
     except (KeyError, AttributeError):
         pass
     try:
-        clrout = env.coredata.get_option_for_target(target, 'b_colorout')
+        clrout = target.get_option('b_colorout')
         assert isinstance(clrout, str)
         args += compiler.get_colorout_args(clrout)
     except KeyError:
         pass
     try:
-        sanitize = env.coredata.get_option_for_target(target, 'b_sanitize')
+        sanitize = target.get_option('b_sanitize')
         assert isinstance(sanitize, list)
         if sanitize == ['none']:
             sanitize = []
@@ -303,7 +303,7 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
     except KeyError:
         pass
     try:
-        pgo_val = env.coredata.get_option_for_target(target, 'b_pgo')
+        pgo_val = target.get_option('b_pgo')
         if pgo_val == 'generate':
             args.extend(compiler.get_profile_generate_args())
         elif pgo_val == 'use':
@@ -311,7 +311,7 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
     except (KeyError, AttributeError):
         pass
     try:
-        if env.coredata.get_option_for_target(target, 'b_coverage'):
+        if target.get_option('b_coverage'):
             args += compiler.get_coverage_args()
     except (KeyError, AttributeError):
         pass
@@ -323,9 +323,9 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
     if option_enabled(compiler.base_options, target, env, 'b_bitcode'):
         args.append('-fembed-bitcode')
     try:
-        crt_val = env.coredata.get_option_for_target(target, 'b_vscrt')
+        crt_val = target.get_option('b_vscrt')
         assert isinstance(crt_val, str)
-        buildtype = env.coredata.get_option_for_target(target, 'buildtype')
+        buildtype = target.get_option('buildtype')
         assert isinstance(buildtype, str)
         try:
             args += compiler.get_crt_compile_args(crt_val, buildtype)
@@ -341,8 +341,8 @@ def get_base_link_args(target: 'BuildTarget',
     args: T.List[str] = []
     build_dir = env.get_build_dir()
     try:
-        if env.coredata.get_option_for_target(target, 'b_lto'):
-            if env.coredata.get_option_for_target(target, 'werror'):
+        if target.get_option('b_lto'):
+            if target.get_option('werror'):
                 args.extend(linker.get_werror_args())
 
             thinlto_cache_dir = None
@@ -362,7 +362,7 @@ def get_base_link_args(target: 'BuildTarget',
     except (KeyError, AttributeError):
         pass
     try:
-        sanitizer = env.coredata.get_option_for_target(target, 'b_sanitize')
+        sanitizer = target.get_option('b_sanitize')
         assert isinstance(sanitizer, list)
         if sanitizer == ['none']:
             sanitizer = []
@@ -376,7 +376,7 @@ def get_base_link_args(target: 'BuildTarget',
     except KeyError:
         pass
     try:
-        pgo_val = env.coredata.get_option_for_target(target, 'b_pgo')
+        pgo_val = target.get_option('b_pgo')
         if pgo_val == 'generate':
             args.extend(linker.get_profile_generate_args())
         elif pgo_val == 'use':
@@ -384,7 +384,7 @@ def get_base_link_args(target: 'BuildTarget',
     except (KeyError, AttributeError):
         pass
     try:
-        if env.coredata.get_option_for_target(target, 'b_coverage'):
+        if target.get_option('b_coverage'):
             args += linker.get_coverage_link_args()
     except (KeyError, AttributeError):
         pass
@@ -411,9 +411,9 @@ def get_base_link_args(target: 'BuildTarget',
             args.extend(linker.get_allow_undefined_link_args())
 
     try:
-        crt_val = env.coredata.get_option_for_target(target, 'b_vscrt')
+        crt_val = target.get_option('b_vscrt')
         assert isinstance(crt_val, str)
-        buildtype = env.coredata.get_option_for_target(target, 'buildtype')
+        buildtype = target.get_option('buildtype')
         assert isinstance(buildtype, str)
         try:
             crtargs = linker.get_crt_link_args(crt_val, buildtype)
@@ -1413,7 +1413,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         if isinstance(key, str):
             key = self.form_compileropt_key(key)
         if target:
-            return env.coredata.get_option_for_target(target, key)
+            return target.get_option(key)
         else:
             return env.coredata.optstore.get_value_for(key.evolve(subproject=subproject))
 

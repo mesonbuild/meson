@@ -2064,4 +2064,4 @@ class Backend:
             key = name
         else:
             raise MesonBugException('Internal error: invalid option type.')
-        return self.environment.coredata.get_option_for_target(target, key)
+        return target.get_option(key)
