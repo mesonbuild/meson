@@ -26,12 +26,7 @@ nasm_optimization_args: T.Dict[str, T.List[str]] = {
 }
 
 
-class ASMCompiler(Compiler):
-
-    """Shared base class for all ASM Compilers (Assemblers)"""
-
-
-class NasmCompiler(ASMCompiler):
+class NasmCompiler(Compiler):
     language = 'nasm'
     id = 'nasm'
 
@@ -157,7 +152,7 @@ class YasmCompiler(NasmCompiler):
         return ['--depfile', outfile]
 
 # https://learn.microsoft.com/en-us/cpp/assembler/masm/ml-and-ml64-command-line-reference
-class MasmCompiler(ASMCompiler):
+class MasmCompiler(Compiler):
     language = 'masm'
     id = 'ml'
 
@@ -215,7 +210,7 @@ class MasmCompiler(ASMCompiler):
 
 
 # https://learn.microsoft.com/en-us/cpp/assembler/arm/arm-assembler-command-line-reference
-class MasmARMCompiler(ASMCompiler):
+class MasmARMCompiler(Compiler):
     language = 'masm'
     id = 'armasm'
 
@@ -266,14 +261,14 @@ class MasmARMCompiler(ASMCompiler):
 
 
 # https://downloads.ti.com/docs/esd/SPRUI04/
-class TILinearAsmCompiler(TICompiler, ASMCompiler):
+class TILinearAsmCompiler(TICompiler, Compiler):
     language = 'linearasm'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
                  for_machine: MachineChoice, info: MachineInfo,
                  linker: T.Optional[DynamicLinker] = None,
                  full_version: T.Optional[str] = None, is_cross: bool = False):
-        ASMCompiler.__init__(self, ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
+        Compiler.__init__(self, ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
         TICompiler.__init__(self)
 
     def needs_static_linker(self) -> bool:
@@ -293,14 +288,14 @@ class TILinearAsmCompiler(TICompiler, ASMCompiler):
         return 'd'
 
 
-class MetrowerksAsmCompiler(MetrowerksCompiler, ASMCompiler):
+class MetrowerksAsmCompiler(MetrowerksCompiler, Compiler):
     language = 'nasm'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
                  for_machine: 'MachineChoice', info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None, is_cross: bool = False):
-        ASMCompiler.__init__(self, ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
+        Compiler.__init__(self, ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
         MetrowerksCompiler.__init__(self)
 
         self.warn_args: T.Dict[str, T.List[str]] = {
