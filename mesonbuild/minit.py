@@ -17,7 +17,7 @@ import typing as T
 
 from mesonbuild import build, mesonlib, mlog
 from mesonbuild.coredata import FORBIDDEN_TARGET_NAMES
-from mesonbuild.environment import detect_ninja
+from mesonbuild.tooldetect import detect_ninja
 from mesonbuild.templates.mesontemplates import create_meson_build
 from mesonbuild.templates.samplefactory import sample_generator
 from mesonbuild.options import OptionKey

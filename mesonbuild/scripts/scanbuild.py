@@ -7,7 +7,7 @@ import subprocess
 import shutil
 import tempfile
 from ..cmdline import get_cmd_line_file, CmdLineFileParser
-from ..environment import detect_ninja, detect_scanbuild
+from ..tooldetect import detect_ninja, detect_scanbuild
 from ..mesonlib import windows_proof_rmtree, determine_worker_count
 from pathlib import Path
 import typing as T

@@ -29,7 +29,7 @@ import unicodedata
 import xml.etree.ElementTree as et
 
 from . import build
-from . import environment
+from . import tooldetect
 from . import mlog
 from .coredata import MesonVersionMismatchException, major_versions_differ
 from .coredata import version as coredata_version
@@ -1702,7 +1702,7 @@ class TestHarness:
         if self.options.no_rebuild:
             return
 
-        self.ninja = environment.detect_ninja()
+        self.ninja = tooldetect.detect_ninja()
         if not self.ninja:
             print("Can't find ninja, can't rebuild test.")
             # If ninja can't be found return exit code 127, indicating command

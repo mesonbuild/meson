@@ -20,10 +20,11 @@ import typing as T
 
 from . import backends
 from .. import modules
-from .. import environment, mesonlib
+from .. import mesonlib
 from .. import build
 from .. import mlog
 from .. import compilers
+from .. import tooldetect
 from ..arglist import CompilerArgs
 from ..compilers import Compiler, is_library
 from ..linkers import ArLikeLinker, RSPFileSyntax
@@ -595,7 +596,7 @@ class NinjaBackend(backends.Backend):
                     mlog.debug('cuda enabled globally, disabling thin archives for {}, since nvcc/nvlink cannot handle thin archives natively'.format(for_machine))
                     self.allow_thin_archives[for_machine] = False
 
-        ninja = environment.detect_ninja_command_and_version(log=True)
+        ninja = tooldetect.detect_ninja_command_and_version(log=True)
         if self.environment.coredata.optstore.get_value_for(OptionKey('vsenv')):
             builddir = Path(self.environment.get_build_dir())
             try:
@@ -656,7 +657,7 @@ class NinjaBackend(backends.Backend):
             key = OptionKey('b_coverage')
             if key in self.environment.coredata.optstore and\
                     self.environment.coredata.optstore.get_value_for('b_coverage'):
-                gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe = environment.find_coverage_tools(self.environment.coredata)
+                gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe = tooldetect.find_coverage_tools(self.environment.coredata)
                 mlog.debug(f'Using {gcovr_exe} ({gcovr_version}), {lcov_exe} and {llvm_cov_exe} for code coverage')
                 if gcovr_exe or (lcov_exe and genhtml_exe):
                     self.add_build_comment(NinjaComment('Coverage rules'))
@@ -3875,7 +3876,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(elem)
 
     def generate_scanbuild(self) -> None:
-        if not environment.detect_scanbuild():
+        if not tooldetect.detect_scanbuild():
             return
         if 'scan-build' in self.all_outputs:
             return
@@ -3916,16 +3917,16 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(elem)
 
     def generate_clangformat(self) -> None:
-        if not environment.detect_clangformat():
+        if not tooldetect.detect_clangformat():
             return
         self.generate_clangtool('format')
         self.generate_clangtool('format', 'check')
 
     def generate_clangtidy(self) -> None:
-        if not environment.detect_clangtidy():
+        if not tooldetect.detect_clangtidy():
             return
         self.generate_clangtool('tidy', need_pch=True)
-        if not environment.detect_clangapply():
+        if not tooldetect.detect_clangapply():
             return
         self.generate_clangtool('tidy', 'fix', need_pch=True)
 

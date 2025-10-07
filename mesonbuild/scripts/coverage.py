@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from mesonbuild import environment, mesonlib
+from mesonbuild import tooldetect, mesonlib
 
 import argparse, re, sys, os, subprocess, pathlib, stat, shutil
 import typing as T
@@ -16,11 +16,11 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
     if gcovr_exe == '':
         gcovr_exe = None
     else:
-        gcovr_exe, gcovr_version = environment.detect_gcovr(gcovr_exe)
+        gcovr_exe, gcovr_version = tooldetect.detect_gcovr(gcovr_exe)
     if llvm_cov_exe == '' or shutil.which(llvm_cov_exe) is None:
         llvm_cov_exe = None
 
-    lcov_exe, lcov_version, genhtml_exe = environment.detect_lcov_genhtml()
+    lcov_exe, lcov_version, genhtml_exe = tooldetect.detect_lcov_genhtml()
 
     # load config files for tools if available in the source tree
     # - lcov requires manually specifying a per-project config
