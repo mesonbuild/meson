@@ -80,6 +80,7 @@ modules = [
     'mesonbuild/options.py',
     'mesonbuild/programs.py',
     'mesonbuild/rewriter.py',
+    'mesonbuild/tooldetect.py',
 ]
 additional = [
     'run_mypy.py',

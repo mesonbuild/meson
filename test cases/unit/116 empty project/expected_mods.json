@@ -231,6 +231,7 @@
       "mesonbuild.programs",
       "mesonbuild.scripts",
       "mesonbuild.scripts.meson_exe",
+      "mesonbuild.tooldetect",
       "mesonbuild.utils",
       "mesonbuild.utils.core",
       "mesonbuild.utils.platform",
@@ -239,6 +240,6 @@
       "mesonbuild.wrap",
       "mesonbuild.wrap.wrap"
     ],
-    "count": 70
+    "count": 71
   }
 }

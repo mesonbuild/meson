@@ -2497,7 +2497,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertIn('ERROR: compiler.has_header_symbol got unknown keyword arguments "prefixxx"', cm.exception.output)
 
     def test_templates(self):
-        ninja = mesonbuild.environment.detect_ninja()
+        ninja = mesonbuild.tooldetect.detect_ninja()
         if ninja is None:
             raise SkipTest('This test currently requires ninja. Fix this once "meson build" works.')
 
@@ -4290,14 +4290,14 @@ class AllPlatformTests(BasePlatformTests):
     def test_coverage(self):
         if mesonbuild.envconfig.detect_msys2_arch():
             raise SkipTest('Skipped due to problems with coverage on MSYS2')
-        gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
+        gcovr_exe, gcovr_new_rootdir = mesonbuild.tooldetect.detect_gcovr()
         if not gcovr_exe:
             raise SkipTest('gcovr not found, or too old')
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() == 'clang':
-            if not mesonbuild.environment.detect_llvm_cov():
+            if not mesonbuild.tooldetect.detect_llvm_cov():
                 raise SkipTest('llvm-cov not found')
         if cc.get_id() == 'msvc':
             raise SkipTest('Test only applies to non-MSVC compilers')
@@ -4310,14 +4310,14 @@ class AllPlatformTests(BasePlatformTests):
     def test_coverage_complex(self):
         if mesonbuild.envconfig.detect_msys2_arch():
             raise SkipTest('Skipped due to problems with coverage on MSYS2')
-        gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
+        gcovr_exe, gcovr_new_rootdir = mesonbuild.tooldetect.detect_gcovr()
         if not gcovr_exe:
             raise SkipTest('gcovr not found, or too old')
         testdir = os.path.join(self.common_test_dir, '105 generatorcustom')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() == 'clang':
-            if not mesonbuild.environment.detect_llvm_cov():
+            if not mesonbuild.tooldetect.detect_llvm_cov():
                 raise SkipTest('llvm-cov not found')
         if cc.get_id() == 'msvc':
             raise SkipTest('Test only applies to non-MSVC compilers')
@@ -4330,14 +4330,14 @@ class AllPlatformTests(BasePlatformTests):
     def test_coverage_html(self):
         if mesonbuild.envconfig.detect_msys2_arch():
             raise SkipTest('Skipped due to problems with coverage on MSYS2')
-        gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
+        gcovr_exe, gcovr_new_rootdir = mesonbuild.tooldetect.detect_gcovr()
         if not gcovr_exe:
             raise SkipTest('gcovr not found, or too old')
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() == 'clang':
-            if not mesonbuild.environment.detect_llvm_cov():
+            if not mesonbuild.tooldetect.detect_llvm_cov():
                 raise SkipTest('llvm-cov not found')
         if cc.get_id() == 'msvc':
             raise SkipTest('Test only applies to non-MSVC compilers')
@@ -4350,14 +4350,14 @@ class AllPlatformTests(BasePlatformTests):
     def test_coverage_text(self):
         if mesonbuild.envconfig.detect_msys2_arch():
             raise SkipTest('Skipped due to problems with coverage on MSYS2')
-        gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
+        gcovr_exe, gcovr_new_rootdir = mesonbuild.tooldetect.detect_gcovr()
         if not gcovr_exe:
             raise SkipTest('gcovr not found, or too old')
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() == 'clang':
-            if not mesonbuild.environment.detect_llvm_cov():
+            if not mesonbuild.tooldetect.detect_llvm_cov():
                 raise SkipTest('llvm-cov not found')
         if cc.get_id() == 'msvc':
             raise SkipTest('Test only applies to non-MSVC compilers')
@@ -4370,14 +4370,14 @@ class AllPlatformTests(BasePlatformTests):
     def test_coverage_xml(self):
         if mesonbuild.envconfig.detect_msys2_arch():
             raise SkipTest('Skipped due to problems with coverage on MSYS2')
-        gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
+        gcovr_exe, gcovr_new_rootdir = mesonbuild.tooldetect.detect_gcovr()
         if not gcovr_exe:
             raise SkipTest('gcovr not found, or too old')
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() == 'clang':
-            if not mesonbuild.environment.detect_llvm_cov():
+            if not mesonbuild.tooldetect.detect_llvm_cov():
                 raise SkipTest('llvm-cov not found')
         if cc.get_id() == 'msvc':
             raise SkipTest('Test only applies to non-MSVC compilers')
@@ -4390,14 +4390,14 @@ class AllPlatformTests(BasePlatformTests):
     def test_coverage_escaping(self):
         if mesonbuild.envconfig.detect_msys2_arch():
             raise SkipTest('Skipped due to problems with coverage on MSYS2')
-        gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
+        gcovr_exe, gcovr_new_rootdir = mesonbuild.tooldetect.detect_gcovr()
         if not gcovr_exe:
             raise SkipTest('gcovr not found, or too old')
         testdir = os.path.join(self.common_test_dir, '243 escape++')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() == 'clang':
-            if not mesonbuild.environment.detect_llvm_cov():
+            if not mesonbuild.tooldetect.detect_llvm_cov():
                 raise SkipTest('llvm-cov not found')
         if cc.get_id() == 'msvc':
             raise SkipTest('Test only applies to non-MSVC compilers')

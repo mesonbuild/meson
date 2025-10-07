@@ -18,7 +18,7 @@ from . import mlog
 from . import mesonlib
 from .options import OptionKey
 from .mesonlib import MesonException, RealPathAction, join_args, listify_array_value, setup_vsenv
-from mesonbuild.environment import detect_ninja
+from mesonbuild.tooldetect import detect_ninja
 from mesonbuild import build
 
 if T.TYPE_CHECKING:
