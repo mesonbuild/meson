@@ -8,7 +8,7 @@ from ..mesonlib import (
     search_version, is_windows, Popen_safe, Popen_safe_logged, version_compare, windows_proof_rm,
 )
 from ..programs import ExternalProgram
-from ..envconfig import BinaryTable
+from ..envconfig import BinaryTable, detect_cpu_family, detect_machine_info
 from .. import mlog
 
 from ..linkers import guess_win_linker, guess_nix_linker
@@ -1172,8 +1172,6 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
     if not is_msvc:
         c_compiler = {}
 
-    # Import here to avoid circular imports
-    from ..environment import detect_cpu_family
     arch = detect_cpu_family(c_compiler)
     if is_msvc and arch == 'x86':
         arch = 'x86_mscoff'
@@ -1317,7 +1315,6 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     # We need a C compiler to properly detect the machine info and linker
     cc = detect_c_compiler(env, for_machine)
     if not is_cross:
-        from ..environment import detect_machine_info
         info = detect_machine_info({'c': cc})
     else:
         info = env.machines[for_machine]
@@ -1362,7 +1359,6 @@ def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     is_cross = env.is_cross_build(for_machine)
     cc = detect_c_compiler(env, for_machine)
     if not is_cross:
-        from ..environment import detect_machine_info
         info = detect_machine_info({'c': cc})
     else:
         info = env.machines[for_machine]

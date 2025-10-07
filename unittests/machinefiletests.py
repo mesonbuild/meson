@@ -204,7 +204,7 @@ class NativeFileTests(BasePlatformTests):
 
     def test_config_tool_dep(self):
         # Do the skip at this level to avoid screwing up the cache
-        if mesonbuild.environment.detect_msys2_arch():
+        if mesonbuild.envconfig.detect_msys2_arch():
             raise SkipTest('Skipped due to problems with LLVM on MSYS2')
         if not shutil.which('llvm-config'):
             raise SkipTest('No llvm-installed, cannot test')

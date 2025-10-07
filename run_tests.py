@@ -32,7 +32,8 @@ from mesonbuild import mesonlib
 from mesonbuild import mesonmain
 from mesonbuild import mtest
 from mesonbuild import mlog
-from mesonbuild.environment import Environment, detect_ninja, detect_machine_info
+from mesonbuild.environment import Environment, detect_ninja
+from mesonbuild.envconfig import detect_machine_info
 from mesonbuild.coredata import version as meson_version
 from mesonbuild.options import backendlist
 from mesonbuild.mesonlib import setup_vsenv
