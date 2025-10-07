@@ -287,6 +287,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build_func_dict()
         self.build_holder_map()
         self.user_defined_options = user_defined_options
+        self.find_overrides: T.Dict[str, Program] = {}
         self.compilers: PerMachine[T.Dict[str, 'compilers.Compiler']] = PerMachine({}, {})
         self.parse_project()
         self._redetect_machines()
@@ -762,7 +763,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def _compiled_exe_error(self, cmd: T.Union[Program, build.Executable]) -> T.NoReturn:
         descr = cmd.name if isinstance(cmd, build.Executable) else cmd.description()
-        for name, exe in self.build.find_overrides.items():
+        for name, exe in self.find_overrides.items():
             if cmd == exe:
                 raise InterpreterException(f'Program {name!r} was overridden with the compiled executable {descr!r} and therefore cannot be used during configuration')
         raise InterpreterException(f'Program {descr!r} is a compiled executable and therefore cannot be used during configuration')
@@ -996,6 +997,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             subi.holder_map = self.holder_map
             subi.bound_holder_map = self.bound_holder_map
             subi.summary = self.summary
+            subi.find_overrides = self.find_overrides
 
             subi.subproject_stack = self.subproject_stack + [subp_name]
             current_active = self.active_projectname
@@ -1592,8 +1594,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         for name in command_names:
             if not isinstance(name, str):
                 continue
-            if name in self.build.find_overrides:
-                exe = self.build.find_overrides[name]
+            if name in self.find_overrides:
+                exe = self.find_overrides[name]
                 extra_info.append(mlog.blue('(overridden)'))
                 return exe
         return None
@@ -1606,9 +1608,9 @@ class Interpreter(InterpreterBase, HoldableObject):
     def add_find_program_override(self, name: str, exe: Program) -> None:
         if name in self.build.searched_programs:
             raise InterpreterException(f'Tried to override finding of executable "{name}" which has already been found.')
-        if name in self.build.find_overrides:
+        if name in self.find_overrides:
             raise InterpreterException(f'Tried to override executable "{name}" which has already been overridden.')
-        self.build.find_overrides[name] = exe
+        self.find_overrides[name] = exe
         if name == 'pkg-config' and isinstance(exe, ExternalProgram):
             from ..dependencies.pkgconfig import PkgConfigInterface
             PkgConfigInterface.set_program_override(exe, MachineChoice.HOST)
