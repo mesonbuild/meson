@@ -9,7 +9,6 @@ import configparser
 import os
 import shlex
 import typing as T
-from collections import OrderedDict
 from itertools import chain
 
 from . import options
@@ -78,14 +77,14 @@ def write_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
 
-    properties: OrderedDict[str, str] = OrderedDict()
+    properties: T.Dict[str, T.List[str]] = {}
     if options.cross_file:
         properties['cross_file'] = options.cross_file
     if options.native_file:
         properties['native_file'] = options.native_file
 
     config['options'] = {str(k): str(v) for k, v in options.cmd_line_options.items()}
-    config['properties'] = properties
+    config['properties'] = {k: repr(v) for k, v in properties.items()}
     with open(filename, 'w', encoding='utf-8') as f:
         config.write(f)
 
@@ -117,12 +116,12 @@ class KeyNoneAction(argparse.Action):
     Custom argparse Action that stores values in a dictionary as keys with value None.
     """
 
-    def __init__(self, option_strings, dest, nargs=None, **kwargs: object) -> None:
+    def __init__(self, option_strings: str, dest: str, nargs: T.Optional[T.Union[int, str]] = None, **kwargs: T.Any) -> None:
         assert nargs is None or nargs == 1
         super().__init__(option_strings, dest, nargs=1, **kwargs)
 
     def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace,
-                 arg: T.List[str], option_string: str = None) -> None:
+                 arg: T.List[str], option_string: str = None) -> None: # type: ignore[override]
         current_dict = getattr(namespace, self.dest)
         if current_dict is None:
             current_dict = {}
@@ -137,12 +136,12 @@ class KeyValueAction(argparse.Action):
     Custom argparse Action that parses KEY=VAL arguments and stores them in a dictionary.
     """
 
-    def __init__(self, option_strings, dest, nargs=None, **kwargs: object) -> None:
+    def __init__(self, option_strings: str, dest: str, nargs: T.Optional[T.Union[int, str]] = None, **kwargs: T.Any) -> None:
         assert nargs is None or nargs == 1
         super().__init__(option_strings, dest, nargs=1, **kwargs)
 
     def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace,
-                 arg: T.List[str], option_string: str = None) -> None:
+                 arg: T.List[str], option_string: str = None) -> None: # type: ignore[override]
         current_dict = getattr(namespace, self.dest)
         if current_dict is None:
             current_dict = {}
