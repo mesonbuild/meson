@@ -9,12 +9,11 @@ import os, platform, re, sys, shutil
 import typing as T
 import collections
 
+from . import cmdline
 from . import coredata
 from . import mesonlib
 from . import machinefile
 from . import options
-
-CmdLineFileParser = machinefile.CmdLineFileParser
 
 from .mesonlib import (
     MesonException, MachineChoice, Popen_safe, PerMachine,
@@ -580,7 +579,7 @@ class Environment:
     log_dir = 'meson-logs'
     info_dir = 'meson-info'
 
-    def __init__(self, source_dir: str, build_dir: T.Optional[str], cmd_options: coredata.SharedCMDOptions) -> None:
+    def __init__(self, source_dir: str, build_dir: T.Optional[str], cmd_options: cmdline.SharedCMDOptions) -> None:
         self.source_dir = source_dir
         # Do not try to create build directories when build_dir is none.
         # This reduced mode is used by the --buildoptions introspector
@@ -600,15 +599,15 @@ class Environment:
             except coredata.MesonVersionMismatchException as e:
                 # This is routine, but tell the user the update happened
                 mlog.log('Regenerating configuration from scratch:', str(e))
-                coredata.read_cmd_line_file(self.build_dir, cmd_options)
+                cmdline.read_cmd_line_file(self.build_dir, cmd_options)
                 self.create_new_coredata(cmd_options)
             except MesonException as e:
                 # If we stored previous command line options, we can recover from
                 # a broken/outdated coredata.
-                if os.path.isfile(coredata.get_cmd_line_file(self.build_dir)):
+                if os.path.isfile(cmdline.get_cmd_line_file(self.build_dir)):
                     mlog.warning('Regenerating configuration from scratch.', fatal=False)
                     mlog.log('Reason:', mlog.red(str(e)))
-                    coredata.read_cmd_line_file(self.build_dir, cmd_options)
+                    cmdline.read_cmd_line_file(self.build_dir, cmd_options)
                     self.create_new_coredata(cmd_options)
                 else:
                     raise MesonException(f'{str(e)} Try regenerating using "meson setup --wipe".')
@@ -890,7 +889,7 @@ class Environment:
                         self.properties[for_machine].properties.setdefault(name, p_env)
                     break
 
-    def create_new_coredata(self, options: coredata.SharedCMDOptions) -> None:
+    def create_new_coredata(self, options: cmdline.SharedCMDOptions) -> None:
         # WARNING: Don't use any values from coredata in __init__. It gets
         # re-initialized with project options by the interpreter during
         # build file parsing.

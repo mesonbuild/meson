@@ -34,7 +34,7 @@ if T.TYPE_CHECKING:
 
     from .._typing import ImmutableListProtocol
     from ..build import ConfigurationData
-    from ..coredata import StrOrBytesPath
+    from ..cmdline import StrOrBytesPath
     from ..environment import Environment
     from ..compilers.compilers import Compiler
     from ..interpreterbase.baseobjects import SubProject
