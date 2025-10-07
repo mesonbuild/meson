@@ -20,7 +20,8 @@ import typing as T
 from dataclasses import dataclass
 from glob import glob
 from pathlib import Path
-from mesonbuild.environment import Environment, detect_ninja
+from mesonbuild.environment import Environment
+from mesonbuild.tooldetect import detect_ninja
 from mesonbuild.mesonlib import (GIT, MesonException, RealPathAction, get_meson_command, quiet_git,
                                  windows_proof_rmtree, setup_vsenv)
 from .options import OptionKey

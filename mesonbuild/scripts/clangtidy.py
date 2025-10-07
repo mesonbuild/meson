@@ -12,7 +12,7 @@ import shutil
 import sys
 
 from .run_tool import run_with_buffered_output, run_clang_tool_on_sources
-from ..environment import detect_clangtidy, detect_clangapply
+from ..tooldetect import detect_clangtidy, detect_clangapply
 import typing as T
 
 async def run_clang_tidy(fname: Path, tidyexe: list, builddir: Path, fixesdir: T.Optional[Path]) -> int:
