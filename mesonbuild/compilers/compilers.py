@@ -173,15 +173,18 @@ def is_object(fname: 'mesonlib.FileOrString') -> bool:
         fname = fname.fname
     return cached_is_object_by_name(fname)
 
-def is_library(fname: 'mesonlib.FileOrString') -> bool:
-    if isinstance(fname, mesonlib.File):
-        fname = fname.fname
-
+@lru_cache(maxsize=None)
+def cached_is_library_by_name(fname: str) -> bool:
     if soregex.match(fname):
         return True
 
     suffix = fname.split('.')[-1]
     return suffix in lib_suffixes
+
+def is_library(fname: 'mesonlib.FileOrString') -> bool:
+    if isinstance(fname, mesonlib.File):
+        fname = fname.fname
+    return cached_is_library_by_name(fname)
 
 def is_known_suffix(fname: 'mesonlib.FileOrString') -> bool:
     if isinstance(fname, mesonlib.File):

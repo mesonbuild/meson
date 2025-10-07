@@ -38,7 +38,6 @@ from .compilers import (
     is_source,
 )
 
-from functools import lru_cache
 from mesonbuild import envconfig
 
 if T.TYPE_CHECKING:
@@ -953,7 +952,6 @@ class Environment:
     def is_object(self, fname: 'mesonlib.FileOrString') -> bool:
         return is_object(fname)
 
-    @lru_cache(maxsize=None)
     def is_library(self, fname: mesonlib.FileOrString) -> bool:
         return is_library(fname)
 
