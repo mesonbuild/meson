@@ -739,9 +739,6 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def get_id(self) -> str:
         return self.id
 
-    def get_override(self, name: str) -> T.Optional[str]:
-        return self.raw_overrides.get(name, None)
-
     def get_option(self, key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(key, str):
             assert ':' not in key
@@ -1103,14 +1100,8 @@ class BuildTarget(Target):
         if 'vala' in self.compilers and 'c' not in self.compilers:
             self.compilers['c'] = self.all_compilers['c']
         if 'cython' in self.compilers:
-            # Not great, but we can't ask for the override value from "the system"
-            # because this object is currently being constructed so it is not
-            # yet placed in the data store. Grab it directly from override strings
-            # instead.
-            value = self.get_override('cython_language')
-            if value is None:
-                key = OptionKey('cython_language', machine=self.for_machine)
-                value = self.environment.coredata.optstore.get_value_for(key)
+            key = OptionKey('cython_language', machine=self.for_machine)
+            value = self.get_option(key)
             try:
                 self.compilers[value] = self.all_compilers[value]
             except KeyError:
