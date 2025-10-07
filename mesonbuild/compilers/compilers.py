@@ -226,7 +226,6 @@ clike_debug_args: T.Dict[bool, T.List[str]] = {
 
 def option_enabled(boptions: T.Set[OptionKey],
                    target: 'BuildTarget',
-                   env: 'Environment',
                    option: T.Union[str, OptionKey]) -> bool:
     if isinstance(option, str):
         option = OptionKey(option)
@@ -240,7 +239,7 @@ def option_enabled(boptions: T.Set[OptionKey],
         return False
 
 
-def get_option_value_for_target(env: 'Environment', target: 'BuildTarget', opt: OptionKey, fallback: '_T') -> '_T':
+def get_option_value_for_target(target: 'BuildTarget', opt: OptionKey, fallback: '_T') -> '_T':
     """Get the value of an option, or the fallback value."""
     try:
         v = target.get_option(opt)
@@ -252,7 +251,7 @@ def get_option_value_for_target(env: 'Environment', target: 'BuildTarget', opt: 
     return v
 
 
-def are_asserts_disabled(target: 'BuildTarget', env: 'Environment') -> bool:
+def are_asserts_disabled(target: 'BuildTarget') -> bool:
     """Should debug assertions be disabled
 
     :param target: a target to check for
@@ -275,8 +274,8 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
     args: T.List[str] = []
     try:
         if target.get_option('b_lto'):
-            num_threads = get_option_value_for_target(env, target, OptionKey('b_lto_threads'), 0)
-            ltomode = get_option_value_for_target(env, target, OptionKey('b_lto_mode'), 'default')
+            num_threads = get_option_value_for_target(target, OptionKey('b_lto_threads'), 0)
+            ltomode = get_option_value_for_target(target, OptionKey('b_lto_mode'), 'default')
             args.extend(compiler.get_lto_compile_args(
                 threads=num_threads,
                 mode=ltomode))
@@ -316,11 +315,11 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
     except (KeyError, AttributeError):
         pass
     try:
-        args += compiler.get_assert_args(are_asserts_disabled(target, env), env)
+        args += compiler.get_assert_args(are_asserts_disabled(target), env)
     except KeyError:
         pass
     # This does not need a try...except
-    if option_enabled(compiler.base_options, target, env, 'b_bitcode'):
+    if option_enabled(compiler.base_options, target, 'b_bitcode'):
         args.append('-fembed-bitcode')
     try:
         crt_val = target.get_option('b_vscrt')
@@ -347,12 +346,12 @@ def get_base_link_args(target: 'BuildTarget',
 
             thinlto_cache_dir = None
             cachedir_key = OptionKey('b_thinlto_cache')
-            if get_option_value_for_target(env, target, cachedir_key, False):
-                thinlto_cache_dir = get_option_value_for_target(env, target, OptionKey('b_thinlto_cache_dir'), '')
+            if get_option_value_for_target(target, cachedir_key, False):
+                thinlto_cache_dir = get_option_value_for_target(target, OptionKey('b_thinlto_cache_dir'), '')
                 if thinlto_cache_dir == '':
                     thinlto_cache_dir = os.path.join(build_dir, 'meson-private', 'thinlto-cache')
-            num_threads = get_option_value_for_target(env, target, OptionKey('b_lto_threads'), 0)
-            lto_mode = get_option_value_for_target(env, target, OptionKey('b_lto_mode'), 'default')
+            num_threads = get_option_value_for_target(target, OptionKey('b_lto_threads'), 0)
+            lto_mode = get_option_value_for_target(target, OptionKey('b_lto_mode'), 'default')
             args.extend(linker.get_lto_link_args(
                 threads=num_threads,
                 mode=lto_mode,
@@ -389,8 +388,8 @@ def get_base_link_args(target: 'BuildTarget',
     except (KeyError, AttributeError):
         pass
 
-    as_needed = option_enabled(linker.base_options, target, env, 'b_asneeded')
-    bitcode = option_enabled(linker.base_options, target, env, 'b_bitcode')
+    as_needed = option_enabled(linker.base_options, target, 'b_asneeded')
+    bitcode = option_enabled(linker.base_options, target, 'b_bitcode')
     # Shared modules cannot be built with bitcode_bundle because
     # -bitcode_bundle is incompatible with -undefined and -bundle
     if bitcode and not target.typename == 'shared module':
@@ -405,7 +404,7 @@ def get_base_link_args(target: 'BuildTarget',
         from ..build import SharedModule
         args.extend(linker.headerpad_args())
         if (not isinstance(target, SharedModule) and
-                option_enabled(linker.base_options, target, env, 'b_lundef')):
+                option_enabled(linker.base_options, target, 'b_lundef')):
             args.extend(linker.no_undefined_link_args())
         else:
             args.extend(linker.get_allow_undefined_link_args())
