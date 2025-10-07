@@ -309,7 +309,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # have the compilers needed to gain more knowledge, so wipe out old
         # inference and start over.
         machines = self.build.environment.machines.miss_defaulting()
-        machines.build = environment.detect_machine_info(self.coredata.compilers.build)
+        machines.build = envconfig.detect_machine_info(self.coredata.compilers.build)
         self.build.environment.machines = machines.default_missing()
         assert self.build.environment.machines.build.cpu is not None
         assert self.build.environment.machines.host.cpu is not None

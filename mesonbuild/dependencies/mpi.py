@@ -8,7 +8,7 @@ import typing as T
 import os
 import re
 
-from ..environment import detect_cpu_family
+from ..envconfig import detect_cpu_family
 from ..mesonlib import Popen_safe
 from .base import DependencyException, DependencyMethods, detect_compiler, SystemDependency
 from .configtool import ConfigToolDependency

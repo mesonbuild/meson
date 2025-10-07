@@ -14,7 +14,7 @@ from .detect import packages
 from .factory import DependencyFactory
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
-from ..environment import detect_cpu_family
+from ..envconfig import detect_cpu_family
 from ..programs import ExternalProgram
 from ..options import OptionKey
 
