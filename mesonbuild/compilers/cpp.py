@@ -4,18 +4,22 @@
 from __future__ import annotations
 
 import functools
+import os
 import os.path
+import re
 import typing as T
 
 from .. import options
 from .. import mlog
-from ..mesonlib import MesonException, version_compare
+from ..mesonlib import (File, MesonException, MesonBugException, Popen_safe_logged,
+                        version_compare)
 
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
     Compiler,
     CompileCheckMode,
+    CompileResult
 )
 from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
 from .mixins.apple import AppleCompilerMixin, AppleCPPStdsMixin
@@ -88,7 +92,60 @@ class CPPCompiler(CLikeCompiler, Compiler):
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         code = 'class breakCCompiler;int main(void) { return 0; }\n'
-        return self._sanity_check_impl(work_dir, environment, 'sanitycheckcpp.cc', code)
+        self._sanity_check_impl(work_dir, environment, 'sanitycheckcpp.cc', code)
+        if environment.coredata.optstore.get_value('cpp_import_std'):
+            self._import_cpp_std_sanity_check(work_dir, environment)
+
+    def compile_import_std_module(self,
+                                  env: 'Environment',
+                                  code: File):
+        cpp_std = env.coredata.optstore.get_value('cpp_std')
+        srcname = code.fname
+        # Construct the compiler command-line
+        commands = self.compiler_args()
+        commands.append(f"-std={cpp_std}")
+        commands.extend(['-Wno-reserved-identifier', '-Wno-reserved-module-identifier'])
+        commands.append("--precompile")
+
+        all_lists_to_add = [self.get_always_args(), self.get_debug_args(env.coredata.optstore.get_value('buildtype') == 'debug'),
+                            self.get_assert_args(disable=env.coredata.optstore.get_value('b_ndebug') in ['if-release', 'true'],
+                                                 env=env)]
+        for args_list in all_lists_to_add:
+            for arg in args_list:
+                commands.append(arg)
+        commands.append(srcname)
+        tmpdirname = env.build_dir
+
+        # Preprocess mode outputs to stdout, so no output args
+        print(f"***{self.get_exelist()}")
+        output = f'std{self.get_cpp20_module_bmi_extension()}'
+        commands += self.get_output_args(output)
+        no_ccache = True
+        os_env = os.environ.copy()
+        os_env['LC_ALL'] = 'C'
+        os_env['CCACHE_DISABLE'] = '1'
+        command_list = self.get_exelist(ccache=not no_ccache) + commands.to_native()
+        p, stdo, stde = Popen_safe_logged(command_list, msg="Command line for compiling 'import std' feature", cwd=tmpdirname, env=os_env)
+        if p.returncode != 0:
+            raise MesonException("Could not compile library for use with 'import std'")
+
+    def get_import_std_lib_source_args(self, env: Environment) -> T.List[str]:
+        raise MesonException("Your compiler does not support 'import std' feature or it has not been implemented")
+
+    def get_import_std_lib_source_file(self) -> str:
+        raise MesonException("Your compiler does not support 'import std' feature or it has not been implemented")
+
+    def get_cpp20_module_bmi_extension(self) -> str:
+        raise MesonException("Your compiler does not support 'import std' feature or it has not been implemented")
+
+    def get_import_std_compile_args(self, environment: 'Environment') -> T.List[str]:
+        raise MesonException("Your compiler does not support 'import std' feature or it has not been implemented")
+
+    def check_cpp_import_std_support(self):
+        raise MesonException("Your compiler does not support 'import std' feature or it has not been implemented")
+
+    def _import_cpp_std_sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+        self.check_cpp_import_std_support()
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         # -fpermissive allows non-conforming code to compile which is necessary
@@ -174,9 +231,13 @@ class CPPCompiler(CLikeCompiler, Compiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
         key = self.form_compileropt_key('std')
+        import_std_key = self.form_compileropt_key('import_std')
+
         opts.update({
             key: options.UserStdOption('cpp', ALL_STDS),
+            import_std_key: options.UseImportStd('cpp')
         })
+
         return opts
 
 
@@ -234,6 +295,36 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic'],
                           'everything': ['-Weverything']}
+
+    def check_cpp_import_std_support(self):
+        if int(self.version.split('.')[0]) < 17:
+            raise MesonException('Your compiler does not support import std feature. Clang support starts at version >= 17')
+
+    def get_import_std_compile_args(self, env: 'Environment') -> T.List[str]:
+        bmi_path = f'{env.get_build_dir()}/std{self.get_cpp20_module_bmi_extension()}'
+        return [f'-fmodule-file=std={bmi_path}']
+
+    def get_cpp20_module_bmi_extension(self) -> str:
+        return '.pcm'
+
+    def get_import_std_lib_source_args(self, env: Environment) -> T.List[str]:
+        cpp_std = env.coredata.optstore.get_value('cpp_std')
+        return [f'-std={cpp_std}',
+                '-Wno-reserved-identifier',
+                '-Wno-reserved-module-identifier',
+                '--precompile']
+
+    llvm_dir_re = re.compile(r'(/\D*/(?:\.?\d+)+)/.*')
+
+    def get_import_std_lib_source_file(self) -> str:
+        dirs = [d for d in self.get_preprocessor().get_default_include_dirs() if 'llvm' in d and not '..' in d]
+        for d in dirs:
+            if m := type(self).llvm_dir_re.match(d):
+                break
+        if not m:
+            raise MesonBugException('Could not find import std lib source file. This should work')
+        llvm_dir = str(m[1])
+        return f'{llvm_dir}/share/libc++/v1/std.cppm'
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
@@ -459,6 +550,26 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
                           'everything': (default_warn_args + ['-Wextra', '-Wpedantic'] +
                                          self.supported_warn_args(gnu_common_warning_args) +
                                          self.supported_warn_args(gnu_cpp_warning_args))}
+
+    def get_import_std_lib_source_args(self, env: Environment) -> T.List[str]:
+        cpp_std = env.coredata.optstore.get_value('cpp_std')
+        return [f"-std={cpp_std}", '-fmodules', '-fsearch-include-path', '-fmodule-only'] + self.get_compile_only_args()
+
+    def get_import_std_lib_source_file(self) -> str:
+        std_lib_dir = [d for d in self.get_preprocessor().get_default_include_dirs()
+                       if "c++" in d and '..' not in d and d[-1].isdigit()][0]
+        return f'{std_lib_dir}/bits/std.cc'
+
+    def get_cpp20_module_bmi_extension(self) -> str:
+        return '.gcm'
+
+    def get_import_std_compile_args(self, env: 'Environment'):
+        bmi_path = f'{env.get_build_dir()}/std{self.get_cpp20_module_bmi_extension()}'
+        return ['-fmodules']
+
+    def check_cpp_import_std_support(self):
+        if int(self.version.split('.')[0]) < 15:
+            raise MesonException('Your compiler does not support import std feature. GCC support starts at version >= 15')
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
