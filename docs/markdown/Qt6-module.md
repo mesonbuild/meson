@@ -164,6 +164,22 @@ This method takes the following keyword arguments:
   are `moc`, `uic`, `rcc` and `lrelease`. By default `tools` is set to `['moc',
   'uic', 'rcc', 'lrelease']`
 
+## find_tool
+
+*New in 1.9.0*
+
+This method returns an [external program](Reference-manual_returned_external_program.md) of the given tool.
+It can be used with e.g. [run_command](Reference-manual_functions.md#run_command)
+or [custom_target](Reference-manual_functions.md#custom_target).
+
+This function requires one positional argument: the tool name.
+
+This function takes the following keyword arguments:
+- `required` bool | FeatureOption: by default, `required` is set to `false`. If `required` is set to
+  `true` or an enabled [`feature`](Build-options.md#features) and the tool is
+  missing Meson will abort.
+- `method` string: The method to use to detect Qt, see [[dependency]]
+
 ## qml_module
 
 *New in 1.7.0*
