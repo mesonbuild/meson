@@ -36,7 +36,7 @@ from .compilers import (
 from .interpreterbase import FeatureNew, FeatureDeprecated
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import Literal, TypeAlias, TypedDict
 
     from . import environment
     from ._typing import ImmutableListProtocol
@@ -50,10 +50,11 @@ if T.TYPE_CHECKING:
     from .modules import ModuleState
     from .mparser import BaseNode
 
-    GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
-    LibTypes = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
-    BuildTargetTypes = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
-    ObjectTypes = T.Union[str, 'File', 'ExtractedObjects', 'GeneratedTypes']
+    GeneratedTypes: TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
+    LibTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
+    BuildTargetTypes: TypeAlias = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
+    ObjectTypes: TypeAlias = T.Union[str, 'File', 'ExtractedObjects', 'GeneratedTypes']
+    AnyTargetType: TypeAlias = T.Union['Target', 'CustomTargetIndex']
 
     class DFeatures(TypedDict):
 
@@ -493,7 +494,7 @@ class StructuredSources(HoldableObject):
     represent the required filesystem layout.
     """
 
-    sources: T.DefaultDict[str, T.List[T.Union[File, CustomTarget, CustomTargetIndex, GeneratedList]]] = field(
+    sources: T.DefaultDict[str, T.List[T.Union[File, GeneratedTypes]]] = field(
         default_factory=lambda: defaultdict(list))
 
     def __add__(self, other: StructuredSources) -> StructuredSources:
@@ -505,14 +506,14 @@ class StructuredSources(HoldableObject):
     def __bool__(self) -> bool:
         return bool(self.sources)
 
-    def first_file(self) -> T.Union[File, CustomTarget, CustomTargetIndex, GeneratedList]:
+    def first_file(self) -> T.Union[File, GeneratedTypes]:
         """Get the first source in the root
 
         :return: The first source in the root
         """
         return self.sources[''][0]
 
-    def as_list(self) -> T.List[T.Union[File, CustomTarget, CustomTargetIndex, GeneratedList]]:
+    def as_list(self) -> T.List[T.Union[File, GeneratedTypes]]:
         return list(itertools.chain.from_iterable(self.sources.values()))
 
     def needs_copy(self) -> bool:
@@ -723,7 +724,7 @@ class BuildTarget(Target):
         self.link_targets: T.List[LibTypes] = []
         self.link_whole_targets: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]] = []
         self.depend_files: T.List[File] = []
-        self.link_depends: T.List[T.Union[File, CustomTarget, CustomTargetIndex, BuildTarget]] = []
+        self.link_depends: T.List[T.Union[File, BuildTargetTypes]] = []
         self.added_deps = set()
         self.name_prefix_set = False
         self.name_suffix_set = False
@@ -1027,7 +1028,7 @@ class BuildTarget(Target):
             langs = ', '.join(self.compilers.keys())
             raise InvalidArguments(f'Cannot mix those languages into a target: {langs}')
 
-    def process_link_depends(self, sources: T.Iterable[T.Union[str, File, CustomTarget, CustomTargetIndex, BuildTarget]]) -> None:
+    def process_link_depends(self, sources: T.Iterable[T.Union[str, File, BuildTargetTypes]]) -> None:
         """Process the link_depends keyword argument.
 
         This is designed to handle strings, Files, and the output of Custom
@@ -1988,12 +1989,12 @@ class Generator(HoldableObject):
                  *,
                  depfile: T.Optional[str] = None,
                  capture: bool = False,
-                 depends: T.Optional[T.List[T.Union[BuildTarget, 'CustomTarget', 'CustomTargetIndex']]] = None,
+                 depends: T.Optional[T.List[BuildTargetTypes]] = None,
                  name: str = 'Generator'):
         self.exe = exe
         self.depfile = depfile
         self.capture = capture
-        self.depends: T.List[T.Union[BuildTarget, 'CustomTarget', 'CustomTargetIndex']] = depends or []
+        self.depends: T.List[BuildTargetTypes] = depends or []
         self.arglist = arguments
         self.outputs = output
         self.name = name
@@ -2023,7 +2024,7 @@ class Generator(HoldableObject):
         basename = os.path.splitext(plainname)[0]
         return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
 
-    def process_files(self, files: T.Iterable[T.Union[str, File, 'CustomTarget', 'CustomTargetIndex', 'GeneratedList']],
+    def process_files(self, files: T.Iterable[T.Union[str, File, GeneratedTypes]],
                       state: T.Union['Interpreter', 'ModuleState'],
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None,
@@ -3077,7 +3078,7 @@ class CompileTarget(BuildTarget):
                  compile_args: T.List[str],
                  include_directories: T.List[IncludeDirs],
                  dependencies: T.List[dependencies.Dependency],
-                 depends: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]):
+                 depends: T.List[BuildTargetTypes]):
         compilers = {compiler.get_language(): compiler}
         kwargs = {
             'build_by_default': False,
@@ -3122,7 +3123,7 @@ class RunTarget(Target, CommandBase):
 
     def __init__(self, name: str,
                  command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.ExternalProgram]],
-                 dependencies: T.Sequence[T.Union[Target, CustomTargetIndex]],
+                 dependencies: T.Sequence[AnyTargetType],
                  subdir: str,
                  subproject: str,
                  environment: environment.Environment,
@@ -3141,7 +3142,7 @@ class RunTarget(Target, CommandBase):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command[0])
 
-    def get_dependencies(self) -> T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]:
+    def get_dependencies(self) -> T.List[BuildTargetTypes]:
         return self.dependencies
 
     def get_generated_sources(self) -> T.List[GeneratedTypes]:

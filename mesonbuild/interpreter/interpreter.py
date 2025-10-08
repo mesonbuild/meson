@@ -121,13 +121,11 @@ if T.TYPE_CHECKING:
     from .type_checking import SourcesVarargsType
 
     # Input source types passed to Targets
-    SourceInputs = T.Union[mesonlib.File, build.GeneratedList, build.BuildTarget, build.BothLibraries,
-                           build.CustomTargetIndex, build.CustomTarget, build.GeneratedList,
-                           build.ExtractedObjects, str]
+    SourceInputs = T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.BuildTarget,
+                           build.BothLibraries, build.ExtractedObjects]
     # Input source types passed to the build.Target classes
-    SourceOutputs = T.Union[mesonlib.File, build.GeneratedList,
-                            build.BuildTarget, build.CustomTargetIndex, build.CustomTarget,
-                            build.ExtractedObjects, build.GeneratedList, build.StructuredSources]
+    SourceOutputs = T.Union[mesonlib.File, build.GeneratedTypes, build.BuildTarget,
+                            build.ExtractedObjects, build.StructuredSources]
 
     BuildTargetSource = T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.StructuredSources]
 

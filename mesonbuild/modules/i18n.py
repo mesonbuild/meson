@@ -56,16 +56,15 @@ if T.TYPE_CHECKING:
     class ItsJoinFile(TypedDict):
 
         input: T.List[T.Union[
-            str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
-            build.ExtractedObjects, build.GeneratedList, ExternalProgram,
-            mesonlib.File]]
+            str, build.BuildTarget, build.GeneratedTypes,
+            build.ExtractedObjects, ExternalProgram, mesonlib.File]]
         output: str
         build_by_default: bool
         install: bool
         install_dir: T.Optional[str]
         install_tag: T.Optional[str]
         its_files: T.List[str]
-        mo_targets: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]
+        mo_targets: T.List[build.BuildTargetTypes]
 
     class XgettextProgramT(TypedDict):
 
@@ -75,7 +74,7 @@ if T.TYPE_CHECKING:
         install_dir: T.Optional[str]
         install_tag: T.Optional[str]
 
-    SourcesType = T.Union[str, mesonlib.File, build.BuildTarget, build.BothLibraries, build.CustomTarget, build.CustomTargetIndex]
+    SourcesType = T.Union[str, mesonlib.File, build.BuildTargetTypes, build.BothLibraries]
 
 
 _ARGS: KwargInfo[T.List[str]] = KwargInfo(
@@ -239,7 +238,7 @@ class XgettextProgram:
         return mesonlib.File.from_built_file(self.interpreter.subdir, rsp_file.name)
 
     @staticmethod
-    def _get_source_id(sources: T.Iterable[T.Union[SourcesType, build.CustomTargetIndex]]) -> T.Iterable[str]:
+    def _get_source_id(sources: T.Iterable[SourcesType]) -> T.Iterable[str]:
         for source in sources:
             if isinstance(source, build.Target):
                 yield source.get_id()
@@ -309,8 +308,7 @@ class I18nModule(ExtensionModule):
         ddirs = self._get_data_dirs(state, kwargs['data_dirs'])
         datadirs = '--datadirs=' + ':'.join(ddirs) if ddirs else None
 
-        command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget,
-                                build.CustomTargetIndex, 'ExternalProgram', mesonlib.File]] = []
+        command: T.List[T.Union[str, build.BuildTargetTypes, ExternalProgram, mesonlib.File]] = []
         command.extend(state.environment.get_build_command())
         command.extend([
             '--internal', 'msgfmthelper',
@@ -489,8 +487,7 @@ class I18nModule(ExtensionModule):
         for target in mo_targets:
             mo_fnames.append(path.join(target.get_subdir(), target.get_outputs()[0]))
 
-        command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget,
-                                build.CustomTargetIndex, 'ExternalProgram', mesonlib.File]] = []
+        command: T.List[T.Union[str, build.BuildTargetTypes, ExternalProgram, mesonlib.File]] = []
         command.extend(state.environment.get_build_command())
 
         itstool_cmd = self.tools['itstool'].get_command()
