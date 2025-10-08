@@ -51,11 +51,11 @@ echo 'ulimit -n -S 10000' >> /ci/env_vars.sh
 ulimit -n -S 10000
 # dub stuff
 dub_fetch dubtestproject@1.2.0
-dub build dubtestproject:test1 --compiler=ldc2 --arch=x86_64
-dub build dubtestproject:test2 --compiler=ldc2 --arch=x86_64
-dub build dubtestproject:test3 --compiler=gdc --arch=x86_64
+dub build dubtestproject:test1 --compiler=ldc2 --arch="$(uname --machine)"
+dub build dubtestproject:test2 --compiler=ldc2 --arch="$(uname --machine)"
+dub build dubtestproject:test3 --compiler=ldc2 --arch="$(uname --machine)"
 dub_fetch urld@3.0.0
-dub build urld --compiler=gdc --arch=x86_64
+dub build urld --compiler=ldc2 --arch="$(uname --machine)"
 
 # Remove debian version of Rust and install latest with rustup.
 # This is needed to get the cross toolchain as well.
