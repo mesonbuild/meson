@@ -175,13 +175,13 @@ kwargs:
   install:
     type: bool
     default: false
-    description: When set to true, this executable should be installed.
+    description: When set to true, all outputs of this build_target will be installed.
 
   install_dir:
     type: array[str | bool]
     description: |
-      override install directory for this file. If the value is a relative path,
-      it will be considered relative the `prefix` option.
+      override install directory for outputs of this build target. If the value is a
+      relative path, it will be considered relative the `prefix` option.
       For example, if you want to install plugins into a subdir, you'd use
       something like this: `install_dir : get_option('libdir') / 'projectname-1.0'`.
 
