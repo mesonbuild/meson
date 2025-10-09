@@ -10,7 +10,9 @@ from pathlib import Path
 import typing as T
 
 from . import build, coredata, environment, interpreter, mesonlib, mintro, mlog
+from .dependencies import Dependency
 from .mesonlib import MesonException
+from .interpreterbase import ObjectHolder
 from .options import OptionKey
 
 if T.TYPE_CHECKING:
@@ -337,9 +339,16 @@ class MesonApp:
         return captured_compile_args
 
     def finalize_postconf_hooks(self, b: build.Build, intr: interpreter.Interpreter) -> None:
+        for varname, holder in intr.variables.items():
+            if isinstance(holder, ObjectHolder):
+                d = holder.held_object
+                if isinstance(d, Dependency) and d.found():
+                    d.meson_variables.append(varname)
+
         b.devenv.append(intr.backend.get_devenv())
         for mod in intr.modules.values():
             mod.postconf_hook(b)
+        b.def_files = intr.get_build_def_files()
 
 def run_genvslite_setup(options: CMDOptions) -> None:
     # With --genvslite, we essentially want to invoke multiple 'setup' iterations. I.e. -

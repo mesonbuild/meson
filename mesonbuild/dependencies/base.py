@@ -128,6 +128,7 @@ class Dependency(HoldableObject):
         self.d_features: T.DefaultDict[str, T.List[T.Any]] = collections.defaultdict(list)
         self.featurechecks: T.List['FeatureCheckBase'] = []
         self.feature_since: T.Optional[T.Tuple[str, str]] = None
+        self.meson_variables: T.List[str] = []
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Dependency):

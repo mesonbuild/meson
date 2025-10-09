@@ -28,11 +28,10 @@ from .. import coredata
 
 if T.TYPE_CHECKING:
     from ..arglist import CompilerArgs
-    from ..interpreter import Interpreter
 
     Project = T.Tuple[str, Path, str, MachineChoice]
 
-def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]) -> backends.Backend:
+def autodetect_vs_version(build: T.Optional[build.Build]) -> backends.Backend:
     vs_version = os.getenv('VisualStudioVersion', None)
     vs_install_dir = os.getenv('VSINSTALLDIR', None)
     if not vs_install_dir:
@@ -42,27 +41,27 @@ def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optiona
     # vcvarsall.bat doesn't set it, so also use VSINSTALLDIR
     if vs_version == '11.0' or 'Visual Studio 11' in vs_install_dir:
         from mesonbuild.backend.vs2012backend import Vs2012Backend
-        return Vs2012Backend(build, interpreter)
+        return Vs2012Backend(build)
     if vs_version == '12.0' or 'Visual Studio 12' in vs_install_dir:
         from mesonbuild.backend.vs2013backend import Vs2013Backend
-        return Vs2013Backend(build, interpreter)
+        return Vs2013Backend(build)
     if vs_version == '14.0' or 'Visual Studio 14' in vs_install_dir:
         from mesonbuild.backend.vs2015backend import Vs2015Backend
-        return Vs2015Backend(build, interpreter)
+        return Vs2015Backend(build)
     if vs_version == '15.0' or 'Visual Studio 17' in vs_install_dir or \
        'Visual Studio\\2017' in vs_install_dir:
         from mesonbuild.backend.vs2017backend import Vs2017Backend
-        return Vs2017Backend(build, interpreter)
+        return Vs2017Backend(build)
     if vs_version == '16.0' or 'Visual Studio 19' in vs_install_dir or \
        'Visual Studio\\2019' in vs_install_dir:
         from mesonbuild.backend.vs2019backend import Vs2019Backend
-        return Vs2019Backend(build, interpreter)
+        return Vs2019Backend(build)
     if vs_version == '17.0' or 'Visual Studio 22' in vs_install_dir or \
        'Visual Studio\\2022' in vs_install_dir:
         from mesonbuild.backend.vs2022backend import Vs2022Backend
-        return Vs2022Backend(build, interpreter)
+        return Vs2022Backend(build)
     if 'Visual Studio 10.0' in vs_install_dir:
-        return Vs2010Backend(build, interpreter)
+        return Vs2010Backend(build)
     raise MesonException('Could not detect Visual Studio using VisualStudioVersion: {!r} or VSINSTALLDIR: {!r}!\n'
                          'Please specify the exact backend to use.'.format(vs_version, vs_install_dir))
 
@@ -135,8 +134,8 @@ class Vs2010Backend(backends.Backend):
 
     name = 'vs2010'
 
-    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter], gen_lite: bool = False):
-        super().__init__(build, interpreter)
+    def __init__(self, build: T.Optional[build.Build], gen_lite: bool = False):
+        super().__init__(build)
         self.project_file_version = '10.0.30319.1'
         self.sln_file_version = '11.00'
         self.sln_version_comment = '2010'

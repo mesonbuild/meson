@@ -38,7 +38,7 @@ from .interpreterbase import FeatureNew, FeatureDeprecated
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
-    from . import environment
+    from .environment import Environment
     from ._typing import ImmutableListProtocol
     from .backend.backends import Backend
     from .compilers import Compiler
@@ -47,7 +47,6 @@ if T.TYPE_CHECKING:
     from .interpreterbase import SubProject
     from .linkers.linkers import StaticLinker
     from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
-    from .modules import ModuleState
     from .mparser import BaseNode
 
     GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
@@ -260,8 +259,9 @@ class Build:
     all dependencies and so on.
     """
 
-    def __init__(self, environment: environment.Environment):
+    def __init__(self, environment: Environment):
         self.version = coredata.version
+        self._def_files: T.Optional[T.List[str]] = None
         self.project_name = 'name of master project'
         self.project_version: T.Optional[str] = None
         self.environment = environment
@@ -304,6 +304,18 @@ class Build:
 
         Needed for tracking whether a modules options needs to be exposed to the user.
         """
+
+    @property
+    def def_files(self) -> T.List[str]:
+        if self._def_files is None:
+            raise MesonBugException('build.def_files has not been set yet')
+        return self._def_files
+
+    @def_files.setter
+    def def_files(self, value: T.List[str]):
+        if self._def_files is not None:
+            raise MesonBugException('build.def_files already set')
+        self._def_files = value
 
     def get_build_targets(self) -> OrderedDict[str, BuildTarget]:
         build_targets = OrderedDict()
@@ -540,7 +552,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     subproject: 'SubProject'
     build_by_default: bool
     for_machine: MachineChoice
-    environment: environment.Environment
+    environment: Environment
     install: bool = False
     build_always_stale: bool = False
     extra_files: T.List[File] = field(default_factory=list)
@@ -709,7 +721,7 @@ class BuildTarget(Target):
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
-            environment: environment.Environment,
+            environment: Environment,
             compilers: T.Dict[str, 'Compiler'],
             kwargs: T.Dict[str, T.Any]):
         super().__init__(name, subdir, subproject, True, for_machine, environment, install=kwargs.get('install', False))
@@ -1981,7 +1993,8 @@ class FileMaybeInTargetPrivateDir:
         return self.fname
 
 class Generator(HoldableObject):
-    def __init__(self, exe: T.Union['Executable', programs.ExternalProgram],
+    def __init__(self, env: Environment,
+                 exe: T.Union['Executable', programs.ExternalProgram],
                  arguments: T.List[str],
                  output: T.List[str],
                  # how2dataclass
@@ -1990,6 +2003,7 @@ class Generator(HoldableObject):
                  capture: bool = False,
                  depends: T.Optional[T.List[T.Union[BuildTarget, 'CustomTarget', 'CustomTargetIndex']]] = None,
                  name: str = 'Generator'):
+        self.environment = env
         self.exe = exe
         self.depfile = depfile
         self.capture = capture
@@ -2024,13 +2038,13 @@ class Generator(HoldableObject):
         return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
 
     def process_files(self, files: T.Iterable[T.Union[str, File, 'CustomTarget', 'CustomTargetIndex', 'GeneratedList']],
-                      state: T.Union['Interpreter', 'ModuleState'],
+                      subdir: str = '',
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None,
                       env: T.Optional[EnvironmentVariables] = None) -> 'GeneratedList':
         output = GeneratedList(
             self,
-            state.subdir,
+            subdir,
             preserve_path_from,
             extra_args=extra_args if extra_args is not None else [],
             env=env if env is not None else EnvironmentVariables())
@@ -2045,17 +2059,17 @@ class Generator(HoldableObject):
                 output.depends.add(e)
                 fs = [FileInTargetPrivateDir(f) for f in e.get_outputs()]
             elif isinstance(e, str):
-                fs = [File.from_source_file(state.environment.source_dir, state.subdir, e)]
+                fs = [File.from_source_file(self.environment.source_dir, subdir, e)]
             else:
                 fs = [e]
 
             for f in fs:
                 if preserve_path_from:
-                    abs_f = f.absolute_path(state.environment.source_dir, state.environment.build_dir)
+                    abs_f = f.absolute_path(self.environment.source_dir, self.environment.build_dir)
                     if not is_parent_path(preserve_path_from, abs_f):
                         raise InvalidArguments('generator.process: When using preserve_path_from, all input files must be in a subdirectory of the given dir.')
                 f = FileMaybeInTargetPrivateDir(f)
-                output.add_file(f, state)
+                output.add_file(f, self.environment)
         return output
 
 
@@ -2094,9 +2108,9 @@ class GeneratedList(HoldableObject):
                 # know the absolute path of
                 self.depend_files.append(File.from_absolute_file(path))
 
-    def add_preserved_path_segment(self, infile: FileMaybeInTargetPrivateDir, outfiles: T.List[str], state: T.Union['Interpreter', 'ModuleState']) -> T.List[str]:
+    def add_preserved_path_segment(self, infile: FileMaybeInTargetPrivateDir, outfiles: T.List[str], environment: Environment) -> T.List[str]:
         result: T.List[str] = []
-        in_abs = infile.absolute_path(state.environment.source_dir, state.environment.build_dir)
+        in_abs = infile.absolute_path(environment.source_dir, environment.build_dir)
         assert os.path.isabs(self.preserve_path_from)
         rel = os.path.relpath(in_abs, self.preserve_path_from)
         path_segment = os.path.dirname(rel)
@@ -2104,11 +2118,11 @@ class GeneratedList(HoldableObject):
             result.append(os.path.join(path_segment, of))
         return result
 
-    def add_file(self, newfile: FileMaybeInTargetPrivateDir, state: T.Union['Interpreter', 'ModuleState']) -> None:
+    def add_file(self, newfile: FileMaybeInTargetPrivateDir, environment: Environment) -> None:
         self.infilelist.append(newfile)
         outfiles = self.generator.get_base_outnames(newfile.fname)
         if self.preserve_path_from:
-            outfiles = self.add_preserved_path_segment(newfile, outfiles, state)
+            outfiles = self.add_preserved_path_segment(newfile, outfiles, environment)
         self.outfilelist += outfiles
         self.outmap[newfile] = outfiles
 
@@ -2145,7 +2159,7 @@ class Executable(BuildTarget):
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
-            environment: environment.Environment,
+            environment: Environment,
             compilers: T.Dict[str, 'Compiler'],
             kwargs):
         key = OptionKey('b_pie')
@@ -2306,7 +2320,7 @@ class StaticLibrary(BuildTarget):
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
-            environment: environment.Environment,
+            environment: Environment,
             compilers: T.Dict[str, 'Compiler'],
             kwargs):
         self.prelink = T.cast('bool', kwargs.get('prelink', False))
@@ -2448,7 +2462,7 @@ class SharedLibrary(BuildTarget):
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
-            environment: environment.Environment,
+            environment: Environment,
             compilers: T.Dict[str, 'Compiler'],
             kwargs):
         self.soversion: T.Optional[str] = None
@@ -2742,7 +2756,7 @@ class SharedModule(SharedLibrary):
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
-            environment: environment.Environment,
+            environment: Environment,
             compilers: T.Dict[str, 'Compiler'],
             kwargs):
         if 'version' in kwargs:
@@ -2858,7 +2872,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  name: T.Optional[str],
                  subdir: str,
                  subproject: str,
-                 environment: environment.Environment,
+                 environment: Environment,
                  command: T.Sequence[T.Union[
                      str, BuildTargetTypes, GeneratedList,
                      programs.ExternalProgram, File]],
@@ -3069,7 +3083,7 @@ class CompileTarget(BuildTarget):
                  name: str,
                  subdir: str,
                  subproject: str,
-                 environment: environment.Environment,
+                 environment: Environment,
                  sources: T.List['SourceOutputs'],
                  output_templ: str,
                  compiler: Compiler,
@@ -3125,7 +3139,7 @@ class RunTarget(Target, CommandBase):
                  dependencies: T.Sequence[T.Union[Target, CustomTargetIndex]],
                  subdir: str,
                  subproject: str,
-                 environment: environment.Environment,
+                 environment: Environment,
                  env: T.Optional[EnvironmentVariables] = None,
                  default_env: bool = True):
         # These don't produce output artifacts
@@ -3172,7 +3186,7 @@ class AliasTarget(RunTarget):
     typename = 'alias'
 
     def __init__(self, name: str, dependencies: T.Sequence[Target],
-                 subdir: str, subproject: str, environment: environment.Environment):
+                 subdir: str, subproject: str, environment: Environment):
         super().__init__(name, [], dependencies, subdir, subproject, environment)
 
     def __repr__(self):
@@ -3186,7 +3200,7 @@ class Jar(BuildTarget):
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
-                 objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
+                 objects, environment: Environment, compilers: T.Dict[str, 'Compiler'],
                  kwargs):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)

@@ -523,10 +523,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if isinstance(val, mparser.StringNode):
                     self.handle_meson_version(val.value, val)
 
-    def get_build_def_files(self) -> mesonlib.OrderedSet[str]:
+    def get_build_def_files(self) -> T.List[str]:
         if self.environment.cargo:
             self.build_def_files.update(self.environment.cargo.get_build_def_files())
-        return self.build_def_files
+        return list(self.build_def_files)
 
     def add_build_def_file(self, f: mesonlib.FileOrString) -> None:
         # Use relative path for files within source directory, and absolute path
@@ -1141,10 +1141,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             # Use of the '--genvslite vsxxxx' option ultimately overrides any '--backend xxx'
             # option the user may specify.
             backend_name = self.coredata.optstore.get_value_for(OptionKey('genvslite'))
-            self.backend = backends.get_genvslite_backend(backend_name, self.build, self)
+            self.backend = backends.get_genvslite_backend(backend_name, self.build)
         else:
             backend_name = self.coredata.optstore.get_value_for(OptionKey('backend'))
-            self.backend = backends.get_backend_from_name(backend_name, self.build, self)
+            self.backend = backends.get_backend_from_name(backend_name, self.build)
 
         if self.backend is None:
             raise InterpreterException(f'Unknown backend "{backend_name}".')
@@ -2208,7 +2208,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if '@OUTPUT@' in o:
                     raise InvalidArguments('Tried to use @OUTPUT@ in a rule with more than one output.')
 
-        return build.Generator(args[0], **kwargs)
+        return build.Generator(self.environment, args[0], **kwargs)
 
     @typed_pos_args('benchmark', str, (build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex))
     @typed_kwargs('benchmark', *TEST_KWS)

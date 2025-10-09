@@ -22,14 +22,13 @@ import typing as T
 from . import build, environment, mesonlib, options, coredata as cdata
 from .ast import IntrospectionInterpreter, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
 from .backend import backends
-from .dependencies import Dependency
-from .interpreterbase import ObjectHolder, UnknownValue
+from .interpreterbase import UnknownValue
 from .options import OptionKey
 
 if T.TYPE_CHECKING:
     import argparse
 
-    from .interpreter import Interpreter
+    from .dependencies import Dependency
 
 class IntrospectionEncoder(json.JSONEncoder):
     def default(self, obj: T.Any) -> T.Any:
@@ -62,7 +61,6 @@ def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
         benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
         testdata = backend.create_test_serialisation(builddata.get_tests())
         installdata = backend.create_install_data()
-        interpreter = backend.interpreter
     else:
         benchmarkdata = testdata = installdata = None
 
@@ -71,7 +69,7 @@ def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
         ('ast', IntroCommand('Dump the AST of the meson file', no_bd=dump_ast)),
         ('benchmarks', IntroCommand('List all benchmarks', func=lambda: list_benchmarks(benchmarkdata))),
         ('buildoptions', IntroCommand('List all build options', func=lambda: list_buildoptions(coredata), no_bd=list_buildoptions_from_source)),
-        ('buildsystem_files', IntroCommand('List files that make up the build system', func=lambda: list_buildsystem_files(builddata, interpreter))),
+        ('buildsystem_files', IntroCommand('List files that make up the build system', func=lambda: list_buildsystem_files(builddata))),
         ('compilers', IntroCommand('List used compilers', func=lambda: list_compilers(coredata))),
         ('dependencies', IntroCommand('List external dependencies', func=lambda: list_deps(coredata, backend), no_bd=list_deps_from_source)),
         ('scan_dependencies', IntroCommand('Scan for dependencies used in the meson.build file', no_bd=list_deps_from_source)),
@@ -340,10 +338,9 @@ def find_buildsystem_files_list(src_dir: str) -> T.List[str]:
                         for f in build_files.intersection(files))
     return filelist
 
-def list_buildsystem_files(builddata: build.Build, interpreter: Interpreter) -> T.List[str]:
+def list_buildsystem_files(builddata: build.Build) -> T.List[str]:
     src_dir = builddata.environment.get_source_dir()
-    filelist = list(interpreter.get_build_def_files())
-    filelist = [PurePath(src_dir, x).as_posix() for x in filelist]
+    filelist = [PurePath(src_dir, x).as_posix() for x in builddata.def_files]
     return filelist
 
 def list_compilers(coredata: cdata.CoreData) -> T.Dict[str, T.Dict[str, T.Dict[str, str]]]:
@@ -389,7 +386,7 @@ def list_deps(coredata: cdata.CoreData, backend: backends.Backend) -> T.List[T.D
             return [f for s in src_file.as_list() for f in _src_to_str(s)]
         raise mesonlib.MesonBugException(f'Invalid file type {type(src_file)}.')
 
-    def _create_result(d: Dependency, varname: T.Optional[str] = None) -> T.Dict[str, T.Any]:
+    def _create_result(d: Dependency) -> T.Dict[str, T.Any]:
         return {
             'name': d.name,
             'type': d.type_name,
@@ -401,21 +398,12 @@ def list_deps(coredata: cdata.CoreData, backend: backends.Backend) -> T.List[T.D
             'extra_files': [f for s in d.get_extra_files() for f in _src_to_str(s)],
             'dependencies': [e.name for e in d.ext_deps],
             'depends': [lib.get_id() for lib in getattr(d, 'libraries', [])],
-            'meson_variables': [varname] if varname else [],
+            'meson_variables': d.meson_variables,
         }
 
     for d in coredata.deps.host.values():
         if d.found():
             result[d.name] = _create_result(d)
-
-    for varname, holder in backend.interpreter.variables.items():
-        if isinstance(holder, ObjectHolder):
-            d = holder.held_object
-            if isinstance(d, Dependency) and d.found():
-                if d.name in result:
-                    T.cast('T.List[str]', result[d.name]['meson_variables']).append(varname)
-                else:
-                    result[d.name] = _create_result(d, varname)
 
     return list(result.values())
 
