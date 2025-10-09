@@ -1,5 +1,6 @@
 option('def_bindir', type: 'string', value : 'binfoo',)
 option('def_datadir', type: 'string', value : 'datafoo',)
+option('def_distconfdir', type: 'string', value : 'distconffoo',)
 option('def_includedir', type: 'string', value : 'includefoo',)
 option('def_infodir', type: 'string', value : 'infofoo',)
 option('def_libdir', type: 'string', value : 'libfoo',)
