@@ -13,7 +13,7 @@ import typing as T
 from .. import options
 from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged, version_compare
 from ..options import OptionKey
-from .compilers import Compiler, CompileCheckMode, clike_debug_args
+from .compilers import Compiler, CompileCheckMode, clike_debug_args, is_library
 
 if T.TYPE_CHECKING:
     from ..options import MutableKeyedOptionDictType
@@ -207,6 +207,31 @@ class RustCompiler(Compiler):
         # equivalent of --whole-archive), receives the full path to the library
         # being linked.  However, Meson uses "bundle", not "whole_archive".
         return False
+
+    def lib_file_to_l_arg(self, env: Environment, libname: str) -> T.Optional[str]:
+        """Undo the effects of -l on the filename, returning the
+           argument that can be passed to -l, or None if the
+           library name is not supported."""
+        if not is_library(libname):
+            return None
+        libname, ext = os.path.splitext(libname)
+
+        # On Windows, rustc's -lfoo searches either foo.lib or libfoo.a.
+        # Elsewhere, it searches both static and shared libraries and always with
+        # the "lib" prefix; for simplicity just skip .lib on non-Windows.
+        if env.machines[self.for_machine].is_windows():
+            if ext == '.lib':
+                return libname
+            if ext != '.a':
+                return None
+        else:
+            if ext == '.lib':
+                return None
+
+        if not libname.startswith('lib'):
+            return None
+        libname = libname[3:]
+        return libname
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return clike_debug_args[is_debug]
