@@ -22,6 +22,8 @@ from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, n
 from ..programs import NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
+    from .._typing import Sequence
+
     from . import ModuleState
     from ..dependencies.qt import QtPkgConfigDependency, QmakeQtDependency
     from ..interpreter import Interpreter
@@ -39,7 +41,7 @@ if T.TYPE_CHECKING:
         """Keyword arguments for the Resource Compiler method."""
 
         name: T.Optional[str]
-        sources: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
+        sources: Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
         extra_args: T.List[str]
         method: str
 
@@ -47,7 +49,7 @@ if T.TYPE_CHECKING:
 
         """Keyword arguments for the Ui Compiler method."""
 
-        sources: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
+        sources: Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
         extra_args: T.List[str]
         method: str
         preserve_paths: bool
@@ -56,8 +58,8 @@ if T.TYPE_CHECKING:
 
         """Keyword arguments for the Moc Compiler method."""
 
-        sources: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
-        headers: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
+        sources: Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
+        headers: Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
         extra_args: T.List[str]
         method: str
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
@@ -98,8 +100,8 @@ if T.TYPE_CHECKING:
 
     class GenQrcKwArgs(TypedDict):
 
-        sources: T.Sequence[File]
-        aliases: T.Sequence[str]
+        sources: Sequence[File]
+        aliases: Sequence[str]
         prefix: str
         output: str
 
@@ -108,9 +110,9 @@ if T.TYPE_CHECKING:
         module_name: str
         module_version: str
         module_prefix: str
-        qml_sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
-        qml_singletons: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
-        qml_internals: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
+        qml_sources: Sequence[T.Union[FileOrString, build.GeneratedTypes]]
+        qml_singletons: Sequence[T.Union[FileOrString, build.GeneratedTypes]]
+        qml_internals: Sequence[T.Union[FileOrString, build.GeneratedTypes]]
         designer_supported: bool
         imports: T.List[str]
         optional_imports: T.List[str]
@@ -122,7 +124,7 @@ if T.TYPE_CHECKING:
     class GenQmlCachegenKwArgs(TypedDict):
 
         target_name: str
-        qml_sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
+        qml_sources: Sequence[T.Union[FileOrString, build.GeneratedTypes]]
         qml_qrc: T.Union[FileOrString, build.GeneratedTypes]
         extra_args: T.List[str]
         module_prefix: str
@@ -146,7 +148,7 @@ if T.TYPE_CHECKING:
     class MocJsonCollectKwArgs(TypedDict):
 
         target_name: str
-        moc_json: T.Sequence[build.GeneratedList]
+        moc_json: Sequence[build.GeneratedList]
         method: str
 
     class QmlModuleKwArgs(TypedDict):
@@ -327,7 +329,7 @@ class QtBaseModule(ExtensionModule):
     def _parse_qrc_deps(self, state: ModuleState,
                         rcc_file_: T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]) -> T.List[File]:
         result: T.List[File] = []
-        inputs: T.Sequence['FileOrString'] = []
+        inputs: Sequence['FileOrString'] = []
         if isinstance(rcc_file_, (str, File)):
             inputs = [rcc_file_]
         else:
@@ -745,7 +747,7 @@ class QtBaseModule(ExtensionModule):
         else:
             return ModuleReturnValue(translations, [translations])
 
-    def _source_to_files(self, state: ModuleState, sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]) -> T.List[File]:
+    def _source_to_files(self, state: ModuleState, sources: Sequence[T.Union[FileOrString, build.GeneratedTypes]]) -> T.List[File]:
 
         content_files = []
         for s in sources:
@@ -803,7 +805,7 @@ class QtBaseModule(ExtensionModule):
 
         with open(fileout_abs, 'w', encoding='utf-8') as fd:
 
-            def __gen_import(import_type: str, importlist: T.Sequence[str]) -> None:
+            def __gen_import(import_type: str, importlist: Sequence[str]) -> None:
                 for import_string in importlist:
                     match = import_re.match(import_string)
                     if not match:
@@ -812,7 +814,7 @@ class QtBaseModule(ExtensionModule):
                     version: str = match.group(4) or ''
                     fd.write(f'{import_type} {module} {version}\n')
 
-            def __gen_declaration(qualifier: str, version: str, importlist: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]) -> None:
+            def __gen_declaration(qualifier: str, version: str, importlist: Sequence[T.Union[FileOrString, build.GeneratedTypes]]) -> None:
                 importpathlist = self._source_to_files(state, importlist)
                 for s in importpathlist:
                     basename: str = os.path.basename(s.fname)
@@ -853,7 +855,7 @@ class QtBaseModule(ExtensionModule):
                                  self.tools['moc'].name + ' not found')
 
         target_name: str = kwargs['target_name']
-        moc_json: T.Sequence[build.GeneratedList] = kwargs['moc_json']
+        moc_json: Sequence[build.GeneratedList] = kwargs['moc_json']
 
         #there may be a better way :-/
         input_args: T.List[str] = []
@@ -936,7 +938,7 @@ class QtBaseModule(ExtensionModule):
         target_name: str = kwargs['target_name']
         collected_json: T.Optional[T.Union[FileOrString, build.CustomTarget]] = kwargs['collected_json']
 
-        inputs: T.Sequence[T.Union[FileOrString, build.CustomTarget]] = [collected_json] if collected_json else []
+        inputs: Sequence[T.Union[FileOrString, build.CustomTarget]] = [collected_json] if collected_json else []
         outputs: T.List[str] = [f'{target_name}_qmltyperegistrations.cpp']
         install_dir: T.List[T.Union[str, Literal[False]]] = [False]
         install_tag: T.List[T.Union[str, None]] = [None]
@@ -1051,7 +1053,7 @@ class QtBaseModule(ExtensionModule):
         target_name = re.sub(r'[^A-Za-z0-9]', '_', module_name)
 
         qrc_resouces: T.List[T.Union[FileOrString, build.GeneratedTypes]] = []
-        all_qml: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]] = kwargs['qml_sources'] + kwargs['qml_singletons'] + kwargs['qml_internals']
+        all_qml: Sequence[T.Union[FileOrString, build.GeneratedTypes]] = kwargs['qml_sources'] + kwargs['qml_singletons'] + kwargs['qml_internals']
         all_qml_files: T.List[File] = self._source_to_files(state, all_qml)
         all_qml_basename: T.List[str] = [os.path.basename(p.fname) for p in all_qml_files]
 
