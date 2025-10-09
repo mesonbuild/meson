@@ -560,3 +560,8 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.clean()
 
         self._run(self.mtest_command + ['runner-with-exedep'])
+
+    def test_setup_mixed_long_short_options(self) -> None:
+        """Mixing unity and unity_size as long and short options should work."""
+        testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '1 trivial'))
+        self.init(testdir, extra_args=['-Dunity=on', '--unity-size=123'])
