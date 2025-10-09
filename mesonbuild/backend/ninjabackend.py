@@ -2120,7 +2120,7 @@ class NinjaBackend(backends.Backend):
                         _link_library(a, static)
                         continue
 
-                    dir_, _ = os.path.split(lib)
+                    dir_, _ = os.path.split(a)
                     linkdirs.add(dir_)
 
                 args.append(f'-Clink-arg={a}')
