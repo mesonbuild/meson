@@ -1171,3 +1171,18 @@ class OverrideExecutableHolder(BuildTargetHolder[build.OverrideExecutable]):
     @InterpreterObject.method('version')
     def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.get_version(self.interpreter)
+
+class OverrideCustomTargetHolder(ObjectHolder[build.OverrideCustomTarget]):
+    @noPosargs
+    @noKwargs
+    @FeatureNew('OverrideCustomTarget.version', '1.10.0')
+    @InterpreterObject.method('version')
+    def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        return self.held_object.get_version(self.interpreter)
+
+    @noPosargs
+    @noKwargs
+    @FeatureNew('OverrideCustomTarget.found', '1.10.0')
+    @InterpreterObject.method('found')
+    def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
+        return True

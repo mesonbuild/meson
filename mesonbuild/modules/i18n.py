@@ -26,6 +26,7 @@ if T.TYPE_CHECKING:
     from . import ModuleState
     from ..build import Target
     from ..interpreter import Interpreter
+    from ..interpreter.interpreter import ProgramType
     from ..interpreterbase import TYPE_var
 
     class MergeFile(TypedDict):
@@ -260,7 +261,7 @@ class I18nModule(ExtensionModule):
             'itstool_join': self.itstool_join,
             'xgettext': self.xgettext,
         })
-        self.tools: T.Dict[str, T.Optional[T.Union[ExternalProgram, build.Executable]]] = {
+        self.tools: T.Dict[str, T.Optional[ProgramType]] = {
             'itstool': None,
             'msgfmt': None,
             'msginit': None,

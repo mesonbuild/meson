@@ -59,7 +59,7 @@ class MesonMain(MesonInterpreterObject):
     def _find_source_script(
             self, name: str, prog: T.Union[str, mesonlib.File, build.Executable, ExternalProgram],
             args: T.List[str]) -> 'ExecutableSerialisation':
-        largs: T.List[T.Union[str, build.Executable, ExternalProgram]] = []
+        largs: T.List[T.Union[str, build.Executable, ExternalProgram, build.CustomTargetIndex]] = []
 
         if isinstance(prog, (build.Executable, ExternalProgram)):
             FeatureNew.single_use(f'Passing executable/found program object to script parameter of {name}',
@@ -312,10 +312,10 @@ class MesonMain(MesonInterpreterObject):
         self.build.dep_manifest_name = args[0]
 
     @FeatureNew('meson.override_find_program', '0.46.0')
-    @typed_pos_args('meson.override_find_program', str, (mesonlib.File, ExternalProgram, build.Executable))
+    @typed_pos_args('meson.override_find_program', str, (mesonlib.File, ExternalProgram, build.Executable, build.CustomTarget, build.CustomTargetIndex))
     @noKwargs
     @InterpreterObject.method('override_find_program')
-    def override_find_program_method(self, args: T.Tuple[str, T.Union[mesonlib.File, ExternalProgram, build.Executable]], kwargs: 'TYPE_kwargs') -> None:
+    def override_find_program_method(self, args: T.Tuple[str, T.Union[mesonlib.File, ExternalProgram, build.Executable, build.CustomTarget, build.CustomTargetIndex]], kwargs: 'TYPE_kwargs') -> None:
         name, exe = args
         if isinstance(exe, mesonlib.File):
             abspath = exe.absolute_path(self.interpreter.environment.source_dir,
@@ -325,6 +325,14 @@ class MesonMain(MesonInterpreterObject):
             exe = OverrideProgram(name, self.interpreter.project_version, command=[abspath])
         elif isinstance(exe, build.Executable):
             exe = build.OverrideExecutable(exe, self.interpreter.project_version)
+        elif isinstance(exe, build.CustomTarget):
+            FeatureNew.single_use('Overriding program with a CustomTarget', '1.10.0', self.subproject)
+            if len(exe.get_outputs()) != 1:
+                raise InterpreterException(f'Can only override {name} with a CustomTarget that has exactly one output file.')
+            exe = build.OverrideCustomTarget(exe[0], self.interpreter.project_version)
+        elif isinstance(exe, build.CustomTargetIndex):
+            FeatureNew.single_use('Overriding program with a CustomTargetIndex', '1.10.0', self.subproject)
+            exe = build.OverrideCustomTarget(exe, self.interpreter.project_version)
         self.interpreter.add_find_program_override(name, exe)
 
     @typed_kwargs(

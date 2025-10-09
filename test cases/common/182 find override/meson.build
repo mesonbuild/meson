@@ -1,4 +1,4 @@
-project('find program override', 'c')
+project('find program override', 'c', version: '1.0')
 
 gencodegen = find_program('gencodegen', required : false)
 six_prog = find_program('six_meson_exe', required : false)
@@ -29,3 +29,15 @@ assert(six_prog.full_path() == six_prog.path())
 prog = find_program('prog-version.py', 'prog-version', version: '>= 2.0')
 assert(prog.found())
 assert(prog.version() == '2.0')
+
+python = find_program('python3')
+ct = custom_target(
+  input : 'prog-version.py',
+  output : 'prog-version-custom.py',
+  command: [python, '-c', 'import shutil,sys;shutil.copy(sys.argv[1],sys.argv[2])', '@INPUT@', '@OUTPUT@'],
+)
+meson.override_find_program('prog-version-custom.py', ct)
+
+prog = find_program('prog-version-custom.py')
+assert(prog.found())
+assert(prog.version() == '1.0')

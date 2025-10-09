@@ -24,8 +24,8 @@ from ..programs import NonExistingExternalProgram
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..dependencies.qt import QtPkgConfigDependency, QmakeQtDependency
-    from ..interpreter import Interpreter
-    from ..interpreter import kwargs
+    from ..interpreter import Interpreter, kwargs
+    from ..interpreter.interpreter import ProgramType
     from ..mesonlib import FileOrString
     from ..programs import ExternalProgram
     from typing_extensions import Literal
@@ -208,7 +208,7 @@ class QtBaseModule(ExtensionModule):
         self.qt_version = qt_version
         # It is important that this list does not change order as the order of
         # the returned ExternalPrograms will change as well
-        self.tools: T.Dict[str, T.Union[ExternalProgram, build.Executable]] = {
+        self.tools: T.Dict[str, ProgramType] = {
             tool: NonExistingExternalProgram(tool) for tool in self._set_of_qt_tools
         }
         self.methods.update({
@@ -724,7 +724,7 @@ class QtBaseModule(ExtensionModule):
                 ts = os.path.basename(ts)
             else:
                 outdir = state.subdir
-            cmd: T.List[T.Union[ExternalProgram, build.Executable, str]] = [self.tools['lrelease'], '@INPUT@', '-qm', '@OUTPUT@']
+            cmd: T.List[T.Union[ProgramType, str]] = [self.tools['lrelease'], '@INPUT@', '-qm', '@OUTPUT@']
             lrelease_target = build.CustomTarget(
                 f'qt{self.qt_version}-compile-{ts}',
                 outdir,

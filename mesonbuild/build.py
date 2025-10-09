@@ -42,7 +42,7 @@ if T.TYPE_CHECKING:
     from ._typing import ImmutableListProtocol
     from .backend.backends import Backend
     from .compilers import Compiler
-    from .interpreter.interpreter import SourceOutputs, Interpreter
+    from .interpreter.interpreter import SourceOutputs, Interpreter, ProgramType
     from .interpreter.interpreterobjects import Test, Doctest
     from .interpreterbase import SubProject
     from .linkers.linkers import StaticLinker
@@ -291,7 +291,7 @@ class Build:
         self.stdlibs = PerMachine({}, {})
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
-        self.find_overrides: T.Dict[str, T.Union['OverrideExecutable', programs.ExternalProgram, programs.OverrideProgram]] = {}
+        self.find_overrides: T.Dict[str, ProgramType] = {}
         self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
 
         # If we are doing a cross build we need two caches, if we're doing a
@@ -1981,7 +1981,7 @@ class FileMaybeInTargetPrivateDir:
         return self.fname
 
 class Generator(HoldableObject):
-    def __init__(self, exe: T.Union['Executable', programs.ExternalProgram],
+    def __init__(self, exe: ProgramType,
                  arguments: T.List[str],
                  output: T.List[str],
                  # how2dataclass
@@ -2002,7 +2002,7 @@ class Generator(HoldableObject):
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.exe)
 
-    def get_exe(self) -> T.Union['Executable', programs.ExternalProgram]:
+    def get_exe(self) -> ProgramType:
         return self.exe
 
     def get_base_outnames(self, inname: str) -> T.List[str]:
@@ -3352,6 +3352,18 @@ class OverrideExecutable(Executable):
     def __getattr__(self, name: str) -> T.Any:
         _executable = object.__getattribute__(self, '_executable')
         return getattr(_executable, name)
+
+    def get_version(self, interpreter: T.Optional[Interpreter] = None) -> str:
+        return self._version
+
+class OverrideCustomTarget(CustomTargetIndex):
+    def __init__(self, target: CustomTargetIndex, version: str):
+        self._target = target
+        self._version = version
+
+    def __getattr__(self, name: str) -> T.Any:
+        _target = object.__getattribute__(self, '_target')
+        return getattr(_target, name)
 
     def get_version(self, interpreter: T.Optional[Interpreter] = None) -> str:
         return self._version

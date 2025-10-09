@@ -389,7 +389,7 @@ methods:
         description: The name of the program to override.
 
       program:
-        type: exe | file | external_program
+        type: exe | file | external_program | custom_tgt | custom_idx
         description: The program to set as the override for `progname`.
 
   - name: override_dependency

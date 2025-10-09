@@ -529,7 +529,7 @@ class Backend:
         return result
 
     def get_executable_serialisation(
-            self, cmd: T.Sequence[T.Union[programs.ExternalProgram, build.BuildTarget, build.CustomTarget, File, str]],
+            self, cmd: T.Sequence[T.Union[programs.ExternalProgram, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, File, str]],
             workdir: T.Optional[str] = None,
             extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
             capture: T.Optional[str] = None,
@@ -548,7 +548,7 @@ class Backend:
         elif isinstance(exe, build.BuildTarget):
             exe_cmd = [self.get_target_filename_abs(exe)]
             exe_for_machine = exe.for_machine
-        elif isinstance(exe, build.CustomTarget):
+        elif isinstance(exe, (build.CustomTarget, build.CustomTargetIndex)):
             # The output of a custom target can either be directly runnable
             # or not, that is, a script, a native binary or a cross compiled
             # binary when exe wrapper is available and when it is not.
@@ -567,7 +567,7 @@ class Backend:
         for c in raw_cmd_args:
             if isinstance(c, programs.ExternalProgram):
                 cmd_args += c.get_command()
-            elif isinstance(c, (build.BuildTarget, build.CustomTarget)):
+            elif isinstance(c, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 cmd_args.append(self.get_target_filename_abs(c))
             elif isinstance(c, mesonlib.File):
                 cmd_args.append(c.rel_to_builddir(self.environment.source_dir))

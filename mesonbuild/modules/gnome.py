@@ -37,15 +37,15 @@ from ..programs import OverrideProgram
 from ..scripts.gettext import read_linguas
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypeAlias, TypedDict
+    from typing_extensions import Literal, TypedDict
 
     from . import ModuleState
     from ..build import BuildTarget
     from ..compilers import Compiler
     from ..interpreter import Interpreter
+    from ..interpreter.interpreter import ProgramType
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..mesonlib import FileOrString
-    from ..programs import ExternalProgram
 
     class PostInstall(TypedDict):
         glib_compile_schemas: bool
@@ -198,8 +198,6 @@ if T.TYPE_CHECKING:
         vtail: T.Optional[str]
         depends: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]
 
-    ToolType: TypeAlias = T.Union[Executable, ExternalProgram, OverrideProgram]
-
 
 # Differs from the CustomTarget version in that it straight defaults to True
 _BUILD_BY_DEFAULT: KwargInfo[bool] = KwargInfo(
@@ -256,8 +254,8 @@ class GnomeModule(ExtensionModule):
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
         self.gir_dep: T.Optional[Dependency] = None
-        self.giscanner: T.Optional[ToolType] = None
-        self.gicompiler: T.Optional[ToolType] = None
+        self.giscanner: T.Optional[ProgramType] = None
+        self.gicompiler: T.Optional[ProgramType] = None
         self.install_glib_compile_schemas = False
         self.install_gio_querymodules: T.List[str] = []
         self.install_gtk_update_icon_cache = False
@@ -309,7 +307,7 @@ class GnomeModule(ExtensionModule):
                      once=True, fatal=False)
 
     @staticmethod
-    def _find_tool(state: 'ModuleState', tool: str) -> 'ToolType':
+    def _find_tool(state: 'ModuleState', tool: str) -> ProgramType:
         tool_map = {
             'gio-querymodules': 'gio-2.0',
             'glib-compile-schemas': 'gio-2.0',
@@ -398,7 +396,7 @@ class GnomeModule(ExtensionModule):
         glib_version = self._get_native_glib_version(state)
 
         glib_compile_resources = self._find_tool(state, 'glib-compile-resources')
-        cmd: T.List[T.Union['ToolType', str]] = [glib_compile_resources, '@INPUT@']
+        cmd: T.List[T.Union[ProgramType, str]] = [glib_compile_resources, '@INPUT@']
 
         source_dirs = kwargs['source_dir']
         dependencies = kwargs['dependencies']
@@ -496,7 +494,7 @@ class GnomeModule(ExtensionModule):
             raise MesonException('GResource header is installed yet export is not enabled')
 
         depfile: T.Optional[str] = None
-        target_cmd: T.List[T.Union['ToolType', str]]
+        target_cmd: T.List[T.Union[ProgramType, str]]
         if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
             # This will eventually go out of sync if dependencies are added
             target_cmd = cmd
@@ -789,8 +787,7 @@ class GnomeModule(ExtensionModule):
         if self.devenv is not None:
             b.devenv.append(self.devenv)
 
-    def _get_gir_dep(self, state: 'ModuleState') -> T.Tuple[Dependency, T.Union[Executable, 'ExternalProgram', 'OverrideProgram'],
-                                                            T.Union[Executable, 'ExternalProgram', 'OverrideProgram']]:
+    def _get_gir_dep(self, state: 'ModuleState') -> T.Tuple[Dependency, ProgramType, ProgramType]:
         if not self.gir_dep:
             self.gir_dep = state.dependency('gobject-introspection-1.0')
             self.giscanner = self._find_tool(state, 'g-ir-scanner')
@@ -810,7 +807,7 @@ class GnomeModule(ExtensionModule):
     @functools.lru_cache(maxsize=None)
     def _gir_has_option(self, option: str) -> bool:
         exe = self.giscanner
-        if isinstance(exe, (Executable, OverrideProgram)):
+        if isinstance(exe, (Executable, OverrideProgram, CustomTargetIndex)):
             # Handle overridden g-ir-scanner
             assert option in {'--extra-library', '--sources-top-dirs'}
             return True
@@ -971,7 +968,7 @@ class GnomeModule(ExtensionModule):
             self,
             state: 'ModuleState',
             girfile: str,
-            scan_command: T.Sequence[T.Union['FileOrString', Executable, ExternalProgram, OverrideProgram]],
+            scan_command: T.Sequence[T.Union['FileOrString', Executable, ProgramType]],
             generated_files: T.Sequence[T.Union[str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList]],
             depends: T.Sequence[T.Union['FileOrString', build.BuildTarget, 'build.GeneratedTypes', build.StructuredSources]],
             env_flags: T.Sequence[str],
@@ -1020,7 +1017,7 @@ class GnomeModule(ExtensionModule):
 
     @staticmethod
     def _make_typelib_target(state: 'ModuleState', typelib_output: str,
-                             typelib_cmd: T.Sequence[T.Union[str, Executable, ExternalProgram, CustomTarget]],
+                             typelib_cmd: T.Sequence[T.Union[str, Executable, CustomTarget, ProgramType]],
                              generated_files: T.Sequence[T.Union[str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList]],
                              kwargs: T.Dict[str, T.Any]) -> TypelibTarget:
         install = kwargs['install_typelib']
@@ -1194,7 +1191,7 @@ class GnomeModule(ExtensionModule):
 
         gir_inc_dirs: T.List[str] = []
 
-        scan_command: T.List[T.Union[str, Executable, 'ExternalProgram', 'OverrideProgram']] = [giscanner]
+        scan_command: T.List[T.Union[str, Executable, ProgramType]] = [giscanner]
         scan_command += ['--quiet']
         scan_command += ['--no-libtool']
         scan_command += ['--namespace=' + ns, '--nsversion=' + nsversion]
@@ -1267,7 +1264,7 @@ class GnomeModule(ExtensionModule):
         srcdir = os.path.join(state.build_to_src, state.subdir)
         outdir = state.subdir
 
-        cmd: T.List[T.Union['ToolType', str]] = [self._find_tool(state, 'glib-compile-schemas'), '--targetdir', outdir, srcdir]
+        cmd: T.List[T.Union[ProgramType, str]] = [self._find_tool(state, 'glib-compile-schemas'), '--targetdir', outdir, srcdir]
         if state.subdir == '':
             targetname = 'gsettings-compile'
         else:
@@ -1347,7 +1344,7 @@ class GnomeModule(ExtensionModule):
 
         pot_file = os.path.join('@SOURCE_ROOT@', state.subdir, 'C', project_id + '.pot')
         pot_sources = [os.path.join('@SOURCE_ROOT@', state.subdir, 'C', s) for s in sources]
-        pot_args: T.List[T.Union[ExternalProgram, Executable, OverrideProgram, str]] = [itstool, '-o', pot_file]
+        pot_args: T.List[T.Union[ProgramType, str]] = [itstool, '-o', pot_file]
         pot_args.extend(pot_sources)
         pottarget = build.RunTarget(f'help-{project_id}-pot', pot_args, [],
                                     os.path.join(state.subdir, 'C'), state.subproject,
@@ -1379,7 +1376,7 @@ class GnomeModule(ExtensionModule):
                 targets.append(l_data)
 
             po_file = l + '.po'
-            po_args: T.List[T.Union[ExternalProgram, Executable, OverrideProgram, str]] = [
+            po_args: T.List[T.Union[ProgramType, str]] = [
                 msgmerge, '-q', '-o',
                 os.path.join('@SOURCE_ROOT@', l_subdir, po_file),
                 os.path.join('@SOURCE_ROOT@', l_subdir, po_file), pot_file]
@@ -1644,7 +1641,7 @@ class GnomeModule(ExtensionModule):
                       kwargs: 'GdbusCodegen') -> ModuleReturnValue:
         namebase = args[0]
         xml_files: T.List[T.Union['FileOrString', build.GeneratedTypes]] = [args[1]] if args[1] else []
-        cmd: T.List[T.Union['ToolType', str]] = [self._find_tool(state, 'gdbus-codegen')]
+        cmd: T.List[T.Union[ProgramType, str]] = [self._find_tool(state, 'gdbus-codegen')]
         cmd.extend(kwargs['extra_args'])
 
         # Autocleanup supported?
@@ -2049,7 +2046,7 @@ class GnomeModule(ExtensionModule):
             install_dir: T.Optional[T.Sequence[T.Union[str, bool]]] = None,
             depends: T.Optional[T.Sequence[T.Union[CustomTarget, CustomTargetIndex, BuildTarget]]] = None
             ) -> build.CustomTarget:
-        real_cmd: T.List[T.Union[str, 'ToolType']] = [self._find_tool(state, 'glib-mkenums')]
+        real_cmd: T.List[T.Union[str, ProgramType]] = [self._find_tool(state, 'glib-mkenums')]
         real_cmd.extend(cmd)
         _install_dir = install_dir or state.environment.coredata.optstore.get_value_for(OptionKey('includedir'))
         assert isinstance(_install_dir, str), 'for mypy'
@@ -2095,7 +2092,7 @@ class GnomeModule(ExtensionModule):
 
         new_genmarshal = mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.53.3')
 
-        cmd: T.List[T.Union['ToolType', str]] = [self._find_tool(state, 'glib-genmarshal'), '--quiet']
+        cmd: T.List[T.Union[ProgramType, str]] = [self._find_tool(state, 'glib-genmarshal'), '--quiet']
         if kwargs['prefix']:
             cmd.extend(['--prefix', kwargs['prefix']])
         if kwargs['extra_args']:
@@ -2242,7 +2239,7 @@ class GnomeModule(ExtensionModule):
         build_dir = os.path.join(state.environment.get_build_dir(), state.subdir)
         source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
         pkg_cmd, vapi_depends, vapi_packages, vapi_includes, packages = self._extract_vapi_packages(state, kwargs['packages'])
-        cmd: T.List[T.Union[ExternalProgram, Executable, OverrideProgram, str]]
+        cmd: T.List[T.Union[ProgramType, str]]
         cmd = [state.find_program('vapigen'), '--quiet', f'--library={library}', f'--directory={build_dir}']
         cmd.extend([f'--vapidir={d}' for d in kwargs['vapi_dirs']])
         cmd.extend([f'--metadatadir={d}' for d in kwargs['metadata_dirs']])
