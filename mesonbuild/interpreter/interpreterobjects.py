@@ -605,6 +605,14 @@ class DependencyHolder(ObjectHolder[Dependency]):
             raise InterpreterException('as_shared method is only supported on declare_dependency() objects')
         return self.held_object.get_as_shared(kwargs['recursive'])
 
+    @FeatureNew('dependency.as_dict', '1.10.0')
+    @noPosargs
+    @noKwargs
+    @InterpreterObject.method('as_dict')
+    def as_dict(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Dict[str, T.Any]:
+        return self.held_object.as_dict(self.interpreter.backend)
+
+
 _EXTPROG = T.TypeVar('_EXTPROG', bound=ExternalProgram)
 
 class _ExternalProgramHolder(ObjectHolder[_EXTPROG]):
