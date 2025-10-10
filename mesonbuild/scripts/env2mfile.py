@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import sys, os, subprocess, shutil
+import pathlib
 import shlex
 import typing as T
 
@@ -24,11 +25,13 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('--gccsuffix', default="",
                         help='A particular gcc version suffix if necessary.')
     parser.add_argument('-o', required=True, dest='outfile',
-                        help='The output file.')
+                        help='The output file or directory (for Android).')
     parser.add_argument('--cross', default=False, action='store_true',
                         help='Generate a cross compilation file.')
     parser.add_argument('--native', default=False, action='store_true',
                         help='Generate a native compilation file.')
+    parser.add_argument('--android', default=False, action='store_true',
+                        help='Generate cross files for Android toolchains.')
     parser.add_argument('--use-for-build', default=False, action='store_true',
                         help='Use _FOR_BUILD envvars.')
     parser.add_argument('--system', default=None,
@@ -430,11 +433,108 @@ def detect_native_env(options: T.Any) -> MachineInfo:
     detect_properties_from_envvars(infos, esuffix)
     return infos
 
+ANDROID_CPU_TO_MESON_CPU_FAMILY: dict[str, str] = {
+    'aarch64': 'aarch64',
+    'armv7a': 'arm',
+    'i686': 'x86',
+    'x86_64': 'x86_64',
+    'riscv64': 'riscv64',
+}
+
+class AndroidDetector:
+    def __init__(self, options: T.Any):
+        import platform
+        self.platform = platform.system().lower()
+        self.options = options
+
+        if self.platform == 'windows':
+            self.build_machine_id = 'windows-X86_64'
+            self.command_suffix = '.cmd'
+            self.exe_suffix = '.exe'
+        elif self.platform == 'darwin':
+            self.build_machine_id = 'darwin-x86_64' # Yes, even on aarch64 for some reason
+            self.command_suffix = ''
+            self.exe_suffix = ''
+        elif self.platform == 'linux':
+            self.build_machine_id = 'linux-x86_64'
+            self.command_suffix = ''
+            self.exe_suffix = ''
+        else:
+            sys.exit('Android lookup only supported on Linux, Windows and macOS. Patches welcome.')
+        self.outdir = pathlib.Path(options.outfile)
+
+    def detect_android_sdk_root(self) -> None:
+        home = pathlib.Path.home()
+        if self.platform == 'windows':
+            sdk_root = home / 'AppData/Local/Android/Sdk'
+        elif self.platform == 'darwin':
+            sdk_root = home / 'Library/Android/Sdk'
+        elif self.platform == 'linux':
+            sdk_root = home / 'Android/Sdk'
+        else:
+            sys.exit('Unsupported platform.')
+        if not sdk_root.is_dir():
+            sys.exit(f'Could not locate Android SDK root in {sdk_root}.')
+        ndk_root = sdk_root / 'ndk'
+        if not ndk_root.is_dir():
+            sys.exit(f'Could not locate Android ndk in {ndk_root}')
+        self.ndk_root = ndk_root
+
+    def detect_toolchains(self) -> None:
+        self.detect_android_sdk_root()
+        if not self.outdir.is_dir():
+            self.outdir.mkdir()
+        for ndk in self.ndk_root.glob('*'):
+            if not ndk.is_dir():
+                continue
+            self.process_ndk(ndk)
+
+    def process_ndk(self, ndk: pathlib.Path) -> None:
+        ndk_version = ndk.parts[-1]
+        toolchain_root = ndk / f'toolchains/llvm/prebuilt/{self.build_machine_id}'
+        bindir = toolchain_root / 'bin'
+        if not bindir.is_dir():
+            sys.exit(f'Could not detect toolchain in {toolchain_root}.')
+        ar_path = bindir / f'llvm-ar{self.exe_suffix}'
+        if not ar_path.is_file():
+            sys.exit(f'Could not detect llvm-ar in {toolchain_root}.')
+        ar_str = str(ar_path).replace('\\', '/')
+        strip_path = bindir / f'llvm-strip{self.exe_suffix}'
+        if not strip_path.is_file():
+            sys.exit(f'Could not detect llvm-strip n {toolchain_root}.')
+        strip_str = str(strip_path).replace('\\', '/')
+        for compiler in bindir.glob('*-clang++'):
+            parts = compiler.parts[-1].split('-')
+            assert len(parts) == 4
+            cpu = parts[0]
+            assert parts[1] == 'linux'
+            android_version = parts[2]
+            cpp_compiler_str = str(compiler).replace('\\', '/')
+            c_compiler_str = cpp_compiler_str[:-2]
+            cpp_compiler_str += self.command_suffix
+            c_compiler_str += self.command_suffix
+            crossfile_name = f'android-{ndk_version}-{android_version}-{cpu}-cross.txt'
+            with open(pathlib.Path(self.options.outfile) / crossfile_name, 'w', encoding='utf-8') as ofile:
+                ofile.write('[binaries]\n')
+                ofile.write(f"c = '{c_compiler_str}'\n")
+                ofile.write(f"cpp = '{cpp_compiler_str}'\n")
+                ofile.write(f"ar = '{ar_str}'\n")
+                ofile.write(f"strip = '{strip_str}'\n")
+
+                ofile.write('\n[host_machine]\n')
+                ofile.write("system = 'android'\n")
+                ofile.write(f"cpu_family = '{ANDROID_CPU_TO_MESON_CPU_FAMILY[cpu]}'\n")
+                ofile.write(f"cpu = '{cpu}'\n")
+                ofile.write("endian = 'little'\n")
+
+
 def run(options: T.Any) -> None:
     if options.cross and options.native:
         sys.exit('You can only specify either --cross or --native, not both.')
-    if not options.cross and not options.native:
-        sys.exit('You must specify --cross or --native.')
+    if (options.cross or options.native) and options.android:
+        sys.exit('You can not specify either --cross or --native with --android.')
+    if not options.cross and not options.native and not options.android:
+        sys.exit('You must specify --cross, --native or --android.')
     mlog.notice('This functionality is experimental and subject to change.')
     detect_cross = options.cross
     if detect_cross:
@@ -442,7 +542,11 @@ def run(options: T.Any) -> None:
             sys.exit('--use-for-build only makes sense for --native, not --cross')
         infos = detect_cross_env(options)
         write_system_info = True
-    else:
+        write_machine_file(infos, options.outfile, write_system_info)
+    elif options.android is None:
         infos = detect_native_env(options)
         write_system_info = False
-    write_machine_file(infos, options.outfile, write_system_info)
+        write_machine_file(infos, options.outfile, write_system_info)
+    else:
+        ad = AndroidDetector(options)
+        ad.detect_toolchains()
