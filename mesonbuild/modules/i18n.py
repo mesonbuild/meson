@@ -180,7 +180,7 @@ class XgettextProgram:
             install = install,
             install_dir = [install_dir] if install_dir else None,
             install_tag = [install_tag] if install_tag else None,
-            description = 'Extracting translations to {}',
+            description = 'Extracting translations to {target}',
         )
 
         for source_id in self._get_source_id(sources):
@@ -341,7 +341,7 @@ class I18nModule(ExtensionModule):
             install=kwargs['install'],
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] is not None else None,
             install_tag=install_tag,
-            description='Merging translations for {}',
+            description='Merging translations for {target}',
         )
 
         return ModuleReturnValue(ct, [ct])
@@ -434,7 +434,7 @@ class I18nModule(ExtensionModule):
                 # Bonus: the build tree has something usable as an uninstalled bindtextdomain() target dir.
                 install_dir=[path.join(install_dir, l, 'LC_MESSAGES')],
                 install_tag=['i18n'],
-                description='Building translation {}',
+                description='Building translation {target}',
             )
             targets.append(gmotarget)
             gmotargets.append(gmotarget)
@@ -527,7 +527,7 @@ class I18nModule(ExtensionModule):
             install=kwargs['install'],
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] is not None else None,
             install_tag=install_tag,
-            description='Merging translations for {}',
+            description='Merging translations for {target}',
         )
 
         return ModuleReturnValue(ct, [ct])
