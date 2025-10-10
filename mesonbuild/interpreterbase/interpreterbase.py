@@ -30,7 +30,7 @@ from .exceptions import (
 
 from .. import mlog
 from . import operator
-from .decorators import FeatureNew
+from .decorators import FeatureFixed, FeatureNew
 from .disabler import Disabler, is_disabled
 from .helpers import default_resolve_key, flatten, stringifyUserArguments
 from .operator import MesonOperator
@@ -507,7 +507,7 @@ class InterpreterBase:
 
     def function_call(self, node: mparser.FunctionNode) -> T.Optional[InterpreterObject]:
         func_name = node.func_name.value
-        (h_posargs, h_kwargs) = self.reduce_arguments(node.args)
+        (h_posargs, h_kwargs) = self.reduce_arguments(node.args, expand_default_kwargs=True)
         (posargs, kwargs) = self._unholder_args(h_posargs, h_kwargs)
         if is_disabled(posargs, kwargs) and func_name not in {'get_variable', 'set_variable', 'unset_variable', 'is_disabler'}:
             return Disabler()
@@ -537,7 +537,7 @@ class InterpreterBase:
             object_display_name = invocable.__class__.__name__
             obj = self.evaluate_statement(invocable)
         method_name = node.name.value
-        (h_args, h_kwargs) = self.reduce_arguments(node.args)
+        (h_args, h_kwargs) = self.reduce_arguments(node.args, expand_default_kwargs=True)
         (args, kwargs) = self._unholder_args(h_args, h_kwargs)
         if is_disabled(args, kwargs):
             return Disabler()
@@ -579,6 +579,7 @@ class InterpreterBase:
                 args: mparser.ArgumentNode,
                 key_resolver: T.Callable[[mparser.BaseNode], str] = default_resolve_key,
                 duplicate_key_error: T.Optional[str] = None,
+                expand_default_kwargs: bool = False,
             ) -> T.Tuple[
                 T.List[InterpreterObject],
                 T.Dict[str, InterpreterObject]
@@ -600,8 +601,13 @@ class InterpreterBase:
                 raise InvalidArguments(duplicate_key_error.format(reduced_key))
             reduced_kw[reduced_key] = reduced_val
         self.argument_depth -= 1
-        final_kw = self.expand_default_kwargs(reduced_kw)
-        return reduced_pos, final_kw
+        if expand_default_kwargs:
+            final_kw = self.expand_default_kwargs(reduced_kw)
+            return reduced_pos, final_kw
+        else:
+            if 'kwargs' in reduced_kw:
+                FeatureFixed.single_use('"kwargs" key in dictionary literal', '1.13.0', self.subproject, location=args)
+            return reduced_pos, reduced_kw
 
     def expand_default_kwargs(self, kwargs: T.Dict[str, T.Optional[InterpreterObject]]) -> T.Dict[str, T.Optional[InterpreterObject]]:
         if 'kwargs' not in kwargs:
