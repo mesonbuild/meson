@@ -16,7 +16,7 @@ from ..dependencies.base import Dependency, DependencyMethods, IncludeType
 from ..mesonlib import EnvironmentVariables, MachineChoice, File, FileMode, FileOrString
 from ..options import OptionKey
 from ..modules.cmake import CMakeSubprojectOptions
-from ..programs import ExternalProgram
+from ..programs import Program, ExternalProgram
 from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
 TestArgs = T.Union[str, File, build.Target, ExternalProgram]
@@ -183,7 +183,7 @@ class CustomTarget(TypedDict):
     build_by_default: T.Optional[bool]
     build_subdir: str
     capture: bool
-    command: T.List[T.Union[str, build.BuildTargetTypes, ExternalProgram, File]]
+    command: T.List[T.Union[str, build.BuildTargetTypes, Program, File]]
     console: bool
     depend_files: T.List[FileOrString]
     depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
@@ -282,10 +282,10 @@ class ConfigurationDataSet(TypedDict):
 
 class VcsTag(TypedDict):
 
-    command: T.List[T.Union[str, build.GeneratedTypes, ExternalProgram, File]]
+    command: T.List[T.Union[str, build.GeneratedTypes, Program, File]]
     fallback: T.Optional[str]
     input: T.List[T.Union[str, build.BuildTarget, build.GeneratedTypes,
-                          build.ExtractedObjects, ExternalProgram, File]]
+                          build.ExtractedObjects, Program, File]]
     output: T.List[str]
     replace_string: str
     install: bool
