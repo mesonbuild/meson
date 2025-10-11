@@ -171,7 +171,8 @@ class FuncAddLanguages(ExtractRequired):
 
 class RunTarget(TypedDict):
 
-    command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget, ExternalProgram, File]]
+    command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget, ExternalProgram,
+                            File, LocalProgram]]
     depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
     env: EnvironmentVariables
 
@@ -183,7 +184,8 @@ class CustomTarget(TypedDict):
     build_by_default: T.Optional[bool]
     capture: bool
     command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget,
-                            build.CustomTargetIndex, ExternalProgram, File]]
+                            build.CustomTargetIndex, ExternalProgram, File,
+                            LocalProgram]]
     console: bool
     depend_files: T.List[FileOrString]
     depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
