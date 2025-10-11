@@ -356,6 +356,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                            'executable': self.func_executable,
                            'files': self.func_files,
                            'find_program': self.func_find_program,
+                           'local_program': self.func_local_program,
                            'generator': self.func_generator,
                            'get_option': self.func_get_option,
                            'get_variable': self.func_get_variable,
@@ -428,6 +429,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.GeneratedList: OBJ.GeneratedListHolder,
             build.ExtractedObjects: OBJ.GeneratedObjectsHolder,
             build.OverrideExecutable: OBJ.OverrideExecutableHolder,
+            build.LocalProgram: OBJ.LocalProgramHolder,
             build.RunTarget: OBJ.RunTargetHolder,
             build.AliasTarget: OBJ.AliasTargetHolder,
             build.Headers: OBJ.HeadersHolder,
@@ -1763,6 +1765,23 @@ class Interpreter(InterpreterBase, HoldableObject):
         return self.find_program_impl(args[0], kwargs['native'], default_options=default_options, required=required,
                                       silent=False, wanted=kwargs['version'], version_arg=kwargs['version_argument'],
                                       search_dirs=search_dirs)
+
+    @FeatureNew('local_program', '1.10.0')
+    @typed_pos_args('local_program', (str, mesonlib.File))
+    @typed_kwargs(
+        'local_program',
+        DEPENDS_KW,
+        DEPEND_FILES_KW,
+    )
+    def func_local_program(self, node: mparser.BaseNode, args: T.Tuple[mesonlib.FileOrString],
+                          kwargs: kwtypes.LocalProgram,
+                          ) -> build.LocalProgram:
+        exe = self.source_strings_to_files([args[0]])[0]
+        depends = [d.target if isinstance(d, build.CustomTargetIndex) else d for d in kwargs['depends']]
+        depend_files = self.source_strings_to_files(kwargs['depend_files'])
+        abspath = exe.absolute_path(self.environment.source_dir, self.environment.build_dir)
+        program = ExternalProgram(exe.fname, command=[abspath])
+        return build.LocalProgram(program, self.project_version, depends, depend_files)
 
     # When adding kwargs, please check if they make sense in dependencies.get_dep_identifier()
     @FeatureNewKwargs('dependency', '0.57.0', ['cmake_package_version'])
