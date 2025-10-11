@@ -10,7 +10,8 @@ import typing as T
 from .. import compilers
 from ..build import (CustomTarget, BuildTarget,
                      CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs,
-                     BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources)
+                     BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources,
+                     LocalProgram)
 from ..options import OptionKey, UserFeatureOption
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
@@ -284,9 +285,9 @@ DEPEND_FILES_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
     default=[],
 )
 
-COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTargetTypes, ExternalProgram, File]]] = KwargInfo(
+COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTargetTypes, ExternalProgram, File, LocalProgram]]] = KwargInfo(
     'command',
-    ContainerTypeInfo(list, (str, BuildTarget, CustomTarget, CustomTargetIndex, ExternalProgram, File), allow_empty=False),
+    ContainerTypeInfo(list, (str, BuildTarget, CustomTarget, CustomTargetIndex, ExternalProgram, File, LocalProgram), allow_empty=False),
     required=True,
     listify=True,
     default=[],
