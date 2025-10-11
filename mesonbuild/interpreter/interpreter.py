@@ -771,8 +771,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     # better error messages when overridden
     @typed_pos_args(
         'run_command',
-        (build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str),
-        varargs=(build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str))
+        (build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str, build.LocalProgram),
+        varargs=(build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str, build.LocalProgram))
     @typed_kwargs(
         'run_command',
         KwargInfo('check', (bool, NoneType), since='0.47.0'),
@@ -780,14 +780,21 @@ class Interpreter(InterpreterBase, HoldableObject):
         ENV_KW.evolve(since='0.50.0'),
     )
     def func_run_command(self, node: mparser.BaseNode,
-                         args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str],
-                                       T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
+                         args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str, build.LocalProgram],
+                                       T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str, build.LocalProgram]]],
                          kwargs: 'kwtypes.RunCommand') -> RunProcess:
         return self.run_command_impl(args, kwargs)
 
+    def _compiled_exe_error(self, cmd: T.Union[build.LocalProgram, build.Executable]) -> T.NoReturn:
+        descr = cmd.name if isinstance(cmd, build.Executable) else cmd.description()
+        for name, exe in self.build.find_overrides.items():
+            if cmd == exe:
+                raise InterpreterException(f'Program {name!r} was overridden with the compiled executable {descr!r} and therefore cannot be used during configuration')
+        raise InterpreterException(f'Program {descr!r} is a compiled executable and therefore cannot be used during configuration')
+
     def run_command_impl(self,
-                         args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str],
-                                       T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
+                         args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str, build.LocalProgram],
+                                       T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str, build.LocalProgram]]],
                          kwargs: 'kwtypes.RunCommand',
                          in_builddir: bool = False) -> RunProcess:
         cmd, cargs = args
@@ -801,19 +808,17 @@ class Interpreter(InterpreterBase, HoldableObject):
             mlog.warning(implicit_check_false_warning, once=True)
             check = False
 
-        overridden_msg = ('Program {!r} was overridden with the compiled '
-                          'executable {!r} and therefore cannot be used during '
-                          'configuration')
         expanded_args: T.List[str] = []
-        if isinstance(cmd, build.Executable):
-            for name, exe in self.build.find_overrides.items():
-                if cmd == exe:
-                    progname = name
-                    break
-            else:
-                raise InterpreterException(f'Program {cmd.description()!r} is a compiled executable and therefore cannot be used during configuration')
-            raise InterpreterException(overridden_msg.format(progname, cmd.description()))
-        if isinstance(cmd, ExternalProgram):
+        if isinstance(cmd, build.LocalProgram):
+            prog = cmd.run_program()
+            if prog is None:
+                self._compiled_exe_error(cmd)
+            for f in cmd.depend_files:
+                self.add_build_def_file(f)
+            cmd = prog
+        elif isinstance(cmd, build.Executable):
+            self._compiled_exe_error(cmd)
+        elif isinstance(cmd, ExternalProgram):
             if not cmd.found():
                 raise InterpreterException(f'command {cmd.get_name()!r} not found or not executable')
         elif isinstance(cmd, compilers.Compiler):
@@ -845,8 +850,15 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if not prog.found():
                     raise InterpreterException(f'Program {cmd!r} not found or not executable')
                 expanded_args.append(prog.get_path())
+            elif isinstance(a, build.LocalProgram):
+                prog = a.run_program()
+                if prog is None:
+                    self._compiled_exe_error(a)
+                for f in a.depend_files:
+                    self.add_build_def_file(f)
+                expanded_args.append(prog.get_path())
             else:
-                raise InterpreterException(overridden_msg.format(a.name, cmd.description()))
+                self._compiled_exe_error(a)
 
         # If any file that was used as an argument to the command
         # changes, we must re-run the configuration step.
@@ -2635,7 +2647,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('capture', bool, default=False, since='0.41.0'),
         KwargInfo(
             'command',
-            (ContainerTypeInfo(list, (build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str), allow_empty=False), NoneType),
+            (ContainerTypeInfo(list, (build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str, build.LocalProgram), allow_empty=False), NoneType),
             listify=True,
         ),
         KwargInfo(
