@@ -47,6 +47,10 @@ class Program(mesonlib.HoldableObject, metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def runnable(self) -> bool:
+        pass
+
+    @abstractmethod
     def description(self) -> str:
         '''Human friendly description of the command'''
 
@@ -359,6 +363,9 @@ class ExternalProgram(Program):
         # On UNIX-like platforms, shutil.which() is enough to find
         # all executables whether in PATH or with an absolute path
         return [command]
+
+    def runnable(self) -> bool:
+        return self.found()
 
     def found(self) -> bool:
         return self.command[0] is not None
