@@ -291,7 +291,7 @@ class Build:
         self.stdlibs = PerMachine({}, {})
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
-        self.find_overrides: T.Dict[str, T.Union['OverrideExecutable', programs.ExternalProgram, programs.OverrideProgram]] = {}
+        self.find_overrides: T.Dict[str, T.Union[OverrideExecutable, programs.ExternalProgram, programs.OverrideProgram, LocalProgram]] = {}
         self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
 
         # If we are doing a cross build we need two caches, if we're doing a
@@ -1981,7 +1981,7 @@ class FileMaybeInTargetPrivateDir:
         return self.fname
 
 class Generator(HoldableObject):
-    def __init__(self, exe: T.Union['Executable', programs.ExternalProgram],
+    def __init__(self, exe: T.Union[Executable, programs.ExternalProgram, LocalProgram],
                  arguments: T.List[str],
                  output: T.List[str],
                  # how2dataclass
@@ -1990,10 +1990,14 @@ class Generator(HoldableObject):
                  capture: bool = False,
                  depends: T.Optional[T.List[T.Union[BuildTarget, 'CustomTarget', 'CustomTargetIndex']]] = None,
                  name: str = 'Generator'):
+        self.depends = list(depends or [])
+        if isinstance(exe, LocalProgram):
+            # FIXME: Generator does not have depend_files?
+            self.depends.extend(exe.depends)
+            exe = exe.program
         self.exe = exe
         self.depfile = depfile
         self.capture = capture
-        self.depends: T.List[T.Union[BuildTarget, 'CustomTarget', 'CustomTargetIndex']] = depends or []
         self.arglist = arguments
         self.outputs = output
         self.name = name
@@ -2791,11 +2795,15 @@ class CommandBase:
     dependencies: T.List[T.Union[BuildTarget, 'CustomTarget']]
     subproject: str
 
-    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.ExternalProgram, BuildTargetTypes]]) -> \
+    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.ExternalProgram, BuildTargetTypes, LocalProgram]]) -> \
             T.List[T.Union[str, File, BuildTarget, CustomTarget, programs.ExternalProgram]]:
         cmd = listify(cmd)
         final_cmd: T.List[T.Union[str, File, BuildTarget, 'CustomTarget']] = []
         for c in cmd:
+            if isinstance(c, LocalProgram):
+                self.dependencies.extend(c.depends)
+                self.depend_files.extend(c.depend_files)
+                c = c.program
             if isinstance(c, str):
                 final_cmd.append(c)
             elif isinstance(c, File):
@@ -2861,7 +2869,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  environment: environment.Environment,
                  command: T.Sequence[T.Union[
                      str, BuildTargetTypes, GeneratedList,
-                     programs.ExternalProgram, File]],
+                     programs.ExternalProgram, File, LocalProgram]],
                  sources: T.Sequence[T.Union[
                      str, File, BuildTargetTypes, ExtractedObjects,
                      GeneratedList, programs.ExternalProgram]],
@@ -3121,7 +3129,7 @@ class RunTarget(Target, CommandBase):
     typename = 'run'
 
     def __init__(self, name: str,
-                 command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.ExternalProgram]],
+                 command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.ExternalProgram, LocalProgram]],
                  dependencies: T.Sequence[T.Union[Target, CustomTargetIndex]],
                  subdir: str,
                  subproject: str,
@@ -3355,6 +3363,40 @@ class OverrideExecutable(Executable):
 
     def get_version(self, interpreter: T.Optional[Interpreter] = None) -> str:
         return self._version
+
+class LocalProgram(HoldableObject):
+    ''' A wrapper for a program that may have build dependencies.'''
+    def __init__(self, program: T.Union[programs.ExternalProgram, Executable], version: str,
+                 depends: T.Optional[T.List[T.Union[BuildTarget, CustomTarget]]] = None,
+                 depend_files: T.Optional[T.List[File]] = None) -> None:
+        super().__init__()
+        self.name = program.name
+        self.program = program
+        self.depends = list(depends or [])
+        self.depend_files = list(depend_files or [])
+        self.version = version
+
+    def found(self) -> bool:
+        return True
+
+    def get_version(self, interpreter: T.Optional[Interpreter] = None) -> str:
+        return self.version
+
+    def get_command(self) -> ImmutableListProtocol[str]:
+        return self.program.get_command()
+
+    def description(self) -> str:
+        '''Human friendly description of the command'''
+        return ' '.join(self.program.get_command())
+
+    def get_path(self) -> str:
+        return self.program.get_path()
+
+    def run_program(self) -> T.Optional[programs.ExternalProgram]:
+        ''' Returns an ExternalProgram if it can be run at configure time.'''
+        if isinstance(self.program, programs.ExternalProgram) and not self.depends:
+            return self.program
+        return None
 
 # A bit poorly named, but this represents plain data files to copy
 # during install.

@@ -529,7 +529,7 @@ class Backend:
         return result
 
     def get_executable_serialisation(
-            self, cmd: T.Sequence[T.Union[programs.ExternalProgram, build.BuildTarget, build.CustomTarget, File, str]],
+            self, cmd: T.Sequence[T.Union[programs.ExternalProgram, build.BuildTarget, build.CustomTarget, File, str, build.LocalProgram]],
             workdir: T.Optional[str] = None,
             extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
             capture: T.Optional[str] = None,
@@ -542,6 +542,8 @@ class Backend:
 
         # XXX: cmd_args either need to be lowered to strings, or need to be checked for non-string arguments, right?
         exe, *raw_cmd_args = cmd
+        if isinstance(exe, build.LocalProgram):
+            exe = exe.program
         if isinstance(exe, programs.ExternalProgram):
             exe_cmd = exe.get_command()
             exe_for_machine = exe.for_machine
@@ -565,6 +567,8 @@ class Backend:
 
         cmd_args: T.List[str] = []
         for c in raw_cmd_args:
+            if isinstance(c, build.LocalProgram):
+                c = c.program
             if isinstance(c, programs.ExternalProgram):
                 cmd_args += c.get_command()
             elif isinstance(c, (build.BuildTarget, build.CustomTarget)):
