@@ -29,7 +29,7 @@ class IceStormModule(ExtensionModule):
 
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
-        self.tools: T.Dict[str, T.Union[ExternalProgram, build.Executable]] = {}
+        self.tools: T.Dict[str, T.Union[ExternalProgram, build.Executable, build.LocalProgram]] = {}
         self.methods.update({
             'project': self.project,
         })
