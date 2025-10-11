@@ -548,6 +548,8 @@ class Backend:
 
         # XXX: cmd_args either need to be lowered to strings, or need to be checked for non-string arguments, right?
         exe, *raw_cmd_args = cmd
+        if isinstance(exe, build.LocalProgram):
+            exe = exe.program
         if isinstance(exe, programs.Program):
             exe_cmd = exe.get_command()
             exe_for_machine = exe.for_machine
@@ -571,6 +573,8 @@ class Backend:
 
         cmd_args: T.List[str] = []
         for c in raw_cmd_args:
+            if isinstance(c, build.LocalProgram):
+                c = c.program
             if isinstance(c, programs.Program):
                 cmd_args += c.get_command()
             elif isinstance(c, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
@@ -1168,6 +1172,8 @@ class Backend:
         arr: T.List[TestSerialisation] = []
         for t in sorted(tests, key=lambda tst: -1 * tst.priority):
             exe = t.get_exe()
+            if isinstance(exe, build.LocalProgram):
+                exe = exe.program
             if isinstance(exe, programs.Program):
                 cmd = exe.get_command()
             else:
@@ -1344,8 +1350,10 @@ class Backend:
             if delta > 0.001:
                 raise MesonException(f'Clock skew detected. File {absf} has a time stamp {delta:.4f}s in the future.')
 
-    def build_target_to_cmd_array(self, bt: T.Union[build.BuildTarget, programs.Program]) -> T.List[str]:
-        if isinstance(bt, build.BuildTarget):
+    def build_target_to_cmd_array(self, bt: T.Union[build.BuildTargetTypes, programs.Program]) -> T.List[str]:
+        if isinstance(bt, build.LocalProgram):
+            bt = bt.program
+        if isinstance(bt, (build.Target, build.CustomTargetIndex)):
             arr = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(bt))]
         else:
             arr = bt.get_command()
@@ -1426,6 +1434,8 @@ class Backend:
         '''
         srcs: T.List[str] = []
         for i in target.get_sources():
+            if isinstance(i, build.LocalProgram):
+                i = i.program
             if isinstance(i, str):
                 fname = [os.path.join(self.build_to_src, target.subdir, i)]
             elif isinstance(i, build.BuildTarget):
