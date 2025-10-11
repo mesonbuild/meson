@@ -1623,7 +1623,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def program_from_overrides(self, command_names: T.List[mesonlib.FileOrString],
                                extra_info: T.List['mlog.TV_Loggable']
-                               ) -> T.Optional[T.Union[ExternalProgram, OverrideProgram, build.OverrideExecutable]]:
+                               ) -> T.Optional[T.Union[ExternalProgram, OverrideProgram, build.OverrideExecutable, build.LocalProgram]]:
         for name in command_names:
             if not isinstance(name, str):
                 continue
@@ -1638,7 +1638,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if isinstance(name, str):
                 self.build.searched_programs.add(name)
 
-    def add_find_program_override(self, name: str, exe: T.Union[build.OverrideExecutable, ExternalProgram, 'OverrideProgram']) -> None:
+    def add_find_program_override(self, name: str, exe: T.Union[build.OverrideExecutable, ExternalProgram, OverrideProgram, build.LocalProgram]) -> None:
         if name in self.build.searched_programs:
             raise InterpreterException(f'Tried to override finding of executable "{name}" which has already been found.')
         if name in self.build.find_overrides:
@@ -1663,7 +1663,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                           search_dirs: T.Optional[T.List[str]] = None,
                           version_arg: T.Optional[str] = '',
                           version_func: T.Optional[ProgramVersionFunc] = None
-                          ) -> T.Union['ExternalProgram', 'build.OverrideExecutable', 'OverrideProgram']:
+                          ) -> T.Union[ExternalProgram, build.OverrideExecutable, OverrideProgram, build.LocalProgram]:
         args = mesonlib.listify(args)
 
         extra_info: T.List[mlog.TV_Loggable] = []
@@ -1695,7 +1695,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                        version_arg: T.Optional[str],
                        version_func: T.Optional[ProgramVersionFunc],
                        extra_info: T.List[mlog.TV_Loggable]
-                       ) -> T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]]:
+                       ) -> T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram, build.LocalProgram]]:
         progobj = self.program_from_overrides(args, extra_info)
         if progobj:
             return progobj
@@ -1731,7 +1731,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         return progobj
 
-    def check_program_version(self, progobj: T.Union[ExternalProgram, build.Executable, OverrideProgram],
+    def check_program_version(self, progobj: T.Union[ExternalProgram, build.Executable, OverrideProgram, build.LocalProgram],
                               wanted: T.Union[str, T.List[str]],
                               version_func: T.Optional[ProgramVersionFunc],
                               extra_info: T.List[mlog.TV_Loggable]) -> bool:
