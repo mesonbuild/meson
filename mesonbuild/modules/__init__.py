@@ -75,14 +75,14 @@ class ModuleState:
                      required: bool = True,
                      version_func: T.Optional[ProgramVersionFunc] = None,
                      wanted: T.Union[str, T.List[str]] = '', silent: bool = False,
-                     for_machine: MachineChoice = MachineChoice.HOST) -> T.Union[ExternalProgram, build.OverrideExecutable, OverrideProgram]:
+                     for_machine: MachineChoice = MachineChoice.HOST) -> T.Union[ExternalProgram, build.OverrideExecutable, OverrideProgram, build.LocalProgram]:
         if not isinstance(prog, list):
             prog = [prog]
         return self._interpreter.find_program_impl(prog, required=required, version_func=version_func,
                                                    wanted=wanted, silent=silent, for_machine=for_machine)
 
     def find_tool(self, name: str, depname: str, varname: str, required: bool = True,
-                  wanted: T.Optional[str] = None) -> T.Union[build.OverrideExecutable, ExternalProgram, 'OverrideProgram']:
+                  wanted: T.Optional[str] = None) -> T.Union[build.OverrideExecutable, ExternalProgram, OverrideProgram, build.LocalProgram]:
         # Look in overrides in case it's built as subproject
         progobj = self._interpreter.program_from_overrides([name], [])
         if progobj is not None:
@@ -118,7 +118,7 @@ class ModuleState:
         # implementations of meson functions anyway.
         return self._interpreter.func_dependency(self.current_node, [depname], kwargs) # type: ignore
 
-    def test(self, args: T.Tuple[str, T.Union[build.Executable, build.Jar, 'ExternalProgram', mesonlib.File]],
+    def test(self, args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, build.LocalProgram, mesonlib.File]],
              workdir: T.Optional[str] = None,
              env: T.Union[T.List[str], T.Dict[str, str], str] = None,
              depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]] = None) -> None:
