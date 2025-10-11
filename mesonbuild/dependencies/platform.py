@@ -12,13 +12,12 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
+    from .base import DependencyObjectKWs
 
 class AppleFrameworks(ExternalDependency):
-    def __init__(self, env: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
         super().__init__(DependencyTypeName('appleframeworks'), env, kwargs)
         modules = kwargs.get('modules', [])
-        if isinstance(modules, str):
-            modules = [modules]
         if not modules:
             raise DependencyException("AppleFrameworks dependency requires at least one module.")
         self.frameworks = modules

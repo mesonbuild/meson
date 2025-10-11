@@ -12,7 +12,7 @@ from ..build import (CustomTarget, BuildTarget,
                      CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs,
                      BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources)
 from ..options import OptionKey, UserFeatureOption
-from ..dependencies import Dependency, InternalDependency
+from ..dependencies import Dependency, DependencyMethods, InternalDependency
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
 from ..mesonlib import (File, FileMode, MachineChoice, has_path_sep, listify, stringlistify,
                         EnvironmentVariables)
@@ -868,7 +868,63 @@ PKGCONFIG_DEFINE_KW: KwargInfo = KwargInfo(
     convertor=_pkgconfig_define_convertor,
 )
 
+INCLUDE_TYPE = KwargInfo(
+    'include_type',
+    str,
+    default='preserve',
+    since='0.52.0',
+    validator=in_set_validator({'system', 'non-system', 'preserve'})
+)
+
+
+_DEPRECATED_DEPENDENCY_METHODS = frozenset(
+    {'sdlconfig', 'cups-config', 'pcap-config', 'libwmf-config', 'qmake'})
+
+
+def _dependency_method_convertor(value: str) -> DependencyMethods:
+    if value in _DEPRECATED_DEPENDENCY_METHODS:
+        return DependencyMethods.CONFIG_TOOL
+    return DependencyMethods(value)
+
+
+DEPENDENCY_METHOD_KW = KwargInfo(
+    'method',
+    str,
+    default='auto',
+    since='0.40.0',
+    validator=in_set_validator(
+        {m.value for m in DependencyMethods} | _DEPRECATED_DEPENDENCY_METHODS),
+    convertor=_dependency_method_convertor,
+    deprecated_values={
+        'sdlconfig': ('0.44.0', 'use config-tool instead'),
+        'cups-config': ('0.44.0', 'use config-tool instead'),
+        'pcap-config': ('0.44.0', 'use config-tool instead'),
+        'libwmf-config': ('0.44.0', 'use config-tool instead'),
+        'qmake': ('0.58.0', 'use config-tool instead'),
+    },
+)
+
 
 DEPENDENCY_KWS: T.List[KwargInfo] = [
     DEFAULT_OPTIONS.evolve(since='0.38.0'),
+    DEPENDENCY_METHOD_KW,
+    DISABLER_KW.evolve(since='0.49.0'),
+    INCLUDE_TYPE,
+    KwargInfo('allow_fallback', (bool, NoneType), since='0.56.0'),
+    KwargInfo('cmake_args', ContainerTypeInfo(list, str), listify=True, default=[], since='0.50.0'),
+    KwargInfo('cmake_module_path', ContainerTypeInfo(list, str), listify=True, default=[], since='0.50.0'),
+    KwargInfo('cmake_package_version', str, default='', since='0.57.0'),
+    KwargInfo('components', ContainerTypeInfo(list, str), listify=True, default=[], since='0.54.0'),
+    KwargInfo('fallback', (ContainerTypeInfo(list, str), str, NoneType), since='0.54.0'),
+    KwargInfo('language', (str, NoneType), convertor=lambda x: x.lower() if x is not None else x,
+              validator=lambda x: 'Must be a valid language if set' if (x is not None and x not in compilers.all_languages) else None),
+    KwargInfo('main', bool, default=False),
+    KwargInfo('modules', ContainerTypeInfo(list, str), listify=True, default=[]),
+    KwargInfo('not_found_message', str, default='', since='0.50.0'),
+    KwargInfo('optional_modules', ContainerTypeInfo(list, str), listify=True, default=[]),
+    KwargInfo('private_headers', bool, default=False),
+    KwargInfo('static', (bool, NoneType)),
+    KwargInfo('version', ContainerTypeInfo(list, str), listify=True, default=[]),
+    NATIVE_KW,
+    REQUIRED_KW,
 ]

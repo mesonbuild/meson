@@ -180,6 +180,9 @@ kwargs:
       *Since 0.63.0* when the `prefer_static` option is set to `true` the default
       value is `true` otherwise the default value is `false`.
 
+      *WARNING*: the Cuda dependency ignores `prefer_static`, and will treat any value
+      except an explicit value of `true` as `false`.
+
   version:
     type: array[str] | str
     since: 0.37.0

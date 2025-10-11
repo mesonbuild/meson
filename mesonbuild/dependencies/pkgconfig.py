@@ -25,6 +25,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..utils.core import EnvironOrDict
     from ..interpreter.type_checking import PkgConfigDefineType
+    from .base import DependencyObjectKWs
 
 class PkgConfigInterface:
     '''Base class wrapping a pkg-config implementation'''
@@ -305,7 +306,7 @@ class PkgConfigCLI(PkgConfigInterface):
 
 class PkgConfigDependency(ExternalDependency):
 
-    def __init__(self, name: str, environment: Environment, kwargs: T.Dict[str, T.Any],
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs,
                  language: T.Optional[str] = None,
                  extra_paths: T.Optional[T.List[str]] = None) -> None:
         super().__init__(DependencyTypeName('pkgconfig'), environment, kwargs, language=language)
