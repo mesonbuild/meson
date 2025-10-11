@@ -2220,17 +2220,17 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         return build.Generator(self.environment, args[0], **kwargs)
 
-    @typed_pos_args('benchmark', str, (build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex))
+    @typed_pos_args('benchmark', str, (build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.LocalProgram))
     @typed_kwargs('benchmark', *TEST_KWS)
     def func_benchmark(self, node: mparser.BaseNode,
-                       args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
+                       args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.LocalProgram]],
                        kwargs: 'kwtypes.FuncBenchmark') -> None:
         self.add_test(node, args, kwargs, False)
 
-    @typed_pos_args('test', str, (build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex))
+    @typed_pos_args('test', str, (build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.LocalProgram))
     @typed_kwargs('test', *TEST_KWS, KwargInfo('is_parallel', bool, default=True))
     def func_test(self, node: mparser.BaseNode,
-                  args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
+                  args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.LocalProgram]],
                   kwargs: 'kwtypes.FuncTest') -> None:
         self.add_test(node, args, kwargs, True)
 
@@ -2244,7 +2244,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return ENV_KW.convertor(envlist)
 
     def make_test(self, node: mparser.BaseNode,
-                  args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
+                  args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.LocalProgram]],
                   kwargs: 'kwtypes.BaseTest',
                   klass: T.Type[TestClass] = Test) -> TestClass:
         name = args[0]
@@ -2253,15 +2253,20 @@ class Interpreter(InterpreterBase, HoldableObject):
                              location=node)
             name = name.replace(':', '_')
         exe = args[1]
-        if isinstance(exe, ExternalProgram):
+        depends = list(kwargs['depends'] or [])
+        if isinstance(exe, build.LocalProgram):
+            # FIXME: tests does not have depend_files?
+            depends.extend(exe.depends)
+            exe = exe.program
+        elif isinstance(exe, ExternalProgram):
             if not exe.found():
                 raise InvalidArguments('Tried to use not-found external program as test exe')
         elif isinstance(exe, mesonlib.File):
             exe = self.find_program_impl([exe])
         elif isinstance(exe, build.CustomTarget):
-            kwargs.setdefault('depends', []).append(exe)
+            depends.append(exe)
         elif isinstance(exe, build.CustomTargetIndex):
-            kwargs.setdefault('depends', []).append(exe.target)
+            depends.append(exe.target)
 
         env = self.unpack_env_kwarg(kwargs)
 
@@ -2280,7 +2285,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                      prj,
                      suite,
                      exe,
-                     kwargs['depends'],
+                     depends,
                      kwargs.get('is_parallel', False),
                      kwargs['args'],
                      env,
