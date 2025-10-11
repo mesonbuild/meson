@@ -60,7 +60,7 @@ class MesonMain(MesonInterpreterObject):
     def _find_source_script(
             self, name: str, prog: T.Union[str, mesonlib.File, build.Executable, ExternalProgram],
             args: T.List[str]) -> 'ExecutableSerialisation':
-        largs: T.List[T.Union[str, build.Executable, ExternalProgram]] = []
+        largs: T.List[T.Union[str, build.Executable, ExternalProgram, build.LocalProgram]] = []
 
         if isinstance(prog, (build.Executable, ExternalProgram)):
             FeatureNew.single_use(f'Passing executable/found program object to script parameter of {name}',
@@ -313,10 +313,10 @@ class MesonMain(MesonInterpreterObject):
         self.build.dep_manifest_name = args[0]
 
     @FeatureNew('meson.override_find_program', '0.46.0')
-    @typed_pos_args('meson.override_find_program', str, (mesonlib.File, ExternalProgram, build.Executable))
+    @typed_pos_args('meson.override_find_program', str, (mesonlib.File, ExternalProgram, build.Executable, build.LocalProgram))
     @noKwargs
     @InterpreterObject.method('override_find_program')
-    def override_find_program_method(self, args: T.Tuple[str, T.Union[mesonlib.File, ExternalProgram, build.Executable]], kwargs: 'TYPE_kwargs') -> None:
+    def override_find_program_method(self, args: T.Tuple[str, T.Union[mesonlib.File, ExternalProgram, build.Executable, build.LocalProgram]], kwargs: 'TYPE_kwargs') -> None:
         name, exe = args
         if isinstance(exe, mesonlib.File):
             abspath = exe.absolute_path(self.interpreter.environment.source_dir,
