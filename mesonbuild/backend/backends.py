@@ -1187,8 +1187,11 @@ class Backend:
 
             # we allow passing compiled executables to tests, which may be cross built.
             # We need to consider these as well when considering whether the target is cross or not.
+            a: T.Union[str, File, build.Target, build.BuildTargetTypes, programs.Program]
             for a in t.cmd_args:
-                if isinstance(a, build.BuildTarget):
+                if isinstance(a, build.LocalProgram):
+                    a = a.program
+                if isinstance(a, (build.BuildTarget, programs.ExternalProgram)):
                     if a.for_machine is MachineChoice.HOST:
                         test_for_machine = MachineChoice.HOST
                         break
@@ -1211,6 +1214,8 @@ class Backend:
             if isinstance(exe, build.Target):
                 depends.add(exe)
             for a in t.cmd_args:
+                if isinstance(a, build.LocalProgram):
+                    a = a.program
                 if isinstance(a, build.Target):
                     depends.add(a)
                 elif isinstance(a, build.CustomTargetIndex):
