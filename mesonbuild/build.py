@@ -1990,6 +1990,8 @@ class Generator(HoldableObject):
                  depends: T.Optional[T.List[BuildTargetTypes]] = None,
                  name: str = 'Generator'):
         self.environment = env
+        if isinstance(exe, LocalProgram):
+            exe = exe.program
         self.exe = exe
         self.depfile = depfile
         self.capture = capture
