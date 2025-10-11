@@ -1923,7 +1923,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # Cannot use the COMMAND_KW because command is allowed to be empty
         KwargInfo(
             'command',
-            ContainerTypeInfo(list, (str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, ExternalProgram, mesonlib.File)),
+            ContainerTypeInfo(list, (str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, Program, mesonlib.File)),
             listify=True,
             default=[],
         ),
