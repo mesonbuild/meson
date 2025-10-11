@@ -246,6 +246,12 @@ class FindProgram(ExtractRequired, ExtractSearchDirs):
     version: T.List[str]
 
 
+class LocalProgram(TypedDict):
+
+    depend_files: T.List[FileOrString]
+    depends: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]
+
+
 class RunCommand(TypedDict):
 
     check: bool
