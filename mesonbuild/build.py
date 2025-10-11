@@ -2781,11 +2781,15 @@ class CommandBase:
     dependencies: T.List[T.Union[BuildTarget, 'CustomTarget']]
     subproject: str
 
-    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.ExternalProgram, BuildTargetTypes]]) -> \
+    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.ExternalProgram, BuildTargetTypes, LocalProgram]]) -> \
             T.List[T.Union[str, File, BuildTarget, CustomTarget, programs.ExternalProgram]]:
         cmd = listify(cmd)
         final_cmd: T.List[T.Union[str, File, BuildTarget, 'CustomTarget']] = []
         for c in cmd:
+            if isinstance(c, LocalProgram):
+                self.dependencies.extend(c.depends)
+                self.depend_files.extend(c.depend_files)
+                c = c.program
             if isinstance(c, str):
                 final_cmd.append(c)
             elif isinstance(c, File):
@@ -2851,7 +2855,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  environment: Environment,
                  command: T.Sequence[T.Union[
                      str, BuildTargetTypes, GeneratedList,
-                     programs.ExternalProgram, File]],
+                     programs.ExternalProgram, File, LocalProgram]],
                  sources: T.Sequence[T.Union[
                      str, File, BuildTargetTypes, ExtractedObjects,
                      GeneratedList, programs.ExternalProgram]],
@@ -3112,7 +3116,7 @@ class RunTarget(Target, CommandBase):
     typename = 'run'
 
     def __init__(self, name: str,
-                 command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.ExternalProgram]],
+                 command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.ExternalProgram, LocalProgram]],
                  dependencies: T.Sequence[AnyTargetType],
                  subdir: str,
                  subproject: str,
