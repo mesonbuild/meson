@@ -2786,6 +2786,8 @@ class CommandBase:
         cmd = listify(cmd)
         final_cmd: T.List[T.Union[str, File, BuildTarget, 'CustomTarget']] = []
         for c in cmd:
+            if isinstance(c, LocalProgram):
+                c = c.program
             if isinstance(c, str):
                 final_cmd.append(c)
             elif isinstance(c, File):
@@ -3353,6 +3355,46 @@ class OverrideExecutable(Executable):
 
     def get_version(self, interpreter: T.Optional[Interpreter] = None) -> str:
         return self._version
+
+class LocalProgram(programs.Program):
+    ''' A wrapper for a program that acts as a build dependency
+        for other targets.'''
+    def __init__(self, program: T.Union[programs.ExternalProgram, Executable, CustomTarget, CustomTargetIndex], version: str) -> None:
+        super().__init__()
+        if isinstance(program, CustomTarget):
+            if len(program.outputs) != 1:
+                raise InvalidArguments('CustomTarget used as LocalProgram must have exactly one output.')
+        self.name = program.name
+        self.program = program
+        self.version = version
+
+    def found(self) -> bool:
+        return True
+
+    def get_version(self, interpreter: T.Optional[Interpreter] = None) -> str:
+        return self.version
+
+    def get_command(self) -> T.List[str]:
+        if isinstance(self.program, programs.ExternalProgram):
+            return self.program.get_command()
+        # Only the backend knows the actual path to the build program.
+        raise MesonBugException('Cannot call get_command() on program that is a build target.')
+
+    def get_path(self) -> str:
+        if isinstance(self.program, programs.ExternalProgram):
+            return self.program.get_path()
+        # Only the backend knows the actual path to the build program.
+        raise MesonBugException('Cannot call get_path() on program that is a build target.')
+
+    def description(self) -> str:
+        if isinstance(self.program, programs.ExternalProgram):
+            return self.program.description()
+        if isinstance(self.program, Executable):
+            return self.program.name
+        return self.program.get_filename()
+
+    def runnable(self) -> bool:
+        return isinstance(self.program, programs.ExternalProgram)
 
 # A bit poorly named, but this represents plain data files to copy
 # during install.
