@@ -223,7 +223,7 @@ class FeatureOptionHolder(ObjectHolder[options.UserFeatureOption]):
 class RunProcess(MesonInterpreterObject):
 
     def __init__(self,
-                 cmd: ExternalProgram,
+                 cmd: Program,
                  args: T.List[str],
                  env: mesonlib.EnvironmentVariables,
                  source_dir: str,
@@ -234,13 +234,11 @@ class RunProcess(MesonInterpreterObject):
                  check: bool = False,
                  capture: bool = True) -> None:
         super().__init__()
-        if not isinstance(cmd, ExternalProgram):
-            raise AssertionError('BUG: RunProcess must be passed an ExternalProgram')
         self.capture = capture
         self.returncode, self.stdout, self.stderr = self.run_command(cmd, args, env, source_dir, build_dir, subdir, mesonintrospect, in_builddir, check)
 
     def run_command(self,
-                    cmd: ExternalProgram,
+                    cmd: Program,
                     args: T.List[str],
                     env: mesonlib.EnvironmentVariables,
                     source_dir: str,
