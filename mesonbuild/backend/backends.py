@@ -1426,6 +1426,8 @@ class Backend:
         '''
         srcs: T.List[str] = []
         for i in target.get_sources():
+            if isinstance(i, build.LocalProgram):
+                i = i.program
             if isinstance(i, str):
                 fname = [os.path.join(self.build_to_src, target.subdir, i)]
             elif isinstance(i, build.BuildTarget):
