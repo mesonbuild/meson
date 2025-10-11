@@ -2196,7 +2196,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.add_target(name, tg)
         return tg
 
-    @typed_pos_args('generator', (build.Executable, ExternalProgram))
+    @typed_pos_args('generator', (build.Executable, ExternalProgram, build.LocalProgram))
     @typed_kwargs(
         'generator',
         KwargInfo('arguments', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
@@ -2206,7 +2206,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('capture', bool, default=False, since='0.43.0'),
     )
     def func_generator(self, node: mparser.FunctionNode,
-                       args: T.Tuple[T.Union[build.Executable, ExternalProgram]],
+                       args: T.Tuple[T.Union[build.Executable, ExternalProgram, build.LocalProgram]],
                        kwargs: 'kwtypes.FuncGenerator') -> build.Generator:
         for rule in kwargs['output']:
             if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule:

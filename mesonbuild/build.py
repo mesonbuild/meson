@@ -1980,7 +1980,7 @@ class FileMaybeInTargetPrivateDir:
 
 class Generator(HoldableObject):
     def __init__(self, env: Environment,
-                 exe: T.Union['Executable', programs.ExternalProgram],
+                 exe: T.Union[Executable, programs.ExternalProgram, LocalProgram, CustomTarget, CustomTargetIndex],
                  arguments: T.List[str],
                  output: T.List[str],
                  # how2dataclass
@@ -1990,10 +1990,14 @@ class Generator(HoldableObject):
                  depends: T.Optional[T.List[BuildTargetTypes]] = None,
                  name: str = 'Generator'):
         self.environment = env
+        self.depends = list(depends or [])
+        if isinstance(exe, LocalProgram):
+            # FIXME: Generator does not have depend_files?
+            self.depends.extend(exe.depends)
+            exe = exe.program
         self.exe = exe
         self.depfile = depfile
         self.capture = capture
-        self.depends: T.List[BuildTargetTypes] = depends or []
         self.arglist = arguments
         self.outputs = output
         self.name = name
@@ -2002,7 +2006,7 @@ class Generator(HoldableObject):
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.exe)
 
-    def get_exe(self) -> T.Union['Executable', programs.ExternalProgram]:
+    def get_exe(self) -> T.Union[Executable, programs.ExternalProgram, CustomTarget, CustomTargetIndex]:
         return self.exe
 
     def get_base_outnames(self, inname: str) -> T.List[str]:
