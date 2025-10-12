@@ -424,7 +424,7 @@ class Backend:
         osrc = f'{target.name}-unity{number}.{suffix}'
         return mesonlib.File.from_built_file(self.get_target_private_dir(target), osrc)
 
-    def generate_unity_files(self, target: build.BuildTarget, unity_src: str) -> T.List[mesonlib.File]:
+    def generate_unity_files(self, target: build.BuildTarget, unity_src: T.Union[T.List[FileOrString], T.List[File]]) -> T.List[mesonlib.File]:
         abs_files: T.List[str] = []
         result: T.List[mesonlib.File] = []
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
@@ -467,7 +467,7 @@ class Backend:
         return result
 
     @staticmethod
-    def relpath(todir: str, fromdir: str) -> str:
+    def relpath(todir: T.Union[str, os.PathLike], fromdir: T.Union[str, os.PathLike]) -> str:
         return os.path.relpath(os.path.join('dummyprefixdir', todir),
                                os.path.join('dummyprefixdir', fromdir))
 
