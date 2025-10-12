@@ -39,7 +39,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
     from . import environment
-    from ._typing import ImmutableListProtocol
+    from ._typing import ImmutableListProtocol, Sequence
     from .backend.backends import Backend
     from .compilers import Compiler
     from .interpreter.interpreter import SourceOutputs, Interpreter
@@ -449,7 +449,7 @@ class ExtractedObjects(HoldableObject):
         return r.format(self.__class__.__name__, self.target.name, self.srclist)
 
     @staticmethod
-    def get_sources(sources: T.Sequence['FileOrString'], generated_sources: T.Sequence['GeneratedTypes']) -> T.List['FileOrString']:
+    def get_sources(sources: Sequence['FileOrString'], generated_sources: Sequence['GeneratedTypes']) -> T.List['FileOrString']:
         # Merge sources and generated sources
         sources = list(sources)
         for gensrc in generated_sources:
@@ -462,7 +462,7 @@ class ExtractedObjects(HoldableObject):
         # Filter out headers and all non-source files
         return [s for s in sources if is_source(s)]
 
-    def classify_all_sources(self, sources: T.List[FileOrString], generated_sources: T.Sequence['GeneratedTypes']) -> T.Dict['Compiler', T.List['FileOrString']]:
+    def classify_all_sources(self, sources: T.List[FileOrString], generated_sources: Sequence['GeneratedTypes']) -> T.Dict['Compiler', T.List['FileOrString']]:
         sources_ = self.get_sources(sources, generated_sources)
         return classify_unity_sources(self.target.compilers.values(), sources_)
 
@@ -1590,7 +1590,7 @@ class BuildTarget(Target):
                 raise MesonException(f'File {f} does not exist.')
         self.pch[language] = pchlist
 
-    def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: T.Optional[str] = None) -> None:
+    def add_include_dirs(self, args: Sequence['IncludeDirs'], set_is_system: T.Optional[str] = None) -> None:
         ids: T.List['IncludeDirs'] = []
         for a in args:
             if not isinstance(a, IncludeDirs):
@@ -1798,7 +1798,7 @@ class BuildTarget(Target):
                 'a file object, a Custom Target, or a Custom Target Index')
         self.process_link_depends(path)
 
-    def extract_targets_as_list(self, kwargs: T.Dict[str, T.Union[LibTypes, T.Sequence[LibTypes]]], key: T.Literal['link_with', 'link_whole']) -> T.List[LibTypes]:
+    def extract_targets_as_list(self, kwargs: T.Dict[str, T.Union[LibTypes, Sequence[LibTypes]]], key: T.Literal['link_with', 'link_whole']) -> T.List[LibTypes]:
         bl_type = self.environment.coredata.optstore.get_value_for(OptionKey('default_both_libraries'))
         if bl_type == 'auto':
             if isinstance(self, StaticLibrary):
@@ -2791,7 +2791,7 @@ class CommandBase:
     dependencies: T.List[T.Union[BuildTarget, 'CustomTarget']]
     subproject: str
 
-    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.ExternalProgram, BuildTargetTypes]]) -> \
+    def flatten_command(self, cmd: Sequence[T.Union[str, File, programs.ExternalProgram, BuildTargetTypes]]) -> \
             T.List[T.Union[str, File, BuildTarget, CustomTarget, programs.ExternalProgram]]:
         cmd = listify(cmd)
         final_cmd: T.List[T.Union[str, File, BuildTarget, 'CustomTarget']] = []
@@ -2859,10 +2859,10 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  subdir: str,
                  subproject: str,
                  environment: environment.Environment,
-                 command: T.Sequence[T.Union[
+                 command: Sequence[T.Union[
                      str, BuildTargetTypes, GeneratedList,
                      programs.ExternalProgram, File]],
-                 sources: T.Sequence[T.Union[
+                 sources: Sequence[T.Union[
                      str, File, BuildTargetTypes, ExtractedObjects,
                      GeneratedList, programs.ExternalProgram]],
                  outputs: T.List[str],
@@ -2871,8 +2871,8 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  build_by_default: T.Optional[bool] = None,
                  capture: bool = False,
                  console: bool = False,
-                 depend_files: T.Optional[T.Sequence[FileOrString]] = None,
-                 extra_depends: T.Optional[T.Sequence[T.Union[str, SourceOutputs]]] = None,
+                 depend_files: T.Optional[Sequence[FileOrString]] = None,
+                 extra_depends: T.Optional[Sequence[T.Union[str, SourceOutputs]]] = None,
                  depfile: T.Optional[str] = None,
                  env: T.Optional[EnvironmentVariables] = None,
                  feed: bool = False,
@@ -3121,8 +3121,8 @@ class RunTarget(Target, CommandBase):
     typename = 'run'
 
     def __init__(self, name: str,
-                 command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.ExternalProgram]],
-                 dependencies: T.Sequence[T.Union[Target, CustomTargetIndex]],
+                 command: Sequence[T.Union[str, File, BuildTargetTypes, programs.ExternalProgram]],
+                 dependencies: Sequence[T.Union[Target, CustomTargetIndex]],
                  subdir: str,
                  subproject: str,
                  environment: environment.Environment,
@@ -3171,7 +3171,7 @@ class AliasTarget(RunTarget):
 
     typename = 'alias'
 
-    def __init__(self, name: str, dependencies: T.Sequence[Target],
+    def __init__(self, name: str, dependencies: Sequence[Target],
                  subdir: str, subproject: str, environment: environment.Environment):
         super().__init__(name, [], dependencies, subdir, subproject, environment)
 
