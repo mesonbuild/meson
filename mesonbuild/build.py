@@ -292,7 +292,7 @@ class Build:
         self.stdlibs = PerMachine({}, {})
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
-        self.find_overrides: T.Dict[str, T.Union[OverrideExecutable, programs.ExternalProgram, programs.OverrideProgram, LocalProgram]] = {}
+        self.find_overrides: T.Dict[str, T.Union[programs.ExternalProgram, LocalProgram]] = {}
         self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
 
         # If we are doing a cross build we need two caches, if we're doing a
@@ -3352,18 +3352,6 @@ class ConfigurationData(HoldableObject):
 
     def keys(self) -> T.Iterator[str]:
         return self.values.keys()
-
-class OverrideExecutable(Executable):
-    def __init__(self, executable: Executable, version: str):
-        self._executable = executable
-        self._version = version
-
-    def __getattr__(self, name: str) -> T.Any:
-        _executable = object.__getattribute__(self, '_executable')
-        return getattr(_executable, name)
-
-    def get_version(self, interpreter: T.Optional[Interpreter] = None) -> str:
-        return self._version
 
 class LocalProgram(HoldableObject):
     ''' A wrapper for a program that may have build dependencies.'''

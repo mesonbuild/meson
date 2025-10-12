@@ -357,17 +357,6 @@ class NonExistingExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-i
         return False
 
 
-class OverrideProgram(ExternalProgram):
-
-    """A script overriding a program."""
-
-    def __init__(self, name: str, version: str, command: T.Optional[T.List[str]] = None,
-                 silent: bool = False, search_dirs: T.Optional[T.List[T.Optional[str]]] = None,
-                 exclude_paths: T.Optional[T.List[str]] = None):
-        super().__init__(name, command=command, silent=silent,
-                         search_dirs=search_dirs, exclude_paths=exclude_paths)
-        self.cached_version = version
-
 def find_external_program(env: 'Environment', for_machine: MachineChoice, name: str,
                           display_name: str, default_names: T.List[str],
                           allow_default_for_cross: bool = True,
