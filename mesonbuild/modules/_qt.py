@@ -209,7 +209,7 @@ class QtBaseModule(ExtensionModule):
         self.qt_version = qt_version
         # It is important that this list does not change order as the order of
         # the returned ExternalPrograms will change as well
-        self.tools: T.Dict[str, T.Union[ExternalProgram, build.Executable, build.LocalProgram]] = {
+        self.tools: T.Dict[str, T.Union[ExternalProgram, build.LocalProgram]] = {
             tool: NonExistingExternalProgram(tool) for tool in self._set_of_qt_tools
         }
         self.methods.update({
@@ -251,7 +251,7 @@ class QtBaseModule(ExtensionModule):
                 arg = ['-v']
 
             # Ensure that the version of qt and each tool are the same
-            def get_version(p: T.Union[ExternalProgram, build.Executable]) -> str:
+            def get_version(p: T.Union[ExternalProgram, build.LocalProgram]) -> str:
                 _, out, err = Popen_safe(p.get_command() + arg)
                 if name == 'lrelease' or not qt_dep.version.startswith('4'):
                     care = out
@@ -446,7 +446,7 @@ class QtBaseModule(ExtensionModule):
             for s in sources:
                 qrc_deps.extend(self._parse_qrc_deps(state, s))
 
-            cmd: T.List[T.Union[ExternalProgram, build.Executable, build.LocalProgram, str]]
+            cmd: T.List[T.Union[ExternalProgram, build.LocalProgram, str]]
             cmd = [self.tools['rcc'], '-name', name, '-o', '@OUTPUT@']
             cmd.extend(extra_args)
             cmd.append('@INPUT@')
@@ -736,7 +736,7 @@ class QtBaseModule(ExtensionModule):
                 ts = os.path.basename(ts)
             else:
                 outdir = state.subdir
-            cmd: T.List[T.Union[ExternalProgram, build.Executable, build.LocalProgram, str]] = [self.tools['lrelease'], '@INPUT@', '-qm', '@OUTPUT@']
+            cmd: T.List[T.Union[ExternalProgram, build.LocalProgram, str]] = [self.tools['lrelease'], '@INPUT@', '-qm', '@OUTPUT@']
             lrelease_target = build.CustomTarget(
                 f'qt{self.qt_version}-compile-{ts}',
                 outdir,
@@ -876,7 +876,7 @@ class QtBaseModule(ExtensionModule):
                     input_args.append(f'@INPUT{input_counter}@')
                 input_counter += 1
 
-        cmd: T.List[T.Union[ExternalProgram, build.Executable, build.LocalProgram, str]]
+        cmd: T.List[T.Union[ExternalProgram, build.LocalProgram, str]]
         cmd = [self.tools['moc'], '--collect-json', '-o', '@OUTPUT@']
         cmd.extend(input_args)
         return build.CustomTarget(
@@ -924,7 +924,7 @@ class QtBaseModule(ExtensionModule):
             ressource_path = os.path.join('/', kwargs['module_prefix'], source_basename)
             cachegen_inputs.append(ressource_path)
 
-        cmd: T.List[T.Union[ExternalProgram, build.Executable, build.LocalProgram, str]]
+        cmd: T.List[T.Union[ExternalProgram, build.LocalProgram, str]]
         cmd = [self.tools['qmlcachegen'], '-o', '@OUTPUT@', '--resource-name', f'qmlcache_{target_name}']
         cmd.extend(kwargs['extra_args'])
         cmd.append('--resource=@INPUT@')

@@ -633,10 +633,10 @@ class DependencyHolder(ObjectHolder[Dependency]):
             raise InterpreterException('as_shared method is only supported on declare_dependency() objects')
         return self.held_object.get_as_shared(kwargs['recursive'])
 
-_EXTPROG = T.TypeVar('_EXTPROG', bound=ExternalProgram)
+_BASEPROG = T.TypeVar('_BASEPROG', bound=T.Union[ExternalProgram, build.LocalProgram])
 
-class _ExternalProgramHolder(ObjectHolder[_EXTPROG]):
-    def __init__(self, ep: _EXTPROG, interpreter: 'Interpreter') -> None:
+class _BaseProgramHolder(ObjectHolder[_BASEPROG]):
+    def __init__(self, ep: _BASEPROG, interpreter: 'Interpreter') -> None:
         super().__init__(ep, interpreter)
 
     @noPosargs
@@ -647,15 +647,15 @@ class _ExternalProgramHolder(ObjectHolder[_EXTPROG]):
 
     @noPosargs
     @noKwargs
-    @FeatureDeprecated('ExternalProgram.path', '0.55.0',
-                       'use ExternalProgram.full_path() instead')
+    @FeatureDeprecated('Program.path', '0.55.0',
+                       'use Program.full_path() instead')
     @InterpreterObject.method('path')
     def path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self._full_path()
 
     @noPosargs
     @noKwargs
-    @FeatureNew('ExternalProgram.full_path', '0.55.0')
+    @FeatureNew('Program.full_path', '0.55.0')
     @InterpreterObject.method('full_path')
     def full_path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self._full_path()
@@ -669,7 +669,7 @@ class _ExternalProgramHolder(ObjectHolder[_EXTPROG]):
 
     @noPosargs
     @noKwargs
-    @FeatureNew('ExternalProgram.cmd_array', '1.10.0')
+    @FeatureNew('Program.cmd_array', '1.10.0')
     @InterpreterObject.method('cmd_array')
     def cmd_array_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[str]:
         if not self.found():
@@ -680,9 +680,11 @@ class _ExternalProgramHolder(ObjectHolder[_EXTPROG]):
 
     @noPosargs
     @noKwargs
-    @FeatureNew('ExternalProgram.version', '0.62.0')
+    @FeatureNew('Program.version', '0.62.0')
     @InterpreterObject.method('version')
     def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        if isinstance(self.held_object, build.LocalProgram) and isinstance(self.held_object.program, build.Executable):
+            FeatureNew.single_use('Program.version with an executable', '1.9.0', subproject=self.subproject, location=self.current_node)
         if not self.found():
             raise InterpreterException('Unable to get the version of a not-found external program')
         try:
@@ -693,7 +695,10 @@ class _ExternalProgramHolder(ObjectHolder[_EXTPROG]):
     def found(self) -> bool:
         return self.held_object.found()
 
-class ExternalProgramHolder(_ExternalProgramHolder[ExternalProgram]):
+class ExternalProgramHolder(_BaseProgramHolder[ExternalProgram]):
+    pass
+
+class LocalProgramHolder(_BaseProgramHolder[build.LocalProgram]):
     pass
 
 class ExternalLibraryHolder(ObjectHolder[ExternalLibrary]):
@@ -1204,24 +1209,3 @@ class StructuredSourcesHolder(ObjectHolder[build.StructuredSources]):
 
     def __init__(self, sources: build.StructuredSources, interp: 'Interpreter'):
         super().__init__(sources, interp)
-
-class OverrideExecutableHolder(BuildTargetHolder[build.OverrideExecutable]):
-    @noPosargs
-    @noKwargs
-    @FeatureNew('OverrideExecutable.version', '1.9.0')
-    @InterpreterObject.method('version')
-    def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
-        return self.held_object.get_version(self.interpreter)
-
-class LocalProgramHolder(ObjectHolder[build.LocalProgram]):
-    @noPosargs
-    @noKwargs
-    @InterpreterObject.method('version')
-    def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
-        return self.held_object.version
-
-    @noPosargs
-    @noKwargs
-    @InterpreterObject.method('found')
-    def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
-        return True

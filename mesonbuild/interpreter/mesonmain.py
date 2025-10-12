@@ -14,7 +14,7 @@ from .. import mlog
 
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
-from ..programs import OverrideProgram, ExternalProgram
+from ..programs import ExternalProgram
 from ..interpreter.type_checking import ENV_KW, ENV_METHOD_KW, ENV_SEPARATOR_KW, env_convertor_with_method
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated,
                                typed_pos_args,  noArgsFlattening, noPosargs, noKwargs,
@@ -323,9 +323,10 @@ class MesonMain(MesonInterpreterObject):
                                         self.interpreter.environment.build_dir)
             if not os.path.exists(abspath):
                 raise InterpreterException(f'Tried to override {name} with a file that does not exist.')
-            exe = OverrideProgram(name, self.interpreter.project_version, command=[abspath])
+            prog = ExternalProgram(name, command=[abspath], silent=True)
+            exe = build.LocalProgram(prog, self.interpreter.project_version)
         elif isinstance(exe, build.Executable):
-            exe = build.OverrideExecutable(exe, self.interpreter.project_version)
+            exe = build.LocalProgram(exe, self.interpreter.project_version)
         self.interpreter.add_find_program_override(name, exe)
 
     @typed_kwargs(

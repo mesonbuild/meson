@@ -22,12 +22,11 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypeAlias
 
     from . import ModuleState
-    from ..build import OverrideExecutable
     from ..interpreter.interpreter import Interpreter
     from ..interpreterbase.baseobjects import TYPE_kwargs
-    from ..programs import ExternalProgram, OverrideProgram
+    from ..programs import ExternalProgram
 
-    _AnyProgram: TypeAlias = T.Union[OverrideExecutable, ExternalProgram, OverrideProgram, LocalProgram]
+    _AnyProgram: TypeAlias = T.Union[ExternalProgram, LocalProgram]
     _JSONTypes: TypeAlias = T.Union[str, int, bool, None, T.List['_JSONTypes'], T.Dict[str, '_JSONTypes']]
 
 
