@@ -455,7 +455,7 @@ class QtBaseModule(ExtensionModule):
                 [f'{name}.cpp'],
                 depend_files=qrc_deps,
                 depfile=f'{name}.d',
-                description='Compiling Qt resources {}',
+                description='Compiling Qt resources {target}',
             )
             targets.append(res_target)
         else:
@@ -476,7 +476,7 @@ class QtBaseModule(ExtensionModule):
                     [f'{name}.cpp'],
                     depend_files=qrc_deps,
                     depfile=f'{name}.d',
-                    description='Compiling Qt resources {}',
+                    description='Compiling Qt resources {target}',
                 )
                 targets.append(res_target)
 
@@ -737,7 +737,7 @@ class QtBaseModule(ExtensionModule):
                 install_dir=[kwargs['install_dir']],
                 install_tag=['i18n'],
                 build_by_default=kwargs['build_by_default'],
-                description='Compiling Qt translations {}',
+                description='Compiling Qt translations {target}',
             )
             translations.append(lrelease_target)
         if qresource:
@@ -872,7 +872,7 @@ class QtBaseModule(ExtensionModule):
             self.tools['moc'].get_command() + ['--collect-json', '-o', '@OUTPUT@'] + input_args,
             moc_json,
             [f'{target_name}_json_collect.json'],
-            description=f'Collecting json type information for {target_name}',
+            description='Collecting json type information for {target}',
         )
 
     def _gen_qml_cachegen(self, state: ModuleState, kwargs: GenQmlCachegenKwArgs) -> T.List[T.Union[build.CustomTarget, build.GeneratedList]]:
@@ -917,7 +917,7 @@ class QtBaseModule(ExtensionModule):
             [kwargs['qml_qrc']],
             #output name format matters here
             [f'{target_name}_qmlcache_loader.cpp'],
-            description=f'Qml cache loader for {target_name}',
+            description='Qml cache loader for {target}',
         )
         output.append(cacheloader_target)
         return output
@@ -976,7 +976,7 @@ class QtBaseModule(ExtensionModule):
             install=kwargs['install'],
             install_dir=install_dir,
             install_tag=install_tag,
-            description=f'Qml type registration for {target_name}',
+            description='Qml type registration for {target}',
         )
 
     @FeatureNew('qt.qml_module', '1.7')

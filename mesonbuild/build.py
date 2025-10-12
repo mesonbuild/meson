@@ -2883,7 +2883,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  rspable: bool = False,
                  absolute_paths: bool = False,
                  backend: T.Optional['Backend'] = None,
-                 description: str = 'Generating {} with a custom command',
+                 description: str = 'Generating {target} with a custom command',
                  ):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST, environment,
