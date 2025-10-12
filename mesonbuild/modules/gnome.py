@@ -33,7 +33,6 @@ from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, join_args, quote_arg
 )
 from ..options import OptionKey
-from ..programs import OverrideProgram
 from ..scripts.gettext import read_linguas
 
 if T.TYPE_CHECKING:
@@ -198,7 +197,7 @@ if T.TYPE_CHECKING:
         vtail: T.Optional[str]
         depends: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]
 
-    ToolType: TypeAlias = T.Union[Executable, ExternalProgram, LocalProgram]
+    ToolType: TypeAlias = T.Union[ExternalProgram, LocalProgram]
 
 
 # Differs from the CustomTarget version in that it straight defaults to True
@@ -809,7 +808,7 @@ class GnomeModule(ExtensionModule):
     @functools.lru_cache(maxsize=None)
     def _gir_has_option(self, option: str) -> bool:
         exe = self.giscanner
-        if isinstance(exe, (Executable, OverrideProgram)):
+        if isinstance(exe, LocalProgram):
             # Handle overridden g-ir-scanner
             assert option in {'--extra-library', '--sources-top-dirs'}
             return True
@@ -1193,7 +1192,7 @@ class GnomeModule(ExtensionModule):
 
         gir_inc_dirs: T.List[str] = []
 
-        scan_command: T.List[T.Union[str, ToolType]] = [giscanner]
+        scan_command: T.List[T.Union[str, ToolType, Executable]] = [giscanner]
         scan_command += ['--quiet']
         scan_command += ['--no-libtool']
         scan_command += ['--namespace=' + ns, '--nsversion=' + nsversion]
