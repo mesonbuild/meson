@@ -221,11 +221,14 @@ def returncode_to_status(retcode: int) -> str:
         return f'exit status {retcode}'
 
     signum = retcode - 128
-    try:
-        signame = signal.Signals(signum).name
-    except ValueError:
-        signame = 'SIGinvalid'
-    return f'(exit status {retcode} or signal {signum} {signame})'
+    if signum < 32:
+        try:
+            signame = signal.Signals(signum).name
+        except ValueError:
+            signame = 'SIGinvalid'
+        return f'(exit status {retcode} or signal {signum} {signame})'
+
+    return f'(exit status {retcode} or {hex(retcode)})'
 
 # TODO for Windows
 sh_quote: T.Callable[[str], str] = lambda x: x
