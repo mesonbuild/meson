@@ -2267,10 +2267,6 @@ class Executable(BuildTarget):
     def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
         return self.environment.get_bindir(), '{bindir}'
 
-    def description(self):
-        '''Human friendly description of the executable'''
-        return self.name
-
     def type_suffix(self):
         return "@exe"
 
@@ -2292,21 +2288,6 @@ class Executable(BuildTarget):
 
     def is_linkable_target(self):
         return self.is_linkwithable
-
-    def get_command(self) -> 'ImmutableListProtocol[str]':
-        """Provides compatibility with ExternalProgram.
-
-        Since you can override ExternalProgram instances with Executables.
-        """
-        return self.outputs
-
-    def get_path(self) -> str:
-        """Provides compatibility with ExternalProgram."""
-        return os.path.join(self.subdir, self.filename)
-
-    def found(self) -> bool:
-        """Provides compatibility with ExternalProgram."""
-        return True
 
 
 class StaticLibrary(BuildTarget):
@@ -3368,7 +3349,7 @@ class ConfigurationData(HoldableObject):
     def keys(self) -> T.Iterator[str]:
         return self.values.keys()
 
-class LocalProgram(HoldableObject):
+class LocalProgram(programs.BaseProgram):
     ''' A wrapper for a program that may have build dependencies.'''
     def __init__(self, program: T.Union[programs.ExternalProgram, Executable, CustomTarget, CustomTargetIndex], version: str,
                  depends: T.Optional[T.List[T.Union[BuildTarget, CustomTarget]]] = None,
