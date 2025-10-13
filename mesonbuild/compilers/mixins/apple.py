@@ -67,7 +67,9 @@ class AppleCStdsMixin(Compiler):
 
     _C17_VERSION = '>=10.0.0'
     _C18_VERSION = '>=11.0.0'
-    _C2X_VERSION = '>=11.0.0'
+    _C2X_VERSION = '>=11.0.3'
+    _C23_VERSION = '>=17.0.0'
+    _C2Y_VERSION = '>=17.0.0'
 
 
 class AppleCPPStdsMixin(Compiler):
