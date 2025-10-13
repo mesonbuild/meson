@@ -150,6 +150,8 @@ class DependenciesHelper:
                     self.add_version_reqs(obj.name, obj.version_reqs)
             elif isinstance(obj, str):
                 name, version_req = self.split_version_req(obj)
+                if name is None:
+                    continue
                 processed_reqs.append(name)
                 self.add_version_reqs(name, [version_req] if version_req is not None else None)
             elif isinstance(obj, dependencies.Dependency) and not obj.found():
@@ -298,10 +300,11 @@ class DependenciesHelper:
             # foo, bar' is ok, but 'foo,bar' is not.
             self.version_reqs[name].update(version_reqs)
 
-    def split_version_req(self, s: str) -> T.Tuple[str, T.Optional[str]]:
+    def split_version_req(self, s: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
         stripped_str = s.strip()
         if not stripped_str:
-            raise mesonlib.MesonException(f'required dependency must not be empty, "{s}" was provided.')
+            mlog.warning('Required dependency was found to be an empty string. Did you mean to pass an empty array?')
+            return None, None
         for op in ['>=', '<=', '!=', '==', '=', '>', '<']:
             pos = stripped_str.find(op)
             if pos < 0:
