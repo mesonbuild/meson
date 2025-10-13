@@ -678,3 +678,10 @@ class Environment:
         machines = self.machines.miss_defaulting()
         machines.build = detect_machine_info(compilers)
         self.machines = machines.default_missing()
+
+    def can_run_binaries(self, for_machine: MachineChoice) -> bool:
+        return not (
+            self.is_cross_build(for_machine) and
+            self.need_exe_wrapper() and
+            self.exe_wrapper is None
+        )
