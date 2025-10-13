@@ -1128,3 +1128,10 @@ class Environment:
             # This is how autotools works, and the env vars feature is for
             # autotools compatibility.
             largs.extend_value(comp_options)
+
+    def can_run_host_binaries(self) -> bool:
+        return not (
+            self.is_cross_build() and
+            self.need_exe_wrapper() and
+            self.exe_wrapper is None
+        )
