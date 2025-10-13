@@ -357,10 +357,7 @@ class RustModule(ExtensionModule):
         if self._bindgen_bin is None:
             self._bindgen_bin = state.find_program('bindgen', wanted=kwargs['bindgen_version'])
             if self._bindgen_rust_target is not None:
-                # ExternalCommand.command's type is bonkers
-                _, _, err = mesonlib.Popen_safe(
-                    T.cast('T.List[str]', self._bindgen_bin.get_command()) +
-                    ['--rust-target', self._bindgen_rust_target])
+                _, _, err = mesonlib.Popen_safe(self._bindgen_bin.get_command() + ['--rust-target', self._bindgen_rust_target])
                 # < 0.71: Sometimes this is "invalid Rust target" and
                 # sometimes "invalid # rust target"
                 # >= 0.71: error: invalid value '...' for '--rust-target <RUST_TARGET>': "..." is not a valid Rust target, accepted values are of the form ...

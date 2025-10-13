@@ -13,6 +13,7 @@ import sys
 import re
 import typing as T
 from pathlib import Path
+from abc import ABCMeta, abstractmethod
 
 from . import mesonlib
 from . import mlog
@@ -23,7 +24,33 @@ if T.TYPE_CHECKING:
     from .interpreter import Interpreter
 
 
-class ExternalProgram(mesonlib.HoldableObject):
+class BaseProgram(mesonlib.HoldableObject, metaclass=ABCMeta):
+    ''' A base class for LocalProgram and ExternalProgram.'''
+
+    name: str
+
+    @abstractmethod
+    def found(self) -> bool:
+        pass
+
+    @abstractmethod
+    def get_version(self, interpreter: T.Optional[Interpreter] = None) -> str:
+        pass
+
+    @abstractmethod
+    def get_command(self) -> T.List[str]:
+        pass
+
+    @abstractmethod
+    def get_path(self) -> T.Optional[str]:
+        pass
+
+    @abstractmethod
+    def description(self) -> str:
+        '''Human friendly description of the command'''
+
+
+class ExternalProgram(BaseProgram):
 
     """A program that is found on the system.
     :param name: The name of the program
