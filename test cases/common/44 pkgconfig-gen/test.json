@@ -16,6 +16,7 @@
     {"type": "file", "file": "usr/lib/pkgconfig/simple5.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/simple6.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/simple7.pc"},
+    {"type": "file", "file": "usr/lib/pkgconfig/emptytest.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/ct.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/ct0.pc"},
     {"type": "file", "file": "usr/share/pkgconfig/libhello_nolib.pc"}
