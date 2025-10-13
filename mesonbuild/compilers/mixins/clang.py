@@ -54,21 +54,24 @@ class ClangCompiler(GnuLikeCompiler):
 
     id = 'clang'
 
-    # -fms-runtime-lib is not supported together with -c, emulate it
+    # -fms-runtime-lib is a compilation option which sets up an automatic dependency
+    # from the .o files to the final link product
     CRT_D_ARGS: T.Dict[str, T.List[str]] = {
-        'none': [],
-        'md': ['-D_MT', '-D_DLL'],
-        'mdd': ['-D_MT', '-D_DLL', '-D_DEBUG'],
-        'mt': ['-D_MT'],
-        'mtd': ['-D_MT', '-D_DEBUG'],
-    }
-
-    CRT_ARGS: T.Dict[str, T.List[str]] = {
         'none': [],
         'md': ['-fms-runtime-lib=dll'],
         'mdd': ['-fms-runtime-lib=dll_dbg'],
         'mt': ['-fms-runtime-lib=static'],
         'mtd': ['-fms-runtime-lib=static_dbg'],
+    }
+
+    # disable libcmt to avoid warnings, as that is the default and clang
+    # adds it by default.
+    CRT_ARGS: T.Dict[str, T.List[str]] = {
+        'none': [],
+        'md': ['-Wl,/nodefaultlib:libcmt'],
+        'mdd': ['-Wl,/nodefaultlib:libcmt'],
+        'mt': [],
+        'mtd': ['-Wl,/nodefaultlib:libcmt'],
     }
 
     def __init__(self, defines: T.Optional[T.Dict[str, str]]):
@@ -88,10 +91,14 @@ class ClangCompiler(GnuLikeCompiler):
         self.can_compile_suffixes.add('ll')
 
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+        if not isinstance(self.linker, VisualStudioLikeLinkerMixin):
+            return []
         crt_val = self.get_crt_val(crt_val, buildtype)
         return self.CRT_D_ARGS[crt_val]
 
     def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+        if not isinstance(self.linker, VisualStudioLikeLinkerMixin):
+            return []
         crt_val = self.get_crt_val(crt_val, buildtype)
         return self.CRT_ARGS[crt_val]
 
