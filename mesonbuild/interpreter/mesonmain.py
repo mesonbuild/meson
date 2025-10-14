@@ -315,20 +315,19 @@ class MesonMain(MesonInterpreterObject):
         self.build.dep_manifest_name = args[0]
 
     @FeatureNew('meson.override_find_program', '0.46.0')
-    @typed_pos_args('meson.override_find_program', str, (mesonlib.File, ExternalProgram, build.Executable, build.LocalProgram))
+    @typed_pos_args('meson.override_find_program', str, (mesonlib.File, ExternalProgram, build.Executable, build.LocalProgram,
+                                                         build.CustomTarget, build.CustomTargetIndex))
     @noKwargs
     @InterpreterObject.method('override_find_program')
-    def override_find_program_method(self, args: T.Tuple[str, T.Union[mesonlib.File, ExternalProgram, build.Executable, build.LocalProgram]], kwargs: 'TYPE_kwargs') -> None:
+    def override_find_program_method(self, args: T.Tuple[str, T.Union[mesonlib.File, ExternalProgram, build.Executable,
+                                                                      build.LocalProgram, build.CustomTarget, build.CustomTargetIndex]],
+                                     kwargs: 'TYPE_kwargs') -> None:
         name, exe = args
-        if isinstance(exe, mesonlib.File):
-            abspath = exe.absolute_path(self.interpreter.environment.source_dir,
-                                        self.interpreter.environment.build_dir)
-            if not os.path.exists(abspath):
-                raise InterpreterException(f'Tried to override {name} with a file that does not exist.')
-            prog = ExternalProgram(name, command=[abspath], silent=True)
-            exe = build.LocalProgram(prog, self.interpreter.project_version)
-        elif isinstance(exe, build.Executable):
-            exe = build.LocalProgram(exe, self.interpreter.project_version)
+        if isinstance(exe, (build.CustomTarget, build.CustomTargetIndex)):
+            FeatureNew.single_use('Overriding find_program with a CustomTarget or CustomTargetIndex', '1.10.0',
+                                  self.subproject, location=self.current_node)
+        if not isinstance(exe, (ExternalProgram, build.LocalProgram)):
+            exe = self.interpreter._local_program_impl(exe)
         self.interpreter.add_find_program_override(name, exe)
 
     @typed_kwargs(
