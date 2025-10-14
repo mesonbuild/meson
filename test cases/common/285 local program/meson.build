@@ -38,3 +38,19 @@ custom_target(
   capture: true,
   build_by_default: true,
 )
+
+test('test-prog3', prog3)
+
+# Custom target as local program. Meson cannot parse the shebang at configure time,
+# so we need to specify it otherwise it won't run on Windows.
+prog_ct = custom_target(
+  input: 'prog.py',
+  output: 'prog-ct.py',
+  command: [python3, '-c', 'import shutil,sys;shutil.copy(sys.argv[1], sys.argv[2])', '@INPUT@', '@OUTPUT@'],
+  depends: pymod,
+)
+meson.override_find_program('prog4', local_program(prog_ct, interpreter: python3))
+prog4 = find_program('prog4')
+assert(prog4.version() == '2.0')
+assert(prog4.found())
+test('test-prog4', prog4)
