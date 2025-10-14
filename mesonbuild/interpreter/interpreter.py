@@ -1805,10 +1805,17 @@ class Interpreter(InterpreterBase, HoldableObject):
     )
     def func_local_program(self, node: mparser.BaseNode, args: T.Tuple[T.Union[mesonlib.FileOrString, build.Executable, build.CustomTarget, build.CustomTargetIndex]],
                            kwargs: kwtypes.LocalProgram) -> build.LocalProgram:
-        depends = [d.target if isinstance(d, build.CustomTargetIndex) else d for d in kwargs['depends']]
-        depend_files = self.source_strings_to_files(kwargs['depend_files'])
-        interpreter = kwargs['interpreter']
-        exe = args[0]
+        return self._local_program_impl(args[0], kwargs['depends'], kwargs['depend_files'], kwargs['interpreter'])
+
+    def _local_program_impl(self, exe: T.Union[mesonlib.FileOrString, build.Executable, build.CustomTarget, build.CustomTargetIndex],
+                            depends_: T.Optional[T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]] = None,
+                            depend_files_: T.Optional[T.List[mesonlib.FileOrString]] = None,
+                            interpreter: T.Optional[ExternalProgram] = None) -> build.LocalProgram:
+        if isinstance(exe, build.CustomTarget):
+            if len(exe.outputs) != 1:
+                raise InvalidArguments('CustomTarget used as LocalProgram must have exactly one output.')
+        depends = [d.target if isinstance(d, build.CustomTargetIndex) else d for d in (depends_ or [])]
+        depend_files = self.source_strings_to_files(depend_files_ or [])
         if isinstance(exe, (str, mesonlib.File)):
             file = self.source_strings_to_files([exe])[0]
             abspath = file.absolute_path(self.environment.source_dir, self.environment.build_dir)
