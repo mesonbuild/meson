@@ -3340,9 +3340,6 @@ class LocalProgram(programs.BaseProgram):
                  depends: T.Optional[T.List[T.Union[BuildTarget, CustomTarget]]] = None,
                  depend_files: T.Optional[T.List[File]] = None) -> None:
         super().__init__()
-        if isinstance(program, CustomTarget):
-            if len(program.outputs) != 1:
-                raise InvalidArguments('CustomTarget used as LocalProgram must have exactly one output.')
         self.name = program.name
         self.program = program
         self.depends = list(depends or [])
