@@ -34,3 +34,10 @@ kwargs:
       Specifies that this target depends on the specified
       target(s). If specified, this program can only be used at build time,
       after those targets have been built.
+
+  interpreter:
+    type: external_program
+    description: |
+      When the program is a [[@custom_tgt]], Meson cannot derive the interpreter
+      from the file's "shebang" (`#!`) line before it's built. If needed, this
+      argument allows specifying an interpreter for the script.
