@@ -12,6 +12,7 @@ import typing as T
 
 from .. import options
 from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged, version_compare
+from ..linkers.linkers import VisualStudioLikeLinkerMixin
 from ..options import OptionKey
 from .compilers import Compiler, CompileCheckMode, clike_debug_args, is_library
 
@@ -98,7 +99,7 @@ class RustCompiler(Compiler):
                          linker=linker)
         self.rustup_run_and_args: T.Optional[T.Tuple[T.List[str], T.List[str]]] = get_rustup_run_and_args(exelist)
         self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_ndebug']})
-        if 'link' in self.linker.id:
+        if isinstance(self.linker, VisualStudioLikeLinkerMixin):
             self.base_options.add(OptionKey('b_vscrt'))
         self.native_static_libs: T.List[str] = []
         self.is_beta = '-beta' in full_version
@@ -307,7 +308,7 @@ class RustCompiler(Compiler):
         return []
 
     def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
-        if self.linker.id not in {'link', 'lld-link'}:
+        if not isinstance(self.linker, VisualStudioLikeLinkerMixin):
             return []
         return self.MSVCRT_ARGS[self.get_crt_val(crt_val, buildtype)]
 

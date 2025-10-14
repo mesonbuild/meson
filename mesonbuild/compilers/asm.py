@@ -6,6 +6,7 @@ import typing as T
 from ..mesonlib import EnvironmentException, get_meson_command
 from ..options import OptionKey
 from .compilers import Compiler
+from ..linkers.linkers import VisualStudioLikeLinkerMixin
 from .mixins.metrowerks import MetrowerksCompiler, mwasmarm_instruction_set_args, mwasmeppc_instruction_set_args
 from .mixins.ti import TICompiler
 
@@ -44,10 +45,8 @@ class NasmCompiler(Compiler):
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None, is_cross: bool = False):
         super().__init__(ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
-        self.links_with_msvc = False
-        if 'link' in self.linker.id:
+        if isinstance(self.linker, VisualStudioLikeLinkerMixin):
             self.base_options.add(OptionKey('b_vscrt'))
-            self.links_with_msvc = True
 
     def needs_static_linker(self) -> bool:
         return True
@@ -122,7 +121,7 @@ class NasmCompiler(Compiler):
     # require this, otherwise it'll fail to find
     # _WinMain or _DllMainCRTStartup.
     def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
-        if not self.info.is_windows():
+        if not isinstance(self.linker, VisualStudioLikeLinkerMixin):
             return []
         return self.crt_args[self.get_crt_val(crt_val, buildtype)]
 
@@ -140,7 +139,7 @@ class YasmCompiler(NasmCompiler):
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         if is_debug:
-            if self.info.is_windows() and self.links_with_msvc:
+            if isinstance(self.linker, VisualStudioLikeLinkerMixin):
                 return ['-g', 'cv8']
             elif self.info.is_darwin():
                 return ['-g', 'null']
