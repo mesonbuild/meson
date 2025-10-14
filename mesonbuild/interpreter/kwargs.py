@@ -251,6 +251,7 @@ class LocalProgram(TypedDict):
 
     depend_files: T.List[FileOrString]
     depends: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]
+    interpreter: T.Optional[ExternalProgram]
 
 
 class RunCommand(TypedDict):

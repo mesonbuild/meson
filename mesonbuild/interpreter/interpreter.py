@@ -1801,16 +1801,29 @@ class Interpreter(InterpreterBase, HoldableObject):
         'local_program',
         DEPENDS_KW,
         DEPEND_FILES_KW,
+        KwargInfo('interpreter', (ExternalProgram, NoneType), default=None),
     )
     def func_local_program(self, node: mparser.BaseNode, args: T.Tuple[T.Union[mesonlib.FileOrString, build.Executable, build.CustomTarget, build.CustomTargetIndex]],
                            kwargs: kwtypes.LocalProgram) -> build.LocalProgram:
         depends = [d.target if isinstance(d, build.CustomTargetIndex) else d for d in kwargs['depends']]
         depend_files = self.source_strings_to_files(kwargs['depend_files'])
+        interpreter = kwargs['interpreter']
         exe = args[0]
         if isinstance(exe, (str, mesonlib.File)):
             file = self.source_strings_to_files([exe])[0]
             abspath = file.absolute_path(self.environment.source_dir, self.environment.build_dir)
-            exe = ExternalProgram(file.fname, command=[abspath], silent=True)
+            prog = ExternalProgram(file.fname, command=[abspath], silent=True)
+            return build.LocalProgram(prog, self.project_version, depends, depend_files)
+        if interpreter:
+            if not isinstance(exe, (build.CustomTarget, build.CustomTargetIndex)):
+                raise InvalidArguments('The "interpreter" argument can only be used when the first argument is a custom target.')
+            if not interpreter.found():
+                raise InvalidArguments(f'Specified interpreter program {interpreter.description()!r} not found.')
+            target = exe.target if isinstance(exe, build.CustomTargetIndex) else exe
+            depends.append(target)
+            cmd = interpreter.get_command() + [self.backend.get_target_filename(exe)]
+            prog = ExternalProgram(exe.name, command=cmd, silent=True)
+            return build.LocalProgram(prog, self.project_version, depends, depend_files)
         return build.LocalProgram(exe, self.project_version, depends, depend_files)
 
     # When adding kwargs, please check if they make sense in dependencies.get_dep_identifier()
