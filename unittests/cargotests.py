@@ -430,6 +430,23 @@ class CargoTomlTest(unittest.TestCase):
         self.assertEqual(manifest.lints[2].priority, 0)
         self.assertEqual(manifest.lints[2].check_cfg, ['cfg(test)', 'cfg(MESON)'])
 
+    def test_cargo_toml_lints_to_args(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, 'Cargo.toml')
+            with open(fname, 'w', encoding='utf-8') as f:
+                f.write(self.CARGO_TOML_1)
+            manifest_toml = load_toml(fname)
+            manifest = Manifest.from_raw(manifest_toml, 'Cargo.toml')
+
+        self.assertEqual(manifest.lints[0].to_arguments(False), ['-W', 'clippy::pedantic'])
+        self.assertEqual(manifest.lints[0].to_arguments(True), ['-W', 'clippy::pedantic'])
+        self.assertEqual(manifest.lints[1].to_arguments(False), ['-A', 'unknown_lints'])
+        self.assertEqual(manifest.lints[1].to_arguments(True), ['-A', 'unknown_lints'])
+        self.assertEqual(manifest.lints[2].to_arguments(False), ['-D', 'unexpected_cfgs'])
+        self.assertEqual(manifest.lints[2].to_arguments(True),
+                         ['-D', 'unexpected_cfgs', '--check-cfg', 'cfg(test)',
+                          '--check-cfg', 'cfg(MESON)'])
+
     def test_cargo_toml_dependencies(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             fname = os.path.join(tmpdir, 'Cargo.toml')

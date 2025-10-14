@@ -394,6 +394,12 @@ class Interpreter:
             else:
                 self._enable_feature(pkg, f)
 
+    def has_check_cfg(self, machine: MachineChoice) -> bool:
+        if not self.environment.is_cross_build():
+            machine = MachineChoice.HOST
+        rustc = T.cast('RustCompiler', self.environment.coredata.compilers[machine]['rust'])
+        return rustc.has_check_cfg
+
     @functools.lru_cache(maxsize=None)
     def _get_cfgs(self, machine: MachineChoice) -> T.Dict[str, str]:
         if not self.environment.is_cross_build():
@@ -414,6 +420,18 @@ class Interpreter:
         if value and value[0] == '"':
             value = value[1:-1]
         return pair[0], value
+
+    def _lints_to_args(self, pkg: PackageState) -> T.List[str]:
+        args = []
+        has_check_cfg = self.has_check_cfg(MachineChoice.HOST)
+        for lint in pkg.manifest.lints:
+            args.extend(lint.to_arguments(has_check_cfg))
+        if has_check_cfg:
+            for feature in pkg.manifest.features:
+                if feature != 'default':
+                    args.append('--check-cfg')
+                    args.append(f'cfg(feature,values("{feature}"))')
+        return args
 
     def _create_project(self, name: str, pkg: T.Optional[PackageState], build: builder.Builder) -> T.List[mparser.BaseNode]:
         """Create the project() function call
@@ -443,6 +461,10 @@ class Interpreter:
         }
         if pkg.downloaded:
             default_options['warning_level'] = build.string('0')
+        else:
+            lint_args = build.array([build.string(arg) for arg in self._lints_to_args(pkg)])
+            default_options['rust_args'] = lint_args
+            default_options['build.rust_args'] = lint_args
 
         kwargs.update({
             'version': build.string(pkg.manifest.package.version),
