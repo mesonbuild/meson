@@ -88,20 +88,18 @@ class Interpreter:
         self.packages: T.Dict[PackageKey, PackageState] = {}
         # Map subdir to workspace
         self.workspaces: T.Dict[str, WorkspaceState] = {}
+        # Files that should trigger a reconfigure if modified
+        self.build_def_files: T.List[str] = []
         # Cargo packages
         filename = os.path.join(self.environment.get_source_dir(), subdir, 'Cargo.lock')
         subprojects_dir = os.path.join(self.environment.get_source_dir(), subprojects_dir)
-        self.subdir: T.Optional[str] = None
         self.cargolock = load_cargo_lock(filename, subprojects_dir)
         if self.cargolock:
-            self.subdir = subdir
             self.environment.wrap_resolver.merge_wraps(self.cargolock.wraps)
+            self.build_def_files.append(filename)
 
     def get_build_def_files(self) -> T.List[str]:
-        build_def_files = [os.path.join(subdir, 'Cargo.toml') for subdir in self.manifests]
-        if self.cargolock:
-            build_def_files.append(os.path.join(self.subdir, 'Cargo.lock'))
-        return build_def_files
+        return self.build_def_files
 
     def interpret(self, subdir: str, project_root: T.Optional[str] = None) -> mparser.CodeBlockNode:
         manifest = self._load_manifest(subdir)
@@ -305,6 +303,7 @@ class Interpreter:
         if not manifest_:
             path = os.path.join(self.environment.source_dir, subdir)
             filename = os.path.join(path, 'Cargo.toml')
+            self.build_def_files.append(filename)
             toml = load_toml(filename)
             workspace_ = None
             if 'workspace' in toml:
