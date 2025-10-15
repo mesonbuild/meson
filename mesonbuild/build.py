@@ -103,9 +103,9 @@ if T.TYPE_CHECKING:
         rust_abi: Literal['c', 'rust']
         rust_crate_type: str  # Literal?
         rust_dependency_map: T.Dict[str, str]
-        vala_gir: str
-        vala_header: str
-        vala_vapi: str
+        vala_gir: T.Optional[str]
+        vala_header: T.Optional[str]
+        vala_vapi: T.Optional[str]
         win_subsystem: str
 
         _allow_no_sources: bool
@@ -1242,9 +1242,9 @@ class BuildTarget(Target):
         self.add_pch('cpp', extract_as_list(kwargs, 'cpp_pch'))
 
         if not isinstance(self, Executable) or kwargs.get('export_dynamic', False):
-            self.vala_header = kwargs.get('vala_header', self.name + '.h')
-            self.vala_vapi = kwargs.get('vala_vapi', self.name + '.vapi')
-            self.vala_gir = kwargs.get('vala_gir', None)
+            self.vala_header = kwargs.get('vala_header') or self.name + '.h'
+            self.vala_vapi = kwargs.get('vala_vapi') or self.name + '.vapi'
+            self.vala_gir = kwargs.get('vala_gir')
 
         self.link_args = extract_as_list(kwargs, 'link_args')
         for i in self.link_args:
