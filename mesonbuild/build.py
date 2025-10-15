@@ -577,13 +577,6 @@ class StructuredSources(HoldableObject):
     def __bool__(self) -> bool:
         return bool(self.sources)
 
-    def first_file(self) -> T.Union[File, GeneratedTypes]:
-        """Get the first source in the root
-
-        :return: The first source in the root
-        """
-        return self.sources[''][0]
-
     def as_list(self) -> T.List[T.Union[File, GeneratedTypes]]:
         return list(itertools.chain.from_iterable(self.sources.values()))
 

@@ -41,6 +41,7 @@ test('no-copy', find_program('no_copy_test.py'), args : meson.current_build_dir(
 subdir('src2')
 
 executable('copy-no-gen', srcs2)
+executable('copy-no-gen-with-non-rs', srcs2_empty)
 
 m_src = configure_file(
   input : 'main-gen-copy.rs',
@@ -56,3 +57,4 @@ m_src2 = configure_file(
 
 executable('gen-no-copy', structured_sources([m_src, m_src2]))
 
+executable('gen-no-copy-with-non-rust', structured_sources(['empty.file', m_src, m_src2]))

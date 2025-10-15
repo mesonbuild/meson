@@ -1892,24 +1892,28 @@ class NinjaBackend(backends.Backend):
         elem.add_orderdep(instr)
         self.add_build(elem)
 
-    def __generate_sources_structure(self, root: Path, structured_sources: build.StructuredSources) -> T.Tuple[T.List[str], T.Optional[str]]:
+    def __generate_sources_structure(self, root: Path, structured_sources: build.StructuredSources,
+                                     main_file_ext: T.Union[str, T.Tuple[str, ...]] = tuple(),
+                                     ) -> T.Tuple[T.List[str], T.Optional[str]]:
         first_file: T.Optional[str] = None
         orderdeps: T.List[str] = []
         for path, files in structured_sources.sources.items():
             for file in files:
                 if isinstance(file, File):
                     out = root / path / Path(file.fname).name
-                    orderdeps.append(str(out))
                     self._generate_copy_target(file, out)
-                    if first_file is None:
-                        first_file = str(out)
+                    out_s = str(out)
+                    orderdeps.append(out_s)
+                    if first_file is None and out_s.endswith(main_file_ext):
+                        first_file = out_s
                 else:
                     for f in file.get_outputs():
                         out = root / path / f
-                        orderdeps.append(str(out))
+                        out_s = str(out)
+                        orderdeps.append(out_s)
                         self._generate_copy_target(str(Path(file.subdir) / f), out)
-                        if first_file is None:
-                            first_file = str(out)
+                        if first_file is None and out_s.endswith(main_file_ext):
+                            first_file = out_s
         return orderdeps, first_file
 
     def _add_rust_project_entry(self, name: str, main_rust_file: str, args: CompilerArgs,
@@ -1955,23 +1959,33 @@ class NinjaBackend(backends.Backend):
         # Rust compiler takes only the main file as input and
         # figures out what other files are needed via import
         # statements and magic.
-        main_rust_file = None
+        main_rust_file: T.Optional[str] = None
         if target.structured_sources:
             if target.structured_sources.needs_copy():
                 _ods, main_rust_file = self.__generate_sources_structure(Path(
-                    self.get_target_private_dir(target)) / 'structured', target.structured_sources)
+                    self.get_target_private_dir(target)) / 'structured', target.structured_sources, '.rs')
+                if main_rust_file is None:
+                    raise MesonException('Could not find a rust file to treat as the main file for ', target.name)
             else:
                 # The only way to get here is to have only files in the "root"
                 # positional argument, which are all generated into the same
                 # directory
-                g = target.structured_sources.first_file()
-
-                if isinstance(g, File):
-                    main_rust_file = g.rel_to_builddir(self.build_to_src)
-                elif isinstance(g, GeneratedList):
-                    main_rust_file = os.path.join(self.get_target_private_dir(target), g.get_outputs()[0])
-                else:
-                    main_rust_file = os.path.join(g.get_subdir(), g.get_outputs()[0])
+                for g in target.structured_sources.sources['']:
+                    if isinstance(g, File):
+                        if g.endswith('.rs'):
+                            main_rust_file = g.rel_to_builddir(self.build_to_src)
+                    elif isinstance(g, GeneratedList):
+                        for h in g.get_outputs():
+                            if h.endswith('.rs'):
+                                main_rust_file = os.path.join(self.get_target_private_dir(target), h)
+                                break
+                    else:
+                        for h in g.get_outputs():
+                            if h.endswith('.rs'):
+                                main_rust_file = os.path.join(g.get_subdir(), h)
+                                break
+                    if main_rust_file is not None:
+                        break
 
                 _ods = []
                 for f in target.structured_sources.as_list():
