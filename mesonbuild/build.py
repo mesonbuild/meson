@@ -2071,8 +2071,6 @@ class Executable(BuildTarget):
         self.implib_name = kwargs.get('implib')
         # Only linkwithable if using export_dynamic
         self.is_linkwithable = self.export_dynamic
-        # Remember that this exe was returned by `find_program()` through an override
-        self.was_returned_by_find_program = False
 
         self.vs_module_defs: T.Optional[File] = None
         self.process_vs_module_defs_kw(kwargs)

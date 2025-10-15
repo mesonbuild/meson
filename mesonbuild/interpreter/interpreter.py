@@ -1648,8 +1648,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.store_name_lookups(args)
         if not silent:
             mlog.log('Program', mlog.bold(progobj.name), 'found:', mlog.green('YES'), *extra_info)
-        if isinstance(progobj, build.Executable):
-            progobj.was_returned_by_find_program = True
         return progobj
 
     def program_lookup(self, args: T.List[mesonlib.FileOrString], for_machine: MachineChoice,
