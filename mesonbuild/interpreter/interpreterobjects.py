@@ -993,7 +993,7 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @noKwargs
     @InterpreterObject.method('vala_header')
     def vala_header_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> mesonlib.File:
-        if not hasattr(self._target_object, 'vala_header'):
+        if self._target_object.vala_header is None:
             raise mesonlib.MesonException("Attempted to get a Vala header from a target that doesn't generate one")
 
         assert self.interpreter.backend is not None, 'for mypy'
@@ -1005,7 +1005,7 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @noKwargs
     @InterpreterObject.method('vala_vapi')
     def vala_vapi_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> mesonlib.File:
-        if not hasattr(self._target_object, 'vala_vapi'):
+        if self._target_object.vala_vapi is None:
             raise mesonlib.MesonException("Attempted to get a Vala VAPI from a target that doesn't generate one")
 
         assert self.interpreter.backend is not None, 'for mypy'
@@ -1017,7 +1017,7 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @noKwargs
     @InterpreterObject.method('vala_gir')
     def vala_gir_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> mesonlib.File:
-        if not hasattr(self._target_object, 'vala_gir'):
+        if self._target_object.vala_gir is None:
             raise mesonlib.MesonException("Attempted to get a Vala GIR from a target that doesn't generate one")
 
         assert self.interpreter.backend is not None, 'for mypy'

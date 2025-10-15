@@ -749,7 +749,7 @@ class NinjaBackend(backends.Backend):
             for src in genlist.get_outputs():
                 if self.environment.is_header(src):
                     header_deps.append(self.get_target_generated_dir(target, genlist, src))
-        if 'vala' in target.compilers and not isinstance(target, build.Executable):
+        if target.vala_header:
             vala_header = File.from_built_file(self.get_target_dir(target), target.vala_header)
             header_deps.append(vala_header)
         # Recurse and find generated headers
@@ -924,7 +924,7 @@ class NinjaBackend(backends.Backend):
         # a language that is handled below, such as C or C++
         transpiled_sources: T.List[str]
 
-        if 'vala' in target.compilers:
+        if target.uses_vala():
             # Sources consumed by valac are filtered out. These only contain
             # C/C++ sources, objects, generated libs, and unknown sources now.
             target_sources, generated_sources, \
@@ -1615,7 +1615,7 @@ class NinjaBackend(backends.Backend):
         description = 'Creating JAR $out'
         self.add_rule(NinjaRule(rule, command, [], description))
 
-    def determine_dep_vapis(self, target) -> T.List[str]:
+    def determine_dep_vapis(self, target: build.BuildTarget) -> T.List[str]:
         """
         Peek into the sources of BuildTargets we're linking with, and if any of
         them was built with Vala, assume that it also generated a .vapi file of
@@ -1624,16 +1624,15 @@ class NinjaBackend(backends.Backend):
         """
         result: OrderedSet[str] = OrderedSet()
         for dep in itertools.chain(target.link_targets, target.link_whole_targets):
-            if not dep.is_linkable_target():
+            if not (isinstance(dep, build.BuildTarget) and dep.is_linkable_target()):
                 continue
             for i in dep.sources:
-                if hasattr(i, 'fname'):
-                    i = i.fname
                 if i.split('.')[-1] in compilers.lang_suffixes['vala']:
-                    vapiname = dep.vala_vapi
-                    fullname = os.path.join(self.get_target_dir(dep), vapiname)
-                    result.add(fullname)
-                    break
+                    if dep.vala_vapi is not None:
+                        vapiname = dep.vala_vapi
+                        fullname = os.path.join(self.get_target_dir(dep), vapiname)
+                        result.add(fullname)
+                        break
         return list(result)
 
     def split_vala_sources(self, t: build.BuildTarget) -> \
@@ -1752,28 +1751,30 @@ class NinjaBackend(backends.Backend):
             # Library name
             args += ['--library', target.name]
             # Outputted header
-            hname = os.path.join(self.get_target_dir(target), target.vala_header)
-            args += ['--header', hname]
-            if self.is_unity(target):
-                # Without this the declarations will get duplicated in the .c
-                # files and cause a build failure when all of them are
-                # #include-d in one .c file.
-                # https://github.com/mesonbuild/meson/issues/1969
-                args += ['--use-header']
-            valac_outputs.append(hname)
+            if target.vala_header is not None:
+                hname = os.path.join(self.get_target_dir(target), target.vala_header)
+                args += ['--header', hname]
+                if self.is_unity(target):
+                    # Without this the declarations will get duplicated in the .c
+                    # files and cause a build failure when all of them are
+                    # #include-d in one .c file.
+                    # https://github.com/mesonbuild/meson/issues/1969
+                    args += ['--use-header']
+                valac_outputs.append(hname)
             # Outputted vapi file
-            vapiname = os.path.join(self.get_target_dir(target), target.vala_vapi)
-            # Force valac to write the vapi and gir files in the target build dir.
-            # Without this, it will write it inside c_out_dir
-            args += ['--vapi', os.path.join('..', target.vala_vapi)]
-            valac_outputs.append(vapiname)
+            if target.vala_vapi is not None:
+                vapiname = os.path.join(self.get_target_dir(target), target.vala_vapi)
+                # Force valac to write the vapi and gir files in the target build dir.
+                # Without this, it will write it inside c_out_dir
+                args += ['--vapi', os.path.join('..', target.vala_vapi)]
+                valac_outputs.append(vapiname)
             # Install header and vapi to default locations if user requests this
             if len(target.install_dir) > 1 and target.install_dir[1] is True:
                 target.install_dir[1] = self.environment.get_includedir()
             if len(target.install_dir) > 2 and target.install_dir[2] is True:
                 target.install_dir[2] = os.path.join(self.environment.get_datadir(), 'vala', 'vapi')
             # Generate GIR if requested
-            if isinstance(target.vala_gir, str):
+            if target.vala_gir is not None:
                 girname = os.path.join(self.get_target_dir(target), target.vala_gir)
                 args += ['--gir', os.path.join('..', target.vala_gir)]
                 valac_outputs.append(girname)

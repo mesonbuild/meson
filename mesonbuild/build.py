@@ -811,6 +811,9 @@ class BuildTarget(Target):
         self.both_lib: T.Optional[T.Union[StaticLibrary, SharedLibrary]] = None
         # Track build_rpath entries so we can remove them at install time
         self.rpath_dirs_to_remove: T.Set[bytes] = set()
+        self.vala_header: T.Optional[str] = None
+        self.vala_vapi: T.Optional[str] = None
+        self.vala_gir: T.Optional[str] = None
         self.process_sourcelist(sources)
         # Objects can be:
         # 1. Preexisting objects provided by the user with the `objects:` kwarg
@@ -830,6 +833,7 @@ class BuildTarget(Target):
         self.link_whole_targets.clear()
         self.link(link_targets)
         self.link_whole(link_whole_targets)
+        self._set_vala_args(kwargs)
 
         if not any([[src for src in self.sources if not is_header(src)], self.generated, self.objects,
                     self.link_whole_targets, self.structured_sources, kwargs.pop('_allow_no_sources', False)]):
@@ -839,6 +843,12 @@ class BuildTarget(Target):
         self.check_unknown_kwargs(kwargs)
         self.validate_install()
         self.check_module_linking()
+
+    def _set_vala_args(self, kwargs: BuildTargetKeywordArguments) -> None:
+        if self.uses_vala():
+            self.vala_header = kwargs.get('vala_header') or self.name + '.h'
+            self.vala_vapi = kwargs.get('vala_vapi') or self.name + '.vapi'
+            self.vala_gir = kwargs.get('vala_gir')
 
     def post_init(self) -> None:
         ''' Initialisations and checks requiring the final list of compilers to be known
@@ -861,10 +871,14 @@ class BuildTarget(Target):
             if self.structured_sources:
                 raise MesonException('structured sources are only supported in Rust targets')
 
-        if 'vala' in self.compilers and self.is_linkable_target():
-            self.outputs += [self.vala_header, self.vala_vapi]
-            self.install_tag += ['devel', 'devel']
-            if self.vala_gir:
+        if self.is_linkable_target():
+            if self.vala_header is not None:
+                self.outputs.append(self.vala_header)
+                self.install_tag.append('devel')
+            if self.vala_vapi is not None:
+                self.outputs.append(self.vala_vapi)
+                self.install_tag.append('devel')
+            if self.vala_gir is not None:
                 self.outputs.append(self.vala_gir)
                 self.install_tag.append('devel')
 
@@ -1240,11 +1254,6 @@ class BuildTarget(Target):
 
         self.add_pch('c', extract_as_list(kwargs, 'c_pch'))
         self.add_pch('cpp', extract_as_list(kwargs, 'cpp_pch'))
-
-        if not isinstance(self, Executable) or kwargs.get('export_dynamic', False):
-            self.vala_header = kwargs.get('vala_header') or self.name + '.h'
-            self.vala_vapi = kwargs.get('vala_vapi') or self.name + '.vapi'
-            self.vala_gir = kwargs.get('vala_gir')
 
         self.link_args = extract_as_list(kwargs, 'link_args')
         for i in self.link_args:
@@ -1741,6 +1750,9 @@ class BuildTarget(Target):
     def uses_fortran(self) -> bool:
         return 'fortran' in self.compilers
 
+    def uses_vala(self) -> bool:
+        return 'vala' in self.compilers
+
     def uses_swift_cpp_interop(self) -> bool:
         return self.swift_interoperability_mode == 'cpp' and 'swift' in self.compilers
 
@@ -2166,13 +2178,13 @@ class Executable(BuildTarget):
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
             kwargs: ExecutableKeywordArguments):
+        self.export_dynamic = kwargs.get('export_dynamic', False)
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
         self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
         assert kwargs.get('android_exe_type') is None or kwargs.get('android_exe_type') in {'application', 'executable'}
         # Check for export_dynamic
-        self.export_dynamic = kwargs.get('export_dynamic', False)
         self.implib_name = kwargs.get('implib')
         # Only linkwithable if using export_dynamic
         self.is_linkwithable = self.export_dynamic
@@ -2181,6 +2193,12 @@ class Executable(BuildTarget):
 
         self.vs_module_defs: T.Optional[File] = None
         self.process_vs_module_defs_kw(kwargs)
+
+    def _set_vala_args(self, kwargs: BuildTargetKeywordArguments) -> None:
+        # These don't get generated if the executable doesn't have
+        # export_dynamic set to true.
+        if self.export_dynamic:
+            super()._set_vala_args(kwargs)
 
     def post_init(self) -> None:
         super().post_init()
@@ -2279,7 +2297,7 @@ class Executable(BuildTarget):
         """
         return self.debug_filename
 
-    def is_linkable_target(self):
+    def is_linkable_target(self) -> bool:
         return self.is_linkwithable
 
 
@@ -2407,7 +2425,7 @@ class StaticLibrary(BuildTarget):
         else:
             self.rust_crate_type = 'staticlib' if rust_abi == 'c' else 'rlib'
 
-    def is_linkable_target(self):
+    def is_linkable_target(self) -> bool:
         return True
 
     def is_internal(self) -> bool:
@@ -2702,7 +2720,7 @@ class SharedLibrary(BuildTarget):
     def type_suffix(self):
         return "@sha"
 
-    def is_linkable_target(self):
+    def is_linkable_target(self) -> bool:
         return True
 
     def set_static(self, static_library: StaticLibrary) -> None:
