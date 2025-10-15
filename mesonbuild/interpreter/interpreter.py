@@ -316,8 +316,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         raise MesonBugException('This class is unpicklable')
 
     def load_root_cargo_lock_file(self) -> None:
-        cargo_lock_filename = os.path.join(self.subdir, 'Cargo.lock')
-        cargo_lock = os.path.join(self.source_root, cargo_lock_filename)
+        cargo_lock = os.path.join(self.source_root, self.subdir, 'Cargo.lock')
         if not os.path.isfile(cargo_lock):
             return
         from .. import cargo
