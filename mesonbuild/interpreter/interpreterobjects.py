@@ -958,9 +958,8 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @noPosargs
     @noKwargs
     @InterpreterObject.method('found')
+    @FeatureNew('BuildTarget.found', '0.59.0')
     def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
-        if not (isinstance(self.held_object, build.Executable) and self.held_object.was_returned_by_find_program):
-            FeatureNew.single_use('BuildTarget.found', '0.59.0', subproject=self.held_object.subproject)
         return True
 
     @noPosargs
