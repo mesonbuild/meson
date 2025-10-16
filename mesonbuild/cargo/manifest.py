@@ -198,6 +198,7 @@ class Package:
         raw_ws_pkg = workspace.package if workspace else None
         return _raw_to_dataclass(raw_pkg, cls, f'Package entry {raw_pkg["name"]}', raw_ws_pkg)
 
+
 @dataclasses.dataclass
 class SystemDependency:
 
@@ -212,18 +213,6 @@ class SystemDependency:
     # TODO: convert values to dataclass
     feature_overrides: T.Dict[str, T.Dict[str, str]] = dataclasses.field(default_factory=dict)
 
-    @classmethod
-    def from_raw(cls, name: str, raw: T.Union[T.Dict[str, T.Any], str]) -> Self:
-        if isinstance(raw, str):
-            raw = {'version': raw}
-        name = raw.get('name', name)
-        version = raw.get('version', '')
-        optional = raw.get('optional', False)
-        feature = raw.get('feature')
-        # Everything else are overrides when certain features are enabled.
-        feature_overrides = {k: v for k, v in raw.items() if k not in {'name', 'version', 'optional', 'feature'}}
-        return cls(name, version, optional, feature, feature_overrides)
-
     @lazy_property
     def meson_version(self) -> T.List[str]:
         vers = self.version.split(',') if self.version else []
@@ -237,6 +226,19 @@ class SystemDependency:
 
     def enabled(self, features: T.Set[str]) -> bool:
         return self.feature is None or self.feature in features
+
+    @classmethod
+    def from_raw(cls, name: str, raw: T.Union[T.Dict[str, T.Any], str]) -> Self:
+        if isinstance(raw, str):
+            raw = {'version': raw}
+        name = raw.get('name', name)
+        version = raw.get('version', '')
+        optional = raw.get('optional', False)
+        feature = raw.get('feature')
+        # Everything else are overrides when certain features are enabled.
+        feature_overrides = {k: v for k, v in raw.items() if k not in {'name', 'version', 'optional', 'feature'}}
+        return cls(name, version, optional, feature, feature_overrides)
+
 
 @dataclasses.dataclass
 class Dependency:
@@ -274,6 +276,17 @@ class Dependency:
         else:
             raise MesonException(f'Cannot determine minimum API version from {self.version}.')
 
+    def update_version(self, v: str) -> None:
+        self.version = v
+        try:
+            delattr(self, 'api')
+        except AttributeError:
+            pass
+        try:
+            delattr(self, 'meson_version')
+        except AttributeError:
+            pass
+
     @T.overload
     @staticmethod
     def _depv_to_dep(depv: raw.FromWorkspace) -> raw.FromWorkspace: ...
@@ -304,17 +317,6 @@ class Dependency:
                                  package=DefaultValue(name),
                                  path=MergeValue(path_convertor),
                                  features=MergeValue(lambda features, ws_features: (features or []) + (ws_features or [])))
-
-    def update_version(self, v: str) -> None:
-        self.version = v
-        try:
-            delattr(self, 'api')
-        except AttributeError:
-            pass
-        try:
-            delattr(self, 'meson_version')
-        except AttributeError:
-            pass
 
 
 @dataclasses.dataclass
@@ -531,11 +533,6 @@ class CargoLock:
     package: T.List[CargoLockPackage] = dataclasses.field(default_factory=list)
     metadata: T.Dict[str, str] = dataclasses.field(default_factory=dict)
     wraps: T.Dict[str, PackageDefinition] = dataclasses.field(default_factory=dict)
-
-    @classmethod
-    def from_raw(cls, raw: raw.CargoLock) -> Self:
-        return _raw_to_dataclass(raw, cls, 'Cargo.lock',
-                                 package=RawValueConvertor(lambda x: [CargoLockPackage.from_raw(p) for p in x]))
 
     def named(self, name: str) -> T.Sequence[CargoLockPackage]:
         return self._versions[name]
