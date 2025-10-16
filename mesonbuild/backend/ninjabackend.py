@@ -2079,11 +2079,17 @@ class NinjaBackend(backends.Backend):
         external_deps = target.external_deps.copy()
         target_deps = target.get_dependencies()
         for d in target_deps:
+            # rlibs only store -l flags, not -L; help out rustc and always
+            # add the -L flag, in case it's needed to find non-bundled
+            # dependencies of an rlib.  At this point we don't have
+            # information on whether this is a direct dependency (which
+            # might use -Clink-arg= below) or an indirect one, so always
+            # add to linkdirs.
+            linkdirs.add(d.subdir)
             deps.append(self.get_dependency_filename(d))
             if isinstance(d, build.StaticLibrary):
                 external_deps.extend(d.external_deps)
             if d.uses_rust_abi():
-                linkdirs.add(d.subdir)
                 if d not in itertools.chain(target.link_targets, target.link_whole_targets):
                     # Indirect Rust ABI dependency, we only need its path in linkdirs.
                     continue
