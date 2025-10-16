@@ -238,7 +238,7 @@ def run(options: argparse.Namespace) -> int:
             with open(os.path.join(tmpdir.name, '.zshrc'), 'w', encoding='utf-8') as zshrc:
                 zshrc.write('[ -e ~/.zshrc ] && . ~/.zshrc\n')
                 if prompt_prefix:
-                    zshrc.write(f'export PROMPT="[{prompt_prefix}] $PROMPT"\n')
+                    zshrc.write(f'export PROMPT="{prompt_prefix} $PROMPT"\n')
             devenv['ZDOTDIR'] = tmpdir.name
         if 'DYLD_LIBRARY_PATH' in devenv and macos_sip_enabled():
             mlog.warning('macOS System Integrity Protection is enabled: DYLD_LIBRARY_PATH cannot be set in the subshell')
