@@ -259,7 +259,7 @@ class I18nModule(ExtensionModule):
             'itstool_join': self.itstool_join,
             'xgettext': self.xgettext,
         })
-        self.tools: T.Dict[str, T.Optional[T.Union[ExternalProgram, build.LocalProgram]]] = {
+        self.tools: T.Dict[str, T.Optional[T.Union[ExternalProgram, build.Executable]]] = {
             'itstool': None,
             'msgfmt': None,
             'msginit': None,

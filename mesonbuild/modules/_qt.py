@@ -208,7 +208,7 @@ class QtBaseModule(ExtensionModule):
         self.qt_version = qt_version
         # It is important that this list does not change order as the order of
         # the returned ExternalPrograms will change as well
-        self.tools: T.Dict[str, T.Union[ExternalProgram, build.LocalProgram]] = {
+        self.tools: T.Dict[str, T.Union[ExternalProgram, build.Executable]] = {
             tool: NonExistingExternalProgram(tool) for tool in self._set_of_qt_tools
         }
         self.methods.update({
@@ -250,7 +250,7 @@ class QtBaseModule(ExtensionModule):
                 arg = ['-v']
 
             # Ensure that the version of qt and each tool are the same
-            def get_version(p: T.Union[ExternalProgram, build.LocalProgram]) -> str:
+            def get_version(p: T.Union[ExternalProgram, build.Executable]) -> str:
                 _, out, err = Popen_safe(p.get_command() + arg)
                 if name == 'lrelease' or not qt_dep.version.startswith('4'):
                     care = out
@@ -445,17 +445,12 @@ class QtBaseModule(ExtensionModule):
             for s in sources:
                 qrc_deps.extend(self._parse_qrc_deps(state, s))
 
-            cmd: T.List[T.Union[ExternalProgram, build.LocalProgram, str]]
-            cmd = [self.tools['rcc'], '-name', name, '-o', '@OUTPUT@']
-            cmd.extend(extra_args)
-            cmd.append('@INPUT@')
-            cmd.extend(DEPFILE_ARGS)
             res_target = build.CustomTarget(
                 name,
                 state.subdir,
                 state.subproject,
                 state.environment,
-                cmd,
+                self.tools['rcc'].get_command() + ['-name', name, '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
                 sources,
                 [f'{name}.cpp'],
                 depend_files=qrc_deps,
@@ -471,16 +466,12 @@ class QtBaseModule(ExtensionModule):
                 else:
                     basename = os.path.basename(rcc_file.fname)
                 name = f'qt{self.qt_version}-{basename.replace(".", "_")}'
-                cmd = [self.tools['rcc'], '-name', '@BASENAME@', '-o', '@OUTPUT@']
-                cmd.extend(extra_args)
-                cmd.append('@INPUT@')
-                cmd.extend(DEPFILE_ARGS)
                 res_target = build.CustomTarget(
                     name,
                     state.subdir,
                     state.subproject,
                     state.environment,
-                    cmd,
+                    self.tools['rcc'].get_command() + ['-name', '@BASENAME@', '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
                     [rcc_file],
                     [f'{name}.cpp'],
                     depend_files=qrc_deps,
@@ -733,7 +724,7 @@ class QtBaseModule(ExtensionModule):
                 ts = os.path.basename(ts)
             else:
                 outdir = state.subdir
-            cmd: T.List[T.Union[ExternalProgram, build.LocalProgram, str]] = [self.tools['lrelease'], '@INPUT@', '-qm', '@OUTPUT@']
+            cmd: T.List[T.Union[ExternalProgram, build.Executable, str]] = [self.tools['lrelease'], '@INPUT@', '-qm', '@OUTPUT@']
             lrelease_target = build.CustomTarget(
                 f'qt{self.qt_version}-compile-{ts}',
                 outdir,
@@ -873,15 +864,12 @@ class QtBaseModule(ExtensionModule):
                     input_args.append(f'@INPUT{input_counter}@')
                 input_counter += 1
 
-        cmd: T.List[T.Union[ExternalProgram, build.LocalProgram, str]]
-        cmd = [self.tools['moc'], '--collect-json', '-o', '@OUTPUT@']
-        cmd.extend(input_args)
         return build.CustomTarget(
             f'moc_collect_json_{target_name}',
             state.subdir,
             state.subproject,
             state.environment,
-            cmd,
+            self.tools['moc'].get_command() + ['--collect-json', '-o', '@OUTPUT@'] + input_args,
             moc_json,
             [f'{target_name}_json_collect.json'],
             description=f'Collecting json type information for {target_name}',
@@ -920,17 +908,12 @@ class QtBaseModule(ExtensionModule):
             ressource_path = os.path.join('/', kwargs['module_prefix'], source_basename)
             cachegen_inputs.append(ressource_path)
 
-        cmd: T.List[T.Union[ExternalProgram, build.LocalProgram, str]]
-        cmd = [self.tools['qmlcachegen'], '-o', '@OUTPUT@', '--resource-name', f'qmlcache_{target_name}']
-        cmd.extend(kwargs['extra_args'])
-        cmd.append('--resource=@INPUT@')
-        cmd.extend(cachegen_inputs)
         cacheloader_target = build.CustomTarget(
             f'cacheloader_{target_name}',
             state.subdir,
             state.subproject,
             state.environment,
-            cmd,
+            self.tools['qmlcachegen'].get_command() + ['-o', '@OUTPUT@'] + ['--resource-name', f'qmlcache_{target_name}'] + kwargs['extra_args'] + ['--resource=@INPUT@'] + cachegen_inputs,
             [kwargs['qml_qrc']],
             #output name format matters here
             [f'{target_name}_qmlcache_loader.cpp'],
@@ -958,12 +941,11 @@ class QtBaseModule(ExtensionModule):
         install_dir: T.List[T.Union[str, Literal[False]]] = [False]
         install_tag: T.List[T.Union[str, None]] = [None]
 
-        cmd = [
-            self.tools['qmltyperegistrar'],
+        cmd = self.tools['qmltyperegistrar'].get_command() + [
             '--import-name', import_name,
             '--major-version', major_version,
             '--minor-version', minor_version,
-            '-o', '@OUTPUT0@'
+            '-o', '@OUTPUT0@',
         ]
 
         cmd.extend(kwargs['extra_args'])

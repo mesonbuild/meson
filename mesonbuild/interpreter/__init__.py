@@ -20,6 +20,7 @@ __all__ = [
     'SubprojectHolder',
     'DependencyHolder',
     'GeneratedListHolder',
+    'ExternalProgramHolder',
     'extract_required_kwarg',
 
     'ArrayHolder',
@@ -34,7 +35,8 @@ from .compiler import CompilerHolder
 from .interpreterobjects import (ExecutableHolder, BuildTargetHolder, CustomTargetHolder,
                                  CustomTargetIndexHolder, MachineHolder, Test,
                                  ConfigurationDataHolder, SubprojectHolder, DependencyHolder,
-                                 GeneratedListHolder, extract_required_kwarg)
+                                 GeneratedListHolder, ExternalProgramHolder,
+                                 extract_required_kwarg)
 
 from .primitives import (
     ArrayHolder,

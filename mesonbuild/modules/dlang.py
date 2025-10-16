@@ -12,7 +12,7 @@ import typing as T
 
 from . import ExtensionModule, ModuleInfo
 from .. import mlog
-from ..build import InvalidArguments, LocalProgram
+from ..build import InvalidArguments
 from ..dependencies import Dependency
 from ..dependencies.dub import DubDependency
 from ..interpreterbase import typed_pos_args
@@ -22,11 +22,12 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypeAlias
 
     from . import ModuleState
+    from ..build import OverrideExecutable
     from ..interpreter.interpreter import Interpreter
     from ..interpreterbase.baseobjects import TYPE_kwargs
-    from ..programs import ExternalProgram
+    from ..programs import ExternalProgram, OverrideProgram
 
-    _AnyProgram: TypeAlias = T.Union[ExternalProgram, LocalProgram]
+    _AnyProgram: TypeAlias = T.Union[OverrideExecutable, ExternalProgram, OverrideProgram]
     _JSONTypes: TypeAlias = T.Union[str, int, bool, None, T.List['_JSONTypes'], T.Dict[str, '_JSONTypes']]
 
 
