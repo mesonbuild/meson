@@ -6,7 +6,6 @@ import tempfile
 import shutil
 import sys
 import itertools
-import signal
 import typing as T
 
 from pathlib import Path
@@ -233,18 +232,6 @@ def run(options: argparse.Namespace) -> int:
             tmprc.flush()
             args.append("--rcfile")
             args.append(tmprc.name)
-        elif args[0].endswith('fish'):
-            # Ignore SIGINT while using fish as the shell to make it behave
-            # like other shells such as bash and zsh.
-            # See: https://gitlab.freedesktop.org/gstreamer/gst-build/issues/18
-            signal.signal(signal.SIGINT, lambda _, __: True)
-            if prompt_prefix:
-                args.append('--init-command')
-                prompt_cmd = f'''functions --copy fish_prompt original_fish_prompt
-                function fish_prompt
-                    echo -n '[{prompt_prefix}] '(original_fish_prompt)
-                end'''
-                args.append(prompt_cmd)
         elif args[0].endswith('zsh'):
             # Let the GC remove the tmp file
             tmpdir = tempfile.TemporaryDirectory()
