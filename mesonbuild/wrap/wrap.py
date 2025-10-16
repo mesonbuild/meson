@@ -77,6 +77,23 @@ else:
     PATCH = shutil.which('patch')
 
 
+truststore_message = '''
+
+    If you believe the connection should be secure, but python cannot see the
+    correct SSL certificates, install https://truststore.readthedocs.io/ and
+    try again.'''
+
+@lru_cache(maxsize=None)
+def ssl_truststore() -> T.Optional[ssl.SSLContext]:
+    """ Provide a default context=None for urlopen, but use truststore if installed. """
+    try:
+        import truststore
+    except ImportError:
+        # use default
+        return None
+    else:
+        return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+
 def whitelist_wrapdb(urlstr: str) -> urllib.parse.ParseResult:
     """ raises WrapException if not whitelisted subdomain """
     url = urllib.parse.urlparse(urlstr)
@@ -99,7 +116,7 @@ def open_wrapdburl(urlstring: str, allow_insecure: bool = False, have_opt: bool 
         if allow_compression:
             headers['Accept-Encoding'] = 'gzip'
         req = urllib.request.Request(urllib.parse.urlunparse(url), headers=headers)
-        return T.cast('http.client.HTTPResponse', urllib.request.urlopen(req, timeout=REQ_TIMEOUT))
+        return T.cast('http.client.HTTPResponse', urllib.request.urlopen(req, timeout=REQ_TIMEOUT, context=ssl_truststore()))
 
     url = whitelist_wrapdb(urlstring)
     if has_ssl:
@@ -110,6 +127,8 @@ def open_wrapdburl(urlstring: str, allow_insecure: bool = False, have_opt: bool 
             if isinstance(excp, urllib.error.URLError) and isinstance(excp.reason, ssl.SSLCertVerificationError):
                 if allow_insecure:
                     mlog.warning(f'{msg}\n\n    Proceeding without authentication.')
+                elif ssl_truststore() is None:
+                    raise WrapException(f'{msg}{insecure_msg}{truststore_message}')
                 else:
                     raise WrapException(f'{msg}{insecure_msg}')
             else:
@@ -796,10 +815,13 @@ class Resolver:
 
             try:
                 req = urllib.request.Request(urlstring, headers=headers)
-                resp = urllib.request.urlopen(req, timeout=REQ_TIMEOUT)
+                resp = urllib.request.urlopen(req, timeout=REQ_TIMEOUT, context=ssl_truststore())
             except OSError as e:
                 mlog.log(str(e))
-                raise WrapException(f'could not get {urlstring}; is the internet available?')
+                if isinstance(e, urllib.error.URLError) and isinstance(e.reason, ssl.SSLCertVerificationError) and ssl_truststore() is None:
+                    raise WrapException(f'could not get {urlstring}; is the internet available?{truststore_message}')
+                else:
+                    raise WrapException(f'could not get {urlstring}; is the internet available?')
         with contextlib.closing(resp) as resp, tmpfile as tmpfile:
             try:
                 dlsize = int(resp.info()['Content-Length'])
