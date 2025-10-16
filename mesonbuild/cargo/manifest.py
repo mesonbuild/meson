@@ -46,16 +46,6 @@ def fixup_meson_varname(name: str) -> str:
     return name.replace('-', '_')
 
 
-@T.overload
-def _depv_to_dep(depv: raw.FromWorkspace) -> raw.FromWorkspace: ...
-
-@T.overload
-def _depv_to_dep(depv: raw.DependencyV) -> raw.Dependency: ...
-
-def _depv_to_dep(depv: T.Union[raw.FromWorkspace, raw.DependencyV]) -> T.Union[raw.FromWorkspace, raw.Dependency]:
-    return {'version': depv} if isinstance(depv, str) else depv
-
-
 def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI],
                       msg: str, **kwargs: T.Callable[[T.Any], object]) -> _DI:
     """Fixup raw cargo mappings to ones more suitable for python to consume as dataclass.
@@ -261,6 +251,18 @@ class Dependency:
         else:
             raise MesonException(f'Cannot determine minimum API version from {self.version}.')
 
+    @T.overload
+    @staticmethod
+    def _depv_to_dep(depv: raw.FromWorkspace) -> raw.FromWorkspace: ...
+
+    @T.overload
+    @staticmethod
+    def _depv_to_dep(depv: raw.DependencyV) -> raw.Dependency: ...
+
+    @staticmethod
+    def _depv_to_dep(depv: T.Union[raw.FromWorkspace, raw.DependencyV]) -> T.Union[raw.FromWorkspace, raw.Dependency]:
+        return {'version': depv} if isinstance(depv, str) else depv
+
     @classmethod
     def from_raw_dict(cls, name: str, raw_dep: T.Union[raw.FromWorkspace, raw.Dependency], member_path: str = '', raw_ws_dep: T.Optional[raw.Dependency] = None) -> Dependency:
         raw_dep = _inherit_from_workspace(raw_dep, raw_ws_dep,
@@ -276,9 +278,9 @@ class Dependency:
         raw_ws_dep: T.Optional[raw.Dependency] = None
         if workspace is not None:
             raw_ws_depv = workspace.dependencies.get(name, {})
-            raw_ws_dep = _depv_to_dep(raw_ws_depv)
+            raw_ws_dep = cls._depv_to_dep(raw_ws_depv)
 
-        raw_dep = _depv_to_dep(raw_depv)
+        raw_dep = cls._depv_to_dep(raw_depv)
         return cls.from_raw_dict(name, raw_dep, member_path, raw_ws_dep)
 
     def update_version(self, v: str) -> None:
