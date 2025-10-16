@@ -223,7 +223,7 @@ def run(options: argparse.Namespace) -> int:
             args = [os.environ.get("SHELL", os.path.realpath("/bin/sh"))]
         if "bash" in args[0]:
             # Let the GC remove the tmp file
-            tmprc = tempfile.NamedTemporaryFile(mode='w')
+            tmprc = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8')
             tmprc.write('[ -e ~/.bashrc ] && . ~/.bashrc\n')
             if prompt_prefix:
                 tmprc.write(f'export PS1="{prompt_prefix} $PS1"\n')
@@ -235,7 +235,7 @@ def run(options: argparse.Namespace) -> int:
         elif args[0].endswith('zsh'):
             # Let the GC remove the tmp file
             tmpdir = tempfile.TemporaryDirectory()
-            with open(os.path.join(tmpdir.name, '.zshrc'), 'w') as zshrc: # pylint: disable=unspecified-encoding
+            with open(os.path.join(tmpdir.name, '.zshrc'), 'w', encoding='utf-8') as zshrc:
                 zshrc.write('[ -e ~/.zshrc ] && . ~/.zshrc\n')
                 if prompt_prefix:
                     zshrc.write(f'export PROMPT="[{prompt_prefix}] $PROMPT"\n')
