@@ -304,23 +304,13 @@ class Interpreter:
             path = os.path.join(self.environment.source_dir, subdir)
             filename = os.path.join(path, 'Cargo.toml')
             self.build_def_files.append(filename)
-            toml = load_toml(filename)
-            workspace_ = None
-            if 'workspace' in toml:
-                raw_workspace = T.cast('raw.VirtualManifest', toml)
-                workspace_ = Workspace.from_raw(raw_workspace)
-            manifest_ = None
-            if 'package' in toml:
-                raw_manifest = T.cast('raw.Manifest', toml)
+            raw_manifest = T.cast('raw.Manifest', load_toml(filename))
+            if 'workspace' in raw_manifest:
+                manifest_ = Workspace.from_raw(raw_manifest, path)
+            elif 'package' in raw_manifest:
                 manifest_ = Manifest.from_raw(raw_manifest, path, workspace, member_path)
-            if not manifest_ and not workspace_:
+            else:
                 raise MesonException(f'{subdir}/Cargo.toml does not have [package] or [workspace] section')
-
-            if workspace_:
-                workspace_.root_package = manifest_
-                self.manifests[subdir] = workspace_
-                return workspace_
-
             self.manifests[subdir] = manifest_
         return manifest_
 

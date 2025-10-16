@@ -140,7 +140,7 @@ class Workspace(TypedDict):
 Manifest = TypedDict(
     'Manifest',
     {
-        'package': Required[Package],
+        'package': Package,
         'badges': T.Dict[str, Badge],
         'dependencies': T.Dict[str, T.Union[FromWorkspace, DependencyV]],
         'dev-dependencies': T.Dict[str, T.Union[FromWorkspace, DependencyV]],
@@ -161,17 +161,6 @@ Manifest = TypedDict(
 )
 """The Cargo Manifest format."""
 
-
-class VirtualManifest(TypedDict, total=False):
-
-    """The Representation of a virtual manifest.
-
-    Cargo allows a root manifest that contains only a workspace, this is called
-    a virtual manifest. This doesn't really map 1:1 with any meson concept,
-    except perhaps the proposed "meta project".
-    """
-
-    workspace: Workspace
 
 class CargoLockPackage(TypedDict, total=False):
 

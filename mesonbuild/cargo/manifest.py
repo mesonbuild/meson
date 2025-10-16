@@ -481,13 +481,14 @@ class Workspace:
     metadata: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
 
     # A workspace can also have a root package.
-    root_package: T.Optional[Manifest] = dataclasses.field(init=False)
+    root_package: T.Optional[Manifest] = None
 
     @classmethod
-    def from_raw(cls, raw: raw.VirtualManifest) -> Workspace:
-        ws_raw = raw['workspace']
-        fixed = _raw_to_dataclass(ws_raw, cls, 'Workspace')
-        return fixed
+    def from_raw(cls, raw: raw.Manifest, path: str) -> Workspace:
+        ws = _raw_to_dataclass(raw['workspace'], cls, 'Workspace')
+        if 'package' in raw:
+            ws.root_package = Manifest.from_raw(raw, path, ws, '.')
+        return ws
 
 
 @dataclasses.dataclass
