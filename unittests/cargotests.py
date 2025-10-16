@@ -305,7 +305,7 @@ class CargoTomlTest(unittest.TestCase):
                 f.write(self.CARGO_TOML_WS)
             workspace_toml = load_toml(fname)
 
-        workspace = Workspace.from_raw(workspace_toml)
+        workspace = Workspace.from_raw(workspace_toml, tmpdir)
         pkg = Package.from_raw({'name': 'foo', 'version': {'workspace': True}}, workspace)
         self.assertEqual(pkg.name, 'foo')
         self.assertEqual(pkg.version, '0.14.0-alpha.1')
@@ -319,7 +319,7 @@ class CargoTomlTest(unittest.TestCase):
                 f.write(self.CARGO_TOML_WS)
             workspace_toml = load_toml(fname)
 
-        workspace = Workspace.from_raw(workspace_toml)
+        workspace = Workspace.from_raw(workspace_toml, tmpdir)
         dep = Dependency.from_raw('glib', {'workspace': True}, 'member', workspace)
         self.assertEqual(dep.package, 'glib')
         self.assertEqual(dep.version, '')
