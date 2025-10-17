@@ -1007,7 +1007,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             subi = Interpreter(new_build, self.backend, subp_name, subdir, self.subproject_dir,
                                default_options, ast=ast, relaxations=relaxations,
                                user_defined_options=self.user_defined_options,
-                               cargo=cargo or self.cargo)
+                               cargo=cargo)
             # Those lists are shared by all interpreters. That means that
             # even if the subproject fails, any modification that the subproject
             # made to those lists will affect the parent project.
