@@ -20,7 +20,7 @@ import typing as T
 from . import builder, version, cfg
 from .toml import load_toml
 from .manifest import Manifest, CargoLock, Workspace, fixup_meson_varname
-from ..mesonlib import MesonException, MachineChoice, version_compare
+from ..mesonlib import MesonException, MachineChoice, unique_list, version_compare
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
 
@@ -80,6 +80,8 @@ class WorkspaceState:
 
 
 class Interpreter:
+    _features: T.Optional[T.List[str]] = None
+
     def __init__(self, env: Environment, subdir: str, subprojects_dir: str) -> None:
         self.environment = env
         # Map Cargo.toml's subdir to loaded manifest.
@@ -98,8 +100,48 @@ class Interpreter:
             self.environment.wrap_resolver.merge_wraps(self.cargolock.wraps)
             self.build_def_files.append(filename)
 
+    @property
+    def features(self) -> T.List[str]:
+        """Get the features list. Once read, it cannot be modified."""
+        if self._features is None:
+            self._features = ['default']
+        return self._features
+
+    @features.setter
+    def features(self, value: T.List[str]) -> None:
+        """Set the features list. Can only be set before first read."""
+        value_unique = sorted(unique_list(value))
+        if self._features is not None and value_unique != self._features:
+            raise MesonException("Cannot modify features after they have been selected or used")
+        self._features = value_unique
+
     def get_build_def_files(self) -> T.List[str]:
         return self.build_def_files
+
+    def load_package(self, path: str = '.') -> T.Union[WorkspaceState, PackageState]:
+        """Load the root Cargo.toml package and prepare it with features and dependencies."""
+        pkgs: T.Iterable[PackageState]
+        if path == '.':
+            manifest = self._load_manifest(path)
+            if isinstance(manifest, Workspace):
+                ret = self._get_workspace(manifest, path)
+                pkgs = list(ret.packages[m] for m in ret.workspace.default_members)
+            else:
+                key = PackageKey(manifest.package.name, manifest.package.api)
+                if key not in self.packages:
+                    self.packages[key] = PackageState(manifest, False)
+                ret = self.packages[key]
+                pkgs = [ret]
+        else:
+            ws = self.workspaces['.']
+            ret = ws.packages[path]
+            pkgs = [ret]
+
+        for pkg in pkgs:
+            self._prepare_package(pkg)
+            for feature in self.features:
+                self._enable_feature(pkg, feature)
+        return ret
 
     def interpret(self, subdir: str, project_root: T.Optional[str] = None) -> mparser.CodeBlockNode:
         manifest = self._load_manifest(subdir)
@@ -189,6 +231,7 @@ class Interpreter:
         return build.block(ast)
 
     def _load_workspace_member(self, ws: WorkspaceState, m: str) -> None:
+        print(m)
         m = os.path.normpath(m)
         # Load member's manifest
         m_subdir = os.path.join(ws.subdir, m)
