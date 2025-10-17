@@ -253,9 +253,7 @@ class XCodeBackend(backends.Backend):
         self.regen_dependency_id = self.gen_id()
         self.top_level_dict = PbxDict()
         self.generator_outputs = {}
-        self.arch = self.build.environment.machines.host.cpu
-        if self.arch == 'aarch64':
-            self.arch = 'arm64'
+        self.set_arch()
         self.xcodeversion, self.objversion = autodetect_xcode_version()
         # In Xcode files are not accessed via their file names, but rather every one of them
         # gets an unique id. More precisely they get one unique id per target they are used
@@ -309,7 +307,14 @@ class XCodeBackend(backends.Backend):
             result.append(os.path.join(self.environment.get_build_dir(), self.get_target_dir(l)))
         return result
 
+    def set_arch(self):
+        self.arch = self.build.environment.machines.host.cpu
+        if self.arch == 'aarch64':
+            self.arch = 'arm64'
+
     def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict] = None) -> None:
+        if self.arch is None: # The host machine arch may not be set when backend is created
+            self.set_arch()
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect the xcode backend to generate with \'capture = True\'')
