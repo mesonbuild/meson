@@ -201,7 +201,14 @@ class Lexer:
                         if par_count > 0 or bracket_count > 0 or curl_count > 0:
                             tid = 'whitespace'
 
-                if tid in {'string', 'fstring'}:
+                if tid == 'id':
+                    if value in self.keywords:
+                        tid = value
+                    else:
+                        if value in self.future_keywords:
+                            mlog.warning(f"Identifier '{value}' will become a reserved keyword in a future release. Please rename it.",
+                                         location=BaseNode(lineno, col, filename))
+                elif tid in {'string', 'fstring'}:
                     if value.find("\n") != -1:
                         msg = ("Newline character in a string detected, use ''' (three single quotes) "
                                "for multiline strings instead.\n"
@@ -218,13 +225,6 @@ class Lexer:
                     lineno += 1
                     line_start = loc
                     tid = 'whitespace'
-                elif tid == 'id':
-                    if value in self.keywords:
-                        tid = value
-                    else:
-                        if value in self.future_keywords:
-                            mlog.warning(f"Identifier '{value}' will become a reserved keyword in a future release. Please rename it.",
-                                         location=BaseNode(lineno, col, filename))
                 bytespan = (span_start, loc)
                 yield Token(tid, filename, curline_start, curline, col, bytespan, value)
 
