@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2015-2016 The Meson development team
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 '''This module provides helper functions for Gnome/GLib related
 functionality such as gobject-introspection, gresources and gtk-doc'''
@@ -283,7 +283,7 @@ class GnomeModule(ExtensionModule):
     def _get_native_glib_version(self, state: 'ModuleState') -> str:
         if self.native_glib_version is None:
             glib_dep = PkgConfigDependency('glib-2.0', state.environment,
-                                           {'native': True, 'required': False})
+                                           {'native': MachineChoice.BUILD, 'required': False})
             if glib_dep.found():
                 self.native_glib_version = glib_dep.get_version()
             else:

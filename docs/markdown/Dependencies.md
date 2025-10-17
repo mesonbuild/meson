@@ -388,6 +388,9 @@ additional toolkit libraries that need to be explicitly linked to. If the
 CUDA Toolkit cannot be found in the default paths on your system, you can
 set the path using `CUDA_PATH` explicitly.
 
+Cuda does not honor the `prefer_static` option, and will link statically unless
+the `static` keyword argument is set to `false`.
+
 ## CUPS
 
 `method` may be `auto`, `config-tool`, `pkg-config`, `cmake` or `extraframework`.

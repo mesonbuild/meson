@@ -21,6 +21,8 @@ from ..options import OptionKey
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Literal, TypedDict, TypeAlias
+
     from ..compilers.compilers import Compiler
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
@@ -29,6 +31,42 @@ if T.TYPE_CHECKING:
         StaticLibrary, StructuredSources, ExtractedObjects, GeneratedTypes
     )
     from ..interpreter.type_checking import PkgConfigDefineType
+
+    IncludeType: TypeAlias = Literal['system', 'non-system', 'preserve']
+
+    class DependencyObjectKWs(TypedDict, total=False):
+
+        """Keyword arguments that the Dependency IR object accepts.
+
+        This is different than the arguments as taken by the Interpreter, since
+        it is expected to be clean.
+        """
+
+        cmake_args: T.List[str]
+        cmake_module_path: T.List[str]
+        cmake_package_version: str
+        components: T.List[str]
+        include_type: IncludeType
+        language: T.Optional[str]
+        main: bool
+        method: DependencyMethods
+        modules: T.List[str]
+        native: MachineChoice
+        optional_modules: T.List[str]
+        private_headers: bool
+        required: bool
+        static: T.Optional[bool]
+        version: T.List[str]
+
+        # Only in the python dependency
+        embed: bool
+
+        # Only passed internally, not part of the DSL API
+        paths: T.List[str]
+        returncode_value: int
+        silent: bool
+        tools: T.List[str]
+        version_arg: str
 
     _MissingCompilerBase = Compiler
 else:
@@ -82,12 +120,6 @@ class DependencyMethods(Enum):
     SYSCONFIG = 'sysconfig'
     # Specify using a "program"-config style tool
     CONFIG_TOOL = 'config-tool'
-    # For backwards compatibility
-    SDLCONFIG = 'sdlconfig'
-    CUPSCONFIG = 'cups-config'
-    PCAPCONFIG = 'pcap-config'
-    LIBWMFCONFIG = 'libwmf-config'
-    QMAKE = 'qmake'
     # Misc
     DUB = 'dub'
 
@@ -97,17 +129,7 @@ DependencyTypeName = T.NewType('DependencyTypeName', str)
 
 class Dependency(HoldableObject):
 
-    @classmethod
-    def _process_include_type_kw(cls, kwargs: T.Dict[str, T.Any]) -> str:
-        if 'include_type' not in kwargs:
-            return 'preserve'
-        if not isinstance(kwargs['include_type'], str):
-            raise DependencyException('The include_type kwarg must be a string type')
-        if kwargs['include_type'] not in ['preserve', 'system', 'non-system']:
-            raise DependencyException("include_type may only be one of ['preserve', 'system', 'non-system']")
-        return kwargs['include_type']
-
-    def __init__(self, type_name: DependencyTypeName, kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, type_name: DependencyTypeName, kwargs: DependencyObjectKWs) -> None:
         # This allows two Dependencies to be compared even after being copied.
         # The purpose is to allow the name to be changed, but still have a proper comparison
         self._id = uuid.uuid4().int
@@ -123,7 +145,7 @@ class Dependency(HoldableObject):
         self.raw_link_args: T.Optional[T.List[str]] = None
         self.sources: T.List[T.Union[mesonlib.File, GeneratedTypes, 'StructuredSources']] = []
         self.extra_files: T.List[mesonlib.File] = []
-        self.include_type = self._process_include_type_kw(kwargs)
+        self.include_type = kwargs.get('include_type', 'preserve')
         self.ext_deps: T.List[Dependency] = []
         self.d_features: T.DefaultDict[str, T.List[T.Any]] = collections.defaultdict(list)
         self.featurechecks: T.List['FeatureCheckBase'] = []
@@ -262,9 +284,9 @@ class Dependency(HoldableObject):
             return default_value
         raise DependencyException(f'No default provided for dependency {self!r}, which is not pkg-config, cmake, or config-tool based.')
 
-    def generate_system_dependency(self, include_type: str) -> 'Dependency':
+    def generate_system_dependency(self, include_type: IncludeType) -> 'Dependency':
         new_dep = copy.deepcopy(self)
-        new_dep.include_type = self._process_include_type_kw({'include_type': include_type})
+        new_dep.include_type = include_type
         return new_dep
 
     def get_as_static(self, recursive: bool) -> Dependency:
@@ -389,32 +411,24 @@ class InternalDependency(Dependency):
             new_dep.ext_deps = [dep.get_as_shared(True) for dep in self.ext_deps]
         return new_dep
 
-class HasNativeKwarg:
-    def __init__(self, kwargs: T.Dict[str, T.Any]):
-        self.for_machine = self.get_for_machine_from_kwargs(kwargs)
-
-    def get_for_machine_from_kwargs(self, kwargs: T.Dict[str, T.Any]) -> MachineChoice:
-        return MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
-
-class ExternalDependency(Dependency, HasNativeKwarg):
-    def __init__(self, type_name: DependencyTypeName, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
+class ExternalDependency(Dependency):
+    def __init__(self, type_name: DependencyTypeName, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None):
         Dependency.__init__(self, type_name, kwargs)
         self.env = environment
         self.name = type_name # default
         self.is_found = False
         self.language = language
-        version_reqs = kwargs.get('version', None)
-        if isinstance(version_reqs, str):
-            version_reqs = [version_reqs]
-        self.version_reqs: T.Optional[T.List[str]] = version_reqs
+        self.version_reqs = kwargs.get('version', [])
         self.required = kwargs.get('required', True)
         self.silent = kwargs.get('silent', False)
-        self.static = kwargs.get('static', self.env.coredata.optstore.get_value_for(OptionKey('prefer_static')))
+        static = kwargs.get('static')
+        if static is None:
+            static = T.cast('bool', self.env.coredata.optstore.get_value_for(OptionKey('prefer_static')))
+        self.static = static
         self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
-        if not isinstance(self.static, bool):
-            raise DependencyException('Static keyword must be boolean')
+        self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
         # Is this dependency to be run on the build platform?
-        HasNativeKwarg.__init__(self, kwargs)
+        self.for_machine = kwargs.get('native', MachineChoice.HOST)
         self.clib_compiler = detect_compiler(self.name, environment, self.for_machine, self.language)
 
     def get_compiler(self) -> T.Union['MissingCompiler', 'Compiler']:
@@ -603,31 +617,8 @@ def strip_system_includedirs(environment: 'Environment', for_machine: MachineCho
     exclude = {f'-I{p}' for p in environment.get_compiler_system_include_dirs(for_machine)}
     return [i for i in include_args if i not in exclude]
 
-def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: T.Dict[str, T.Any]) -> T.List[DependencyMethods]:
-    method: T.Union[DependencyMethods, str] = kwargs.get('method', 'auto')
-    if isinstance(method, DependencyMethods):
-        return [method]
-    # TODO: try/except?
-    if method not in [e.value for e in DependencyMethods]:
-        raise DependencyException(f'method {method!r} is invalid')
-    method = DependencyMethods(method)
-
-    # Raise FeatureNew where appropriate
-    if method is DependencyMethods.CONFIG_TOOL:
-        # FIXME: needs to get a handle on the subproject
-        # FeatureNew.single_use('Configuration method "config-tool"', '0.44.0')
-        pass
-    # This sets per-tool config methods which are deprecated to to the new
-    # generic CONFIG_TOOL value.
-    if method in [DependencyMethods.SDLCONFIG, DependencyMethods.CUPSCONFIG,
-                  DependencyMethods.PCAPCONFIG, DependencyMethods.LIBWMFCONFIG]:
-        # FIXME: needs to get a handle on the subproject
-        #FeatureDeprecated.single_use(f'Configuration method {method.value}', '0.44', 'Use "config-tool" instead.')
-        method = DependencyMethods.CONFIG_TOOL
-    if method is DependencyMethods.QMAKE:
-        # FIXME: needs to get a handle on the subproject
-        # FeatureDeprecated.single_use('Configuration method "qmake"', '0.58', 'Use "config-tool" instead.')
-        method = DependencyMethods.CONFIG_TOOL
+def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: DependencyObjectKWs) -> T.List[DependencyMethods]:
+    method = kwargs.get('method', DependencyMethods.AUTO)
 
     # Set the detection method. If the method is set to auto, use any available method.
     # If method is set to a specific string, allow only that detection method.
@@ -670,7 +661,7 @@ class SystemDependency(ExternalDependency):
 
     """Dependency base for System type dependencies."""
 
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs,
                  language: T.Optional[str] = None) -> None:
         super().__init__(DependencyTypeName('system'), env, kwargs, language=language)
         self.name = name
@@ -684,7 +675,7 @@ class BuiltinDependency(ExternalDependency):
 
     """Dependency base for Builtin type dependencies."""
 
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs,
                  language: T.Optional[str] = None) -> None:
         super().__init__(DependencyTypeName('builtin'), env, kwargs, language=language)
         self.name = name

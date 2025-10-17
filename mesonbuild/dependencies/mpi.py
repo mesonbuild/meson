@@ -20,12 +20,13 @@ if T.TYPE_CHECKING:
     from .factory import DependencyGenerator
     from ..environment import Environment
     from ..mesonlib import MachineChoice
+    from .base import DependencyObjectKWs
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
 def mpi_factory(env: 'Environment',
                 for_machine: 'MachineChoice',
-                kwargs: T.Dict[str, T.Any],
+                kwargs: DependencyObjectKWs,
                 methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     language = kwargs.get('language')
     if language is None:
@@ -104,7 +105,7 @@ packages['mpi'] = mpi_factory
 class MPIConfigToolDependency(ConfigToolDependency):
     """Wrapper around mpicc, Intel's mpiicc and friends."""
 
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs,
                  language: T.Optional[str] = None):
         super().__init__(name, env, kwargs, language=language)
         if not self.is_found:
@@ -214,7 +215,7 @@ class MSMPIDependency(SystemDependency):
 
     """The Microsoft MPI."""
 
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs,
                  language: T.Optional[str] = None):
         super().__init__(name, env, kwargs, language=language)
         # MSMPI only supports the C API

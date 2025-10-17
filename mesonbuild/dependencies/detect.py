@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import collections, functools, importlib
+import enum
 import typing as T
 
 from .base import ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
@@ -14,6 +15,7 @@ from .. import mlog
 if T.TYPE_CHECKING:
     from ..environment import Environment
     from .factory import DependencyFactory, WrappedFactoryFunc, DependencyGenerator
+    from .base import DependencyObjectKWs
 
     TV_DepIDEntry = T.Union[str, bool, int, None, T.Tuple[str, ...]]
     TV_DepID = T.Tuple[T.Tuple[str, TV_DepIDEntry], ...]
@@ -38,14 +40,13 @@ class DependencyPackages(collections.UserDict):
 packages = DependencyPackages()
 _packages_accept_language: T.Set[str] = set()
 
-def get_dep_identifier(name: str, kwargs: T.Dict[str, T.Any]) -> 'TV_DepID':
+def get_dep_identifier(name: str, kwargs: DependencyObjectKWs) -> 'TV_DepID':
     identifier: 'TV_DepID' = (('name', name), )
     from ..interpreter.type_checking import DEPENDENCY_KWS
-    nkwargs = {k.name: k.default for k in DEPENDENCY_KWS}
+    nkwargs = T.cast('DependencyObjectKWs', {k.name: k.default for k in DEPENDENCY_KWS})
     nkwargs.update(kwargs)
 
-    from ..interpreter import permitted_dependency_kwargs
-    assert len(permitted_dependency_kwargs) == 19, \
+    assert len(DEPENDENCY_KWS) == 20, \
            'Extra kwargs have been added to dependency(), please review if it makes sense to handle it here'
     for key, value in nkwargs.items():
         # 'version' is irrelevant for caching; the caller must check version matches
@@ -65,6 +66,9 @@ def get_dep_identifier(name: str, kwargs: T.Dict[str, T.Any]) -> 'TV_DepID':
             for i in value:
                 assert isinstance(i, str), i
             value = tuple(frozenset(listify(value)))
+        elif isinstance(value, enum.Enum):
+            value = value.value
+            assert isinstance(value, str), 'for mypy'
         else:
             assert value is None or isinstance(value, (str, bool, int)), value
         identifier = (*identifier, (key, value),)
@@ -84,24 +88,17 @@ display_name_map = {
     'wxwidgets': 'WxWidgets',
 }
 
-def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, object], candidates: T.Optional[T.List['DependencyGenerator']] = None) -> T.Union['ExternalDependency', NotFoundDependency]:
+def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyObjectKWs, candidates: T.Optional[T.List['DependencyGenerator']] = None) -> T.Union['ExternalDependency', NotFoundDependency]:
     assert name
     required = kwargs.get('required', True)
-    if not isinstance(required, bool):
-        raise DependencyException('Keyword "required" must be a boolean.')
-    if not isinstance(kwargs.get('method', ''), str):
-        raise DependencyException('Keyword "method" must be a string.')
     lname = name.lower()
-    if lname not in _packages_accept_language and 'language' in kwargs:
+    if lname not in _packages_accept_language and kwargs.get('language') is not None:
         raise DependencyException(f'{name} dependency does not accept "language" keyword argument')
-    if not isinstance(kwargs.get('version', ''), (str, list)):
-        raise DependencyException('Keyword "Version" must be string or list.')
 
     # display the dependency name with correct casing
     display_name = display_name_map.get(lname, lname)
 
-    for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
-
+    for_machine = kwargs.get('native', MachineChoice.HOST)
     type_text = PerMachine('Build-time', 'Run-time')[for_machine] + ' dependency'
 
     # build a list of dependency methods to try
@@ -129,7 +126,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
             details = d.log_details()
             if details:
                 details = '(' + details + ') '
-            if 'language' in kwargs:
+            if kwargs.get('language') is not None:
                 details += 'for ' + d.language + ' '
 
             # if the dependency was found
@@ -173,11 +170,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
 
 
 def _build_external_dependency_list(name: str, env: 'Environment', for_machine: MachineChoice,
-                                    kwargs: T.Dict[str, T.Any]) -> T.List['DependencyGenerator']:
-    # First check if the method is valid
-    if 'method' in kwargs and kwargs['method'] not in [e.value for e in DependencyMethods]:
-        raise DependencyException('method {!r} is invalid'.format(kwargs['method']))
-
+                                    kwargs: DependencyObjectKWs) -> T.List['DependencyGenerator']:
     # Is there a specific dependency detector for this dependency?
     lname = name.lower()
     if lname in packages:
@@ -196,25 +189,26 @@ def _build_external_dependency_list(name: str, env: 'Environment', for_machine: 
 
     candidates: T.List['DependencyGenerator'] = []
 
-    if kwargs.get('method', 'auto') == 'auto':
+    method = kwargs.get('method', DependencyMethods.AUTO)
+    if method is DependencyMethods.AUTO:
         # Just use the standard detection methods.
-        methods = ['pkg-config', 'extraframework', 'cmake']
+        methods = [DependencyMethods.PKGCONFIG, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE]
     else:
         # If it's explicitly requested, use that detection method (only).
-        methods = [kwargs['method']]
+        methods = [method]
 
     # Exclusive to when it is explicitly requested
-    if 'dub' in methods:
+    if DependencyMethods.DUB in methods:
         from .dub import DubDependency
         candidates.append(functools.partial(DubDependency, name, env, kwargs))
 
     # Preferred first candidate for auto.
-    if 'pkg-config' in methods:
+    if DependencyMethods.PKGCONFIG in methods:
         from .pkgconfig import PkgConfigDependency
         candidates.append(functools.partial(PkgConfigDependency, name, env, kwargs))
 
     # On OSX only, try framework dependency detector.
-    if 'extraframework' in methods:
+    if DependencyMethods.EXTRAFRAMEWORK in methods:
         if env.machines[for_machine].is_darwin():
             from .framework import ExtraFrameworkDependency
             candidates.append(functools.partial(ExtraFrameworkDependency, name, env, kwargs))
@@ -222,7 +216,7 @@ def _build_external_dependency_list(name: str, env: 'Environment', for_machine: 
     # Only use CMake:
     # - if it's explicitly requested
     # - as a last resort, since it might not work 100% (see #6113)
-    if 'cmake' in methods:
+    if DependencyMethods.CMAKE in methods:
         from .cmake import CMakeDependency
         candidates.append(functools.partial(CMakeDependency, name, env, kwargs))
 
