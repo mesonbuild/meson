@@ -674,7 +674,7 @@ class ParenthesizedNode(BaseNode):
 
 if T.TYPE_CHECKING:
     COMPARISONS = Literal['==', '!=', '<', '<=', '>=', '>', 'in', 'not in']
-    ARITH_OPERATORS = Literal['add', 'sub', 'mul', 'div', 'mod']
+    ARITH_OPERATORS = Literal['+', '-', '*', '/', '%']
 
 ALL_STRINGS = frozenset({'string', 'fstring', 'multiline_string', 'multiline_fstring'})
 
@@ -690,14 +690,14 @@ COMPARISON_MAP: T.Mapping[str, COMPARISONS] = {
 }
 
 ADDSUB_MAP: T.Mapping[str, ARITH_OPERATORS] = {
-    'plus': 'add',
-    'dash': 'sub',
+    'plus': '+',
+    'dash': '-',
 }
 
 MULDIV_MAP: T.Mapping[str, ARITH_OPERATORS] = {
-    'percent': 'mod',
-    'star': 'mul',
-    'fslash': 'div',
+    'percent': '%',
+    'star': '*',
+    'fslash': '/',
 }
 
 # Recursive descent parser for Meson's definition language.

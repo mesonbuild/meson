@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from enum import Enum
+import typing as T
 
 class MesonOperator(Enum):
     # Arithmetic
@@ -30,3 +31,8 @@ class MesonOperator(Enum):
     IN = 'in'
     NOT_IN = 'not in'
     INDEX = '[]'
+
+# Accessing this directly is about 9x faster than calling MesonOperator(s),
+# and about 3 times faster than a staticmethod
+MAPPING: T.Mapping[str, MesonOperator] = T.cast('T.Mapping[str, MesonOperator]',
+                                                MesonOperator._value2member_map_)
