@@ -11,14 +11,14 @@ import os
 import typing as T
 
 from . import version
-from ..mesonlib import MesonException, lazy_property, Version
+from ..mesonlib import MesonException, lazy_property, Version, MachineChoice
 from .. import mlog
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol, Self
 
     from . import raw
-    from .raw import EDITION, CRATE_TYPE
+    from .raw import EDITION, CRATE_TYPE, LINT_LEVEL
     from ..wrap.wrap import PackageDefinition
 
     # Copied from typeshed. Blarg that they don't expose this
@@ -93,6 +93,18 @@ def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI],
     return cls(**new_dict)
 
 
+def _check_from_workspace(raw: T.Union[raw.FromWorkspace, T.Mapping[str, object]],
+                          from_workspace: T.Optional[object],
+                          msg: str) -> bool:
+    if not from_workspace:
+        if raw.get('workspace', False) or \
+                any(isinstance(v, dict) and v.get('workspace', False) for v in raw):
+            raise MesonException(f'Cargo.toml file requests {msg} from workspace')
+
+        return False
+
+    return bool(raw.get('workspace', False))
+
 @T.overload
 def _inherit_from_workspace(raw: raw.Package,
                             raw_from_workspace: T.Optional[T.Mapping[str, object]],
@@ -112,12 +124,7 @@ def _inherit_from_workspace(raw_: T.Union[raw.FromWorkspace, raw.Package, raw.De
     # allow accesses by non-literal key below
     raw = T.cast('T.Mapping[str, object]', raw_)
 
-    if not raw_from_workspace:
-        if raw.get('workspace', False) or \
-                any(isinstance(v, dict) and v.get('workspace', False) for v in raw):
-            raise MesonException(f'Cargo.toml file requests {msg} from workspace')
-
-        return raw
+    from_workspace = _check_from_workspace(raw, raw_from_workspace, msg)
 
     result = {k: v for k, v in raw.items() if k != 'workspace'}
     for k, v in raw.items():
@@ -129,7 +136,7 @@ def _inherit_from_workspace(raw_: T.Union[raw.FromWorkspace, raw.Package, raw.De
             else:
                 del result[k]
 
-    if raw.get('workspace', False):
+    if from_workspace:
         for k, v in raw_from_workspace.items():
             if k not in result or k in kwargs:
                 if k in kwargs:
@@ -338,6 +345,13 @@ class Library(BuildTarget['raw.LibTarget']):
     crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['lib'])
     doc_scrape_examples: bool = True
 
+    def __post_init__(self) -> None:
+        # If proc_macro is True, it takes precedence and sets crate_type to proc-macro
+        if self.proc_macro:
+            self.crate_type = ['proc-macro']
+        # If crate_type contains 'proc-macro', that's also valid
+        # (no need to change anything, crate_type is already set correctly)
+
     @classmethod
     def from_raw(cls, raw: raw.LibTarget, fallback_name: str) -> Self:  # type: ignore[override]
         # We need to set the name field if it's not set manually, including if
@@ -396,12 +410,70 @@ class Example(BuildTarget['raw.BuildTarget']):
     """Representation of a Cargo Example Entry."""
 
     crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['bin'])
+    doc_scrape_examples: bool = False
 
     @classmethod
     def from_raw(cls, raw: raw.BuildTarget) -> Self:
         if 'path' not in raw:
             raw['path'] = os.path.join('examples', raw['name'] + '.rs')
         return super().from_raw(raw)
+
+
+@dataclasses.dataclass
+class Lint:
+
+    """Cargo Lint definition.
+    """
+
+    name: str
+    level: LINT_LEVEL
+    priority: int
+    check_cfg: T.Optional[T.List[str]]
+
+    @classmethod
+    def from_raw(cls, r: T.Union[raw.FromWorkspace, T.Dict[str, T.Dict[str, raw.LintV]]],
+                 workspace: T.Optional[Workspace] = None) -> T.List[Lint]:
+        if _check_from_workspace(r, workspace.lints if workspace else None, 'Lints'):
+            return cls.from_raw(workspace.lints)
+
+        r = T.cast('T.Dict[str, T.Dict[str, raw.LintV]]', r)
+        lints: T.Dict[str, Lint] = {}
+        for tool, raw_lints in r.items():
+            prefix = '' if tool == 'rust' else f'{tool}::'
+            for name, settings in raw_lints.items():
+                name = prefix + name
+                if isinstance(settings, str):
+                    settings = T.cast('raw.Lint', {'level': settings})
+                check_cfg = None
+                if name == 'unexpected_cfgs':
+                    # 'cfg(test)' is added automatically by cargo
+                    check_cfg = ['cfg(test)'] + settings.get('check-cfg', [])
+                lints[name] = Lint(name=name,
+                                   level=settings['level'],
+                                   priority=settings.get('priority', 0),
+                                   check_cfg=check_cfg)
+
+        lints_final = list(lints.values())
+        lints_final.sort(key=lambda x: x.priority)
+        return lints_final
+
+    def to_arguments(self, check_cfg: bool) -> T.List[str]:
+        if self.level == "deny":
+            flag = "-D"
+        elif self.level == "allow":
+            flag = "-A"
+        elif self.level == "warn":
+            flag = "-W"
+        elif self.level == "forbid":
+            flag = "-F"
+        else:
+            raise MesonException(f"invalid level {self.level!r} for {self.name}")
+        args = [flag, self.name]
+        if check_cfg and self.check_cfg:
+            for arg in self.check_cfg:
+                args.append('--check-cfg')
+                args.append(arg)
+        return args
 
 
 @dataclasses.dataclass
@@ -429,11 +501,37 @@ class Manifest:
     example: T.List[Example] = dataclasses.field(default_factory=list)
     features: T.Dict[str, T.List[str]] = dataclasses.field(default_factory=dict)
     target: T.Dict[str, T.Dict[str, Dependency]] = dataclasses.field(default_factory=dict)
+    lints: T.List[Lint] = dataclasses.field(default_factory=list)
+
+    # irrelevant and should not warn, but no need to convert it to dataclass
+    badges: T.Optional[T.Dict[str, raw.Badge]] = None
+
+    # missing: workspace, profile
 
     path: str = ''
 
     def __post_init__(self) -> None:
         self.features.setdefault('default', [])
+
+    def machines_from(self, parent_machine: MachineChoice) -> T.Iterable[MachineChoice]:
+        """Return the machines this manifest should be built for based on the machine
+           for the package that depended on this one."""
+        if self.lib is None:
+            # No support for bin, test, etc.
+            return
+
+        need_build = False
+        need_host = False
+        for crate_type in self.lib.crate_type:
+            if crate_type == 'proc-macro' or parent_machine == MachineChoice.BUILD:
+                need_build = True
+            else:
+                need_host = True
+
+        if need_build:
+            yield MachineChoice.BUILD
+        if need_host:
+            yield MachineChoice.HOST
 
     @lazy_property
     def system_dependencies(self) -> T.Dict[str, SystemDependency]:
@@ -452,6 +550,7 @@ class Manifest:
                                   dependencies=lambda x: {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()},
                                   dev_dependencies=lambda x: {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()},
                                   build_dependencies=lambda x: {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()},
+                                  lints=lambda x: Lint.from_raw(x, workspace),
                                   lib=lambda x: Library.from_raw(x, raw['package']['name']),
                                   bin=lambda x: [Binary.from_raw(b) for b in x],
                                   test=lambda x: [Test.from_raw(b) for b in x],
@@ -477,7 +576,7 @@ class Workspace:
     # inheritable settings are kept in raw format, for use with _inherit_from_workspace
     package: T.Optional[raw.Package] = None
     dependencies: T.Dict[str, raw.Dependency] = dataclasses.field(default_factory=dict)
-    lints: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
+    lints: T.Dict[str, T.Dict[str, raw.LintV]] = dataclasses.field(default_factory=dict)
     metadata: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
 
     # A workspace can also have a root package.

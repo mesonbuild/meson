@@ -104,6 +104,7 @@ class RustCompiler(Compiler):
         self.native_static_libs: T.List[str] = []
         self.is_beta = '-beta' in full_version
         self.is_nightly = '-nightly' in full_version
+        self.has_check_cfg = version_compare(version, '>=1.80.0')
 
     def needs_static_linker(self) -> bool:
         return False
