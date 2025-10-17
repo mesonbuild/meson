@@ -119,35 +119,38 @@ class Lexer:
             ('id', IDENT_RE),
             ('number', re.compile(r'0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|0|[1-9]\d*')),
             ('eol_cont', re.compile(r'\\[ \t]*(#.*)?\n')),
-            ('eol', re.compile(r'\n')),
             ('multiline_string', re.compile(r"'''(.|\n)*?'''", re.M)),
             ('comment', re.compile(r'#.*')),
-            ('lparen', re.compile(r'\(')),
-            ('rparen', re.compile(r'\)')),
-            ('lbracket', re.compile(r'\[')),
-            ('rbracket', re.compile(r'\]')),
-            ('lcurl', re.compile(r'\{')),
-            ('rcurl', re.compile(r'\}')),
-            ('dblquote', re.compile(r'"')),
             ('string', re.compile(r"'([^'\\]|(\\.))*'")),
-            ('comma', re.compile(r',')),
             ('plusassign', re.compile(r'\+=')),
-            ('dot', re.compile(r'\.')),
-            ('plus', re.compile(r'\+')),
-            ('dash', re.compile(r'-')),
-            ('star', re.compile(r'\*')),
-            ('percent', re.compile(r'%')),
-            ('fslash', re.compile(r'/')),
-            ('colon', re.compile(r':')),
             ('equal', re.compile(r'==')),
             ('nequal', re.compile(r'!=')),
-            ('assign', re.compile(r'=')),
             ('le', re.compile(r'<=')),
-            ('lt', re.compile(r'<')),
             ('ge', re.compile(r'>=')),
-            ('gt', re.compile(r'>')),
-            ('questionmark', re.compile(r'\?')),
         ]
+
+        self.single_char_tokens = {
+            '\n': 'eol',
+            '(': 'lparen',
+            ')': 'rparen',
+            '[': 'lbracket',
+            ']': 'rbracket',
+            '{': 'lcurl',
+            '}': 'rcurl',
+            '"': 'dblquote',
+            ',': 'comma',
+            '.': 'dot',
+            '+': 'plus',
+            '-': 'dash',
+            '*': 'star',
+            '%': 'percent',
+            '/': 'fslash',
+            ':': 'colon',
+            '=': 'assign',
+            '<': 'lt',
+            '>': 'gt',
+            '?': 'questionmark',
+        }
 
     def getline(self, line_start: int) -> str:
         return self.code[line_start:self.code.find('\n', line_start)]
@@ -159,22 +162,25 @@ class Lexer:
         par_count = 0
         bracket_count = 0
         curl_count = 0
-        col = 0
-        while loc < len(self.code):
-            matched = False
-            value: str = ''
-            for (tid, reg) in self.token_specification:
-                mo = reg.match(self.code, loc)
-                if mo:
-                    curline = lineno
-                    curline_start = line_start
-                    col = mo.start() - line_start
-                    matched = True
-                    span_start = loc
-                    loc = mo.end()
-                    span_end = loc
-                    bytespan = (span_start, span_end)
-                    value = mo.group()
+        try:
+            while loc < len(self.code):
+                value: str
+                span_start = loc
+                col = loc - line_start
+                curline = lineno
+                curline_start = line_start
+                for (tid, reg) in self.token_specification:
+                    mo = reg.match(self.code, loc)
+                    if mo:
+                        value = mo.group()
+                        loc = mo.end()
+                        break
+                else:
+                    # lex single characters and raise an exception for invalid tokens
+                    value = self.code[loc]
+                    tid = self.single_char_tokens[value]
+                    loc += 1
+
                     if tid == 'lparen':
                         par_count += 1
                     elif tid == 'rparen':
@@ -189,39 +195,41 @@ class Lexer:
                         curl_count -= 1
                     elif tid == 'dblquote':
                         raise ParseException('Double quotes are not supported. Use single quotes.', self.getline(line_start), lineno, col)
-                    elif tid in {'string', 'fstring'}:
-                        if value.find("\n") != -1:
-                            msg = ("Newline character in a string detected, use ''' (three single quotes) "
-                                   "for multiline strings instead.\n"
-                                   "This will become a hard error in a future Meson release.")
-                            mlog.warning(mlog.code_line(msg, self.getline(line_start), col), location=BaseNode(lineno, col, filename))
-                        value = value[2 if tid == 'fstring' else 1:-1]
-                    elif tid in {'multiline_string', 'multiline_fstring'}:
-                        value = value[4 if tid == 'multiline_fstring' else 3:-3]
-                        lines = value.split('\n')
-                        if len(lines) > 1:
-                            lineno += len(lines) - 1
-                            line_start = mo.end() - len(lines[-1]) - 3
-                    elif tid == 'eol_cont':
-                        lineno += 1
-                        line_start = loc
-                        tid = 'whitespace'
                     elif tid == 'eol':
                         lineno += 1
                         line_start = loc
                         if par_count > 0 or bracket_count > 0 or curl_count > 0:
                             tid = 'whitespace'
-                    elif tid == 'id':
-                        if value in self.keywords:
-                            tid = value
-                        else:
-                            if value in self.future_keywords:
-                                mlog.warning(f"Identifier '{value}' will become a reserved keyword in a future release. Please rename it.",
-                                             location=BaseNode(lineno, col, filename))
-                    yield Token(tid, filename, curline_start, curline, col, bytespan, value)
-                    break
-            if not matched:
-                raise ParseException(f'lexer: unrecognized token {self.code[loc]!r}', self.getline(line_start), lineno, loc - line_start)
+
+                if tid in {'string', 'fstring'}:
+                    if value.find("\n") != -1:
+                        msg = ("Newline character in a string detected, use ''' (three single quotes) "
+                               "for multiline strings instead.\n"
+                               "This will become a hard error in a future Meson release.")
+                        mlog.warning(mlog.code_line(msg, self.getline(line_start), col), location=BaseNode(lineno, col, filename))
+                    value = value[2 if tid == 'fstring' else 1:-1]
+                elif tid in {'multiline_string', 'multiline_fstring'}:
+                    value = value[4 if tid == 'multiline_fstring' else 3:-3]
+                    lines = value.split('\n')
+                    if len(lines) > 1:
+                        lineno += len(lines) - 1
+                        line_start = loc - len(lines[-1]) - 3
+                elif tid == 'eol_cont':
+                    lineno += 1
+                    line_start = loc
+                    tid = 'whitespace'
+                elif tid == 'id':
+                    if value in self.keywords:
+                        tid = value
+                    else:
+                        if value in self.future_keywords:
+                            mlog.warning(f"Identifier '{value}' will become a reserved keyword in a future release. Please rename it.",
+                                         location=BaseNode(lineno, col, filename))
+                bytespan = (span_start, loc)
+                yield Token(tid, filename, curline_start, curline, col, bytespan, value)
+
+        except KeyError:
+            raise ParseException(f'lexer: unrecognized token {self.code[loc]!r}', self.getline(line_start), lineno, loc - line_start)
 
 @dataclass
 class BaseNode:
