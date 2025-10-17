@@ -1801,7 +1801,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         'local_program',
         DEPENDS_KW,
         DEPEND_FILES_KW,
-        KwargInfo('interpreter', (ExternalProgram, NoneType), default=None),
+        KwargInfo('interpreter', (NoneType, ExternalProgram, ContainerTypeInfo(list, (ExternalProgram, str))), default=None),
     )
     def func_local_program(self, node: mparser.BaseNode, args: T.Tuple[T.Union[mesonlib.FileOrString, build.Executable, build.CustomTarget, build.CustomTargetIndex]],
                            kwargs: kwtypes.LocalProgram) -> build.LocalProgram:
@@ -1810,7 +1810,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def _local_program_impl(self, exe: T.Union[mesonlib.FileOrString, build.Executable, build.CustomTarget, build.CustomTargetIndex],
                             depends_: T.Optional[T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]] = None,
                             depend_files_: T.Optional[T.List[mesonlib.FileOrString]] = None,
-                            interpreter: T.Optional[ExternalProgram] = None) -> build.LocalProgram:
+                            interpreter: T.Optional[T.Union[ExternalProgram, T.List[T.Union[ExternalProgram, str]]]] = None) -> build.LocalProgram:
         if isinstance(exe, build.CustomTarget):
             if len(exe.outputs) != 1:
                 raise InvalidArguments('CustomTarget used as LocalProgram must have exactly one output.')
@@ -1824,11 +1824,17 @@ class Interpreter(InterpreterBase, HoldableObject):
         if interpreter:
             if not isinstance(exe, (build.CustomTarget, build.CustomTargetIndex)):
                 raise InvalidArguments('The "interpreter" argument can only be used when the first argument is a custom target.')
+            if isinstance(interpreter, list):
+                interpreter, args = interpreter[0], interpreter[1:]
+                if not isinstance(interpreter, ExternalProgram) or any(not isinstance(a, str) for a in args):
+                    raise InvalidArguments('Interpreter must be an ExternalProgram followed by strings.')
+            else:
+                args = []
             if not interpreter.found():
                 raise InvalidArguments(f'Specified interpreter program {interpreter.description()!r} not found.')
             target = exe.target if isinstance(exe, build.CustomTargetIndex) else exe
             depends.append(target)
-            cmd = interpreter.get_command() + [self.backend.get_target_filename(exe)]
+            cmd = interpreter.get_command() + args + [self.backend.get_target_filename(exe)]
             prog = ExternalProgram(exe.name, command=cmd, silent=True)
             return build.LocalProgram(prog, self.project_version, depends, depend_files)
         return build.LocalProgram(exe, self.project_version, depends, depend_files)

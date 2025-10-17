@@ -36,8 +36,10 @@ kwargs:
       after those targets have been built.
 
   interpreter:
-    type: external_program
+    type: external_program | array[external_program | str]
     description: |
       When the program is a [[@custom_tgt]], Meson cannot derive the interpreter
       from the file's "shebang" (`#!`) line before it's built. If needed, this
       argument allows specifying an interpreter for the script.
+      If arguments are needed for the interpreter, an array can be passed where
+      the first element is the interpreter program and the rest are strings.

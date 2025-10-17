@@ -63,3 +63,6 @@ assert(prog5.found())
 if host_machine.system() != 'windows'
   test('test-prog5', prog5)
 endif
+
+prog6 = local_program(prog_ct, interpreter: [python3, '-B'])
+test('test-prog6', prog6)
