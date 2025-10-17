@@ -827,7 +827,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         if extra_args is None:
             extra_args = []
 
-        with TemporaryDirectoryWinProof(dir=temp_dir) as tmpdirname:
+        with TemporaryDirectoryWinProof(dir=temp_dir if temp_dir else None) as tmpdirname:
             no_ccache = False
             if isinstance(code, str):
                 srcname = os.path.join(tmpdirname,
