@@ -134,7 +134,7 @@ class Package:
     """Representation of a Cargo Package entry, with defaults filled in."""
 
     name: str
-    version: str
+    version: str = "0"
     description: T.Optional[str] = None
     resolver: T.Optional[str] = None
     authors: T.List[str] = dataclasses.field(default_factory=list)
