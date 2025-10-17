@@ -101,6 +101,31 @@ class Interpreter:
     def get_build_def_files(self) -> T.List[str]:
         return self.build_def_files
 
+    def load_package(self, path: str = '.') -> T.Union[WorkspaceState, PackageState]:
+        """Load the root Cargo.toml package and prepare it with features and dependencies."""
+        pkgs: T.Iterable[PackageState]
+        ret: T.Union[WorkspaceState, PackageState]
+        if path == '.':
+            manifest = self._load_manifest(path)
+            if isinstance(manifest, Workspace):
+                ret = self._get_workspace(manifest, path)
+                pkgs = list(ret.packages[m] for m in ret.workspace.default_members)
+            else:
+                key = PackageKey(manifest.package.name, manifest.package.api)
+                if key not in self.packages:
+                    self.packages[key] = PackageState(manifest, False)
+                ret = self.packages[key]
+                pkgs = [ret]
+        else:
+            ws = self.workspaces['.']
+            ret = ws.packages[path]
+            pkgs = [ret]
+
+        for pkg in pkgs:
+            self._prepare_package(pkg)
+            self._enable_feature(pkg, 'default')
+        return ret
+
     def interpret(self, subdir: str, project_root: T.Optional[str] = None) -> mparser.CodeBlockNode:
         manifest = self._load_manifest(subdir)
         filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')
@@ -189,6 +214,7 @@ class Interpreter:
         return build.block(ast)
 
     def _load_workspace_member(self, ws: WorkspaceState, m: str) -> None:
+        print(m)
         m = os.path.normpath(m)
         # Load member's manifest
         m_subdir = os.path.join(ws.subdir, m)

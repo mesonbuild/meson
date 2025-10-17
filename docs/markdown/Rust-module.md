@@ -4,6 +4,9 @@ authors:
     - name: Dylan Baker
       email: dylan@pnwbakers.com
       years: [2020, 2021, 2022, 2024]
+    - name: Paolo Bonzini
+      email: bonzini@gnu.org
+      years: [2025]
 ...
 
 # Rust module
@@ -168,3 +171,21 @@ Only a subset of [[shared_library]] keyword arguments are allowed:
 - link_depends
 - link_with
 - override_options
+
+### workspace()
+
+```meson
+rustmod.workspace(...)
+```
+
+*Since 1.10.0*
+
+Create and return a `workspace` object for managing the project's Cargo
+workspace.
+
+The function must be called in a project with `Cargo.lock` and `Cargo.toml`
+files in the root source directory.  While the object currently has
+no methods, upon its creation Meson analyzes the `Cargo.toml` file and
+computes the full set of dependencies and features needed to build the
+package in `Cargo.toml`.  Therefore, this function should be invoked before
+using Cargo subprojects.  Methods will be added in future versions of Meson.
