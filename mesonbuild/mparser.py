@@ -689,6 +689,17 @@ COMPARISON_MAP: T.Mapping[str, COMPARISONS] = {
     'not in': 'not in',
 }
 
+ADDSUB_MAP: T.Mapping[str, ARITH_OPERATORS] = {
+    'plus': 'add',
+    'dash': 'sub',
+}
+
+MULDIV_MAP: T.Mapping[str, ARITH_OPERATORS] = {
+    'percent': 'mod',
+    'star': 'mul',
+    'fslash': 'div',
+}
+
 # Recursive descent parser for Meson's definition language.
 # Very basic apart from the fact that we have many precedence
 # levels so there are not enough words to describe them all.
@@ -850,32 +861,23 @@ class Parser:
         return left
 
     def e5(self) -> BaseNode:
-        op_map = {
-            'plus': 'add',
-            'dash': 'sub',
-        }
         left = self.e6()
         while True:
-            op = self.accept_any(op_map)
+            op = self.accept_any(ADDSUB_MAP)
             if op:
                 operator = self.create_node(SymbolNode, self.previous)
-                left = self.create_node(ArithmeticNode, op_map[op], left, operator, self.e6())
+                left = self.create_node(ArithmeticNode, ADDSUB_MAP[op], left, operator, self.e6())
             else:
                 break
         return left
 
     def e6(self) -> BaseNode:
-        op_map = {
-            'percent': 'mod',
-            'star': 'mul',
-            'fslash': 'div',
-        }
         left = self.e7()
         while True:
-            op = self.accept_any(op_map)
+            op = self.accept_any(MULDIV_MAP)
             if op:
                 operator = self.create_node(SymbolNode, self.previous)
-                left = self.create_node(ArithmeticNode, op_map[op], left, operator, self.e7())
+                left = self.create_node(ArithmeticNode, MULDIV_MAP[op], left, operator, self.e7())
             else:
                 break
         return left
