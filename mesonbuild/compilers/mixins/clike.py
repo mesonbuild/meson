@@ -1090,10 +1090,8 @@ class CLikeCompiler(Compiler):
     @staticmethod
     def _get_file_from_list(env: Environment, paths: T.List[str]) -> T.Optional[Path]:
         '''
-        We just check whether the library exists. We can't do a link check
-        because the library might have unresolved symbols that require other
-        libraries. On macOS we check if the library matches our target
-        architecture.
+        Check whether the library exists by filename. On macOS, we also
+        check if the library matches our target architecture.
         '''
         for p in paths:
             if os.path.isfile(p):
@@ -1147,17 +1145,28 @@ class CLikeCompiler(Compiler):
         except (mesonlib.MesonException, KeyError): # TODO evaluate if catching KeyError is wanted here
             elf_class = 0
         # Search in the specified dirs, and then in the system libraries
+        largs = self.get_linker_always_args() + self.get_allow_undefined_link_args()
+        lcargs = self.linker_to_compiler_args(largs)
         for d in itertools.chain(extra_dirs, [] if ignore_system_dirs else self.get_library_dirs(env, elf_class)):
             for p in patterns:
                 trials = self._get_trials_from_pattern(p, d, libname)
                 if not trials:
                     continue
-                trial = self._get_file_from_list(env, trials)
-                if not trial:
+
+                trial_result = ""
+                for trial in trials:
+                    if not os.path.isfile(trial):
+                        continue
+                    extra_args = [trial] + lcargs
+                    if self.links(code, env, extra_args=extra_args, disable_cache=True)[0]:
+                        trial_result = trial
+                        break
+
+                if not trial_result:
                     continue
-                if libname.startswith('lib') and trial.name.startswith(libname) and lib_prefix_warning:
+                if libname.startswith('lib') and trial_result.startswith(libname) and lib_prefix_warning:
                     mlog.warning(f'find_library({libname!r}) starting in "lib" only works by accident and is not portable')
-                return [trial.as_posix()]
+                return [Path(trial_result).as_posix()]
         return None
 
     def _find_library_impl(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
