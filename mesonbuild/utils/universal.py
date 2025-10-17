@@ -133,6 +133,7 @@ __all__ = [
     'is_wsl',
     'iter_regexin_iter',
     'join_args',
+    'join_paths',
     'lazy_property',
     'listify',
     'listify_array_value',
@@ -2502,3 +2503,13 @@ class lazy_property(T.Generic[_T]):
         value = self.__func(instance)
         setattr(instance, self.__name, value)
         return value
+
+
+def _join_paths(*parts: str) -> str:
+    return os.path.join(*parts).replace(os.sep, os.altsep)
+
+join_paths: T.Callable[..., str]
+if os.altsep:
+    join_paths = _join_paths
+else:
+    join_paths = os.path.join
