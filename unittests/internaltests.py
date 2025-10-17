@@ -551,10 +551,14 @@ class InternalTests(unittest.TestCase):
             for i in ['libfoo.so.6.0', 'libfoo.so.5.0', 'libfoo.so.54.0', 'libfoo.so.66a.0b', 'libfoo.so.70.0.so.1',
                       'libbar.so.7.10', 'libbar.so.7.9', 'libbar.so.7.9.3']:
                 libpath = Path(tmpdir) / i
-                libpath.write_text('', encoding='utf-8')
-            found = cc._find_library_real('foo', env, [tmpdir], '', LibType.PREFER_SHARED, lib_prefix_warning=True, ignore_system_dirs=False)
+                src = libpath.with_suffix('.c')
+                with src.open('w', encoding='utf-8') as f:
+                    f.write('int meson_foobar (void) { return 0; }')
+                subprocess.check_call(['gcc', str(src), '-o', str(libpath), '-shared'])
+
+            found = cc._find_library_real('foo', env, [tmpdir], 'int main(void) { return 0; }', LibType.PREFER_SHARED, lib_prefix_warning=True, ignore_system_dirs=False)
             self.assertEqual(os.path.basename(found[0]), 'libfoo.so.54.0')
-            found = cc._find_library_real('bar', env, [tmpdir], '', LibType.PREFER_SHARED, lib_prefix_warning=True, ignore_system_dirs=False)
+            found = cc._find_library_real('bar', env, [tmpdir], 'int main(void) { return 0; }', LibType.PREFER_SHARED, lib_prefix_warning=True, ignore_system_dirs=False)
             self.assertEqual(os.path.basename(found[0]), 'libbar.so.7.10')
 
     def test_find_library_patterns(self):
@@ -610,16 +614,21 @@ class InternalTests(unittest.TestCase):
         https://github.com/mesonbuild/meson/issues/3951
         '''
         def create_static_lib(name):
-            if not is_osx():
-                name.open('w', encoding='utf-8').close()
-                return
             src = name.with_suffix('.c')
             out = name.with_suffix('.o')
             with src.open('w', encoding='utf-8') as f:
                 f.write('int meson_foobar (void) { return 0; }')
             # use of x86_64 is hardcoded in run_tests.py:get_fake_env()
-            subprocess.check_call(['clang', '-c', str(src), '-o', str(out), '-arch', 'x86_64'])
+            if is_osx():
+                subprocess.check_call(['clang', '-c', str(src), '-o', str(out), '-arch', 'x86_64'])
+            else:
+                subprocess.check_call(['gcc', '-c', str(src), '-o', str(out)])
             subprocess.check_call(['ar', 'csr', str(name), str(out)])
+
+        # The test relies on some open-coded toolchain invocations for
+        # library creation in create_static_lib.
+        if is_windows() or is_cygwin():
+            return
 
         with tempfile.TemporaryDirectory() as tmpdir:
             pkgbin = ExternalProgram('pkg-config', command=['pkg-config'], silent=True)
