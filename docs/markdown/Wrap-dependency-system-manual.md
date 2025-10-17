@@ -367,6 +367,11 @@ Since *1.5.0* Cargo wraps can also be provided with `Cargo.lock` file at the roo
 of (sub)project source tree. Meson will automatically load that file and convert
 it into a series of wraps definitions.
 
+Since *1.10.0* Workspace Cargo.toml are supported. For the time being it is
+recommended to regroup all Cargo dependencies inside a single workspace invoked
+from the main Meson project. When invoking multiple different Cargo subprojects
+from Meson, feature resolution of common dependencies might be wrong.
+
 ## Using wrapped projects
 
 Wraps provide a convenient way of obtaining a project into your
