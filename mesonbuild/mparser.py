@@ -676,6 +676,8 @@ if T.TYPE_CHECKING:
     COMPARISONS = Literal['==', '!=', '<', '<=', '>=', '>', 'in', 'not in']
     ARITH_OPERATORS = Literal['add', 'sub', 'mul', 'div', 'mod']
 
+ALL_STRINGS = frozenset({'string', 'fstring', 'multiline_string', 'multiline_fstring'})
+
 COMPARISON_MAP: T.Mapping[str, COMPARISONS] = {
     'equal': '==',
     'nequal': '!=',
@@ -744,7 +746,7 @@ class Parser:
             return True
         return False
 
-    def accept_any(self, tids: T.Tuple[str, ...]) -> str:
+    def accept_any(self, tids: T.Union[T.AbstractSet[str], T.Mapping[str, object]]) -> str:
         tid = self.current.tid
         if tid in tids:
             self.getsym()
@@ -827,10 +829,10 @@ class Parser:
 
     def e4(self) -> BaseNode:
         left = self.e5()
-        for nodename, operator_type in COMPARISON_MAP.items():
-            if self.accept(nodename):
-                operator = self.create_node(SymbolNode, self.previous)
-                return self.create_node(ComparisonNode, operator_type, left, operator, self.e5())
+        op = self.accept_any(COMPARISON_MAP)
+        if op:
+            operator = self.create_node(SymbolNode, self.previous)
+            return self.create_node(ComparisonNode, COMPARISON_MAP[op], left, operator, self.e5())
         if self.accept('not'):
             ws = self.current_ws.copy()
             not_token = self.previous
@@ -854,7 +856,7 @@ class Parser:
         }
         left = self.e6()
         while True:
-            op = self.accept_any(tuple(op_map.keys()))
+            op = self.accept_any(op_map)
             if op:
                 operator = self.create_node(SymbolNode, self.previous)
                 left = self.create_node(ArithmeticNode, op_map[op], left, operator, self.e6())
@@ -870,7 +872,7 @@ class Parser:
         }
         left = self.e7()
         while True:
-            op = self.accept_any(tuple(op_map.keys()))
+            op = self.accept_any(op_map)
             if op:
                 operator = self.create_node(SymbolNode, self.previous)
                 left = self.create_node(ArithmeticNode, op_map[op], left, operator, self.e7())
@@ -946,7 +948,7 @@ class Parser:
             return self.create_node(IdNode, t)
         if self.accept('number'):
             return self.create_node(NumberNode, t)
-        if self.accept_any(('string', 'fstring', 'multiline_string', 'multiline_fstring')):
+        if self.accept_any(ALL_STRINGS):
             return self.create_node(StringNode, t)
         return EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
 
