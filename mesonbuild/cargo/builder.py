@@ -202,7 +202,7 @@ class Builder:
         :param rhs: The right of the addition
         :return: The ArithmeticNode
         """
-        return mparser.ArithmeticNode('add', lhs, self._symbol('+'), rhs)
+        return mparser.ArithmeticNode('+', lhs, self._symbol('+'), rhs)
 
     def plusassign(self, value: mparser.BaseNode, varname: str) -> mparser.PlusAssignmentNode:
         """Create a "+=" node
