@@ -1,0 +1,3 @@
+[wrap-file]
+directory = hello-1.0
+method = cargo

@@ -1,0 +1,14 @@
+[workspace]
+members = ["."]
+
+[package]
+name = "workspace_test"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["dep:answer"]
+
+[dependencies]
+hello = { version = "1.0", path = "subprojects/hello-1.0" }
+answer = { version = "2.1", path = "subprojects/answer-2.1", optional = true }
