@@ -676,7 +676,7 @@ if T.TYPE_CHECKING:
     COMPARISONS = Literal['==', '!=', '<', '<=', '>=', '>', 'in', 'not in']
     ARITH_OPERATORS = Literal['add', 'sub', 'mul', 'div', 'mod']
 
-comparison_map: T.Mapping[str, COMPARISONS] = {
+COMPARISON_MAP: T.Mapping[str, COMPARISONS] = {
     'equal': '==',
     'nequal': '!=',
     'lt': '<',
@@ -827,7 +827,7 @@ class Parser:
 
     def e4(self) -> BaseNode:
         left = self.e5()
-        for nodename, operator_type in comparison_map.items():
+        for nodename, operator_type in COMPARISON_MAP.items():
             if self.accept(nodename):
                 operator = self.create_node(SymbolNode, self.previous)
                 return self.create_node(ComparisonNode, operator_type, left, operator, self.e5())
