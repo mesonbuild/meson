@@ -350,6 +350,9 @@ class _BaseBuildTarget(TypedDict):
     override_options: T.Dict[OptionKey, options.ElementaryOptionValues]
     depend_files: NotRequired[T.List[File]]
     resources: T.List[str]
+    vala_header: T.Optional[str]
+    vala_vapi: T.Optional[str]
+    vala_gir: T.Optional[str]
 
 
 class _BuildTarget(_BaseBuildTarget):

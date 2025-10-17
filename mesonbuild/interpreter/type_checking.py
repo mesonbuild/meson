@@ -673,6 +673,9 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
         validator=in_set_validator(set(compilers.all_languages)),
         since='0.51.0',
     ),
+    KwargInfo('vala_gir', (str, NoneType)),
+    KwargInfo('vala_header', (str, NoneType)),
+    KwargInfo('vala_vapi', (str, NoneType)),
 ]
 
 def _validate_win_subsystem(value: T.Optional[str]) -> T.Optional[str]:
