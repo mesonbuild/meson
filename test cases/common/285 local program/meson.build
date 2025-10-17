@@ -54,3 +54,12 @@ prog4 = find_program('prog4')
 assert(prog4.version() == '2.0')
 assert(prog4.found())
 test('test-prog4', prog4)
+
+# A custom target can be passed directly, but it won't run on Windows.
+meson.override_find_program('prog5', prog_ct)
+prog5 = find_program('prog5')
+assert(prog5.version() == '2.0')
+assert(prog5.found())
+if host_machine.system() != 'windows'
+  test('test-prog5', prog5)
+endif
