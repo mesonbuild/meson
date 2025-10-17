@@ -20,8 +20,7 @@ from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
     OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator
 )
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs, permittedKwargs
-from ..interpreterbase.baseobjects import TYPE_kwargs
+from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
 from ..interpreter.interpreterobjects import Doctest
 from ..mesonlib import File, MachineChoice, MesonException, PerMachine
 from ..programs import ExternalProgram, NonExistingExternalProgram
@@ -67,6 +66,9 @@ if T.TYPE_CHECKING:
         language: T.Optional[Literal['c', 'cpp']]
         bindgen_version: T.List[str]
 
+    class FuncWorkspace(TypedDict):
+        default_features: T.Optional[bool]
+        features: T.List[str]
 
 RUST_TEST_KWS: T.List[KwargInfo] = [
      KwargInfo(
@@ -525,8 +527,17 @@ class RustModule(ExtensionModule):
 
     @FeatureNew('rust.workspace', '1.11.0')
     @noPosargs
-    @noKwargs
-    def workspace(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> RustWorkspace:
+    @typed_kwargs(
+        'rust.workspace',
+        KwargInfo('default_features', (bool, NoneType), default=None),
+        KwargInfo(
+            'features',
+            (ContainerTypeInfo(list, str), NoneType),
+            default=None,
+            listify=True,
+        ),
+    )
+    def workspace(self, state: ModuleState, args: T.List, kwargs: FuncWorkspace) -> RustWorkspace:
         """Creates a Rust workspace object, controlling the build of
            all the packages in a Cargo.lock file."""
         if self.interpreter.cargo is None:
@@ -534,6 +545,18 @@ class RustModule(ExtensionModule):
 
         self.interpreter.add_languages(['rust'], True, MachineChoice.HOST)
         self.interpreter.add_languages(['rust'], True, MachineChoice.BUILD)
+
+        default_features = kwargs['default_features']
+        features = kwargs['features']
+        if default_features is not None or features is not None:
+            # If custom features are provided, default_features = None should be treated as True
+            if default_features is None:
+                default_features = True
+
+            cargo_features = ['default'] if default_features else []
+            if features is not None:
+                cargo_features.extend(features)
+            self.interpreter.cargo.features = cargo_features
 
         ws = self.interpreter.cargo.load_workspace(state.root_subdir)
         return RustWorkspace(self.interpreter, ws)
