@@ -183,9 +183,21 @@ rustmod.workspace(...)
 Create and return a `workspace` object for managing the project's Cargo
 workspace.
 
+Keyword arguments:
+- `default_features`: (`bool`, optional) Whether to enable default features.
+  If not specified and `features` is provided, defaults to true.
+- `features`: (`list[str]`, optional) List of additional features to enable globally
+
 The function must be called in a project with `Cargo.lock` and `Cargo.toml`
 files in the root source directory.  While the object currently has
 no methods, upon its creation Meson analyzes the `Cargo.toml` file and
 computes the full set of dependencies and features needed to build the
 package in `Cargo.toml`.  Therefore, this function should be invoked before
 using Cargo subprojects.  Methods will be added in future versions of Meson.
+
+If either argument is provided, the build will use a custom set of features.
+Features can only be set once - subsequent calls will fail if different features
+are specified.
+
+When `features` is provided without `default_features`, the 'default' feature is
+automatically included.

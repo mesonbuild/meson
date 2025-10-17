@@ -20,7 +20,7 @@ import typing as T
 from . import builder, version, cfg
 from .toml import load_toml
 from .manifest import Manifest, CargoLock, Workspace, fixup_meson_varname
-from ..mesonlib import MesonException, MachineChoice, version_compare
+from ..mesonlib import MesonException, MachineChoice, unique_list, version_compare
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
 
@@ -80,6 +80,8 @@ class WorkspaceState:
 
 
 class Interpreter:
+    _features: T.Optional[T.List[str]] = None
+
     def __init__(self, env: Environment, subdir: str, subprojects_dir: str) -> None:
         self.environment = env
         # Map Cargo.toml's subdir to loaded manifest.
@@ -97,6 +99,21 @@ class Interpreter:
         if self.cargolock:
             self.environment.wrap_resolver.merge_wraps(self.cargolock.wraps)
             self.build_def_files.append(filename)
+
+    @property
+    def features(self) -> T.List[str]:
+        """Get the features list. Once read, it cannot be modified."""
+        if self._features is None:
+            self._features = ['default']
+        return self._features
+
+    @features.setter
+    def features(self, value: T.List[str]) -> None:
+        """Set the features list. Can only be set before first read."""
+        value_unique = sorted(unique_list(value))
+        if self._features is not None and value_unique != self._features:
+            raise MesonException("Cannot modify features after they have been selected or used")
+        self._features = value_unique
 
     def get_build_def_files(self) -> T.List[str]:
         return self.build_def_files
@@ -123,7 +140,8 @@ class Interpreter:
 
         for pkg in pkgs:
             self._prepare_package(pkg)
-            self._enable_feature(pkg, 'default')
+            for feature in self.features:
+                self._enable_feature(pkg, feature)
         return ret
 
     def interpret(self, subdir: str, project_root: T.Optional[str] = None) -> mparser.CodeBlockNode:
