@@ -227,6 +227,15 @@ class Interpreter:
     def get_build_def_files(self) -> T.List[str]:
         return self.build_def_files
 
+    def load_workspace(self, subdir: str) -> WorkspaceState:
+        """Load the root Cargo.toml package and prepare it with features and dependencies."""
+        subdir = os.path.normpath(subdir)
+        manifest, cached = self._load_manifest(subdir)
+        ws = self._get_workspace(manifest, subdir, False)
+        if not cached:
+            self._prepare_entry_point(ws)
+        return ws
+
     def _prepare_entry_point(self, ws: WorkspaceState) -> None:
         pkgs = [self._require_workspace_member(ws, m) for m in ws.workspace.default_members]
         for pkg in pkgs:
@@ -234,18 +243,16 @@ class Interpreter:
             self._enable_feature(pkg, 'default')
 
     def interpret(self, subdir: str, project_root: T.Optional[str] = None) -> mparser.CodeBlockNode:
-        manifest, cached = self._load_manifest(subdir)
         filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')
         build = builder.Builder(filename)
         if project_root:
             # this is a subdir()
+            manifest, _ = self._load_manifest(subdir)
             assert isinstance(manifest, Manifest)
             return self.interpret_package(manifest, build, subdir, project_root)
-
-        ws = self._get_workspace(manifest, subdir, downloaded=False)
-        if not cached:
-            self._prepare_entry_point(ws)
-        return self.interpret_workspace(ws, build, subdir)
+        else:
+            ws = self.load_workspace(subdir)
+            return self.interpret_workspace(ws, build, subdir)
 
     def interpret_package(self, manifest: Manifest, build: builder.Builder, subdir: str, project_root: str) -> mparser.CodeBlockNode:
         # Build an AST for this package

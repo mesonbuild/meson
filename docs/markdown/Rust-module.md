@@ -4,6 +4,9 @@ authors:
     - name: Dylan Baker
       email: dylan@pnwbakers.com
       years: [2020, 2021, 2022, 2024]
+    - name: Paolo Bonzini
+      email: bonzini@gnu.org
+      years: [2025]
 ...
 
 # Rust module
@@ -168,3 +171,22 @@ Only a subset of [[shared_library]] keyword arguments are allowed:
 - link_depends
 - link_with
 - override_options
+
+### workspace()
+
+```
+cargo_ws = rustmod.workspace()
+```
+
+*Since 1.11.0*
+
+Create and return a `workspace` object for managing the project's Cargo
+workspace.
+
+A project that wishes to use Cargo subprojects should have `Cargo.lock` and `Cargo.toml`
+files in the root source directory, and should call this function before using
+Cargo subprojects.
+
+The first invocation of `workspace()` establishes the *Cargo interpreter*
+that resolves dependencies and features for both the toplevel project (the one
+containing `Cargo.lock`) and all subprojects that are invoked with the `cargo` method,
