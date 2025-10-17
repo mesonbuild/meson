@@ -756,7 +756,7 @@ class Rewriter:
                 new_kwarg_flag = True
                 old_extra_files = target.node.args.get_kwarg_or_default('extra_files', None)
                 target.node.args.kwargs = {k: v for k, v in target.node.args.kwargs.items() if not (isinstance(k, IdNode) and k.value == 'extra_files')}
-                new_extra_files_node = ArithmeticNode('add', old_extra_files, _symbol('+'), chosen)
+                new_extra_files_node = ArithmeticNode('+', old_extra_files, _symbol('+'), chosen)
 
             tgt_function.args.kwargs[extra_files_idnode] = new_extra_files_node
 

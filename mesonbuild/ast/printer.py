@@ -25,9 +25,9 @@ def precedence_level(node: mparser.BaseNode) -> int:
     elif isinstance(node, mparser.ComparisonNode):
         return 4
     elif isinstance(node, mparser.ArithmeticNode):
-        if node.operation in {'add', 'sub'}:
+        if node.operation in {'+', '-'}:
             return 5
-        elif node.operation in {'mod', 'mul', 'div'}:
+        elif node.operation in {'%', '*', '/'}:
             return 6
     elif isinstance(node, (mparser.NotNode, mparser.UMinusNode)):
         return 7
