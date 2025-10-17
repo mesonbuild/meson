@@ -13,7 +13,7 @@ from mesonbuild.interpreterbase.decorators import FeatureNew
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mesonlib, mlog
 from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
-                     CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary, StaticLibrary)
+                     CustomTarget, InvalidArguments, Jar, LocalProgram, StructuredSources, SharedLibrary, StaticLibrary)
 from ..compilers.compilers import are_asserts_disabled_for_subproject, lang_suffixes
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
@@ -33,7 +33,6 @@ if T.TYPE_CHECKING:
     from ..interpreter import kwargs as _kwargs
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
     from ..interpreter.interpreterobjects import Test
-    from ..programs import OverrideProgram
     from ..interpreter.type_checking import SourcesVarargsType
 
     from typing_extensions import TypedDict, Literal
@@ -91,7 +90,7 @@ class RustModule(ExtensionModule):
 
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
-        self._bindgen_bin: T.Optional[T.Union[ExternalProgram, Executable, OverrideProgram]] = None
+        self._bindgen_bin: T.Optional[T.Union[ExternalProgram, LocalProgram]] = None
         if 'rust' in interpreter.compilers.host:
             rustc = T.cast('RustCompiler', interpreter.compilers.host['rust'])
             self._bindgen_rust_target = 'nightly' if rustc.is_nightly else rustc.version
@@ -375,10 +374,7 @@ class RustModule(ExtensionModule):
         if self._bindgen_bin is None:
             self._bindgen_bin = state.find_program('bindgen', wanted=kwargs['bindgen_version'])
             if self._bindgen_rust_target is not None:
-                # ExternalCommand.command's type is bonkers
-                _, _, err = mesonlib.Popen_safe(
-                    T.cast('T.List[str]', self._bindgen_bin.get_command()) +
-                    ['--rust-target', self._bindgen_rust_target])
+                _, _, err = mesonlib.Popen_safe(self._bindgen_bin.get_command() + ['--rust-target', self._bindgen_rust_target])
                 # < 0.71: Sometimes this is "invalid Rust target" and
                 # sometimes "invalid # rust target"
                 # >= 0.71: error: invalid value '...' for '--rust-target <RUST_TARGET>': "..." is not a valid Rust target, accepted values are of the form ...
@@ -386,9 +382,7 @@ class RustModule(ExtensionModule):
                 if 'Got an invalid' in err or 'is not a valid Rust target' in err:
                     self._bindgen_rust_target = None
 
-            # TODO: Executable needs to learn about get_version
-            if isinstance(self._bindgen_bin, ExternalProgram):
-                self._bindgen_set_std = mesonlib.version_compare(self._bindgen_bin.get_version(), '>= 0.71')
+            self._bindgen_set_std = mesonlib.version_compare(self._bindgen_bin.get_version(), '>= 0.71')
 
         name: str
         if isinstance(header, File):
