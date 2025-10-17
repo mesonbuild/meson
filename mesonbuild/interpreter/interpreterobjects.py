@@ -12,6 +12,7 @@ from .. import options
 from .. import build
 from .. import mlog
 
+from ..environment import detect_msys2_arch
 from ..modules import ModuleReturnValue, ModuleObject, ModuleState, ExtensionModule, NewExtensionModule
 from ..backend.backends import TestProtocol
 from ..interpreterbase import (
@@ -243,6 +244,12 @@ class RunProcess(MesonInterpreterObject):
         child_env = os.environ.copy()
         child_env.update(menv)
         child_env = env.get_env(child_env)
+        program = os.path.basename(command_array[0]).split('.')[0]
+        if detect_msys2_arch() and program.casefold() in {"sh", "bash"}:
+            msys2_env_var = child_env.get("MSYS2_ENV_CONV_EXCL")
+            if msys2_env_var != "*":
+                mlog.warning('MSYS2_ENV_CONV_EXCL isn\'t set to \'*\'. This can cause issue when running the command: ', mesonlib.join_args(command_array))
+
         stdout = subprocess.PIPE if self.capture else subprocess.DEVNULL
         mlog.debug('Running command:', mesonlib.join_args(command_array))
         try:
