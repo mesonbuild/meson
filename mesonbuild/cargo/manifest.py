@@ -26,7 +26,6 @@ if T.TYPE_CHECKING:
         __dataclass_fields__: T.ClassVar[dict[str, dataclasses.Field[T.Any]]]
 
 _DI = T.TypeVar('_DI', bound='DataclassInstance')
-_R = T.TypeVar('_R', bound='raw._BaseBuildTarget')
 
 _EXTRA_KEYS_WARNING = (
     "This may (unlikely) be an error in the cargo manifest, or may be a missing "
@@ -46,10 +45,41 @@ def fixup_meson_varname(name: str) -> str:
     return name.replace('-', '_')
 
 
-def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI],
-                      msg: str, **kwargs: T.Callable[[T.Any], object]) -> _DI:
-    """Fixup raw cargo mappings to ones more suitable for python to consume as dataclass.
+class RawValueConvertor:
+    """A callable that converts a raw value from cargo manifest to a meson value
 
+    - simple_convertor: It is called with the value from the current manifest.
+      If missing, the value inherited from the workspace is passed instead.
+    - convertor: It is called with the value from current manifest and the value
+      inherited from the workspace. Each could be None but not both.
+    - default: The value to return if both values are None.
+    """
+
+    def __init__(self,
+                 simple_convertor: T.Optional[T.Callable[[T.Any], object]] = None,
+                 convertor: T.Optional[T.Callable[[T.Any, T.Any], object]] = None,
+                 default: object = None) -> None:
+        self.simple_convertor = simple_convertor
+        self.convertor = convertor
+        self.default = default
+
+    def __call__(self, v: T.Any, ws_v: T.Any) -> object:
+        if v is None and ws_v is None:
+            return self.default
+        if self.convertor:
+            return self.convertor(v, ws_v)
+        v = v if v is not None else ws_v
+        if self.simple_convertor:
+            return self.simple_convertor(v)
+        return v
+
+
+def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI], msg: str,
+                      raw_from_workspace: T.Optional[T.Mapping[str, object]] = None,
+                      **kwargs: RawValueConvertor) -> _DI:
+    """Fixup raw cargo mappings to a dataclass.
+
+    * Inherit values from the workspace.
     * Replaces any `-` with `_` in the keys.
     * Optionally pass values through the functions in kwargs, in order to do
       recursive conversions.
@@ -60,72 +90,67 @@ def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI],
     new key is added to Cargo.toml that we don't yet handle, but to still warn
     them that things might not work.
 
-    :param data: The raw data to look at
+    :param raw: The raw data to look at
     :param cls: The Dataclass derived type that will be created
     :param msg: the header for the error message. Usually something like "In N structure".
-    :return: The original data structure, but with all unknown keys removed.
+    :param raw_from_workspace: If inheriting from a workspace, the raw data from the workspace.
+    :param kwargs: RawValueConvertor instances to convert values.
+    :return: A @cls instance.
     """
     new_dict = {}
     unexpected = set()
     fields = {x.name for x in dataclasses.fields(cls)}
+    raw_from_workspace = raw_from_workspace or {}
+    inherit = raw.get('workspace', False)
+
     for orig_k, v in raw.items():
+        if orig_k == 'workspace':
+            continue
+        ws_v = None
+        if isinstance(v, dict) and v.get('workspace', False):
+            # foo.workspace = true, take value from workspace.
+            ws_v = raw_from_workspace[orig_k]
+            v = None
+        elif inherit:
+            # foo = {}, give the workspace value, if any, to the converter
+            # function in the case it wants to merge values.
+            ws_v = raw_from_workspace.get(orig_k)
         k = fixup_meson_varname(orig_k)
         if k not in fields:
             unexpected.add(orig_k)
             continue
         if k in kwargs:
-            v = kwargs[k](v)
-        new_dict[k] = v
+            new_dict[k] = kwargs[k](v, ws_v)
+        else:
+            new_dict[k] = v if v is not None else ws_v
+
+    if inherit:
+        # Inherit any keys from the workspace that we don't have yet.
+        for orig_k, ws_v in raw_from_workspace.items():
+            k = fixup_meson_varname(orig_k)
+            if k not in fields:
+                unexpected.add(orig_k)
+                continue
+            if k in new_dict:
+                continue
+            if k in kwargs:
+                new_dict[k] = kwargs[k](None, ws_v)
+            else:
+                new_dict[k] = ws_v
+
+    # Finally, call any conversion functions for keys that are not present,
+    # to set a default value.
+    for k, convertor in kwargs.items():
+        if k not in new_dict:
+            v = convertor(None, None)
+            if v is not None:
+                new_dict[k] = v
 
     if unexpected:
         mlog.warning(msg, 'has unexpected keys', '"{}".'.format(', '.join(sorted(unexpected))),
                      _EXTRA_KEYS_WARNING)
+
     return cls(**new_dict)
-
-
-@T.overload
-def _inherit_from_workspace(raw: raw.Package,
-                            raw_from_workspace: T.Optional[T.Mapping[str, object]],
-                            msg: str,
-                            **kwargs: T.Callable[[T.Any, T.Any], object]) -> raw.Package: ...
-
-@T.overload
-def _inherit_from_workspace(raw: T.Union[raw.FromWorkspace, raw.Dependency],
-                            raw_from_workspace: T.Optional[T.Mapping[str, object]],
-                            msg: str,
-                            **kwargs: T.Callable[[T.Any, T.Any], object]) -> raw.Dependency: ...
-
-def _inherit_from_workspace(raw_: T.Union[raw.FromWorkspace, raw.Package, raw.Dependency], # type: ignore[misc]
-                            raw_from_workspace: T.Optional[T.Mapping[str, object]],
-                            msg: str,
-                            **kwargs: T.Callable[[T.Any, T.Any], object]) -> T.Mapping[str, object]:
-    # allow accesses by non-literal key below
-    raw = T.cast('T.Mapping[str, object]', raw_)
-
-    if not raw_from_workspace:
-        if raw.get('workspace', False) or \
-                any(isinstance(v, dict) and v.get('workspace', False) for v in raw):
-            raise MesonException(f'Cargo.toml file requests {msg} from workspace')
-
-        return raw
-
-    result = {k: v for k, v in raw.items() if k != 'workspace'}
-    for k, v in raw.items():
-        if isinstance(v, dict) and v.get('workspace', False):
-            if k in raw_from_workspace:
-                result[k] = raw_from_workspace[k]
-                if k in kwargs:
-                    result[k] = kwargs[k](v, result[k])
-            else:
-                del result[k]
-
-    if raw.get('workspace', False):
-        for k, v in raw_from_workspace.items():
-            if k not in result or k in kwargs:
-                if k in kwargs:
-                    v = kwargs[k](raw.get(k), v)
-                result[k] = v
-    return result
 
 
 @dataclasses.dataclass
@@ -168,12 +193,9 @@ class Package:
 
     @classmethod
     def from_raw(cls, raw_pkg: raw.Package, workspace: T.Optional[Workspace] = None) -> Self:
-        raw_ws_pkg = None
-        if workspace is not None:
-            raw_ws_pkg = workspace.package
+        raw_ws_pkg = workspace.package if workspace else None
+        return _raw_to_dataclass(raw_pkg, cls, f'Package entry {raw_pkg["name"]}', raw_ws_pkg)
 
-        raw_pkg = _inherit_from_workspace(raw_pkg, raw_ws_pkg, f'Package entry {raw_pkg["name"]}')
-        return _raw_to_dataclass(raw_pkg, cls, f'Package entry {raw_pkg["name"]}')
 
 @dataclasses.dataclass
 class SystemDependency:
@@ -189,18 +211,6 @@ class SystemDependency:
     # TODO: convert values to dataclass
     feature_overrides: T.Dict[str, T.Dict[str, str]] = dataclasses.field(default_factory=dict)
 
-    @classmethod
-    def from_raw(cls, name: str, raw: T.Union[T.Dict[str, T.Any], str]) -> SystemDependency:
-        if isinstance(raw, str):
-            raw = {'version': raw}
-        name = raw.get('name', name)
-        version = raw.get('version', '')
-        optional = raw.get('optional', False)
-        feature = raw.get('feature')
-        # Everything else are overrides when certain features are enabled.
-        feature_overrides = {k: v for k, v in raw.items() if k not in {'name', 'version', 'optional', 'feature'}}
-        return cls(name, version, optional, feature, feature_overrides)
-
     @lazy_property
     def meson_version(self) -> T.List[str]:
         vers = self.version.split(',') if self.version else []
@@ -214,6 +224,19 @@ class SystemDependency:
 
     def enabled(self, features: T.Set[str]) -> bool:
         return self.feature is None or self.feature in features
+
+    @classmethod
+    def from_raw(cls, name: str, raw: T.Union[T.Dict[str, T.Any], str]) -> Self:
+        if isinstance(raw, str):
+            raw = {'version': raw}
+        name = raw.get('name', name)
+        version = raw.get('version', '')
+        optional = raw.get('optional', False)
+        feature = raw.get('feature')
+        # Everything else are overrides when certain features are enabled.
+        feature_overrides = {k: v for k, v in raw.items() if k not in {'name', 'version', 'optional', 'feature'}}
+        return cls(name, version, optional, feature, feature_overrides)
+
 
 @dataclasses.dataclass
 class Dependency:
@@ -251,6 +274,17 @@ class Dependency:
         else:
             raise MesonException(f'Cannot determine minimum API version from {self.version}.')
 
+    def update_version(self, v: str) -> None:
+        self.version = v
+        try:
+            delattr(self, 'api')
+        except AttributeError:
+            pass
+        try:
+            delattr(self, 'meson_version')
+        except AttributeError:
+            pass
+
     @T.overload
     @staticmethod
     def _depv_to_dep(depv: raw.FromWorkspace) -> raw.FromWorkspace: ...
@@ -264,146 +298,119 @@ class Dependency:
         return {'version': depv} if isinstance(depv, str) else depv
 
     @classmethod
-    def from_raw_dict(cls, name: str, raw_dep: T.Union[raw.FromWorkspace, raw.Dependency], member_path: str = '', raw_ws_dep: T.Optional[raw.Dependency] = None) -> Dependency:
-        raw_dep = _inherit_from_workspace(raw_dep, raw_ws_dep,
-                                          f'Dependency entry {name}',
-                                          path=lambda pkg_path, ws_path: os.path.relpath(ws_path, member_path),
-                                          features=lambda pkg_path, ws_path: (pkg_path or []) + (ws_path or []))
-        raw_dep.setdefault('package', name)
-        return _raw_to_dataclass(raw_dep, cls, f'Dependency entry {name}')
-
-    @classmethod
-    def from_raw(cls, name: str, raw_depv: T.Union[raw.FromWorkspace, raw.DependencyV], member_path: str = '', workspace: T.Optional[Workspace] = None) -> Dependency:
+    def from_raw(cls, name: str, raw_depv: T.Union[raw.FromWorkspace, raw.DependencyV], member_path: str = '', workspace: T.Optional[Workspace] = None) -> Self:
         """Create a dependency from a raw cargo dictionary or string"""
-        raw_ws_dep: T.Optional[raw.Dependency] = None
-        if workspace is not None:
-            raw_ws_depv = workspace.dependencies.get(name, {})
-            raw_ws_dep = cls._depv_to_dep(raw_ws_depv)
-
+        raw_ws_dep = workspace.dependencies.get(name) if workspace else None
+        raw_ws_dep = cls._depv_to_dep(raw_ws_dep or {})
         raw_dep = cls._depv_to_dep(raw_depv)
-        return cls.from_raw_dict(name, raw_dep, member_path, raw_ws_dep)
 
-    def update_version(self, v: str) -> None:
-        self.version = v
-        try:
-            delattr(self, 'api')
-        except AttributeError:
-            pass
-        try:
-            delattr(self, 'meson_version')
-        except AttributeError:
-            pass
+        def path_convertor(path: T.Optional[str], ws_path: T.Optional[str]) -> T.Optional[str]:
+            if path:
+                return path
+            if ws_path:
+                return os.path.relpath(ws_path, member_path)
+            return None
+
+        return _raw_to_dataclass(raw_dep, cls, f'Dependency entry {name}', raw_ws_dep,
+                                 package=RawValueConvertor(default=name),
+                                 path=RawValueConvertor(convertor=path_convertor),
+                                 features=RawValueConvertor(convertor=lambda features, ws_features: (features or []) + (ws_features or [])))
 
 
 @dataclasses.dataclass
-class BuildTarget(T.Generic[_R]):
+class BuildTarget:
 
+    # https://doc.rust-lang.org/cargo/reference/cargo-targets.html
+    # Some default values are overridden in subclasses
     name: str
     path: str
-    crate_type: T.List[CRATE_TYPE]
-
-    # https://doc.rust-lang.org/cargo/reference/cargo-targets.html#the-test-field
-    # True for lib, bin, test
+    edition: EDITION
     test: bool = True
-
-    # https://doc.rust-lang.org/cargo/reference/cargo-targets.html#the-doctest-field
-    # True for lib
-    doctest: bool = False
-
-    # https://doc.rust-lang.org/cargo/reference/cargo-targets.html#the-bench-field
-    # True for lib, bin, benchmark
+    doctest: bool = True
     bench: bool = True
-
-    # https://doc.rust-lang.org/cargo/reference/cargo-targets.html#the-doc-field
-    # True for libraries and binaries
-    doc: bool = False
-
+    doc: bool = True
     harness: bool = True
-    edition: EDITION = '2015'
+    crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['bin'])
     required_features: T.List[str] = dataclasses.field(default_factory=list)
     plugin: bool = False
 
-    @classmethod
-    def from_raw(cls, raw: _R) -> Self:
-        name = raw.get('name', '<anonymous>')
-        return _raw_to_dataclass(raw, cls, f'Binary entry {name}')
 
 @dataclasses.dataclass
-class Library(BuildTarget['raw.LibTarget']):
+class Library(BuildTarget):
 
     """Representation of a Cargo Library Entry."""
 
-    doctest: bool = True
-    doc: bool = True
-    path: str = os.path.join('src', 'lib.rs')
     proc_macro: bool = False
-    crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['lib'])
-    doc_scrape_examples: bool = True
 
     @classmethod
-    def from_raw(cls, raw: raw.LibTarget, fallback_name: str) -> Self:  # type: ignore[override]
-        # We need to set the name field if it's not set manually, including if
-        # other fields are set in the lib section
-        raw.setdefault('name', fallback_name)
-        return _raw_to_dataclass(raw, cls, f'Library entry {raw["name"]}')
+    def from_raw(cls, raw: raw.LibTarget, pkg: Package) -> Self:
+        name = raw.get('name', fixup_meson_varname(pkg.name))
+        proc_macro = raw.get('proc-macro', False)
+        crate_type = 'proc-macro' if proc_macro else 'lib'
+        return _raw_to_dataclass(raw, cls, f'Library entry {name}',
+                                 name=RawValueConvertor(default=name),
+                                 path=RawValueConvertor(default='src/lib.rs'),
+                                 edition=RawValueConvertor(default=pkg.edition),
+                                 crate_type=RawValueConvertor(default=[crate_type]))
 
 
 @dataclasses.dataclass
-class Binary(BuildTarget['raw.BuildTarget']):
+class Binary(BuildTarget):
 
     """Representation of a Cargo Bin Entry."""
 
-    doc: bool = True
-    crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['bin'])
-
     @classmethod
-    def from_raw(cls, raw: raw.BuildTarget) -> Self:
-        if 'path' not in raw:
-            raw['path'] = os.path.join('bin', raw['name'] + '.rs')
-        return super().from_raw(raw)
+    def from_raw(cls, raw: raw.BuildTarget, pkg: Package) -> Self:
+        name = raw["name"]
+        return _raw_to_dataclass(raw, cls, f'Binary entry {name}',
+                                 path=RawValueConvertor(default='bin/main.rs'),
+                                 edition=RawValueConvertor(default=pkg.edition))
 
 
 @dataclasses.dataclass
-class Test(BuildTarget['raw.BuildTarget']):
+class Test(BuildTarget):
 
     """Representation of a Cargo Test Entry."""
 
-    bench: bool = True
-    crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['bin'])
-
     @classmethod
-    def from_raw(cls, raw: raw.BuildTarget) -> Self:
-        if 'path' not in raw:
-            raw['path'] = os.path.join('tests', raw['name'] + '.rs')
-        return super().from_raw(raw)
+    def from_raw(cls, raw: raw.BuildTarget, pkg: Package) -> Self:
+        name = raw["name"]
+        return _raw_to_dataclass(raw, cls, f'Test entry {name}',
+                                 path=RawValueConvertor(default=f'tests/{name}.rs'),
+                                 edition=RawValueConvertor(default=pkg.edition),
+                                 bench=RawValueConvertor(default=False),
+                                 doc=RawValueConvertor(default=False))
+
 
 @dataclasses.dataclass
-class Benchmark(BuildTarget['raw.BuildTarget']):
+class Benchmark(BuildTarget):
 
     """Representation of a Cargo Benchmark Entry."""
 
-    test: bool = True
-    crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['bin'])
-
     @classmethod
-    def from_raw(cls, raw: raw.BuildTarget) -> Self:
-        if 'path' not in raw:
-            raw['path'] = os.path.join('benches', raw['name'] + '.rs')
-        return super().from_raw(raw)
+    def from_raw(cls, raw: raw.BuildTarget, pkg: Package) -> Self:
+        name = raw["name"]
+        return _raw_to_dataclass(raw, cls, f'Benchmark entry {name}',
+                                 path=RawValueConvertor(default=f'benches/{name}.rs'),
+                                 edition=RawValueConvertor(default=pkg.edition),
+                                 test=RawValueConvertor(default=False),
+                                 doc=RawValueConvertor(default=False))
 
 
 @dataclasses.dataclass
-class Example(BuildTarget['raw.BuildTarget']):
+class Example(BuildTarget):
 
     """Representation of a Cargo Example Entry."""
 
-    crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['bin'])
-
     @classmethod
-    def from_raw(cls, raw: raw.BuildTarget) -> Self:
-        if 'path' not in raw:
-            raw['path'] = os.path.join('examples', raw['name'] + '.rs')
-        return super().from_raw(raw)
+    def from_raw(cls, raw: raw.BuildTarget, pkg: Package) -> Self:
+        name = raw["name"]
+        return _raw_to_dataclass(raw, cls, f'Example entry {name}',
+                                 path=RawValueConvertor(default=f'examples/{name}.rs'),
+                                 edition=RawValueConvertor(default=pkg.edition),
+                                 test=RawValueConvertor(default=False),
+                                 bench=RawValueConvertor(default=False),
+                                 doc=RawValueConvertor(default=False))
 
 
 @dataclasses.dataclass
@@ -432,8 +439,6 @@ class Manifest:
     features: T.Dict[str, T.List[str]] = dataclasses.field(default_factory=dict)
     target: T.Dict[str, T.Dict[str, Dependency]] = dataclasses.field(default_factory=dict)
 
-    path: str = ''
-
     def __post_init__(self) -> None:
         self.features.setdefault('default', [])
 
@@ -442,27 +447,27 @@ class Manifest:
         return {k: SystemDependency.from_raw(k, v) for k, v in self.package.metadata.get('system-deps', {}).items()}
 
     @classmethod
-    def from_raw(cls, raw: raw.Manifest, path: str = '', workspace: T.Optional[Workspace] = None, member_path: str = '') -> Self:
-        # Libs are always auto-discovered and there's no other way to handle them,
-        # which is unfortunate for reproducability
+    def from_raw(cls, raw: raw.Manifest, path: str, workspace: T.Optional[Workspace] = None, member_path: str = '') -> Self:
         pkg = Package.from_raw(raw['package'], workspace)
-        if pkg.autolib and 'lib' not in raw and \
-                os.path.exists(os.path.join(path, 'src/lib.rs')):
-            raw['lib'] = {}
-        fixed = _raw_to_dataclass(raw, cls, f'Cargo.toml package {raw["package"]["name"]}',
-                                  package=lambda x: pkg,
-                                  dependencies=lambda x: {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()},
-                                  dev_dependencies=lambda x: {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()},
-                                  build_dependencies=lambda x: {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()},
-                                  lib=lambda x: Library.from_raw(x, raw['package']['name']),
-                                  bin=lambda x: [Binary.from_raw(b) for b in x],
-                                  test=lambda x: [Test.from_raw(b) for b in x],
-                                  bench=lambda x: [Benchmark.from_raw(b) for b in x],
-                                  example=lambda x: [Example.from_raw(b) for b in x],
-                                  target=lambda x: {k: {k2: Dependency.from_raw(k2, v2, member_path, workspace) for k2, v2 in v.get('dependencies', {}).items()}
-                                                    for k, v in x.items()})
-        fixed.path = path
-        return fixed
+
+        autolib = None
+        if pkg.autolib and os.path.exists(os.path.join(path, 'src/lib.rs')):
+            autolib = Library.from_raw({}, pkg)
+
+        def dependencies_from_raw(x: T.Dict[str, T.Any]) -> T.Dict[str, Dependency]:
+            return {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()}
+
+        return _raw_to_dataclass(raw, cls, f'Cargo.toml package {pkg.name}',
+                                 package=RawValueConvertor(lambda _: pkg),
+                                 dependencies=RawValueConvertor(dependencies_from_raw),
+                                 dev_dependencies=RawValueConvertor(dependencies_from_raw),
+                                 build_dependencies=RawValueConvertor(dependencies_from_raw),
+                                 lib=RawValueConvertor(lambda x: Library.from_raw(x, pkg), default=autolib),
+                                 bin=RawValueConvertor(lambda x: [Binary.from_raw(b, pkg) for b in x]),
+                                 test=RawValueConvertor(lambda x: [Test.from_raw(b, pkg) for b in x]),
+                                 bench=RawValueConvertor(lambda x: [Benchmark.from_raw(b, pkg) for b in x]),
+                                 example=RawValueConvertor(lambda x: [Example.from_raw(b, pkg) for b in x]),
+                                 target=RawValueConvertor(lambda x: {k: dependencies_from_raw(v.get('dependencies', {})) for k, v in x.items()}))
 
 
 @dataclasses.dataclass
@@ -476,7 +481,7 @@ class Workspace:
     exclude: T.List[str] = dataclasses.field(default_factory=list)
     default_members: T.List[str] = dataclasses.field(default_factory=list)
 
-    # inheritable settings are kept in raw format, for use with _inherit_from_workspace
+    # inheritable settings are kept in raw format, for use with _raw_to_dataclass
     package: T.Optional[raw.Package] = None
     dependencies: T.Dict[str, raw.Dependency] = dataclasses.field(default_factory=dict)
     lints: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
@@ -486,7 +491,7 @@ class Workspace:
     root_package: T.Optional[Manifest] = None
 
     @classmethod
-    def from_raw(cls, raw: raw.Manifest, path: str) -> Workspace:
+    def from_raw(cls, raw: raw.Manifest, path: str) -> Self:
         ws = _raw_to_dataclass(raw['workspace'], cls, 'Workspace')
         if 'package' in raw:
             ws.root_package = Manifest.from_raw(raw, path, ws, '.')
@@ -513,7 +518,7 @@ class CargoLockPackage:
         return f'{self.name}-{self.api}-rs'
 
     @classmethod
-    def from_raw(cls, raw: raw.CargoLockPackage) -> CargoLockPackage:
+    def from_raw(cls, raw: raw.CargoLockPackage) -> Self:
         return _raw_to_dataclass(raw, cls, 'Cargo.lock package')
 
 
@@ -527,11 +532,6 @@ class CargoLock:
     metadata: T.Dict[str, str] = dataclasses.field(default_factory=dict)
     wraps: T.Dict[str, PackageDefinition] = dataclasses.field(default_factory=dict)
 
-    @classmethod
-    def from_raw(cls, raw: raw.CargoLock) -> CargoLock:
-        return _raw_to_dataclass(raw, cls, 'Cargo.lock',
-                                 package=lambda x: [CargoLockPackage.from_raw(p) for p in x])
-
     def named(self, name: str) -> T.Sequence[CargoLockPackage]:
         return self._versions[name]
 
@@ -543,3 +543,8 @@ class CargoLock:
         for pkg_versions in versions.values():
             pkg_versions.sort(reverse=True, key=lambda pkg: Version(pkg.version))
         return versions
+
+    @classmethod
+    def from_raw(cls, raw: raw.CargoLock) -> Self:
+        return _raw_to_dataclass(raw, cls, 'Cargo.lock',
+                                 package=RawValueConvertor(lambda x: [CargoLockPackage.from_raw(p) for p in x]))
