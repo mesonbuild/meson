@@ -139,6 +139,7 @@ class Interpreter:
         ]
         ast += self._create_dependencies(pkg, build)
         ast += self._create_meson_subdir(build)
+        ast += self._create_env_args(pkg, build, subdir)
 
         if pkg.manifest.lib:
             crate_type = pkg.manifest.lib.crate_type
@@ -596,6 +597,56 @@ class Interpreter:
                       build.block([build.function('subdir', [build.string('meson')])]))
         ]
 
+    def _pkg_common_env(self, pkg: PackageState, subdir: str) -> T.Dict[str, str]:
+        # Common variables for build.rs and crates
+        # https://doc.rust-lang.org/cargo/reference/environment-variables.html
+        # OUT_DIR is the directory where build.rs generate files. In our case,
+        # it's the directory where meson/meson.build places generated files.
+        out_dir = os.path.join(self.environment.build_dir, subdir, 'meson')
+        os.makedirs(out_dir, exist_ok=True)
+        version_arr = pkg.manifest.package.version.split('.')
+        version_arr += ['' * (4 - len(version_arr))]
+        return {
+            'OUT_DIR': out_dir,
+            'CARGO_MANIFEST_DIR': os.path.join(self.environment.source_dir, subdir),
+            'CARGO_MANIFEST_PATH': os.path.join(self.environment.source_dir, subdir, 'Cargo.toml'),
+            'CARGO_PKG_VERSION': pkg.manifest.package.version,
+            'CARGO_PKG_VERSION_MAJOR': version_arr[0],
+            'CARGO_PKG_VERSION_MINOR': version_arr[1],
+            'CARGO_PKG_VERSION_PATCH': version_arr[2],
+            'CARGO_PKG_VERSION_PRE': version_arr[3],
+            'CARGO_PKG_AUTHORS': ','.join(pkg.manifest.package.authors),
+            'CARGO_PKG_NAME': pkg.manifest.package.name,
+            # FIXME: description can contain newlines which breaks ninja.
+            #'CARGO_PKG_DESCRIPTION': pkg.manifest.package.description or '',
+            'CARGO_PKG_HOMEPAGE': pkg.manifest.package.homepage or '',
+            'CARGO_PKG_REPOSITORY': pkg.manifest.package.repository or '',
+            'CARGO_PKG_LICENSE': pkg.manifest.package.license or '',
+            'CARGO_PKG_LICENSE_FILE': pkg.manifest.package.license_file or '',
+            'CARGO_PKG_RUST_VERSION': pkg.manifest.package.rust_version or '',
+            'CARGO_PKG_README': pkg.manifest.package.readme or '',
+        }
+
+    def _create_env_args(self, pkg: PackageState, build: builder.Builder, subdir: str) -> T.List[mparser.BaseNode]:
+        host_rustc = T.cast('RustCompiler', self.environment.coredata.compilers[MachineChoice.HOST]['rust'])
+        enable_env_set_args = host_rustc.enable_env_set_args()
+        if enable_env_set_args is None:
+            return [build.assign(build.array([]), 'env_args')]
+        # https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
+        env_dict = self._pkg_common_env(pkg, subdir)
+        env_dict.update({
+            'CARGO_CRATE_NAME': fixup_meson_varname(pkg.manifest.package.name),
+            #FIXME: TODO
+            #CARGO_BIN_NAME
+            #CARGO_BIN_EXE_<name>
+            #CARGO_PRIMARY_PACKAGE
+            #CARGO_TARGET_TMPDIR
+        })
+        env_args: T.List[mparser.BaseNode] = [build.string(a) for a in enable_env_set_args]
+        for k, v in env_dict.items():
+            env_args += [build.string('--env-set'), build.string(f'{k}={v}')]
+        return [build.assign(build.array(env_args), 'env_args')]
+
     def _create_lib(self, pkg: PackageState, build: builder.Builder,
                     lib_type: Literal['rust', 'c', 'proc-macro'],
                     static: bool = False, shared: bool = False) -> T.List[mparser.BaseNode]:
@@ -616,6 +667,7 @@ class Interpreter:
             build.identifier('features_args'),
             build.identifier(_extra_args_varname()),
             build.identifier('system_deps_args'),
+            build.identifier('env_args'),
         ]
 
         dependencies.append(build.identifier(_extra_deps_varname()))
