@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# SPDX-license-Identifier: Apache-2.0
+# SPDX-License-Identifier: Apache-2.0
 # Copyright © 2021-2023 Intel Corporation
 
 import argparse
