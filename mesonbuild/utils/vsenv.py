@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2012-2025 The Meson development team
+
 from __future__ import annotations
 
 import os
