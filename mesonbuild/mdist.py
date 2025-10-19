@@ -41,6 +41,9 @@ archive_extension = {'bztar': '.tar.bz2',
                      'xztar': '.tar.xz',
                      'zip': '.zip'}
 
+if sys.version_info >= (3, 14):
+    tarfile.TarFile.extraction_filter = staticmethod(tarfile.fully_trusted_filter)
+
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: argparse.ArgumentParser) -> None:

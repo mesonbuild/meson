@@ -57,6 +57,10 @@ WHITELIST_SUBDOMAIN = 'wrapdb.mesonbuild.com'
 
 ALL_TYPES = ['file', 'git', 'hg', 'svn', 'redirect']
 
+if sys.version_info >= (3, 14):
+    import tarfile
+    tarfile.TarFile.extraction_filter = tarfile.fully_trusted_filter
+
 if mesonlib.is_windows():
     from ..programs import ExternalProgram
     from ..mesonlib import version_compare
