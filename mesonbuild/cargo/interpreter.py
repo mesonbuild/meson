@@ -117,7 +117,7 @@ class Interpreter:
             member = ws.packages_to_member[manifest.package.name]
             pkg = ws.packages[member]
         else:
-            pkg, cached = self._fetch_package(manifest.package.name, manifest.package.api)
+            pkg, cached = self._fetch_package_from_manifest(manifest)
             if not cached:
                 # This is an entry point, always enable the 'default' feature.
                 # FIXME: We should have a Meson option similar to `cargo build --no-default-features`
@@ -223,15 +223,15 @@ class Interpreter:
             ws.required_members.append(member)
         return pkg
 
-    def _fetch_package(self, package_name: str, api: str) -> T.Tuple[PackageState, bool]:
+    def _fetch_package(self, package_name: str, api: str) -> PackageState:
         key = PackageKey(package_name, api)
         pkg = self.packages.get(key)
         if pkg:
-            return pkg, True
+            return pkg
         meson_depname = _dependency_name(package_name, api)
         return self._fetch_package_from_subproject(package_name, meson_depname)
 
-    def _fetch_package_from_subproject(self, package_name: str, meson_depname: str) -> T.Tuple[PackageState, bool]:
+    def _fetch_package_from_subproject(self, package_name: str, meson_depname: str) -> PackageState:
         subp_name, _ = self.environment.wrap_resolver.find_dep_provider(meson_depname)
         if subp_name is None:
             # If Cargo.lock has a different version, this could be a resolution
@@ -251,17 +251,28 @@ class Interpreter:
         downloaded = \
             subp_name in self.environment.wrap_resolver.wraps and \
             self.environment.wrap_resolver.wraps[subp_name].type is not None
+
         if isinstance(manifest, Workspace):
             ws = self._get_workspace(manifest, subdir)
             member = ws.packages_to_member[package_name]
             pkg = self._require_workspace_member(ws, member)
-            return pkg, False
-        key = PackageKey(package_name, version.api(manifest.package.version))
+            return pkg
 
+        key = PackageKey(package_name, version.api(manifest.package.version))
+        pkg = self.packages.get(key)
+        if pkg:
+            return pkg
+        pkg = PackageState(manifest, downloaded)
+        self.packages[key] = pkg
+        self._prepare_package(pkg)
+        return pkg
+
+    def _fetch_package_from_manifest(self, manifest: Manifest) -> T.Tuple[PackageState, bool]:
+        key = PackageKey(manifest.package.name, version.api(manifest.package.version))
         pkg = self.packages.get(key)
         if pkg:
             return pkg, True
-        pkg = PackageState(manifest, downloaded)
+        pkg = PackageState(manifest, downloaded=False)
         self.packages[key] = pkg
         self._prepare_package(pkg)
         return pkg, False
@@ -287,7 +298,7 @@ class Interpreter:
             dep_pkg = self._require_workspace_member(ws, dep_member)
         elif dep.git:
             _, _, directory = _parse_git_url(dep.git, dep.branch)
-            dep_pkg, _ = self._fetch_package_from_subproject(dep.package, directory)
+            dep_pkg = self._fetch_package_from_subproject(dep.package, directory)
         else:
             # From all available versions from Cargo.lock, pick the most recent
             # satisfying the constraints
@@ -302,7 +313,7 @@ class Interpreter:
             else:
                 if not dep.meson_version:
                     raise MesonException(f'Cannot determine version of cargo package {dep.package}')
-            dep_pkg, _ = self._fetch_package(dep.package, dep.api)
+            dep_pkg = self._fetch_package(dep.package, dep.api)
         return dep_pkg
 
     def _load_manifest(self, subdir: str, workspace: T.Optional[Workspace] = None, member_path: str = '') -> T.Union[Manifest, Workspace]:
