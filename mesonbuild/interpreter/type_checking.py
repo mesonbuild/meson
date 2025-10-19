@@ -17,6 +17,7 @@ from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBr
 from ..mesonlib import (File, FileMode, MachineChoice, has_path_sep, listify, stringlistify,
                         EnvironmentVariables)
 from ..programs import ExternalProgram
+from ..wrap.wrap import METHODS
 
 # Helper definition for type checks that are `Optional[T]`
 NoneType: T.Type[None] = type(None)
@@ -892,7 +893,15 @@ PKGCONFIG_DEFINE_KW: KwargInfo = KwargInfo(
     convertor=_pkgconfig_define_convertor,
 )
 
+FALLBACK_METHOD_KW: KwargInfo = KwargInfo(
+    'fallback_method',
+    (str, NoneType),
+    default=None,
+    validator=in_set_validator(METHODS),
+    since='1.10.0')
+
 
 DEPENDENCY_KWS: T.List[KwargInfo] = [
     DEFAULT_OPTIONS.evolve(since='0.38.0'),
+    FALLBACK_METHOD_KW,
 ]

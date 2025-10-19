@@ -123,6 +123,15 @@ kwargs:
       If the value is an empty array it has the same effect as
       `allow_fallback: false`.
 
+  fallback_method:
+    type: str
+    since: 1.10.0
+    description: |
+      Specifies which method should be used to configure the fallback if the
+      dependency is not found in the system. Supported values are `meson`,
+      `cmake` and `cargo`. It defaults to the `method` field in the wrap file
+      if any, otherwise it defaults to `meson`.
+
   language:
     type: str
     since: 0.42.0

@@ -65,3 +65,11 @@ kwargs:
     default: true
     description: |
       Works just the same as in [[dependency]].
+
+  method:
+    type: str
+    since: 1.10.0
+    description: |
+      Specifies which method should be used to configure the subproject.
+      Supported values are `meson`, `cmake` and `cargo`. It defaults to the
+      `method` field in the wrap file if any, otherwise it defaults to `meson`.

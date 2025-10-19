@@ -45,20 +45,21 @@ def get_dep_identifier(name: str, kwargs: T.Dict[str, T.Any]) -> 'TV_DepID':
     nkwargs.update(kwargs)
 
     from ..interpreter import permitted_dependency_kwargs
-    assert len(permitted_dependency_kwargs) == 19, \
+    assert len(permitted_dependency_kwargs) == 20, \
            'Extra kwargs have been added to dependency(), please review if it makes sense to handle it here'
     for key, value in nkwargs.items():
         # 'version' is irrelevant for caching; the caller must check version matches
         # 'native' is handled above with `for_machine`
         # 'required' is irrelevant for caching; the caller handles it separately
-        # 'fallback' and 'allow_fallback' is not part of the cache because,
-        #     once a dependency has been found through a fallback, it should
-        #     be used for the rest of the Meson run.
+        # 'fallback', 'allow_fallback' and 'fallback_method' are not part of the
+        #     cache because, once a dependency has been found through a fallback,
+        #     it should be used for the rest of the Meson run.
         # 'default_options' is only used in fallback case
         # 'not_found_message' has no impact on the dependency lookup
         # 'include_type' is handled after the dependency lookup
-        if key in {'version', 'native', 'required', 'fallback', 'allow_fallback', 'default_options',
-                   'not_found_message', 'include_type'}:
+        if key in {'version', 'native', 'required', 'fallback', 'allow_fallback',
+                   'fallback_method', 'default_options', 'not_found_message',
+                   'include_type'}:
             continue
         # All keyword arguments are strings, ints, or lists (or lists of lists)
         if isinstance(value, list):

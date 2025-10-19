@@ -56,6 +56,7 @@ REQ_TIMEOUT = 30.0
 WHITELIST_SUBDOMAIN = 'wrapdb.mesonbuild.com'
 
 ALL_TYPES = ['file', 'git', 'hg', 'svn', 'redirect']
+METHODS = {'meson', 'cmake', 'cargo'}
 
 if mesonlib.is_windows():
     from ..programs import ExternalProgram

@@ -17,6 +17,7 @@ from ..mesonlib import EnvironmentVariables, MachineChoice, File, FileMode, File
 from ..options import OptionKey
 from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
+from ..wrap.wrap import Method as WrapMethod
 from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
 TestArgs = T.Union[str, File, build.Target, ExternalProgram]
@@ -315,6 +316,7 @@ class Subproject(ExtractRequired):
 
     default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
     version: T.List[str]
+    method: T.Optional[WrapMethod]
 
 
 class DoSubproject(ExtractRequired):
@@ -491,3 +493,4 @@ class FuncDeclareDependency(TypedDict):
 class FuncDependency(TypedDict):
 
     default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
+    fallback_method: T.Optional[WrapMethod]
