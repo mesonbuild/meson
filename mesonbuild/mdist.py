@@ -186,6 +186,10 @@ class GitDist(Dist):
             subprocess.check_call(cmd, cwd=src, stdout=f)
             f.seek(0)
             t = tarfile.open(fileobj=f) # [ignore encoding]
+            # Override the defaul extraction filter in Python 3.14 and later
+            # in a way that is compatible with Python older than Python 3.12
+            # when the filter mechanism was added.
+            t.extraction_filter = lambda member, path: member
             t.extractall(path=distdir)
 
     def process_git_project(self, src_root: str, distdir: str) -> None:
