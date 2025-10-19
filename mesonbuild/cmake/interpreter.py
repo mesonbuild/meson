@@ -842,6 +842,8 @@ class CMakeInterpreter:
         cmake_args = []
         cmake_args += cmake_get_generator_args(self.env)
         cmake_args += [f'-DCMAKE_INSTALL_PREFIX={self.install_prefix}']
+        libdir = self.env.coredata.optstore.get_value_for(OptionKey('libdir'))
+        cmake_args += [f'-DCMAKE_INSTALL_LIBDIR={libdir}']
         cmake_args += extra_cmake_options
         if not any(arg.startswith('-DCMAKE_BUILD_TYPE=') for arg in cmake_args):
             # Our build type is favored over any CMAKE_BUILD_TYPE environment variable
