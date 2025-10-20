@@ -365,7 +365,7 @@ class Binary(BuildTarget):
     def from_raw(cls, raw: raw.BuildTarget, pkg: Package) -> Self:
         name = raw["name"]
         return _raw_to_dataclass(raw, cls, f'Binary entry {name}',
-                                 path=DefaultValue(f'bin/{name}.rs'),
+                                 path=DefaultValue('src/main.rs'),
                                  edition=DefaultValue(pkg.edition))
 
 
