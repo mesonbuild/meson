@@ -22,7 +22,7 @@ from ..interpreterbase import (
     InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
     FeatureNew, disablerIfNotFound, InterpreterObject
 )
-from ..mesonlib import MachineChoice
+from ..mesonlib import MachineChoice, listify
 from ..options import OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
@@ -60,7 +60,8 @@ mod_kwargs = {'subdir', 'limited_api'}
 mod_kwargs.update(known_shmod_kwargs)
 mod_kwargs -= {'name_prefix', 'name_suffix'}
 
-_MOD_KWARGS = [k for k in SHARED_MOD_KWS if k.name not in {'name_prefix', 'name_suffix'}]
+_MOD_KWARGS = [k for k in SHARED_MOD_KWS if
+               k.name not in {'name_prefix', 'name_suffix', 'install_dir'}]
 
 
 class PythonExternalProgram(BasicPythonExternalProgram):
@@ -145,13 +146,15 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         if 'install_dir' in kwargs:
             if kwargs['subdir'] is not None:
                 raise InvalidArguments('"subdir" and "install_dir" are mutually exclusive')
+            # the build_target() method now expects this to be correct.
+            kwargs['install_dir'] = listify(kwargs['install_dir'])
         else:
             # We want to remove 'subdir', but it may be None and we want to replace it with ''
             # It must be done this way since we don't allow both `install_dir`
             # and `subdir` to be set at the same time
             subdir = kwargs.pop('subdir') or ''
 
-            kwargs['install_dir'] = self._get_install_dir_impl(False, subdir)
+            kwargs['install_dir'] = [self._get_install_dir_impl(False, subdir)]
 
         target_suffix = self.suffix
 
