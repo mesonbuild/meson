@@ -305,6 +305,7 @@ or compiler being used:
 | cpp_winlibs      | see below     | free-form comma-separated list           | Standard Windows libs to link against |
 | fortran_std      | none          | [none, legacy, f95, f2003, f2008, f2018] | Fortran language standard to use |
 | rust_dynamic_std | false         | true, false                              | Whether to link dynamically to the Rust standard library *(Added in 1.9.0)* |
+| rust_nightly     | auto          | enabled, disabled, auto                  | Nightly Rust compiler (enabled=required, disabled=don't use nightly feature, auto=use nightly feature if available) *(Added in 1.10.0)* |
 | cuda_ccbindir    |               | filesystem path                          | CUDA non-default toolchain directory to use (-ccbin) *(Added in 0.57.1)* |
 
 The default values of `c_winlibs` and `cpp_winlibs` are in
