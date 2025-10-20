@@ -2428,7 +2428,7 @@ class StaticLibrary(BuildTarget):
         return self.environment.get_static_lib_dir(), '{libdir_static}'
 
     def type_suffix(self):
-        return "@sta"
+        return "@rlib" if self.uses_rust_abi() else "@sta"
 
     def process_kwargs(self, kwargs: StaticLibraryKeywordArguments) -> None:
         super().process_kwargs(kwargs)

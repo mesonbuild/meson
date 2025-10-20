@@ -4,7 +4,7 @@ version = "0.0.1"
 edition = "2021"
 
 [lib]
-crate-type = ["staticlib", "cdylib"]
+crate-type = ["lib", "staticlib", "cdylib"]
 path = "lib.rs"
 
 # This dependency does not exist, verify optional works.
