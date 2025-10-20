@@ -67,6 +67,7 @@ if T.TYPE_CHECKING:
     class FuncWorkspace(TypedDict):
         default_features: T.Optional[bool]
         features: T.List[str]
+        dev_dependencies: bool
 
 RUST_TEST_KWS: T.List[KwargInfo] = [
      KwargInfo(
@@ -520,6 +521,7 @@ class RustModule(ExtensionModule):
     @typed_kwargs(
         'rust.workspace',
         KwargInfo('default_features', (bool, NoneType), default=None),
+        KwargInfo('dev_dependencies', (bool), default=True),
         KwargInfo(
             'features',
             (ContainerTypeInfo(list, str), NoneType),
@@ -547,6 +549,7 @@ class RustModule(ExtensionModule):
             if features is not None:
                 cargo_features.extend(features)
             self.interpreter.cargo.features = cargo_features
+        self.interpreter.cargo.dev_dependencies = kwargs['dev_dependencies']
 
         # Check if we already have a cached workspace for this cargo interpreter
         ws = self.interpreter.cargo.load_workspace(state.subdir)

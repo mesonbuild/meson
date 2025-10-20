@@ -186,6 +186,8 @@ workspace.
 Keyword arguments:
 - `default_features`: (`bool`, optional) Whether to enable default features.
   If not specified and `features` is provided, defaults to true.
+- `dev_dependencies`: (`bool`, optional) Whether to include dev-dependencies in the build.
+  Defaults to true.
 - `features`: (`list[str]`, optional) List of additional features to enable globally
 
 The function must be called in a project with `Cargo.lock` and `Cargo.toml`
