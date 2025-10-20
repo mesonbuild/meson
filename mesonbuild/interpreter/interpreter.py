@@ -91,6 +91,7 @@ from .type_checking import (
     STATIC_LIB_KWS,
     VARIABLES_KW,
     TEST_KWS,
+    FALLBACK_METHOD_KW,
     NoneType,
     in_set_validator,
     env_convertor_with_method
@@ -245,6 +246,7 @@ permitted_dependency_kwargs = {
     'components',
     'default_options',
     'fallback',
+    'fallback_method',
     'include_type',
     'language',
     'main',
@@ -867,6 +869,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         REQUIRED_KW,
         DEFAULT_OPTIONS.evolve(since='0.38.0'),
         KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True),
+        FALLBACK_METHOD_KW.evolve(name='method'),
     )
     def func_subproject(self, nodes: mparser.BaseNode, args: T.Tuple[str], kwargs: kwtypes.Subproject) -> SubprojectHolder:
         kw: kwtypes.DoSubproject = {
@@ -876,7 +879,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             'options': None,
             'cmake_options': [],
         }
-        return self.do_subproject(args[0], kw)
+        return self.do_subproject(args[0], kw, force_method=kwargs['method'])
 
     def disabled_subproject(self, subp_name: str, disabled_feature: T.Optional[str] = None,
                             exception: T.Optional[Exception] = None) -> SubprojectHolder:
@@ -1809,7 +1812,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InvalidArguments('"allow_fallback" argument must be boolean')
         fallback = kwargs.get('fallback')
         default_options = kwargs.get('default_options')
-        df = DependencyFallbacksHolder(self, names, allow_fallback, default_options)
+        fallback_method = kwargs.get('fallback_method')
+        df = DependencyFallbacksHolder(self, names, allow_fallback, default_options, fallback_method)
         df.set_fallback(fallback)
         not_found_message = kwargs.get('not_found_message', '')
         if not isinstance(not_found_message, str):

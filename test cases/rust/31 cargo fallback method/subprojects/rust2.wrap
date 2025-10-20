@@ -1,0 +1,4 @@
+[wrap-file]
+
+[provide]
+dependency_names = foo-0-rs

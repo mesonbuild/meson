@@ -20,6 +20,7 @@ if T.TYPE_CHECKING:
     from .interpreter import Interpreter
     from ..interpreterbase import TYPE_nkwargs, TYPE_nvar
     from .interpreterobjects import SubprojectHolder
+    from ..wrap.wrap import Method
 
 
 class DependencyFallbacksHolder(MesonInterpreterObject):
@@ -27,7 +28,8 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                  interpreter: 'Interpreter',
                  names: T.List[str],
                  allow_fallback: T.Optional[bool] = None,
-                 default_options: T.Optional[T.Dict[str, str]] = None) -> None:
+                 default_options: T.Optional[T.Dict[str, str]] = None,
+                 fallback_method: Method = 'meson') -> None:
         super().__init__(subproject=interpreter.subproject)
         self.interpreter = interpreter
         self.subproject = interpreter.subproject
@@ -42,6 +44,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         self.names: T.List[str] = []
         self.forcefallback: bool = False
         self.nofallback: bool = False
+        self.fallback_method = fallback_method
         for name in names:
             if not name:
                 raise InterpreterException('dependency_fallbacks empty name \'\' is not allowed')
@@ -132,7 +135,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         subp_name = self.subproject_name
         varname = self.subproject_varname
         func_kwargs.setdefault('version', [])
-        self.interpreter.do_subproject(subp_name, func_kwargs, forced_options=forced_options)
+        self.interpreter.do_subproject(subp_name, func_kwargs, forced_options=forced_options, force_method=self.fallback_method)
         return self._get_subproject_dep(subp_name, varname, kwargs)
 
     def _get_subproject(self, subp_name: str) -> T.Optional[SubprojectHolder]:
