@@ -22,7 +22,7 @@ from . import programs
 from .mesonlib import (
     HoldableObject, SecondLevelHolder,
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
-    extract_as_list, typeslistify, classify_unity_sources,
+    extract_as_list, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
     is_parent_path, relpath, PerMachineDefaultable,
     MesonBugException, EnvironmentVariables, pickle_load, lazy_property,
@@ -1292,8 +1292,7 @@ class BuildTarget(Target):
         self.add_deps(deplist)
         # If an item in this list is False, the output corresponding to
         # the list index of that item will not be installed
-        self.install_dir = typeslistify(kwargs.get('install_dir', []),
-                                        (str, bool))
+        self.install_dir = kwargs.get('install_dir', [])
         self.install_mode = kwargs.get('install_mode', None)
         self.install_tag: T.List[T.Optional[str]] = kwargs.get('install_tag') or [None]
         self.extra_files = kwargs.get('extra_files', [])
