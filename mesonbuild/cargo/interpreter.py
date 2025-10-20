@@ -55,7 +55,9 @@ class PackageState:
     downloaded: bool = False
     features: T.Set[str] = dataclasses.field(default_factory=set)
     required_deps: T.Set[str] = dataclasses.field(default_factory=set)
+    visited_deps: T.Set[str] = dataclasses.field(default_factory=set)
     optional_deps_features: T.Dict[str, T.Set[str]] = dataclasses.field(default_factory=lambda: collections.defaultdict(set))
+    dev_dependencies: bool = False
     # If this package is member of a workspace.
     ws_subdir: T.Optional[str] = None
     ws_member: T.Optional[str] = None
@@ -92,6 +94,7 @@ class Interpreter:
         self.workspaces: T.Dict[str, WorkspaceState] = {}
         # Files that should trigger a reconfigure if modified
         self.build_def_files: T.List[str] = []
+        self.dev_dependencies = False
         # Cargo packages
         filename = os.path.join(self.environment.get_source_dir(), subdir, 'Cargo.lock')
         subprojects_dir = os.path.join(self.environment.get_source_dir(), subprojects_dir)
@@ -137,6 +140,10 @@ class Interpreter:
             ws = self.workspaces['.']
             ret = ws.packages[path]
             pkgs = [ret]
+
+        if self.dev_dependencies:
+            for pkg in pkgs:
+                pkg.dev_dependencies = True
 
         for pkg in pkgs:
             self._prepare_package(pkg)
@@ -331,6 +338,10 @@ class Interpreter:
         for depname, dep in pkg.manifest.dependencies.items():
             if not dep.optional:
                 self._add_dependency(pkg, depname)
+        if pkg.dev_dependencies:
+            for depname, dep in pkg.manifest.dev_dependencies.items():
+                if not dep.optional:
+                    self._add_dependency(pkg, depname)
 
     def _dep_package(self, pkg: PackageState, dep: Dependency) -> PackageState:
         if dep.path:
@@ -376,21 +387,31 @@ class Interpreter:
             self.manifests[subdir] = manifest_
         return manifest_
 
-    def _add_dependency(self, pkg: PackageState, depname: str) -> None:
-        if depname in pkg.required_deps:
-            return
-        dep = pkg.manifest.dependencies.get(depname)
-        if not dep:
-            # It could be build/dev/target dependency. Just ignore it.
-            return
-        pkg.required_deps.add(depname)
-        dep_pkg = self._dep_package(pkg, dep)
+    def _add_dependency_features(self, pkg: PackageState, dep: Dependency, dep_pkg: PackageState) -> None:
         if dep.default_features:
             self._enable_feature(dep_pkg, 'default')
         for f in dep.features:
             self._enable_feature(dep_pkg, f)
-        for f in pkg.optional_deps_features[depname]:
-            self._enable_feature(dep_pkg, f)
+
+    def _add_dependency(self, pkg: PackageState, depname: str) -> None:
+        if depname in pkg.visited_deps:
+            return
+        pkg.visited_deps.add(depname)
+
+        dep_pkg = None
+        if pkg.dev_dependencies:
+            dep = pkg.manifest.dev_dependencies.get(depname)
+            if dep:
+                dep_pkg = self._dep_package(pkg, dep)
+                self._add_dependency_features(pkg, dep, dep_pkg)
+        dep = pkg.manifest.dependencies.get(depname)
+        if dep:
+            dep_pkg = dep_pkg or self._dep_package(pkg, dep)
+            self._add_dependency_features(pkg, dep, dep_pkg)
+        if dep_pkg is not None:
+            pkg.required_deps.add(depname)
+            for f in pkg.optional_deps_features[depname]:
+                self._enable_feature(dep_pkg, f)
 
     def _enable_feature(self, pkg: PackageState, feature: str) -> None:
         if feature in pkg.features:
