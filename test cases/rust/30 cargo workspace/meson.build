@@ -6,7 +6,7 @@ e = executable('test-foo-1-rs', 'test_foo_1.rs',
 )
 test('test-foo-1-rs', e)
 
-foo_cdylib = dependency('foo-1-cdylib')
+foo_cdylib = dependency('foo-1')
 e = executable('test-foo-1-cdylib', 'test_foo_1.c',
   dependencies: [foo_cdylib],
 )

@@ -1,6 +1,6 @@
 project('cargo subproject', 'c')
 
-foo_dep = dependency('foo-0-cdylib')
+foo_dep = dependency('foo-0')
 exe = executable('app', 'main.c',
   dependencies: foo_dep,
 )
