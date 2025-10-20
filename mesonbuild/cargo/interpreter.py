@@ -32,8 +32,10 @@ if T.TYPE_CHECKING:
     from ..interpreterbase import SubProject
     from ..compilers.rust import RustCompiler
 
+    from typing_extensions import Literal
+
 def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
-    basename = package_name[:-len(suffix)] if package_name.endswith(suffix) else package_name
+    basename = package_name[:-len(suffix)] if suffix and package_name.endswith(suffix) else package_name
     return f'{basename}-{api}{suffix}'
 
 
@@ -139,8 +141,19 @@ class Interpreter:
         ast += self._create_meson_subdir(build)
 
         if pkg.manifest.lib:
-            for crate_type in pkg.manifest.lib.crate_type:
-                ast.extend(self._create_lib(pkg, build, crate_type))
+            crate_type = pkg.manifest.lib.crate_type
+            if 'dylib' in crate_type and 'cdylib' in crate_type:
+                raise MesonException('Cannot build both dylib and cdylib due to file name conflict')
+            if 'proc-macro' in crate_type:
+                ast.extend(self._create_lib(pkg, build, 'proc-macro', shared=True))
+            if any(x in crate_type for x in ['lib', 'rlib', 'dylib']):
+                ast.extend(self._create_lib(pkg, build, 'rust',
+                                            static=('lib' in crate_type or 'rlib' in crate_type),
+                                            shared='dylib' in crate_type))
+            if any(x in crate_type for x in ['staticlib', 'cdylib']):
+                ast.extend(self._create_lib(pkg, build, 'c',
+                                            static='staticlib' in crate_type,
+                                            shared='cdylib' in crate_type))
 
         return ast
 
@@ -560,7 +573,9 @@ class Interpreter:
                       build.block([build.function('subdir', [build.string('meson')])]))
         ]
 
-    def _create_lib(self, pkg: PackageState, build: builder.Builder, crate_type: raw.CRATE_TYPE) -> T.List[mparser.BaseNode]:
+    def _create_lib(self, pkg: PackageState, build: builder.Builder,
+                    lib_type: Literal['rust', 'c', 'proc-macro'],
+                    static: bool = False, shared: bool = False) -> T.List[mparser.BaseNode]:
         dependencies: T.List[mparser.BaseNode] = []
         dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {}
         for name in pkg.required_deps:
@@ -593,21 +608,19 @@ class Interpreter:
             'rust_args': build.array(rust_args),
         }
 
-        depname_suffix = '-rs' if crate_type in {'lib', 'rlib', 'proc-macro'} else f'-{crate_type}'
+        depname_suffix = '' if lib_type == 'c' else '-rs'
         depname = _dependency_name(pkg.manifest.package.name, pkg.manifest.package.api, depname_suffix)
 
         lib: mparser.BaseNode
-        if crate_type == 'proc-macro':
+        if lib_type == 'proc-macro':
             lib = build.method('proc_macro', build.identifier('rust'), posargs, kwargs)
         else:
-            if crate_type in {'lib', 'rlib', 'staticlib'}:
-                target_type = 'static_library'
-            elif crate_type in {'dylib', 'cdylib'}:
-                target_type = 'shared_library'
+            if static and shared:
+                target_type = 'both_libraries'
             else:
-                raise MesonException(f'Unsupported crate type {crate_type}')
-            if crate_type in {'staticlib', 'cdylib'}:
-                kwargs['rust_abi'] = build.string('c')
+                target_type = 'shared_library' if shared else 'static_library'
+
+            kwargs['rust_abi'] = build.string(lib_type)
             lib = build.function(target_type, posargs, kwargs)
 
         features_args: T.List[mparser.BaseNode] = []
