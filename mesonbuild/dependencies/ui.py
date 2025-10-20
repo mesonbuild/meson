@@ -197,7 +197,7 @@ class VulkanDependencySystem(SystemDependency):
             lib_name = 'vulkan'
             lib_dir = 'lib'
             inc_dir = 'include'
-            if mesonlib.is_windows():
+            if self.env.machines[self.for_machine].is_windows():
                 lib_name = 'vulkan-1'
                 lib_dir = 'Lib32'
                 inc_dir = 'Include'
