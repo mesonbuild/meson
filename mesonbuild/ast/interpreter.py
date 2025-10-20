@@ -200,6 +200,7 @@ class AstInterpreter(InterpreterBase):
                            'configuration_data': self.func_do_nothing,
                            'configure_file': self.func_do_nothing,
                            'find_program': self.func_do_nothing,
+                           'local_program': self.func_do_nothing,
                            'include_directories': self.func_do_nothing,
                            'add_global_arguments': self.func_do_nothing,
                            'add_global_link_arguments': self.func_do_nothing,
