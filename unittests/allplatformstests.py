@@ -911,11 +911,11 @@ class AllPlatformTests(BasePlatformTests):
 
         self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'mainprj'])
         self.assertFailedTestCount(0, self.mtest_command + ['--suite', 'subprjsucc'])
-        self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjfail'])
+        self.assertFailedTestCount(2, self.mtest_command + ['--suite', 'subprjfail'])
         self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjmix'])
         self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'mainprj'])
         self.assertFailedTestCount(4, self.mtest_command + ['--no-suite', 'subprjsucc'])
-        self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjfail'])
+        self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'subprjfail'])
         self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjmix'])
 
         self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'mainprj:fail'])
@@ -938,9 +938,9 @@ class AllPlatformTests(BasePlatformTests):
         self.assertFailedTestCount(3, self.mtest_command + ['--no-suite', 'subprjmix:fail'])
         self.assertFailedTestCount(4, self.mtest_command + ['--no-suite', 'subprjmix:success'])
 
-        self.assertFailedTestCount(2, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix:fail'])
-        self.assertFailedTestCount(3, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix', '--suite', 'mainprj'])
-        self.assertFailedTestCount(2, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix', '--suite', 'mainprj', '--no-suite', 'subprjmix:fail'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix:fail'])
+        self.assertFailedTestCount(4, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix', '--suite', 'mainprj'])
+        self.assertFailedTestCount(3, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix', '--suite', 'mainprj', '--no-suite', 'subprjmix:fail'])
         self.assertFailedTestCount(1, self.mtest_command + ['--suite', 'subprjfail', '--suite', 'subprjmix', '--suite', 'mainprj', '--no-suite', 'subprjmix:fail', 'mainprj-failing_test'])
 
         self.assertFailedTestCount(2, self.mtest_command + ['--no-suite', 'subprjfail:fail', '--no-suite', 'subprjmix:fail'])

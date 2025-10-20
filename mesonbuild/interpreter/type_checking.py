@@ -490,6 +490,12 @@ VARIABLES_KW: KwargInfo[T.Dict[str, str]] = KwargInfo(
 
 PRESERVE_PATH_KW: KwargInfo[bool] = KwargInfo('preserve_path', bool, default=False, since='0.63.0')
 
+def suite_convertor(suite: T.List[str]) -> T.List[str]:
+    # Ensure we always have at least one suite.
+    if not suite:
+        return ['']
+    return suite
+
 TEST_KWS_NO_ARGS: T.List[KwargInfo] = [
     KwargInfo('should_fail', bool, default=False),
     KwargInfo('timeout', int, default=30),
@@ -503,7 +509,7 @@ TEST_KWS_NO_ARGS: T.List[KwargInfo] = [
     # TODO: env needs reworks of the way the environment variable holder itself works probably
     ENV_KW,
     DEPENDS_KW.evolve(since='0.46.0'),
-    KwargInfo('suite', ContainerTypeInfo(list, str), listify=True, default=['']),  # yes, a list of empty string
+    KwargInfo('suite', ContainerTypeInfo(list, str), listify=True, default=[], convertor=suite_convertor),
     KwargInfo('verbose', bool, default=False, since='0.62.0'),
 ]
 
