@@ -45,8 +45,9 @@ def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
     return f'{basename}-{api}{suffix}'
 
 
-def _dependency_varname(dep: Dependency) -> str:
-    return f'{fixup_meson_varname(dep.package)}_{(dep.api.replace(".", "_"))}_dep'
+def _dependency_varname(dep: Dependency, machine: MachineChoice) -> str:
+    suffix = '_native' if machine == MachineChoice.BUILD else ''
+    return f'{fixup_meson_varname(dep.package)}_{(dep.api.replace(".", "_"))}_dep{suffix}'
 
 
 def _library_name(name: str, api: str, lib_type: Literal['rust', 'c', 'proc-macro'] = 'rust') -> str:
@@ -270,32 +271,44 @@ class Interpreter:
         return build.block(ast)
 
     def _create_package(self, pkg: PackageState, build: builder.Builder, subdir: str) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg[MachineChoice.HOST]
-        ast: T.List[mparser.BaseNode] = [
-            build.assign(build.array([build.string(f) for f in cfg.features]), 'features'),
-            build.function('message', [
-                build.string('Enabled features:'),
-                build.identifier('features'),
-            ]),
-        ]
-        ast += self._create_dependencies(pkg, build)
-        ast += self._create_meson_subdir(build)
+        ast: T.List[mparser.BaseNode] = []
 
-        if pkg.manifest.lib:
-            crate_type = pkg.manifest.lib.crate_type
-            if 'dylib' in crate_type and 'cdylib' in crate_type:
-                raise MesonException('Cannot build both dylib and cdylib due to file name conflict')
-            abis = pkg.supported_abis()
-            if 'proc-macro' in abis:
-                ast.extend(self._create_lib(pkg, build, subdir, 'proc-macro', shared=True))
-            if 'rust' in abis:
-                ast.extend(self._create_lib(pkg, build, subdir, 'rust',
-                                            static=('lib' in crate_type or 'rlib' in crate_type),
-                                            shared='dylib' in crate_type))
-            if 'c' in abis:
-                ast.extend(self._create_lib(pkg, build, subdir, 'c',
-                                            static='staticlib' in crate_type,
-                                            shared='cdylib' in crate_type))
+        # Generate for each configured machine
+        first = True
+        for machine in MachineChoice:
+            if pkg.cfg[machine] is not None:
+                cfg = pkg.cfg[machine]
+                machine_name = machine.get_lower_case_name()
+                ast.extend([
+                    build.assign(build.array([build.string(f) for f in cfg.features]), 'features'),
+                    build.function('message', [
+                        build.string(f'Enabled features ({machine_name}):'),
+                        build.array([build.string(f) for f in cfg.features]),
+                    ])
+                ])
+
+                ast += self._create_dependencies(pkg, build, machine)
+                if first:
+                    # Only add meson subdir once (for HOST machine or first configured machine)
+                    # FIXME: how to handle different build.rs output for build vs. host?
+                    ast += self._create_meson_subdir(build)
+
+                if pkg.manifest.lib:
+                    crate_type = pkg.manifest.lib.crate_type
+                    if 'dylib' in crate_type and 'cdylib' in crate_type:
+                        raise MesonException('Cannot build both dylib and cdylib due to file name conflict')
+                    abis = pkg.supported_abis()
+                    if 'proc-macro' in abis:
+                        ast.extend(self._create_lib(pkg, build, subdir, 'proc-macro', machine,
+                                                    shared=True))
+                    if 'rust' in abis:
+                        ast.extend(self._create_lib(pkg, build, subdir, 'rust', machine,
+                                                    static=('lib' in crate_type or 'rlib' in crate_type),
+                                                    shared='dylib' in crate_type))
+                    if 'c' in abis:
+                        ast.extend(self._create_lib(pkg, build, subdir, 'c', machine,
+                                                    static='staticlib' in crate_type,
+                                                    shared='cdylib' in crate_type))
 
         return ast
 
@@ -604,25 +617,26 @@ class Interpreter:
 
         return [build.function('project', args, kwargs)]
 
-    def _create_dependencies(self, pkg: PackageState, build: builder.Builder) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg[MachineChoice.HOST]
+    def _create_dependencies(self, pkg: PackageState, build: builder.Builder, machine: MachineChoice) -> T.List[mparser.BaseNode]:
+        cfg = pkg.cfg[machine]
         ast: T.List[mparser.BaseNode] = []
         for depname in cfg.required_deps:
             dep = pkg.manifest.dependencies[depname]
             dep_pkg = self._dep_package(pkg, dep, cfg)
             if dep_pkg.manifest.lib:
-                ast += self._create_dependency(dep_pkg, dep, build)
+                ast += self._create_dependency(dep_pkg, dep, build, machine)
         ast.append(build.assign(build.array([]), 'system_deps_args'))
         for name, sys_dep in pkg.manifest.system_dependencies.items():
             if sys_dep.enabled(cfg.features):
-                ast += self._create_system_dependency(name, sys_dep, build)
+                ast += self._create_system_dependency(name, sys_dep, build, machine)
         return ast
 
-    def _create_system_dependency(self, name: str, dep: SystemDependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
+    def _create_system_dependency(self, name: str, dep: SystemDependency, build: builder.Builder, machine: MachineChoice) -> T.List[mparser.BaseNode]:
         # TODO: handle feature_overrides
         kw = {
             'version': build.array([build.string(s) for s in dep.meson_version]),
             'required': build.bool(not dep.optional),
+            'native': build.bool(machine == MachineChoice.BUILD),
         }
         varname = f'{fixup_meson_varname(name)}_system_dep'
         cfg = f'system_deps_have_{fixup_meson_varname(name)}'
@@ -645,11 +659,12 @@ class Interpreter:
             ),
         ]
 
-    def _create_dependency(self, pkg: PackageState, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg[MachineChoice.HOST]
+    def _create_dependency(self, pkg: PackageState, dep: Dependency, build: builder.Builder, machine: MachineChoice) -> T.List[mparser.BaseNode]:
+        cfg = pkg.cfg[machine]
         version_ = dep.meson_version or [pkg.manifest.package.version]
         kw = {
             'version': build.array([build.string(s) for s in version_]),
+            'native': build.bool(machine == MachineChoice.BUILD),
         }
         # Lookup for this dependency with the features we want in default_options kwarg.
         #
@@ -670,7 +685,7 @@ class Interpreter:
                     [build.string(_dependency_name(dep.package, dep.api))],
                     kw,
                 ),
-                _dependency_varname(dep),
+                _dependency_varname(dep, machine),
             ),
             # actual_features = xxx_dep.get_variable('features', default_value : '').split(',')
             build.assign(
@@ -678,7 +693,7 @@ class Interpreter:
                     'split',
                     build.method(
                         'get_variable',
-                        build.identifier(_dependency_varname(dep)),
+                        build.identifier(_dependency_varname(dep, machine)),
                         [build.string('features')],
                         {'default_value': build.string('')}
                     ),
@@ -726,13 +741,13 @@ class Interpreter:
         ]
 
     def _create_lib(self, pkg: PackageState, build: builder.Builder, subdir: str,
-                    lib_type: RUST_ABI,
+                    lib_type: RUST_ABI, machine: MachineChoice,
                     static: bool = False, shared: bool = False) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg[MachineChoice.HOST]
+        cfg = pkg.cfg[machine]
         dependencies: T.List[mparser.BaseNode] = []
         for name in cfg.required_deps:
             dep = pkg.manifest.dependencies[name]
-            dependencies.append(build.identifier(_dependency_varname(dep)))
+            dependencies.append(build.identifier(_dependency_varname(dep, machine)))
 
         dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {
             build.string(k): build.string(v) for k, v in cfg.get_dependency_map(pkg.manifest).items()}
@@ -741,7 +756,7 @@ class Interpreter:
             if sys_dep.enabled(cfg.features):
                 dependencies.append(build.identifier(f'{fixup_meson_varname(name)}_system_dep'))
 
-        rustc_args_list = pkg.get_rustc_args(self.environment, subdir, MachineChoice.HOST)
+        rustc_args_list = pkg.get_rustc_args(self.environment, subdir, machine)
         extra_args_ref = build.identifier(_extra_args_varname())
         system_deps_args_ref = build.identifier('system_deps_args')
         rust_args: T.List[mparser.BaseNode] = [build.string(a) for a in rustc_args_list]
@@ -779,6 +794,7 @@ class Interpreter:
                 target_type = 'shared_library' if shared else 'static_library'
 
             kwargs['rust_abi'] = build.string(lib_type)
+            kwargs['native'] = build.bool(machine == MachineChoice.BUILD)
             lib = build.function(target_type, posargs, kwargs)
 
         # lib = xxx_library()
@@ -806,6 +822,7 @@ class Interpreter:
                     build.string(depname),
                     build.identifier('dep'),
                 ],
+                {'native': build.bool(machine == MachineChoice.BUILD)},
             ),
         ]
 
