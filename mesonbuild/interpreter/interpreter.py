@@ -3525,7 +3525,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         # Filter out kwargs from other target types. For example 'soversion'
         # passed to library() when default_library == 'static'.
-        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs | {'language_args'}}
+        extra_excludes = {'language_args', 'install_vala_header', 'install_vala_vapi', 'install_vala_gir'}
+        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs | extra_excludes}
 
         srcs: T.List['SourceInputs'] = []
         struct: T.Optional[build.StructuredSources] = build.StructuredSources()
@@ -3585,6 +3586,28 @@ class Interpreter(InterpreterBase, HoldableObject):
                 kwargs['implib'] = None
 
         kwargs['install_tag'] = [kwargs['install_tag']]
+
+        if targetclass is not build.Jar:
+            kwargs = T.cast('kwtypes.Executable | kwtypes.StaticLibrary | kwtypes.SharedLibrary | kwtypes.SharedModule', kwargs)
+            # Rewrite `install_dir : [main, vala_header, vala_vapi, vala_gir]`
+            # Into split arguments
+            if kwargs['install_dir']:
+                install_dir = kwargs['install_dir'].pop(0)
+
+                for key in ['install_vala_header', 'install_vala_vapi', 'install_vala_gir']:
+                    action = kwargs['install_dir'].pop(0) if kwargs['install_dir'] else install_dir
+                    if isinstance(action, bool):
+                        kwargs[key] = action
+                    else:
+                        kwargs[key] = True
+                        kwargs[f'{key}_dir'] = action
+                kwargs['install_dir'] = [install_dir]
+
+                # This was previously allowed, and tested, so we need to allow it to keep working.
+                if kwargs['vala_gir'] is None and kwargs['install_vala_gir']:
+                    kwargs['install_vala_gir'] = False
+            else:
+                kwargs['install_dir'] = [True]
 
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
                              self.environment, self.compilers[for_machine], kwargs)

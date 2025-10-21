@@ -1784,11 +1784,6 @@ class NinjaBackend(backends.Backend):
                 # Without this, it will write it inside c_out_dir
                 args += ['--vapi', os.path.join('..', target.vala_vapi)]
                 valac_outputs.append(vapiname)
-            # Install header and vapi to default locations if user requests this
-            if len(target.install_dir) > 1 and target.install_dir[1] is True:
-                target.install_dir[1] = self.environment.get_includedir()
-            if len(target.install_dir) > 2 and target.install_dir[2] is True:
-                target.install_dir[2] = os.path.join(self.environment.get_datadir(), 'vala', 'vapi')
             # Generate GIR if requested
             if target.vala_gir is not None:
                 girname = os.path.join(self.get_target_dir(target), target.vala_gir)
@@ -1797,9 +1792,6 @@ class NinjaBackend(backends.Backend):
                 shared_target = target.get('shared')
                 if isinstance(shared_target, build.SharedLibrary):
                     args += ['--shared-library', shared_target.get_filename()]
-                # Install GIR to default location if requested by user
-                if len(target.install_dir) > 3 and target.install_dir[3] is True:
-                    target.install_dir[3] = os.path.join(self.environment.get_datadir(), 'gir-1.0')
         # Detect gresources and add --gresources/--gresourcesdir arguments for each
         gres_dirs = []
         for gensrc in other_src[1].values():
