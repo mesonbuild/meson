@@ -578,21 +578,25 @@ class PkgConfigModule(NewExtensionModule):
                         install_dir: T.Union[str, bool]
                         if uninstalled:
                             install_dir = os.path.dirname(state.backend.get_target_filename_abs(l))
+                            custom_install_dir = True
                         else:
-                            _i = l.get_custom_install_dir()
-                            install_dir = _i[0] if _i else None
+                            _i, _, custom_install_dir = l.get_install_dir()
+                            if isinstance(l, build.BuildTarget):
+                                install_dir = _i[0] if _i else l.get_default_install_dir()[0]
+                            else:
+                                install_dir = _i[0] if _i else ''
                         if install_dir is False:
                             continue
                         if isinstance(l, build.BuildTarget) and 'cs' in l.compilers:
-                            if isinstance(install_dir, str):
+                            if custom_install_dir:
                                 Lflag = '-r{}/{}'.format(self._escape(self._make_relative(prefix, install_dir, pure_path_class)),
                                                          l.filename)
-                            else:  # install_dir is True
+                            else:
                                 Lflag = '-r${libdir}/%s' % l.filename
                         else:
-                            if isinstance(install_dir, str):
+                            if custom_install_dir:
                                 Lflag = '-L{}'.format(self._escape(self._make_relative(prefix, install_dir, pure_path_class)))
-                            else:  # install_dir is True
+                            else:
                                 Lflag = '-L${libdir}'
                         if Lflag not in Lflags:
                             Lflags.append(Lflag)
@@ -665,7 +669,7 @@ class PkgConfigModule(NewExtensionModule):
             default_name = mainlib.name
             default_description = state.project_name + ': ' + mainlib.name
             install_dir = mainlib.get_custom_install_dir()
-            if install_dir and isinstance(install_dir[0], str):
+            if mainlib.has_custom_install_dir and install_dir and isinstance(install_dir[0], str):
                 default_install_dir = os.path.join(install_dir[0], 'pkgconfig')
                 if isinstance(install_dir[0], OptionString):
                     default_install_dir = OptionString(default_install_dir, os.path.join(install_dir[0].optname, 'pkgconfig'))
