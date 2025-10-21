@@ -364,7 +364,7 @@ def run_genvslite_setup(options: CMDOptions) -> None:
     # The command line may specify a '--backend' option, which doesn't make sense in conjunction with
     # '--genvslite', where we always want to use a ninja back end -
     k_backend = OptionKey('backend')
-    if k_backend in options.cmd_line_options.keys():
+    if k_backend in options.cmd_line_options:
         if options.cmd_line_options[k_backend] != 'ninja':
             raise MesonException('Explicitly specifying a backend option with \'genvslite\' is not necessary '
                                  '(the ninja backend is always used) but specifying a non-ninja backend '
@@ -397,7 +397,7 @@ def run(options: T.Union[CMDOptions, T.List[str]]) -> int:
     # lie
     options.pager = False
 
-    if OptionKey('genvslite') in options.cmd_line_options.keys():
+    if OptionKey('genvslite') in options.cmd_line_options:
         run_genvslite_setup(options)
     else:
         app = MesonApp(options)
