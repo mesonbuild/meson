@@ -149,3 +149,45 @@ run_target('upload',
 )
 
 test('validate_links', find_program('./validatelinks.py'), args: meson.current_source_dir() / 'markdown' / 'Users.md')
+
+if not get_option('qthelp')
+    subdir_done()
+endif
+
+refman_qthelp = custom_target(
+    'gen_refman_qthelp',
+    input: refman_binary,
+    output: ['configured_sitemap_qthelp.txt', 'refman_links_qthelp.json'],
+    command: [
+        genrefman,
+        '-l', 'pickle',
+        '-g', 'qthelp',
+        '-s', sitemap,
+        '-i', '@INPUT@',
+        '-o', '@OUTPUT0@',
+        '--link-defs', '@OUTPUT1@',
+        '--force-color',
+        '--no-modules',
+    ],
+)
+sitemap = refman_qthelp[0]
+
+documentation_qthelp = hotdoc.generate_doc(meson.project_name() + '-qthelp',
+    project_version: meson.project_version(),
+    sitemap: sitemap,
+    build_by_default: false,
+    depends: docs_gen,
+    index: 'markdown/index.md',
+    install: false,
+    extra_assets: ['images/'],
+    include_paths: ['markdown', cur_bdir],
+    default_license: 'CC-BY-SAv4.0',
+    html_extra_theme: join_paths('theme', 'extra'),
+    edit_on_github_repository: 'https://github.com/mesonbuild/meson',
+    syntax_highlighting_activate: false,
+    keep_markup_in_code_blocks: false,
+    extra_extension: meson.current_source_dir() / 'extensions' / 'refman_links.py',
+    refman_data_file: refman_qthelp[1],
+    fatal_warnings: true,
+    devhelp_activate: false,
+)
