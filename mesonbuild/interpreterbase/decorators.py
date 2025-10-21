@@ -498,7 +498,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                         if n in value:
                             warning = f'value "{n}" in list'
                     elif isinstance(value, dict):
-                        if n in value.keys():
+                        if n in value:
                             warning = f'value "{n}" in dict keys'
                     elif n == value:
                         warning = f'value "{n}"'
