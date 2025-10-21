@@ -103,8 +103,14 @@ if T.TYPE_CHECKING:
         rust_crate_type: RustCrateType
         rust_dependency_map: T.Dict[str, str]
         vala_gir: T.Optional[str]
+        install_vala_gir: bool
+        install_vala_gir_dir: T.Optional[str]
         vala_header: T.Optional[str]
+        install_vala_header: bool
+        install_vala_header_dir: T.Optional[str]
         vala_vapi: T.Optional[str]
+        install_vala_vapi: bool
+        install_vala_vapi_dir: T.Optional[str]
         win_subsystem: str
 
         _allow_no_sources: bool
@@ -910,8 +916,30 @@ class BuildTarget(Target):
     def _set_vala_args(self, kwargs: BuildTargetKeywordArguments) -> None:
         if self.uses_vala():
             self.vala_header = kwargs.get('vala_header') or self.name + '.h'
+            inst = kwargs.get('install_vala_header', False)
+            if inst is True:
+                dir_ = kwargs.get('install_vala_header_dir') or self.environment.get_includedir()
+                self.install_dir.append(dir_)
+            else:
+                self.install_dir.append(False)
+
             self.vala_vapi = kwargs.get('vala_vapi') or self.name + '.vapi'
+            inst = kwargs.get('install_vala_vapi', False)
+            if inst is True:
+                dir_ = kwargs.get('install_vala_vapi_dir') or os.path.join(self.environment.get_datadir(), 'vala', 'vapi')
+                self.install_dir.append(dir_)
+            else:
+                self.install_dir.append(False)
+
             self.vala_gir = kwargs.get('vala_gir')
+            if self.vala_gir:
+                inst = kwargs.get('install_vala_gir', False)
+                if inst is True:
+                    assert self.vala_gir is not None, 'Installing Vala GIR without generating one?'
+                    dir_ = kwargs.get('install_vala_gir_dir') or os.path.join(self.environment.get_datadir(), 'gir-1.0')
+                    self.install_dir.append(dir_)
+                elif self.vala_gir is not None:
+                    self.install_dir.append(False)
 
     def post_init(self) -> None:
         ''' Initialisations and checks requiring the final list of compilers to be known
@@ -967,7 +995,9 @@ class BuildTarget(Target):
     def check_unknown_kwargs_int(self, kwargs: BuildTargetKeywordArguments, known_kwargs: T.Set[str]) -> None:
         unknowns = []
         for k in kwargs:
-            if k == 'language_args':
+            if k in {'language_args', 'install_vala_header', 'install_vala_vapi',
+                     'install_vala_gir', 'install_vala_header_dir',
+                     'install_vala_vapi_dir', 'install_vala_gir_dir'}:
                 continue
             if k not in known_kwargs:
                 unknowns.append(k)
