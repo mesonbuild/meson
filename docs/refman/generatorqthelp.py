@@ -62,7 +62,6 @@ class GeneratorQtHelp(GeneratorMD):
             return out
 
         out = Path(__file__).resolve().parent.parent / 'markdown' / filename
-        mlog.log(out, self.sitemap_in)
         if out.exists():
             return out
 
@@ -78,7 +77,6 @@ class GeneratorQtHelp(GeneratorMD):
                 newlevel = line.count('\t', 0)
                 if newlevel <= level:
                     for _ in range(level - newlevel + 1):
-                        mlog.log(f'"{line}" level {level} newlevel {newlevel}')
                         self.qhp_data.end('section')
                 level = newlevel
 
@@ -93,7 +91,6 @@ class GeneratorQtHelp(GeneratorMD):
 
                 doc = line[level:-3] # Trimmed markdown filename without extension
                 md = self._find_doc_path(doc)
-                mlog.log(f'doc {doc} path {md}')
                 title = self._get_doc_title(md)
                 if title == '':
                     continue
