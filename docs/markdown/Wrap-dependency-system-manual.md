@@ -372,10 +372,7 @@ crates into a series of wraps definitions.  Since *1.11.0* the overlay directory
 dependency name for `crates.io` URLs, and the final component of the URL
 (possibly with the `.git` suffix removed) for "git" URLs.
 
-Since *1.10.0* Workspace Cargo.toml are supported. For the time being it is
-recommended to regroup all Cargo dependencies inside a single workspace invoked
-from the main Meson project. When invoking multiple different Cargo subprojects
-from Meson, feature resolution of common dependencies might be wrong.
+Since *1.10.0* Workspace Cargo.toml are supported.
 
 ## Using wrapped projects
 
