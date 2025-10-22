@@ -220,6 +220,20 @@ Keyword arguments:
 
 The package object returned by `workspace.subproject()` provides methods for working with individual packages in a Cargo workspace.
 
+#### package.features()
+
+```meson
+features = pkg.features()
+```
+
+Returns selected features for a specific package.
+
+#### package.all_features()
+
+```meson
+all_features = pkg.all_features()
+```
+
 ### package.dependency()
 
 ```meson

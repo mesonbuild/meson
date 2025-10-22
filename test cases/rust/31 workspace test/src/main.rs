@@ -1,5 +1,6 @@
-use hello::greet;
+use hello::{farewell, greet};
 
 fn main() {
     println!("{}", greet());
+    println!("{}", farewell());
 }

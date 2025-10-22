@@ -4,6 +4,9 @@ rust = import('rust')
 cargo = rust.workspace()
 
 hello_rs = cargo.subproject('hello')
+assert(hello_rs.all_features() == ['default', 'goodbye'])
+assert(hello_rs.features() == ['default', 'goodbye'])
+
 e = executable('workspace-test', 'src/main.rs',
   dependencies: [hello_rs.dependency()],
 )

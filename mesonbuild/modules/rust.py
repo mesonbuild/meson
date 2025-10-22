@@ -20,7 +20,7 @@ from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
     OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator
 )
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
+from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs, permittedKwargs
 from ..interpreter.interpreterobjects import Doctest
 from ..mesonlib import File, MachineChoice, MesonException, PerMachine
 from ..programs import ExternalProgram, NonExistingExternalProgram
@@ -35,6 +35,7 @@ if T.TYPE_CHECKING:
     from ..interpreter import kwargs as _kwargs
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
     from ..interpreter.interpreterobjects import Test
+    from ..interpreterbase import TYPE_kwargs
     from ..programs import OverrideProgram
     from ..interpreter.type_checking import SourcesVarargsType
 
@@ -134,8 +135,16 @@ class RustPackage(MutableModuleObject):
         self.state = state
         self.package = package
         self.methods.update({
+            'all_features': self.all_features_method,
             'dependency': self.dependency_method,
+            'features': self.features_method,
         })
+
+    @typed_pos_args('package.all_features', optargs=[str])
+    @noKwargs
+    def all_features_method(self, state: 'ModuleState', args: T.Tuple[T.Optional[str]], kwargs: TYPE_kwargs) -> T.List[str]:
+        """Returns all features for specific package."""
+        return sorted(list(self.package.manifest.features.keys()))
 
     @noPosargs
     @typed_kwargs('package.dependency',
@@ -144,6 +153,12 @@ class RustPackage(MutableModuleObject):
         """Returns dependency for the package with the given ABI."""
         depname = self.package.get_dependency_name(kwargs['rust_abi'])
         return self.state.overridden_dependency(depname)
+
+    @typed_pos_args('package.features', optargs=[str])
+    @noKwargs
+    def features_method(self, state: 'ModuleState', args: T.Tuple[T.Optional[str]], kwargs: TYPE_kwargs) -> T.List[str]:
+        """Returns chosen features for specific package."""
+        return sorted(list(self.package.features))
 
 
 class RustModule(ExtensionModule):

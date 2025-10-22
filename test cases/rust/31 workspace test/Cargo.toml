@@ -3,5 +3,10 @@ name = "workspace_test"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["feature1", "hello?/goodbye"]
+feature1 = []
+feature2 = []
+
 [dependencies]
 hello = "1.0"
