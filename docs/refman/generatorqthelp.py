@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2025 The Meson development team
 
-from .generatormd import GeneratorMD
+from .generatormd import GeneratorMD, _ROOT_BASENAME
 
 from .model import (
     ReferenceManual,
@@ -39,17 +39,46 @@ class GeneratorQtHelp(GeneratorMD):
         # Qt Help Project data
         self.qhp_data = ET.TreeBuilder()
 
+    def _get_doc_title(self, md: Path) -> str:
+        if not md.exists() or not md.is_file():
+            return ''
+
+        with open(md, 'r') as doc:
+            while True:
+                line = doc.readline()
+                if line.startswith('# '):
+                    return line[len('# '):-1]
+                elif line.startswith('title: '):
+                    return line[len('title: '):-1]
+                elif line == '':
+                    break
+
+        return ''
+
+    def _find_doc_path(self, name: str) -> Path:
+        filename = name + '.md'
+        out = self.out_dir / filename
+        if out.exists():
+            return out
+
+        out = Path(__file__).resolve().parent.parent / 'markdown' / filename
+        mlog.log(out, self.sitemap_in)
+        if out.exists():
+            return out
+
+        return Path('')
+
     def _build_table_of_contents(self) -> None:
         self.qhp_data.start('toc', {})
         with open(self.sitemap_in, 'r') as sitemap:
             level = -1
-            line: str
             while True:
-                line = sitemap.readline()
+                line = sitemap.readline()[:-1]
 
                 newlevel = line.count('\t', 0)
                 if newlevel <= level:
                     for _ in range(level - newlevel + 1):
+                        mlog.log(f'"{line}" level {level} newlevel {newlevel}')
                         self.qhp_data.end('section')
                 level = newlevel
 
@@ -57,14 +86,39 @@ class GeneratorQtHelp(GeneratorMD):
                     # EOF
                     break
 
-                doc = line[level:-4] # Trimmed markdown filename without extension
-                mlog.log('Adding section', doc)
-                self.qhp_data.start('section', {'title': doc, 'ref': doc + '.html'})
+                if line == 'index.md':
+                    mlog.log('Added top-level section')
+                    self.qhp_data.start('section', {'title': 'Meson documentation', 'ref': 'index.html'})
+                    continue
+
+                doc = line[level:-3] # Trimmed markdown filename without extension
+                md = self._find_doc_path(doc)
+                mlog.log(f'doc {doc} path {md}')
+                title = self._get_doc_title(md)
+                if title == '':
+                    continue
+
+                mlog.log('Added section', doc)
+                self.qhp_data.start('section', {'title': title, 'ref': doc + '.html'})
 
         self.qhp_data.end('toc')
 
+    def _build_keywords(self) -> None:
+        self.qhp_data.start('keywords', {})
+
+        for f in self.functions:
+            mlog.log('Added keyword for function', f.name)
+            self.qhp_data.start('keyword', {
+                'name': f.name,
+                'id': f.name,
+                'ref': f'{_ROOT_BASENAME}_functions.html#{f.name}',
+            })
+            self.qhp_data.end('keyword')
+
+        self.qhp_data.end('keywords')
+
     def _build_qhp_tree(self) -> None:
-        def build_small_tag(builder: ET.TreeBuilder, tag: str, data: str):
+        def build_small_tag(builder: ET.TreeBuilder, tag: str, data: str) -> None:
             '''
             Build a tag that only has text and no attributes
             '''
@@ -87,6 +141,7 @@ class GeneratorQtHelp(GeneratorMD):
         build_small_tag(self.qhp_data, 'filterAttribute', _FILTER_ATTR_VER)
 
         self._build_table_of_contents()
+        self._build_keywords()
 
         self.qhp_data.start('files', {})
         build_small_tag(self.qhp_data, 'file', '*.html')
@@ -96,10 +151,10 @@ class GeneratorQtHelp(GeneratorMD):
 
         self.qhp_data.end('QtHelpProject')
 
-    def generate(self):
+    def generate(self) -> None:
         super().generate()
 
-        mlog.log('Generating QtHelp file...')
+        mlog.log('Generating Qt Help Project file...')
         with mlog.nested():
             self._build_qhp_tree()
             qhp_tree = ET.ElementTree(self.qhp_data.close())
