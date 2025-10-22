@@ -201,3 +201,32 @@ are specified.
 
 When `features` is provided without `default_features`, the 'default' feature is
 automatically included.
+
+#### workspace.subproject()
+
+```meson
+package = ws.subproject(package_name, ...)
+```
+
+Returns a `package` object for managing a specific package within the workspace.
+
+Positional arguments:
+- `package_name`: (`str`) The name of the package to retrieve
+
+Keyword arguments:
+- `version`: (`list[str]`, optional) List of version constraints for the package
+
+## Package object
+
+The package object returned by `workspace.subproject()` provides methods for working with individual packages in a Cargo workspace.
+
+### package.dependency()
+
+```meson
+dep = package.dependency(...)
+```
+
+Returns a dependency object for the package that can be used with other Meson targets.
+
+Keyword arguments:
+- `rust_abi`: (`str`, optional) The ABI to use for the dependency. Valid values are `'rust'` (default), `'c'`, or `'proc-macro'`. The package must support the specified ABI.

@@ -7,7 +7,7 @@ from __future__ import annotations
 import dataclasses
 import typing as T
 
-from .. import build, mesonlib
+from .. import build, dependencies, mesonlib
 from ..options import OptionKey
 from ..build import IncludeDirs
 from ..interpreterbase.decorators import noKwargs, noPosargs
@@ -46,6 +46,7 @@ class ModuleState:
         # The backend object is under-used right now, but we will need it:
         # https://github.com/mesonbuild/meson/issues/1419
         self.backend = interpreter.backend
+        self.dependency_overrides = interpreter.build.dependency_overrides
         self.targets = interpreter.build.targets
         self.data = interpreter.build.data
         self.headers = interpreter.build.get_headers()
@@ -107,6 +108,13 @@ class ModuleState:
 
         # Normal program lookup
         return self.find_program(name, required=required, wanted=wanted)
+
+    def overridden_dependency(self, depname: str, for_machine: MachineChoice = MachineChoice.HOST) -> Dependency:
+        identifier = dependencies.get_dep_identifier(depname, {})
+        try:
+            return self.dependency_overrides[for_machine][identifier].dep
+        except KeyError:
+            raise mesonlib.MesonException(f'dependency "{depname}" was not overridden for the {for_machine}')
 
     def dependency(self, depname: str, native: bool = False, required: bool = True,
                    wanted: T.Optional[str] = None) -> 'Dependency':

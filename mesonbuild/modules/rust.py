@@ -14,6 +14,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleInfo, MutableModuleObjec
 from .. import mesonlib, mlog
 from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
                      CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary, StaticLibrary)
+from ..cargo import PackageState
 from ..compilers.compilers import are_asserts_disabled_for_subproject, lang_suffixes
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
@@ -30,7 +31,7 @@ if T.TYPE_CHECKING:
     from .. import cargo
     from ..compilers.rust import RustCompiler
     from ..dependencies import Dependency, ExternalLibrary
-    from ..interpreter import Interpreter
+    from ..interpreter import Interpreter, SubprojectHolder
     from ..interpreter import kwargs as _kwargs
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
     from ..interpreter.interpreterobjects import Test
@@ -69,6 +70,12 @@ if T.TYPE_CHECKING:
         features: T.List[str]
         dev_dependencies: bool
 
+    class FuncWorkspaceSubproject(TypedDict):
+        version: T.List[str]
+
+    class FuncDependency(TypedDict):
+        rust_abi: str
+
 RUST_TEST_KWS: T.List[KwargInfo] = [
      KwargInfo(
          'rust_args',
@@ -90,10 +97,53 @@ class RustWorkspace(MutableModuleObject):
     """Represents a Rust workspace, controlling the build of packages
        recorded in a Cargo.lock file."""
 
-    def __init__(self, state: ModuleState, root_package: T.Union[cargo.WorkspaceState, cargo.PackageState]) -> None:
+    def __init__(self, state: ModuleState, interpreter: Interpreter, root_package: T.Union[cargo.WorkspaceState, cargo.PackageState]) -> None:
         super().__init__()
         self.state = state
+        self.interpreter = interpreter
         self.root_package = root_package
+        self.methods.update({
+            'subproject': self.subproject_method,
+        })
+
+    @typed_pos_args('workspace.subproject', str)
+    @typed_kwargs('workspace.subproject',
+                  KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True))
+    def subproject_method(self, state: ModuleState, args: T.Tuple[str], kwargs: FuncWorkspaceSubproject) -> T.Union[SubprojectHolder, RustPackage]:
+        """Returns a package object for a subproject package."""
+        package_name = args[0]
+        pkg = self.interpreter.cargo.resolve_package(package_name, kwargs['version'])
+        if pkg is None:
+            raise MesonException(f'No version of cargo package {package_name} satisfies constraints {kwargs['version']}')
+
+        kw: _kwargs.DoSubproject = {
+            'required': True,
+            'version': kwargs['version'],
+            'default_options': {},
+        }
+        subp_name = f'{pkg.manifest.package.name}-{pkg.manifest.package.api}-rs'
+        self.interpreter.do_subproject(subp_name, kw, force_method='cargo')
+        return RustPackage(state, pkg)
+
+
+class RustPackage(MutableModuleObject):
+    """Represents a Rust package within a workspace."""
+
+    def __init__(self, state: ModuleState, package: PackageState) -> None:
+        super().__init__()
+        self.state = state
+        self.package = package
+        self.methods.update({
+            'dependency': self.dependency_method,
+        })
+
+    @noPosargs
+    @typed_kwargs('package.dependency',
+                  KwargInfo('rust_abi', str, default='rust', validator=in_set_validator({'rust', 'c', 'proc-macro'})))
+    def dependency_method(self, state: 'ModuleState', args: T.List, kwargs: FuncDependency):
+        """Returns dependency for the package with the given ABI."""
+        depname = self.package.get_dependency_name(kwargs['rust_abi'])
+        return self.state.overridden_dependency(depname)
 
 
 class RustModule(ExtensionModule):
@@ -557,7 +607,7 @@ class RustModule(ExtensionModule):
         ws_obj = self._workspace_cache.get(self.interpreter.cargo)
         if ws_obj is None:
             root_pkg = self.interpreter.cargo.load_package()
-            ws_obj = RustWorkspace(state, root_pkg)
+            ws_obj = RustWorkspace(state, self.interpreter, root_pkg)
             self._workspace_cache[self.interpreter.cargo] = ws_obj
 
         return ws_obj

@@ -27,10 +27,14 @@ from ..wrap.wrap import PackageDefinition
 if T.TYPE_CHECKING:
     from . import raw
     from .. import mparser
+    from typing_extensions import Literal
+
     from .manifest import Dependency, SystemDependency
     from ..environment import Environment
     from ..interpreterbase import SubProject
     from ..compilers.rust import RustCompiler
+
+    RUST_ABI = Literal['rust', 'c', 'proc-macro']
 
 def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
     basename = package_name[:-len(suffix)] if package_name.endswith(suffix) else package_name
@@ -61,6 +65,34 @@ class PackageState:
     # If this package is member of a workspace.
     ws_subdir: T.Optional[str] = None
     ws_member: T.Optional[str] = None
+
+    def uses_abi(self, abi: str) -> bool:
+        """Check if this package supports the given ABI."""
+        crate_types = self.manifest.lib.crate_type
+        if abi == 'rust':
+            return any(ct in {'lib', 'rlib'} for ct in crate_types)
+        elif abi == 'c':
+            return any(ct in {'staticlib', 'cdylib'} for ct in crate_types)
+        elif abi == 'proc-macro':
+            return 'proc-macro' in crate_types
+        else:
+            return False
+
+    def get_dependency_name(self, rust_abi: RUST_ABI) -> str:
+        """Get the dependency name for a package with the given ABI."""
+        if not self.uses_abi(rust_abi):
+            raise MesonException(f'Package {self.manifest.package.name} does not support ABI {rust_abi}')
+
+        # TODO: Implement dependency name generation
+        package_name = self.manifest.package.name
+        api = self.manifest.package.api
+
+        if rust_abi in {'rust', 'proc-macro'}:
+            return f'{package_name}-{api}-rs'
+        elif rust_abi == 'c':
+            return f'{package_name}-{api}'
+        else:
+            raise MesonException(f'Unknown rust_abi: {rust_abi}')
 
 
 @dataclasses.dataclass(frozen=True)
@@ -282,6 +314,26 @@ class Interpreter:
         meson_depname = _dependency_name(package_name, api)
         return self._fetch_package_from_subproject(package_name, meson_depname)
 
+    def _resolve_package(self, package_name: str, version_constraints: T.List[str]) -> T.Optional[raw.CargoLockPackage]:
+        """From all available versions from Cargo.lock, pick the most recent
+           satisfying the constraints and return it."""
+        if self.cargolock:
+            cargo_lock_pkgs = self.cargolock.named(package_name)
+        else:
+            cargo_lock_pkgs = []
+        for cargo_pkg in cargo_lock_pkgs:
+            if all(version_compare(cargo_pkg.version, v) for v in version_constraints):
+                return cargo_pkg
+
+        if not version_constraints:
+            raise MesonException(f'Cannot determine version of cargo package {package_name}')
+        return None
+
+    def resolve_package(self, package_name: str, version_constraints: T.List[str]) -> T.Optional[PackageState]:
+        cargo_pkg = self._resolve_package(package_name, version_constraints)
+        api = version.api(cargo_pkg.version)
+        return self._fetch_package(package_name, api)
+
     def _fetch_package_from_subproject(self, package_name: str, meson_depname: str) -> PackageState:
         subp_name, _ = self.environment.wrap_resolver.find_dep_provider(meson_depname)
         if subp_name is None:
@@ -355,19 +407,8 @@ class Interpreter:
             _, _, directory = _parse_git_url(dep.git, dep.branch)
             dep_pkg = self._fetch_package_from_subproject(dep.package, directory)
         else:
-            # From all available versions from Cargo.lock, pick the most recent
-            # satisfying the constraints
-            if self.cargolock:
-                cargo_lock_pkgs = self.cargolock.named(dep.package)
-            else:
-                cargo_lock_pkgs = []
-            for cargo_pkg in cargo_lock_pkgs:
-                if all(version_compare(cargo_pkg.version, v) for v in dep.meson_version):
-                    dep.update_version(f'={cargo_pkg.version}')
-                    break
-            else:
-                if not dep.meson_version:
-                    raise MesonException(f'Cannot determine version of cargo package {dep.package}')
+            cargo_pkg = self._resolve_package(dep.package, dep.meson_version)
+            dep.update_version(f'={cargo_pkg.version}')
             dep_pkg = self._fetch_package(dep.package, dep.api)
         return dep_pkg
 
