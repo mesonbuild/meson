@@ -149,8 +149,43 @@ class RustSubproject(ModuleObject):
         self.rust_ws = rust_ws
         self.package = package
         self.methods.update({
+            'all_features': self.all_features_method,
+            'api': self.api_method,
             'dependency': self.dependency_method,
+            'features': self.features_method,
+            'name': self.name_method,
+            'version': self.version_method,
         })
+
+    @noPosargs
+    @noKwargs
+    def name_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> str:
+        """Returns the name of the package."""
+        return self.package.manifest.package.name
+
+    @noPosargs
+    @noKwargs
+    def api_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> str:
+        """Returns the API version of the package."""
+        return self.package.manifest.package.api
+
+    @noPosargs
+    @noKwargs
+    def version_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> str:
+        """Returns the version of the package."""
+        return self.package.manifest.package.version
+
+    @noPosargs
+    @noKwargs
+    def all_features_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
+        """Returns all features for specific package."""
+        return sorted(list(self.package.manifest.features.keys()))
+
+    @noPosargs
+    @noKwargs
+    def features_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
+        """Returns chosen features for specific package."""
+        return sorted(list(self.package.cfg.features))
 
     @noPosargs
     @typed_kwargs('package.dependency',

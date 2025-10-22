@@ -7,7 +7,18 @@ cargo_ws = rust.workspace()
 assert(cargo_ws.packages() == ['answer', 'hello', 'package_test'])
 
 hello_rs = cargo_ws.subproject('hello')
+assert(hello_rs.name() == 'hello')
+assert(hello_rs.version() == '1.0.0')
+assert(hello_rs.api() == '1')
+assert(hello_rs.all_features() == ['default', 'goodbye'])
+assert(hello_rs.features() == ['default', 'goodbye'])
+
 answer_rs = cargo_ws.subproject('answer', '2')
+assert(answer_rs.name() == 'answer')
+assert(answer_rs.version() == '2.1.0')
+assert(answer_rs.api() == '2')
+assert(answer_rs.all_features() == ['default', 'large'])
+assert(answer_rs.features() == ['default', 'large'])
 
 e = executable('package-test', 'src/main.rs',
   dependencies: [hello_rs.dependency(), answer_rs.dependency()],
