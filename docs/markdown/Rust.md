@@ -106,3 +106,40 @@ target name.  First, dashes, spaces and dots are replaced with underscores.  Sec
 *since 1.10.0* anything after the first `+` is dropped.  This allows creating multiple
 targets for the same crate name, for example when the same crate is built multiple
 times with different features, or for both the build and the host machine.
+
+## Cargo interaction
+
+*Since 1.11.0*
+
+In most cases, a Rust program will use Cargo to download crates.  Meson is able
+to build Rust library crates based on a `Cargo.toml` file; each external crate
+corresponds to a subproject.  Rust module's ` that do not need a `build.rs` file
+need no intervention, whereas if a `build.rs` file is present it needs to be
+converted manually to Meson code.
+
+To enable automatic configuration of Cargo dependencies, your project must
+have `Cargo.toml` and `Cargo.lock` files in the root source directory;
+this enables proper feature resolution across crates.  You can then
+create a workspace object using the Rust module, and retrieve specific
+packages from the workspace:
+
+```meson
+rust = import('rust')
+cargo_ws = rustmod.workspace()
+anyhow_dep = ws.subproject('anyhow').dependency()
+```
+
+The workspace object also enables configuration of Cargo features, for example
+from Meson options:
+
+```meson
+cargo_ws = rustmod.workspace(
+    features: ['feature1', 'feature2'])
+```
+
+### Limitations
+
+All your own crates must be built using the usual Meson functions such as
+[[static_library]] or [[executable]].  In the future, workspace object
+functionality will be extended to help building rustc command lines
+based on features, dependency names, and so on.
