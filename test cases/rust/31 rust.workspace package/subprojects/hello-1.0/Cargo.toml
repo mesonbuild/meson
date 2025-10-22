@@ -5,3 +5,6 @@ edition = "2021"
 
 [lib]
 crate-type = ["lib"]
+
+[features]
+goodbye = []

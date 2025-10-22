@@ -258,6 +258,47 @@ Positional arguments:
 The package object returned by `workspace.subproject()` provides methods
 for working with individual packages in a Cargo workspace.
 
+### subproject.name()
+
+```meson
+name = pkg.name()
+```
+
+Returns the name of the subproject.
+
+### subproject.version()
+
+```meson
+version = pkg.version()
+```
+
+Returns the normalized version number of the subproject.
+
+### subproject.api()
+
+```meson
+api = pkg.api()
+```
+
+Returns the API version of the subproject, that is the version up to the first
+nonzero element.
+
+### subproject.features()
+
+```meson
+features = pkg.features()
+```
+
+Returns selected features for a specific subproject.
+
+### subproject.all_features()
+
+```meson
+all_features = pkg.all_features()
+```
+
+Returns all defined features for a specific subproject.
+
 ### subproject.dependency()
 
 ```meson
