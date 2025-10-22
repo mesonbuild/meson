@@ -20,7 +20,7 @@ import typing as T
 from . import builder, version
 from .cfg import eval_cfg
 from .toml import load_toml
-from .manifest import Manifest, CargoLock, Workspace, fixup_meson_varname
+from .manifest import Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname
 from ..mesonlib import MesonException, MachineChoice, version_compare
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
@@ -361,6 +361,21 @@ class Interpreter:
         meson_depname = _dependency_name(package_name, api)
         return self._fetch_package_from_subproject(package_name, meson_depname)
 
+    def _resolve_package(self, package_name: str, version_constraints: T.List[str]) -> T.Optional[CargoLockPackage]:
+        """From all available versions from Cargo.lock, pick the most recent
+           satisfying the constraints and return it."""
+        if self.cargolock:
+            cargo_lock_pkgs = self.cargolock.named(package_name)
+        else:
+            cargo_lock_pkgs = []
+        for cargo_pkg in cargo_lock_pkgs:
+            if all(version_compare(cargo_pkg.version, v) for v in version_constraints):
+                return cargo_pkg
+
+        if not version_constraints:
+            raise MesonException(f'Cannot determine version of cargo package {package_name}')
+        return None
+
     def _fetch_package_from_subproject(self, package_name: str, meson_depname: str) -> PackageState:
         subp_name, _ = self.environment.wrap_resolver.find_dep_provider(meson_depname)
         if subp_name is None:
@@ -436,19 +451,9 @@ class Interpreter:
             _, _, directory = _parse_git_url(dep.git, dep.branch)
             dep_pkg = self._fetch_package_from_subproject(dep.package, directory)
         else:
-            # From all available versions from Cargo.lock, pick the most recent
-            # satisfying the constraints
-            if self.cargolock:
-                cargo_lock_pkgs = self.cargolock.named(dep.package)
-            else:
-                cargo_lock_pkgs = []
-            for cargo_pkg in cargo_lock_pkgs:
-                if all(version_compare(cargo_pkg.version, v) for v in dep.meson_version):
-                    dep.update_version(f'={cargo_pkg.version}')
-                    break
-            else:
-                if not dep.meson_version:
-                    raise MesonException(f'Cannot determine version of cargo package {dep.package}')
+            cargo_pkg = self._resolve_package(dep.package, dep.meson_version)
+            if cargo_pkg:
+                dep.update_version(f'={cargo_pkg.version}')
             dep_pkg = self._fetch_package(dep.package, dep.api)
 
         if not dep.version:
