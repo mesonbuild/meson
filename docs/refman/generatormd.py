@@ -44,6 +44,7 @@ _OBJ_ID_MAP = {
     ObjectType.ELEMENTARY: 'elementary',
     ObjectType.BUILTIN: 'builtin',
     ObjectType.MODULE: 'module',
+    ObjectType.FUNCTIONS: 'functions',
     ObjectType.RETURNED: 'returned',
 }
 
@@ -299,7 +300,7 @@ class GeneratorMD(GeneratorBase):
 
     def _write_functions(self) -> None:
         data = {'functions': [self._gen_func_or_method(x) for x in self.functions]}
-        self._write_template(data, 'root.functions')
+        self._write_template(data, f'root.{_OBJ_ID_MAP[ObjectType.FUNCTIONS]}')
 
     def _root_refman_docs(self) -> None:
         def gen_obj_links(objs: T.List[Object]) -> T.List[T.Dict[str, str]]:
@@ -330,6 +331,7 @@ class GeneratorMD(GeneratorBase):
         self._write_template(data, 'root')
         self._write_template({**dummy, 'name': 'Elementary types'}, f'root.{_OBJ_ID_MAP[ObjectType.ELEMENTARY]}', 'dummy')
         self._write_template({**dummy, 'name': 'Builtin objects'},  f'root.{_OBJ_ID_MAP[ObjectType.BUILTIN]}',    'dummy')
+        self._write_functions()
         self._write_template({**dummy, 'name': 'Returned objects'}, f'root.{_OBJ_ID_MAP[ObjectType.RETURNED]}',   'dummy')
 
         if self.enable_modules:
@@ -339,7 +341,8 @@ class GeneratorMD(GeneratorBase):
     def generate(self) -> None:
         mlog.log('Generating markdown files...')
         with mlog.nested():
-            self._write_functions()
+            for fun in self.functions:
+                self._write_template(self._gen_func_or_method(fun), f'root.{_OBJ_ID_MAP[ObjectType.FUNCTIONS]}.{fun.name}', 'func')
             for obj in self.objects:
                 if not self.enable_modules and (obj.obj_type == ObjectType.MODULE or obj.defined_by_module is not None):
                     continue
@@ -383,7 +386,7 @@ class GeneratorMD(GeneratorBase):
                 data[f'{obj.name}.{m.name}'] = f'{obj_file}#{obj.name}{m.name}'
 
         # Functions
-        funcs_file = self._gen_filename('root.functions', extension='html')
+        funcs_file = self._gen_filename(f'root.{_OBJ_ID_MAP[ObjectType.FUNCTIONS]}', extension='html')
         for fn in self.functions:
             data[fn.name] = f'{funcs_file}#{fn.name}'
 
