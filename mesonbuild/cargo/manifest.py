@@ -81,6 +81,7 @@ class ConvertValue(DefaultValue):
 
 def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI], msg: str,
                       raw_from_workspace: T.Optional[T.Mapping[str, object]] = None,
+                      ignored_fields: T.Optional[T.List[str]] = None,
                       **kwargs: DefaultValue) -> _DI:
     """Fixup raw cargo mappings to a dataclass.
 
@@ -106,6 +107,7 @@ def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI], msg: str,
     unexpected = set()
     fields = {x.name for x in dataclasses.fields(cls)}
     raw_from_workspace = raw_from_workspace or {}
+    ignored_fields = ignored_fields or []
     inherit = raw.get('workspace', False)
 
     for orig_k, v in raw.items():
@@ -122,7 +124,8 @@ def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI], msg: str,
             ws_v = raw_from_workspace.get(orig_k)
         k = fixup_meson_varname(orig_k)
         if k not in fields:
-            unexpected.add(orig_k)
+            if orig_k not in ignored_fields:
+                unexpected.add(orig_k)
             continue
         if k in kwargs:
             new_dict[k] = kwargs[k].convert(v, ws_v)
@@ -134,7 +137,8 @@ def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI], msg: str,
         for orig_k, ws_v in raw_from_workspace.items():
             k = fixup_meson_varname(orig_k)
             if k not in fields:
-                unexpected.add(orig_k)
+                if orig_k not in ignored_fields:
+                    unexpected.add(orig_k)
                 continue
             if k in new_dict:
                 continue
@@ -442,6 +446,8 @@ class Manifest:
     features: T.Dict[str, T.List[str]] = dataclasses.field(default_factory=dict)
     target: T.Dict[str, T.Dict[str, Dependency]] = dataclasses.field(default_factory=dict)
 
+    # missing: profile
+
     def __post_init__(self) -> None:
         self.features.setdefault('default', [])
 
@@ -461,6 +467,7 @@ class Manifest:
             return {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()}
 
         return _raw_to_dataclass(raw, cls, f'Cargo.toml package {pkg.name}',
+                                 ignored_fields=['badges', 'workspace'],
                                  package=ConvertValue(lambda _: pkg),
                                  dependencies=ConvertValue(dependencies_from_raw),
                                  dev_dependencies=ConvertValue(dependencies_from_raw),
