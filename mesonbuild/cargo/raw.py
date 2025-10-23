@@ -59,6 +59,7 @@ class Badge(TypedDict):
     """An entry in the badge section."""
 
     status: Literal['actively-developed', 'passively-developed', 'as-is', 'experimental', 'deprecated', 'none']
+    repository: str
 
 
 Dependency = TypedDict(
