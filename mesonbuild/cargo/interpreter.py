@@ -243,6 +243,11 @@ class Interpreter:
         self.workspaces[subdir] = ws
         return ws
 
+    def _record_package(self, pkg: PackageState) -> None:
+        key = PackageKey(pkg.manifest.package.name, pkg.manifest.package.api)
+        if key not in self.packages:
+            self.packages[key] = pkg
+
     def _require_workspace_member(self, ws: WorkspaceState, member: str) -> PackageState:
         member = os.path.normpath(member)
         pkg = ws.packages[member]
@@ -308,6 +313,7 @@ class Interpreter:
         return pkg, False
 
     def _prepare_package(self, pkg: PackageState) -> None:
+        self._record_package(pkg)
         # Merge target specific dependencies that are enabled
         cfgs = self._get_cfgs(MachineChoice.HOST)
         for condition, dependencies in pkg.manifest.target.items():
