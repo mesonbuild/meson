@@ -15,7 +15,7 @@ from pathlib import PurePath
 
 
 from . import version
-from ..mesonlib import MesonException, lazy_property
+from ..mesonlib import MesonException, lazy_property, MachineChoice
 from .. import mlog
 
 if T.TYPE_CHECKING:
@@ -538,6 +538,33 @@ class Manifest:
 
     def __post_init__(self) -> None:
         self.features.setdefault('default', [])
+
+    def machines_from(self, parent_machine: MachineChoice, is_cross: bool,
+                      bin: bool = False) -> T.Iterable[MachineChoice]:
+        """Return the machines this manifest should be built for based on the machine
+           for the package that depended on this one."""
+        assert is_cross or parent_machine == MachineChoice.HOST
+        if self.lib is None:
+            if bin and self.bin:
+                yield parent_machine
+            return
+
+        if not is_cross:
+            yield parent_machine
+            return
+
+        need_build = False
+        need_host = False
+        for crate_type in self.lib.crate_type:
+            if crate_type == 'proc-macro' or parent_machine == MachineChoice.BUILD:
+                need_build = True
+            else:
+                need_host = True
+
+        if need_build:
+            yield MachineChoice.BUILD
+        if need_host:
+            yield MachineChoice.HOST
 
     @lazy_property
     def system_dependencies(self) -> T.Dict[str, SystemDependency]:

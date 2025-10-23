@@ -234,7 +234,7 @@ class RustCrate(ModuleObject):
 
     @property
     def cfg(self) -> PackageConfiguration:
-        return self.package.cfg[MachineChoice.HOST]
+        return self.package.cfg[self.for_machine]
 
     @noPosargs
     @noKwargs
@@ -290,8 +290,9 @@ class RustPackage(RustCrate):
 
     def __init__(self, state: ModuleState, rust_ws: RustWorkspace, package: cargo.PackageState, for_machine: MachineChoice) -> None:
         super().__init__(state, rust_ws, package, for_machine)
-        if not package.cfg[MachineChoice.HOST]:
-            raise MesonException(f"package {self.package.manifest.package.name}-{self.package.manifest.package.version} not configured")
+        if not package.cfg[self.for_machine]:
+            raise MesonException(f"package {self.package.manifest.package.name}-{self.package.manifest.package.version} not configured for {self.for_machine}")
+
         self.methods.update({
             'dependencies': self.dependencies_method,
             'library': self.library_method,
@@ -304,8 +305,10 @@ class RustPackage(RustCrate):
     def _dependencies_method(self, state: ModuleState, kwargs: RustPackageDependencies,
                              for_machine: MachineChoice) -> T.List[Dependency]:
         dependencies: T.List[Dependency] = []
+        cfg = self.package.cfg[for_machine]
+
         if kwargs['dependencies']:
-            for dep_key, dep_pkg in self.cfg.dep_packages.items():
+            for dep_key, dep_pkg in cfg.dep_packages.items():
                 if dep_pkg.manifest.lib:
                     if dep_pkg.ws_subdir != self.rust_ws.subdir or \
                         is_parent_path(os.path.join(self.rust_ws.subdir, state.subproject_dir),
@@ -321,7 +324,7 @@ class RustPackage(RustCrate):
 
         if kwargs['system_dependencies']:
             for name, sys_dep in self.package.manifest.system_dependencies.items():
-                if sys_dep.enabled(self.cfg.features):
+                if sys_dep.enabled(cfg.features):
                     # System dependencies use the original dependency name from Cargo.toml
                     dependency = state.dependency(sys_dep.name, native=(for_machine == MachineChoice.BUILD),
                                                   required=not sys_dep.optional,
@@ -351,6 +354,9 @@ class RustPackage(RustCrate):
 
     def merge_kw_args(self, state: ModuleState, kwargs: T.Union[RustPackageExecutable, RustPackageLibrary]) -> None:
         kwargs.setdefault('native', self.for_machine)
+        cfg = self.package.cfg[kwargs['native']]
+        if not cfg:
+            raise MesonException(f"package {self.package.manifest.package.name}-{self.package.manifest.package.version} not configured for {self.for_machine}")
 
         deps = kwargs['dependencies']
         kwargs['dependencies'] = self._dependencies_method(state, {
@@ -361,7 +367,7 @@ class RustPackage(RustCrate):
         kwargs['dependencies'].extend(deps)
 
         depmap = kwargs['rust_dependency_map']
-        kwargs['rust_dependency_map'] = self.cfg.get_dependency_map(self.package.manifest)
+        kwargs['rust_dependency_map'] = cfg.get_dependency_map(self.package.manifest)
         kwargs['rust_dependency_map'].update(depmap)
 
         rust_args = kwargs['rust_args']
@@ -415,7 +421,8 @@ class RustPackage(RustCrate):
     def _proc_macro_method(self, state: 'ModuleState', args: T.Tuple[
             T.Optional[T.Union[str, StructuredSources]],
             T.Optional[StructuredSources]], kwargs: RustPackageLibrary) -> SharedLibrary:
-        kwargs['native'] = MachineChoice.BUILD
+        if state.environment.is_cross_build():
+            kwargs['native'] = MachineChoice.BUILD
         kwargs['rust_abi'] = None
         kwargs['rust_crate_type'] = 'proc-macro'
         kwargs['rust_args'] = kwargs['rust_args'] + ['--extern', 'proc_macro']
