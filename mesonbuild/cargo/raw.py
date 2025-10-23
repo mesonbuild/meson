@@ -6,25 +6,23 @@
 from __future__ import annotations
 import typing as T
 
-from typing_extensions import Literal, TypedDict, Required
-
-EDITION = Literal['2015', '2018', '2021']
-CRATE_TYPE = Literal['bin', 'lib', 'dylib', 'staticlib', 'cdylib', 'rlib', 'proc-macro']
-LINT_LEVEL = Literal['allow', 'deny', 'forbid', 'warn']
+EDITION = T.Literal['2015', '2018', '2021']
+CRATE_TYPE = T.Literal['bin', 'lib', 'dylib', 'staticlib', 'cdylib', 'rlib', 'proc-macro']
+LINT_LEVEL = T.Literal['allow', 'deny', 'forbid', 'warn']
 
 
-class FromWorkspace(TypedDict):
+class FromWorkspace(T.TypedDict):
 
     """An entry or section that is copied from the workspace."""
 
     workspace: bool
 
 
-Package = TypedDict(
+Package = T.TypedDict(
     'Package',
     {
-        'name': Required[str],
-        'version': Required[T.Union[FromWorkspace, str]],
+        'name': T.Required[str],
+        'version': T.Required[T.Union[FromWorkspace, str]],
         'authors': T.Union[FromWorkspace, T.List[str]],
         'edition': T.Union[FromWorkspace, EDITION],
         'rust-version': T.Union[FromWorkspace, str],
@@ -55,15 +53,15 @@ Package = TypedDict(
 )
 """A description of the Package Dictionary."""
 
-class Badge(TypedDict):
+class Badge(T.TypedDict):
 
     """An entry in the badge section."""
 
-    status: Literal['actively-developed', 'passively-developed', 'as-is', 'experimental', 'deprecated', 'none']
+    status: T.Literal['actively-developed', 'passively-developed', 'as-is', 'experimental', 'deprecated', 'none']
     repository: str
 
 
-Dependency = TypedDict(
+Dependency = T.TypedDict(
     'Dependency',
     {
         'version': str,
@@ -86,7 +84,7 @@ DependencyV = T.Union[Dependency, str]
 """A Dependency entry, either a string or a Dependency Dict."""
 
 
-_BaseBuildTarget = TypedDict(
+_BaseBuildTarget = T.TypedDict(
     '_BaseBuildTarget',
     {
         'path': str,
@@ -107,7 +105,7 @@ _BaseBuildTarget = TypedDict(
 
 class BuildTarget(_BaseBuildTarget, total=False):
 
-    name: Required[str]
+    name: T.Required[str]
 
 
 class LibTarget(_BaseBuildTarget, total=False):
@@ -115,17 +113,17 @@ class LibTarget(_BaseBuildTarget, total=False):
     name: str
 
 
-class Target(TypedDict):
+class Target(T.TypedDict):
 
     """Target entry in the Manifest File."""
 
     dependencies: T.Dict[str, T.Union[FromWorkspace, DependencyV]]
 
 
-Lint = TypedDict(
+Lint = T.TypedDict(
     'Lint',
     {
-        'level': Required[LINT_LEVEL],
+        'level': T.Required[LINT_LEVEL],
         'priority': int,
         'check-cfg': T.List[str],
     },
@@ -142,7 +140,7 @@ LintV = T.Union[Lint, str]
 """A Lint entry, either a string or a Lint Dict."""
 
 
-class Workspace(TypedDict):
+class Workspace(T.TypedDict):
 
     """The representation of a workspace.
 
@@ -159,7 +157,7 @@ class Workspace(TypedDict):
     dependencies: T.Dict[str, DependencyV]
 
 
-Manifest = TypedDict(
+Manifest = T.TypedDict(
     'Manifest',
     {
         'package': Package,
@@ -185,7 +183,7 @@ Manifest = TypedDict(
 """The Cargo Manifest format."""
 
 
-class CargoLockPackage(TypedDict, total=False):
+class CargoLockPackage(T.TypedDict, total=False):
 
     """A description of a package in the Cargo.lock file format."""
 
@@ -195,7 +193,7 @@ class CargoLockPackage(TypedDict, total=False):
     checksum: str
 
 
-class CargoLock(TypedDict, total=False):
+class CargoLock(T.TypedDict, total=False):
 
     """A description of the Cargo.lock file format."""
 
