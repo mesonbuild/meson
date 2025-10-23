@@ -37,7 +37,7 @@ endtestcase
 testcase expect_error('workspace member "nonexistent" not found')
   cargo_ws.package('nonexistent')
 endtestcase
-testcase expect_error('package another-0.1.0 not configured')
+testcase expect_error('package another-0.1.0 not configured for host machine')
   cargo_ws.package('another')
 endtestcase
 
