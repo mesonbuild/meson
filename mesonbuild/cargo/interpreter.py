@@ -247,8 +247,9 @@ class Interpreter:
     def _prepare_entry_point(self, ws: WorkspaceState) -> None:
         pkgs = [self._require_workspace_member(ws, m) for m in ws.workspace.default_members]
         for pkg in pkgs:
-            self._prepare_package(pkg)
-            self._enable_feature(pkg, 'default')
+            for machine in pkg.manifest.machines_from(MachineChoice.HOST):
+                self._prepare_package(pkg, machine)
+                self._enable_feature(pkg, 'default', machine)
 
     def interpret(self, subdir: str, project_root: T.Optional[str] = None) -> mparser.CodeBlockNode:
         manifest, cached = self._load_manifest(subdir)
@@ -329,12 +330,16 @@ class Interpreter:
             if member in processed_members:
                 return
             pkg = ws.packages[member]
-            cfg = pkg.cfg[MachineChoice.HOST]
-            for depname in cfg.required_deps:
-                dep = pkg.manifest.dependencies[depname]
-                if dep.path:
-                    dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
-                    _process_member(dep_member)
+            # Process dependencies for all configured machines
+            for machine in MachineChoice:
+                cfg = pkg.cfg[machine]
+                if cfg is None:
+                    continue
+                for depname in cfg.required_deps:
+                    dep = pkg.manifest.dependencies[depname]
+                    if dep.path:
+                        dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
+                        _process_member(dep_member)
             if member == '.':
                 ast.extend(self._create_package(pkg, build, subdir))
             elif is_parent_path(self.subprojects_dir, member):
@@ -447,22 +452,22 @@ class Interpreter:
         pkg = self._require_workspace_member(ws, member)
         return pkg
 
-    def _prepare_package(self, pkg: PackageState) -> None:
+    def _prepare_package(self, pkg: PackageState, machine: MachineChoice) -> None:
         key = PackageKey(pkg.manifest.package.name, pkg.manifest.package.api)
         assert key in self.packages
-        if pkg.cfg[MachineChoice.HOST]:
-            return
+        if pkg.cfg[machine] is not None:
+            return  # Already prepared for this machine
 
-        pkg.cfg[MachineChoice.HOST] = PackageConfiguration()
-        # Merge target specific dependencies that are enabled
-        cfgs = self._get_cfgs(MachineChoice.HOST)
+        pkg.cfg[machine] = PackageConfiguration()
+        # Merge target-specific dependencies that are enabled for this machine
+        target_cfgs = self._get_cfgs(machine)
         for condition, dependencies in pkg.manifest.target.items():
-            if eval_cfg(condition, cfgs):
+            if eval_cfg(condition, target_cfgs):
                 pkg.manifest.dependencies.update(dependencies)
-        # Fetch required dependencies recursively.
+        # Fetch required dependencies recursively for this machine
         for depname, dep in pkg.manifest.dependencies.items():
             if not dep.optional:
-                self._add_dependency(pkg, depname)
+                self._add_dependency(pkg, depname, machine)
 
     def _dep_package(self, pkg: PackageState, dep: Dependency, cfg: PackageConfiguration) -> PackageState:
         if dep.path:
@@ -507,8 +512,8 @@ class Interpreter:
         self.manifests[subdir] = manifest_
         return manifest_, False
 
-    def _add_dependency(self, pkg: PackageState, depname: str) -> None:
-        cfg = pkg.cfg[MachineChoice.HOST]
+    def _add_dependency(self, pkg: PackageState, depname: str, machine: MachineChoice) -> None:
+        cfg = pkg.cfg[machine]
         if depname in cfg.required_deps:
             return
         dep = pkg.manifest.dependencies.get(depname)
@@ -517,22 +522,24 @@ class Interpreter:
             return
         cfg.required_deps.add(depname)
         dep_pkg = self._dep_package(pkg, dep, cfg)
-        self._prepare_package(dep_pkg)
-        if dep.default_features:
-            self._enable_feature(dep_pkg, 'default')
-        for f in dep.features:
-            self._enable_feature(dep_pkg, f)
-        for f in cfg.optional_deps_features[depname]:
-            self._enable_feature(dep_pkg, f)
+        # Use machines_from() to determine which machines the dependency needs
+        for dep_machine in dep_pkg.manifest.machines_from(machine):
+            self._prepare_package(dep_pkg, dep_machine)
+            if dep.default_features:
+                self._enable_feature(dep_pkg, 'default', dep_machine)
+            for f in dep.features:
+                self._enable_feature(dep_pkg, f, dep_machine)
+            for f in cfg.optional_deps_features[depname]:
+                self._enable_feature(dep_pkg, f, dep_machine)
 
-    def _enable_feature(self, pkg: PackageState, feature: str) -> None:
-        cfg = pkg.cfg[MachineChoice.HOST]
+    def _enable_feature(self, pkg: PackageState, feature: str, machine: MachineChoice) -> None:
+        cfg = pkg.cfg[machine]
         if feature in cfg.features:
             return
         cfg.features.add(feature)
         # A feature can also be a dependency.
         if feature in pkg.manifest.dependencies:
-            self._add_dependency(pkg, feature)
+            self._add_dependency(pkg, feature, machine)
         # Recurse on extra features and dependencies this feature pulls.
         # https://doc.rust-lang.org/cargo/reference/features.html#the-features-section
         for f in pkg.manifest.features.get(feature, []):
@@ -541,19 +548,21 @@ class Interpreter:
                 if depname[-1] == '?':
                     depname = depname[:-1]
                 else:
-                    self._add_dependency(pkg, depname)
+                    self._add_dependency(pkg, depname, machine)
                 if depname in cfg.required_deps:
                     dep = pkg.manifest.dependencies[depname]
                     dep_pkg = self._dep_package(pkg, dep, cfg)
-                    self._enable_feature(dep_pkg, dep_f)
+                    # Use machines_from() to determine which machines the dependency needs
+                    for dep_machine in dep_pkg.manifest.machines_from(machine):
+                        self._enable_feature(dep_pkg, dep_f, dep_machine)
                 else:
                     # This feature will be enabled only if that dependency
                     # is later added.
                     cfg.optional_deps_features[depname].add(dep_f)
             elif f.startswith('dep:'):
-                self._add_dependency(pkg, f[4:])
+                self._add_dependency(pkg, f[4:], machine)
             else:
-                self._enable_feature(pkg, f)
+                self._enable_feature(pkg, f, machine)
 
     def has_check_cfg(self, machine: MachineChoice) -> bool:
         if not self.environment.is_cross_build():
@@ -625,8 +634,10 @@ class Interpreter:
         for depname in cfg.required_deps:
             dep = pkg.manifest.dependencies[depname]
             dep_pkg = self._dep_package(pkg, dep, cfg)
-            if dep_pkg.manifest.lib:
-                ast += self._create_dependency(dep_pkg, dep, build, machine)
+            if not dep_pkg.manifest.lib:
+                continue
+            for dep_machine in dep_pkg.manifest.machines_from(machine):
+                ast += self._create_dependency(dep_pkg, dep, build, dep_machine)
         ast.append(build.assign(build.array([]), 'system_deps_args'))
         for name, sys_dep in pkg.manifest.system_dependencies.items():
             if sys_dep.enabled(cfg.features):
@@ -751,7 +762,9 @@ class Interpreter:
         dependencies: T.List[mparser.BaseNode] = []
         for name in cfg.required_deps:
             dep = pkg.manifest.dependencies[name]
-            dependencies.append(build.identifier(_dependency_varname(dep, machine)))
+            dep_pkg = self._dep_package(pkg, dep, cfg)
+            for dep_machine in dep_pkg.manifest.machines_from(machine):
+                dependencies.append(build.identifier(_dependency_varname(dep, dep_machine)))
 
         dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {
             build.string(k): build.string(v) for k, v in cfg.get_dependency_map(pkg.manifest, machine).items()}
