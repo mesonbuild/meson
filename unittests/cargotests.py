@@ -499,6 +499,12 @@ class CargoTomlTest(unittest.TestCase):
         self.assertEqual(manifest.lib.crate_type, ['proc-macro'])
         self.assertEqual(manifest.lib.path, 'src/lib.rs')
 
+        del manifest_toml['lib']['crate-type']
+        manifest = Manifest.from_raw(manifest_toml, 'Cargo.toml')
+        self.assertEqual(manifest.lib.name, 'bits')
+        self.assertEqual(manifest.lib.crate_type, ['proc-macro'])
+        self.assertEqual(manifest.lib.path, 'src/lib.rs')
+
     def test_cargo_toml_targets(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             fname = os.path.join(tmpdir, 'Cargo.toml')
