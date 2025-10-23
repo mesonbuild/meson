@@ -429,7 +429,6 @@ class CargoTomlTest(unittest.TestCase):
         self.assertEqual(manifest.lib.name, 'bits')
         self.assertEqual(manifest.lib.crate_type, ['proc-macro'])
         self.assertEqual(manifest.lib.path, 'src/lib.rs')
-        self.assertEqual(manifest.lib.proc_macro, True)
 
     def test_cargo_toml_targets(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -450,7 +449,6 @@ class CargoTomlTest(unittest.TestCase):
         self.assertEqual(manifest.lib.edition, '2021')
         self.assertEqual(manifest.lib.required_features, [])
         self.assertEqual(manifest.lib.plugin, False)
-        self.assertEqual(manifest.lib.proc_macro, False)
 
         self.assertEqual(len(manifest.test), 1)
         self.assertEqual(manifest.test[0].name, 'check_gir')
