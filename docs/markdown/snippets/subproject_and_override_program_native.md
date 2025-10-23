@@ -11,3 +11,6 @@ two versions of the same program, which have different outputs based on the
 machine they are for. For backwards compatibility reasons the default is for the
 host machine. Inside a native subproject the host and build machine will both be
 the build machine.
+
+Cargo workspaces use this feature automatically when building procedural macro
+crates and their dependencies.
