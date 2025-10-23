@@ -208,6 +208,8 @@ class Interpreter:
 
     def _load_workspace_member(self, ws: WorkspaceState, m: str) -> None:
         m = os.path.normpath(m)
+        if m in ws.packages:
+            return
         # Load member's manifest
         m_subdir = os.path.join(ws.subdir, m)
         manifest_ = self._load_manifest(m_subdir, ws.workspace, m)
@@ -215,8 +217,6 @@ class Interpreter:
         self._add_workspace_member(manifest_, ws, m)
 
     def _add_workspace_member(self, manifest_: Manifest, ws: WorkspaceState, m: str) -> None:
-        if m in ws.packages:
-            return
         pkg = PackageState(manifest_, ws_subdir=ws.subdir, ws_member=m)
         ws.packages[m] = pkg
         ws.packages_to_member[manifest_.package.name] = m
@@ -226,10 +226,10 @@ class Interpreter:
         if ws:
             return ws
         ws = WorkspaceState(workspace, subdir)
-        for m in workspace.members:
-            self._load_workspace_member(ws, m)
         if workspace.root_package:
             self._add_workspace_member(workspace.root_package, ws, '.')
+        for m in workspace.members:
+            self._load_workspace_member(ws, m)
         self.workspaces[subdir] = ws
         return ws
 
