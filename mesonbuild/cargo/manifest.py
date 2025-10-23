@@ -357,7 +357,7 @@ class Library(BuildTarget):
                                  path=DefaultValue('src/lib.rs'),
                                  edition=DefaultValue(pkg.edition),
                                  crate_type=ConvertValue(lambda x: ['proc-macro'] if proc_macro else x,
-                                                         ['lib']))
+                                                         ['proc-macro'] if proc_macro else ['lib']))
 
 
 @dataclasses.dataclass
