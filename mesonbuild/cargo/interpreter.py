@@ -278,7 +278,7 @@ class Interpreter:
             pkg = self._require_workspace_member(ws, member)
             return pkg
 
-        key = PackageKey(package_name, version.api(manifest.package.version))
+        key = PackageKey(package_name, manifest.package.api)
         pkg = self.packages.get(key)
         if pkg:
             return pkg
@@ -288,7 +288,7 @@ class Interpreter:
         return pkg
 
     def _fetch_package_from_manifest(self, manifest: Manifest) -> T.Tuple[PackageState, bool]:
-        key = PackageKey(manifest.package.name, version.api(manifest.package.version))
+        key = PackageKey(manifest.package.name, manifest.package.api)
         pkg = self.packages.get(key)
         if pkg:
             return pkg, True
