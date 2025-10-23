@@ -175,14 +175,8 @@ class Interpreter:
         self.environment.wrap_resolver.load_and_merge(subprojects_dir, T.cast('SubProject', name))
         ast: T.List[mparser.BaseNode] = []
         if not ws.required_members:
-            if ws.workspace.default_members:
-                for member in ws.workspace.default_members:
-                    self._require_workspace_member(ws, member)
-            elif ws.workspace.root_package:
-                self._require_workspace_member(ws, '.')
-            else:
-                for member in ws.workspace.members:
-                    self._require_workspace_member(ws, member)
+            for member in ws.workspace.default_members:
+                self._require_workspace_member(ws, member)
 
         # Call subdir() for each required member of the workspace. The order is
         # important, if a member depends on another member, that member must be
