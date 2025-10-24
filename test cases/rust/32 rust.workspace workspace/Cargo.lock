@@ -11,9 +11,14 @@ name = "hello"
 version = "1.0.0"
 
 [[package]]
+name = "more"
+version = "0.1.0"
+
+[[package]]
 name = "workspace_test"
 version = "0.1.0"
 dependencies = [
  "answer",
  "hello",
+ "more",
 ]
