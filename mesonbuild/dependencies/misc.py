@@ -44,10 +44,10 @@ def netcdf_factory(env: 'Environment',
         else:
             pkg = 'netcdf'
 
-        candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs, language=language))
+        candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs))
 
     if DependencyMethods.CMAKE in methods:
-        candidates.append(functools.partial(CMakeDependency, 'NetCDF', env, kwargs, language=language))
+        candidates.append(functools.partial(CMakeDependency, 'NetCDF', env, kwargs))
 
     return candidates
 
@@ -114,8 +114,7 @@ class OpenMPDependency(SystemDependency):
     }
 
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        language = kwargs.get('language')
-        super().__init__(name, environment, kwargs, language=language)
+        super().__init__(name, environment, kwargs)
         self.is_found = False
         if self.clib_compiler.get_id() == 'nagfor':
             # No macro defined for OpenMP, but OpenMP 3.1 is supported.
@@ -336,7 +335,7 @@ class CursesConfigToolDependency(ConfigToolDependency):
     # ncurses5.4-config is for macOS Catalina
     tools = ['ncursesw6-config', 'ncursesw5-config', 'ncurses6-config', 'ncurses5-config', 'ncurses5.4-config']
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None):
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
         exclude_paths = None
         # macOS mistakenly ships /usr/bin/ncurses5.4-config and a man page for
         # it, but none of the headers or libraries. Ignore /usr/bin because it
@@ -344,7 +343,7 @@ class CursesConfigToolDependency(ConfigToolDependency):
         # Homebrew is /usr/local or /opt/homebrew.
         if env.machines.build and env.machines.build.system == 'darwin':
             exclude_paths = ['/usr/bin']
-        super().__init__(name, env, kwargs, language, exclude_paths=exclude_paths)
+        super().__init__(name, env, kwargs, exclude_paths=exclude_paths)
         if not self.is_found:
             return
         self.compile_args = self.get_config_value(['--cflags'], 'compile_args')

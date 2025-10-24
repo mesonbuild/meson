@@ -137,7 +137,7 @@ class Dependency(HoldableObject):
         self._id = uuid.uuid4().int
         self.name = f'dep{self._id}'
         self.version:  T.Optional[str] = None
-        self.language: T.Optional[str] = None # None means C-like
+        self.language: T.Optional[str] = kwargs.get('language') # None means C-like
         self.is_found = False
         self.compile_args: T.List[str] = []
         self.link_args:    T.List[str] = []
@@ -416,12 +416,11 @@ class InternalDependency(Dependency):
         return new_dep
 
 class ExternalDependency(Dependency):
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None):
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
         Dependency.__init__(self, kwargs)
         self.env = environment
         self.name = name
         self.is_found = False
-        self.language = language
         self.version_reqs = kwargs.get('version', [])
         self.required = kwargs.get('required', True)
         self.silent = kwargs.get('silent', False)
@@ -526,8 +525,7 @@ class ExternalLibrary(ExternalDependency):
 
     def __init__(self, name: str, link_args: T.List[str], environment: 'Environment',
                  language: str, silent: bool = False) -> None:
-        super().__init__(name, environment, {}, language=language)
-        self.language = language
+        super().__init__(name, environment, {'language': language})
         self.is_found = False
         if link_args:
             self.is_found = True
