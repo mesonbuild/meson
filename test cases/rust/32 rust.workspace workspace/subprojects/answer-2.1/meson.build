@@ -4,6 +4,10 @@ rust = import('rust')
 cargo_ws = rust.workspace()
 assert(cargo_ws.packages() == ['answer'])
 
+answer_pkg = cargo_ws.package()
+assert(answer_pkg.all_features() == ['default', 'large'])
+assert(answer_pkg.features() == ['default', 'large'])
+
 l = static_library('answer', 'src/lib.rs', rust_args: ['--cfg', 'feature="large"'])
 dep = declare_dependency(link_with: l)
 meson.override_dependency('answer-2-rs', dep)
