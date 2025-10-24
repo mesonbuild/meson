@@ -3,23 +3,23 @@
 
 from __future__ import annotations
 
-import collections, functools, importlib
+import collections, importlib
 import enum
 import typing as T
 
-from .base import ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
+from .base import DependencyCandidate, ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
 
-from ..mesonlib import listify, PerMachine
+from ..mesonlib import listify, PerMachine, MesonBugException
 from .. import mlog
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from .factory import DependencyFactory, WrappedFactoryFunc, DependencyGenerator
+    from .factory import DependencyFactory, DependencyGenerator, WrappedFactoryFunc
     from .base import DependencyObjectKWs
 
     TV_DepIDEntry = T.Union[str, bool, int, None, T.Tuple[str, ...]]
     TV_DepID = T.Tuple[T.Tuple[str, TV_DepIDEntry], ...]
-    PackageTypes = T.Union[T.Type[ExternalDependency], DependencyFactory, WrappedFactoryFunc]
+    PackageTypes = T.Union[T.Type[ExternalDependency], DependencyFactory, DependencyCandidate, WrappedFactoryFunc]
     # Workaround for older python
     DependencyPackagesType = collections.UserDict[str, PackageTypes]
 else:
@@ -120,8 +120,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
             d._check_version()
             pkgdep.append(d)
         except DependencyException as e:
-            assert isinstance(c, functools.partial), 'for mypy'
-            bettermsg = f'Dependency lookup for {name} with method {c.func.log_tried()!r} failed: {e}'
+            bettermsg = f'Dependency lookup for {name} with method {c.method!r} failed: {e}'
             mlog.debug(bettermsg)
             e.args = (bettermsg,)
             pkg_exc.append(e)
@@ -178,17 +177,17 @@ def _build_external_dependency_list(name: str, env: 'Environment', kwargs: Depen
     # Is there a specific dependency detector for this dependency?
     lname = name.lower()
     if lname in packages:
-        # Create the list of dependency object constructors using a factory
-        # class method, if one exists, otherwise the list just consists of the
-        # constructor
-        if isinstance(packages[lname], type):
-            entry1 = T.cast('T.Type[ExternalDependency]', packages[lname])  # mypy doesn't understand isinstance(..., type)
-            if issubclass(entry1, ExternalDependency):
-                func: T.Callable[[], 'ExternalDependency'] = functools.partial(entry1, env, kwargs)
-                dep = [func]
+        entry = packages[lname]
+        if isinstance(entry, type):
+            if issubclass(entry, ExternalDependency):
+                dep = [DependencyCandidate.from_dependency(name, entry, (env, kwargs))]
+            else:
+                raise MesonBugException(f'Got an invalid type in the dependency list: {entry!r}')
+        elif isinstance(entry, DependencyCandidate):
+            entry.arguments = (env, kwargs)
+            dep = [entry]
         else:
-            entry2 = T.cast('T.Union[DependencyFactory, WrappedFactoryFunc]', packages[lname])
-            dep = entry2(env, kwargs)
+            dep = entry(env, kwargs)
         return dep
 
     candidates: T.List['DependencyGenerator'] = []
@@ -204,24 +203,24 @@ def _build_external_dependency_list(name: str, env: 'Environment', kwargs: Depen
     # Exclusive to when it is explicitly requested
     if DependencyMethods.DUB in methods:
         from .dub import DubDependency
-        candidates.append(functools.partial(DubDependency, name, env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(name, DubDependency, (env, kwargs)))
 
     # Preferred first candidate for auto.
     if DependencyMethods.PKGCONFIG in methods:
         from .pkgconfig import PkgConfigDependency
-        candidates.append(functools.partial(PkgConfigDependency, name, env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(name, PkgConfigDependency, (env, kwargs)))
 
     # On OSX only, try framework dependency detector.
     if DependencyMethods.EXTRAFRAMEWORK in methods:
         if env.machines[kwargs['native']].is_darwin():
             from .framework import ExtraFrameworkDependency
-            candidates.append(functools.partial(ExtraFrameworkDependency, name, env, kwargs))
+            candidates.append(DependencyCandidate.from_dependency(name, ExtraFrameworkDependency, (env, kwargs)))
 
     # Only use CMake:
     # - if it's explicitly requested
     # - as a last resort, since it might not work 100% (see #6113)
     if DependencyMethods.CMAKE in methods:
         from .cmake import CMakeDependency
-        candidates.append(functools.partial(CMakeDependency, name, env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(name, CMakeDependency, (env, kwargs)))
 
     return candidates
