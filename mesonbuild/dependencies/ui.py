@@ -16,7 +16,8 @@ from ..mesonlib import (
     Popen_safe, version_compare_many
 )
 
-from .base import DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
+from .base import DependencyCandidate, DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
+from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import DependencyFactory
@@ -274,18 +275,18 @@ class VulkanDependencySystem(SystemDependency):
 packages['gl'] = gl_factory = DependencyFactory(
     'gl',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
-    system_class=GLDependencySystem,
+    system=GLDependencySystem,
 )
 
 packages['sdl2'] = sdl2_factory = DependencyFactory(
     'sdl2',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE],
-    configtool_class=SDL2DependencyConfigTool,
-    cmake_name='SDL2',
+    configtool=SDL2DependencyConfigTool,
+    cmake=DependencyCandidate.from_dependency('SDL2', CMakeDependency),
 )
 
 packages['vulkan'] = vulkan_factory = DependencyFactory(
     'vulkan',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
-    system_class=VulkanDependencySystem,
+    system=VulkanDependencySystem,
 )

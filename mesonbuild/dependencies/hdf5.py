@@ -4,13 +4,12 @@
 # This file contains the detection logic for miscellaneous external dependencies.
 from __future__ import annotations
 
-import functools
 import os
 import re
 from pathlib import Path
 
 from ..mesonlib import OrderedSet, join_args
-from .base import DependencyException, DependencyMethods
+from .base import DependencyCandidate, DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .pkgconfig import PkgConfigDependency, PkgConfigInterface
@@ -161,10 +160,12 @@ def hdf5_factory(env: 'Environment', kwargs: DependencyObjectKWs,
                 # use just the standard files if pkg-config --list-all fails
                 pass
         for mod in pkgconfig_files:
-            candidates.append(functools.partial(HDF5PkgConfigDependency, mod, env, kwargs))
+            candidates.append(DependencyCandidate.from_dependency(
+                mod, HDF5PkgConfigDependency, (env, kwargs)))
 
     if DependencyMethods.CONFIG_TOOL in methods:
-        candidates.append(functools.partial(HDF5ConfigToolDependency, 'hdf5', env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            'hd5f', HDF5ConfigToolDependency, (env, kwargs)))
 
     return candidates
 
