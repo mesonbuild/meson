@@ -57,8 +57,8 @@ class GnuStepDependency(ConfigToolDependency):
     tools = ['gnustep-config']
     tool_name = 'gnustep-config'
 
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__('gnustep', environment, kwargs, language='objc')
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        super().__init__(name, environment, kwargs, language='objc')
         if not self.is_found:
             return
         self.modules = kwargs.get('modules', [])
@@ -149,7 +149,9 @@ class WxDependency(ConfigToolDependency):
     tools = ['wx-config-3.0', 'wx-config-3.1', 'wx-config', 'wx-config-gtk3']
     tool_name = 'wx-config'
 
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
+    # name is intentionally ignored to maintain existing capitalization,
+    # but is needed for polymorphism
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
         super().__init__('WxWidgets', environment, kwargs, language='cpp')
         if not self.is_found:
             return

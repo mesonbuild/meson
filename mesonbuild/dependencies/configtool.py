@@ -39,8 +39,7 @@ class ConfigToolDependency(ExternalDependency):
     type_name = DependencyTypeName('config-tool')
 
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None, exclude_paths: T.Optional[T.List[str]] = None):
-        super().__init__(environment, kwargs, language=language)
-        self.name = name
+        super().__init__(name, environment, kwargs, language=language)
         # You may want to overwrite the class version in some cases
         self.tools = listify(kwargs.get('tools', self.tools))
         if not self.tool_name:

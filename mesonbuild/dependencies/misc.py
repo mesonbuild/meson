@@ -113,9 +113,9 @@ class OpenMPDependency(SystemDependency):
         '199810': '1.0',
     }
 
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
         language = kwargs.get('language')
-        super().__init__('openmp', environment, kwargs, language=language)
+        super().__init__(name, environment, kwargs, language=language)
         self.is_found = False
         if self.clib_compiler.get_id() == 'nagfor':
             # No macro defined for OpenMP, but OpenMP 3.1 is supported.
@@ -181,8 +181,8 @@ class ThreadDependency(SystemDependency):
 
 
 class BlocksDependency(SystemDependency):
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__('blocks', environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        super().__init__(name, environment, kwargs)
         self.name = 'blocks'
         self.is_found = False
 
@@ -304,8 +304,8 @@ class GpgmeDependencyConfigTool(ConfigToolDependency):
 
 class ShadercDependency(SystemDependency):
 
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__('shaderc', environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, environment, kwargs)
 
         static_lib = 'shaderc_combined'
         shared_lib = 'shaderc_shared'
@@ -508,8 +508,8 @@ class ObjFWDependency(ConfigToolDependency):
     tools = ['objfw-config']
     tool_name = 'objfw-config'
 
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__('objfw', environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, environment, kwargs)
         self.feature_since = ('1.5.0', '')
         if not self.is_found:
             return
