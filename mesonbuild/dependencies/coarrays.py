@@ -3,10 +3,9 @@
 
 from __future__ import annotations
 
-import functools
 import typing as T
 
-from .base import DependencyMethods, detect_compiler, SystemDependency
+from .base import DependencyCandidate, DependencyMethods, detect_compiler, SystemDependency
 from .cmake import CMakeDependency
 from .detect import packages
 from .pkgconfig import PkgConfigDependency
@@ -31,19 +30,24 @@ def coarray_factory(env: 'Environment',
         # OpenCoarrays is the most commonly used method for Fortran Coarray with GCC
         if DependencyMethods.PKGCONFIG in methods:
             for pkg in ['caf-openmpi', 'caf']:
-                candidates.append(functools.partial(
-                    PkgConfigDependency, pkg, env, kwargs))
+                candidates.append(DependencyCandidate.from_dependency(
+                    pkg, PkgConfigDependency, (env, kwargs)))
 
         if DependencyMethods.CMAKE in methods:
+            nkwargs = kwargs
             if not kwargs.get('modules'):
-                kwargs['modules'] = ['OpenCoarrays::caf_mpi']
-            candidates.append(functools.partial(
-                CMakeDependency, 'OpenCoarrays', env, kwargs))
+                nkwargs = kwargs.copy()
+                nkwargs['modules'] = ['OpenCoarrays::caf_mpi']
+            candidates.append(DependencyCandidate.from_dependency(
+                'OpenCoarrays', CMakeDependency, (env, nkwargs)))
 
     if DependencyMethods.SYSTEM in methods:
-        candidates.append(functools.partial(CoarrayDependency, env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            'coarray', CoarrayDependency, (env, kwargs)))
 
     return candidates
+
+
 packages['coarray'] = coarray_factory
 
 

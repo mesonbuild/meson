@@ -468,20 +468,20 @@ class Qt6PkgConfigDependency(Qt6WinMainMixin, QtPkgConfigDependency):
 packages['qt4'] = qt4_factory = DependencyFactory(
     'qt4',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
-    pkgconfig_class=Qt4PkgConfigDependency,
-    configtool_class=Qt4ConfigToolDependency,
+    pkgconfig=Qt4PkgConfigDependency,
+    configtool=Qt4ConfigToolDependency,
 )
 
 packages['qt5'] = qt5_factory = DependencyFactory(
     'qt5',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
-    pkgconfig_class=Qt5PkgConfigDependency,
-    configtool_class=Qt5ConfigToolDependency,
+    pkgconfig=Qt5PkgConfigDependency,
+    configtool=Qt5ConfigToolDependency,
 )
 
 packages['qt6'] = qt6_factory = DependencyFactory(
     'qt6',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
-    pkgconfig_class=Qt6PkgConfigDependency,
-    configtool_class=Qt6ConfigToolDependency,
+    pkgconfig=Qt6PkgConfigDependency,
+    configtool=Qt6ConfigToolDependency,
 )

@@ -8,7 +8,7 @@ from pathlib import Path
 import typing as T
 
 from .. import mesonlib, mlog
-from .base import process_method_kw, DependencyException, DependencyMethods, ExternalDependency, SystemDependency
+from .base import process_method_kw, DependencyCandidate, DependencyException, DependencyMethods, ExternalDependency, SystemDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import DependencyFactory
@@ -519,7 +519,7 @@ class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase)
 class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
     def __init__(self, name: str, environment: 'Environment',
-                 kwargs: DependencyObjectKWs, installation: 'BasicPythonExternalProgram'):
+                 kwargs: DependencyObjectKWs, installation: BasicPythonExternalProgram):
         SystemDependency.__init__(self, name, environment, kwargs)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
 
@@ -563,7 +563,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
     def log_tried() -> str:
         return 'sysconfig'
 
-def python_factory(env: 'Environment', kwargs: DependencyObjectKWs,
+def python_factory(env: Environment, kwargs: DependencyObjectKWs,
                    installation: T.Optional['BasicPythonExternalProgram'] = None) -> T.List['DependencyGenerator']:
     # We can't use the factory_methods decorator here, as we need to pass the
     # extra installation argument
@@ -577,12 +577,17 @@ def python_factory(env: 'Environment', kwargs: DependencyObjectKWs,
 
     if DependencyMethods.PKGCONFIG in methods:
         if from_installation:
-            candidates.append(functools.partial(PythonPkgConfigDependency, env, kwargs, installation))
+            candidates.append(DependencyCandidate(
+                functools.partial(PythonPkgConfigDependency, installation=installation),
+                'python', PythonPkgConfigDependency.log_tried(), arguments=(env, kwargs)))
         else:
-            candidates.append(functools.partial(PkgConfigDependency, 'python3', env, kwargs))
+            candidates.append(DependencyCandidate.from_dependency(
+                'python3', PkgConfigDependency, (env, kwargs)))
 
     if DependencyMethods.SYSTEM in methods:
-        candidates.append(functools.partial(PythonSystemDependency, 'python', env, kwargs, installation))
+        candidates.append(DependencyCandidate(
+            functools.partial(PythonSystemDependency, installation=installation),
+            'python', PythonSystemDependency.log_tried(), arguments=(env, kwargs)))
 
     if DependencyMethods.EXTRAFRAMEWORK in methods:
         nkwargs = kwargs.copy()
@@ -590,7 +595,9 @@ def python_factory(env: 'Environment', kwargs: DependencyObjectKWs,
             # There is a python in /System/Library/Frameworks, but that's python 2.x,
             # Python 3 will always be in /Library
             nkwargs['paths'] = ['/Library/Frameworks']
-        candidates.append(functools.partial(PythonFrameworkDependency, 'Python', env, nkwargs, installation))
+        candidates.append(DependencyCandidate(
+            functools.partial(PythonFrameworkDependency, installation=installation),
+            'python', PythonFrameworkDependency.log_tried(), arguments=(env, nkwargs)))
 
     return candidates
 
@@ -599,11 +606,11 @@ packages['python3'] = python_factory
 packages['pybind11'] = pybind11_factory = DependencyFactory(
     'pybind11',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.CMAKE],
-    configtool_class=Pybind11ConfigToolDependency,
+    configtool=Pybind11ConfigToolDependency,
 )
 
 packages['numpy'] = numpy_factory = DependencyFactory(
     'numpy',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
-    configtool_class=NumPyConfigToolDependency,
+    configtool=NumPyConfigToolDependency,
 )
