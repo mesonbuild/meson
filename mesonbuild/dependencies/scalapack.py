@@ -4,12 +4,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-import functools
 import os
 import typing as T
 
 from ..options import OptionKey
-from .base import DependencyException, DependencyMethods
+from .base import DependencyCandidate, DependencyException, DependencyMethods
 from .cmake import CMakeDependency
 from .detect import packages
 from .pkgconfig import PkgConfigDependency
@@ -30,16 +29,16 @@ def scalapack_factory(env: 'Environment',
     if DependencyMethods.PKGCONFIG in methods:
         static_opt = kwargs['static'] if kwargs.get('static') is not None else env.coredata.optstore.get_value_for(OptionKey('prefer_static'))
         mkl = 'mkl-static-lp64-iomp' if static_opt else 'mkl-dynamic-lp64-iomp'
-        candidates.append(functools.partial(
-            MKLPkgConfigDependency, mkl, env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            mkl, MKLPkgConfigDependency, (env, kwargs)))
 
         for pkg in ['scalapack-openmpi', 'scalapack']:
-            candidates.append(functools.partial(
-                PkgConfigDependency, pkg, env, kwargs))
+            candidates.append(DependencyCandidate.from_dependency(
+                pkg, PkgConfigDependency, (env, kwargs)))
 
     if DependencyMethods.CMAKE in methods:
-        candidates.append(functools.partial(
-            CMakeDependency, 'Scalapack', env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            'Scalapack', CMakeDependency, (env, kwargs)))
 
     return candidates
 
