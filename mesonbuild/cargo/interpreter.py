@@ -341,9 +341,10 @@ class Interpreter:
         return build.block(ast)
 
     def _create_package(self, pkg: PackageState, build: builder.Builder, subdir: str) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg
         ast: T.List[mparser.BaseNode] = [
-            build.assign(build.array([build.string(f) for f in cfg.features]), 'features'),
+            build.assign(build.method('package', build.identifier('cargo_ws'),
+                                      [build.string(pkg.manifest.package.name)]), 'pkg_obj'),
+            build.assign(build.method('features', build.identifier('pkg_obj')), 'features'),
             build.function('message', [
                 build.string('Enabled features:'),
                 build.identifier('features'),
@@ -843,17 +844,13 @@ class Interpreter:
             dep = pkg.manifest.dependencies[name]
             dependencies.append(build.identifier(_dependency_varname(dep)))
 
-        dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {
-            build.string(k): build.string(v) for k, v in cfg.get_dependency_map(pkg.manifest).items()}
-
         for name, sys_dep in pkg.manifest.system_dependencies.items():
             if sys_dep.enabled(cfg.features):
                 dependencies.append(build.identifier(f'{fixup_meson_varname(name)}_system_dep'))
 
-        rustc_args_list = pkg.get_rustc_args(self.environment, subdir, MachineChoice.HOST)
+        package_rust_args = build.method('rust_args', build.identifier('pkg_obj'))
         extra_args_ref = build.identifier(_extra_args_varname())
-        rust_args: T.List[mparser.BaseNode] = [build.string(a) for a in rustc_args_list]
-        rust_args.append(extra_args_ref)
+        rust_args = build.plus(package_rust_args, extra_args_ref)
 
         dependencies.append(build.identifier(_extra_deps_varname()))
 
@@ -868,8 +865,8 @@ class Interpreter:
 
         kwargs: T.Dict[str, mparser.BaseNode] = {
             'dependencies': build.array(dependencies),
-            'rust_dependency_map': build.dict(dependency_map),
-            'rust_args': build.array(rust_args),
+            'rust_dependency_map': build.method('rust_dependency_map', build.identifier('pkg_obj')),
+            'rust_args': rust_args,
             'override_options': build.dict(override_options),
         }
 
@@ -899,9 +896,10 @@ class Interpreter:
                     kw={
                         'link_with': build.identifier('lib'),
                         'variables': build.dict({
-                            build.string('features'): build.string(','.join(cfg.features)),
+                            build.string('features'): build.method('join', build.string(','),
+                                                                   [build.identifier('features')]),
                         }),
-                        'version': build.string(pkg.manifest.package.version),
+                        'version': build.method('version', build.identifier('pkg_obj')),
                     },
                 ),
                 'dep'
