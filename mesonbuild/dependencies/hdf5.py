@@ -9,7 +9,7 @@ import os
 import re
 from pathlib import Path
 
-from ..mesonlib import OrderedSet, join_args, MachineChoice
+from ..mesonlib import OrderedSet, join_args
 from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
 from .detect import packages
@@ -98,15 +98,14 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
         else:
             raise DependencyException('How did you get here?')
 
-        # We need this before we call super()
-        for_machine = kwargs.get('native', MachineChoice.HOST)
-
         nkwargs = kwargs.copy()
         nkwargs['tools'] = tools
 
         # Override the compiler that the config tools are going to use by
         # setting the environment variables that they use for the compiler and
         # linkers.
+
+        for_machine = kwargs['native']
         compiler = environment.coredata.compilers[for_machine][language]
         try:
             os.environ[f'HDF5_{cenv}'] = join_args(compiler.get_exelist())
@@ -146,7 +145,7 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 def hdf5_factory(env: 'Environment', kwargs: DependencyObjectKWs,
                  methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     candidates: T.List['DependencyGenerator'] = []
-    for_machine = kwargs.get('native', MachineChoice.HOST)
+    for_machine = kwargs['native']
 
     if DependencyMethods.PKGCONFIG in methods:
         # Use an ordered set so that these remain the first tried pkg-config files

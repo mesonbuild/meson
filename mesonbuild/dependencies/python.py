@@ -478,7 +478,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
             self.is_found = False
             return
 
-        for_machine = kwargs.get('native', MachineChoice.HOST)
+        for_machine = kwargs['native']
         sysroot = environment.properties[for_machine].get_sys_root() or ''
         pkg_libdir = sysroot + pkg_libdir
 
