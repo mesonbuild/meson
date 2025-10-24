@@ -18,8 +18,8 @@ class AppleFrameworks(ExternalDependency):
 
     type_name = DependencyTypeName('appleframeworks')
 
-    def __init__(self, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__(env, kwargs)
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        super().__init__(name, env, kwargs)
         modules = kwargs.get('modules', [])
         if not modules:
             raise DependencyException("AppleFrameworks dependency requires at least one module.")

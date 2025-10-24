@@ -90,8 +90,7 @@ class CMakeDependency(ExternalDependency):
         # Ensure that the list is unique
         self.language_list = list(set(self.language_list))
 
-        super().__init__(environment, kwargs, language=language)
-        self.name = name
+        super().__init__(name, environment, kwargs, language=language)
         self.is_libtool = False
 
         # Where all CMake "build dirs" are located

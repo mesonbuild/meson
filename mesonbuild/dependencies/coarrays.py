@@ -41,7 +41,7 @@ def coarray_factory(env: 'Environment',
                 CMakeDependency, 'OpenCoarrays', env, kwargs, language='fortran'))
 
     if DependencyMethods.SYSTEM in methods:
-        candidates.append(functools.partial(CoarrayDependency, env, kwargs))
+        candidates.append(functools.partial(CoarrayDependency, 'coarray', env, kwargs))
 
     return candidates
 packages['coarray'] = coarray_factory
@@ -56,8 +56,8 @@ class CoarrayDependency(SystemDependency):
     Coarrays may be thought of as a high-level language abstraction of
     low-level MPI calls.
     """
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__('coarray', environment, kwargs, language='fortran')
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        super().__init__(name, environment, kwargs, language='fortran')
         kwargs['required'] = False
         kwargs['silent'] = True
 
