@@ -255,8 +255,8 @@ class Interpreter:
         self.build_def_files: T.List[str] = []
         # Cargo packages
         filename = os.path.join(self.environment.get_source_dir(), subdir, 'Cargo.lock')
-        subprojects_dir = os.path.join(self.environment.get_source_dir(), subprojects_dir)
-        self.cargolock = load_cargo_lock(filename, subprojects_dir)
+        full_subprojects_dir = os.path.join(self.environment.get_source_dir(), subprojects_dir)
+        self.cargolock = load_cargo_lock(filename, full_subprojects_dir)
         if self.cargolock:
             self.environment.wrap_resolver.merge_wraps(self.cargolock.wraps)
             self.build_def_files.append(filename)
@@ -294,6 +294,21 @@ class Interpreter:
             self._prepare_package(pkg)
             for feature in self.features:
                 self._enable_feature(pkg, feature)
+
+    def load_package(self, ws: WorkspaceState, package_name: T.Optional[str]) -> PackageState:
+        if package_name is None:
+            if not ws.workspace.root_package:
+                raise MesonException('no root package in workspace')
+            path = '.'
+        else:
+            try:
+                path = ws.packages_to_member[package_name]
+            except KeyError:
+                raise MesonException(f'workspace member "{package_name}" not found')
+
+        if is_parent_path(self.subprojects_dir, path):
+            raise MesonException('argument to package() cannot be a subproject')
+        return ws.packages[path]
 
     def interpret(self, subdir: str, project_root: T.Optional[str] = None) -> mparser.CodeBlockNode:
         filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')
