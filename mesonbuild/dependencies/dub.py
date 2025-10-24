@@ -68,6 +68,8 @@ class DubDependency(ExternalDependency):
     class_dubbin_searched = False
     class_cache_dir = ''
 
+    type_name = DependencyTypeName('dub')
+
     # Map Meson Compiler ID's to Dub Compiler ID's
     _ID_MAP: T.Mapping[str, str] = {
         'dmd': 'dmd',
@@ -76,7 +78,7 @@ class DubDependency(ExternalDependency):
     }
 
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__(DependencyTypeName('dub'), environment, kwargs, language='d')
+        super().__init__(environment, kwargs, language='d')
         self.name = name
         from ..compilers.d import DCompiler, d_feature_args
 
