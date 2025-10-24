@@ -416,10 +416,10 @@ class InternalDependency(Dependency):
         return new_dep
 
 class ExternalDependency(Dependency):
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None):
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None):
         Dependency.__init__(self, kwargs)
         self.env = environment
-        self.name = str(self.type_name)
+        self.name = name
         self.is_found = False
         self.language = language
         self.version_reqs = kwargs.get('version', [])
@@ -527,8 +527,7 @@ class ExternalLibrary(ExternalDependency):
 
     def __init__(self, name: str, link_args: T.List[str], environment: 'Environment',
                  language: str, silent: bool = False) -> None:
-        super().__init__(environment, {}, language=language)
-        self.name = name
+        super().__init__(name, environment, {}, language=language)
         self.language = language
         self.is_found = False
         if link_args:
@@ -673,11 +672,6 @@ class SystemDependency(ExternalDependency):
 
     type_name = DependencyTypeName('system')
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs,
-                 language: T.Optional[str] = None) -> None:
-        super().__init__(env, kwargs, language=language)
-        self.name = name
-
     @staticmethod
     def log_tried() -> str:
         return 'system'
@@ -688,11 +682,6 @@ class BuiltinDependency(ExternalDependency):
     """Dependency base for Builtin type dependencies."""
 
     type_name = DependencyTypeName('builtin')
-
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs,
-                 language: T.Optional[str] = None) -> None:
-        super().__init__(env, kwargs, language=language)
-        self.name = name
 
     @staticmethod
     def log_tried() -> str:
