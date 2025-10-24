@@ -78,7 +78,8 @@ class DubDependency(ExternalDependency):
     }
 
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__(name, environment, kwargs, language='d')
+        kwargs['language'] = 'd'
+        super().__init__(name, environment, kwargs)
         from ..compilers.d import DCompiler, d_feature_args
 
         _temp_comp = super().get_compiler()

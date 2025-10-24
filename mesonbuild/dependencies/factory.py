@@ -7,6 +7,7 @@ from __future__ import annotations
 import functools
 import typing as T
 
+from ..mesonlib import MachineChoice
 from .base import DependencyException, DependencyMethods
 from .base import process_method_kw
 from .base import BuiltinDependency, SystemDependency
@@ -18,13 +19,11 @@ if T.TYPE_CHECKING:
     from .base import DependencyObjectKWs, ExternalDependency
     from .configtool import ConfigToolDependency
     from ..environment import Environment
-    from ..mesonlib import MachineChoice
 
     DependencyGenerator = T.Callable[[], ExternalDependency]
     FactoryFunc = T.Callable[
         [
             'Environment',
-            MachineChoice,
             DependencyObjectKWs,
             T.List[DependencyMethods]
         ],
@@ -34,7 +33,6 @@ if T.TYPE_CHECKING:
     WrappedFactoryFunc = T.Callable[
         [
             'Environment',
-            MachineChoice,
             DependencyObjectKWs,
         ],
         T.List[DependencyGenerator]
@@ -115,12 +113,13 @@ class DependencyFactory:
             return False
         return True
 
-    def __call__(self, env: 'Environment', for_machine: MachineChoice,
-                 kwargs: DependencyObjectKWs) -> T.List['DependencyGenerator']:
+    def __call__(self, env: 'Environment', kwargs: DependencyObjectKWs) -> T.List['DependencyGenerator']:
         """Return a list of Dependencies with the arguments already attached."""
         methods = process_method_kw(self.methods, kwargs)
         nwargs = self.extra_kwargs.copy()
         nwargs.update(kwargs)
+
+        for_machine = kwargs.get('native', MachineChoice.HOST)
 
         return [functools.partial(self.classes[m], env, nwargs) for m in methods
                 if self._process_method(m, env, for_machine)]
@@ -138,8 +137,8 @@ def factory_methods(methods: T.Set[DependencyMethods]) -> T.Callable[['FactoryFu
     def inner(func: 'FactoryFunc') -> 'WrappedFactoryFunc':
 
         @functools.wraps(func)
-        def wrapped(env: 'Environment', for_machine: MachineChoice, kwargs: DependencyObjectKWs) -> T.List['DependencyGenerator']:
-            return func(env, for_machine, kwargs, process_method_kw(methods, kwargs))
+        def wrapped(env: 'Environment', kwargs: DependencyObjectKWs) -> T.List['DependencyGenerator']:
+            return func(env, kwargs, process_method_kw(methods, kwargs))
 
         return wrapped
 
