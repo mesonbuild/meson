@@ -20,8 +20,12 @@ if T.TYPE_CHECKING:
     TV_DepIDEntry = T.Union[str, bool, int, None, T.Tuple[str, ...]]
     TV_DepID = T.Tuple[T.Tuple[str, TV_DepIDEntry], ...]
     PackageTypes = T.Union[T.Type[ExternalDependency], DependencyFactory, WrappedFactoryFunc]
+    # Workaround for older python
+    DependencyPackagesType = collections.UserDict[str, PackageTypes]
+else:
+    DependencyPackagesType = collections.UserDict
 
-class DependencyPackages(collections.UserDict):
+class DependencyPackages(DependencyPackagesType):
     data: T.Dict[str, PackageTypes]
     defaults: T.Dict[str, str] = {}
 
