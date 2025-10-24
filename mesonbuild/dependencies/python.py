@@ -15,6 +15,7 @@ from .factory import DependencyFactory
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
 from ..envconfig import detect_cpu_family
+from ..mesonlib import MachineChoice
 from ..programs import ExternalProgram
 from ..options import OptionKey
 
@@ -23,7 +24,6 @@ if T.TYPE_CHECKING:
 
     from .factory import DependencyGenerator
     from ..environment import Environment
-    from ..mesonlib import MachineChoice
     from .base import DependencyObjectKWs
 
     class PythonIntrospectionDict(TypedDict):
@@ -248,9 +248,9 @@ class BasicPythonExternalProgram(ExternalProgram):
 
 class _PythonDependencyBase(_Base):
 
-    def __init__(self, python_holder: 'BasicPythonExternalProgram', embed: bool,
-                 for_machine: 'MachineChoice'):
-        self.for_machine = for_machine
+    for_machine: MachineChoice
+
+    def __init__(self, python_holder: 'BasicPythonExternalProgram', embed: bool):
         self.embed = embed
         self.build_config = python_holder.build_config
 
@@ -459,8 +459,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 
     # name is needed for polymorphism
     def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs,
-                 installation: 'BasicPythonExternalProgram',
-                 for_machine: 'MachineChoice'):
+                 installation: 'BasicPythonExternalProgram'):
         embed = kwargs.get('embed', False)
         pkg_embed = '-embed' if embed and mesonlib.version_compare(installation.info['version'], '>=3.8') else ''
         pkg_name = f'python-{installation.version}{pkg_embed}'
@@ -479,6 +478,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
             self.is_found = False
             return
 
+        for_machine = kwargs.get('native', MachineChoice.HOST)
         sysroot = environment.properties[for_machine].get_sys_root() or ''
         pkg_libdir = sysroot + pkg_libdir
 
@@ -486,7 +486,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
         pkgconfig_paths = [pkg_libdir] if pkg_libdir else []
 
         PkgConfigDependency.__init__(self, pkg_name, environment, kwargs, extra_paths=pkgconfig_paths)
-        _PythonDependencyBase.__init__(self, installation, embed, for_machine)
+        _PythonDependencyBase.__init__(self, installation, embed)
 
         if pkg_libdir and not self.is_found:
             mlog.debug(f'{pkg_name!r} could not be found in {pkg_libdir_origin}, '
@@ -511,19 +511,17 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase):
 
     def __init__(self, name: str, environment: 'Environment',
-                 kwargs: DependencyObjectKWs, installation: 'BasicPythonExternalProgram',
-                 for_machine: 'MachineChoice'):
+                 kwargs: DependencyObjectKWs, installation: 'BasicPythonExternalProgram'):
         ExtraFrameworkDependency.__init__(self, name, environment, kwargs)
-        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False), for_machine)
+        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
 
 
 class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
     def __init__(self, name: str, environment: 'Environment',
-                 kwargs: DependencyObjectKWs, installation: 'BasicPythonExternalProgram',
-                 for_machine: 'MachineChoice'):
+                 kwargs: DependencyObjectKWs, installation: 'BasicPythonExternalProgram'):
         SystemDependency.__init__(self, name, environment, kwargs)
-        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False), for_machine)
+        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
 
         # For most platforms, match pkg-config behavior. iOS is a special case;
         # check for that first, so that check takes priority over
@@ -543,7 +541,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
         # compile args
         if self.build_config:
-            sysroot = environment.properties[for_machine].get_sys_root() or ''
+            sysroot = environment.properties[self.for_machine].get_sys_root() or ''
             inc_paths = mesonlib.OrderedSet([sysroot + self.build_config['c_api']['headers']])
         else:
             inc_paths = mesonlib.OrderedSet([
@@ -565,8 +563,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
     def log_tried() -> str:
         return 'sysconfig'
 
-def python_factory(env: 'Environment', for_machine: 'MachineChoice',
-                   kwargs: DependencyObjectKWs,
+def python_factory(env: 'Environment', kwargs: DependencyObjectKWs,
                    installation: T.Optional['BasicPythonExternalProgram'] = None) -> T.List['DependencyGenerator']:
     # We can't use the factory_methods decorator here, as we need to pass the
     # extra installation argument
@@ -580,12 +577,12 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
 
     if DependencyMethods.PKGCONFIG in methods:
         if from_installation:
-            candidates.append(functools.partial(PythonPkgConfigDependency, env, kwargs, installation, for_machine))
+            candidates.append(functools.partial(PythonPkgConfigDependency, env, kwargs, installation))
         else:
             candidates.append(functools.partial(PkgConfigDependency, 'python3', env, kwargs))
 
     if DependencyMethods.SYSTEM in methods:
-        candidates.append(functools.partial(PythonSystemDependency, 'python', env, kwargs, installation, for_machine))
+        candidates.append(functools.partial(PythonSystemDependency, 'python', env, kwargs, installation))
 
     if DependencyMethods.EXTRAFRAMEWORK in methods:
         nkwargs = kwargs.copy()
@@ -593,7 +590,7 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
             # There is a python in /System/Library/Frameworks, but that's python 2.x,
             # Python 3 will always be in /Library
             nkwargs['paths'] = ['/Library/Frameworks']
-        candidates.append(functools.partial(PythonFrameworkDependency, 'Python', env, nkwargs, installation, for_machine))
+        candidates.append(functools.partial(PythonFrameworkDependency, 'Python', env, nkwargs, installation))
 
     return candidates
 

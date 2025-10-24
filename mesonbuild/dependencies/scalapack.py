@@ -17,13 +17,12 @@ from .factory import factory_methods
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from ..mesonlib import MachineChoice
     from .factory import DependencyGenerator
     from .base import DependencyObjectKWs
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
-def scalapack_factory(env: 'Environment', for_machine: 'MachineChoice',
+def scalapack_factory(env: 'Environment',
                       kwargs: DependencyObjectKWs,
                       methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     candidates: T.List['DependencyGenerator'] = []

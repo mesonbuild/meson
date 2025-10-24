@@ -143,9 +143,10 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL})
-def hdf5_factory(env: 'Environment', for_machine: 'MachineChoice',
-                 kwargs: DependencyObjectKWs, methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
+def hdf5_factory(env: 'Environment', kwargs: DependencyObjectKWs,
+                 methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     candidates: T.List['DependencyGenerator'] = []
+    for_machine = kwargs.get('native', MachineChoice.HOST)
 
     if DependencyMethods.PKGCONFIG in methods:
         # Use an ordered set so that these remain the first tried pkg-config files

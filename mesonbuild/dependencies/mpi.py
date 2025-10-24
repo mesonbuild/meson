@@ -8,6 +8,7 @@ import typing as T
 import os
 import re
 
+from ..mesonlib import MachineChoice
 from ..envconfig import detect_cpu_family
 from ..mesonlib import Popen_safe
 from .base import DependencyException, DependencyMethods, detect_compiler, SystemDependency
@@ -19,19 +20,19 @@ from .pkgconfig import PkgConfigDependency
 if T.TYPE_CHECKING:
     from .factory import DependencyGenerator
     from ..environment import Environment
-    from ..mesonlib import MachineChoice
     from .base import DependencyObjectKWs
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
 def mpi_factory(env: 'Environment',
-                for_machine: 'MachineChoice',
                 kwargs: DependencyObjectKWs,
                 methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     language = kwargs.get('language') or 'c'
     if language not in {'c', 'cpp', 'fortran'}:
         # OpenMPI doesn't work without any other languages
         return []
+
+    for_machine = kwargs.get('native', MachineChoice.HOST)
 
     candidates: T.List['DependencyGenerator'] = []
     compiler = detect_compiler('mpi', env, for_machine, language)

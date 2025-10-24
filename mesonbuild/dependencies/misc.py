@@ -27,7 +27,6 @@ if T.TYPE_CHECKING:
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
 def netcdf_factory(env: 'Environment',
-                   for_machine: 'mesonlib.MachineChoice',
                    kwargs: DependencyObjectKWs,
                    methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     language = kwargs.get('language')
@@ -449,7 +448,7 @@ class IntlSystemDependency(SystemDependency):
             self.is_found = True
 
             if self.static:
-                if not self._add_sub_dependency(iconv_factory(env, self.for_machine, {'static': True})):
+                if not self._add_sub_dependency(iconv_factory(env, {'static': True, 'native': self.for_machine})):
                     self.is_found = False
 
 
@@ -460,6 +459,7 @@ class OpensslSystemDependency(SystemDependency):
         dependency_kwargs: DependencyObjectKWs = {
             'method': DependencyMethods.SYSTEM,
             'static': self.static,
+            'native': kwargs.get('native'),
         }
         if not self.clib_compiler.has_header('openssl/ssl.h', '', env)[0]:
             return
@@ -477,8 +477,8 @@ class OpensslSystemDependency(SystemDependency):
             self.version = '.'.join(str(i) for i in version_ints[:3]) + chr(ord('a') + version_ints[3] - 1)
 
         if name == 'openssl':
-            if self._add_sub_dependency(libssl_factory(env, self.for_machine, dependency_kwargs)) and \
-                    self._add_sub_dependency(libcrypto_factory(env, self.for_machine, dependency_kwargs)):
+            if self._add_sub_dependency(libssl_factory(env, dependency_kwargs)) and \
+                    self._add_sub_dependency(libcrypto_factory(env, dependency_kwargs)):
                 self.is_found = True
             return
         else:
@@ -490,11 +490,11 @@ class OpensslSystemDependency(SystemDependency):
             self.is_found = True
         else:
             if name == 'libssl':
-                if self._add_sub_dependency(libcrypto_factory(env, self.for_machine, dependency_kwargs)):
+                if self._add_sub_dependency(libcrypto_factory(env, dependency_kwargs)):
                     self.is_found = True
             elif name == 'libcrypto':
                 use_threads = self.clib_compiler.has_header_symbol('openssl/opensslconf.h', 'OPENSSL_THREADS', '', env, dependencies=[self])[0]
-                if not use_threads or self._add_sub_dependency(threads_factory(env, self.for_machine, {})):
+                if not use_threads or self._add_sub_dependency(threads_factory(env, {'native': self.for_machine})):
                     self.is_found = True
                 # only relevant on platforms where it is distributed with the libc, in which case it always succeeds
                 sublib = self.clib_compiler.find_library('dl', env, [], self.libtype)
@@ -528,10 +528,10 @@ class ObjFWDependency(ConfigToolDependency):
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
 def curses_factory(env: 'Environment',
-                   for_machine: 'mesonlib.MachineChoice',
                    kwargs: DependencyObjectKWs,
                    methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     candidates: T.List['DependencyGenerator'] = []
+    for_machine = kwargs.get('native', mesonlib.MachineChoice.HOST)
 
     if DependencyMethods.PKGCONFIG in methods:
         pkgconfig_files = ['pdcurses', 'ncursesw', 'ncurses', 'curses']
@@ -554,7 +554,6 @@ packages['curses'] = curses_factory
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM})
 def shaderc_factory(env: 'Environment',
-                    for_machine: 'mesonlib.MachineChoice',
                     kwargs: DependencyObjectKWs,
                     methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     """Custom DependencyFactory for ShaderC.

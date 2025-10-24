@@ -362,7 +362,7 @@ class BoostDependency(SystemDependency):
 
         # Do we need threads?
         if 'thread' in self.modules:
-            if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
+            if not self._add_sub_dependency(threads_factory(environment, {'native': self.for_machine})):
                 self.is_found = False
                 return
 
