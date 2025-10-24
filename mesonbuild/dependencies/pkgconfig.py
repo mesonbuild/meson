@@ -306,10 +306,12 @@ class PkgConfigCLI(PkgConfigInterface):
 
 class PkgConfigDependency(ExternalDependency):
 
+    type_name = DependencyTypeName('pkgconfig')
+
     def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs,
                  language: T.Optional[str] = None,
                  extra_paths: T.Optional[T.List[str]] = None) -> None:
-        super().__init__(DependencyTypeName('pkgconfig'), environment, kwargs, language=language)
+        super().__init__(environment, kwargs, language=language)
         self.name = name
         self.is_libtool = False
         self.extra_paths = extra_paths or []

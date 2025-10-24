@@ -17,7 +17,7 @@ from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 from .. import mesonlib, mlog
 from ..tooldetect import get_llvm_tool_names
 from ..mesonlib import version_compare, version_compare_many, search_version
-from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyTypeName
+from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
@@ -390,7 +390,7 @@ class LLVMDependencyCMake(CMakeDependency):
         compilers = env.coredata.compilers[for_machine]
         if not compilers or not {'c', 'cpp'}.issubset(compilers):
             # Initialize basic variables
-            ExternalDependency.__init__(self, DependencyTypeName('cmake'), env, kwargs)
+            ExternalDependency.__init__(self, env, kwargs)
 
             # Initialize CMake specific variables
             self.found_modules: T.List[str] = []

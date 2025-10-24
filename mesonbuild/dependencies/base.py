@@ -129,7 +129,9 @@ DependencyTypeName = T.NewType('DependencyTypeName', str)
 
 class Dependency(HoldableObject):
 
-    def __init__(self, type_name: DependencyTypeName, kwargs: DependencyObjectKWs) -> None:
+    type_name: DependencyTypeName
+
+    def __init__(self, kwargs: DependencyObjectKWs) -> None:
         # This allows two Dependencies to be compared even after being copied.
         # The purpose is to allow the name to be changed, but still have a proper comparison
         self._id = uuid.uuid4().int
@@ -137,7 +139,6 @@ class Dependency(HoldableObject):
         self.version:  T.Optional[str] = None
         self.language: T.Optional[str] = None # None means C-like
         self.is_found = False
-        self.type_name = type_name
         self.compile_args: T.List[str] = []
         self.link_args:    T.List[str] = []
         # Raw -L and -l arguments without manual library searching
@@ -298,6 +299,9 @@ class Dependency(HoldableObject):
         return self
 
 class InternalDependency(Dependency):
+
+    type_name = DependencyTypeName('internal')
+
     def __init__(self, version: str, incdirs: T.List['IncludeDirs'], compile_args: T.List[str],
                  link_args: T.List[str],
                  libraries: T.List[LibTypes],
@@ -308,7 +312,7 @@ class InternalDependency(Dependency):
                  d_module_versions: T.List[T.Union[str, int]], d_import_dirs: T.List['IncludeDirs'],
                  objects: T.List['ExtractedObjects'],
                  name: T.Optional[str] = None):
-        super().__init__(DependencyTypeName('internal'), {})
+        super().__init__({})
         self.version = version
         self.is_found = True
         self.include_directories = incdirs
@@ -412,10 +416,10 @@ class InternalDependency(Dependency):
         return new_dep
 
 class ExternalDependency(Dependency):
-    def __init__(self, type_name: DependencyTypeName, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None):
-        Dependency.__init__(self, type_name, kwargs)
+    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None):
+        Dependency.__init__(self, kwargs)
         self.env = environment
-        self.name = type_name # default
+        self.name = str(self.type_name)
         self.is_found = False
         self.language = language
         self.version_reqs = kwargs.get('version', [])
@@ -499,8 +503,11 @@ class ExternalDependency(Dependency):
 
 
 class NotFoundDependency(Dependency):
+
+    type_name = DependencyTypeName('not-found')
+
     def __init__(self, name: str, environment: 'Environment') -> None:
-        super().__init__(DependencyTypeName('not-found'), {})
+        super().__init__({})
         self.env = environment
         self.name = name
         self.is_found = False
@@ -514,9 +521,12 @@ class NotFoundDependency(Dependency):
 
 
 class ExternalLibrary(ExternalDependency):
+
+    type_name = DependencyTypeName('library')
+
     def __init__(self, name: str, link_args: T.List[str], environment: 'Environment',
                  language: str, silent: bool = False) -> None:
-        super().__init__(DependencyTypeName('library'), environment, {}, language=language)
+        super().__init__(environment, {}, language=language)
         self.name = name
         self.language = language
         self.is_found = False
@@ -660,9 +670,11 @@ class SystemDependency(ExternalDependency):
 
     """Dependency base for System type dependencies."""
 
+    type_name = DependencyTypeName('system')
+
     def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs,
                  language: T.Optional[str] = None) -> None:
-        super().__init__(DependencyTypeName('system'), env, kwargs, language=language)
+        super().__init__(env, kwargs, language=language)
         self.name = name
 
     @staticmethod
@@ -674,9 +686,11 @@ class BuiltinDependency(ExternalDependency):
 
     """Dependency base for Builtin type dependencies."""
 
+    type_name = DependencyTypeName('builtin')
+
     def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs,
                  language: T.Optional[str] = None) -> None:
-        super().__init__(DependencyTypeName('builtin'), env, kwargs, language=language)
+        super().__init__(env, kwargs, language=language)
         self.name = name
 
     @staticmethod
