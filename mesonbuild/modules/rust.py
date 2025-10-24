@@ -104,6 +104,7 @@ class RustWorkspace(ModuleObject):
         self.ws = ws
         self.methods.update({
             'packages': self.packages_method,
+            'package': self.package_method,
             'subproject': self.subproject_method,
         })
 
@@ -113,6 +114,12 @@ class RustWorkspace(ModuleObject):
         """Returns list of package names in workspace."""
         package_names = [pkg.manifest.package.name for pkg in self.ws.packages.values()]
         return sorted(package_names)
+
+    @typed_pos_args('workspace.package', optargs=[str])
+    def package_method(self, state: 'ModuleState', args: T.List, kwargs: TYPE_kwargs) -> RustPackage:
+        """Returns a package object."""
+        package_name = args[0] if args else None
+        return RustPackage(self, self.interpreter.cargo.load_package(self.ws, package_name))
 
     def _do_subproject(self, pkg: cargo.PackageState) -> None:
         kw: _kwargs.DoSubproject = {
@@ -141,8 +148,8 @@ class RustWorkspace(ModuleObject):
         return RustSubproject(self, pkg)
 
 
-class RustSubproject(ModuleObject):
-    """Represents a Rust package within a workspace."""
+class RustCrate(ModuleObject):
+    """Abstract base class for Rust crate representations."""
 
     def __init__(self, rust_ws: RustWorkspace, package: cargo.PackageState) -> None:
         super().__init__()
@@ -151,7 +158,6 @@ class RustSubproject(ModuleObject):
         self.methods.update({
             'all_features': self.all_features_method,
             'api': self.api_method,
-            'dependency': self.dependency_method,
             'features': self.features_method,
             'name': self.name_method,
             'version': self.version_method,
@@ -186,6 +192,23 @@ class RustSubproject(ModuleObject):
     def features_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns chosen features for specific package."""
         return sorted(list(self.package.cfg.features))
+
+
+class RustPackage(RustCrate):
+    """Represents a Rust package within a workspace."""
+
+    def __init__(self, rust_ws: RustWorkspace, package: cargo.PackageState) -> None:
+        super().__init__(rust_ws, package)
+
+
+class RustSubproject(RustCrate):
+    """Represents a Cargo subproject."""
+
+    def __init__(self, rust_ws: RustWorkspace, package: cargo.PackageState) -> None:
+        super().__init__(rust_ws, package)
+        self.methods.update({
+            'dependency': self.dependency_method,
+        })
 
     @noPosargs
     @typed_kwargs('package.dependency',

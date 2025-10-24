@@ -241,6 +241,19 @@ packages = ws.packages()
 
 Returns a list of package names in the workspace.
 
+### workspace.package()
+
+```meson
+pkg = ws.package([package_name])
+```
+
+Returns a package object for the given package member.  If empty, returns
+the object for the root package.
+
+Arguments:
+- `package_name`: (str, optional) Name of the package; not needed for the
+  root package of a workspace
+
 ### workspace.subproject()
 
 ```meson
@@ -258,15 +271,15 @@ Positional arguments:
 The package object returned by `workspace.subproject()` provides methods
 for working with individual packages in a Cargo workspace.
 
-### subproject.name()
+### package.name(), subproject.name()
 
 ```meson
 name = pkg.name()
 ```
 
-Returns the name of the subproject.
+Returns the name of a package or subproject.
 
-### subproject.version()
+### package.version(), subproject.version()
 
 ```meson
 version = pkg.version()
@@ -274,7 +287,7 @@ version = pkg.version()
 
 Returns the normalized version number of the subproject.
 
-### subproject.api()
+### package.api(), subproject.api()
 
 ```meson
 api = pkg.api()
@@ -283,21 +296,21 @@ api = pkg.api()
 Returns the API version of the subproject, that is the version up to the first
 nonzero element.
 
-### subproject.features()
+### package.features(), subproject.features()
 
 ```meson
 features = pkg.features()
 ```
 
-Returns selected features for a specific subproject.
+Returns selected features for a specific package or subproject.
 
-### subproject.all_features()
+### package.all_features(), subproject.all_features()
 
 ```meson
 all_features = pkg.all_features()
 ```
 
-Returns all defined features for a specific subproject.
+Returns all defined features for a specific package or subproject.
 
 ### subproject.dependency()
 
