@@ -161,6 +161,9 @@ class RustCrate(ModuleObject):
             'features': self.features_method,
             'name': self.name_method,
             'version': self.version_method,
+            'rust_args': self.rust_args_method,
+            'env': self.env_method, # type: ignore[dict-item]
+            'rust_dependency_map': self.rust_dependency_map_method, # type: ignore[dict-item]
         })
 
     @noPosargs
@@ -192,6 +195,24 @@ class RustCrate(ModuleObject):
     def features_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns chosen features for specific package."""
         return sorted(list(self.package.cfg.features))
+
+    @noPosargs
+    @noKwargs
+    def rust_args_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
+        """Returns rustc arguments for this package."""
+        return self.package.get_rustc_args(state.environment, state.subdir, mesonlib.MachineChoice.HOST)
+
+    @noPosargs
+    @noKwargs
+    def env_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.Dict[str, str]:
+        """Returns environment variables for this package."""
+        return self.package.get_env_dict(state.environment, state.subdir)
+
+    @noPosargs
+    @noKwargs
+    def rust_dependency_map_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.Dict[str, str]:
+        """Returns rust dependency mapping for this package."""
+        return self.package.cfg.get_dependency_map(self.package.manifest)
 
 
 class RustPackage(RustCrate):
