@@ -218,31 +218,32 @@ class Interpreter:
     def get_build_def_files(self) -> T.List[str]:
         return self.build_def_files
 
+    def _prepare_entry_point(self, ws: WorkspaceState) -> None:
+        pkgs = [self._require_workspace_member(ws, m) for m in ws.workspace.default_members]
+        for pkg in pkgs:
+            self._prepare_package(pkg)
+            self._enable_feature(pkg, 'default')
+
     def interpret(self, subdir: str, project_root: T.Optional[str] = None) -> mparser.CodeBlockNode:
-        manifest = self._load_manifest(subdir)
+        manifest, cached = self._load_manifest(subdir)
         filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')
         build = builder.Builder(filename)
-        if isinstance(manifest, Workspace):
-            return self.interpret_workspace(manifest, build, subdir, project_root)
-        return self.interpret_package(manifest, build, subdir, project_root)
-
-    def interpret_package(self, manifest: Manifest, build: builder.Builder, subdir: str, project_root: T.Optional[str]) -> mparser.CodeBlockNode:
-        # Build an AST for this package
-        ast: T.List[mparser.BaseNode] = []
         if project_root:
-            ws = self.workspaces[project_root]
-            member = ws.packages_to_member[manifest.package.name]
-            pkg = ws.packages[member]
-        else:
-            pkg, cached = self._fetch_package_from_manifest(manifest)
-            if not cached:
-                self._prepare_package(pkg)
-                # This is an entry point, always enable the 'default' feature.
-                # FIXME: We should have a Meson option similar to `cargo build --no-default-features`
-                self._enable_feature(pkg, 'default')
-            ast += self._create_project(pkg.manifest.package.name, pkg, build)
-            ast.append(build.assign(build.function('import', [build.string('rust')]), 'rust'))
-        ast += self._create_package(pkg, build, subdir)
+            # this is a subdir()
+            assert isinstance(manifest, Manifest)
+            return self.interpret_package(manifest, build, subdir, project_root)
+
+        ws = self._get_workspace(manifest, subdir, downloaded=False)
+        if not cached:
+            self._prepare_entry_point(ws)
+        return self.interpret_workspace(ws, build, subdir)
+
+    def interpret_package(self, manifest: Manifest, build: builder.Builder, subdir: str, project_root: str) -> mparser.CodeBlockNode:
+        # Build an AST for this package
+        ws = self.workspaces[project_root]
+        member = ws.packages_to_member[manifest.package.name]
+        pkg = ws.packages[member]
+        ast = self._create_package(pkg, build, subdir)
         return build.block(ast)
 
     def _create_package(self, pkg: PackageState, build: builder.Builder, subdir: str) -> T.List[mparser.BaseNode]:
@@ -274,16 +275,11 @@ class Interpreter:
 
         return ast
 
-    def interpret_workspace(self, workspace: Workspace, build: builder.Builder, subdir: str, project_root: T.Optional[str]) -> mparser.CodeBlockNode:
-        ws = self._get_workspace(workspace, subdir, downloaded=False)
+    def interpret_workspace(self, ws: WorkspaceState, build: builder.Builder, subdir: str) -> mparser.CodeBlockNode:
         name = os.path.dirname(subdir)
         subprojects_dir = os.path.join(subdir, 'subprojects')
         self.environment.wrap_resolver.load_and_merge(subprojects_dir, T.cast('SubProject', name))
         ast: T.List[mparser.BaseNode] = []
-        if not ws.required_members:
-            for member in ws.workspace.default_members:
-                pkg = self._require_workspace_member(ws, member)
-                self._prepare_package(pkg)
 
         # Call subdir() for each required member of the workspace. The order is
         # important, if a member depends on another member, that member must be
@@ -309,9 +305,7 @@ class Interpreter:
         ast.append(build.assign(build.function('import', [build.string('rust')]), 'rust'))
         for member in ws.required_members:
             _process_member(member)
-        if not project_root:
-            ast = self._create_project(name, processed_members.get('.'), build) + ast
-
+        ast = self._create_project(name, processed_members.get('.'), build) + ast
         return build.block(ast)
 
     def _load_workspace_member(self, ws: WorkspaceState, m: str) -> None:
@@ -320,7 +314,7 @@ class Interpreter:
             return
         # Load member's manifest
         m_subdir = os.path.join(ws.subdir, m)
-        manifest_ = self._load_manifest(m_subdir, ws.workspace, m)
+        manifest_, _ = self._load_manifest(m_subdir, ws.workspace, m)
         assert isinstance(manifest_, Manifest)
         self._add_workspace_member(manifest_, ws, m)
 
@@ -329,10 +323,12 @@ class Interpreter:
         ws.packages[m] = pkg
         ws.packages_to_member[manifest_.package.name] = m
 
-    def _get_workspace(self, workspace: Workspace, subdir: str, downloaded: bool) -> WorkspaceState:
+    def _get_workspace(self, manifest: T.Union[Workspace, Manifest], subdir: str, downloaded: bool) -> WorkspaceState:
         ws = self.workspaces.get(subdir)
         if ws:
             return ws
+        workspace = manifest if isinstance(manifest, Workspace) else \
+            Workspace(root_package=manifest, members=['.'], default_members=['.'])
         ws = WorkspaceState(workspace, subdir, downloaded=downloaded)
         if workspace.root_package:
             self._add_workspace_member(workspace.root_package, ws, '.')
@@ -395,33 +391,15 @@ class Interpreter:
         subdir, _ = self.environment.wrap_resolver.resolve(subp_name)
         subprojects_dir = os.path.join(subdir, 'subprojects')
         self.environment.wrap_resolver.load_and_merge(subprojects_dir, T.cast('SubProject', meson_depname))
-        manifest = self._load_manifest(subdir)
+        manifest, _ = self._load_manifest(subdir)
         downloaded = \
             subp_name in self.environment.wrap_resolver.wraps and \
             self.environment.wrap_resolver.wraps[subp_name].type is not None
 
-        if isinstance(manifest, Workspace):
-            ws = self._get_workspace(manifest, subdir, downloaded=downloaded)
-            member = ws.packages_to_member[package_name]
-            pkg = self._require_workspace_member(ws, member)
-            return pkg
-
-        key = PackageKey(package_name, manifest.package.api)
-        pkg = self.packages.get(key)
-        if pkg:
-            return pkg
-        pkg = PackageState(manifest, downloaded)
-        self.packages[key] = pkg
+        ws = self._get_workspace(manifest, subdir, downloaded=downloaded)
+        member = ws.packages_to_member[package_name]
+        pkg = self._require_workspace_member(ws, member)
         return pkg
-
-    def _fetch_package_from_manifest(self, manifest: Manifest) -> T.Tuple[PackageState, bool]:
-        key = PackageKey(manifest.package.name, manifest.package.api)
-        pkg = self.packages.get(key)
-        if pkg:
-            return pkg, True
-        pkg = PackageState(manifest, downloaded=False)
-        self.packages[key] = pkg
-        return pkg, False
 
     def _prepare_package(self, pkg: PackageState) -> None:
         key = PackageKey(pkg.manifest.package.name, pkg.manifest.package.api)
@@ -442,8 +420,6 @@ class Interpreter:
 
     def _dep_package(self, pkg: PackageState, dep: Dependency) -> PackageState:
         if dep.path:
-            if not pkg.ws_subdir:
-                raise MesonException("path dependencies only supported inside workspaces")
             ws = self.workspaces[pkg.ws_subdir]
             dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
             self._load_workspace_member(ws, dep_member)
@@ -465,21 +441,22 @@ class Interpreter:
         assert pkg.cfg.dep_packages[dep_key] == dep_pkg
         return dep_pkg
 
-    def _load_manifest(self, subdir: str, workspace: T.Optional[Workspace] = None, member_path: str = '') -> T.Union[Manifest, Workspace]:
+    def _load_manifest(self, subdir: str, workspace: T.Optional[Workspace] = None, member_path: str = '') -> T.Tuple[T.Union[Manifest, Workspace], bool]:
         manifest_ = self.manifests.get(subdir)
-        if not manifest_:
-            path = os.path.join(self.environment.source_dir, subdir)
-            filename = os.path.join(path, 'Cargo.toml')
-            self.build_def_files.append(filename)
-            raw_manifest = T.cast('raw.Manifest', load_toml(filename))
-            if 'workspace' in raw_manifest:
-                manifest_ = Workspace.from_raw(raw_manifest, path)
-            elif 'package' in raw_manifest:
-                manifest_ = Manifest.from_raw(raw_manifest, path, workspace, member_path)
-            else:
-                raise MesonException(f'{subdir}/Cargo.toml does not have [package] or [workspace] section')
-            self.manifests[subdir] = manifest_
-        return manifest_
+        if manifest_:
+            return manifest_, True
+        path = os.path.join(self.environment.source_dir, subdir)
+        filename = os.path.join(path, 'Cargo.toml')
+        self.build_def_files.append(filename)
+        raw_manifest = T.cast('raw.Manifest', load_toml(filename))
+        if 'workspace' in raw_manifest:
+            manifest_ = Workspace.from_raw(raw_manifest, path)
+        elif 'package' in raw_manifest:
+            manifest_ = Manifest.from_raw(raw_manifest, path, workspace, member_path)
+        else:
+            raise MesonException(f'{subdir}/Cargo.toml does not have [package] or [workspace] section')
+        self.manifests[subdir] = manifest_
+        return manifest_, False
 
     def _add_dependency(self, pkg: PackageState, depname: str) -> None:
         cfg = pkg.cfg
