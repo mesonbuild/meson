@@ -390,11 +390,10 @@ class LLVMDependencyCMake(CMakeDependency):
         compilers = env.coredata.compilers[for_machine]
         if not compilers or not {'c', 'cpp'}.issubset(compilers):
             # Initialize basic variables
-            ExternalDependency.__init__(self, env, kwargs)
+            ExternalDependency.__init__(self, name, env, kwargs)
 
             # Initialize CMake specific variables
             self.found_modules: T.List[str] = []
-            self.name = name
 
             langs: T.List[str] = []
             if not compilers:
