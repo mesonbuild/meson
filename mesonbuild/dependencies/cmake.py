@@ -645,22 +645,6 @@ class CMakeDependency(ExternalDependency):
         raise DependencyException(f'Could not get cmake variable and no default provided for {self!r}')
 
 
-class CMakeDependencyFactory:
-
-    def __init__(self, name: T.Optional[str] = None, modules: T.Optional[T.List[str]] = None):
-        self.name = name
-        self.modules = modules
-
-    def __call__(self, name: str, env: Environment, kwargs: DependencyObjectKWs, force_use_global_compilers: bool = False) -> CMakeDependency:
-        if self.modules:
-            kwargs['modules'] = self.modules
-        return CMakeDependency(self.name or name, env, kwargs, force_use_global_compilers)
-
-    @staticmethod
-    def log_tried() -> str:
-        return CMakeDependency.log_tried()
-
-
 def sort_link_args(args: T.List[str]) -> T.List[str]:
     itr = iter(args)
     result: T.Set[T.Union[T.Tuple[str], T.Tuple[str, str]]] = set()

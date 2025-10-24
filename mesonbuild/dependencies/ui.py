@@ -17,7 +17,8 @@ from ..mesonlib import (
 )
 from ..environment import detect_cpu_family
 
-from .base import DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
+from .base import DependencyCandidate, DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
+from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import DependencyFactory
@@ -57,9 +58,9 @@ class GnuStepDependency(ConfigToolDependency):
     tools = ['gnustep-config']
     tool_name = 'gnustep-config'
 
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
         kwargs['language'] = 'objc'
-        super().__init__('gnustep', environment, kwargs)
+        super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
         self.modules = kwargs.get('modules', [])
@@ -150,7 +151,8 @@ class WxDependency(ConfigToolDependency):
     tools = ['wx-config-3.0', 'wx-config-3.1', 'wx-config', 'wx-config-gtk3']
     tool_name = 'wx-config'
 
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
+    # Name is intentionally ignored because it has a non-matching name
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
         kwargs['language'] = 'cpp'
         super().__init__('WxWidgets', environment, kwargs)
         if not self.is_found:
@@ -250,18 +252,18 @@ class VulkanDependencySystem(SystemDependency):
 packages['gl'] = gl_factory = DependencyFactory(
     'gl',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
-    system_class=GLDependencySystem,
+    system=GLDependencySystem,
 )
 
 packages['sdl2'] = sdl2_factory = DependencyFactory(
     'sdl2',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE],
-    configtool_class=SDL2DependencyConfigTool,
-    cmake_name='SDL2',
+    configtool=SDL2DependencyConfigTool,
+    cmake=DependencyCandidate.from_dependency('SDL2', CMakeDependency),
 )
 
 packages['vulkan'] = vulkan_factory = DependencyFactory(
     'vulkan',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
-    system_class=VulkanDependencySystem,
+    system=VulkanDependencySystem,
 )

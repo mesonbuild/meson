@@ -17,7 +17,7 @@ from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 from .. import mesonlib, mlog
 from ..environment import get_llvm_tool_names
 from ..mesonlib import version_compare, version_compare_many, search_version
-from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency
+from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyCandidate
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
@@ -510,8 +510,8 @@ class ValgrindDependency(PkgConfigDependency):
     Consumers of Valgrind usually only need the compile args and do not want to
     link to its (static) libraries.
     '''
-    def __init__(self, env: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__('valgrind', env, kwargs)
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, env, kwargs)
 
     def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
         return []
@@ -558,8 +558,8 @@ class ZlibSystemDependency(SystemDependency):
 
 
 class JNISystemDependency(SystemDependency):
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__('jni', environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, environment, kwargs)
 
         self.feature_since = ('0.62.0', '')
 
@@ -686,8 +686,8 @@ packages['jni'] = JNISystemDependency
 
 
 class JDKSystemDependency(JNISystemDependency):
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__(environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, environment, kwargs)
 
         self.feature_since = ('0.59.0', '')
         self.featurechecks.append(FeatureDeprecated(
@@ -752,8 +752,8 @@ class DiaSDKSystemDependency(SystemDependency):
         defval, _ = compiler.get_define(dname, '', env, [], [])
         return defval is not None
 
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__('diasdk', environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        super().__init__(name, environment, kwargs)
         self.is_found = False
 
         compilers = environment.coredata.compilers.host
@@ -802,27 +802,27 @@ packages['diasdk'] = DiaSDKSystemDependency
 packages['llvm'] = llvm_factory = DependencyFactory(
     'LLVM',
     [DependencyMethods.CMAKE, DependencyMethods.CONFIG_TOOL],
-    cmake_class=LLVMDependencyCMake,
-    configtool_class=LLVMDependencyConfigTool,
+    cmake=LLVMDependencyCMake,
+    configtool=LLVMDependencyConfigTool,
 )
 
 packages['gtest'] = gtest_factory = DependencyFactory(
     'gtest',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
-    pkgconfig_class=GTestDependencyPC,
-    system_class=GTestDependencySystem,
+    pkgconfig=GTestDependencyPC,
+    system=GTestDependencySystem,
 )
 
 packages['gmock'] = gmock_factory = DependencyFactory(
     'gmock',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
-    pkgconfig_class=GMockDependencyPC,
-    system_class=GMockDependencySystem,
+    pkgconfig=GMockDependencyPC,
+    system=GMockDependencySystem,
 )
 
 packages['zlib'] = zlib_factory = DependencyFactory(
     'zlib',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE, DependencyMethods.SYSTEM],
-    cmake_name='ZLIB',
-    system_class=ZlibSystemDependency,
+    cmake=DependencyCandidate.from_dependency('ZLIB', CMakeDependency),
+    system=ZlibSystemDependency,
 )
