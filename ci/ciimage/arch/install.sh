@@ -12,7 +12,7 @@ pkgs=(
   libelf gcc gcc-fortran gcc-objc vala rust bison flex cython go dlang-dmd
   mono boost qt5-base gtkmm3 gtest gmock protobuf gobject-introspection
   itstool glib2-devel gtk3 java-environment=8 gtk-doc llvm clang sdl2 graphviz
-  doxygen vulkan-headers vulkan-icd-loader vulkan-validation-layers openssh mercurial gtk-sharp-2 qt5-tools
+  doxygen vulkan-headers vulkan-icd-loader vulkan-validation-layers openssh mercurial gtk-sharp-3 qt5-tools
   libwmf cmake netcdf-fortran openmpi nasm gnustep-base gettext
   python-lxml hotdoc rust-bindgen qt6-base qt6-tools qt6-declarative wayland wayland-protocols
   intel-oneapi-mkl
