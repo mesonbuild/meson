@@ -58,6 +58,8 @@ class PackageConfiguration:
     features: T.Set[str] = dataclasses.field(default_factory=set)
     required_deps: T.Set[str] = dataclasses.field(default_factory=set)
     optional_deps_features: T.Dict[str, T.Set[str]] = dataclasses.field(default_factory=lambda: collections.defaultdict(set))
+    # Cache of resolved dependency packages
+    dep_packages: T.Dict[PackageKey, PackageState] = dataclasses.field(default_factory=dict)
 
     def get_features_args(self) -> T.List[str]:
         """Get feature configuration arguments."""
@@ -65,6 +67,18 @@ class PackageConfiguration:
         for feature in self.features:
             args.extend(['--cfg', f'feature="{feature}"'])
         return args
+
+    def get_dependency_map(self, manifest: Manifest) -> T.Dict[str, str]:
+        """Get the rust dependency mapping for this package configuration."""
+        dependency_map = {}
+        for name in self.required_deps:
+            dep = manifest.dependencies[name]
+            dep_key = PackageKey(dep.package, dep.api)
+            dep_pkg = self.dep_packages[dep_key]
+            dep_lib_name = dep_pkg.manifest.lib.name
+            dep_crate_name = name if name != dep.package else dep_lib_name
+            dependency_map[fixup_meson_varname(dep_lib_name)] = dep_crate_name
+        return dependency_map
 
 
 @dataclasses.dataclass
@@ -402,6 +416,10 @@ class Interpreter:
                 self._add_dependency(pkg, depname)
 
     def _dep_package(self, pkg: PackageState, dep: Dependency) -> PackageState:
+        dep_key = PackageKey(dep.package, dep.api)
+        if dep_key in pkg.cfg.dep_packages:
+            return pkg.cfg.dep_packages[dep_key]
+
         if dep.path:
             if not pkg.ws_subdir:
                 raise MesonException("path dependencies only supported inside workspaces")
@@ -427,6 +445,8 @@ class Interpreter:
                 if not dep.meson_version:
                     raise MesonException(f'Cannot determine version of cargo package {dep.package}')
             dep_pkg = self._fetch_package(dep.package, dep.api)
+
+        pkg.cfg.dep_packages[dep_key] = dep_pkg
         return dep_pkg
 
     def _load_manifest(self, subdir: str, workspace: T.Optional[Workspace] = None, member_path: str = '') -> T.Union[Manifest, Workspace]:
@@ -687,14 +707,13 @@ class Interpreter:
                     static: bool = False, shared: bool = False) -> T.List[mparser.BaseNode]:
         cfg = pkg.cfg
         dependencies: T.List[mparser.BaseNode] = []
-        dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {}
         for name in cfg.required_deps:
             dep = pkg.manifest.dependencies[name]
-            dep_pkg = self._dep_package(pkg, dep)
             dependencies.append(build.identifier(_dependency_varname(dep.package)))
-            dep_lib_name = dep_pkg.manifest.lib.name
-            dep_crate_name = name if name != dep.package else dep_lib_name
-            dependency_map[build.string(fixup_meson_varname(dep_lib_name))] = build.string(dep_crate_name)
+
+        dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {
+            build.string(k): build.string(v) for k, v in cfg.get_dependency_map(pkg.manifest).items()}
+
         for name, sys_dep in pkg.manifest.system_dependencies.items():
             if sys_dep.enabled(cfg.features):
                 dependencies.append(build.identifier(f'{fixup_meson_varname(name)}_system_dep'))
