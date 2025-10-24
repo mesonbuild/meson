@@ -8,7 +8,6 @@ import typing as T
 import os
 import re
 
-from ..mesonlib import MachineChoice
 from ..envconfig import detect_cpu_family
 from ..mesonlib import Popen_safe
 from .base import DependencyException, DependencyMethods, detect_compiler, SystemDependency
@@ -32,7 +31,7 @@ def mpi_factory(env: 'Environment',
         # OpenMPI doesn't work without any other languages
         return []
 
-    for_machine = kwargs.get('native', MachineChoice.HOST)
+    for_machine = kwargs['native']
 
     candidates: T.List['DependencyGenerator'] = []
     compiler = detect_compiler('mpi', env, for_machine, language)
