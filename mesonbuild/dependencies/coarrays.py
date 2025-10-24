@@ -6,6 +6,7 @@ from __future__ import annotations
 import functools
 import typing as T
 
+from ..mesonlib import MachineChoice
 from .base import DependencyMethods, detect_compiler, SystemDependency
 from .cmake import CMakeDependency
 from .detect import packages
@@ -15,16 +16,15 @@ from .factory import factory_methods
 if T.TYPE_CHECKING:
     from . factory import DependencyGenerator
     from ..environment import Environment
-    from ..mesonlib import MachineChoice
     from .base import DependencyObjectKWs
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE, DependencyMethods.SYSTEM})
 def coarray_factory(env: 'Environment',
-                    for_machine: 'MachineChoice',
                     kwargs: DependencyObjectKWs,
                     methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     kwargs['language'] = 'fortran'
+    for_machine = kwargs.get('native', MachineChoice.HOST)
     fcid = detect_compiler('coarray', env, for_machine, 'fortran').get_id()
     candidates: T.List['DependencyGenerator'] = []
 
