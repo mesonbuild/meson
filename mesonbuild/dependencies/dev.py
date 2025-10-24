@@ -390,11 +390,10 @@ class LLVMDependencyCMake(CMakeDependency):
         compilers = env.coredata.compilers[for_machine]
         if not compilers or not {'c', 'cpp'}.issubset(compilers):
             # Initialize basic variables
-            ExternalDependency.__init__(self, env, kwargs)
+            ExternalDependency.__init__(self, name, env, kwargs)
 
             # Initialize CMake specific variables
             self.found_modules: T.List[str] = []
-            self.name = name
 
             langs: T.List[str] = []
             if not compilers:
@@ -506,8 +505,8 @@ class ValgrindDependency(PkgConfigDependency):
     Consumers of Valgrind usually only need the compile args and do not want to
     link to its (static) libraries.
     '''
-    def __init__(self, env: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__('valgrind', env, kwargs)
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, env, kwargs)
 
     def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
         return []
@@ -554,8 +553,8 @@ class ZlibSystemDependency(SystemDependency):
 
 
 class JNISystemDependency(SystemDependency):
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__('jni', environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, environment, kwargs)
 
         self.feature_since = ('0.62.0', '')
 
@@ -682,8 +681,8 @@ packages['jni'] = JNISystemDependency
 
 
 class JDKSystemDependency(JNISystemDependency):
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__(environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__('jni', environment, kwargs)
 
         self.feature_since = ('0.59.0', '')
         self.featurechecks.append(FeatureDeprecated(
@@ -748,8 +747,8 @@ class DiaSDKSystemDependency(SystemDependency):
         defval, _ = compiler.get_define(dname, '', [], [])
         return defval is not None
 
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__('diasdk', environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        super().__init__(name, environment, kwargs)
         self.is_found = False
 
         compilers = environment.coredata.compilers.host
