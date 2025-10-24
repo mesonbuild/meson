@@ -6,6 +6,13 @@ cargo = rust.workspace()
 # Test workspace.packages() method
 assert(cargo.packages() == ['answer', 'hello', 'package_test'])
 
+main_pkg = cargo.package()
+assert(main_pkg.name() == 'package_test')
+assert(main_pkg.version() == '0.1.0')
+assert(main_pkg.api() == '0.1')
+assert(main_pkg.all_features() == ['answer', 'default', 'feature1', 'feature2'])
+assert(main_pkg.features() == ['default', 'feature1'])
+
 hello_rs = cargo.subproject('hello')
 assert(hello_rs.name() == 'hello')
 assert(hello_rs.version() == '1.0.0')
@@ -24,6 +31,14 @@ e = executable('package-test', 'src/main.rs',
   dependencies: [hello_rs.dependency(), answer_rs.dependency()],
 )
 test('package-test', e)
+
+# failure test cases for package()
+testcase expect_error('argument to package() cannot be a subproject')
+  cargo.package('hello')
+endtestcase
+testcase expect_error('workspace member "nonexistent" not found')
+  cargo.package('nonexistent')
+endtestcase
 
 # failure test cases for dependency()
 testcase expect_error('package.dependency.*must be one of c, proc-macro, rust.*', how: 're')
