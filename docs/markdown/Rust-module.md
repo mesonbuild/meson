@@ -312,7 +312,35 @@ all_features = pkg.all_features()
 
 Returns all defined features for a specific package or subproject.
 
-### subproject.dependency()
+### Packages only
+
+#### package.rust_args()
+
+```meson
+args = pkg.rustc_args()
+```
+
+Returns rustc arguments for this package.
+
+#### package.env()
+
+```meson
+env_vars = pkg.env()
+```
+
+Returns environment variables for this package.
+
+#### package.rust_dependency_map()
+
+```meson
+dep_map = pkg.rust_dependency_map()
+```
+
+Returns rust dependency mapping for this package.
+
+### Subprojects only
+
+#### subproject.dependency()
 
 ```meson
 dep = subproject.dependency(...)
