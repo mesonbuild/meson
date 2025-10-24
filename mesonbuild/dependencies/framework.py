@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from .base import DependencyTypeName, ExternalDependency, DependencyException
-from ..mesonlib import MesonException, Version, stringlistify
+from ..mesonlib import MesonException, Version
 from .. import mlog
 from pathlib import Path
 import typing as T
@@ -19,7 +19,7 @@ class ExtraFrameworkDependency(ExternalDependency):
     type_name = DependencyTypeName('extraframeworks')
 
     def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None) -> None:
-        paths = stringlistify(kwargs.get('paths', []))
+        paths = kwargs.get('paths', [])
         super().__init__(name, env, kwargs, language=language)
         # Full path to framework directory
         self.framework_path: T.Optional[str] = None
