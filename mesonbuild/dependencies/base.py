@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 import copy
+import dataclasses
 import os
 import collections
 import itertools
@@ -72,6 +73,8 @@ if T.TYPE_CHECKING:
 else:
     _MissingCompilerBase = object
 
+
+DepType = T.TypeVar('DepType', bound='ExternalDependency', covariant=True)
 
 class DependencyException(MesonException):
     '''Exceptions raised while trying to find dependencies'''
@@ -683,3 +686,28 @@ class BuiltinDependency(ExternalDependency):
     @staticmethod
     def log_tried() -> str:
         return 'builtin'
+
+
+@dataclasses.dataclass
+class DependencyCandidate(T.Generic[DepType]):
+
+    callable: T.Union[T.Type[DepType], T.Callable[[str, Environment, DependencyObjectKWs], DepType]]
+    name: str
+    method: str
+    modules: T.Optional[T.List[str]] = None
+    arguments: T.Optional[T.Tuple[Environment, DependencyObjectKWs]] = dataclasses.field(default=None)
+
+    def __call__(self) -> DepType:
+        if self.arguments is None:
+            raise mesonlib.MesonBugException('Attempted to instantiate a candidate before setting its arguments')
+        env, kwargs = self.arguments
+        if self.modules is not None:
+            kwargs['modules'] = self.modules.copy()
+        return self.callable(self.name, env, kwargs)
+
+    @classmethod
+    def from_dependency(cls, name: str, dep: T.Type[DepType],
+                        args: T.Optional[T.Tuple[Environment, DependencyObjectKWs]] = None,
+                        modules: T.Optional[T.List[str]] = None,
+                        ) -> DependencyCandidate[DepType]:
+        return cls(dep, name, dep.log_tried(), modules, arguments=args)
