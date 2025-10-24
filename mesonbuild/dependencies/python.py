@@ -459,8 +459,9 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 
     # name is needed for polymorphism
     def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs,
-                 installation: 'BasicPythonExternalProgram', embed: bool,
+                 installation: 'BasicPythonExternalProgram',
                  for_machine: 'MachineChoice'):
+        embed = kwargs.get('embed', False)
         pkg_embed = '-embed' if embed and mesonlib.version_compare(installation.info['version'], '>=3.8') else ''
         pkg_name = f'python-{installation.version}{pkg_embed}'
 
@@ -485,7 +486,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
         pkgconfig_paths = [pkg_libdir] if pkg_libdir else []
 
         PkgConfigDependency.__init__(self, pkg_name, environment, kwargs, extra_paths=pkgconfig_paths)
-        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False), for_machine)
+        _PythonDependencyBase.__init__(self, installation, embed, for_machine)
 
         if pkg_libdir and not self.is_found:
             mlog.debug(f'{pkg_name!r} could not be found in {pkg_libdir_origin}, '
@@ -570,7 +571,6 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
     # We can't use the factory_methods decorator here, as we need to pass the
     # extra installation argument
     methods = process_method_kw({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM}, kwargs)
-    embed = kwargs.get('embed', False)
     candidates: T.List['DependencyGenerator'] = []
     from_installation = installation is not None
     # When not invoked through the python module, default installation.
@@ -580,7 +580,7 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
 
     if DependencyMethods.PKGCONFIG in methods:
         if from_installation:
-            candidates.append(functools.partial(PythonPkgConfigDependency, env, kwargs, installation, embed, for_machine))
+            candidates.append(functools.partial(PythonPkgConfigDependency, env, kwargs, installation, for_machine))
         else:
             candidates.append(functools.partial(PkgConfigDependency, 'python3', env, kwargs))
 
