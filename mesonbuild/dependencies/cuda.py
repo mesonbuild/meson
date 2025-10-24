@@ -29,7 +29,7 @@ class CudaDependency(SystemDependency):
     targets_dir = 'targets' # Directory containing CUDA targets.
 
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        for_machine = kwargs.get('native', mesonlib.MachineChoice.HOST)
+        for_machine = kwargs['native']
         compilers = environment.coredata.compilers[for_machine]
         machine = environment.machines[for_machine]
         if not kwargs.get('language'):
