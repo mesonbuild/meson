@@ -80,7 +80,7 @@ class DependencyFactory:
         if DependencyMethods.CONFIG_TOOL in methods and not configtool_class:
             raise DependencyException('A configtool must have a custom class')
 
-        self.extra_kwargs = extra_kwargs or {}
+        self.extra_kwargs = extra_kwargs
         self.methods = methods
         self.classes: T.Dict[
             DependencyMethods,
@@ -116,11 +116,13 @@ class DependencyFactory:
     def __call__(self, env: 'Environment', kwargs: DependencyObjectKWs) -> T.List['DependencyGenerator']:
         """Return a list of Dependencies with the arguments already attached."""
         methods = process_method_kw(self.methods, kwargs)
-        nwargs = self.extra_kwargs.copy()
-        nwargs.update(kwargs)
+        if self.extra_kwargs:
+            nwargs = self.extra_kwargs.copy()
+            nwargs.update(kwargs)
+        else:
+            nwargs = kwargs.copy()
 
-        for_machine = kwargs.get('native', MachineChoice.HOST)
-
+        for_machine = kwargs['native']
         return [functools.partial(self.classes[m], env, nwargs) for m in methods
                 if self._process_method(m, env, for_machine)]
 
