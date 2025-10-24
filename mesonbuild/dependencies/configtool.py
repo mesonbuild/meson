@@ -38,8 +38,8 @@ class ConfigToolDependency(ExternalDependency):
     __strip_version = re.compile(r'^[0-9][0-9.]+')
     type_name = DependencyTypeName('config-tool')
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None, exclude_paths: T.Optional[T.List[str]] = None):
-        super().__init__(name, environment, kwargs, language=language)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, exclude_paths: T.Optional[T.List[str]] = None):
+        super().__init__(name, environment, kwargs)
         # You may want to overwrite the class version in some cases
         self.tools = listify(kwargs.get('tools', self.tools))
         if not self.tool_name:
