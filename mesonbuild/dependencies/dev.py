@@ -48,12 +48,13 @@ def get_shared_library_suffix(environment: 'Environment', for_machine: MachineCh
 
 class GTestDependencySystem(SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__(name, environment, kwargs, language='cpp')
+        kwargs['language'] = 'cpp'
+        super().__init__(name, environment, kwargs)
         self.main = kwargs.get('main', False)
 
         sysroot = environment.properties[self.for_machine].get_sys_root() or ''
         self.src_dirs = [sysroot + '/usr/src/gtest/src', sysroot + '/usr/src/googletest/googletest/src']
-        if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
+        if not self._add_sub_dependency(threads_factory(environment, {'native': self.for_machine})):
             self.is_found = False
             return
         self.detect()
@@ -113,22 +114,24 @@ class GTestDependencyPC(PkgConfigDependency):
 
 class GMockDependencySystem(SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__(name, environment, kwargs, language='cpp')
+        kwargs['language'] = 'cpp'
+        super().__init__(name, environment, kwargs)
         self.main = kwargs.get('main', False)
-        if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
+        if not self._add_sub_dependency(threads_factory(environment, {'native': self.for_machine})):
             self.is_found = False
             return
 
         # If we are getting main() from GMock, we definitely
         # want to avoid linking in main() from GTest
         gtest_kwargs = kwargs.copy()
+        gtest_kwargs['native'] = self.for_machine
         if self.main:
             gtest_kwargs['main'] = False
 
         # GMock without GTest is pretty much useless
         # this also mimics the structure given in WrapDB,
         # where GMock always pulls in GTest
-        found = self._add_sub_dependency(gtest_factory(environment, self.for_machine, gtest_kwargs))
+        found = self._add_sub_dependency(gtest_factory(environment, gtest_kwargs))
         if not found:
             self.is_found = False
             return
@@ -188,6 +191,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
     __cpp_blacklist = {'-DNDEBUG'}
 
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+        kwargs['language'] = 'cpp'
         self.tools = get_llvm_tool_names('llvm-config')
 
         # Fedora starting with Fedora 30 adds a suffix of the number
@@ -201,7 +205,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
 
         # It's necessary for LLVM <= 3.8 to use the C++ linker. For 3.9 and 4.0
         # the C linker works fine if only using the C API.
-        super().__init__(name, environment, kwargs, language='cpp')
+        super().__init__(name, environment, kwargs)
         self.provided_modules: T.List[str] = []
         self.required_modules: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
         self.module_details:   T.List[str] = []
@@ -224,7 +228,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
             self._set_old_link_args()
         self.link_args = strip_system_libdirs(environment, self.for_machine, self.link_args)
         self.link_args = self.__fix_bogus_link_args(self.link_args)
-        if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
+        if not self._add_sub_dependency(threads_factory(environment, {'native': self.for_machine})):
             self.is_found = False
             return
 
@@ -383,6 +387,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
 
 class LLVMDependencyCMake(CMakeDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        kwargs['language'] = 'cpp'
         self.llvm_modules = kwargs.get('modules', [])
         self.llvm_opt_modules = kwargs.get('optional_modules', [])
 
@@ -421,7 +426,7 @@ class LLVMDependencyCMake(CMakeDependency):
             )
             return
 
-        super().__init__(name, env, kwargs, language='cpp', force_use_global_compilers=True)
+        super().__init__(name, env, kwargs, force_use_global_compilers=True)
 
         if not self.cmakebin.found():
             return
@@ -443,7 +448,7 @@ class LLVMDependencyCMake(CMakeDependency):
         temp = ['-I' + x for x in inc_dirs] + defs
         self.compile_args += [x for x in temp if x not in self.compile_args]
         self.compile_args = strip_system_includedirs(env, self.for_machine, self.compile_args)
-        if not self._add_sub_dependency(threads_factory(env, self.for_machine, {})):
+        if not self._add_sub_dependency(threads_factory(env, {'native': self.for_machine})):
             self.is_found = False
             return
 

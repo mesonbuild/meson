@@ -18,9 +18,9 @@ class ExtraFrameworkDependency(ExternalDependency):
 
     type_name = DependencyTypeName('extraframeworks')
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None) -> None:
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
         paths = kwargs.get('paths', [])
-        super().__init__(name, env, kwargs, language=language)
+        super().__init__(name, env, kwargs)
         # Full path to framework directory
         self.framework_path: T.Optional[str] = None
         if not self.clib_compiler:

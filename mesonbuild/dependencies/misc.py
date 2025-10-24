@@ -27,7 +27,6 @@ if T.TYPE_CHECKING:
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
 def netcdf_factory(env: 'Environment',
-                   for_machine: 'mesonlib.MachineChoice',
                    kwargs: DependencyObjectKWs,
                    methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     language = kwargs.get('language')
@@ -44,10 +43,10 @@ def netcdf_factory(env: 'Environment',
         else:
             pkg = 'netcdf'
 
-        candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs, language=language))
+        candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs))
 
     if DependencyMethods.CMAKE in methods:
-        candidates.append(functools.partial(CMakeDependency, 'NetCDF', env, kwargs, language=language))
+        candidates.append(functools.partial(CMakeDependency, 'NetCDF', env, kwargs))
 
     return candidates
 
@@ -114,8 +113,7 @@ class OpenMPDependency(SystemDependency):
     }
 
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        language = kwargs.get('language')
-        super().__init__(name, environment, kwargs, language=language)
+        super().__init__(name, environment, kwargs)
         self.is_found = False
         if self.clib_compiler.get_id() == 'nagfor':
             # No macro defined for OpenMP, but OpenMP 3.1 is supported.
@@ -336,7 +334,7 @@ class CursesConfigToolDependency(ConfigToolDependency):
     # ncurses5.4-config is for macOS Catalina
     tools = ['ncursesw6-config', 'ncursesw5-config', 'ncurses6-config', 'ncurses5-config', 'ncurses5.4-config']
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None):
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
         exclude_paths = None
         # macOS mistakenly ships /usr/bin/ncurses5.4-config and a man page for
         # it, but none of the headers or libraries. Ignore /usr/bin because it
@@ -344,7 +342,7 @@ class CursesConfigToolDependency(ConfigToolDependency):
         # Homebrew is /usr/local or /opt/homebrew.
         if env.machines.build and env.machines.build.system == 'darwin':
             exclude_paths = ['/usr/bin']
-        super().__init__(name, env, kwargs, language, exclude_paths=exclude_paths)
+        super().__init__(name, env, kwargs, exclude_paths=exclude_paths)
         if not self.is_found:
             return
         self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
@@ -450,7 +448,7 @@ class IntlSystemDependency(SystemDependency):
             self.is_found = True
 
             if self.static:
-                if not self._add_sub_dependency(iconv_factory(env, self.for_machine, {'static': True})):
+                if not self._add_sub_dependency(iconv_factory(env, {'static': True, 'native': self.for_machine})):
                     self.is_found = False
 
 
@@ -461,6 +459,7 @@ class OpensslSystemDependency(SystemDependency):
         dependency_kwargs: DependencyObjectKWs = {
             'method': DependencyMethods.SYSTEM,
             'static': self.static,
+            'native': kwargs.get('native'),
         }
         if not self.clib_compiler.has_header('openssl/ssl.h', '')[0]:
             return
@@ -478,8 +477,8 @@ class OpensslSystemDependency(SystemDependency):
             self.version = '.'.join(str(i) for i in version_ints[:3]) + chr(ord('a') + version_ints[3] - 1)
 
         if name == 'openssl':
-            if self._add_sub_dependency(libssl_factory(env, self.for_machine, dependency_kwargs)) and \
-                    self._add_sub_dependency(libcrypto_factory(env, self.for_machine, dependency_kwargs)):
+            if self._add_sub_dependency(libssl_factory(env, dependency_kwargs)) and \
+                    self._add_sub_dependency(libcrypto_factory(env, dependency_kwargs)):
                 self.is_found = True
             return
         else:
@@ -491,11 +490,11 @@ class OpensslSystemDependency(SystemDependency):
             self.is_found = True
         else:
             if name == 'libssl':
-                if self._add_sub_dependency(libcrypto_factory(env, self.for_machine, dependency_kwargs)):
+                if self._add_sub_dependency(libcrypto_factory(env, dependency_kwargs)):
                     self.is_found = True
             elif name == 'libcrypto':
                 use_threads = self.clib_compiler.has_header_symbol('openssl/opensslconf.h', 'OPENSSL_THREADS', '', dependencies=[self])[0]
-                if not use_threads or self._add_sub_dependency(threads_factory(env, self.for_machine, {})):
+                if not use_threads or self._add_sub_dependency(threads_factory(env, {'native': self.for_machine})):
                     self.is_found = True
                 # only relevant on platforms where it is distributed with the libc, in which case it always succeeds
                 sublib = self.clib_compiler.find_library('dl', [], self.libtype)
@@ -529,10 +528,10 @@ class ObjFWDependency(ConfigToolDependency):
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
 def curses_factory(env: 'Environment',
-                   for_machine: 'mesonlib.MachineChoice',
                    kwargs: DependencyObjectKWs,
                    methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     candidates: T.List['DependencyGenerator'] = []
+    for_machine = kwargs.get('native', mesonlib.MachineChoice.HOST)
 
     if DependencyMethods.PKGCONFIG in methods:
         pkgconfig_files = ['pdcurses', 'ncursesw', 'ncurses', 'curses']
@@ -555,7 +554,6 @@ packages['curses'] = curses_factory
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM})
 def shaderc_factory(env: 'Environment',
-                    for_machine: 'mesonlib.MachineChoice',
                     kwargs: DependencyObjectKWs,
                     methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     """Custom DependencyFactory for ShaderC.

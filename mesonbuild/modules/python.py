@@ -260,7 +260,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         new_kwargs['required'] = False
         if build_config:
             new_kwargs['build_config'] = build_config
-        candidates = python_factory(self.interpreter.environment, for_machine, new_kwargs, self.held_object)
+        candidates = python_factory(self.interpreter.environment, new_kwargs, self.held_object)
         dep = find_external_dependency('python', self.interpreter.environment, new_kwargs, candidates)
 
         self.interpreter.coredata.deps[for_machine].put(identifier, dep)

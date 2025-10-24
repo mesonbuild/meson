@@ -107,7 +107,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
 
     # build a list of dependency methods to try
     if candidates is None:
-        candidates = _build_external_dependency_list(name, env, for_machine, kwargs)
+        candidates = _build_external_dependency_list(name, env, kwargs)
 
     pkg_exc: T.List[DependencyException] = []
     pkgdep:  T.List[ExternalDependency] = []
@@ -173,8 +173,8 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
     return NotFoundDependency(name, env)
 
 
-def _build_external_dependency_list(name: str, env: 'Environment', for_machine: MachineChoice,
-                                    kwargs: DependencyObjectKWs) -> T.List['DependencyGenerator']:
+def _build_external_dependency_list(name: str, env: 'Environment', kwargs: DependencyObjectKWs
+                                    ) -> T.List['DependencyGenerator']:
     # Is there a specific dependency detector for this dependency?
     lname = name.lower()
     if lname in packages:
@@ -188,7 +188,7 @@ def _build_external_dependency_list(name: str, env: 'Environment', for_machine: 
                 dep = [func]
         else:
             entry2 = T.cast('T.Union[DependencyFactory, WrappedFactoryFunc]', packages[lname])
-            dep = entry2(env, for_machine, kwargs)
+            dep = entry2(env, kwargs)
         return dep
 
     candidates: T.List['DependencyGenerator'] = []
@@ -213,6 +213,7 @@ def _build_external_dependency_list(name: str, env: 'Environment', for_machine: 
 
     # On OSX only, try framework dependency detector.
     if DependencyMethods.EXTRAFRAMEWORK in methods:
+        for_machine = kwargs.get('native', MachineChoice.HOST)
         if env.machines[for_machine].is_darwin():
             from .framework import ExtraFrameworkDependency
             candidates.append(functools.partial(ExtraFrameworkDependency, name, env, kwargs))
