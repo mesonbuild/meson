@@ -457,7 +457,8 @@ class _PythonDependencyBase(_Base):
 
 class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs,
+    # name is needed for polymorphism
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs,
                  installation: 'BasicPythonExternalProgram', embed: bool,
                  for_machine: 'MachineChoice'):
         pkg_embed = '-embed' if embed and mesonlib.version_compare(installation.info['version'], '>=3.8') else ''
