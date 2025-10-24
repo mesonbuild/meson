@@ -187,6 +187,7 @@ class PackageKey:
 class WorkspaceState:
     workspace: Workspace
     subdir: str
+    downloaded: bool = False
     # member path -> PackageState, for all members of this workspace
     packages: T.Dict[str, PackageState] = dataclasses.field(default_factory=dict)
     # package name to member path, for all members of this workspace
@@ -274,7 +275,7 @@ class Interpreter:
         return ast
 
     def interpret_workspace(self, workspace: Workspace, build: builder.Builder, subdir: str, project_root: T.Optional[str]) -> mparser.CodeBlockNode:
-        ws = self._get_workspace(workspace, subdir)
+        ws = self._get_workspace(workspace, subdir, downloaded=False)
         name = os.path.dirname(subdir)
         subprojects_dir = os.path.join(subdir, 'subprojects')
         self.environment.wrap_resolver.load_and_merge(subprojects_dir, T.cast('SubProject', name))
@@ -324,15 +325,15 @@ class Interpreter:
         self._add_workspace_member(manifest_, ws, m)
 
     def _add_workspace_member(self, manifest_: Manifest, ws: WorkspaceState, m: str) -> None:
-        pkg = PackageState(manifest_, ws_subdir=ws.subdir, ws_member=m)
+        pkg = PackageState(manifest_, ws_subdir=ws.subdir, ws_member=m, downloaded=ws.downloaded)
         ws.packages[m] = pkg
         ws.packages_to_member[manifest_.package.name] = m
 
-    def _get_workspace(self, workspace: Workspace, subdir: str) -> WorkspaceState:
+    def _get_workspace(self, workspace: Workspace, subdir: str, downloaded: bool) -> WorkspaceState:
         ws = self.workspaces.get(subdir)
         if ws:
             return ws
-        ws = WorkspaceState(workspace, subdir)
+        ws = WorkspaceState(workspace, subdir, downloaded=downloaded)
         if workspace.root_package:
             self._add_workspace_member(workspace.root_package, ws, '.')
         for m in workspace.members:
@@ -400,7 +401,7 @@ class Interpreter:
             self.environment.wrap_resolver.wraps[subp_name].type is not None
 
         if isinstance(manifest, Workspace):
-            ws = self._get_workspace(manifest, subdir)
+            ws = self._get_workspace(manifest, subdir, downloaded=downloaded)
             member = ws.packages_to_member[package_name]
             pkg = self._require_workspace_member(ws, member)
             return pkg
