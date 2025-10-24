@@ -9,7 +9,7 @@ import typing as T
 
 from .base import ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
 
-from ..mesonlib import listify, MachineChoice, PerMachine
+from ..mesonlib import listify, PerMachine
 from .. import mlog
 
 if T.TYPE_CHECKING:
@@ -102,7 +102,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
     # display the dependency name with correct casing
     display_name = display_name_map.get(lname, lname)
 
-    for_machine = kwargs.get('native', MachineChoice.HOST)
+    for_machine = kwargs['native']
     type_text = PerMachine('Build-time', 'Run-time')[for_machine] + ' dependency'
 
     # build a list of dependency methods to try
@@ -213,8 +213,7 @@ def _build_external_dependency_list(name: str, env: 'Environment', kwargs: Depen
 
     # On OSX only, try framework dependency detector.
     if DependencyMethods.EXTRAFRAMEWORK in methods:
-        for_machine = kwargs.get('native', MachineChoice.HOST)
-        if env.machines[for_machine].is_darwin():
+        if env.machines[kwargs['native']].is_darwin():
             from .framework import ExtraFrameworkDependency
             candidates.append(functools.partial(ExtraFrameworkDependency, name, env, kwargs))
 

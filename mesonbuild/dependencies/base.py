@@ -21,7 +21,7 @@ from ..options import OptionKey
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict, TypeAlias
+    from typing_extensions import Literal, Required, TypedDict, TypeAlias
 
     from ..compilers.compilers import Compiler
     from ..environment import Environment
@@ -51,7 +51,7 @@ if T.TYPE_CHECKING:
         main: bool
         method: DependencyMethods
         modules: T.List[str]
-        native: MachineChoice
+        native: Required[MachineChoice]
         optional_modules: T.List[str]
         private_headers: bool
         required: bool
@@ -312,7 +312,7 @@ class InternalDependency(Dependency):
                  d_module_versions: T.List[T.Union[str, int]], d_import_dirs: T.List['IncludeDirs'],
                  objects: T.List['ExtractedObjects'],
                  name: T.Optional[str] = None):
-        super().__init__({})
+        super().__init__({'native': MachineChoice.HOST})  # TODO: does the native key actually matter
         self.version = version
         self.is_found = True
         self.include_directories = incdirs
@@ -430,7 +430,7 @@ class ExternalDependency(Dependency):
         self.static = static
         self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
         # Is this dependency to be run on the build platform?
-        self.for_machine = kwargs.get('native', MachineChoice.HOST)
+        self.for_machine = kwargs['native']
         self.clib_compiler = detect_compiler(self.name, environment, self.for_machine, self.language)
 
     def get_compiler(self) -> T.Union['MissingCompiler', 'Compiler']:
@@ -506,7 +506,7 @@ class NotFoundDependency(Dependency):
     type_name = DependencyTypeName('not-found')
 
     def __init__(self, name: str, environment: 'Environment') -> None:
-        super().__init__({})
+        super().__init__({'native': MachineChoice.HOST})  # TODO: does this actually matter?
         self.env = environment
         self.name = name
         self.is_found = False
@@ -524,8 +524,8 @@ class ExternalLibrary(ExternalDependency):
     type_name = DependencyTypeName('library')
 
     def __init__(self, name: str, link_args: T.List[str], environment: 'Environment',
-                 language: str, silent: bool = False) -> None:
-        super().__init__(name, environment, {'language': language})
+                 language: str, for_machine: MachineChoice, silent: bool = False) -> None:
+        super().__init__(name, environment, {'language': language, 'native': for_machine})
         self.is_found = False
         if link_args:
             self.is_found = True

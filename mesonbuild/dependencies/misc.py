@@ -531,7 +531,7 @@ def curses_factory(env: 'Environment',
                    kwargs: DependencyObjectKWs,
                    methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     candidates: T.List['DependencyGenerator'] = []
-    for_machine = kwargs.get('native', mesonlib.MachineChoice.HOST)
+    for_machine = kwargs['native']
 
     if DependencyMethods.PKGCONFIG in methods:
         pkgconfig_files = ['pdcurses', 'ncursesw', 'ncurses', 'curses']

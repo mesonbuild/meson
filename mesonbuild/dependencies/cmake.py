@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from .base import ExternalDependency, DependencyException, DependencyTypeName
-from ..mesonlib import is_windows, MesonException, PerMachine, MachineChoice
+from ..mesonlib import is_windows, MesonException, PerMachine
 from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args, resolve_cmake_trace_targets, cmake_is_debug
 from .. import mlog
 import importlib.resources
@@ -77,7 +77,7 @@ class CMakeDependency(ExternalDependency):
         self.language_list: T.List[str] = []
         language = kwargs.get('language')
         if language is None or force_use_global_compilers:
-            for_machine = kwargs.get('native', MachineChoice.HOST)
+            for_machine = kwargs['native']
             compilers = environment.coredata.compilers[for_machine]
             candidates = ['c', 'cpp', 'fortran', 'objc', 'objcxx']
             self.language_list += [x for x in candidates if x in compilers]
