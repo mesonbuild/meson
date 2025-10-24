@@ -23,7 +23,8 @@ from . import builder, version
 from .cfg import eval_cfg
 from .toml import load_toml
 from .manifest import Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname
-from ..mesonlib import is_parent_path, MesonException, MachineChoice, version_compare
+from ..mesonlib import (is_parent_path, MesonException, MachineChoice, PerMachine,
+                        version_compare)
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
 
@@ -101,8 +102,10 @@ class PackageState:
     # If this package is member of a workspace.
     ws_subdir: T.Optional[str] = None
     ws_member: T.Optional[str] = None
-    # Package configuration state
-    cfg: T.Optional[PackageConfiguration] = None
+    # Per-machine configuration state
+    cfg: PerMachine[T.Optional[PackageConfiguration]] = dataclasses.field(
+        default_factory=lambda: PerMachine(None, None)
+    )
 
     def get_env_dict(self, environment: Environment, subdir: str) -> T.Dict[str, str]:
         """Get environment variables for this package."""
@@ -170,12 +173,12 @@ class PackageState:
 
     def get_rustc_args(self, environment: Environment, subdir: str, machine: MachineChoice) -> T.List[str]:
         """Get rustc arguments for this package."""
-        if not environment.is_cross_build():
-            machine = MachineChoice.HOST
+        if environment.is_cross_build():
+            rustc = T.cast('RustCompiler', environment.coredata.compilers[machine]['rust'])
+        else:
+            rustc = T.cast('RustCompiler', environment.coredata.compilers[MachineChoice.HOST]['rust'])
 
-        rustc = T.cast('RustCompiler', environment.coredata.compilers[machine]['rust'])
-
-        cfg = self.cfg
+        cfg = self.cfg[machine]
 
         args: T.List[str] = []
         args.extend(self.get_lint_args(rustc))
@@ -267,7 +270,7 @@ class Interpreter:
         return build.block(ast)
 
     def _create_package(self, pkg: PackageState, build: builder.Builder, subdir: str) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg
+        cfg = pkg.cfg[MachineChoice.HOST]
         ast: T.List[mparser.BaseNode] = [
             build.assign(build.array([build.string(f) for f in cfg.features]), 'features'),
             build.function('message', [
@@ -311,7 +314,7 @@ class Interpreter:
             if member in processed_members:
                 return
             pkg = ws.packages[member]
-            cfg = pkg.cfg
+            cfg = pkg.cfg[MachineChoice.HOST]
             for depname in cfg.required_deps:
                 dep = pkg.manifest.dependencies[depname]
                 if dep.path:
@@ -432,10 +435,10 @@ class Interpreter:
     def _prepare_package(self, pkg: PackageState) -> None:
         key = PackageKey(pkg.manifest.package.name, pkg.manifest.package.api)
         assert key in self.packages
-        if pkg.cfg:
+        if pkg.cfg[MachineChoice.HOST]:
             return
 
-        pkg.cfg = PackageConfiguration()
+        pkg.cfg[MachineChoice.HOST] = PackageConfiguration()
         # Merge target specific dependencies that are enabled
         cfgs = self._get_cfgs(MachineChoice.HOST)
         for condition, dependencies in pkg.manifest.target.items():
@@ -446,7 +449,7 @@ class Interpreter:
             if not dep.optional:
                 self._add_dependency(pkg, depname)
 
-    def _dep_package(self, pkg: PackageState, dep: Dependency) -> PackageState:
+    def _dep_package(self, pkg: PackageState, dep: Dependency, cfg: PackageConfiguration) -> PackageState:
         if dep.path:
             ws = self.workspaces[pkg.ws_subdir]
             dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
@@ -468,8 +471,8 @@ class Interpreter:
             dep.update_version(f'={dep_pkg.manifest.package.version}')
 
         dep_key = PackageKey(dep.package, dep.api)
-        pkg.cfg.dep_packages.setdefault(dep_key, dep_pkg)
-        assert pkg.cfg.dep_packages[dep_key] == dep_pkg
+        cfg.dep_packages.setdefault(dep_key, dep_pkg)
+        assert cfg.dep_packages[dep_key] == dep_pkg
         return dep_pkg
 
     def _load_manifest(self, subdir: str, workspace: T.Optional[Workspace] = None, member_path: str = '') -> T.Tuple[T.Union[Manifest, Workspace], bool]:
@@ -490,7 +493,7 @@ class Interpreter:
         return manifest_, False
 
     def _add_dependency(self, pkg: PackageState, depname: str) -> None:
-        cfg = pkg.cfg
+        cfg = pkg.cfg[MachineChoice.HOST]
         if depname in cfg.required_deps:
             return
         dep = pkg.manifest.dependencies.get(depname)
@@ -498,7 +501,7 @@ class Interpreter:
             # It could be build/dev/target dependency. Just ignore it.
             return
         cfg.required_deps.add(depname)
-        dep_pkg = self._dep_package(pkg, dep)
+        dep_pkg = self._dep_package(pkg, dep, cfg)
         self._prepare_package(dep_pkg)
         if dep.default_features:
             self._enable_feature(dep_pkg, 'default')
@@ -508,7 +511,7 @@ class Interpreter:
             self._enable_feature(dep_pkg, f)
 
     def _enable_feature(self, pkg: PackageState, feature: str) -> None:
-        cfg = pkg.cfg
+        cfg = pkg.cfg[MachineChoice.HOST]
         if feature in cfg.features:
             return
         cfg.features.add(feature)
@@ -526,7 +529,7 @@ class Interpreter:
                     self._add_dependency(pkg, depname)
                 if depname in cfg.required_deps:
                     dep = pkg.manifest.dependencies[depname]
-                    dep_pkg = self._dep_package(pkg, dep)
+                    dep_pkg = self._dep_package(pkg, dep, cfg)
                     self._enable_feature(dep_pkg, dep_f)
                 else:
                     # This feature will be enabled only if that dependency
@@ -602,11 +605,11 @@ class Interpreter:
         return [build.function('project', args, kwargs)]
 
     def _create_dependencies(self, pkg: PackageState, build: builder.Builder) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg
+        cfg = pkg.cfg[MachineChoice.HOST]
         ast: T.List[mparser.BaseNode] = []
         for depname in cfg.required_deps:
             dep = pkg.manifest.dependencies[depname]
-            dep_pkg = self._dep_package(pkg, dep)
+            dep_pkg = self._dep_package(pkg, dep, cfg)
             if dep_pkg.manifest.lib:
                 ast += self._create_dependency(dep_pkg, dep, build)
         ast.append(build.assign(build.array([]), 'system_deps_args'))
@@ -643,7 +646,7 @@ class Interpreter:
         ]
 
     def _create_dependency(self, pkg: PackageState, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg
+        cfg = pkg.cfg[MachineChoice.HOST]
         version_ = dep.meson_version or [pkg.manifest.package.version]
         kw = {
             'version': build.array([build.string(s) for s in version_]),
@@ -725,7 +728,7 @@ class Interpreter:
     def _create_lib(self, pkg: PackageState, build: builder.Builder, subdir: str,
                     lib_type: RUST_ABI,
                     static: bool = False, shared: bool = False) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg
+        cfg = pkg.cfg[MachineChoice.HOST]
         dependencies: T.List[mparser.BaseNode] = []
         for name in cfg.required_deps:
             dep = pkg.manifest.dependencies[name]
