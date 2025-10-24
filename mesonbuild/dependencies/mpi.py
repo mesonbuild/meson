@@ -3,14 +3,13 @@
 
 from __future__ import annotations
 
-import functools
 import typing as T
 import os
 import re
 
 from ..envconfig import detect_cpu_family
 from ..mesonlib import Popen_safe
-from .base import DependencyException, DependencyMethods, detect_compiler, SystemDependency
+from .base import DependencyCandidate, DependencyException, DependencyMethods, detect_compiler, SystemDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import factory_methods
@@ -75,14 +74,14 @@ def mpi_factory(env: 'Environment',
             tool_names.extend(['mpifort', 'mpif90', 'mpif77'])
 
         nwargs['tools'] = tool_names
-        candidates.append(functools.partial(
-            MPIConfigToolDependency, tool_names[0], env, nwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            tool_names[0], MPIConfigToolDependency, (env, nwargs)))
 
     if DependencyMethods.SYSTEM in methods and env.machines[for_machine].is_windows():
-        candidates.append(functools.partial(
-            MSMPIDependency, 'msmpi', env, kwargs))
-        candidates.append(functools.partial(
-            IMPIDependency, 'impi', env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            'msmpi', MSMPIDependency, (env, kwargs)))
+        candidates.append(DependencyCandidate.from_dependency(
+            'impi', IMPIDependency, (env, kwargs)))
 
     # Only OpenMPI has pkg-config, and it doesn't work with the intel compilers
     # for MPI, environment variables and commands like mpicc should have priority
@@ -94,8 +93,8 @@ def mpi_factory(env: 'Environment',
             pkg_name = 'ompi-cxx'
         elif language == 'fortran':
             pkg_name = 'ompi-fort'
-        candidates.append(functools.partial(
-            PkgConfigDependency, pkg_name, env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            pkg_name, PkgConfigDependency, (env, kwargs)))
 
     return candidates
 

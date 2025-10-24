@@ -4,15 +4,14 @@
 # This file contains the detection logic for miscellaneous external dependencies.
 from __future__ import annotations
 
-import functools
 import re
 import typing as T
 
 from .. import mesonlib
 from .. import mlog
-from .base import DependencyException, DependencyMethods
+from .base import DependencyCandidate, DependencyException, DependencyMethods
 from .base import BuiltinDependency, SystemDependency
-from .cmake import CMakeDependency, CMakeDependencyFactory
+from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import DependencyFactory, factory_methods
@@ -43,10 +42,12 @@ def netcdf_factory(env: 'Environment',
         else:
             pkg = 'netcdf'
 
-        candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            pkg, PkgConfigDependency, (env, kwargs)))
 
     if DependencyMethods.CMAKE in methods:
-        candidates.append(functools.partial(CMakeDependency, 'NetCDF', env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            'NetCDF', CMakeDependency, (env, kwargs)))
 
     return candidates
 
@@ -536,17 +537,20 @@ def curses_factory(env: 'Environment',
     if DependencyMethods.PKGCONFIG in methods:
         pkgconfig_files = ['pdcurses', 'ncursesw', 'ncurses', 'curses']
         for pkg in pkgconfig_files:
-            candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs))
+            candidates.append(DependencyCandidate.from_dependency(
+                pkg, PkgConfigDependency, (env, kwargs)))
 
     # There are path handling problems with these methods on msys, and they
     # don't apply to windows otherwise (cygwin is handled separately from
     # windows)
     if not env.machines[for_machine].is_windows():
         if DependencyMethods.CONFIG_TOOL in methods:
-            candidates.append(functools.partial(CursesConfigToolDependency, 'curses', env, kwargs))
+            candidates.append(DependencyCandidate.from_dependency(
+                'curses', CursesConfigToolDependency, (env, kwargs)))
 
         if DependencyMethods.SYSTEM in methods:
-            candidates.append(functools.partial(CursesSystemDependency, 'curses', env, kwargs))
+            candidates.append(DependencyCandidate.from_dependency(
+                'curses', CursesSystemDependency, (env, kwargs)))
 
     return candidates
 packages['curses'] = curses_factory
@@ -576,15 +580,16 @@ def shaderc_factory(env: 'Environment',
         if static is None:
             static = T.cast('bool', env.coredata.optstore.get_value_for(OptionKey('prefer_static')))
         if static:
-            c = [functools.partial(PkgConfigDependency, name, env, kwargs)
+            c = [DependencyCandidate.from_dependency(name, PkgConfigDependency, (env, kwargs))
                  for name in static_libs + shared_libs]
         else:
-            c = [functools.partial(PkgConfigDependency, name, env, kwargs)
+            c = [DependencyCandidate.from_dependency(name, PkgConfigDependency, (env, kwargs))
                  for name in shared_libs + static_libs]
         candidates.extend(c)
 
     if DependencyMethods.SYSTEM in methods:
-        candidates.append(functools.partial(ShadercDependency, 'shaderc', env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            'shaderc', ShadercDependency, (env, kwargs)))
 
     return candidates
 packages['shaderc'] = shaderc_factory
@@ -593,89 +598,89 @@ packages['shaderc'] = shaderc_factory
 packages['atomic'] = atomic_factory = DependencyFactory(
     'atomic',
     [DependencyMethods.SYSTEM, DependencyMethods.BUILTIN],
-    system_class=AtomicSystemDependency,
-    builtin_class=AtomicBuiltinDependency,
+    system=AtomicSystemDependency,
+    builtin=AtomicBuiltinDependency,
 )
 
 packages['cups'] = cups_factory = DependencyFactory(
     'cups',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE],
-    configtool_class=CupsDependencyConfigTool,
-    cmake_name='Cups',
+    configtool=CupsDependencyConfigTool,
+    cmake=DependencyCandidate.from_dependency('Cups', CMakeDependency),
 )
 
 packages['dl'] = dl_factory = DependencyFactory(
     'dl',
     [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
-    builtin_class=DlBuiltinDependency,
-    system_class=DlSystemDependency,
+    builtin=DlBuiltinDependency,
+    system=DlSystemDependency,
 )
 
 packages['gpgme'] = gpgme_factory = DependencyFactory(
     'gpgme',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
-    configtool_class=GpgmeDependencyConfigTool,
+    configtool=GpgmeDependencyConfigTool,
 )
 
 packages['libgcrypt'] = libgcrypt_factory = DependencyFactory(
     'libgcrypt',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
-    configtool_class=LibGCryptDependencyConfigTool,
+    configtool=LibGCryptDependencyConfigTool,
 )
 
 packages['libwmf'] = libwmf_factory = DependencyFactory(
     'libwmf',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
-    configtool_class=LibWmfDependencyConfigTool,
+    configtool=LibWmfDependencyConfigTool,
 )
 
 packages['pcap'] = pcap_factory = DependencyFactory(
     'pcap',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
-    configtool_class=PcapDependencyConfigTool,
-    pkgconfig_name='libpcap',
+    configtool=PcapDependencyConfigTool,
+    pkgconfig=DependencyCandidate.from_dependency('libpcap', PkgConfigDependency),
 )
 
 packages['threads'] = threads_factory = DependencyFactory(
     'threads',
     [DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
-    cmake_name='Threads',
-    system_class=ThreadDependency,
+    cmake=DependencyCandidate.from_dependency('Threads', CMakeDependency),
+    system=ThreadDependency,
 )
 
 packages['iconv'] = iconv_factory = DependencyFactory(
     'iconv',
     [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
-    builtin_class=IconvBuiltinDependency,
-    system_class=IconvSystemDependency,
+    builtin=IconvBuiltinDependency,
+    system=IconvSystemDependency,
 )
 
 packages['intl'] = intl_factory = DependencyFactory(
     'intl',
     [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
-    builtin_class=IntlBuiltinDependency,
-    system_class=IntlSystemDependency,
+    builtin=IntlBuiltinDependency,
+    system=IntlSystemDependency,
 )
 
 packages['openssl'] = openssl_factory = DependencyFactory(
     'openssl',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
-    system_class=OpensslSystemDependency,
-    cmake_class=CMakeDependencyFactory('OpenSSL', modules=['OpenSSL::Crypto', 'OpenSSL::SSL']),
+    system=OpensslSystemDependency,
+    cmake=DependencyCandidate.from_dependency('OpenSSL', CMakeDependency, modules=['OpenSSL::Crypto', 'OpenSSL::SSL']),
 )
 
 packages['libcrypto'] = libcrypto_factory = DependencyFactory(
     'libcrypto',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
-    system_class=OpensslSystemDependency,
-    cmake_class=CMakeDependencyFactory('OpenSSL', modules=['OpenSSL::Crypto']),
+    system=OpensslSystemDependency,
+    cmake=DependencyCandidate.from_dependency('OpenSSL', CMakeDependency, modules=['OpenSSL::Crypto']),
 )
 
 packages['libssl'] = libssl_factory = DependencyFactory(
     'libssl',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
-    system_class=OpensslSystemDependency,
-    cmake_class=CMakeDependencyFactory('OpenSSL', modules=['OpenSSL::SSL']),
+    system=OpensslSystemDependency,
+    cmake=DependencyCandidate.from_dependency('OpenSSL', CMakeDependency, modules=['OpenSSL::SSL']),
 )
 
 packages['objfw'] = ObjFWDependency

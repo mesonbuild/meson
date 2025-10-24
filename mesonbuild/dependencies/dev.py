@@ -17,7 +17,7 @@ from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 from .. import mesonlib, mlog
 from ..tooldetect import get_llvm_tool_names
 from ..mesonlib import version_compare, version_compare_many, search_version
-from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency
+from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyCandidate
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
@@ -802,27 +802,27 @@ packages['diasdk'] = DiaSDKSystemDependency
 packages['llvm'] = llvm_factory = DependencyFactory(
     'LLVM',
     [DependencyMethods.CMAKE, DependencyMethods.CONFIG_TOOL],
-    cmake_class=LLVMDependencyCMake,
-    configtool_class=LLVMDependencyConfigTool,
+    cmake=LLVMDependencyCMake,
+    configtool=LLVMDependencyConfigTool,
 )
 
 packages['gtest'] = gtest_factory = DependencyFactory(
     'gtest',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
-    pkgconfig_class=GTestDependencyPC,
-    system_class=GTestDependencySystem,
+    pkgconfig=GTestDependencyPC,
+    system=GTestDependencySystem,
 )
 
 packages['gmock'] = gmock_factory = DependencyFactory(
     'gmock',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
-    pkgconfig_class=GMockDependencyPC,
-    system_class=GMockDependencySystem,
+    pkgconfig=GMockDependencyPC,
+    system=GMockDependencySystem,
 )
 
 packages['zlib'] = zlib_factory = DependencyFactory(
     'zlib',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE, DependencyMethods.SYSTEM],
-    cmake_name='ZLIB',
-    system_class=ZlibSystemDependency,
+    cmake=DependencyCandidate.from_dependency('ZLIB', CMakeDependency),
+    system=ZlibSystemDependency,
 )
