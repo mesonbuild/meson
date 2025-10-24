@@ -4,7 +4,7 @@ rust = import('rust')
 cargo_ws = rust.workspace()
 
 # Test workspace.packages() method
-assert(cargo_ws.packages() == ['answer', 'hello', 'workspace_test'])
+assert(cargo_ws.packages() == ['answer', 'hello', 'more', 'workspace_test'])
 
 main_pkg = cargo_ws.package()
 assert(main_pkg.name() == 'workspace_test')
@@ -27,8 +27,10 @@ assert(answer_rs.api() == '2')
 assert(answer_rs.all_features() == ['default', 'large'])
 assert(answer_rs.features() == ['default', 'large'])
 
+subdir('more')
+
 e = executable('workspace-test', 'src/main.rs',
-  dependencies: [hello_rs.dependency(), answer_rs.dependency()],
+  dependencies: [hello_rs.dependency(), answer_rs.dependency(), more_dep],
 )
 test('workspace-test', e)
 
