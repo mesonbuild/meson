@@ -39,6 +39,8 @@ class CMakeDependency(ExternalDependency):
     class_cmake_generators = ['', 'Ninja', 'Unix Makefiles', 'Visual Studio 10 2010']
     class_working_generator: T.Optional[str] = None
 
+    type_name = DependencyTypeName('cmake')
+
     def _gen_exception(self, msg: str) -> DependencyException:
         return DependencyException(f'Dependency {self.name} not found: {msg}')
 
@@ -88,7 +90,7 @@ class CMakeDependency(ExternalDependency):
         # Ensure that the list is unique
         self.language_list = list(set(self.language_list))
 
-        super().__init__(DependencyTypeName('cmake'), environment, kwargs, language=language)
+        super().__init__(environment, kwargs, language=language)
         self.name = name
         self.is_libtool = False
 
