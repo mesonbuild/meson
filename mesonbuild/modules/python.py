@@ -170,7 +170,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         new_deps = mesonlib.extract_as_list(kwargs, 'dependencies')
         pydep = next((dep for dep in new_deps if isinstance(dep, _PythonDependencyBase)), None)
         if pydep is None:
-            pydep = self._dependency_method_impl({})
+            pydep = self._dependency_method_impl({'native': kwargs['native']})
             if not pydep.found():
                 raise mesonlib.MesonException('Python dependency not found')
             new_deps.append(pydep)
@@ -259,7 +259,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         return '0x{:02x}{:02x}0000'.format(major, minor)
 
     def _dependency_method_impl(self, kwargs: DependencyObjectKWs) -> Dependency:
-        for_machine = kwargs.get('native', MachineChoice.HOST)
+        for_machine = kwargs['native']
         identifier = get_dep_identifier(self._full_path(), kwargs)
 
         dep = self.interpreter.coredata.deps[for_machine].get(identifier)
