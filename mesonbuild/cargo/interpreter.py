@@ -258,6 +258,8 @@ class Interpreter:
     def _fetch_package_from_subproject(self, package_name: str, meson_depname: str) -> PackageState:
         subp_name, _ = self.environment.wrap_resolver.find_dep_provider(meson_depname)
         if subp_name is None:
+            if self.cargolock is None:
+                raise MesonException(f'Dependency {meson_depname!r} not found in any wrap files.')
             # If Cargo.lock has a different version, this could be a resolution
             # bug, but maybe also a version mismatch?  I am not sure yet...
             similar_deps = [pkg.subproject
