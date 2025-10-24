@@ -68,6 +68,13 @@ class PackageConfiguration:
     required_deps: T.Set[str] = dataclasses.field(default_factory=set)
     optional_deps_features: T.Dict[str, T.Set[str]] = dataclasses.field(default_factory=lambda: collections.defaultdict(set))
 
+    def get_features_args(self) -> T.List[str]:
+        """Get feature configuration arguments."""
+        args: T.List[str] = []
+        for feature in self.features:
+            args.extend(['--cfg', f'feature="{feature}"'])
+        return args
+
 
 @dataclasses.dataclass
 class PackageState:
@@ -111,6 +118,49 @@ class PackageState:
             'CARGO_PKG_README': self.manifest.package.readme or '',
             'CARGO_CRATE_NAME': fixup_meson_varname(self.manifest.package.name),
         }
+
+    def get_lint_args(self, rustc: RustCompiler) -> T.List[str]:
+        """Get lint arguments for this package."""
+        args: T.List[str] = []
+        has_check_cfg = rustc.has_check_cfg
+
+        for lint in self.manifest.lints:
+            args.extend(lint.to_arguments(has_check_cfg))
+
+        if has_check_cfg:
+            for feature in self.manifest.features:
+                if feature != 'default':
+                    args.append('--check-cfg')
+                    args.append(f'cfg(feature,values("{feature}"))')
+
+        return args
+
+    def get_env_args(self, rustc: RustCompiler, environment: Environment, subdir: str) -> T.List[str]:
+        """Get environment variable arguments for rustc."""
+        enable_env_set_args = rustc.enable_env_set_args()
+        if enable_env_set_args is None:
+            return []
+
+        env_dict = self.get_env_dict(environment, subdir)
+        env_args = list(enable_env_set_args)
+        for k, v in env_dict.items():
+            env_args.extend(['--env-set', f'{k}={v}'])
+        return env_args
+
+    def get_rustc_args(self, environment: Environment, subdir: str, machine: MachineChoice) -> T.List[str]:
+        """Get rustc arguments for this package."""
+        if not environment.is_cross_build():
+            machine = MachineChoice.HOST
+
+        rustc = T.cast('RustCompiler', environment.coredata.compilers[machine]['rust'])
+
+        cfg = self.cfg
+
+        args: T.List[str] = []
+        args.extend(self.get_lint_args(rustc))
+        args.extend(cfg.get_features_args())
+        args.extend(self.get_env_args(rustc, environment, subdir))
+        return args
 
 
 @dataclasses.dataclass(frozen=True)
@@ -191,21 +241,19 @@ class Interpreter:
         ]
         ast += self._create_dependencies(pkg, build)
         ast += self._create_meson_subdir(build)
-        ast += self._create_env_args(pkg, build, subdir)
-        ast.append(build.assign(build.array([build.string(arg) for arg in self._lints_to_args(pkg)]), 'lint_args'))
 
         if pkg.manifest.lib:
             crate_type = pkg.manifest.lib.crate_type
             if 'dylib' in crate_type and 'cdylib' in crate_type:
                 raise MesonException('Cannot build both dylib and cdylib due to file name conflict')
             if 'proc-macro' in crate_type:
-                ast.extend(self._create_lib(pkg, build, 'proc-macro', shared=True))
+                ast.extend(self._create_lib(pkg, build, subdir, 'proc-macro', shared=True))
             if any(x in crate_type for x in ['lib', 'rlib', 'dylib']):
-                ast.extend(self._create_lib(pkg, build, 'rust',
+                ast.extend(self._create_lib(pkg, build, subdir, 'rust',
                                             static=('lib' in crate_type or 'rlib' in crate_type),
                                             shared='dylib' in crate_type))
             if any(x in crate_type for x in ['staticlib', 'cdylib']):
-                ast.extend(self._create_lib(pkg, build, 'c',
+                ast.extend(self._create_lib(pkg, build, subdir, 'c',
                                             static='staticlib' in crate_type,
                                             shared='cdylib' in crate_type))
 
@@ -483,18 +531,6 @@ class Interpreter:
             value = value[1:-1]
         return pair[0], value
 
-    def _lints_to_args(self, pkg: PackageState) -> T.List[str]:
-        args = []
-        has_check_cfg = self.has_check_cfg(MachineChoice.HOST)
-        for lint in pkg.manifest.lints:
-            args.extend(lint.to_arguments(has_check_cfg))
-        if has_check_cfg:
-            for feature in pkg.manifest.features:
-                if feature != 'default':
-                    args.append('--check-cfg')
-                    args.append(f'cfg(feature,values("{feature}"))')
-        return args
-
     def _create_project(self, name: str, pkg: T.Optional[PackageState], build: builder.Builder) -> T.List[mparser.BaseNode]:
         """Create the project() function call
 
@@ -653,22 +689,7 @@ class Interpreter:
                       build.block([build.function('subdir', [build.string('meson')])]))
         ]
 
-    def _create_env_args(self, pkg: PackageState, build: builder.Builder, subdir: str) -> T.List[mparser.BaseNode]:
-        host_rustc = T.cast('RustCompiler', self.environment.coredata.compilers[MachineChoice.HOST]['rust'])
-        enable_env_set_args = host_rustc.enable_env_set_args()
-        if enable_env_set_args is None:
-            return [build.assign(build.array([]), 'env_args')]
-        # https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
-        env_dict = pkg.get_env_dict(self.environment, subdir)
-        # TODO: additional env vars that are not in the common set
-        # CARGO_BIN_NAME, CARGO_BIN_EXE_<name>, CARGO_PRIMARY_PACKAGE,
-        # CARGO_TARGET_TMPDIR
-        env_args: T.List[mparser.BaseNode] = [build.string(a) for a in enable_env_set_args]
-        for k, v in env_dict.items():
-            env_args += [build.string('--env-set'), build.string(f'{k}={v}')]
-        return [build.assign(build.array(env_args), 'env_args')]
-
-    def _create_lib(self, pkg: PackageState, build: builder.Builder,
+    def _create_lib(self, pkg: PackageState, build: builder.Builder, subdir: str,
                     lib_type: Literal['rust', 'c', 'proc-macro'],
                     static: bool = False, shared: bool = False) -> T.List[mparser.BaseNode]:
         cfg = pkg.cfg
@@ -685,13 +706,12 @@ class Interpreter:
             if sys_dep.enabled(cfg.features):
                 dependencies.append(build.identifier(f'{fixup_meson_varname(name)}_system_dep'))
 
-        rust_args: T.List[mparser.BaseNode] = [
-            build.identifier('features_args'),
-            build.identifier(_extra_args_varname()),
-            build.identifier('system_deps_args'),
-            build.identifier('env_args'),
-            build.identifier('lint_args'),
-        ]
+        rustc_args_list = pkg.get_rustc_args(self.environment, subdir, MachineChoice.HOST)
+        extra_args_ref = build.identifier(_extra_args_varname())
+        system_deps_args_ref = build.identifier('system_deps_args')
+        rust_args: T.List[mparser.BaseNode] = [build.string(a) for a in rustc_args_list]
+        rust_args.append(extra_args_ref)
+        rust_args.append(system_deps_args_ref)
 
         dependencies.append(build.identifier(_extra_deps_varname()))
 
@@ -726,16 +746,10 @@ class Interpreter:
             kwargs['rust_abi'] = build.string(lib_type)
             lib = build.function(target_type, posargs, kwargs)
 
-        features_args: T.List[mparser.BaseNode] = []
-        for f in cfg.features:
-            features_args += [build.string('--cfg'), build.string(f'feature="{f}"')]
-
-        # features_args = ['--cfg', 'feature="f1"', ...]
         # lib = xxx_library()
         # dep = declare_dependency()
         # meson.override_dependency()
         return [
-            build.assign(build.array(features_args), 'features_args'),
             build.assign(lib, 'lib'),
             build.assign(
                 build.function(
