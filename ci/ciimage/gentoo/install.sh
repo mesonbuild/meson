@@ -115,6 +115,7 @@ cat <<-EOF > /etc/portage/package.use/ci
 	dev-lang/rust clippy rustfmt
 	dev-lang/rust-bin clippy rustfmt
 	dev-libs/boost python
+	sci-libs/hdf5 cxx
 
 	# slimmed binpkg, nomesa
 	media-libs/libsdl2 -opengl -wayland -alsa -dbus -gles2 -udev -vulkan
