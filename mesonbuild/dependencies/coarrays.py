@@ -24,6 +24,7 @@ def coarray_factory(env: 'Environment',
                     for_machine: 'MachineChoice',
                     kwargs: DependencyObjectKWs,
                     methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
+    kwargs['language'] = 'fortran'
     fcid = detect_compiler('coarray', env, for_machine, 'fortran').get_id()
     candidates: T.List['DependencyGenerator'] = []
 
@@ -32,13 +33,13 @@ def coarray_factory(env: 'Environment',
         if DependencyMethods.PKGCONFIG in methods:
             for pkg in ['caf-openmpi', 'caf']:
                 candidates.append(functools.partial(
-                    PkgConfigDependency, pkg, env, kwargs, language='fortran'))
+                    PkgConfigDependency, pkg, env, kwargs))
 
         if DependencyMethods.CMAKE in methods:
             if not kwargs.get('modules'):
                 kwargs['modules'] = ['OpenCoarrays::caf_mpi']
             candidates.append(functools.partial(
-                CMakeDependency, 'OpenCoarrays', env, kwargs, language='fortran'))
+                CMakeDependency, 'OpenCoarrays', env, kwargs))
 
     if DependencyMethods.SYSTEM in methods:
         candidates.append(functools.partial(CoarrayDependency, env, kwargs))
@@ -57,7 +58,8 @@ class CoarrayDependency(SystemDependency):
     low-level MPI calls.
     """
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__(name, environment, kwargs, language='fortran')
+        kwargs['language'] = 'fortran'
+        super().__init__(name, environment, kwargs)
         kwargs['required'] = False
         kwargs['silent'] = True
 

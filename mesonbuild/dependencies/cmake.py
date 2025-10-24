@@ -72,9 +72,10 @@ class CMakeDependency(ExternalDependency):
         # one module
         return module
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, force_use_global_compilers: bool = False) -> None:
         # Gather a list of all languages to support
         self.language_list: T.List[str] = []
+        language = kwargs.get('language')
         if language is None or force_use_global_compilers:
             for_machine = kwargs.get('native', MachineChoice.HOST)
             compilers = environment.coredata.compilers[for_machine]
@@ -90,7 +91,7 @@ class CMakeDependency(ExternalDependency):
         # Ensure that the list is unique
         self.language_list = list(set(self.language_list))
 
-        super().__init__(name, environment, kwargs, language=language)
+        super().__init__(name, environment, kwargs)
         self.is_libtool = False
 
         # Where all CMake "build dirs" are located
@@ -650,10 +651,10 @@ class CMakeDependencyFactory:
         self.name = name
         self.modules = modules
 
-    def __call__(self, name: str, env: Environment, kwargs: DependencyObjectKWs, language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> CMakeDependency:
+    def __call__(self, name: str, env: Environment, kwargs: DependencyObjectKWs, force_use_global_compilers: bool = False) -> CMakeDependency:
         if self.modules:
             kwargs['modules'] = self.modules
-        return CMakeDependency(self.name or name, env, kwargs, language, force_use_global_compilers)
+        return CMakeDependency(self.name or name, env, kwargs, force_use_global_compilers)
 
     @staticmethod
     def log_tried() -> str:

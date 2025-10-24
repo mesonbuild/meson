@@ -55,15 +55,14 @@ class MKLPkgConfigDependency(PkgConfigDependency):
     bunch of fixups to make it work correctly.
     """
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs,
-                 language: T.Optional[str] = None):
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
         _m = os.environ.get('MKLROOT')
         self.__mklroot = Path(_m).resolve() if _m else None
 
         # We need to call down into the normal super() method even if we don't
         # find mklroot, otherwise we won't have all of the instance variables
         # initialized that meson expects.
-        super().__init__(name, env, kwargs, language=language)
+        super().__init__(name, env, kwargs)
 
         # Doesn't work with gcc on windows, but does on Linux
         if env.machines[self.for_machine].is_windows() and self.clib_compiler.id == 'gcc':

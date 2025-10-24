@@ -341,7 +341,8 @@ class BoostLibraryFile():
 
 class BoostDependency(SystemDependency):
     def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs) -> None:
-        super().__init__(name, environment, kwargs, language='cpp')
+        kwargs['language'] = 'cpp'
+        super().__init__(name, environment, kwargs)
         buildtype = environment.coredata.optstore.get_value_for(OptionKey('buildtype'))
         assert isinstance(buildtype, str)
         self.debug = buildtype.startswith('debug')
