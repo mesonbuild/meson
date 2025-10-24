@@ -27,12 +27,12 @@ class HDF5PkgConfigDependency(PkgConfigDependency):
 
     """Handle brokenness in the HDF5 pkg-config files."""
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None) -> None:
-        language = language or 'c'
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        language = kwargs.get('language') or 'c'
         if language not in {'c', 'cpp', 'fortran'}:
             raise DependencyException(f'Language {language} is not supported with HDF5.')
 
-        super().__init__(name, environment, kwargs, language)
+        super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
 
@@ -78,8 +78,8 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
     version_arg = '-showconfig'
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None) -> None:
-        language = language or 'c'
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        language = kwargs.get('language') or 'c'
         if language not in {'c', 'cpp', 'fortran'}:
             raise DependencyException(f'Language {language} is not supported with HDF5.')
 
@@ -111,7 +111,7 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
         try:
             os.environ[f'HDF5_{cenv}'] = join_args(compiler.get_exelist())
             os.environ[f'HDF5_{lenv}LINKER'] = join_args(compiler.get_linker_exelist())
-            super().__init__(name, environment, nkwargs, language)
+            super().__init__(name, environment, nkwargs)
         finally:
             del os.environ[f'HDF5_{cenv}']
             del os.environ[f'HDF5_{lenv}LINKER']
@@ -143,10 +143,10 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL})
-def hdf5_factory(env: 'Environment', for_machine: 'MachineChoice',
-                 kwargs: DependencyObjectKWs, methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
-    language = kwargs.get('language')
+def hdf5_factory(env: 'Environment', kwargs: DependencyObjectKWs,
+                 methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     candidates: T.List['DependencyGenerator'] = []
+    for_machine = kwargs.get('native', MachineChoice.HOST)
 
     if DependencyMethods.PKGCONFIG in methods:
         # Use an ordered set so that these remain the first tried pkg-config files
@@ -162,10 +162,10 @@ def hdf5_factory(env: 'Environment', for_machine: 'MachineChoice',
                 # use just the standard files if pkg-config --list-all fails
                 pass
         for mod in pkgconfig_files:
-            candidates.append(functools.partial(HDF5PkgConfigDependency, mod, env, kwargs, language))
+            candidates.append(functools.partial(HDF5PkgConfigDependency, mod, env, kwargs))
 
     if DependencyMethods.CONFIG_TOOL in methods:
-        candidates.append(functools.partial(HDF5ConfigToolDependency, 'hdf5', env, kwargs, language))
+        candidates.append(functools.partial(HDF5ConfigToolDependency, 'hdf5', env, kwargs))
 
     return candidates
 
