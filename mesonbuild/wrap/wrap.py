@@ -448,7 +448,7 @@ class Resolver:
                 # It also happens for wraps coming from Cargo.lock files, which
                 # don't create wrap-redirect.
                 del self.wraps[v.directory]
-                del self.provided_deps[v.directory]
+                del self.provided_deps[v.directory.lower()]
             if k not in self.wraps:
                 self.wraps[k] = v
                 self.add_wrap(v)
