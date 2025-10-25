@@ -335,7 +335,7 @@ class PkgConfigDependency(ExternalDependency):
             # Fetch the libraries and library paths needed for using this
             self._set_libs()
         except DependencyException as e:
-            mlog.debug(f"Pkg-config error with '{name}': {e}")
+            mlog.warning(f"Pkg-config error with '{name}': {e}")
             if self.required:
                 raise
             else:
