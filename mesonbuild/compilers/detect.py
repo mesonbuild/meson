@@ -20,6 +20,7 @@ import shutil
 import tempfile
 import os
 import typing as T
+import itertools
 
 if T.TYPE_CHECKING:
     from .compilers import Compiler
@@ -200,6 +201,8 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             arg = '/?'
         elif linker_name in {'ar2000', 'ar2000.exe', 'ar430', 'ar430.exe', 'armar', 'armar.exe', 'ar6x', 'ar6x.exe'}:
             arg = '?'
+        elif linker_name in {'dar'}:
+            arg = '-V'
         else:
             arg = '--version'
         try:
@@ -244,6 +247,8 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
                 return linkers.MetrowerksStaticLinkerEmbeddedPowerPC(linker)
         if 'TASKING VX-toolset' in err:
             return linkers.TaskingStaticLinker(linker)
+        if 'Wind River Systems, Inc.' in out:
+            return linkers.DiabArchiver(linker)
         if p.returncode == 0:
             return linkers.ArLinker(compiler.for_machine, linker)
         if p.returncode == 1 and err.startswith('usage'): # OSX
@@ -252,6 +257,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             return linkers.AIXArLinker(linker)
         if p.returncode == 1 and err.startswith('ar: bad option: --'): # Solaris
             return linkers.ArLinker(compiler.for_machine, linker)
+
     _handle_exceptions(popen_exceptions, trials, 'linker')
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
 
@@ -321,6 +327,9 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
         elif compiler_name in {'icl', 'icl.exe'}:
             # if you pass anything to icl you get stuck in a pager
             arg = ''
+        elif compiler_name in {f'd{name}{suffix}' for name, suffix in itertools.product(['cc', 'plus'], ['', '.exe'])}:
+            # Wind River Diab
+            arg = '-V'
         else:
             arg = '--version'
 
@@ -628,6 +637,11 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             return cls(
                 ccache, compiler, tasking_version, for_machine, is_cross, info,
                 full_version=full_version, linker=linker)
+
+        if 'Wind River Systems, Inc.' in out:
+            if lang == "cpp":
+                linker = linkers.DiabLinker(compiler, for_machine, '-W:ld:,', [], system='none', version=version)
+                return cpp.DiabCppCompiler(ccache, compiler, version, for_machine, is_cross, info, linker)
 
     _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException(f'Unknown compiler {compilers}')
