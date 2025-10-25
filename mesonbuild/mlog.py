@@ -67,6 +67,7 @@ class _Logger:
     log_depth: T.List[str] = field(default_factory=list)
     log_to_stderr: bool = False
     log_file: T.Optional[T.TextIO] = None
+    slog_file: T.Optional[T.TextIO] = None
     log_timestamp_start: T.Optional[float] = None
     log_fatal_warnings = False
     log_disable_stdout = False
@@ -76,6 +77,7 @@ class _Logger:
     log_pager: T.Optional['subprocess.Popen'] = None
 
     _LOG_FNAME: T.ClassVar[str] = 'meson-log.txt'
+    _SLOG_FNAME: T.ClassVar[str] = 'meson-setup.txt'
 
     @contextmanager
     def no_logging(self) -> T.Iterator[None]:
@@ -108,6 +110,12 @@ class _Logger:
             path = self.log_file.name
             exception_around_goer = self.log_file
             self.log_file = None
+            exception_around_goer.close()
+            return path
+        if self.slog_file is not None:
+            path = self.slog_file.name
+            exception_around_goer = self.slog_file
+            self.slog_file = None
             exception_around_goer.close()
             return path
         self.stop_pager()
@@ -164,6 +172,7 @@ class _Logger:
     def initialize(self, logdir: str, fatal_warnings: bool = False) -> None:
         self.log_dir = logdir
         self.log_file = open(os.path.join(logdir, self._LOG_FNAME), 'w', encoding='utf-8')
+        self.slog_file = open(os.path.join(logdir, self._SLOG_FNAME), 'w', encoding='utf-8')
         self.log_fatal_warnings = fatal_warnings
 
     def process_markup(self, args: T.Sequence[TV_Loggable], keep: bool, display_timestamp: bool = True) -> T.List[str]:
@@ -224,6 +233,9 @@ class _Logger:
         if self.log_file is not None:
             print(*arr, file=self.log_file, sep=sep, end=end)
             self.log_file.flush()
+        if self.slog_file is not None:
+            print(*arr, file=self.slog_file, sep=sep, end=end)
+            self.slog_file.flush()
         if self.colorize_console():
             arr = process_markup(args, True, display_timestamp)
         if not self.log_errors_only or is_error:
