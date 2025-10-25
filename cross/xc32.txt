@@ -1,0 +1,17 @@
+# This file assumes that path to the Microchip XC32 toolchain is added
+# to the environment(PATH) variable, so that Meson can find XC32 while building.
+
+[binaries]
+c = 'xc32-gcc'
+cpp = 'xc32-g++'
+ar = 'xc32-ar'
+bin2hex = 'xc32-bin2hex'
+
+[host_machine]
+system = 'baremetal'
+cpu_family = 'pic32'
+cpu = 'pic32'
+endian = 'little'
+
+[properties]
+needs_exe_wrapper = true
