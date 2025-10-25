@@ -64,6 +64,12 @@ class CudaDependency(SystemDependency):
             self.incdir = os.path.join(self.cuda_path, self.target_path, 'include')
             self.compile_args += [f'-I{self.incdir}']
 
+        # CUPTI may be installed in a separate subdirectory
+        if 'cupti' in self.requested_modules:
+            cupti_incdir = os.path.join(self.cuda_path, 'extras', 'CUPTI', 'include')
+            if os.path.exists(cupti_incdir):
+                self.compile_args += [f'-I{cupti_incdir}']
+
         arch_libdir = self._detect_arch_libdir()
         self.libdir = os.path.join(self.cuda_path, self.target_path, arch_libdir)
         mlog.debug('CUDA library directory is', mlog.bold(self.libdir))
@@ -280,7 +286,16 @@ class CudaDependency(SystemDependency):
             # - libnvidia-ml.so in /usr/lib/ that is provided by the nvidia drivers
             #
             # Users should never link to the latter, since its ABI may change.
-            args = self.clib_compiler.find_library(module, self.env, [self.libdir, os.path.join(self.libdir, 'stubs')], self.libtype, ignore_system_dirs=True)
+            search_dirs = [self.libdir, os.path.join(self.libdir, 'stubs')]
+
+            # CUPTI may be installed in a separate subdirectory
+            if module == 'cupti':
+                for lib in ('lib64', 'lib'):
+                    cupti_libdir = os.path.join(self.cuda_path, 'extras', 'CUPTI', lib)
+                    if os.path.exists(cupti_libdir):
+                        search_dirs.append(cupti_libdir)
+
+            args = self.clib_compiler.find_library(module, self.env, search_dirs, self.libtype, ignore_system_dirs=True)
 
             if args is None:
                 self._report_dependency_error(f'Couldn\'t find requested CUDA module \'{module}\'')
