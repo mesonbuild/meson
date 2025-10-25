@@ -13,7 +13,7 @@ import locale
 
 from .. import mlog
 from .core import MesonException
-from .universal import is_windows, windows_detect_native_arch
+from .universal import is_windows, search_version, version_compare, windows_detect_native_arch
 
 
 __all__ = [
@@ -59,6 +59,10 @@ def _setup_vsenv(force: bool) -> bool:
     bat_locator_bin = pathlib.Path(root, 'Microsoft Visual Studio/Installer/vswhere.exe')
     if not bat_locator_bin.exists():
         raise MesonException(f'Could not find {bat_locator_bin}')
+    ver = search_version(subprocess.check_output(str(bat_locator_bin), text=True))
+    if not version_compare(ver, '>=3.0.2'):
+        raise MesonException(f'{bat_locator_bin} is too old. Found {ver} but need: 3.0.2')
+
     bat_json = subprocess.check_output(
         [
             str(bat_locator_bin),
