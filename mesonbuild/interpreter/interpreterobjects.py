@@ -113,7 +113,7 @@ class FeatureOptionHolder(ObjectHolder[options.UserFeatureOption]):
         super().__init__(option, interpreter)
         if option and option.is_auto():
             # TODO: we need to cast here because options is not a TypedDict
-            auto = T.cast('options.UserFeatureOption', self.env.coredata.optstore.get_value_object_for('auto_features'))
+            auto = T.cast('options.UserFeatureOption', self.env.coredata.optstore.resolve_option('auto_features'))
             self.held_object = copy.copy(auto)
             self.held_object.name = option.name
 
@@ -981,7 +981,7 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
         if self.subproject != self.held_object.subproject:
             raise InterpreterException('Tried to extract objects from a different subproject.')
         tobj = self._target_object
-        unity_value = self.interpreter.coredata.get_option_for_target(tobj, "unity")
+        unity_value = tobj.get_option("unity")
         is_unity = (unity_value == 'on' or (unity_value == 'subprojects' and tobj.subproject != ''))
         return tobj.extract_objects(args[0], is_unity)
 

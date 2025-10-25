@@ -49,6 +49,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
     from .mparser import BaseNode
     from .interpreter.kwargs import RustAbi
+    from .options import ElementaryOptionValues
 
     GeneratedTypes: TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
@@ -738,8 +739,22 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def get_id(self) -> str:
         return self.id
 
-    def get_override(self, name: str) -> T.Optional[str]:
-        return self.raw_overrides.get(name, None)
+    def get_option(self, key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
+        if isinstance(key, str):
+            assert ':' not in key
+            newkey = OptionKey(key, self.subproject)
+        else:
+            newkey = key
+        if newkey.subproject != self.subproject:
+            # FIXME: this should be an error. The caller needs to ensure that
+            # key and self have the same subproject for consistency.
+            # Now just do this to get things going.
+            newkey = newkey.evolve(subproject=self.subproject)
+        option_object, value = self.environment.coredata.optstore.get_option_and_value_for(newkey)
+        override = self.raw_overrides.get(newkey.name, None)
+        if override is not None:
+            return option_object.validate_value(override)
+        return value
 
     def is_linkable_target(self) -> bool:
         return False
@@ -1085,14 +1100,8 @@ class BuildTarget(Target):
         if 'vala' in self.compilers and 'c' not in self.compilers:
             self.compilers['c'] = self.all_compilers['c']
         if 'cython' in self.compilers:
-            # Not great, but we can't ask for the override value from "the system"
-            # because this object is currently being constructed so it is not
-            # yet placed in the data store. Grab it directly from override strings
-            # instead.
-            value = self.get_override('cython_language')
-            if value is None:
-                key = OptionKey('cython_language', machine=self.for_machine)
-                value = self.environment.coredata.optstore.get_value_for(key)
+            key = OptionKey('cython_language', machine=self.for_machine)
+            value = self.get_option(key)
             try:
                 self.compilers[value] = self.all_compilers[value]
             except KeyError:
@@ -1346,7 +1355,7 @@ class BuildTarget(Target):
         if kwargs.get(arg) is not None:
             return kwargs[arg]
         elif k in self.environment.coredata.optstore:
-            val = self.environment.coredata.get_option_for_target(self, k)
+            val = self.get_option(k)
             assert isinstance(val, bool), 'for mypy'
             return val
         return False
@@ -2381,7 +2390,7 @@ class StaticLibrary(BuildTarget):
         self.outputs[0] = self.filename
 
     def determine_default_prefix_and_suffix(self) -> T.Tuple[str, str]:
-        scheme = self.environment.coredata.get_option_for_target(self, 'namingscheme')
+        scheme = self.get_option('namingscheme')
         assert isinstance(scheme, str), 'for mypy'
         if scheme == 'platform':
             schemename = self.get_platform_scheme_name()
@@ -2412,10 +2421,7 @@ class StaticLibrary(BuildTarget):
                 suffix = 'a'
                 if 'c' in self.compilers and self.compilers['c'].get_id() == 'tasking' and not self.prelink:
                     key = OptionKey('b_lto', self.subproject, self.for_machine)
-                    try:
-                        v = self.environment.coredata.get_option_for_target(self, key)
-                    except KeyError:
-                        v = self.environment.coredata.optstore.get_value_for(key)
+                    v = self.get_option(key)
                     assert isinstance(v, bool), 'for mypy'
                     if v:
                         suffix = 'ma'
@@ -2531,7 +2537,7 @@ class SharedLibrary(BuildTarget):
         return self.environment.get_shared_lib_dir(), '{libdir_shared}'
 
     def determine_naming_info(self) -> T.Tuple[str, str, str, str, bool]:
-        scheme = self.environment.coredata.get_option_for_target(self, 'namingscheme')
+        scheme = self.get_option('namingscheme')
         assert isinstance(scheme, str), 'for mypy'
         if scheme == 'platform':
             schemename = self.get_platform_scheme_name()

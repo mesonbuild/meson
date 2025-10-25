@@ -15,7 +15,7 @@ from .. import mesonlib
 from ..mesonlib import (
     Popen_safe, version_compare_many
 )
-from ..environment import detect_cpu_family
+from ..envconfig import detect_cpu_family
 
 from .base import DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
 from .configtool import ConfigToolDependency

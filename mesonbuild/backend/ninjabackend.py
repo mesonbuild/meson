@@ -20,10 +20,11 @@ import typing as T
 
 from . import backends
 from .. import modules
-from .. import environment, mesonlib
+from .. import mesonlib
 from .. import build
 from .. import mlog
 from .. import compilers
+from .. import tooldetect
 from ..arglist import CompilerArgs
 from ..compilers import Compiler, is_library
 from ..linkers import ArLikeLinker, RSPFileSyntax
@@ -595,7 +596,7 @@ class NinjaBackend(backends.Backend):
                     mlog.debug('cuda enabled globally, disabling thin archives for {}, since nvcc/nvlink cannot handle thin archives natively'.format(for_machine))
                     self.allow_thin_archives[for_machine] = False
 
-        ninja = environment.detect_ninja_command_and_version(log=True)
+        ninja = tooldetect.detect_ninja_command_and_version(log=True)
         if self.environment.coredata.optstore.get_value_for(OptionKey('vsenv')):
             builddir = Path(self.environment.get_build_dir())
             try:
@@ -656,7 +657,7 @@ class NinjaBackend(backends.Backend):
             key = OptionKey('b_coverage')
             if key in self.environment.coredata.optstore and\
                     self.environment.coredata.optstore.get_value_for('b_coverage'):
-                gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe = environment.find_coverage_tools(self.environment.coredata)
+                gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe = tooldetect.find_coverage_tools(self.environment.coredata)
                 mlog.debug(f'Using {gcovr_exe} ({gcovr_version}), {lcov_exe} and {llvm_cov_exe} for code coverage')
                 if gcovr_exe or (lcov_exe and genhtml_exe):
                     self.add_build_comment(NinjaComment('Coverage rules'))
@@ -746,7 +747,7 @@ class NinjaBackend(backends.Backend):
             if isinstance(genlist, (build.CustomTarget, build.CustomTargetIndex)):
                 continue
             for src in genlist.get_outputs():
-                if self.environment.is_header(src):
+                if compilers.is_header(src):
                     header_deps.append(self.get_target_generated_dir(target, genlist, src))
         if target.vala_header:
             vala_header = File.from_built_file(self.get_target_dir(target), target.vala_header)
@@ -788,8 +789,8 @@ class NinjaBackend(backends.Backend):
     def get_target_source_can_unity(self, target, source: FileOrString) -> bool:
         if isinstance(source, File):
             source = source.fname
-        if self.environment.is_llvm_ir(source) or \
-           self.environment.is_assembly(source):
+        if compilers.is_llvm_ir(source) or \
+           compilers.is_assembly(source):
             return False
         suffix = os.path.splitext(source)[1][1:].lower()
         for lang in backends.LANGS_CANT_UNITY:
@@ -964,16 +965,16 @@ class NinjaBackend(backends.Backend):
         generated_source_files: T.List[File] = []
         for rel_src in generated_sources.keys():
             raw_src = File.from_built_relative(rel_src)
-            if self.environment.is_source(rel_src):
+            if compilers.is_source(rel_src):
                 if is_unity and self.get_target_source_can_unity(target, rel_src):
                     unity_deps.append(raw_src)
                     abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
                     unity_src.append(abs_src)
                 else:
                     generated_source_files.append(raw_src)
-            elif self.environment.is_object(rel_src):
+            elif compilers.is_object(rel_src):
                 obj_list.append(rel_src)
-            elif self.environment.is_library(rel_src) or modules.is_module_library(rel_src):
+            elif compilers.is_library(rel_src) or modules.is_module_library(rel_src):
                 pass
             elif is_compile_target:
                 generated_source_files.append(raw_src)
@@ -991,9 +992,9 @@ class NinjaBackend(backends.Backend):
         # this target. We create the Ninja build file elements for this here
         # because we need `header_deps` to be fully generated in the above loop.
         for src in generated_source_files:
-            if not self.environment.is_separate_compile(src):
+            if not compilers.is_separate_compile(src):
                 continue
-            if self.environment.is_llvm_ir(src):
+            if compilers.is_llvm_ir(src):
                 o, s = self.generate_llvm_ir_compile(target, src)
             else:
                 o, s = self.generate_single_compile(target, src, True, order_deps=header_deps)
@@ -1041,7 +1042,7 @@ class NinjaBackend(backends.Backend):
             # compile we get precise dependency info from dep files.
             # This should work in all cases. If it does not, then just
             # move them from orderdeps to proper deps.
-            if self.environment.is_header(src):
+            if compilers.is_header(src):
                 header_deps.append(raw_src)
             else:
                 transpiled_source_files.append(raw_src)
@@ -1051,11 +1052,11 @@ class NinjaBackend(backends.Backend):
 
         # Generate compile targets for all the preexisting sources for this target
         for src in target_sources.values():
-            if not self.environment.is_separate_compile(src):
+            if not compilers.is_separate_compile(src):
                 continue
-            if self.environment.is_header(src) and not is_compile_target:
+            if compilers.is_header(src) and not is_compile_target:
                 continue
-            if self.environment.is_llvm_ir(src):
+            if compilers.is_llvm_ir(src):
                 o, s = self.generate_llvm_ir_compile(target, src)
                 obj_list.append(o)
             elif is_unity and self.get_target_source_can_unity(target, src):
@@ -1872,9 +1873,9 @@ class NinjaBackend(backends.Backend):
                     generated_sources[ssrc] = mesonlib.File.from_built_file(gen.get_subdir(), ssrc)
                     # Following logic in L883-900 where we determine whether to add generated source
                     # as a header(order-only) dep to the .so compilation rule
-                    if not self.environment.is_source(ssrc) and \
-                            not self.environment.is_object(ssrc) and \
-                            not self.environment.is_library(ssrc) and \
+                    if not compilers.is_source(ssrc) and \
+                            not compilers.is_object(ssrc) and \
+                            not compilers.is_library(ssrc) and \
                             not modules.is_module_library(ssrc):
                         header_deps.append(ssrc)
         for source in pyx_sources:
@@ -2305,7 +2306,7 @@ class NinjaBackend(backends.Backend):
                 abss = os.path.normpath(os.path.join(self.environment.get_build_dir(), rels))
                 relsrc.append(rels)
                 abssrc.append(abss)
-            elif self.environment.is_header(i):
+            elif compilers.is_header(i):
                 relh = i.rel_to_builddir(self.build_to_src)
                 absh = os.path.normpath(os.path.join(self.environment.get_build_dir(), relh))
                 abs_headers.append(absh)
@@ -3555,7 +3556,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                         mlog.warning("Generated linker command has '-l' argument without following library name")
                         break
                 libs.add(lib)
-            elif os.path.isabs(item) and self.environment.is_library(item) and os.path.isfile(item):
+            elif os.path.isabs(item) and compilers.is_library(item) and os.path.isfile(item):
                 absolute_libs.append(item)
 
         guessed_dependencies = []
@@ -3870,7 +3871,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(elem)
 
     def generate_scanbuild(self) -> None:
-        if not environment.detect_scanbuild():
+        if not tooldetect.detect_scanbuild():
             return
         if 'scan-build' in self.all_outputs:
             return
@@ -3911,16 +3912,16 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(elem)
 
     def generate_clangformat(self) -> None:
-        if not environment.detect_clangformat():
+        if not tooldetect.detect_clangformat():
             return
         self.generate_clangtool('format')
         self.generate_clangtool('format', 'check')
 
     def generate_clangtidy(self) -> None:
-        if not environment.detect_clangtidy():
+        if not tooldetect.detect_clangtidy():
             return
         self.generate_clangtool('tidy', need_pch=True)
-        if not environment.detect_clangapply():
+        if not tooldetect.detect_clangapply():
             return
         self.generate_clangtool('tidy', 'fix', need_pch=True)
 

@@ -20,13 +20,14 @@ import typing as T
 from dataclasses import dataclass
 from glob import glob
 from pathlib import Path
-from mesonbuild.environment import Environment, detect_ninja
+from mesonbuild.environment import Environment
+from mesonbuild.tooldetect import detect_ninja
 from mesonbuild.mesonlib import (GIT, MesonException, RealPathAction, get_meson_command, quiet_git,
                                  windows_proof_rmtree, setup_vsenv)
 from .options import OptionKey
 from mesonbuild.msetup import add_arguments as msetup_argparse
 from mesonbuild.wrap import wrap
-from mesonbuild import mlog, build, coredata
+from mesonbuild import mlog, build, cmdline
 from .scripts.meson_exe import run_exe
 
 if T.TYPE_CHECKING:
@@ -353,11 +354,11 @@ def check_dist(packagename: str, _meson_command: ImmutableListProtocol[str], ext
 def create_cmdline_args(bld_root: str) -> T.List[str]:
     parser = argparse.ArgumentParser()
     msetup_argparse(parser)
-    args = T.cast('coredata.SharedCMDOptions', parser.parse_args([]))
-    coredata.parse_cmd_line_options(args)
-    coredata.read_cmd_line_file(bld_root, args)
+    args = T.cast('cmdline.SharedCMDOptions', parser.parse_args([]))
+    cmdline.parse_cmd_line_options(args)
+    cmdline.read_cmd_line_file(bld_root, args)
     args.cmd_line_options.pop(OptionKey('backend'), '')
-    return shlex.split(coredata.format_cmd_line_options(args))
+    return shlex.split(cmdline.format_cmd_line_options(args))
 
 def determine_archives_to_generate(options: argparse.Namespace) -> T.List[str]:
     result = []

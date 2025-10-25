@@ -309,7 +309,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # have the compilers needed to gain more knowledge, so wipe out old
         # inference and start over.
         machines = self.build.environment.machines.miss_defaulting()
-        machines.build = environment.detect_machine_info(self.coredata.compilers.build)
+        machines.build = envconfig.detect_machine_info(self.coredata.compilers.build)
         self.build.environment.machines = machines.default_missing()
         assert self.build.environment.machines.build.cpu is not None
         assert self.build.environment.machines.host.cpu is not None
@@ -1078,28 +1078,28 @@ class Interpreter(InterpreterBase, HoldableObject):
         if optname_regex.search(optname.split('.', maxsplit=1)[-1]) is not None:
             raise InterpreterException(f'Invalid option name {optname!r}')
 
-        value_object: T.Optional[options.AnyOptionType]
+        option_object: T.Optional[options.AnyOptionType]
 
         try:
             optkey = options.OptionKey.from_string(optname).evolve(subproject=self.subproject)
-            value_object, value = self.coredata.optstore.get_value_object_and_value_for(optkey)
+            option_object, value = self.coredata.optstore.get_option_and_value_for(optkey)
         except KeyError:
             if self.coredata.optstore.is_base_option(optkey):
                 # Due to backwards compatibility return the default
                 # option for base options instead of erroring out.
-                value_object = options.COMPILER_BASE_OPTIONS[optkey.evolve(subproject=None, machine=MachineChoice.HOST)]
-                value = value_object.default
+                option_object = options.COMPILER_BASE_OPTIONS[optkey.evolve(subproject=None, machine=MachineChoice.HOST)]
+                value = option_object.default
             else:
                 if self.subproject:
                     raise MesonException(f'Option {optname} does not exist for subproject {self.subproject}.')
                 raise MesonException(f'Option {optname} does not exist.')
-        if isinstance(value_object, options.UserFeatureOption):
-            ocopy = copy.copy(value_object)
+        if isinstance(option_object, options.UserFeatureOption):
+            ocopy = copy.copy(option_object)
             ocopy.name = optname
             ocopy.value = value
             return ocopy
         elif optname == 'b_sanitize':
-            assert isinstance(value_object, options.UserStringArrayOption)
+            assert isinstance(option_object, options.UserStringArrayOption)
             # To ensure backwards compatibility this always returns a string.
             # We may eventually want to introduce a new "format" kwarg that
             # allows the user to modify this behaviour, but for now this is
@@ -1209,7 +1209,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.set_backend()
 
         if not self.is_subproject():
-            self.coredata.optstore.validate_cmd_line_options(self.user_defined_options.cmd_line_options)
             self.build.project_name = proj_name
         self.active_projectname = proj_name
 

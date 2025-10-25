@@ -183,7 +183,7 @@ class DataTests(unittest.TestCase):
         arches = [m.group(1) for m in re.finditer(r"^\| (\w+) +\|", content, re.MULTILINE)]
         # Drop the header
         arches = set(arches[1:])
-        self.assertEqual(arches, set(mesonbuild.environment.known_cpu_families))
+        self.assertEqual(arches, set(mesonbuild.envconfig.known_cpu_families))
 
     def test_markdown_files_in_sitemap(self):
         '''

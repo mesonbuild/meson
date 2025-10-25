@@ -30,6 +30,7 @@ modules = [
     'mesonbuild/arglist.py',
     'mesonbuild/backend/backends.py',
     'mesonbuild/backend/nonebackend.py',
+    'mesonbuild/cmdline.py',
     # 'mesonbuild/coredata.py',
     'mesonbuild/depfile.py',
     'mesonbuild/envconfig.py',
@@ -80,6 +81,7 @@ modules = [
     'mesonbuild/options.py',
     'mesonbuild/programs.py',
     'mesonbuild/rewriter.py',
+    'mesonbuild/tooldetect.py',
 ]
 additional = [
     'run_mypy.py',

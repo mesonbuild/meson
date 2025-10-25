@@ -8,6 +8,7 @@ import typing as T
 
 from . import backends
 from .. import build
+from .. import compilers
 from .. import mesonlib
 from .. import mlog
 from ..arglist import CompilerArgs
@@ -1512,7 +1513,7 @@ class XCodeBackend(backends.Backend):
             phase_dict.add_item('files', file_arr)
             for s in self.build_targets[name].sources:
                 s = os.path.join(s.subdir, s.fname)
-                if not self.environment.is_header(s):
+                if not compilers.is_header(s):
                     file_arr.add_item(self.buildfile_ids[(name, s)], os.path.join(self.environment.get_source_dir(), s))
             generator_id = 0
             for gt in t.generated:
@@ -1661,7 +1662,7 @@ class XCodeBackend(backends.Backend):
             # Swift can import declarations from C-based code using bridging headers.
             # There can only be one header, and it must be included as a source file.
             for i in target.get_sources():
-                if self.environment.is_header(i) and is_swift:
+                if compilers.is_header(i) and is_swift:
                     relh = i.rel_to_builddir(self.build_to_src)
                     bridging_header = os.path.normpath(os.path.join(self.environment.get_build_dir(), relh))
                     break
