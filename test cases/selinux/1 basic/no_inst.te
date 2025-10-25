@@ -1,0 +1,2 @@
+policy_module(noinst_policy, 1.0.0)
+type noinst_policy_t;
