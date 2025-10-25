@@ -179,6 +179,8 @@ if T.TYPE_CHECKING:
         install_dir: str
         install: bool
 
+_RESOURCE_GENERATED_ERR_MSG = 'This feature was added in 0.60, but does not work correctly due to bugs until 1.9'
+
 def _list_in_set_validator(choices: T.Set[str]) -> T.Callable[[T.List[str]], T.Optional[str]]:
     """Check that the choice given was one of the given set."""
     def inner(checklist: T.List[str]) -> T.Optional[str]:
@@ -402,6 +404,11 @@ class QtBaseModule(ExtensionModule):
             ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), allow_empty=False),
             listify=True,
             required=True,
+            since_values={
+                build.CustomTarget: ('1.9', _RESOURCE_GENERATED_ERR_MSG),
+                build.CustomTargetIndex: ('1.9', _RESOURCE_GENERATED_ERR_MSG),
+                build.GeneratedList: ('1.9', _RESOURCE_GENERATED_ERR_MSG),
+            }
         ),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
     )
@@ -410,9 +417,6 @@ class QtBaseModule(ExtensionModule):
 
         Uses CustomTargets to generate .cpp files from .qrc files.
         """
-        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in kwargs['sources']):
-            FeatureNew.single_use('qt.compile_resources: custom_target or generator for "sources" keyword argument',
-                                  '0.60.0', state.subproject, location=state.current_node)
         out = self._compile_resources_impl(state, kwargs)
         return ModuleReturnValue(out, [out])
 
@@ -431,19 +435,13 @@ class QtBaseModule(ExtensionModule):
         DEPFILE_ARGS: T.List[str] = ['--depfile', '@DEPFILE@'] if self._rcc_supports_depfiles else []
 
         name = kwargs['name']
-        sources: T.List['FileOrString'] = []
-        for s in kwargs['sources']:
-            if isinstance(s, (str, File)):
-                sources.append(s)
-            else:
-                sources.extend(s.get_outputs())
         extra_args = kwargs['extra_args']
 
         # If a name was set generate a single .cpp file from all of the qrc
         # files, otherwise generate one .cpp file per qrc file.
         if name:
             qrc_deps: T.List[File] = []
-            for s in sources:
+            for s in kwargs['sources']:
                 qrc_deps.extend(self._parse_qrc_deps(state, s))
 
             res_target = build.CustomTarget(
@@ -452,7 +450,7 @@ class QtBaseModule(ExtensionModule):
                 state.subproject,
                 state.environment,
                 self.tools['rcc'].get_command() + ['-name', name, '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
-                sources,
+                kwargs['sources'],
                 [f'{name}.cpp'],
                 depend_files=qrc_deps,
                 depfile=f'{name}.d',
@@ -460,26 +458,29 @@ class QtBaseModule(ExtensionModule):
             )
             targets.append(res_target)
         else:
-            for rcc_file in sources:
+            for rcc_file in kwargs['sources']:
                 qrc_deps = self._parse_qrc_deps(state, rcc_file)
                 if isinstance(rcc_file, str):
-                    basename = os.path.basename(rcc_file)
+                    basenames = [os.path.basename(rcc_file)]
+                elif isinstance(rcc_file, File):
+                    basenames = [rcc_file.fname]
                 else:
-                    basename = os.path.basename(rcc_file.fname)
-                name = f'qt{self.qt_version}-{basename.replace(".", "_")}'
-                res_target = build.CustomTarget(
-                    name,
-                    state.subdir,
-                    state.subproject,
-                    state.environment,
-                    self.tools['rcc'].get_command() + ['-name', '@BASENAME@', '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
-                    [rcc_file],
-                    [f'{name}.cpp'],
-                    depend_files=qrc_deps,
-                    depfile=f'{name}.d',
-                    description='Compiling Qt resources {}',
-                )
-                targets.append(res_target)
+                    basenames = rcc_file.get_outputs()
+                for basename in basenames:
+                    name = f'qt{self.qt_version}-{basename.replace(".", "_")}'
+                    res_target = build.CustomTarget(
+                        name,
+                        state.subdir,
+                        state.subproject,
+                        state.environment,
+                        self.tools['rcc'].get_command() + ['-name', '@BASENAME@', '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
+                        [rcc_file],
+                        [f'{name}.cpp'],
+                        depend_files=qrc_deps,
+                        depfile=f'{name}.d',
+                        description='Compiling Qt resources {}',
+                    )
+                    targets.append(res_target)
 
         return targets
 
