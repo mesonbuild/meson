@@ -1053,6 +1053,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         mlog.warning('Cargo subproject is an experimental feature and has no backwards compatibility guarantees.',
                      once=True, location=self.current_node)
         self.add_languages(['rust'], True, MachineChoice.HOST)
+        self.add_languages(['rust'], True, MachineChoice.BUILD)
         with mlog.nested(subp_name):
             try:
                 cargo_int = self.cargo or cargo.Interpreter(self.environment, subdir, self.subproject_dir)

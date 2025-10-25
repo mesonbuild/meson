@@ -20,7 +20,7 @@ import typing as T
 from . import builder, version, cfg
 from .toml import load_toml
 from .manifest import Manifest, CargoLock, Workspace, fixup_meson_varname
-from ..mesonlib import MesonException, MachineChoice, version_compare
+from ..mesonlib import MesonException, MachineChoice, File, version_compare
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
 
@@ -138,7 +138,7 @@ class Interpreter:
             ]),
         ]
         ast += self._create_dependencies(pkg, build)
-        ast += self._create_meson_subdir(build)
+        ast += self._create_meson_subdir(pkg, build, subdir)
         ast += self._create_env_args(pkg, build, subdir)
 
         if pkg.manifest.lib:
@@ -434,6 +434,73 @@ class Interpreter:
                     args.append(f'cfg(feature,values("{feature}"))')
         return args
 
+    CARGO_CFG_PREFIX = 'cargo:rustc-cfg='
+    CARGO_RERUN_PREFIX = 'cargo:rerun-if-changed='
+    CARGO_RUSTC_ENV = 'cargo:rustc-env='
+    CARGO_RUSTC_CHECK_CFG = 'cargo:rustc-check-cfg='
+
+    def _run_build_rs(self, pkg: PackageState, subdir: str) -> T.List[str]:
+        build_rs = os.path.join(self.environment.source_dir, subdir, 'build.rs')
+        if not os.path.exists(build_rs):
+            return []
+
+        if pkg.manifest.build_dependencies:
+            # FIXME: This should usually be fatal, but not always. For example
+            # the build.rs could be using system-deps and Meson provides the
+            # same functionality without build.rs. We have no way to know,
+            # print a warning for now.
+            mlog.warning(f'Cannot use {subdir}/build.rs with build-dependencies. It should be ported manually in meson/meson.build.')
+            return []
+
+        build_rustc = T.cast('RustCompiler', self.environment.coredata.compilers[MachineChoice.BUILD]['rust'])
+        host_rustc = T.cast('RustCompiler', self.environment.coredata.compilers[MachineChoice.HOST]['rust'])
+
+        # Prepare build.rs run environment
+        # https://doc.rust-lang.org/cargo/reference/environment-variables.html
+        host_rustc_cmd = host_rustc.get_exelist(ccache=False)
+        env = os.environ.copy()
+        env.update(self._pkg_common_env(pkg, subdir))
+        env.update({
+            'RUSTC': host_rustc_cmd[0],
+            'TARGET': host_rustc.get_target_triplet(),
+        })
+
+        def conv(k: str) -> str:
+            return k.upper().replace('-', '_')
+        for k, v in self._get_cfgs(MachineChoice.HOST).items():
+            env[f'CARGO_CFG_{conv(k)}'] = v
+        for f in pkg.features:
+            env[f'CARGO_FEATURE_{conv(f)}'] = ''
+
+        # Compile and run build.rs
+        build_rs_file = File.from_absolute_file(build_rs)
+        cwd = os.path.join(self.environment.source_dir, subdir)
+        res = build_rustc.run(build_rs_file, self.environment, build_env=env, run_env=env, run_cwd=cwd)
+        mlog.log('Run ', mlog.bold('build.rs'), ': ', mlog.green('YES') if res.returncode == 0 else mlog.red('NO'), sep='')
+
+        # Parse stdout to get configs and list of files that needs to trigger a
+        # reconfigure.
+        compiler_args: T.List[str] = []
+        self.build_def_files.append(build_rs)
+        for line in res.stdout.splitlines():
+            if line.startswith(self.CARGO_CFG_PREFIX):
+                cfg = line[len(self.CARGO_CFG_PREFIX):]
+                compiler_args += ['--cfg', cfg]
+            elif line.startswith(self.CARGO_RERUN_PREFIX):
+                path = line[len(self.CARGO_RERUN_PREFIX):]
+                self.build_def_files.append(os.path.join(self.environment.source_dir, subdir, path))
+            elif line.startswith(self.CARGO_RUSTC_ENV):
+                if host_rustc.enable_env_set_args() is not None:
+                    val = line[len(self.CARGO_RUSTC_ENV):]
+                    compiler_args += ['--env-set', val]
+            elif line.startswith(self.CARGO_RUSTC_CHECK_CFG):
+                val = line[len(self.CARGO_RUSTC_CHECK_CFG):]
+                compiler_args += ['--check-cfg', val]
+            else:
+                mlog.warning(f'Unrecognized build.rs output: {line}')
+
+        return compiler_args
+
     def _create_project(self, name: str, pkg: T.Optional[PackageState], build: builder.Builder) -> T.List[mparser.BaseNode]:
         """Create the project() function call
 
@@ -579,23 +646,23 @@ class Interpreter:
             ])),
         ]
 
-    def _create_meson_subdir(self, build: builder.Builder) -> T.List[mparser.BaseNode]:
+    def _create_meson_subdir(self, pkg: PackageState, build: builder.Builder, subdir: str) -> T.List[mparser.BaseNode]:
         # Allow Cargo subprojects to add extra Rust args in meson/meson.build file.
         # This is used to replace build.rs logic.
-
         # extra_args = []
         # extra_deps = []
-        # fs = import('fs')
-        # if fs.is_dir('meson')
-        #  subdir('meson')
-        # endif
-        return [
+        # subdir('meson')
+        ast: T.List[mparser.BaseNode] = [
             build.assign(build.array([]), _extra_args_varname()),
             build.assign(build.array([]), _extra_deps_varname()),
-            build.assign(build.function('import', [build.string('fs')]), 'fs'),
-            build.if_(build.method('is_dir', build.identifier('fs'), [build.string('meson')]),
-                      build.block([build.function('subdir', [build.string('meson')])]))
         ]
+        has_meson_subdir = os.path.isfile(os.path.join(self.environment.source_dir, subdir, 'meson', 'meson.build'))
+        if has_meson_subdir:
+            ast.append(build.function('subdir', [build.string('meson')]))
+        else:
+            build_rs_args = self._run_build_rs(pkg, subdir)
+            ast.append(build.plusassign(build.array([build.string(a) for a in build_rs_args]), _extra_args_varname()))
+        return ast
 
     def _pkg_common_env(self, pkg: PackageState, subdir: str) -> T.Dict[str, str]:
         # Common variables for build.rs and crates

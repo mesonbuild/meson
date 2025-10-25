@@ -572,10 +572,11 @@ class DCompiler(Compiler):
     def run(self, code: 'mesonlib.FileOrString', env: 'Environment',
             extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None,
             dependencies: T.Optional[T.List['Dependency']] = None,
+            build_env: T.Optional[T.Dict[str, str]] = None,
             run_env: T.Optional[T.Dict[str, str]] = None,
             run_cwd: T.Optional[str] = None) -> compilers.RunResult:
         extra_args = self._get_compile_extra_args(extra_args)
-        return super().run(code, env, extra_args, dependencies, run_env, run_cwd)
+        return super().run(code, env, extra_args, dependencies, build_env, run_env, run_cwd)
 
     def sizeof(self, typename: str, prefix: str, env: 'Environment', *,
                extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
