@@ -171,7 +171,7 @@ class CLikeCompiler(Compiler):
         return ['-c']
 
     def get_no_optimization_args(self) -> T.List[str]:
-        return ['-O0']
+        return ['-O0', '-U_FORTIFY_SOURCE']
 
     def get_output_args(self, outputname: str) -> T.List[str]:
         return ['-o', outputname]
