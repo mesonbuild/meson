@@ -27,6 +27,7 @@ defaults['clang_cl_static_linker'] = ['llvm-lib']
 defaults['cuda_static_linker'] = ['nvlink']
 defaults['gcc_static_linker'] = ['gcc-ar']
 defaults['clang_static_linker'] = ['llvm-ar']
+defaults['emxomf_static_linker'] = ['emxomfar']
 
 def __failed_to_detect_linker(compiler: T.List[str], args: T.List[str], stdout: str, stderr: str) -> 'T.NoReturn':
     msg = 'Unable to detect linker for compiler `{}`\nstdout: {}\nstderr: {}'.format(
@@ -128,6 +129,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     :extra_args: Any additional arguments required (such as a source file)
     """
     from . import linkers
+    from ..options import OptionKey
     env.add_lang_args(comp_class.language, comp_class, for_machine)
     extra_args = extra_args or []
 
@@ -145,6 +147,9 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     if value is not None:
         override = comp_class.use_linker_args(value[0], comp_version)
         check_args += override
+
+    if env.machines[for_machine].is_os2() and env.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
+        check_args += ['-Zomf']
 
     mlog.debug('-----')
     p, o, e = Popen_safe_logged(compiler + check_args, msg='Detecting linker via')
@@ -252,6 +257,14 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             compiler, for_machine, comp_class.LINKER_PREFIX, override,
             system=system, version=v
         )
+    elif 'ld.exe: unrecognized option' in e:
+        linker = linkers.OS2AoutDynamicLinker(
+            compiler, for_machine, comp_class.LINKER_PREFIX, override,
+            version='none')
+    elif 'emxomfld: invalid option' in e:
+        linker = linkers.OS2OmfDynamicLinker(
+            compiler, for_machine, comp_class.LINKER_PREFIX, override,
+            version='none')
     else:
         __failed_to_detect_linker(compiler, check_args, o, e)
     return linker
