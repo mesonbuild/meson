@@ -1947,11 +1947,17 @@ class NinjaBackend(backends.Backend):
 
         self.rust_crates[name] = crate
 
-    def _get_rust_dependency_name(self, target: build.BuildTarget, dependency: LibTypes) -> str:
-        # Convert crate names with dashes to underscores by default like
-        # cargo does as dashes can't be used as parts of identifiers
-        # in Rust
-        return target.rust_dependency_map.get(dependency.name, dependency.name).replace('-', '_')
+    @staticmethod
+    def _get_rust_crate_name(target_name: str) -> str:
+        # Rustc replaces - with _. spaces or dots are not allowed, so we replace them with underscores
+        # Also +SUFFIX is dropped, which can be used to distinguish host from build crates
+        crate_name = target_name.replace('-', '_').replace(' ', '_').replace('.', '_')
+        return crate_name.split('+', 1)[0]
+
+    @staticmethod
+    def _get_rust_dependency_name(target: build.BuildTarget, dependency: LibTypes) -> str:
+        crate_name_raw = target.rust_dependency_map.get(dependency.name, dependency.name)
+        return NinjaBackend._get_rust_crate_name(crate_name_raw)
 
     def generate_rust_sources(self, target: build.BuildTarget) -> T.Tuple[T.List[str], str]:
         orderdeps: T.List[str] = []
@@ -2026,8 +2032,7 @@ class NinjaBackend(backends.Backend):
             args.extend(rustc.get_linker_always_args())
 
         args += self.generate_basic_compiler_args(target, rustc)
-        # Rustc replaces - with _. spaces or dots are not allowed, so we replace them with underscores
-        args += ['--crate-name', target.name.replace('-', '_').replace(' ', '_').replace('.', '_')]
+        args += ['--crate-name', self._get_rust_crate_name(target.name)]
         if depfile:
             args += rustc.get_dependency_gen_args(target_name, depfile)
         args += rustc.get_output_args(target_name)
