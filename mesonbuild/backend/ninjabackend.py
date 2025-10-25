@@ -490,6 +490,7 @@ class NinjaBackend(backends.Backend):
         self.created_llvm_ir_rule = PerMachine(False, False)
         self.rust_crates: T.Dict[str, RustCrate] = {}
         self.implicit_meson_outs: T.List[str] = []
+        self.compdb_special_targets: T.List[T.Tuple[NinjaBuildElement, T.List[str]]] = []
         self._uses_dyndeps = False
         self._generated_header_cache: T.Dict[str, T.List[FileOrString]] = {}
         # nvcc chokes on thin archives:
@@ -729,9 +730,34 @@ class NinjaBackend(backends.Backend):
         builddir = self.environment.get_build_dir()
         try:
             jsondb = subprocess.check_output(ninja_compdb, cwd=builddir)
-            with open(os.path.join(builddir, 'compile_commands.json'), 'wb') as f:
-                f.write(jsondb)
-        except Exception:
+            jsondb_data = json.loads(jsondb)
+            # Ninja's generated compilation database only includes the first input file for each build element. In order
+            # to have LSPs like Swift's (which compiles multiple files per command invocation) pick it up, explicitly
+            # list all of the files here.
+            for t, extra_infilenames in self.compdb_special_targets:
+                arguments = []
+                for argument in t.rule.command:
+                    # Most likely not 100% correct, but it doesn't have to be since most targets won't use this.
+                    # Extend it if needed
+                    if argument.s == '$in' and argument.quoting == Quoting.none:
+                        arguments += t.infilenames
+                    elif argument.s == '$out' and argument.quoting == Quoting.none:
+                        arguments += t.outfilenames
+                    elif argument.s.startswith('$') and argument.quoting == Quoting.none:
+                        iterator = iter(t.elems)
+                        while True:
+                            k, v = next(iterator)
+                            if k == argument.s[1:]:
+                                arguments += v
+                                break
+                    else:
+                        arguments.append(argument.s)
+                for file in itertools.chain(t.infilenames, extra_infilenames):
+                    d = {'directory': builddir, 'arguments': arguments, 'file': file}
+                    jsondb_data += [d]
+            with open(os.path.join(builddir, 'compile_commands.json'), 'w', encoding='utf-8') as f:
+                json.dump(jsondb_data, f, indent=2)
+        except (subprocess.CalledProcessError, OSError):
             mlog.warning('Could not create compilation database.', fatal=False)
 
     # Get all generated headers. Any source file might need them so
@@ -2374,6 +2400,7 @@ class NinjaBackend(backends.Backend):
         elem.add_item('ARGS', swiftc.get_compile_only_args() + compile_args + header_imports + abs_generated + module_includes)
         elem.add_item('RUNDIR', rundir)
         self.add_build(elem)
+        self.compdb_special_targets.append((elem, rel_generated))
 
         # -g makes swiftc create a .o file with potentially the same name as one of the compile target generated ones.
         mod_gen_args = [el for el in compile_args if el != '-g']
