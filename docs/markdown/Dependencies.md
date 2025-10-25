@@ -469,6 +469,19 @@ providing them instead.
 
 `method` may be `auto`, `builtin` or `system`.
 
+## execinfo (libexecinfo)
+
+*(added 1.9.0)*
+
+Provides access to the backtrace interface (functions: backtrace,
+backtrace_symbols, and others). On systems where this functionality
+is not provided by libc (mostly BSDs), attempts to locate and use an
+external implementation such as `libexecinfo`.
+
+CMake implements this as a `backtrace` dependency.
+
+`method` may be `auto`, `builtin`, or `system`.
+
 ## Fortran Coarrays
 
 *(added 0.50.0)*
