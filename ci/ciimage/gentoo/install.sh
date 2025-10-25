@@ -23,12 +23,19 @@ pkgs_stable=(
   dev-util/bindgen
 
   dev-libs/elfutils
-  dev-util/gdbus-codegen
-  dev-libs/gobject-introspection
-  dev-util/itstool
   dev-libs/protobuf
 
+  # modules
+  dev-util/gdbus-codegen
+  dev-util/glib-utils
+  dev-libs/gobject-introspection
+  dev-util/itstool
+  dev-util/wayland-scanner
+  dev-libs/wayland-protocols
+  dev-libs/wayland
+
   # custom deps
+  dev-libs/boost
   net-libs/libpcap
   dev-util/gtk-doc
   media-libs/libwmf
@@ -38,8 +45,13 @@ pkgs_stable=(
   dev-cpp/gtest
   sci-libs/hdf5
   dev-qt/linguist-tools
-  sys-devel/llvm
+  dev-qt/qtwidgets:5
+  llvm-core/llvm
+  dev-qt/qtdeclarative:6
   dev-qt/qttools
+  net-print/cups
+  dev-util/vulkan-headers
+  media-libs/vulkan-loader
 
   # misc
   app-admin/sudo
@@ -47,6 +59,8 @@ pkgs_stable=(
   sys-devel/bison
   sys-devel/reflex
   sys-devel/gettext
+  # needed by vala
+  x11-libs/gtk+
 
   # TODO: vulkan-validation-layers
   # TODO: cuda
@@ -59,21 +73,14 @@ pkgs_stable=(
   #dev-libs/wayland
   #dev-libs/wayland-protocols
   #dev-python/pypy3
-  #dev-qt/qtbase:6
-  #dev-qt/qtcore:5
-  #dev-qt/qttools:6
   #dev-vcs/mercurial
   #gnustep-base/gnustep-base
   #media-gfx/graphviz
   #sci-libs/netcdf-fortran
-  #sys-devel/clang
+  #llvm-core/clang
   #x11-libs/gtk+:3
 )
 pkgs_latest=(
-  # ~arch boost needed for py3.12 for now (needs 1.84)
-  dev-build/b2
-  dev-libs/boost
-
   dev-build/autoconf
   dev-build/automake
 
@@ -95,7 +102,6 @@ printf "%s\n" ${pkgs_latest[@]} >> /etc/portage/package.accept_keywords/meson
 cat /etc/portage/package.accept_keywords/meson
 
 cat <<-EOF > /etc/portage/package.accept_keywords/misc
-	dev-lang/python-exec
 	dev-lang/python
 EOF
 
@@ -103,9 +109,16 @@ mkdir /etc/portage/binrepos.conf || true
 mkdir /etc/portage/profile || true
 cat <<-EOF > /etc/portage/package.use/ci
 	dev-cpp/gtkmm X
+	media-libs/libglvnd X
+	x11-libs/cairo X
+	x11-libs/libxkbcommon X
 	dev-lang/rust clippy rustfmt
 	dev-lang/rust-bin clippy rustfmt
 	dev-libs/boost python
+	sci-libs/hdf5 cxx
+
+	# slimmed binpkg, nomesa
+	media-libs/libsdl2 -opengl -wayland -alsa -dbus -gles2 -udev -vulkan
 
 	# Some of these settings are needed just to get the binpkg but
 	# aren't negative to have anyway
@@ -134,17 +147,20 @@ cat <<-EOF >> /etc/portage/make.conf
 	FEATURES="\${FEATURES} -ipc-sandbox -network-sandbox -pid-sandbox"
 EOF
 
-# TODO: Enable all Pythons / add multiple jobs with diff. Python impls?
+# Maybe we could enable all Pythons / add multiple jobs with diff. Python impls?
 #echo '*/* PYTHON_TARGETS: python3_10 python3_11 python3_12' >> /etc/portage/package.use/python
-echo '*/* PYTHON_TARGETS: python3_12' >> /etc/portage/package.use/python
-cat <<-EOF >> /etc/portage/profile/use.mask
--python_targets_python3_12
--python_single_target_python3_12
-EOF
-cat <<-EOF >> /etc/portage/profile/use.stable.mask
--python_targets_python3_12
--python_single_target_python3_12
-EOF
+
+# The below is for cases where we want non-default Python (either to get
+# better coverage from something older, or something newer)
+#echo '*/* PYTHON_TARGETS: python3_12' >> /etc/portage/package.use/python
+#cat <<-EOF >> /etc/portage/profile/use.mask
+#-python_targets_python3_12
+#-python_single_target_python3_12
+#EOF
+#cat <<-EOF >> /etc/portage/profile/use.stable.mask
+#-python_targets_python3_12
+#-python_single_target_python3_12
+#EOF
 
 echo 'dev-lang/python ensurepip' >> /etc/portage/package.use/python
 
@@ -164,6 +180,15 @@ install_python_packages
 python3 -m pip install "${base_python_pkgs[@]}"
 
 echo "source /etc/profile" >> /ci/env_vars.sh
+
+# For inexplicable reasons, Gentoo only packages valac as valac-$(version) so
+# no software can locate it. Parse the installed version out of portage and
+# export it to meson.
+VALA_VER=$(portageq best_version / dev-lang/vala)
+VALA_VER=${VALA_VER#dev-lang/vala-}
+VALA_VER=${VALA_VER%.*}
+echo "export VALAC=/usr/bin/valac-${VALA_VER}" >> /ci/env_vars.sh
+echo "export VAPIGEN=/usr/bin/vapigen-${VALA_VER}" >> /ci/env_vars.sh
 
 # Cleanup to avoid including large contents in the docker image.
 # We don't need cache files that are side artifacts of installing packages.
