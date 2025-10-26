@@ -319,9 +319,13 @@ class Interpreter:
         self._add_workspace_member(manifest_, ws, m)
 
     def _add_workspace_member(self, manifest_: Manifest, ws: WorkspaceState, m: str) -> None:
-        pkg = PackageState(manifest_, ws_subdir=ws.subdir, ws_member=m, downloaded=ws.downloaded)
-        ws.packages[m] = pkg
+        key = PackageKey(manifest_.package.name, manifest_.package.api)
         ws.packages_to_member[manifest_.package.name] = m
+        if key in self.packages:
+            ws.packages[m] = self.packages[key]
+            self._require_workspace_member(ws, m)
+        else:
+            ws.packages[m] = PackageState(manifest_, ws_subdir=ws.subdir, ws_member=m, downloaded=ws.downloaded)
 
     def _get_workspace(self, manifest: T.Union[Workspace, Manifest], subdir: str, downloaded: bool) -> WorkspaceState:
         ws = self.workspaces.get(subdir)
