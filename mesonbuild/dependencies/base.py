@@ -22,7 +22,7 @@ from ..options import OptionKey
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, Required, TypedDict, TypeAlias
+    from typing_extensions import Literal, Required, Self, TypedDict, TypeAlias
 
     from ..compilers.compilers import Language, Compiler
     from ..environment import Environment
@@ -361,7 +361,7 @@ class InternalDependency(Dependency):
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
                                includes: bool = False, sources: bool = False,
-                               extra_files: bool = False) -> InternalDependency:
+                               extra_files: bool = False) -> Self:
         final_compile_args = self.compile_args.copy() if compile_args else []
         final_link_args = self.link_args.copy() if link_args else []
         final_libraries = self.libraries.copy() if links else []
@@ -372,7 +372,7 @@ class InternalDependency(Dependency):
         final_deps = [d.get_partial_dependency(
             compile_args=compile_args, link_args=link_args, links=links,
             includes=includes, sources=sources) for d in self.ext_deps]
-        return InternalDependency(
+        return type(self)(
             self.version, final_includes, final_compile_args,
             final_link_args, final_libraries, final_whole_libraries,
             final_sources, final_extra_files, final_deps, self.variables, [], [], [], self.name)
