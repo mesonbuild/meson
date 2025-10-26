@@ -172,6 +172,21 @@ Only a subset of [[shared_library]] keyword arguments are allowed:
 - link_with
 - override_options
 
+### to_system_dependency()
+
+*Since 1.11.0*
+
+```meson
+rustmod.to_system_dependency(dep[, name])
+```
+
+Create and return an internal dependency that wraps `dep` and
+defines `cfg(system_deps_have_NAME)`.  This is compatible with
+how the `system-deps` crate reports the availability of a system
+dependency to Rust code.
+
+If omitted, the name defaults to the name of the dependency.
+
 ### workspace()
 
 Basic usage:

@@ -15,7 +15,7 @@ from .. import mesonlib, mlog
 from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
                      CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary, StaticLibrary)
 from ..compilers.compilers import are_asserts_disabled_for_subproject, lang_suffixes
-from ..compilers.rust import parse_target
+from ..compilers.rust import parse_target, RustSystemDependency
 from ..dependencies import Dependency
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
@@ -262,6 +262,7 @@ class RustModule(ExtensionModule):
             'doctest': self.doctest,
             'bindgen': self.bindgen,
             'proc_macro': self.proc_macro,
+            'to_system_dependency': self.to_system_dependency,
             'workspace': self.workspace,
         })
 
@@ -666,6 +667,21 @@ class RustModule(ExtensionModule):
         kwargs['rust_args'] = kwargs['rust_args'] + ['--extern', 'proc_macro']
         target = state._interpreter.build_target(state.current_node, args, kwargs, SharedLibrary)
         return target
+
+    @FeatureNew('rust.to_system_dependency', '1.11.0')
+    @typed_pos_args('rust.to_system_dependency', Dependency, optargs=[str])
+    @noKwargs
+    def to_system_dependency(self, state: ModuleState, args: T.Tuple[Dependency, T.Optional[str]], kwargs: TYPE_kwargs) -> Dependency:
+        dep, depname = args
+        if not dep.found():
+            return dep
+        if not depname:
+            if not dep.name:
+                raise MesonException("rust.to_system_dependency() called with an unnamed dependency and no explicit name")
+            depname = dep.name
+        depname = re.sub(r'[^a-zA-Z0-9]', '_', depname)
+        rust_args = ['--cfg', f'system_deps_have_{depname}']
+        return RustSystemDependency(dep.version, compile_args=rust_args, ext_deps=[dep], name=dep.name)
 
     @FeatureNew('rust.workspace', '1.11.0')
     @noPosargs
