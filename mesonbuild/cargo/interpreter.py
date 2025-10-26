@@ -717,7 +717,6 @@ class Interpreter:
             dep_pkg = self._dep_package(pkg, dep)
             if dep_pkg.manifest.lib:
                 ast += self._create_dependency(dep_pkg, dep, build)
-        ast.append(build.assign(build.array([]), 'system_deps_args'))
         for name, sys_dep in pkg.manifest.system_dependencies.items():
             if sys_dep.enabled(cfg.features):
                 ast += self._create_system_dependency(name, sys_dep, build)
@@ -730,23 +729,19 @@ class Interpreter:
             'required': build.bool(not dep.optional),
         }
         varname = f'{fixup_meson_varname(name)}_system_dep'
-        cfg = f'system_deps_have_{fixup_meson_varname(name)}'
         return [
             build.assign(
-                build.function(
-                    'dependency',
-                    [build.string(dep.name)],
-                    kw,
-                ),
+                build.method(
+                    'to_system_dependency',
+                    build.identifier('rust'), [
+                        build.function(
+                            'dependency',
+                            [build.string(dep.name)],
+                            kw,
+                        ),
+                        build.string(name)
+                    ]),
                 varname,
-            ),
-            build.if_(
-                build.method('found', build.identifier(varname)), build.block([
-                    build.plusassign(
-                        build.array([build.string('--cfg'), build.string(cfg)]),
-                        'system_deps_args'
-                    ),
-                ])
             ),
         ]
 
@@ -857,10 +852,8 @@ class Interpreter:
 
         rustc_args_list = pkg.get_rustc_args(self.environment, subdir, MachineChoice.HOST)
         extra_args_ref = build.identifier(_extra_args_varname())
-        system_deps_args_ref = build.identifier('system_deps_args')
         rust_args: T.List[mparser.BaseNode] = [build.string(a) for a in rustc_args_list]
         rust_args.append(extra_args_ref)
-        rust_args.append(system_deps_args_ref)
 
         dependencies.append(build.identifier(_extra_deps_varname()))
 
