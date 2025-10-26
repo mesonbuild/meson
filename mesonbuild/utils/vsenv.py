@@ -19,31 +19,36 @@ __all__ = [
 ]
 
 
-# If on Windows and VS is installed but not set up in the environment,
-# set it to be runnable. In this way Meson can be directly invoked
-# from any shell, VS Code etc.
-def _setup_vsenv(force: bool) -> bool:
+def get_vsenv(force: bool) -> dict[str, str] | None:
+    """
+    This function locates a Visual Studio installation, executes its environment
+    setup script (vcvars*.bat), and returns the environment variables that were
+    modified or added by the script.
+    Returns:
+        dict[str, str] | None: A dictionary containing environment variables
+        that were added or modified by the Visual Studio setup script or None.
+    """
     if not is_windows():
-        return False
+        return None
     if os.environ.get('OSTYPE') == 'cygwin':
-        return False
+        return None
     if 'MESON_FORCE_VSENV_FOR_UNITTEST' not in os.environ:
         # VSINSTALL is set when running setvars from a Visual Studio installation
         # Tested with Visual Studio 2012 and 2017
         if 'VSINSTALLDIR' in os.environ:
-            return False
+            return None
         # Check explicitly for cl when on Windows
         if shutil.which('cl.exe'):
-            return False
+            return None
     if not force:
         if shutil.which('cc'):
-            return False
+            return None
         if shutil.which('gcc'):
-            return False
+            return None
         if shutil.which('clang'):
-            return False
+            return None
         if shutil.which('clang-cl'):
-            return False
+            return None
 
     root = os.environ.get("ProgramFiles(x86)") or os.environ.get("ProgramFiles")
     bat_locator_bin = pathlib.Path(root, 'Microsoft Visual Studio/Installer/vswhere.exe')
@@ -110,6 +115,7 @@ def _setup_vsenv(force: bool) -> bool:
 
     # Filter out duplicated lines to remove env variables that haven't changed
     new_lines = lines_after - lines_before
+    vsenv = {}
     for line in new_lines:
         parts = line.split('=', 1)
         if len(parts) != 2:
@@ -117,16 +123,27 @@ def _setup_vsenv(force: bool) -> bool:
         k, v = parts
         if k is None or v is None:
             continue
-        try:
-            os.environ[k] = v
-        except ValueError:
-            # Ignore errors from junk data returning invalid environment variable names
-            pass
-    return True
+        vsenv[k] = v
+    return vsenv
+
 
 def setup_vsenv(force: bool = False) -> bool:
+    """
+    Setup the VS environment if we are on Windows and VS is installed but not
+    set up in the environment. In this way Meson can be directly invoked
+    from any shell, VS Code etc...
+    """
     try:
-        return _setup_vsenv(force)
+        vsenv = get_vsenv(force)
+        if vsenv is None:
+            return False
+        for k, v in vsenv.items():
+            try:
+                os.environ[k] = v
+            except ValueError:
+                # Ignore errors from junk data returning invalid environment variable names
+                pass
+        return True
     except MesonException as e:
         if force:
             raise
