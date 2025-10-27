@@ -599,7 +599,7 @@ class Interpreter:
         out_dir = os.path.join(self.environment.build_dir, subdir, 'meson')
         os.makedirs(out_dir, exist_ok=True)
         version_arr = pkg.manifest.package.version.split('.')
-        version_arr += ['' * (4 - len(version_arr))]
+        version_arr += [''] * (4 - len(version_arr))
         return {
             'OUT_DIR': out_dir,
             'CARGO_MANIFEST_DIR': os.path.join(self.environment.source_dir, subdir),
