@@ -100,10 +100,14 @@ rsp_threshold = mesonlib.get_rsp_threshold()
 # from, etc.), so it must not be shell quoted.
 raw_names = {'DEPFILE_UNQUOTED', 'DESC', 'pool', 'description', 'targetdep', 'dyndep'}
 
-NINJA_QUOTE_BUILD_PAT = re.compile(r"[$ :\n]")
-NINJA_QUOTE_VAR_PAT = re.compile(r"[$ \n]")
+NINJA_QUOTE_BUILD_PAT = re.compile(r"[$ :]")
+NINJA_QUOTE_VAR_PAT = re.compile(r"[$ ]")
+NINJA_QUOTE_NEWLINE = re.compile(r"\n")
 
 def ninja_quote(text: str, is_build_line: bool = False) -> str:
+    if not is_build_line:
+        text = NINJA_QUOTE_VAR_PAT.sub(r'$\g<0>', text)
+        return NINJA_QUOTE_NEWLINE.sub(r'\\n', text)
     if '\n' in text:
         errmsg = f'''Ninja does not support newlines in rules. The content was:
 
@@ -112,11 +116,7 @@ def ninja_quote(text: str, is_build_line: bool = False) -> str:
 Please report this error with a test case to the Meson bug tracker.'''
         raise MesonException(errmsg)
 
-    quote_re = NINJA_QUOTE_BUILD_PAT if is_build_line else NINJA_QUOTE_VAR_PAT
-    if ' ' in text or '$' in text or (is_build_line and ':' in text):
-        return quote_re.sub(r'$\g<0>', text)
-
-    return text
+    return NINJA_QUOTE_BUILD_PAT.sub(r'$\g<0>', text)
 
 
 @dataclass
