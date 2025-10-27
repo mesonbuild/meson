@@ -509,6 +509,8 @@ class IncludeDirs(HoldableObject):
         for idir in self.incdirs:
             strlist.append(os.path.join(sourcedir, self.curdir, idir))
             strlist.append(os.path.join(builddir, self.curdir, idir))
+        for idir in self.extra_build_dirs:
+            strlist.append(os.path.join(builddir, self.curdir, idir))
         return strlist
 
 @dataclass(eq=False)
