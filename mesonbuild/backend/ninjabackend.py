@@ -1586,8 +1586,7 @@ class NinjaBackend(backends.Backend):
         sourcepaths = [os.path.join(self.build_to_src, curdir)]
         sourcepaths.append(os.path.normpath(curdir))
         for i in target.include_dirs:
-            for idir in i.incdirs:
-                sourcepaths.append(os.path.join(self.build_to_src, i.curdir, idir))
+            sourcepaths.extend(i.to_string_list(self.source_dir, self.build_dir))
         args += ['-sourcepath', os.pathsep.join(sourcepaths)]
         return list(args)
 
