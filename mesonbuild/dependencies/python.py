@@ -559,10 +559,6 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         if not self.clib_compiler.has_header('Python.h', '', extra_args=self.compile_args)[0]:
             self.is_found = False
 
-    @staticmethod
-    def log_tried() -> str:
-        return 'sysconfig'
-
 def python_factory(env: Environment, kwargs: DependencyObjectKWs,
                    installation: T.Optional['BasicPythonExternalProgram'] = None) -> T.List['DependencyGenerator']:
     # We can't use the factory_methods decorator here, as we need to pass the
@@ -579,15 +575,16 @@ def python_factory(env: Environment, kwargs: DependencyObjectKWs,
         if from_installation:
             candidates.append(DependencyCandidate(
                 functools.partial(PythonPkgConfigDependency, installation=installation),
-                'python3', PythonPkgConfigDependency.log_tried(), arguments=(env, kwargs)))
+                'python3', PythonPkgConfigDependency.type_name, arguments=(env, kwargs)))
         else:
             candidates.append(DependencyCandidate.from_dependency(
                 'python3', PkgConfigDependency, (env, kwargs)))
 
     if DependencyMethods.SYSTEM in methods:
+        # This is a unique log-tried.
         candidates.append(DependencyCandidate(
             functools.partial(PythonSystemDependency, installation=installation),
-            'python', PythonSystemDependency.log_tried(), arguments=(env, kwargs)))
+            'python', 'sysconfig', arguments=(env, kwargs)))
 
     if DependencyMethods.EXTRAFRAMEWORK in methods:
         nkwargs = kwargs.copy()
@@ -597,7 +594,7 @@ def python_factory(env: Environment, kwargs: DependencyObjectKWs,
             nkwargs['paths'] = ['/Library/Frameworks']
         candidates.append(DependencyCandidate(
             functools.partial(PythonFrameworkDependency, installation=installation),
-            'python', PythonFrameworkDependency.log_tried(), arguments=(env, nkwargs)))
+            'python', PythonPkgConfigDependency.type_name, arguments=(env, nkwargs)))
 
     return candidates
 
