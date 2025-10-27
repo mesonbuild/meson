@@ -112,7 +112,3 @@ class ExtraFrameworkDependency(ExternalDependency):
 
     def log_info(self) -> str:
         return self.framework_path or ''
-
-    @staticmethod
-    def log_tried() -> str:
-        return 'framework'

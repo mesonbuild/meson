@@ -463,10 +463,6 @@ class ExternalDependency(Dependency):
     def log_info(self) -> str:
         return ''
 
-    @staticmethod
-    def log_tried() -> str:
-        return ''
-
     # Check if dependency version meets the requirements
     def _check_version(self) -> None:
         if not self.is_found:
@@ -672,20 +668,12 @@ class SystemDependency(ExternalDependency):
 
     type_name = DependencyTypeName('system')
 
-    @staticmethod
-    def log_tried() -> str:
-        return 'system'
-
 
 class BuiltinDependency(ExternalDependency):
 
     """Dependency base for Builtin type dependencies."""
 
     type_name = DependencyTypeName('builtin')
-
-    @staticmethod
-    def log_tried() -> str:
-        return 'builtin'
 
 
 @dataclasses.dataclass
@@ -710,4 +698,12 @@ class DependencyCandidate(T.Generic[DepType]):
                         args: T.Optional[T.Tuple[Environment, DependencyObjectKWs]] = None,
                         modules: T.Optional[T.List[str]] = None,
                         ) -> DependencyCandidate[DepType]:
-        return cls(dep, name, dep.log_tried(), modules, arguments=args)
+        tried = str(dep.type_name)
+
+        # fixup the cases where type_name and log tried don't match
+        if tried in {'extraframeworks', 'appleframeworks'}:
+            tried = 'framework'
+        elif tried == 'pkgconfig':
+            tried = 'pkg-config'
+
+        return cls(dep, name, tried, modules, arguments=args)
