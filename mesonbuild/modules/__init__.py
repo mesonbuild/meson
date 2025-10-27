@@ -120,7 +120,7 @@ class ModuleState:
             raise mesonlib.MesonException(f'dependency "{depname}" was not overridden for the {for_machine}')
 
     def dependency(self, depname: str, native: bool = False, required: bool = True,
-                   wanted: T.Optional[str] = None) -> 'Dependency':
+                   wanted: T.Optional[T.Union[str, T.List[str]]] = None) -> 'Dependency':
         kwargs: T.Dict[str, object] = {'native': native, 'required': required}
         if wanted:
             kwargs['version'] = wanted
