@@ -19,6 +19,7 @@ if T.TYPE_CHECKING:
     from ..mesonlib import MachineChoice
     from ..build import BuildTarget
     from ..compilers import Compiler
+    from ..compilers.compilers import LinkerOptionWrapperStyle
 
 
 class StaticLinker:
@@ -127,25 +128,22 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def id(self) -> str:
         pass
 
-    def _apply_prefix(self, arg: T.Union[str, T.List[str]]) -> T.List[str]:
-        args = [arg] if isinstance(arg, str) else arg
-        if self.prefix_arg is None:
-            return args
-        elif isinstance(self.prefix_arg, str):
-            return [self.prefix_arg + arg for arg in args]
-        ret: T.List[str] = []
-        for arg in args:
-            ret += self.prefix_arg + [arg]
-        return ret
+    def _apply_prefix(self, *args: T.Union[str, T.List[str]]) -> T.List[str]:
+        fmt = (lambda x: x) if self.prefix_arg is None else self.prefix_arg.format
+
+        return [arg
+                for group in args
+                for arg in fmt([group] if isinstance(group, str) else group)]
 
     def __init__(self, exelist: T.List[str],
-                 for_machine: mesonlib.MachineChoice, prefix_arg: T.Union[str, T.List[str]],
+                 for_machine: mesonlib.MachineChoice, prefix_arg: T.Optional[LinkerOptionWrapperStyle],
                  always_args: T.List[str], *, system: str = 'unknown system',
                  version: str = 'unknown version'):
         self.exelist = exelist
         self.for_machine = for_machine
         self.system = system
         self.version = version
+        assert not isinstance(prefix_arg, str) and not isinstance(prefix_arg, list), 'temp'
         self.prefix_arg = prefix_arg
         self.always_args = always_args
         self.machine: T.Optional[str] = None
@@ -623,7 +621,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
 
     if T.TYPE_CHECKING:
         for_machine = MachineChoice.HOST
-        def _apply_prefix(self, arg: T.Union[str, T.List[str]]) -> T.List[str]: ...
+        def _apply_prefix(self, *args: T.Union[str, T.List[str]]) -> T.List[str]: ...
 
     _OPTIMIZATION_ARGS: T.Dict[str, T.List[str]] = {
         'plain': [],
@@ -702,7 +700,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
             # For PE/COFF the soname argument has no effect
             return []
         sostr = '' if soversion is None else '.' + soversion
-        return self._apply_prefix(f'-soname,{prefix}{shlib_name}.{suffix}{sostr}')
+        return self._apply_prefix(['-soname', f'{prefix}{shlib_name}.{suffix}{sostr}'])
 
     def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
                          target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
@@ -737,7 +735,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
             # by default, but is not on dragonfly/openbsd for some reason. Without this
             # $ORIGIN in the runtime path will be undefined and any binaries
             # linked against local libraries will fail to resolve them.
-            args.extend(self._apply_prefix('-z,origin'))
+            args.extend(self._apply_prefix(['-z', 'origin']))
 
         # In order to avoid relinking for RPATH removal, the binary needs to contain just
         # enough space in the ELF header to hold the final installation RPATH.
@@ -750,7 +748,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
                 paths = padding
             else:
                 paths = paths + ':' + padding
-        args.extend(self._apply_prefix('-rpath,' + paths))
+        args.extend(self._apply_prefix(['-rpath', paths]))
 
         # TODO: should this actually be "for solaris/sunos"?
         # NOTE: Remove the zigcc check once zig support "-rpath-link"
@@ -780,7 +778,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         #   -Wl,-rpath-link,/path/to/folder1:/path/to/folder2:...
         if self.id in {'ld.bfd', 'ld.gold'} and mesonlib.version_compare(self.version, '<2.28'):
             for p in rpath_paths:
-                args.extend(self._apply_prefix('-rpath-link,' + os.path.join(build_dir, p)))
+                args.extend(self._apply_prefix(['-rpath-link', os.path.join(build_dir, p)]))
 
         return (args, rpath_dirs_to_remove)
 
@@ -797,7 +795,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         if newvalue is not None:
             if versionsuffix is not None:
                 newvalue += f':{versionsuffix}'
-            args = [f'--subsystem,{newvalue}']
+            args = ['--subsystem', newvalue]
         else:
             raise mesonlib.MesonBugException(f'win_subsystem: {value!r} not handled in MinGW linker. This should not be possible.')
 
@@ -818,7 +816,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         if self.system == 'ios':
             return []
         else:
-            return self._apply_prefix('-undefined,dynamic_lookup')
+            return self._apply_prefix(['-undefined', 'dynamic_lookup'])
 
     def get_std_shared_module_args(self, target: 'BuildTarget') -> T.List[str]:
         if self.system == 'ios':
@@ -874,7 +872,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         if darwin_versions:
             args.extend(['-compatibility_version', darwin_versions[0],
                          '-current_version', darwin_versions[1]])
-        return args
+        return self._apply_prefix(args)
 
     def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
                          target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
@@ -894,12 +892,12 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             all_paths.update(extra_paths)
         for rp in all_paths:
             rpath_dirs_to_remove.add(rp.encode('utf8'))
-            args.extend(self._apply_prefix('-rpath,' + rp))
+            args.extend(self._apply_prefix(['-rpath', rp]))
 
         return (args, rpath_dirs_to_remove)
 
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
-        return ["-Wl,-cache_path_lto," + path]
+        return self._apply_prefix(['-cache_path_lto', path])
 
     def get_lto_obj_cache_path(self, path: str) -> T.List[str]:
         # https://clang.llvm.org/docs/CommandGuide/clang.html#cmdoption-flto
@@ -926,7 +924,7 @@ class GnuGoldDynamicLinker(GnuDynamicLinker):
     id = 'ld.gold'
 
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
-        return ['-Wl,-plugin-opt,cache-dir=' + path]
+        return self._apply_prefix(['-plugin-opt', 'cache-dir=' + path])
 
 
 class GnuBFDDynamicLinker(GnuDynamicLinker):
@@ -939,7 +937,7 @@ class MoldDynamicLinker(GnuDynamicLinker):
     id = 'ld.mold'
 
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
-        return ['-Wl,--thinlto-cache-dir=' + path]
+        return self._apply_prefix(['--thinlto-cache-dir=' + path])
 
 
 class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
@@ -953,7 +951,7 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
     id = 'ld.lld'
 
     def __init__(self, exelist: T.List[str],
-                 for_machine: mesonlib.MachineChoice, prefix_arg: T.Union[str, T.List[str]],
+                 for_machine: mesonlib.MachineChoice, prefix_arg: T.Optional[LinkerOptionWrapperStyle],
                  always_args: T.List[str], *, system: str = 'unknown system',
                  version: str = 'unknown version'):
         super().__init__(exelist, for_machine, prefix_arg, always_args, system=system, version=version)
@@ -990,7 +988,7 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
         return []
 
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
-        return ['-Wl,--thinlto-cache-dir=' + path]
+        return self._apply_prefix(['--thinlto-cache-dir=' + path])
 
     def get_win_subsystem_args(self, value: str) -> T.List[str]:
         # lld does not support a numeric subsystem value
@@ -1000,7 +998,7 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
         if value in self._SUBSYSTEMS:
             if version is not None:
                 value += f':{version}'
-            return self._apply_prefix([f'--subsystem,{value}'])
+            return self._apply_prefix(['--subsystem', value])
         else:
             raise mesonlib.MesonBugException(f'win_subsystem: {value} not handled in lld linker. This should not be possible.')
 
@@ -1044,7 +1042,7 @@ class CcrxDynamicLinker(DynamicLinker):
 
     def __init__(self, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(['rlink.exe'], for_machine, '', [],
+        super().__init__(['rlink.exe'], for_machine, None, [],
                          version=version)
 
     def get_accepts_rsp(self) -> bool:
@@ -1078,7 +1076,7 @@ class Xc16DynamicLinker(DynamicLinker):
 
     def __init__(self, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(['xc16-gcc'], for_machine, '', [],
+        super().__init__(['xc16-gcc'], for_machine, None, [],
                          version=version)
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
@@ -1120,7 +1118,7 @@ class CompCertDynamicLinker(DynamicLinker):
 
     def __init__(self, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(['ccomp'], for_machine, '', [],
+        super().__init__(['ccomp'], for_machine, None, [],
                          version=version)
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
@@ -1162,7 +1160,7 @@ class TIDynamicLinker(DynamicLinker):
 
     def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(exelist, for_machine, '', [],
+        super().__init__(exelist, for_machine, None, [],
                          version=version)
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
@@ -1208,7 +1206,7 @@ class ArmDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def __init__(self, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(['armlink'], for_machine, '', [],
+        super().__init__(['armlink'], for_machine, None, [],
                          version=version)
 
     def get_accepts_rsp(self) -> bool:
@@ -1339,7 +1337,7 @@ class VisualStudioLikeLinkerMixin(DynamicLinkerBase):
 
     if T.TYPE_CHECKING:
         for_machine = MachineChoice.HOST
-        def _apply_prefix(self, arg: T.Union[str, T.List[str]]) -> T.List[str]: ...
+        def _apply_prefix(self, *args: T.Union[str, T.List[str]]) -> T.List[str]: ...
 
     _OPTIMIZATION_ARGS: T.Dict[str, T.List[str]] = {
         'plain': [],
@@ -1354,7 +1352,7 @@ class VisualStudioLikeLinkerMixin(DynamicLinkerBase):
     }
 
     def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
-                 prefix_arg: T.Union[str, T.List[str]], always_args: T.List[str], *,
+                 prefix_arg: T.Optional[LinkerOptionWrapperStyle], always_args: T.List[str], *,
                  version: str = 'unknown version', direct: bool = True, machine: str = 'x86',
                  rsp_syntax: RSPFileSyntax = RSPFileSyntax.MSVC):
         # There's no way I can find to make mypy understand what's going on here
@@ -1419,7 +1417,7 @@ class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     def __init__(self, for_machine: mesonlib.MachineChoice, always_args: T.List[str], *,
                  exelist: T.Optional[T.List[str]] = None,
-                 prefix: T.Union[str, T.List[str]] = '',
+                 prefix: T.Optional[LinkerOptionWrapperStyle] = None,
                  machine: str = 'x86', version: str = 'unknown version',
                  direct: bool = True, rsp_syntax: RSPFileSyntax = RSPFileSyntax.MSVC):
         super().__init__(exelist or ['link.exe'], for_machine,
@@ -1444,7 +1442,7 @@ class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     def __init__(self, for_machine: mesonlib.MachineChoice, always_args: T.List[str], *,
                  exelist: T.Optional[T.List[str]] = None,
-                 prefix: T.Union[str, T.List[str]] = '',
+                 prefix: T.Optional[LinkerOptionWrapperStyle] = None,
                  machine: str = 'x86', version: str = 'unknown version',
                  direct: bool = True, rsp_syntax: RSPFileSyntax = RSPFileSyntax.MSVC):
         super().__init__(exelist or ['lld-link.exe'], for_machine,
@@ -1477,10 +1475,10 @@ class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     def __init__(self, for_machine: mesonlib.MachineChoice, always_args: T.List[str], *,
                  exelist: T.Optional[T.List[str]] = None,
-                 prefix: T.Union[str, T.List[str]] = '',
+                 prefix: T.Optional[LinkerOptionWrapperStyle] = None,
                  machine: str = 'x86', version: str = 'unknown version',
                  direct: bool = True):
-        super().__init__(['xilink.exe'], for_machine, '', always_args, version=version)
+        super().__init__(['xilink.exe'], for_machine, None, always_args, version=version)
 
     def get_win_subsystem_args(self, value: str) -> T.List[str]:
         return self._apply_prefix([f'/SUBSYSTEM:{value.upper()}'])
@@ -1547,12 +1545,12 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
                 paths = padding
             else:
                 paths = paths + ':' + padding
-        return (self._apply_prefix(f'-rpath,{paths}'), rpath_dirs_to_remove)
+        return (self._apply_prefix(['-rpath', paths]), rpath_dirs_to_remove)
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         sostr = '' if soversion is None else '.' + soversion
-        return self._apply_prefix(f'-soname,{prefix}{shlib_name}.{suffix}{sostr}')
+        return self._apply_prefix(['-soname', f'{prefix}{shlib_name}.{suffix}{sostr}'])
 
 
 class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
@@ -1631,7 +1629,7 @@ class OptlinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
                  *, version: str = 'unknown version'):
         # Use optlink instead of link so we don't interfere with other link.exe
         # implementations.
-        super().__init__(exelist, for_machine, '', [], version=version)
+        super().__init__(exelist, for_machine, None, [], version=version)
 
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
@@ -1683,7 +1681,7 @@ class CudaLinker(PosixDynamicLinkerMixin, DynamicLinker):
         #   nvcc fatal : Don't know what to do with 'subprojects/foo/libbar.so.0.1.2'
         #
         from ..compilers.cuda import CudaCompiler
-        return CudaCompiler.LINKER_PREFIX
+        return CudaCompiler.LINKER_PREFIX.prefix
 
     def fatal_warnings(self) -> T.List[str]:
         return ['--warning-as-error']
@@ -1700,7 +1698,7 @@ class MetrowerksLinker(DynamicLinker):
 
     def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(exelist, for_machine, '', [],
+        super().__init__(exelist, for_machine, None, [],
                          version=version)
 
     def fatal_warnings(self) -> T.List[str]:
@@ -1751,7 +1749,7 @@ class TaskingLinker(DynamicLinker):
 
     def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(exelist, for_machine, '', [],
+        super().__init__(exelist, for_machine, None, [],
                          version=version)
 
     def get_accepts_rsp(self) -> bool:
