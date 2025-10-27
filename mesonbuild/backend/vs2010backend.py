@@ -1069,7 +1069,7 @@ class Vs2010Backend(backends.Backend):
             for d in reversed(target.get_include_dirs()):
                 # reversed is used to keep order of includes
                 for i in reversed(d.get_incdirs()):
-                    curdir = os.path.join(d.get_curdir(), i)
+                    curdir = os.path.join(d.curdir, i)
                     try:
                         # Add source subdir first so that the build subdir overrides it
                         args.append('-I' + os.path.join(proj_to_src_root, curdir))  # src dir
@@ -1078,7 +1078,7 @@ class Vs2010Backend(backends.Backend):
                         # Include is on different drive
                         args.append('-I' + os.path.normpath(curdir))
                 for i in d.extra_build_dirs:
-                    curdir = os.path.join(d.get_curdir(), i)
+                    curdir = os.path.join(d.curdir, i)
                     args.append('-I' + self.relpath(curdir, target.subdir))  # build dir
         # Add per-target compile args, f.ex, `c_args : ['/DFOO']`. We set these
         # near the end since these are supposed to override everything else.
