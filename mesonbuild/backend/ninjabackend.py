@@ -46,6 +46,7 @@ if T.TYPE_CHECKING:
     from ..compilers.cs import CsCompiler
     from ..compilers.fortran import FortranCompiler
     from ..compilers.rust import RustCompiler
+    from ..compilers.swift import SwiftCompiler
     from ..mesonlib import FileOrString
     from .backends import TargetIntrospectionData
 
@@ -2275,20 +2276,17 @@ class NinjaBackend(backends.Backend):
             result.append(self.get_target_filename(l))
         return result
 
-    def split_swift_generated_sources(self, target):
+    def split_swift_generated_sources(self, target: build.BuildTarget) -> T.List[str]:
         all_srcs = self.get_target_generated_sources(target)
-        srcs = []
-        others = []
+        srcs: T.List[str] = []
         for i in all_srcs:
             if i.endswith('.swift'):
                 srcs.append(i)
-            else:
-                others.append(i)
-        return srcs, others
+        return srcs
 
-    def generate_swift_target(self, target) -> None:
+    def generate_swift_target(self, target: build.BuildTarget) -> None:
         module_name = target.swift_module_name
-        swiftc = target.compilers['swift']
+        swiftc = T.cast('SwiftCompiler', target.compilers['swift'])
         abssrc = []
         relsrc = []
         abs_headers = []
@@ -2361,7 +2359,7 @@ class NinjaBackend(backends.Backend):
             if reldir == '':
                 reldir = '.'
             link_args += ['-L', os.path.normpath(os.path.join(self.environment.get_build_dir(), reldir))]
-        (rel_generated, _) = self.split_swift_generated_sources(target)
+        rel_generated = self.split_swift_generated_sources(target)
         abs_generated = [os.path.join(self.environment.get_build_dir(), x) for x in rel_generated]
         # We need absolute paths because swiftc needs to be invoked in a subdir
         # and this is the easiest way about it.
