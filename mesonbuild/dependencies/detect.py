@@ -112,6 +112,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
     pkg_exc: T.List[DependencyException] = []
     pkgdep:  T.List[ExternalDependency] = []
     details = ''
+    tried_methods: T.List[str] = []
 
     for c in candidates:
         # try this dependency method
@@ -139,7 +140,6 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
 
             # if the dependency was found
             if d.found():
-
                 info: mlog.TV_LoggableList = []
                 if d.version:
                     info.append(mlog.normal_cyan(d.version))
@@ -151,16 +151,11 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
                 mlog.log(type_text, mlog.bold(display_name), details + 'found:', mlog.green('YES'), *info)
 
                 return d
+            tried_methods.append(c.method)
 
     # otherwise, the dependency could not be found
-    tried_methods = [d.log_tried() for d in pkgdep if d.log_tried()]
-    if tried_methods:
-        tried = mlog.format_list(tried_methods)
-    else:
-        tried = ''
-
-    mlog.log(type_text, mlog.bold(display_name), details + 'found:', mlog.red('NO'),
-             f'(tried {tried})' if tried else '')
+    tried = ' (tried {})'.format(mlog.format_list(tried_methods)) if tried_methods else ''
+    mlog.log(type_text, mlog.bold(display_name), details + 'found:', mlog.red('NO'), tried)
 
     if required:
         # if an exception occurred with the first detection method, re-raise it
@@ -171,8 +166,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
 
         # we have a list of failed ExternalDependency objects, so we can report
         # the methods we tried to find the dependency
-        raise DependencyException(f'Dependency "{name}" not found' +
-                                  (f', tried {tried}' if tried else ''))
+        raise DependencyException(f'Dependency "{name}" not found' + tried)
 
     return NotFoundDependency(name, env)
 
