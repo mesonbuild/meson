@@ -196,7 +196,7 @@ class CMakeStateCache:
     def items(self) -> T.Iterator[T.Tuple[str, T.Dict[str, T.List[str]]]]:
         return iter(self.__cache.items())
 
-    def update(self, language: str, variables: T.Dict[str, T.List[str]]):
+    def update(self, language: str, variables: T.Dict[str, T.List[str]]) -> None:
         if language not in self.__cache:
             self.__cache[language] = {}
         self.__cache[language].update(variables)
@@ -228,7 +228,7 @@ class CoreData:
         self.regen_guid = str(uuid.uuid4()).upper()
         self.install_guid = str(uuid.uuid4()).upper()
         self.meson_command = meson_command
-        self.target_guids = {}
+        self.target_guids: T.Dict[str, str] = {}
         self.version = version
         self.cross_files = self.__load_config_files(cmd_options, scratch_dir, 'cross')
         self.compilers: PerMachine[T.Dict[str, Compiler]] = PerMachine(OrderedDict(), OrderedDict())
@@ -389,6 +389,8 @@ class CoreData:
             return []
         actual_opt = self.optstore.get_value_for('optimization')
         actual_debug = self.optstore.get_value_for('debug')
+        assert isinstance(actual_opt, str) # for mypy
+        assert isinstance(actual_debug, bool) # for mypy
         if actual_opt != opt:
             result.append(('optimization', actual_opt, opt))
         if actual_debug != debug:
