@@ -1071,7 +1071,7 @@ class Vs2010Backend(backends.Backend):
             # need them to be looked in first.
             for d in reversed(target.get_include_dirs()):
                 # reversed is used to keep order of includes
-                for i in reversed(d.get_incdirs()):
+                for i in reversed(d.incdirs):
                     curdir = os.path.join(d.curdir, i)
                     try:
                         # Add source subdir first so that the build subdir overrides it

@@ -494,9 +494,6 @@ class IncludeDirs(HoldableObject):
     is_system: bool
     extra_build_dirs: T.List[str] = field(default_factory=list)
 
-    def get_incdirs(self) -> T.List[str]:
-        return self.incdirs
-
     def to_string_list(self, sourcedir: str, builddir: str) -> T.List[str]:
         """Convert IncludeDirs object to a list of strings.
 
@@ -1504,7 +1501,7 @@ class BuildTarget(Target):
     def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: str = 'preserve') -> None:
         if set_is_system != 'preserve':
             is_system = set_is_system == 'system'
-            self.include_dirs.extend([IncludeDirs(x.curdir, x.get_incdirs(), is_system, x.extra_build_dirs) for x in args])
+            self.include_dirs.extend([IncludeDirs(x.curdir, x.incdirs, is_system, x.extra_build_dirs) for x in args])
         else:
             self.include_dirs.extend(args)
 

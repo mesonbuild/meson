@@ -515,7 +515,7 @@ class DCompiler(Compiler):
         # root and project build root for that.
         for idir_obj in kwargs['import_dirs']:
             basedir = idir_obj.curdir
-            for idir in idir_obj.get_incdirs():
+            for idir in idir_obj.incdirs:
                 bldtreedir = os.path.join(basedir, idir)
                 # Avoid superfluous '/.' at the end of paths when d is '.'
                 if idir not in ('', '.'):
