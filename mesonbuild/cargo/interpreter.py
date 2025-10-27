@@ -13,6 +13,7 @@ from __future__ import annotations
 import dataclasses
 import functools
 import os
+import pathlib
 import collections
 import urllib.parse
 import typing as T
@@ -21,7 +22,7 @@ from . import builder, version
 from .cfg import eval_cfg
 from .toml import load_toml
 from .manifest import Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname
-from ..mesonlib import MesonException, MachineChoice, version_compare
+from ..mesonlib import is_parent_path, MesonException, MachineChoice, version_compare
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
 
@@ -199,6 +200,7 @@ class WorkspaceState:
 class Interpreter:
     def __init__(self, env: Environment, subdir: str, subprojects_dir: str) -> None:
         self.environment = env
+        self.subprojects_dir = subprojects_dir
         # Map Cargo.toml's subdir to loaded manifest.
         self.manifests: T.Dict[str, T.Union[Manifest, Workspace]] = {}
         # Map of cargo package (name + api) to its state
@@ -298,6 +300,9 @@ class Interpreter:
                     _process_member(dep_member)
             if member == '.':
                 ast.extend(self._create_package(pkg, build, subdir))
+            elif is_parent_path(self.subprojects_dir, member):
+                depname = _dependency_name(pkg.manifest.package.name, pkg.manifest.package.api)
+                ast.append(build.function('subproject', [build.string(depname)]))
             else:
                 ast.append(build.function('subdir', [build.string(member)]))
             processed_members[member] = pkg
@@ -426,6 +431,9 @@ class Interpreter:
         if dep.path:
             ws = self.workspaces[pkg.ws_subdir]
             dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
+            if is_parent_path(self.subprojects_dir, dep_member):
+                if len(pathlib.PurePath(dep_member).parts) != 2:
+                    raise MesonException('found "{self.subprojects_dir}" in path but it is not a valid subproject path')
             self._load_workspace_member(ws, dep_member)
             dep_pkg = self._require_workspace_member(ws, dep_member)
         elif dep.git:
