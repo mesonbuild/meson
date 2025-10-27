@@ -1569,8 +1569,7 @@ class NinjaBackend(backends.Backend):
 
         self.create_target_source_introspection(target, compiler, commands, rel_srcs, generated_rel_srcs)
 
-    def determine_java_compile_args(self, target, compiler) -> T.List[str]:
-        args = []
+    def determine_java_compile_args(self, target: build.Jar, compiler: Compiler) -> T.List[str]:
         args = self.generate_basic_compiler_args(target, compiler)
         args += target.get_java_args()
         args += compiler.get_output_args(self.get_target_private_dir(target))
