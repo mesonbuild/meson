@@ -500,9 +500,6 @@ class IncludeDirs(HoldableObject):
     def get_incdirs(self) -> T.List[str]:
         return self.incdirs
 
-    def get_extra_build_dirs(self) -> T.List[str]:
-        return self.extra_build_dirs
-
     def to_string_list(self, sourcedir: str, builddir: str) -> T.List[str]:
         """Convert IncludeDirs object to a list of strings.
 
@@ -1643,7 +1640,7 @@ class BuildTarget(Target):
             set_is_system = 'preserve'
         if set_is_system != 'preserve':
             is_system = set_is_system == 'system'
-            ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in ids]
+            ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.extra_build_dirs) for x in ids]
         self.include_dirs += ids
 
     def get_aliases(self) -> T.List[T.Tuple[str, str, str]]:
