@@ -150,10 +150,6 @@ class ConfigToolDependency(ExternalDependency):
     def get_variable_args(self, variable_name: str) -> T.List[str]:
         return [f'--{variable_name}']
 
-    @staticmethod
-    def log_tried() -> str:
-        return 'config-tool'
-
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      system: T.Optional[str] = None, default_value: T.Optional[str] = None,
