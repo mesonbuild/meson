@@ -9,7 +9,7 @@ import typing as T
 
 from .base import DependencyCandidate, ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
 
-from ..mesonlib import listify, PerMachine, MesonBugException
+from ..mesonlib import listify, PerMachine, MesonBugException, MesonException
 from .. import mlog
 
 if T.TYPE_CHECKING:
@@ -124,6 +124,11 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
             mlog.debug(bettermsg)
             e.args = (bettermsg,)
             pkg_exc.append(e)
+        except MesonException:
+            raise
+        except Exception as e:
+            bettermsg = f'Dependency lookup for {name} with method {c.method!r} failed: {e}'
+            raise MesonBugException(bettermsg) from e
         else:
             pkg_exc.append(None)
             details = d.log_details()
