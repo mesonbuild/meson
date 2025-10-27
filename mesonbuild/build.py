@@ -481,13 +481,17 @@ class Build:
 @dataclass(eq=False)
 class IncludeDirs(HoldableObject):
 
-    """Internal representation of an include_directories call."""
+    """Internal representation of an include_directories call.
+
+    :param curdir: The directory from which this IncludeDirs is declared
+    :param incdirs: The paths relative to curdir the include
+    :param is_system: Should these be treated as `-isystem` (true) or `-I
+    :param extra_build_dirs: Extra build directories to include
+    """
 
     curdir: str
     incdirs: T.List[str]
     is_system: bool
-    # Interpreter has validated that all given directories
-    # actually exist.
     extra_build_dirs: T.List[str] = field(default_factory=list)
 
     def __repr__(self) -> str:
