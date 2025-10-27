@@ -1,0 +1,9 @@
+[package]
+name = "main"
+
+[dependencies]
+foo1 = { package="foo", version="1" }
+foo2 = { package="foo", version="2" }
+
+[lib]
+path = "lib.rs"

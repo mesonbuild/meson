@@ -43,6 +43,15 @@ def _dependency_varname(dep: Dependency) -> str:
     return f'{fixup_meson_varname(dep.package)}_{(dep.api.replace(".", "_"))}_dep'
 
 
+def _library_name(name: str, api: str, lib_type: Literal['rust', 'c', 'proc-macro'] = 'rust') -> str:
+    # Add the API version to the library name to avoid conflicts when multiple
+    # versions of the same crate are used. The Ninja backend removed everything
+    # after the + to form the crate name.
+    if lib_type == 'c':
+        return name
+    return f'{name}+{api.replace(".", "_")}'
+
+
 def _extra_args_varname() -> str:
     return 'extra_args'
 
@@ -652,8 +661,8 @@ class Interpreter:
             dependencies.append(build.identifier(_dependency_varname(dep)))
             if name != dep.package:
                 dep_pkg = self._dep_package(pkg, dep)
-                dep_lib_name = dep_pkg.manifest.lib.name
-                dependency_map[build.string(fixup_meson_varname(dep_lib_name))] = build.string(name)
+                dep_lib_name = _library_name(dep_pkg.manifest.lib.name, dep_pkg.manifest.package.api)
+                dependency_map[build.string(dep_lib_name)] = build.string(name)
         for name, sys_dep in pkg.manifest.system_dependencies.items():
             if sys_dep.enabled(pkg.features):
                 dependencies.append(build.identifier(f'{fixup_meson_varname(name)}_system_dep'))
@@ -673,7 +682,7 @@ class Interpreter:
         }
 
         posargs: T.List[mparser.BaseNode] = [
-            build.string(fixup_meson_varname(pkg.manifest.lib.name)),
+            build.string(_library_name(pkg.manifest.lib.name, pkg.manifest.package.api, lib_type)),
             build.string(pkg.manifest.lib.path),
         ]
 
