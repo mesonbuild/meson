@@ -609,10 +609,6 @@ class CMakeDependency(ExternalDependency):
         build_dir = self._setup_cmake_dir(cmake_file)
         return self.cmakebin.call(args, build_dir, env=env)
 
-    @staticmethod
-    def log_tried() -> str:
-        return 'cmake'
-
     def log_details(self) -> str:
         modules = [self._original_module_name(x) for x in self.found_modules]
         modules = sorted(set(modules))
