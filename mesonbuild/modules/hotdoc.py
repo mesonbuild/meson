@@ -184,7 +184,7 @@ class HotdocTargetBuilder:
             elif isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
                 self.extra_depends.append(dep)
                 for incd in dep.get_include_dirs():
-                    cflags.update(incd.get_incdirs())
+                    cflags.update(incd.incdirs)
             elif isinstance(dep, HotdocTarget):
                 # Recurse in hotdoc target dependencies
                 self.process_dependencies(dep.get_target_dependencies())
