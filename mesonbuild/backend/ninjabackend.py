@@ -1577,8 +1577,7 @@ class NinjaBackend(backends.Backend):
 
         self.create_target_source_introspection(target, compiler, commands, rel_srcs, generated_rel_srcs)
 
-    def determine_java_compile_args(self, target, compiler) -> T.List[str]:
-        args = []
+    def determine_java_compile_args(self, target: build.Jar, compiler: Compiler) -> T.List[str]:
         args = self.generate_basic_compiler_args(target, compiler)
         args += target.get_java_args()
         args += compiler.get_output_args(self.get_target_private_dir(target))
@@ -1590,7 +1589,7 @@ class NinjaBackend(backends.Backend):
             for idir in i.get_incdirs():
                 sourcepath += os.path.join(self.build_to_src, i.curdir, idir) + os.pathsep
         args += ['-sourcepath', sourcepath]
-        return args
+        return list(args)
 
     def generate_java_compile(self, srcs, target, compiler, args) -> str:
         deps = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
