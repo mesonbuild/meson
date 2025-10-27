@@ -140,6 +140,7 @@ class Interpreter:
         ast += self._create_dependencies(pkg, build)
         ast += self._create_meson_subdir(build)
         ast += self._create_env_args(pkg, build, subdir)
+        ast.append(build.assign(build.array([build.string(arg) for arg in self._lints_to_args(pkg)]), 'lint_args'))
 
         if pkg.manifest.lib:
             crate_type = pkg.manifest.lib.crate_type
@@ -456,16 +457,9 @@ class Interpreter:
                 build.function('project', args, kwargs),
             ]
 
-        default_options: T.Dict[str, mparser.BaseNode] = {
-            'rust_std': build.string(pkg.manifest.package.edition),
-            'build.rust_std': build.string(pkg.manifest.package.edition),
-        }
+        default_options: T.Dict[str, mparser.BaseNode] = {}
         if pkg.downloaded:
             default_options['warning_level'] = build.string('0')
-        else:
-            lint_args = build.array([build.string(arg) for arg in self._lints_to_args(pkg)])
-            default_options['rust_args'] = lint_args
-            default_options['build.rust_args'] = lint_args
 
         kwargs.update({
             'version': build.string(pkg.manifest.package.version),
@@ -668,9 +662,14 @@ class Interpreter:
             build.identifier(_extra_args_varname()),
             build.identifier('system_deps_args'),
             build.identifier('env_args'),
+            build.identifier('lint_args'),
         ]
 
         dependencies.append(build.identifier(_extra_deps_varname()))
+
+        override_options: T.Dict[mparser.BaseNode, mparser.BaseNode] = {
+            build.string('rust_std'): build.string(pkg.manifest.package.edition),
+        }
 
         posargs: T.List[mparser.BaseNode] = [
             build.string(fixup_meson_varname(pkg.manifest.lib.name)),
@@ -681,6 +680,7 @@ class Interpreter:
             'dependencies': build.array(dependencies),
             'rust_dependency_map': build.dict(dependency_map),
             'rust_args': build.array(rust_args),
+            'override_options': build.dict(override_options),
         }
 
         depname_suffix = '' if lib_type == 'c' else '-rs'
