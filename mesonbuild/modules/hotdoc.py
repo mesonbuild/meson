@@ -219,10 +219,7 @@ class HotdocTargetBuilder:
                 arg = arg.absolute_path(self.state.environment.get_source_dir(),
                                         self.state.environment.get_build_dir())
             elif isinstance(arg, build.IncludeDirs):
-                for inc_dir in arg.get_incdirs():
-                    cmd.append(os.path.join(self.sourcedir, arg.curdir, inc_dir))
-                    cmd.append(os.path.join(self.builddir, arg.curdir, inc_dir))
-
+                cmd.extend(arg.to_string_list(self.sourcedir, self.builddir))
                 continue
             elif isinstance(arg, (build.BuildTarget, CustomTarget)):
                 self.extra_depends.append(arg)
