@@ -514,7 +514,7 @@ class DCompiler(Compiler):
         # TODO: ImportDirs.to_string_list(), but we need both the project source
         # root and project build root for that.
         for idir_obj in kwargs['import_dirs']:
-            basedir = idir_obj.get_curdir()
+            basedir = idir_obj.curdir
             for idir in idir_obj.get_incdirs():
                 bldtreedir = os.path.join(basedir, idir)
                 # Avoid superfluous '/.' at the end of paths when d is '.'

@@ -2331,7 +2331,7 @@ class NinjaBackend(backends.Backend):
             if len(abssrc) == 1 and os.path.basename(abssrc[0]) != 'main.swift':
                 compile_args += swiftc.get_library_args()
         for i in reversed(target.get_include_dirs()):
-            basedir = i.get_curdir()
+            basedir = i.curdir
             for d in i.get_incdirs():
                 if d not in ('', '.'):
                     expdir = os.path.join(basedir, d)
@@ -3073,7 +3073,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # external deps and must maintain the order in which they are specified.
         # Hence, we must reverse the list so that the order is preserved.
         for i in reversed(target.get_include_dirs()):
-            basedir = i.get_curdir()
+            basedir = i.curdir
             # We should iterate include dirs in reversed orders because
             # -Ipath will add to begin of array. And without reverse
             # flags will be added in reversed order.
