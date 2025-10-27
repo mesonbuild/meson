@@ -1575,13 +1575,13 @@ class NinjaBackend(backends.Backend):
         args += compiler.get_output_args(self.get_target_private_dir(target))
         args += target.get_classpath_args()
         curdir = target.get_subdir()
-        sourcepath = os.path.join(self.build_to_src, curdir) + os.pathsep
-        sourcepath += os.path.normpath(curdir) + os.pathsep
+        sourcepaths = [os.path.join(self.build_to_src, curdir)]
+        sourcepaths.append(os.path.normpath(curdir))
         for i in target.include_dirs:
             for idir in i.incdirs:
-                sourcepath += os.path.join(self.build_to_src, i.curdir, idir) + os.pathsep
-        args += ['-sourcepath', sourcepath]
-        return args
+                sourcepaths.append(os.path.join(self.build_to_src, i.curdir, idir))
+        args += ['-sourcepath', os.sep.join(sourcepaths)]
+        return list(args)
 
     def generate_java_compile(self, srcs, target, compiler, args) -> str:
         deps = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
