@@ -181,7 +181,7 @@ class DependenciesHelper:
 
     def _add_uninstalled_incdirs(self, incdirs: T.List[build.IncludeDirs], subdir: T.Optional[str] = None) -> None:
         for i in incdirs:
-            curdir = i.get_curdir()
+            curdir = i.curdir
             for d in i.get_incdirs():
                 path = os.path.join(curdir, d)
                 self.uninstalled_incdirs.add(path)
