@@ -1586,7 +1586,7 @@ class NinjaBackend(backends.Backend):
         sourcepath = os.path.join(self.build_to_src, curdir) + os.pathsep
         sourcepath += os.path.normpath(curdir) + os.pathsep
         for i in target.include_dirs:
-            for idir in i.get_incdirs():
+            for idir in i.incdirs:
                 sourcepath += os.path.join(self.build_to_src, i.curdir, idir) + os.pathsep
         args += ['-sourcepath', sourcepath]
         return list(args)
@@ -2332,7 +2332,7 @@ class NinjaBackend(backends.Backend):
                 compile_args += swiftc.get_library_args()
         for i in reversed(target.get_include_dirs()):
             basedir = i.curdir
-            for d in i.get_incdirs():
+            for d in i.incdirs:
                 if d not in ('', '.'):
                     expdir = os.path.join(basedir, d)
                 else:
@@ -3079,7 +3079,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # We should iterate include dirs in reversed orders because
             # -Ipath will add to begin of array. And without reverse
             # flags will be added in reversed order.
-            for d in reversed(i.get_incdirs()):
+            for d in reversed(i.incdirs):
                 # Add source subdir first so that the build subdir overrides it
                 (compile_obj, includeargs) = self.generate_inc_dir(compiler, d, basedir, i.is_system)
                 commands += compile_obj
