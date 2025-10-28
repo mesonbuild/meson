@@ -286,6 +286,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
             # https://discourse.llvm.org/t/building-a-program-with-d-libcpp-debug-1-against-a-libc-that-is-not-itself-built-with-that-define/59176/3
             # Note that unlike _GLIBCXX_DEBUG, _MODE_DEBUG doesn't break ABI. It's just slow.
             if version_compare(self.version, '>=18'):
+                args.append('-U_LIBCPP_HARDENING_MODE')
                 args.append('-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG')
 
         if not rtti:
@@ -494,6 +495,7 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
         if not rtti:
             args.append('-fno-rtti')
 
+        # We may want to handle libc++'s debugstl mode here too
         if debugstl:
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
