@@ -47,15 +47,6 @@ def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
     return f'{basename}-{api}{suffix}'
 
 
-def _library_name(name: str, api: str, lib_type: Literal['rust', 'c', 'proc-macro'] = 'rust') -> str:
-    # Add the API version to the library name to avoid conflicts when multiple
-    # versions of the same crate are used. The Ninja backend removed everything
-    # after the + to form the crate name.
-    if lib_type == 'c':
-        return name
-    return f'{name}+{api.replace(".", "_")}'
-
-
 def _extra_args_varname() -> str:
     return 'extra_args'
 
@@ -87,7 +78,7 @@ class PackageConfiguration:
             dep = manifest.dependencies[name]
             dep_key = PackageKey(dep.package, dep.api)
             dep_pkg = self.dep_packages[dep_key]
-            dep_lib_name = _library_name(dep_pkg.manifest.lib.name, dep_pkg.manifest.package.api)
+            dep_lib_name = dep_pkg.library_name()
             dep_crate_name = name if name != dep.package else dep_pkg.manifest.lib.name
             dependency_map[dep_lib_name] = dep_crate_name
         return dependency_map
@@ -112,6 +103,15 @@ class PackageState:
         if not self.ws_subdir:
             return None
         return os.path.normpath(os.path.join(self.ws_subdir, self.ws_member))
+
+    def library_name(self, lib_type: RUST_ABI = 'rust') -> str:
+        # Add the API version to the library name to avoid conflicts when multiple
+        # versions of the same crate are used. The Ninja backend removed everything
+        # after the + to form the crate name.
+        name = fixup_meson_varname(self.manifest.package.name)
+        if lib_type == 'c':
+            return name
+        return f'{name}+{self.manifest.package.api.replace(".", "_")}'
 
     def get_env_dict(self, environment: Environment, subdir: str) -> T.Dict[str, str]:
         """Get environment variables for this package."""
@@ -212,17 +212,33 @@ class PackageState:
         dep = _dependency_name(self.manifest.package.name, self.manifest.package.api)
         return SubProject(dep)
 
-    def get_dependency_name(self, rust_abi: T.Optional[RUST_ABI]) -> str:
-        """Get the dependency name for a package with the given ABI."""
+    def abi_resolve_default(self, rust_abi: T.Optional[RUST_ABI]) -> RUST_ABI:
         supported_abis = self.supported_abis()
         if rust_abi is None:
             if len(supported_abis) > 1:
                 raise MesonException(f'Package {self.manifest.package.name} support more than one ABI')
-            rust_abi = next(iter(supported_abis))
+            return next(iter(supported_abis))
         else:
             if rust_abi not in supported_abis:
                 raise MesonException(f'Package {self.manifest.package.name} does not support ABI {rust_abi}')
+            return rust_abi
 
+    def abi_has_shared(self, rust_abi: RUST_ABI) -> bool:
+        if rust_abi == 'proc-macro':
+            return True
+        return ('cdylib' if rust_abi == 'c' else 'dylib') in self.manifest.lib.crate_type
+
+    def abi_has_static(self, rust_abi: RUST_ABI) -> bool:
+        if rust_abi == 'proc-macro':
+            return False
+        crate_type = self.manifest.lib.crate_type
+        if rust_abi == 'c':
+            return 'staticlib' in crate_type
+        return 'lib' in crate_type or 'rlib' in crate_type
+
+    def get_dependency_name(self, rust_abi: T.Optional[RUST_ABI]) -> str:
+        """Get the dependency name for a package with the given ABI."""
+        rust_abi = self.abi_resolve_default(rust_abi)
         package_name = self.manifest.package.name
         api = self.manifest.package.api
 
@@ -361,17 +377,8 @@ class Interpreter:
             crate_type = pkg.manifest.lib.crate_type
             if 'dylib' in crate_type and 'cdylib' in crate_type:
                 raise MesonException('Cannot build both dylib and cdylib due to file name conflict')
-            abis = pkg.supported_abis()
-            if 'proc-macro' in abis:
-                ast.extend(self._create_lib(pkg, build, subdir, 'proc-macro', shared=True))
-            if 'rust' in abis:
-                ast.extend(self._create_lib(pkg, build, subdir, 'rust',
-                                            static=('lib' in crate_type or 'rlib' in crate_type),
-                                            shared='dylib' in crate_type))
-            if 'c' in abis:
-                ast.extend(self._create_lib(pkg, build, subdir, 'c',
-                                            static='staticlib' in crate_type,
-                                            shared='cdylib' in crate_type))
+            for abi in pkg.supported_abis():
+                ast.extend(self._create_lib(pkg, build, subdir, abi))
 
         return ast
 
@@ -814,46 +821,24 @@ class Interpreter:
         ]
 
     def _create_lib(self, pkg: PackageState, build: builder.Builder, subdir: str,
-                    lib_type: RUST_ABI,
-                    static: bool = False, shared: bool = False) -> T.List[mparser.BaseNode]:
-        pkg_dependencies = build.method('dependencies', build.identifier('pkg_obj'))
-        extra_deps_ref = build.identifier(_extra_deps_varname())
-        dependencies = build.plus(pkg_dependencies, extra_deps_ref)
-
-        package_rust_args = build.method('rust_args', build.identifier('pkg_obj'))
-        extra_args_ref = build.identifier(_extra_args_varname())
-        rust_args = build.plus(package_rust_args, extra_args_ref)
-
-        override_options: T.Dict[mparser.BaseNode, mparser.BaseNode] = {
-            build.string('rust_std'): build.string(pkg.manifest.package.edition),
-        }
-
+                    lib_type: RUST_ABI) -> T.List[mparser.BaseNode]:
         posargs: T.List[mparser.BaseNode] = [
-            build.string(_library_name(pkg.manifest.lib.name, pkg.manifest.package.api, lib_type)),
-            build.string(pkg.manifest.lib.path),
+            build.string(pkg.library_name(lib_type)),
         ]
 
         kwargs: T.Dict[str, mparser.BaseNode] = {
-            'dependencies': dependencies,
-            'rust_dependency_map': build.method('rust_dependency_map', build.identifier('pkg_obj')),
-            'rust_args': rust_args,
-            'override_options': build.dict(override_options),
+            'dependencies': build.identifier(_extra_deps_varname()),
+            'rust_args': build.identifier(_extra_args_varname()),
         }
 
         depname_suffix = '' if lib_type == 'c' else '-rs'
         depname = _dependency_name(pkg.manifest.package.name, pkg.manifest.package.api, depname_suffix)
 
-        lib: mparser.BaseNode
         if lib_type == 'proc-macro':
-            lib = build.method('proc_macro', build.identifier('rust'), posargs, kwargs)
+            lib = build.method('proc_macro', build.identifier('pkg_obj'), posargs, kwargs)
         else:
-            if static and shared:
-                target_type = 'both_libraries'
-            else:
-                target_type = 'shared_library' if shared else 'static_library'
-
             kwargs['rust_abi'] = build.string(lib_type)
-            lib = build.function(target_type, posargs, kwargs)
+            lib = build.method('library', build.identifier('pkg_obj'), posargs, kwargs)
 
         # lib = xxx_library()
         # dep = declare_dependency()
