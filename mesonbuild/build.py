@@ -509,23 +509,31 @@ class IncludeDirs(HoldableObject):
             strlist.append(os.path.join(builddir, self.curdir, idir))
         return strlist
 
-    def rel_string_list(self, build_to_src: str) -> T.List[str]:
+    def rel_string_list(self, build_to_src: str, build_root: T.Optional[str] = None,
+                        reverse: bool = False) -> T.List[str]:
         """Convert IncludeDirs object to a list of relative string paths.
 
         :param build_to_src: The relative path from the build dir to source dir
+        :param build_root: The absolute build root. When provided, build
+            directories that have not been created will be ignored. Default: None.
+        :param reverse: When true the directories will be iterated in reverse.
+            Default: False.
         :return: A list if strings (without compiler argument)
         """
+        f = reversed if reverse else iter
         strlist: T.List[str] = []
         for idirs, add_src in [(self.incdirs, True), (self.extra_build_dirs, False)]:
-            for idir in idirs:
+            for idir in f(idirs):
                 bld_dir = os.path.normpath(os.path.join(self.curdir, idir))
                 if idir not in {'', '.'}:
                     expdir = bld_dir
                 else:
                     expdir = self.curdir
-                strlist.append(bld_dir)
+                if build_root is None or os.path.isdir(os.path.join(build_root, expdir)):
+                    strlist.append(bld_dir)
                 if add_src:
                     strlist.append(os.path.normpath(os.path.join(build_to_src, expdir)))
+
         return strlist
 
 
