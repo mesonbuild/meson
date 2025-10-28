@@ -415,7 +415,7 @@ class CLikeCompiler(Compiler):
             cargs += d.get_compile_args()
             system_incdir = d.get_include_type() == 'system'
             for i in d.get_include_dirs():
-                for idir in i.to_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
+                for idir in i.abs_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
                     cargs.extend(self.get_include_args(idir, system_incdir))
             if mode is CompileCheckMode.LINK:
                 # Add link flags needed to find dependencies

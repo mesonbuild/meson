@@ -575,7 +575,7 @@ class QtBaseModule(ExtensionModule):
             compile_args.extend(a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D')))
             if isinstance(dep, InternalDependency):
                 for incl in dep.include_directories:
-                    compile_args.extend(f'-I{i}' for i in incl.to_string_list(self.interpreter.source_root, self.interpreter.environment.build_dir))
+                    compile_args.extend(f'-I{i}' for i in incl.abs_string_list(self.interpreter.source_root, self.interpreter.environment.build_dir))
                 for src in dep.sources:
                     if isinstance(src, (build.CustomTarget, build.BuildTarget, build.CustomTargetIndex)):
                         sources.append(src)

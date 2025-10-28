@@ -393,7 +393,7 @@ def list_deps(coredata: cdata.CoreData, backend: backends.Backend) -> T.List[T.D
             'version': d.get_version(),
             'compile_args': d.get_compile_args(),
             'link_args': d.get_link_args(),
-            'include_directories': [i for idirs in d.get_include_dirs() for i in idirs.to_string_list(backend.source_dir, backend.build_dir)],
+            'include_directories': [i for idirs in d.get_include_dirs() for i in idirs.abs_string_list(backend.source_dir, backend.build_dir)],
             'sources': [f for s in d.get_sources() for f in _src_to_str(s)],
             'extra_files': [f for s in d.get_extra_files() for f in _src_to_str(s)],
             'dependencies': [e.name for e in d.ext_deps],

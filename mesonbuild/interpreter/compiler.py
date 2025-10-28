@@ -236,7 +236,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                         mode: CompileCheckMode = CompileCheckMode.LINK) -> T.List[str]:
         args: T.List[str] = []
         for i in self.interpreter.extract_incdirs(kwargs['include_directories']):
-            for idir in i.to_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
+            for idir in i.abs_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
                 args.extend(self.compiler.get_include_args(idir, False))
         if not kwargs['no_builtin_args']:
             args += self.compiler.get_option_compile_args(None, self.subproject)
