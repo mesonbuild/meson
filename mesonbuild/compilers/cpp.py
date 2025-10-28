@@ -526,11 +526,15 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
             if self.defines.get(macro) is not None:
                 return []
 
+        # For GCC, we can assume that the libstdc++ version is the same as
+        # the compiler itself. Anything else isn't supported.
         if self.language_stdlib_provider(env) == 'stdc++':
             return ['-D_GLIBCXX_ASSERTIONS=1']
         else:
             # One can use -stdlib=libc++ with GCC, it just (as of 2025) requires
-            # an experimental configure arg to expose that.
+            # an experimental configure arg to expose that. libc++ supports "multiple"
+            # versions of GCC (only ever one version of GCC per libc++ version), but
+            # that is "multiple" for our purposes as we can't assume a mapping.
             if version_compare(self.version, '>=18'):
                 return ['-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST']
 
