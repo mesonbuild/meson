@@ -511,20 +511,8 @@ class DCompiler(Compiler):
         import_dir_arg = d_feature_args[self.id]['import_dir']
         if not import_dir_arg:
             raise EnvironmentException('D compiler %s does not support the "string import directories" feature.' % self.name_string())
-        # TODO: ImportDirs.to_string_list(), but we need both the project source
-        # root and project build root for that.
         for idir_obj in kwargs['import_dirs']:
-            basedir = idir_obj.curdir
-            for idir in idir_obj.incdirs:
-                bldtreedir = os.path.join(basedir, idir)
-                # Avoid superfluous '/.' at the end of paths when d is '.'
-                if idir not in ('', '.'):
-                    expdir = bldtreedir
-                else:
-                    expdir = basedir
-                srctreedir = os.path.join(build_to_src, expdir)
-                res.append(f'{import_dir_arg}{srctreedir}')
-                res.append(f'{import_dir_arg}{bldtreedir}')
+            res.extend(f'{import_dir_arg}{i}' for i in idir_obj.rel_string_list(build_to_src))
 
         return res
 
