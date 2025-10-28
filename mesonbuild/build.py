@@ -494,8 +494,8 @@ class IncludeDirs(HoldableObject):
     is_system: bool
     extra_build_dirs: T.List[str] = field(default_factory=list)
 
-    def to_string_list(self, sourcedir: str, builddir: str) -> T.List[str]:
-        """Convert IncludeDirs object to a list of strings.
+    def abs_string_list(self, sourcedir: str, builddir: str) -> T.List[str]:
+        """Convert IncludeDirs object to a list of absolute string paths.
 
         :param sourcedir: The absolute source directory
         :param builddir: The absolute build directory, option, build dir will not
