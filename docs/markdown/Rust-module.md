@@ -381,6 +381,36 @@ Keyword arguments:
 - `dev_dependencies`: (`bool`, default: false) Whether to include development dependencies (not yet implemented)
 - `system_dependencies`: (`bool`, default: true) Whether to include system dependencies
 
+#### package.library()
+
+```meson
+lib = pkg.library(...)
+```
+
+Builds library targets for a workspace package.  The method requires that
+the package's `Cargo.toml` file contains the `[lib]` section or that it
+is discovered from the contents of the file system.  Static vs. shared library is
+decided based on the crate types in `Cargo.toml`
+
+Positional arguments:
+- `target_name`: (`str`, optional) Name of the binary target to build.
+- `sources`: (`StructuredSources`, optional) Source files for the executable.  If omitted,
+  uses the path specified in the `[lib]` section of `Cargo.toml`.
+
+Accepts all keyword arguments from [[shared_library]] and [[static_library]].
+`rust_abi` must match the crate types and is mandatory if more than one
+ABI is exposed by the crate.
+
+#### package.proc_macro()
+
+```meson
+lib = pkg.proc_macro(...)
+```
+
+Builds a proc-macro crate for a workspace package.
+
+Accepts all keyword arguments from [[shared_library]].
+
 ### Subprojects only
 
 #### subproject.dependency()
