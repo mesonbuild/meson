@@ -93,6 +93,16 @@ def no_spaces_validator(arg: T.Optional[T.Union[str, T.List]]) -> T.Optional[str
         return 'must not contain spaces due to limitations of rustdoc'
     return None
 
+def dep_to_system_dependency(dep: Dependency, depname: str) -> Dependency:
+    if not dep.found():
+        return dep
+    if not depname:
+        if not dep.name:
+            raise MesonException("rust.to_system_dependency() called with an unnamed dependency and no explicit name")
+        depname = dep.name
+    depname = re.sub(r'[^a-zA-Z0-9]', '_', depname)
+    rust_args = ['--cfg', f'system_deps_have_{depname}']
+    return RustSystemDependency(dep.version, compile_args=rust_args, ext_deps=[dep], name=dep.name)
 
 class RustWorkspace(ModuleObject):
     """Represents a Rust workspace, controlling the build of packages
@@ -220,6 +230,40 @@ class RustPackage(RustCrate):
 
     def __init__(self, rust_ws: RustWorkspace, package: cargo.PackageState) -> None:
         super().__init__(rust_ws, package)
+        self.methods.update({
+            'dependencies': self.dependencies_method,
+        })
+
+    @noPosargs
+    @typed_kwargs('package.dependencies',
+                  KwargInfo('dependencies', bool, default=True),
+                  KwargInfo('dev_dependencies', bool, default=False),
+                  KwargInfo('system_dependencies', bool, default=True))
+    def dependencies_method(self, state: ModuleState, args: T.List, kwargs: T.Dict[str, T.Any]) -> T.List[Dependency]:
+        """Returns the dependencies for this package."""
+        dependencies: T.List[Dependency] = []
+        cfg = self.package.cfg
+
+        if kwargs['dependencies']:
+            for dep_key, dep_pkg in cfg.dep_packages.items():
+                if dep_pkg.manifest.lib:
+                    # Get the dependency name for this package
+                    depname = dep_pkg.get_dependency_name(None)
+                    dependency = state.overridden_dependency(depname)
+                    dependencies.append(dependency)
+
+        if kwargs['dev_dependencies']:
+            raise MesonException('dev_dependencies is not implemented yet')
+
+        if kwargs['system_dependencies']:
+            for name, sys_dep in self.package.manifest.system_dependencies.items():
+                if sys_dep.enabled(cfg.features):
+                    # System dependencies use the original dependency name from Cargo.toml
+                    dependency = state.dependency(sys_dep.name, required=not sys_dep.optional,
+                                                  wanted=sys_dep.meson_version)
+                    dependencies.append(dep_to_system_dependency(dependency, name))
+
+        return dependencies
 
 
 class RustSubproject(RustCrate):
@@ -673,15 +717,7 @@ class RustModule(ExtensionModule):
     @noKwargs
     def to_system_dependency(self, state: ModuleState, args: T.Tuple[Dependency, T.Optional[str]], kwargs: TYPE_kwargs) -> Dependency:
         dep, depname = args
-        if not dep.found():
-            return dep
-        if not depname:
-            if not dep.name:
-                raise MesonException("rust.to_system_dependency() called with an unnamed dependency and no explicit name")
-            depname = dep.name
-        depname = re.sub(r'[^a-zA-Z0-9]', '_', depname)
-        rust_args = ['--cfg', f'system_deps_have_{depname}']
-        return RustSystemDependency(dep.version, compile_args=rust_args, ext_deps=[dep], name=dep.name)
+        return dep_to_system_dependency(dep, depname)
 
     @FeatureNew('rust.workspace', '1.11.0')
     @noPosargs
