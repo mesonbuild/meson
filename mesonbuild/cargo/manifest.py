@@ -79,6 +79,28 @@ class ConvertValue(DefaultValue):
         return self.func(v if v is not None else ws_v)
 
 
+class DictMergeValue(ConvertValue):
+    """Merge the incoming array of tables with a dictionary;
+       a user-provided function maps each table to one of the
+       entries of the dictionary."""
+
+    def __init__(self, func: T.Callable[[T.Any], T.List[object]], key: T.Callable[[T.Any], str], base: T.Mapping[str, object] = None) -> None:
+        super().__init__(func, base)
+        self.key = key
+
+    def convert(self, v: T.Any, ws_v: T.Any) -> object:
+        out = self.func(v if v is not None else ws_v)
+        assert isinstance(out, list) # for mypy
+        assert isinstance(self.default, dict) # for mypy
+
+        d = {self.key(x): x for x in out}
+        # FIXME: check how auto-discovered items are merged with Cargo.toml
+        for k, v in self.default.items():
+            if k not in d:
+                d[k] = v
+        return d
+
+
 def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI], msg: str,
                       raw_from_workspace: T.Optional[T.Mapping[str, object]] = None,
                       ignored_fields: T.Optional[T.List[str]] = None,
@@ -491,7 +513,7 @@ class Manifest:
     dev_dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
     build_dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
     lib: T.Optional[Library] = None
-    bin: T.List[Binary] = dataclasses.field(default_factory=list)
+    bin: T.Dict[str, Binary] = dataclasses.field(default_factory=dict)
     test: T.List[Test] = dataclasses.field(default_factory=list)
     bench: T.List[Benchmark] = dataclasses.field(default_factory=list)
     example: T.List[Example] = dataclasses.field(default_factory=list)
@@ -536,6 +558,32 @@ class Manifest:
         if pkg.autolib and os.path.exists(os.path.join(path, 'src/lib.rs')):
             autolib = Library.from_raw({}, pkg)
 
+        def _discover_targets(subdir: str) -> T.Generator[T.Tuple[str, str], None, None]:
+            """Discover .rs files in a subdirectory and yield (name, path) tuples."""
+            target_dir = os.path.join(path, subdir)
+            if os.path.isdir(target_dir):
+                for entry in os.listdir(target_dir):
+                    if entry.endswith('.rs'):
+                        target_name = entry[:-3]  # Remove .rs extension
+                        yield target_name, f'{subdir}/{entry}'
+
+        autobins: T.Dict[str, Binary] = {}
+        if pkg.autobins:
+            # Check for default binary (src/main.rs)
+            if os.path.exists(os.path.join(path, 'src/main.rs')):
+                autobins[pkg.name] = Binary.from_raw({'name': pkg.name, 'path': 'src/main.rs'}, pkg)
+            # Add additional binaries from src/bin/
+            for bin_name, bin_path in _discover_targets('src/bin'):
+                autobins[bin_name] = Binary.from_raw({'name': bin_name, 'path': bin_path}, pkg)
+
+            # Check for additional binaries in src/bin/
+            bin_dir = os.path.join(path, 'src/bin')
+            if os.path.isdir(bin_dir):
+                for entry in os.listdir(bin_dir):
+                    if entry.endswith('.rs'):
+                        bin_name = entry[:-3]  # Remove .rs extension
+                        autobins[bin_name] = Binary.from_raw({'name': bin_name, 'path': f'src/bin/{entry}'}, pkg)
+
         def dependencies_from_raw(x: T.Dict[str, T.Any]) -> T.Dict[str, Dependency]:
             return {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()}
 
@@ -548,7 +596,9 @@ class Manifest:
                                  build_dependencies=ConvertValue(dependencies_from_raw),
                                  lints=ConvertValue(Lint.from_raw),
                                  lib=ConvertValue(lambda x: Library.from_raw(x, pkg), default=autolib),
-                                 bin=ConvertValue(lambda x: [Binary.from_raw(b, pkg) for b in x]),
+                                 bin=DictMergeValue(lambda x: [Binary.from_raw(b, pkg) for b in x],
+                                                    lambda x: x.name,
+                                                    base=autobins),
                                  test=ConvertValue(lambda x: [Test.from_raw(b, pkg) for b in x]),
                                  bench=ConvertValue(lambda x: [Benchmark.from_raw(b, pkg) for b in x]),
                                  example=ConvertValue(lambda x: [Example.from_raw(b, pkg) for b in x]),
