@@ -20,19 +20,19 @@ assert(hello_rs.api() == '1')
 assert(hello_rs.all_features() == ['default', 'goodbye'])
 assert(hello_rs.features() == ['default', 'goodbye'])
 
-answer_rs = cargo_ws.subproject('answer', '2')
-assert(answer_rs.name() == 'answer')
-assert(answer_rs.version() == '2.1.0')
-assert(answer_rs.api() == '2')
-assert(answer_rs.all_features() == ['default', 'large'])
-assert(answer_rs.features() == ['default', 'large'])
-
 e = executable('package-test', 'src/main.rs',
   dependencies: main_pkg.dependencies(),
   rust_args: main_pkg.rust_args(),
   rust_dependency_map: main_pkg.rust_dependency_map(),
 )
 test('package-test', e)
+
+answer_rs = cargo_ws.subproject('answer', '2')
+assert(answer_rs.name() == 'answer')
+assert(answer_rs.version() == '2.1.0')
+assert(answer_rs.api() == '2')
+assert(answer_rs.all_features() == ['default', 'large'])
+assert(answer_rs.features() == ['default', 'large'])
 
 # failure test cases for package()
 testcase expect_error('argument to package() cannot be a subproject')

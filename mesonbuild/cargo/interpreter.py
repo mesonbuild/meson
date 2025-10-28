@@ -24,7 +24,9 @@ from . import builder, version
 from .cfg import eval_cfg
 from .toml import load_toml
 from .manifest import Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname
-from ..mesonlib import is_parent_path, MesonException, MachineChoice, unique_list, version_compare
+from ..mesonlib import (
+    is_parent_path, lazy_property, MesonException, MachineChoice,
+    unique_list, version_compare)
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
 
@@ -104,6 +106,12 @@ class PackageState:
     ws_member: T.Optional[str] = None
     # Package configuration state
     cfg: T.Optional[PackageConfiguration] = None
+
+    @lazy_property
+    def path(self) -> T.Optional[str]:
+        if not self.ws_subdir:
+            return None
+        return os.path.normpath(os.path.join(self.ws_subdir, self.ws_member))
 
     def get_env_dict(self, environment: Environment, subdir: str) -> T.Dict[str, str]:
         """Get environment variables for this package."""
