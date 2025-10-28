@@ -1487,8 +1487,8 @@ class GnomeModule(ExtensionModule):
         header_dirs: T.List[str] = []
         for src_dir in src_dirs:
             if isinstance(src_dir, build.IncludeDirs):
-                header_dirs.extend(src_dir.to_string_list(state.environment.get_source_dir(),
-                                                          state.environment.get_build_dir()))
+                header_dirs.extend(src_dir.abs_string_list(state.environment.get_source_dir(),
+                                                           state.environment.get_build_dir()))
             else:
                 header_dirs.append(src_dir)
 

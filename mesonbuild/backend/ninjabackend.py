@@ -1586,7 +1586,7 @@ class NinjaBackend(backends.Backend):
         sourcepaths = [os.path.join(self.build_to_src, curdir)]
         sourcepaths.append(os.path.normpath(curdir))
         for i in target.include_dirs:
-            sourcepaths.extend(i.to_string_list(self.source_dir, self.build_dir))
+            sourcepaths.extend(i.abs_string_list(self.source_dir, self.build_dir))
         args += ['-sourcepath', os.pathsep.join(sourcepaths)]
         return list(args)
 
@@ -2330,7 +2330,7 @@ class NinjaBackend(backends.Backend):
             if len(abssrc) == 1 and os.path.basename(abssrc[0]) != 'main.swift':
                 compile_args += swiftc.get_library_args()
         for i in reversed(target.get_include_dirs()):
-            for path in i.to_string_list(self.source_dir, self.build_dir):
+            for path in i.abs_string_list(self.source_dir, self.build_dir):
                 compile_args.extend(swiftc.get_include_args(path, False))
         compile_args += target.get_extra_args('swift')
         link_args = swiftc.get_output_args(os.path.join(self.environment.get_build_dir(), self.get_target_filename(target)))
