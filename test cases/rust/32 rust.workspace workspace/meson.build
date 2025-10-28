@@ -30,7 +30,7 @@ assert(answer_rs.features() == ['default', 'large'])
 subdir('more')
 
 e = executable('workspace-test', 'src/main.rs',
-  dependencies: [hello_rs.dependency(), answer_rs.dependency(), more_dep],
+  dependencies: main_pkg.dependencies(),
   rust_args: main_pkg.rust_args(),
   rust_dependency_map: main_pkg.rust_dependency_map(),
 )

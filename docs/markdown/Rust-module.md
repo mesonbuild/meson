@@ -269,6 +269,19 @@ Arguments:
 - `package_name`: (str, optional) Name of the package; not needed for the
   root package of a workspace
 
+Example usage:
+```meson
+rustmod = import('rust')
+cargo_ws = rustmod.workspace()
+pkg = cargo_ws.package()
+
+executable('my_app', 'src/main.rs',
+  dependencies: pkg.dependencies(),
+  rust_args: pkg.rust_args(),
+  rust_dependency_map: pkg.rust_dependency_map(),
+)
+```
+
 ### workspace.subproject()
 
 ```meson
@@ -352,6 +365,21 @@ dep_map = pkg.rust_dependency_map()
 ```
 
 Returns rust dependency mapping for this package.
+
+#### package.dependencies()
+
+```meson
+deps = pkg.dependencies(...)
+```
+
+Returns a list of dependency objects for all the dependencies required by this
+Rust package, including both Rust crate dependencies and system dependencies.
+The returned dependencies can be used directly in build target declarations.
+
+Keyword arguments:
+- `dependencies`: (`bool`, default: true) Whether to include regular Rust crate dependencies
+- `dev_dependencies`: (`bool`, default: false) Whether to include development dependencies (not yet implemented)
+- `system_dependencies`: (`bool`, default: true) Whether to include system dependencies
 
 ### Subprojects only
 
