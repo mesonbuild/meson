@@ -727,12 +727,25 @@ class Interpreter:
 
     def _create_dependency(self, pkg: PackageState, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
         cfg = pkg.cfg
-        version_ = dep.meson_version or [pkg.manifest.package.version]
-        kw = {
-            'version': build.array([build.string(s) for s in version_]),
-        }
-        # Lookup for this dependency with the features we want in default_options kwarg.
-        #
+        dep_obj: mparser.BaseNode
+        dep_pkg = self.cargolock and self.resolve_package(dep.package, dep.api)
+        if dep_pkg and dep_pkg.ws_subdir != pkg.ws_subdir:
+            dep_obj = build.method(
+                'dependency',
+                build.method(
+                    'subproject',
+                    build.identifier('cargo_ws'),
+                    [build.string(dep.package), build.string(dep.api)]))
+        else:
+            version_ = dep.meson_version or [pkg.manifest.package.version]
+            kw = {
+                'version': build.array([build.string(s) for s in version_]),
+            }
+            dep_obj = build.function(
+                 'dependency',
+                 [build.string(_dependency_name(dep.package, dep.api))],
+                 kw)
+
         # However, this subproject could have been previously configured with a
         # different set of features. Cargo collects the set of features globally
         # but Meson can only use features enabled by the first call that triggered
@@ -743,13 +756,9 @@ class Interpreter:
         # option manually with -Dxxx-rs:feature-yyy=true, or the main project can do
         # that in its project(..., default_options: ['xxx-rs:feature-yyy=true']).
         return [
-            # xxx_dep = dependency('xxx', version : ...)
+            # xxx_dep = cargo_ws.subproject('xxx', 'api').dependency()
             build.assign(
-                build.function(
-                    'dependency',
-                    [build.string(_dependency_name(dep.package, dep.api))],
-                    kw,
-                ),
+                dep_obj,
                 _dependency_varname(dep),
             ),
             # actual_features = xxx_dep.get_variable('features', default_value : '').split(',')
