@@ -28,7 +28,7 @@ assert(answer_rs.all_features() == ['default', 'large'])
 assert(answer_rs.features() == ['default', 'large'])
 
 e = executable('package-test', 'src/main.rs',
-  dependencies: [hello_rs.dependency(), answer_rs.dependency()],
+  dependencies: main_pkg.dependencies(),
   rust_args: main_pkg.rust_args(),
   rust_dependency_map: main_pkg.rust_dependency_map(),
 )
