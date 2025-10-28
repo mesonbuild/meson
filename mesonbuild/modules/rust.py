@@ -19,7 +19,8 @@ from ..compilers.rust import parse_target, RustSystemDependency
 from ..dependencies import Dependency
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
-    OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator
+    OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator,
+    LIBRARY_KWS, _BASE_LANG_KW
 )
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs, permittedKwargs
 from ..interpreter.interpreterobjects import Doctest
@@ -81,6 +82,8 @@ if T.TYPE_CHECKING:
         dev_dependencies: bool
         system_dependencies: bool
 
+    class RustPackageLibrary(_kwargs.Library):
+        pass
 
 RUST_TEST_KWS: T.List[KwargInfo] = [
      KwargInfo(
@@ -92,6 +95,10 @@ RUST_TEST_KWS: T.List[KwargInfo] = [
      ),
      KwargInfo('is_parallel', bool, default=False),
 ]
+
+# The native argument should be passed to the "package" method
+LIBRARY_KWS_NO_NATIVE = [kwi for kwi in LIBRARY_KWS if kwi.name != 'native']
+SHARED_LIB_KWS_NO_NATIVE = [kwi for kwi in SHARED_LIB_KWS if kwi.name != 'native']
 
 
 def no_spaces_validator(arg: T.Optional[T.Union[str, T.List]]) -> T.Optional[str]:
@@ -242,6 +249,8 @@ class RustPackage(RustCrate):
         super().__init__(rust_ws, package)
         self.methods.update({
             'dependencies': self.dependencies_method,
+            'library': self.library_method,
+            'proc_macro': self.proc_macro_method,
         })
 
     def _dependencies_method(self, state: ModuleState, kwargs: RustPackageDependencies,
@@ -283,6 +292,129 @@ class RustPackage(RustCrate):
     def dependencies_method(self, state: ModuleState, args: T.List, kwargs: RustPackageDependencies) -> T.List[Dependency]:
         """Returns the dependencies for this package."""
         return self._dependencies_method(state, kwargs, MachineChoice.HOST)
+
+    @staticmethod
+    def validate_pos_args(name: str, args: T.Tuple[
+            T.Optional[T.Union[str, StructuredSources]],
+            T.Optional[StructuredSources]]) -> T.Tuple[T.Optional[str], T.Optional[StructuredSources]]:
+        if isinstance(args[0], str):
+            return args[0], args[1]
+        if args[1] is not None:
+            raise MesonException(f"{name} only accepts one StructuredSources parameter")
+        return None, args[0]
+
+    def merge_kw_args(self, state: ModuleState, kwargs: RustPackageLibrary) -> None:
+        kwargs.setdefault('native', MachineChoice.HOST)
+
+        deps = kwargs['dependencies']
+        kwargs['dependencies'] = self._dependencies_method(state, {
+            'dependencies': True,
+            'dev_dependencies': False,
+            'system_dependencies': True,
+        }, kwargs['native'])
+        kwargs['dependencies'].extend(deps)
+
+        depmap = kwargs['rust_dependency_map']
+        kwargs['rust_dependency_map'] = \
+            self.package.cfg.get_dependency_map(self.package.manifest)
+        kwargs['rust_dependency_map'].update(depmap)
+
+        rust_args = kwargs['rust_args']
+        kwargs['rust_args'] = \
+            self.package.get_rustc_args(state.environment, state.subdir, kwargs['native'])
+        kwargs['rust_args'].extend(rust_args)
+
+        kwargs['override_options'].setdefault('rust_std', self.package.manifest.package.edition)
+
+    def _library_method(self, state: ModuleState, args: T.Tuple[
+            T.Optional[T.Union[str, StructuredSources]],
+            T.Optional[StructuredSources]], kwargs: RustPackageLibrary,
+            static: bool, shared: bool) -> T.Union[BothLibraries, SharedLibrary, StaticLibrary]:
+        tgt_args = self.validate_pos_args('package.library', args)
+        if not self.package.manifest.lib:
+            raise MesonException("no [lib] section in Cargo package")
+
+        sources: T.Union[StructuredSources, str]
+        tgt_name, sources = tgt_args
+        if not tgt_name:
+            rust_abi: RUST_ABI
+            if kwargs['rust_crate_type'] is not None:
+                rust_abi = 'rust' if kwargs['rust_crate_type'] in {'lib', 'rlib', 'dylib', 'proc-macro'} else 'c'
+            else:
+                rust_abi = kwargs['rust_abi']
+            tgt_name = self.package.library_name(rust_abi)
+        if not sources:
+            sources = self.package.manifest.lib.path
+
+        lib_args: T.Tuple[str, SourcesVarargsType] = (tgt_name, [sources])
+        self.merge_kw_args(state, kwargs)
+
+        if static and shared:
+            return state._interpreter.build_both_libraries(state.current_node, lib_args, kwargs)
+        elif shared:
+            return state._interpreter.build_target(state.current_node, lib_args,
+                                                   T.cast('_kwargs.SharedLibrary', kwargs),
+                                                   SharedLibrary)
+        else:
+            return state._interpreter.build_target(state.current_node, lib_args,
+                                                   T.cast('_kwargs.StaticLibrary', kwargs),
+                                                   StaticLibrary)
+
+    def _proc_macro_method(self, state: 'ModuleState', args: T.Tuple[
+            T.Optional[T.Union[str, StructuredSources]],
+            T.Optional[StructuredSources]], kwargs: RustPackageLibrary) -> SharedLibrary:
+        kwargs['native'] = MachineChoice.BUILD
+        kwargs['rust_abi'] = None
+        kwargs['rust_crate_type'] = 'proc-macro'
+        kwargs['rust_args'] = kwargs['rust_args'] + ['--extern', 'proc_macro']
+        result = self._library_method(state, args, kwargs, shared=True, static=False)
+        return T.cast('SharedLibrary', result)
+
+    @typed_pos_args('package.library', optargs=[(str, StructuredSources), StructuredSources])
+    @typed_kwargs(
+        'package.library',
+        *LIBRARY_KWS_NO_NATIVE,
+        DEPENDENCIES_KW,
+        LINK_WITH_KW,
+        LINK_WHOLE_KW,
+        _BASE_LANG_KW.evolve(name='rust_args'),
+    )
+    def library_method(self, state: ModuleState, args: T.Tuple[
+            T.Optional[T.Union[str, StructuredSources]],
+            T.Optional[StructuredSources]], kwargs: RustPackageLibrary) -> T.Union[BothLibraries, SharedLibrary, StaticLibrary]:
+        if not self.package.manifest.lib:
+            raise MesonException("no [lib] section in Cargo package")
+        if kwargs['rust_crate_type'] is not None:
+            static = kwargs['rust_crate_type'] in {'lib', 'rlib', 'staticlib'}
+            shared = kwargs['rust_crate_type'] in {'dylib', 'cdylib', 'proc-macro'}
+        else:
+            rust_abi = self.package.abi_resolve_default(kwargs['rust_abi'])
+            static = self.package.abi_has_static(rust_abi)
+            shared = self.package.abi_has_shared(rust_abi)
+            if rust_abi == 'proc-macro':
+                kwargs['rust_crate_type'] = 'proc-macro'
+                kwargs['rust_abi'] = None
+            else:
+                kwargs['rust_abi'] = rust_abi
+        return self._library_method(state, args, kwargs, static=static, shared=shared)
+
+    @typed_pos_args('package.proc_macro', optargs=[(str, StructuredSources), StructuredSources])
+    @typed_kwargs(
+        'package.proc_macro',
+        *SHARED_LIB_KWS_NO_NATIVE,
+        DEPENDENCIES_KW,
+        LINK_WITH_KW,
+        LINK_WHOLE_KW,
+        _BASE_LANG_KW.evolve(name='rust_args'),
+    )
+    def proc_macro_method(self, state: 'ModuleState', args: T.Tuple[
+            T.Optional[T.Union[str, StructuredSources]],
+            T.Optional[StructuredSources]], kwargs: RustPackageLibrary) -> SharedLibrary:
+        if not self.package.manifest.lib:
+            raise MesonException("no [lib] section in Cargo package")
+        if 'proc-macro' not in self.package.manifest.lib.crate_type:
+            raise MesonException("not a procedural macro crate")
+        return self._proc_macro_method(state, args, kwargs)
 
 
 class RustSubproject(RustCrate):
