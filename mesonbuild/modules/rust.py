@@ -23,7 +23,7 @@ from ..interpreter.type_checking import (
 )
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs, permittedKwargs
 from ..interpreter.interpreterobjects import Doctest
-from ..mesonlib import File, MachineChoice, MesonException, PerMachine
+from ..mesonlib import (is_parent_path, File, MachineChoice, MesonException, PerMachine)
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
@@ -117,6 +117,10 @@ class RustWorkspace(ModuleObject):
             'package': self.package_method,
             'subproject': self.subproject_method,
         })
+
+    @property
+    def subdir(self) -> str:
+        return self.ws.subdir
 
     @noPosargs
     @noKwargs
@@ -247,6 +251,10 @@ class RustPackage(RustCrate):
         if kwargs['dependencies']:
             for dep_key, dep_pkg in cfg.dep_packages.items():
                 if dep_pkg.manifest.lib:
+                    if dep_pkg.ws_subdir != self.rust_ws.subdir or \
+                        is_parent_path(os.path.join(self.rust_ws.subdir, state.subproject_dir),
+                                       dep_pkg.path):
+                        self.rust_ws._do_subproject(dep_pkg)
                     # Get the dependency name for this package
                     depname = dep_pkg.get_dependency_name(None)
                     dependency = state.overridden_dependency(depname)
