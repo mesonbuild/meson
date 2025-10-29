@@ -17,7 +17,7 @@ from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 from .. import mesonlib, mlog
 from ..tooldetect import get_llvm_tool_names
 from ..mesonlib import version_compare, version_compare_many, search_version
-from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyCandidate
+from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
@@ -823,6 +823,6 @@ packages['gmock'] = gmock_factory = DependencyFactory(
 packages['zlib'] = zlib_factory = DependencyFactory(
     'zlib',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE, DependencyMethods.SYSTEM],
-    cmake=DependencyCandidate.from_dependency('ZLIB', CMakeDependency),
+    cmake_name='ZLIB',
     system=ZlibSystemDependency,
 )
