@@ -671,12 +671,13 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def run(self, code: 'mesonlib.FileOrString', env: 'Environment',
             extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None,
             dependencies: T.Optional[T.List['Dependency']] = None,
+            build_env: T.Optional[T.Dict[str, str]] = None,
             run_env: T.Optional[T.Dict[str, str]] = None,
             run_cwd: T.Optional[str] = None) -> RunResult:
         need_exe_wrapper = env.need_exe_wrapper(self.for_machine)
         if need_exe_wrapper and not env.has_exe_wrapper():
             raise CrossNoRunException('Can not run test applications in this cross environment.')
-        with self._build_wrapper(code, env, extra_args, dependencies, mode=CompileCheckMode.LINK, want_output=True) as p:
+        with self._build_wrapper(code, env, extra_args, dependencies, mode=CompileCheckMode.LINK, want_output=True, build_env=build_env) as p:
             if p.returncode != 0:
                 mlog.debug(f'Could not compile test file {p.input_name}: {p.returncode}\n')
                 return RunResult(False)
@@ -817,8 +818,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     @contextlib.contextmanager
     def compile(self, code: 'mesonlib.FileOrString',
                 extra_args: T.Union[None, CompilerArgs, T.List[str]] = None,
-                *, mode: CompileCheckMode = CompileCheckMode.LINK, want_output: bool = False,
-                temp_dir: T.Optional[str] = None) -> T.Iterator[CompileResult]:
+                mode: CompileCheckMode = CompileCheckMode.LINK, want_output: bool = False,
+                temp_dir: T.Optional[str] = None,
+                build_env: T.Optional[T.Dict[str, str]] = None) -> T.Iterator[CompileResult]:
         # TODO: there isn't really any reason for this to be a contextmanager
 
         if mode == CompileCheckMode.PREPROCESS:
@@ -863,7 +865,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             mlog.debug('Running compile:')
             mlog.debug('Working directory: ', tmpdirname)
             mlog.debug(code_debug)
-            os_env = os.environ.copy()
+            os_env = build_env or os.environ.copy()
             os_env['LC_ALL'] = 'C'
             if no_ccache:
                 os_env['CCACHE_DISABLE'] = '1'
@@ -878,7 +880,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def cached_compile(self, code: 'mesonlib.FileOrString', cdata: coredata.CoreData, *,
                        extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
                        mode: CompileCheckMode = CompileCheckMode.LINK,
-                       temp_dir: T.Optional[str] = None) -> T.Iterator[CompileResult]:
+                       temp_dir: T.Optional[str] = None,
+                       build_env: T.Optional[T.Dict[str, str]] = None) -> T.Iterator[CompileResult]:
         # TODO: There's isn't really any reason for this to be a context manager
 
         # Calculate the key
@@ -896,7 +899,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             mlog.debug('Cached compiler stderr:\n', p.stderr)
             yield p
         else:
-            with self.compile(code, extra_args=extra_args, mode=mode, want_output=False, temp_dir=temp_dir) as p:
+            with self.compile(code, extra_args=extra_args, build_env=build_env, mode=mode, want_output=False, temp_dir=temp_dir) as p:
                 cdata.compiler_check_cache[key] = p
                 yield p
 
@@ -1327,7 +1330,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                        extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                        dependencies: T.Optional[T.List['Dependency']] = None,
                        mode: CompileCheckMode = CompileCheckMode.COMPILE, want_output: bool = False,
-                       disable_cache: bool = False) -> T.Iterator[CompileResult]:
+                       disable_cache: bool = False,
+                       build_env: T.Optional[T.Dict[str, str]] = None) -> T.Iterator[CompileResult]:
         """Helper for getting a cached value when possible.
 
         This method isn't meant to be called externally, it's mean to be
@@ -1335,10 +1339,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """
         args = self.build_wrapper_args(env, extra_args, dependencies, mode)
         if disable_cache or want_output:
-            with self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=env.scratch_dir) as r:
+            with self.compile(code, extra_args=args, build_env=build_env, mode=mode, want_output=want_output, temp_dir=env.scratch_dir) as r:
                 yield r
         else:
-            with self.cached_compile(code, env.coredata, extra_args=args, mode=mode, temp_dir=env.scratch_dir) as r:
+            with self.cached_compile(code, env.coredata, extra_args=args, build_env=build_env, mode=mode, temp_dir=env.scratch_dir) as r:
                 yield r
 
     def compiles(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
