@@ -3589,12 +3589,18 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if targetclass is not build.Jar:
             kwargs = T.cast('kwtypes.Executable | kwtypes.StaticLibrary | kwtypes.SharedLibrary | kwtypes.SharedModule', kwargs)
+            # The order of these keys matters!
+            vala_keys = ('install_vala_header', 'install_vala_vapi', 'install_vala_gir')
+
             # Rewrite `install_dir : [main, vala_header, vala_vapi, vala_gir]`
             # Into split arguments
-            if kwargs['install_dir']:
+            if len(kwargs['install_dir']) > 1:
+                if any(kwargs[k] is not None for k in ('install_vala_gir', 'install_vala_header', 'install_vala_vapi')):
+                    raise InvalidArguments('Passing install_vala_* and more than one argument to install_dir are mutually exclusive')
+
                 install_dir = kwargs['install_dir'].pop(0)
 
-                for key in ['install_vala_header', 'install_vala_vapi', 'install_vala_gir']:
+                for key in vala_keys:
                     action = kwargs['install_dir'].pop(0) if kwargs['install_dir'] else install_dir
                     if isinstance(action, bool):
                         kwargs[key] = action
@@ -3606,8 +3612,23 @@ class Interpreter(InterpreterBase, HoldableObject):
                 # This was previously allowed, and tested, so we need to allow it to keep working.
                 if kwargs['vala_gir'] is None and kwargs['install_vala_gir']:
                     kwargs['install_vala_gir'] = False
+            elif kwargs['install_dir']:
+                for key in vala_keys:
+                    action = kwargs[key]
+                    if action is None:
+                        if key == 'install_vala_gir' and not kwargs['vala_gir']:
+                            continue
+                        action = kwargs['install_dir'][0]
+                    if isinstance(action, bool):
+                        kwargs[key] = action
+                    else:
+                        kwargs[key] = True
+                        kwargs[f'{key}_dir'] = action
             else:
                 kwargs['install_dir'] = [True]
+
+            if kwargs['vala_gir'] is None and kwargs['install_vala_gir']:
+                raise InvalidArguments('Cannot set `install_vala_gir` without `vala_gir`')
 
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
                              self.environment, self.compilers[for_machine], kwargs)
