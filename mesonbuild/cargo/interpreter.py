@@ -147,6 +147,9 @@ class PackageState:
                 if feature != 'default':
                     args.append('--check-cfg')
                     args.append(f'cfg(feature,values("{feature}"))')
+            for name in self.manifest.system_dependencies:
+                args.append('--check-cfg')
+                args.append(f'cfg(system_deps_have_{fixup_meson_varname(name)})')
 
         return args
 
