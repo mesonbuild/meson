@@ -165,7 +165,7 @@ lang_arg_kwargs |= {
     'd_debug',
 }
 
-vala_kwargs = {'vala_header', 'vala_gir', 'vala_vapi'}
+vala_kwargs = {'vala_header', 'vala_gir', 'vala_vapi', 'install_vala_header', 'install_vala_gir', 'install_vala_vapi'}
 rust_kwargs = {'rust_crate_type', 'rust_dependency_map'}
 cs_kwargs = {'resources', 'cs_args'}
 swift_kwargs = {'swift_interoperability_mode', 'swift_module_name'}

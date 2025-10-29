@@ -609,6 +609,12 @@ def _extra_files_validator(args: T.List[T.Union[File, str]]) -> T.Optional[str]:
     return None
 
 
+def _bt_install_dir_deprecated(args: T.List[T.Union[str, bool]]) -> T.Iterator[FeatureCheckBase]:
+    if len(args) > 1:
+        yield FeatureDeprecated('passing more than one argument to install_dir', '1.11.0',
+                                'use the install_vala_* arguments instead')
+
+
 # Applies to all build_target like classes
 _ALL_TARGET_KWS: T.List[KwargInfo] = [
     OVERRIDE_OPTIONS_KW,
@@ -636,6 +642,7 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
         ContainerTypeInfo(list, (str, bool)),
         default=[],
         listify=True,
+        feature_validator=_bt_install_dir_deprecated,
     ),
     KwargInfo('implicit_include_directories', bool, default=True, since='0.42.0'),
     LINK_WITH_KW.evolve(
@@ -794,8 +801,11 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
         since='0.51.0',
     ),
     KwargInfo('vala_gir', (str, NoneType)),
+    KwargInfo('install_vala_gir', (str, bool, NoneType), since='1.11.0'),
     KwargInfo('vala_header', (str, NoneType)),
+    KwargInfo('install_vala_header', (str, bool, NoneType), since='1.11.0'),
     KwargInfo('vala_vapi', (str, NoneType)),
+    KwargInfo('install_vala_vapi', (str, bool, NoneType), since='1.11.0'),
 ]
 
 def _validate_win_subsystem(value: T.Optional[str]) -> T.Optional[str]:
