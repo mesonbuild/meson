@@ -63,8 +63,6 @@ class CoarrayDependency(SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
         kwargs['language'] = 'fortran'
         super().__init__(name, environment, kwargs)
-        kwargs['required'] = False
-        kwargs['silent'] = True
 
         cid = self.get_compiler().get_id()
         if cid == 'gcc':
