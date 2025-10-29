@@ -20,7 +20,7 @@ from ..dependencies import Dependency
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
     OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator,
-    LIBRARY_KWS, _BASE_LANG_KW
+    EXECUTABLE_KWS, LIBRARY_KWS, _BASE_LANG_KW
 )
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs, permittedKwargs
 from ..interpreter.interpreterobjects import Doctest
@@ -76,6 +76,9 @@ if T.TYPE_CHECKING:
 
     class FuncDependency(TypedDict):
         rust_abi: T.Optional[RUST_ABI]
+
+    class RustPackageExecutable(_kwargs.Executable):
+        pass
 
     class RustPackageLibrary(_kwargs.Library):
         pass
@@ -242,6 +245,7 @@ class RustPackage(RustCrate):
             'dependencies': self.dependencies_method,
             'library': self.library_method,
             'proc_macro': self.proc_macro_method,
+            'executable': self.executable_method,
         })
 
     @noPosargs
@@ -289,7 +293,7 @@ class RustPackage(RustCrate):
             raise MesonException(f"{name} only accepts one StructuredSources parameter")
         return None, args[0]
 
-    def merge_kw_args(self, state: ModuleState, kwargs: RustPackageLibrary) -> None:
+    def merge_kw_args(self, state: ModuleState, kwargs: T.Union[RustPackageExecutable, RustPackageLibrary]) -> None:
         deps = kwargs['dependencies']
         kwargs['dependencies'] = self.dependencies_method(state, [], {})
         kwargs['dependencies'].extend(deps)
@@ -393,6 +397,43 @@ class RustPackage(RustCrate):
         if 'proc-macro' not in self.package.manifest.lib.crate_type:
             raise MesonException("not a procedural macro crate")
         return self._proc_macro_method(state, args, kwargs)
+
+    @typed_pos_args('package.executable', optargs=[(str, StructuredSources), StructuredSources])
+    @typed_kwargs(
+        'package.executable',
+        *EXECUTABLE_KWS,
+        DEPENDENCIES_KW,
+        LINK_WITH_KW,
+        LINK_WHOLE_KW,
+        _BASE_LANG_KW.evolve(name='rust_args'),
+    )
+    def executable_method(self, state: 'ModuleState', args: T.Tuple[
+            T.Optional[T.Union[str, StructuredSources]],
+            T.Optional[StructuredSources]], kwargs: RustPackageExecutable) -> Executable:
+        """Builds executable targets from workspace bins."""
+        tgt_args = self.validate_pos_args('package.executable', args)
+        if not self.package.manifest.bin:
+            raise MesonException("no [[bin]] section in Cargo package")
+
+        sources: T.Union[StructuredSources, str]
+        tgt_name, sources = tgt_args
+        # If there's more than one binary, the first argument must be specified
+        # and must be one of the keys in pkg.bin
+        if not tgt_name:
+            if len(self.package.manifest.bin) > 1:
+                raise MesonException("Package has multiple binaries, you must specify which one to build as the first argument")
+            # Single binary, use it
+            tgt_name = next(iter(self.package.manifest.bin.keys()))
+        else:
+            if tgt_name not in self.package.manifest.bin:
+                raise MesonException(f"Binary '{tgt_name}' not found.")
+
+        if not sources:
+            sources = self.package.manifest.bin[tgt_name].path
+
+        exe_args: T.Tuple[str, SourcesVarargsType] = (tgt_name, [sources])
+        self.merge_kw_args(state, kwargs)
+        return state._interpreter.build_target(state.current_node, exe_args, kwargs, Executable)
 
 
 class RustSubproject(RustCrate):
