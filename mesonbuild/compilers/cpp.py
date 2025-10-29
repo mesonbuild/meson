@@ -32,6 +32,7 @@ from .mixins.pgi import PGICompiler
 from .mixins.emscripten import EmscriptenMixin
 from .mixins.metrowerks import MetrowerksCompiler
 from .mixins.metrowerks import mwccarm_instruction_set_args, mwcceppc_instruction_set_args
+from .mixins.microchip import Xc32Compiler, Xc32CPPStds
 
 if T.TYPE_CHECKING:
     from ..options import MutableKeyedOptionDictType
@@ -158,7 +159,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
         }
 
         # Currently, remapping is only supported for Clang, Elbrus and GCC
-        assert self.id in frozenset(['clang', 'lcc', 'gcc', 'emscripten', 'armltdclang', 'intel-llvm', 'nvidia_hpc'])
+        assert self.id in frozenset(['clang', 'lcc', 'gcc', 'emscripten', 'armltdclang', 'intel-llvm', 'nvidia_hpc', 'xc32-gcc'])
 
         if cpp_std not in CPP_FALLBACKS:
             # 'c++03' and 'c++98' don't have fallback types
@@ -1128,3 +1129,17 @@ class MetrowerksCPPCompilerEmbeddedPowerPC(MetrowerksCompiler, CPPCompiler):
         if std != 'none':
             args.append('-lang ' + std)
         return args
+
+
+class Xc32CPPCompiler(Xc32CPPStds, Xc32Compiler, GnuCPPCompiler):
+
+    """Microchip XC32 C++ compiler."""
+
+    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+                 info: MachineInfo,
+                 linker: T.Optional[DynamicLinker] = None,
+                 defines: T.Optional[T.Dict[str, str]] = None,
+                 full_version: T.Optional[str] = None):
+        GnuCPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
+                                info, linker=linker, full_version=full_version, defines=defines)
+        Xc32Compiler.__init__(self)

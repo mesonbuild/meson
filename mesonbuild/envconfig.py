@@ -56,6 +56,7 @@ known_cpu_families = (
     'msp430',
     'parisc',
     'pic24',
+    'pic32',
     'ppc',
     'ppc64',
     'riscv32',
