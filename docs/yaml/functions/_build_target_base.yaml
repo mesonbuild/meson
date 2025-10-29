@@ -180,6 +180,10 @@ kwargs:
       of build targets with multiple outputs. Currently, that means Vala. Setting
       them to `true` means "use the default", and `false` means, don't install.
 
+      *Since 1.11.0* Passing an array is deprecated, and install_vala_header,
+      install_vala_vapi, and install_vala_gir keyword arguments should be used
+      instead.
+
   install_mode:
     type: array[str | int]
     since: 0.47.0
@@ -378,3 +382,37 @@ kwargs:
       is not allowed to match a file or directory in the source
       directory, nor contain '..' to refer to the parent of the build
       directory.
+
+  install_vala_header:
+    type: str | bool
+    since: 1.11.0
+    description: |
+      If set to a string value, the vala generated header will be installed to
+      that path, if set to `true`, the default include path will be used, if
+      `false` the header will not be installed.
+
+      If it is unset then the value of `install_dir` will be used.
+
+  install_vala_vapi:
+    type: str | bool
+    since: 1.11.0
+    description: |
+      If set to a string value, the vala generated vapi library will be
+      installed to that path, if set to `true`, the default vapi path will be
+      used, if `false` the vapi library will not be installed.
+
+      If it is unset then the value of `install_dir` will be used.
+
+  install_vala_gir:
+    type: str | bool
+    since: 1.11.0
+    description: |
+      If set to a string value, the vala generated gir library will be
+      installed to that path, if set to `true`, the default gir path will be
+      used, if `false` the gir library will not be installed.
+
+      If it is unset then the value of `install_dir` will be used if `vala_gir`
+      is set to a value.
+
+      It is an error for this to be either `true` or a string and `vala_gir` to
+      be unset.
