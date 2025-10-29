@@ -606,7 +606,7 @@ packages['cups'] = cups_factory = DependencyFactory(
     'cups',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE],
     configtool=CupsDependencyConfigTool,
-    cmake=DependencyCandidate.from_dependency('Cups', CMakeDependency),
+    cmake_name='Cups',
 )
 
 packages['dl'] = dl_factory = DependencyFactory(
@@ -644,7 +644,7 @@ packages['pcap'] = pcap_factory = DependencyFactory(
 packages['threads'] = threads_factory = DependencyFactory(
     'threads',
     [DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
-    cmake=DependencyCandidate.from_dependency('Threads', CMakeDependency),
+    cmake_name='Threads',
     system=ThreadDependency,
 )
 
