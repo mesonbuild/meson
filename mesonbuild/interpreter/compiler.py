@@ -227,7 +227,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                         mode: CompileCheckMode = CompileCheckMode.LINK) -> T.List[str]:
         args: T.List[str] = []
         for i in self.interpreter.extract_incdirs(kwargs, strings_since='1.10.0'):
-            for idir in i.to_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
+            for idir in i.abs_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
                 args.extend(self.compiler.get_include_args(idir, False))
         if not kwargs['no_builtin_args']:
             args += self.compiler.get_option_compile_args(None, self.interpreter.environment, self.subproject)
@@ -657,6 +657,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         lib = dependencies.ExternalLibrary(libname, None,
                                            self.environment,
                                            self.compiler.language,
+                                           self.held_object.for_machine,
                                            silent=True)
         return lib
 
@@ -718,7 +719,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                                        .format(self.compiler.get_display_language(),
                                                libtype_s, libname))
         lib = dependencies.ExternalLibrary(libname, linkargs, self.environment,
-                                           self.compiler.language)
+                                           self.compiler.language, self.held_object.for_machine)
         return lib
 
     def _has_argument_impl(self, arguments: T.Union[str, T.List[str]],
