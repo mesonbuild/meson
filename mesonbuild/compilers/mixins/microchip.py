@@ -3,23 +3,26 @@
 
 from __future__ import annotations
 
-"""Representations specific to the Microchip XC16 C compiler family."""
+"""Representations specific to the Microchip XC C/C++ compiler family."""
 
 import os
 import typing as T
 
-from ...mesonlib import EnvironmentException
+from .gnu import GnuCStds, GnuCPPStds
+from ..compilers import Compiler
+from ...mesonlib import EnvironmentException, version_compare
 
 if T.TYPE_CHECKING:
     from ...envconfig import MachineInfo
     from ...environment import Environment
-    from ...compilers.compilers import Compiler
+
+    CompilerBase = Compiler
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
     # Compiler, so we get all of the methods and attributes defined for us, but
     # for runtime we make them descend from object (which all classes normally
     # do). This gives up DRYer type checking, with no runtime impact
-    Compiler = object
+    CompilerBase = object
 
 xc16_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
@@ -109,3 +112,84 @@ class Xc16Compiler(Compiler):
                 parameter_list[idx] = i[:9] + os.path.normpath(os.path.join(build_dir, i[9:]))
 
         return parameter_list
+
+
+class Xc32Compiler(CompilerBase):
+
+    """Microchip XC32 compiler mixin. GCC based with some options disabled."""
+
+    id = 'xc32-gcc'
+
+    gcc_version = '4.5.1'  # Defaults to GCC version used by first XC32 release (v1.00).
+
+    _COLOR_VERSION = ">=3.0"       # XC32 version based on GCC 8.3.1+
+    _WPEDANTIC_VERSION = ">=1.40"  # XC32 version based on GCC 4.8.3+
+    _LTO_AUTO_VERSION = "==-1"
+    _USE_MOLD_VERSION = "==-1"
+
+    def __init__(self) -> None:
+        if not self.is_cross:
+            raise EnvironmentException("XC32 supports only cross-compilation.")
+
+    def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
+        return None
+
+    def thread_flags(self, env: Environment) -> T.List[str]:
+        return []
+
+    def openmp_flags(self, env: Environment) -> T.List[str]:
+        return Compiler.openmp_flags(self, env)
+
+    def get_pic_args(self) -> T.List[str]:
+        return Compiler.get_pic_args(self)
+
+    def get_pie_args(self) -> T.List[str]:
+        return Compiler.get_pie_args(self)
+
+    def get_profile_generate_args(self) -> T.List[str]:
+        return Compiler.get_profile_generate_args(self)
+
+    def get_profile_use_args(self) -> T.List[str]:
+        return Compiler.get_profile_use_args(self)
+
+    def sanitizer_compile_args(self, value: T.List[str]) -> T.List[str]:
+        return []
+
+    @classmethod
+    def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
+        return []
+
+    def get_coverage_args(self) -> T.List[str]:
+        return []
+
+    def get_largefile_args(self) -> T.List[str]:
+        return []
+
+    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+        return Compiler.get_prelink_args(self, prelink_name, obj_list)
+
+    def get_prelink_append_compile_args(self) -> bool:
+        return False
+
+    def supported_warn_args(self, warn_args_by_version: T.Dict[str, T.List[str]]) -> T.List[str]:
+        result: T.List[str] = []
+        for version, warn_args in warn_args_by_version.items():
+            if version_compare(self.gcc_version, '>=' + version):
+                result += warn_args
+        return result
+
+class Xc32CStds(GnuCStds):
+
+    """Mixin for setting C standards based on XC32 version."""
+
+    _C18_VERSION = ">=3.0"
+    _C2X_VERSION = "==-1"
+    _C23_VERSION = "==-1"
+    _C2Y_VERSION = "==-1"
+
+class Xc32CPPStds(GnuCPPStds):
+
+    """Mixin for setting C++ standards based on XC32 version."""
+
+    _CPP23_VERSION = "==-1"
+    _CPP26_VERSION = "==-1"
