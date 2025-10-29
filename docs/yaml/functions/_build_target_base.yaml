@@ -169,12 +169,16 @@ kwargs:
     description: When set to true, this executable should be installed.
 
   install_dir:
-    type: str
+    type: array[str | bool]
     description: |
       override install directory for this file. If the value is a relative path,
       it will be considered relative the `prefix` option.
       For example, if you want to install plugins into a subdir, you'd use
       something like this: `install_dir : get_option('libdir') / 'projectname-1.0'`.
+
+      This can be set to an array of values to control the the installation path
+      of build targets with multiple outputs. Currently, that means Vala. Setting
+      them to `true` means "use the default", and `false` means, don't install.
 
   install_mode:
     type: array[str | int]
