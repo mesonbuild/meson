@@ -40,6 +40,7 @@ pkgs_stable=(
   dev-qt/linguist-tools
   sys-devel/llvm
   dev-qt/qttools
+  sci-libs/openblas
 
   # misc
   app-admin/sudo
@@ -79,6 +80,7 @@ pkgs_latest=(
 
   # ~arch only
   sci-libs/scalapack
+  sci-libs/mkl
 )
 pkgs=( "${pkgs_stable[@]}" "${pkgs_latest[@]}" )
 
@@ -106,6 +108,7 @@ cat <<-EOF > /etc/portage/package.use/ci
 	dev-lang/rust clippy rustfmt
 	dev-lang/rust-bin clippy rustfmt
 	dev-libs/boost python
+	sci-libs/lapack lapacke
 
 	# Some of these settings are needed just to get the binpkg but
 	# aren't negative to have anyway
