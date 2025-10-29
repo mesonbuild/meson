@@ -58,7 +58,8 @@ class DependencyFactory:
     :param extra_kwargs: Additional keyword arguments to add when creating the
         DependencyCandidate
     :param pkgconfig: A custom PackageConfig lookup to use
-    :param cmake: A custom CMake lookup to use
+    :param cmake_name: A name to use in a cmake class. Exclusive with :param:`cmake`
+    :param cmake: A custom CMake lookup to use. Exclusive with :param:`cmake_name`
     :param framework: A custom AppleFramework lookup to use
     :param configtool: A custom ConfigTool lookup to use. If
         DependencyMethods.CONFIG_TOOL is in the `:param:methods` argument,
@@ -73,8 +74,9 @@ class DependencyFactory:
 
     def __init__(self, name: str, methods: T.List[DependencyMethods], *,
                  extra_kwargs: T.Optional[DependencyObjectKWs] = None,
+                 cmake_name: T.Optional[str] = None,
                  pkgconfig: T.Union[DependencyCandidate[PkgConfigDependency], T.Type[PkgConfigDependency], None] = PkgConfigDependency,
-                 cmake: T.Union[DependencyCandidate[CMakeDependency], T.Type[CMakeDependency], None] = CMakeDependency,
+                 cmake: T.Union[DependencyCandidate[CMakeDependency], T.Type[CMakeDependency], None] = None,
                  framework: T.Union[DependencyCandidate[ExtraFrameworkDependency], T.Type[ExtraFrameworkDependency], None] = ExtraFrameworkDependency,
                  configtool: T.Union[DependencyCandidate[ConfigToolDependency], T.Type[ConfigToolDependency], None] = None,
                  builtin: T.Union[DependencyCandidate[BuiltinDependency], T.Type[BuiltinDependency], None] = None,
@@ -86,6 +88,14 @@ class DependencyFactory:
             raise DependencyException('A builtin dependency must have a custom class')
         if DependencyMethods.SYSTEM in methods and not system:
             raise DependencyException('A system dependency must have a custom class')
+
+        if cmake_name is not None and cmake is not None:
+            raise DependencyException('A most one of `cmake_name` and `cmake` can be provided')
+
+        if cmake_name is not None:
+            cmake = DependencyCandidate.from_dependency(cmake_name, CMakeDependency)
+        if cmake is None:
+            cmake = CMakeDependency
 
         def make(arg: T.Union[DependencyCandidate[DepType], T.Type[DepType], None]) -> T.Optional[DependencyCandidate[DepType]]:
             if arg is None or isinstance(arg, DependencyCandidate):

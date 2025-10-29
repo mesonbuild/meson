@@ -17,8 +17,7 @@ from ..mesonlib import (
 )
 from ..envconfig import detect_cpu_family
 
-from .base import DependencyCandidate, DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
-from .cmake import CMakeDependency
+from .base import DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import DependencyFactory
@@ -260,7 +259,7 @@ packages['sdl2'] = sdl2_factory = DependencyFactory(
     'sdl2',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE],
     configtool=SDL2DependencyConfigTool,
-    cmake=DependencyCandidate.from_dependency('SDL2', CMakeDependency),
+    cmake_name='SDL2',
 )
 
 packages['vulkan'] = vulkan_factory = DependencyFactory(
