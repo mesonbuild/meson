@@ -274,12 +274,7 @@ Example usage:
 rustmod = import('rust')
 cargo_ws = rustmod.workspace()
 pkg = cargo_ws.package()
-
-executable('my_app', 'src/main.rs',
-  dependencies: pkg.dependencies(),
-  rust_args: pkg.rust_args(),
-  rust_dependency_map: pkg.rust_dependency_map(),
-)
+pkg.executable(install: true)
 ```
 
 ### workspace.subproject()
@@ -410,6 +405,26 @@ lib = pkg.proc_macro(...)
 Builds a proc-macro crate for a workspace package.
 
 Accepts all keyword arguments from [[shared_library]].
+
+#### package.executable()
+
+```meson
+exe = pkg.executable([target_name], [sources], ...)
+```
+
+Builds an executable target for a workspace package.  The method requires that the
+package has at least one `bin` section defined in its `Cargo.toml` file,
+or one binary discovered from the contents of the file system.
+
+Positional arguments:
+- `target_name`: (`str`, optional) Name of the binary target to build. If the package
+  has multiple `bin` sections in `Cargo.toml`, this argument is required and must
+  match one of the binary names. If omitted and there's only one binary, that binary
+  will be built automatically.
+- `sources`: (`StructuredSources`, optional) Source files for the executable.  If omitted,
+  uses the path specified in the corresponding `bin` section of `Cargo.toml`.
+
+Accepts all keyword arguments from [[executable]].
 
 ### Subprojects only
 
