@@ -35,3 +35,17 @@ int main(void) {
 }'''
 
 assert(cc.compiles(prog), 'multiline test compile failed')
+
+# Test we can pass multiline strings as compiler arguments.
+if not get_option('backend').startswith('vs')
+  helloworld = '''
+Hello
+World
+'''
+  exe = executable('multiline', 'multiline.c',
+    c_args: ['-DHELLO_WORLD_STRING="' + helloworld + '"']
+  )
+  if not meson.is_cross_build()
+    test('multiline run', files('test_multiline.py'), args: [exe])
+  endif
+endif

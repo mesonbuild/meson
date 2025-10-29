@@ -621,8 +621,7 @@ class Interpreter:
             'CARGO_PKG_VERSION_PRE': version_arr[3],
             'CARGO_PKG_AUTHORS': ','.join(pkg.manifest.package.authors),
             'CARGO_PKG_NAME': pkg.manifest.package.name,
-            # FIXME: description can contain newlines which breaks ninja.
-            #'CARGO_PKG_DESCRIPTION': pkg.manifest.package.description or '',
+            'CARGO_PKG_DESCRIPTION': pkg.manifest.package.description or '',
             'CARGO_PKG_HOMEPAGE': pkg.manifest.package.homepage or '',
             'CARGO_PKG_REPOSITORY': pkg.manifest.package.repository or '',
             'CARGO_PKG_LICENSE': pkg.manifest.package.license or '',
