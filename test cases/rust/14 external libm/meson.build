@@ -1,9 +1,5 @@
 project('rust linking to libm', 'c', 'rust')
 
-if host_machine.system() == 'darwin'
-  error('MESON_SKIP_TEST: does not work right on macos, please fix!')
-endif
-
 cc = meson.get_compiler('c')
 dep_m = cc.find_library('m', required : false, static : get_option('static'))
 if not dep_m.found()

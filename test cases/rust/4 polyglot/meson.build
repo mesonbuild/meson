@@ -1,9 +1,5 @@
 project('rust and c polyglot executable', 'c', 'rust')
 
-if host_machine.system() == 'darwin'
-  error('MESON_SKIP_TEST: does not work right on macos, please fix!')
-endif
-
 cc = meson.get_compiler('c')
 
 # Test all combinations of crate and target types.
