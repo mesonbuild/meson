@@ -526,11 +526,12 @@ class Manifest:
     def __post_init__(self) -> None:
         self.features.setdefault('default', [])
 
-    def machines_from(self, parent_machine: MachineChoice) -> T.Iterable[MachineChoice]:
+    def machines_from(self, parent_machine: MachineChoice, bin: bool = False) -> T.Iterable[MachineChoice]:
         """Return the machines this manifest should be built for based on the machine
            for the package that depended on this one."""
         if self.lib is None:
-            # No support for bin, test, etc.
+            if bin and self.bin:
+                yield parent_machine
             return
 
         need_build = False
