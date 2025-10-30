@@ -588,11 +588,24 @@ def _target_install_convertor(val: object) -> bool:
     return bool(val)
 
 
+def _extra_files_validator(args: T.List[T.Union[File, str]]) -> T.Optional[str]:
+    generated = [a for a in args if isinstance(a, File) and a.is_built]
+    if generated:
+        return 'extra_files contains generated files: {}'.format(', '.join(f"{f.fname}" for f in generated))
+    return None
+
+
 # Applies to all build_target like classes
 _ALL_TARGET_KWS: T.List[KwargInfo] = [
     OVERRIDE_OPTIONS_KW,
     KwargInfo('build_by_default', bool, default=True, since='0.38.0'),
-    KwargInfo('extra_files', ContainerTypeInfo(list, (str, File)), default=[], listify=True),
+    KwargInfo(
+        'extra_files',
+        ContainerTypeInfo(list, (str, File)),
+        default=[],
+        listify=True,
+        validator=_extra_files_validator,
+    ),
     KwargInfo(
         'install',
         object,
