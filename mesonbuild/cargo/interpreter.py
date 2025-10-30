@@ -30,12 +30,14 @@ from ..wrap.wrap import PackageDefinition
 if T.TYPE_CHECKING:
     from . import raw
     from .. import mparser
+    from typing_extensions import Literal
+
     from .manifest import Dependency, SystemDependency
     from ..environment import Environment
     from ..interpreterbase import SubProject
     from ..compilers.rust import RustCompiler
 
-    from typing_extensions import Literal
+    RUST_ABI = Literal['rust', 'c', 'proc-macro']
 
 def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
     basename = package_name[:-len(suffix)] if suffix and package_name.endswith(suffix) else package_name
@@ -181,6 +183,18 @@ class PackageState:
         args.extend(self.get_env_args(rustc, environment, subdir))
         return args
 
+    def supported_abis(self) -> T.Set[RUST_ABI]:
+        """Return which ABIs are exposed by the package's crate_types."""
+        crate_types = self.manifest.lib.crate_type
+        abis: T.Set[RUST_ABI] = set()
+        if any(ct in {'lib', 'rlib', 'dylib'} for ct in crate_types):
+            abis.add('rust')
+        if any(ct in {'staticlib', 'cdylib'} for ct in crate_types):
+            abis.add('c')
+        if 'proc-macro' in crate_types:
+            abis.add('proc-macro')
+        return abis
+
 
 @dataclasses.dataclass(frozen=True)
 class PackageKey:
@@ -268,13 +282,14 @@ class Interpreter:
             crate_type = pkg.manifest.lib.crate_type
             if 'dylib' in crate_type and 'cdylib' in crate_type:
                 raise MesonException('Cannot build both dylib and cdylib due to file name conflict')
-            if 'proc-macro' in crate_type:
+            abis = pkg.supported_abis()
+            if 'proc-macro' in abis:
                 ast.extend(self._create_lib(pkg, build, subdir, 'proc-macro', shared=True))
-            if any(x in crate_type for x in ['lib', 'rlib', 'dylib']):
+            if 'rust' in abis:
                 ast.extend(self._create_lib(pkg, build, subdir, 'rust',
                                             static=('lib' in crate_type or 'rlib' in crate_type),
                                             shared='dylib' in crate_type))
-            if any(x in crate_type for x in ['staticlib', 'cdylib']):
+            if 'c' in abis:
                 ast.extend(self._create_lib(pkg, build, subdir, 'c',
                                             static='staticlib' in crate_type,
                                             shared='cdylib' in crate_type))
@@ -708,7 +723,7 @@ class Interpreter:
         ]
 
     def _create_lib(self, pkg: PackageState, build: builder.Builder, subdir: str,
-                    lib_type: Literal['rust', 'c', 'proc-macro'],
+                    lib_type: RUST_ABI,
                     static: bool = False, shared: bool = False) -> T.List[mparser.BaseNode]:
         cfg = pkg.cfg
         dependencies: T.List[mparser.BaseNode] = []
