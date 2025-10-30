@@ -48,7 +48,7 @@ if is_windows():
     # There is currently no pgc++ for Windows, only for  Mac and Linux.
     defaults['cpp'] = ['icl', 'cl', 'c++', 'g++', 'clang++', 'clang-cl']
     # the binary flang-new will be renamed to flang in the foreseeable future
-    defaults['fortran'] = ['ifort', 'gfortran', 'flang-new', 'flang', 'pgfortran', 'g95']
+    defaults['fortran'] = ['ifort', 'ifx', 'gfortran', 'flang-new', 'flang', 'pgfortran', 'g95']
     defaults['objc'] = ['clang', 'clang-cl', 'gcc']
     defaults['objcpp'] = ['clang++', 'clang-cl', 'g++']
     defaults['cs'] = ['csc', 'mcs']
