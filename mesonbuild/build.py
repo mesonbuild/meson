@@ -1296,17 +1296,7 @@ class BuildTarget(Target):
                                         (str, bool))
         self.install_mode = kwargs.get('install_mode', None)
         self.install_tag = stringlistify(kwargs.get('install_tag', [None]))
-        extra_files = kwargs.get('extra_files', [])
-        for i in extra_files:
-            # TODO: use an OrderedSet instead of a list?
-            if i in self.extra_files:
-                continue
-            # TODO: this prevents built `File` objects from being used as
-            # extra_files.
-            trial = os.path.join(self.environment.get_source_dir(), i.subdir, i.fname)
-            if not os.path.isfile(trial):
-                raise InvalidArguments(f'Tried to add non-existing extra file {i}.')
-            self.extra_files.append(i)
+        self.extra_files = kwargs.get('extra_files', [])
         self.install_rpath: str = kwargs.get('install_rpath', '')
         self.build_rpath = kwargs.get('build_rpath', '')
         self.resources = kwargs.get('resources', [])
