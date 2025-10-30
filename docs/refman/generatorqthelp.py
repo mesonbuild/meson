@@ -44,14 +44,11 @@ class GeneratorQtHelp(GeneratorMD):
             return ''
 
         with open(md, 'r') as doc:
-            while True:
-                line = doc.readline()
+            for line in doc:
                 if line.startswith('# '):
                     return line[len('# '):-1]
                 elif line.startswith('title: '):
                     return line[len('title: '):-1]
-                elif line == '':
-                    break
 
         return ''
 
@@ -71,8 +68,8 @@ class GeneratorQtHelp(GeneratorMD):
         self.qhp_data.start('toc', {})
         with open(self.sitemap_in, 'r') as sitemap:
             level = -1
-            while True:
-                line = sitemap.readline()[:-1]
+            for line in sitemap:
+                line = line[:-1]
 
                 newlevel = line.count('\t', 0)
                 if newlevel <= level:
@@ -142,6 +139,7 @@ class GeneratorQtHelp(GeneratorMD):
 
         self.qhp_data.start('files', {})
         build_small_tag(self.qhp_data, 'file', '*.html')
+        build_small_tag(self.qhp_data, 'file', 'assets/css/*.css')
         self.qhp_data.end('files')
 
         self.qhp_data.end('filterSection')
