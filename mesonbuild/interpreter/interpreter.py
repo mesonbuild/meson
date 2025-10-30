@@ -3445,7 +3445,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         sources = self.source_strings_to_files(sources)
         objs = kwargs['objects']
         kwargs['dependencies'] = extract_as_list(kwargs, 'dependencies')
-        kwargs['extra_files'] = self.source_strings_to_files(kwargs['extra_files'])
+        # TODO: When we can do strings -> Files in the typed_kwargs validator, do this there too
+        kwargs['extra_files'] = mesonlib.unique_list(self.source_strings_to_files(kwargs['extra_files']))
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
         self.__process_language_args(kwargs)
         if targetclass is build.StaticLibrary:
