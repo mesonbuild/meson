@@ -451,10 +451,6 @@ class BoostDependency(SystemDependency):
                 break
         libs = sorted(set(libs))
 
-        any_libs_found = len(libs) > 0
-        if not any_libs_found:
-            return False
-
         modules = ['boost_' + x for x in self.modules]
         for inc in inc_dirs:
             mlog.debug(f'  - found boost {inc.version} include dir: {inc.path}')
@@ -465,7 +461,7 @@ class BoostDependency(SystemDependency):
                 mlog.debug(f'    - {j}')
 
             #   3. Select the libraries matching the requested modules
-            not_found_as_libs: T.List[str] = []
+            not_found: T.List[str] = []
             selected_modules: T.List[BoostLibraryFile] = []
             for mod in modules:
                 found = False
@@ -475,21 +471,7 @@ class BoostDependency(SystemDependency):
                         found = True
                         break
                 if not found:
-                    not_found_as_libs += [mod]
-
-            # If a lib is not found, but an include directory exists,
-            # assume it is a header only module.
-            not_found: T.List[str] = []
-            for boost_modulename in not_found_as_libs:
-                assert boost_modulename.startswith('boost_')
-                include_subdir = boost_modulename.replace('boost_', 'boost/', 1)
-                headerdir_found = False
-                for inc_dir in inc_dirs:
-                    if (inc_dir.path / include_subdir).is_dir():
-                        headerdir_found = True
-                        break
-                if not headerdir_found:
-                    not_found.append(boost_modulename)
+                    not_found += [mod]
 
             # log the result
             mlog.debug('  - found:')
