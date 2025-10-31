@@ -439,8 +439,6 @@ class BoostDependency(SystemDependency):
         mlog.debug('  - potential library dirs: {}'.format([x.as_posix() for x in lib_dirs]))
         mlog.debug('  - potential include dirs: {}'.format([x.path.as_posix() for x in inc_dirs]))
 
-        must_have_library = ['boost_python']
-
         #   2. Find all boost libraries
         libs: T.List[BoostLibraryFile] = []
         for i in lib_dirs:
@@ -484,9 +482,6 @@ class BoostDependency(SystemDependency):
             not_found: T.List[str] = []
             for boost_modulename in not_found_as_libs:
                 assert boost_modulename.startswith('boost_')
-                if boost_modulename in must_have_library:
-                    not_found.append(boost_modulename)
-                    continue
                 include_subdir = boost_modulename.replace('boost_', 'boost/', 1)
                 headerdir_found = False
                 for inc_dir in inc_dirs:
