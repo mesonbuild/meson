@@ -115,7 +115,7 @@ class RustCompiler(Compiler):
     def needs_static_linker(self) -> bool:
         return False
 
-    def sanity_check(self, work_dir: str, environment: Environment) -> None:
+    def sanity_check(self, work_dir: str) -> None:
         source_name = os.path.join(work_dir, 'sanity.rs')
         output_name = os.path.join(work_dir, 'rusttest.exe')
         cmdlist = self.exelist.copy()

@@ -82,7 +82,7 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def get_pch_name(self, header_name: str) -> str:
         return ''
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str) -> None:
         src = 'sanity.cs'
         obj = 'sanity.exe'
         source_name = os.path.join(work_dir, src)

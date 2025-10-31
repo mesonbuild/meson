@@ -1213,7 +1213,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return ' '.join(self.exelist)
 
     @abc.abstractmethod
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str) -> None:
         """Check that this compiler actually works.
 
         This should provide a simple compile/link test. Something as simple as:

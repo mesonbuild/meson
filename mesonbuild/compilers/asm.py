@@ -41,7 +41,7 @@ class ASMCompiler(Compiler):
             raise EnvironmentException(f'ASM Compiler {self.id} does not support building for {info.cpu_family} CPU family.')
         super().__init__(ccache, exelist, version, for_machine, env, linker, full_version)
 
-    def sanity_check(self, work_dir: str, environment: Environment) -> None:
+    def sanity_check(self, work_dir: str) -> None:
         return None
 
 

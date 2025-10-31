@@ -74,9 +74,9 @@ class CCompiler(CLikeCompiler, Compiler):
     def get_no_stdinc_args(self) -> T.List[str]:
         return ['-nostdinc']
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str) -> None:
         code = 'int main(void) { int class=0; return class; }\n'
-        return self._sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
+        return self._sanity_check_impl(work_dir, 'sanitycheckc.c', code)
 
     def has_header_symbol(self, hname: str, symbol: str, prefix: str,
                           env: 'Environment', *,
