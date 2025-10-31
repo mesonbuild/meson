@@ -580,7 +580,7 @@ class CudaCompiler(Compiler):
 
         cmdlist = self.exelist + ['--run', f'"{binary_name}"']
         try:
-            stdo, stde = self.run_sanity_check(env, cmdlist, work_dir)
+            stdo, stde = self.run_sanity_check(cmdlist, work_dir)
         except EnvironmentException:
             raise EnvironmentException(f'Executables created by {self.language} compiler {self.name_string()} are not runnable.')
 

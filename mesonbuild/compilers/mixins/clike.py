@@ -307,7 +307,7 @@ class CLikeCompiler(Compiler):
         mlog.debug('-----')
         if pc.returncode != 0:
             raise mesonlib.EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
-        self.run_sanity_check(environment, [binary_name], work_dir)
+        self.run_sanity_check([binary_name], work_dir)
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         code = 'int main(void) { int class=0; return class; }\n'

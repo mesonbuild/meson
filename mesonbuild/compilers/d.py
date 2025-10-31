@@ -454,7 +454,7 @@ class DCompiler(Compiler):
         if pc.returncode != 0:
             raise EnvironmentException('D compiler %s cannot compile programs.' % self.name_string())
 
-        stdo, stde = self.run_sanity_check(environment, [output_name], work_dir)
+        stdo, stde = self.run_sanity_check([output_name], work_dir)
 
     def needs_static_linker(self) -> bool:
         return True
