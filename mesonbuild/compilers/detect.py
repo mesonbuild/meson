@@ -112,7 +112,7 @@ def detect_compiler_for(env: 'Environment', lang: str, for_machine: MachineChoic
     assert comp.for_machine == for_machine
     env.coredata.process_compiler_options(lang, comp, subproject)
     if not skip_sanity_check:
-        comp.sanity_check(env.get_scratch_dir(), env)
+        comp.sanity_check(env.get_scratch_dir())
     env.coredata.compilers[comp.for_machine][lang] = comp
     return comp
 

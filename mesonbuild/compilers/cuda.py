@@ -497,7 +497,7 @@ class CudaCompiler(Compiler):
     def thread_link_flags(self, environment: 'Environment') -> T.List[str]:
         return self._to_host_flags(self.host_compiler.thread_link_flags(environment), Phase.LINKER)
 
-    def sanity_check(self, work_dir: str, env: 'Environment') -> None:
+    def sanity_check(self, work_dir: str) -> None:
         mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
         mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
 
@@ -550,10 +550,10 @@ class CudaCompiler(Compiler):
         # Use the -ccbin option, if available, even during sanity checking.
         # Otherwise, on systems where CUDA does not support the default compiler,
         # NVCC becomes unusable.
-        flags += self.get_ccbin_args(None, env, '')
+        flags += self.get_ccbin_args(None, self.environment, '')
 
         # If cross-compiling, we can't run the sanity check, only compile it.
-        if self.is_cross and not env.has_exe_wrapper():
+        if self.is_cross and not self.environment.has_exe_wrapper():
             # Linking cross built apps is painful. You can't really
             # tell if you should use -nostdlib or not and for example
             # on OSX the compiler binary is the same but you need

@@ -71,7 +71,7 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
         return parameter_list
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str) -> None:
         src = 'SanityCheck.java'
         obj = 'SanityCheck'
         source_name = os.path.join(work_dir, src)

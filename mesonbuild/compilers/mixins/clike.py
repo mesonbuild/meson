@@ -268,8 +268,7 @@ class CLikeCompiler(Compiler):
     def gen_import_library_args(self, implibname: str) -> T.List[str]:
         return self.linker.import_library_args(implibname)
 
-    def _sanity_check_impl(self, work_dir: str, environment: 'Environment',
-                           sname: str, code: str) -> None:
+    def _sanity_check_impl(self, work_dir: str, sname: str, code: str) -> None:
         mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', mesonlib.join_args(self.exelist))
         mlog.debug(f'Is cross compiler: {self.is_cross!s}.')
 
@@ -278,14 +277,14 @@ class CLikeCompiler(Compiler):
         mode = CompileCheckMode.LINK
         if self.is_cross:
             binname += '_cross'
-            if not environment.has_exe_wrapper():
+            if not self.environment.has_exe_wrapper():
                 # Linking cross built C/C++ apps is painful. You can't really
                 # tell if you should use -nostdlib or not and for example
                 # on OSX the compiler binary is the same but you need
                 # a ton of compiler flags to differentiate between
                 # arm and x86_64. So just compile.
                 mode = CompileCheckMode.COMPILE
-        cargs, largs = self._get_basic_compiler_args(environment, mode)
+        cargs, largs = self._get_basic_compiler_args(self.environment, mode)
         extra_flags = cargs + self.linker_to_compiler_args(largs)
 
         # Is a valid executable output for all toolchains and platforms
@@ -309,9 +308,9 @@ class CLikeCompiler(Compiler):
             raise mesonlib.EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
         self.run_sanity_check([binary_name], work_dir)
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str) -> None:
         code = 'int main(void) { int class=0; return class; }\n'
-        return self._sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
+        return self._sanity_check_impl(work_dir, 'sanitycheckc.c', code)
 
     def check_header(self, hname: str, prefix: str, env: 'Environment', *,
                      extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,

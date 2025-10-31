@@ -59,10 +59,10 @@ class FortranCompiler(CLikeCompiler, Compiler):
         largs = env.coredata.get_external_link_args(self.for_machine, self.language)
         return cargs, largs
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str) -> None:
         source_name = 'sanitycheckf.f'
         code = '      PROGRAM MAIN\n      PRINT *, "Fortran compilation is working."\n      END\n'
-        return self._sanity_check_impl(work_dir, environment, source_name, code)
+        return self._sanity_check_impl(work_dir, source_name, code)
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return gnu_optimization_args[optimization_level]

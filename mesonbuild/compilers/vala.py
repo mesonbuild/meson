@@ -106,15 +106,15 @@ class ValaCompiler(Compiler):
 
         return parameter_list
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str) -> None:
         code = 'class MesonSanityCheck : Object { }'
         extra_flags: T.List[str] = []
-        extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
+        extra_flags += self.environment.coredata.get_external_args(self.for_machine, self.language)
         if self.is_cross:
             extra_flags += self.get_compile_only_args()
         else:
-            extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
-        with self.cached_compile(code, environment.coredata, extra_args=extra_flags, mode=CompileCheckMode.COMPILE) as p:
+            extra_flags += self.environment.coredata.get_external_link_args(self.for_machine, self.language)
+        with self.cached_compile(code, self.environment.coredata, extra_args=extra_flags, mode=CompileCheckMode.COMPILE) as p:
             if p.returncode != 0:
                 msg = f'Vala compiler {self.name_string()!r} cannot compile programs'
                 raise EnvironmentException(msg)

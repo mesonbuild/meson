@@ -2507,7 +2507,7 @@ class AllPlatformTests(BasePlatformTests):
             try:
                 comp = detect_compiler_for(env, l, MachineChoice.HOST, True, '')
                 with tempfile.TemporaryDirectory() as d:
-                    comp.sanity_check(d, env)
+                    comp.sanity_check(d)
                 langs.append(l)
             except EnvironmentException:
                 pass
