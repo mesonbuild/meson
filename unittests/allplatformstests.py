@@ -4471,6 +4471,14 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
+    def test_custom_target_index_as_test_prereq(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest('ninja backend needed for "meson test" to build test dependencies')
+
+        testdir = os.path.join(self.unit_test_dir, '131 custom target index test')
+        self.init(testdir)
+        self.run_tests()
+
     @skipUnless(is_linux() and (re.search('^i.86$|^x86$|^x64$|^x86_64$|^amd64$', platform.processor()) is not None),
         'Requires ASM compiler for x86 or x86_64 platform currently only available on Linux CI runners')
     def test_nostdlib(self):
