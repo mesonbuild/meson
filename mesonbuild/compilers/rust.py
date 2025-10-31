@@ -18,7 +18,6 @@ from .compilers import Compiler, CompileCheckMode, clike_debug_args, is_library
 
 if T.TYPE_CHECKING:
     from ..options import MutableKeyedOptionDictType
-    from ..envconfig import MachineInfo
     from ..environment import Environment  # noqa: F401
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
@@ -99,10 +98,10 @@ class RustCompiler(Compiler):
     }
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo',
+                 is_cross: bool, env: Environment,
                  full_version: T.Optional[str] = None,
                  linker: T.Optional['DynamicLinker'] = None):
-        super().__init__([], exelist, version, for_machine, info,
+        super().__init__([], exelist, version, for_machine, env,
                          is_cross=is_cross, full_version=full_version,
                          linker=linker)
         self.rustup_run_and_args: T.Optional[T.Tuple[T.List[str], T.List[str]]] = get_rustup_run_and_args(exelist)
@@ -463,7 +462,8 @@ class RustCompiler(Compiler):
             return None
 
         return RustdocTestCompiler(exelist, self.version, self.for_machine,
-                                   self.is_cross, self.info, full_version=self.full_version,
+                                   self.is_cross, self.environment,
+                                   full_version=self.full_version,
                                    linker=self.linker, rustc=self)
 
     def enable_env_set_args(self) -> T.Optional[T.List[str]]:
@@ -494,11 +494,10 @@ class RustdocTestCompiler(RustCompiler):
     id = 'rustdoc --test'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo',
-                 full_version: T.Optional[str],
+                 is_cross: bool, env: Environment, full_version: T.Optional[str],
                  linker: T.Optional['DynamicLinker'], rustc: RustCompiler):
         super().__init__(exelist, version, for_machine,
-                         is_cross, info, full_version, linker)
+                         is_cross, env, full_version, linker)
         self.rustc = rustc
 
     @functools.lru_cache(maxsize=None)
