@@ -14,7 +14,6 @@ from .compilers import CompileCheckMode, Compiler
 
 if T.TYPE_CHECKING:
     from ..arglist import CompilerArgs
-    from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..mesonlib import MachineChoice
     from ..dependencies import Dependency
@@ -26,8 +25,8 @@ class ValaCompiler(Compiler):
     id = 'valac'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo'):
-        super().__init__([], exelist, version, for_machine, info, is_cross=is_cross)
+                 is_cross: bool, environment: Environment):
+        super().__init__([], exelist, version, for_machine, environment, is_cross=is_cross)
         self.version = version
         self.base_options = {OptionKey('b_colorout')}
         self.force_link = False
