@@ -538,7 +538,7 @@ class DCompiler(Compiler):
         return DCompilerArgs(self, args)
 
     def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
-        return self.compiles('int i;\n', env, extra_args=args)
+        return self.compiles('int i;\n', extra_args=args)
 
     def _get_target_arch_args(self) -> T.List[str]:
         # LDC2 on Windows targets to current OS architecture, but
@@ -628,7 +628,7 @@ class DCompiler(Compiler):
         code = f'''{prefix}
         import {hname};
         '''
-        return self.compiles(code, env, extra_args=extra_args,
+        return self.compiles(code, extra_args=extra_args,
                              dependencies=dependencies, mode=CompileCheckMode.COMPILE, disable_cache=disable_cache)
 
 class GnuDCompiler(GnuCompiler, DCompiler):

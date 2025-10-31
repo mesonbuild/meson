@@ -111,7 +111,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
         #include <{hname}>
         using {symbol};
         int main(void) {{ return 0; }}'''
-        return self.compiles(t, env, extra_args=extra_args,
+        return self.compiles(t, extra_args=extra_args,
                              dependencies=dependencies)
 
     def _test_cpp_std_arg(self, cpp_std_value: str) -> bool:

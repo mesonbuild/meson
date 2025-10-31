@@ -92,7 +92,7 @@ class CCompiler(CLikeCompiler, Compiler):
             #endif
             return 0;
         }}'''
-        return self.compiles(t.format(**fargs), env, extra_args=extra_args,
+        return self.compiles(t.format(**fargs), extra_args=extra_args,
                              dependencies=dependencies)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':

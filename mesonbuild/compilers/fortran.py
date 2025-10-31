@@ -133,7 +133,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
             {prefix}
             real(merge(kind(1.),-1,({expression}))), parameter :: fail = 1.
         end program test'''
-        return self.compiles(t, env, extra_args=extra_args,
+        return self.compiles(t, extra_args=extra_args,
                              dependencies=dependencies)[0]
 
     def cross_compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
@@ -218,7 +218,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
             {typename} :: something
         end program test
         '''
-        if not self.compiles(t, env, extra_args=extra_args,
+        if not self.compiles(t, extra_args=extra_args,
                              dependencies=dependencies)[0]:
             return -1
         return self.cross_compute_int('c_sizeof(x)', None, None, None, prefix + '\nuse iso_c_binding\n' + typename + ' :: x', env, extra_args, dependencies)
@@ -319,7 +319,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
         https://github.com/mesonbuild/meson/issues/7017
         '''
         code = f'{prefix}\n#include <{hname}>'
-        return self.compiles(code, env, extra_args=extra_args,
+        return self.compiles(code, extra_args=extra_args,
                              dependencies=dependencies, mode=CompileCheckMode.PREPROCESS, disable_cache=disable_cache)
 
 
