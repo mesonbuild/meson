@@ -93,7 +93,7 @@ class MissingCompiler(_MissingCompilerBase):
         def get_output_args(self, outputname: str) -> T.List[str]:
             return []
 
-        def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+        def sanity_check(self, work_dir: str) -> None:
             return None
 
     def __getattr__(self, item: str) -> T.Any:

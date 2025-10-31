@@ -437,7 +437,7 @@ class DCompiler(Compiler):
                          full_version=full_version)
         self.arch = arch
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str) -> None:
         source_name = os.path.join(work_dir, 'sanity.d')
         output_name = os.path.join(work_dir, 'dtest')
         with open(source_name, 'w', encoding='utf-8') as ofile:
@@ -446,7 +446,7 @@ class DCompiler(Compiler):
         compile_cmdlist = self.exelist + self.get_output_args(output_name) + self._get_target_arch_args() + [source_name]
 
         # If cross-compiling, we can't run the sanity check, only compile it.
-        if self.is_cross and not environment.has_exe_wrapper():
+        if self.is_cross and not self.environment.has_exe_wrapper():
             compile_cmdlist += self.get_compile_only_args()
 
         pc = subprocess.Popen(compile_cmdlist, cwd=work_dir)

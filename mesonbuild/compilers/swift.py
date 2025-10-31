@@ -175,16 +175,16 @@ class SwiftCompiler(Compiler):
 
         return parameter_list
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str) -> None:
         src = 'swifttest.swift'
         source_name = os.path.join(work_dir, src)
         output_name = os.path.join(work_dir, 'swifttest')
         extra_flags: T.List[str] = []
-        extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
+        extra_flags += self.environment.coredata.get_external_args(self.for_machine, self.language)
         if self.is_cross:
             extra_flags += self.get_compile_only_args()
         else:
-            extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
+            extra_flags += self.environment.coredata.get_external_link_args(self.for_machine, self.language)
         with open(source_name, 'w', encoding='utf-8') as ofile:
             ofile.write('''print("Swift compilation is working.")
 ''')
