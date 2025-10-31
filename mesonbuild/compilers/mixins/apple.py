@@ -11,6 +11,7 @@ from ...mesonlib import MesonException
 if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
     from ...environment import Environment
+    from ...envconfig import MachineInfo
     from ..compilers import Compiler
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
@@ -25,6 +26,10 @@ class AppleCompilerMixin(Compiler):
     """Handle differences between Vanilla Clang and the Clang shipped with XCode."""
 
     __BASE_OMP_FLAGS: ImmutableListProtocol[str] = ['-Xpreprocessor', '-fopenmp']
+
+    if T.TYPE_CHECKING:
+        # Older versions of mypy can't figure this out
+        info: MachineInfo
 
     def openmp_flags(self, env: Environment) -> T.List[str]:
         """Flags required to compile with OpenMP on Apple.

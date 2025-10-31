@@ -22,7 +22,6 @@ if T.TYPE_CHECKING:
     from ..options import MutableKeyedOptionDictType
     from ..dependencies import Dependency
     from ..environment import Environment  # noqa: F401
-    from ..envconfig import MachineInfo
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
 
@@ -183,11 +182,10 @@ class CudaCompiler(Compiler):
     id = 'nvcc'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool,
-                 host_compiler: Compiler, info: 'MachineInfo',
+                 is_cross: bool, host_compiler: Compiler, env: Environment,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
-        super().__init__(ccache, exelist, version, for_machine, info, linker=linker, full_version=full_version, is_cross=is_cross)
+        super().__init__(ccache, exelist, version, for_machine, env, linker=linker, full_version=full_version, is_cross=is_cross)
         self.host_compiler = host_compiler
         self.base_options = host_compiler.base_options
         # -Wpedantic generates useless churn due to nvcc's dual compilation model producing

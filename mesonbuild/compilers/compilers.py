@@ -472,7 +472,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     mode = 'COMPILER'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
-                 for_machine: MachineChoice, info: 'MachineInfo',
+                 for_machine: MachineChoice, environment: Environment,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None, is_cross: bool = False):
         self.exelist = ccache + exelist
@@ -485,9 +485,16 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         self.for_machine = for_machine
         self.base_options: T.Set[OptionKey] = set()
         self.linker = linker
-        self.info = info
-        self.is_cross = is_cross
+        self.environment = environment
+        self.is_cross = environment.is_cross_build(for_machine)
         self.modes: T.List[Compiler] = []
+
+    @property
+    def info(self) -> MachineInfo:
+        # This must be fetched dynamically because it may be re-evaluated later,
+        # and we could end up with a stale copy
+        # see :class:`Interpreter._redetect_machines()`
+        return self.environment.machines[self.for_machine]
 
     def __repr__(self) -> str:
         repr_str = "<{0}: v{1} `{2}`>"
