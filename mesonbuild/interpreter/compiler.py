@@ -513,7 +513,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                 code.absolute_path(self.environment.source_dir, self.environment.build_dir))
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
-        result, cached = self.compiler.compiles(code, self.environment,
+        result, cached = self.compiler.compiles(code,
                                                 extra_args=extra_args,
                                                 dependencies=deps)
         if required and not result:

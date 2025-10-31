@@ -318,7 +318,7 @@ class CLikeCompiler(Compiler):
                      dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         code = f'''{prefix}
         #include <{hname}>'''
-        return self.compiles(code, env, extra_args=extra_args,
+        return self.compiles(code, extra_args=extra_args,
                              dependencies=dependencies)
 
     def has_header(self, hname: str, prefix: str, env: 'Environment', *,
@@ -333,7 +333,7 @@ class CLikeCompiler(Compiler):
         #else
          #include <{hname}>
         #endif'''
-        return self.compiles(code, env, extra_args=extra_args,
+        return self.compiles(code, extra_args=extra_args,
                              dependencies=dependencies, mode=CompileCheckMode.PREPROCESS, disable_cache=disable_cache)
 
     def has_header_symbol(self, hname: str, symbol: str, prefix: str,
@@ -349,7 +349,7 @@ class CLikeCompiler(Compiler):
             #endif
             return 0;
         }}'''
-        return self.compiles(t, env, extra_args=extra_args,
+        return self.compiles(t, extra_args=extra_args,
                              dependencies=dependencies)
 
     def _get_basic_compiler_args(self, env: 'Environment', mode: CompileCheckMode) -> T.Tuple[T.List[str], T.List[str]]:
@@ -452,7 +452,7 @@ class CLikeCompiler(Compiler):
         t = f'''{prefix}
         #include <stddef.h>
         int main(void) {{ static int a[1-2*!({expression})]; a[0]=0; return 0; }}'''
-        return self.compiles(t, env, extra_args=extra_args,
+        return self.compiles(t, extra_args=extra_args,
                              dependencies=dependencies)[0]
 
     def cross_compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
@@ -551,7 +551,7 @@ class CLikeCompiler(Compiler):
             {typename} something;
             return 0;
         }}'''
-        if not self.compiles(t, env, extra_args=extra_args,
+        if not self.compiles(t, extra_args=extra_args,
                              dependencies=dependencies)[0]:
             return -1
         return self.cross_compute_int(f'sizeof({typename})', None, None, None, prefix, env, extra_args, dependencies)
@@ -591,7 +591,7 @@ class CLikeCompiler(Compiler):
             {typename} something;
             return 0;
         }}'''
-        if not self.compiles(t, env, extra_args=extra_args,
+        if not self.compiles(t, extra_args=extra_args,
                              dependencies=dependencies)[0]:
             return -1
         t = f'''{prefix}
@@ -880,7 +880,7 @@ class CLikeCompiler(Compiler):
             {members}
             (void) foo;
         }}'''
-        return self.compiles(t, env, extra_args=extra_args,
+        return self.compiles(t, extra_args=extra_args,
                              dependencies=dependencies)
 
     def has_type(self, typename: str, prefix: str, env: 'Environment',
@@ -890,7 +890,7 @@ class CLikeCompiler(Compiler):
         void bar(void) {{
             (void) sizeof({typename});
         }}'''
-        return self.compiles(t, env, extra_args=extra_args,
+        return self.compiles(t, extra_args=extra_args,
                              dependencies=dependencies)
 
     def _symbols_have_underscore_prefix_searchbin(self, env: 'Environment') -> bool:
@@ -1293,7 +1293,7 @@ class CLikeCompiler(Compiler):
 
     def has_arguments(self, args: T.List[str], env: 'Environment', code: str,
                       mode: CompileCheckMode) -> T.Tuple[bool, bool]:
-        return self.compiles(code, env, extra_args=args, mode=mode)
+        return self.compiles(code, extra_args=args, mode=mode)
 
     def _has_multi_arguments(self, args: T.List[str], env: 'Environment', code: str) -> T.Tuple[bool, bool]:
         new_args: T.List[str] = []
@@ -1364,7 +1364,7 @@ class CLikeCompiler(Compiler):
             if name in {'dllimport', 'dllexport'}:
                 return False, False
 
-        return self.compiles(self.attribute_check_func(name), env,
+        return self.compiles(self.attribute_check_func(name),
                              extra_args=self.get_has_func_attribute_extra_args(name))
 
     def get_assert_args(self, disable: bool, env: 'Environment') -> T.List[str]:

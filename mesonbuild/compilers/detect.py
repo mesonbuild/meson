@@ -930,7 +930,7 @@ def _detect_objc_or_objcpp_compiler(env: 'Environment', lang: str, for_machine: 
             c = comp(
                 ccache, compiler, version, for_machine, env,
                 defines, linker=linker)
-            if not c.compiles('int main(void) { return 0; }', env)[0]:
+            if not c.compiles('int main(void) { return 0; }')[0]:
                 popen_exceptions[join_args(compiler)] = f'GCC was not built with support for {"objective-c" if lang == "objc" else "objective-c++"}'
                 continue
             return c

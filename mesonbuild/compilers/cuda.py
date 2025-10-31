@@ -607,7 +607,7 @@ class CudaCompiler(Compiler):
             #endif
             return 0;
         }}'''
-        found, cached = self.compiles(t.format_map(fargs), env, extra_args=extra_args, dependencies=dependencies)
+        found, cached = self.compiles(t.format_map(fargs), extra_args=extra_args, dependencies=dependencies)
         if found:
             return True, cached
         # Check if it's a class or a template
@@ -617,7 +617,7 @@ class CudaCompiler(Compiler):
         int main(void) {{
             return 0;
         }}'''
-        return self.compiles(t.format_map(fargs), env, extra_args=extra_args, dependencies=dependencies)
+        return self.compiles(t.format_map(fargs), extra_args=extra_args, dependencies=dependencies)
 
     _CPP14_VERSION = '>=9.0'
     _CPP17_VERSION = '>=11.0'
@@ -815,9 +815,9 @@ class CudaCompiler(Compiler):
 
     def has_multi_arguments(self, args: T.List[str], env: Environment) -> T.Tuple[bool, bool]:
         args = self._to_host_flags(args)
-        return self.compiles('int main(void) { return 0; }', env, extra_args=args, mode=CompileCheckMode.COMPILE)
+        return self.compiles('int main(void) { return 0; }', extra_args=args, mode=CompileCheckMode.COMPILE)
 
     def has_multi_link_arguments(self, args: T.List[str], env: Environment) -> T.Tuple[bool, bool]:
         args = ['-Xnvlink='+self._shield_nvcc_list_arg(s) for s in self.linker.fatal_warnings()]
         args += self._to_host_flags(args, phase=Phase.LINKER)
-        return self.compiles('int main(void) { return 0; }', env, extra_args=args, mode=CompileCheckMode.LINK)
+        return self.compiles('int main(void) { return 0; }', extra_args=args, mode=CompileCheckMode.LINK)
