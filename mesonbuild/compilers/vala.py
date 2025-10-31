@@ -202,7 +202,7 @@ class ValaCompiler(Compiler):
               disable_cache: bool = False) -> T.Tuple[bool, bool]:
         self.force_link = True
         if compiler:
-            with compiler._build_wrapper(code, self.environment, dependencies=dependencies, want_output=True) as r:
+            with compiler._build_wrapper(code, dependencies=dependencies, want_output=True) as r:
                 objfile = mesonlib.File.from_absolute_file(r.output_name)
                 result = self.compiles(objfile, extra_args=extra_args,
                                        dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=True)
