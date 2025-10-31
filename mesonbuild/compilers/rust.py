@@ -154,7 +154,7 @@ class RustCompiler(Compiler):
         # This is done here because it's the only place we have access to
         # environment object, and sanity_check() is called after the compiler
         # options have been initialized.
-        nightly_opt = self.get_compileropt_value('nightly', environment, None)
+        nightly_opt = self.get_compileropt_value('nightly', None)
         if nightly_opt == 'enabled' and not self.is_nightly:
             raise EnvironmentException(f'Rust compiler {self.name_string()} is not a nightly compiler as required by the "nightly" option.')
         self.allow_nightly = nightly_opt != 'disabled' and self.is_nightly
@@ -329,7 +329,7 @@ class RustCompiler(Compiler):
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
             args.append('--edition=' + std)
