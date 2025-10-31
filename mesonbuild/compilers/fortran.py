@@ -284,7 +284,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
@@ -414,7 +414,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
         assert isinstance(std, str)
         if std != 'none':
@@ -472,7 +472,7 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
         assert isinstance(std, str)
         if std != 'none':

@@ -1422,16 +1422,15 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def get_compileropt_value(self,
                               key: T.Union[str, OptionKey],
-                              env: Environment,
                               target: T.Optional[BuildTarget],
                               subproject: T.Optional[str] = None
                               ) -> options.ElementaryOptionValues:
         if isinstance(key, str):
             key = self.form_compileropt_key(key)
         if target:
-            return env.coredata.get_option_for_target(target, key)
+            return self.environment.coredata.get_option_for_target(target, key)
         else:
-            return env.coredata.optstore.get_value_for(key.evolve(subproject=subproject))
+            return self.environment.coredata.optstore.get_value_for(key.evolve(subproject=subproject))
 
     def _update_language_stds(self, opts: MutableKeyedOptionDictType, value: T.List[str]) -> None:
         key = self.form_compileropt_key('std')

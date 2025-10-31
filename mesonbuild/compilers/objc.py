@@ -116,7 +116,7 @@ class ClangObjCCompiler(ClangCStds, ClangCompiler, ObjCCompiler):
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
         key = OptionKey('c_std', machine=self.for_machine)
-        std = self.get_compileropt_value(key, env, target, subproject)
+        std = self.get_compileropt_value(key, target, subproject)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
