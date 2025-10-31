@@ -821,7 +821,7 @@ class CLikeCompiler(Compiler):
             head, main = self._no_prototype_templ()
         templ = head + stubs_fail + main
 
-        res, cached = self.links(templ.format(**fargs), env, extra_args=extra_args,
+        res, cached = self.links(templ.format(**fargs), extra_args=extra_args,
                                  dependencies=dependencies)
         if res:
             return True, cached
@@ -863,7 +863,7 @@ class CLikeCompiler(Compiler):
         #endif
         return 0;
         }}'''
-        return self.links(t.format(**fargs), env, extra_args=extra_args,
+        return self.links(t.format(**fargs), extra_args=extra_args,
                           dependencies=dependencies)
 
     def has_members(self, typename: str, membernames: T.List[str],
@@ -1143,7 +1143,7 @@ class CLikeCompiler(Compiler):
             largs = self.get_linker_always_args() + self.get_allow_undefined_link_args()
             extra_args = cargs + self.linker_to_compiler_args(largs)
 
-            if self.links(code, env, extra_args=extra_args, disable_cache=True)[0]:
+            if self.links(code, extra_args=extra_args, disable_cache=True)[0]:
                 return cargs
             # Don't do a manual search for internal libs
             if libname in self.internal_libs:
@@ -1175,7 +1175,7 @@ class CLikeCompiler(Compiler):
                     if not os.path.isfile(trial):
                         continue
                     extra_args = [trial] + lcargs
-                    if self.links(code, env, extra_args=extra_args, disable_cache=True)[0]:
+                    if self.links(code, extra_args=extra_args, disable_cache=True)[0]:
                         trial_result = trial
                         break
 
@@ -1244,7 +1244,7 @@ class CLikeCompiler(Compiler):
         # then we must also pass -L/usr/lib to pick up libSystem.dylib
         extra_args = [] if allow_system else ['-Z', '-L/usr/lib']
         link_args += ['-framework', name]
-        if self.links(code, env, extra_args=(extra_args + link_args), disable_cache=True)[0]:
+        if self.links(code, extra_args=(extra_args + link_args), disable_cache=True)[0]:
             return link_args
         return None
 

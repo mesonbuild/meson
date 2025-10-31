@@ -195,20 +195,20 @@ class ValaCompiler(Compiler):
         args += extra_args
         return args
 
-    def links(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
+    def links(self, code: 'mesonlib.FileOrString', *,
               compiler: T.Optional['Compiler'] = None,
               extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
               dependencies: T.Optional[T.List['Dependency']] = None,
               disable_cache: bool = False) -> T.Tuple[bool, bool]:
         self.force_link = True
         if compiler:
-            with compiler._build_wrapper(code, env, dependencies=dependencies, want_output=True) as r:
+            with compiler._build_wrapper(code, self.environment, dependencies=dependencies, want_output=True) as r:
                 objfile = mesonlib.File.from_absolute_file(r.output_name)
-                result = self.compiles(objfile, env, extra_args=extra_args,
+                result = self.compiles(objfile, self.environment, extra_args=extra_args,
                                        dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=True)
                 self.force_link = False
                 return result
-        result = self.compiles(code, env, extra_args=extra_args,
+        result = self.compiles(code, self.environment, extra_args=extra_args,
                                dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=disable_cache)
         self.force_link = False
         return result
