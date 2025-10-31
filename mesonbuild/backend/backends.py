@@ -1374,21 +1374,25 @@ class Backend:
                 result[name] = b
         return result
 
-    def get_testlike_targets(self, benchmark: bool = False) -> T.OrderedDict[str, T.Union[build.BuildTarget, build.CustomTarget]]:
-        result: T.OrderedDict[str, T.Union[build.BuildTarget, build.CustomTarget]] = OrderedDict()
+    def get_testlike_targets(self, benchmark: bool = False) -> T.Iterable[T.Union[build.BuildTarget, build.CustomTarget]]:
         targets = self.build.get_benchmarks() if benchmark else self.build.get_tests()
         for t in targets:
             exe = t.exe
-            if isinstance(exe, (build.CustomTarget, build.BuildTarget)):
-                result[exe.get_id()] = exe
+            if isinstance(exe, build.CustomTargetIndex):
+                yield exe.target
+            elif isinstance(exe, (build.CustomTarget, build.BuildTarget)):
+                yield exe
             for arg in t.cmd_args:
-                if not isinstance(arg, (build.CustomTarget, build.BuildTarget)):
-                    continue
-                result[arg.get_id()] = arg
+                if isinstance(arg, build.CustomTargetIndex):
+                    yield arg.target
+                elif isinstance(arg, (build.CustomTarget, build.BuildTarget)):
+                    yield arg
             for dep in t.depends:
                 assert isinstance(dep, (build.CustomTarget, build.BuildTarget, build.CustomTargetIndex))
-                result[dep.get_id()] = dep
-        return result
+                if isinstance(dep, build.CustomTargetIndex):
+                    yield dep.target
+                else:
+                    yield dep
 
     @lru_cache(maxsize=None)
     def get_custom_target_provided_by_generated_source(self, generated_source: build.CustomTarget) -> 'ImmutableListProtocol[str]':
