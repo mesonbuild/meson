@@ -297,7 +297,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
     def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: CompileCheckMode) -> T.Tuple[bool, bool]:
         warning_text = '4044' if mode == CompileCheckMode.LINK else '9002'
-        with self._build_wrapper(code, env, extra_args=args, mode=mode) as p:
+        with self._build_wrapper(code, extra_args=args, mode=mode) as p:
             if p.returncode != 0:
                 return False, p.cached
             return not (warning_text in p.stderr or warning_text in p.stdout), p.cached

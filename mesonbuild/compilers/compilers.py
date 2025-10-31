@@ -686,7 +686,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         need_exe_wrapper = env.need_exe_wrapper(self.for_machine)
         if need_exe_wrapper and not env.has_exe_wrapper():
             raise CrossNoRunException('Can not run test applications in this cross environment.')
-        with self._build_wrapper(code, env, extra_args, dependencies, mode=CompileCheckMode.LINK, want_output=True) as p:
+        with self._build_wrapper(code, extra_args, dependencies, mode=CompileCheckMode.LINK, want_output=True) as p:
             if p.returncode != 0:
                 mlog.debug(f'Could not compile test file {p.input_name}: {p.returncode}\n')
                 return RunResult(False)
@@ -1339,7 +1339,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return args
 
     @contextlib.contextmanager
-    def _build_wrapper(self, code: 'mesonlib.FileOrString', env: 'Environment',
+    def _build_wrapper(self, code: 'mesonlib.FileOrString',
                        extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                        dependencies: T.Optional[T.List['Dependency']] = None,
                        mode: CompileCheckMode = CompileCheckMode.COMPILE, want_output: bool = False,
@@ -1349,12 +1349,12 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         This method isn't meant to be called externally, it's mean to be
         wrapped by other methods like compiles() and links().
         """
-        args = self.build_wrapper_args(env, extra_args, dependencies, mode)
+        args = self.build_wrapper_args(self.environment, extra_args, dependencies, mode)
         if disable_cache or want_output:
-            with self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=env.scratch_dir) as r:
+            with self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=self.environment.scratch_dir) as r:
                 yield r
         else:
-            with self.cached_compile(code, env.coredata, extra_args=args, mode=mode, temp_dir=env.scratch_dir) as r:
+            with self.cached_compile(code, self.environment.coredata, extra_args=args, mode=mode, temp_dir=self.environment.scratch_dir) as r:
                 yield r
 
     def compiles(self, code: 'mesonlib.FileOrString', *,
@@ -1368,7 +1368,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             A tuple of (bool, bool). The first value is whether the check
             succeeded, and the second is whether it was retrieved from a cache
         """
-        with self._build_wrapper(code, self.environment, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
+        with self._build_wrapper(code, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
             return p.returncode == 0, p.cached
 
     def links(self, code: 'mesonlib.FileOrString', *,
@@ -1377,7 +1377,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
               dependencies: T.Optional[T.List['Dependency']] = None,
               disable_cache: bool = False) -> T.Tuple[bool, bool]:
         if compiler:
-            with compiler._build_wrapper(code, self.environment, dependencies=dependencies, want_output=True) as r:
+            with compiler._build_wrapper(code, dependencies=dependencies, want_output=True) as r:
                 objfile = mesonlib.File.from_absolute_file(r.output_name)
                 return self.compiles(objfile, extra_args=extra_args,
                                      dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=True)
