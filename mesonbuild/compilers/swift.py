@@ -190,7 +190,7 @@ class SwiftCompiler(Compiler):
 ''')
         pc = subprocess.Popen(self.exelist + extra_flags + ['-emit-executable', '-o', output_name, src], cwd=work_dir)
         pc.wait()
-        self.run_sanity_check(environment, [output_name], work_dir)
+        self.run_sanity_check([output_name], work_dir)
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return clike_debug_args[is_debug]
