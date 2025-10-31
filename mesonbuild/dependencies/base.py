@@ -426,7 +426,6 @@ class ExternalDependency(Dependency):
             static = T.cast('bool', self.env.coredata.optstore.get_value_for(OptionKey('prefer_static')))
         self.static = static
         self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
-        self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
         # Is this dependency to be run on the build platform?
         self.for_machine = kwargs.get('native', MachineChoice.HOST)
         self.clib_compiler = detect_compiler(self.name, environment, self.for_machine, self.language)
