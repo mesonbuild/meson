@@ -412,7 +412,7 @@ class IconvBuiltinDependency(BuiltinDependency):
         self.feature_since = ('0.60.0', "consider checking for `iconv_open` with and without `find_library('iconv')`")
         code = '''#include <iconv.h>\n\nint main() {\n    iconv_open("","");\n}''' # [ignore encoding] this is C, not python, Mr. Lint
 
-        if self.clib_compiler.links(code, env)[0]:
+        if self.clib_compiler.links(code)[0]:
             self.is_found = True
 
 
@@ -434,7 +434,7 @@ class IntlBuiltinDependency(BuiltinDependency):
         self.feature_since = ('0.59.0', "consider checking for `ngettext` with and without `find_library('intl')`")
         code = '''#include <libintl.h>\n\nint main() {\n    gettext("Hello world");\n}'''
 
-        if self.clib_compiler.links(code, env)[0]:
+        if self.clib_compiler.links(code)[0]:
             self.is_found = True
 
 
