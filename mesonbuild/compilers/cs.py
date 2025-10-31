@@ -101,7 +101,7 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
             cmdlist = [self.runner, obj]
         else:
             cmdlist = [os.path.join(work_dir, obj)]
-        self.run_sanity_check(environment, cmdlist, work_dir, use_exe_wrapper_for_cross=False)
+        self.run_sanity_check(cmdlist, work_dir, use_exe_wrapper_for_cross=False)
 
     def needs_static_linker(self) -> bool:
         return False

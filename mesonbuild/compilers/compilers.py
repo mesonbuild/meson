@@ -1223,13 +1223,13 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         is good enough here.
         """
 
-    def run_sanity_check(self, environment: Environment, cmdlist: T.List[str], work_dir: str, use_exe_wrapper_for_cross: bool = True) -> T.Tuple[str, str]:
+    def run_sanity_check(self, cmdlist: T.List[str], work_dir: str, use_exe_wrapper_for_cross: bool = True) -> T.Tuple[str, str]:
         # Run sanity check
         if self.is_cross and use_exe_wrapper_for_cross:
-            if not environment.has_exe_wrapper():
+            if not self.environment.has_exe_wrapper():
                 # Can't check if the binaries run so we have to assume they do
                 return ('', '')
-            cmdlist = environment.exe_wrapper.get_command() + cmdlist
+            cmdlist = self.environment.exe_wrapper.get_command() + cmdlist
         mlog.debug('Running test binary command: ', mesonlib.join_args(cmdlist))
         try:
             pe, stdo, stde = Popen_safe_logged(cmdlist, 'Sanity check', cwd=work_dir)

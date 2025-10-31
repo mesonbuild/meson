@@ -149,7 +149,7 @@ class RustCompiler(Compiler):
         if pc.returncode != 0:
             raise EnvironmentException(f'Rust compiler {self.name_string()} cannot compile programs.')
         self._native_static_libs(work_dir, source_name)
-        self.run_sanity_check(environment, [output_name], work_dir)
+        self.run_sanity_check([output_name], work_dir)
         # Check if we are allowed to use nightly features.
         # This is done here because it's the only place we have access to
         # environment object, and sanity_check() is called after the compiler

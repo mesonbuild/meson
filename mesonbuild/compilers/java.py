@@ -90,7 +90,7 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
         runner = shutil.which(self.javarunner)
         if runner:
             cmdlist = [runner, '-cp', '.', obj]
-            self.run_sanity_check(environment, cmdlist, work_dir, use_exe_wrapper_for_cross=False)
+            self.run_sanity_check(cmdlist, work_dir, use_exe_wrapper_for_cross=False)
         else:
             m = "Java Virtual Machine wasn't found, but it's needed by Meson. " \
                 "Please install a JRE.\nIf you have specific needs where this " \
