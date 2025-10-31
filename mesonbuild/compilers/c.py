@@ -131,7 +131,7 @@ class ClangCCompiler(ClangCStds, ClangCompiler, CCompiler):
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
@@ -139,7 +139,7 @@ class ClangCCompiler(ClangCStds, ClangCompiler, CCompiler):
 
     def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         if self.info.is_windows() or self.info.is_cygwin():
-            retval = self.get_compileropt_value('winlibs', env, target, subproject)
+            retval = self.get_compileropt_value('winlibs', target, subproject)
             assert isinstance(retval, list)
             libs: T.List[str] = retval.copy()
             for l in libs:
@@ -216,7 +216,7 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
@@ -260,7 +260,7 @@ class GnuCCompiler(GnuCStds, GnuCompiler, CCompiler):
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
         key = OptionKey('c_std', machine=self.for_machine)
-        std = self.get_compileropt_value(key, env, target, subproject)
+        std = self.get_compileropt_value(key, target, subproject)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
@@ -269,7 +269,7 @@ class GnuCCompiler(GnuCStds, GnuCompiler, CCompiler):
     def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         if self.info.is_windows() or self.info.is_cygwin():
             # without a typeddict mypy can't figure this out
-            retval = self.get_compileropt_value('winlibs', env, target, subproject)
+            retval = self.get_compileropt_value('winlibs', target, subproject)
 
             assert isinstance(retval, list)
             libs: T.List[str] = retval.copy()
@@ -379,7 +379,7 @@ class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
@@ -405,7 +405,7 @@ class VisualStudioLikeCCompilerMixin(CompilerMixinBase):
         return opts
 
     def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
-        retval = self.get_compileropt_value('winlibs', env, target, subproject)
+        retval = self.get_compileropt_value('winlibs', target, subproject)
         assert isinstance(retval, list)
         libs: T.List[str] = retval.copy()
         for l in libs:
@@ -441,7 +441,7 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
 
         # As of MVSC 16.8, /std:c11 and /std:c17 are the only valid C standard options.
         if std in {'c11'}:
@@ -461,7 +461,7 @@ class ClangClCCompiler(ClangCStds, ClangClCompiler, VisualStudioLikeCCompilerMix
         ClangClCompiler.__init__(self, target)
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != "none":
             return [f'/clang:-std={std}']
@@ -490,7 +490,7 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std == 'c89':
             mlog.log("ICL doesn't explicitly implement c89, setting the standard to 'none', which is close.", once=True)
@@ -523,7 +523,7 @@ class ArmCCompiler(ArmCompiler, CCompiler):
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
             args.append('--' + std)
@@ -556,7 +556,7 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std == 'c89':
             args.append('-lang=c')
@@ -604,7 +604,7 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-ansi')
@@ -699,7 +699,7 @@ class TICCompiler(TICompiler, CCompiler):
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
             args.append('--' + std)
@@ -733,7 +733,7 @@ class MetrowerksCCompilerARM(MetrowerksCompiler, CCompiler):
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-lang')
@@ -761,7 +761,7 @@ class MetrowerksCCompilerEmbeddedPowerPC(MetrowerksCompiler, CCompiler):
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-lang ' + std)
