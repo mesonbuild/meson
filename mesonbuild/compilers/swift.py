@@ -37,11 +37,10 @@ class SwiftCompiler(Compiler):
     id = 'llvm'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, env: Environment, full_version: T.Optional[str] = None,
+                 env: Environment, full_version: T.Optional[str] = None,
                  linker: T.Optional['DynamicLinker'] = None):
         super().__init__([], exelist, version, for_machine, env,
-                         is_cross=is_cross, full_version=full_version,
-                         linker=linker)
+                         full_version=full_version, linker=linker)
         self.version = version
         if self.info.is_darwin():
             try:

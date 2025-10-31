@@ -39,11 +39,11 @@ class FortranCompiler(CLikeCompiler, Compiler):
 
     language = 'fortran'
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment, linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         Compiler.__init__(self, [], exelist, version, for_machine, env,
-                          is_cross=is_cross, full_version=full_version, linker=linker)
+                          full_version=full_version, linker=linker)
         CLikeCompiler.__init__(self)
 
     def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
@@ -257,14 +257,13 @@ class FortranCompiler(CLikeCompiler, Compiler):
 
 class GnuFortranCompiler(GnuCompiler, FortranCompiler):
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment,
                  defines: T.Optional[T.Dict[str, str]] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, env, linker=linker,
-                                 full_version=full_version)
+                                 env, linker=linker, full_version=full_version)
         GnuCompiler.__init__(self, defines)
         default_warn_args = ['-Wall']
         self.warn_args = {'0': [],
@@ -325,12 +324,12 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
 
 
 class ElbrusFortranCompiler(ElbrusCompiler, FortranCompiler):
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment,
                  defines: T.Optional[T.Dict[str, str]] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
-        FortranCompiler.__init__(self, exelist, version, for_machine, is_cross,
+        FortranCompiler.__init__(self, exelist, version, for_machine,
                                  env, linker=linker, full_version=full_version)
         ElbrusCompiler.__init__(self)
 
@@ -348,12 +347,11 @@ class G95FortranCompiler(FortranCompiler):
     LINKER_PREFIX = '-Wl,'
     id = 'g95'
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment, linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, env, linker=linker,
-                                 full_version=full_version)
+                                 env, linker=linker, full_version=full_version)
         default_warn_args = ['-Wall']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -393,12 +391,11 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
 
     id = 'intel'
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment, linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, env, linker=linker,
-                                 full_version=full_version)
+                                 env, linker=linker, full_version=full_version)
         # FIXME: Add support for OS X and Windows in detect_fortran_compiler so
         # we are sent the type of compiler
         IntelGnuLikeCompiler.__init__(self)
@@ -453,12 +450,11 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
     always_args = ['/nologo']
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, env: Environment, target: str,
+                 env: Environment, target: str,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, env, linker=linker,
-                                 full_version=full_version)
+                                 env, linker=linker, full_version=full_version)
         IntelVisualStudioLikeCompiler.__init__(self, target)
         self.file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp', )
 
@@ -498,12 +494,11 @@ class PathScaleFortranCompiler(FortranCompiler):
 
     id = 'pathscale'
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment, linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, env, linker=linker,
-                                 full_version=full_version)
+                                 env, linker=linker, full_version=full_version)
         default_warn_args = ['-fullwarn']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -517,12 +512,11 @@ class PathScaleFortranCompiler(FortranCompiler):
 
 class PGIFortranCompiler(PGICompiler, FortranCompiler):
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment, linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, env, linker=linker,
-                                 full_version=full_version)
+                                 env, linker=linker, full_version=full_version)
         PGICompiler.__init__(self)
 
         default_warn_args = ['-Minform=inform']
@@ -542,12 +536,11 @@ class NvidiaHPC_FortranCompiler(PGICompiler, FortranCompiler):
 
     id = 'nvidia_hpc'
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment, linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, env, linker=linker,
-                                 full_version=full_version)
+                                 env, linker=linker, full_version=full_version)
         PGICompiler.__init__(self)
 
         default_warn_args = ['-Minform=inform']
@@ -562,12 +555,11 @@ class ClassicFlangFortranCompiler(ClangCompiler, FortranCompiler):
 
     id = 'flang'
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment, linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, env, linker=linker,
-                                 full_version=full_version)
+                                 env, linker=linker, full_version=full_version)
         ClangCompiler.__init__(self, {})
         default_warn_args = ['-Minform=inform']
         self.warn_args = {'0': [],
@@ -597,12 +589,11 @@ class LlvmFlangFortranCompiler(ClangCompiler, FortranCompiler):
 
     id = 'llvm-flang'
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment, linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, env, linker=linker,
-                                 full_version=full_version)
+                                 env, linker=linker, full_version=full_version)
         ClangCompiler.__init__(self, {})
         default_warn_args = ['-Wall']
         self.warn_args = {'0': [],
@@ -651,12 +642,11 @@ class Open64FortranCompiler(FortranCompiler):
 
     id = 'open64'
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment, linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, env, linker=linker,
-                                 full_version=full_version)
+                                 env, linker=linker, full_version=full_version)
         default_warn_args = ['-fullwarn']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -672,12 +662,11 @@ class NAGFortranCompiler(FortranCompiler):
 
     id = 'nagfor'
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment, linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, env, linker=linker,
-                                 full_version=full_version)
+                                 env, linker=linker, full_version=full_version)
         # Warnings are on by default; -w disables (by category):
         self.warn_args = {
             '0': ['-w=all'],

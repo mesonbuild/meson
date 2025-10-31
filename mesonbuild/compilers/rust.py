@@ -98,12 +98,10 @@ class RustCompiler(Compiler):
     }
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, env: Environment,
-                 full_version: T.Optional[str] = None,
+                 env: Environment, full_version: T.Optional[str] = None,
                  linker: T.Optional['DynamicLinker'] = None):
         super().__init__([], exelist, version, for_machine, env,
-                         is_cross=is_cross, full_version=full_version,
-                         linker=linker)
+                         full_version=full_version, linker=linker)
         self.rustup_run_and_args: T.Optional[T.Tuple[T.List[str], T.List[str]]] = get_rustup_run_and_args(exelist)
         self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_ndebug', 'b_pgo']})
         if isinstance(self.linker, VisualStudioLikeLinkerMixin):
@@ -456,7 +454,7 @@ class RustCompiler(Compiler):
             return None
 
         return RustdocTestCompiler(exelist, self.version, self.for_machine,
-                                   self.is_cross, self.environment,
+                                   self.environment,
                                    full_version=self.full_version,
                                    linker=self.linker, rustc=self)
 
@@ -488,10 +486,10 @@ class RustdocTestCompiler(RustCompiler):
     id = 'rustdoc --test'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, env: Environment, full_version: T.Optional[str],
+                 env: Environment, full_version: T.Optional[str],
                  linker: T.Optional['DynamicLinker'], rustc: RustCompiler):
         super().__init__(exelist, version, for_machine,
-                         is_cross, env, full_version, linker)
+                         env, full_version, linker)
         self.rustc = rustc
 
     @functools.lru_cache(maxsize=None)

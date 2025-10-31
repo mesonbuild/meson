@@ -474,7 +474,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
                  for_machine: MachineChoice, environment: Environment,
                  linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None, is_cross: bool = False):
+                 full_version: T.Optional[str] = None):
         self.exelist = ccache + exelist
         self.exelist_no_ccache = exelist
         self.file_suffixes = lang_suffixes[self.language]
