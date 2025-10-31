@@ -204,11 +204,11 @@ class ValaCompiler(Compiler):
         if compiler:
             with compiler._build_wrapper(code, self.environment, dependencies=dependencies, want_output=True) as r:
                 objfile = mesonlib.File.from_absolute_file(r.output_name)
-                result = self.compiles(objfile, self.environment, extra_args=extra_args,
+                result = self.compiles(objfile, extra_args=extra_args,
                                        dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=True)
                 self.force_link = False
                 return result
-        result = self.compiles(code, self.environment, extra_args=extra_args,
+        result = self.compiles(code, extra_args=extra_args,
                                dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=disable_cache)
         self.force_link = False
         return result

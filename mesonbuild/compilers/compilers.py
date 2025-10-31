@@ -1357,7 +1357,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             with self.cached_compile(code, env.coredata, extra_args=args, mode=mode, temp_dir=env.scratch_dir) as r:
                 yield r
 
-    def compiles(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
+    def compiles(self, code: 'mesonlib.FileOrString', *,
                  extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
                  dependencies: T.Optional[T.List['Dependency']] = None,
                  mode: CompileCheckMode = CompileCheckMode.COMPILE,
@@ -1368,7 +1368,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             A tuple of (bool, bool). The first value is whether the check
             succeeded, and the second is whether it was retrieved from a cache
         """
-        with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
+        with self._build_wrapper(code, self.environment, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
             return p.returncode == 0, p.cached
 
     def links(self, code: 'mesonlib.FileOrString', *,
@@ -1379,10 +1379,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         if compiler:
             with compiler._build_wrapper(code, self.environment, dependencies=dependencies, want_output=True) as r:
                 objfile = mesonlib.File.from_absolute_file(r.output_name)
-                return self.compiles(objfile, self.environment, extra_args=extra_args,
+                return self.compiles(objfile, extra_args=extra_args,
                                      dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=True)
 
-        return self.compiles(code, self.environment, extra_args=extra_args,
+        return self.compiles(code, extra_args=extra_args,
                              dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=disable_cache)
 
     def get_feature_args(self, kwargs: DFeatures, build_to_src: str) -> T.List[str]:
