@@ -395,7 +395,7 @@ class CLikeCompiler(Compiler):
         cargs += self.get_compiler_args_for_mode(mode)
         return cargs, largs
 
-    def build_wrapper_args(self, env: 'Environment',
+    def build_wrapper_args(self,
                            extra_args: T.Union[None, arglist.CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                            dependencies: T.Optional[T.List['Dependency']],
                            mode: CompileCheckMode = CompileCheckMode.COMPILE) -> arglist.CompilerArgs:
@@ -420,13 +420,13 @@ class CLikeCompiler(Compiler):
             cargs += d.get_compile_args()
             system_incdir = d.get_include_type() == 'system'
             for i in d.get_include_dirs():
-                for idir in i.to_string_list(env.get_source_dir(), env.get_build_dir()):
+                for idir in i.to_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
                     cargs.extend(self.get_include_args(idir, system_incdir))
             if mode is CompileCheckMode.LINK:
                 # Add link flags needed to find dependencies
                 largs += d.get_link_args()
 
-        ca, la = self._get_basic_compiler_args(env, mode)
+        ca, la = self._get_basic_compiler_args(self.environment, mode)
         cargs += ca
 
         cargs += self.get_compiler_check_args(mode)
@@ -654,7 +654,7 @@ class CLikeCompiler(Compiler):
         # define {dname} {sentinel_undef}
         #endif
         {delim_start}{dname}{delim_end}'''
-        args = self.build_wrapper_args(env, extra_args, dependencies,
+        args = self.build_wrapper_args(extra_args, dependencies,
                                        mode=CompileCheckMode.PREPROCESS).to_native()
         func = functools.partial(self.cached_compile, code, env.coredata, extra_args=args, mode=CompileCheckMode.PREPROCESS)
         if disable_cache:
