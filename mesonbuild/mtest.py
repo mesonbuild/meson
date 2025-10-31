@@ -2091,7 +2091,7 @@ class TestHarness:
             self.open_logfiles()
 
             # TODO: this is the default for python 3.8
-            if sys.platform == 'win32':
+            if sys.platform == 'win32' and sys.version_info < (3, 8):
                 asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
             asyncio.run(self._run_tests(runners))
