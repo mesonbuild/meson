@@ -41,6 +41,10 @@ class TICompiler(Compiler):
 
     id = 'ti'
 
+    if T.TYPE_CHECKING:
+        # Older versions of mypy can't figure this out for some reason.
+        is_cross: bool
+
     def __init__(self) -> None:
         if not self.is_cross:
             raise EnvironmentException('TI compilers only support cross-compilation.')

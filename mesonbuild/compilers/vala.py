@@ -25,8 +25,8 @@ class ValaCompiler(Compiler):
     id = 'valac'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, environment: Environment):
-        super().__init__([], exelist, version, for_machine, environment, is_cross=is_cross)
+                 environment: Environment):
+        super().__init__([], exelist, version, for_machine, environment)
         self.version = version
         self.base_options = {OptionKey('b_colorout')}
         self.force_link = False
