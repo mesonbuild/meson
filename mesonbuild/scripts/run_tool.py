@@ -121,7 +121,7 @@ def all_clike_files(name: str, srcdir: Path, builddir: Path) -> T.Iterable[Path]
         yield f
 
 def run_clang_tool(name: str, srcdir: Path, builddir: Path, fn: T.Callable[..., T.Coroutine[None, None, int]], *args: T.Any) -> int:
-    if sys.platform == 'win32':
+    if sys.platform == 'win32' and sys.version_info < (3, 8):
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
     def wrapper(path: Path) -> T.Iterable[T.Coroutine[None, None, int]]:
@@ -129,7 +129,7 @@ def run_clang_tool(name: str, srcdir: Path, builddir: Path, fn: T.Callable[..., 
     return asyncio.run(_run_workers(all_clike_files(name, srcdir, builddir), wrapper))
 
 def run_clang_tool_on_sources(name: str, srcdir: Path, builddir: Path, fn: T.Callable[..., T.Coroutine[None, None, int]], *args: T.Any) -> int:
-    if sys.platform == 'win32':
+    if sys.platform == 'win32' and sys.version_info < (3, 8):
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
     source_files = set()
@@ -150,7 +150,7 @@ def run_clang_tool_on_sources(name: str, srcdir: Path, builddir: Path, fn: T.Cal
 
 def run_tool_on_targets(fn: T.Callable[[T.Dict[str, T.Any]],
                                        T.Iterable[T.Coroutine[None, None, int]]]) -> int:
-    if sys.platform == 'win32':
+    if sys.platform == 'win32' and sys.version_info < (3, 8):
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
     with open('meson-info/intro-targets.json', encoding='utf-8') as fp:
