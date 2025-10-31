@@ -1371,18 +1371,18 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
             return p.returncode == 0, p.cached
 
-    def links(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
+    def links(self, code: 'mesonlib.FileOrString', *,
               compiler: T.Optional['Compiler'] = None,
               extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
               dependencies: T.Optional[T.List['Dependency']] = None,
               disable_cache: bool = False) -> T.Tuple[bool, bool]:
         if compiler:
-            with compiler._build_wrapper(code, env, dependencies=dependencies, want_output=True) as r:
+            with compiler._build_wrapper(code, self.environment, dependencies=dependencies, want_output=True) as r:
                 objfile = mesonlib.File.from_absolute_file(r.output_name)
-                return self.compiles(objfile, env, extra_args=extra_args,
+                return self.compiles(objfile, self.environment, extra_args=extra_args,
                                      dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=True)
 
-        return self.compiles(code, env, extra_args=extra_args,
+        return self.compiles(code, self.environment, extra_args=extra_args,
                              dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=disable_cache)
 
     def get_feature_args(self, kwargs: DFeatures, build_to_src: str) -> T.List[str]:

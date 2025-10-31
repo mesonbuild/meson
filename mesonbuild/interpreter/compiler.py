@@ -563,7 +563,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False, endl=None)
-        result, cached = self.compiler.links(code, self.environment,
+        result, cached = self.compiler.links(code,
                                              compiler=compiler,
                                              extra_args=extra_args,
                                              dependencies=deps)
