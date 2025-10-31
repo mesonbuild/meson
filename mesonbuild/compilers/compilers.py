@@ -716,7 +716,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                    extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None,
                    dependencies: T.Optional[T.List['Dependency']] = None) -> RunResult:
         run_check_cache = env.coredata.run_check_cache
-        args = self.build_wrapper_args(env, extra_args, dependencies, CompileCheckMode('link'))
+        args = self.build_wrapper_args(extra_args, dependencies, CompileCheckMode('link'))
         key = (code, tuple(args))
         if key in run_check_cache:
             p = run_check_cache[key]
@@ -1301,7 +1301,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """Arguments to the compiler to turn off all optimizations."""
         return []
 
-    def build_wrapper_args(self, env: 'Environment',
+    def build_wrapper_args(self,
                            extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                            dependencies: T.Optional[T.List['Dependency']],
                            mode: CompileCheckMode = CompileCheckMode.COMPILE) -> CompilerArgs:
@@ -1330,10 +1330,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
         if mode is CompileCheckMode.COMPILE:
             # Add DFLAGS from the env
-            args += env.coredata.get_external_args(self.for_machine, self.language)
+            args += self.environment.coredata.get_external_args(self.for_machine, self.language)
         elif mode is CompileCheckMode.LINK:
             # Add LDFLAGS from the env
-            args += env.coredata.get_external_link_args(self.for_machine, self.language)
+            args += self.environment.coredata.get_external_link_args(self.for_machine, self.language)
         # extra_args must override all other arguments, so we add them last
         args += extra_args
         return args
@@ -1349,7 +1349,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         This method isn't meant to be called externally, it's mean to be
         wrapped by other methods like compiles() and links().
         """
-        args = self.build_wrapper_args(self.environment, extra_args, dependencies, mode)
+        args = self.build_wrapper_args(extra_args, dependencies, mode)
         if disable_cache or want_output:
             with self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=self.environment.scratch_dir) as r:
                 yield r
