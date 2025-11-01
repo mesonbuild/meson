@@ -2614,7 +2614,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         command = compiler.get_exelist()
         args = ['$ARGS'] + depargs + NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none) + ['-cm', '$in']
         description = 'Compiling to C object $in'
-        if compiler.get_argument_syntax() == 'msvc':
+        if compiler.get_depfile_format() == 'msvc':
             deps = 'msvc'
             depfile = None
         else:
@@ -2672,7 +2672,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         command = compiler.get_exelist()
         args = ['$ARGS'] + depargs + NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none) + compiler.get_compile_only_args() + ['$in']
         description = f'Compiling {compiler.get_display_language()} object $out'
-        if compiler.get_argument_syntax() == 'msvc':
+        if compiler.get_depfile_format() == 'msvc':
             deps = 'msvc'
             depfile = None
         else:
@@ -2698,7 +2698,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             command = compiler.get_exelist() + ['$ARGS'] + depargs + output + compiler.get_compile_only_args() + ['$in']
         description = 'Precompiling header $in'
-        if compiler.get_argument_syntax() == 'msvc':
+        if compiler.get_depfile_format() == 'msvc':
             deps = 'msvc'
             depfile = None
         else:
