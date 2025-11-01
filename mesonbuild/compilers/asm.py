@@ -256,6 +256,9 @@ class MasmARMCompiler(Compiler):
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         return []
 
+    def get_depfile_format(self) -> str:
+        return 'msvc'
+
     def depfile_for_object(self, objfile: str) -> T.Optional[str]:
         return None
 
