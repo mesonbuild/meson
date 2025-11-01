@@ -7,4 +7,10 @@ ct2 = custom_target(
 
 ct2_ext = py3.extension_module('ct2', ct2, dependencies : py3_dep)
 
+slib = py3.extension_module(
+  'foo',
+  'foo.pyx',
+  dependencies : py3_dep
+)
+
 pydir = meson.current_build_dir()
