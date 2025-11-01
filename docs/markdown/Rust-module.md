@@ -4,6 +4,9 @@ authors:
     - name: Dylan Baker
       email: dylan@pnwbakers.com
       years: [2020, 2021, 2022, 2024]
+    - name: Paolo Bonzini
+      email: bonzini@gnu.org
+      years: [2025]
 ...
 
 # Rust module
@@ -168,3 +171,117 @@ Only a subset of [[shared_library]] keyword arguments are allowed:
 - link_depends
 - link_with
 - override_options
+
+### workspace()
+
+```meson
+rustmod.workspace(...)
+```
+
+*Since 1.10.0*
+
+Create and return a `workspace` object for managing the project's Cargo
+workspace.
+
+Keyword arguments:
+- `default_features`: (`bool`, optional) Whether to enable default features.
+  If not specified and `features` is provided, defaults to true.
+- `features`: (`list[str]`, optional) List of additional features to enable globally
+
+The function must be called in a project with `Cargo.lock` and `Cargo.toml`
+files in the root source directory.  While the object currently has
+no methods, upon its creation Meson analyzes the `Cargo.toml` file and
+computes the full set of dependencies and features needed to build the
+package in `Cargo.toml`.  Therefore, this function should be invoked before
+using Cargo subprojects.
+
+If either argument is provided, the build will use a custom set of features.
+Features can only be set once - subsequent calls will fail if different features
+are specified.
+
+When `features` is provided without `default_features: false`, the 'default' feature is
+automatically included.
+
+## Workspace object
+
+### workspace.packages()
+
+```meson
+packages = ws.packages()
+```
+
+Returns a list of package names in the workspace.
+
+### workspace.subproject()
+
+```meson
+package = ws.subproject(package_name, api)
+```
+
+Returns a `package` object for managing a specific package within the workspace.
+
+Positional arguments:
+- `package_name`: (`str`) The name of the package to retrieve
+- `api`: (`str`, optional) The version constraints for the package in Cargo format
+
+## Package object
+
+The package object returned by `workspace.subproject()` provides methods
+for working with individual packages in a Cargo workspace.
+
+### subproject.name()
+
+```meson
+name = pkg.name()
+```
+
+Returns the name of the subproject.
+
+### subproject.version()
+
+```meson
+version = pkg.version()
+```
+
+Returns the normalized version number of the subproject.
+
+### subproject.api()
+
+```meson
+api = pkg.api()
+```
+
+Returns the API version of the subproject, that is the version up to the first
+nonzero element.
+
+### subproject.features()
+
+```meson
+features = pkg.features()
+```
+
+Returns selected features for a specific subproject.
+
+### subproject.all_features()
+
+```meson
+all_features = pkg.all_features()
+```
+
+Returns all defined features for a specific subproject.
+
+### subproject.dependency()
+
+```meson
+dep = subproject.dependency(...)
+```
+
+Returns a dependency object for the subproject that can be used with other Meson targets.
+
+*Note*: right now, this method is implemented on top of the normal Meson function
+[[dependency]]; this is subject to change in future releases.  It is recommended
+to always retrieve a Cargo subproject's dependency object via this method.
+
+Keyword arguments:
+- `rust_abi`: (`str`, optional) The ABI to use for the dependency. Valid values are
+  `'rust'`, `'c'`, or `'proc-macro'`. The package must support the specified ABI.
