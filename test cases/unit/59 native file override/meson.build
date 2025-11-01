@@ -1,8 +1,8 @@
 project('native file overrides')
 
-foreach o : ['bindir', 'datadir', 'includedir', 'infodir', 'libdir',
-             'libexecdir', 'localedir', 'localstatedir', 'mandir', 'prefix',
-             'sbindir', 'sharedstatedir', 'sysconfdir']
+foreach o : ['bindir', 'datadir', 'distconfdir', 'includedir', 'infodir',
+             'libdir', 'libexecdir', 'localedir', 'localstatedir', 'mandir',
+             'prefix', 'sbindir', 'sharedstatedir', 'sysconfdir']
   expected = get_option('def_' + o)
   actual = get_option(o)
   assert(expected == actual,
