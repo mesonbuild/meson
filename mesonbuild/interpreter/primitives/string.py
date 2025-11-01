@@ -19,6 +19,7 @@ from ...interpreterbase import (
     noPosargs,
     typed_pos_args,
     InvalidArguments,
+    InterpreterException,
     FeatureBroken,
     stringifyUserArguments,
 )
@@ -82,6 +83,20 @@ class StringHolder(ObjectHolder[str]):
             return arg_strings[idx]
 
         return re.sub(r'@(\d+)@', arg_replace, self.held_object)
+
+    @noKwargs
+    @typed_pos_args('str.hash', str)
+    @InterpreterObject.method('hash')
+    def hash_method(self, args: T.Tuple[T.List[TYPE_var]], kwargs: TYPE_kwargs) -> str:
+        from hashlib import new
+        try:
+            # For supported algorithms
+            # see https://docs.python.org/3/library/hashlib.html#hash-objects
+            hash_obj = new(args[0]) # algorithm = args[0]
+            hash_obj.update(self.held_object.encode())
+            return hash_obj.hexdigest()
+        except ValueError as e:
+            raise InterpreterException(e)
 
     @noKwargs
     @noPosargs
