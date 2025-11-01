@@ -3961,11 +3961,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def generate_ending(self) -> None:
         for targ, deps in [
-                ('all', self.get_build_by_default_targets()),
+                ('all', self.get_build_by_default_targets().values()),
                 ('meson-test-prereq', self.get_testlike_targets()),
                 ('meson-benchmark-prereq', self.get_testlike_targets(True))]:
             targetlist = []
-            for t in deps.values():
+            for t in deps:
                 # Add the first output of each target to the 'all' target so that
                 # they are all built
                 #Add archive file if shared library in AIX for build all.
