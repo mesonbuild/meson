@@ -1903,10 +1903,21 @@ class NinjaBackend(backends.Backend):
         ext = self.get_target_option(target, OptionKey('cython_language', machine=target.for_machine))
 
         pyx_sources = []  # Keep track of sources we're adding to build
+        pyx_count = 0
+        for src in target.get_sources():
+            if src.endswith('.pyx'):
+                pyx_count += 1
+        for gen in target.get_generated_sources():
+            for ssrc in gen.get_outputs():
+                if ssrc.endswith('.pyx'):
+                    pyx_count += 1
 
         for src in target.get_sources():
             if src.endswith('.pyx'):
-                output = os.path.join(self.get_target_private_dir(target), f'{src}.{ext}')
+                # Use basename to avoid too nested targets which can cause a
+                # problem with MAX_PATH on Windows
+                outname = os.path.basename(src.fname) if pyx_count == 1 else src.fname
+                output = os.path.join(self.get_target_private_dir(target), f'{outname}.{ext}')
                 element = NinjaBuildElement(
                     self.all_outputs, [output],
                     self.compiler_to_rule_name(cython),
@@ -1928,7 +1939,10 @@ class NinjaBackend(backends.Backend):
             for ssrc in gen.get_outputs():
                 ssrc = os.path.join(builddir, ssrc)
                 if ssrc.endswith('.pyx'):
-                    output = os.path.join(self.get_target_private_dir(target), f'{ssrc}.{ext}')
+                    # Use basename to avoid too nested targets which can cause
+                    # a problem with MAX_PATH on Windows
+                    outname = os.path.basename(ssrc) if pyx_count == 1 else ssrc
+                    output = os.path.join(self.get_target_private_dir(target), f'{outname}.{ext}')
                     element = NinjaBuildElement(
                         self.all_outputs, [output],
                         self.compiler_to_rule_name(cython),
