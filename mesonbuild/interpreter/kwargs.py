@@ -363,6 +363,10 @@ class _BuildTarget(_BaseBuildTarget):
     d_import_dirs: T.List[T.Union[str, build.IncludeDirs]]
     d_module_versions: T.List[T.Union[str, int]]
     d_unittest: bool
+    install_dir: T.List[T.Union[str, bool]]
+    install_vala_header: T.Union[str, bool, None]
+    install_vala_vapi: T.Union[str, bool, None]
+    install_vala_gir: T.Union[str, bool, None]
     rust_dependency_map: T.Dict[str, str]
     swift_interoperability_mode: Literal['c', 'cpp']
     swift_module_name: str
