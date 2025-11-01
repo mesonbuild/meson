@@ -1240,6 +1240,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
         return []
 
+    def get_depfile_format(self) -> str:
+        return 'msvc' if self.get_argument_syntax() == 'msvc' else 'gcc'
+
     def depfile_for_object(self, objfile: str) -> T.Optional[str]:
         return objfile + '.' + self.get_depfile_suffix()
 
