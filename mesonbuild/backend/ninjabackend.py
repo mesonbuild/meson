@@ -24,6 +24,7 @@ from .. import mesonlib
 from .. import build
 from .. import mlog
 from .. import compilers
+from ..compilers.cpp import CPPCompiler
 from .. import tooldetect
 from ..arglist import CompilerArgs
 from ..compilers import Compiler, is_library
@@ -48,7 +49,6 @@ if T.TYPE_CHECKING:
     from ..compilers.rust import RustCompiler
     from ..mesonlib import FileOrString
     from .backends import TargetIntrospectionData
-
     CommandArgOrStr = T.List[T.Union['NinjaCommandArg', str]]
     RUST_EDITIONS = Literal['2015', '2018', '2021']
 
@@ -493,6 +493,8 @@ class NinjaBackend(backends.Backend):
         self.implicit_meson_outs: T.List[str] = []
         self._uses_dyndeps = False
         self._generated_header_cache: T.Dict[str, T.List[FileOrString]] = {}
+        self._first_deps_dd_rule_generated = False
+        self._all_scan_sources = []
         # nvcc chokes on thin archives:
         #   nvlink fatal   : Could not open input file 'libfoo.a.p'
         #   nvlink fatal   : elfLink internal error
@@ -624,10 +626,7 @@ class NinjaBackend(backends.Backend):
 
             num_pools = self.environment.coredata.optstore.get_value_for('backend_max_links')
             if num_pools > 0:
-                outfile.write(f'''pool link_pool
-  depth = {num_pools}
-
-''')
+                outfile.write(f'pool link_pool\n  depth = {num_pools}\n\n')
 
         with self.detect_vs_dep_prefix(tempfilename) as outfile:
             self.generate_rules()
@@ -645,6 +644,7 @@ class NinjaBackend(backends.Backend):
 
             for t in ProgressBar(self.build.get_targets().values(), desc='Generating targets'):
                 self.generate_target(t)
+            self.generate_global_dependency_scan_target()
             mlog.log_timestamp("Targets generated")
             self.add_build_comment(NinjaComment('Test rules'))
             self.generate_tests()
@@ -1089,9 +1089,6 @@ class NinjaBackend(backends.Backend):
             final_obj_list = self.generate_prelink(target, obj_list)
         else:
             final_obj_list = obj_list
-
-        self.generate_dependency_scan_target(target, compiled_sources, source2object, fortran_order_deps)
-
         if target.uses_rust():
             self.generate_rust_target(target, outname, final_obj_list, fortran_order_deps)
             return
@@ -1112,10 +1109,14 @@ class NinjaBackend(backends.Backend):
             return True
         if 'cpp' not in target.compilers:
             return False
-        if '-fmodules-ts' in target.extra_args['cpp']:
+        if '-fmodules' in target.extra_args['cpp']:
             return True
         # Currently only the preview version of Visual Studio is supported.
         cpp = target.compilers['cpp']
+        if cpp.get_id() == 'clang':
+            if not mesonlib.version_compare(cpp.version, '>=17'):
+                raise MesonException('C++20 modules require Clang 17 or newer.')
+            return True
         if cpp.get_id() != 'msvc':
             return False
         cppversion = self.get_target_option(target, OptionKey('cpp_std',
@@ -1136,47 +1137,31 @@ class NinjaBackend(backends.Backend):
         if not self.should_use_dyndeps_for_target(target):
             return
         self._uses_dyndeps = True
-        json_file, depscan_file = self.get_dep_scan_file_for(target)
-        pickle_base = target.name + '.dat'
-        pickle_file = os.path.join(self.get_target_private_dir(target), pickle_base).replace('\\', '/')
-        pickle_abs = os.path.join(self.get_target_private_dir_abs(target), pickle_base).replace('\\', '/')
-        rule_name = 'depscan'
-        scan_sources = list(self.select_sources_to_scan(compiled_sources))
+        if not self._first_deps_dd_rule_generated:
+            self._first_deps_dd_rule_generated = True
+            self.generate_project_wide_cpp_scanner_rules()
+            rule_name = 'depscanaccumulate'
+            elem = NinjaBuildElement(self.all_outputs, "deps.dd", rule_name, "compile_commands.json")
+            self.add_build(elem)
+    def generate_project_wide_cpp_scanner_rules(self) -> None:
+        rulename = 'depscanaccumulate'
+        if rulename in self.ruledict:
+            # Scanning command is the same for native and cross compilation.
+            return
 
-        scaninfo = TargetDependencyScannerInfo(
-            self.get_target_private_dir(target), source2object, scan_sources)
-
-        write = True
-        if os.path.exists(pickle_abs):
-            with open(pickle_abs, 'rb') as p:
-                old = pickle.load(p)
-            write = old != scaninfo
-
-        if write:
-            with open(pickle_abs, 'wb') as p:
-                pickle.dump(scaninfo, p)
-
-        elem = NinjaBuildElement(self.all_outputs, json_file, rule_name, pickle_file)
-        # A full dependency is required on all scanned sources, if any of them
-        # are updated we need to rescan, as they may have changed the modules
-        # they use or export.
-        for s in scan_sources:
-            elem.deps.add(s[0])
-        elem.orderdeps.update(object_deps)
-        elem.add_item('name', target.name)
-        self.add_build(elem)
-
-        infiles: T.Set[str] = set()
-        for t in target.get_all_linked_targets():
-            if self.should_use_dyndeps_for_target(t):
-                infiles.add(self.get_dep_scan_file_for(t)[0])
-        _, od = self.flatten_object_list(target)
-        infiles.update({self.get_dep_scan_file_for(t)[0] for t in od if t.uses_fortran()})
-
-        elem = NinjaBuildElement(self.all_outputs, depscan_file, 'depaccumulate', [json_file] + sorted(infiles))
-        elem.add_item('name', target.name)
-        self.add_build(elem)
-
+        command = self.environment.get_build_command() + \
+            ['--internal', 'depscanaccumulate']
+        args = ['$in', 'deps.json', '$out']
+        description = 'Scanning project for modules'
+        rule = NinjaRule(rulename, command, args, description)
+        self.add_rule(rule)
+    def generate_global_dependency_scan_target(self) -> None:
+            self._uses_dyndeps = True
+            self.generate_project_wide_cpp_scanner_rules()
+            rule_name = 'depscanaccumulate'
+            elem = NinjaBuildElement(self.all_outputs, "deps.dd", rule_name, "compile_commands.json")
+            elem.add_dep(self._all_scan_sources)
+            self.add_build(elem)
     def select_sources_to_scan(self, compiled_sources: T.List[str],
                                ) -> T.Iterable[T.Tuple[str, Literal['cpp', 'fortran']]]:
         # in practice pick up C++ and Fortran files. If some other language
@@ -2712,21 +2697,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if rulename in self.ruledict:
             # Scanning command is the same for native and cross compilation.
             return
-
-        command = self.environment.get_build_command() + \
-            ['--internal', 'depscan']
-        args = ['$picklefile', '$out', '$in']
-        description = 'Scanning target $name for modules'
-        rule = NinjaRule(rulename, command, args, description)
-        self.add_rule(rule)
-
-        rulename = 'depaccumulate'
-        command = self.environment.get_build_command() + \
-            ['--internal', 'depaccumulate']
-        args = ['$out', '$in']
-        description = 'Generating dynamic dependency information for target $name'
-        rule = NinjaRule(rulename, command, args, description)
-        self.add_rule(rule)
+        self.generate_project_wide_cpp_scanner_rules()
 
     def generate_compile_rules(self) -> None:
         for for_machine in MachineChoice:
@@ -3121,7 +3092,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
             src_type_to_args[src_type_str] = commands.to_native()
         return src_type_to_args
-
+    def _get_cpp_module_output_name(self, src_basename: str,
+                                    compiler: CPPCompiler,
+                                    target: build.BuildTarget):
+        if not src_basename.endswith('.cppm'):
+            return 'dummy'
+        return src_basename.replace('.cppm', '.pcm')
     def generate_single_compile(self, target: build.BuildTarget, src,
                                 is_generated: bool = False, header_deps=None,
                                 order_deps: T.Optional[T.List[FileOrString]] = None,
@@ -3270,6 +3246,16 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                     result += c
                 return result
             element.add_item('CUDA_ESCAPED_TARGET', quote_make_target(rel_obj))
+        if self.should_use_dyndeps_for_target(target) and compiler.get_language() == 'cpp' and compiler.get_id() == 'clang':
+            src_basename = os.path.basename(src.fname)
+            mod_output = self._get_cpp_module_output_name(src_basename, compiler, target)
+            build_dir = self.environment.get_build_dir()
+            commands.extend([
+                '--start-no-unused-arguments',
+                f'-fmodule-output={mod_output}',
+                f'-fprebuilt-module-path={build_dir}',
+                '--end-no-unused-arguments'
+            ])
         element.add_item('ARGS', commands)
 
         self.add_dependency_scanner_entries_to_element(target, compiler, element, src)
@@ -3288,7 +3274,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             extension = extension.lower()
         if not (extension in compilers.lang_suffixes['fortran'] or extension in compilers.lang_suffixes['cpp']):
             return
-        dep_scan_file = self.get_dep_scan_file_for(target)[1]
+        dep_scan_file = 'deps.dd'
         element.add_item('dyndep', dep_scan_file)
         element.add_orderdep(dep_scan_file)
 
