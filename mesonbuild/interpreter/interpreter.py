@@ -289,6 +289,53 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.compilers: PerMachine[T.Dict[str, 'compilers.Compiler']] = PerMachine({}, {})
         self.parse_project()
         self._redetect_machines()
+        self._cpp_import_std_bmi_dep = None
+        if self.coredata.optstore.get_value_for('cpp_import_std') and self.subproject == "":
+            self._cpp_import_std_bmi_dep = self._create_cpp_import_std_dep(self.environment)
+
+    def _create_cpp_import_std_dep(self, env: environment.Environment):
+        compiler_to_use: T.Optional[compilers.cpp.CPPCompiler] = None
+        for comp_lang, compiler in self.compilers.host.items():
+            if comp_lang == 'cpp':
+                compiler_to_use = T.cast(compilers.cpp.CPPCompiler, compiler)
+        if not compiler_to_use:
+            raise MesonException('cpp_import_std option is set to true but no cpp compiler could be found.'
+                                    ' Enable cpp language in your project to use this feature.')
+        # Construct the compiler command-line
+        commands = compiler_to_use.compiler_args()
+        commands.extend(compiler_to_use.get_import_std_lib_source_args(self.environment))
+        all_lists_to_add = [compiler_to_use.get_always_args(), compiler_to_use.get_debug_args(env.coredata.optstore.get_value_for('buildtype') == 'debug'),
+                            compiler_to_use.get_assert_args(disable=env.coredata.optstore.get_value_for('b_ndebug') in ['if-release', 'true'],
+                                                            env=env)]
+        for args_list in all_lists_to_add:
+            for arg in args_list:
+                commands.append(arg)
+        commands.append("-o")
+        commands.append("@OUTPUT@")
+        commands.append("@INPUT@")
+        no_ccache = True
+        command_list = compiler_to_use.get_exelist(ccache=not no_ccache) + commands.to_native()
+        tgt = build.CustomTarget('',
+                                    '', '', self.environment, command_list,
+                                    sources=[compiler_to_use.get_import_std_lib_source_file(self.environment)],
+                                    outputs=[f'std{compiler_to_use.get_cpp20_module_bmi_extension()}'])
+        self.add_target('_cpp_import_std_bmi', tgt)
+        bmi_dep = dependencies.InternalDependency(
+            version='0.0',
+            incdirs=[],
+            compile_args=compiler_to_use.get_import_std_compile_args(self.environment),
+            # compile_args=[],
+            link_args=[],
+            libraries=[],
+            whole_libraries=[],
+            sources=[tgt],
+            extra_files=[],
+            ext_deps=[],
+            variables=[],
+            d_module_versions=[],
+            d_import_dirs=[],
+            objects=[])
+        return bmi_dep
 
     def __getnewargs_ex__(self) -> T.Tuple[T.Tuple[object], T.Dict[str, object]]:
         raise MesonBugException('This class is unpicklable')
@@ -3469,6 +3516,9 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
                              self.environment, self.compilers[for_machine], kwargs)
+        if target.uses_cpp():
+            if self.coredata.optstore.get_value_for('cpp_import_std') and self.subproject == '':
+                target.add_deps([self._cpp_import_std_bmi_dep])
         if objs and target.uses_rust():
             FeatureNew.single_use('objects in Rust targets', '1.8.0', self.subproject)
 
