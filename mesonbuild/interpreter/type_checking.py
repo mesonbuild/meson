@@ -13,7 +13,7 @@ from ..build import (CustomTarget, BuildTarget,
                      BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources)
 from ..options import OptionKey, UserFeatureOption
 from ..dependencies import Dependency, DependencyMethods, InternalDependency
-from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken
+from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken, FeatureDeprecated
 from ..mesonlib import (File, FileMode, MachineChoice, has_path_sep, listify, stringlistify,
                         EnvironmentVariables)
 from ..programs import ExternalProgram
@@ -658,12 +658,18 @@ def _pch_validator(args: T.List[str]) -> T.Optional[str]:
     return None
 
 
+def _pch_feature_validator(args: T.List[str]) -> T.Iterable[FeatureCheckBase]:
+    if len(args) > 1:
+        yield FeatureDeprecated('PCH source files', '0.50.0', 'Only a single header file should be used.')
+
+
 _PCH_ARGS: KwargInfo[T.List[str]] = KwargInfo(
     'pch',
     ContainerTypeInfo(list, str),
     listify=True,
     default=[],
     validator=_pch_validator,
+    feature_validator=_pch_feature_validator,
 )
 
 
