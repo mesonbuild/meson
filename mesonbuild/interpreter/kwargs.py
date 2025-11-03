@@ -365,6 +365,7 @@ class _BuildTarget(_BaseBuildTarget):
     d_import_dirs: T.List[T.Union[str, build.IncludeDirs]]
     d_module_versions: T.List[T.Union[str, int]]
     d_unittest: bool
+    rust_crate_type: T.Optional[Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']]
     rust_dependency_map: T.Dict[str, str]
     swift_interoperability_mode: Literal['c', 'cpp']
     swift_module_name: str
