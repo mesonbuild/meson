@@ -26,7 +26,7 @@ class ExtraFrameworkDependency(ExternalDependency):
             raise DependencyException('No C-like compilers are available')
         if self.system_framework_paths is None:
             try:
-                self.system_framework_paths = self.clib_compiler.find_framework_paths(self.env)
+                self.system_framework_paths = self.clib_compiler.find_framework_paths()
             except MesonException as e:
                 if 'non-clang' in str(e):
                     # Apple frameworks can only be found (and used) with the
