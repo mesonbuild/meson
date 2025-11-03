@@ -3381,6 +3381,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                      kwargs: T.Union[kwtypes.Executable, kwtypes.StaticLibrary, kwtypes.SharedLibrary, kwtypes.SharedModule, kwtypes.Jar],
                      targetclass: T.Type[T.Union[build.Executable, build.StaticLibrary, build.SharedModule, build.SharedLibrary, build.Jar]]
                      ) -> T.Union[build.Executable, build.StaticLibrary, build.SharedModule, build.SharedLibrary, build.Jar]:
+        if targetclass not in {build.Executable, build.SharedLibrary, build.SharedModule, build.StaticLibrary, build.Jar}:
+            mlog.debug('Unknown target type:', str(targetclass))
+            raise RuntimeError('Unreachable code')
+
         name, sources = args
         for_machine = kwargs['native']
         if kwargs.get('rust_crate_type') == 'proc-macro':
@@ -3401,15 +3405,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         # backwards compatibility anyway
         sources = [s for s in sources
                    if not isinstance(s, (build.BuildTarget, build.ExtractedObjects))]
-
         sources = self.source_strings_to_files(sources)
         objs = kwargs['objects']
         kwargs['dependencies'] = extract_as_list(kwargs, 'dependencies')
         kwargs['extra_files'] = self.source_strings_to_files(kwargs['extra_files'])
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
-        if targetclass not in {build.Executable, build.SharedLibrary, build.SharedModule, build.StaticLibrary, build.Jar}:
-            mlog.debug('Unknown target type:', str(targetclass))
-            raise RuntimeError('Unreachable code')
         self.__process_language_args(kwargs)
         if targetclass is build.StaticLibrary:
             for lang in compilers.all_languages - {'java'}:
