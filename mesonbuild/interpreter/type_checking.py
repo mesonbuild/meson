@@ -652,6 +652,21 @@ _NAME_PREFIX_KW: KwargInfo[T.Optional[T.Union[str, T.List]]] = KwargInfo(
 )
 
 
+def _pch_validator(args: T.List[str]) -> T.Optional[str]:
+    if len(args) > 2:
+        return 'A maximum of two elements are allowed for PCH arguments'
+    return None
+
+
+_PCH_ARGS: KwargInfo[T.List[str]] = KwargInfo(
+    'pch',
+    ContainerTypeInfo(list, str),
+    listify=True,
+    default=[],
+    validator=_pch_validator,
+)
+
+
 # Applies to all build_target classes except jar
 _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     *_ALL_TARGET_KWS,
@@ -661,6 +676,8 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     _NAME_PREFIX_KW,
     _NAME_PREFIX_KW.evolve(name='name_suffix', validator=_name_suffix_validator),
     RUST_CRATE_TYPE_KW,
+    _PCH_ARGS.evolve(name='c_pch'),
+    _PCH_ARGS.evolve(name='cpp_pch'),
     KwargInfo('d_debug', ContainerTypeInfo(list, (str, int)), default=[], listify=True),
     D_MODULE_VERSIONS_KW,
     KwargInfo('d_unittest', bool, default=False),

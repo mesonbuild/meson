@@ -70,8 +70,8 @@ if T.TYPE_CHECKING:
 
         build_by_default: bool
         build_rpath: str
-        c_pch: T.Sequence[str]
-        cpp_pch: T.Sequence[str]
+        c_pch: T.List[str]
+        cpp_pch: T.List[str]
         d_debug: T.List[T.Union[str, int]]
         d_import_dirs: T.List[IncludeDirs]
         d_module_versions: T.List[T.Union[str, int]]
@@ -1266,8 +1266,8 @@ class BuildTarget(Target):
 
         self.raw_overrides = kwargs.get('override_options', {})
 
-        self.add_pch('c', extract_as_list(kwargs, 'c_pch'))
-        self.add_pch('cpp', extract_as_list(kwargs, 'cpp_pch'))
+        self.add_pch('c', kwargs.get('c_pch', []))
+        self.add_pch('cpp', kwargs.get('cpp_pch', []))
 
         self.link_args = extract_as_list(kwargs, 'link_args')
         for i in self.link_args:
@@ -1612,11 +1612,7 @@ class BuildTarget(Target):
 
             FeatureDeprecated.single_use('PCH source files', '0.50.0', self.subproject,
                                          'Only a single header file should be used.')
-        elif len(pchlist) > 2:
-            raise InvalidArguments('PCH definition may have a maximum of 2 files.')
         for f in pchlist:
-            if not isinstance(f, str):
-                raise MesonException('PCH arguments must be strings.')
             if not os.path.isfile(os.path.join(self.environment.source_dir, self.subdir, f)):
                 raise MesonException(f'File {f} does not exist.')
         self.pch[language] = pchlist
