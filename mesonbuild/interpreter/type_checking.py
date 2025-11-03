@@ -679,11 +679,19 @@ def _pch_feature_validator(args: T.List[str]) -> T.Iterable[FeatureCheckBase]:
         yield FeatureDeprecated('PCH source files', '0.50.0', 'Only a single header file should be used.')
 
 
-def _pch_convertor(args: T.List[str]) -> T.List[str]:
-    # Flip so that we always have [header, src]
-    if len(args) == 2 and compilers.is_source(args[0]):
-        return [args[1], args[0]]
-    return args
+def _pch_convertor(args: T.List[str]) -> T.Optional[T.Tuple[str, T.Optional[str]]]:
+    num_args = len(args)
+
+    if num_args == 1:
+        return (args[0], None)
+
+    if num_args == 2:
+        if compilers.is_source(args[0]):
+            # Flip so that we always have [header, src]
+            return (args[1], args[0])
+        return (args[0], args[1])
+
+    return None
 
 
 _PCH_ARGS: KwargInfo[T.List[str]] = KwargInfo(

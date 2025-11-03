@@ -3479,7 +3479,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.check_for_jar_sources(sources, targetclass)
             kwargs['d_import_dirs'] = self.extract_incdirs(kwargs, 'd_import_dirs')
             missing: T.List[str] = []
-            for each in itertools.chain(kwargs['c_pch'], kwargs['cpp_pch']):
+            for each in itertools.chain(kwargs['c_pch'] or [], kwargs['cpp_pch'] or []):
                 if each is not None:
                     if not os.path.isfile(os.path.join(self.environment.source_dir, self.subdir, each)):
                         missing.append(os.path.join(self.subdir, each))

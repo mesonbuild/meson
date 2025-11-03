@@ -820,23 +820,27 @@ class Vs2010Backend(backends.Backend):
             return 'masm'
         raise MesonException(f'Could not guess language from source file {src}.')
 
-    def add_pch(self, pch_sources, lang, inc_cl):
+    def add_pch(self, pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
+                lang, inc_cl) -> None:
         if lang in pch_sources:
             self.use_pch(pch_sources, lang, inc_cl)
 
-    def create_pch(self, pch_sources, lang, inc_cl):
+    def create_pch(self, pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
+                   lang, inc_cl) -> None:
         pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
         pch.text = 'Create'
         self.add_pch_files(pch_sources, lang, inc_cl)
 
-    def use_pch(self, pch_sources, lang, inc_cl):
+    def use_pch(self, pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
+                lang, inc_cl) -> None:
         pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
         pch.text = 'Use'
         header = self.add_pch_files(pch_sources, lang, inc_cl)
         pch_include = ET.SubElement(inc_cl, 'ForcedIncludeFiles')
         pch_include.text = header + ';%(ForcedIncludeFiles)'
 
-    def add_pch_files(self, pch_sources, lang, inc_cl):
+    def add_pch_files(self, pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
+                      lang, inc_cl) -> str:
         header = os.path.basename(pch_sources[lang][0])
         pch_file = ET.SubElement(inc_cl, 'PrecompiledHeaderFile')
         # When USING PCHs, MSVC will not do the regular include
@@ -1687,25 +1691,25 @@ class Vs2010Backend(backends.Backend):
             else:
                 return False
 
-        pch_sources = {}
+        pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]] = {}
         if self.target_uses_pch(target):
             for lang in ['c', 'cpp']:
-                pch = target.get_pch(lang)
+                pch = target.pch[lang]
                 if not pch:
                     continue
                 if compiler.id == 'msvc':
-                    if len(pch) == 1:
+                    if pch[1] is None:
                         # Auto generate PCH.
                         src = os.path.join(proj_to_build_root, self.create_msvc_pch_implementation(target, lang, pch[0]))
                         pch_header_dir = os.path.dirname(os.path.join(proj_to_src_dir, pch[0]))
                     else:
                         src = os.path.join(proj_to_src_dir, pch[1])
                         pch_header_dir = None
-                    pch_sources[lang] = [pch[0], src, lang, pch_header_dir]
+                    pch_sources[lang] = (pch[0], src, lang, pch_header_dir)
                 else:
                     # I don't know whether its relevant but let's handle other compilers
                     # used with a vs backend
-                    pch_sources[lang] = [pch[0], None, lang, None]
+                    pch_sources[lang] = (pch[0], None, lang, None)
 
         previous_includes = []
         if len(headers) + len(gen_hdrs) + len(target.extra_files) + len(pch_sources) > 0:

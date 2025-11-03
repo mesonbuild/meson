@@ -70,8 +70,8 @@ if T.TYPE_CHECKING:
 
         build_by_default: bool
         build_rpath: str
-        c_pch: T.List[str]
-        cpp_pch: T.List[str]
+        c_pch: T.Optional[T.Tuple[str, T.Optional[str]]]
+        cpp_pch: T.Optional[T.Tuple[str, T.Optional[str]]]
         d_debug: T.List[T.Union[str, int]]
         d_import_dirs: T.List[IncludeDirs]
         d_module_versions: T.List[T.Union[str, int]]
@@ -807,7 +807,7 @@ class BuildTarget(Target):
         # The list of all files outputted by this target. Useful in cases such
         # as Vala which generates .vapi and .h besides the compiled output.
         self.outputs = [self.filename]
-        self.pch: T.Dict[str, T.List[str]] = {}
+        self.pch: T.Dict[str, T.Optional[T.Tuple[str, T.Optional[str]]]] = {}
         self.extra_args: T.DefaultDict[str, T.List[str]] = kwargs.get('language_args', defaultdict(list))
         self.sources: T.List[File] = []
         # If the same source is defined multiple times, use it only once.
@@ -1266,8 +1266,8 @@ class BuildTarget(Target):
 
         self.raw_overrides = kwargs.get('override_options', {})
 
-        self.add_pch('c', kwargs.get('c_pch', []))
-        self.add_pch('cpp', kwargs.get('cpp_pch', []))
+        self.pch['c'] = kwargs.get('c_pch')
+        self.pch['cpp'] = kwargs.get('cpp_pch')
 
         self.link_args = extract_as_list(kwargs, 'link_args')
         for i in self.link_args:
@@ -1416,10 +1416,7 @@ class BuildTarget(Target):
         return self.install
 
     def has_pch(self) -> bool:
-        return bool(self.pch)
-
-    def get_pch(self, language: str) -> T.List[str]:
-        return self.pch.get(language, [])
+        return any(x is not None for x in self.pch.values())
 
     def get_include_dirs(self) -> T.List['IncludeDirs']:
         return self.include_dirs
@@ -1589,10 +1586,6 @@ class BuildTarget(Target):
                 raise InvalidArguments(msg + ' This is not possible in a cross build.')
             else:
                 mlog.warning(msg + ' This will fail in cross build.')
-
-    def add_pch(self, language: str, pchlist: T.List[str]) -> None:
-        if pchlist:
-            self.pch[language] = pchlist
 
     def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: T.Optional[str] = None) -> None:
         ids: T.List['IncludeDirs'] = []

@@ -824,10 +824,11 @@ class Backend:
         # MSVC generate an object file for PCH
         if extobj.pch and self.target_uses_pch(extobj.target):
             for lang, pch in extobj.target.pch.items():
-                compiler = extobj.target.compilers[lang]
-                if compiler.get_argument_syntax() == 'msvc':
-                    objname = self.get_msvc_pch_objname(lang, pch)
-                    result.append(os.path.join(targetdir, objname))
+                if pch:
+                    compiler = extobj.target.compilers[lang]
+                    if compiler.get_argument_syntax() == 'msvc':
+                        objname = self.get_msvc_pch_objname(lang, pch)
+                        result.append(os.path.join(targetdir, objname))
 
         # extobj could contain only objects and no sources
         if not sources:
@@ -862,13 +863,13 @@ class Backend:
         args: T.List[str] = []
         pchpath = self.get_target_private_dir(target)
         includeargs = compiler.get_include_args(pchpath, False)
-        p = target.get_pch(compiler.get_language())
+        p = target.pch.get(compiler.get_language())
         if p:
             args += compiler.get_pch_use_args(pchpath, p[0])
         return includeargs + args
 
-    def get_msvc_pch_objname(self, lang: str, pch: T.List[str]) -> str:
-        if len(pch) == 1:
+    def get_msvc_pch_objname(self, lang: str, pch: T.Tuple[str, T.Optional[str]]) -> str:
+        if pch[1] is None:
             # Same name as in create_msvc_pch_implementation() below.
             return f'meson_pch-{lang}.obj'
         return os.path.splitext(pch[1])[0] + '.obj'
