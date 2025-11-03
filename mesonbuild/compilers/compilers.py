@@ -1191,7 +1191,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                        allow_system: bool = True) -> T.Optional[T.List[str]]:
         raise EnvironmentException(f'{self.id} does not support find_framework')
 
-    def find_framework_paths(self, env: 'Environment') -> T.List[str]:
+    def find_framework_paths(self) -> T.List[str]:
         raise EnvironmentException(f'{self.id} does not support find_framework_paths')
 
     def attribute_check_func(self, name: str) -> str:
