@@ -1234,7 +1234,7 @@ class CLikeCompiler(Compiler):
             paths.append(line[:-21].strip())
         return paths
 
-    def _find_framework_real(self, name: str, env: 'Environment', extra_dirs: T.List[str], allow_system: bool) -> T.Optional[T.List[str]]:
+    def _find_framework_real(self, name: str, extra_dirs: T.List[str], allow_system: bool) -> T.Optional[T.List[str]]:
         code = 'int main(void) { return 0; }'
         link_args: T.List[str] = []
         for d in extra_dirs:
@@ -1247,7 +1247,7 @@ class CLikeCompiler(Compiler):
             return link_args
         return None
 
-    def _find_framework_impl(self, name: str, env: 'Environment', extra_dirs: T.List[str],
+    def _find_framework_impl(self, name: str, extra_dirs: T.List[str],
                              allow_system: bool) -> T.Optional[T.List[str]]:
         if isinstance(extra_dirs, str):
             extra_dirs = [extra_dirs]
@@ -1255,20 +1255,20 @@ class CLikeCompiler(Compiler):
         if key in self.find_framework_cache:
             value = self.find_framework_cache[key]
         else:
-            value = self._find_framework_real(name, env, extra_dirs, allow_system)
+            value = self._find_framework_real(name, extra_dirs, allow_system)
             self.find_framework_cache[key] = value
         if value is None:
             return None
         return value.copy()
 
-    def find_framework(self, name: str, env: 'Environment', extra_dirs: T.List[str],
+    def find_framework(self, name: str, extra_dirs: T.List[str],
                        allow_system: bool = True) -> T.Optional[T.List[str]]:
         '''
         Finds the framework with the specified name, and returns link args for
         the same or returns None when the framework is not found.
         '''
         # TODO: should probably check for macOS?
-        return self._find_framework_impl(name, env, extra_dirs, allow_system)
+        return self._find_framework_impl(name, extra_dirs, allow_system)
 
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         # TODO: does this belong here or in GnuLike or maybe PosixLike?

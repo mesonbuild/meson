@@ -1186,7 +1186,6 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def find_framework(self,
                        name: str,
-                       env: 'Environment',
                        extra_dirs: T.List[str],
                        allow_system: bool = True) -> T.Optional[T.List[str]]:
         raise EnvironmentException(f'{self.id} does not support find_framework')
