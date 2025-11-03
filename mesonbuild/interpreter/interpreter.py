@@ -109,6 +109,7 @@ import typing as T
 import textwrap
 import importlib
 import copy
+import itertools
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
@@ -3477,6 +3478,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         if targetclass is not build.Jar:
             self.check_for_jar_sources(sources, targetclass)
             kwargs['d_import_dirs'] = self.extract_incdirs(kwargs, 'd_import_dirs')
+            missing: T.List[str] = []
+            for each in itertools.chain(kwargs['c_pch'], kwargs['cpp_pch']):
+                if each is not None:
+                    if not os.path.isfile(os.path.join(self.environment.source_dir, self.subdir, each)):
+                        missing.append(os.path.join(self.subdir, each))
+            if missing:
+                raise InvalidArguments('The following PCH files do not exist: {}'.format(', '.join(missing)))
 
         # Filter out kwargs from other target types. For example 'soversion'
         # passed to library() when default_library == 'static'.
