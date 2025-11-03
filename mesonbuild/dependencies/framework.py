@@ -56,7 +56,7 @@ class ExtraFrameworkDependency(ExternalDependency):
             # Python.framework. We need to know for sure that the framework was
             # found in the path we expect.
             allow_system = p in self.system_framework_paths
-            args = self.clib_compiler.find_framework(framework_name, self.env, [p], allow_system)
+            args = self.clib_compiler.find_framework(framework_name, [p], allow_system)
             if args is None:
                 continue
             self.link_args = args
