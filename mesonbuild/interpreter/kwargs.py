@@ -370,6 +370,8 @@ class _BuildTarget(_BaseBuildTarget):
     swift_interoperability_mode: Literal['c', 'cpp']
     swift_module_name: str
     sources: SourcesVarargsType
+    c_pch: T.List[str]
+    cpp_pch: T.List[str]
     c_args: T.List[str]
     cpp_args: T.List[str]
     cuda_args: T.List[str]
