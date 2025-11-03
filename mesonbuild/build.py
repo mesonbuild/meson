@@ -1593,23 +1593,6 @@ class BuildTarget(Target):
     def add_pch(self, language: str, pchlist: T.List[str]) -> None:
         if not pchlist:
             return
-        elif len(pchlist) == 1:
-            if not is_header(pchlist[0]):
-                raise InvalidArguments(f'PCH argument {pchlist[0]} is not a header.')
-        elif len(pchlist) == 2:
-            if is_header(pchlist[0]):
-                if not is_source(pchlist[1]):
-                    raise InvalidArguments('PCH definition must contain one header and at most one source.')
-            elif is_source(pchlist[0]):
-                if not is_header(pchlist[1]):
-                    raise InvalidArguments('PCH definition must contain one header and at most one source.')
-                pchlist = [pchlist[1], pchlist[0]]
-            else:
-                raise InvalidArguments(f'PCH argument {pchlist[0]} is of unknown type.')
-
-            if os.path.dirname(pchlist[0]) != os.path.dirname(pchlist[1]):
-                raise InvalidArguments('PCH files must be stored in the same folder.')
-
         for f in pchlist:
             if not os.path.isfile(os.path.join(self.environment.source_dir, self.subdir, f)):
                 raise MesonException(f'File {f} does not exist.')
