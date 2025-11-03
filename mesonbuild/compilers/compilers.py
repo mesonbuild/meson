@@ -1179,7 +1179,6 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                          fname: str,
                          rtype: str,
                          prefix: str,
-                         env: 'Environment',
                          extra_args: T.Optional[T.List[str]],
                          dependencies: T.Optional[T.List['Dependency']]) -> T.Union[str, int]:
         raise EnvironmentException(f'{self.id} does not support get_return_value')
