@@ -242,7 +242,7 @@ class PcapDependencyConfigTool(ConfigToolDependency):
             return None
 
         v = self.clib_compiler.get_return_value('pcap_lib_version', 'string',
-                                                '#include <pcap.h>', self.env, [], [self])
+                                                '#include <pcap.h>', [], [self])
         v = re.sub(r'libpcap version ', '', str(v))
         v = re.sub(r' -- Apple version.*$', '', v)
         return v

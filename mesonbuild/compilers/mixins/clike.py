@@ -679,7 +679,7 @@ class CLikeCompiler(Compiler):
         return define_value, cached
 
     def get_return_value(self, fname: str, rtype: str, prefix: str,
-                         env: 'Environment', extra_args: T.Optional[T.List[str]],
+                         extra_args: T.Optional[T.List[str]],
                          dependencies: T.Optional[T.List['Dependency']]) -> T.Union[str, int]:
         # TODO: rtype should be an enum.
         # TODO: maybe we can use overload to tell mypy when this will return int vs str?
@@ -697,7 +697,7 @@ class CLikeCompiler(Compiler):
             printf ("{fmt}", {cast} {fname}());
             return 0;
         }}'''
-        res = self.run(code, env, extra_args=extra_args, dependencies=dependencies)
+        res = self.run(code, self.environment, extra_args=extra_args, dependencies=dependencies)
         if not res.compiled:
             raise mesonlib.EnvironmentException(f'Could not get return value of {fname}()')
         if rtype == 'string':
