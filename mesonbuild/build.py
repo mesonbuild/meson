@@ -1610,8 +1610,6 @@ class BuildTarget(Target):
             if os.path.dirname(pchlist[0]) != os.path.dirname(pchlist[1]):
                 raise InvalidArguments('PCH files must be stored in the same folder.')
 
-            FeatureDeprecated.single_use('PCH source files', '0.50.0', self.subproject,
-                                         'Only a single header file should be used.')
         for f in pchlist:
             if not os.path.isfile(os.path.join(self.environment.source_dir, self.subdir, f)):
                 raise MesonException(f'File {f} does not exist.')
