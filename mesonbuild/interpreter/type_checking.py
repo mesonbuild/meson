@@ -653,7 +653,23 @@ _NAME_PREFIX_KW: KwargInfo[T.Optional[T.Union[str, T.List]]] = KwargInfo(
 
 
 def _pch_validator(args: T.List[str]) -> T.Optional[str]:
-    if len(args) > 2:
+    num_args = len(args)
+    if num_args == 1:
+        if not compilers.is_header(args[0]):
+            return f'PCH argument {args[0]} is not a header.'
+    elif num_args == 2:
+        if compilers.is_header(args[0]):
+            if not compilers.is_source(args[1]):
+                return 'PCH definition must contain one header and at most one source.'
+        elif compilers.is_source(args[0]):
+            if not compilers.is_header(args[1]):
+                return 'PCH definition must contain one header and at most one source.'
+        else:
+            return f'PCH argument {args[0]} has neither a known header or code extension.'
+
+        if os.path.dirname(args[0]) != os.path.dirname(args[1]):
+            return 'PCH files must be stored in the same folder.'
+    elif num_args > 2:
         return 'A maximum of two elements are allowed for PCH arguments'
     return None
 
@@ -663,6 +679,13 @@ def _pch_feature_validator(args: T.List[str]) -> T.Iterable[FeatureCheckBase]:
         yield FeatureDeprecated('PCH source files', '0.50.0', 'Only a single header file should be used.')
 
 
+def _pch_convertor(args: T.List[str]) -> T.List[str]:
+    # Flip so that we always have [header, src]
+    if len(args) == 2 and compilers.is_source(args[0]):
+        return [args[1], args[0]]
+    return args
+
+
 _PCH_ARGS: KwargInfo[T.List[str]] = KwargInfo(
     'pch',
     ContainerTypeInfo(list, str),
@@ -670,6 +693,7 @@ _PCH_ARGS: KwargInfo[T.List[str]] = KwargInfo(
     default=[],
     validator=_pch_validator,
     feature_validator=_pch_feature_validator,
+    convertor=_pch_convertor,
 )
 
 
