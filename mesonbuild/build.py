@@ -100,7 +100,7 @@ if T.TYPE_CHECKING:
         swift_interoperability_mode: Literal['c', 'cpp']
         swift_module_name: str
         rust_abi: Literal['c', 'rust']
-        rust_crate_type: str  # Literal?
+        rust_crate_type: Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
         rust_dependency_map: T.Dict[str, str]
         vala_gir: T.Optional[str]
         vala_header: T.Optional[str]
