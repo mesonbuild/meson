@@ -3380,10 +3380,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             pch = target.pch[lang]
             if not pch:
                 continue
-            if not has_path_sep(pch[0]) or (pch[1] and has_path_sep(pch[1])):
-                msg = f'Precompiled header of {target.get_basename()!r} must not be in the same ' \
-                      'directory as source, please put it in a subdirectory.'
-                raise InvalidArguments(msg)
             compiler: Compiler = target.compilers[lang]
             if compiler.get_argument_syntax() == 'msvc':
                 (commands, dep, dst, objs, src) = self.generate_msvc_pch_command(target, compiler, pch)

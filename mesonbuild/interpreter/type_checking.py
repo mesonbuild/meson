@@ -671,6 +671,10 @@ def _pch_validator(args: T.List[str]) -> T.Optional[str]:
             return 'PCH files must be stored in the same folder.'
     elif num_args > 2:
         return 'A maximum of two elements are allowed for PCH arguments'
+    if num_args >= 1 and not has_path_sep(args[0]):
+        return f'PCH header {args[0]} must not be in the same directory as source files'
+    if num_args == 2 and not has_path_sep(args[1]):
+        return f'PCH source {args[0]} must not be in the same directory as source files'
     return None
 
 
