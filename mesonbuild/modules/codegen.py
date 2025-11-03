@@ -107,7 +107,7 @@ class LexHolder(ObjectHolder[LexGenerator]):
 
     @noPosargs
     @noKwargs
-    @InterpreterObject.method('generate')
+    @InterpreterObject.method('implementation')
     def implementation_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.name
 
