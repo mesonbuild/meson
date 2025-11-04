@@ -3336,6 +3336,40 @@ class Interpreter(InterpreterBase, HoldableObject):
             d.extend(deps)
         kwargs['language_args'] = new_args
 
+    @staticmethod
+    def _handle_rust_abi(abi: T.Optional[Literal['c', 'rust']],
+                         crate_type: T.Optional[build.RustCrateType],
+                         default_rust_type: build.RustCrateType,
+                         default_c_type: build.RustCrateType, typename: str,
+                         extra_valid_types: T.Optional[T.Set[build.RustCrateType]] = None,
+                         ) -> build.RustCrateType:
+        """Handle the interactions between the rust_abi and rust_crate_type keyword arguments.
+
+        :param abi: Is this using Rust ABI or C ABI
+        :param crate_type: Is there an explicit crate type set
+        :param default_rust_type: The default crate type to use for Rust ABI
+        :param default_c_type: the default crate type to use for C ABI
+        :param typename: The name of the type this argument is for
+        :param extra_valid_types: additional valid crate types, defaults to None
+        :raises InvalidArguments: If the crate_type argument is set, but not valid
+        :raises InvalidArguments: If both crate_type and abi are set
+        :return: The finalized crate type
+        """
+        if abi is not None:
+            if crate_type is not None:
+                raise InvalidArguments('rust_abi and rust_crate_type are mutually exclusive')
+            crate_type = default_rust_type if abi == 'rust' else default_c_type
+        elif crate_type is not None:
+            if crate_type == 'lib':
+                crate_type = default_rust_type
+            valid_types = {default_rust_type, default_c_type} | (extra_valid_types or set())
+            if crate_type not in valid_types:
+                choices = ", " .join(f'"{c}"' for c in sorted(valid_types))
+                raise InvalidArguments(f'Crate type for {typename} must be one of {choices}, but got "{crate_type}"')
+        else:
+            crate_type = default_rust_type
+        return crate_type
+
     @T.overload
     def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
                      kwargs: kwtypes.Executable, targetclass: T.Type[build.Executable]) -> build.Executable: ...
@@ -3394,15 +3428,30 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
         self.__process_language_args(kwargs)
         if targetclass is build.StaticLibrary:
+            kwargs = T.cast('kwtypes.StaticLibrary', kwargs)
             for lang in compilers.all_languages - {'java'}:
                 deps, args = self.__convert_file_args(kwargs.get(f'{lang}_static_args', []))
                 kwargs['language_args'][lang].extend(args)
                 kwargs['depend_files'].extend(deps)
+            kwargs['rust_crate_type'] = self._handle_rust_abi(
+                kwargs['rust_abi'], kwargs['rust_crate_type'], 'rlib', 'staticlib', targetclass.typename)
+
         elif targetclass is build.SharedLibrary:
+            kwargs = T.cast('kwtypes.SharedLibrary', kwargs)
             for lang in compilers.all_languages - {'java'}:
                 deps, args = self.__convert_file_args(kwargs.get(f'{lang}_shared_args', []))
                 kwargs['language_args'][lang].extend(args)
                 kwargs['depend_files'].extend(deps)
+            kwargs['rust_crate_type'] = self._handle_rust_abi(
+                kwargs['rust_abi'], kwargs['rust_crate_type'], 'dylib', 'cdylib', targetclass.typename,
+                extra_valid_types={'proc-macro'})
+
+        elif targetclass is build.Executable:
+            kwargs = T.cast('kwtypes.Executable', kwargs)
+            if kwargs['rust_crate_type'] not in {None, 'bin'}:
+                raise InvalidArguments('Crate type for executable must be "bin"')
+            kwargs['rust_crate_type'] = 'bin'
+
         if targetclass is not build.Jar:
             self.check_for_jar_sources(sources, targetclass)
             kwargs['d_import_dirs'] = self.extract_incdirs(kwargs, 'd_import_dirs')
