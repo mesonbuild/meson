@@ -48,13 +48,13 @@ if T.TYPE_CHECKING:
     from .linkers.linkers import StaticLinker
     from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
     from .mparser import BaseNode
-    from .interpreter.kwargs import RustAbi
 
     GeneratedTypes: TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
     BuildTargetTypes: TypeAlias = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
     ObjectTypes: TypeAlias = T.Union[str, 'File', 'ExtractedObjects', 'GeneratedTypes']
     AnyTargetType: TypeAlias = T.Union['Target', 'CustomTargetIndex']
+    RustCrateType: TypeAlias = Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
 
     class DFeatures(TypedDict):
 
@@ -99,8 +99,7 @@ if T.TYPE_CHECKING:
         resources: T.List[str]
         swift_interoperability_mode: Literal['c', 'cpp']
         swift_module_name: str
-        rust_abi: Literal['c', 'rust']
-        rust_crate_type: Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
+        rust_crate_type: RustCrateType
         rust_dependency_map: T.Dict[str, str]
         vala_gir: T.Optional[str]
         vala_header: T.Optional[str]
@@ -119,7 +118,6 @@ if T.TYPE_CHECKING:
     class SharedModuleKeywordArguments(BuildTargetKeywordArguments, total=False):
 
         vs_module_defs: T.Union[str, File, CustomTarget, CustomTargetIndex]
-        rust_abi: T.Optional[RustAbi]
 
     class SharedLibraryKeywordArguments(SharedModuleKeywordArguments, total=False):
 
@@ -131,7 +129,6 @@ if T.TYPE_CHECKING:
 
         pic: bool
         prelink: bool
-        rust_abi: T.Optional[RustAbi]
 
 DEFAULT_STATIC_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str]] = {
     'unix': ('lib', 'a'),
@@ -765,6 +762,7 @@ class BuildTarget(Target):
     known_kwargs = known_build_target_kwargs
 
     install_dir: T.List[T.Union[str, Literal[False]]]
+    rust_crate_type: RustCrateType
 
     # This set contains all the languages a linker can link natively
     # without extra flags. For instance, nvcc (cuda) can link C++
@@ -2193,6 +2191,7 @@ class Executable(BuildTarget):
             compilers: T.Dict[str, 'Compiler'],
             kwargs: ExecutableKeywordArguments):
         self.export_dynamic = kwargs.get('export_dynamic', False)
+        self.rust_crate_type = kwargs.get('rust_crate_type', 'bin')
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
@@ -2282,13 +2281,6 @@ class Executable(BuildTarget):
                 name += '_' + self.suffix
             self.debug_filename = name + '.pdb'
 
-    def process_kwargs(self, kwargs: ExecutableKeywordArguments) -> None:
-        super().process_kwargs(kwargs)
-
-        self.rust_crate_type = kwargs.get('rust_crate_type') or 'bin'
-        if self.rust_crate_type != 'bin':
-            raise InvalidArguments('Invalid rust_crate_type: must be "bin" for executables.')
-
     def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
         return self.environment.get_bindir(), '{bindir}'
 
@@ -2352,6 +2344,7 @@ class StaticLibrary(BuildTarget):
             compilers: T.Dict[str, 'Compiler'],
             kwargs: StaticLibraryKeywordArguments):
         self.prelink = kwargs.get('prelink', False)
+        self.rust_crate_type = kwargs.get('rust_crate_type', 'rlib')
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
         self.pic = self._extract_pic_pie(kwargs, 'pic', 'b_staticpic')
@@ -2438,23 +2431,6 @@ class StaticLibrary(BuildTarget):
     def type_suffix(self):
         return "@rlib" if self.uses_rust_abi() else "@sta"
 
-    def process_kwargs(self, kwargs: StaticLibraryKeywordArguments) -> None:
-        super().process_kwargs(kwargs)
-
-        rust_abi = kwargs.get('rust_abi')
-        rust_crate_type = kwargs.get('rust_crate_type')
-        if rust_crate_type:
-            if rust_abi:
-                raise InvalidArguments('rust_abi and rust_crate_type are mutually exclusive.')
-            if rust_crate_type == 'lib':
-                self.rust_crate_type = 'rlib'
-            elif rust_crate_type in {'rlib', 'staticlib'}:
-                self.rust_crate_type = rust_crate_type
-            else:
-                raise InvalidArguments(f'Crate type {rust_crate_type!r} invalid for static libraries; must be "rlib" or "staticlib"')
-        else:
-            self.rust_crate_type = 'staticlib' if rust_abi == 'c' else 'rlib'
-
     def is_linkable_target(self) -> bool:
         return True
 
@@ -2504,6 +2480,7 @@ class SharedLibrary(BuildTarget):
         self.debug_filename = None
         # Use by the pkgconfig module
         self.shared_library_only = False
+        self.rust_crate_type = kwargs.get('rust_crate_type', 'dylib')
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
 
@@ -2684,20 +2661,6 @@ class SharedLibrary(BuildTarget):
 
         # Visual Studio module-definitions file
         self.process_vs_module_defs_kw(kwargs)
-
-        rust_abi = kwargs.get('rust_abi')
-        rust_crate_type = kwargs.get('rust_crate_type')
-        if rust_crate_type:
-            if rust_abi:
-                raise InvalidArguments('rust_abi and rust_crate_type are mutually exclusive.')
-            if rust_crate_type == 'lib':
-                self.rust_crate_type = 'dylib'
-            elif rust_crate_type in {'dylib', 'cdylib', 'proc-macro'}:
-                self.rust_crate_type = rust_crate_type
-            else:
-                raise InvalidArguments(f'Crate type {rust_crate_type!r} invalid for shared libraries; must be "dylib", "cdylib" or "proc-macro"')
-        else:
-            self.rust_crate_type = 'cdylib' if rust_abi == 'c' else 'dylib'
 
     def get_import_filename(self) -> T.Optional[str]:
         """
@@ -3226,6 +3189,7 @@ class Jar(BuildTarget):
     known_kwargs = known_jar_kwargs
 
     typename = 'jar'
+    rust_crate_type = ''  # type: ignore[assignment]
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],

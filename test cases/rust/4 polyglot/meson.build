@@ -18,7 +18,7 @@ foreach crate_type : ['lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro
       # Note: in the both_libraries() case it is possible that the static part
       # is still being built because the shared part raised an error but we
       # don't rollback correctly.
-      testcase expect_error('(Crate type .* invalid for .*)|(.*must be one of.*not invalid)', how: 're')
+      testcase expect_error('(Crate type .* must be .*)|(.*must be one of.*not invalid)', how: 're')
         build_target(name, src,
           target_type: target_type,
           rust_crate_type: crate_type,
