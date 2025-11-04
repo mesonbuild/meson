@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright © 2024-2025 Intel Corporation
 
-project('flex and bison', 'c')
+project('flex and bison', 'c', meson_version : '>= 1.10.0')
 
 # The point of this test is that one generator
 # may output headers that are necessary to build
@@ -22,9 +22,11 @@ endif
 
 codegen = import('unstable-codegen')
 lex = codegen.lex(implementations : ['flex', 'reflex', 'lex'])
+message('lex implementation:', lex.implementation())
 lfiles = lex.generate('lexer.l')
 
 yacc = codegen.yacc(implementations : ['byacc', 'bison', 'yacc'])
+message('yacc implementation:', yacc.implementation())
 pfiles = yacc.generate('parser.y', header : '@BASENAME@.tab.h')
 
 e = executable(
