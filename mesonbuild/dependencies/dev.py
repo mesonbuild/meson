@@ -17,11 +17,11 @@ from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 from .. import mesonlib, mlog
 from ..tooldetect import get_llvm_tool_names
 from ..mesonlib import version_compare, version_compare_many, search_version
-from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency
+from .base import DependencyCandidate, DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
-from .factory import DependencyFactory
+from .factory import DependencyFactory, factory_methods
 from .misc import threads_factory
 from .pkgconfig import PkgConfigDependency
 
@@ -32,6 +32,7 @@ if T.TYPE_CHECKING:
     from ..mesonlib import MachineChoice
     from ..interpreter.type_checking import PkgConfigDefineType
     from .base import DependencyObjectKWs
+    from .factory import DependencyGenerator
 
 
 def get_shared_library_suffix(environment: 'Environment', for_machine: MachineChoice) -> str:
@@ -670,21 +671,43 @@ class ClangCMakeDependency(CMakeDependency):
             mlog.warning('Clang C++ dependency without modules works correctly for dynamically linked Clang, '
                          'but will fail to find a statically linked Clang', once=True, fatal=False)
 
-        # There are no loose libs for the C api, only libclang
-        if language == 'c':
-            kwargs['modules'] = ['libclang']
-        elif not kwargs.get('static', False):
-            # XXX: We really need to try twice here, once for clang-cpp and once
-            # for individual libs. We're probably going to need a custom
-            # factory…
-            kwargs['modules'] = ['clang-cpp']
-
         # The C compiler is required for C++ mode, otherwise it will fail.
         # Setting this option will add the C compielr if it's enabled
         if language == 'cpp':
             force_use_global_compilers = True
 
-        super().__init__('Clang', environment, kwargs, force_use_global_compilers)
+        super().__init__(name, environment, kwargs, force_use_global_compilers)
+
+
+@factory_methods({DependencyMethods.SYSTEM, DependencyMethods.CMAKE})
+def clang_factory(env: 'Environment', kwargs: DependencyObjectKWs,
+                  methods: T.List[DependencyMethods]) -> T.List[DependencyGenerator]:
+    candidates: T.List[DependencyGenerator] = []
+    language = kwargs.get('language') or 'c'
+
+    modules: T.List[T.Optional[T.List[str]]] = []
+    if language == 'c':
+        modules.append(['libclang'])
+    else:
+        # For non-static build, prefer libclang-cpp to loose libs
+        if not kwargs.get('static', False):
+            modules.append(['clang-cpp'])
+        modules.append(None)
+
+    if DependencyMethods.SYSTEM in methods:
+        for mods in modules:
+            candidates.append(DependencyCandidate.from_dependency(
+                'clang', ClangSystemDependency, (env, kwargs), modules=mods))
+
+    if DependencyMethods.CMAKE in methods:
+        for mods in modules:
+            candidates.append(DependencyCandidate.from_dependency(
+                'Clang', ClangCMakeDependency, (env, kwargs), modules=mods))
+
+    return candidates
+
+
+packages['clang'] = clang_factory
 
 
 class ValgrindDependency(PkgConfigDependency):
@@ -879,13 +902,6 @@ class JDKSystemDependency(JNISystemDependency):
         ))
 
 packages['jdk'] = JDKSystemDependency
-
-packages['clang'] = DependencyFactory(
-    'clang',
-    [DependencyMethods.CMAKE, DependencyMethods.SYSTEM],
-    cmake=ClangCMakeDependency,
-    system=ClangSystemDependency,
-)
 
 class DiaSDKSystemDependency(SystemDependency):
 
