@@ -645,7 +645,7 @@ llvm_link = find_program(llvm_dep.get_variable(configtool: 'bindir') / 'llvm-lin
 
 ## Clang
 
-*(since 1.6.0)*
+*(since 1.10.0)*
 
 Meson has native support for Clang, as well as support for using CMake to find Clang.
 Because of the tight coupling between Clang and LLVM, the Clang dependency has a

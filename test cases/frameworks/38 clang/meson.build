@@ -2,7 +2,12 @@
 # Copyright © 2024 Intel Corporation
 
 # C and C++ for are needed for cmake always
-project('clangtest', 'c', 'cpp', default_options : ['c_std=c99', 'cpp_std=c++17'])
+project(
+  'clangtest',
+  'c', 'cpp',
+  default_options : {'c_std': 'c99', 'cpp_std': 'c++17'},
+  meson_version : '>= 1.10.0'
+)
 
 method = get_option('method')
 static = get_option('link-static')

@@ -512,8 +512,8 @@ class ClangSystemDependency(SystemDependency):
         if language not in {'c', 'cpp'}:
             raise DependencyException('Clang only provides C and C++ language support')
 
-        super().__init__('Clang', env, kwargs)
-        self.feature_since = ('1.6.0', '')
+        super().__init__(name, env, kwargs)
+        self.feature_since = ('1.10.0', '')
         self.module_details: T.List[str] = []
 
         # Clang may be installed a number of different ways:
@@ -600,7 +600,7 @@ class ClangSystemDependency(SystemDependency):
                         return
 
         # If we don't have modules, or we're looking for C we're done, it's not going to find anything anyway
-        if not modules or language != 'cpp':
+        if not modules or language == 'c':
             return
 
         opt_modules = kwargs.get('optional_modules') or []
@@ -663,6 +663,7 @@ class ClangCMakeDependency(CMakeDependency):
     def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs,
                  force_use_global_compilers: bool = False) -> None:
         language = kwargs.get('language') or 'c'
+        self.feature_since = ('1.10.0', '')
 
         # libclang-cpp.so does not require modules, but there is no static equivalent
         if not kwargs.get('modules') and language == 'cpp':
@@ -683,7 +684,7 @@ class ClangCMakeDependency(CMakeDependency):
         if language == 'cpp':
             force_use_global_compilers = True
 
-        super().__init__(name, environment, kwargs, force_use_global_compilers)
+        super().__init__('Clang', environment, kwargs, force_use_global_compilers)
 
 
 class ValgrindDependency(PkgConfigDependency):
