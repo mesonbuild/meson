@@ -53,11 +53,31 @@ int main(int argc, const char * argv[])
 
     CompilerInstance ci;
     DiagnosticOptions diagnosticOptions;
+#if LLVM_VERSION_MAJOR >= 20
+    clang::DiagnosticConsumer consumer{};
+#endif
+#if LLVM_VERSION_MAJOR >= 21
+    auto diag = ci.createDiagnostics(
+            *llvm::vfs::getRealFileSystem(), diagnosticOptions,
+            &consumer, false, &ci.getCodeGenOpts()
+    );
+    ci.setDiagnostics(diag.get());
+#elif LLVM_VERSION_MAJOR >= 20
+    ci.createDiagnostics(*llvm::vfs::getRealFileSystem(), &consumer, false);
+#else
     ci.createDiagnostics();
+#endif
 
     std::shared_ptr<clang::TargetOptions> pto = std::make_shared<clang::TargetOptions>();
     pto->Triple = llvm::sys::getDefaultTargetTriple();
-    TargetInfo *pti = TargetInfo::CreateTargetInfo(ci.getDiagnostics(), pto);
+    TargetInfo *pti = TargetInfo::CreateTargetInfo(
+            ci.getDiagnostics(),
+#if LLVM_VERSION_MAJOR >= 21
+            *pto
+#else
+            pto
+#endif
+    );
     ci.setTarget(pti);
 
     ci.createFileManager();
