@@ -507,12 +507,12 @@ class LLVMDependencyCMake(CMakeDependency):
 
 class ClangSystemDependency(SystemDependency):
 
-    def __init__(self, name: str, env: Environment, kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
-        language = kwargs.get('language', language)
-        if language not in {None, 'c', 'cpp'}:
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs) -> None:
+        language = kwargs.get('language') or 'c'
+        if language not in {'c', 'cpp'}:
             raise DependencyException('Clang only provides C and C++ language support')
 
-        super().__init__(name, env, kwargs, language)
+        super().__init__('Clang', env, kwargs)
         self.feature_since = ('1.6.0', '')
         self.module_details: T.List[str] = []
 
@@ -531,7 +531,7 @@ class ClangSystemDependency(SystemDependency):
         # Try to handle the combinations of CMake and config-tool LLVM with this
         # method, even though it probably doesn't make sense to use the system
         # finder for Clang with CMake LLVM
-        llvm = T.cast('T.Optional[ExternalDependency]', kwargs.get('llvm'))
+        llvm = kwargs.get('llvm')
         if llvm is not None:
             if not llvm.found():
                 mlog.debug('Passed LLVM was not found, treating Clang as not found')
@@ -542,15 +542,17 @@ class ClangSystemDependency(SystemDependency):
             self.ext_deps.append(llvm)
         else:
             if not self._add_sub_dependency(
-                llvm_factory(
-                    env, self.for_machine, {'required': False, 'version': kwargs.get('version'), 'method': 'config-tool'})):
+                llvm_factory(env, {'required': False,
+                                   'version': kwargs.get('version'),
+                                   'native': self.for_machine,
+                                   'method': DependencyMethods.CONFIG_TOOL})):
                 return
             llvm = T.cast('ExternalDependency', self.ext_deps[0])
         # Clang and LLVM need to have the same version
         self.version = llvm.version
 
         # libclang-cpp.so does not require modules, but there is no static equivalent
-        modules = stringlistify(extract_as_list(kwargs, 'modules'))
+        modules = kwargs.get('modules')
         if not modules and language == 'cpp':
             mlog.warning('Clang C++ dependency without modules works correctly for dynamically linked Clang, '
                          'but will fail to find a statically linked Clang', once=True, fatal=False)
@@ -594,7 +596,7 @@ class ClangSystemDependency(SystemDependency):
         if not modules or language != 'cpp':
             return
 
-        opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
+        opt_modules = kwargs.get('optional_modules') or []
 
         libtype = mesonlib.LibType.PREFER_STATIC if self.static else mesonlib.LibType.PREFER_SHARED
 
@@ -645,9 +647,9 @@ class ClangSystemDependency(SystemDependency):
 
 class ClangCMakeDependency(CMakeDependency):
 
-    def __init__(self, name: str, environment: Environment, kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None,
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs,
                  force_use_global_compilers: bool = False) -> None:
-        language = kwargs.get('language', language)
+        language = kwargs.get('language') or 'c'
 
         # libclang-cpp.so does not require modules, but there is no static equivalent
         if not kwargs.get('modules') and language == 'cpp':
@@ -655,7 +657,7 @@ class ClangCMakeDependency(CMakeDependency):
                          'but will fail to find a statically linked Clang', once=True, fatal=False)
 
         # There are no loose libs for the C api, only libclang
-        if language != 'cpp':
+        if language == 'c':
             kwargs['modules'] = ['libclang']
         elif not kwargs.get('static', False):
             # XXX: We really need to try twice here, once for clang-cpp and once
@@ -668,7 +670,7 @@ class ClangCMakeDependency(CMakeDependency):
         if language == 'cpp':
             force_use_global_compilers = True
 
-        super().__init__(name, environment, kwargs, language, force_use_global_compilers)
+        super().__init__(name, environment, kwargs, force_use_global_compilers)
 
 
 class ValgrindDependency(PkgConfigDependency):
@@ -867,9 +869,8 @@ packages['jdk'] = JDKSystemDependency
 packages['clang'] = DependencyFactory(
     'clang',
     [DependencyMethods.CMAKE, DependencyMethods.SYSTEM],
-    cmake_class=ClangCMakeDependency,
-    cmake_name='Clang',
-    system_class=ClangSystemDependency,
+    cmake=ClangCMakeDependency,
+    system=ClangSystemDependency,
 )
 
 class DiaSDKSystemDependency(SystemDependency):
