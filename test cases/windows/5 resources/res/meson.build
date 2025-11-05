@@ -1,6 +1,8 @@
 win = import('windows')
 
-res = win.compile_resources('myres.rc',
+myres = configure_file(input: 'myres.rc.in', output: 'myres.rc', copy: true)
+
+res = win.compile_resources(myres,
   depend_files: 'sample.ico',
   include_directories : inc,
   args : [['-DFOO'], '-DBAR'])
