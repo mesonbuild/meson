@@ -2304,8 +2304,9 @@ class StaticLibrary(BuildTarget):
                 #  and thus, machine_info kernel should be set to 'none'.
                 #  In that case, native_static_libs list is empty.
                 rustc = self.compilers['rust']
-                d = dependencies.InternalDependency('undefined', [], [],
-                                                    rustc.native_static_libs,
+                link_args = ['-L' + rustc.get_target_libdir() + '/self-contained']
+                link_args += rustc.native_static_libs
+                d = dependencies.InternalDependency('undefined', [], [], link_args,
                                                     [], [], [], [], [], {}, [], [], [],
                                                     '_rust_native_static_libs')
                 self.external_deps.append(d)
