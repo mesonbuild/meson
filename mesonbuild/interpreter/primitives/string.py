@@ -197,11 +197,17 @@ class MesonVersionString(str):
 
 class MesonVersionStringHolder(StringHolder):
     @noKwargs
-    @typed_pos_args('str.version_compare', str)
     @InterpreterObject.method('version_compare')
-    def version_compare_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> bool:
-        self.interpreter.tmp_meson_version = args[0]
-        return version_compare(self.held_object, args[0])
+    @typed_pos_args('str.version_compare', varargs=str, min_varargs=1)
+    def version_compare_method(self, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> bool:
+        min_ver: str = args[0][0]
+        if len(args[0]) > 1:
+            for ver in args[0][1:]:
+                if version_compare(min_ver.strip("=<>"), f'>{ver.strip("=<>")}'):
+                    min_ver = ver
+            FeatureNew.single_use('meson.version().version_compare() with multiple arguments', '1.10.0', self.subproject, location=self.current_node)
+        self.interpreter.tmp_meson_version = min_ver
+        return version_compare_many(self.held_object, args[0])[0]
 
 # These special subclasses of string exist to cover the case where a dependency
 # exports a string variable interchangeable with a system dependency. This
