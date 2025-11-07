@@ -1851,7 +1851,6 @@ class NinjaBackend(backends.Backend):
                 # problem with MAX_PATH on Windows
                 basename = src.fname
                 output = os.path.join(self.get_target_private_dir(target), f'{basename}.{ext}')
-                print(f'{output=}')
                 element = NinjaBuildElement(
                     self.all_outputs, [output],
                     self.compiler_to_rule_name(cython),
@@ -1876,7 +1875,6 @@ class NinjaBackend(backends.Backend):
                     # a problem with MAX_PATH on Windows
                     basename = os.path.basename(ssrc)
                     output = os.path.join(self.get_target_private_dir(target), f'{basename}.{ext}')
-                    print(f'{output=}')
                     element = NinjaBuildElement(
                         self.all_outputs, [output],
                         self.compiler_to_rule_name(cython),
