@@ -1849,7 +1849,7 @@ class NinjaBackend(backends.Backend):
             if src.endswith('.pyx'):
                 # Use basename to avoid too nested targets which can cause a
                 # problem with MAX_PATH on Windows
-                basename = src.fname
+                basename = os.path.basename(src.fname)
                 output = os.path.join(self.get_target_private_dir(target), f'{basename}.{ext}')
                 element = NinjaBuildElement(
                     self.all_outputs, [output],

@@ -1062,7 +1062,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_cython_avoid_nested_generated_paths(self):
         # Ensure that cython transpiled outputs are not in a too deeply nested folder
-        testdir = os.path.join("test cases/cython", "2 generated sources")
+        testdir = os.path.join("test cases/cython", "5 nested folders")
         env = get_fake_env(testdir, self.builddir, self.prefix)
         try:
             detect_compiler_for(env, "cython", MachineChoice.HOST, True, "")
@@ -1076,7 +1076,7 @@ class AllPlatformTests(BasePlatformTests):
         for target in targets:
             for target_sources in target["target_sources"]:
                 for generated_source in target_sources.get("generated_sources", []):
-                    if generated_source.endswith(".pyx.c"):
+                    if generated_source.endswith(".pyx.c") or generated_source.endswith("pyx.cpp"):
                         found = True
                         parts = os.path.normpath(generated_source).split(os.sep)
                         parent = parts[-2]
