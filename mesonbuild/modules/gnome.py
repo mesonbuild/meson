@@ -924,7 +924,7 @@ class GnomeModule(ExtensionModule):
             if OptionKey('b_sanitize') in compiler.base_options:
                 sanitize = state.environment.coredata.optstore.get_value_for('b_sanitize')
                 assert isinstance(sanitize, list)
-                cflags += compiler.sanitizer_compile_args(sanitize)
+                cflags += compiler.sanitizer_compile_args(None, state.environment, sanitize)
                 # These must be first in ldflags
                 if 'address' in sanitize:
                     internal_ldflags += ['-lasan']
@@ -934,7 +934,7 @@ class GnomeModule(ExtensionModule):
                     internal_ldflags += ['-lubsan']
                 # FIXME: Linking directly to lib*san is not recommended but g-ir-scanner
                 # does not understand -f LDFLAGS. https://bugzilla.gnome.org/show_bug.cgi?id=783892
-                # ldflags += compiler.sanitizer_link_args(sanitize)
+                # ldflags += compiler.sanitizer_link_args(None, state.environment, sanitize)
 
         return cflags, internal_ldflags, external_ldflags
 

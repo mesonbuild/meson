@@ -13,6 +13,7 @@ from ..compilers import Compiler
 from ...mesonlib import EnvironmentException, version_compare
 
 if T.TYPE_CHECKING:
+    from ...build import BuildTarget
     from ...envconfig import MachineInfo
     from ...environment import Environment
 
@@ -152,7 +153,7 @@ class Xc32Compiler(CompilerBase):
     def get_profile_use_args(self) -> T.List[str]:
         return Compiler.get_profile_use_args(self)
 
-    def sanitizer_compile_args(self, value: T.List[str]) -> T.List[str]:
+    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], env: Environment, value: T.List[str]) -> T.List[str]:
         return []
 
     @classmethod
