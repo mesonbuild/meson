@@ -273,6 +273,7 @@ def are_asserts_disabled_for_subproject(subproject: str, env: 'Environment') -> 
 
 def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Environment') -> T.List[str]:
     args: T.List[str] = []
+    lto = False
     try:
         if env.coredata.get_option_for_target(target, 'b_lto'):
             num_threads = get_option_value_for_target(env, target, OptionKey('b_lto_threads'), 0)
@@ -280,6 +281,7 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
             args.extend(compiler.get_lto_compile_args(
                 threads=num_threads,
                 mode=ltomode))
+            lto = True
     except (KeyError, AttributeError):
         pass
     try:
@@ -320,8 +322,8 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
     except KeyError:
         pass
     # This does not need a try...except
-    if option_enabled(compiler.base_options, target, env, 'b_bitcode'):
-        args.append('-fembed-bitcode')
+    bitcode = option_enabled(compiler.base_options, target, env, 'b_bitcode')
+    args.extend(compiler.get_embed_bitcode_args(bitcode, lto))
     try:
         crt_val = env.coredata.get_option_for_target(target, 'b_vscrt')
         assert isinstance(crt_val, str)
@@ -1034,6 +1036,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                 continue
             ret.append(arg)
         return ret
+
+    def get_embed_bitcode_args(self, bitcode: bool, lto: bool) -> T.List[str]:
+        return []
 
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         return []

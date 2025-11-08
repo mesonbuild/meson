@@ -216,6 +216,9 @@ class ClangCompiler(GnuLikeCompiler):
     def get_coverage_link_args(self) -> T.List[str]:
         return ['--coverage']
 
+    def get_embed_bitcode_args(self, bitcode: bool, lto: bool) -> T.List[str]:
+        return ['-fembed-bitcode'] if bitcode else []
+
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         args: T.List[str] = []
         if mode == 'thin':

@@ -341,6 +341,14 @@ class RustCompiler(Compiler):
             args.extend(['-C', f'link-arg={a}'])
         return args
 
+    def get_embed_bitcode_args(self, bitcode: bool, lto: bool) -> T.List[str]:
+        if bitcode:
+            return ['-C', 'embed-bitcode=yes']
+        elif lto:
+            return []
+        else:
+            return ['-C', 'embed-bitcode=no']
+
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         # TODO: what about -Clinker-plugin-lto?
         rustc_lto = 'lto=thin' if mode == 'thin' else 'lto'
