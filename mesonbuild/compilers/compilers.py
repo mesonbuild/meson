@@ -351,6 +351,7 @@ def get_base_link_args(target: 'BuildTarget',
                 thinlto_cache_dir = get_option_value_for_target(env, target, OptionKey('b_thinlto_cache_dir'), '')
                 if thinlto_cache_dir == '':
                     thinlto_cache_dir = os.path.join(build_dir, 'meson-private', 'thinlto-cache')
+                    os.mkdir(thinlto_cache_dir)
             num_threads = get_option_value_for_target(env, target, OptionKey('b_lto_threads'), 0)
             lto_mode = get_option_value_for_target(env, target, OptionKey('b_lto_mode'), 'default')
             args.extend(linker.get_lto_link_args(
