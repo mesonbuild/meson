@@ -2031,6 +2031,7 @@ class NinjaBackend(backends.Backend):
         # If we're dynamically linking, add those arguments
         if target.rust_crate_type in {'bin', 'dylib', 'cdylib'}:
             args.extend(rustc.get_linker_always_args())
+            args += compilers.get_base_link_args(target, rustc, self.environment)
 
         args += self.generate_basic_compiler_args(target, rustc)
         args += ['--crate-name', self._get_rust_crate_name(target.name)]
@@ -2046,17 +2047,6 @@ class NinjaBackend(backends.Backend):
         deps: T.List[str] = []
         project_deps: T.List[RustDep] = []
         args: T.List[str] = []
-
-        # Rustc always use non-debug Windows runtime. Inject the one selected
-        # by Meson options instead.
-        # https://github.com/rust-lang/rust/issues/39016
-        if not isinstance(target, build.StaticLibrary):
-            try:
-                buildtype = self.get_target_option(target, 'buildtype')
-                crt = self.get_target_option(target, 'b_vscrt')
-                args += rustc.get_crt_link_args(crt, buildtype)
-            except (KeyError, AttributeError):
-                pass
 
         def _link_library(libname: str, static: bool, bundle: bool = False) -> None:
             orig_libname = libname
