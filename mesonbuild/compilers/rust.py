@@ -341,6 +341,11 @@ class RustCompiler(Compiler):
             args.extend(['-C', f'link-arg={a}'])
         return args
 
+    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
+        # TODO: what about -Clinker-plugin-lto?
+        rustc_lto = 'lto=thin' if mode == 'thin' else 'lto'
+        return ['-C', rustc_lto]
+
     def get_werror_args(self) -> T.List[str]:
         # Use -D warnings, which makes every warning not explicitly allowed an
         # error
