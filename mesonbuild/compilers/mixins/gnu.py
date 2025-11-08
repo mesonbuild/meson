@@ -550,15 +550,18 @@ class GnuCompiler(GnuLikeCompiler):
     _COLOR_VERSION = '>=4.9.0'
     _WPEDANTIC_VERSION = '>=4.8.0'
     _LTO_AUTO_VERSION = '>=10.0'
+    _LTO_CACHE_VERSION = '>=15.1'
     _USE_MOLD_VERSION = '>=12.0.1'
 
     def __init__(self, defines: T.Optional[T.Dict[str, str]]):
         super().__init__()
         self.defines = defines or {}
-        self.base_options.update({OptionKey('b_colorout'), OptionKey('b_lto_threads')})
+        self.base_options.update({OptionKey('b_colorout'), OptionKey('b_lto_threads'),
+                                  OptionKey('b_thinlto_cache'), OptionKey('b_thinlto_cache_dir')})
         self._has_color_support = mesonlib.version_compare(self.version, self._COLOR_VERSION)
         self._has_wpedantic_support = mesonlib.version_compare(self.version, self._WPEDANTIC_VERSION)
         self._has_lto_auto_support = mesonlib.version_compare(self.version, self._LTO_AUTO_VERSION)
+        self._has_lto_cache_support = mesonlib.version_compare(self.version, self._LTO_CACHE_VERSION)
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         if self._has_color_support:
@@ -619,7 +622,8 @@ class GnuCompiler(GnuLikeCompiler):
     def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
         return [prelink_name], ['-r', '-o', prelink_name] + obj_list
 
-    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
+    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default',
+                             thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
 
         if threads == 0:
@@ -634,7 +638,17 @@ class GnuCompiler(GnuLikeCompiler):
         else:
             args.extend(super().get_lto_compile_args(threads=threads))
 
+        if thinlto_cache_dir is not None:
+            # We check for ThinLTO linker support above in get_lto_compile_args, and all of them support
+            # get_thinlto_cache_args as well
+            args.extend(self.get_thinlto_cache_args(thinlto_cache_dir))
+
         return args
+
+    def get_thinlto_cache_args(self, path: str) -> T.List[str]:
+        # Unlike the ThinLTO support for Clang, everything is handled in GCC
+        # and the linker has no direct involvement other than the usual w/ LTO.
+        return [f'-flto-incremental={path}']
 
     @classmethod
     def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
@@ -645,7 +659,7 @@ class GnuCompiler(GnuLikeCompiler):
     def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
                           thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
-        args.extend(self.get_lto_compile_args(threads=threads))
+        args.extend(self.get_lto_compile_args(threads=threads, thinlto_cache_dir=thinlto_cache_dir))
         return args
 
     def get_profile_use_args(self) -> T.List[str]:
