@@ -213,6 +213,22 @@ class RustCompiler(Compiler):
     def get_crt_static(self) -> bool:
         return 'target_feature="crt-static"' in self.get_cfgs()
 
+    def get_nightly(self, target: T.Optional[BuildTarget], env: Environment) -> bool:
+        if not target:
+            return self.allow_nightly
+        key = self.form_compileropt_key('nightly')
+        nightly_opt = env.coredata.get_option_for_target(target, key)
+        if nightly_opt == 'enabled' and not self.is_nightly:
+            raise EnvironmentException(f'Rust compiler {self.name_string()} is not a nightly compiler as required by the "nightly" option.')
+        return nightly_opt != 'disabled' and self.is_nightly
+
+    def sanitizer_link_args(self, target: T.Optional[BuildTarget], env: Environment, value: T.List[str]) -> T.List[str]:
+        # Sanitizers are not supported yet for Rust code.  Nightly supports that
+        # with -Zsanitizer=, but procedural macros cannot use them.  But even if
+        # Rust code cannot be instrumented, we can link in the sanitizer libraries
+        # for the sake of C/C++ code
+        return rustc_link_args(super().sanitizer_link_args(target, env, value))
+
     @functools.lru_cache(maxsize=None)
     def has_verbatim(self) -> bool:
         if version_compare(self.version, '< 1.67.0'):
