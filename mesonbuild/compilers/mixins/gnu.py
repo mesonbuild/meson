@@ -21,6 +21,7 @@ from mesonbuild.compilers.compilers import CompileCheckMode
 
 if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
+    from ...build import BuildTarget
     from ...options import MutableKeyedOptionDictType
     from ...environment import Environment
     from ..compilers import Compiler
@@ -496,7 +497,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # for their specific arguments
         return ['-flto']
 
-    def sanitizer_compile_args(self, value: T.List[str]) -> T.List[str]:
+    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], env: Environment, value: T.List[str]) -> T.List[str]:
         if not value:
             return value
         args = ['-fsanitize=' + ','.join(value)]
