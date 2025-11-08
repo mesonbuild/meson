@@ -329,6 +329,9 @@ class RustCompiler(Compiler):
     def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         if not isinstance(self.linker, VisualStudioLikeLinkerMixin):
             return []
+        # Rustc always use non-debug Windows runtime. Inject the one selected
+        # by Meson options instead.
+        # https://github.com/rust-lang/rust/issues/39016
         return self.MSVCRT_ARGS[self.get_crt_val(crt_val, buildtype)]
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
