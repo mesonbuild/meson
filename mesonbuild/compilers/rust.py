@@ -65,6 +65,15 @@ def get_rustup_run_and_args(exelist: T.List[str]) -> T.Optional[T.Tuple[T.List[s
     except StopIteration:
         return None
 
+def rustc_link_args(args: T.List[str]) -> T.List[str]:
+    if not args:
+        return args
+    rustc_args: T.List[str] = []
+    for arg in args:
+        rustc_args.append('-C')
+        rustc_args.append(f'link-arg={arg}')
+    return rustc_args
+
 class RustCompiler(Compiler):
 
     # rustc doesn't invoke the compiler itself, it doesn't need a LINKER_PREFIX
@@ -98,7 +107,7 @@ class RustCompiler(Compiler):
                          is_cross=is_cross, full_version=full_version,
                          linker=linker)
         self.rustup_run_and_args: T.Optional[T.Tuple[T.List[str], T.List[str]]] = get_rustup_run_and_args(exelist)
-        self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_ndebug']})
+        self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_ndebug', 'b_pgo']})
         if isinstance(self.linker, VisualStudioLikeLinkerMixin):
             self.base_options.add(OptionKey('b_vscrt'))
         self.native_static_libs: T.List[str] = []
@@ -254,12 +263,7 @@ class RustCompiler(Compiler):
                          target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
         # add rustc's sysroot to account for rustup installations
         args, to_remove = super().build_rpath_args(env, build_dir, from_dir, target, [self.get_target_libdir()])
-
-        rustc_rpath_args = []
-        for arg in args:
-            rustc_rpath_args.append('-C')
-            rustc_rpath_args.append(f'link-arg={arg}')
-        return rustc_rpath_args, to_remove
+        return rustc_link_args(args), to_remove
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
@@ -333,13 +337,9 @@ class RustCompiler(Compiler):
             return [f'--color={colortype}']
         raise MesonException(f'Invalid color type for rust {colortype}')
 
+    @functools.lru_cache(maxsize=None)
     def get_linker_always_args(self) -> T.List[str]:
-        args: T.List[str] = []
-        # Rust is super annoying, calling -C link-arg foo does not work, it has
-        # to be -C link-arg=foo
-        for a in super().get_linker_always_args():
-            args.extend(['-C', f'link-arg={a}'])
-        return args
+        return rustc_link_args(super().get_linker_always_args())
 
     def get_embed_bitcode_args(self, bitcode: bool, lto: bool) -> T.List[str]:
         if bitcode:
@@ -353,6 +353,36 @@ class RustCompiler(Compiler):
         # TODO: what about -Clinker-plugin-lto?
         rustc_lto = 'lto=thin' if mode == 'thin' else 'lto'
         return ['-C', rustc_lto]
+
+    def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
+                          thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
+        # no need to specify anything because the rustc command line
+        # includes the result of get_lto_compile_args()
+        return []
+
+    def get_lto_obj_cache_path(self, path: str) -> T.List[str]:
+        return rustc_link_args(super().get_lto_obj_cache_path(path))
+
+    def get_profile_generate_args(self) -> T.List[str]:
+        return ['-C', 'profile-generate']
+
+    def get_profile_use_args(self) -> T.List[str]:
+        return ['-C', 'profile-use']
+
+    @functools.lru_cache(maxsize=None)
+    def get_asneeded_args(self) -> T.List[str]:
+        return rustc_link_args(super().get_asneeded_args())
+
+    def bitcode_args(self) -> T.List[str]:
+        return ['-C', 'embed-bitcode=yes']
+
+    @functools.lru_cache(maxsize=None)
+    def headerpad_args(self) -> T.List[str]:
+        return rustc_link_args(super().headerpad_args())
+
+    @functools.lru_cache(maxsize=None)
+    def get_allow_undefined_link_args(self) -> T.List[str]:
+        return rustc_link_args(super().get_allow_undefined_link_args())
 
     def get_werror_args(self) -> T.List[str]:
         # Use -D warnings, which makes every warning not explicitly allowed an
@@ -399,7 +429,7 @@ class RustCompiler(Compiler):
         return self.compiles('fn main() { std::process::exit(0) }\n', env, extra_args=args, mode=CompileCheckMode.COMPILE)
 
     def has_multi_link_arguments(self, args: T.List[str], env: Environment) -> T.Tuple[bool, bool]:
-        args = self.linker.fatal_warnings() + args
+        args = rustc_link_args(self.linker.fatal_warnings()) + args
         return self.compiles('fn main() { std::process::exit(0) }\n', env, extra_args=args, mode=CompileCheckMode.LINK)
 
     @functools.lru_cache(maxsize=None)
