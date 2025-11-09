@@ -1,5 +1,5 @@
 project(
-  'package',
+  'nested folders',
   'c', 'cpp', 'cython',
   version: '0.1',
   license: 'BSD-3',
