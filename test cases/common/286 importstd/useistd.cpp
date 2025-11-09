@@ -1,4 +1,4 @@
-#include<print>
+import std;
 
 int main(int, char**) {
     std::print("Import STD is working.\n");
