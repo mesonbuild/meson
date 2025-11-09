@@ -4,6 +4,9 @@
       "type": "python_lib",
       "file": "usr/@PYTHON_PLATLIB@/package/metrics/metric"
     },
-    { "type": "python_lib", "file": "usr/@PYTHON_PLATLIB@/package/metrics/_pairwise_distances_reduction/_radius_neighbors_classmode" }
+    {
+      "type": "python_lib",
+      "file": "usr/@PYTHON_PLATLIB@/package/metrics/_pairwise_distances_reduction/_radius_neighbors_classmode"
+    }
   ]
 }
