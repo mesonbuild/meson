@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import itertools
 import os, re
+import shutil
 import typing as T
 import collections
 
@@ -229,6 +230,46 @@ class Environment:
         self.default_cmake = ['cmake']
         self.default_pkgconfig = ['pkg-config']
         self.wrap_resolver: T.Optional['Resolver'] = None
+        # Use a sentinel to distinguish between "not yet checked" and "checked but not found"
+        self._homebrew_prefix_cache: PerMachine[T.Union[str, None, type(...)]] = PerMachine(..., ...)
+
+    def get_homebrew_prefix(self, for_machine: MachineChoice) -> T.Optional[str]:
+        """Get the Homebrew prefix for the given machine.
+
+        This calls 'brew --prefix' once per machine and caches the result.
+        Returns None if brew is not found or fails.
+        """
+        # Check if we've already computed this
+        cached = self._homebrew_prefix_cache[for_machine]
+        if cached is not ...:
+            return cached if cached is not None else None
+
+        # Only relevant for Darwin systems
+        if not self.machines[for_machine].is_darwin():
+            self._homebrew_prefix_cache[for_machine] = None
+            return None
+
+        brew_exe = shutil.which('brew')
+        if brew_exe is None:
+            mlog.debug('Homebrew not found in PATH')
+            self._homebrew_prefix_cache[for_machine] = None
+            return None
+
+        try:
+            p, out, err = Popen_safe([brew_exe, '--prefix'])
+            if p.returncode == 0:
+                prefix = out.strip()
+                mlog.debug(f'Detected Homebrew prefix: {prefix}')
+                self._homebrew_prefix_cache[for_machine] = prefix
+                return prefix
+            else:
+                mlog.debug(f'brew --prefix failed: {err}')
+                self._homebrew_prefix_cache[for_machine] = None
+                return None
+        except Exception as e:
+            mlog.debug(f'Failed to detect Homebrew prefix: {e}')
+            self._homebrew_prefix_cache[for_machine] = None
+            return None
 
     def mfilestr2key(self, machine_file_string: str, section: T.Optional[str], section_subproject: T.Optional[str], machine: MachineChoice) -> OptionKey:
         key = OptionKey.from_string(machine_file_string)
