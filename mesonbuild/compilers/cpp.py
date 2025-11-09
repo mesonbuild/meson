@@ -477,6 +477,13 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
                 'Standard Win libraries to link against',
                 gnu_winlibs)
 
+        if version_compare(self.version, '>=15.1'):
+            key = key.evolve(name='cpp_importstd')
+            opts[key] = options.UserComboOption(self.make_option_name(key),
+                                                'Use #import std.',
+                                                'false',
+                                                choices=['false', 'true'])
+
         return opts
 
     def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
