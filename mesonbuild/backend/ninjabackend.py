@@ -3322,6 +3322,23 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             istd_args = ['-fmodules']
             istd_dep = [File(True, '', self.import_std.gen_module_file)]
             return istd_args, istd_dep
+        elif compiler.id == 'msvc':
+            if self.import_std is None:
+                mod_file = 'std.ifc'
+                mod_obj_file = 'std.obj'
+                in_file = Path(os.environ['VCToolsInstallDir']) / 'modules/std.ixx'
+                if not in_file.is_file():
+                    raise SystemExit('VS std import header could not be located.')
+                in_file_str = str(in_file)
+                elem = NinjaBuildElement(self.all_outputs, [mod_file, mod_obj_file], 'CUSTOM_COMMAND', [in_file_str])
+                compile_args = compiler.get_option_compile_args(target, self.environment)
+                compile_args += compiler.get_option_std_args(target, self.environment)
+                compile_args += ['/nologo', '/c', '/O2', in_file_str]
+                elem.add_item('COMMAND', compiler.exelist + compile_args)
+                self.add_build(elem)
+                self.import_std = ImportStdInfo(elem, mod_file, [mod_obj_file])
+            istd_dep = [File(True, '', self.import_std.gen_module_file)]
+            return istd_args, istd_dep
         else:
             raise MesonException(f'Import std not supported on compiler {compiler.id} yet.')
 
