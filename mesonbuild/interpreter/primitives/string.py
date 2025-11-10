@@ -8,7 +8,7 @@ import os
 import typing as T
 
 from ... import mlog
-from ...mesonlib import version_compare, version_compare_many, underscorify
+from ...mesonlib import version_compare_many, underscorify
 from ...interpreterbase import (
     InterpreterObject,
     MesonOperator,
@@ -198,18 +198,26 @@ class MesonVersionString(str):
 
 class MesonVersionStringHolder(StringHolder):
     @noKwargs
-    @typed_pos_args('str.version_compare', str)
     @InterpreterObject.method('version_compare')
-    def version_compare_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> bool:
+    @typed_pos_args('str.version_compare', varargs=str, min_varargs=1)
+    def version_compare_method(self, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> bool:
         unsupported = []
-        if not args[0].strip().startswith('>'):
-            unsupported.append('non-upper-bounds (> or >=) constraints')
+        for constraint in args[0]:
+            if not constraint.strip().startswith('>'):
+                unsupported.append('non-upper-bounds (> or >=) constraints')
+        if len(args[0]) > 1:
+            FeatureNew.single_use('meson.version().version_compare() with multiple arguments', '1.10.0',
+                                  self.subproject, 'From 1.8.0 - 1.9.* it failed to match str.version_compare',
+                                  location=self.current_node)
+            unsupported.append('multiple arguments')
+        else:
+            self.interpreter.tmp_meson_version = args[0][0]
         if unsupported:
             mlog.debug('meson.version().version_compare() with', ' or '.join(unsupported),
                        'does not support overriding minimum meson_version checks.')
 
-        self.interpreter.tmp_meson_version = args[0]
-        return version_compare(self.held_object, args[0])
+        return version_compare_many(self.held_object, args[0])[0]
+
 
 # These special subclasses of string exist to cover the case where a dependency
 # exports a string variable interchangeable with a system dependency. This
