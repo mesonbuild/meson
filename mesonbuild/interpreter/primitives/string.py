@@ -7,6 +7,7 @@ import os
 
 import typing as T
 
+from ... import mlog
 from ...mesonlib import version_compare, version_compare_many, underscorify
 from ...interpreterbase import (
     InterpreterObject,
@@ -200,6 +201,13 @@ class MesonVersionStringHolder(StringHolder):
     @typed_pos_args('str.version_compare', str)
     @InterpreterObject.method('version_compare')
     def version_compare_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> bool:
+        unsupported = []
+        if not args[0].strip().startswith('>'):
+            unsupported.append('non-upper-bounds (> or >=) constraints')
+        if unsupported:
+            mlog.debug('meson.version().version_compare() with', ' or '.join(unsupported),
+                       'does not support overriding minimum meson_version checks.')
+
         self.interpreter.tmp_meson_version = args[0]
         return version_compare(self.held_object, args[0])
 
