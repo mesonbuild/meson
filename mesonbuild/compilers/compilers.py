@@ -405,7 +405,7 @@ def get_base_link_args(target: 'BuildTarget',
     if not bitcode:
         from ..build import SharedModule
         args.extend(linker.headerpad_args())
-        if (not isinstance(target, SharedModule) and
+        if ((not isinstance(target, SharedModule) or env.machines[target.for_machine].is_haiku()) and
                 option_enabled(linker.base_options, target, env, 'b_lundef')):
             args.extend(linker.no_undefined_link_args())
         else:

@@ -363,6 +363,9 @@ class Backend:
         elif isinstance(target, build.Executable):
             if target.import_filename:
                 return Path(self.get_target_dir(target), target.get_import_filename()).as_posix()
+            # It is always possible to link with executable on Haiku.
+            elif self.environment.machines[target.for_machine].is_haiku():
+                return Path(self.get_target_dir(target), target.get_filename()).as_posix()
             else:
                 return None
         raise AssertionError(f'BUG: Tried to link to {target!r} which is not linkable')
