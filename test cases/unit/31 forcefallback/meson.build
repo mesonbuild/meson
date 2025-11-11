@@ -7,3 +7,6 @@ notfound_dep = dependency('cannotabletofind', fallback: ['definitelynotfound', '
 test_not_zlib = executable('test_not_zlib', ['test_not_zlib.c'], dependencies: [zlib_dep, notfound_dep])
 
 test('test_not_zlib', test_not_zlib)
+
+false_bin = find_program('false')
+test('test_not_false', false_bin)
