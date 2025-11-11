@@ -998,7 +998,7 @@ class Backend:
                         if dep.version_reqs is not None:
                             for req in dep.version_reqs:
                                 if req.startswith(('>=', '==')):
-                                    commands += ['--target-glib', req[2:]]
+                                    commands += ['--target-glib', req[2:].strip()]
                                     break
                     elif isinstance(dep, dependencies.InternalDependency) and dep.version is not None:
                         glib_version = dep.version.split('.')
