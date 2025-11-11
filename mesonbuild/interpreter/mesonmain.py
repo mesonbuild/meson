@@ -259,21 +259,14 @@ class MesonMain(MesonInterpreterObject):
     @FeatureDeprecated('meson.has_exe_wrapper', '0.55.0', 'use meson.can_run_host_binaries instead.')
     @InterpreterObject.method('has_exe_wrapper')
     def has_exe_wrapper_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
-        return self._can_run_host_binaries_impl()
+        return self.build.environment.can_run_host_binaries()
 
     @noPosargs
     @noKwargs
     @FeatureNew('meson.can_run_host_binaries', '0.55.0')
     @InterpreterObject.method('can_run_host_binaries')
     def can_run_host_binaries_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
-        return self._can_run_host_binaries_impl()
-
-    def _can_run_host_binaries_impl(self) -> bool:
-        return not (
-            self.build.environment.is_cross_build() and
-            self.build.environment.need_exe_wrapper() and
-            self.build.environment.exe_wrapper is None
-        )
+        return self.build.environment.can_run_host_binaries()
 
     @noPosargs
     @noKwargs
