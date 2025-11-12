@@ -20,9 +20,6 @@ from .gnu import GnuLikeCompiler
 from .visualstudio import VisualStudioLikeCompiler
 from ...options import OptionKey
 
-if T.TYPE_CHECKING:
-    from ...environment import Environment
-
 # XXX: avoid circular dependencies
 # TODO: this belongs in a posix compiler class
 # NOTE: the default Intel optimization is -O2, unlike GNU which defaults to -O0.
@@ -82,7 +79,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
     def get_pch_name(self, name: str) -> str:
         return os.path.basename(name) + '.' + self.get_pch_suffix()
 
-    def openmp_flags(self, env: Environment) -> T.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=15.0.0'):
             return ['-qopenmp']
         else:
@@ -158,7 +155,7 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
         version = int(v1 + v2)
         return self._calculate_toolset_version(version)
 
-    def openmp_flags(self, env: Environment) -> T.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         return ['/Qopenmp']
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
