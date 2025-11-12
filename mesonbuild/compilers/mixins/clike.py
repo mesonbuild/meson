@@ -193,10 +193,9 @@ class CLikeCompiler(Compiler):
         return []
 
     @functools.lru_cache()
-    def _get_library_dirs(self, env: 'Environment',
-                          elf_class: T.Optional[int] = None) -> 'ImmutableListProtocol[str]':
+    def _get_library_dirs(self, elf_class: T.Optional[int] = None) -> 'ImmutableListProtocol[str]':
         # TODO: replace elf_class with enum
-        dirs = self.get_compiler_dirs(env, 'libraries')
+        dirs = self.get_compiler_dirs(self.environment, 'libraries')
         if elf_class is None or elf_class == 0:
             return dirs
 
@@ -232,12 +231,11 @@ class CLikeCompiler(Compiler):
 
         return retval
 
-    def get_library_dirs(self, env: 'Environment',
-                         elf_class: T.Optional[int] = None) -> T.List[str]:
+    def get_library_dirs(self, elf_class: T.Optional[int] = None) -> T.List[str]:
         """Wrap the lru_cache so that we return a new copy and don't allow
         mutation of the cached value.
         """
-        return self._get_library_dirs(env, elf_class).copy()
+        return self._get_library_dirs(elf_class).copy()
 
     @functools.lru_cache()
     def _get_program_dirs(self, env: 'Environment') -> 'ImmutableListProtocol[str]':
@@ -1163,7 +1161,7 @@ class CLikeCompiler(Compiler):
         # Search in the specified dirs, and then in the system libraries
         largs = self.get_linker_always_args() + self.get_allow_undefined_link_args()
         lcargs = self.linker_to_compiler_args(largs)
-        for d in itertools.chain(extra_dirs, [] if ignore_system_dirs else self.get_library_dirs(env, elf_class)):
+        for d in itertools.chain(extra_dirs, [] if ignore_system_dirs else self.get_library_dirs(elf_class)):
             for p in patterns:
                 trials = self._get_trials_from_pattern(p, d, libname)
                 if not trials:

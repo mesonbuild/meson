@@ -1171,8 +1171,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             # those features explicitly.
         return []
 
-    def get_library_dirs(self, env: 'Environment',
-                         elf_class: T.Optional[int] = None) -> T.List[str]:
+    def get_library_dirs(self, elf_class: T.Optional[int] = None) -> T.List[str]:
         return []
 
     def get_return_value(self,

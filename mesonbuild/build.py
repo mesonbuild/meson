@@ -1838,7 +1838,7 @@ class BuildTarget(Target):
         system_dirs = set()
         if exclude_system:
             for cc in self.compilers.values():
-                system_dirs.update(cc.get_library_dirs(self.environment))
+                system_dirs.update(cc.get_library_dirs())
 
         external_rpaths = self.get_external_rpath_dirs()
         build_to_src = relpath(self.environment.get_source_dir(),

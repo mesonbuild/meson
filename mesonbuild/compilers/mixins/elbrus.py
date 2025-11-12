@@ -39,7 +39,7 @@ class ElbrusCompiler(GnuLikeCompiler):
 
     # FIXME: use _build_wrapper to call this so that linker flags from the env
     # get applied
-    def get_library_dirs(self, env: 'Environment', elf_class: T.Optional[int] = None) -> T.List[str]:
+    def get_library_dirs(self, elf_class: T.Optional[int] = None) -> T.List[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         stdo = Popen_safe(self.get_exelist(ccache=False) + ['--print-search-dirs'], env=os_env)[1]
