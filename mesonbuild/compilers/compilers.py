@@ -970,11 +970,11 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def thread_link_flags(self, env: 'Environment') -> T.List[str]:
         return self.linker.thread_flags(env)
 
-    def openmp_flags(self, env: Environment) -> T.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         raise EnvironmentException('Language %s does not support OpenMP flags.' % self.get_display_language())
 
-    def openmp_link_flags(self, env: Environment) -> T.List[str]:
-        return self.openmp_flags(env)
+    def openmp_link_flags(self) -> T.List[str]:
+        return self.openmp_flags()
 
     def language_stdlib_only_link_flags(self) -> T.List[str]:
         return []

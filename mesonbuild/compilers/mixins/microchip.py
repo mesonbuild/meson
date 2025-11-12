@@ -138,8 +138,8 @@ class Xc32Compiler(CompilerBase):
     def thread_flags(self, env: Environment) -> T.List[str]:
         return []
 
-    def openmp_flags(self, env: Environment) -> T.List[str]:
-        return Compiler.openmp_flags(self, env)
+    def openmp_flags(self) -> T.List[str]:
+        return Compiler.openmp_flags(self)
 
     def get_pic_args(self) -> T.List[str]:
         return Compiler.get_pic_args(self)

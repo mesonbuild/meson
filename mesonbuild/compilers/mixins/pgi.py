@@ -51,7 +51,7 @@ class PGICompiler(Compiler):
             return ['-fPIC']
         return []
 
-    def openmp_flags(self, env: Environment) -> T.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         return ['-mp']
 
     def get_preprocess_only_args(self) -> T.List[str]:
