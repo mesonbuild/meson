@@ -805,13 +805,13 @@ class CudaCompiler(Compiler):
     def get_profile_use_args(self) -> T.List[str]:
         return ['-Xcompiler=' + x for x in self.host_compiler.get_profile_use_args()]
 
-    def get_assert_args(self, disable: bool, env: 'Environment') -> T.List[str]:
+    def get_assert_args(self, disable: bool) -> T.List[str]:
         cccl_macros = []
         if not disable and self.debug_macros_available:
             # https://github.com/NVIDIA/cccl/pull/2382
             cccl_macros = ['-DCCCL_ENABLE_ASSERTIONS=1']
 
-        return self.host_compiler.get_assert_args(disable, env) + cccl_macros
+        return self.host_compiler.get_assert_args(disable) + cccl_macros
 
     def has_multi_arguments(self, args: T.List[str], env: Environment) -> T.Tuple[bool, bool]:
         args = self._to_host_flags(args)
