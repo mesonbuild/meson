@@ -534,7 +534,7 @@ class InternalTests(unittest.TestCase):
         kwargs = {'sources': [1, [2, [3]]]}
         self.assertEqual([1, 2, 3], extract(kwargs, 'sources'))
 
-    def _test_all_naming(self, cc, env, patterns, platform):
+    def _test_all_naming(self, cc, patterns, platform):
         shr = patterns[platform]['shared']
         stc = patterns[platform]['static']
         shrstc = shr + tuple(x for x in stc if x not in shr)
@@ -559,9 +559,9 @@ class InternalTests(unittest.TestCase):
                     f.write('int meson_foobar (void) { return 0; }')
                 subprocess.check_call(['gcc', str(src), '-o', str(libpath), '-shared'])
 
-            found = cc._find_library_real('foo', env, [tmpdir], 'int main(void) { return 0; }', LibType.PREFER_SHARED, lib_prefix_warning=True, ignore_system_dirs=False)
+            found = cc._find_library_real('foo', [tmpdir], 'int main(void) { return 0; }', LibType.PREFER_SHARED, lib_prefix_warning=True, ignore_system_dirs=False)
             self.assertEqual(os.path.basename(found[0]), 'libfoo.so.54.0')
-            found = cc._find_library_real('bar', env, [tmpdir], 'int main(void) { return 0; }', LibType.PREFER_SHARED, lib_prefix_warning=True, ignore_system_dirs=False)
+            found = cc._find_library_real('bar', [tmpdir], 'int main(void) { return 0; }', LibType.PREFER_SHARED, lib_prefix_warning=True, ignore_system_dirs=False)
             self.assertEqual(os.path.basename(found[0]), 'libbar.so.7.10')
 
     def test_find_library_patterns(self):
@@ -588,26 +588,26 @@ class InternalTests(unittest.TestCase):
         env = get_fake_env()
         cc = detect_c_compiler(env, MachineChoice.HOST)
         if is_osx():
-            self._test_all_naming(cc, env, patterns, 'darwin')
+            self._test_all_naming(cc, patterns, 'darwin')
         elif is_cygwin():
-            self._test_all_naming(cc, env, patterns, 'cygwin')
+            self._test_all_naming(cc, patterns, 'cygwin')
         elif is_windows():
             if cc.get_argument_syntax() == 'msvc':
-                self._test_all_naming(cc, env, patterns, 'windows-msvc')
+                self._test_all_naming(cc, patterns, 'windows-msvc')
             else:
-                self._test_all_naming(cc, env, patterns, 'windows-mingw')
+                self._test_all_naming(cc, patterns, 'windows-mingw')
         elif is_openbsd():
-            self._test_all_naming(cc, env, patterns, 'openbsd')
+            self._test_all_naming(cc, patterns, 'openbsd')
         else:
-            self._test_all_naming(cc, env, patterns, 'linux')
+            self._test_all_naming(cc, patterns, 'linux')
             env.machines.host.system = 'openbsd'
-            self._test_all_naming(cc, env, patterns, 'openbsd')
+            self._test_all_naming(cc, patterns, 'openbsd')
             env.machines.host.system = 'darwin'
-            self._test_all_naming(cc, env, patterns, 'darwin')
+            self._test_all_naming(cc, patterns, 'darwin')
             env.machines.host.system = 'cygwin'
-            self._test_all_naming(cc, env, patterns, 'cygwin')
+            self._test_all_naming(cc, patterns, 'cygwin')
             env.machines.host.system = 'windows'
-            self._test_all_naming(cc, env, patterns, 'windows-mingw')
+            self._test_all_naming(cc, patterns, 'windows-mingw')
 
     @skipIfNoPkgconfig
     def test_pkgconfig_parse_libs(self):

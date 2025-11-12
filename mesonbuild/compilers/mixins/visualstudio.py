@@ -495,7 +495,7 @@ class ClangClCompiler(VisualStudioLikeCompiler):
 
     def openmp_link_flags(self) -> T.List[str]:
         # see https://github.com/mesonbuild/meson/issues/5298
-        libs = self.find_library('libomp', self.environment, [])
+        libs = self.find_library('libomp', [])
         if libs is None:
             raise mesonlib.MesonBugException('Could not find libomp')
         return super().openmp_link_flags() + libs

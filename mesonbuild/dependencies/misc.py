@@ -69,7 +69,7 @@ class AtomicSystemDependency(SystemDependency):
         self.feature_since = ('1.7.0', "consider checking for `atomic_flag_clear` with and without `find_library('atomic')`")
 
         h = self.clib_compiler.has_header('stdatomic.h', '', env)
-        self.link_args = self.clib_compiler.find_library('atomic', env, [], self.libtype)
+        self.link_args = self.clib_compiler.find_library('atomic', [], self.libtype)
 
         if h[0] and self.link_args:
             self.is_found = True
@@ -90,7 +90,7 @@ class DlSystemDependency(SystemDependency):
         self.feature_since = ('0.62.0', "consider checking for `dlopen` with and without `find_library('dl')`")
 
         h = self.clib_compiler.has_header('dlfcn.h', '', env)
-        self.link_args = self.clib_compiler.find_library('dl', env, [], self.libtype)
+        self.link_args = self.clib_compiler.find_library('dl', [], self.libtype)
 
         if h[0] and self.link_args:
             self.is_found = True
@@ -194,7 +194,7 @@ class BlocksDependency(SystemDependency):
             self.link_args = ['-lBlocksRuntime']
 
             if not self.clib_compiler.has_header('Block.h', '', environment, disable_cache=True) or \
-               not self.clib_compiler.find_library('BlocksRuntime', environment, []):
+               not self.clib_compiler.find_library('BlocksRuntime', []):
                 mlog.log(mlog.red('ERROR:'), 'BlocksRuntime not found.')
                 return
 
@@ -317,7 +317,7 @@ class ShadercDependency(SystemDependency):
         cc = self.get_compiler()
 
         for lib in libs:
-            self.link_args = cc.find_library(lib, environment, [])
+            self.link_args = cc.find_library(lib, [])
             if self.link_args is not None:
                 self.is_found = True
 
@@ -372,7 +372,7 @@ class CursesSystemDependency(SystemDependency):
 
         # Not sure how else to elegantly break out of both loops
         for lib, headers in candidates:
-            l = self.clib_compiler.find_library(lib, env, [])
+            l = self.clib_compiler.find_library(lib, [])
             if l:
                 for header in headers:
                     h = self.clib_compiler.has_header(header, '', env)
@@ -422,7 +422,7 @@ class IconvSystemDependency(SystemDependency):
         self.feature_since = ('0.60.0', "consider checking for `iconv_open` with and without find_library('iconv')")
 
         h = self.clib_compiler.has_header('iconv.h', '', env)
-        self.link_args = self.clib_compiler.find_library('iconv', env, [], self.libtype)
+        self.link_args = self.clib_compiler.find_library('iconv', [], self.libtype)
 
         if h[0] and self.link_args:
             self.is_found = True
@@ -444,7 +444,7 @@ class IntlSystemDependency(SystemDependency):
         self.feature_since = ('0.59.0', "consider checking for `ngettext` with and without `find_library('intl')`")
 
         h = self.clib_compiler.has_header('libintl.h', '', env)
-        self.link_args = self.clib_compiler.find_library('intl', env, [], self.libtype)
+        self.link_args = self.clib_compiler.find_library('intl', [], self.libtype)
 
         if h[0] and self.link_args:
             self.is_found = True
@@ -483,7 +483,7 @@ class OpensslSystemDependency(SystemDependency):
                 self.is_found = True
             return
         else:
-            self.link_args = self.clib_compiler.find_library(name.lstrip('lib'), env, [], self.libtype)
+            self.link_args = self.clib_compiler.find_library(name.lstrip('lib'), [], self.libtype)
             if not self.link_args:
                 return
 
@@ -498,7 +498,7 @@ class OpensslSystemDependency(SystemDependency):
                 if not use_threads or self._add_sub_dependency(threads_factory(env, self.for_machine, {})):
                     self.is_found = True
                 # only relevant on platforms where it is distributed with the libc, in which case it always succeeds
-                sublib = self.clib_compiler.find_library('dl', env, [], self.libtype)
+                sublib = self.clib_compiler.find_library('dl', [], self.libtype)
                 if sublib:
                     self.link_args.extend(sublib)
 
