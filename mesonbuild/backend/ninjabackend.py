@@ -3631,8 +3631,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             target_slashname_workaround_dir = self.get_target_dir(target)
         (rpath_args, target.rpath_dirs_to_remove) = (
-            linker.build_rpath_args(self.environment,
-                                    self.environment.get_build_dir(),
+            linker.build_rpath_args(self.environment.get_build_dir(),
                                     target_slashname_workaround_dir,
                                     target))
         return rpath_args
