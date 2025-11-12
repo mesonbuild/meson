@@ -964,11 +964,11 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             return []
         return self.linker.get_command_to_archive_shlib()
 
-    def thread_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         return []
 
-    def thread_link_flags(self, env: 'Environment') -> T.List[str]:
-        return self.linker.thread_flags(env)
+    def thread_link_flags(self) -> T.List[str]:
+        return self.linker.thread_flags()
 
     def openmp_flags(self) -> T.List[str]:
         raise EnvironmentException('Language %s does not support OpenMP flags.' % self.get_display_language())

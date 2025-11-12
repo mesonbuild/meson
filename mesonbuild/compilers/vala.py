@@ -142,10 +142,10 @@ class ValaCompiler(Compiler):
         mlog.debug(f'Searched {extra_dirs!r} and {libname!r} wasn\'t found')
         return None
 
-    def thread_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         return []
 
-    def thread_link_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_link_flags(self) -> T.List[str]:
         return []
 
     def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:

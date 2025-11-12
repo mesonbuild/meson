@@ -70,7 +70,7 @@ class StaticLinker:
                          target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
         return ([], set())
 
-    def thread_link_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         return []
 
     def openmp_flags(self) -> T.List[str]:
@@ -271,7 +271,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         """
         return []
 
-    def thread_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         return []
 
     def no_undefined_args(self) -> T.List[str]:
@@ -703,8 +703,8 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
     def import_library_args(self, implibname: str) -> T.List[str]:
         return self._apply_prefix('--out-implib=' + implibname)
 
-    def thread_flags(self, env: 'Environment') -> T.List[str]:
-        if env.machines[self.for_machine].is_haiku():
+    def thread_flags(self) -> T.List[str]:
+        if self.environment.machines[self.for_machine].is_haiku():
             return []
         return ['-pthread']
 
@@ -1154,7 +1154,7 @@ class Xc32DynamicLinker(GnuDynamicLinker):
     def get_pie_args(self) -> T.List[str]:
         return DynamicLinker.get_pie_args(self)
 
-    def thread_flags(self, env: Environment) -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         return []
 
 
@@ -1665,7 +1665,7 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             all_paths.update(extra_paths)
         return (self._apply_prefix('-blibpath:' + ':'.join(all_paths)), set())
 
-    def thread_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         return ['-pthread']
 
 
@@ -1846,7 +1846,7 @@ class OS2DynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
 
-    def thread_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         return ['-lpthread']
 
     def get_std_shared_lib_args(self) -> T.List[str]:

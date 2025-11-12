@@ -1276,12 +1276,11 @@ class CLikeCompiler(Compiler):
         # TODO: does this belong here or in GnuLike or maybe PosixLike?
         return []
 
-    def thread_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         # TODO: does this belong here or in GnuLike or maybe PosixLike?
-        host_m = env.machines[self.for_machine]
-        if host_m.is_haiku() or host_m.is_darwin():
+        if self.info.is_haiku() or self.info.is_darwin():
             return []
-        if host_m.is_os2():
+        if self.info.is_os2():
             return ['-lpthread']
         return ['-pthread']
 
