@@ -110,6 +110,7 @@ if T.TYPE_CHECKING:
 
     class ExecutableKeywordArguments(BuildTargetKeywordArguments, total=False):
 
+        android_exe_type: T.Optional[Literal['application', 'executable']]
         implib: T.Optional[str]
         export_dynamic: bool
         pie: bool
@@ -2153,7 +2154,6 @@ class Executable(BuildTarget):
                          environment, compilers, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
         self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
-        assert kwargs.get('android_exe_type') is None or kwargs.get('android_exe_type') in {'application', 'executable'}
         # Check for export_dynamic
         self.implib_name = kwargs.get('implib')
         # Only linkwithable if using export_dynamic
