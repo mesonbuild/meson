@@ -305,7 +305,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
                          target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
         return ([], set())
 
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+    def get_soname_args(self, prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         return []
 
@@ -714,9 +714,10 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
     def fatal_warnings(self) -> T.List[str]:
         return self._apply_prefix('--fatal-warnings')
 
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
-        m = env.machines[self.for_machine]
+    def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
+                        soversion: str, darwin_versions: T.Tuple[str, str]
+                        ) -> T.List[str]:
+        m = self.environment.machines[self.for_machine]
         if m.is_windows() or m.is_cygwin():
             # For PE/COFF the soname argument has no effect
             return []
@@ -885,8 +886,9 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         # just make ld shup up when testing for supported flags
         return self._apply_prefix('-fatal_warnings') + self._apply_prefix('-no_warn_duplicate_libraries')
 
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+    def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
+                        soversion: str, darwin_versions: T.Tuple[str, str]
+                        ) -> T.List[str]:
         install_name = ['@rpath/', prefix, shlib_name]
         if soversion is not None:
             install_name.append('.' + soversion)
@@ -1045,8 +1047,9 @@ class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
     def no_undefined_args(self) -> T.List[str]:
         return ['-sERROR_ON_UNDEFINED_SYMBOLS=1']
 
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+    def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
+                        soversion: str, darwin_versions: T.Tuple[str, str]
+                        ) -> T.List[str]:
         raise MesonException(f'{self.id} does not support shared libraries.')
 
     def get_asneeded_args(self) -> T.List[str]:
@@ -1086,8 +1089,9 @@ class CcrxDynamicLinker(DynamicLinker):
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
 
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+    def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
+                        soversion: str, darwin_versions: T.Tuple[str, str]
+                        ) -> T.List[str]:
         return []
 
 
@@ -1125,8 +1129,9 @@ class Xc16DynamicLinker(DynamicLinker):
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
 
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+    def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
+                        soversion: str, darwin_versions: T.Tuple[str, str]
+                        ) -> T.List[str]:
         return []
 
     def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
@@ -1186,10 +1191,6 @@ class CompCertDynamicLinker(DynamicLinker):
 
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
-
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
-        raise MesonException(f'{self.id} does not support shared libraries.')
 
     def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
                          target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
@@ -1337,8 +1338,9 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
 
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+    def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
+                        soversion: str, darwin_versions: T.Tuple[str, str]
+                        ) -> T.List[str]:
         return []
 
     def get_std_shared_lib_args(self) -> T.List[str]:
@@ -1437,8 +1439,9 @@ class VisualStudioLikeLinkerMixin(DynamicLinkerBase):
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
 
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+    def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
+                        soversion: str, darwin_versions: T.Tuple[str, str]
+                        ) -> T.List[str]:
         return []
 
     def import_library_args(self, implibname: str) -> T.List[str]:
@@ -1593,8 +1596,9 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
                 paths = paths + ':' + padding
         return (self._apply_prefix(f'-rpath,{paths}'), rpath_dirs_to_remove)
 
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+    def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
+                        soversion: str, darwin_versions: T.Tuple[str, str]
+                        ) -> T.List[str]:
         sostr = '' if soversion is None else '.' + soversion
         return self._apply_prefix(f'-soname,{prefix}{shlib_name}.{suffix}{sostr}')
 
@@ -1735,8 +1739,9 @@ class CudaLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
 
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+    def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
+                        soversion: str, darwin_versions: T.Tuple[str, str]
+                        ) -> T.List[str]:
         return []
 
 
@@ -1768,8 +1773,9 @@ class MetrowerksLinker(DynamicLinker):
     def invoked_by_compiler(self) -> bool:
         return False
 
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+    def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
+                        soversion: str, darwin_versions: T.Tuple[str, str]
+                        ) -> T.List[str]:
         raise MesonException(f'{self.id} does not support shared libraries.')
 
 
@@ -1846,8 +1852,9 @@ class OS2DynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_std_shared_lib_args(self) -> T.List[str]:
         return ['-Zdll']
 
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+    def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
+                        soversion: str, darwin_versions: T.Tuple[str, str]
+                        ) -> T.List[str]:
         return []
 
     def get_always_args(self) -> T.List[str]:

@@ -678,11 +678,10 @@ class CudaCompiler(Compiler):
         args = self.get_ccbin_args(target, env, subproject)
         return args + self._to_host_flags(self.host_compiler.get_option_link_args(target, env, subproject), Phase.LINKER)
 
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str,
+    def get_soname_args(self, prefix: str, shlib_name: str, suffix: str, soversion: str,
                         darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         return self._to_host_flags(self.host_compiler.get_soname_args(
-            env, prefix, shlib_name, suffix, soversion, darwin_versions), Phase.LINKER)
+            prefix, shlib_name, suffix, soversion, darwin_versions), Phase.LINKER)
 
     def get_compile_only_args(self) -> T.List[str]:
         return ['-c']

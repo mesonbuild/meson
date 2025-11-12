@@ -1075,11 +1075,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_optimization_link_args(self, optimization_level: str) -> T.List[str]:
         return self.linker.get_optimization_link_args(optimization_level)
 
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str,
+    def get_soname_args(self, prefix: str, shlib_name: str, suffix: str, soversion: str,
                         darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         return self.linker.get_soname_args(
-            env, prefix, shlib_name, suffix, soversion,
+            prefix, shlib_name, suffix, soversion,
             darwin_versions)
 
     def get_target_link_args(self, target: 'BuildTarget') -> T.List[str]:

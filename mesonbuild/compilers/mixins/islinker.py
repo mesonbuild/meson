@@ -96,7 +96,7 @@ class BasicLinkerIsCompilerMixin(Compiler):
     def bitcode_args(self) -> T.List[str]:
         raise MesonException("This linker doesn't support bitcode bundles")
 
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+    def get_soname_args(self, prefix: str, shlib_name: str,
                         suffix: str, soversion: str,
                         darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         raise MesonException("This linker doesn't support soname args")
