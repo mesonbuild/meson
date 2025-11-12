@@ -206,7 +206,7 @@ class _StdCPPLibMixin(CompilerMixinBase):
         search_dirs = [f'-L{d}' for d in self.get_compiler_dirs(self.environment, 'libraries')]
 
         lib = self.language_stdlib_provider(self.environment)
-        if self.find_library(lib, self.environment, []) is not None:
+        if self.find_library(lib, []) is not None:
             return search_dirs + [f'-l{lib}']
 
         # TODO: maybe a bug exception?

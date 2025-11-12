@@ -146,7 +146,7 @@ class _QtBase:
     def _link_with_qt_winmain(self, is_debug: bool, libdir: T.Union[str, T.List[str]]) -> bool:
         libdir = mesonlib.listify(libdir)  # TODO: shouldn't be necessary
         base_name = self.get_qt_winmain_base_name(is_debug)
-        qt_winmain = self.clib_compiler.find_library(base_name, self.env, libdir)
+        qt_winmain = self.clib_compiler.find_library(base_name, libdir)
         if qt_winmain:
             self.link_args.append(qt_winmain[0])
             return True
@@ -321,7 +321,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
                 for directory in priv_inc:
                     self.compile_args.append('-I' + directory)
             libfiles = self.clib_compiler.find_library(
-                self.qtpkgname + module + modules_lib_suffix, self.env,
+                self.qtpkgname + module + modules_lib_suffix,
                 mesonlib.listify(libdir)) # TODO: shouldn't be necessary
             if libfiles:
                 libfile = libfiles[0]

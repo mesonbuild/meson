@@ -15,7 +15,6 @@ from ...mesonlib import LibType
 from mesonbuild.compilers.compilers import CompileCheckMode
 
 if T.TYPE_CHECKING:
-    from ...environment import Environment
     from ...compilers.compilers import Compiler
     from ...dependencies import Dependency
 else:
@@ -75,10 +74,10 @@ class EmscriptenMixin(Compiler):
     def get_dependency_link_args(self, dep: 'Dependency') -> T.List[str]:
         return wrap_js_includes(super().get_dependency_link_args(dep))
 
-    def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
-                     libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True, ignore_system_dirs: bool = False) -> T.Optional[T.List[str]]:
+    def find_library(self, libname: str, extra_dirs: T.List[str], libtype: LibType = LibType.PREFER_SHARED,
+                     lib_prefix_warning: bool = True, ignore_system_dirs: bool = False) -> T.Optional[T.List[str]]:
         if not libname.endswith('.js'):
-            return super().find_library(libname, env, extra_dirs, libtype, lib_prefix_warning)
+            return super().find_library(libname, extra_dirs, libtype, lib_prefix_warning)
         if os.path.isabs(libname):
             if os.path.exists(libname):
                 return [libname]

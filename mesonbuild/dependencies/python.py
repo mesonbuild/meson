@@ -325,7 +325,7 @@ class _PythonDependencyBase(_Base):
                 libname += self.variables['ABIFLAGS']
             libdirs = []
 
-        largs = self.clib_compiler.find_library(libname, environment, libdirs)
+        largs = self.clib_compiler.find_library(libname, libdirs)
         if largs is not None:
             self.link_args = largs
             self.is_found = True
