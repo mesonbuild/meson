@@ -39,6 +39,8 @@ from mesonbuild import mlog
 from mesonbuild import mtest
 from mesonbuild.compilers import compiler_from_language
 from mesonbuild.build import ConfigurationData
+from mesonbuild.envconfig import MachineInfo, detect_machine_info
+from mesonbuild.machinefile import parse_machine_files
 from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWinProof, setup_vsenv
 from mesonbuild.mlog import blue, bold, cyan, green, red, yellow, normal_green
 from mesonbuild.coredata import version as meson_version
@@ -1085,7 +1087,7 @@ def should_skip_wayland() -> bool:
         return True
     return False
 
-def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List[T.Tuple[str, T.List[TestDef], bool]]:
+def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool, host_machine: MachineInfo) -> T.List[T.Tuple[str, T.List[TestDef], bool]]:
     """
     Parameters
     ----------
@@ -1129,8 +1131,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
         TestCategory('platform-osx', 'osx', not mesonlib.is_osx()),
         TestCategory('platform-windows', 'windows', not mesonlib.is_windows() and not mesonlib.is_cygwin()),
         TestCategory('platform-linux', 'linuxlike', mesonlib.is_osx() or mesonlib.is_windows()),
-        # FIXME, does not actually run in CI, change to run the test if an Android cross toolchain is detected.
-        TestCategory('platform-android', 'android', not mesonlib.is_android()),
+        TestCategory('platform-android', 'android', not host_machine.is_android()),
         TestCategory('java', 'java', backend is not Backend.ninja or not have_java()),
         TestCategory('C#', 'csharp', skip_csharp(backend)),
         TestCategory('vala', 'vala', backend is not Backend.ninja or not shutil.which(os.environ.get('VALAC', 'valac'))),
@@ -1695,6 +1696,13 @@ if __name__ == '__main__':
     script_dir = os.path.split(__file__)[0]
     if script_dir != '':
         os.chdir(script_dir)
+
+    if options.cross_file is not None:
+        config = parse_machine_files([options.cross_file], script_dir)
+        host_machine = MachineInfo.from_literal(config['host_machine']) if 'host_machine' in config else detect_machine_info()
+    else:
+        host_machine = detect_machine_info()
+
     check_meson_commands_work(options.use_tmpdir, options.extra_args)
     only = collections.defaultdict(list)
     for i in options.only:
@@ -1704,7 +1712,7 @@ if __name__ == '__main__':
         except ValueError:
             only[i].append('')
     try:
-        all_tests = detect_tests_to_run(only, options.use_tmpdir)
+        all_tests = detect_tests_to_run(only, options.use_tmpdir, host_machine)
         res = run_tests(all_tests, 'meson-test-run', options.failfast, options.extra_args, options.use_tmpdir, options.num_workers)
         (passing_tests, failing_tests, skipped_tests) = res
     except StopException:
