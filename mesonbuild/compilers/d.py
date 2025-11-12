@@ -376,11 +376,9 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
             return []
         return self.mscrt_args[self.get_crt_val(crt_val, buildtype)]
 
-    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str,
+    def get_soname_args(self, prefix: str, shlib_name: str, suffix: str, soversion: str,
                         darwin_versions: T.Tuple[str, str]) -> T.List[str]:
-        sargs = super().get_soname_args(env, prefix, shlib_name, suffix,
-                                        soversion, darwin_versions)
+        sargs = super().get_soname_args(prefix, shlib_name, suffix, soversion, darwin_versions)
 
         # LDC and DMD actually do use a linker, but they proxy all of that with
         # their own arguments
