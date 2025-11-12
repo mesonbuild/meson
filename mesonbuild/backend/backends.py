@@ -1063,7 +1063,7 @@ class Backend:
         # Get program and library dirs from all target compilers
         if isinstance(target, build.BuildTarget):
             for cc in target.compilers.values():
-                paths.update(cc.get_program_dirs(self.environment))
+                paths.update(cc.get_program_dirs())
                 paths.update(cc.get_library_dirs())
         return list(paths)
 
