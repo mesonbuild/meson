@@ -95,5 +95,5 @@ class ElbrusCompiler(GnuLikeCompiler):
             args.append('-std=' + std)
         return args
 
-    def openmp_flags(self, env: Environment) -> T.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         return ['-fopenmp']
