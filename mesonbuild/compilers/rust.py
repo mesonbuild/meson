@@ -338,7 +338,7 @@ class RustCompiler(Compiler):
 
     @functools.lru_cache(maxsize=None)
     def get_linker_always_args(self) -> T.List[str]:
-        return rustc_link_args(super().get_linker_always_args())
+        return rustc_link_args(super().get_linker_always_args()) + ['-Cdefault-linker-libraries']
 
     def get_embed_bitcode_args(self, bitcode: bool, lto: bool) -> T.List[str]:
         if bitcode:
