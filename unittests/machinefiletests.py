@@ -829,7 +829,8 @@ class CrossFileTests(BasePlatformTests):
                               '-Ddef_mandir=manbar',
                               '-Ddef_sbindir=sbinbar',
                               '-Ddef_sharedstatedir=sharedstatebar',
-                              '-Ddef_sysconfdir=sysconfbar'])
+                              '-Ddef_sysconfdir=sysconfbar',
+                              '-Ddef_distconfdir=distconfbar'])
 
     def test_cross_file_dirs_overridden(self):
         testcase = os.path.join(self.unit_test_dir, '59 native file override')
@@ -847,7 +848,8 @@ class CrossFileTests(BasePlatformTests):
                               '-Ddef_mandir=manbar',
                               '-Ddef_sbindir=sbinbar',
                               '-Ddef_sharedstatedir=sharedstatebar',
-                              '-Ddef_sysconfdir=sysconfbar'])
+                              '-Ddef_sysconfdir=sysconfbar',
+                              '-Ddef_distconfdir=distconfbar'])
 
     def test_cross_file_dirs_chain(self):
         # crossfile2 overrides crossfile overrides nativefile
@@ -867,7 +869,8 @@ class CrossFileTests(BasePlatformTests):
                               '-Ddef_mandir=manbar',
                               '-Ddef_sbindir=sbinbar',
                               '-Ddef_sharedstatedir=sharedstatebar',
-                              '-Ddef_sysconfdir=sysconfbar'])
+                              '-Ddef_sysconfdir=sysconfbar',
+                              '-Ddef_distconfdir=distconfbar'])
 
     def test_user_options(self):
         # This is just a touch test for cross file, since the implementation

@@ -333,6 +333,7 @@ class AllPlatformTests(BasePlatformTests):
                      'sbindir': 'sbin',
                      'sharedstatedir': 'com',
                      'sysconfdir': 'etc',
+                     'distconfdir': 'config',
                      },
             '/usr': {'prefix': '/usr',
                      'bindir': 'bin',
@@ -346,6 +347,7 @@ class AllPlatformTests(BasePlatformTests):
                      'sbindir': 'sbin',
                      'sharedstatedir': '/var/lib',
                      'sysconfdir': '/etc',
+                     'distconfdir': 'config',
                      },
             '/usr/local': {'prefix': '/usr/local',
                            'bindir': 'bin',
@@ -359,6 +361,7 @@ class AllPlatformTests(BasePlatformTests):
                            'sbindir': 'sbin',
                            'sharedstatedir': '/var/local/lib',
                            'sysconfdir': 'etc',
+                           'distconfdir': 'config',
                            },
             # N.B. We don't check 'libdir' as it's platform dependent, see
             # default_libdir():
