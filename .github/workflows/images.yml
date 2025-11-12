@@ -37,6 +37,7 @@ jobs:
       fail-fast: false
       matrix:
         cfg:
+          - { name: Android NDK,                  id: android        }
           - { name: Arch Linux,                   id: arch           }
           - { name: CUDA (on Arch),               id: cuda           }
           - { name: CUDA Cross (on Ubuntu Jammy), id: cuda-cross     }
