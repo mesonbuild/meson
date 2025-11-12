@@ -1891,7 +1891,12 @@ class TestHarness:
             raise RuntimeError('Test harness object can only be used once.')
         self.is_run = True
         tests = self.get_tests()
-        rebuild_only_tests = tests if self.options.args else []
+        # NOTE: If all tests are selected anyway, we pass
+        # an empty list to `rebuild_deps`, which then will execute
+        # the "meson-test-prereq" ninja target as a fallback.
+        # This prevents situations, where ARG_MAX may overflow
+        # if there are many targets.
+        rebuild_only_tests = tests if tests != self.tests else []
         if not tests:
             return 0
         if not self.options.no_rebuild and not rebuild_deps(self.ninja, self.options.wd, rebuild_only_tests, self.options.benchmark):
