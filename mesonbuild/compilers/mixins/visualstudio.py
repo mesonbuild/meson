@@ -358,7 +358,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         crt_val = self.get_crt_val(crt_val, buildtype)
         return self.crt_args[crt_val]
 
-    def has_func_attribute(self, name: str, env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_func_attribute(self, name: str) -> T.Tuple[bool, bool]:
         # MSVC doesn't have __attribute__ like Clang and GCC do, so just return
         # false without compiling anything
         return name in {'dllimport', 'dllexport'}, False
