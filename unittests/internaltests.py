@@ -214,9 +214,10 @@ class InternalTests(unittest.TestCase):
 
 
     def test_compiler_args_class_visualstudio(self):
-        linker = linkers.MSVCDynamicLinker(MachineChoice.HOST, [])
+        env = get_fake_env()
+        linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
         # Version just needs to be > 19.0.0
-        cc = VisualStudioCPPCompiler([], [], '20.00', MachineChoice.HOST, get_fake_env(), 'x64', linker=linker)
+        cc = VisualStudioCPPCompiler([], [], '20.00', MachineChoice.HOST, env, 'x64', linker=linker)
 
         a = cc.compiler_args(cc.get_always_args())
         self.assertEqual(a.to_native(copy=True), ['/nologo', '/showIncludes', '/utf-8', '/Zc:__cplusplus'])
@@ -236,8 +237,9 @@ class InternalTests(unittest.TestCase):
 
     def test_compiler_args_class_gnuld(self):
         ## Test --start/end-group
-        linker = linkers.GnuBFDDynamicLinker([], MachineChoice.HOST, '-Wl,', [])
-        gcc = GnuCCompiler([], [], 'fake', MachineChoice.HOST, get_fake_env(), linker=linker)
+        env = get_fake_env()
+        linker = linkers.GnuBFDDynamicLinker([], env, MachineChoice.HOST, '-Wl,', [])
+        gcc = GnuCCompiler([], [], 'fake', MachineChoice.HOST, env, linker=linker)
         ## Ensure that the fake compiler is never called by overriding the relevant function
         gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
         ## Test that 'direct' append and extend works
@@ -264,8 +266,9 @@ class InternalTests(unittest.TestCase):
 
     def test_compiler_args_remove_system(self):
         ## Test --start/end-group
-        linker = linkers.GnuBFDDynamicLinker([], MachineChoice.HOST, '-Wl,', [])
-        gcc = GnuCCompiler([], [], 'fake', MachineChoice.HOST, get_fake_env(), linker=linker)
+        env = get_fake_env()
+        linker = linkers.GnuBFDDynamicLinker([], env, MachineChoice.HOST, '-Wl,', [])
+        gcc = GnuCCompiler([], [], 'fake', MachineChoice.HOST, env, linker=linker)
         ## Ensure that the fake compiler is never called by overriding the relevant function
         gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
         ## Test that 'direct' append and extend works
