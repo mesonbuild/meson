@@ -54,7 +54,7 @@ from .type_checking import (
     CT_BUILD_BY_DEFAULT,
     CT_INPUT_KW,
     CT_INSTALL_DIR_KW,
-    _EXCLUSIVE_EXECUTABLE_KWS,
+    EXCLUSIVE_EXECUTABLE_KWS,
     EXECUTABLE_KWS,
     JAR_KWS,
     LIBRARY_KWS,
@@ -1813,22 +1813,26 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_disabler(self, node, args, kwargs):
         return Disabler()
 
-    def _strip_exe_specific_kwargs(self, kwargs: kwtypes.Executable) -> kwtypes._BuildTarget:
-        kwargs = kwargs.copy()
-        for exe_kwarg in _EXCLUSIVE_EXECUTABLE_KWS:
-            del kwargs[exe_kwarg.name]
-        return kwargs
+    def _exe_to_shlib_kwargs(self, kwargs: kwtypes.Executable) -> kwtypes.SharedLibrary:
+        nkwargs = T.cast('kwtypes.SharedLibrary', kwargs.copy())
+        for exe_kwarg in EXCLUSIVE_EXECUTABLE_KWS:
+            del nkwargs[exe_kwarg.name]  # type: ignore[misc]
+        for sh_kwarg in SHARED_LIB_KWS:
+            nkwargs.setdefault(sh_kwarg.name, sh_kwarg.default)  # type: ignore[misc]
+        nkwargs['rust_abi'] = None
+        nkwargs['rust_crate_type'] = 'cdylib'
+        return nkwargs
 
     @permittedKwargs(build.known_exe_kwargs)
     @typed_pos_args('executable', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('executable', *EXECUTABLE_KWS, allow_unknown=True)
     def func_executable(self, node: mparser.BaseNode,
                         args: T.Tuple[str, SourcesVarargsType],
-                        kwargs: kwtypes.Executable) -> build.Executable:
+                        kwargs: kwtypes.Executable) -> T.Union[build.Executable, build.SharedLibrary]:
         for_machine = kwargs['native']
         m = self.environment.machines[for_machine]
         if m.is_android() and kwargs.get('android_exe_type') == 'application':
-            holder = self.build_target(node, args, self._strip_exe_specific_kwargs(kwargs), build.SharedLibrary)
+            holder = self.build_target(node, args, self._exe_to_shlib_kwargs(kwargs), build.SharedLibrary)
             holder.shared_library_only = True
             return holder
         return self.build_target(node, args, kwargs, build.Executable)

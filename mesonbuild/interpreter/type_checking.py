@@ -808,7 +808,7 @@ _DARWIN_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
 
 # Arguments exclusive to Executable. These are separated to make integrating
 # them into build_target easier
-_EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
+EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
     KwargInfo('export_dynamic', (bool, NoneType), since='0.45.0'),
     KwargInfo('gui_app', (bool, NoneType), deprecated='0.56.0', deprecated_message="Use 'win_subsystem' instead"),
     KwargInfo(
@@ -837,7 +837,7 @@ _EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
 # The total list of arguments used by Executable
 EXECUTABLE_KWS = [
     *_BUILD_TARGET_KWS,
-    *_EXCLUSIVE_EXECUTABLE_KWS,
+    *EXCLUSIVE_EXECUTABLE_KWS,
     _VS_MODULE_DEFS_KW.evolve(since='1.3.0', since_values=None),
     _JAVA_LANG_KW,
 ]
@@ -877,7 +877,7 @@ _EXCLUSIVE_SHARED_LIB_KWS: T.List[KwargInfo] = [
 ]
 
 # The total list of arguments used by SharedLibrary
-SHARED_LIB_KWS = [
+SHARED_LIB_KWS: T.List[KwargInfo] = [
     *_BUILD_TARGET_KWS,
     *_EXCLUSIVE_SHARED_LIB_KWS,
     *_EXCLUSIVE_LIB_KWS,
@@ -945,7 +945,7 @@ BUILD_TARGET_KWS = [
     *_EXCLUSIVE_SHARED_LIB_KWS,
     *_EXCLUSIVE_SHARED_MOD_KWS,
     *_EXCLUSIVE_STATIC_LIB_KWS,
-    *_EXCLUSIVE_EXECUTABLE_KWS,
+    *EXCLUSIVE_EXECUTABLE_KWS,
     *_SHARED_STATIC_ARGS,
     RUST_ABI_KW.evolve(since='1.10.0'),
     *[a.evolve(deprecated='1.3.0', deprecated_message='The use of "jar" in "build_target()" is deprecated, and this argument is only used by jar()')
