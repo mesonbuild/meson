@@ -776,7 +776,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             'Language {} does not support get_library_naming.'.format(
                 self.get_display_language()))
 
-    def get_program_dirs(self, env: 'Environment') -> T.List[str]:
+    def get_program_dirs(self) -> T.List[str]:
         return []
 
     def has_multi_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:

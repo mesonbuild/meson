@@ -238,15 +238,15 @@ class CLikeCompiler(Compiler):
         return self._get_library_dirs(elf_class).copy()
 
     @functools.lru_cache()
-    def _get_program_dirs(self, env: 'Environment') -> 'ImmutableListProtocol[str]':
+    def _get_program_dirs(self) -> 'ImmutableListProtocol[str]':
         '''
         Programs used by the compiler. Also where toolchain DLLs such as
         libstdc++-6.dll are found with MinGW.
         '''
-        return self.get_compiler_dirs(env, 'programs')
+        return self.get_compiler_dirs(self.environment, 'programs')
 
-    def get_program_dirs(self, env: 'Environment') -> T.List[str]:
-        return self._get_program_dirs(env).copy()
+    def get_program_dirs(self) -> T.List[str]:
+        return self._get_program_dirs().copy()
 
     def get_pic_args(self) -> T.List[str]:
         return ['-fPIC']
