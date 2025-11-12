@@ -25,8 +25,9 @@ class StaticLinker:
 
     id: str
 
-    def __init__(self, exelist: T.List[str]):
+    def __init__(self, exelist: T.List[str], env: Environment):
         self.exelist = exelist
+        self.environment = env
 
     def get_id(self) -> str:
         return self.id
@@ -362,8 +363,8 @@ class VisualStudioLinker(VisualStudioLikeLinker, StaticLinker):
 
     id = 'lib'
 
-    def __init__(self, exelist: T.List[str], machine: str):
-        StaticLinker.__init__(self, exelist)
+    def __init__(self, exelist: T.List[str], env: Environment, machine: str):
+        StaticLinker.__init__(self, exelist, env)
         VisualStudioLikeLinker.__init__(self, machine)
 
 
@@ -373,16 +374,16 @@ class IntelVisualStudioLinker(VisualStudioLikeLinker, StaticLinker):
 
     id = 'xilib'
 
-    def __init__(self, exelist: T.List[str], machine: str):
-        StaticLinker.__init__(self, exelist)
+    def __init__(self, exelist: T.List[str], env: Environment, machine: str):
+        StaticLinker.__init__(self, exelist, env)
         VisualStudioLikeLinker.__init__(self, machine)
 
 
 class ArLinker(ArLikeLinker, StaticLinker):
     id = 'ar'
 
-    def __init__(self, for_machine: mesonlib.MachineChoice, exelist: T.List[str]):
-        super().__init__(exelist)
+    def __init__(self, for_machine: mesonlib.MachineChoice, exelist: T.List[str], env: Environment):
+        super().__init__(exelist, env)
         stdo = mesonlib.Popen_safe(self.exelist + ['-h'])[1]
         # Enable deterministic builds if they are available.
         stdargs = 'csr'
@@ -425,8 +426,8 @@ class ArmarLinker(ArLikeLinker, StaticLinker):
 
 
 class DLinker(StaticLinker):
-    def __init__(self, exelist: T.List[str], arch: str, *, rsp_syntax: RSPFileSyntax = RSPFileSyntax.GCC):
-        super().__init__(exelist)
+    def __init__(self, exelist: T.List[str], env: Environment, arch: str, *, rsp_syntax: RSPFileSyntax = RSPFileSyntax.GCC):
+        super().__init__(exelist, env)
         self.id = exelist[0]
         self.arch = arch
         self.__rsp_syntax = rsp_syntax
@@ -452,8 +453,8 @@ class DLinker(StaticLinker):
 
 class CcrxLinker(StaticLinker):
 
-    def __init__(self, exelist: T.List[str]):
-        super().__init__(exelist)
+    def __init__(self, exelist: T.List[str], env: Environment):
+        super().__init__(exelist, env)
         self.id = 'rlink'
 
     def can_linker_accept_rsp(self) -> bool:
@@ -468,8 +469,8 @@ class CcrxLinker(StaticLinker):
 
 class Xc16Linker(StaticLinker):
 
-    def __init__(self, exelist: T.List[str]):
-        super().__init__(exelist)
+    def __init__(self, exelist: T.List[str], env: Environment):
+        super().__init__(exelist, env)
         self.id = 'xc16-ar'
 
     def can_linker_accept_rsp(self) -> bool:
@@ -491,8 +492,8 @@ class Xc32ArLinker(ArLinker):
 
 class CompCertLinker(StaticLinker):
 
-    def __init__(self, exelist: T.List[str]):
-        super().__init__(exelist)
+    def __init__(self, exelist: T.List[str], env: Environment):
+        super().__init__(exelist, env)
         self.id = 'ccomp'
 
     def can_linker_accept_rsp(self) -> bool:
@@ -504,8 +505,8 @@ class CompCertLinker(StaticLinker):
 
 class TILinker(StaticLinker):
 
-    def __init__(self, exelist: T.List[str]):
-        super().__init__(exelist)
+    def __init__(self, exelist: T.List[str], env: Environment):
+        super().__init__(exelist, env)
         self.id = 'ti-ar'
 
     def can_linker_accept_rsp(self) -> bool:
@@ -556,8 +557,8 @@ class MetrowerksStaticLinkerEmbeddedPowerPC(MetrowerksStaticLinker):
 class TaskingStaticLinker(StaticLinker):
     id = 'tasking'
 
-    def __init__(self, exelist: T.List[str]):
-        super().__init__(exelist)
+    def __init__(self, exelist: T.List[str], env: Environment):
+        super().__init__(exelist, env)
 
     def can_linker_accept_rsp(self) -> bool:
         return True
@@ -1358,8 +1359,8 @@ NvidiaHPC_DynamicLinker = PGIDynamicLinker
 
 
 class PGIStaticLinker(StaticLinker):
-    def __init__(self, exelist: T.List[str]):
-        super().__init__(exelist)
+    def __init__(self, exelist: T.List[str], env: Environment):
+        super().__init__(exelist, env)
         self.id = 'ar'
         self.std_args = ['-r']
 
