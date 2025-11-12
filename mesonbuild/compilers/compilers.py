@@ -770,8 +770,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                      libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True, ignore_system_dirs: bool = False) -> T.Optional[T.List[str]]:
         raise EnvironmentException(f'Language {self.get_display_language()} does not support library finding.')
 
-    def get_library_naming(self, env: 'Environment', libtype: LibType,
-                           strict: bool = False) -> T.Optional[T.Tuple[str, ...]]:
+    def get_library_naming(self, libtype: LibType, strict: bool = False) -> T.Optional[T.Tuple[str, ...]]:
         raise EnvironmentException(
             'Language {} does not support get_library_naming.'.format(
                 self.get_display_language()))

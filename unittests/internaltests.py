@@ -539,13 +539,13 @@ class InternalTests(unittest.TestCase):
         stc = patterns[platform]['static']
         shrstc = shr + tuple(x for x in stc if x not in shr)
         stcshr = stc + tuple(x for x in shr if x not in stc)
-        p = cc.get_library_naming(env, LibType.SHARED)
+        p = cc.get_library_naming(LibType.SHARED)
         self.assertEqual(p, shr)
-        p = cc.get_library_naming(env, LibType.STATIC)
+        p = cc.get_library_naming(LibType.STATIC)
         self.assertEqual(p, stc)
-        p = cc.get_library_naming(env, LibType.PREFER_STATIC)
+        p = cc.get_library_naming(LibType.PREFER_STATIC)
         self.assertEqual(p, stcshr)
-        p = cc.get_library_naming(env, LibType.PREFER_SHARED)
+        p = cc.get_library_naming(LibType.PREFER_SHARED)
         self.assertEqual(p, shrstc)
         # Test find library by mocking up openbsd
         if platform != 'openbsd':
