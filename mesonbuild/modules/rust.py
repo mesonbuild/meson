@@ -13,14 +13,15 @@ from mesonbuild.interpreterbase.decorators import FeatureNew
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo, ModuleObject
 from .. import mesonlib, mlog
 from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
-                     CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary, StaticLibrary)
+                     CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary, StaticLibrary,
+                     SharedModule)
 from ..compilers.compilers import are_asserts_disabled_for_subproject, lang_suffixes
 from ..compilers.rust import parse_target, RustSystemDependency
 from ..dependencies import Dependency
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
     OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator,
-    EXECUTABLE_KWS, LIBRARY_KWS, _BASE_LANG_KW
+    EXECUTABLE_KWS, LIBRARY_KWS, SHARED_MOD_KWS, _BASE_LANG_KW
 )
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs, permittedKwargs
 from ..interpreter.interpreterobjects import Doctest
@@ -245,6 +246,7 @@ class RustPackage(RustCrate):
             'dependencies': self.dependencies_method,
             'library': self.library_method,
             'proc_macro': self.proc_macro_method,
+            'shared_module': self.shared_module_method,
             'executable': self.executable_method,
         })
 
@@ -311,7 +313,8 @@ class RustPackage(RustCrate):
     def _library_method(self, state: ModuleState, args: T.Tuple[
             T.Optional[T.Union[str, StructuredSources]],
             T.Optional[StructuredSources]], kwargs: RustPackageLibrary,
-            static: bool, shared: bool) -> T.Union[BothLibraries, SharedLibrary, StaticLibrary]:
+            static: bool, shared: bool,
+            shared_mod: bool = False) -> T.Union[BothLibraries, SharedLibrary, StaticLibrary]:
         tgt_args = self.validate_pos_args('package.library', args)
         if not self.package.manifest.lib:
             raise MesonException("no [lib] section in Cargo package")
@@ -330,6 +333,11 @@ class RustPackage(RustCrate):
 
         lib_args: T.Tuple[str, SourcesVarargsType] = (tgt_name, [sources])
         self.merge_kw_args(state, kwargs)
+
+        if shared_mod:
+            return state._interpreter.build_target(state.current_node, lib_args,
+                                                   T.cast('_kwargs.SharedModule', kwargs),
+                                                   SharedModule)
 
         if static and shared:
             return state._interpreter.build_both_libraries(state.current_node, lib_args, kwargs)
@@ -397,6 +405,28 @@ class RustPackage(RustCrate):
         if 'proc-macro' not in self.package.manifest.lib.crate_type:
             raise MesonException("not a procedural macro crate")
         return self._proc_macro_method(state, args, kwargs)
+
+    @typed_pos_args('package.shared_module', optargs=[(str, StructuredSources), StructuredSources])
+    @typed_kwargs(
+        'package.shared_module',
+        *SHARED_MOD_KWS,
+        DEPENDENCIES_KW,
+        LINK_WITH_KW,
+        LINK_WHOLE_KW,
+        _BASE_LANG_KW.evolve(name='rust_args'),
+    )
+    def shared_module_method(self, state: 'ModuleState', args: T.Tuple[
+            T.Optional[T.Union[str, StructuredSources]],
+            T.Optional[StructuredSources]], kwargs: RustPackageLibrary) -> SharedModule:
+        if not self.package.manifest.lib:
+            raise MesonException("no [lib] section in Cargo package")
+        if 'cdylib' not in self.package.manifest.lib.crate_type:
+            raise MesonException("not a cdylib crate")
+
+        kwargs['rust_abi'] = None
+        kwargs['rust_crate_type'] = 'cdylib'
+        result = self._library_method(state, args, kwargs, shared=True, static=False, shared_mod=True)
+        return T.cast('SharedModule', result)
 
     @typed_pos_args('package.executable', optargs=[(str, StructuredSources), StructuredSources])
     @typed_kwargs(
