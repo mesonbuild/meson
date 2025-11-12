@@ -50,7 +50,7 @@ class ElbrusCompiler(GnuLikeCompiler):
                 return [os.path.realpath(p) for p in libstr.split(':') if os.path.exists(p)]
         return []
 
-    def get_program_dirs(self, env: 'Environment') -> T.List[str]:
+    def get_program_dirs(self) -> T.List[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         stdo = Popen_safe(self.get_exelist(ccache=False) + ['--print-search-dirs'], env=os_env)[1]
