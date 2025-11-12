@@ -139,11 +139,12 @@ class DynamicLinker(metaclass=abc.ABCMeta):
             ret += self.prefix_arg + [arg]
         return ret
 
-    def __init__(self, exelist: T.List[str],
+    def __init__(self, exelist: T.List[str], env: Environment,
                  for_machine: mesonlib.MachineChoice, prefix_arg: T.Union[str, T.List[str]],
                  always_args: T.List[str], *, system: str = 'unknown system',
                  version: str = 'unknown version'):
         self.exelist = exelist
+        self.environment = env
         self.for_machine = for_machine
         self.system = system
         self.version = version
@@ -972,11 +973,11 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
 
     id = 'ld.lld'
 
-    def __init__(self, exelist: T.List[str],
+    def __init__(self, exelist: T.List[str], env: Environment,
                  for_machine: mesonlib.MachineChoice, prefix_arg: T.Union[str, T.List[str]],
                  always_args: T.List[str], *, system: str = 'unknown system',
                  version: str = 'unknown version'):
-        super().__init__(exelist, for_machine, prefix_arg, always_args, system=system, version=version)
+        super().__init__(exelist, env, for_machine, prefix_arg, always_args, system=system, version=version)
 
         # Some targets don't seem to support this argument (windows, wasm, ...)
         self.has_allow_shlib_undefined = self._supports_flag('--allow-shlib-undefined', always_args)
@@ -1062,9 +1063,9 @@ class CcrxDynamicLinker(DynamicLinker):
 
     id = 'rlink'
 
-    def __init__(self, for_machine: mesonlib.MachineChoice,
+    def __init__(self, env: Environment, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(['rlink.exe'], for_machine, '', [],
+        super().__init__(['rlink.exe'], env, for_machine, '', [],
                          version=version)
 
     def get_accepts_rsp(self) -> bool:
@@ -1096,9 +1097,9 @@ class Xc16DynamicLinker(DynamicLinker):
 
     id = 'xc16-gcc'
 
-    def __init__(self, for_machine: mesonlib.MachineChoice,
+    def __init__(self, env: Environment, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(['xc16-gcc'], for_machine, '', [],
+        super().__init__(['xc16-gcc'], env, for_machine, '', [],
                          version=version)
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
@@ -1158,9 +1159,9 @@ class CompCertDynamicLinker(DynamicLinker):
 
     id = 'ccomp'
 
-    def __init__(self, for_machine: mesonlib.MachineChoice,
+    def __init__(self, env: Environment, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(['ccomp'], for_machine, '', [],
+        super().__init__(['ccomp'], env, for_machine, '', [],
                          version=version)
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
@@ -1200,9 +1201,9 @@ class TIDynamicLinker(DynamicLinker):
 
     id = 'ti'
 
-    def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
+    def __init__(self, exelist: T.List[str], env: Environment, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(exelist, for_machine, '', [],
+        super().__init__(exelist, env, for_machine, '', [],
                          version=version)
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
@@ -1246,9 +1247,9 @@ class ArmDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     id = 'armlink'
 
-    def __init__(self, for_machine: mesonlib.MachineChoice,
+    def __init__(self, env: Environment, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(['armlink'], for_machine, '', [],
+        super().__init__(['armlink'], env, for_machine, '', [],
                          version=version)
 
     def get_accepts_rsp(self) -> bool:
@@ -1393,12 +1394,12 @@ class VisualStudioLikeLinkerMixin(DynamicLinkerBase):
         's': ['/INCREMENTAL:NO', '/OPT:REF'],
     }
 
-    def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
-                 prefix_arg: T.Union[str, T.List[str]], always_args: T.List[str], *,
-                 version: str = 'unknown version', direct: bool = True, machine: str = 'x86',
-                 rsp_syntax: RSPFileSyntax = RSPFileSyntax.MSVC):
-        # There's no way I can find to make mypy understand what's going on here
-        super().__init__(exelist, for_machine, prefix_arg, always_args, version=version)
+    def __init__(self, exelist: T.List[str], env: Environment,
+                 for_machine: mesonlib.MachineChoice, prefix_arg: T.Union[str, T.List[str]],
+                 always_args: T.List[str], *, version: str = 'unknown version',
+                 direct: bool = True, machine: str = 'x86', rsp_syntax:
+                 RSPFileSyntax = RSPFileSyntax.MSVC):
+        super().__init__(exelist, env, for_machine, prefix_arg, always_args, version=version)
         self.machine = machine
         self.direct = direct
         self.rsp_syntax = rsp_syntax
@@ -1457,12 +1458,13 @@ class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     id = 'link'
 
-    def __init__(self, for_machine: mesonlib.MachineChoice, always_args: T.List[str], *,
+    def __init__(self, env: Environment, for_machine: mesonlib.MachineChoice,
+                 always_args: T.List[str], *,
                  exelist: T.Optional[T.List[str]] = None,
                  prefix: T.Union[str, T.List[str]] = '',
                  machine: str = 'x86', version: str = 'unknown version',
                  direct: bool = True, rsp_syntax: RSPFileSyntax = RSPFileSyntax.MSVC):
-        super().__init__(exelist or ['link.exe'], for_machine,
+        super().__init__(exelist or ['link.exe'], env, for_machine,
                          prefix, always_args, machine=machine, version=version, direct=direct,
                          rsp_syntax=rsp_syntax)
 
@@ -1482,12 +1484,13 @@ class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     id = 'lld-link'
 
-    def __init__(self, for_machine: mesonlib.MachineChoice, always_args: T.List[str], *,
+    def __init__(self, env: Environment, for_machine: mesonlib.MachineChoice,
+                 always_args: T.List[str], *,
                  exelist: T.Optional[T.List[str]] = None,
                  prefix: T.Union[str, T.List[str]] = '',
                  machine: str = 'x86', version: str = 'unknown version',
                  direct: bool = True, rsp_syntax: RSPFileSyntax = RSPFileSyntax.MSVC):
-        super().__init__(exelist or ['lld-link.exe'], for_machine,
+        super().__init__(exelist or ['lld-link.exe'], env, for_machine,
                          prefix, always_args, machine=machine, version=version, direct=direct,
                          rsp_syntax=rsp_syntax)
 
@@ -1515,12 +1518,13 @@ class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     id = 'xilink'
 
-    def __init__(self, for_machine: mesonlib.MachineChoice, always_args: T.List[str], *,
+    def __init__(self, env: Environment, for_machine: mesonlib.MachineChoice,
+                 always_args: T.List[str], *,
                  exelist: T.Optional[T.List[str]] = None,
                  prefix: T.Union[str, T.List[str]] = '',
                  machine: str = 'x86', version: str = 'unknown version',
                  direct: bool = True):
-        super().__init__(['xilink.exe'], for_machine, '', always_args, version=version)
+        super().__init__(['xilink.exe'], env, for_machine, '', always_args, version=version)
 
     def get_win_subsystem_args(self, value: str) -> T.List[str]:
         return self._apply_prefix([f'/SUBSYSTEM:{value.upper()}'])
@@ -1667,11 +1671,11 @@ class OptlinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     id = 'optlink'
 
-    def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
+    def __init__(self, exelist: T.List[str], env: Environment, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
         # Use optlink instead of link so we don't interfere with other link.exe
         # implementations.
-        super().__init__(exelist, for_machine, '', [], version=version)
+        super().__init__(exelist, env, for_machine, '', [], version=version)
 
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
@@ -1738,9 +1742,9 @@ class CudaLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
 class MetrowerksLinker(DynamicLinker):
 
-    def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
+    def __init__(self, exelist: T.List[str], env: Environment, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(exelist, for_machine, '', [],
+        super().__init__(exelist, env, for_machine, '', [],
                          version=version)
 
     def fatal_warnings(self) -> T.List[str]:
@@ -1789,9 +1793,9 @@ class TaskingLinker(DynamicLinker):
         's': ['-Os'],
     }
 
-    def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
+    def __init__(self, exelist: T.List[str], env: Environment, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(exelist, for_machine, '', [],
+        super().__init__(exelist, env, for_machine, '', [],
                          version=version)
 
     def get_accepts_rsp(self) -> bool:
