@@ -2029,7 +2029,7 @@ class NinjaBackend(backends.Backend):
         args.extend(['--crate-type', src_crate_type])
 
         # If we're dynamically linking, add those arguments
-        if target.rust_crate_type in {'bin', 'dylib'}:
+        if target.rust_crate_type in {'bin', 'dylib', 'cdylib'}:
             args.extend(rustc.get_linker_always_args())
 
         args += self.generate_basic_compiler_args(target, rustc)
