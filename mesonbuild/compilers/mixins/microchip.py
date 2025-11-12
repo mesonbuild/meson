@@ -72,7 +72,7 @@ class Xc16Compiler(Compiler):
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return []
 
-    def thread_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         return []
 
     def get_coverage_args(self) -> T.List[str]:
@@ -135,7 +135,7 @@ class Xc32Compiler(CompilerBase):
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         return None
 
-    def thread_flags(self, env: Environment) -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         return []
 
     def openmp_flags(self) -> T.List[str]:

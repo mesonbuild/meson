@@ -211,7 +211,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return []
 
     # FIXME, no idea what these should be.
-    def thread_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         return []
 
     @classmethod

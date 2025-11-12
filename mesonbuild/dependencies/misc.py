@@ -176,8 +176,8 @@ class ThreadDependency(SystemDependency):
             self.compile_args = []
             self.link_args = []
         else:
-            self.compile_args = self.clib_compiler.thread_flags(environment)
-            self.link_args = self.clib_compiler.thread_link_flags(environment)
+            self.compile_args = self.clib_compiler.thread_flags()
+            self.link_args = self.clib_compiler.thread_link_flags()
 
 
 class BlocksDependency(SystemDependency):

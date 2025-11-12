@@ -494,8 +494,8 @@ class CudaCompiler(Compiler):
     def needs_static_linker(self) -> bool:
         return False
 
-    def thread_link_flags(self, environment: 'Environment') -> T.List[str]:
-        return self._to_host_flags(self.host_compiler.thread_link_flags(environment), Phase.LINKER)
+    def thread_link_flags(self) -> T.List[str]:
+        return self._to_host_flags(self.host_compiler.thread_link_flags(), Phase.LINKER)
 
     def sanity_check(self, work_dir: str) -> None:
         mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
