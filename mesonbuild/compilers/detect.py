@@ -213,55 +213,55 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             popen_exceptions[join_args(linker + [arg])] = e
             continue
         if "xilib: executing 'lib'" in err:
-            return linkers.IntelVisualStudioLinker(linker, getattr(compiler, 'machine', None))
+            return linkers.IntelVisualStudioLinker(linker, env, getattr(compiler, 'machine', None))
         if '/OUT:' in out.upper() or '/OUT:' in err.upper():
-            return linkers.VisualStudioLinker(linker, getattr(compiler, 'machine', None))
+            return linkers.VisualStudioLinker(linker, env, getattr(compiler, 'machine', None))
         if 'ar-Error-Unknown switch: --version' in err:
-            return linkers.PGIStaticLinker(linker)
+            return linkers.PGIStaticLinker(linker, env)
         if p.returncode == 0 and 'armar' in linker_name:
-            return linkers.ArmarLinker(linker)
+            return linkers.ArmarLinker(linker, env)
         if 'DMD32 D Compiler' in out or 'DMD64 D Compiler' in out:
             assert isinstance(compiler, d.DCompiler)
-            return linkers.DLinker(linker, compiler.arch)
+            return linkers.DLinker(linker, env, compiler.arch)
         if 'LDC - the LLVM D compiler' in out:
             assert isinstance(compiler, d.DCompiler)
-            return linkers.DLinker(linker, compiler.arch, rsp_syntax=compiler.rsp_file_syntax())
+            return linkers.DLinker(linker, env, compiler.arch, rsp_syntax=compiler.rsp_file_syntax())
         if 'GDC' in out and ' based on D ' in out:
             assert isinstance(compiler, d.DCompiler)
-            return linkers.DLinker(linker, compiler.arch)
+            return linkers.DLinker(linker, env, compiler.arch)
         if err.startswith('Renesas') and 'rlink' in linker_name:
-            return linkers.CcrxLinker(linker)
+            return linkers.CcrxLinker(linker, env)
         if out.startswith('GNU ar'):
             if 'xc16-ar' in linker_name:
-                return linkers.Xc16Linker(linker)
+                return linkers.Xc16Linker(linker, env)
             elif 'xc32-ar' in linker_name:
-                return linkers.Xc32ArLinker(compiler.for_machine, linker)
+                return linkers.Xc32ArLinker(compiler.for_machine, linker, env)
         if 'Texas Instruments Incorporated' in out:
             if 'ar2000' in linker_name:
-                return linkers.C2000Linker(linker)
+                return linkers.C2000Linker(linker, env)
             elif 'ar6000' in linker_name:
-                return linkers.C6000Linker(linker)
+                return linkers.C6000Linker(linker, env)
             else:
-                return linkers.TILinker(linker)
+                return linkers.TILinker(linker, env)
         if out.startswith('The CompCert'):
-            return linkers.CompCertLinker(linker)
+            return linkers.CompCertLinker(linker, env)
         if out.strip().startswith('Metrowerks') or out.strip().startswith('Freescale'):
             if 'ARM' in out:
-                return linkers.MetrowerksStaticLinkerARM(linker)
+                return linkers.MetrowerksStaticLinkerARM(linker, env)
             else:
-                return linkers.MetrowerksStaticLinkerEmbeddedPowerPC(linker)
+                return linkers.MetrowerksStaticLinkerEmbeddedPowerPC(linker, env)
         if 'TASKING VX-toolset' in err:
-            return linkers.TaskingStaticLinker(linker)
+            return linkers.TaskingStaticLinker(linker, env)
         if p.returncode == 0:
-            return linkers.ArLinker(compiler.for_machine, linker)
+            return linkers.ArLinker(compiler.for_machine, linker, env)
         if p.returncode == 1 and err.startswith('usage'): # OSX
-            return linkers.AppleArLinker(compiler.for_machine, linker)
+            return linkers.AppleArLinker(compiler.for_machine, linker, env)
         if p.returncode == 1 and err.startswith('Usage'): # AIX
-            return linkers.AIXArLinker(linker)
+            return linkers.AIXArLinker(linker, env)
         if p.returncode == 1 and err.startswith('ar: bad option: --'): # Solaris
-            return linkers.ArLinker(compiler.for_machine, linker)
+            return linkers.ArLinker(compiler.for_machine, linker, env)
         if p.returncode == 1 and err.startswith('emxomfar'):
-            return linkers.EmxomfArLinker(compiler.for_machine, linker)
+            return linkers.EmxomfArLinker(compiler.for_machine, linker, env)
     _handle_exceptions(popen_exceptions, trials, 'linker')
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
 
