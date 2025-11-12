@@ -1064,7 +1064,7 @@ class Backend:
         if isinstance(target, build.BuildTarget):
             for cc in target.compilers.values():
                 paths.update(cc.get_program_dirs(self.environment))
-                paths.update(cc.get_library_dirs(self.environment))
+                paths.update(cc.get_library_dirs())
         return list(paths)
 
     @staticmethod
