@@ -21,7 +21,7 @@ from ..interpreter.type_checking import (
 )
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
 from ..interpreter.interpreterobjects import Doctest
-from ..mesonlib import File, MesonException, PerMachine
+from ..mesonlib import File, MachineChoice, MesonException, PerMachine
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
@@ -494,7 +494,7 @@ class RustModule(ExtensionModule):
     @typed_pos_args('rust.proc_macro', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('rust.proc_macro', *SHARED_LIB_KWS, allow_unknown=True)
     def proc_macro(self, state: ModuleState, args: T.Tuple[str, SourcesVarargsType], kwargs: _kwargs.SharedLibrary) -> SharedLibrary:
-        kwargs['native'] = True  # type: ignore
+        kwargs['native'] = MachineChoice.BUILD
         kwargs['rust_crate_type'] = 'proc-macro'
         kwargs['rust_args'] = kwargs['rust_args'] + ['--extern', 'proc_macro']
         target = state._interpreter.build_target(state.current_node, args, kwargs, SharedLibrary)
