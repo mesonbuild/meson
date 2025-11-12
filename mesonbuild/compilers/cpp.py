@@ -190,7 +190,7 @@ class _StdCPPLibMixin(CompilerMixinBase):
         return lib
 
     @functools.lru_cache(None)
-    def language_stdlib_only_link_flags(self, env: Environment) -> T.List[str]:
+    def language_stdlib_only_link_flags(self) -> T.List[str]:
         """Detect the C++ stdlib and default search dirs
 
         As an optimization, this method will cache the value, to avoid building the same values over and over
@@ -203,13 +203,10 @@ class _StdCPPLibMixin(CompilerMixinBase):
         # be passed to a different compiler with a different set of default
         # search paths, such as when using Clang for C/C++ and gfortran for
         # fortran.
-        search_dirs = [f'-L{d}' for d in self.get_compiler_dirs(env, 'libraries')]
+        search_dirs = [f'-L{d}' for d in self.get_compiler_dirs(self.environment, 'libraries')]
 
-        machine = env.machines[self.for_machine]
-        assert machine is not None, 'for mypy'
-
-        lib = self.language_stdlib_provider(env)
-        if self.find_library(lib, env, []) is not None:
+        lib = self.language_stdlib_provider(self.environment)
+        if self.find_library(lib, self.environment, []) is not None:
             return search_dirs + [f'-l{lib}']
 
         # TODO: maybe a bug exception?
