@@ -119,8 +119,8 @@ class ValaCompiler(Compiler):
                 msg = f'Vala compiler {self.name_string()!r} cannot compile programs'
                 raise EnvironmentException(msg)
 
-    def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
-                     libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True, ignore_system_dirs: bool = False) -> T.Optional[T.List[str]]:
+    def find_library(self, libname: str, extra_dirs: T.List[str], libtype: LibType = LibType.PREFER_SHARED,
+                     lib_prefix_warning: bool = True, ignore_system_dirs: bool = False) -> T.Optional[T.List[str]]:
         if extra_dirs and isinstance(extra_dirs, str):
             extra_dirs = [extra_dirs]
         # Valac always looks in the default vapi dir, so only search there if
@@ -128,10 +128,10 @@ class ValaCompiler(Compiler):
         if not extra_dirs:
             code = 'class MesonFindLibrary : Object { }'
             args: T.List[str] = []
-            args += env.coredata.get_external_args(self.for_machine, self.language)
+            args += self.environment.coredata.get_external_args(self.for_machine, self.language)
             vapi_args = ['--pkg', libname]
             args += vapi_args
-            with self.cached_compile(code, env.coredata, extra_args=args, mode=CompileCheckMode.COMPILE) as p:
+            with self.cached_compile(code, self.environment.coredata, extra_args=args, mode=CompileCheckMode.COMPILE) as p:
                 if p.returncode == 0:
                     return vapi_args
         # Not found? Try to find the vapi file itself.

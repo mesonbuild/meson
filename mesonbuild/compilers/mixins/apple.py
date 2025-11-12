@@ -51,7 +51,7 @@ class AppleCompilerMixin(Compiler):
         else:
             root = '/opt/homebrew'
 
-        link = self.find_library('omp', self.environment, [f'{root}/opt/libomp/lib'])
+        link = self.find_library('omp', [f'{root}/opt/libomp/lib'])
         if not link:
             raise MesonException("Couldn't find libomp")
         return self.__BASE_OMP_FLAGS + link

@@ -44,7 +44,7 @@ class GLDependencySystem(SystemDependency):
             # FIXME: Detect version using self.clib_compiler
             return
         else:
-            links = self.clib_compiler.find_library('GL', environment, [])
+            links = self.clib_compiler.find_library('GL', [])
             has_header = self.clib_compiler.has_header('GL/gl.h', '', environment)[0]
             if links and has_header:
                 self.is_found = True
@@ -199,7 +199,7 @@ class VulkanDependencySystem(SystemDependency):
             inc_path = os.path.join(self.vulkan_sdk, inc_dir)
             header = os.path.join(inc_path, 'vulkan', 'vulkan.h')
             lib_path = os.path.join(self.vulkan_sdk, lib_dir)
-            find_lib = self.clib_compiler.find_library(lib_name, environment, [lib_path])
+            find_lib = self.clib_compiler.find_library(lib_name, [lib_path])
 
             if not find_lib:
                 raise DependencyException('VULKAN_SDK point to invalid directory (no lib)')
@@ -215,7 +215,7 @@ class VulkanDependencySystem(SystemDependency):
             self.link_args.append('-l' + lib_name)
         else:
             # simply try to guess it, usually works on linux
-            libs = self.clib_compiler.find_library('vulkan', environment, [])
+            libs = self.clib_compiler.find_library('vulkan', [])
             if libs is not None and self.clib_compiler.has_header('vulkan/vulkan.h', '', environment, disable_cache=True)[0]:
                 self.is_found = True
                 for lib in libs:

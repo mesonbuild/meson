@@ -708,7 +708,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             libtype = mesonlib.LibType.PREFER_STATIC
         else:
             libtype = mesonlib.LibType.PREFER_SHARED
-        linkargs = self.compiler.find_library(libname, self.environment, search_dirs, libtype)
+        linkargs = self.compiler.find_library(libname, search_dirs, libtype)
         if required and not linkargs:
             if libtype == mesonlib.LibType.PREFER_SHARED:
                 libtype_s = 'shared or static'

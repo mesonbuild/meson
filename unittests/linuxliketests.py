@@ -1977,7 +1977,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cpp = detect_cpp_compiler(env, MachineChoice.HOST)
-        if cpp.find_library('ubsan', env, []):
+        if cpp.find_library('ubsan', []):
             tests += ['address,undefined']
 
         for value in tests:
