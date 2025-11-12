@@ -988,7 +988,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         # or does not target Windows
         return self.linker.get_win_subsystem_args(value)
 
-    def has_func_attribute(self, name: str, env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_func_attribute(self, name: str) -> T.Tuple[bool, bool]:
         raise EnvironmentException(
             f'Language {self.get_display_language()} does not support function attributes.')
 

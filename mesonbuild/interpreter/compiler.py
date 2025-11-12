@@ -847,7 +847,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             logargs += ['skipped: feature', mlog.bold(feature), 'disabled']
             mlog.log(*logargs)
             return False
-        had, cached = self.compiler.has_func_attribute(attr, self.environment)
+        had, cached = self.compiler.has_func_attribute(attr)
         if required and not had:
             logargs += ['not usable']
             raise InterpreterException(*logargs)
