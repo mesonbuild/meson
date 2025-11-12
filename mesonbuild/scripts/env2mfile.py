@@ -464,15 +464,18 @@ class AndroidDetector:
         self.outdir = pathlib.Path(options.outfile)
 
     def detect_android_sdk_root(self) -> None:
-        home = pathlib.Path.home()
-        if self.platform == 'windows':
-            sdk_root = home / 'AppData/Local/Android/Sdk'
-        elif self.platform == 'darwin':
-            sdk_root = home / 'Library/Android/Sdk'
-        elif self.platform == 'linux':
-            sdk_root = home / 'Android/Sdk'
-        else:
-            sys.exit('Unsupported platform.')
+        android_home = os.getenv('ANDROID_HOME')
+        sdk_root = None if android_home is None else pathlib.Path(android_home)
+        if sdk_root is None:
+            home = pathlib.Path.home()
+            if self.platform == 'windows':
+                sdk_root = home / 'AppData/Local/Android/Sdk'
+            elif self.platform == 'darwin':
+                sdk_root = home / 'Library/Android/Sdk'
+            elif self.platform == 'linux':
+                sdk_root = home / 'Android/Sdk'
+            else:
+                sys.exit('Unsupported platform.')
         if not sdk_root.is_dir():
             sys.exit(f'Could not locate Android SDK root in {sdk_root}.')
         ndk_root = sdk_root / 'ndk'
