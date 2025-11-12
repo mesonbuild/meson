@@ -195,7 +195,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
-    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_multi_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
         raise EnvironmentException(f'Language {self.id} does not support has_multi_link_arguments.')
 
     def get_debugfile_name(self, targetfile: str) -> T.Optional[str]:

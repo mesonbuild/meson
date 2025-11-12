@@ -741,7 +741,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             mlog.log(*logargs)
             return False
         test = self.compiler.has_multi_link_arguments if mode is _TestMode.LINKER else self.compiler.has_multi_arguments
-        result, cached = test(arguments, self.environment)
+        result, cached = test(arguments)
         if required and not result:
             logargs += ['not usable']
             raise InterpreterException(*logargs)

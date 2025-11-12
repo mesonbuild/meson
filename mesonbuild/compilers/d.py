@@ -536,7 +536,7 @@ class DCompiler(Compiler):
     def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> DCompilerArgs:
         return DCompilerArgs(self, args)
 
-    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_multi_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
         return self.compiles('int i;\n', extra_args=args)
 
     def _get_target_arch_args(self) -> T.List[str]:

@@ -299,7 +299,7 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
         # We consider that if there are no sanitizer arguments returned, then
         # the language doesn't support them.
         if sanitize_args:
-            if not compiler.has_multi_arguments(sanitize_args, env)[0]:
+            if not compiler.has_multi_arguments(sanitize_args)[0]:
                 raise MesonException(f'Compiler {compiler.name_string()} does not support sanitizer arguments {sanitize_args}')
             args.extend(sanitize_args)
     except KeyError:
@@ -373,7 +373,7 @@ def get_base_link_args(target: 'BuildTarget',
         # We consider that if there are no sanitizer arguments returned, then
         # the language doesn't support them.
         if sanitizer_args:
-            if not linker.has_multi_link_arguments(sanitizer_args, env)[0]:
+            if not linker.has_multi_link_arguments(sanitizer_args)[0]:
                 raise MesonException(f'Linker {linker.name_string()} does not support sanitizer arguments {sanitizer_args}')
             args.extend(sanitizer_args)
     except KeyError:
@@ -779,7 +779,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_program_dirs(self, env: 'Environment') -> T.List[str]:
         return []
 
-    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_multi_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
         """Checks if the compiler has all of the arguments.
 
         :returns:
@@ -790,14 +790,14 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             'Language {} does not support has_multi_arguments.'.format(
                 self.get_display_language()))
 
-    def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_multi_link_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
         """Checks if the linker has all of the arguments.
 
         :returns:
             A tuple of (bool, bool). The first value is whether the check
             succeeded, and the second is whether it was retrieved from a cache
         """
-        return self.linker.has_multi_arguments(args, env)
+        return self.linker.has_multi_arguments(args)
 
     def _get_compile_output(self, dirname: str, mode: CompileCheckMode) -> str:
         assert mode != CompileCheckMode.PREPROCESS, 'In pre-processor mode, the output is sent to stdout and discarded'

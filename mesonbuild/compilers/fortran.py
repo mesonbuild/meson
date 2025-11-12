@@ -106,11 +106,11 @@ class FortranCompiler(CLikeCompiler, Compiler):
         code = 'stop; end program'
         return self._find_library_impl(libname, env, extra_dirs, code, libtype, lib_prefix_warning, ignore_system_dirs)
 
-    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
-        return self._has_multi_arguments(args, env, 'stop; end program')
+    def has_multi_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
+        return self._has_multi_arguments(args, 'stop; end program')
 
-    def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
-        return self._has_multi_link_arguments(args, env, 'stop; end program')
+    def has_multi_link_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
+        return self._has_multi_link_arguments(args, 'stop; end program')
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
