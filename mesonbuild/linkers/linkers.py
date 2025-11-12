@@ -66,8 +66,9 @@ class StaticLinker:
     def get_coverage_link_args(self) -> T.List[str]:
         return []
 
-    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
-                         target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
+    def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
+                         extra_paths: T.Optional[T.List[str]] = None
+                         ) -> T.Tuple[T.List[str], T.Set[bytes]]:
         return ([], set())
 
     def thread_flags(self) -> T.List[str]:
@@ -301,8 +302,9 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def bitcode_args(self) -> T.List[str]:
         raise MesonException('This linker does not support bitcode bundles')
 
-    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
-                         target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
+    def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
+                         extra_paths: T.Optional[T.List[str]] = None
+                         ) -> T.Tuple[T.List[str], T.Set[bytes]]:
         return ([], set())
 
     def get_soname_args(self, prefix: str, shlib_name: str,
@@ -724,9 +726,10 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         sostr = '' if soversion is None else '.' + soversion
         return self._apply_prefix(f'-soname,{prefix}{shlib_name}.{suffix}{sostr}')
 
-    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
-                         target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
-        m = env.machines[self.for_machine]
+    def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
+                         extra_paths: T.Optional[T.List[str]] = None
+                         ) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        m = self.environment.machines[self.for_machine]
         if m.is_windows() or m.is_cygwin():
             return ([], set())
         rpath_paths = target.determine_rpath_dirs()
@@ -899,8 +902,9 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
                          '-current_version', darwin_versions[1]])
         return args
 
-    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
-                         target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
+    def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
+                         extra_paths: T.Optional[T.List[str]] = None
+                         ) -> T.Tuple[T.List[str], T.Set[bytes]]:
         rpath_paths = target.determine_rpath_dirs()
         if not rpath_paths and not target.install_rpath and not target.build_rpath and not extra_paths:
             return ([], set())
@@ -1055,8 +1059,9 @@ class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
     def get_asneeded_args(self) -> T.List[str]:
         return []
 
-    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
-                         target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
+    def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
+                         extra_paths: T.Optional[T.List[str]] = None
+                         ) -> T.Tuple[T.List[str], T.Set[bytes]]:
         return ([], set())
 
 
@@ -1134,8 +1139,9 @@ class Xc16DynamicLinker(DynamicLinker):
                         ) -> T.List[str]:
         return []
 
-    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
-                         target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
+    def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
+                         extra_paths: T.Optional[T.List[str]] = None
+                         ) -> T.Tuple[T.List[str], T.Set[bytes]]:
         return ([], set())
 
 
@@ -1192,8 +1198,9 @@ class CompCertDynamicLinker(DynamicLinker):
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
 
-    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
-                         target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
+    def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
+                         extra_paths: T.Optional[T.List[str]] = None
+                         ) -> T.Tuple[T.List[str], T.Set[bytes]]:
         return ([], set())
 
 class TIDynamicLinker(DynamicLinker):
@@ -1303,8 +1310,9 @@ class NAGDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     id = 'nag'
 
-    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
-                         target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
+    def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
+                         extra_paths: T.Optional[T.List[str]] = None
+                         ) -> T.Tuple[T.List[str], T.Set[bytes]]:
         rpath_paths = target.determine_rpath_dirs()
         if not rpath_paths and not target.install_rpath and not target.build_rpath and not extra_paths:
             return ([], set())
@@ -1351,9 +1359,10 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             return ['-shared']
         return []
 
-    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
-                         target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
-        if not env.machines[self.for_machine].is_windows():
+    def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
+                         extra_paths: T.Optional[T.List[str]] = None
+                         ) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        if not self.environment.machines[self.for_machine].is_windows():
             rpath_paths = target.determine_rpath_dirs()
             return (['-R' + os.path.join(build_dir, p) for p in rpath_paths], set())
         return ([], set())
@@ -1566,8 +1575,9 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def fatal_warnings(self) -> T.List[str]:
         return ['-z', 'fatal-warnings']
 
-    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
-                         target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
+    def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
+                         extra_paths: T.Optional[T.List[str]] = None
+                         ) -> T.Tuple[T.List[str], T.Set[bytes]]:
         rpath_paths = target.determine_rpath_dirs()
         if not rpath_paths and not target.install_rpath and not target.build_rpath and not extra_paths:
             return ([], set())
@@ -1639,8 +1649,9 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         # archives or not."
         return args
 
-    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
-                         target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
+    def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
+                         extra_paths: T.Optional[T.List[str]] = None
+                         ) -> T.Tuple[T.List[str], T.Set[bytes]]:
         all_paths: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
         # install_rpath first, followed by other paths, and the system path last
         if target.install_rpath != '':
@@ -1651,7 +1662,7 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             all_paths.add(os.path.join(build_dir, p))
         # We should consider allowing the $LIBPATH environment variable
         # to override sys_path.
-        sys_path = env.get_compiler_system_lib_dirs(self.for_machine)
+        sys_path = self.environment.get_compiler_system_lib_dirs(self.for_machine)
         if len(sys_path) == 0:
             # get_compiler_system_lib_dirs doesn't support our compiler.
             # Use the default system library path
