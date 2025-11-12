@@ -309,7 +309,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
             return libs
         return []
 
-    def get_assert_args(self, disable: bool, env: 'Environment') -> T.List[str]:
+    def get_assert_args(self, disable: bool) -> T.List[str]:
         if disable:
             return ['-DNDEBUG']
 
@@ -318,7 +318,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
             if self.defines.get(macro) is not None:
                 return []
 
-        if self.language_stdlib_provider(env) == 'stdc++':
+        if self.language_stdlib_provider(self.environment) == 'stdc++':
             return ['-D_GLIBCXX_ASSERTIONS=1']
 
         return ['-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST']
@@ -511,7 +511,7 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
             return libs
         return []
 
-    def get_assert_args(self, disable: bool, env: 'Environment') -> T.List[str]:
+    def get_assert_args(self, disable: bool) -> T.List[str]:
         if disable:
             return ['-DNDEBUG']
 
@@ -522,7 +522,7 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
 
         # For GCC, we can assume that the libstdc++ version is the same as
         # the compiler itself. Anything else isn't supported.
-        if self.language_stdlib_provider(env) == 'stdc++':
+        if self.language_stdlib_provider(self.environment) == 'stdc++':
             return ['-D_GLIBCXX_ASSERTIONS=1']
         else:
             # One can use -stdlib=libc++ with GCC, it just (as of 2025) requires
