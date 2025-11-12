@@ -88,15 +88,14 @@ class RustCompiler(Compiler):
         'everything': ['-W', 'warnings'],
     }
 
-    # Those are static libraries, but we use dylib= here as workaround to avoid
-    # rust --tests to use /WHOLEARCHIVE.
-    # https://github.com/rust-lang/rust/issues/116910
+    # libcore can be compiled with either static or dynamic CRT, so disable
+    # both of them just in case.
     MSVCRT_ARGS: T.Mapping[str, T.List[str]] = {
         'none': [],
-        'md': [], # this is the default, no need to inject anything
-        'mdd': ['-l', 'dylib=msvcrtd'],
-        'mt': ['-l', 'dylib=libcmt'],
-        'mtd': ['-l', 'dylib=libcmtd'],
+        'md': ['-Clink-arg=/nodefaultlib:libcmt', '-Clink-arg=/defaultlib:msvcrt'],
+        'mdd': ['-Clink-arg=/nodefaultlib:libcmt', '-Clink-arg=/nodefaultlib:msvcrt', '-Clink-arg=/defaultlib:msvcrtd'],
+        'mt': ['-Clink-arg=/defaultlib:libcmt', '-Clink-arg=/nodefaultlib:msvcrt'],
+        'mtd': ['-Clink-arg=/nodefaultlib:libcmt', '-Clink-arg=/nodefaultlib:msvcrt', '-Clink-arg=/defaultlib:libcmtd'],
     }
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
