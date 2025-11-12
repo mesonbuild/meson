@@ -988,9 +988,9 @@ class CLikeCompiler(Compiler):
         # most unreliable way of checking this, see #5482
         return self._symbols_have_underscore_prefix_searchbin(env)
 
-    def _get_patterns(self, env: 'Environment', prefixes: T.List[str], suffixes: T.List[str], shared: bool = False) -> T.List[str]:
+    def _get_patterns(self, prefixes: T.List[str], suffixes: T.List[str], shared: bool = False) -> T.List[str]:
         patterns: T.List[str] = []
-        if env.machines[self.for_machine].is_os2():
+        if self.info.is_os2():
             # On OS/2, search order for shared libs is
             #   1. libfoo_dll.a
             #   2. foo_dll.a
@@ -1006,7 +1006,7 @@ class CLikeCompiler(Compiler):
         for p in prefixes:
             for s in suffixes:
                 patterns.append(p + '{}.' + s)
-        if shared and env.machines[self.for_machine].is_openbsd():
+        if shared and self.info.is_openbsd():
             # Shared libraries on OpenBSD can be named libfoo.so.X.Y:
             # https://www.openbsd.org/faq/ports/specialtopics.html#SharedLibs
             #
@@ -1018,7 +1018,7 @@ class CLikeCompiler(Compiler):
                 patterns.append(p + '{}.so.[0-9]*.[0-9]*')
         return patterns
 
-    def get_library_naming(self, env: 'Environment', libtype: LibType, strict: bool = False) -> T.Tuple[str, ...]:
+    def get_library_naming(self, libtype: LibType, strict: bool = False) -> T.Tuple[str, ...]:
         '''
         Get library prefixes and suffixes for the target platform ordered by
         priority
@@ -1029,14 +1029,14 @@ class CLikeCompiler(Compiler):
         # of `libfoo.so` for unknown reasons, and may also want to create
         # `foo.so` by setting name_prefix to ''
         # lib prefix is not usually used with msvc and OS/2
-        if strict and not isinstance(self, VisualStudioLikeCompiler) and not env.machines[self.for_machine].is_os2():
+        if strict and not isinstance(self, VisualStudioLikeCompiler) and not self.info.is_os2():
             prefixes = ['lib']
         else:
             prefixes = ['lib', '']
         # Library suffixes and prefixes
-        if env.machines[self.for_machine].is_darwin():
+        if self.info.is_darwin():
             shlibext = ['dylib', 'so']
-        elif env.machines[self.for_machine].is_windows():
+        elif self.info.is_windows():
             # FIXME: .lib files can be import or static so we should read the
             # file, figure out which one it is, and reject the wrong kind.
             if isinstance(self, VisualStudioLikeCompiler):
@@ -1045,14 +1045,14 @@ class CLikeCompiler(Compiler):
                 shlibext = ['dll.a', 'lib', 'dll']
             # Yep, static libraries can also be foo.lib
             stlibext += ['lib']
-        elif env.machines[self.for_machine].is_cygwin():
+        elif self.info.is_cygwin():
             shlibext = ['dll', 'dll.a']
             prefixes = ['cyg'] + prefixes
         elif self.id.lower() in {'c6000', 'c2000', 'ti'}:
             # TI C28x compilers can use both extensions for static or dynamic libs.
             stlibext = ['a', 'lib']
             shlibext = ['dll', 'so']
-        elif env.machines[self.for_machine].is_os2():
+        elif self.info.is_os2():
             stlibext = ['_s.lib', '_s.a', 'lib', 'a']
             shlibext = ['_dll.lib', '_dll.a', 'lib', 'a', 'dll']
         else:
@@ -1060,16 +1060,16 @@ class CLikeCompiler(Compiler):
             shlibext = ['so']
         # Search priority
         if libtype is LibType.PREFER_SHARED:
-            patterns = self._get_patterns(env, prefixes, shlibext, True)
-            patterns.extend([x for x in self._get_patterns(env, prefixes, stlibext, False) if x not in patterns])
+            patterns = self._get_patterns(prefixes, shlibext, True)
+            patterns.extend([x for x in self._get_patterns(prefixes, stlibext, False) if x not in patterns])
         elif libtype is LibType.PREFER_STATIC:
-            patterns = self._get_patterns(env, prefixes, stlibext, False)
-            patterns.extend([x for x in self._get_patterns(env, prefixes, shlibext, True) if x not in patterns])
+            patterns = self._get_patterns(prefixes, stlibext, False)
+            patterns.extend([x for x in self._get_patterns(prefixes, shlibext, True) if x not in patterns])
         elif libtype is LibType.SHARED:
-            patterns = self._get_patterns(env, prefixes, shlibext, True)
+            patterns = self._get_patterns(prefixes, shlibext, True)
         else:
             assert libtype is LibType.STATIC
-            patterns = self._get_patterns(env, prefixes, stlibext, False)
+            patterns = self._get_patterns(prefixes, stlibext, False)
         return tuple(patterns)
 
     @staticmethod
@@ -1147,7 +1147,7 @@ class CLikeCompiler(Compiler):
                 return None
         # Not found or we want to use a specific libtype? Try to find the
         # library file itself.
-        patterns = self.get_library_naming(env, libtype)
+        patterns = self.get_library_naming(libtype)
         # try to detect if we are 64-bit or 32-bit. If we can't
         # detect, we will just skip path validity checks done in
         # get_library_dirs() call
