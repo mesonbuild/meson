@@ -1353,11 +1353,10 @@ class CLikeCompiler(Compiler):
         # mixins.
         return ['-Werror']
 
-    def has_func_attribute(self, name: str, env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_func_attribute(self, name: str) -> T.Tuple[bool, bool]:
         # Just assume that if we're not on windows that dllimport and dllexport
         # don't work
-        m = env.machines[self.for_machine]
-        if not (m.is_windows() or m.is_cygwin()):
+        if not (self.info.is_windows() or self.info.is_cygwin()):
             if name in {'dllimport', 'dllexport'}:
                 return False, False
 
