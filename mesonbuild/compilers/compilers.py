@@ -976,7 +976,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def openmp_link_flags(self, env: Environment) -> T.List[str]:
         return self.openmp_flags(env)
 
-    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+    def language_stdlib_only_link_flags(self) -> T.List[str]:
         return []
 
     def gnu_symbol_visibility_args(self, vistype: str) -> T.List[str]:

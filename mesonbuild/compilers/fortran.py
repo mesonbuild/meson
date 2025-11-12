@@ -299,13 +299,13 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
     def get_module_outdir_args(self, path: str) -> T.List[str]:
         return ['-J' + path]
 
-    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+    def language_stdlib_only_link_flags(self) -> T.List[str]:
         # We need to apply the search prefix here, as these link arguments may
         # be passed to a different compiler with a different set of default
         # search paths, such as when using Clang for C/C++ and gfortran for
         # fortran,
         search_dirs: T.List[str] = []
-        for d in self.get_compiler_dirs(env, 'libraries'):
+        for d in self.get_compiler_dirs(self.environment, 'libraries'):
             search_dirs.append(f'-L{d}')
         return search_dirs + ['-lgfortran', '-lm']
 
@@ -427,7 +427,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
     def get_werror_args(self) -> T.List[str]:
         return ['-warn', 'errors']
 
-    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+    def language_stdlib_only_link_flags(self) -> T.List[str]:
         # TODO: needs default search path added
         return ['-lifcore', '-limf']
 
@@ -526,7 +526,7 @@ class PGIFortranCompiler(PGICompiler, FortranCompiler):
                           '3': default_warn_args + ['-Mdclchk'],
                           'everything': default_warn_args + ['-Mdclchk']}
 
-    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+    def language_stdlib_only_link_flags(self) -> T.List[str]:
         # TODO: needs default search path added
         return ['-lpgf90rtl', '-lpgf90', '-lpgf90_rpm1', '-lpgf902',
                 '-lpgf90rtl', '-lpgftnrtl', '-lrt']
@@ -568,14 +568,14 @@ class ClassicFlangFortranCompiler(ClangCompiler, FortranCompiler):
                           '3': default_warn_args,
                           'everything': default_warn_args}
 
-    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+    def language_stdlib_only_link_flags(self) -> T.List[str]:
         # We need to apply the search prefix here, as these link arguments may
         # be passed to a different compiler with a different set of default
         # search paths, such as when using Clang for C/C++ and gfortran for
         # fortran,
         # XXX: Untested....
         search_dirs: T.List[str] = []
-        for d in self.get_compiler_dirs(env, 'libraries'):
+        for d in self.get_compiler_dirs(self.environment, 'libraries'):
             search_dirs.append(f'-L{d}')
         return search_dirs + ['-lflang', '-lpgmath']
 
@@ -620,10 +620,10 @@ class LlvmFlangFortranCompiler(ClangCompiler, FortranCompiler):
         # https://github.com/llvm/llvm-project/issues/92459
         return []
 
-    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+    def language_stdlib_only_link_flags(self) -> T.List[str]:
         # matching setup from ClassicFlangFortranCompiler
         search_dirs: T.List[str] = []
-        for d in self.get_compiler_dirs(env, 'libraries'):
+        for d in self.get_compiler_dirs(self.environment, 'libraries'):
             search_dirs.append(f'-L{d}')
         # does not automatically link to Fortran_main anymore after
         # https://github.com/llvm/llvm-project/commit/9d6837d595719904720e5ff68ec1f1a2665bdc2f
