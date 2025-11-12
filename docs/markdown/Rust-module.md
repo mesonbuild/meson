@@ -396,6 +396,16 @@ Accepts all keyword arguments from [[shared_library]] and [[static_library]].
 `rust_abi` must match the crate types and is mandatory if more than one
 ABI is exposed by the crate.
 
+#### package.shared_module()
+
+```meson
+lib = pkg.shared_module(...)
+```
+
+Builds the `cdylib` for a workspace package as a shared module.
+
+Accepts all keyword arguments from [[shared_module]].
+
 #### package.proc_macro()
 
 ```meson
