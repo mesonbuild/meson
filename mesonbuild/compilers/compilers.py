@@ -712,10 +712,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     # For now we just accept code as a string, as that's what internal callers
     # need anyway. If we wanted to accept files, the cache key would need to
     # include mtime.
-    def cached_run(self, code: str, env: 'Environment', *,
+    def cached_run(self, code: str, *,
                    extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None,
                    dependencies: T.Optional[T.List['Dependency']] = None) -> RunResult:
-        run_check_cache = env.coredata.run_check_cache
+        run_check_cache = self.environment.coredata.run_check_cache
         args = self.build_wrapper_args(extra_args, dependencies, CompileCheckMode('link'))
         key = (code, tuple(args))
         if key in run_check_cache:
@@ -728,7 +728,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             mlog.debug('Cached run stdout:\n', p.stdout)
             mlog.debug('Cached run stderr:\n', p.stderr)
         else:
-            p = self.run(code, env, extra_args=extra_args, dependencies=dependencies)
+            p = self.run(code, self.environment, extra_args=extra_args, dependencies=dependencies)
             run_check_cache[key] = p
         return p
 
