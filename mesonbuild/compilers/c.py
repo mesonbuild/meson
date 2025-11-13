@@ -78,8 +78,7 @@ class CCompiler(CLikeCompiler, Compiler):
         code = 'int main(void) { int class=0; return class; }\n'
         return self._sanity_check_impl(work_dir, 'sanitycheckc.c', code)
 
-    def has_header_symbol(self, hname: str, symbol: str, prefix: str,
-                          env: 'Environment', *,
+    def has_header_symbol(self, hname: str, symbol: str, prefix: str, *,
                           extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
                           dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
