@@ -2065,7 +2065,7 @@ class NinjaBackend(backends.Backend):
             if rustc.has_verbatim():
                 modifiers.append('+verbatim')
             else:
-                libname = rustc.lib_file_to_l_arg(self.environment, libname)
+                libname = rustc.lib_file_to_l_arg(libname)
                 if libname is None:
                     raise MesonException(f"rustc does not implement '-l{type_}:+verbatim'; cannot link to '{orig_libname}' due to nonstandard name")
 
