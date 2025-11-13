@@ -310,13 +310,12 @@ class CLikeCompiler(Compiler):
         code = 'int main(void) { int class=0; return class; }\n'
         return self._sanity_check_impl(work_dir, 'sanitycheckc.c', code)
 
-    def check_header(self, hname: str, prefix: str, env: 'Environment', *,
+    def check_header(self, hname: str, prefix: str, *,
                      extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
                      dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         code = f'''{prefix}
         #include <{hname}>'''
-        return self.compiles(code, extra_args=extra_args,
-                             dependencies=dependencies)
+        return self.compiles(code, extra_args=extra_args, dependencies=dependencies)
 
     def has_header(self, hname: str, prefix: str, *,
                    extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
