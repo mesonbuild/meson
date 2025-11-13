@@ -549,7 +549,7 @@ class ZlibSystemDependency(SystemDependency):
             else:
                 return
 
-        v, _ = self.clib_compiler.get_define('ZLIB_VERSION', '#include <zlib.h>', self.env, [], [self])
+        v, _ = self.clib_compiler.get_define('ZLIB_VERSION', '#include <zlib.h>', [], [self])
         self.version = v.strip('"')
 
 
@@ -745,7 +745,7 @@ class DiaSDKSystemDependency(SystemDependency):
     # Check if compiler has a built-in macro defined
     @staticmethod
     def _has_define(compiler: 'Compiler', dname: str, env: 'Environment') -> bool:
-        defval, _ = compiler.get_define(dname, '', env, [], [])
+        defval, _ = compiler.get_define(dname, '', [], [])
         return defval is not None
 
     def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:

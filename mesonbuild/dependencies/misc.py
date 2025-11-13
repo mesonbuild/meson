@@ -140,7 +140,7 @@ class OpenMPDependency(SystemDependency):
 
         try:
             openmp_date = self.clib_compiler.get_define(
-                '_OPENMP', '', self.env, [], [self], disable_cache=True)[0]
+                '_OPENMP', '', [], [self], disable_cache=True)[0]
         except mesonlib.EnvironmentException as e:
             mlog.debug('OpenMP support not available in the compiler')
             mlog.debug(e)
@@ -383,11 +383,11 @@ class CursesSystemDependency(SystemDependency):
                         # implementations. The one in illumos/OpenIndiana
                         # doesn't seem to have a version defined in the header.
                         if lib.startswith('ncurses'):
-                            v, _ = self.clib_compiler.get_define('NCURSES_VERSION', f'#include <{header}>', env, [], [self])
+                            v, _ = self.clib_compiler.get_define('NCURSES_VERSION', f'#include <{header}>', [], [self])
                             self.version = v.strip('"')
                         if lib.startswith('pdcurses'):
-                            v_major, _ = self.clib_compiler.get_define('PDC_VER_MAJOR', f'#include <{header}>', env, [], [self])
-                            v_minor, _ = self.clib_compiler.get_define('PDC_VER_MINOR', f'#include <{header}>', env, [], [self])
+                            v_major, _ = self.clib_compiler.get_define('PDC_VER_MAJOR', f'#include <{header}>', [], [self])
+                            v_minor, _ = self.clib_compiler.get_define('PDC_VER_MINOR', f'#include <{header}>', [], [self])
                             self.version = f'{v_major}.{v_minor}'
 
                         # Check the version if possible, emit a warning if we can't
@@ -466,10 +466,10 @@ class OpensslSystemDependency(SystemDependency):
             return
 
         # openssl >= 3 only
-        self.version = self.clib_compiler.get_define('OPENSSL_VERSION_STR', '#include <openssl/opensslv.h>', env, [], [self])[0]
+        self.version = self.clib_compiler.get_define('OPENSSL_VERSION_STR', '#include <openssl/opensslv.h>', [], [self])[0]
         # openssl < 3 only
         if not self.version:
-            version_hex = self.clib_compiler.get_define('OPENSSL_VERSION_NUMBER', '#include <openssl/opensslv.h>', env, [], [self])[0]
+            version_hex = self.clib_compiler.get_define('OPENSSL_VERSION_NUMBER', '#include <openssl/opensslv.h>', [], [self])[0]
             if not version_hex:
                 return
             version_hex = version_hex.rstrip('L')

@@ -460,9 +460,8 @@ class CompilerHolder(ObjectHolder['Compiler']):
         element = args[0]
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
-        value, cached = self.compiler.get_define(element, kwargs['prefix'], self.environment,
-                                                 extra_args=extra_args,
-                                                 dependencies=deps)
+        value, cached = self.compiler.get_define(element, kwargs['prefix'],
+                                                 extra_args=extra_args, dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
         value_msg = '(undefined)' if value is None else value
         mlog.log('Fetching value of define', mlog.bold(element, True), msg, value_msg, cached_msg)
@@ -476,9 +475,8 @@ class CompilerHolder(ObjectHolder['Compiler']):
         define_name = args[0]
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
-        value, cached = self.compiler.get_define(define_name, kwargs['prefix'], self.environment,
-                                                 extra_args=extra_args,
-                                                 dependencies=deps)
+        value, cached = self.compiler.get_define(define_name, kwargs['prefix'],
+                                                 extra_args=extra_args, dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
         h = mlog.green('YES') if value is not None else mlog.red('NO')
         mlog.log('Checking if define', mlog.bold(define_name, True), msg, 'exists:', h, cached_msg)
