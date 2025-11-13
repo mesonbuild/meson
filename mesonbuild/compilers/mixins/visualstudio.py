@@ -21,7 +21,6 @@ from mesonbuild.linkers.linkers import ClangClDynamicLinker
 
 if T.TYPE_CHECKING:
     from ...build import BuildTarget
-    from ...environment import Environment
     from ...dependencies import Dependency
     from .clike import CLikeCompiler as Compiler
 else:
@@ -295,7 +294,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     # Visual Studio is special. It ignores some arguments it does not
     # understand and you can't tell it to error out on those.
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
-    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: CompileCheckMode) -> T.Tuple[bool, bool]:
+    def has_arguments(self, args: T.List[str], code: str, mode: CompileCheckMode) -> T.Tuple[bool, bool]:
         warning_text = '4044' if mode == CompileCheckMode.LINK else '9002'
         with self._build_wrapper(code, extra_args=args, mode=mode) as p:
             if p.returncode != 0:
@@ -452,10 +451,10 @@ class ClangClCompiler(VisualStudioLikeCompiler):
         self.can_compile_suffixes.add('s')
         self.can_compile_suffixes.add('sx')
 
-    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: CompileCheckMode) -> T.Tuple[bool, bool]:
+    def has_arguments(self, args: T.List[str], code: str, mode: CompileCheckMode) -> T.Tuple[bool, bool]:
         if mode != CompileCheckMode.LINK:
             args = args + ['-Werror=unknown-argument', '-Werror=unknown-warning-option']
-        return super().has_arguments(args, env, code, mode)
+        return super().has_arguments(args, code, mode)
 
     def get_toolset_version(self) -> T.Optional[str]:
         # XXX: what is the right thing to do here?
