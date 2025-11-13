@@ -602,7 +602,7 @@ class GnuCompiler(GnuLikeCompiler):
     def openmp_flags(self) -> T.List[str]:
         return ['-fopenmp']
 
-    def has_arguments(self, args: T.List[str], env: 'Environment', code: str,
+    def has_arguments(self, args: T.List[str], code: str,
                       mode: CompileCheckMode) -> T.Tuple[bool, bool]:
         # For some compiler command line arguments, the GNU compilers will
         # emit a warning on stderr indicating that an option is valid for a

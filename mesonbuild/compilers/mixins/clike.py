@@ -1281,7 +1281,7 @@ class CLikeCompiler(Compiler):
     def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:
         return args.copy()
 
-    def has_arguments(self, args: T.List[str], env: 'Environment', code: str,
+    def has_arguments(self, args: T.List[str], code: str,
                       mode: CompileCheckMode) -> T.Tuple[bool, bool]:
         return self.compiles(code, extra_args=args, mode=mode)
 
@@ -1317,7 +1317,7 @@ class CLikeCompiler(Compiler):
                              'the compiler you are using. has_link_argument or '
                              'other similar method can be used instead.')
             new_args.append(arg)
-        return self.has_arguments(new_args, self.environment, code, mode=CompileCheckMode.COMPILE)
+        return self.has_arguments(new_args, code, mode=CompileCheckMode.COMPILE)
 
     def has_multi_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
         return self._has_multi_arguments(args, 'extern int i;\nint i;\n')
@@ -1325,7 +1325,7 @@ class CLikeCompiler(Compiler):
     def _has_multi_link_arguments(self, args: T.List[str], code: str) -> T.Tuple[bool, bool]:
         args = self.linker.fatal_warnings() + args
         args = self.linker_to_compiler_args(args)
-        return self.has_arguments(args, self.environment, code, mode=CompileCheckMode.LINK)
+        return self.has_arguments(args, code, mode=CompileCheckMode.LINK)
 
     def has_multi_link_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
         return self._has_multi_link_arguments(args, 'int main(void) { return 0; }\n')
