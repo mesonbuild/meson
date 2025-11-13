@@ -537,9 +537,9 @@ class CLikeCompiler(Compiler):
             raise mesonlib.EnvironmentException('Could not run compute_int test binary.')
         return int(res.stdout)
 
-    def cross_sizeof(self, typename: str, prefix: str, env: 'Environment', *,
-                     extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
-                     dependencies: T.Optional[T.List['Dependency']] = None) -> int:
+    def _cross_sizeof(self, typename: str, prefix: str, *,
+                      extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
+                      dependencies: T.Optional[T.List['Dependency']] = None) -> int:
         if extra_args is None:
             extra_args = []
         t = f'''{prefix}
@@ -551,16 +551,16 @@ class CLikeCompiler(Compiler):
         if not self.compiles(t, extra_args=extra_args,
                              dependencies=dependencies)[0]:
             return -1
-        return self.cross_compute_int(f'sizeof({typename})', None, None, None, prefix, env, extra_args, dependencies)
+        return self.cross_compute_int(f'sizeof({typename})', None, None, None, prefix, self.environment, extra_args, dependencies)
 
-    def sizeof(self, typename: str, prefix: str, env: 'Environment', *,
+    def sizeof(self, typename: str, prefix: str, *,
                extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[int, bool]:
         if extra_args is None:
             extra_args = []
         if self.is_cross:
-            r = self.cross_sizeof(typename, prefix, env, extra_args=extra_args,
-                                  dependencies=dependencies)
+            r = self._cross_sizeof(typename, prefix, extra_args=extra_args,
+                                   dependencies=dependencies)
             return r, False
         t = f'''{prefix}
         #include<stddef.h>
@@ -569,7 +569,7 @@ class CLikeCompiler(Compiler):
             printf("%ld\\n", (long)(sizeof({typename})));
             return 0;
         }}'''
-        res = self.cached_run(t, env, extra_args=extra_args,
+        res = self.cached_run(t, self.environment, extra_args=extra_args,
                               dependencies=dependencies)
         if not res.compiled:
             return -1, False
@@ -1126,7 +1126,7 @@ class CLikeCompiler(Compiler):
         '''
         returns true if the output produced is 64-bit, false if 32-bit
         '''
-        return self.sizeof('void *', '', env)[0] == 8
+        return self.sizeof('void *', '')[0] == 8
 
     def _find_library_real(self, libname: str, extra_dirs: T.List[str], code: str, libtype: LibType,
                            lib_prefix_warning: bool, ignore_system_dirs: bool) -> T.Optional[T.List[str]]:
