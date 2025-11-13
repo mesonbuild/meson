@@ -163,7 +163,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_no_optimization_args(self) -> T.List[str]:
         return ['/Od', '/Oi-']
 
-    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], env: Environment, value: T.List[str]) -> T.List[str]:
+    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], value: T.List[str]) -> T.List[str]:
         if not value:
             return value
         return [f'/fsanitize={",".join(value)}']

@@ -295,7 +295,7 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
         assert isinstance(sanitize, list)
         if sanitize == ['none']:
             sanitize = []
-        sanitize_args = compiler.sanitizer_compile_args(target, env, sanitize)
+        sanitize_args = compiler.sanitizer_compile_args(target, sanitize)
         # We consider that if there are no sanitizer arguments returned, then
         # the language doesn't support them.
         if sanitize_args:
@@ -369,7 +369,7 @@ def get_base_link_args(target: 'BuildTarget',
         assert isinstance(sanitizer, list)
         if sanitizer == ['none']:
             sanitizer = []
-        sanitizer_args = linker.sanitizer_link_args(target, env, sanitizer)
+        sanitizer_args = linker.sanitizer_link_args(target, sanitizer)
         # We consider that if there are no sanitizer arguments returned, then
         # the language doesn't support them.
         if sanitizer_args:
@@ -1056,10 +1056,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_lto_obj_cache_path(self, path: str) -> T.List[str]:
         return self.linker.get_lto_obj_cache_path(path)
 
-    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], env: Environment, value: T.List[str]) -> T.List[str]:
+    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], value: T.List[str]) -> T.List[str]:
         return []
 
-    def sanitizer_link_args(self, target: T.Optional[BuildTarget], env: Environment, value: T.List[str]) -> T.List[str]:
+    def sanitizer_link_args(self, target: T.Optional[BuildTarget], value: T.List[str]) -> T.List[str]:
         return self.linker.sanitizer_args(value)
 
     def get_asneeded_args(self) -> T.List[str]:

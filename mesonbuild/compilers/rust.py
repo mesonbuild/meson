@@ -219,12 +219,12 @@ class RustCompiler(Compiler):
             raise EnvironmentException(f'Rust compiler {self.name_string()} is not a nightly compiler as required by the "nightly" option.')
         return nightly_opt != 'disabled' and self.is_nightly
 
-    def sanitizer_link_args(self, target: T.Optional[BuildTarget], env: Environment, value: T.List[str]) -> T.List[str]:
+    def sanitizer_link_args(self, target: T.Optional[BuildTarget], value: T.List[str]) -> T.List[str]:
         # Sanitizers are not supported yet for Rust code.  Nightly supports that
         # with -Zsanitizer=, but procedural macros cannot use them.  But even if
         # Rust code cannot be instrumented, we can link in the sanitizer libraries
         # for the sake of C/C++ code
-        return rustc_link_args(super().sanitizer_link_args(target, env, value))
+        return rustc_link_args(super().sanitizer_link_args(target, value))
 
     @functools.lru_cache(maxsize=None)
     def has_verbatim(self) -> bool:

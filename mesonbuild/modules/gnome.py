@@ -924,7 +924,7 @@ class GnomeModule(ExtensionModule):
             if OptionKey('b_sanitize') in compiler.base_options:
                 sanitize = state.environment.coredata.optstore.get_value_for('b_sanitize')
                 assert isinstance(sanitize, list)
-                cflags += compiler.sanitizer_compile_args(None, state.environment, sanitize)
+                cflags += compiler.sanitizer_compile_args(None, sanitize)
                 # These must be first in ldflags
                 if 'address' in sanitize:
                     internal_ldflags += ['-lasan']
