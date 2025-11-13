@@ -595,7 +595,7 @@ class DCompiler(Compiler):
             raise mesonlib.EnvironmentException('Could not run sizeof test binary.')
         return int(res.stdout), res.cached
 
-    def alignment(self, typename: str, prefix: str, env: 'Environment', *,
+    def alignment(self, typename: str, prefix: str, *,
                   extra_args: T.Optional[T.List[str]] = None,
                   dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[int, bool]:
         if extra_args is None:
@@ -607,7 +607,7 @@ class DCompiler(Compiler):
             writeln(({typename}).alignof);
         }}
         '''
-        res = self.run(t, env, extra_args=extra_args,
+        res = self.run(t, self.environment, extra_args=extra_args,
                        dependencies=dependencies)
         if not res.compiled:
             raise mesonlib.EnvironmentException('Could not compile alignment test.')
