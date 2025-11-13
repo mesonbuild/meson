@@ -1032,7 +1032,7 @@ class Vs2010Backend(backends.Backend):
                 file_args[l] += compilers.get_base_compile_args(
                     target, comp, self.environment)
                 file_args[l] += comp.get_option_compile_args(
-                    target, self.environment, target.subproject)
+                    target, target.subproject)
                 file_args[l] += comp.get_option_std_args(
                     target, target.subproject)
 
