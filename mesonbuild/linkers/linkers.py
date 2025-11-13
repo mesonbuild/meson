@@ -262,7 +262,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def get_search_args(self, dirname: str) -> T.List[str]:
         pass
 
-    def export_dynamic_args(self, env: 'Environment') -> T.List[str]:
+    def export_dynamic_args(self) -> T.List[str]:
         return []
 
     def import_library_args(self, implibname: str) -> T.List[str]:
@@ -696,8 +696,8 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
     def get_coverage_args(self) -> T.List[str]:
         return ['--coverage']
 
-    def export_dynamic_args(self, env: 'Environment') -> T.List[str]:
-        m = env.machines[self.for_machine]
+    def export_dynamic_args(self) -> T.List[str]:
+        m = self.environment.machines[self.for_machine]
         if m.is_windows() or m.is_cygwin():
             return self._apply_prefix('--export-all-symbols')
         return self._apply_prefix('-export-dynamic')
@@ -932,7 +932,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         # https://clang.llvm.org/docs/CommandGuide/clang.html#cmdoption-flto
         return ["-Wl,-object_path_lto," + path]
 
-    def export_dynamic_args(self, env: 'Environment') -> T.List[str]:
+    def export_dynamic_args(self) -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=224.1'):
             return self._apply_prefix('-export_dynamic')
         return []
@@ -1278,7 +1278,7 @@ class ArmClangDynamicLinker(ArmDynamicLinker):
     extends a few things as needed.
     """
 
-    def export_dynamic_args(self, env: 'Environment') -> T.List[str]:
+    def export_dynamic_args(self) -> T.List[str]:
         return ['--export_dynamic']
 
     def import_library_args(self, implibname: str) -> T.List[str]:

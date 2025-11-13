@@ -3455,7 +3455,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             commands += linker.get_std_exe_link_args()
             # If export_dynamic, add the appropriate linker arguments
             if target.export_dynamic:
-                commands += linker.gen_export_dynamic_link_args(self.environment)
+                commands += linker.gen_export_dynamic_link_args()
             # If implib, and that's significant on this platform (i.e. Windows using either GCC or Visual Studio)
             if target.import_filename:
                 commands += linker.gen_import_library_args(self.get_import_filename(target))
