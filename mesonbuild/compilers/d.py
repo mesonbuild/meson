@@ -567,13 +567,13 @@ class DCompiler(Compiler):
                 args.append(extra_args)
         return args
 
-    def run(self, code: 'mesonlib.FileOrString', env: 'Environment',
+    def run(self, code: 'mesonlib.FileOrString',
             extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None,
             dependencies: T.Optional[T.List['Dependency']] = None,
             run_env: T.Optional[T.Dict[str, str]] = None,
             run_cwd: T.Optional[str] = None) -> compilers.RunResult:
         extra_args = self._get_compile_extra_args(extra_args)
-        return super().run(code, env, extra_args, dependencies, run_env, run_cwd)
+        return super().run(code, extra_args, dependencies, run_env, run_cwd)
 
     def sizeof(self, typename: str, prefix: str, *,
                extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
@@ -607,8 +607,7 @@ class DCompiler(Compiler):
             writeln(({typename}).alignof);
         }}
         '''
-        res = self.run(t, self.environment, extra_args=extra_args,
-                       dependencies=dependencies)
+        res = self.run(t, extra_args=extra_args, dependencies=dependencies)
         if not res.compiled:
             raise mesonlib.EnvironmentException('Could not compile alignment test.')
         if res.returncode != 0:

@@ -678,20 +678,20 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                           dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
 
-    def run(self, code: 'mesonlib.FileOrString', env: 'Environment',
+    def run(self, code: 'mesonlib.FileOrString',
             extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None,
             dependencies: T.Optional[T.List['Dependency']] = None,
             run_env: T.Optional[T.Dict[str, str]] = None,
             run_cwd: T.Optional[str] = None) -> RunResult:
-        need_exe_wrapper = env.need_exe_wrapper(self.for_machine)
-        if need_exe_wrapper and not env.has_exe_wrapper():
+        need_exe_wrapper = self.environment.need_exe_wrapper(self.for_machine)
+        if need_exe_wrapper and not self.environment.has_exe_wrapper():
             raise CrossNoRunException('Can not run test applications in this cross environment.')
         with self._build_wrapper(code, extra_args, dependencies, mode=CompileCheckMode.LINK, want_output=True) as p:
             if p.returncode != 0:
                 mlog.debug(f'Could not compile test file {p.input_name}: {p.returncode}\n')
                 return RunResult(False)
             if need_exe_wrapper:
-                cmdlist = env.exe_wrapper.get_command() + [p.output_name]
+                cmdlist = self.environment.exe_wrapper.get_command() + [p.output_name]
             else:
                 cmdlist = [p.output_name]
             try:
@@ -728,7 +728,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             mlog.debug('Cached run stdout:\n', p.stdout)
             mlog.debug('Cached run stderr:\n', p.stderr)
         else:
-            p = self.run(code, self.environment, extra_args=extra_args, dependencies=dependencies)
+            p = self.run(code, extra_args=extra_args, dependencies=dependencies)
             run_check_cache[key] = p
         return p
 
