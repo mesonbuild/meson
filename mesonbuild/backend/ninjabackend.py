@@ -2224,7 +2224,7 @@ class NinjaBackend(backends.Backend):
 
         if target.doctests:
             assert target.doctests.target is not None
-            rustdoc = rustc.get_rustdoc(self.environment)
+            rustdoc = rustc.get_rustdoc()
             args = rustdoc.get_exe_args()
             args += self.get_rust_compiler_args(target.doctests.target, rustdoc, target.rust_crate_type)
             o, _ = self.flatten_object_list(target.doctests.target)
