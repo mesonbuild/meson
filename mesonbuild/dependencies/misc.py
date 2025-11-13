@@ -494,7 +494,7 @@ class OpensslSystemDependency(SystemDependency):
                 if self._add_sub_dependency(libcrypto_factory(env, self.for_machine, dependency_kwargs)):
                     self.is_found = True
             elif name == 'libcrypto':
-                use_threads = self.clib_compiler.has_header_symbol('openssl/opensslconf.h', 'OPENSSL_THREADS', '', env, dependencies=[self])[0]
+                use_threads = self.clib_compiler.has_header_symbol('openssl/opensslconf.h', 'OPENSSL_THREADS', '', dependencies=[self])[0]
                 if not use_threads or self._add_sub_dependency(threads_factory(env, self.for_machine, {})):
                     self.is_found = True
                 # only relevant on platforms where it is distributed with the libc, in which case it always succeeds

@@ -639,7 +639,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
-        haz, cached = self.compiler.has_header_symbol(hname, symbol, kwargs['prefix'], self.environment,
+        haz, cached = self.compiler.has_header_symbol(hname, symbol, kwargs['prefix'],
                                                       extra_args=extra_args,
                                                       dependencies=deps)
         if required and not haz:
