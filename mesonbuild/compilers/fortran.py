@@ -54,9 +54,9 @@ class FortranCompiler(CLikeCompiler, Compiler):
                              "meson.get_compiler('fortran').links('block; end block; end program')\n\n"
                              'that example is to see if the compiler has Fortran 2008 Block element.')
 
-    def _get_basic_compiler_args(self, env: 'Environment', mode: CompileCheckMode) -> T.Tuple[T.List[str], T.List[str]]:
-        cargs = env.coredata.get_external_args(self.for_machine, self.language)
-        largs = env.coredata.get_external_link_args(self.for_machine, self.language)
+    def _get_basic_compiler_args(self, mode: CompileCheckMode) -> T.Tuple[T.List[str], T.List[str]]:
+        cargs = self.environment.coredata.get_external_args(self.for_machine, self.language)
+        largs = self.environment.coredata.get_external_link_args(self.for_machine, self.language)
         return cargs, largs
 
     def sanity_check(self, work_dir: str) -> None:
