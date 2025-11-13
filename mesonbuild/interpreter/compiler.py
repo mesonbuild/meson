@@ -387,7 +387,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             return False
         extra_args = self._determine_args(kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False)
-        had, cached = self.compiler.has_function(funcname, kwargs['prefix'], self.environment,
+        had, cached = self.compiler.has_function(funcname, kwargs['prefix'],
                                                  extra_args=extra_args,
                                                  dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''

@@ -19,7 +19,6 @@ from .gnu import GnuLikeCompiler
 
 if T.TYPE_CHECKING:
     from ...options import MutableKeyedOptionDictType
-    from ...environment import Environment
     from ...dependencies import Dependency  # noqa: F401
     from ..compilers import Compiler
 
@@ -149,7 +148,7 @@ class ClangCompiler(GnuLikeCompiler):
                 myargs.append('-Werror=ignored-optimization-argument')
         return super().get_compiler_check_args(mode) + myargs
 
-    def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
+    def has_function(self, funcname: str, prefix: str, *,
                      extra_args: T.Optional[T.List[str]] = None,
                      dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         if extra_args is None:
@@ -161,7 +160,7 @@ class ClangCompiler(GnuLikeCompiler):
         # TODO: this really should be communicated by the linker
         if isinstance(self.linker, AppleDynamicLinker) and mesonlib.version_compare(self.version, '>=8.0'):
             extra_args.append('-Wl,-no_weak_imports')
-        return super().has_function(funcname, prefix, env, extra_args=extra_args,
+        return super().has_function(funcname, prefix, extra_args=extra_args,
                                     dependencies=dependencies)
 
     def openmp_flags(self) -> T.List[str]:

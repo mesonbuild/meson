@@ -46,7 +46,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
                           full_version=full_version, linker=linker)
         CLikeCompiler.__init__(self)
 
-    def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
+    def has_function(self, funcname: str, prefix: str, *,
                      extra_args: T.Optional[T.List[str]] = None,
                      dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise MesonException('Fortran does not have "has_function" capability.\n'

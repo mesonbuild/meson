@@ -742,7 +742,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                   dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[int, bool]:
         raise EnvironmentException('Language %s does not support alignment checks.' % self.get_display_language())
 
-    def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
+    def has_function(self, funcname: str, prefix: str, *,
                      extra_args: T.Optional[T.List[str]] = None,
                      dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         """See if a function exists.

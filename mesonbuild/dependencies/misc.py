@@ -59,7 +59,7 @@ class AtomicBuiltinDependency(BuiltinDependency):
         super().__init__(name, env, kwargs)
         self.feature_since = ('1.7.0', "consider checking for `atomic_flag_clear` with and without `find_library('atomic')`")
 
-        if self.clib_compiler.has_function('atomic_flag_clear', '#include <stdatomic.h>', env)[0]:
+        if self.clib_compiler.has_function('atomic_flag_clear', '#include <stdatomic.h>')[0]:
             self.is_found = True
 
 
@@ -80,7 +80,7 @@ class DlBuiltinDependency(BuiltinDependency):
         super().__init__(name, env, kwargs)
         self.feature_since = ('0.62.0', "consider checking for `dlopen` with and without `find_library('dl')`")
 
-        if self.clib_compiler.has_function('dlopen', '#include <dlfcn.h>', env)[0]:
+        if self.clib_compiler.has_function('dlopen', '#include <dlfcn.h>')[0]:
             self.is_found = True
 
 
