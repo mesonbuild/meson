@@ -763,7 +763,7 @@ class CLikeCompiler(Compiler):
         }}'''
         return head, main
 
-    def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
+    def has_function(self, funcname: str, prefix: str, *,
                      extra_args: T.Optional[T.List[str]] = None,
                      dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         """Determine if a function exists.
@@ -781,7 +781,7 @@ class CLikeCompiler(Compiler):
         varname = 'has function ' + funcname
         varname = varname.replace(' ', '_')
         if self.is_cross:
-            val = env.properties.host.get(varname, None)
+            val = self.environment.properties.host.get(varname, None)
             if val is not None:
                 if isinstance(val, bool):
                     return val, False
