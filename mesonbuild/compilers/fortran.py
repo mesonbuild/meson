@@ -239,7 +239,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
             print '(i0)', c_sizeof(x)
         end program test
         '''
-        res = self.cached_run(t, self.environment, extra_args=extra_args,
+        res = self.cached_run(t, extra_args=extra_args,
                               dependencies=dependencies)
         if not res.compiled:
             return -1, False

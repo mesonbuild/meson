@@ -569,7 +569,7 @@ class CLikeCompiler(Compiler):
             printf("%ld\\n", (long)(sizeof({typename})));
             return 0;
         }}'''
-        res = self.cached_run(t, self.environment, extra_args=extra_args,
+        res = self.cached_run(t, extra_args=extra_args,
                               dependencies=dependencies)
         if not res.compiled:
             return -1, False
@@ -619,7 +619,7 @@ class CLikeCompiler(Compiler):
             printf("%d", (int)offsetof(struct tmp, target));
             return 0;
         }}'''
-        res = self.cached_run(t, self.environment, extra_args=extra_args,
+        res = self.cached_run(t, extra_args=extra_args,
                               dependencies=dependencies)
         if not res.compiled:
             raise mesonlib.EnvironmentException('Could not compile alignment test.')
