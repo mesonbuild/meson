@@ -450,7 +450,7 @@ class RustCompiler(Compiler):
         return self.compiles('fn main() { std::process::exit(0) }\n', extra_args=args, mode=CompileCheckMode.LINK)
 
     @functools.lru_cache(maxsize=None)
-    def get_rustdoc(self, env: 'Environment') -> T.Optional[RustdocTestCompiler]:
+    def get_rustdoc(self) -> T.Optional[RustdocTestCompiler]:
         exelist = self.get_rust_tool('rustdoc')
         if not exelist:
             return None

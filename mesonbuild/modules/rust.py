@@ -272,7 +272,7 @@ class RustModule(ExtensionModule):
 
         if self.rustdoc[base_target.for_machine] is None:
             rustc = T.cast('RustCompiler', base_target.compilers['rust'])
-            rustdoc = rustc.get_rustdoc(state.environment)
+            rustdoc = rustc.get_rustdoc()
             if rustdoc:
                 self.rustdoc[base_target.for_machine] = ExternalProgram(rustdoc.get_exe())
             else:
