@@ -451,7 +451,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         element = args[0]
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=self.compiler.is_cross)
-        esize, cached = self.compiler.sizeof(element, kwargs['prefix'], self.environment,
+        esize, cached = self.compiler.sizeof(element, kwargs['prefix'],
                                              extra_args=extra_args, dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
         mlog.log('Checking for size of',

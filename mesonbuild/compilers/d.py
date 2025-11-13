@@ -575,7 +575,7 @@ class DCompiler(Compiler):
         extra_args = self._get_compile_extra_args(extra_args)
         return super().run(code, env, extra_args, dependencies, run_env, run_cwd)
 
-    def sizeof(self, typename: str, prefix: str, env: 'Environment', *,
+    def sizeof(self, typename: str, prefix: str, *,
                extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[int, bool]:
         if extra_args is None:
@@ -587,7 +587,7 @@ class DCompiler(Compiler):
             writeln(({typename}).sizeof);
         }}
         '''
-        res = self.cached_run(t, env, extra_args=extra_args,
+        res = self.cached_run(t, self.environment, extra_args=extra_args,
                               dependencies=dependencies)
         if not res.compiled:
             return -1, False
