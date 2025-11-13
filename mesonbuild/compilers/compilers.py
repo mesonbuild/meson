@@ -496,6 +496,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         # see :class:`Interpreter._redetect_machines()`
         return self.environment.machines[self.for_machine]
 
+    def init_from_options(self) -> None:
+        """Initializer compiler attributes that require options to be set."""
+
     def __repr__(self) -> str:
         repr_str = "<{0}: v{1} `{2}`>"
         return repr_str.format(self.__class__.__name__, self.version,
