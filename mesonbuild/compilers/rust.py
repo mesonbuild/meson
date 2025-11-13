@@ -240,7 +240,7 @@ class RustCompiler(Compiler):
         # being linked.  However, Meson uses "bundle", not "whole_archive".
         return False
 
-    def lib_file_to_l_arg(self, env: Environment, libname: str) -> T.Optional[str]:
+    def lib_file_to_l_arg(self, libname: str) -> T.Optional[str]:
         """Undo the effects of -l on the filename, returning the
            argument that can be passed to -l, or None if the
            library name is not supported."""
@@ -251,7 +251,7 @@ class RustCompiler(Compiler):
         # On Windows, rustc's -lfoo searches either foo.lib or libfoo.a.
         # Elsewhere, it searches both static and shared libraries and always with
         # the "lib" prefix; for simplicity just skip .lib on non-Windows.
-        if env.machines[self.for_machine].is_windows():
+        if self.info.is_windows():
             if ext == '.lib':
                 return libname
             if ext != '.a':
