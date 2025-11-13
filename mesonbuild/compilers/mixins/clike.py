@@ -861,8 +861,7 @@ class CLikeCompiler(Compiler):
         return self.links(t.format(**fargs), extra_args=extra_args,
                           dependencies=dependencies)
 
-    def has_members(self, typename: str, membernames: T.List[str],
-                    prefix: str, env: 'Environment', *,
+    def has_members(self, typename: str, membernames: T.List[str], prefix: str, *,
                     extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         if extra_args is None:
@@ -875,8 +874,7 @@ class CLikeCompiler(Compiler):
             {members}
             (void) foo;
         }}'''
-        return self.compiles(t, extra_args=extra_args,
-                             dependencies=dependencies)
+        return self.compiles(t, extra_args=extra_args, dependencies=dependencies)
 
     def has_type(self, typename: str, prefix: str,
                  extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]], *,
