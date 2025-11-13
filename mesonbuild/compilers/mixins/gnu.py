@@ -23,7 +23,6 @@ if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
     from ...build import BuildTarget
     from ...options import MutableKeyedOptionDictType
-    from ...environment import Environment
     from ..compilers import Compiler
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
@@ -482,7 +481,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
                     result.append(unresolved)
         return result
 
-    def get_compiler_dirs(self, env: 'Environment', name: str) -> T.List[str]:
+    def get_compiler_dirs(self, name: str) -> T.List[str]:
         '''
         Get dirs from the compiler, either `libraries:` or `programs:`
         '''
