@@ -17,7 +17,6 @@ from ...mesonlib import Popen_safe
 from ...options import OptionKey
 
 if T.TYPE_CHECKING:
-    from ...environment import Environment
     from ...build import BuildTarget
 
 

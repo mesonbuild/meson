@@ -12,7 +12,6 @@ from .compilers import Compiler
 
 if T.TYPE_CHECKING:
     from ..options import MutableKeyedOptionDictType
-    from ..environment import Environment
     from ..build import BuildTarget
 
 
