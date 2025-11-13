@@ -1115,7 +1115,7 @@ class CLikeCompiler(Compiler):
         return None
 
     @functools.lru_cache()
-    def output_is_64bit(self, env: 'Environment') -> bool:
+    def output_is_64bit(self) -> bool:
         '''
         returns true if the output produced is 64-bit, false if 32-bit
         '''
@@ -1146,7 +1146,7 @@ class CLikeCompiler(Compiler):
         # detect, we will just skip path validity checks done in
         # get_library_dirs() call
         try:
-            if self.output_is_64bit(self.environment):
+            if self.output_is_64bit():
                 elf_class = 2
             else:
                 elf_class = 1

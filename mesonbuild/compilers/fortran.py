@@ -246,7 +246,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
         return int(res.stdout), res.cached
 
     @functools.lru_cache()
-    def output_is_64bit(self, env: 'Environment') -> bool:
+    def output_is_64bit(self) -> bool:
         '''
         returns true if the output produced is 64-bit, false if 32-bit
         '''
