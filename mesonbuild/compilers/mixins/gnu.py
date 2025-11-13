@@ -497,7 +497,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # for their specific arguments
         return ['-flto']
 
-    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], env: Environment, value: T.List[str]) -> T.List[str]:
+    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], value: T.List[str]) -> T.List[str]:
         if not value:
             return value
         args = ['-fsanitize=' + ','.join(value)]

@@ -1155,7 +1155,7 @@ class Vs2010Backend(backends.Backend):
     def get_build_args(self, target: build.BuildTarget, compiler, optimization_level: str, debug: bool, sanitize: str) -> T.List[str]:
         build_args = compiler.get_optimization_args(optimization_level)
         build_args += compiler.get_debug_args(debug)
-        build_args += compiler.sanitizer_compile_args(target, self.environment, sanitize)
+        build_args += compiler.sanitizer_compile_args(target, sanitize)
 
         return build_args
 
