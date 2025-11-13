@@ -17,7 +17,6 @@ import typing as T
 from ...mesonlib import EnvironmentException, MesonException, is_windows
 
 if T.TYPE_CHECKING:
-    from ...environment import Environment
     from ...compilers.compilers import Compiler
     from ...build import BuildTarget
     from ...options import OptionStore
@@ -60,7 +59,7 @@ class BasicLinkerIsCompilerMixin(Compiler):
     def get_linker_lib_prefix(self) -> str:
         return ''
 
-    def get_option_link_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
     def has_multi_link_args(self, args: T.List[str]) -> T.Tuple[bool, bool]:

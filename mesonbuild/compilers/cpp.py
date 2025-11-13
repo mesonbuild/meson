@@ -294,7 +294,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
             args.append(self._find_best_cpp_std(std))
         return args
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
         if self.info.is_windows() or self.info.is_cygwin():
             # without a typedict mypy can't understand this.
             retval = self.get_compileropt_value('winlibs', target, subproject)
@@ -415,7 +415,7 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
 
         return args
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
 
@@ -496,7 +496,7 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
             args.append(self._find_best_cpp_std(std))
         return args
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
         if self.info.is_windows() or self.info.is_cygwin():
             # without a typedict mypy can't understand this.
             retval = self.get_compileropt_value('winlibs', target, subproject)
@@ -733,7 +733,7 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
 
         return args
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
 
@@ -760,13 +760,13 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
         'c++latest': (False, "latest"),
     }
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
         # need a typeddict for this
         key = self.form_compileropt_key('winlibs').evolve(subproject=subproject)
         if target:
-            value = env.coredata.get_option_for_target(target, key)
+            value = self.environment.coredata.get_option_for_target(target, key)
         else:
-            value = env.coredata.optstore.get_value_for(key)
+            value = self.environment.coredata.optstore.get_value_for(key)
         return T.cast('T.List[str]', value)[:]
 
     def _get_options_impl(self, opts: 'MutableKeyedOptionDictType', cpp_stds: T.List[str]) -> 'MutableKeyedOptionDictType':
@@ -977,7 +977,7 @@ class ArmCPPCompiler(ArmCompiler, CPPCompiler):
             args.append('--cpp')
         return args
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
@@ -1002,7 +1002,7 @@ class CcrxCPPCompiler(CcrxCompiler, CPPCompiler):
     def get_output_args(self, outputname: str) -> T.List[str]:
         return [f'-output=obj={outputname}']
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
@@ -1035,7 +1035,7 @@ class TICPPCompiler(TICompiler, CPPCompiler):
     def get_always_args(self) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
 class C2000CPPCompiler(TICPPCompiler):
