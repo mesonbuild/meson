@@ -448,6 +448,8 @@ class CoreData:
             if skey not in self.optstore:
                 self.optstore.add_system_option(skey, copy.deepcopy(options.COMPILER_BASE_OPTIONS[key]))
 
+        comp.init_from_options()
+
         self.emit_base_options_warnings()
 
     def emit_base_options_warnings(self) -> None:
