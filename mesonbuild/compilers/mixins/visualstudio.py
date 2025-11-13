@@ -20,6 +20,7 @@ from ...options import OptionKey
 from mesonbuild.linkers.linkers import ClangClDynamicLinker
 
 if T.TYPE_CHECKING:
+    from ...build import BuildTarget
     from ...environment import Environment
     from ...dependencies import Dependency
     from .clike import CLikeCompiler as Compiler
@@ -162,7 +163,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_no_optimization_args(self) -> T.List[str]:
         return ['/Od', '/Oi-']
 
-    def sanitizer_compile_args(self, value: T.List[str]) -> T.List[str]:
+    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], env: Environment, value: T.List[str]) -> T.List[str]:
         if not value:
             return value
         return [f'/fsanitize={",".join(value)}']

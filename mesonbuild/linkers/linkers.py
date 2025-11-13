@@ -870,7 +870,9 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return self._apply_prefix('-bitcode_bundle')
 
     def fatal_warnings(self) -> T.List[str]:
-        return self._apply_prefix('-fatal_warnings')
+        # no one else warns for duplicate libraries, and they're harmless;
+        # just make ld shup up when testing for supported flags
+        return self._apply_prefix('-fatal_warnings') + self._apply_prefix('-no_warn_duplicate_libraries')
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:

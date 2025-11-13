@@ -11,8 +11,8 @@ import typing as T
 
 from ... import mesonlib
 from ... import options
-from ...linkers.linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker, \
-    MoldDynamicLinker, VisualStudioLikeLinkerMixin
+from ...linkers.linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, \
+    GnuBFDDynamicLinker, GnuGoldDynamicLinker, MoldDynamicLinker, VisualStudioLikeLinkerMixin
 from ...options import OptionKey
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
@@ -208,8 +208,16 @@ class ClangCompiler(GnuLikeCompiler):
         # error.
         return ['-Werror=attributes']
 
+    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+        if not mesonlib.version_compare(self.version, '>=14'):
+            raise mesonlib.MesonException('prelinking requires clang >=14')
+        return [prelink_name], ['-r', '-o', prelink_name] + obj_list
+
     def get_coverage_link_args(self) -> T.List[str]:
         return ['--coverage']
+
+    def get_embed_bitcode_args(self, bitcode: bool, lto: bool) -> T.List[str]:
+        return ['-fembed-bitcode'] if bitcode else []
 
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         args: T.List[str] = []
@@ -219,8 +227,8 @@ class ClangCompiler(GnuLikeCompiler):
                 # https://github.com/rui314/mold/commit/46995bcfc3e3113133620bf16445c5f13cd76a18
                 if not mesonlib.version_compare(self.linker.version, '>=1.1'):
                     raise mesonlib.MesonException("LLVM's ThinLTO requires mold 1.1+")
-            elif not isinstance(self.linker, (AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker)):
-                raise mesonlib.MesonException(f"LLVM's ThinLTO only works with gold, lld, lld-link, ld64 or mold, not {self.linker.id}")
+            elif not isinstance(self.linker, (AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuBFDDynamicLinker, GnuGoldDynamicLinker)):
+                raise mesonlib.MesonException(f"LLVM's ThinLTO only works with bfd, gold, lld, lld-link, ld64, or mold, not {self.linker.id}")
             args.append(f'-flto={mode}')
         else:
             assert mode == 'default', 'someone forgot to wire something up'

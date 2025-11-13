@@ -2029,8 +2029,9 @@ class NinjaBackend(backends.Backend):
         args.extend(['--crate-type', src_crate_type])
 
         # If we're dynamically linking, add those arguments
-        if target.rust_crate_type in {'bin', 'dylib'}:
+        if target.rust_crate_type in {'bin', 'dylib', 'cdylib'}:
             args.extend(rustc.get_linker_always_args())
+            args += compilers.get_base_link_args(target, rustc, self.environment)
 
         args += self.generate_basic_compiler_args(target, rustc)
         args += ['--crate-name', self._get_rust_crate_name(target.name)]
@@ -2046,17 +2047,6 @@ class NinjaBackend(backends.Backend):
         deps: T.List[str] = []
         project_deps: T.List[RustDep] = []
         args: T.List[str] = []
-
-        # Rustc always use non-debug Windows runtime. Inject the one selected
-        # by Meson options instead.
-        # https://github.com/rust-lang/rust/issues/39016
-        if not isinstance(target, build.StaticLibrary):
-            try:
-                buildtype = self.get_target_option(target, 'buildtype')
-                crt = self.get_target_option(target, 'b_vscrt')
-                args += rustc.get_crt_link_args(crt, buildtype)
-            except (KeyError, AttributeError):
-                pass
 
         def _link_library(libname: str, static: bool, bundle: bool = False) -> None:
             orig_libname = libname
@@ -3180,11 +3170,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add MSVC debug file generation compile flags: /Fd /FS
         commands += self.get_compile_debugfile_args(compiler, target, rel_obj)
 
-        # PCH handling
-        if self.target_uses_pch(target):
-            pchlist = target.get_pch(compiler.language)
+        # PCH handling. We only support PCH for C and C++
+        if compiler.language in {'c', 'cpp'} and target.has_pch() and self.target_uses_pch(target):
+            pchlist = target.pch[compiler.language]
         else:
-            pchlist = []
+            pchlist = None
         if not pchlist:
             pch_dep = []
         elif compiler.id == 'intel':
@@ -3328,7 +3318,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             for lt in itertools.chain(target.link_targets, target.link_whole_targets)
         ]
 
-    def generate_msvc_pch_command(self, target, compiler, pch):
+    def generate_msvc_pch_command(self, target, compiler, pch: T.Tuple[str, T.Optional[str]]):
         header = pch[0]
         pchname = compiler.get_pch_name(header)
         dst = os.path.join(self.get_target_private_dir(target), pchname)
@@ -3336,7 +3326,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         commands = []
         commands += self.generate_basic_compiler_args(target, compiler)
 
-        if len(pch) == 1:
+        if pch[1] is None:
             # Auto generate PCH.
             source = self.create_msvc_pch_implementation(target, compiler.get_language(), pch[0])
             pch_header_dir = os.path.dirname(os.path.join(self.build_to_src, target.get_source_subdir(), header))
@@ -3355,7 +3345,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         return commands, dep, dst, link_objects, source
 
-    def generate_gcc_pch_command(self, target, compiler, pch):
+    def generate_gcc_pch_command(self, target, compiler, pch: str):
         commands = self._generate_single_compile(target, compiler)
         if pch.split('.')[-1] == 'h' and compiler.language == 'cpp':
             # Explicitly compile pch headers as C++. If Clang is invoked in C++ mode, it actually warns if
@@ -3366,24 +3356,20 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         dep = dst + '.' + compiler.get_depfile_suffix()
         return commands, dep, dst, []  # Gcc does not create an object file during pch generation.
 
-    def generate_mwcc_pch_command(self, target, compiler, pch):
+    def generate_mwcc_pch_command(self, target, compiler, pch: str):
         commands = self._generate_single_compile(target, compiler)
         dst = os.path.join(self.get_target_private_dir(target),
                            os.path.basename(pch) + '.' + compiler.get_pch_suffix())
         dep = os.path.splitext(dst)[0] + '.' + compiler.get_depfile_suffix()
         return commands, dep, dst, []  # mwcc compilers do not create an object file during pch generation.
 
-    def generate_pch(self, target, header_deps=None):
+    def generate_pch(self, target: build.BuildTarget, header_deps=None):
         header_deps = header_deps if header_deps is not None else []
         pch_objects = []
         for lang in ['c', 'cpp']:
-            pch = target.get_pch(lang)
+            pch = target.pch[lang]
             if not pch:
                 continue
-            if not has_path_sep(pch[0]) or not has_path_sep(pch[-1]):
-                msg = f'Precompiled header of {target.get_basename()!r} must not be in the same ' \
-                      'directory as source, please put it in a subdirectory.'
-                raise InvalidArguments(msg)
             compiler: Compiler = target.compilers[lang]
             if compiler.get_argument_syntax() == 'msvc':
                 (commands, dep, dst, objs, src) = self.generate_msvc_pch_command(target, compiler, pch)

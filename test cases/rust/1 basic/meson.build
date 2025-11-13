@@ -1,7 +1,6 @@
 project('rustprog', 'rust', default_options : ['b_ndebug=true'])
 
 e = executable('rust-program', 'prog.rs',
-  rust_args : ['-C', 'lto'], # Just a test
   install : true
 )
 test('rusttest', e)

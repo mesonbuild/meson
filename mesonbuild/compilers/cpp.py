@@ -733,7 +733,7 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
 
         if eh == 'none':
             args.append('-fno-exceptions')
-        if rtti:
+        if not rtti:
             args.append('-fno-rtti')
         if debugstl:
             args.append('-D_GLIBCXX_DEBUG=1')

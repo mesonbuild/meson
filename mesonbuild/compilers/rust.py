@@ -69,6 +69,16 @@ def get_rustup_run_and_args(exelist: T.List[str]) -> T.Optional[T.Tuple[T.List[s
 class RustSystemDependency(InternalDependency):
     pass
 
+
+def rustc_link_args(args: T.List[str]) -> T.List[str]:
+    if not args:
+        return args
+    rustc_args: T.List[str] = []
+    for arg in args:
+        rustc_args.append('-C')
+        rustc_args.append(f'link-arg={arg}')
+    return rustc_args
+
 class RustCompiler(Compiler):
 
     # rustc doesn't invoke the compiler itself, it doesn't need a LINKER_PREFIX
@@ -83,15 +93,14 @@ class RustCompiler(Compiler):
         'everything': ['-W', 'warnings'],
     }
 
-    # Those are static libraries, but we use dylib= here as workaround to avoid
-    # rust --tests to use /WHOLEARCHIVE.
-    # https://github.com/rust-lang/rust/issues/116910
+    # libcore can be compiled with either static or dynamic CRT, so disable
+    # both of them just in case.
     MSVCRT_ARGS: T.Mapping[str, T.List[str]] = {
         'none': [],
-        'md': [], # this is the default, no need to inject anything
-        'mdd': ['-l', 'dylib=msvcrtd'],
-        'mt': ['-l', 'dylib=libcmt'],
-        'mtd': ['-l', 'dylib=libcmtd'],
+        'md': ['-Clink-arg=/nodefaultlib:libcmt', '-Clink-arg=/defaultlib:msvcrt'],
+        'mdd': ['-Clink-arg=/nodefaultlib:libcmt', '-Clink-arg=/nodefaultlib:msvcrt', '-Clink-arg=/defaultlib:msvcrtd'],
+        'mt': ['-Clink-arg=/defaultlib:libcmt', '-Clink-arg=/nodefaultlib:msvcrt'],
+        'mtd': ['-Clink-arg=/nodefaultlib:libcmt', '-Clink-arg=/nodefaultlib:msvcrt', '-Clink-arg=/defaultlib:libcmtd'],
     }
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
@@ -102,7 +111,7 @@ class RustCompiler(Compiler):
                          is_cross=is_cross, full_version=full_version,
                          linker=linker)
         self.rustup_run_and_args: T.Optional[T.Tuple[T.List[str], T.List[str]]] = get_rustup_run_and_args(exelist)
-        self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_ndebug']})
+        self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_ndebug', 'b_pgo']})
         if isinstance(self.linker, VisualStudioLikeLinkerMixin):
             self.base_options.add(OptionKey('b_vscrt'))
         self.native_static_libs: T.List[str] = []
@@ -209,6 +218,22 @@ class RustCompiler(Compiler):
     def get_crt_static(self) -> bool:
         return 'target_feature="crt-static"' in self.get_cfgs()
 
+    def get_nightly(self, target: T.Optional[BuildTarget], env: Environment) -> bool:
+        if not target:
+            return self.allow_nightly
+        key = self.form_compileropt_key('nightly')
+        nightly_opt = env.coredata.get_option_for_target(target, key)
+        if nightly_opt == 'enabled' and not self.is_nightly:
+            raise EnvironmentException(f'Rust compiler {self.name_string()} is not a nightly compiler as required by the "nightly" option.')
+        return nightly_opt != 'disabled' and self.is_nightly
+
+    def sanitizer_link_args(self, target: T.Optional[BuildTarget], env: Environment, value: T.List[str]) -> T.List[str]:
+        # Sanitizers are not supported yet for Rust code.  Nightly supports that
+        # with -Zsanitizer=, but procedural macros cannot use them.  But even if
+        # Rust code cannot be instrumented, we can link in the sanitizer libraries
+        # for the sake of C/C++ code
+        return rustc_link_args(super().sanitizer_link_args(target, env, value))
+
     @functools.lru_cache(maxsize=None)
     def has_verbatim(self) -> bool:
         if version_compare(self.version, '< 1.67.0'):
@@ -258,12 +283,7 @@ class RustCompiler(Compiler):
                          target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
         # add rustc's sysroot to account for rustup installations
         args, to_remove = super().build_rpath_args(env, build_dir, from_dir, target, [self.get_target_libdir()])
-
-        rustc_rpath_args = []
-        for arg in args:
-            rustc_rpath_args.append('-C')
-            rustc_rpath_args.append(f'link-arg={arg}')
-        return rustc_rpath_args, to_remove
+        return rustc_link_args(args), to_remove
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
@@ -332,6 +352,9 @@ class RustCompiler(Compiler):
     def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         if not isinstance(self.linker, VisualStudioLikeLinkerMixin):
             return []
+        # Rustc always use non-debug Windows runtime. Inject the one selected
+        # by Meson options instead.
+        # https://github.com/rust-lang/rust/issues/39016
         return self.MSVCRT_ARGS[self.get_crt_val(crt_val, buildtype)]
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
@@ -339,13 +362,52 @@ class RustCompiler(Compiler):
             return [f'--color={colortype}']
         raise MesonException(f'Invalid color type for rust {colortype}')
 
+    @functools.lru_cache(maxsize=None)
     def get_linker_always_args(self) -> T.List[str]:
-        args: T.List[str] = []
-        # Rust is super annoying, calling -C link-arg foo does not work, it has
-        # to be -C link-arg=foo
-        for a in super().get_linker_always_args():
-            args.extend(['-C', f'link-arg={a}'])
-        return args
+        return rustc_link_args(super().get_linker_always_args()) + ['-Cdefault-linker-libraries']
+
+    def get_embed_bitcode_args(self, bitcode: bool, lto: bool) -> T.List[str]:
+        if bitcode:
+            return ['-C', 'embed-bitcode=yes']
+        elif lto:
+            return []
+        else:
+            return ['-C', 'embed-bitcode=no']
+
+    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
+        # TODO: what about -Clinker-plugin-lto?
+        rustc_lto = 'lto=thin' if mode == 'thin' else 'lto'
+        return ['-C', rustc_lto]
+
+    def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
+                          thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
+        # no need to specify anything because the rustc command line
+        # includes the result of get_lto_compile_args()
+        return []
+
+    def get_lto_obj_cache_path(self, path: str) -> T.List[str]:
+        return rustc_link_args(super().get_lto_obj_cache_path(path))
+
+    def get_profile_generate_args(self) -> T.List[str]:
+        return ['-C', 'profile-generate']
+
+    def get_profile_use_args(self) -> T.List[str]:
+        return ['-C', 'profile-use']
+
+    @functools.lru_cache(maxsize=None)
+    def get_asneeded_args(self) -> T.List[str]:
+        return rustc_link_args(super().get_asneeded_args())
+
+    def bitcode_args(self) -> T.List[str]:
+        return ['-C', 'embed-bitcode=yes']
+
+    @functools.lru_cache(maxsize=None)
+    def headerpad_args(self) -> T.List[str]:
+        return rustc_link_args(super().headerpad_args())
+
+    @functools.lru_cache(maxsize=None)
+    def get_allow_undefined_link_args(self) -> T.List[str]:
+        return rustc_link_args(super().get_allow_undefined_link_args())
 
     def get_werror_args(self) -> T.List[str]:
         # Use -D warnings, which makes every warning not explicitly allowed an
@@ -392,7 +454,7 @@ class RustCompiler(Compiler):
         return self.compiles('fn main() { std::process::exit(0) }\n', env, extra_args=args, mode=CompileCheckMode.COMPILE)
 
     def has_multi_link_arguments(self, args: T.List[str], env: Environment) -> T.Tuple[bool, bool]:
-        args = self.linker.fatal_warnings() + args
+        args = rustc_link_args(self.linker.fatal_warnings()) + args
         return self.compiles('fn main() { std::process::exit(0) }\n', env, extra_args=args, mode=CompileCheckMode.LINK)
 
     @functools.lru_cache(maxsize=None)

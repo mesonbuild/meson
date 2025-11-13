@@ -70,8 +70,8 @@ if T.TYPE_CHECKING:
 
         build_by_default: bool
         build_rpath: str
-        c_pch: T.Sequence[str]
-        cpp_pch: T.Sequence[str]
+        c_pch: T.Optional[T.Tuple[str, T.Optional[str]]]
+        cpp_pch: T.Optional[T.Tuple[str, T.Optional[str]]]
         d_debug: T.List[T.Union[str, int]]
         d_import_dirs: T.List[IncludeDirs]
         d_module_versions: T.List[T.Union[str, int]]
@@ -807,7 +807,7 @@ class BuildTarget(Target):
         # The list of all files outputted by this target. Useful in cases such
         # as Vala which generates .vapi and .h besides the compiled output.
         self.outputs = [self.filename]
-        self.pch: T.Dict[str, T.List[str]] = {}
+        self.pch: T.Dict[str, T.Optional[T.Tuple[str, T.Optional[str]]]] = {}
         self.extra_args: T.DefaultDict[str, T.List[str]] = kwargs.get('language_args', defaultdict(list))
         self.sources: T.List[File] = []
         # If the same source is defined multiple times, use it only once.
@@ -1266,8 +1266,8 @@ class BuildTarget(Target):
 
         self.raw_overrides = kwargs.get('override_options', {})
 
-        self.add_pch('c', extract_as_list(kwargs, 'c_pch'))
-        self.add_pch('cpp', extract_as_list(kwargs, 'cpp_pch'))
+        self.pch['c'] = kwargs.get('c_pch')
+        self.pch['cpp'] = kwargs.get('cpp_pch')
 
         self.link_args = extract_as_list(kwargs, 'link_args')
         for i in self.link_args:
@@ -1416,10 +1416,7 @@ class BuildTarget(Target):
         return self.install
 
     def has_pch(self) -> bool:
-        return bool(self.pch)
-
-    def get_pch(self, language: str) -> T.List[str]:
-        return self.pch.get(language, [])
+        return any(x is not None for x in self.pch.values())
 
     def get_include_dirs(self) -> T.List['IncludeDirs']:
         return self.include_dirs
@@ -1587,37 +1584,6 @@ class BuildTarget(Target):
                 raise InvalidArguments(msg + ' This is not possible in a cross build.')
             else:
                 mlog.warning(msg + ' This will fail in cross build.')
-
-    def add_pch(self, language: str, pchlist: T.List[str]) -> None:
-        if not pchlist:
-            return
-        elif len(pchlist) == 1:
-            if not is_header(pchlist[0]):
-                raise InvalidArguments(f'PCH argument {pchlist[0]} is not a header.')
-        elif len(pchlist) == 2:
-            if is_header(pchlist[0]):
-                if not is_source(pchlist[1]):
-                    raise InvalidArguments('PCH definition must contain one header and at most one source.')
-            elif is_source(pchlist[0]):
-                if not is_header(pchlist[1]):
-                    raise InvalidArguments('PCH definition must contain one header and at most one source.')
-                pchlist = [pchlist[1], pchlist[0]]
-            else:
-                raise InvalidArguments(f'PCH argument {pchlist[0]} is of unknown type.')
-
-            if os.path.dirname(pchlist[0]) != os.path.dirname(pchlist[1]):
-                raise InvalidArguments('PCH files must be stored in the same folder.')
-
-            FeatureDeprecated.single_use('PCH source files', '0.50.0', self.subproject,
-                                         'Only a single header file should be used.')
-        elif len(pchlist) > 2:
-            raise InvalidArguments('PCH definition may have a maximum of 2 files.')
-        for f in pchlist:
-            if not isinstance(f, str):
-                raise MesonException('PCH arguments must be strings.')
-            if not os.path.isfile(os.path.join(self.environment.source_dir, self.subdir, f)):
-                raise MesonException(f'File {f} does not exist.')
-        self.pch[language] = pchlist
 
     def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: T.Optional[str] = None) -> None:
         ids: T.List['IncludeDirs'] = []

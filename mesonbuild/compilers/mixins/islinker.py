@@ -38,7 +38,7 @@ class BasicLinkerIsCompilerMixin(Compiler):
     functionality itself.
     """
 
-    def sanitizer_link_args(self, value: T.List[str]) -> T.List[str]:
+    def sanitizer_link_args(self, target: BuildTarget, env: Environment, value: T.List[str]) -> T.List[str]:
         return []
 
     def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',

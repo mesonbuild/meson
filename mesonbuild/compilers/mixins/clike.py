@@ -1314,9 +1314,6 @@ class CLikeCompiler(Compiler):
         return self._has_multi_arguments(args, env, 'extern int i;\nint i;\n')
 
     def _has_multi_link_arguments(self, args: T.List[str], env: 'Environment', code: str) -> T.Tuple[bool, bool]:
-        # First time we check for link flags we need to first check if we have
-        # --fatal-warnings, otherwise some linker checks could give some
-        # false positive.
         args = self.linker.fatal_warnings() + args
         args = self.linker_to_compiler_args(args)
         return self.has_arguments(args, env, code, mode=CompileCheckMode.LINK)

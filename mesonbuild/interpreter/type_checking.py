@@ -13,7 +13,7 @@ from ..build import (CustomTarget, BuildTarget,
                      BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources)
 from ..options import OptionKey, UserFeatureOption
 from ..dependencies import Dependency, DependencyMethods, InternalDependency
-from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken
+from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken, FeatureDeprecated
 from ..mesonlib import (File, FileMode, MachineChoice, has_path_sep, listify, stringlistify,
                         EnvironmentVariables)
 from ..programs import ExternalProgram
@@ -652,6 +652,63 @@ _NAME_PREFIX_KW: KwargInfo[T.Optional[T.Union[str, T.List]]] = KwargInfo(
 )
 
 
+def _pch_validator(args: T.List[str]) -> T.Optional[str]:
+    num_args = len(args)
+    if num_args == 1:
+        if not compilers.is_header(args[0]):
+            return f'PCH argument {args[0]} is not a header.'
+    elif num_args == 2:
+        if compilers.is_header(args[0]):
+            if not compilers.is_source(args[1]):
+                return 'PCH definition must contain one header and at most one source.'
+        elif compilers.is_source(args[0]):
+            if not compilers.is_header(args[1]):
+                return 'PCH definition must contain one header and at most one source.'
+        else:
+            return f'PCH argument {args[0]} has neither a known header or code extension.'
+
+        if os.path.dirname(args[0]) != os.path.dirname(args[1]):
+            return 'PCH files must be stored in the same folder.'
+    elif num_args > 2:
+        return 'A maximum of two elements are allowed for PCH arguments'
+    if num_args >= 1 and not has_path_sep(args[0]):
+        return f'PCH header {args[0]} must not be in the same directory as source files'
+    if num_args == 2 and not has_path_sep(args[1]):
+        return f'PCH source {args[0]} must not be in the same directory as source files'
+    return None
+
+
+def _pch_feature_validator(args: T.List[str]) -> T.Iterable[FeatureCheckBase]:
+    if len(args) > 1:
+        yield FeatureDeprecated('PCH source files', '0.50.0', 'Only a single header file should be used.')
+
+
+def _pch_convertor(args: T.List[str]) -> T.Optional[T.Tuple[str, T.Optional[str]]]:
+    num_args = len(args)
+
+    if num_args == 1:
+        return (args[0], None)
+
+    if num_args == 2:
+        if compilers.is_source(args[0]):
+            # Flip so that we always have [header, src]
+            return (args[1], args[0])
+        return (args[0], args[1])
+
+    return None
+
+
+_PCH_ARGS: KwargInfo[T.List[str]] = KwargInfo(
+    'pch',
+    ContainerTypeInfo(list, str),
+    listify=True,
+    default=[],
+    validator=_pch_validator,
+    feature_validator=_pch_feature_validator,
+    convertor=_pch_convertor,
+)
+
+
 # Applies to all build_target classes except jar
 _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     *_ALL_TARGET_KWS,
@@ -661,6 +718,8 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     _NAME_PREFIX_KW,
     _NAME_PREFIX_KW.evolve(name='name_suffix', validator=_name_suffix_validator),
     RUST_CRATE_TYPE_KW,
+    _PCH_ARGS.evolve(name='c_pch'),
+    _PCH_ARGS.evolve(name='cpp_pch'),
     KwargInfo('d_debug', ContainerTypeInfo(list, (str, int)), default=[], listify=True),
     D_MODULE_VERSIONS_KW,
     KwargInfo('d_unittest', bool, default=False),
