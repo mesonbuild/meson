@@ -410,7 +410,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
-        had, cached = self.compiler.has_type(typename, kwargs['prefix'], self.environment,
+        had, cached = self.compiler.has_type(typename, kwargs['prefix'],
                                              extra_args=extra_args, dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
         if required and not had:
