@@ -888,7 +888,7 @@ class CLikeCompiler(Compiler):
         return self.compiles(t, extra_args=extra_args,
                              dependencies=dependencies)
 
-    def _symbols_have_underscore_prefix_searchbin(self, env: 'Environment') -> bool:
+    def _symbols_have_underscore_prefix_searchbin(self) -> bool:
         '''
         Check if symbols have underscore prefix by compiling a small test binary
         and then searching the binary for the string,
@@ -922,7 +922,7 @@ class CLikeCompiler(Compiler):
                         return False
         raise RuntimeError(f'BUG: {n!r} check did not find symbol string in binary')
 
-    def _symbols_have_underscore_prefix_define(self, env: 'Environment') -> T.Optional[bool]:
+    def _symbols_have_underscore_prefix_define(self) -> T.Optional[bool]:
         '''
         Check if symbols have underscore prefix by querying the
         __USER_LABEL_PREFIX__ define that most compilers provide
@@ -952,39 +952,38 @@ class CLikeCompiler(Compiler):
             else:
                 return None
 
-    def _symbols_have_underscore_prefix_list(self, env: 'Environment') -> T.Optional[bool]:
+    def _symbols_have_underscore_prefix_list(self) -> T.Optional[bool]:
         '''
         Check if symbols have underscore prefix by consulting a hardcoded
         list of cases where we know the results.
         Return if functions have underscore prefix or None if unknown.
         '''
-        m = env.machines[self.for_machine]
         # Darwin always uses the underscore prefix, not matter what
-        if m.is_darwin():
+        if self.info.is_darwin():
             return True
         # Windows uses the underscore prefix on x86 (32bit) only
-        if m.is_windows() or m.is_cygwin():
-            return m.cpu_family == 'x86'
+        if self.info.is_windows() or self.info.is_cygwin():
+            return self.info.cpu_family == 'x86'
         return None
 
-    def symbols_have_underscore_prefix(self, env: 'Environment') -> bool:
+    def symbols_have_underscore_prefix(self) -> bool:
         '''
         Check if the compiler prefixes an underscore to global C symbols
         '''
         # First, try to query the compiler directly
-        result = self._symbols_have_underscore_prefix_define(env)
+        result = self._symbols_have_underscore_prefix_define()
         if result is not None:
             return result
 
         # Else, try to consult a hardcoded list of cases we know
         # absolutely have an underscore prefix
-        result = self._symbols_have_underscore_prefix_list(env)
+        result = self._symbols_have_underscore_prefix_list()
         if result is not None:
             return result
 
         # As a last resort, try search in a compiled binary, which is the
         # most unreliable way of checking this, see #5482
-        return self._symbols_have_underscore_prefix_searchbin(env)
+        return self._symbols_have_underscore_prefix_searchbin()
 
     def _get_patterns(self, prefixes: T.List[str], suffixes: T.List[str], shared: bool = False) -> T.List[str]:
         patterns: T.List[str] = []
