@@ -441,35 +441,34 @@ class CLikeCompiler(Compiler):
         args = cargs + extra_args + largs
         return args
 
-    def _compile_int(self, expression: str, prefix: str, env: 'Environment',
+    def _compile_int(self, expression: str, prefix: str,
                      extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                      dependencies: T.Optional[T.List['Dependency']]) -> bool:
         t = f'''{prefix}
         #include <stddef.h>
         int main(void) {{ static int a[1-2*!({expression})]; a[0]=0; return 0; }}'''
-        return self.compiles(t, extra_args=extra_args,
-                             dependencies=dependencies)[0]
+        return self.compiles(t, extra_args=extra_args, dependencies=dependencies)[0]
 
     def cross_compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
-                          guess: T.Optional[int], prefix: str, env: 'Environment',
+                          guess: T.Optional[int], prefix: str,
                           extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                           dependencies: T.Optional[T.List['Dependency']] = None) -> int:
         # Try user's guess first
         if isinstance(guess, int):
-            if self._compile_int(f'{expression} == {guess}', prefix, env, extra_args, dependencies):
+            if self._compile_int(f'{expression} == {guess}', prefix, extra_args, dependencies):
                 return guess
 
         # Try to expand the expression and evaluate it on the build machines compiler
-        if self.language in env.coredata.compilers.build:
+        if self.language in self.environment.coredata.compilers.build:
             try:
-                expanded, _ = self.get_define(expression, prefix, env, extra_args, dependencies, False)
+                expanded, _ = self.get_define(expression, prefix, self.environment, extra_args, dependencies, False)
                 evaluate_expanded = f'''
                 #include <stdio.h>
                 #include <stdint.h>
                 int main(void) {{ int expression = {expanded}; printf("%d", expression); return 0; }}'''
-                run = env.coredata.compilers.build[self.language].run(evaluate_expanded)
+                run = self.environment.coredata.compilers.build[self.language].run(evaluate_expanded)
                 if run and run.compiled and run.returncode == 0:
-                    if self._compile_int(f'{expression} == {run.stdout}', prefix, env, extra_args, dependencies):
+                    if self._compile_int(f'{expression} == {run.stdout}', prefix, extra_args, dependencies):
                         return int(run.stdout)
             except mesonlib.EnvironmentException:
                 pass
@@ -478,9 +477,9 @@ class CLikeCompiler(Compiler):
         maxint = 0x7fffffff
         minint = -0x80000000
         if not isinstance(low, int) or not isinstance(high, int):
-            if self._compile_int(f'{expression} >= 0', prefix, env, extra_args, dependencies):
+            if self._compile_int(f'{expression} >= 0', prefix, extra_args, dependencies):
                 low = cur = 0
-                while self._compile_int(f'{expression} > {cur}', prefix, env, extra_args, dependencies):
+                while self._compile_int(f'{expression} > {cur}', prefix, extra_args, dependencies):
                     low = cur + 1
                     if low > maxint:
                         raise mesonlib.EnvironmentException('Cross-compile check overflowed')
@@ -488,7 +487,7 @@ class CLikeCompiler(Compiler):
                 high = cur
             else:
                 high = cur = -1
-                while self._compile_int(f'{expression} < {cur}', prefix, env, extra_args, dependencies):
+                while self._compile_int(f'{expression} < {cur}', prefix, extra_args, dependencies):
                     high = cur - 1
                     if high < minint:
                         raise mesonlib.EnvironmentException('Cross-compile check overflowed')
@@ -499,13 +498,13 @@ class CLikeCompiler(Compiler):
             if high < low:
                 raise mesonlib.EnvironmentException('high limit smaller than low limit')
             condition = f'{expression} <= {high} && {expression} >= {low}'
-            if not self._compile_int(condition, prefix, env, extra_args, dependencies):
+            if not self._compile_int(condition, prefix, extra_args, dependencies):
                 raise mesonlib.EnvironmentException('Value out of given range')
 
         # Binary search
         while low != high:
             cur = low + int((high - low) / 2)
-            if self._compile_int(f'{expression} <= {cur}', prefix, env, extra_args, dependencies):
+            if self._compile_int(f'{expression} <= {cur}', prefix, extra_args, dependencies):
                 high = cur
             else:
                 low = cur + 1
@@ -513,13 +512,13 @@ class CLikeCompiler(Compiler):
         return low
 
     def compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
-                    guess: T.Optional[int], prefix: str, env: 'Environment', *,
+                    guess: T.Optional[int], prefix: str, *,
                     extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                     dependencies: T.Optional[T.List['Dependency']] = None) -> int:
         if extra_args is None:
             extra_args = []
         if self.is_cross:
-            return self.cross_compute_int(expression, low, high, guess, prefix, env, extra_args, dependencies)
+            return self.cross_compute_int(expression, low, high, guess, prefix, extra_args, dependencies)
         t = f'''{prefix}
         #include<stddef.h>
         #include<stdio.h>
@@ -549,7 +548,7 @@ class CLikeCompiler(Compiler):
         if not self.compiles(t, extra_args=extra_args,
                              dependencies=dependencies)[0]:
             return -1
-        return self.cross_compute_int(f'sizeof({typename})', None, None, None, prefix, self.environment, extra_args, dependencies)
+        return self.cross_compute_int(f'sizeof({typename})', None, None, None, prefix, extra_args, dependencies)
 
     def sizeof(self, typename: str, prefix: str, *,
                extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
@@ -595,7 +594,7 @@ class CLikeCompiler(Compiler):
             char c;
             {typename} target;
         }};'''
-        return self.cross_compute_int('offsetof(struct tmp, target)', None, None, None, t, self.environment, extra_args, dependencies)
+        return self.cross_compute_int('offsetof(struct tmp, target)', None, None, None, t, extra_args, dependencies)
 
     def alignment(self, typename: str, prefix: str, *,
                   extra_args: T.Optional[T.List[str]] = None,

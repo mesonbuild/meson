@@ -554,7 +554,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         raise EnvironmentException('%s does not support get_define ' % self.get_id())
 
     def compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
-                    guess: T.Optional[int], prefix: str, env: 'Environment', *,
+                    guess: T.Optional[int], prefix: str, *,
                     extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                     dependencies: T.Optional[T.List['Dependency']]) -> int:
         raise EnvironmentException('%s does not support compute_int ' % self.get_id())
