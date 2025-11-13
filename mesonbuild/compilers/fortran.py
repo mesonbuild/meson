@@ -199,8 +199,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
             print '(i0)', {expression}
         end program test
         '''
-        res = self.run(t, env, extra_args=extra_args,
-                       dependencies=dependencies)
+        res = self.run(t, extra_args=extra_args, dependencies=dependencies)
         if not res.compiled:
             return -1
         if res.returncode != 0:
