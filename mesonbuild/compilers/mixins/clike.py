@@ -260,8 +260,8 @@ class CLikeCompiler(Compiler):
     def get_default_include_dirs(self) -> T.List[str]:
         return []
 
-    def gen_export_dynamic_link_args(self, env: 'Environment') -> T.List[str]:
-        return self.linker.export_dynamic_args(env)
+    def gen_export_dynamic_link_args(self) -> T.List[str]:
+        return self.linker.export_dynamic_args()
 
     def gen_import_library_args(self, implibname: str) -> T.List[str]:
         return self.linker.import_library_args(implibname)
