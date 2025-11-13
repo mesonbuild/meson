@@ -246,6 +246,9 @@ def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None) -
     elif backend == 'vs2022':
         from . import vs2022backend
         return vs2022backend.Vs2022Backend(build)
+    elif backend == 'vs2026':
+        from . import vs2026backend
+        return vs2026backend.Vs2026Backend(build)
     elif backend == 'xcode':
         from . import xcodebackend
         return xcodebackend.XCodeBackend(build)
