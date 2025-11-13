@@ -31,7 +31,7 @@ class Rustdoc:
             compilers = build.environment.coredata.compilers[machine]
             if 'rust' in compilers:
                 compiler = T.cast('RustCompiler', compilers['rust'])
-                self.tools[machine] = compiler.get_rust_tool('rustdoc', build.environment)
+                self.tools[machine] = compiler.get_rust_tool('rustdoc')
 
     def warn_missing_rustdoc(self, machine: str) -> None:
         if self.warned[machine]:

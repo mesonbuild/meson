@@ -23,7 +23,7 @@ class ClippyDriver:
             compilers = build.environment.coredata.compilers[machine]
             if 'rust' in compilers:
                 compiler = T.cast('RustCompiler', compilers['rust'])
-                self.tools[machine] = compiler.get_rust_tool('clippy-driver', build.environment)
+                self.tools[machine] = compiler.get_rust_tool('clippy-driver')
 
     def warn_missing_clippy(self, machine: str) -> None:
         if self.warned[machine]:
