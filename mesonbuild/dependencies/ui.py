@@ -229,7 +229,6 @@ class VulkanDependencySystem(SystemDependency):
                 components = [str(self.clib_compiler.compute_int(f'VK_VERSION_{c}(VK_HEADER_VERSION_COMPLETE)',
                                                                  low=0, high=None, guess=e,
                                                                  prefix='#include <vulkan/vulkan.h>',
-                                                                 env=environment,
                                                                  extra_args=self.compile_args,
                                                                  dependencies=None))
                               # list containing vulkan version components and their expected value

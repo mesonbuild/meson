@@ -434,8 +434,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=self.compiler.is_cross)
         res = self.compiler.compute_int(expression, kwargs['low'], kwargs['high'],
                                         kwargs['guess'], kwargs['prefix'],
-                                        self.environment, extra_args=extra_args,
-                                        dependencies=deps)
+                                        extra_args=extra_args, dependencies=deps)
         mlog.log('Computing int of', mlog.bold(expression, True), msg, res)
         return res
 
