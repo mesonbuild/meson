@@ -254,7 +254,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def alignment_method(self, args: T.Tuple[str], kwargs: 'AlignmentKw') -> int:
         typename = args[0]
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=self.compiler.is_cross)
-        result, cached = self.compiler.alignment(typename, kwargs['prefix'], self.environment,
+        result, cached = self.compiler.alignment(typename, kwargs['prefix'],
                                                  extra_args=kwargs['args'],
                                                  dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
