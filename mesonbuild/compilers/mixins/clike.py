@@ -577,9 +577,9 @@ class CLikeCompiler(Compiler):
             raise mesonlib.EnvironmentException('Could not run sizeof test binary.')
         return int(res.stdout), res.cached
 
-    def cross_alignment(self, typename: str, prefix: str, env: 'Environment', *,
-                        extra_args: T.Optional[T.List[str]] = None,
-                        dependencies: T.Optional[T.List['Dependency']] = None) -> int:
+    def _cross_alignment(self, typename: str, prefix: str, *,
+                         extra_args: T.Optional[T.List[str]] = None,
+                         dependencies: T.Optional[T.List['Dependency']] = None) -> int:
         if extra_args is None:
             extra_args = []
         t = f'''{prefix}
@@ -597,16 +597,16 @@ class CLikeCompiler(Compiler):
             char c;
             {typename} target;
         }};'''
-        return self.cross_compute_int('offsetof(struct tmp, target)', None, None, None, t, env, extra_args, dependencies)
+        return self.cross_compute_int('offsetof(struct tmp, target)', None, None, None, t, self.environment, extra_args, dependencies)
 
-    def alignment(self, typename: str, prefix: str, env: 'Environment', *,
+    def alignment(self, typename: str, prefix: str, *,
                   extra_args: T.Optional[T.List[str]] = None,
                   dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[int, bool]:
         if extra_args is None:
             extra_args = []
         if self.is_cross:
-            r = self.cross_alignment(typename, prefix, env, extra_args=extra_args,
-                                     dependencies=dependencies)
+            r = self._cross_alignment(typename, prefix, extra_args=extra_args,
+                                      dependencies=dependencies)
             return r, False
         t = f'''{prefix}
         #include <stdio.h>
@@ -619,7 +619,7 @@ class CLikeCompiler(Compiler):
             printf("%d", (int)offsetof(struct tmp, target));
             return 0;
         }}'''
-        res = self.cached_run(t, env, extra_args=extra_args,
+        res = self.cached_run(t, self.environment, extra_args=extra_args,
                               dependencies=dependencies)
         if not res.compiled:
             raise mesonlib.EnvironmentException('Could not compile alignment test.')
