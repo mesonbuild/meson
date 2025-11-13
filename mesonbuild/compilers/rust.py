@@ -429,7 +429,7 @@ class RustCompiler(Compiler):
         action = "no" if disable else "yes"
         return ['-C', f'debug-assertions={action}', '-C', 'overflow-checks=no']
 
-    def get_rust_tool(self, name: str, env: Environment) -> T.List[str]:
+    def get_rust_tool(self, name: str) -> T.List[str]:
         if self.rustup_run_and_args:
             rustup_exelist, args = self.rustup_run_and_args
             # do not use extend so that exelist is copied
@@ -439,7 +439,7 @@ class RustCompiler(Compiler):
             args = self.get_exe_args()
 
         from ..programs import find_external_program
-        for prog in find_external_program(env, self.for_machine, exelist[0], exelist[0],
+        for prog in find_external_program(self.environment, self.for_machine, exelist[0], exelist[0],
                                           [exelist[0]], allow_default_for_cross=False):
             exelist[0] = prog.path
             break
@@ -457,7 +457,7 @@ class RustCompiler(Compiler):
 
     @functools.lru_cache(maxsize=None)
     def get_rustdoc(self, env: 'Environment') -> T.Optional[RustdocTestCompiler]:
-        exelist = self.get_rust_tool('rustdoc', env)
+        exelist = self.get_rust_tool('rustdoc')
         if not exelist:
             return None
 
