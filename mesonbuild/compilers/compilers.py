@@ -563,8 +563,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                                                build_dir: str) -> T.List[str]:
         raise EnvironmentException('%s does not support compute_parameters_with_absolute_paths ' % self.get_id())
 
-    def has_members(self, typename: str, membernames: T.List[str],
-                    prefix: str, env: 'Environment', *,
+    def has_members(self, typename: str, membernames: T.List[str], prefix: str, *,
                     extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_member(s) ' % self.get_id())
