@@ -233,7 +233,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             args += self.compiler.get_option_compile_args(None, self.interpreter.environment, self.subproject)
             args += self.compiler.get_option_std_args(None, self.interpreter.environment, self.subproject)
             if mode is CompileCheckMode.LINK:
-                args.extend(self.compiler.get_option_link_args(None, self.interpreter.environment, self.subproject))
+                args.extend(self.compiler.get_option_link_args(None, self.subproject))
         if kwargs.get('werror', False):
             args.extend(self.compiler.get_werror_args())
         args.extend(kwargs['args'])

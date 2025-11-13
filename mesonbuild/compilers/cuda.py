@@ -673,9 +673,9 @@ class CudaCompiler(Compiler):
             host_compiler_args = []
         return self._to_host_flags(host_compiler_args)
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
-        args = self.get_ccbin_args(target, env, subproject)
-        return args + self._to_host_flags(self.host_compiler.get_option_link_args(target, env, subproject), Phase.LINKER)
+    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+        args = self.get_ccbin_args(target, self.environment, subproject)
+        return args + self._to_host_flags(self.host_compiler.get_option_link_args(target, subproject), Phase.LINKER)
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str, soversion: str,
                         darwin_versions: T.Tuple[str, str]) -> T.List[str]:
