@@ -282,7 +282,7 @@ class CLikeCompiler(Compiler):
                 # a ton of compiler flags to differentiate between
                 # arm and x86_64. So just compile.
                 mode = CompileCheckMode.COMPILE
-        cargs, largs = self._get_basic_compiler_args(self.environment, mode)
+        cargs, largs = self._get_basic_compiler_args(mode)
         extra_flags = cargs + self.linker_to_compiler_args(largs)
 
         # Is a valid executable output for all toolchains and platforms
@@ -347,7 +347,7 @@ class CLikeCompiler(Compiler):
         return self.compiles(t, extra_args=extra_args,
                              dependencies=dependencies)
 
-    def _get_basic_compiler_args(self, env: 'Environment', mode: CompileCheckMode) -> T.Tuple[T.List[str], T.List[str]]:
+    def _get_basic_compiler_args(self, mode: CompileCheckMode) -> T.Tuple[T.List[str], T.List[str]]:
         cargs: T.List[str] = []
         largs: T.List[str] = []
         if mode is CompileCheckMode.LINK:
@@ -356,8 +356,8 @@ class CLikeCompiler(Compiler):
             # linking with static libraries since MSVC won't select a CRT for
             # us in that case and will error out asking us to pick one.
             try:
-                crt_val = env.coredata.optstore.get_value_for('b_vscrt')
-                buildtype = env.coredata.optstore.get_value_for('buildtype')
+                crt_val = self.environment.coredata.optstore.get_value_for('b_vscrt')
+                buildtype = self.environment.coredata.optstore.get_value_for('buildtype')
                 assert isinstance(crt_val, str), 'for mypy'
                 assert isinstance(buildtype, str), 'for mypy'
                 cargs += self.get_crt_compile_args(crt_val, buildtype)
@@ -366,7 +366,7 @@ class CLikeCompiler(Compiler):
                 pass
 
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS and CPPFLAGS from the env
-        sys_args = env.coredata.get_external_args(self.for_machine, self.language)
+        sys_args = self.environment.coredata.get_external_args(self.for_machine, self.language)
         if isinstance(sys_args, str):
             sys_args = [sys_args]
         # Apparently it is a thing to inject linker flags both
@@ -377,12 +377,12 @@ class CLikeCompiler(Compiler):
         cargs += cleaned_sys_args
 
         if mode is CompileCheckMode.LINK:
-            ld_value = env.lookup_binary_entry(self.for_machine, self.language + '_ld')
+            ld_value = self.environment.lookup_binary_entry(self.for_machine, self.language + '_ld')
             if ld_value is not None:
                 largs += self.use_linker_args(ld_value[0], self.version)
 
             # Add LDFLAGS from the env
-            sys_ld_args = env.coredata.get_external_link_args(self.for_machine, self.language)
+            sys_ld_args = self.environment.coredata.get_external_link_args(self.for_machine, self.language)
             # CFLAGS and CXXFLAGS go to both linking and compiling, but we want them
             # to only appear on the command line once. Remove dupes.
             largs += [x for x in sys_ld_args if x not in sys_args]
@@ -421,7 +421,7 @@ class CLikeCompiler(Compiler):
                 # Add link flags needed to find dependencies
                 largs += d.get_link_args()
 
-        ca, la = self._get_basic_compiler_args(self.environment, mode)
+        ca, la = self._get_basic_compiler_args(mode)
         cargs += ca
 
         cargs += self.get_compiler_check_args(mode)
