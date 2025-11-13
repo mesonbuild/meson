@@ -469,7 +469,7 @@ class CLikeCompiler(Compiler):
                 #include <stdio.h>
                 #include <stdint.h>
                 int main(void) {{ int expression = {expanded}; printf("%d", expression); return 0; }}'''
-                run = env.coredata.compilers.build[self.language].run(evaluate_expanded, env)
+                run = env.coredata.compilers.build[self.language].run(evaluate_expanded)
                 if run and run.compiled and run.returncode == 0:
                     if self._compile_int(f'{expression} == {run.stdout}', prefix, env, extra_args, dependencies):
                         return int(run.stdout)
@@ -529,7 +529,7 @@ class CLikeCompiler(Compiler):
             printf("%ld\\n", (long)({expression}));
             return 0;
         }}'''
-        res = self.run(t, env, extra_args=extra_args,
+        res = self.run(t, extra_args=extra_args,
                        dependencies=dependencies)
         if not res.compiled:
             return -1
@@ -695,7 +695,7 @@ class CLikeCompiler(Compiler):
             printf ("{fmt}", {cast} {fname}());
             return 0;
         }}'''
-        res = self.run(code, self.environment, extra_args=extra_args, dependencies=dependencies)
+        res = self.run(code, extra_args=extra_args, dependencies=dependencies)
         if not res.compiled:
             raise mesonlib.EnvironmentException(f'Could not get return value of {fname}()')
         if rtype == 'string':

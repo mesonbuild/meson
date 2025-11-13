@@ -284,8 +284,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                 code.rel_to_builddir(self.environment.source_dir))
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False, endl=None)
-        result = self.compiler.run(code, self.environment, extra_args=extra_args,
-                                   dependencies=deps)
+        result = self.compiler.run(code, extra_args=extra_args, dependencies=deps)
         if required and result.returncode != 0:
             raise InterpreterException(f'Could not run {testname if testname else "code"}')
 
