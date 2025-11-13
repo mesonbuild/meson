@@ -574,7 +574,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                  dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_type ' % self.get_id())
 
-    def symbols_have_underscore_prefix(self, env: 'Environment') -> bool:
+    def symbols_have_underscore_prefix(self) -> bool:
         raise EnvironmentException('%s does not support symbols_have_underscore_prefix ' % self.get_id())
 
     def get_exelist(self, ccache: bool = True) -> T.List[str]:

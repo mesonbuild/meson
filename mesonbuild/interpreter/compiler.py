@@ -319,7 +319,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         Check if the compiler prefixes _ (underscore) to global C symbols
         See: https://en.wikipedia.org/wiki/Name_mangling#C
         '''
-        return self.compiler.symbols_have_underscore_prefix(self.environment)
+        return self.compiler.symbols_have_underscore_prefix()
 
     @typed_pos_args('compiler.has_member', str, str)
     @typed_kwargs('compiler.has_member', _HAS_REQUIRED_KW, *_COMMON_KWS)
