@@ -461,7 +461,7 @@ class CLikeCompiler(Compiler):
         # Try to expand the expression and evaluate it on the build machines compiler
         if self.language in self.environment.coredata.compilers.build:
             try:
-                expanded, _ = self.get_define(expression, prefix, self.environment, extra_args, dependencies, False)
+                expanded, _ = self.get_define(expression, prefix, extra_args, dependencies, False)
                 evaluate_expanded = f'''
                 #include <stdio.h>
                 #include <stdint.h>
@@ -635,7 +635,7 @@ class CLikeCompiler(Compiler):
 
         return align, res.cached
 
-    def get_define(self, dname: str, prefix: str, env: 'Environment',
+    def get_define(self, dname: str, prefix: str,
                    extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                    dependencies: T.Optional[T.List['Dependency']],
                    disable_cache: bool = False) -> T.Tuple[str, bool]:
@@ -650,7 +650,7 @@ class CLikeCompiler(Compiler):
         {delim_start}{dname}{delim_end}'''
         args = self.build_wrapper_args(extra_args, dependencies,
                                        mode=CompileCheckMode.PREPROCESS).to_native()
-        func = functools.partial(self.cached_compile, code, env.coredata, extra_args=args, mode=CompileCheckMode.PREPROCESS)
+        func = functools.partial(self.cached_compile, code, self.environment.coredata, extra_args=args, mode=CompileCheckMode.PREPROCESS)
         if disable_cache:
             func = functools.partial(self.compile, code, extra_args=args, mode=CompileCheckMode.PREPROCESS)
         with func() as p:
