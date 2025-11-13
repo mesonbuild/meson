@@ -547,7 +547,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_default_suffix(self) -> str:
         return self.default_suffix
 
-    def get_define(self, dname: str, prefix: str, env: 'Environment',
+    def get_define(self, dname: str, prefix: str,
                    extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                    dependencies: T.List['Dependency'],
                    disable_cache: bool = False) -> T.Tuple[str, bool]:
