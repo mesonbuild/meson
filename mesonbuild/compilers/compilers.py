@@ -732,7 +732,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             run_check_cache[key] = p
         return p
 
-    def sizeof(self, typename: str, prefix: str, env: 'Environment', *,
+    def sizeof(self, typename: str, prefix: str, *,
                extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[int, bool]:
         raise EnvironmentException('Language %s does not support sizeof checks.' % self.get_display_language())
