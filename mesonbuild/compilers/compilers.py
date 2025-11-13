@@ -638,8 +638,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
-        return self.linker.get_option_link_args(target, env, subproject)
+    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+        return self.linker.get_option_link_args(target, subproject)
 
     def check_header(self, hname: str, prefix: str, *,
                      extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
