@@ -94,12 +94,11 @@ class CPPCompiler(CLikeCompiler, Compiler):
         # too strict without this and always fails.
         return super().get_compiler_check_args(mode) + ['-fpermissive']
 
-    def has_header_symbol(self, hname: str, symbol: str, prefix: str,
-                          env: 'Environment', *,
+    def has_header_symbol(self, hname: str, symbol: str, prefix: str, *,
                           extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                           dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         # Check if it's a C-like symbol
-        found, cached = super().has_header_symbol(hname, symbol, prefix, env,
+        found, cached = super().has_header_symbol(hname, symbol, prefix,
                                                   extra_args=extra_args,
                                                   dependencies=dependencies)
         if found:
@@ -185,7 +184,7 @@ class _StdCPPLibMixin(CompilerMixinBase):
     def language_stdlib_provider(self, env: Environment) -> str:
         # https://stackoverflow.com/a/31658120
         header = 'version' if self.has_header('version', '', env)[0] else 'ciso646'
-        is_libcxx = self.has_header_symbol(header, '_LIBCPP_VERSION', '', env)[0]
+        is_libcxx = self.has_header_symbol(header, '_LIBCPP_VERSION', '')[0]
         lib = 'c++' if is_libcxx else 'stdc++'
         return lib
 
