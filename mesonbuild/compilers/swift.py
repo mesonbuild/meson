@@ -128,7 +128,7 @@ class SwiftCompiler(Compiler):
 
         return opts
 
-    def get_option_std_args(self, target: build.BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: build.BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
 
         std = self.get_compileropt_value('std', target, subproject)
@@ -145,7 +145,7 @@ class SwiftCompiler(Compiler):
         c_lang = first(c_langs, lambda x: x in target.compilers)
         if c_lang is not None:
             cc = target.compilers[c_lang]
-            args.extend(arg for c_arg in cc.get_option_std_args(target, env, subproject) for arg in ['-Xcc', c_arg])
+            args.extend(arg for c_arg in cc.get_option_std_args(target, subproject) for arg in ['-Xcc', c_arg])
 
         return args
 

@@ -83,13 +83,13 @@ class ElbrusCompiler(GnuLikeCompiler):
         # Actually it's not supported for now, but probably will be supported in future
         return 'pch'
 
-    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
         key = OptionKey(f'{self.language}_std', subproject=subproject, machine=self.for_machine)
         if target:
-            std = env.coredata.get_option_for_target(target, key)
+            std = self.environment.coredata.get_option_for_target(target, key)
         else:
-            std = env.coredata.optstore.get_value_for(key)
+            std = self.environment.coredata.optstore.get_value_for(key)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
