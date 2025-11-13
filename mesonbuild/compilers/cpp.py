@@ -202,7 +202,7 @@ class _StdCPPLibMixin(CompilerMixinBase):
         # be passed to a different compiler with a different set of default
         # search paths, such as when using Clang for C/C++ and gfortran for
         # fortran.
-        search_dirs = [f'-L{d}' for d in self.get_compiler_dirs(self.environment, 'libraries')]
+        search_dirs = [f'-L{d}' for d in self.get_compiler_dirs('libraries')]
 
         lib = self.language_stdlib_provider(self.environment)
         if self.find_library(lib, []) is not None:

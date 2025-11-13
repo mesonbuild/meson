@@ -186,7 +186,7 @@ class CLikeCompiler(Compiler):
             return ['-isystem', path]
         return ['-I' + path]
 
-    def get_compiler_dirs(self, env: 'Environment', name: str) -> T.List[str]:
+    def get_compiler_dirs(self, name: str) -> T.List[str]:
         '''
         Get dirs from the compiler, either `libraries:` or `programs:`
         '''
@@ -195,7 +195,7 @@ class CLikeCompiler(Compiler):
     @functools.lru_cache()
     def _get_library_dirs(self, elf_class: T.Optional[int] = None) -> 'ImmutableListProtocol[str]':
         # TODO: replace elf_class with enum
-        dirs = self.get_compiler_dirs(self.environment, 'libraries')
+        dirs = self.get_compiler_dirs('libraries')
         if elf_class is None or elf_class == 0:
             return dirs
 
@@ -243,7 +243,7 @@ class CLikeCompiler(Compiler):
         Programs used by the compiler. Also where toolchain DLLs such as
         libstdc++-6.dll are found with MinGW.
         '''
-        return self.get_compiler_dirs(self.environment, 'programs')
+        return self.get_compiler_dirs('programs')
 
     def get_program_dirs(self) -> T.List[str]:
         return self._get_program_dirs().copy()
