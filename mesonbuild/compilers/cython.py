@@ -86,7 +86,7 @@ class CythonCompiler(Compiler):
 
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
         version = self.get_compileropt_value('version', target, subproject)
         assert isinstance(version, str)

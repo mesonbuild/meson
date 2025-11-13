@@ -648,11 +648,11 @@ class CudaCompiler(Compiler):
 
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
-        args = self.get_ccbin_args(target, env, subproject)
+    def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+        args = self.get_ccbin_args(target, self.environment, subproject)
 
         try:
-            host_compiler_args = self.host_compiler.get_option_compile_args(target, env, subproject)
+            host_compiler_args = self.host_compiler.get_option_compile_args(target, subproject)
         except KeyError:
             host_compiler_args = []
         return args + self._to_host_flags(host_compiler_args)
