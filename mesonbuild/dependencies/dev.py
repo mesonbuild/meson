@@ -541,7 +541,7 @@ class ZlibSystemDependency(SystemDependency):
                 libs = ['z']
             for lib in libs:
                 l = self.clib_compiler.find_library(lib, [], self.libtype)
-                h = self.clib_compiler.has_header('zlib.h', '', environment, dependencies=[self])
+                h = self.clib_compiler.has_header('zlib.h', '', dependencies=[self])
                 if l and h[0]:
                     self.is_found = True
                     self.link_args = l
