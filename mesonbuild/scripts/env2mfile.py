@@ -528,6 +528,12 @@ class AndroidDetector:
                 for name, path in bin_mappings.items():
                     ofile.write(f"{name} = '{path}'\n")
 
+                ofile.write('\n[built-in options]\n')
+                ofile.write('c_args        = []\n')
+                ofile.write("c_link_args   = ['-Wl,--build-id=sha1']\n")
+                ofile.write('cpp_args      = c_args\n')
+                ofile.write('cpp_link_args = c_link_args\n')
+
                 ofile.write('\n[host_machine]\n')
                 ofile.write("system = 'android'\n")
                 ofile.write(f"cpu_family = '{ANDROID_CPU_TO_MESON_CPU_FAMILY[cpu]}'\n")
