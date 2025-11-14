@@ -60,8 +60,8 @@ DEFAULT_YIELDING = False
 # Can't bind this near the class method it seems, sadly.
 _T = T.TypeVar('_T')
 
-backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'xcode', 'none']
-genvslitelist = ['vs2022']
+backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'vs2026', 'xcode', 'none']
+genvslitelist = ['vs2022', 'vs2026']
 buildtypelist = ['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom']
 
 # This is copied from coredata. There is no way to share this, because this
