@@ -15,7 +15,7 @@ from ..mesonlib import (
     EnvironmentException, Popen_safe,
     is_windows, LibType, version_compare
 )
-from .compilers import Compiler, CompileCheckMode
+from .compilers import Compiler, CompileCheckMode, SimplePrefixLinkerOptionWrapperStyle
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
@@ -51,7 +51,7 @@ class Phase(enum.Enum):
 
 class CudaCompiler(Compiler):
 
-    LINKER_PREFIX = '-Xlinker='
+    LINKER_PREFIX = SimplePrefixLinkerOptionWrapperStyle('-Xlinker=')
     language = 'cuda'
 
     # NVCC flags taking no arguments.
