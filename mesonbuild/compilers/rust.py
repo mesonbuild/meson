@@ -11,6 +11,7 @@ import re
 import typing as T
 
 from .. import options
+from ..dependencies import InternalDependency
 from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged, version_compare
 from ..linkers.linkers import VisualStudioLikeLinkerMixin
 from ..options import OptionKey
@@ -64,6 +65,10 @@ def get_rustup_run_and_args(exelist: T.List[str]) -> T.Optional[T.Tuple[T.List[s
         return exelist[:n], list(e)
     except StopIteration:
         return None
+
+class RustSystemDependency(InternalDependency):
+    pass
+
 
 def rustc_link_args(args: T.List[str]) -> T.List[str]:
     if not args:
@@ -325,6 +330,8 @@ class RustCompiler(Compiler):
         return opts
 
     def get_dependency_compile_args(self, dep: 'Dependency') -> T.List[str]:
+        if isinstance(dep, RustSystemDependency):
+            return dep.get_compile_args()
         # Rust doesn't have dependency compile arguments so simply return
         # nothing here. Dependencies are linked and all required metadata is
         # provided by the linker flags.

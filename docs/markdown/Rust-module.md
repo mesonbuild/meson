@@ -4,6 +4,9 @@ authors:
     - name: Dylan Baker
       email: dylan@pnwbakers.com
       years: [2020, 2021, 2022, 2024]
+    - name: Paolo Bonzini
+      email: bonzini@gnu.org
+      years: [2025]
 ...
 
 # Rust module
@@ -168,3 +171,253 @@ Only a subset of [[shared_library]] keyword arguments are allowed:
 - link_depends
 - link_with
 - override_options
+
+### to_system_dependency()
+
+```meson
+rustmod.to_system_dependency(dep[, name])
+
+Create and return an internal dependency that wraps `dep` and
+defines `cfg(system_deps_have_NAME)`.  This is compatible with
+how the `system-deps` crate reports the availability of a system
+dependency to Rust code.
+
+If omitted, the name defaults to the name of the dependency.
+
+### workspace()
+
+```meson
+rustmod.workspace(...)
+```
+
+*Since 1.10.0*
+
+Create and return a `workspace` object for managing the project's Cargo
+workspace.
+
+Keyword arguments:
+- `default_features`: (`bool`, optional) Whether to enable default features.
+  If not specified and `features` is provided, defaults to true.
+- `features`: (`list[str]`, optional) List of additional features to enable globally
+
+The function must be called in a project with `Cargo.lock` and `Cargo.toml`
+files in the root source directory.  While the object currently has
+no methods, upon its creation Meson analyzes the `Cargo.toml` file and
+computes the full set of dependencies and features needed to build the
+package in `Cargo.toml`.  Therefore, this function should be invoked before
+using Cargo subprojects.
+
+If either argument is provided, the build will use a custom set of features.
+Features can only be set once - subsequent calls will fail if different features
+are specified.
+
+When `features` is provided without `default_features: false`, the 'default' feature is
+automatically included.
+
+## Workspace object
+
+### workspace.packages()
+
+```meson
+packages = ws.packages()
+```
+
+Returns a list of package names in the workspace.
+
+### workspace.package()
+
+```meson
+pkg = ws.package([package_name])
+```
+
+Returns a package object for the given package member.  If empty, returns
+the object for the root package.
+
+Arguments:
+- `package_name`: (str, optional) Name of the package; not needed for the
+  root package of a workspace
+
+Example usage:
+```meson
+rust = import('rust')
+cargo = rust.workspace()
+pkg = cargo.package()
+pkg.executable(install: true)
+```
+
+### workspace.subproject()
+
+```meson
+package = ws.subproject(package_name, api)
+```
+
+Returns a `package` object for managing a specific package within the workspace.
+
+Positional arguments:
+- `package_name`: (`str`) The name of the package to retrieve
+- `api`: (`str`, optional) The version constraints for the package in Cargo format
+
+## Package object
+
+The package object returned by `workspace.subproject()` provides methods
+for working with individual packages in a Cargo workspace.
+
+### package.name(), subproject.name()
+
+```meson
+name = pkg.name()
+```
+
+Returns the name of a package or subproject.
+
+### package.version(), subproject.version()
+
+```meson
+version = pkg.version()
+```
+
+Returns the normalized version number of the subproject.
+
+### package.api(), subproject.api()
+
+```meson
+api = pkg.api()
+```
+
+Returns the API version of the subproject, that is the version up to the first
+nonzero element.
+
+### package.features(), subproject.features()
+
+```meson
+features = pkg.features()
+```
+
+Returns selected features for a specific package or subproject.
+
+### package.all_features(), subproject.all_features()
+
+```meson
+all_features = pkg.all_features()
+```
+
+Returns all defined features for a specific package or subproject.
+
+### Packages only
+
+#### package.rust_args()
+
+```meson
+args = pkg.rustc_args()
+```
+
+Returns rustc arguments for this package.
+
+#### package.env()
+
+```meson
+env_vars = pkg.env()
+```
+
+Returns environment variables for this package.
+
+#### package.rust_dependency_map()
+
+```meson
+dep_map = pkg.rust_dependency_map()
+```
+
+Returns rust dependency mapping for this package.
+
+#### package.dependencies()
+
+```meson
+deps = pkg.dependencies(...)
+```
+
+Returns a list of dependency objects for all the dependencies required by this
+Rust package, including both Rust crate dependencies and system dependencies.
+The returned dependencies can be used directly in build target declarations.
+
+Keyword arguments:
+- `dependencies`: (`bool`, default: true) Whether to include regular Rust crate dependencies
+- `dev_dependencies`: (`bool`, default: false) Whether to include development dependencies (not yet implemented)
+- `system_dependencies`: (`bool`, default: true) Whether to include system dependencies
+
+#### package.library()
+
+```meson
+lib = pkg.library(...)
+```
+
+Builds library targets for a workspace package.  The method requires that
+the package's `Cargo.toml` file contains the `[lib]` section or that it
+is discovered from the contents of the file system.  Static vs. shared library is
+decided based on the crate types in `Cargo.toml`
+
+Positional arguments:
+- `target_name`: (`str`, optional) Name of the binary target to build.
+- `sources`: (`StructuredSources`, optional) Source files for the executable.  If omitted,
+  uses the path specified in the `[lib]` section of `Cargo.toml`.
+
+Accepts all keyword arguments from [[shared_library]] and [[static_library]].
+`rust_abi` must match the crate types and is mandatory if more than one
+ABI is exposed by the crate.
+
+#### package.shared_module()
+
+```meson
+lib = pkg.shared_module(...)
+```
+
+Builds the `cdylib` for a workspace package as a shared module.
+
+Accepts all keyword arguments from [[shared_module]].
+
+#### package.proc_macro()
+
+```meson
+lib = pkg.proc_macro(...)
+```
+
+Builds a proc-macro crate for a workspace package.
+
+Accepts all keyword arguments from [[shared_library]].
+
+#### package.executable()
+
+```meson
+exe = pkg.executable([target_name], [sources], ...)
+```
+
+Builds an executable target for a workspace package.  The method requires that the
+package has at least one `[[bin]]` section defined in its `Cargo.toml` file,
+or one binary discovered from the contents of the file system.
+
+Positional arguments:
+- `target_name`: (`str`, optional) Name of the binary target to build. If the package
+  has multiple `[[bin]]` sections in `Cargo.toml`, this argument is required and must
+  match one of the binary names. If omitted and there's only one binary, that binary
+  will be built automatically.
+- `sources`: (`StructuredSources`, optional) Source files for the executable.  If omitted,
+  uses the path specified in the corresponding `[[bin]]` section of `Cargo.toml`.
+
+Accepts all keyword arguments from [[executable]].
+
+### Subprojects only
+
+#### subproject.dependency()
+
+```meson
+dep = subproject.dependency(...)
+```
+
+Returns a dependency object for the subproject that can be used with other Meson targets.
+
+*Note*: right now, this method is implemented on top of the normal Meson function
+[[dependency]]; this is subject to change in future releases.  It is recommended
+to always retrieve a Cargo subproject's dependency object via this method.
+
+Keyword arguments:
+- `rust_abi`: (`str`, optional) The ABI to use for the dependency. Valid values are
+  `'rust'`, `'c'`, or `'proc-macro'`. The package must support the specified ABI.
