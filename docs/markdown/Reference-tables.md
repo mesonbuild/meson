@@ -175,6 +175,7 @@ These are provided by the `.system()` method call.
 | openbsd             | |
 | windows             | Native Windows (not Cygwin or MSYS2) |
 | sunos               | illumos and Solaris |
+| os/2                | OS/2 |
 
 Any string not listed above is not guaranteed to remain stable in
 future releases.
