@@ -356,14 +356,14 @@ class RustModule(ExtensionModule):
 
         for i in state.process_include_dirs(kwargs['include_directories']):
             # bindgen always uses clang, so it's safe to hardcode -I here
-            clang_args.extend([f'-I{x}' for x in i.to_string_list(
+            clang_args.extend([f'-I{x}' for x in i.abs_string_list(
                 state.environment.get_source_dir(), state.environment.get_build_dir())])
         if are_asserts_disabled_for_subproject(state.subproject, state.environment):
             clang_args.append('-DNDEBUG')
 
         for de in kwargs['dependencies']:
             for i in de.get_include_dirs():
-                clang_args.extend([f'-I{x}' for x in i.to_string_list(
+                clang_args.extend([f'-I{x}' for x in i.abs_string_list(
                     state.environment.get_source_dir(), state.environment.get_build_dir())])
             clang_args.extend(de.get_all_compile_args())
             for s in de.get_sources():

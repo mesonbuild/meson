@@ -66,8 +66,7 @@ class ModuleState:
             if isinstance(dirs, str):
                 dirs_str += [f'{prefix}{dirs}']
             else:
-                dirs_str.extend([f'{prefix}{i}' for i in dirs.to_string_list(srcdir, builddir)])
-                dirs_str.extend([f'{prefix}{i}' for i in dirs.get_extra_build_dirs()])
+                dirs_str.extend([f'{prefix}{i}' for i in dirs.abs_string_list(srcdir, builddir)])
 
         return dirs_str
 

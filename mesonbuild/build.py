@@ -480,30 +480,21 @@ class Build:
 @dataclass(eq=False)
 class IncludeDirs(HoldableObject):
 
-    """Internal representation of an include_directories call."""
+    """Internal representation of an include_directories call.
+
+    :param curdir: The directory from which this IncludeDirs is declared
+    :param incdirs: The paths relative to curdir the include
+    :param is_system: Should these be treated as `-isystem` (true) or `-I
+    :param extra_build_dirs: Extra build directories to include
+    """
 
     curdir: str
     incdirs: T.List[str]
     is_system: bool
-    # Interpreter has validated that all given directories
-    # actually exist.
     extra_build_dirs: T.List[str] = field(default_factory=list)
 
-    def __repr__(self) -> str:
-        r = '<{} {}/{}>'
-        return r.format(self.__class__.__name__, self.curdir, self.incdirs)
-
-    def get_curdir(self) -> str:
-        return self.curdir
-
-    def get_incdirs(self) -> T.List[str]:
-        return self.incdirs
-
-    def get_extra_build_dirs(self) -> T.List[str]:
-        return self.extra_build_dirs
-
-    def to_string_list(self, sourcedir: str, builddir: str) -> T.List[str]:
-        """Convert IncludeDirs object to a list of strings.
+    def abs_string_list(self, sourcedir: str, builddir: str) -> T.List[str]:
+        """Convert IncludeDirs object to a list of absolute string paths.
 
         :param sourcedir: The absolute source directory
         :param builddir: The absolute build directory, option, build dir will not
@@ -514,7 +505,33 @@ class IncludeDirs(HoldableObject):
         for idir in self.incdirs:
             strlist.append(os.path.join(sourcedir, self.curdir, idir))
             strlist.append(os.path.join(builddir, self.curdir, idir))
+        for idir in self.extra_build_dirs:
+            strlist.append(os.path.join(builddir, self.curdir, idir))
         return strlist
+
+    def rel_string_list(self, build_to_src: str, build_root: T.Optional[str] = None) -> T.List[str]:
+        """Convert IncludeDirs object to a list of relative string paths.
+
+        :param build_to_src: The relative path from the build dir to source dir
+        :param build_root: The absolute build root. When provided, build
+            directories that have not been created will be ignored. Default: None.
+        :return: A list if strings (without compiler argument)
+        """
+        strlist: T.List[str] = []
+        for idirs, add_src in [(self.incdirs, True), (self.extra_build_dirs, False)]:
+            for idir in idirs:
+                bld_dir = os.path.normpath(os.path.join(self.curdir, idir))
+                if idir not in {'', '.'}:
+                    expdir = bld_dir
+                else:
+                    expdir = self.curdir
+                if build_root is None or os.path.isdir(os.path.join(build_root, expdir)):
+                    strlist.append(bld_dir)
+                if add_src:
+                    strlist.append(os.path.normpath(os.path.join(build_to_src, expdir)))
+
+        return strlist
+
 
 @dataclass(eq=False)
 class ExtractedObjects(HoldableObject):
@@ -1599,7 +1616,7 @@ class BuildTarget(Target):
             set_is_system = 'preserve'
         if set_is_system != 'preserve':
             is_system = set_is_system == 'system'
-            ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in ids]
+            ids = [IncludeDirs(x.curdir, x.incdirs, is_system, x.extra_build_dirs) for x in ids]
         self.include_dirs += ids
 
     def get_aliases(self) -> T.List[T.Tuple[str, str, str]]:

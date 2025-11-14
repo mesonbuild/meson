@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 import copy
+import dataclasses
 import os
 import collections
 import itertools
@@ -21,7 +22,7 @@ from ..options import OptionKey
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict, TypeAlias
+    from typing_extensions import Literal, Required, TypedDict, TypeAlias
 
     from ..compilers.compilers import Compiler
     from ..environment import Environment
@@ -51,7 +52,7 @@ if T.TYPE_CHECKING:
         main: bool
         method: DependencyMethods
         modules: T.List[str]
-        native: MachineChoice
+        native: Required[MachineChoice]
         optional_modules: T.List[str]
         private_headers: bool
         required: bool
@@ -72,6 +73,8 @@ if T.TYPE_CHECKING:
 else:
     _MissingCompilerBase = object
 
+
+DepType = T.TypeVar('DepType', bound='ExternalDependency', covariant=True)
 
 class DependencyException(MesonException):
     '''Exceptions raised while trying to find dependencies'''
@@ -129,15 +132,16 @@ DependencyTypeName = T.NewType('DependencyTypeName', str)
 
 class Dependency(HoldableObject):
 
-    def __init__(self, type_name: DependencyTypeName, kwargs: DependencyObjectKWs) -> None:
+    type_name: DependencyTypeName
+
+    def __init__(self, kwargs: DependencyObjectKWs) -> None:
         # This allows two Dependencies to be compared even after being copied.
         # The purpose is to allow the name to be changed, but still have a proper comparison
         self._id = uuid.uuid4().int
         self.name = f'dep{self._id}'
         self.version:  T.Optional[str] = None
-        self.language: T.Optional[str] = None # None means C-like
+        self.language: T.Optional[str] = kwargs.get('language') # None means C-like
         self.is_found = False
-        self.type_name = type_name
         self.compile_args: T.List[str] = []
         self.link_args:    T.List[str] = []
         # Raw -L and -l arguments without manual library searching
@@ -298,6 +302,9 @@ class Dependency(HoldableObject):
         return self
 
 class InternalDependency(Dependency):
+
+    type_name = DependencyTypeName('internal')
+
     def __init__(self, version: str, incdirs: T.List['IncludeDirs'], compile_args: T.List[str],
                  link_args: T.List[str],
                  libraries: T.List[LibTypes],
@@ -308,7 +315,7 @@ class InternalDependency(Dependency):
                  d_module_versions: T.List[T.Union[str, int]], d_import_dirs: T.List['IncludeDirs'],
                  objects: T.List['ExtractedObjects'],
                  name: T.Optional[str] = None):
-        super().__init__(DependencyTypeName('internal'), {})
+        super().__init__({'native': MachineChoice.HOST})  # TODO: does the native key actually matter
         self.version = version
         self.is_found = True
         self.include_directories = incdirs
@@ -412,12 +419,11 @@ class InternalDependency(Dependency):
         return new_dep
 
 class ExternalDependency(Dependency):
-    def __init__(self, type_name: DependencyTypeName, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None):
-        Dependency.__init__(self, type_name, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+        Dependency.__init__(self, kwargs)
         self.env = environment
-        self.name = type_name # default
+        self.name = name
         self.is_found = False
-        self.language = language
         self.version_reqs = kwargs.get('version', [])
         self.required = kwargs.get('required', True)
         self.silent = kwargs.get('silent', False)
@@ -427,7 +433,7 @@ class ExternalDependency(Dependency):
         self.static = static
         self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
         # Is this dependency to be run on the build platform?
-        self.for_machine = kwargs.get('native', MachineChoice.HOST)
+        self.for_machine = kwargs['native']
         self.clib_compiler = detect_compiler(self.name, environment, self.for_machine, self.language)
 
     def get_compiler(self) -> T.Union['MissingCompiler', 'Compiler']:
@@ -455,10 +461,6 @@ class ExternalDependency(Dependency):
         return ''
 
     def log_info(self) -> str:
-        return ''
-
-    @staticmethod
-    def log_tried() -> str:
         return ''
 
     # Check if dependency version meets the requirements
@@ -499,8 +501,11 @@ class ExternalDependency(Dependency):
 
 
 class NotFoundDependency(Dependency):
+
+    type_name = DependencyTypeName('not-found')
+
     def __init__(self, name: str, environment: 'Environment') -> None:
-        super().__init__(DependencyTypeName('not-found'), {})
+        super().__init__({'native': MachineChoice.HOST})  # TODO: does this actually matter?
         self.env = environment
         self.name = name
         self.is_found = False
@@ -514,11 +519,12 @@ class NotFoundDependency(Dependency):
 
 
 class ExternalLibrary(ExternalDependency):
+
+    type_name = DependencyTypeName('library')
+
     def __init__(self, name: str, link_args: T.List[str], environment: 'Environment',
-                 language: str, silent: bool = False) -> None:
-        super().__init__(DependencyTypeName('library'), environment, {}, language=language)
-        self.name = name
-        self.language = language
+                 language: str, for_machine: MachineChoice, silent: bool = False) -> None:
+        super().__init__(name, environment, {'language': language, 'native': for_machine})
         self.is_found = False
         if link_args:
             self.is_found = True
@@ -660,25 +666,44 @@ class SystemDependency(ExternalDependency):
 
     """Dependency base for System type dependencies."""
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs,
-                 language: T.Optional[str] = None) -> None:
-        super().__init__(DependencyTypeName('system'), env, kwargs, language=language)
-        self.name = name
-
-    @staticmethod
-    def log_tried() -> str:
-        return 'system'
+    type_name = DependencyTypeName('system')
 
 
 class BuiltinDependency(ExternalDependency):
 
     """Dependency base for Builtin type dependencies."""
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs,
-                 language: T.Optional[str] = None) -> None:
-        super().__init__(DependencyTypeName('builtin'), env, kwargs, language=language)
-        self.name = name
+    type_name = DependencyTypeName('builtin')
 
-    @staticmethod
-    def log_tried() -> str:
-        return 'builtin'
+
+@dataclasses.dataclass
+class DependencyCandidate(T.Generic[DepType]):
+
+    callable: T.Union[T.Type[DepType], T.Callable[[str, Environment, DependencyObjectKWs], DepType]]
+    name: str
+    method: str
+    modules: T.Optional[T.List[str]] = None
+    arguments: T.Optional[T.Tuple[Environment, DependencyObjectKWs]] = dataclasses.field(default=None)
+
+    def __call__(self) -> DepType:
+        if self.arguments is None:
+            raise mesonlib.MesonBugException('Attempted to instantiate a candidate before setting its arguments')
+        env, kwargs = self.arguments
+        if self.modules is not None:
+            kwargs['modules'] = self.modules.copy()
+        return self.callable(self.name, env, kwargs)
+
+    @classmethod
+    def from_dependency(cls, name: str, dep: T.Type[DepType],
+                        args: T.Optional[T.Tuple[Environment, DependencyObjectKWs]] = None,
+                        modules: T.Optional[T.List[str]] = None,
+                        ) -> DependencyCandidate[DepType]:
+        tried = str(dep.type_name)
+
+        # fixup the cases where type_name and log tried don't match
+        if tried in {'extraframeworks', 'appleframeworks'}:
+            tried = 'framework'
+        elif tried == 'pkgconfig':
+            tried = 'pkg-config'
+
+        return cls(dep, name, tried, modules, arguments=args)
