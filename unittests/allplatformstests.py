@@ -5445,7 +5445,9 @@ class AllPlatformTests(BasePlatformTests):
                                  '10/10': [10],
                                  }.items():
             output = self._run(self.mtest_command + ['--slice=' + arg])
-            tests = sorted([ int(x) for x in re.findall(r'\n[ 0-9]+/[0-9]+ test_slice:test-([0-9]*)', output) ])
+            tests = sorted([
+                int(x) for x in re.findall(r'^[ 0-9]+/[0-9]+ test_slice:test-([0-9]*)', output, flags=re.MULTILINE)
+            ])
             self.assertEqual(tests, expectation)
 
         for arg, expectation in {'': 'error: argument --slice: value does not conform to format \'SLICE/NUM_SLICES\'',
