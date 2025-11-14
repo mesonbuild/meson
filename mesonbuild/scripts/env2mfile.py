@@ -495,14 +495,21 @@ class AndroidDetector:
         bindir = toolchain_root / 'bin'
         if not bindir.is_dir():
             sys.exit(f'Could not detect toolchain in {toolchain_root}.')
-        ar_path = bindir / f'llvm-ar{self.exe_suffix}'
-        if not ar_path.is_file():
-            sys.exit(f'Could not detect llvm-ar in {toolchain_root}.')
-        ar_str = str(ar_path).replace('\\', '/')
-        strip_path = bindir / f'llvm-strip{self.exe_suffix}'
-        if not strip_path.is_file():
-            sys.exit(f'Could not detect llvm-strip n {toolchain_root}.')
-        strip_str = str(strip_path).replace('\\', '/')
+
+        bin_tools = {
+            'ar': 'llvm-ar',
+            'as': 'llvm-as',
+            'ranlib': 'llvm-ranlib',
+            'ld': 'ld',
+            'strip': 'llvm-strip',
+        }
+        bin_mappings = {}
+        for name, tool in bin_tools.items():
+            path = bindir / f'{tool}{self.exe_suffix}'
+            if not path.is_file():
+                sys.exit(f'Could not detect {tool} in {toolchain_root}.')
+            bin_mappings[name] = str(path).replace('\\', '/')
+
         for compiler in bindir.glob('*-clang++'):
             parts = compiler.parts[-1].split('-')
             assert len(parts) == 4
@@ -518,8 +525,8 @@ class AndroidDetector:
                 ofile.write('[binaries]\n')
                 ofile.write(f"c = '{c_compiler_str}'\n")
                 ofile.write(f"cpp = '{cpp_compiler_str}'\n")
-                ofile.write(f"ar = '{ar_str}'\n")
-                ofile.write(f"strip = '{strip_str}'\n")
+                for name, path in bin_mappings.items():
+                    ofile.write(f"{name} = '{path}'\n")
 
                 ofile.write('\n[host_machine]\n')
                 ofile.write("system = 'android'\n")
