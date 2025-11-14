@@ -373,6 +373,10 @@ recommended to regroup all Cargo dependencies inside a single workspace invoked
 from the main Meson project. When invoking multiple different Cargo subprojects
 from Meson, feature resolution of common dependencies might be wrong.
 
+Since *1.10.0* When a C ABI library is produced (`crate_type` contains `staticlib`
+and/or `cdylib`), Meson will follow the `default_library` option to decide
+whether a shared and/or static library should be built.
+
 ## Using wrapped projects
 
 Wraps provide a convenient way of obtaining a project into your
