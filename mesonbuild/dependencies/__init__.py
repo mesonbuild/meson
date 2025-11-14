@@ -78,7 +78,7 @@ class FooSystemDependency(ExternalDependency):
             self.is_found = False
             return
 
-        lib = self.clib_compiler.find_library('foo', environment, [os.path.join(root, 'lib')])
+        lib = self.clib_compiler.find_library('foo', [os.path.join(root, 'lib')])
         if lib is None:
             mlog.debug('Could not find lib.')
             self.is_found = False

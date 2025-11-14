@@ -16,7 +16,6 @@ if T.TYPE_CHECKING:
     from .. import build
     from ..options import MutableKeyedOptionDictType
     from ..dependencies import Dependency
-    from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
@@ -38,11 +37,10 @@ class SwiftCompiler(Compiler):
     id = 'llvm'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo', full_version: T.Optional[str] = None,
+                 env: Environment, full_version: T.Optional[str] = None,
                  linker: T.Optional['DynamicLinker'] = None):
-        super().__init__([], exelist, version, for_machine, info,
-                         is_cross=is_cross, full_version=full_version,
-                         linker=linker)
+        super().__init__([], exelist, version, for_machine, env,
+                         full_version=full_version, linker=linker)
         self.version = version
         if self.info.is_darwin():
             try:
@@ -130,10 +128,10 @@ class SwiftCompiler(Compiler):
 
         return opts
 
-    def get_option_std_args(self, target: build.BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: build.BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
 
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
 
         if std != 'none':
@@ -147,7 +145,7 @@ class SwiftCompiler(Compiler):
         c_lang = first(c_langs, lambda x: x in target.compilers)
         if c_lang is not None:
             cc = target.compilers[c_lang]
-            args.extend(arg for c_arg in cc.get_option_std_args(target, env, subproject) for arg in ['-Xcc', c_arg])
+            args.extend(arg for c_arg in cc.get_option_std_args(target, subproject) for arg in ['-Xcc', c_arg])
 
         return args
 
@@ -177,22 +175,22 @@ class SwiftCompiler(Compiler):
 
         return parameter_list
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str) -> None:
         src = 'swifttest.swift'
         source_name = os.path.join(work_dir, src)
         output_name = os.path.join(work_dir, 'swifttest')
         extra_flags: T.List[str] = []
-        extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
+        extra_flags += self.environment.coredata.get_external_args(self.for_machine, self.language)
         if self.is_cross:
             extra_flags += self.get_compile_only_args()
         else:
-            extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
+            extra_flags += self.environment.coredata.get_external_link_args(self.for_machine, self.language)
         with open(source_name, 'w', encoding='utf-8') as ofile:
             ofile.write('''print("Swift compilation is working.")
 ''')
         pc = subprocess.Popen(self.exelist + extra_flags + ['-emit-executable', '-o', output_name, src], cwd=work_dir)
         pc.wait()
-        self.run_sanity_check(environment, [output_name], work_dir)
+        self.run_sanity_check([output_name], work_dir)
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return clike_debug_args[is_debug]

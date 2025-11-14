@@ -999,7 +999,7 @@ def have_working_compiler(lang: str, use_tmp: bool) -> bool:
             return False
         env.coredata.process_compiler_options(lang, compiler, '')
         try:
-            compiler.sanity_check(env.get_scratch_dir(), env)
+            compiler.sanity_check(env.get_scratch_dir())
         except mesonlib.MesonException:
             return False
     return True

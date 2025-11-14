@@ -1828,8 +1828,8 @@ class NinjaBackend(backends.Backend):
         args += cython.get_always_args()
         args += cython.get_debug_args(self.get_target_option(target, 'debug'))
         args += cython.get_optimization_args(self.get_target_option(target, 'optimization'))
-        args += cython.get_option_compile_args(target, self.environment, target.subproject)
-        args += cython.get_option_std_args(target, self.environment, target.subproject)
+        args += cython.get_option_compile_args(target, target.subproject)
+        args += cython.get_option_std_args(target, target.subproject)
         args += self.build.get_global_args(cython, target.for_machine)
         args += self.build.get_project_args(cython, target.subproject, target.for_machine)
         args += target.get_extra_args('cython')
@@ -2062,7 +2062,7 @@ class NinjaBackend(backends.Backend):
             if rustc.has_verbatim():
                 modifiers.append('+verbatim')
             else:
-                libname = rustc.lib_file_to_l_arg(self.environment, libname)
+                libname = rustc.lib_file_to_l_arg(libname)
                 if libname is None:
                     raise MesonException(f"rustc does not implement '-l{type_}:+verbatim'; cannot link to '{orig_libname}' due to nonstandard name")
 
@@ -2221,7 +2221,7 @@ class NinjaBackend(backends.Backend):
 
         if target.doctests:
             assert target.doctests.target is not None
-            rustdoc = rustc.get_rustdoc(self.environment)
+            rustdoc = rustc.get_rustdoc()
             args = rustdoc.get_exe_args()
             args += self.get_rust_compiler_args(target.doctests.target, rustdoc, target.rust_crate_type)
             o, _ = self.flatten_object_list(target.doctests.target)
@@ -3445,14 +3445,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def get_import_filename(self, target) -> str:
         return os.path.join(self.get_target_dir(target), target.import_filename)
 
-    def get_target_type_link_args(self, target, linker):
-        commands = []
+    def get_target_type_link_args(self, target: build.BuildTarget, linker: Compiler):
+        commands: T.List[str] = []
         if isinstance(target, build.Executable):
             # Currently only used with the Swift compiler to add '-emit-executable'
             commands += linker.get_std_exe_link_args()
             # If export_dynamic, add the appropriate linker arguments
             if target.export_dynamic:
-                commands += linker.gen_export_dynamic_link_args(self.environment)
+                commands += linker.gen_export_dynamic_link_args()
             # If implib, and that's significant on this platform (i.e. Windows using either GCC or Visual Studio)
             if target.import_filename:
                 commands += linker.gen_import_library_args(self.get_import_filename(target))
@@ -3470,7 +3470,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if not isinstance(target, build.SharedModule) or target.force_soname:
                 # Add -Wl,-soname arguments on Linux, -install_name on OS X
                 commands += linker.get_soname_args(
-                    self.environment, target.prefix, target.name, target.suffix,
+                    target.prefix, target.name, target.suffix,
                     target.soversion, target.darwin_versions)
             # This is only visited when building for Windows using either GCC or Visual Studio
             if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
@@ -3577,9 +3577,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         guessed_dependencies = []
         # TODO The get_library_naming requirement currently excludes link targets that use d or fortran as their main linker
         try:
-            static_patterns = linker.get_library_naming(self.environment, LibType.STATIC, strict=True)
-            shared_patterns = linker.get_library_naming(self.environment, LibType.SHARED, strict=True)
-            search_dirs = tuple(search_dirs) + tuple(linker.get_library_dirs(self.environment))
+            static_patterns = linker.get_library_naming(LibType.STATIC, strict=True)
+            shared_patterns = linker.get_library_naming(LibType.SHARED, strict=True)
+            search_dirs = tuple(search_dirs) + tuple(linker.get_library_dirs())
             for libname in libs:
                 # be conservative and record most likely shared and static resolution, because we don't know exactly
                 # which one the linker will prefer
@@ -3628,8 +3628,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             target_slashname_workaround_dir = self.get_target_dir(target)
         (rpath_args, target.rpath_dirs_to_remove) = (
-            linker.build_rpath_args(self.environment,
-                                    self.environment.get_build_dir(),
+            linker.build_rpath_args(self.environment.get_build_dir(),
                                     target_slashname_workaround_dir,
                                     target))
         return rpath_args
@@ -3756,7 +3755,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             #
             # We shouldn't check whether we are making a static library, because
             # in the LTO case we do use a real compiler here.
-            commands += linker.get_option_link_args(target, self.environment)
+            commands += linker.get_option_link_args(target)
 
         dep_targets = []
         dep_targets.extend(self.guess_external_link_dependencies(linker, target, commands, internal))

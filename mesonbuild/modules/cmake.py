@@ -261,7 +261,7 @@ class CmakeModule(ExtensionModule):
         if not compiler:
             raise mesonlib.MesonException('Requires a C or C++ compiler to compute sizeof(void *).')
 
-        return compiler.sizeof('void *', '', env)[0]
+        return compiler.sizeof('void *', '')[0]
 
     def detect_cmake(self, state: ModuleState) -> bool:
         if self.cmake_detected:

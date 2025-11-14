@@ -325,7 +325,7 @@ class _PythonDependencyBase(_Base):
                 libname += self.variables['ABIFLAGS']
             libdirs = []
 
-        largs = self.clib_compiler.find_library(libname, environment, libdirs)
+        largs = self.clib_compiler.find_library(libname, libdirs)
         if largs is not None:
             self.link_args = largs
             self.is_found = True
@@ -556,7 +556,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         if mesonlib.is_windows() and self.get_windows_python_arch().endswith('64') and mesonlib.version_compare(self.version, '<3.12'):
             self.compile_args += ['-DMS_WIN64=']
 
-        if not self.clib_compiler.has_header('Python.h', '', environment, extra_args=self.compile_args)[0]:
+        if not self.clib_compiler.has_header('Python.h', '', extra_args=self.compile_args)[0]:
             self.is_found = False
 
     @staticmethod

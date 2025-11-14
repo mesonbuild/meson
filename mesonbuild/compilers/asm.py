@@ -13,7 +13,6 @@ from .mixins.ti import TICompiler
 if T.TYPE_CHECKING:
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
-    from ..envconfig import MachineInfo
     from ..environment import Environment
 
 nasm_optimization_args: T.Dict[str, T.List[str]] = {
@@ -34,14 +33,15 @@ class ASMCompiler(Compiler):
     _SUPPORTED_ARCHES: T.Set[str] = set()
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
-                 for_machine: MachineChoice, info: MachineInfo,
+                 for_machine: MachineChoice, env: Environment,
                  linker: T.Optional[DynamicLinker] = None,
-                 full_version: T.Optional[str] = None, is_cross: bool = False):
+                 full_version: T.Optional[str] = None):
+        info = env.machines[for_machine]
         if self._SUPPORTED_ARCHES and info.cpu_family not in self._SUPPORTED_ARCHES:
             raise EnvironmentException(f'ASM Compiler {self.id} does not support building for {info.cpu_family} CPU family.')
-        super().__init__(ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
+        super().__init__(ccache, exelist, version, for_machine, env, linker, full_version)
 
-    def sanity_check(self, work_dir: str, environment: Environment) -> None:
+    def sanity_check(self, work_dir: str) -> None:
         return None
 
 
@@ -61,10 +61,10 @@ class NasmCompiler(ASMCompiler):
     _SUPPORTED_ARCHES = {'x86', 'x86_64'}
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
-                 for_machine: 'MachineChoice', info: 'MachineInfo',
+                 for_machine: 'MachineChoice', env: Environment,
                  linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None, is_cross: bool = False):
-        super().__init__(ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
+                 full_version: T.Optional[str] = None):
+        super().__init__(ccache, exelist, version, for_machine, env, linker, full_version)
         if isinstance(self.linker, VisualStudioLikeLinkerMixin):
             self.base_options.add(OptionKey('b_vscrt'))
 
@@ -279,10 +279,10 @@ class TILinearAsmCompiler(TICompiler, ASMCompiler):
     _SUPPORTED_ARCHES = {'c6000'}
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
-                 for_machine: MachineChoice, info: MachineInfo,
+                 for_machine: MachineChoice, env: Environment,
                  linker: T.Optional[DynamicLinker] = None,
-                 full_version: T.Optional[str] = None, is_cross: bool = False):
-        ASMCompiler.__init__(self, ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
+                 full_version: T.Optional[str] = None):
+        ASMCompiler.__init__(self, ccache, exelist, version, for_machine, env, linker, full_version)
         TICompiler.__init__(self)
 
     def needs_static_linker(self) -> bool:
@@ -302,10 +302,10 @@ class MetrowerksAsmCompiler(MetrowerksCompiler, ASMCompiler):
     language = 'nasm'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
-                 for_machine: 'MachineChoice', info: 'MachineInfo',
+                 for_machine: 'MachineChoice', env: Environment,
                  linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None, is_cross: bool = False):
-        ASMCompiler.__init__(self, ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
+                 full_version: T.Optional[str] = None):
+        ASMCompiler.__init__(self, ccache, exelist, version, for_machine, env, linker, full_version)
         MetrowerksCompiler.__init__(self)
 
         self.warn_args: T.Dict[str, T.List[str]] = {

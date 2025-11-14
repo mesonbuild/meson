@@ -935,8 +935,8 @@ class Backend:
             commands += compiler.get_werror_args()
         # Add compile args for c_* or cpp_* build options set on the
         # command-line or default_options inside project().
-        commands += compiler.get_option_compile_args(target, self.environment, target.subproject)
-        commands += compiler.get_option_std_args(target, self.environment, target.subproject)
+        commands += compiler.get_option_compile_args(target, target.subproject)
+        commands += compiler.get_option_std_args(target, target.subproject)
 
         optimization = self.get_target_option(target, 'optimization')
         assert isinstance(optimization, str), 'for mypy'
@@ -1060,8 +1060,8 @@ class Backend:
         # Get program and library dirs from all target compilers
         if isinstance(target, build.BuildTarget):
             for cc in target.compilers.values():
-                paths.update(cc.get_program_dirs(self.environment))
-                paths.update(cc.get_library_dirs(self.environment))
+                paths.update(cc.get_program_dirs())
+                paths.update(cc.get_library_dirs())
         return list(paths)
 
     @staticmethod

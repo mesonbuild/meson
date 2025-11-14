@@ -44,8 +44,8 @@ class GLDependencySystem(SystemDependency):
             # FIXME: Detect version using self.clib_compiler
             return
         else:
-            links = self.clib_compiler.find_library('GL', environment, [])
-            has_header = self.clib_compiler.has_header('GL/gl.h', '', environment)[0]
+            links = self.clib_compiler.find_library('GL', [])
+            has_header = self.clib_compiler.has_header('GL/gl.h', '')[0]
             if links and has_header:
                 self.is_found = True
                 self.link_args = links
@@ -199,7 +199,7 @@ class VulkanDependencySystem(SystemDependency):
             inc_path = os.path.join(self.vulkan_sdk, inc_dir)
             header = os.path.join(inc_path, 'vulkan', 'vulkan.h')
             lib_path = os.path.join(self.vulkan_sdk, lib_dir)
-            find_lib = self.clib_compiler.find_library(lib_name, environment, [lib_path])
+            find_lib = self.clib_compiler.find_library(lib_name, [lib_path])
 
             if not find_lib:
                 raise DependencyException('VULKAN_SDK point to invalid directory (no lib)')
@@ -215,8 +215,8 @@ class VulkanDependencySystem(SystemDependency):
             self.link_args.append('-l' + lib_name)
         else:
             # simply try to guess it, usually works on linux
-            libs = self.clib_compiler.find_library('vulkan', environment, [])
-            if libs is not None and self.clib_compiler.has_header('vulkan/vulkan.h', '', environment, disable_cache=True)[0]:
+            libs = self.clib_compiler.find_library('vulkan', [])
+            if libs is not None and self.clib_compiler.has_header('vulkan/vulkan.h', '', disable_cache=True)[0]:
                 self.is_found = True
                 for lib in libs:
                     self.link_args.append(lib)
@@ -229,7 +229,6 @@ class VulkanDependencySystem(SystemDependency):
                 components = [str(self.clib_compiler.compute_int(f'VK_VERSION_{c}(VK_HEADER_VERSION_COMPLETE)',
                                                                  low=0, high=None, guess=e,
                                                                  prefix='#include <vulkan/vulkan.h>',
-                                                                 env=environment,
                                                                  extra_args=self.compile_args,
                                                                  dependencies=None))
                               # list containing vulkan version components and their expected value
