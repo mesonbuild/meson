@@ -17,6 +17,7 @@ import pathlib
 import collections
 import urllib.parse
 import typing as T
+from pathlib import PurePath
 
 from . import builder, version
 from .cfg import eval_cfg
@@ -799,7 +800,7 @@ def _parse_git_url(url: str, branch: T.Optional[str] = None) -> T.Tuple[str, str
     query_branch = query['branch'][0] if 'branch' in query else ''
     branch = branch or query_branch
     revision = parts.fragment or branch
-    directory = os.path.basename(parts.path)
+    directory = PurePath(parts.path).name
     if directory.endswith('.git'):
         directory = directory[:-4]
     if branch:
