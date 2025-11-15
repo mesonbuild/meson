@@ -110,6 +110,7 @@ mkdir /etc/portage/profile || true
 cat <<-EOF > /etc/portage/package.use/ci
 	dev-cpp/gtkmm X
 	media-libs/libglvnd X
+	media-libs/freetype harfbuzz
 	x11-libs/cairo X
 	x11-libs/libxkbcommon X
 	dev-lang/rust clippy rustfmt
