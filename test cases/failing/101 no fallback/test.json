@@ -2,7 +2,7 @@
   "stdout": [
     {
       "match": "re",
-      "line": ".*/meson\\.build:2:11: ERROR: (Pkg-config binary for machine MachineChoice\\.HOST not found\\. Giving up\\.|Dependency \"foob\" not found, tried .*)"
+      "line": ".*/meson\\.build:2:11: ERROR: (Pkg-config binary for machine MachineChoice\\.HOST not found\\. Giving up\\.|Dependency \"foob\" not found \\(tried .*\\))"
     }
   ]
 }

@@ -17,11 +17,11 @@ from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 from .. import mesonlib, mlog
 from ..tooldetect import get_llvm_tool_names
 from ..mesonlib import version_compare, version_compare_many, search_version
-from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyTypeName
+from .base import DependencyCandidate, DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
-from .factory import DependencyFactory
+from .factory import DependencyFactory, factory_methods
 from .misc import threads_factory
 from .pkgconfig import PkgConfigDependency
 
@@ -32,6 +32,7 @@ if T.TYPE_CHECKING:
     from ..mesonlib import MachineChoice
     from ..interpreter.type_checking import PkgConfigDefineType
     from .base import DependencyObjectKWs
+    from .factory import DependencyGenerator
 
 
 def get_shared_library_suffix(environment: 'Environment', for_machine: MachineChoice) -> str:
@@ -48,12 +49,13 @@ def get_shared_library_suffix(environment: 'Environment', for_machine: MachineCh
 
 class GTestDependencySystem(SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__(name, environment, kwargs, language='cpp')
+        kwargs['language'] = 'cpp'
+        super().__init__(name, environment, kwargs)
         self.main = kwargs.get('main', False)
 
         sysroot = environment.properties[self.for_machine].get_sys_root() or ''
         self.src_dirs = [sysroot + '/usr/src/gtest/src', sysroot + '/usr/src/googletest/googletest/src']
-        if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
+        if not self._add_sub_dependency(threads_factory(environment, {'native': self.for_machine})):
             self.is_found = False
             return
         self.detect()
@@ -113,22 +115,24 @@ class GTestDependencyPC(PkgConfigDependency):
 
 class GMockDependencySystem(SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__(name, environment, kwargs, language='cpp')
+        kwargs['language'] = 'cpp'
+        super().__init__(name, environment, kwargs)
         self.main = kwargs.get('main', False)
-        if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
+        if not self._add_sub_dependency(threads_factory(environment, {'native': self.for_machine})):
             self.is_found = False
             return
 
         # If we are getting main() from GMock, we definitely
         # want to avoid linking in main() from GTest
         gtest_kwargs = kwargs.copy()
+        gtest_kwargs['native'] = self.for_machine
         if self.main:
             gtest_kwargs['main'] = False
 
         # GMock without GTest is pretty much useless
         # this also mimics the structure given in WrapDB,
         # where GMock always pulls in GTest
-        found = self._add_sub_dependency(gtest_factory(environment, self.for_machine, gtest_kwargs))
+        found = self._add_sub_dependency(gtest_factory(environment, gtest_kwargs))
         if not found:
             self.is_found = False
             return
@@ -188,20 +192,21 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
     __cpp_blacklist = {'-DNDEBUG'}
 
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+        kwargs['language'] = 'cpp'
         self.tools = get_llvm_tool_names('llvm-config')
 
         # Fedora starting with Fedora 30 adds a suffix of the number
         # of bits in the isa that llvm targets, for example, on x86_64
         # and aarch64 the name will be llvm-config-64, on x86 and arm
         # it will be llvm-config-32.
-        if environment.machines[kwargs.get('native', mesonlib.MachineChoice.HOST)].is_64_bit:
+        if environment.machines[kwargs['native']].is_64_bit:
             self.tools.append('llvm-config-64')
         else:
             self.tools.append('llvm-config-32')
 
         # It's necessary for LLVM <= 3.8 to use the C++ linker. For 3.9 and 4.0
         # the C linker works fine if only using the C API.
-        super().__init__(name, environment, kwargs, language='cpp')
+        super().__init__(name, environment, kwargs)
         self.provided_modules: T.List[str] = []
         self.required_modules: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
         self.module_details:   T.List[str] = []
@@ -224,7 +229,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
             self._set_old_link_args()
         self.link_args = strip_system_libdirs(environment, self.for_machine, self.link_args)
         self.link_args = self.__fix_bogus_link_args(self.link_args)
-        if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
+        if not self._add_sub_dependency(threads_factory(environment, {'native': self.for_machine})):
             self.is_found = False
             return
 
@@ -383,18 +388,18 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
 
 class LLVMDependencyCMake(CMakeDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        kwargs['language'] = 'cpp'
         self.llvm_modules = kwargs.get('modules', [])
         self.llvm_opt_modules = kwargs.get('optional_modules', [])
 
-        for_machine = kwargs.get('native', mesonlib.MachineChoice.HOST)
+        for_machine = kwargs['native']
         compilers = env.coredata.compilers[for_machine]
         if not compilers or not {'c', 'cpp'}.issubset(compilers):
             # Initialize basic variables
-            ExternalDependency.__init__(self, DependencyTypeName('cmake'), env, kwargs)
+            ExternalDependency.__init__(self, name, env, kwargs)
 
             # Initialize CMake specific variables
             self.found_modules: T.List[str] = []
-            self.name = name
 
             langs: T.List[str] = []
             if not compilers:
@@ -422,7 +427,7 @@ class LLVMDependencyCMake(CMakeDependency):
             )
             return
 
-        super().__init__(name, env, kwargs, language='cpp', force_use_global_compilers=True)
+        super().__init__(name, env, kwargs, force_use_global_compilers=True)
 
         if not self.cmakebin.found():
             return
@@ -444,7 +449,7 @@ class LLVMDependencyCMake(CMakeDependency):
         temp = ['-I' + x for x in inc_dirs] + defs
         self.compile_args += [x for x in temp if x not in self.compile_args]
         self.compile_args = strip_system_includedirs(env, self.for_machine, self.compile_args)
-        if not self._add_sub_dependency(threads_factory(env, self.for_machine, {})):
+        if not self._add_sub_dependency(threads_factory(env, {'native': self.for_machine})):
             self.is_found = False
             return
 
@@ -501,13 +506,217 @@ class LLVMDependencyCMake(CMakeDependency):
         return module
 
 
+class ClangSystemDependency(SystemDependency):
+
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs) -> None:
+        language = kwargs.get('language') or 'c'
+        if language not in {'c', 'cpp'}:
+            raise DependencyException('Clang only provides C and C++ language support')
+
+        super().__init__(name, env, kwargs)
+        self.feature_since = ('1.10.0', '')
+        self.module_details: T.List[str] = []
+
+        # Clang may be installed a number of different ways:
+        #
+        # 1. Clang is installed directly in a common search path
+        # 2. Clang is installed alongside LLVM in a separate path to allow multiple versions
+        #    to be co-installed. (Debian and Gentoo do this)
+        # 3. LLVM and Clang are installed in separate, default search paths. (NixOS does this)
+        #
+        # In order to accommodate all three of these we need to search both in
+        # the LLVM directory and outside of it. Start with the LLVM dir to avoid
+        # a situation where there is Clang next to LLVM and a different one in a
+        # common path
+        #
+        # Try to handle the combinations of CMake and config-tool LLVM with this
+        # method, even though it probably doesn't make sense to use the system
+        # finder for Clang with CMake LLVM
+        llvm = kwargs.get('llvm')
+        if llvm is not None:
+            if not llvm.found():
+                mlog.debug('Passed LLVM was not found, treating Clang as not found')
+                return
+            if self.version_reqs and not mesonlib.version_compare_many(llvm.version, self.version_reqs):
+                mlog.debug('Passed LLVMs version does not match the version required for Clang, treating it as not found')
+                return
+            self.ext_deps.append(llvm)
+        else:
+            if not self._add_sub_dependency(
+                llvm_factory(env, {'required': False,
+                                   'version': kwargs.get('version'),
+                                   'native': self.for_machine,
+                                   'method': DependencyMethods.CONFIG_TOOL})):
+                return
+            llvm = T.cast('ExternalDependency', self.ext_deps[0])
+        # Clang and LLVM need to have the same version
+        self.version = llvm.version
+
+        # libclang-cpp.so does not require modules, but there is no static equivalent
+        modules = kwargs.get('modules')
+        if not modules and language == 'cpp':
+            mlog.warning('Clang C++ dependency without modules works correctly for dynamically linked Clang, '
+                         'but will fail to find a statically linked Clang', once=True, fatal=False)
+
+        dirs: T.List[T.List[str]] = [[llvm.get_variable(configtool='libdir', cmake='LLVM_LIBRARY_DIR')], []]
+
+        # Need the Windows version.dll library for the C++ interface
+        machine = self.env.machines[self.for_machine]
+        assert machine is not None, 'for mypy'
+        if machine.is_windows() and language == 'cpp':
+            libver = self.clib_compiler.find_library('version', env, [])
+            self.link_args = libver if libver is not None else []
+
+        # Clang provides up to two interfaces for C++ code, and only one for C
+        #
+        # For C++ you can use libclang-cpp.so, or you can use loose static
+        # archives (This is just like LLVM).
+        #
+        # For C you use libclang which may be built static or shared, depending
+        # on configuration.
+        if not self.static or language == 'c':
+            if language == 'cpp':
+                # Use strict libtypes for C++ since we can fall through to
+                # individual libs if we can't find what
+                libtype = mesonlib.LibType.SHARED
+                libname = 'clang-cpp'
+            else:
+                libtype = mesonlib.LibType.PREFER_STATIC if self.static else mesonlib.LibType.PREFER_SHARED
+                libname = 'clang'
+
+            for search in dirs:
+                lib = self.clib_compiler.find_library(libname, env, search, libtype=libtype)
+                if lib:
+                    # Version.h is a C++ header, and this will fail if we look
+                    # for clang-c. The inc is just the basic
+                    version = self.clib_compiler.get_define('CLANG_VERSION', '#include <clang/Basic/Version.inc>', env, lib, self.ext_deps)[0]
+                    if not version:
+                        mlog.debug(f'Could not find Clang in {search}, Becuase Version header was not found')
+                        continue
+
+                    if not self.version_reqs or mesonlib.version_compare_many(version, self.version_reqs):
+                        self.version = version
+                        self.link_args.extend(lib)
+                        self.is_found = True
+                        return
+
+        # If we don't have modules, or we're looking for C we're done, it's not going to find anything anyway
+        if not modules or language == 'c':
+            return
+
+        opt_modules = kwargs.get('optional_modules') or []
+
+        libtype = mesonlib.LibType.PREFER_STATIC if self.static else mesonlib.LibType.PREFER_SHARED
+
+        # Sometimes (especially on Windows), the libs will have a suffix of the
+        # major version, so thigs like `clangBasic-8.lib` or
+        # `cygclangBasic-8.dll`
+        assert llvm.version is not None, 'for mypy'
+        for search, suffix in zip(dirs, ['', f'-{llvm.version.split(".")[0]}']):
+            self.module_details.clear()
+            libs: T.List[str] = []
+            for m in modules:
+                m = f'{m}{suffix}'
+                lib = self.clib_compiler.find_library(m, env, search, libtype)
+                if lib:
+                    libs.extend(lib)
+                    self.module_details.append(m)
+                else:
+                    self.module_details.append(f'{m} (missing)')
+                    # Intentionally do not break here so that we can get an
+                    # accurate count of missing modules
+            if len(modules) != len(libs):
+                mlog.debug(f'Could not find Clang in {search}, '
+                           f'because of missing modules: {self.module_details}')
+                continue
+
+            for m in opt_modules:
+                m = f'{m}{suffix}'
+                lib = self.clib_compiler.find_library(m, env, search, libtype)
+                if lib:
+                    libs.extend(lib)
+                    self.module_details.append(m)
+                else:
+                    self.module_details.append(f'{m} (missing but optional)')
+
+            version = self.clib_compiler.get_define('CLANG_VERSION', '#include <clang/Basic/Version.h>', env, libs, self.ext_deps)[0]
+            if not version:
+                mlog.debug(f'Could not find Clang in {search}, Becuase Version header was not found')
+                continue
+
+            if not self.version_reqs or mesonlib.version_compare_many(version, self.version_reqs):
+                self.version = version
+                self.link_args = libs
+                self.is_found = True
+                return
+
+            mlog.debug(f'Could not use Clang in {search}, because of version mismatch, '
+                       f'required {", ".join(self.version_reqs)}, version: {version}')
+
+    def log_details(self) -> str:
+        if self.module_details:
+            return 'modules: ' + ', '.join(self.module_details)
+        return ''
+
+
+class ClangCMakeDependency(CMakeDependency):
+
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs,
+                 force_use_global_compilers: bool = False) -> None:
+        language = kwargs.get('language') or 'c'
+        self.feature_since = ('1.10.0', '')
+
+        # libclang-cpp.so does not require modules, but there is no static equivalent
+        if not kwargs.get('modules') and language == 'cpp':
+            mlog.warning('Clang C++ dependency without modules works correctly for dynamically linked Clang, '
+                         'but will fail to find a statically linked Clang', once=True, fatal=False)
+
+        # The C compiler is required for C++ mode, otherwise it will fail.
+        # Setting this option will add the C compielr if it's enabled
+        if language == 'cpp':
+            force_use_global_compilers = True
+
+        super().__init__(name, environment, kwargs, force_use_global_compilers)
+
+
+@factory_methods({DependencyMethods.SYSTEM, DependencyMethods.CMAKE})
+def clang_factory(env: 'Environment', kwargs: DependencyObjectKWs,
+                  methods: T.List[DependencyMethods]) -> T.List[DependencyGenerator]:
+    candidates: T.List[DependencyGenerator] = []
+    language = kwargs.get('language') or 'c'
+
+    modules: T.List[T.Optional[T.List[str]]] = []
+    if language == 'c':
+        modules.append(['libclang'])
+    else:
+        # For non-static build, prefer libclang-cpp to loose libs
+        if not kwargs.get('static', False):
+            modules.append(['clang-cpp'])
+        modules.append(None)
+
+    if DependencyMethods.SYSTEM in methods:
+        for mods in modules:
+            candidates.append(DependencyCandidate.from_dependency(
+                'clang', ClangSystemDependency, (env, kwargs), modules=mods))
+
+    if DependencyMethods.CMAKE in methods:
+        for mods in modules:
+            candidates.append(DependencyCandidate.from_dependency(
+                'Clang', ClangCMakeDependency, (env, kwargs), modules=mods))
+
+    return candidates
+
+
+packages['clang'] = clang_factory
+
+
 class ValgrindDependency(PkgConfigDependency):
     '''
     Consumers of Valgrind usually only need the compile args and do not want to
     link to its (static) libraries.
     '''
-    def __init__(self, env: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__('valgrind', env, kwargs)
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, env, kwargs)
 
     def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
         return []
@@ -554,8 +763,8 @@ class ZlibSystemDependency(SystemDependency):
 
 
 class JNISystemDependency(SystemDependency):
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__('jni', environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, environment, kwargs)
 
         self.feature_since = ('0.62.0', '')
 
@@ -682,8 +891,8 @@ packages['jni'] = JNISystemDependency
 
 
 class JDKSystemDependency(JNISystemDependency):
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__(environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__('jni', environment, kwargs)
 
         self.feature_since = ('0.59.0', '')
         self.featurechecks.append(FeatureDeprecated(
@@ -693,7 +902,6 @@ class JDKSystemDependency(JNISystemDependency):
         ))
 
 packages['jdk'] = JDKSystemDependency
-
 
 class DiaSDKSystemDependency(SystemDependency):
 
@@ -748,8 +956,8 @@ class DiaSDKSystemDependency(SystemDependency):
         defval, _ = compiler.get_define(dname, '', env, [], [])
         return defval is not None
 
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__('diasdk', environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        super().__init__(name, environment, kwargs)
         self.is_found = False
 
         compilers = environment.coredata.compilers.host
@@ -798,27 +1006,27 @@ packages['diasdk'] = DiaSDKSystemDependency
 packages['llvm'] = llvm_factory = DependencyFactory(
     'LLVM',
     [DependencyMethods.CMAKE, DependencyMethods.CONFIG_TOOL],
-    cmake_class=LLVMDependencyCMake,
-    configtool_class=LLVMDependencyConfigTool,
+    cmake=LLVMDependencyCMake,
+    configtool=LLVMDependencyConfigTool,
 )
 
 packages['gtest'] = gtest_factory = DependencyFactory(
     'gtest',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
-    pkgconfig_class=GTestDependencyPC,
-    system_class=GTestDependencySystem,
+    pkgconfig=GTestDependencyPC,
+    system=GTestDependencySystem,
 )
 
 packages['gmock'] = gmock_factory = DependencyFactory(
     'gmock',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
-    pkgconfig_class=GMockDependencyPC,
-    system_class=GMockDependencySystem,
+    pkgconfig=GMockDependencyPC,
+    system=GMockDependencySystem,
 )
 
 packages['zlib'] = zlib_factory = DependencyFactory(
     'zlib',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE, DependencyMethods.SYSTEM],
     cmake_name='ZLIB',
-    system_class=ZlibSystemDependency,
+    system=ZlibSystemDependency,
 )

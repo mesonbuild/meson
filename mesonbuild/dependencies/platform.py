@@ -15,8 +15,11 @@ if T.TYPE_CHECKING:
     from .base import DependencyObjectKWs
 
 class AppleFrameworks(ExternalDependency):
-    def __init__(self, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__(DependencyTypeName('appleframeworks'), env, kwargs)
+
+    type_name = DependencyTypeName('appleframeworks')
+
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        super().__init__(name, env, kwargs)
         modules = kwargs.get('modules', [])
         if not modules:
             raise DependencyException("AppleFrameworks dependency requires at least one module.")
@@ -43,9 +46,5 @@ class AppleFrameworks(ExternalDependency):
 
     def log_info(self) -> str:
         return ', '.join(self.frameworks)
-
-    @staticmethod
-    def log_tried() -> str:
-        return 'framework'
 
 packages['appleframeworks'] = AppleFrameworks
