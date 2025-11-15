@@ -37,19 +37,30 @@ class AppleCompilerMixin(Compiler):
         """
         m = env.machines[self.for_machine]
         assert m is not None, 'for mypy'
-        if m.cpu_family.startswith('x86'):
-            root = '/usr/local'
-        else:
-            root = '/opt/homebrew'
+
+        # Try to detect Homebrew prefix dynamically
+        root = env.get_homebrew_prefix(self.for_machine)
+        if root is None:
+            # Fallback to hardcoded defaults if brew is not available
+            if m.cpu_family.startswith('x86'):
+                root = '/usr/local'
+            else:
+                root = '/opt/homebrew'
+
         return self.__BASE_OMP_FLAGS + [f'-I{root}/opt/libomp/include']
 
     def openmp_link_flags(self, env: Environment) -> T.List[str]:
         m = env.machines[self.for_machine]
         assert m is not None, 'for mypy'
-        if m.cpu_family.startswith('x86'):
-            root = '/usr/local'
-        else:
-            root = '/opt/homebrew'
+
+        # Try to detect Homebrew prefix dynamically
+        root = env.get_homebrew_prefix(self.for_machine)
+        if root is None:
+            # Fallback to hardcoded defaults if brew is not available
+            if m.cpu_family.startswith('x86'):
+                root = '/usr/local'
+            else:
+                root = '/opt/homebrew'
 
         link = self.find_library('omp', env, [f'{root}/opt/libomp/lib'])
         if not link:
