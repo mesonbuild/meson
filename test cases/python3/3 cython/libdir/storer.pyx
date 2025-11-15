@@ -9,7 +9,7 @@ cdef class Storer:
     def __dealloc__(self):
         cstorer.storer_destroy(self._c_storer)
 
-    cpdef int get_value(self):
+    cpdef int get_value_for(self):
         return cstorer.storer_get_value(self._c_storer)
 
     cpdef set_value(self, int value):

@@ -5,13 +5,13 @@ import sys
 
 s = Storer()
 
-if s.get_value() != 0:
+if s.get_value_for() != 0:
     print('Initial value incorrect.')
     sys.exit(1)
 
 s.set_value(42)
 
-if s.get_value() != 42:
+if s.get_value_for() != 42:
     print('Setting value failed.')
     sys.exit(1)
 

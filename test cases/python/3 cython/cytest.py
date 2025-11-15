@@ -4,12 +4,12 @@ from storer import Storer
 
 s = Storer()
 
-if s.get_value() != 0:
+if s.get_value_for() != 0:
     raise SystemExit('Initial value incorrect.')
 
 s.set_value(42)
 
-if s.get_value() != 42:
+if s.get_value_for() != 42:
     raise SystemExit('Setting value failed.')
 
 try:

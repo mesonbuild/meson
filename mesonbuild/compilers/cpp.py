@@ -4,13 +4,16 @@
 from __future__ import annotations
 
 import functools
+import os
 import os.path
+import re
 import typing as T
+import json
 
 from .. import options
 from .. import mlog
-from ..mesonlib import MesonException, version_compare
-
+from ..mesonlib import (File, MesonException, MesonBugException, Popen_safe_logged,
+                        version_compare)
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
@@ -89,7 +92,60 @@ class CPPCompiler(CLikeCompiler, Compiler):
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         code = 'class breakCCompiler;int main(void) { return 0; }\n'
-        return self._sanity_check_impl(work_dir, environment, 'sanitycheckcpp.cc', code)
+        self._sanity_check_impl(work_dir, environment, 'sanitycheckcpp.cc', code)
+        if environment.coredata.optstore.get_value_for('cpp_import_std'):
+            self._import_cpp_std_sanity_check(work_dir, environment)
+
+    def compile_import_std_module(self,
+                                    env: 'Environment',
+                                    code: File):
+        cpp_std = env.coredata.optstore.get_value_for('cpp_std')
+        srcname = code.fname
+        # Construct the compiler command-line
+        commands = self.compiler_args()
+        commands.append(f"-std={cpp_std}")
+        commands.extend(['-Wno-reserved-identifier', '-Wno-reserved-module-identifier'])
+        commands.append("--precompile")
+
+        all_lists_to_add = [self.get_always_args(), self.get_debug_args(env.coredata.optstore.get_value_for('buildtype') == 'debug'),
+                            self.get_assert_args(disable=env.coredata.optstore.get_value_for('b_ndebug') in ['if-release', 'true'],
+                                                env=env)]
+        for args_list in all_lists_to_add:
+            for arg in args_list:
+                commands.append(arg)
+        commands.append(srcname)
+        tmpdirname = env.build_dir
+
+        # Preprocess mode outputs to stdout, so no output args
+        print(f"***{self.get_exelist()}")
+        output = f'std{self.get_cpp20_module_bmi_extension()}'
+        commands += self.get_output_args(output)
+        no_ccache = True
+        os_env = os.environ.copy()
+        os_env['LC_ALL'] = 'C'
+        os_env['CCACHE_DISABLE'] = '1'
+        command_list = self.get_exelist(ccache=not no_ccache) + commands.to_native()
+        p, stdo, stde = Popen_safe_logged(command_list, msg="Command line for compiling 'import std' feature", cwd=tmpdirname, env=os_env)
+        if p.returncode != 0:
+            raise MesonException("Could not compile library for use with 'import std'")
+
+    def get_import_std_lib_source_args(self, env: Environment) -> T.List[str]:
+            raise MesonException("Your compiler does not support 'import std' feature or it has not been implemented")
+
+    def get_import_std_lib_source_file(self, env: Environment) -> str:
+        raise MesonException("Your compiler does not support 'import std' feature or it has not been implemented")
+
+    def get_cpp20_module_bmi_extension(self) -> str:
+        raise MesonException("Your compiler does not support 'import std' feature or it has not been implemented")
+
+    def get_import_std_compile_args(self, environment: 'Environment') -> T.List[str]:
+        raise MesonException("Your compiler does not support 'import std' feature or it has not been implemented")
+
+    def check_cpp_import_std_support(self):
+        raise MesonException("Your compiler does not support 'import std' feature or it has not been implemented")
+
+    def _import_cpp_std_sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+        self.check_cpp_import_std_support()
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         # -fpermissive allows non-conforming code to compile which is necessary
@@ -175,8 +231,10 @@ class CPPCompiler(CLikeCompiler, Compiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
         key = self.form_compileropt_key('std')
+        import_std_key = self.form_compileropt_key('import_std')
         opts.update({
             key: options.UserStdOption('cpp', ALL_STDS),
+            import_std_key: options.UseImportStd('cpp')
         })
         return opts
 
@@ -235,6 +293,59 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic'],
                           'everything': ['-Weverything']}
+
+    def check_cpp_import_std_support(self):
+        if int(self.version.split('.')[0]) < 17:
+            raise MesonException('Your compiler does not support import std feature. Clang support starts at version >= 17')
+
+    def get_import_std_compile_args(self, env: 'Environment') -> T.List[str]:
+        bmi_path = f'{env.get_build_dir()}/std{self.get_cpp20_module_bmi_extension()}'
+        return [f'-fmodule-file=std={bmi_path}']
+
+    def get_cpp20_module_bmi_extension(self) -> str:
+        return '.pcm'
+
+    def get_import_std_lib_source_args(self, env: Environment) -> T.List[str]:
+        cpp_std = env.coredata.optstore.get_value_for('cpp_std')
+        args = [f'-std={cpp_std}',
+                '-Wno-reserved-identifier',
+                '-Wno-reserved-module-identifier',
+                '--precompile']
+
+        # Add external compile args (includes)
+        cpp_compile_args = env.coredata.get_external_args(self.for_machine, self.language)
+        args.extend(cpp_compile_args)
+
+        # Add external link args (library paths)
+        cpp_link_args = env.coredata.get_external_link_args(self.for_machine, self.language)
+        args.extend(cpp_link_args)
+        return args
+
+
+    llvm_dir_re = re.compile(r'(/\D*/(?:\.?\d+)+)/.*')
+
+    def get_import_std_lib_source_file(self, env: Environment) -> str:
+        # Get user-provided link args (these should override compiler defaults)
+        cpp_link_args = env.coredata.get_external_link_args(self.for_machine, self.language)
+        link_dirs = []
+        for arg in cpp_link_args:
+            if arg.startswith('-L'):
+                lib_path = arg[2:]
+                link_dirs.append(lib_path)
+        link_dirs.extend(self.get_library_dirs(env))
+        for link_dir in link_dirs:
+            modules_json_path = os.path.join(link_dir, 'libc++.modules.json')
+            if os.path.exists(modules_json_path):
+                with open(modules_json_path, 'r') as f:
+                    modules_data = json.load(f)
+                    for module in modules_data.get('modules', []):
+                        if module.get('logical-name') == 'std':
+                            source_path = module.get('source-path')
+                            if source_path:
+                                abs_path = os.path.normpath(os.path.join(link_dir, source_path))
+                                if os.path.exists(abs_path):
+                                    return abs_path
+        raise MesonBugException('Could not find libc++.modules.json or std.cppm in link directories')
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
