@@ -510,7 +510,8 @@ class TestLogger:
     def start_test(self, harness: 'TestHarness', test: 'TestRun') -> None:
         pass
 
-    def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, res: TestResult) -> None:
+    def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, res: TestResult,
+                    explanation: T.Optional[str]) -> None:
         pass
 
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
@@ -709,13 +710,16 @@ class ConsoleLogger(TestLogger):
             print_safe(log)
             print(self.output_end)
 
-    def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, result: TestResult) -> None:
+    def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, result: TestResult, explanation: T.Optional[str]) -> None:
         if test.verbose or (harness.options.print_errorlogs and result.is_bad()):
             self.flush()
             print(harness.format(test, mlog.colorize_console(), max_left_width=self.max_left_width,
                                  prefix=self.sub,
                                  middle=s,
                                  right=result.get_text(mlog.colorize_console())), flush=True)
+
+            if explanation is not None:
+                print(result.colorize(f"{' ' * len(self.sub)}Reason: {explanation}").get_text(mlog.colorize_console()))
 
             self.request_update()
 
@@ -1161,12 +1165,12 @@ class TestRunTAP(TestRun):
                 version = i.version
             elif isinstance(i, TAPParser.Bailout):
                 res = TestResult.ERROR
-                harness.log_subtest(self, i.message, res)
+                harness.log_subtest(self, i.message, res, None)
             elif isinstance(i, TAPParser.Test):
                 self.results.append(i)
                 if i.result.is_bad():
                     res = TestResult.FAIL
-                harness.log_subtest(self, i.name or f'subtest {i.number}', i.result)
+                harness.log_subtest(self, i.name or f'subtest {i.number}', i.result, i.explanation)
             elif isinstance(i, TAPParser.UnknownLine):
                 warnings.append(i)
             elif isinstance(i, TAPParser.Error):
@@ -1224,7 +1228,7 @@ class TestRunRust(TestRun):
                 name = name.replace('::', '.')
                 t = parse_res(n, name, result)
                 self.results.append(t)
-                harness.log_subtest(self, name, t.result)
+                harness.log_subtest(self, name, t.result, None)
                 n += 1
 
         res = None
@@ -2126,9 +2130,9 @@ class TestHarness:
         finally:
             self.close_logfiles()
 
-    def log_subtest(self, test: TestRun, s: str, res: TestResult) -> None:
+    def log_subtest(self, test: TestRun, s: str, res: TestResult, explanation: T.Optional[str]) -> None:
         for l in self.loggers:
-            l.log_subtest(self, test, s, res)
+            l.log_subtest(self, test, s, res, explanation)
 
     def log_start_test(self, test: TestRun) -> None:
         for l in self.loggers:
