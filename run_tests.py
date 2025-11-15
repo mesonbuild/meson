@@ -395,7 +395,7 @@ def main():
         for cf in options.cross:
             print(mlog.bold(f'Running {cf} cross tests.'))
             print(flush=True)
-            cmd = cross_test_args + ['cross/' + cf]
+            cmd = cross_test_args + [cf] if cf.startswith("/") else ['cross/' + cf]
             if options.failfast:
                 cmd += ['--failfast']
             if options.cross_only:

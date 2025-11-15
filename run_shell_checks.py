@@ -27,6 +27,7 @@ permitted_files = (
     'ci/ciimage/fedora/install.sh',
     'ci/ciimage/arch/install.sh',
     'ci/ciimage/gentoo/install.sh',
+    'ci/ciimage/android/install.sh',
     'manual tests/4 standalone binaries/myapp.sh',
     'manual tests/4 standalone binaries/osx_bundler.sh',
     'manual tests/4 standalone binaries/linux_bundler.sh',

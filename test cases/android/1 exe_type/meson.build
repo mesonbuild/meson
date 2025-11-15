@@ -6,6 +6,8 @@ e = executable('executable', 'exe_type.c',
 a = executable('application', 'exe_type.c',
   android_exe_type : 'application')
 
+error('test: ensure android tests are ran')
+
 if fs.name(e.full_path()).contains('.')
   error('Executable with exe_type `executable` did have expected filename')
 endif
