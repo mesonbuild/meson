@@ -132,7 +132,19 @@ class StringHolder(ObjectHolder[str]):
     @InterpreterObject.method('to_int')
     def to_int_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> int:
         try:
-            return int(self.held_object)
+            s = self.held_object.strip()
+            s_unsigned = s.lstrip('+-').lower()
+
+            if s_unsigned.startswith('0x'):
+                base = 16
+            elif s_unsigned.startswith('0o'):
+                base = 8
+            elif s_unsigned.startswith('0b'):
+                base = 2
+            else:
+                base = 10
+
+            return int(s, base)
         except ValueError:
             raise InvalidArguments(f'String {self.held_object!r} cannot be converted to int')
 

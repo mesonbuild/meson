@@ -55,12 +55,52 @@ class IntegerHolder(ObjectHolder[int]):
 
     @typed_kwargs(
         'to_string',
-        KwargInfo('fill', int, default=0, since='1.3.0')
+        KwargInfo('fill', int, default=0, since='1.3.0'),
+        KwargInfo(
+            "format",
+            str,
+            default="dec",
+            since="1.10.0",
+            validator=lambda x: (
+                'format must be "dec", "hex", "oct", or "bin"'
+                if x not in ("dec", "hex", "oct", "bin")
+                else None
+            ),
+        ),
     )
     @noPosargs
     @InterpreterObject.method('to_string')
     def to_string_method(self, args: T.List[TYPE_var], kwargs: T.Dict[str, T.Any]) -> str:
-        return str(self.held_object).zfill(kwargs['fill'])
+        format_type = kwargs["format"]
+        fill = kwargs["fill"]
+
+        format_codes = {"hex": "#x", "oct": "#o", "bin": "#b", "dec": "d"}
+
+        if format_type == "dec":
+            result = str(self.held_object)
+            if fill > 0:
+                result = result.zfill(fill)
+        else:
+            result = format(self.held_object, format_codes[format_type])
+
+            if fill > 0:
+                if result.startswith("-"):
+                    sign = "-"
+                    prefixed = result[1:]
+                else:
+                    sign = ""
+                    prefixed = result
+
+                prefix = prefixed[:2]
+                digits = prefixed[2:]
+
+                total_prefix_len = len(sign) + len(prefix)
+                if fill > total_prefix_len:
+                    digits = digits.zfill(fill - total_prefix_len)
+
+                result = sign + prefix + digits
+
+        return result
 
     @typed_operator(MesonOperator.DIV, int)
     @InterpreterObject.operator(MesonOperator.DIV)
