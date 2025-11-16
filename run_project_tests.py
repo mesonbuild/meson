@@ -605,9 +605,10 @@ def format_parameter_file(file_basename: str, test: TestDef, test_build_dir: str
 
     return destination
 
-def detect_parameter_files(test: TestDef, test_build_dir: str) -> T.Tuple[Path, Path]:
+def detect_parameter_files(test: TestDef, test_build_dir: str) -> T.Tuple[Path, Path, Path]:
     nativefile = test.path / 'nativefile.ini'
     crossfile = test.path / 'crossfile.ini'
+    optionsfile = test.path / 'optionsfile.ini'
 
     if os.path.exists(str(test.path / 'nativefile.ini.in')):
         nativefile = format_parameter_file('nativefile.ini', test, test_build_dir)
@@ -615,7 +616,10 @@ def detect_parameter_files(test: TestDef, test_build_dir: str) -> T.Tuple[Path, 
     if os.path.exists(str(test.path / 'crossfile.ini.in')):
         crossfile = format_parameter_file('crossfile.ini', test, test_build_dir)
 
-    return nativefile, crossfile
+    if os.path.exists(str(test.path / 'optionsfile.ini.in')):
+        optionsfile = format_parameter_file('optionsfile.ini', test, test_build_dir)
+
+    return nativefile, crossfile, optionsfile
 
 # In previous python versions the global variables are lost in ProcessPoolExecutor.
 # So, we use this tuple to restore some of them
@@ -671,12 +675,14 @@ def _run_test(test: TestDef,
         gen_args += ['--libdir', 'lib']
     gen_args += [test.path.as_posix(), test_build_dir] + backend_flags + extra_args
 
-    nativefile, crossfile = detect_parameter_files(test, test_build_dir)
+    nativefile, crossfile, optionsfile = detect_parameter_files(test, test_build_dir)
 
     if nativefile.exists():
         gen_args.extend(['--native-file', nativefile.as_posix()])
     if crossfile.exists():
         gen_args.extend(['--cross-file', crossfile.as_posix()])
+    if optionsfile.exists():
+        gen_args.extend(['--cross-file' if '--cross-file' in extra_args else '--native-file', optionsfile.as_posix()])
     inprocess, res = run_configure(gen_args, env=test.env, catch_exception=True)
     returncode, stdo, stde = res
     cmd = '(inprocess) $ ' if inprocess else '$ '
