@@ -54,6 +54,9 @@ assert('#include <foo/bar.h>'.underscorify() == '_include__foo_bar_h_', 'Broken 
 assert('Do SomeThing 09'.underscorify() == 'Do_SomeThing_09', 'Broken underscorify')
 
 assert('3'.to_int() == 3, 'String int conversion does not work.')
+assert('0x10'.to_int() == 16, 'Hex string conversion does not work.')
+assert('0o10'.to_int() == 8, 'Octal string conversion does not work.')
+assert('0b10'.to_int() == 2, 'Binary string conversion does not work.')
 
 assert(true.to_string() == 'true', 'bool string conversion failed')
 assert(false.to_string() == 'false', 'bool string conversion failed')

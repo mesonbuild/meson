@@ -135,7 +135,14 @@ class StringHolder(ObjectHolder[str]):
     @InterpreterObject.method('to_int')
     def to_int_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> int:
         try:
-            return int(self.held_object)
+            s = self.held_object.strip()
+            try:
+                # For backward compatibility, try to parse the string as a decimal
+                # integer first. This is to allow leading zeros which are disallowed
+                # when determining the integer base from the string prefix.
+                return int(s)
+            except ValueError:
+                return int(s, base=0)
         except ValueError:
             raise InvalidArguments(f'String {self.held_object!r} cannot be converted to int')
 
