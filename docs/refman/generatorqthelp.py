@@ -1,24 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2025 The Meson development team
 
+from .model import ReferenceManual
 from .generatormd import GeneratorMD, _ROOT_BASENAME
 
-from .model import (
-    ReferenceManual,
-    #Function,
-    #Method,
-    #Object,
-    #ObjectType,
-    #Type,
-    #DataTypeInfo,
-    #ArgBase,
-    #PosArg,
-    #VarArgs,
-    #Kwarg,
-)
-
 import xml.etree.ElementTree as ET
-#import typing as T
 from pathlib import Path
 
 from mesonbuild import mlog
@@ -112,34 +98,34 @@ class GeneratorQtHelp(GeneratorMD):
         self.qhp_data.end('keywords')
 
     def _build_qhp_tree(self) -> None:
-        def build_small_tag(builder: ET.TreeBuilder, tag: str, data: str) -> None:
+        def build_small_tag(tag: str, data: str) -> None:
             '''
             Build a tag that only has text and no attributes
             '''
-            builder.start(tag, {})
-            builder.data(data)
-            builder.end(tag)
+            self.qhp_data.start(tag, {})
+            self.qhp_data.data(data)
+            self.qhp_data.end(tag)
 
         self.qhp_data.start('QtHelpProject', {'version': '1.0'})
 
-        build_small_tag(self.qhp_data, 'namespace', _NAMESPACE)
-        build_small_tag(self.qhp_data, 'virtualFolder', _VIRTUAL_FOLDER)
+        build_small_tag('namespace', _NAMESPACE)
+        build_small_tag('virtualFolder', _VIRTUAL_FOLDER)
 
         self.qhp_data.start('customFilter', {'name': _FILTER_NAME})
-        build_small_tag(self.qhp_data, 'filterAttribute', _FILTER_ATTR_NAME)
-        build_small_tag(self.qhp_data, 'filterAttribute', _FILTER_ATTR_VER)
+        build_small_tag('filterAttribute', _FILTER_ATTR_NAME)
+        build_small_tag('filterAttribute', _FILTER_ATTR_VER)
         self.qhp_data.end('customFilter')
 
         self.qhp_data.start('filterSection', {'name': _FILTER_NAME})
-        build_small_tag(self.qhp_data, 'filterAttribute', _FILTER_ATTR_NAME)
-        build_small_tag(self.qhp_data, 'filterAttribute', _FILTER_ATTR_VER)
+        build_small_tag('filterAttribute', _FILTER_ATTR_NAME)
+        build_small_tag('filterAttribute', _FILTER_ATTR_VER)
 
         self._build_table_of_contents()
         self._build_keywords()
 
         self.qhp_data.start('files', {})
-        build_small_tag(self.qhp_data, 'file', '*.html')
-        build_small_tag(self.qhp_data, 'file', 'assets/css/*.css')
+        build_small_tag('file', '*.html')
+        build_small_tag('file', 'assets/css/*.css')
         self.qhp_data.end('files')
 
         self.qhp_data.end('filterSection')
@@ -153,5 +139,5 @@ class GeneratorQtHelp(GeneratorMD):
         with mlog.nested():
             self._build_qhp_tree()
             qhp_tree = ET.ElementTree(self.qhp_data.close())
-            with open("Meson.qhp", "wb+") as qhp_file:
+            with open('Meson.qhp', 'wb+') as qhp_file:
                 qhp_tree.write(qhp_file, encoding='utf-8', xml_declaration=True)
