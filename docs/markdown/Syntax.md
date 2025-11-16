@@ -80,11 +80,29 @@ string_var = '42'
 num = string_var.to_int()
 ```
 
+Hexadecimal, octal, and binary strings can be converted to numbers since
+1.10.0:
+
+```meson
+hex_var = '0xFF'.to_int()    # 255
+oct_var = '0o755'.to_int()   # 493
+bin_var = '0b1010'.to_int()  # 10
+```
+
 Numbers can be converted to a string:
 
 ```meson
 int_var = 42
 string_var = int_var.to_string()
+```
+
+Numbers can be formatted as hexadecimal, octal, or binary strings since 1.10.0:
+
+```meson
+int_var = 255
+hex_str = int_var.to_string(format: 'hex')  # '0xff'
+oct_str = int_var.to_string(format: 'oct')  # '0o377'
+bin_str = int_var.to_string(format: 'bin')  # '0b11111111'
 ```
 
 ## Booleans
