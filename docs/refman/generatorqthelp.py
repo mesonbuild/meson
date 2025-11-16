@@ -5,6 +5,9 @@ from .model import ReferenceManual
 from .generatormd import GeneratorMD, _ROOT_BASENAME
 
 import xml.etree.ElementTree as ET
+import subprocess
+import os
+import shutil
 from pathlib import Path
 
 from mesonbuild import mlog
@@ -24,6 +27,20 @@ class GeneratorQtHelp(GeneratorMD):
 
         # Qt Help Project data
         self.qhp_data = ET.TreeBuilder()
+
+    def generate(self) -> None:
+        super().generate()
+
+        mlog.log('Generating Qt Help Project file...')
+        with mlog.nested():
+            self._build_qhp_tree()
+            qhp_tree = ET.ElementTree(self.qhp_data.close())
+            with open('Meson.qhp', 'wb+') as qhp_file:
+                qhp_tree.write(qhp_file, encoding='utf-8', xml_declaration=True)
+
+        mlog.log('Generating Qt Compressed Help file...')
+        with mlog.nested():
+            self._generate_qch()
 
     def _get_doc_title(self, md: Path) -> str:
         if not md.exists() or not md.is_file():
@@ -132,12 +149,22 @@ class GeneratorQtHelp(GeneratorMD):
 
         self.qhp_data.end('QtHelpProject')
 
-    def generate(self) -> None:
-        super().generate()
+    def _find_qhelpgenerator(self):
+        out = shutil.which('qhelpgenerator')
+        if out:
+            return out
+        out = shutil.which('qhelpgenerator-qt5')
+        if out:
+            return out
+        out = shutil.which('qhelpgenerator-qt6')
+        if out:
+            return out
+        mlog.error('Could not find the QtHelp generator.\n' +
+                   'Tried: "qhelpgenerator", "qhelpgenerator-qt5", "qhelpgenerator-qt6".',
+                   fatal=True)
+        return None
 
-        mlog.log('Generating Qt Help Project file...')
-        with mlog.nested():
-            self._build_qhp_tree()
-            qhp_tree = ET.ElementTree(self.qhp_data.close())
-            with open('Meson.qhp', 'wb+') as qhp_file:
-                qhp_tree.write(qhp_file, encoding='utf-8', xml_declaration=True)
+    def _generate_qch(self):
+        generator = self._find_qhelpgenerator()
+        subprocess.run([generator, '-o', 'Meson.qch'], cwd=self.out_dir,
+                       stdout=mlog._logger.log_file)
