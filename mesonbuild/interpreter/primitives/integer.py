@@ -7,11 +7,19 @@ from ...interpreterbase import (
     FeatureBroken, InvalidArguments, KwargInfo,
     noKwargs, noPosargs, typed_operator, typed_kwargs
 )
+from ..type_checking import in_set_validator
 
 import typing as T
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Literal, TypedDict
+
     from ...interpreterbase import TYPE_var, TYPE_kwargs
+
+    class ToStringKw(TypedDict):
+
+        fill: int
+        format: Literal['dec', 'hex', 'oct', 'bin']
 
 class IntegerHolder(ObjectHolder[int]):
     # Operators that only require type checks
@@ -55,12 +63,22 @@ class IntegerHolder(ObjectHolder[int]):
 
     @typed_kwargs(
         'to_string',
-        KwargInfo('fill', int, default=0, since='1.3.0')
+        KwargInfo('fill', int, default=0, since='1.3.0'),
+        KwargInfo(
+            "format",
+            str,
+            default="dec",
+            since="1.10.0",
+            validator=in_set_validator({"dec", "hex", "oct", "bin"}),
+        ),
     )
     @noPosargs
     @InterpreterObject.method('to_string')
-    def to_string_method(self, args: T.List[TYPE_var], kwargs: T.Dict[str, T.Any]) -> str:
-        return str(self.held_object).zfill(kwargs['fill'])
+    def to_string_method(self, args: T.List[TYPE_var], kwargs: 'ToStringKw') -> str:
+        format_codes = {"hex": "x", "oct": "o", "bin": "b", "dec": "d"}
+        return '{:#{padding}{format}}'.format(self.held_object,
+                                              padding=f'0{kwargs["fill"]}' if kwargs['fill'] > 0 else '',
+                                              format=format_codes[kwargs['format']])
 
     @typed_operator(MesonOperator.DIV, int)
     @InterpreterObject.operator(MesonOperator.DIV)
