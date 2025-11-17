@@ -44,15 +44,6 @@ def get_meson_introspection_version() -> str:
 def get_meson_introspection_required_version() -> T.List[str]:
     return ['>=1.0', '<2.0']
 
-class IntroCommand:
-    def __init__(self,
-                 desc: str,
-                 func: T.Optional[T.Callable[[cdata.CoreData, build.Build, backends.Backend], T.Union[dict, list]]] = None,
-                 no_bd: T.Optional[T.Callable[[IntrospectionInterpreter], T.Union[dict, list]]] = None) -> None:
-        self.desc = desc + '.'
-        self.func = func
-        self.no_bd = no_bd
-
 def dump_ast(intr: IntrospectionInterpreter) -> T.Dict[str, T.Any]:
     printer = AstJSONPrinter()
     intr.ast.accept(printer)
@@ -471,6 +462,15 @@ def get_info_file(infodir: str, kind: T.Optional[str] = None) -> str:
 def load_info_file(infodir: str, kind: T.Optional[str] = None) -> T.Any:
     with open(get_info_file(infodir, kind), encoding='utf-8') as fp:
         return json.load(fp)
+
+@dataclasses.dataclass
+class IntroCommand:
+    desc: str
+    func: T.Optional[T.Callable[[cdata.CoreData, build.Build, backends.Backend], T.Union[dict, list]]] = None
+    no_bd: T.Optional[T.Callable[[IntrospectionInterpreter], T.Union[dict, list]]] = None
+
+    def __post_init__(self) -> None:
+        self.desc += '.'
 
 INTRO_TYPES: T.Mapping[str, IntroCommand] = {
     'ast': IntroCommand('Dump the AST of the meson file', no_bd=dump_ast),
