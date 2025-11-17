@@ -135,10 +135,10 @@ class FortranCompiler(CLikeCompiler, Compiler):
         end program test'''
         return self.compiles(t, extra_args=extra_args, dependencies=dependencies)[0]
 
-    def cross_compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
-                          guess: T.Optional[int], prefix: str,
-                          extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
-                          dependencies: T.Optional[T.List['Dependency']] = None) -> int:
+    def _cross_compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
+                           guess: T.Optional[int], prefix: str,
+                           extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
+                           dependencies: T.Optional[T.List['Dependency']] = None) -> int:
         # This only difference between this implementation and that of CLikeCompiler
         # is a change in logical conjunction operator (.and. instead of &&)
 
@@ -192,7 +192,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
         if extra_args is None:
             extra_args = []
         if self.is_cross:
-            return self.cross_compute_int(expression, low, high, guess, prefix, extra_args, dependencies)
+            return self._cross_compute_int(expression, low, high, guess, prefix, extra_args, dependencies)
         t = f'''program test
             {prefix}
             print '(i0)', {expression}
@@ -219,7 +219,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
         if not self.compiles(t, extra_args=extra_args,
                              dependencies=dependencies)[0]:
             return -1
-        return self.cross_compute_int('c_sizeof(x)', None, None, None, prefix + '\nuse iso_c_binding\n' + typename + ' :: x', extra_args, dependencies)
+        return self._cross_compute_int('c_sizeof(x)', None, None, None, prefix + '\nuse iso_c_binding\n' + typename + ' :: x', extra_args, dependencies)
 
     def sizeof(self, typename: str, prefix: str, *,
                extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
