@@ -188,7 +188,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return args
 
     def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:
-        return ['/link'] + args
+        return ['/link'] + [arg for arg in args if arg != '/link']
 
     def get_pic_args(self) -> T.List[str]:
         return [] # PIC is handled by the loader on Windows
