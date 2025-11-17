@@ -16,7 +16,7 @@ from .compilers import (
 )
 from .mixins.clike import CLikeCompiler
 from .mixins.gnu import GnuCompiler,  gnu_optimization_args
-from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
+from .mixins.intel import IntelGnuLikeCompiler, IntelLLVMLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
@@ -442,7 +442,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
         return ['-gen-dep=' + outtarget, '-gen-depformat=make']
 
 
-class IntelLLVMFortranCompiler(IntelFortranCompiler):
+class IntelLLVMFortranCompiler(IntelLLVMLikeCompiler, IntelFortranCompiler):
 
     id = 'intel-llvm'
 

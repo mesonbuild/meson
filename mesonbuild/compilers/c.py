@@ -22,7 +22,7 @@ from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
 from .mixins.gnu import GnuCompiler, GnuCStds
 from .mixins.gnu import gnu_common_warning_args, gnu_c_warning_args
-from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
+from .mixins.intel import IntelGnuLikeCompiler, IntelLLVMLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler, ClangCStds
 from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
@@ -397,7 +397,7 @@ class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
         return args
 
 
-class IntelLLVMCCompiler(ClangCCompiler):
+class IntelLLVMCCompiler(IntelLLVMLikeCompiler, ClangCCompiler):
 
     id = 'intel-llvm'
 

@@ -25,7 +25,7 @@ from .mixins.ti import TICompiler
 from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
 from .mixins.gnu import GnuCompiler, GnuCPPStds, gnu_common_warning_args, gnu_cpp_warning_args
-from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
+from .mixins.intel import IntelGnuLikeCompiler, IntelLLVMLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler, ClangCPPStds
 from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
@@ -756,7 +756,7 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
         return []
 
 
-class IntelLLVMCPPCompiler(ClangCPPCompiler):
+class IntelLLVMCPPCompiler(IntelLLVMLikeCompiler, ClangCPPCompiler):
 
     id = 'intel-llvm'
 
