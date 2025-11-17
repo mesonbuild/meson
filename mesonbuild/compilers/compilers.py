@@ -877,7 +877,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             yield result
 
     @contextlib.contextmanager
-    def cached_compile(self, code: 'mesonlib.FileOrString', cdata: coredata.CoreData, *,
+    def cached_compile(self, code: 'mesonlib.FileOrString', *,
                        extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
                        mode: CompileCheckMode = CompileCheckMode.LINK,
                        temp_dir: T.Optional[str] = None) -> T.Iterator[CompileResult]:
@@ -888,8 +888,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         key: coredata.CompilerCheckCacheKey = (tuple(self.exelist), self.version, code, textra_args, mode)
 
         # Check if not cached, and generate, otherwise get from the cache
-        if key in cdata.compiler_check_cache:
-            p = cdata.compiler_check_cache[key]
+        cache = self.environment.coredata.compiler_check_cache
+        if key in cache:
+            p = cache[key]
             p.cached = True
             mlog.debug('Using cached compile:')
             mlog.debug('Cached command line: ', ' '.join(p.command), '\n')
@@ -899,7 +900,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             yield p
         else:
             with self.compile(code, extra_args=extra_args, mode=mode, want_output=False, temp_dir=temp_dir) as p:
-                cdata.compiler_check_cache[key] = p
+                cache[key] = p
                 yield p
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
@@ -1342,7 +1343,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             with self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=self.environment.scratch_dir) as r:
                 yield r
         else:
-            with self.cached_compile(code, self.environment.coredata, extra_args=args, mode=mode, temp_dir=self.environment.scratch_dir) as r:
+            with self.cached_compile(code, extra_args=args, mode=mode, temp_dir=self.environment.scratch_dir) as r:
                 yield r
 
     def compiles(self, code: 'mesonlib.FileOrString', *,

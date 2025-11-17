@@ -650,7 +650,7 @@ class CLikeCompiler(Compiler):
         {delim_start}{dname}{delim_end}'''
         args = self.build_wrapper_args(extra_args, dependencies,
                                        mode=CompileCheckMode.PREPROCESS).to_native()
-        func = functools.partial(self.cached_compile, code, self.environment.coredata, extra_args=args, mode=CompileCheckMode.PREPROCESS)
+        func = functools.partial(self.cached_compile, code, extra_args=args, mode=CompileCheckMode.PREPROCESS)
         if disable_cache:
             func = functools.partial(self.compile, code, extra_args=args, mode=CompileCheckMode.PREPROCESS)
         with func() as p:
