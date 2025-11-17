@@ -1959,7 +1959,10 @@ class NinjaBackend(backends.Backend):
 
     @staticmethod
     def _get_rust_dependency_name(target: build.BuildTarget, dependency: LibTypes) -> str:
-        crate_name_raw = target.rust_dependency_map.get(dependency.name, dependency.name)
+        crate_name_raw = target.rust_dependency_map.get(dependency.name, None)
+        if crate_name_raw is None:
+            dependency_crate_name = NinjaBackend._get_rust_crate_name(dependency.name)
+            crate_name_raw = target.rust_dependency_map.get(dependency_crate_name, dependency.name)
         return NinjaBackend._get_rust_crate_name(crate_name_raw)
 
     def generate_rust_sources(self, target: build.BuildTarget) -> T.Tuple[T.List[str], str]:

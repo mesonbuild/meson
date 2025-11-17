@@ -333,6 +333,8 @@ kwargs:
       in the `dependencies` section of a Cargo.toml file, or
       `extern crate gtk4 as gtk` inside Rust code.
 
+      *Since 1.10.0*, the keys can be either crate names or target names.
+
   vala_header:
     type: str
     description: |
