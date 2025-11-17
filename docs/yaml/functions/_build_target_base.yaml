@@ -327,11 +327,11 @@ kwargs:
     type: dict[str]
     since: 1.2.0
     description: |
-      On rust targets this provides a map of library names to the crate name
-      with which it would be available inside the rust code.
-
-      This allows renaming similar to the dependency renaming feature of cargo
-      or `extern crate foo as bar` inside rust code.
+      On rust targets this allows giving custom names to the crates that are
+      linked into the target.  For example, passing a dependency map of
+      `{ 'gtk4': 'gtk' }` has the same effect of writing `gtk.package = "gtk4"`
+      in the `dependencies` section of a Cargo.toml file, or
+      `extern crate gtk4 as gtk` inside Rust code.
 
   vala_header:
     type: str
