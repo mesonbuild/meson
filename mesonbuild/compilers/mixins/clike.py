@@ -449,10 +449,10 @@ class CLikeCompiler(Compiler):
         int main(void) {{ static int a[1-2*!({expression})]; a[0]=0; return 0; }}'''
         return self.compiles(t, extra_args=extra_args, dependencies=dependencies)[0]
 
-    def cross_compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
-                          guess: T.Optional[int], prefix: str,
-                          extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
-                          dependencies: T.Optional[T.List['Dependency']] = None) -> int:
+    def _cross_compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
+                           guess: T.Optional[int], prefix: str,
+                           extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
+                           dependencies: T.Optional[T.List['Dependency']] = None) -> int:
         # Try user's guess first
         if isinstance(guess, int):
             if self._compile_int(f'{expression} == {guess}', prefix, extra_args, dependencies):
@@ -518,7 +518,7 @@ class CLikeCompiler(Compiler):
         if extra_args is None:
             extra_args = []
         if self.is_cross:
-            return self.cross_compute_int(expression, low, high, guess, prefix, extra_args, dependencies)
+            return self._cross_compute_int(expression, low, high, guess, prefix, extra_args, dependencies)
         t = f'''{prefix}
         #include<stddef.h>
         #include<stdio.h>
@@ -548,7 +548,7 @@ class CLikeCompiler(Compiler):
         if not self.compiles(t, extra_args=extra_args,
                              dependencies=dependencies)[0]:
             return -1
-        return self.cross_compute_int(f'sizeof({typename})', None, None, None, prefix, extra_args, dependencies)
+        return self._cross_compute_int(f'sizeof({typename})', None, None, None, prefix, extra_args, dependencies)
 
     def sizeof(self, typename: str, prefix: str, *,
                extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
@@ -594,7 +594,7 @@ class CLikeCompiler(Compiler):
             char c;
             {typename} target;
         }};'''
-        return self.cross_compute_int('offsetof(struct tmp, target)', None, None, None, t, extra_args, dependencies)
+        return self._cross_compute_int('offsetof(struct tmp, target)', None, None, None, t, extra_args, dependencies)
 
     def alignment(self, typename: str, prefix: str, *,
                   extra_args: T.Optional[T.List[str]] = None,
