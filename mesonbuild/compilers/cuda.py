@@ -550,7 +550,7 @@ class CudaCompiler(Compiler):
         # Use the -ccbin option, if available, even during sanity checking.
         # Otherwise, on systems where CUDA does not support the default compiler,
         # NVCC becomes unusable.
-        flags += self.get_ccbin_args(None, '')
+        flags += self._get_ccbin_args(None, '')
 
         # If cross-compiling, we can't run the sanity check, only compile it.
         if self.is_cross and not self.environment.has_exe_wrapper():
@@ -649,7 +649,7 @@ class CudaCompiler(Compiler):
         return opts
 
     def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
-        args = self.get_ccbin_args(target, subproject)
+        args = self._get_ccbin_args(target, subproject)
 
         try:
             host_compiler_args = self.host_compiler.get_option_compile_args(target, subproject)
@@ -674,7 +674,7 @@ class CudaCompiler(Compiler):
         return self._to_host_flags(host_compiler_args)
 
     def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
-        args = self.get_ccbin_args(target, subproject)
+        args = self._get_ccbin_args(target, subproject)
         return args + self._to_host_flags(self.host_compiler.get_option_link_args(target, subproject), Phase.LINKER)
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str, soversion: str,
@@ -784,8 +784,8 @@ class CudaCompiler(Compiler):
     def get_dependency_link_args(self, dep: 'Dependency') -> T.List[str]:
         return self._to_host_flags(super().get_dependency_link_args(dep), Phase.LINKER)
 
-    def get_ccbin_args(self, target: 'T.Optional[BuildTarget]',
-                       subproject: T.Optional[str] = None) -> T.List[str]:
+    def _get_ccbin_args(self, target: 'T.Optional[BuildTarget]',
+                        subproject: T.Optional[str] = None) -> T.List[str]:
         key = self.form_compileropt_key('ccbindir').evolve(subproject=subproject)
         if target:
             ccbindir = self.environment.coredata.get_option_for_target(target, key)
