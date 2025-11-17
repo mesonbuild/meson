@@ -114,7 +114,7 @@ class ValaCompiler(Compiler):
             extra_flags += self.get_compile_only_args()
         else:
             extra_flags += self.environment.coredata.get_external_link_args(self.for_machine, self.language)
-        with self.cached_compile(code, self.environment.coredata, extra_args=extra_flags, mode=CompileCheckMode.COMPILE) as p:
+        with self.cached_compile(code, extra_args=extra_flags, mode=CompileCheckMode.COMPILE) as p:
             if p.returncode != 0:
                 msg = f'Vala compiler {self.name_string()!r} cannot compile programs'
                 raise EnvironmentException(msg)
@@ -131,7 +131,7 @@ class ValaCompiler(Compiler):
             args += self.environment.coredata.get_external_args(self.for_machine, self.language)
             vapi_args = ['--pkg', libname]
             args += vapi_args
-            with self.cached_compile(code, self.environment.coredata, extra_args=args, mode=CompileCheckMode.COMPILE) as p:
+            with self.cached_compile(code, extra_args=args, mode=CompileCheckMode.COMPILE) as p:
                 if p.returncode == 0:
                     return vapi_args
         # Not found? Try to find the vapi file itself.
