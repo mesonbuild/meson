@@ -36,7 +36,7 @@ def mpi_factory(env: 'Environment',
     compiler = detect_compiler('mpi', env, for_machine, language)
     if not compiler:
         return []
-    compiler_is_intel = compiler.get_id() in {'intel', 'intel-cl'}
+    compiler_is_intel = compiler.get_id().startswith('intel')
 
     if DependencyMethods.CONFIG_TOOL in methods and not env.machines[for_machine].is_windows():
         nwargs = kwargs.copy()
@@ -55,15 +55,26 @@ def mpi_factory(env: 'Environment',
         tool_names = [t for t in tool_names if t]  # remove empty environment variables
 
         if compiler_is_intel:
+            # The oneAPI compilers have different wrappers
+            is_llvm_based = 'llvm' in compiler.id
             if env.machines[for_machine].is_windows():
                 nwargs['returncode_value'] = 3
 
             if language == 'c':
-                tool_names.append('mpiicc')
+                if is_llvm_based:
+                    tool_names.append('mpiicx')
+                else:
+                    tool_names.append('mpiicc')
             elif language == 'cpp':
-                tool_names.append('mpiicpc')
+                if is_llvm_based:
+                    tool_names.append('mpiicpx')
+                else:
+                    tool_names.append('mpiicpc')
             elif language == 'fortran':
-                tool_names.append('mpiifort')
+                if is_llvm_based:
+                    tool_names.append('mpiifx')
+                else:
+                    tool_names.append('mpiifort')
 
         # even with intel compilers, mpicc has to be considered
         if language == 'c':
@@ -109,8 +120,16 @@ class MPIConfigToolDependency(ConfigToolDependency):
         if not self.is_found:
             return
 
-        # --showme for OpenMPI, -compile_info/-link_info for MPICH and IntelMPI
-        for comp, link in [('--showme:compile', '--showme:link'), ('-compile_info', '-link_info'), ('-show', None)]:
+        # --showme for OpenMPI
+        # -compile_info/-link_info for MPICH and IntelMPI
+        # -show for Intel
+        commands: T.List[T.Tuple[str, T.Optional[str]]] = [
+            ('--showme:compile', '--showme:link'),
+            ('-compile_info', '-link_info'),
+            ('-show', None)
+        ]
+
+        for comp, link in commands:
             try:
                 c_args = self.get_config_value([comp], 'compile_args')
                 l_args = self.get_config_value([link], 'link_args') if link is not None else c_args
