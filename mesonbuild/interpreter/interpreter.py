@@ -3312,11 +3312,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         build_subdir = tobj.get_build_subdir()
         self.validate_build_subdir(build_subdir, name)
 
-        self.validate_forbidden_targets(name)
+        subdir = tobj.get_builddir()
+        if not subdir:
+            self.validate_forbidden_targets(name)
+
         # To permit an executable and a shared library to have the
         # same name, such as "foo.exe" and "libfoo.a".
         idname = tobj.get_id()
-        subdir = tobj.get_builddir()
         namedir = (name, subdir)
 
         if idname in self.build.targets:
