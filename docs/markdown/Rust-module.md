@@ -16,8 +16,8 @@ authors:
 
 The rust module provides helper to integrate rust code into Meson. The
 goal is to make using rust in Meson more pleasant, while still
-remaining mesonic, this means that it attempts to make Rust work more
-like Meson, rather than Meson work more like rust.
+remaining mesonic. Rust conventions are adopted in order to help the
+Meson user and Rust developer, rather than to make Meson work more like rust.
 
 ## Functions
 
@@ -336,6 +336,13 @@ all_features = pkg.all_features()
 Returns all defined features for a specific package or subproject.
 
 ### Packages only
+
+Package objects are able to extract information from `Cargo.toml` files,
+and provide methods to query how Cargo would build this package.  They
+also contain convenience wrappers for non-Rust-specific functions
+(`executable`, `library`, `meson.override_dependency`, etc.), that
+automatically add dependencies and compiler arguments from `Cargo.toml`
+information.
 
 #### package.rust_args()
 
