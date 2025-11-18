@@ -1922,7 +1922,7 @@ class TestHarness:
             self.run_tests(runners)
         finally:
             os.chdir(startdir)
-        return self.total_failure_count()
+        return 1 if self.total_failure_count() > 0 else 0
 
     @staticmethod
     def split_suite_string(suite: str) -> T.Tuple[str, str]:
