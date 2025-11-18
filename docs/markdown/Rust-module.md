@@ -335,6 +335,13 @@ Returns all defined features for a specific package or subproject.
 
 ### Packages only
 
+Package objects are able to extract information from `Cargo.toml` files,
+and provide methods to query how Cargo would build this package.  They
+also contain convenience wrappers for non-Rust-specific functions
+(`executable`, `library`, `meson.override_dependency`, etc.), that
+automatically add dependencies and compiler arguments from `Cargo.toml`
+information.
+
 #### package.rust_args()
 
 ```meson

@@ -133,13 +133,29 @@ The workspace object also enables configuration of Cargo features, for example
 from Meson options:
 
 ```meson
-ws = rust.workspace(
+cargo = rust.workspace(
     features: ['feature1', 'feature2'])
 ```
 
-### Limitations
+Finally, the workspace object is able to build targets specified in `[lib]`
+or `[[bins]]` sections, extracting compiler arguments for dependencies and
+diagnostics from the Cargo.toml file.  The simplest case is that of building
+a simple binary crate:
 
-All your own crates must be built using the usual Meson functions such as
-[[static_library]] or [[executable]].  In the future, workspace object
-functionality will be extended to help building rustc command lines
-based on features, dependency names, and so on.
+```meson
+cargo.package().executable(install: true)
+```
+
+Or for a workspace:
+
+```meson
+cargo.package('myproject-lib').library(install: false)
+cargo.package().executable(install: true)
+```
+
+Sources are automatically discovered, but can be specified as a
+[[@structured_src]] if they are partly generated.
+
+It is still possible to use keyword arguments to link non-Rust build targets,
+or even to use the usual Meson functions such as [[static_library]] or
+[[executable]].
