@@ -114,7 +114,7 @@ import itertools
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
-    from . import cargo
+    from .. import cargo
     from . import kwargs as kwtypes
     from ..backend.backends import Backend
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
