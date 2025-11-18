@@ -363,7 +363,7 @@ class Build:
         self.stdlibs = PerMachine({}, {})
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
-        self.find_overrides: T.Dict[str, T.Union['OverrideExecutable', programs.ExternalProgram, programs.OverrideProgram]] = {}
+        self.find_overrides: T.Dict[str, programs.AnyProgram] = {}
         self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
 
         # If we are doing a cross build we need two caches, if we're doing a
@@ -2850,7 +2850,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  environment: Environment,
                  command: T.Sequence[T.Union[
                      str, BuildTargetTypes, GeneratedList,
-                     programs.ExternalProgram, File]],
+                     programs.AnyProgram, File]],
                  sources: T.Sequence[T.Union[
                      str, File, BuildTargetTypes, ExtractedObjects,
                      GeneratedList, programs.ExternalProgram]],

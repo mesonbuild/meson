@@ -18,7 +18,7 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import ProgramVersionFunc
     from ..interpreterbase import TYPE_var, TYPE_kwargs
-    from ..programs import OverrideProgram
+    from ..programs import AnyProgram
     from ..dependencies import Dependency
     from ..options import ElementaryOptionValues
 
@@ -75,14 +75,14 @@ class ModuleState:
                      required: bool = True,
                      version_func: T.Optional[ProgramVersionFunc] = None,
                      wanted: T.Union[str, T.List[str]] = '', silent: bool = False,
-                     for_machine: MachineChoice = MachineChoice.HOST) -> T.Union[ExternalProgram, build.OverrideExecutable, OverrideProgram]:
+                     for_machine: MachineChoice = MachineChoice.HOST) -> AnyProgram:
         if not isinstance(prog, list):
             prog = [prog]
         return self._interpreter.find_program_impl(prog, required=required, version_func=version_func,
                                                    wanted=wanted, silent=silent, for_machine=for_machine)
 
     def find_tool(self, name: str, depname: str, varname: str, required: bool = True,
-                  wanted: T.Optional[str] = None) -> T.Union[build.OverrideExecutable, ExternalProgram, 'OverrideProgram']:
+                  wanted: T.Optional[str] = None) -> AnyProgram:
         # Look in overrides in case it's built as subproject
         progobj = self._interpreter.program_from_overrides([name], [])
         if progobj is not None:

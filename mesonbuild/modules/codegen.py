@@ -21,18 +21,16 @@ from ..utils.core import HoldableObject
 from .. import mlog
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypeAlias, TypedDict
+    from typing_extensions import Literal, TypedDict
 
     from . import ModuleState
     from .._typing import ImmutableListProtocol
-    from ..build import Executable
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import ExtractRequired
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..mesonlib import MachineChoice
-    from ..programs import OverrideProgram
+    from ..programs import AnyProgram, CommandList
 
-    Program: TypeAlias = T.Union[Executable, ExternalProgram, OverrideProgram]
     LexImpls = Literal['lex', 'flex', 'reflex', 'win_flex']
     YaccImpls = Literal['yacc', 'byacc', 'bison', 'win_bison']
 
@@ -87,12 +85,11 @@ def is_subset_validator(choices: T.Set[str]) -> T.Callable[[T.List[str]], T.Opti
 class _CodeGenerator(HoldableObject):
 
     name: str
-    program: Program
+    program: AnyProgram
     arguments: ImmutableListProtocol[str] = dataclasses.field(default_factory=list)
 
-    def command(self) -> T.List[T.Union[Program, str]]:
-        return (T.cast('T.List[T.Union[Program, str]]', [self.program]) +
-                T.cast('T.List[T.Union[Program, str]]', self.arguments))
+    def command(self) -> CommandList:
+        return T.cast('CommandList', [self.program]) + T.cast('CommandList', self.arguments)
 
     def found(self) -> bool:
         return self.program.found()
