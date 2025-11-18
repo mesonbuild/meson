@@ -19,8 +19,13 @@ from . import mlog
 from .mesonlib import MachineChoice, OrderedSet
 
 if T.TYPE_CHECKING:
+    from typing_extensions import TypeAlias
+
+    from .build import OverrideExecutable
     from .environment import Environment
     from .interpreter import Interpreter
+
+    AnyProgram: TypeAlias = T.Union[OverrideExecutable, 'ExternalProgram', 'OverrideProgram']
 
 
 class ExternalProgram(mesonlib.HoldableObject):
