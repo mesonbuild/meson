@@ -895,7 +895,13 @@ class AllPlatformTests(BasePlatformTests):
             self._run(command)
             self.assertEqual(0, failure_count, 'Expected %d tests to fail.' % failure_count)
         except subprocess.CalledProcessError as e:
-            self.assertEqual(e.returncode, failure_count)
+            actual_fails = 0
+            with open(os.path.join(self.logdir, 'testlog.json'), encoding='utf-8') as f:
+                for line in f:
+                    res = json.loads(line)
+                    if res['is_fail']:
+                        actual_fails += 1
+            self.assertEqual(actual_fails, failure_count)
 
     def test_suite_selection(self):
         testdir = os.path.join(self.unit_test_dir, '4 suite selection')

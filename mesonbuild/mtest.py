@@ -793,6 +793,7 @@ class JsonLogfileBuilder(TestFileLogger):
             'name': result.name,
             'stdout': result.stdo,
             'result': result.res.value,
+            'is_fail': result.res.is_bad(),
             'starttime': result.starttime,
             'duration': result.duration,
             'returncode': result.returncode,
