@@ -23,6 +23,7 @@ if T.TYPE_CHECKING:
     from ..compilers import Compiler
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import SourceOutputs
+    from ..programs import AnyProgram, CommandList
 
     from typing_extensions import TypedDict
 
@@ -62,7 +63,7 @@ class WindowsModule(ExtensionModule):
                 return compilers[l]
         raise MesonException('Resource compilation requires a C or C++ compiler.')
 
-    def _find_resource_compiler(self, state: 'ModuleState') -> T.Tuple[ExternalProgram, ResourceCompilerType]:
+    def _find_resource_compiler(self, state: 'ModuleState') -> T.Tuple[AnyProgram, ResourceCompilerType]:
         # FIXME: Does not handle `native: true` executables, see
         # See https://github.com/mesonbuild/meson/issues/1531
         # Take a parameter instead of the hardcoded definition below
@@ -71,24 +72,17 @@ class WindowsModule(ExtensionModule):
         if self._rescomp:
             return self._rescomp
 
-        # Will try cross / native file and then env var
-        rescomp = ExternalProgram.from_bin_list(state.environment, for_machine, 'windres')
+        comp = self.detect_compiler(state.environment.coredata.compilers[for_machine])
+        rescomp_names: T.List[mesonlib.FileOrString]
+        if comp.id in {'msvc', 'clang-cl', 'intel-cl'} or (comp.linker and comp.linker.id in {'link', 'lld-link'}):
+            rescomp_names = ['rc', 'llvm-rc']
+        else:
+            rescomp_names = ['windres', 'llvm-windres']
 
-        if not rescomp or not rescomp.found():
-            def search_programs(names: T.List[str]) -> T.Optional[ExternalProgram]:
-                for name in names:
-                    program = ExternalProgram(name, silent=True)
-                    if program.found():
-                        return program
-                return None
+        rescomp = state.find_program(
+            rescomp_names, silent=True, required=False, for_machine=for_machine)
 
-            comp = self.detect_compiler(state.environment.coredata.compilers[for_machine])
-            if comp.id in {'msvc', 'clang-cl', 'intel-cl'} or (comp.linker and comp.linker.id in {'link', 'lld-link'}):
-                rescomp = search_programs(['rc', 'llvm-rc'])
-            else:
-                rescomp = search_programs(['windres', 'llvm-windres'])
-
-        if not rescomp:
+        if not rescomp.found():
             raise MesonException('Could not find Windows resource compiler')
 
         for (arg, match, rc_type) in [
@@ -208,8 +202,7 @@ class WindowsModule(ExtensionModule):
             name = name.replace('/', '_').replace('\\', '_').replace(':', '_')
             name_formatted = name_formatted.replace('/', '_').replace('\\', '_').replace(':', '_')
             output = f'{name}_@BASENAME@.{suffix}'
-            command: T.List[T.Union[str, ExternalProgram]] = []
-            command.append(rescomp)
+            command: CommandList = [rescomp]
             command.extend(res_args)
             depfile: T.Optional[str] = None
             extra_depends = wrc_depends.copy()
