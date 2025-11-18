@@ -416,6 +416,33 @@ Builds a proc-macro crate for a workspace package.
 
 Accepts all keyword arguments from [[shared_library]].
 
+#### package.override_dependency()
+
+```meson
+pkg.override_dependency(dep[, rust_abi: abi])
+```
+
+Keyword arguments:
+- `rust_abi`: (`str`, optional) The ABI to use for the dependency. Valid values are
+  `'rust'`, `'c'`, or `'proc-macro'`; the value must match the crate types and is
+  mandatory if more than one ABI is exposed by the crate.
+
+Make the crate available as a dependency to other crates.  This is the same
+as calling `meson.override_dependency`, but it computes the correct dependency
+name from `pkg`'s name, API version and ABI (Rust vs. C).
+
+It is typically used with `library() or `proc_macro()`, for example:
+
+```meson
+lib_pkg = cargo_ws.package('myproject-lib')
+lib = lib_pkg.library(install: false)
+lib_pkg.override_dependency(declare_dependency(link_with: lib))
+
+# Declares myproject-lib as a dependency in Cargo.toml
+exe_pkg = cargo_ws.package()
+exe_pkg.executable(install: true)
+```
+
 #### package.executable()
 
 ```meson
