@@ -17,7 +17,7 @@ if T.TYPE_CHECKING:
     from . import ModuleState
     from ..dependencies import Dependency
     from ..interpreter import Interpreter
-    from ..programs import Program
+    from ..programs import CommandList, Program
     from ..mesonlib import FileOrString
 
     class ScanXML(TypedDict):
@@ -88,7 +88,7 @@ class WaylandModule(ExtensionModule):
             targets.append(code)
 
             for side in sides:
-                command: T.List[T.Union[Program, str]] = [self.scanner_bin, f'{side}-header', '@INPUT@', '@OUTPUT@']
+                command: CommandList = [self.scanner_bin, f'{side}-header', '@INPUT@', '@OUTPUT@']
                 if kwargs['include_core_only']:
                     command.append('--include-core-only')
 

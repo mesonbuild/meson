@@ -29,6 +29,7 @@ if T.TYPE_CHECKING:
     from ..interpreter.kwargs import ExtractRequired
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..mesonlib import MachineChoice
+    from ..programs import CommandList
 
     LexImpls = Literal['lex', 'flex', 'reflex', 'win_flex']
     YaccImpls = Literal['yacc', 'byacc', 'bison', 'win_bison']
@@ -87,9 +88,8 @@ class _CodeGenerator(HoldableObject):
     program: Program
     arguments: ImmutableListProtocol[str] = dataclasses.field(default_factory=list)
 
-    def command(self) -> T.List[T.Union[Program, str]]:
-        return (T.cast('T.List[T.Union[Program, str]]', [self.program]) +
-                T.cast('T.List[T.Union[Program, str]]', self.arguments))
+    def command(self) -> CommandList:
+        return T.cast('CommandList', [self.program]) + T.cast('CommandList', self.arguments)
 
     def found(self) -> bool:
         return self.program.found()

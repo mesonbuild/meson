@@ -23,6 +23,7 @@ if T.TYPE_CHECKING:
     from ..compilers import Compiler
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import SourceOutputs
+    from ..programs import CommandList
 
     from typing_extensions import TypedDict
 
@@ -201,7 +202,7 @@ class WindowsModule(ExtensionModule):
             name = name.replace('/', '_').replace('\\', '_').replace(':', '_')
             name_formatted = name_formatted.replace('/', '_').replace('\\', '_').replace(':', '_')
             output = f'{name}_@BASENAME@.{suffix}'
-            command: T.List[T.Union[str, ExternalProgram]] = []
+            command: CommandList = []
             command.append(rescomp)
             command.extend(res_args)
             depfile: T.Optional[str] = None
