@@ -480,8 +480,12 @@ class Interpreter:
             return manifest_, True
         path = os.path.join(self.environment.source_dir, subdir)
         filename = os.path.join(path, 'Cargo.toml')
+        try:
+            raw_manifest = T.cast('raw.Manifest', load_toml(filename))
+        except OSError as e:
+            raise MesonException(f'could not load {subdir}/Cargo.toml: {e}')
+
         self.build_def_files.append(filename)
-        raw_manifest = T.cast('raw.Manifest', load_toml(filename))
         if 'workspace' in raw_manifest:
             manifest_ = Workspace.from_raw(raw_manifest, path)
         elif 'package' in raw_manifest:
