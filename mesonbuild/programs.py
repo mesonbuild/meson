@@ -26,6 +26,8 @@ if T.TYPE_CHECKING:
     from .interpreter import Interpreter
 
     AnyProgram: TypeAlias = T.Union[OverrideExecutable, 'ExternalProgram', 'OverrideProgram']
+    CommandListEntry: TypeAlias = T.Union[str, AnyProgram]
+    CommandList: TypeAlias = T.List[CommandListEntry]
 
 
 class ExternalProgram(mesonlib.HoldableObject):
