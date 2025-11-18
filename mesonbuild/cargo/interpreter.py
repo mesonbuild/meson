@@ -831,9 +831,6 @@ class Interpreter:
             'rust_args': build.identifier(_extra_args_varname()),
         }
 
-        depname_suffix = '' if lib_type == 'c' else '-rs'
-        depname = _dependency_name(pkg.manifest.package.name, pkg.manifest.package.api, depname_suffix)
-
         if lib_type == 'proc-macro':
             lib = build.method('proc_macro', build.identifier('pkg_obj'), posargs, kwargs)
         else:
@@ -861,11 +858,9 @@ class Interpreter:
             ),
             build.method(
                 'override_dependency',
-                build.identifier('meson'),
-                [
-                    build.string(depname),
-                    build.identifier('dep'),
-                ],
+                build.identifier('pkg_obj'),
+                [build.identifier('dep')],
+                {'rust_abi': build.string(lib_type)}
             ),
         ]
 
