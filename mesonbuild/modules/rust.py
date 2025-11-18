@@ -248,6 +248,7 @@ class RustPackage(RustCrate):
             'proc_macro': self.proc_macro_method,
             'shared_module': self.shared_module_method,
             'executable': self.executable_method,
+            'override_dependency': self.override_dependency_method,
         })
 
     @noPosargs
@@ -359,6 +360,19 @@ class RustPackage(RustCrate):
         kwargs['rust_args'] = kwargs['rust_args'] + ['--extern', 'proc_macro']
         result = self._library_method(state, args, kwargs, shared=True, static=False)
         return T.cast('SharedLibrary', result)
+
+    @typed_pos_args('package.override_dependency', Dependency)
+    @typed_kwargs('package.override_dependency',
+                  KwargInfo('rust_abi', (str, NoneType), default=None, validator=in_set_validator({'rust', 'c', 'proc-macro'})))
+    def override_dependency_method(self, state: ModuleState, args: T.Tuple[Dependency], kwargs: FuncDependency) -> None:
+        dep = args[0]
+        rust_abi = self.package.abi_resolve_default(kwargs['rust_abi'])
+        depname = self.package.get_dependency_name(rust_abi)
+        state.override_dependency(depname, dep)
+        if self.package.abi_has_static(rust_abi):
+            state.override_dependency(depname, dep, static=True)
+        if self.package.abi_has_shared(rust_abi):
+            state.override_dependency(depname, dep, static=False)
 
     @typed_pos_args('package.library', optargs=[(str, StructuredSources), StructuredSources])
     @typed_kwargs(
