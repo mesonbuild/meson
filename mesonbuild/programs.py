@@ -20,8 +20,12 @@ from . import mlog
 from .mesonlib import MachineChoice, OrderedSet
 
 if T.TYPE_CHECKING:
+    from typing_extensions import TypeAlias
     from .environment import Environment
     from .interpreter import Interpreter
+
+    CommandListEntry: TypeAlias = T.Union[str, 'Program']
+    CommandList: TypeAlias = T.List[CommandListEntry]
 
 
 class Program(mesonlib.HoldableObject, metaclass=ABCMeta):
