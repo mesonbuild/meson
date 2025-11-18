@@ -9,4 +9,4 @@ l = static_library('more', 'src/lib.rs',
   rust_dependency_map: more_pkg.rust_dependency_map(),
 )
 more_dep = declare_dependency(link_with: l)
-meson.override_dependency('more-0.1-rs', more_dep)
+more_pkg.override_dependency(more_dep)
