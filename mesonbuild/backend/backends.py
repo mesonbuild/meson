@@ -282,10 +282,8 @@ class Backend:
         self.processed_targets: T.Set[str] = set()
         self.build_dir = self.environment.get_build_dir()
         self.source_dir = self.environment.get_source_dir()
-        self.build_to_src = mesonlib.relpath(self.environment.get_source_dir(),
-                                             self.environment.get_build_dir())
-        self.src_to_build = mesonlib.relpath(self.environment.get_build_dir(),
-                                             self.environment.get_source_dir())
+        self.build_to_src = self.environment.build_to_src
+        self.src_to_build = self.environment.src_to_build
 
     # If requested via 'capture = True', returns captured compile args per
     # target (e.g. captured_args[target]) that can be used later, for example,

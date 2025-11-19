@@ -230,6 +230,14 @@ class Environment:
         self.default_pkgconfig = ['pkg-config']
         self.wrap_resolver: T.Optional['Resolver'] = None
 
+    @mesonlib.lazy_property
+    def build_to_src(self) -> str:
+        return mesonlib.relpath(self.get_source_dir(), self.get_build_dir())
+
+    @mesonlib.lazy_property
+    def src_to_build(self) -> str:
+        return mesonlib.relpath(self.get_build_dir(), self.get_source_dir())
+
     def mfilestr2key(self, machine_file_string: str, section: T.Optional[str], section_subproject: T.Optional[str], machine: MachineChoice) -> OptionKey:
         key = OptionKey.from_string(machine_file_string)
         if key.subproject:

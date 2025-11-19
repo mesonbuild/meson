@@ -11,7 +11,7 @@ from .. import build, mesonlib
 from ..options import OptionKey
 from ..build import IncludeDirs
 from ..interpreterbase.decorators import noKwargs, noPosargs
-from ..mesonlib import relpath, HoldableObject, MachineChoice
+from ..mesonlib import HoldableObject, MachineChoice
 from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
@@ -34,8 +34,7 @@ class ModuleState:
         self._interpreter = interpreter
 
         self.source_root = interpreter.environment.get_source_dir()
-        self.build_to_src = relpath(interpreter.environment.get_source_dir(),
-                                    interpreter.environment.get_build_dir())
+        self.build_to_src = interpreter.environment.build_to_src
         self.subproject = interpreter.subproject
         self.subdir = interpreter.subdir
         self.root_subdir = interpreter.root_subdir

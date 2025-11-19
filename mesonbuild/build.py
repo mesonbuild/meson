@@ -24,7 +24,7 @@ from .mesonlib import (
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
-    is_parent_path, relpath, PerMachineDefaultable,
+    is_parent_path, PerMachineDefaultable,
     MesonBugException, EnvironmentVariables, pickle_load, lazy_property,
 )
 from .options import OptionKey
@@ -1841,8 +1841,7 @@ class BuildTarget(Target):
                 system_dirs.update(cc.get_library_dirs())
 
         external_rpaths = self.get_external_rpath_dirs()
-        build_to_src = relpath(self.environment.get_source_dir(),
-                               self.environment.get_build_dir())
+        build_to_src = self.environment.build_to_src
 
         for dep in self.external_deps:
             if dep.type_name not in {'library', 'pkgconfig', 'cmake'}:
