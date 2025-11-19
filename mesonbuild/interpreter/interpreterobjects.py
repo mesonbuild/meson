@@ -1141,10 +1141,7 @@ class _CustomTargetHolder(ObjectHolder[_CT]):
     @noKwargs
     @InterpreterObject.method('to_list')
     def to_list_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[build.CustomTargetIndex]:
-        result = []
-        for i in self.held_object:
-            result.append(i)
-        return result
+        return list(self.held_object)
 
     @noKwargs
     @typed_operator(MesonOperator.INDEX, int)

@@ -37,6 +37,33 @@ methods:
       type: any
       description: Fallback value that is returned if the index is out of range.
 
+- name: slice
+  returns: array[any]
+  since: 1.10.0
+  description: |
+    Return a selection of the elements of the array starting at index `start`
+    and continuing with `step` size jumps until `stop`. Negative indices count
+    from the back of the array. The step size cannot be zero, but may be
+    negative. If it is negative, `start` and `stop` default to the end and
+    beginning of the array, respectively. If `step` is positive, `start`
+    defaults to 0 and `stop` defaults to the length of the array. Either both
+    or none of `start` and `stop` must be provided to prevent ambiguity.
+
+  optargs:
+    start:
+      type: int
+      description: The lower bound of the slice
+
+    stop:
+      type: int
+      description: The upper bound of the slice
+
+  kwargs:
+    step:
+      type: int
+      default: 1
+      description: The step size
+
 - name: length
   returns: int
   description: Returns the current size of the array.
