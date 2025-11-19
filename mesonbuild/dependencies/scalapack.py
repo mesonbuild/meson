@@ -4,12 +4,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-import functools
 import os
 import typing as T
 
 from ..options import OptionKey
-from .base import DependencyException, DependencyMethods
+from .base import DependencyCandidate, DependencyException, DependencyMethods
 from .cmake import CMakeDependency
 from .detect import packages
 from .pkgconfig import PkgConfigDependency
@@ -17,13 +16,12 @@ from .factory import factory_methods
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from ..mesonlib import MachineChoice
     from .factory import DependencyGenerator
     from .base import DependencyObjectKWs
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
-def scalapack_factory(env: 'Environment', for_machine: 'MachineChoice',
+def scalapack_factory(env: 'Environment',
                       kwargs: DependencyObjectKWs,
                       methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     candidates: T.List['DependencyGenerator'] = []
@@ -31,16 +29,16 @@ def scalapack_factory(env: 'Environment', for_machine: 'MachineChoice',
     if DependencyMethods.PKGCONFIG in methods:
         static_opt = kwargs['static'] if kwargs.get('static') is not None else env.coredata.optstore.get_value_for(OptionKey('prefer_static'))
         mkl = 'mkl-static-lp64-iomp' if static_opt else 'mkl-dynamic-lp64-iomp'
-        candidates.append(functools.partial(
-            MKLPkgConfigDependency, mkl, env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            mkl, MKLPkgConfigDependency, (env, kwargs)))
 
         for pkg in ['scalapack-openmpi', 'scalapack']:
-            candidates.append(functools.partial(
-                PkgConfigDependency, pkg, env, kwargs))
+            candidates.append(DependencyCandidate.from_dependency(
+                pkg, PkgConfigDependency, (env, kwargs)))
 
     if DependencyMethods.CMAKE in methods:
-        candidates.append(functools.partial(
-            CMakeDependency, 'Scalapack', env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            'Scalapack', CMakeDependency, (env, kwargs)))
 
     return candidates
 
@@ -55,15 +53,14 @@ class MKLPkgConfigDependency(PkgConfigDependency):
     bunch of fixups to make it work correctly.
     """
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs,
-                 language: T.Optional[str] = None):
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
         _m = os.environ.get('MKLROOT')
         self.__mklroot = Path(_m).resolve() if _m else None
 
         # We need to call down into the normal super() method even if we don't
         # find mklroot, otherwise we won't have all of the instance variables
         # initialized that meson expects.
-        super().__init__(name, env, kwargs, language=language)
+        super().__init__(name, env, kwargs)
 
         # Doesn't work with gcc on windows, but does on Linux
         if env.machines[self.for_machine].is_windows() and self.clib_compiler.id == 'gcc':

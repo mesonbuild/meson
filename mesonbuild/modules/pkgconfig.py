@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import PurePath
+import itertools
 import os
 import typing as T
 
@@ -181,8 +182,8 @@ class DependenciesHelper:
 
     def _add_uninstalled_incdirs(self, incdirs: T.List[build.IncludeDirs], subdir: T.Optional[str] = None) -> None:
         for i in incdirs:
-            curdir = i.get_curdir()
-            for d in i.get_incdirs():
+            curdir = i.curdir
+            for d in itertools.chain(i.incdirs, i.extra_build_dirs):
                 path = os.path.join(curdir, d)
                 self.uninstalled_incdirs.add(path)
         if subdir is not None:
