@@ -9,12 +9,8 @@ import string
 import typing as T
 
 from .. import options
-from .. import mlog
-from .. import mesonlib
-from ..mesonlib import (
-    EnvironmentException, is_windows, LibType, version_compare
-)
-from .compilers import Compiler, CompileCheckMode
+from ..mesonlib import is_windows, LibType, version_compare
+from .compilers import Compiler, CompileCheckMode, CrossNoRunException
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
@@ -497,6 +493,15 @@ class CudaCompiler(Compiler):
     def thread_link_flags(self) -> T.List[str]:
         return self._to_host_flags(self.host_compiler.thread_link_flags(), Phase.LINKER)
 
+    def init_from_options(self) -> None:
+        super().init_from_options()
+        try:
+            res = self.run(self._sanity_check_source_code())
+            if res.returncode == 0:
+                self.detected_cc = res.stdout.strip()
+        except CrossNoRunException:
+            pass
+
     def _sanity_check_source_code(self) -> str:
         return r'''
             #include <cuda_runtime.h>
@@ -545,29 +550,6 @@ class CudaCompiler(Compiler):
         flags += self.get_output_args(binname)
 
         return self.exelist + flags, []
-
-    def _run_sanity_check(self, cmdlist: T.List[str], work_dir: str) -> None:
-        # Can't check binaries, so we have to assume they work
-        if self.is_cross and not self.environment.has_exe_wrapper():
-            mlog.debug('Cannot run cross check')
-            return
-
-        cmdlist = self._sanity_check_run_with_exe_wrapper(cmdlist)
-        mlog.debug('Sanity check built target output for', self.for_machine, self.language, 'compiler')
-        mlog.debug(' -- Running test binary command: ', mesonlib.join_args(cmdlist))
-        try:
-            pe, stdo, stde = mesonlib.Popen_safe_logged(cmdlist, 'Sanity check', cwd=work_dir)
-            mlog.debug(' -- stdout:\n', stdo)
-            mlog.debug(' -- stderr:\n', stde)
-            mlog.debug(' -- returncode:', pe.returncode)
-        except Exception as e:
-            raise EnvironmentException(f'Could not invoke sanity check executable: {e!s}.')
-
-        if pe.returncode != 0:
-            raise EnvironmentException(f'Executables created by {self.language} compiler {self.name_string()} are not runnable.')
-
-        if stde == '':
-            self.detected_cc = stdo
 
     def has_header_symbol(self, hname: str, symbol: str, prefix: str, *,
                           extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
