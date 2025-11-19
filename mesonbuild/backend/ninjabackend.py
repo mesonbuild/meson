@@ -3017,28 +3017,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(element)
         return (rel_obj, rel_src)
 
-    @lru_cache(maxsize=None)
-    def generate_inc_dir(self, compiler: 'Compiler', d: str, basedir: str, is_system: bool) -> \
-            T.Tuple['ImmutableListProtocol[str]', 'ImmutableListProtocol[str]']:
-        # Avoid superfluous '/.' at the end of paths when d is '.'
-        if d not in ('', '.'):
-            expdir = os.path.normpath(os.path.join(basedir, d))
-        else:
-            expdir = basedir
-        srctreedir = os.path.normpath(os.path.join(self.build_to_src, expdir))
-        sargs = compiler.get_include_args(srctreedir, is_system)
-        # There may be include dirs where a build directory has not been
-        # created for some source dir. For example if someone does this:
-        #
-        # inc = include_directories('foo/bar/baz')
-        #
-        # But never subdir()s into the actual dir.
-        if os.path.isdir(os.path.join(self.environment.get_build_dir(), expdir)):
-            bargs = compiler.get_include_args(expdir, is_system)
-        else:
-            bargs = []
-        return (sargs, bargs)
-
     def _generate_single_compile(self, target: build.BuildTarget, compiler: Compiler) -> CompilerArgs:
         commands = self._generate_single_compile_base_args(target, compiler)
         commands += self._generate_single_compile_target_args(target, compiler)
@@ -3074,19 +3052,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         #
         # Include dirs from internal deps should override include dirs from
         # external deps and must maintain the order in which they are specified.
-        # Hence, we must reverse the list so that the order is preserved.
-        for i in reversed(target.get_include_dirs()):
-            basedir = i.get_curdir()
-            # We should iterate include dirs in reversed orders because
-            # -Ipath will add to begin of array. And without reverse
-            # flags will be added in reversed order.
-            for d in reversed(i.get_incdirs()):
-                # Add source subdir first so that the build subdir overrides it
-                (compile_obj, includeargs) = self.generate_inc_dir(compiler, d, basedir, i.is_system)
-                commands += compile_obj
-                commands += includeargs
-            for d in i.get_extra_build_dirs():
-                commands += compiler.get_include_args(d, i.is_system)
+        # compiler.get_include_dirs_args() reverses the list so the order is preserved.
+        commands += compiler.get_include_dirs_args(target.get_include_dirs())
         # Add per-target compile args, f.ex, `c_args : ['-DFOO']`. We set these
         # near the end since these are supposed to override everything else.
         commands += self.escape_extra_args(target.get_extra_args(compiler.get_language()))

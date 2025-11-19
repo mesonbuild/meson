@@ -25,7 +25,8 @@ from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
     from .. import coredata
-    from ..build import BuildTarget, DFeatures
+    from .._typing import ImmutableListProtocol
+    from ..build import BuildTarget, DFeatures, IncludeDirs
     from ..options import MutableKeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
@@ -1247,6 +1248,44 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
         return []
+
+    @lru_cache(maxsize=None)
+    def _get_all_include_args_for_dir(self, d: str, basedir: str, is_system: bool) -> \
+            T.Tuple['ImmutableListProtocol[str]', 'ImmutableListProtocol[str]']:
+        # Avoid superfluous '/.' at the end of paths when d is '.'
+        if d not in ('', '.'):
+            expdir = os.path.normpath(os.path.join(basedir, d))
+        else:
+            expdir = basedir
+        srctreedir = os.path.normpath(os.path.join(self.environment.build_to_src, expdir))
+        sargs = self.get_include_args(srctreedir, is_system)
+        # There may be include dirs where a build directory has not been
+        # created for some source dir. For example if someone does this:
+        #
+        # inc = include_directories('foo/bar/baz')
+        #
+        # But never subdir()s into the actual dir.
+        if os.path.isdir(os.path.join(self.environment.get_build_dir(), expdir)):
+            bargs = self.get_include_args(expdir, is_system)
+        else:
+            bargs = []
+        return (sargs, bargs)
+
+    def get_include_dirs_args(self, dirs: T.List['IncludeDirs']) -> T.List[str]:
+        commands = self.compiler_args()
+        for i in reversed(dirs):
+            basedir = i.get_curdir()
+            # We should iterate include dirs in reversed orders because
+            # -Ipath will add to begin of array. And without reverse
+            # flags will be added in reversed order.
+            for d in reversed(i.get_incdirs()):
+                # Add source subdir first so that the build subdir overrides it
+                (compile_obj, includeargs) = self._get_all_include_args_for_dir(d, basedir, i.is_system)
+                commands += compile_obj
+                commands += includeargs
+            for d in i.get_extra_build_dirs():
+                commands += self.get_include_args(d, i.is_system)
+        return list(commands)
 
     def get_depfile_format(self) -> str:
         return 'msvc' if self.get_argument_syntax() == 'msvc' else 'gcc'
