@@ -22,7 +22,6 @@ if T.TYPE_CHECKING:
     from . import ModuleState
     from ..compilers import Compiler
     from ..interpreter import Interpreter
-    from ..interpreter.interpreter import SourceOutputs
 
     from typing_extensions import TypedDict
 
@@ -112,28 +111,34 @@ class WindowsModule(ExtensionModule):
                                 name_formatted: str,
                                 src: T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex],
                                 include_directories: T.List[build.IncludeDirs],
-                                state: ModuleState) -> build.CustomTargetIndex:
+                                state: ModuleState,
+                                depend_files: T.List[mesonlib.FileOrString],
+                                extra_depends: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]) -> build.CustomTarget:
         compiler = self.detect_compiler(state.environment.coredata.compilers[MachineChoice.HOST])
-        _sources: T.List[T.Union[mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]] = self.interpreter.source_strings_to_files([src])
-        sources = T.cast('T.List[SourceOutputs]', _sources)
+        sources: T.List[T.Union[mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]] = self.interpreter.source_strings_to_files([src])
 
-        tg = build.CompileTarget(
+        cpp = compiler.get_preprocessor()
+        args = cpp.compiler_args()
+        args += cpp.get_always_args()
+        args += cpp.get_output_args(name_formatted)
+        args += cpp.get_dependency_gen_args(name_formatted, '@DEPFILE@')
+        args += cpp.get_include_dirs_args(include_directories)
+        args += ['-DRC_INVOKED']
+
+        tg = build.CustomTarget(
             name_formatted,
             state.subdir,
             state.subproject,
             state.environment,
+            cpp.exelist + list(args),
             sources,
-            '@PLAINNAME@.i',
-            compiler.get_preprocessor(),
-            state.backend,
-            ['-DRC_INVOKED'],
-            include_directories,
-            [],
-            [])
-        self.interpreter.add_target(tg.name, tg)
+            [name_formatted],
+            depend_files=depend_files,
+            extra_depends=extra_depends,
+            description='Preprocessing Windows resource {}')
 
-        private_dir = os.path.relpath(state.backend.get_target_private_dir(tg), state.subdir)
-        return build.CustomTargetIndex(tg, os.path.join(private_dir, tg.outputs[0]))
+        self.interpreter.add_target(tg.name, tg)
+        return tg
 
     @typed_pos_args('windows.compile_resources', varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex), min_varargs=1)
     @typed_kwargs(
@@ -225,7 +230,7 @@ class WindowsModule(ExtensionModule):
                     name_formatted + '_i',
                     src,
                     include_directories,
-                    state))
+                    state, wrc_depend_files, extra_depends))
 
             res_targets.append(build.CustomTarget(
                 name_formatted,
