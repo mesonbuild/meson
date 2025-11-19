@@ -1214,8 +1214,6 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         is good enough here.
 
         :param work_dir: A directory to put temporary artifacts
-        :param env: The :class:`environment.Environment` instance to use with
-            this  check
         :raises mesonlib.EnvironmentException: If building the binary fails
         :raises mesonlib.EnvironmentException: If running the binary is attempted and fails
         """
