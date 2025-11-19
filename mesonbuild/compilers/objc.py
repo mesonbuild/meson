@@ -47,9 +47,8 @@ class ObjCCompiler(CLikeCompiler, Compiler):
     def get_display_language() -> str:
         return 'Objective-C'
 
-    def sanity_check(self, work_dir: str) -> None:
-        code = '#import<stddef.h>\nint main(void) { return 0; }\n'
-        return self._sanity_check_impl(work_dir, 'sanitycheckobjc.m', code)
+    def _sanity_check_source_code(self) -> str:
+        return '#import<stddef.h>\nint main(void) { return 0; }\n'
 
     def form_compileropt_key(self, basename: str) -> OptionKey:
         if basename == 'std':
