@@ -106,7 +106,7 @@ class RustCompiler(Compiler):
                          is_cross=is_cross, full_version=full_version,
                          linker=linker)
         self.rustup_run_and_args: T.Optional[T.Tuple[T.List[str], T.List[str]]] = get_rustup_run_and_args(exelist)
-        self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_ndebug', 'b_pgo']})
+        self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_coverage', 'b_ndebug', 'b_pgo']})
         if isinstance(self.linker, VisualStudioLikeLinkerMixin):
             self.base_options.add(OptionKey('b_vscrt'))
         self.native_static_libs: T.List[str] = []
@@ -380,6 +380,12 @@ class RustCompiler(Compiler):
 
     def get_lto_obj_cache_path(self, path: str) -> T.List[str]:
         return rustc_link_args(super().get_lto_obj_cache_path(path))
+
+    def get_coverage_args(self) -> T.List[str]:
+        return ['-C', 'instrument-coverage']
+
+    def get_coverage_link_args(self) -> T.List[str]:
+        return rustc_link_args(super().get_coverage_link_args())
 
     def get_profile_generate_args(self) -> T.List[str]:
         return ['-C', 'profile-generate']
