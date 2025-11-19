@@ -3,11 +3,10 @@
 
 from __future__ import annotations
 
-import os.path, subprocess
+import os.path
 import textwrap
 import typing as T
 
-from ..mesonlib import EnvironmentException
 from ..linkers import RSPFileSyntax
 
 from .compilers import Compiler
@@ -82,26 +81,18 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def get_pch_name(self, header_name: str) -> str:
         return ''
 
-    def sanity_check(self, work_dir: str) -> None:
-        src = 'sanity.cs'
-        obj = 'sanity.exe'
-        source_name = os.path.join(work_dir, src)
-        with open(source_name, 'w', encoding='utf-8') as ofile:
-            ofile.write(textwrap.dedent('''
-                public class Sanity {
-                    static public void Main () {
-                    }
+    def _sanity_check_source_code(self) -> str:
+        return textwrap.dedent('''
+            public class Sanity {
+                static public void Main () {
                 }
-                '''))
-        pc = subprocess.Popen(self.exelist + self.get_always_args() + [src], cwd=work_dir)
-        pc.wait()
-        if pc.returncode != 0:
-            raise EnvironmentException('C# compiler %s cannot compile programs.' % self.name_string())
+            }
+            ''')
+
+    def _sanity_check_run_with_exe_wrapper(self, command: T.List[str]) -> T.List[str]:
         if self.runner:
-            cmdlist = [self.runner, obj]
-        else:
-            cmdlist = [os.path.join(work_dir, obj)]
-        self.run_sanity_check(cmdlist, work_dir, use_exe_wrapper_for_cross=False)
+            return [self.runner] + command
+        return command
 
     def needs_static_linker(self) -> bool:
         return False

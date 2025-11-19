@@ -11,9 +11,9 @@ from .mixins.metrowerks import MetrowerksCompiler, mwasmarm_instruction_set_args
 from .mixins.ti import TICompiler
 
 if T.TYPE_CHECKING:
+    from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
-    from ..environment import Environment
 
 nasm_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
@@ -43,6 +43,10 @@ class ASMCompiler(Compiler):
 
     def sanity_check(self, work_dir: str) -> None:
         return None
+
+    def _sanity_check_source_code(self) -> str:
+        # TODO: Stub implementation to be replaced in future patch
+        return ''
 
 
 class NasmCompiler(ASMCompiler):
