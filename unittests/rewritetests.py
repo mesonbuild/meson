@@ -445,6 +445,16 @@ class RewriterTests(BasePlatformTests):
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
         self.assertEqualIgnoreOrder(out, expected)
 
+    def test_duplicate_globals(self):
+        self.prime('10 duplicate globals')
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        expected = {
+            'kwargs': {
+                'project#/': {'license': 'MIT'}
+            }
+        }
+        self.assertEqualIgnoreOrder(out, expected)
+
     def test_tricky_dataflow(self):
         self.prime('8 tricky dataflow')
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'addSrc.json'))
