@@ -15,7 +15,6 @@ from .compilers import Compiler
 from .mixins.islinker import BasicLinkerIsCompilerMixin
 
 if T.TYPE_CHECKING:
-    from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..mesonlib import MachineChoice
 
@@ -38,8 +37,8 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
     }
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 info: 'MachineInfo', full_version: T.Optional[str] = None):
-        super().__init__([], exelist, version, for_machine, info, full_version=full_version)
+                 env: Environment, full_version: T.Optional[str] = None):
+        super().__init__([], exelist, version, for_machine, env, full_version=full_version)
         self.javarunner = 'java'
 
     def get_warn_args(self, level: str) -> T.List[str]:
@@ -72,7 +71,7 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
         return parameter_list
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str) -> None:
         src = 'SanityCheck.java'
         obj = 'SanityCheck'
         source_name = os.path.join(work_dir, src)
@@ -91,7 +90,7 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
         runner = shutil.which(self.javarunner)
         if runner:
             cmdlist = [runner, '-cp', '.', obj]
-            self.run_sanity_check(environment, cmdlist, work_dir, use_exe_wrapper_for_cross=False)
+            self.run_sanity_check(cmdlist, work_dir, use_exe_wrapper_for_cross=False)
         else:
             m = "Java Virtual Machine wasn't found, but it's needed by Meson. " \
                 "Please install a JRE.\nIf you have specific needs where this " \

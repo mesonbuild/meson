@@ -15,7 +15,6 @@ from ...mesonlib import EnvironmentException, version_compare
 if T.TYPE_CHECKING:
     from ...build import BuildTarget
     from ...envconfig import MachineInfo
-    from ...environment import Environment
 
     CompilerBase = Compiler
 else:
@@ -72,7 +71,7 @@ class Xc16Compiler(Compiler):
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return []
 
-    def thread_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         return []
 
     def get_coverage_args(self) -> T.List[str]:
@@ -135,11 +134,11 @@ class Xc32Compiler(CompilerBase):
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         return None
 
-    def thread_flags(self, env: Environment) -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         return []
 
-    def openmp_flags(self, env: Environment) -> T.List[str]:
-        return Compiler.openmp_flags(self, env)
+    def openmp_flags(self) -> T.List[str]:
+        return Compiler.openmp_flags(self)
 
     def get_pic_args(self) -> T.List[str]:
         return Compiler.get_pic_args(self)
@@ -153,7 +152,7 @@ class Xc32Compiler(CompilerBase):
     def get_profile_use_args(self) -> T.List[str]:
         return Compiler.get_profile_use_args(self)
 
-    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], env: Environment, value: T.List[str]) -> T.List[str]:
+    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], value: T.List[str]) -> T.List[str]:
         return []
 
     @classmethod

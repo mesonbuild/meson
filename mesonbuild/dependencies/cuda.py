@@ -280,7 +280,7 @@ class CudaDependency(SystemDependency):
             # - libnvidia-ml.so in /usr/lib/ that is provided by the nvidia drivers
             #
             # Users should never link to the latter, since its ABI may change.
-            args = self.clib_compiler.find_library(module, self.env, [self.libdir, os.path.join(self.libdir, 'stubs')], self.libtype, ignore_system_dirs=True)
+            args = self.clib_compiler.find_library(module, [self.libdir, os.path.join(self.libdir, 'stubs')], self.libtype, ignore_system_dirs=True)
 
             if args is None:
                 self._report_dependency_error(f'Couldn\'t find requested CUDA module \'{module}\'')

@@ -15,7 +15,6 @@ from .mixins.islinker import BasicLinkerIsCompilerMixin
 
 if T.TYPE_CHECKING:
     from ..dependencies import Dependency
-    from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..mesonlib import MachineChoice
 
@@ -35,8 +34,8 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
     language = 'cs'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 info: 'MachineInfo', runner: T.Optional[str] = None):
-        super().__init__([], exelist, version, for_machine, info)
+                 env: Environment, runner: T.Optional[str] = None):
+        super().__init__([], exelist, version, for_machine, env)
         self.runner = runner
 
     @classmethod
@@ -83,7 +82,7 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def get_pch_name(self, header_name: str) -> str:
         return ''
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str) -> None:
         src = 'sanity.cs'
         obj = 'sanity.exe'
         source_name = os.path.join(work_dir, src)
@@ -102,7 +101,7 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
             cmdlist = [self.runner, obj]
         else:
             cmdlist = [os.path.join(work_dir, obj)]
-        self.run_sanity_check(environment, cmdlist, work_dir, use_exe_wrapper_for_cross=False)
+        self.run_sanity_check(cmdlist, work_dir, use_exe_wrapper_for_cross=False)
 
     def needs_static_linker(self) -> bool:
         return False
@@ -119,8 +118,8 @@ class MonoCompiler(CsCompiler):
     id = 'mono'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 info: 'MachineInfo'):
-        super().__init__(exelist, version, for_machine, info, runner='mono')
+                 env: Environment):
+        super().__init__(exelist, version, for_machine, env, runner='mono')
 
     def rsp_file_syntax(self) -> 'RSPFileSyntax':
         return RSPFileSyntax.GCC

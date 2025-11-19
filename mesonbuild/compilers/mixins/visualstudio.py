@@ -21,7 +21,6 @@ from mesonbuild.linkers.linkers import ClangClDynamicLinker
 
 if T.TYPE_CHECKING:
     from ...build import BuildTarget
-    from ...environment import Environment
     from ...dependencies import Dependency
     from .clike import CLikeCompiler as Compiler
 else:
@@ -163,7 +162,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_no_optimization_args(self) -> T.List[str]:
         return ['/Od', '/Oi-']
 
-    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], env: Environment, value: T.List[str]) -> T.List[str]:
+    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], value: T.List[str]) -> T.List[str]:
         if not value:
             return value
         return [f'/fsanitize={",".join(value)}']
@@ -204,14 +203,14 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         objname = os.path.splitext(source)[0] + '.obj'
         return objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname]
 
-    def openmp_flags(self, env: Environment) -> T.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         return ['/openmp']
 
-    def openmp_link_flags(self, env: Environment) -> T.List[str]:
+    def openmp_link_flags(self) -> T.List[str]:
         return []
 
     # FIXME, no idea what these should be.
-    def thread_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         return []
 
     @classmethod
@@ -295,9 +294,9 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     # Visual Studio is special. It ignores some arguments it does not
     # understand and you can't tell it to error out on those.
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
-    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: CompileCheckMode) -> T.Tuple[bool, bool]:
+    def has_arguments(self, args: T.List[str], code: str, mode: CompileCheckMode) -> T.Tuple[bool, bool]:
         warning_text = '4044' if mode == CompileCheckMode.LINK else '9002'
-        with self._build_wrapper(code, env, extra_args=args, mode=mode) as p:
+        with self._build_wrapper(code, extra_args=args, mode=mode) as p:
             if p.returncode != 0:
                 return False, p.cached
             return not (warning_text in p.stderr or warning_text in p.stdout), p.cached
@@ -358,7 +357,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         crt_val = self.get_crt_val(crt_val, buildtype)
         return self.crt_args[crt_val]
 
-    def has_func_attribute(self, name: str, env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_func_attribute(self, name: str) -> T.Tuple[bool, bool]:
         # MSVC doesn't have __attribute__ like Clang and GCC do, so just return
         # false without compiling anything
         return name in {'dllimport', 'dllexport'}, False
@@ -367,7 +366,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_argument_syntax() -> str:
         return 'msvc'
 
-    def symbols_have_underscore_prefix(self, env: 'Environment') -> bool:
+    def symbols_have_underscore_prefix(self) -> bool:
         '''
         Check if the compiler prefixes an underscore to global C symbols.
 
@@ -377,12 +376,12 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         '''
         # Try to consult a hardcoded list of cases we know
         # absolutely have an underscore prefix
-        result = self._symbols_have_underscore_prefix_list(env)
+        result = self._symbols_have_underscore_prefix_list()
         if result is not None:
             return result
 
         # As a last resort, try search in a compiled binary
-        return self._symbols_have_underscore_prefix_searchbin(env)
+        return self._symbols_have_underscore_prefix_searchbin()
 
     def get_pie_args(self) -> T.List[str]:
         return []
@@ -452,10 +451,10 @@ class ClangClCompiler(VisualStudioLikeCompiler):
         self.can_compile_suffixes.add('s')
         self.can_compile_suffixes.add('sx')
 
-    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: CompileCheckMode) -> T.Tuple[bool, bool]:
+    def has_arguments(self, args: T.List[str], code: str, mode: CompileCheckMode) -> T.Tuple[bool, bool]:
         if mode != CompileCheckMode.LINK:
             args = args + ['-Werror=unknown-argument', '-Werror=unknown-warning-option']
-        return super().has_arguments(args, env, code, mode)
+        return super().has_arguments(args, code, mode)
 
     def get_toolset_version(self) -> T.Optional[str]:
         # XXX: what is the right thing to do here?
@@ -493,12 +492,12 @@ class ClangClCompiler(VisualStudioLikeCompiler):
         else:
             return dep.get_compile_args()
 
-    def openmp_link_flags(self, env: Environment) -> T.List[str]:
+    def openmp_link_flags(self) -> T.List[str]:
         # see https://github.com/mesonbuild/meson/issues/5298
-        libs = self.find_library('libomp', env, [])
+        libs = self.find_library('libomp', [])
         if libs is None:
             raise mesonlib.MesonBugException('Could not find libomp')
-        return super().openmp_link_flags(env) + libs
+        return super().openmp_link_flags() + libs
 
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         args: T.List[str] = []

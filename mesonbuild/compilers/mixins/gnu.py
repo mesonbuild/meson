@@ -23,7 +23,6 @@ if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
     from ...build import BuildTarget
     from ...options import MutableKeyedOptionDictType
-    from ...environment import Environment
     from ..compilers import Compiler
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
@@ -402,7 +401,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return gnulike_default_include_dirs(tuple(self.get_exelist(ccache=False)), self.language).copy()
 
     @abc.abstractmethod
-    def openmp_flags(self, env: Environment) -> T.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         pass
 
     def gnu_symbol_visibility_args(self, vistype: str) -> T.List[str]:
@@ -438,9 +437,9 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return parameter_list
 
     @functools.lru_cache()
-    def _get_search_dirs(self, env: 'Environment') -> str:
+    def _get_search_dirs(self) -> str:
         extra_args = ['--print-search-dirs']
-        with self._build_wrapper('', env, extra_args=extra_args,
+        with self._build_wrapper('', extra_args=extra_args,
                                  dependencies=None, mode=CompileCheckMode.COMPILE,
                                  want_output=True) as p:
             return p.stdout
@@ -482,11 +481,11 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
                     result.append(unresolved)
         return result
 
-    def get_compiler_dirs(self, env: 'Environment', name: str) -> T.List[str]:
+    def get_compiler_dirs(self, name: str) -> T.List[str]:
         '''
         Get dirs from the compiler, either `libraries:` or `programs:`
         '''
-        stdo = self._get_search_dirs(env)
+        stdo = self._get_search_dirs()
         for line in stdo.split('\n'):
             if line.startswith(name + ':'):
                 return self._split_fetch_real_dirs(line.split('=', 1)[1])
@@ -497,7 +496,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # for their specific arguments
         return ['-flto']
 
-    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], env: Environment, value: T.List[str]) -> T.List[str]:
+    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], value: T.List[str]) -> T.List[str]:
         if not value:
             return value
         args = ['-fsanitize=' + ','.join(value)]
@@ -599,15 +598,15 @@ class GnuCompiler(GnuLikeCompiler):
     def get_pch_suffix(self) -> str:
         return 'gch'
 
-    def openmp_flags(self, env: Environment) -> T.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         return ['-fopenmp']
 
-    def has_arguments(self, args: T.List[str], env: 'Environment', code: str,
+    def has_arguments(self, args: T.List[str], code: str,
                       mode: CompileCheckMode) -> T.Tuple[bool, bool]:
         # For some compiler command line arguments, the GNU compilers will
         # emit a warning on stderr indicating that an option is valid for a
         # another language, but still complete with exit_success
-        with self._build_wrapper(code, env, args, None, mode) as p:
+        with self._build_wrapper(code, args, None, mode) as p:
             result = p.returncode == 0
             if self.language in {'cpp', 'objcpp'} and 'is valid for C/ObjC' in p.stderr:
                 result = False

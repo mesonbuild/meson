@@ -107,6 +107,7 @@ ENV_VAR_COMPILER_MAP: T.Mapping[str, str] = {
     'rust': 'RUSTC',
     'vala': 'VALAC',
     'nasm': 'NASM',
+    'zig': 'ZIGC',
 
     # Linkers
     'c_ld': 'CC_LD',

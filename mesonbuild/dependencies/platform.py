@@ -26,7 +26,7 @@ class AppleFrameworks(ExternalDependency):
         self.is_found = True
         for f in self.frameworks:
             try:
-                args = self.clib_compiler.find_framework(f, env, [])
+                args = self.clib_compiler.find_framework(f, [])
             except MesonException as e:
                 if 'non-clang' in str(e):
                     self.is_found = False

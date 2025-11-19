@@ -14,7 +14,6 @@ from .compilers import CompileCheckMode, Compiler
 
 if T.TYPE_CHECKING:
     from ..arglist import CompilerArgs
-    from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..mesonlib import MachineChoice
     from ..dependencies import Dependency
@@ -26,8 +25,8 @@ class ValaCompiler(Compiler):
     id = 'valac'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo'):
-        super().__init__([], exelist, version, for_machine, info, is_cross=is_cross)
+                 environment: Environment):
+        super().__init__([], exelist, version, for_machine, environment)
         self.version = version
         self.base_options = {OptionKey('b_colorout')}
         self.force_link = False
@@ -107,21 +106,21 @@ class ValaCompiler(Compiler):
 
         return parameter_list
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str) -> None:
         code = 'class MesonSanityCheck : Object { }'
         extra_flags: T.List[str] = []
-        extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
+        extra_flags += self.environment.coredata.get_external_args(self.for_machine, self.language)
         if self.is_cross:
             extra_flags += self.get_compile_only_args()
         else:
-            extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
-        with self.cached_compile(code, environment.coredata, extra_args=extra_flags, mode=CompileCheckMode.COMPILE) as p:
+            extra_flags += self.environment.coredata.get_external_link_args(self.for_machine, self.language)
+        with self.cached_compile(code, extra_args=extra_flags, mode=CompileCheckMode.COMPILE) as p:
             if p.returncode != 0:
                 msg = f'Vala compiler {self.name_string()!r} cannot compile programs'
                 raise EnvironmentException(msg)
 
-    def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
-                     libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True, ignore_system_dirs: bool = False) -> T.Optional[T.List[str]]:
+    def find_library(self, libname: str, extra_dirs: T.List[str], libtype: LibType = LibType.PREFER_SHARED,
+                     lib_prefix_warning: bool = True, ignore_system_dirs: bool = False) -> T.Optional[T.List[str]]:
         if extra_dirs and isinstance(extra_dirs, str):
             extra_dirs = [extra_dirs]
         # Valac always looks in the default vapi dir, so only search there if
@@ -129,10 +128,10 @@ class ValaCompiler(Compiler):
         if not extra_dirs:
             code = 'class MesonFindLibrary : Object { }'
             args: T.List[str] = []
-            args += env.coredata.get_external_args(self.for_machine, self.language)
+            args += self.environment.coredata.get_external_args(self.for_machine, self.language)
             vapi_args = ['--pkg', libname]
             args += vapi_args
-            with self.cached_compile(code, env.coredata, extra_args=args, mode=CompileCheckMode.COMPILE) as p:
+            with self.cached_compile(code, extra_args=args, mode=CompileCheckMode.COMPILE) as p:
                 if p.returncode == 0:
                     return vapi_args
         # Not found? Try to find the vapi file itself.
@@ -143,16 +142,16 @@ class ValaCompiler(Compiler):
         mlog.debug(f'Searched {extra_dirs!r} and {libname!r} wasn\'t found')
         return None
 
-    def thread_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         return []
 
-    def thread_link_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_link_flags(self) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
-    def build_wrapper_args(self, env: 'Environment',
+    def build_wrapper_args(self,
                            extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                            dependencies: T.Optional[T.List['Dependency']],
                            mode: CompileCheckMode = CompileCheckMode.COMPILE) -> CompilerArgs:
@@ -188,28 +187,28 @@ class ValaCompiler(Compiler):
 
         if mode is CompileCheckMode.COMPILE:
             # Add DFLAGS from the env
-            args += env.coredata.get_external_args(self.for_machine, self.language)
+            args += self.environment.coredata.get_external_args(self.for_machine, self.language)
         elif mode is CompileCheckMode.LINK:
             # Add LDFLAGS from the env
-            args += env.coredata.get_external_link_args(self.for_machine, self.language)
+            args += self.environment.coredata.get_external_link_args(self.for_machine, self.language)
         # extra_args must override all other arguments, so we add them last
         args += extra_args
         return args
 
-    def links(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
+    def links(self, code: 'mesonlib.FileOrString', *,
               compiler: T.Optional['Compiler'] = None,
               extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
               dependencies: T.Optional[T.List['Dependency']] = None,
               disable_cache: bool = False) -> T.Tuple[bool, bool]:
         self.force_link = True
         if compiler:
-            with compiler._build_wrapper(code, env, dependencies=dependencies, want_output=True) as r:
+            with compiler._build_wrapper(code, dependencies=dependencies, want_output=True) as r:
                 objfile = mesonlib.File.from_absolute_file(r.output_name)
-                result = self.compiles(objfile, env, extra_args=extra_args,
+                result = self.compiles(objfile, extra_args=extra_args,
                                        dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=True)
                 self.force_link = False
                 return result
-        result = self.compiles(code, env, extra_args=extra_args,
+        result = self.compiles(code, extra_args=extra_args,
                                dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=disable_cache)
         self.force_link = False
         return result

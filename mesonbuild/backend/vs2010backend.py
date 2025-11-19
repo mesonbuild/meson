@@ -1032,9 +1032,9 @@ class Vs2010Backend(backends.Backend):
                 file_args[l] += compilers.get_base_compile_args(
                     target, comp, self.environment)
                 file_args[l] += comp.get_option_compile_args(
-                    target, self.environment, target.subproject)
+                    target, target.subproject)
                 file_args[l] += comp.get_option_std_args(
-                    target, self.environment, target.subproject)
+                    target, target.subproject)
 
         # Add compile args added using add_project_arguments()
         for l, args in self.build.projects_args[target.for_machine].get(target.subproject, {}).items():
@@ -1155,7 +1155,7 @@ class Vs2010Backend(backends.Backend):
     def get_build_args(self, target: build.BuildTarget, compiler, optimization_level: str, debug: bool, sanitize: str) -> T.List[str]:
         build_args = compiler.get_optimization_args(optimization_level)
         build_args += compiler.get_debug_args(debug)
-        build_args += compiler.sanitizer_compile_args(target, self.environment, sanitize)
+        build_args += compiler.sanitizer_compile_args(target, sanitize)
 
         return build_args
 
@@ -1470,7 +1470,7 @@ class Vs2010Backend(backends.Backend):
         # to be after all internal and external libraries so that unresolved
         # symbols from those can be found here. This is needed when the
         # *_winlibs that we want to link to are static mingw64 libraries.
-        extra_link_args += compiler.get_option_link_args(target, self.environment, target.subproject)
+        extra_link_args += compiler.get_option_link_args(target, target.subproject)
         (additional_libpaths, additional_links, extra_link_args) = self.split_link_args(extra_link_args.to_native())
 
         # Add more libraries to be linked if needed

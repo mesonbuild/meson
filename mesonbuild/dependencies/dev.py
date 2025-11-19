@@ -59,8 +59,8 @@ class GTestDependencySystem(SystemDependency):
         self.detect()
 
     def detect(self) -> None:
-        gtest_detect = self.clib_compiler.find_library("gtest", self.env, [])
-        gtest_main_detect = self.clib_compiler.find_library("gtest_main", self.env, [])
+        gtest_detect = self.clib_compiler.find_library("gtest", [])
+        gtest_main_detect = self.clib_compiler.find_library("gtest_main", [])
         if gtest_detect and (not self.main or gtest_main_detect):
             self.is_found = True
             self.compile_args = []
@@ -135,8 +135,8 @@ class GMockDependencySystem(SystemDependency):
 
         # GMock may be a library or just source.
         # Work with both.
-        gmock_detect = self.clib_compiler.find_library("gmock", self.env, [])
-        gmock_main_detect = self.clib_compiler.find_library("gmock_main", self.env, [])
+        gmock_detect = self.clib_compiler.find_library("gmock", [])
+        gmock_main_detect = self.clib_compiler.find_library("gmock_main", [])
         if gmock_detect and (not self.main or gmock_main_detect):
             self.is_found = True
             self.link_args += gmock_detect
@@ -540,8 +540,8 @@ class ZlibSystemDependency(SystemDependency):
             else:
                 libs = ['z']
             for lib in libs:
-                l = self.clib_compiler.find_library(lib, environment, [], self.libtype)
-                h = self.clib_compiler.has_header('zlib.h', '', environment, dependencies=[self])
+                l = self.clib_compiler.find_library(lib, [], self.libtype)
+                h = self.clib_compiler.has_header('zlib.h', '', dependencies=[self])
                 if l and h[0]:
                     self.is_found = True
                     self.link_args = l
@@ -549,7 +549,7 @@ class ZlibSystemDependency(SystemDependency):
             else:
                 return
 
-        v, _ = self.clib_compiler.get_define('ZLIB_VERSION', '#include <zlib.h>', self.env, [], [self])
+        v, _ = self.clib_compiler.get_define('ZLIB_VERSION', '#include <zlib.h>', [], [self])
         self.version = v.strip('"')
 
 
@@ -623,14 +623,14 @@ class JNISystemDependency(SystemDependency):
                 java_home_lib_server = java_home_lib / 'server'
 
             if 'jvm' in modules:
-                jvm = self.clib_compiler.find_library('jvm', environment, extra_dirs=[str(java_home_lib_server)])
+                jvm = self.clib_compiler.find_library('jvm', extra_dirs=[str(java_home_lib_server)])
                 if jvm is None:
                     mlog.debug('jvm library not found.')
                     self.is_found = False
                 else:
                     self.link_args.extend(jvm)
             if 'awt' in modules:
-                jawt = self.clib_compiler.find_library('jawt', environment, extra_dirs=[str(java_home_lib)])
+                jawt = self.clib_compiler.find_library('jawt', extra_dirs=[str(java_home_lib)])
                 if jawt is None:
                     mlog.debug('jawt library not found.')
                     self.is_found = False
@@ -745,7 +745,7 @@ class DiaSDKSystemDependency(SystemDependency):
     # Check if compiler has a built-in macro defined
     @staticmethod
     def _has_define(compiler: 'Compiler', dname: str, env: 'Environment') -> bool:
-        defval, _ = compiler.get_define(dname, '', env, [], [])
+        defval, _ = compiler.get_define(dname, '', [], [])
         return defval is not None
 
     def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:

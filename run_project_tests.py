@@ -75,12 +75,14 @@ if T.TYPE_CHECKING:
         only: T.List[str]
         v: bool
 
-ALL_TESTS = ['cmake', 'common', 'native', 'warning-meson', 'failing-meson', 'failing-build', 'failing-test',
-             'keyval', 'platform-osx', 'platform-windows', 'platform-linux', 'platform-android',
-             'java', 'C#', 'vala', 'cython', 'rust', 'd', 'objective c', 'objective c++',
-             'fortran', 'swift', 'cuda', 'python3', 'python', 'fpga', 'frameworks', 'nasm', 'wasm', 'wayland',
-             'format', 'snippets',
-             ]
+ALL_TESTS = [
+    'cmake', 'common', 'native', 'warning-meson', 'failing-meson',
+    'failing-build', 'failing-test', 'keyval', 'platform-osx',
+    'platform-windows', 'platform-linux', 'platform-android', 'java', 'C#',
+    'vala', 'cython', 'rust', 'd', 'objective c', 'objective c++', 'fortran',
+    'swift', 'cuda', 'python3', 'python', 'fpga', 'frameworks', 'nasm', 'wasm',
+    'wayland', 'format', 'snippets', 'zig',
+]
 
 
 class BuildStep(Enum):
@@ -999,7 +1001,7 @@ def have_working_compiler(lang: str, use_tmp: bool) -> bool:
             return False
         env.coredata.process_compiler_options(lang, compiler, '')
         try:
-            compiler.sanity_check(env.get_scratch_dir(), env)
+            compiler.sanity_check(env.get_scratch_dir())
         except mesonlib.MesonException:
             return False
     return True
@@ -1146,6 +1148,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
         TestCategory('wayland', 'wayland', should_skip_wayland()),
         TestCategory('format', 'format'),
         TestCategory('snippets', 'snippets'),
+        TestCategory('zig', 'zig', shutil.which('zig') is None or backend is not Backend.ninja),
     ]
 
     categories = [t.category for t in all_tests]

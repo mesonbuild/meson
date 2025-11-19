@@ -10,7 +10,7 @@ from ...mesonlib import MesonException
 
 if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
-    from ...environment import Environment
+    from ...envconfig import MachineInfo
     from ..compilers import Compiler
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
@@ -26,7 +26,11 @@ class AppleCompilerMixin(Compiler):
 
     __BASE_OMP_FLAGS: ImmutableListProtocol[str] = ['-Xpreprocessor', '-fopenmp']
 
-    def openmp_flags(self, env: Environment) -> T.List[str]:
+    if T.TYPE_CHECKING:
+        # Older versions of mypy can't figure this out
+        info: MachineInfo
+
+    def openmp_flags(self) -> T.List[str]:
         """Flags required to compile with OpenMP on Apple.
 
         The Apple Clang Compiler doesn't have builtin support for OpenMP, it
@@ -35,23 +39,19 @@ class AppleCompilerMixin(Compiler):
 
         :return: A list of arguments
         """
-        m = env.machines[self.for_machine]
-        assert m is not None, 'for mypy'
-        if m.cpu_family.startswith('x86'):
+        if self.info.cpu_family.startswith('x86'):
             root = '/usr/local'
         else:
             root = '/opt/homebrew'
         return self.__BASE_OMP_FLAGS + [f'-I{root}/opt/libomp/include']
 
-    def openmp_link_flags(self, env: Environment) -> T.List[str]:
-        m = env.machines[self.for_machine]
-        assert m is not None, 'for mypy'
-        if m.cpu_family.startswith('x86'):
+    def openmp_link_flags(self) -> T.List[str]:
+        if self.info.cpu_family.startswith('x86'):
             root = '/usr/local'
         else:
             root = '/opt/homebrew'
 
-        link = self.find_library('omp', env, [f'{root}/opt/libomp/lib'])
+        link = self.find_library('omp', [f'{root}/opt/libomp/lib'])
         if not link:
             raise MesonException("Couldn't find libomp")
         return self.__BASE_OMP_FLAGS + link

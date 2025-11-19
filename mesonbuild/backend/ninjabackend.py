@@ -942,10 +942,9 @@ class NinjaBackend(backends.Backend):
         outname = self.get_target_filename(target)
         obj_list = []
         is_unity = self.is_unity(target)
-        header_deps = []
+        header_deps = self.get_generated_headers(target)
         unity_src = []
         unity_deps = [] # Generated sources that must be built before compiling a Unity target.
-        header_deps += self.get_generated_headers(target)
 
         if is_unity:
             # Warn about incompatible sources if a unity build is enabled
@@ -1081,6 +1080,8 @@ class NinjaBackend(backends.Backend):
         if is_compile_target:
             # Skip the link stage for this special type of target
             return
+        if target.uses_zig():
+            pass
         linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
 
         if not isinstance(target, build.StaticLibrary):
@@ -1430,7 +1431,7 @@ class NinjaBackend(backends.Backend):
             if build.rulename in self.ruledict:
                 build.rule = self.ruledict[build.rulename]
             else:
-                mlog.warning(f"build statement for {build.outfilenames} references nonexistent rule {build.rulename}")
+                raise MesonBugException(f"build statement for {build.outfilenames} references nonexistent rule {build.rulename}")
 
     def write_rules(self, outfile: T.TextIO) -> None:
         for b in self.build_elements:
@@ -1828,8 +1829,8 @@ class NinjaBackend(backends.Backend):
         args += cython.get_always_args()
         args += cython.get_debug_args(self.get_target_option(target, 'debug'))
         args += cython.get_optimization_args(self.get_target_option(target, 'optimization'))
-        args += cython.get_option_compile_args(target, self.environment, target.subproject)
-        args += cython.get_option_std_args(target, self.environment, target.subproject)
+        args += cython.get_option_compile_args(target, target.subproject)
+        args += cython.get_option_std_args(target, target.subproject)
         args += self.build.get_global_args(cython, target.for_machine)
         args += self.build.get_project_args(cython, target.subproject, target.for_machine)
         args += target.get_extra_args('cython')
@@ -2065,7 +2066,7 @@ class NinjaBackend(backends.Backend):
             if rustc.has_verbatim():
                 modifiers.append('+verbatim')
             else:
-                libname = rustc.lib_file_to_l_arg(self.environment, libname)
+                libname = rustc.lib_file_to_l_arg(libname)
                 if libname is None:
                     raise MesonException(f"rustc does not implement '-l{type_}:+verbatim'; cannot link to '{orig_libname}' due to nonstandard name")
 
@@ -2224,7 +2225,7 @@ class NinjaBackend(backends.Backend):
 
         if target.doctests:
             assert target.doctests.target is not None
-            rustdoc = rustc.get_rustdoc(self.environment)
+            rustdoc = rustc.get_rustdoc()
             args = rustdoc.get_exe_args()
             args += self.get_rust_compiler_args(target.doctests.target, rustdoc, target.rust_crate_type)
             o, _ = self.flatten_object_list(target.doctests.target)
@@ -2468,7 +2469,11 @@ class NinjaBackend(backends.Backend):
                     continue
                 rule = '{}_LINKER{}'.format(langname, self.get_rule_suffix(for_machine))
                 command = compiler.get_linker_exelist()
-                args = ['$ARGS'] + NinjaCommandArg.list(compiler.get_linker_output_args('$out'), Quoting.none) + ['$in', '$LINK_ARGS']
+                args: T.List[str] = []
+                if langname == 'zig':
+                    args.append('$MODE')
+                args += ['$ARGS']
+                args += NinjaCommandArg.list(compiler.get_linker_output_args('$out'), Quoting.none) + ['$in', '$LINK_ARGS']
                 description = 'Linking target $out'
                 if num_pools > 0:
                     pool = 'pool = link_pool'
@@ -2559,6 +2564,14 @@ class NinjaBackend(backends.Backend):
         depstyle = 'gcc'
         self.add_rule(NinjaRule(rule, command, [], description, deps=depstyle,
                                 depfile=depfile))
+
+    def generate_zig_compile_rules(self, compiler: Compiler) -> None:
+        rule = self.compiler_to_rule_name(compiler)
+        # Compile only args adds the verb `build-obj`, which must be the first argument
+        command = compiler.get_exelist() + compiler.get_compile_only_args() + ['$ARGS', '$in']
+        command += NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none)
+        description = 'Compiling Zig source $in'
+        self.add_rule(NinjaRule(rule, command, [], description))
 
     def generate_swift_compile_rules(self, compiler) -> None:
         rule = self.compiler_to_rule_name(compiler)
@@ -2660,6 +2673,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return
         if langname == 'rust':
             self.generate_rust_compile_rules(compiler)
+            return
+        if langname == 'zig':
+            self.generate_zig_compile_rules(compiler)
             return
         if langname == 'swift':
             if self.environment.machines.matches_build_machine(compiler.for_machine):
@@ -3134,14 +3150,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             src_type_to_args[src_type_str] = commands.to_native()
         return src_type_to_args
 
-    def generate_single_compile(self, target: build.BuildTarget, src,
+    def generate_single_compile(self, target: build.BuildTarget, src: mesonlib.FileOrString,
                                 is_generated: bool = False, header_deps=None,
                                 order_deps: T.Optional[T.List[FileOrString]] = None,
                                 extra_args: T.Optional[T.List[str]] = None,
                                 unity_sources: T.Optional[T.List[FileOrString]] = None,
                                 ) -> T.Tuple[str, str]:
         """
-        Compiles C/C++, ObjC/ObjC++, Fortran, and D sources
+        Compiles C/C++, ObjC/ObjC++, Fortran, D, and Zig sources
         """
         header_deps = header_deps if header_deps is not None else []
         order_deps = order_deps if order_deps is not None else []
@@ -3448,14 +3464,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def get_import_filename(self, target) -> str:
         return os.path.join(self.get_target_dir(target), target.import_filename)
 
-    def get_target_type_link_args(self, target, linker):
-        commands = []
+    def get_target_type_link_args(self, target: build.BuildTarget, linker: Compiler):
+        commands: T.List[str] = []
         if isinstance(target, build.Executable):
             # Currently only used with the Swift compiler to add '-emit-executable'
             commands += linker.get_std_exe_link_args()
             # If export_dynamic, add the appropriate linker arguments
             if target.export_dynamic:
-                commands += linker.gen_export_dynamic_link_args(self.environment)
+                commands += linker.gen_export_dynamic_link_args()
             # If implib, and that's significant on this platform (i.e. Windows using either GCC or Visual Studio)
             if target.import_filename:
                 commands += linker.gen_import_library_args(self.get_import_filename(target))
@@ -3473,7 +3489,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if not isinstance(target, build.SharedModule) or target.force_soname:
                 # Add -Wl,-soname arguments on Linux, -install_name on OS X
                 commands += linker.get_soname_args(
-                    self.environment, target.prefix, target.name, target.suffix,
+                    target.prefix, target.name, target.suffix,
                     target.soversion, target.darwin_versions)
             # This is only visited when building for Windows using either GCC or Visual Studio
             if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
@@ -3580,9 +3596,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         guessed_dependencies = []
         # TODO The get_library_naming requirement currently excludes link targets that use d or fortran as their main linker
         try:
-            static_patterns = linker.get_library_naming(self.environment, LibType.STATIC, strict=True)
-            shared_patterns = linker.get_library_naming(self.environment, LibType.SHARED, strict=True)
-            search_dirs = tuple(search_dirs) + tuple(linker.get_library_dirs(self.environment))
+            static_patterns = linker.get_library_naming(LibType.STATIC, strict=True)
+            shared_patterns = linker.get_library_naming(LibType.SHARED, strict=True)
+            search_dirs = tuple(search_dirs) + tuple(linker.get_library_dirs())
             for libname in libs:
                 # be conservative and record most likely shared and static resolution, because we don't know exactly
                 # which one the linker will prefer
@@ -3631,8 +3647,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             target_slashname_workaround_dir = self.get_target_dir(target)
         (rpath_args, target.rpath_dirs_to_remove) = (
-            linker.build_rpath_args(self.environment,
-                                    self.environment.get_build_dir(),
+            linker.build_rpath_args(self.environment.get_build_dir(),
                                     target_slashname_workaround_dir,
                                     target))
         return rpath_args
@@ -3759,7 +3774,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             #
             # We shouldn't check whether we are making a static library, because
             # in the LTO case we do use a real compiler here.
-            commands += linker.get_option_link_args(target, self.environment)
+            commands += linker.get_option_link_args(target)
 
         dep_targets = []
         dep_targets.extend(self.guess_external_link_dependencies(linker, target, commands, internal))
@@ -3789,6 +3804,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             elem.add_item('ARGS', compile_args)
 
         elem.add_item('LINK_ARGS', commands)
+        if linker.id == 'zig':
+            elem.add_item('MODE', 'build-exe' if isinstance(target, build.Executable) else 'build-lib')
         self.create_target_linker_introspection(target, linker, commands)
         return elem
 

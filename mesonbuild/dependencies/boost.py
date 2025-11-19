@@ -557,7 +557,7 @@ class BoostDependency(SystemDependency):
         # given root path
 
         if use_system:
-            system_dirs_t = self.clib_compiler.get_library_dirs(self.env)
+            system_dirs_t = self.clib_compiler.get_library_dirs()
             system_dirs = [Path(x) for x in system_dirs_t]
             system_dirs = [x.resolve() for x in system_dirs if x.exists()]
             system_dirs = [x for x in system_dirs if mesonlib.path_is_in_root(x, root)]

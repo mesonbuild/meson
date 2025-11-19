@@ -11,7 +11,6 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ...envconfig import MachineInfo
-    from ...environment import Environment
     from ...compilers.compilers import Compiler
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
@@ -85,7 +84,7 @@ class CompCertCompiler(Compiler):
                 patched_args.append(arg)
         return patched_args
 
-    def thread_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         return []
 
     def get_preprocess_only_args(self) -> T.List[str]:

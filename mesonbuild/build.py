@@ -1665,7 +1665,7 @@ class BuildTarget(Target):
         # If the user set the link_language, just return that.
         if self.link_language:
             comp = self.all_compilers[self.link_language]
-            return comp, comp.language_stdlib_only_link_flags(self.environment)
+            return comp, comp.language_stdlib_only_link_flags()
 
         # Since dependencies could come from subprojects, they could have
         # languages we don't have in self.all_compilers. Use the global list of
@@ -1695,7 +1695,7 @@ class BuildTarget(Target):
         for l in clink_langs:
             try:
                 comp = self.all_compilers[l]
-                return comp, comp.language_stdlib_only_link_flags(self.environment)
+                return comp, comp.language_stdlib_only_link_flags()
             except KeyError:
                 pass
 
@@ -1710,11 +1710,14 @@ class BuildTarget(Target):
                 # We need to use all_compilers here because
                 # get_langs_used_by_deps could return a language from a
                 # subproject
-                stdlib_args.extend(all_compilers[dl].language_stdlib_only_link_flags(self.environment))
+                stdlib_args.extend(all_compilers[dl].language_stdlib_only_link_flags())
         return stdlib_args
 
     def uses_rust(self) -> bool:
         return 'rust' in self.compilers
+
+    def uses_zig(self) -> bool:
+        return 'zig' in self.compilers
 
     def uses_rust_abi(self) -> bool:
         return self.uses_rust() and self.rust_crate_type in {'dylib', 'rlib', 'proc-macro'}
@@ -1838,7 +1841,7 @@ class BuildTarget(Target):
         system_dirs = set()
         if exclude_system:
             for cc in self.compilers.values():
-                system_dirs.update(cc.get_library_dirs(self.environment))
+                system_dirs.update(cc.get_library_dirs())
 
         external_rpaths = self.get_external_rpath_dirs()
         build_to_src = relpath(self.environment.get_source_dir(),

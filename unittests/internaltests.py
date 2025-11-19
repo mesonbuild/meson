@@ -109,7 +109,7 @@ class InternalTests(unittest.TestCase):
                          stat.S_IRGRP | stat.S_IXGRP)
 
     def test_compiler_args_class_none_flush(self):
-        cc = ClangCCompiler([], [], 'fake', MachineChoice.HOST, False, mock.Mock())
+        cc = ClangCCompiler([], [], 'fake', MachineChoice.HOST, get_fake_env())
         a = cc.compiler_args(['-I.'])
         #first we are checking if the tree construction deduplicates the correct -I argument
         a += ['-I..']
@@ -126,14 +126,14 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(a, ['-I.', '-I./tests2/', '-I./tests/', '-I..'])
 
     def test_compiler_args_class_d(self):
-        d = DmdDCompiler([], 'fake', MachineChoice.HOST, 'info', 'arch')
+        d = DmdDCompiler([], 'fake', MachineChoice.HOST, get_fake_env(), 'arch')
         # check include order is kept when deduplicating
         a = d.compiler_args(['-Ifirst', '-Isecond', '-Ithird'])
         a += ['-Ifirst']
         self.assertEqual(a, ['-Ifirst', '-Isecond', '-Ithird'])
 
     def test_compiler_args_class_clike(self):
-        cc = ClangCCompiler([], [], 'fake', MachineChoice.HOST, False, mock.Mock())
+        cc = ClangCCompiler([], [], 'fake', MachineChoice.HOST, get_fake_env())
         # Test that empty initialization works
         a = cc.compiler_args()
         self.assertEqual(a, [])
@@ -214,9 +214,10 @@ class InternalTests(unittest.TestCase):
 
 
     def test_compiler_args_class_visualstudio(self):
-        linker = linkers.MSVCDynamicLinker(MachineChoice.HOST, [])
+        env = get_fake_env()
+        linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
         # Version just needs to be > 19.0.0
-        cc = VisualStudioCPPCompiler([], [], '20.00', MachineChoice.HOST, False, mock.Mock(), 'x64', linker=linker)
+        cc = VisualStudioCPPCompiler([], [], '20.00', MachineChoice.HOST, env, 'x64', linker=linker)
 
         a = cc.compiler_args(cc.get_always_args())
         self.assertEqual(a.to_native(copy=True), ['/nologo', '/showIncludes', '/utf-8', '/Zc:__cplusplus'])
@@ -236,8 +237,9 @@ class InternalTests(unittest.TestCase):
 
     def test_compiler_args_class_gnuld(self):
         ## Test --start/end-group
-        linker = linkers.GnuBFDDynamicLinker([], MachineChoice.HOST, '-Wl,', [])
-        gcc = GnuCCompiler([], [], 'fake', False, MachineChoice.HOST, mock.Mock(), linker=linker)
+        env = get_fake_env()
+        linker = linkers.GnuBFDDynamicLinker([], env, MachineChoice.HOST, '-Wl,', [])
+        gcc = GnuCCompiler([], [], 'fake', MachineChoice.HOST, env, linker=linker)
         ## Ensure that the fake compiler is never called by overriding the relevant function
         gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
         ## Test that 'direct' append and extend works
@@ -264,8 +266,9 @@ class InternalTests(unittest.TestCase):
 
     def test_compiler_args_remove_system(self):
         ## Test --start/end-group
-        linker = linkers.GnuBFDDynamicLinker([], MachineChoice.HOST, '-Wl,', [])
-        gcc = GnuCCompiler([], [], 'fake', False, MachineChoice.HOST, mock.Mock(), linker=linker)
+        env = get_fake_env()
+        linker = linkers.GnuBFDDynamicLinker([], env, MachineChoice.HOST, '-Wl,', [])
+        gcc = GnuCCompiler([], [], 'fake', MachineChoice.HOST, env, linker=linker)
         ## Ensure that the fake compiler is never called by overriding the relevant function
         gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
         ## Test that 'direct' append and extend works
@@ -531,18 +534,18 @@ class InternalTests(unittest.TestCase):
         kwargs = {'sources': [1, [2, [3]]]}
         self.assertEqual([1, 2, 3], extract(kwargs, 'sources'))
 
-    def _test_all_naming(self, cc, env, patterns, platform):
+    def _test_all_naming(self, cc, patterns, platform):
         shr = patterns[platform]['shared']
         stc = patterns[platform]['static']
         shrstc = shr + tuple(x for x in stc if x not in shr)
         stcshr = stc + tuple(x for x in shr if x not in stc)
-        p = cc.get_library_naming(env, LibType.SHARED)
+        p = cc.get_library_naming(LibType.SHARED)
         self.assertEqual(p, shr)
-        p = cc.get_library_naming(env, LibType.STATIC)
+        p = cc.get_library_naming(LibType.STATIC)
         self.assertEqual(p, stc)
-        p = cc.get_library_naming(env, LibType.PREFER_STATIC)
+        p = cc.get_library_naming(LibType.PREFER_STATIC)
         self.assertEqual(p, stcshr)
-        p = cc.get_library_naming(env, LibType.PREFER_SHARED)
+        p = cc.get_library_naming(LibType.PREFER_SHARED)
         self.assertEqual(p, shrstc)
         # Test find library by mocking up openbsd
         if platform != 'openbsd':
@@ -556,9 +559,9 @@ class InternalTests(unittest.TestCase):
                     f.write('int meson_foobar (void) { return 0; }')
                 subprocess.check_call(['gcc', str(src), '-o', str(libpath), '-shared'])
 
-            found = cc._find_library_real('foo', env, [tmpdir], 'int main(void) { return 0; }', LibType.PREFER_SHARED, lib_prefix_warning=True, ignore_system_dirs=False)
+            found = cc._find_library_real('foo', [tmpdir], 'int main(void) { return 0; }', LibType.PREFER_SHARED, lib_prefix_warning=True, ignore_system_dirs=False)
             self.assertEqual(os.path.basename(found[0]), 'libfoo.so.54.0')
-            found = cc._find_library_real('bar', env, [tmpdir], 'int main(void) { return 0; }', LibType.PREFER_SHARED, lib_prefix_warning=True, ignore_system_dirs=False)
+            found = cc._find_library_real('bar', [tmpdir], 'int main(void) { return 0; }', LibType.PREFER_SHARED, lib_prefix_warning=True, ignore_system_dirs=False)
             self.assertEqual(os.path.basename(found[0]), 'libbar.so.7.10')
 
     def test_find_library_patterns(self):
@@ -585,26 +588,26 @@ class InternalTests(unittest.TestCase):
         env = get_fake_env()
         cc = detect_c_compiler(env, MachineChoice.HOST)
         if is_osx():
-            self._test_all_naming(cc, env, patterns, 'darwin')
+            self._test_all_naming(cc, patterns, 'darwin')
         elif is_cygwin():
-            self._test_all_naming(cc, env, patterns, 'cygwin')
+            self._test_all_naming(cc, patterns, 'cygwin')
         elif is_windows():
             if cc.get_argument_syntax() == 'msvc':
-                self._test_all_naming(cc, env, patterns, 'windows-msvc')
+                self._test_all_naming(cc, patterns, 'windows-msvc')
             else:
-                self._test_all_naming(cc, env, patterns, 'windows-mingw')
+                self._test_all_naming(cc, patterns, 'windows-mingw')
         elif is_openbsd():
-            self._test_all_naming(cc, env, patterns, 'openbsd')
+            self._test_all_naming(cc, patterns, 'openbsd')
         else:
-            self._test_all_naming(cc, env, patterns, 'linux')
+            self._test_all_naming(cc, patterns, 'linux')
             env.machines.host.system = 'openbsd'
-            self._test_all_naming(cc, env, patterns, 'openbsd')
+            self._test_all_naming(cc, patterns, 'openbsd')
             env.machines.host.system = 'darwin'
-            self._test_all_naming(cc, env, patterns, 'darwin')
+            self._test_all_naming(cc, patterns, 'darwin')
             env.machines.host.system = 'cygwin'
-            self._test_all_naming(cc, env, patterns, 'cygwin')
+            self._test_all_naming(cc, patterns, 'cygwin')
             env.machines.host.system = 'windows'
-            self._test_all_naming(cc, env, patterns, 'windows-mingw')
+            self._test_all_naming(cc, patterns, 'windows-mingw')
 
     @skipIfNoPkgconfig
     def test_pkgconfig_parse_libs(self):
@@ -1636,7 +1639,7 @@ class InternalTests(unittest.TestCase):
             ('aarch64_be', 'aarch64'),
         ]
 
-        cc = ClangCCompiler([], [], 'fake', MachineChoice.HOST, False, mock.Mock())
+        cc = ClangCCompiler([], [], 'fake', MachineChoice.HOST, get_fake_env())
 
         with mock.patch('mesonbuild.envconfig.any_compiler_has_define', mock.Mock(return_value=False)):
             for test, expected in cases:
@@ -1685,7 +1688,7 @@ class InternalTests(unittest.TestCase):
             ('aarch64_be', 'aarch64'),
         ]
 
-        cc = ClangCCompiler([], [], 'fake', MachineChoice.HOST, False, mock.Mock())
+        cc = ClangCCompiler([], [], 'fake', MachineChoice.HOST, get_fake_env())
 
         with mock.patch('mesonbuild.envconfig.any_compiler_has_define', mock.Mock(return_value=False)):
             for test, expected in cases:

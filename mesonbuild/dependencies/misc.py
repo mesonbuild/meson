@@ -59,7 +59,7 @@ class AtomicBuiltinDependency(BuiltinDependency):
         super().__init__(name, env, kwargs)
         self.feature_since = ('1.7.0', "consider checking for `atomic_flag_clear` with and without `find_library('atomic')`")
 
-        if self.clib_compiler.has_function('atomic_flag_clear', '#include <stdatomic.h>', env)[0]:
+        if self.clib_compiler.has_function('atomic_flag_clear', '#include <stdatomic.h>')[0]:
             self.is_found = True
 
 
@@ -68,8 +68,8 @@ class AtomicSystemDependency(SystemDependency):
         super().__init__(name, env, kwargs)
         self.feature_since = ('1.7.0', "consider checking for `atomic_flag_clear` with and without `find_library('atomic')`")
 
-        h = self.clib_compiler.has_header('stdatomic.h', '', env)
-        self.link_args = self.clib_compiler.find_library('atomic', env, [], self.libtype)
+        h = self.clib_compiler.has_header('stdatomic.h', '')
+        self.link_args = self.clib_compiler.find_library('atomic', [], self.libtype)
 
         if h[0] and self.link_args:
             self.is_found = True
@@ -80,7 +80,7 @@ class DlBuiltinDependency(BuiltinDependency):
         super().__init__(name, env, kwargs)
         self.feature_since = ('0.62.0', "consider checking for `dlopen` with and without `find_library('dl')`")
 
-        if self.clib_compiler.has_function('dlopen', '#include <dlfcn.h>', env)[0]:
+        if self.clib_compiler.has_function('dlopen', '#include <dlfcn.h>')[0]:
             self.is_found = True
 
 
@@ -89,8 +89,8 @@ class DlSystemDependency(SystemDependency):
         super().__init__(name, env, kwargs)
         self.feature_since = ('0.62.0', "consider checking for `dlopen` with and without `find_library('dl')`")
 
-        h = self.clib_compiler.has_header('dlfcn.h', '', env)
-        self.link_args = self.clib_compiler.find_library('dl', env, [], self.libtype)
+        h = self.clib_compiler.has_header('dlfcn.h', '')
+        self.link_args = self.clib_compiler.find_library('dl', [], self.libtype)
 
         if h[0] and self.link_args:
             self.is_found = True
@@ -121,26 +121,26 @@ class OpenMPDependency(SystemDependency):
             # No macro defined for OpenMP, but OpenMP 3.1 is supported.
             self.version = '3.1'
             self.is_found = True
-            self.compile_args = self.link_args = self.clib_compiler.openmp_flags(environment)
+            self.compile_args = self.link_args = self.clib_compiler.openmp_flags()
             return
         if self.clib_compiler.get_id() == 'pgi':
             # through at least PGI 19.4, there is no macro defined for OpenMP, but OpenMP 3.1 is supported.
             self.version = '3.1'
             self.is_found = True
-            self.compile_args = self.link_args = self.clib_compiler.openmp_flags(environment)
+            self.compile_args = self.link_args = self.clib_compiler.openmp_flags()
             return
 
         # Set these now so they're available for the following compiler checks
         try:
-            self.compile_args.extend(self.clib_compiler.openmp_flags(environment))
-            self.link_args.extend(self.clib_compiler.openmp_link_flags(environment))
+            self.compile_args.extend(self.clib_compiler.openmp_flags())
+            self.link_args.extend(self.clib_compiler.openmp_link_flags())
         except mesonlib.MesonException as e:
             mlog.warning('OpenMP support not available because:', str(e), fatal=False)
             return
 
         try:
             openmp_date = self.clib_compiler.get_define(
-                '_OPENMP', '', self.env, [], [self], disable_cache=True)[0]
+                '_OPENMP', '', [], [self], disable_cache=True)[0]
         except mesonlib.EnvironmentException as e:
             mlog.debug('OpenMP support not available in the compiler')
             mlog.debug(e)
@@ -157,7 +157,7 @@ class OpenMPDependency(SystemDependency):
         # Flang has omp_lib.h
         header_names = ('omp.h', 'omp_lib.h')
         for name in header_names:
-            if self.clib_compiler.has_header(name, '', self.env, dependencies=[self], disable_cache=True)[0]:
+            if self.clib_compiler.has_header(name, '', dependencies=[self], disable_cache=True)[0]:
                 self.is_found = True
                 break
         else:
@@ -176,8 +176,8 @@ class ThreadDependency(SystemDependency):
             self.compile_args = []
             self.link_args = []
         else:
-            self.compile_args = self.clib_compiler.thread_flags(environment)
-            self.link_args = self.clib_compiler.thread_link_flags(environment)
+            self.compile_args = self.clib_compiler.thread_flags()
+            self.link_args = self.clib_compiler.thread_link_flags()
 
 
 class BlocksDependency(SystemDependency):
@@ -193,8 +193,8 @@ class BlocksDependency(SystemDependency):
             self.compile_args = ['-fblocks']
             self.link_args = ['-lBlocksRuntime']
 
-            if not self.clib_compiler.has_header('Block.h', '', environment, disable_cache=True) or \
-               not self.clib_compiler.find_library('BlocksRuntime', environment, []):
+            if not self.clib_compiler.has_header('Block.h', '', disable_cache=True) or \
+               not self.clib_compiler.find_library('BlocksRuntime', []):
                 mlog.log(mlog.red('ERROR:'), 'BlocksRuntime not found.')
                 return
 
@@ -242,7 +242,7 @@ class PcapDependencyConfigTool(ConfigToolDependency):
             return None
 
         v = self.clib_compiler.get_return_value('pcap_lib_version', 'string',
-                                                '#include <pcap.h>', self.env, [], [self])
+                                                '#include <pcap.h>', [], [self])
         v = re.sub(r'libpcap version ', '', str(v))
         v = re.sub(r' -- Apple version.*$', '', v)
         return v
@@ -317,7 +317,7 @@ class ShadercDependency(SystemDependency):
         cc = self.get_compiler()
 
         for lib in libs:
-            self.link_args = cc.find_library(lib, environment, [])
+            self.link_args = cc.find_library(lib, [])
             if self.link_args is not None:
                 self.is_found = True
 
@@ -372,10 +372,10 @@ class CursesSystemDependency(SystemDependency):
 
         # Not sure how else to elegantly break out of both loops
         for lib, headers in candidates:
-            l = self.clib_compiler.find_library(lib, env, [])
+            l = self.clib_compiler.find_library(lib, [])
             if l:
                 for header in headers:
-                    h = self.clib_compiler.has_header(header, '', env)
+                    h = self.clib_compiler.has_header(header, '')
                     if h[0]:
                         self.is_found = True
                         self.link_args = l
@@ -383,11 +383,11 @@ class CursesSystemDependency(SystemDependency):
                         # implementations. The one in illumos/OpenIndiana
                         # doesn't seem to have a version defined in the header.
                         if lib.startswith('ncurses'):
-                            v, _ = self.clib_compiler.get_define('NCURSES_VERSION', f'#include <{header}>', env, [], [self])
+                            v, _ = self.clib_compiler.get_define('NCURSES_VERSION', f'#include <{header}>', [], [self])
                             self.version = v.strip('"')
                         if lib.startswith('pdcurses'):
-                            v_major, _ = self.clib_compiler.get_define('PDC_VER_MAJOR', f'#include <{header}>', env, [], [self])
-                            v_minor, _ = self.clib_compiler.get_define('PDC_VER_MINOR', f'#include <{header}>', env, [], [self])
+                            v_major, _ = self.clib_compiler.get_define('PDC_VER_MAJOR', f'#include <{header}>', [], [self])
+                            v_minor, _ = self.clib_compiler.get_define('PDC_VER_MINOR', f'#include <{header}>', [], [self])
                             self.version = f'{v_major}.{v_minor}'
 
                         # Check the version if possible, emit a warning if we can't
@@ -412,7 +412,7 @@ class IconvBuiltinDependency(BuiltinDependency):
         self.feature_since = ('0.60.0', "consider checking for `iconv_open` with and without `find_library('iconv')`")
         code = '''#include <iconv.h>\n\nint main() {\n    iconv_open("","");\n}''' # [ignore encoding] this is C, not python, Mr. Lint
 
-        if self.clib_compiler.links(code, env)[0]:
+        if self.clib_compiler.links(code)[0]:
             self.is_found = True
 
 
@@ -421,8 +421,8 @@ class IconvSystemDependency(SystemDependency):
         super().__init__(name, env, kwargs)
         self.feature_since = ('0.60.0', "consider checking for `iconv_open` with and without find_library('iconv')")
 
-        h = self.clib_compiler.has_header('iconv.h', '', env)
-        self.link_args = self.clib_compiler.find_library('iconv', env, [], self.libtype)
+        h = self.clib_compiler.has_header('iconv.h', '')
+        self.link_args = self.clib_compiler.find_library('iconv', [], self.libtype)
 
         if h[0] and self.link_args:
             self.is_found = True
@@ -434,7 +434,7 @@ class IntlBuiltinDependency(BuiltinDependency):
         self.feature_since = ('0.59.0', "consider checking for `ngettext` with and without `find_library('intl')`")
         code = '''#include <libintl.h>\n\nint main() {\n    gettext("Hello world");\n}'''
 
-        if self.clib_compiler.links(code, env)[0]:
+        if self.clib_compiler.links(code)[0]:
             self.is_found = True
 
 
@@ -443,8 +443,8 @@ class IntlSystemDependency(SystemDependency):
         super().__init__(name, env, kwargs)
         self.feature_since = ('0.59.0', "consider checking for `ngettext` with and without `find_library('intl')`")
 
-        h = self.clib_compiler.has_header('libintl.h', '', env)
-        self.link_args = self.clib_compiler.find_library('intl', env, [], self.libtype)
+        h = self.clib_compiler.has_header('libintl.h', '')
+        self.link_args = self.clib_compiler.find_library('intl', [], self.libtype)
 
         if h[0] and self.link_args:
             self.is_found = True
@@ -462,14 +462,14 @@ class OpensslSystemDependency(SystemDependency):
             'method': DependencyMethods.SYSTEM,
             'static': self.static,
         }
-        if not self.clib_compiler.has_header('openssl/ssl.h', '', env)[0]:
+        if not self.clib_compiler.has_header('openssl/ssl.h', '')[0]:
             return
 
         # openssl >= 3 only
-        self.version = self.clib_compiler.get_define('OPENSSL_VERSION_STR', '#include <openssl/opensslv.h>', env, [], [self])[0]
+        self.version = self.clib_compiler.get_define('OPENSSL_VERSION_STR', '#include <openssl/opensslv.h>', [], [self])[0]
         # openssl < 3 only
         if not self.version:
-            version_hex = self.clib_compiler.get_define('OPENSSL_VERSION_NUMBER', '#include <openssl/opensslv.h>', env, [], [self])[0]
+            version_hex = self.clib_compiler.get_define('OPENSSL_VERSION_NUMBER', '#include <openssl/opensslv.h>', [], [self])[0]
             if not version_hex:
                 return
             version_hex = version_hex.rstrip('L')
@@ -483,7 +483,7 @@ class OpensslSystemDependency(SystemDependency):
                 self.is_found = True
             return
         else:
-            self.link_args = self.clib_compiler.find_library(name.lstrip('lib'), env, [], self.libtype)
+            self.link_args = self.clib_compiler.find_library(name.lstrip('lib'), [], self.libtype)
             if not self.link_args:
                 return
 
@@ -494,11 +494,11 @@ class OpensslSystemDependency(SystemDependency):
                 if self._add_sub_dependency(libcrypto_factory(env, self.for_machine, dependency_kwargs)):
                     self.is_found = True
             elif name == 'libcrypto':
-                use_threads = self.clib_compiler.has_header_symbol('openssl/opensslconf.h', 'OPENSSL_THREADS', '', env, dependencies=[self])[0]
+                use_threads = self.clib_compiler.has_header_symbol('openssl/opensslconf.h', 'OPENSSL_THREADS', '', dependencies=[self])[0]
                 if not use_threads or self._add_sub_dependency(threads_factory(env, self.for_machine, {})):
                     self.is_found = True
                 # only relevant on platforms where it is distributed with the libc, in which case it always succeeds
-                sublib = self.clib_compiler.find_library('dl', env, [], self.libtype)
+                sublib = self.clib_compiler.find_library('dl', [], self.libtype)
                 if sublib:
                     self.link_args.extend(sublib)
 

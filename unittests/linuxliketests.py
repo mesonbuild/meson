@@ -1523,7 +1523,7 @@ class LinuxlikeTests(BasePlatformTests):
         env = get_fake_env()
         cc = detect_c_compiler(env, MachineChoice.HOST)
         linker = cc.linker
-        if not linker.export_dynamic_args(env):
+        if not linker.export_dynamic_args():
             raise SkipTest('Not applicable for linkers without --export-dynamic')
         self.init(testdir)
         build_ninja = os.path.join(self.builddir, 'build.ninja')
@@ -1977,7 +1977,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cpp = detect_cpp_compiler(env, MachineChoice.HOST)
-        if cpp.find_library('ubsan', env, []):
+        if cpp.find_library('ubsan', []):
             tests += ['address,undefined']
 
         for value in tests:
