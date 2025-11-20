@@ -64,7 +64,7 @@ arg_flattening: false
 
 posargs:
   key_or_dict:
-    type: str | dict[str | bool | int | dep | external_program | array[str | bool | int | dep | external_program]]
+    type: str | dict[str | bool | int | dep | program | array[str | bool | int | dep | program]]
     description: |
       The name of the new entry, or a dict containing multiple entries.  If a
       dict is passed it is equivalent to calling summary() once for each
@@ -73,7 +73,7 @@ posargs:
 
 optargs:
   value:
-    type: str | bool | int | dep | external_program | array[str | bool | int | dep | external_program]
+    type: str | bool | int | dep | program | array[str | bool | int | dep | program]
     description: |
       The value to print for the `key`.  Only valid if `key_or_dict` is a str.
 

@@ -1953,7 +1953,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if maincmd.found():
                     vcs_cmd[0] = maincmd
             else:
-                FeatureNew.single_use('vcs_tag with custom_tgt, external_program, or exe as the first argument', '0.63.0', self.subproject, location=node)
+                FeatureNew.single_use('vcs_tag with custom_tgt, program, or exe as the first argument', '0.63.0', self.subproject, location=node)
         else:
             vcs = mesonlib.detect_vcs(source_dir)
             if vcs:
@@ -2294,7 +2294,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if isinstance(args[1], (build.CustomTarget, build.CustomTargetIndex)):
             FeatureNew.single_use('test with CustomTarget as command', '1.4.0', self.subproject)
         if any(isinstance(i, ExternalProgram) for i in kwargs['args']):
-            FeatureNew.single_use('test with external_program in args', '1.6.0', self.subproject)
+            FeatureNew.single_use('test with program in args', '1.6.0', self.subproject)
 
         t = self.make_test(node, args, kwargs)
         if is_base_test:

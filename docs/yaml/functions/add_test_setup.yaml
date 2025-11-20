@@ -26,7 +26,7 @@ kwargs:
       environment juggling. *(Since 0.52.0)* A dictionary is also accepted.
 
   exe_wrapper:
-    type: array[str | external_program]
+    type: array[str | program]
     description: The command or script followed by the arguments to it
 
   gdb:

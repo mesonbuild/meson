@@ -53,9 +53,9 @@ methods:
   deprecated: 0.59.0
   description: |
     Does the exact same as [[build_tgt.full_path]]. **NOTE**: This
-    function is solely kept for compatibility with [[@external_program]] objects.
+    function is solely kept for compatibility with [[@program]] objects.
     It will be removed once the, also deprecated, corresponding `path()`
-    function in the [[@external_program]] object is removed.
+    function in the [[@program]] object is removed.
 
 - name: private_dir_include
   returns: inc
@@ -74,9 +74,9 @@ methods:
   since: 0.59.0
   description: |
     Always returns `true`. This function is meant to make executables
-    objects feature compatible with [[@external_program]] objects. This
+    objects feature compatible with [[@program]] objects. This
     simplifies use-cases where an executable is used instead of
-    an [[@external_program]].
+    an [[@program]].
 
 - name: vala_header
   returns: file

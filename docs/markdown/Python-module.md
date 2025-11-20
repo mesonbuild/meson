@@ -76,7 +76,7 @@ Keyword arguments are the following:
 
 ## `python_installation` object
 
-The `python_installation` object is an [[@external_program]], with several
+The `python_installation` object is an [[@program]], with several
 added methods.
 
 ### Methods
@@ -91,7 +91,7 @@ str py_installation.path()
 
 *Deprecated in 0.55: use `full_path()` instead*
 
-Works like the path method of `ExternalProgram` objects. Was not provided prior
+Works like the path method of `Program` objects. Was not provided prior
 to 0.50.0 due to a bug.
 
 #### `full_path()`
@@ -102,7 +102,7 @@ str py_installation.full_path()
 
 *(since 0.55.0)*
 
-Works like the `full_path()` method of `ExternalProgram` objects: [[external_program.full_path]]
+Works like the `full_path()` method of `Program` objects: [[program.full_path]]
 
 #### `extension_module()`
 

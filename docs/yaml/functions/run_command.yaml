@@ -17,7 +17,7 @@ description: |
 
 varargs:
   name: command
-  type: str | file | external_program
+  type: str | file | program
   description: The command to execute during the setup process.
 
 kwargs:

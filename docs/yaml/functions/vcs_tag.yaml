@@ -22,7 +22,7 @@ description: |
 
 kwargs:
   command:
-    type: array[exe | external_program | custom_tgt | file | str]
+    type: array[exe | program | custom_tgt | file | str]
     description: |
       The command to execute, see [[custom_target]] for details
       on how this command must be specified.
@@ -32,7 +32,7 @@ kwargs:
 
       *(since 0.62.0)* [[@file]] is accepted.
 
-      *(since 0.63.0)* [[@custom_tgt]], [[@exe]], and [[@external_program]] are accepted.
+      *(since 0.63.0)* [[@custom_tgt]], [[@exe]], and [[@program]] are accepted.
 
   input:
     type: str

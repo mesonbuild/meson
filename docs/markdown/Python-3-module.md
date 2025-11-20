@@ -9,9 +9,8 @@ This module is deprecated and replaced by the
 ## find_python
 
 This is a cross platform way of finding the Python 3 executable, which
-may have a different name on different operating systems. Returns an
-[[@external_program]]
-object.
+may have a different name on different operating systems. Returns a
+[[@program]] object.
 
 *Added 0.38.0*
 
