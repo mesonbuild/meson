@@ -2499,9 +2499,9 @@ class AllPlatformTests(BasePlatformTests):
         if ninja is None:
             raise SkipTest('This test currently requires ninja. Fix this once "meson build" works.')
 
-        langs = ['c']
+        langs = []
         env = get_fake_env()
-        for l in ['cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'objc', 'objcpp', 'rust', 'vala']:
+        for l in ['c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'objc', 'objcpp', 'rust', 'vala']:
             try:
                 comp = detect_compiler_for(env, l, MachineChoice.HOST, True, '')
                 with tempfile.TemporaryDirectory() as d:
