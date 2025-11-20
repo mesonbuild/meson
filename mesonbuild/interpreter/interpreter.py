@@ -119,7 +119,6 @@ if T.TYPE_CHECKING:
     from ..backend.backends import Backend
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
     from ..options import OptionDict
-    from ..programs import OverrideProgram
     from .type_checking import SourcesVarargsType
 
     # Input source types passed to Targets
@@ -131,7 +130,7 @@ if T.TYPE_CHECKING:
 
     BuildTargetSource = T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.StructuredSources]
 
-    ProgramVersionFunc = T.Callable[[T.Union[ExternalProgram, build.Executable]], str]
+    ProgramVersionFunc = T.Callable[[Program], str]
 
     TestClass = T.TypeVar('TestClass', bound=Test)
 
@@ -419,7 +418,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.Generator: OBJ.GeneratorHolder,
             build.GeneratedList: OBJ.GeneratedListHolder,
             build.ExtractedObjects: OBJ.GeneratedObjectsHolder,
-            build.OverrideExecutable: OBJ.OverrideExecutableHolder,
             build.RunTarget: OBJ.RunTargetHolder,
             build.AliasTarget: OBJ.AliasTargetHolder,
             build.Headers: OBJ.HeadersHolder,
@@ -1589,7 +1587,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def program_from_overrides(self, command_names: T.List[mesonlib.FileOrString],
                                extra_info: T.List['mlog.TV_Loggable']
-                               ) -> T.Optional[T.Union[Program, build.OverrideExecutable]]:
+                               ) -> T.Optional[Program]:
         for name in command_names:
             if not isinstance(name, str):
                 continue
@@ -1604,7 +1602,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if isinstance(name, str):
                 self.build.searched_programs.add(name)
 
-    def add_find_program_override(self, name: str, exe: T.Union[build.OverrideExecutable, Program]) -> None:
+    def add_find_program_override(self, name: str, exe: Program) -> None:
         if name in self.build.searched_programs:
             raise InterpreterException(f'Tried to override finding of executable "{name}" which has already been found.')
         if name in self.build.find_overrides:
@@ -1629,7 +1627,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                           search_dirs: T.Optional[T.List[str]] = None,
                           version_arg: T.Optional[str] = '',
                           version_func: T.Optional[ProgramVersionFunc] = None
-                          ) -> T.Union[Program, build.OverrideExecutable]:
+                          ) -> Program:
         args = mesonlib.listify(args)
 
         extra_info: T.List[mlog.TV_Loggable] = []
@@ -1661,7 +1659,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                        version_arg: T.Optional[str],
                        version_func: T.Optional[ProgramVersionFunc],
                        extra_info: T.List[mlog.TV_Loggable]
-                       ) -> T.Optional[T.Union[Program, build.Executable]]:
+                       ) -> T.Optional[Program]:
         progobj = self.program_from_overrides(args, extra_info)
         if progobj:
             return progobj
@@ -1697,7 +1695,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         return progobj
 
-    def check_program_version(self, progobj: T.Union[Program, build.Executable],
+    def check_program_version(self, progobj: Program,
                               wanted: T.Union[str, T.List[str]],
                               version_func: T.Optional[ProgramVersionFunc],
                               extra_info: T.List[mlog.TV_Loggable]) -> bool:
@@ -1724,7 +1722,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def find_program_fallback(self, fallback: str, args: T.List[mesonlib.FileOrString],
                               default_options: OptionDict,
                               required: bool, extra_info: T.List[mlog.TV_Loggable]
-                              ) -> T.Optional[T.Union[ExternalProgram, build.Executable]]:
+                              ) -> T.Optional[Program]:
         mlog.log('Fallback to subproject', mlog.bold(fallback), 'which provides program',
                  mlog.bold(' '.join(args)))
         sp_kwargs: kwtypes.DoSubproject = {
@@ -1751,7 +1749,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @disablerIfNotFound
     def func_find_program(self, node: mparser.BaseNode, args: T.Tuple[T.List[mesonlib.FileOrString]],
                           kwargs: 'kwtypes.FindProgram',
-                          ) -> T.Union['build.Executable', ExternalProgram]:
+                          ) -> Program:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Program', mlog.bold(' '.join(args[0])), 'skipped: feature', mlog.bold(feature), 'disabled')
