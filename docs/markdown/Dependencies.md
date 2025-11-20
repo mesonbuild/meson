@@ -329,7 +329,7 @@ to what is provided by the C runtime libraries.
 
 ## BLAS and LAPACK
 
-*(added 1.9.0)*
+*(added 1.10.0)*
 
 Enables compiling and linking against BLAS and LAPACK libraries. BLAS and
 LAPACK are generic APIs, which can be provided by a number of different

@@ -150,7 +150,7 @@ class OpenBLASMixin(BLASLAPACKMixin):
 class OpenBLASSystemDependency(OpenBLASMixin, SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
         super().__init__(name, environment, kwargs)
-        self.feature_since = ('1.9.0', '')
+        self.feature_since = ('1.10.0', '')
         self.parse_modules(kwargs)
 
         # First, look for paths specified in a machine file
@@ -216,7 +216,7 @@ class OpenBLASSystemDependency(OpenBLASMixin, SystemDependency):
 
 class OpenBLASPkgConfigDependency(OpenBLASMixin, PkgConfigDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
-        self.feature_since = ('1.9.0', '')
+        self.feature_since = ('1.10.0', '')
         self.parse_modules(kwargs)
         if self.interface == 'lp64' and name != 'openblas':
             # Check only for 'openblas' for LP64 (there are multiple names for ILP64)
@@ -233,7 +233,7 @@ class OpenBLASCMakeDependency(OpenBLASMixin, CMakeDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: 'DependencyObjectKWs',
                  language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> None:
         super().__init__('OpenBLAS', env, kwargs, language, force_use_global_compilers)
-        self.feature_since = ('1.9.0', '')
+        self.feature_since = ('1.10.0', '')
         self.parse_modules(kwargs)
 
         if self.interface == 'ilp64':
@@ -268,7 +268,7 @@ class NetlibMixin(BLASLAPACKMixin):
 
 class NetlibBLASPkgConfigDependency(NetlibMixin, PkgConfigDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
-        self.feature_since = ('1.9.0', '')
+        self.feature_since = ('1.10.0', '')
         self.parse_modules(kwargs)
         if self.interface == 'lp64' and '64' in name:
             # *64* names are used for ILP64 variants
@@ -296,7 +296,7 @@ class NetlibBLASPkgConfigDependency(NetlibMixin, PkgConfigDependency):
 class NetlibBLASSystemDependency(NetlibMixin, SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
         super().__init__(name, environment, kwargs)
-        self.feature_since = ('1.9.0', '')
+        self.feature_since = ('1.10.0', '')
         self.parse_modules(kwargs)
 
         # First, look for paths specified in a machine file
@@ -369,7 +369,7 @@ class NetlibBLASSystemDependency(NetlibMixin, SystemDependency):
 
 class NetlibLAPACKPkgConfigDependency(NetlibMixin, PkgConfigDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
-        self.feature_since = ('1.9.0', '')
+        self.feature_since = ('1.10.0', '')
         self.parse_modules(kwargs)
         if self.interface == 'lp64' and '64' in name:
             # *64* names are used for ILP64 variants
@@ -398,7 +398,7 @@ class NetlibLAPACKPkgConfigDependency(NetlibMixin, PkgConfigDependency):
 class NetlibLAPACKSystemDependency(NetlibMixin, SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
         super().__init__(name, environment, kwargs)
-        self.feature_since = ('1.9.0', '')
+        self.feature_since = ('1.10.0', '')
         self.parse_modules(kwargs)
 
         # First, look for paths specified in a machine file
@@ -481,7 +481,7 @@ class AccelerateSystemDependency(BLASLAPACKMixin, SystemDependency):
     """
     def __init__(self, name: str, environment: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
         super().__init__(name, environment, kwargs)
-        self.feature_since = ('1.9.0', '')
+        self.feature_since = ('1.10.0', '')
         self.parse_modules(kwargs)
 
         for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
@@ -615,7 +615,7 @@ class MKLPkgConfigDependency(MKLMixin, PkgConfigDependency):
     has more manual fixes.
     """
     def __init__(self, name: str, env: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
-        self.feature_since = ('1.9.0', '')
+        self.feature_since = ('1.10.0', '')
         self.parse_mkl_options(kwargs)
         if self.use_sdl == 'auto':
             # Layered libraries are preferred, and .pc files for layered were
@@ -639,7 +639,7 @@ class MKLSystemDependency(MKLMixin, SystemDependency):
     """This only detects MKL's Single Dynamic Library (SDL)"""
     def __init__(self, name: str, environment: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
         super().__init__(name, environment, kwargs)
-        self.feature_since = ('1.9.0', '')
+        self.feature_since = ('1.10.0', '')
         self.parse_mkl_options(kwargs)
 
         if self.use_sdl == 'auto':
