@@ -535,7 +535,7 @@ class Backend:
         return result
 
     def get_executable_serialisation(
-            self, cmd: T.Sequence[T.Union[programs.ExternalProgram, build.BuildTarget, build.CustomTarget, File, str]],
+            self, cmd: T.Sequence[T.Union[programs.ExternalProgram, build.BuildTargetTypes, File, str]],
             workdir: T.Optional[str] = None,
             extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
             capture: T.Optional[str] = None,
@@ -554,7 +554,7 @@ class Backend:
         elif isinstance(exe, build.BuildTarget):
             exe_cmd = [self.get_target_filename_abs(exe)]
             exe_for_machine = exe.for_machine
-        elif isinstance(exe, build.CustomTarget):
+        elif isinstance(exe, (build.CustomTarget, build.CustomTargetIndex)):
             # The output of a custom target can either be directly runnable
             # or not, that is, a script, a native binary or a cross compiled
             # binary when exe wrapper is available and when it is not.
@@ -573,7 +573,7 @@ class Backend:
         for c in raw_cmd_args:
             if isinstance(c, programs.ExternalProgram):
                 cmd_args += c.get_command()
-            elif isinstance(c, (build.BuildTarget, build.CustomTarget)):
+            elif isinstance(c, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 cmd_args.append(self.get_target_filename_abs(c))
             elif isinstance(c, mesonlib.File):
                 cmd_args.append(c.rel_to_builddir(self.environment.source_dir))
@@ -620,8 +620,8 @@ class Backend:
                                        exe_wrapper, workdir,
                                        extra_paths, capture, feed, tag, verbose, installdir_map)
 
-    def as_meson_exe_cmdline(self, exe: T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram],
-                             cmd_args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram]],
+    def as_meson_exe_cmdline(self, exe: T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.ExternalProgram],
+                             cmd_args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.ExternalProgram]],
                              workdir: T.Optional[str] = None,
                              extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
                              capture: T.Optional[str] = None,
@@ -633,7 +633,7 @@ class Backend:
         '''
         Serialize an executable for running with a generator or a custom target
         '''
-        cmd: T.List[T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram]] = []
+        cmd: T.List[T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.ExternalProgram]] = []
         cmd.append(exe)
         cmd.extend(cmd_args)
         es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, feed, env, can_use_rsp_file, verbose=verbose)
@@ -694,7 +694,7 @@ class Backend:
             )
 
         if isinstance(exe, (programs.ExternalProgram,
-                            build.BuildTarget, build.CustomTarget)):
+                            build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
             basename = os.path.basename(exe.name)
         elif isinstance(exe, mesonlib.File):
             basename = os.path.basename(exe.fname)
