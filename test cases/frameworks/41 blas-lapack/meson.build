@@ -3,7 +3,7 @@ project('test blas and lapack', 'c')
 has_fortran = add_languages('fortran', required: false)
 
 found_any = false
-foreach name : ['openblas', 'accelerate', 'mkl', 'netlib']
+foreach name : ['openblas', 'accelerate', 'flexiblas', 'mkl', 'netlib']
   foreach interface : ['lp64', 'ilp64']
     # we treat 'sdl' here since it implies lp64+iomp, so we can avoid one
     # level of nesting

@@ -363,7 +363,7 @@ dep_mkl = dependency('mkl', modules: ['interface: ilp64', 'cblas', 'lapack'])
 # Or, to select one of multiple BLAS/LAPACK implementations:
 
 blas = dependency(
-  ['accelerate', 'mkl', 'openblas', 'blas'],
+  ['accelerate', 'flexiblas', 'mkl', 'openblas', 'blas'],
   modules: ['interface: ilp64', 'cblas', 'lapack'],
 )
 blas_symbol_suffix = blas.get_variable('symbol_suffix')

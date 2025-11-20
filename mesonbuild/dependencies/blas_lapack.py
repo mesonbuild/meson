@@ -684,6 +684,44 @@ class MKLSystemDependency(MKLMixin, SystemDependency):
                 self.is_found = False
 
 
+class FlexiBLASPkgConfigDependency(BLASLAPACKMixin, PkgConfigDependency):
+    def __init__(self, name: str, env: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
+        self.feature_since = ('1.10.0', '')
+        self.parse_modules(kwargs)
+        if self.interface == 'lp64' and '64' in name:
+            # *64* names are used for ILP64 variants
+            self.is_found = False
+            return None
+
+        super().__init__(name, env, kwargs)
+
+        if self.is_found:
+            if not self.probe_symbols(self.link_args):
+                self.is_found = False
+
+    def get_symbol_suffix(self) -> str:
+        self._ilp64_suffix = ''  # Handle `64_` suffix, or custom suffixes?
+        return '' if self.interface == 'lp64' else self._ilp64_suffix
+
+    def probe_symbols(self, compile_args: list[str], check_cblas: bool = True, check_lapacke: bool = True,
+                      lapack_only: bool = False) -> bool:
+        """FlexiBLAS 3.5.0 does not support suffixes yet, but it will follow Netlib LAPACK
+        in using the _64 suffix."""
+        if self.interface == 'lp64':
+            return self.check_symbols(compile_args, check_cblas=check_cblas,
+                                      check_lapacke=check_lapacke, lapack_only=lapack_only)
+
+        if self.check_symbols(compile_args, '_64', check_cblas=check_cblas,
+                              check_lapacke=check_lapacke, lapack_only=lapack_only):
+            self._ilp64_suffix = '_64'
+        elif self.check_symbols(compile_args, '', check_cblas=check_cblas,
+                                check_lapacke=check_lapacke, lapack_only=lapack_only):
+            self._ilp64_suffix = ''
+        else:
+            return False
+        return True
+
+
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE})
 def openblas_factory(env: 'Environment', for_machine: 'MachineChoice',
                      kwargs: 'DependencyObjectKWs',
@@ -743,9 +781,25 @@ def netlib_lapack_factory(env: 'Environment', for_machine: 'MachineChoice',
 
     return candidates
 
+
+@factory_methods({DependencyMethods.PKGCONFIG})
+def flexiblas_factory(env: 'Environment', for_machine: 'MachineChoice',
+                      kwargs: 'DependencyObjectKWs',
+                      methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
+    candidates: T.List['DependencyGenerator'] = []
+
+    if DependencyMethods.PKGCONFIG in methods:
+        for pkg in ['flexiblas64', 'flexiblas']:
+            candidates.append(functools.partial(
+                FlexiBLASPkgConfigDependency, pkg, env, kwargs))
+
+    return candidates
+
+
 packages['openblas'] = openblas_factory
 packages['blas'] = netlib_blas_factory
 packages['lapack'] = netlib_lapack_factory
+packages['flexiblas'] = flexiblas_factory
 
 packages['accelerate'] = DependencyFactory(
     'accelerate',
