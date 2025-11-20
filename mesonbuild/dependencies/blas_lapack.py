@@ -66,7 +66,7 @@ class BLASLAPACKMixin(BLASLAPACKMixinBase, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     def parse_modules(self, kwargs: 'DependencyObjectKWs') -> None:
-        modules: T.List[str] = mesonlib.extract_as_list(kwargs, 'modules')
+        modules: T.List[str] = kwargs.get('modules', [])
         valid_modules = ['interface: lp64', 'interface: ilp64', 'cblas', 'lapack', 'lapacke']
         for module in modules:
             if module not in valid_modules:
@@ -528,7 +528,7 @@ class MKLMixin(BLASLAPACKMixin):
         Removing 'threading: <val>' and 'sdl' from `modules` is needed to ensure those
         don't get to the generic parse_modules() method for all BLAS/LAPACK dependencies.
         """
-        modules: T.List[str] = mesonlib.extract_as_list(kwargs, 'modules')
+        modules: T.List[str] = kwargs.get('modules', [])
         threading_modules = [s for s in modules if s.startswith('threading: ')]
         sdl_modules = [s for s in modules if s.startswith('sdl: ')]
 
