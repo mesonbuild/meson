@@ -197,7 +197,7 @@ executable(
 
 The [[@build_tgt]] object now supports
 the following two functions, to ensure feature compatibility with
-[[@external_program]] objects:
+[[@program]] objects:
 
 - `found()`: Always returns `true`. This function is meant
   to make executables objects feature compatible with
