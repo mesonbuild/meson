@@ -25,7 +25,7 @@ from .factory import DependencyFactory, factory_methods
 from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
-    from .base import ExternalDependency
+    from .base import DependencyObjectKWs, ExternalDependency
     from .factory import DependencyGenerator
     from ..environment import Environment
     BLASLAPACKMixinBase = ExternalDependency
@@ -65,7 +65,7 @@ class BLASLAPACKMixin(BLASLAPACKMixinBase, metaclass=abc.ABCMeta):
     def get_symbol_suffix(self) -> str:
         raise NotImplementedError
 
-    def parse_modules(self, kwargs: T.Dict[str, T.Any]) -> None:
+    def parse_modules(self, kwargs: 'DependencyObjectKWs') -> None:
         modules: T.List[str] = mesonlib.extract_as_list(kwargs, 'modules')
         valid_modules = ['interface: lp64', 'interface: ilp64', 'cblas', 'lapack', 'lapacke']
         for module in modules:
@@ -148,7 +148,7 @@ class OpenBLASMixin(BLASLAPACKMixin):
 
 
 class OpenBLASSystemDependency(OpenBLASMixin, SystemDependency):
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
         super().__init__(name, environment, kwargs)
         self.feature_since = ('1.9.0', '')
         self.parse_modules(kwargs)
@@ -215,7 +215,7 @@ class OpenBLASSystemDependency(OpenBLASMixin, SystemDependency):
 
 
 class OpenBLASPkgConfigDependency(OpenBLASMixin, PkgConfigDependency):
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, name: str, env: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
         self.feature_since = ('1.9.0', '')
         self.parse_modules(kwargs)
         if self.interface == 'lp64' and name != 'openblas':
@@ -230,7 +230,7 @@ class OpenBLASPkgConfigDependency(OpenBLASMixin, PkgConfigDependency):
 
 
 class OpenBLASCMakeDependency(OpenBLASMixin, CMakeDependency):
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+    def __init__(self, name: str, env: 'Environment', kwargs: 'DependencyObjectKWs',
                  language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> None:
         super().__init__('OpenBLAS', env, kwargs, language, force_use_global_compilers)
         self.feature_since = ('1.9.0', '')
@@ -267,7 +267,7 @@ class NetlibMixin(BLASLAPACKMixin):
 
 
 class NetlibBLASPkgConfigDependency(NetlibMixin, PkgConfigDependency):
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, name: str, env: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
         self.feature_since = ('1.9.0', '')
         self.parse_modules(kwargs)
         if self.interface == 'lp64' and '64' in name:
@@ -294,7 +294,7 @@ class NetlibBLASPkgConfigDependency(NetlibMixin, PkgConfigDependency):
 
 
 class NetlibBLASSystemDependency(NetlibMixin, SystemDependency):
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
         super().__init__(name, environment, kwargs)
         self.feature_since = ('1.9.0', '')
         self.parse_modules(kwargs)
@@ -368,7 +368,7 @@ class NetlibBLASSystemDependency(NetlibMixin, SystemDependency):
 
 
 class NetlibLAPACKPkgConfigDependency(NetlibMixin, PkgConfigDependency):
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, name: str, env: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
         self.feature_since = ('1.9.0', '')
         self.parse_modules(kwargs)
         if self.interface == 'lp64' and '64' in name:
@@ -396,7 +396,7 @@ class NetlibLAPACKPkgConfigDependency(NetlibMixin, PkgConfigDependency):
 
 
 class NetlibLAPACKSystemDependency(NetlibMixin, SystemDependency):
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
         super().__init__(name, environment, kwargs)
         self.feature_since = ('1.9.0', '')
         self.parse_modules(kwargs)
@@ -479,7 +479,7 @@ class AccelerateSystemDependency(BLASLAPACKMixin, SystemDependency):
         dependency('appleframeworks', modules : 'Accelerate')
 
     """
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
         super().__init__(name, environment, kwargs)
         self.feature_since = ('1.9.0', '')
         self.parse_modules(kwargs)
@@ -499,7 +499,7 @@ class AccelerateSystemDependency(BLASLAPACKMixin, SystemDependency):
         sdk_version = subprocess.run(cmd, capture_output=True, check=True, text=True, encoding='utf-8').stdout.strip()
         return mesonlib.version_compare(sdk_version, '>=13.3')
 
-    def detect(self, kwargs: T.Dict[str, T.Any]) -> None:
+    def detect(self, kwargs: 'DependencyObjectKWs') -> None:
         from .framework import ExtraFrameworkDependency
         dep = ExtraFrameworkDependency('Accelerate', self.env, kwargs)
         self.is_found = dep.is_found
@@ -522,7 +522,7 @@ class MKLMixin(BLASLAPACKMixin):
         # _64 suffixes were added in 2022.2
         return '' if self.interface == 'lp64' else self._ilp64_suffix
 
-    def parse_mkl_options(self, kwargs: T.Dict[str, T.Any]) -> None:
+    def parse_mkl_options(self, kwargs: 'DependencyObjectKWs') -> None:
         """Parse `modules` and remove threading and SDL options from it if they are present.
 
         Removing 'threading: <val>' and 'sdl' from `modules` is needed to ensure those
@@ -614,7 +614,7 @@ class MKLPkgConfigDependency(MKLMixin, PkgConfigDependency):
     Note that there is also an MKLPkgConfig dependency in scalapack.py, which
     has more manual fixes.
     """
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, name: str, env: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
         self.feature_since = ('1.9.0', '')
         self.parse_mkl_options(kwargs)
         if self.use_sdl == 'auto':
@@ -637,7 +637,7 @@ class MKLPkgConfigDependency(MKLMixin, PkgConfigDependency):
 
 class MKLSystemDependency(MKLMixin, SystemDependency):
     """This only detects MKL's Single Dynamic Library (SDL)"""
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: 'DependencyObjectKWs') -> None:
         super().__init__(name, environment, kwargs)
         self.feature_since = ('1.9.0', '')
         self.parse_mkl_options(kwargs)
@@ -686,7 +686,7 @@ class MKLSystemDependency(MKLMixin, SystemDependency):
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE})
 def openblas_factory(env: 'Environment', for_machine: 'MachineChoice',
-                     kwargs: T.Dict[str, T.Any],
+                     kwargs: 'DependencyObjectKWs',
                      methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     candidates: T.List['DependencyGenerator'] = []
 
@@ -710,7 +710,7 @@ packages['openblas'] = openblas_factory
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM})
 def netlib_blas_factory(env: 'Environment', for_machine: 'MachineChoice',
-                        kwargs: T.Dict[str, T.Any],
+                        kwargs: 'DependencyObjectKWs',
                         methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     candidates: T.List['DependencyGenerator'] = []
 
@@ -728,7 +728,7 @@ def netlib_blas_factory(env: 'Environment', for_machine: 'MachineChoice',
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM})
 def netlib_lapack_factory(env: 'Environment', for_machine: 'MachineChoice',
-                          kwargs: T.Dict[str, T.Any],
+                          kwargs: 'DependencyObjectKWs',
                           methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     candidates: T.List['DependencyGenerator'] = []
 
