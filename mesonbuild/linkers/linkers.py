@@ -66,6 +66,9 @@ class StaticLinker:
     def get_coverage_link_args(self) -> T.List[str]:
         return []
 
+    def gen_vs_module_defs_args(self) -> T.List[str]:
+        return []
+
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
                          extra_paths: T.Optional[T.List[str]] = None
                          ) -> T.Tuple[T.List[str], T.Set[bytes]]:
