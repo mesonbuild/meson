@@ -385,6 +385,9 @@ class RustCompiler(Compiler):
     def get_coverage_link_args(self) -> T.List[str]:
         return rustc_link_args(super().get_coverage_link_args())
 
+    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
+        return rustc_link_args(super().gen_vs_module_defs_args(defsfile))
+
     def get_profile_generate_args(self) -> T.List[str]:
         return ['-C', 'profile-generate']
 
