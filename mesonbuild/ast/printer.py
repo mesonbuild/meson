@@ -25,9 +25,9 @@ def precedence_level(node: mparser.BaseNode) -> int:
     elif isinstance(node, mparser.ComparisonNode):
         return 4
     elif isinstance(node, mparser.ArithmeticNode):
-        if node.operation in {'add', 'sub'}:
+        if node.operation in {'+', '-'}:
             return 5
-        elif node.operation in {'mod', 'mul', 'div'}:
+        elif node.operation in {'%', '*', '/'}:
             return 6
     elif isinstance(node, (mparser.NotNode, mparser.UMinusNode)):
         return 7
@@ -138,7 +138,7 @@ class AstPrinter(AstVisitor):
 
     def visit_ComparisonNode(self, node: mparser.ComparisonNode) -> None:
         node.left.accept(self)
-        self.append_padded(node.ctype if node.ctype != 'notin' else 'not in', node)
+        self.append_padded(node.ctype, node)
         node.lineno = self.curr_line or node.lineno
         node.right.accept(self)
 
