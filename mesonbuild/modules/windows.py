@@ -32,13 +32,6 @@ if T.TYPE_CHECKING:
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
         args: T.List[str]
 
-    class RcKwargs(TypedDict):
-        output: str
-        input: T.List[T.Union[mesonlib.FileOrString, build.CustomTargetIndex]]
-        depfile: T.Optional[str]
-        depend_files: T.List[mesonlib.FileOrString]
-        depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
-        command: T.List[T.Union[str, ExternalProgram]]
 
 class ResourceCompilerType(enum.Enum):
     windres = 1
