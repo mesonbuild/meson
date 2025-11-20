@@ -31,7 +31,7 @@ posargs:
 
 kwargs:
   command:
-    type: array[exe| external_program | custom_tgt | file | str]
+    type: array[exe| program | custom_tgt | file | str]
     description: |
       An array containing the command to run and the arguments
       to pass to it. Each array element may be a string or a target. For

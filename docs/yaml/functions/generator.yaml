@@ -40,7 +40,7 @@ description: |
 
 posargs:
   exe:
-    type: exe | external_program
+    type: exe | program
     description: Executable for the command to run
 
 kwargs:

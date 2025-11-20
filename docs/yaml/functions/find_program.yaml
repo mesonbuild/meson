@@ -1,5 +1,5 @@
 name: find_program
-returns: external_program
+returns: program
 description: |
   `program_name` here is a string that can be an executable or script
   to be searched for in `PATH` or other places inside the project.
@@ -45,7 +45,7 @@ description: |
   *Since 1.2.0* `find_program('meson')` is automatically overridden to the Meson
   command used to execute the build script.
 
-  The returned [[@external_program]] object also has documented methods.
+  The returned [[@program]] object also has documented methods.
 
 posargs:
   program_name:
@@ -73,7 +73,7 @@ kwargs:
       When `true`, Meson will abort if no program can be found.
       If `required` is set to `false`,
       Meson continue even if none of the programs can be found. You can
-      then use the `.found()` method on the returned [[@external_program]] to check
+      then use the `.found()` method on the returned [[@program]] to check
       whether it was found or not. *(since 0.47.0)* The value of a
       [`feature`](Build-options.md#features) option can also be passed to the
       `required` keyword argument.

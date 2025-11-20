@@ -645,15 +645,15 @@ class ProgramHolder(ObjectHolder[_PROG]):
 
     @noPosargs
     @noKwargs
-    @FeatureDeprecated('ExternalProgram.path', '0.55.0',
-                       'use ExternalProgram.full_path() instead')
+    @FeatureDeprecated('Program.path', '0.55.0',
+                       'use Program.full_path() instead')
     @InterpreterObject.method('path')
     def path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self._full_path()
 
     @noPosargs
     @noKwargs
-    @FeatureNew('ExternalProgram.full_path', '0.55.0')
+    @FeatureNew('Program.full_path', '0.55.0')
     @InterpreterObject.method('full_path')
     def full_path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self._full_path()
@@ -670,7 +670,7 @@ class ProgramHolder(ObjectHolder[_PROG]):
 
     @noPosargs
     @noKwargs
-    @FeatureNew('ExternalProgram.cmd_array', '1.10.0')
+    @FeatureNew('Program.cmd_array', '1.10.0')
     @InterpreterObject.method('cmd_array')
     def cmd_array_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[str]:
         if not self.found():
@@ -683,7 +683,7 @@ class ProgramHolder(ObjectHolder[_PROG]):
 
     @noPosargs
     @noKwargs
-    @FeatureNew('ExternalProgram.version', '0.62.0')
+    @FeatureNew('Program.version', '0.62.0')
     @InterpreterObject.method('version')
     def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         if isinstance(self.held_object, build.LocalProgram) and isinstance(self.held_object.program, build.Executable):
