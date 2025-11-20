@@ -32,7 +32,7 @@ if T.TYPE_CHECKING:
     from ..mesonlib import MachineChoice
     from ..programs import OverrideProgram
 
-    Program: TypeAlias = T.Union[Executable, ExternalProgram, OverrideProgram]
+    AnyProgram: TypeAlias = T.Union[Executable, ExternalProgram, OverrideProgram]
     LexImpls = Literal['lex', 'flex', 'reflex', 'win_flex']
     YaccImpls = Literal['yacc', 'byacc', 'bison', 'win_bison']
 
@@ -87,12 +87,12 @@ def is_subset_validator(choices: T.Set[str]) -> T.Callable[[T.List[str]], T.Opti
 class _CodeGenerator(HoldableObject):
 
     name: str
-    program: Program
+    program: AnyProgram
     arguments: ImmutableListProtocol[str] = dataclasses.field(default_factory=list)
 
-    def command(self) -> T.List[T.Union[Program, str]]:
-        return (T.cast('T.List[T.Union[Program, str]]', [self.program]) +
-                T.cast('T.List[T.Union[Program, str]]', self.arguments))
+    def command(self) -> T.List[T.Union[AnyProgram, str]]:
+        return (T.cast('T.List[T.Union[AnyProgram, str]]', [self.program]) +
+                T.cast('T.List[T.Union[AnyProgram, str]]', self.arguments))
 
     def found(self) -> bool:
         return self.program.found()
