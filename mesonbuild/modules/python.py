@@ -51,6 +51,8 @@ if T.TYPE_CHECKING:
 
     class ExtensionModuleKw(SharedModuleKw):
 
+        # Yes, these are different between SharedModule and ExtensionModule
+        install_dir: T.Union[str, bool, None]  # type: ignore[misc]
         subdir: NotRequired[T.Optional[str]]
 
     MaybePythonProg = T.Union[NonExistingExternalProgram, 'PythonExternalProgram']
@@ -60,7 +62,8 @@ mod_kwargs = {'subdir', 'limited_api'}
 mod_kwargs.update(known_shmod_kwargs)
 mod_kwargs -= {'name_prefix', 'name_suffix'}
 
-_MOD_KWARGS = [k for k in SHARED_MOD_KWS if k.name not in {'name_prefix', 'name_suffix'}]
+_MOD_KWARGS = [k for k in SHARED_MOD_KWS if
+               k.name not in {'name_prefix', 'name_suffix', 'install_dir'}]
 
 
 class PythonExternalProgram(BasicPythonExternalProgram):
@@ -139,19 +142,28 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
 
     @permittedKwargs(mod_kwargs)
     @typed_pos_args('python.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
-    @typed_kwargs('python.extension_module', *_MOD_KWARGS, _DEFAULTABLE_SUBDIR_KW, _LIMITED_API_KW, allow_unknown=True)
+    @typed_kwargs(
+        'python.extension_module',
+        *_MOD_KWARGS,
+        _DEFAULTABLE_SUBDIR_KW,
+        _LIMITED_API_KW,
+        KwargInfo('install_dir', (str, bool, NoneType)),
+        allow_unknown=True
+    )
     @InterpreterObject.method('extension_module')
     def extension_module_method(self, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: ExtensionModuleKw) -> 'SharedModule':
-        if 'install_dir' in kwargs:
+        if kwargs['install_dir'] is not None:
             if kwargs['subdir'] is not None:
                 raise InvalidArguments('"subdir" and "install_dir" are mutually exclusive')
+            # the build_target() method now expects this to be correct.
+            kwargs['install_dir'] = [kwargs['install_dir']]
         else:
             # We want to remove 'subdir', but it may be None and we want to replace it with ''
             # It must be done this way since we don't allow both `install_dir`
             # and `subdir` to be set at the same time
             subdir = kwargs.pop('subdir') or ''
 
-            kwargs['install_dir'] = self._get_install_dir_impl(False, subdir)
+            kwargs['install_dir'] = [self._get_install_dir_impl(False, subdir)]
 
         target_suffix = self.suffix
 
