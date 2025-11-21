@@ -30,9 +30,8 @@ if T.TYPE_CHECKING:
     from ..interpreter.kwargs import ExtractRequired
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..mesonlib import MachineChoice
-    from ..programs import OverrideProgram
 
-    AnyProgram: TypeAlias = T.Union[Executable, ExternalProgram, OverrideProgram]
+    AnyProgram: TypeAlias = T.Union[Executable, ExternalProgram]
     LexImpls = Literal['lex', 'flex', 'reflex', 'win_flex']
     YaccImpls = Literal['yacc', 'byacc', 'bison', 'win_bison']
 
