@@ -364,7 +364,7 @@ class Build:
         self.stdlibs = PerMachine({}, {})
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
-        self.find_overrides: T.Dict[str, T.Union['OverrideExecutable', programs.ExternalProgram]] = {}
+        self.find_overrides: T.Dict[str, T.Union['OverrideExecutable', programs.Program]] = {}
         self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
 
         # If we are doing a cross build we need two caches, if we're doing a
@@ -2764,8 +2764,8 @@ class CommandBase:
     dependencies: T.List[T.Union[BuildTarget, 'CustomTarget']]
     subproject: str
 
-    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.ExternalProgram, BuildTargetTypes]]) -> \
-            T.List[T.Union[str, File, BuildTarget, CustomTarget, programs.ExternalProgram]]:
+    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.Program, BuildTargetTypes]]) -> \
+            T.List[T.Union[str, File, BuildTarget, CustomTarget, programs.Program]]:
         cmd = listify(cmd)
         final_cmd: T.List[T.Union[str, File, BuildTarget, 'CustomTarget']] = []
         for c in cmd:
@@ -2774,7 +2774,7 @@ class CommandBase:
             elif isinstance(c, File):
                 self.depend_files.append(c)
                 final_cmd.append(c)
-            elif isinstance(c, programs.ExternalProgram):
+            elif isinstance(c, programs.Program):
                 if not c.found():
                     raise InvalidArguments('Tried to use not-found external program in "command"')
                 path = c.get_path()
@@ -2834,10 +2834,10 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  environment: Environment,
                  command: T.Sequence[T.Union[
                      str, BuildTargetTypes, GeneratedList,
-                     programs.ExternalProgram, File]],
+                     programs.Program, File]],
                  sources: T.Sequence[T.Union[
                      str, File, BuildTargetTypes, ExtractedObjects,
-                     GeneratedList, programs.ExternalProgram]],
+                     GeneratedList, programs.Program]],
                  outputs: T.List[str],
                  *,
                  build_always_stale: bool = False,
@@ -2944,7 +2944,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
     def get_filename(self) -> str:
         return self.outputs[0]
 
-    def get_sources(self) -> T.List[T.Union[str, File, BuildTarget, GeneratedTypes, ExtractedObjects, programs.ExternalProgram]]:
+    def get_sources(self) -> T.List[T.Union[str, File, BuildTarget, GeneratedTypes, ExtractedObjects, programs.Program]]:
         return self.sources
 
     def get_generated_lists(self) -> T.List[GeneratedList]:
@@ -3095,7 +3095,7 @@ class RunTarget(Target, CommandBase):
     typename = 'run'
 
     def __init__(self, name: str,
-                 command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.ExternalProgram]],
+                 command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.Program]],
                  dependencies: T.Sequence[AnyTargetType],
                  subdir: str,
                  subproject: str,

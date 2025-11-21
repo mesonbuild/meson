@@ -535,7 +535,7 @@ class Backend:
         return result
 
     def get_executable_serialisation(
-            self, cmd: T.Sequence[T.Union[programs.ExternalProgram, build.BuildTargetTypes, File, str]],
+            self, cmd: T.Sequence[T.Union[programs.Program, build.BuildTargetTypes, File, str]],
             workdir: T.Optional[str] = None,
             extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
             capture: T.Optional[str] = None,
@@ -548,7 +548,7 @@ class Backend:
 
         # XXX: cmd_args either need to be lowered to strings, or need to be checked for non-string arguments, right?
         exe, *raw_cmd_args = cmd
-        if isinstance(exe, programs.ExternalProgram):
+        if isinstance(exe, programs.Program):
             exe_cmd = exe.get_command()
             exe_for_machine = exe.for_machine
         elif isinstance(exe, build.BuildTarget):
@@ -571,7 +571,7 @@ class Backend:
 
         cmd_args: T.List[str] = []
         for c in raw_cmd_args:
-            if isinstance(c, programs.ExternalProgram):
+            if isinstance(c, programs.Program):
                 cmd_args += c.get_command()
             elif isinstance(c, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 cmd_args.append(self.get_target_filename_abs(c))
@@ -620,8 +620,8 @@ class Backend:
                                        exe_wrapper, workdir,
                                        extra_paths, capture, feed, tag, verbose, installdir_map)
 
-    def as_meson_exe_cmdline(self, exe: T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.ExternalProgram],
-                             cmd_args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.ExternalProgram]],
+    def as_meson_exe_cmdline(self, exe: T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.Program],
+                             cmd_args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.Program]],
                              workdir: T.Optional[str] = None,
                              extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
                              capture: T.Optional[str] = None,
@@ -633,7 +633,7 @@ class Backend:
         '''
         Serialize an executable for running with a generator or a custom target
         '''
-        cmd: T.List[T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.ExternalProgram]] = []
+        cmd: T.List[T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.Program]] = []
         cmd.append(exe)
         cmd.extend(cmd_args)
         es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, feed, env, can_use_rsp_file, verbose=verbose)
@@ -693,7 +693,7 @@ class Backend:
                 ', '.join(reasons)
             )
 
-        if isinstance(exe, (programs.ExternalProgram,
+        if isinstance(exe, (programs.Program,
                             build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
             basename = os.path.basename(exe.name)
         elif isinstance(exe, mesonlib.File):
@@ -1124,7 +1124,7 @@ class Backend:
         return results
 
     def determine_windows_extra_paths(
-            self, target: T.Union[build.BuildTargetTypes, programs.ExternalProgram, mesonlib.File, str],
+            self, target: T.Union[build.BuildTargetTypes, programs.Program, mesonlib.File, str],
             extra_bdeps: T.Sequence[build.BuildTargetTypes]) -> T.List[str]:
         """On Windows there is no such thing as an rpath.
 
@@ -1168,11 +1168,11 @@ class Backend:
         arr: T.List[TestSerialisation] = []
         for t in sorted(tests, key=lambda tst: -1 * tst.priority):
             exe = t.get_exe()
-            if isinstance(exe, programs.ExternalProgram):
+            if isinstance(exe, programs.Program):
                 cmd = exe.get_command()
             else:
                 cmd = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))]
-            if isinstance(exe, (build.BuildTarget, programs.ExternalProgram)):
+            if isinstance(exe, (build.BuildTarget, programs.Program)):
                 test_for_machine = exe.for_machine
             else:
                 # E.g. an external verifier or simulator program run on a generated executable.
@@ -1344,7 +1344,7 @@ class Backend:
             if delta > 0.001:
                 raise MesonException(f'Clock skew detected. File {absf} has a time stamp {delta:.4f}s in the future.')
 
-    def build_target_to_cmd_array(self, bt: T.Union[build.BuildTarget, programs.ExternalProgram]) -> T.List[str]:
+    def build_target_to_cmd_array(self, bt: T.Union[build.BuildTarget, programs.Program]) -> T.List[str]:
         if isinstance(bt, build.BuildTarget):
             arr = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(bt))]
         else:
@@ -1436,10 +1436,10 @@ class Backend:
                 fname = [os.path.join(self.get_target_private_dir(target), p) for p in i.get_outputs()]
             elif isinstance(i, build.ExtractedObjects):
                 fname = self.determine_ext_objs(i)
-            elif isinstance(i, programs.ExternalProgram):
+            elif isinstance(i, programs.Program):
                 assert i.found(), "This shouldn't be possible"
-                assert i.path is not None, 'for mypy'
-                fname = [i.path]
+                assert i.get_path() is not None, 'for mypy'
+                fname = [i.get_path()]
             else:
                 fname = [i.rel_to_builddir(self.build_to_src)]
             if target.absolute_paths:
@@ -1505,7 +1505,7 @@ class Backend:
 
     def eval_custom_target_command(
             self, target: build.CustomTarget, absolute_outputs: bool = False) -> \
-            T.Tuple[T.List[str], T.List[str], T.List[str | programs.ExternalProgram]]:
+            T.Tuple[T.List[str], T.List[str], T.List[str | programs.Program]]:
         # We want the outputs to be absolute only when using the VS backend
         # XXX: Maybe allow the vs backend to use relative paths too?
         source_root = self.build_to_src
@@ -1518,7 +1518,7 @@ class Backend:
         outputs = [os.path.join(outdir, i) for i in target.get_outputs()]
         inputs = self.get_custom_target_sources(target)
         # Evaluate the command list
-        cmd: T.List[str | programs.ExternalProgram] = []
+        cmd: T.List[str | programs.Program] = []
         for i in target.command:
             if isinstance(i, build.BuildTarget):
                 cmd += self.build_target_to_cmd_array(i)
@@ -1554,7 +1554,7 @@ class Backend:
                     if not target.absolute_paths:
                         pdir = self.get_target_private_dir(target)
                     i = i.replace('@PRIVATE_DIR@', pdir)
-            elif isinstance(i, programs.ExternalProgram):
+            elif isinstance(i, programs.Program):
                 # Let it pass and be extended elsewhere
                 pass
             else:
@@ -1951,7 +1951,7 @@ class Backend:
                         compiler += [j]
                     elif isinstance(j, (build.BuildTarget, build.CustomTarget)):
                         compiler += j.get_outputs()
-                    elif isinstance(j, programs.ExternalProgram):
+                    elif isinstance(j, programs.Program):
                         compiler += j.get_command()
                     else:
                         raise RuntimeError(f'Type "{type(j).__name__}" is not supported in get_introspection_data. This is a bug')

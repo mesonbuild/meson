@@ -13,6 +13,7 @@ import sys
 import re
 import typing as T
 from pathlib import Path
+from abc import ABCMeta, abstractmethod
 
 from . import mesonlib
 from . import mlog
@@ -23,7 +24,34 @@ if T.TYPE_CHECKING:
     from .interpreter import Interpreter
 
 
-class ExternalProgram(mesonlib.HoldableObject):
+class Program(mesonlib.HoldableObject, metaclass=ABCMeta):
+    '''A base class for all programs.'''
+
+    name: str
+    for_machine = MachineChoice.BUILD
+
+    @abstractmethod
+    def found(self) -> bool:
+        pass
+
+    @abstractmethod
+    def get_version(self, interpreter: T.Optional[Interpreter] = None) -> str:
+        pass
+
+    @abstractmethod
+    def get_command(self) -> T.List[str]:
+        pass
+
+    @abstractmethod
+    def get_path(self) -> T.Optional[str]:
+        pass
+
+    @abstractmethod
+    def description(self) -> str:
+        '''Human friendly description of the command'''
+
+
+class ExternalProgram(Program):
 
     """A program that is found on the system.
     :param name: The name of the program
@@ -34,7 +62,6 @@ class ExternalProgram(mesonlib.HoldableObject):
     :param exclude_paths: A list of directories to exclude when searching in PATH"""
 
     windows_exts = ('exe', 'msc', 'com', 'bat', 'cmd')
-    for_machine = MachineChoice.BUILD
 
     def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
                  silent: bool = False, search_dirs: T.Optional[T.List[T.Optional[str]]] = None,
@@ -133,10 +160,10 @@ class ExternalProgram(mesonlib.HoldableObject):
 
     @classmethod
     def from_bin_list(cls, env: 'Environment', for_machine: MachineChoice, name: str) -> 'ExternalProgram':
-        # There is a static `for_machine` for this class because the binary
-        # always runs on the build platform. (Its host platform is our build
-        # platform.) But some external programs have a target platform, so this
-        # is what we are specifying here.
+        # This is not the static `for_machine` in this class, which represents
+        # that the binary always runs on the build platform. (Its host platform
+        # is our build platform.) Some external programs have a target platform,
+        # and that is what we are specifying here.
         command = env.lookup_binary_entry(for_machine, name)
         if command is None:
             return NonExistingExternalProgram()
