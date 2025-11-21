@@ -21,7 +21,7 @@ from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugE
                         FileMode, MachineChoice, is_parent_path, listify,
                         extract_as_list, has_path_sep, path_is_in_root, PerMachine)
 from ..options import OptionKey
-from ..programs import ExternalProgram, NonExistingExternalProgram
+from ..programs import ExternalProgram, NonExistingExternalProgram, Program
 from ..dependencies import Dependency
 from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
@@ -449,7 +449,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         '''
         self.bound_holder_map.update({
             dependencies.Dependency: OBJ.DependencyHolder,
-            ExternalProgram: OBJ.ExternalProgramHolder,
+            Program: OBJ.ProgramHolder,
             compilers.Compiler: compilerOBJ.CompilerHolder,
             ModuleObject: OBJ.ModuleObjectHolder,
             MutableModuleObject: OBJ.MutableModuleObjectHolder,
