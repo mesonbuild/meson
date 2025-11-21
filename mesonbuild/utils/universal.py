@@ -160,6 +160,7 @@ __all__ = [
     'unique_list',
     'verbose_git',
     'version_compare',
+    'version_compare_conditions',
     'version_compare_condition_with_min',
     'version_compare_many',
     'search_version',
@@ -990,6 +991,52 @@ def version_compare_condition_with_min(condition: str, minimum: str) -> bool:
         condition += '.0'
 
     return T.cast('bool', cmpop(Version(minimum), Version(condition)))
+
+
+# given the Meson version condition |outer_cond|, determine if the version
+# condition |inner_cond| is always true or always false
+def version_compare_conditions(outer_cond: str, inner_cond: str) -> T.Optional[bool]:
+    class Extracted:
+        def __init__(self, v: str):
+            self.op, val = _version_extract_cmpop(v)
+            val += '.0' * max(0, 2 - val.count('.'))
+            self.val = Version(val)
+            if self.op == operator.ne:
+                self.direction: T.Callable[[T.Any, T.Any], bool] = operator.eq
+            elif self.op == operator.le:
+                self.direction = operator.lt
+            elif self.op == operator.ge:
+                self.direction = operator.gt
+            else:
+                self.direction = self.op
+            self.inclusive = self.op in (operator.eq, operator.le, operator.ge)
+
+    inner, outer = Extracted(inner_cond), Extracted(outer_cond)
+    if inner.val == outer.val:
+        if outer.op == inner.op:
+            return True
+        if outer.direction == operator.eq:
+            if outer.inclusive and inner.inclusive:
+                return True
+            if outer.inclusive and not inner.inclusive:
+                return False
+            if not outer.inclusive and inner.op == operator.eq:
+                return False
+        elif outer.inclusive:
+            if not inner.inclusive and inner.direction not in (operator.eq, outer.direction):
+                return False
+        elif outer.direction != inner.direction:
+            return inner.op == operator.ne
+        else:
+            return True
+    if inner.val < outer.val:
+        if outer.op == operator.eq or outer.direction == operator.gt:
+            return inner.direction == operator.gt or inner.op == operator.ne
+    if inner.val > outer.val:
+        if outer.op == operator.eq or outer.direction == operator.lt:
+            return inner.direction == operator.lt or inner.op == operator.ne
+    return None
+
 
 def search_version(text: str) -> str:
     # Usually of the type 4.1.4 but compiler output may contain
