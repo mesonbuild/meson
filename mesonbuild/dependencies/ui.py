@@ -192,8 +192,39 @@ class VulkanDependencySystem(SystemDependency):
                 lib_name = 'vulkan-1'
                 lib_dir = 'Lib32'
                 inc_dir = 'Include'
-                if detect_cpu_family(self.env.coredata.compilers.host) == 'x86_64':
-                    lib_dir = 'Lib'
+                build_cpu = self.env.machines.build.cpu_family
+                host_cpu = self.env.machines.host.cpu_family
+                unsupported_target_arch = False
+                if build_cpu == 'x86_64':
+                    if host_cpu == build_cpu:
+                        lib_dir = 'Lib'
+                    elif host_cpu == 'aarch64':
+                        lib_dir = 'Lib-ARM64'
+                    elif host_cpu == 'x86':
+                        lib_dir = 'Lib32'
+                    else:
+                        unsupported_target_arch = True
+                elif build_cpu == 'aarch64':
+                    if host_cpu == build_cpu:
+                        lib_dir = 'Lib'
+                    elif host_cpu == 'x86_64':
+                        lib_dir = 'Lib-x64'
+                    elif host_cpu == 'x86':
+                        lib_dir = 'Lib32'
+                    else:
+                        unsupported_target_arch = True
+                elif build_cpu == 'x86':
+                    if host_cpu == build_cpu:
+                        lib_dir = 'Lib32'
+                    if host_cpu == 'aarch64':
+                        lib_dir = 'Lib-ARM64'
+                    elif host_cpu == 'x86_64':
+                        lib_dir = 'Lib'
+                    else:
+                        unsupported_target_arch = True
+
+                if unsupported_target_arch:
+                    raise DependencyException('Target architecture \'%s\' is not supported for this Vulkan SDK.' % host_cpu)
 
             # make sure header and lib are valid
             inc_path = os.path.join(self.vulkan_sdk, inc_dir)
