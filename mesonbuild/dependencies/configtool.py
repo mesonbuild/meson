@@ -36,10 +36,10 @@ class ConfigToolDependency(ExternalDependency):
     skip_version: T.Optional[str] = None
     allow_default_for_cross = False
     __strip_version = re.compile(r'^[0-9][0-9.]+')
+    type_name = DependencyTypeName('config-tool')
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None, exclude_paths: T.Optional[T.List[str]] = None):
-        super().__init__(DependencyTypeName('config-tool'), environment, kwargs, language=language)
-        self.name = name
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, exclude_paths: T.Optional[T.List[str]] = None):
+        super().__init__(name, environment, kwargs)
         # You may want to overwrite the class version in some cases
         self.tools = listify(kwargs.get('tools', self.tools))
         if not self.tool_name:
@@ -149,10 +149,6 @@ class ConfigToolDependency(ExternalDependency):
 
     def get_variable_args(self, variable_name: str) -> T.List[str]:
         return [f'--{variable_name}']
-
-    @staticmethod
-    def log_tried() -> str:
-        return 'config-tool'
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,

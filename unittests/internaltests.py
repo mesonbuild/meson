@@ -667,7 +667,7 @@ class InternalTests(unittest.TestCase):
 
             with mock.patch.object(PkgConfigInterface, 'instance') as instance_method:
                 instance_method.return_value = FakeInstance(env, MachineChoice.HOST, silent=True)
-                kwargs = {'required': True, 'silent': True}
+                kwargs = {'required': True, 'silent': True, 'native': MachineChoice.HOST}
                 foo_dep = PkgConfigDependency('foo', env, kwargs)
                 self.assertEqual(foo_dep.get_link_args(),
                                  [(p1 / 'libfoo.a').as_posix(), (p2 / 'libbar.a').as_posix()])
@@ -1038,14 +1038,14 @@ class InternalTests(unittest.TestCase):
                     'test_dep',
                     methods=[b.DependencyMethods.PKGCONFIG, b.DependencyMethods.CMAKE]
                 )
-                actual = [m() for m in f(env, MachineChoice.HOST, {'required': False})]
+                actual = [m() for m in f(env, {'required': False, 'native': MachineChoice.HOST})]
                 self.assertListEqual([m.type_name for m in actual], ['pkgconfig', 'cmake'])
 
                 f = F.DependencyFactory(
                     'test_dep',
                     methods=[b.DependencyMethods.CMAKE, b.DependencyMethods.PKGCONFIG]
                 )
-                actual = [m() for m in f(env, MachineChoice.HOST, {'required': False})]
+                actual = [m() for m in f(env, {'required': False, 'native': MachineChoice.HOST})]
                 self.assertListEqual([m.type_name for m in actual], ['cmake', 'pkgconfig'])
 
     def test_validate_json(self) -> None:
