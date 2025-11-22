@@ -35,9 +35,12 @@ hello_cpp_meson_template = '''project(
 dependencies = [{dependencies}
 ]
 
+sources = [{source_files}
+]
+
 exe = executable(
   '{exe_name}',
-  '{source_name}',
+  [sources],
   install : true,
   dependencies : dependencies,
 )
@@ -121,9 +124,13 @@ dependencies = [{dependencies}
 # not the executables that use the library.
 lib_args = ['-DBUILDING_{utoken}']
 
+sources = [{source_files}
+
+]
+
 lib = library(
   '{lib_name}',
-  '{source_file}',
+  [sources],
   install : true,
   cpp_shared_args : lib_args,
   gnu_symbol_visibility : 'hidden',
