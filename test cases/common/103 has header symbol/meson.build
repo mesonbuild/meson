@@ -16,7 +16,10 @@ foreach comp : [cc, cpp]
   assert (comp.has_header_symbol('stdio.h', 'FILE'), 'FILE structure not found')
   assert (comp.has_header_symbol('limits.h', 'INT_MAX'), 'INT_MAX define not found')
   assert (not comp.has_header_symbol('limits.h', 'guint64'), 'guint64 is not defined in limits.h')
-  assert (not comp.has_header_symbol('stdlib.h', 'FILE'), 'FILE structure is defined in stdio.h, not stdlib.h')
+  if host_machine.system() != 'android'
+    # Bionics malloc.h includes stdio.h
+    assert (not comp.has_header_symbol('stdlib.h', 'FILE'), 'FILE structure is defined in stdio.h, not stdlib.h')
+  endif
   assert (not comp.has_header_symbol('stdlol.h', 'printf'), 'stdlol.h shouldn\'t exist')
   assert (not comp.has_header_symbol('stdlol.h', 'int'), 'shouldn\'t be able to find "int" with invalid header')
 endforeach

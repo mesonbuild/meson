@@ -1,0 +1,19 @@
+{
+  "base_image": "debian:sid",
+  "args": [
+    "--cross", "/opt/android/meson/android-${ANDROID_NDKVER}-androideabi${ANDROID_TARGET}-armv7a-cross.json",
+    "--cross", "/opt/android/meson/android-${ANDROID_NDKVER}-android${ANDROID_TARGET}-aarch64-cross.json",
+    "--cross", "/opt/android/meson/android-${ANDROID_NDKVER}-android${ANDROID_TARGET}-i686-cross.json",
+    "--cross", "/opt/android/meson/android-${ANDROID_NDKVER}-android${ANDROID_TARGET}-x86_64-cross.json",
+    "--cross", "/opt/android/meson/android-${ANDROID_NDKVER}-android35-riscv64-cross.txt"
+  ],
+  "env": {
+    "ANDROID_HOME": "/opt/android",
+    "ANDROID_SDKVER": "36.1.0",
+    "ANDROID_NDKVER": "29.0.14206865",
+    "ANDROID_TARGET": "24",
+    "CI": "1",
+    "MESON_CI_JOBNAME": "android-cross"
+  },
+  "needs_meson_in_install": true
+}

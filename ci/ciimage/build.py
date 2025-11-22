@@ -28,9 +28,11 @@ class ImageDef:
         self.base_image: str = data['base_image']
         self.args: T.List[str] = data.get('args', [])
         self.env: T.Dict[str, str] = data['env']
+        self.needs_meson_in_install = data.get('needs_meson_in_install', False)
 
 class BuilderBase():
     def __init__(self, data_dir: Path, temp_dir: Path) -> None:
+        self.meson_root = data_dir.parent.parent.parent.resolve()
         self.data_dir = data_dir
         self.temp_dir = temp_dir
 
@@ -59,6 +61,20 @@ class BuilderBase():
                 raise RuntimeError(f'{i.as_posix()} does not exist')
             if not i.is_file():
                 raise RuntimeError(f'{i.as_posix()} is not a regular file')
+
+    def copy_meson(self) -> None:
+        shutil.copytree(
+            self.meson_root,
+            self.temp_dir / 'meson',
+            symlinks=True,
+            ignore=shutil.ignore_patterns(
+                '.git',
+                '*_cache',
+                '__pycache__',
+                # 'work area',
+                self.temp_dir.name,
+            ),
+        )
 
 class Builder(BuilderBase):
     def gen_bashrc(self) -> None:
@@ -91,6 +107,8 @@ class Builder(BuilderBase):
         out_data = textwrap.dedent(f'''\
             FROM {self.image_def.base_image}
 
+            { "ADD meson /meson_private" if self.image_def.needs_meson_in_install else "" }
+
             ADD install.sh  /ci/install.sh
             ADD common.sh   /ci/common.sh
             ADD env_vars.sh /ci/env_vars.sh
@@ -104,6 +122,9 @@ class Builder(BuilderBase):
         for i in self.data_dir.iterdir():
             shutil.copy(str(i), str(self.temp_dir))
         shutil.copy(str(self.common_sh), str(self.temp_dir))
+
+        if self.image_def.needs_meson_in_install:
+            self.copy_meson()
 
         self.gen_bashrc()
         self.gen_dockerfile()
@@ -138,20 +159,6 @@ class ImageTester(BuilderBase):
         ''')
 
         out_file.write_text(out_data, encoding='utf-8')
-
-    def copy_meson(self) -> None:
-        shutil.copytree(
-            self.meson_root,
-            self.temp_dir / 'meson',
-            symlinks=True,
-            ignore=shutil.ignore_patterns(
-                '.git',
-                '*_cache',
-                '__pycache__',
-                # 'work area',
-                self.temp_dir.name,
-            ),
-        )
 
     def do_test(self, tty: bool = False) -> None:
         self.copy_meson()
