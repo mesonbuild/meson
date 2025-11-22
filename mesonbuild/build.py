@@ -1190,10 +1190,10 @@ class BuildTarget(Target):
                 nonresults.add(t)
             if isinstance(t, BuildTarget):
                 for t2 in t.link_targets:
-                    if not t2 in nonresults:
+                    if t2 not in nonresults:
                         stack.appendleft(t2)
                 for t2 in t.link_whole_targets:
-                    if not t2 in nonresults:
+                    if t2 not in nonresults:
                         stack.appendleft(t2)
         return list(result)
 
