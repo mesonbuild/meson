@@ -172,13 +172,6 @@ class ClangCompiler(GnuLikeCompiler):
             # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
             return []
 
-    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
-        if isinstance(self.linker, VisualStudioLikeLinkerMixin):
-            # With MSVC, DLLs only export symbols that are explicitly exported,
-            # so if a module defs file is specified, we use that to export symbols
-            return ['-Wl,/DEF:' + defsfile]
-        return super().gen_vs_module_defs_args(defsfile)
-
     @classmethod
     def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
         # Clang additionally can use a linker specified as a path, which GCC

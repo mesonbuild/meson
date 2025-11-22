@@ -66,6 +66,9 @@ class StaticLinker:
     def get_coverage_link_args(self) -> T.List[str]:
         return []
 
+    def gen_vs_module_defs_args(self) -> T.List[str]:
+        return []
+
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
                          extra_paths: T.Optional[T.List[str]] = None
                          ) -> T.Tuple[T.List[str], T.Set[bytes]]:
@@ -257,6 +260,9 @@ class DynamicLinker(metaclass=abc.ABCMeta):
 
     def get_coverage_args(self) -> T.List[str]:
         raise EnvironmentException(f"Linker {self.id} doesn't implement coverage data generation.")
+
+    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
+        return []
 
     @abc.abstractmethod
     def get_search_args(self, dirname: str) -> T.List[str]:
@@ -695,6 +701,15 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
 
     def get_coverage_args(self) -> T.List[str]:
         return ['--coverage']
+
+    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
+        # On Windows targets, .def files may be specified on the linker command
+        # line like an object file.
+        m = self.environment.machines[self.for_machine]
+        if m.is_windows() or m.is_cygwin():
+            return [defsfile]
+        # For other targets, discard the .def file.
+        return []
 
     def export_dynamic_args(self) -> T.List[str]:
         m = self.environment.machines[self.for_machine]
@@ -1447,6 +1462,11 @@ class VisualStudioLikeLinkerMixin(DynamicLinkerBase):
 
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
+
+    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
+        # With MSVC, DLLs only export symbols that are explicitly exported,
+        # so if a module defs file is specified, we use that to export symbols
+        return ['/DEF:' + defsfile]
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
                         soversion: str, darwin_versions: T.Tuple[str, str]

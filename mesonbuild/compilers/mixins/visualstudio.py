@@ -192,13 +192,6 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_pic_args(self) -> T.List[str]:
         return [] # PIC is handled by the loader on Windows
 
-    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
-        if not isinstance(defsfile, str):
-            raise RuntimeError('Module definitions file should be str')
-        # With MSVC, DLLs only export symbols that are explicitly exported,
-        # so if a module defs file is specified, we use that to export symbols
-        return ['/DEF:' + defsfile]
-
     def gen_pch_args(self, header: str, source: str, pchname: str) -> T.Tuple[str, T.List[str]]:
         objname = os.path.splitext(source)[0] + '.obj'
         return objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname]

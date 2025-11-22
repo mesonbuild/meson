@@ -1098,6 +1098,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_coverage_link_args(self) -> T.List[str]:
         return self.linker.get_coverage_args()
 
+    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
+        return self.linker.gen_vs_module_defs_args(defsfile)
+
     def get_assert_args(self, disable: bool) -> T.List[str]:
         """Get arguments to enable or disable assertion.
 
