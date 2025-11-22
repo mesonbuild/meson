@@ -1,5 +1,9 @@
 project('foobar', 'c')
 
+if meson.get_compiler('c').get_id() == 'gcc' and host_machine.system() == 'windows'
+    error('MESON_SKIP_TEST windres has internal error when adding . to include path')
+endif
+
 win = import('windows')
 
 subdir('a')
