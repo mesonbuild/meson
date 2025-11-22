@@ -1174,20 +1174,27 @@ class BuildTarget(Target):
         at link time, see get_dependencies() for that.
         """
         result: OrderedSet[BuildTargetTypes] = OrderedSet()
+        nonresults: OrderedSet[BuildTargetTypes] = OrderedSet()
         stack: T.Deque[BuildTargetTypes] = deque()
         stack.appendleft(self)
         while stack:
             t = stack.pop()
-            if t in result:
+            if t in result or t in nonresults:
                 continue
             if isinstance(t, CustomTargetIndex):
                 stack.appendleft(t.target)
                 continue
             if isinstance(t, SharedLibrary):
                 result.add(t)
+            else:
+                nonresults.add(t)
             if isinstance(t, BuildTarget):
-                stack.extendleft(t.link_targets)
-                stack.extendleft(t.link_whole_targets)
+                for t2 in t.link_targets:
+                    if not t2 in nonresults:
+                        stack.appendleft(t2)
+                for t2 in t.link_whole_targets:
+                    if not t2 in nonresults:
+                        stack.appendleft(t2)
         return list(result)
 
     @lru_cache(maxsize=None)
