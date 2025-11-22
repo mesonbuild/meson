@@ -6,4 +6,4 @@ if not dependency('boost', required: false).found()
 endif
 
 # abc doesn't exist
-linkdep = dependency('boost', modules : ['thread', 'system', 'test', 'abc'])
+linkdep = dependency('boost', modules : ['thread', 'test', 'abc'])
