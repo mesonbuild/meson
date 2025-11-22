@@ -465,6 +465,13 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
                 'Standard Win libraries to link against',
                 gnu_winlibs)
 
+        if version_compare(self.version, '>=15.1'):
+            key = key.evolve(name='cpp_importstd')
+            opts[key] = options.UserComboOption(self.make_option_name(key),
+                                                'Use #import std.',
+                                                'false',
+                                                choices=['false', 'true'])
+
         return opts
 
     def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
@@ -794,6 +801,13 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
         std_opt = opts[self.form_compileropt_key('std')]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(cpp_stds)
+
+        if version_compare(self.version, '>=19.44.35219'):
+            key = self.form_compileropt_key('importstd')
+            opts[key] = options.UserComboOption(self.make_option_name(key),
+                                                'Use #import std.',
+                                                'false',
+                                                choices=['false', 'true'])
         return opts
 
     def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
