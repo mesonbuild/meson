@@ -45,7 +45,7 @@ methods:
 
     posargs:
       script_name:
-        type: str | file | external_program
+        type: str | file | program
         description: |
           The script to execute.
 
@@ -55,7 +55,7 @@ methods:
 
     varargs:
       name: arg
-      type: str | file | external_program
+      type: str | file | program
       since: 0.49.0
       description: |
         Additional arguments
@@ -102,7 +102,7 @@ methods:
 
     posargs:
       script_name:
-        type: str | file | external_program | exe | custom_tgt | custom_idx
+        type: str | file | program | exe | custom_tgt | custom_idx
         description: |
           The script to execute.
 
@@ -113,7 +113,7 @@ methods:
 
     varargs:
       name: arg
-      type: str | file | external_program | exe | custom_tgt | custom_idx
+      type: str | file | program | exe | custom_tgt | custom_idx
       since: 0.49.0
       description: |
         Additional arguments
@@ -389,7 +389,7 @@ methods:
         description: The name of the program to override.
 
       program:
-        type: exe | file | external_program
+        type: exe | file | program
         description: The program to set as the override for `progname`.
 
   - name: override_dependency

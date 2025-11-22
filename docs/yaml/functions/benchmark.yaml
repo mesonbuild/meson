@@ -22,13 +22,13 @@ posargs:
     description: The *unique* test id
 
   executable:
-    type: exe | jar | external_program | file | custom_tgt | custom_idx
+    type: exe | jar | program | file | custom_tgt | custom_idx
     description: |
       The program to execute. *(Since 1.4.0)* A CustomTarget is also accepted.
 
 kwargs:
   args:
-    type: array[str | file | tgt | external_program]
+    type: array[str | file | tgt | program]
     description: Arguments to pass to the executable
 
   env:

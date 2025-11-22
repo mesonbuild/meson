@@ -21,7 +21,7 @@ from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugE
                         FileMode, MachineChoice, is_parent_path, listify,
                         extract_as_list, has_path_sep, path_is_in_root, PerMachine)
 from ..options import OptionKey
-from ..programs import ExternalProgram, NonExistingExternalProgram
+from ..programs import ExternalProgram, NonExistingExternalProgram, Program
 from ..dependencies import Dependency
 from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
@@ -119,7 +119,6 @@ if T.TYPE_CHECKING:
     from ..backend.backends import Backend
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
     from ..options import OptionDict
-    from ..programs import OverrideProgram
     from .type_checking import SourcesVarargsType
 
     # Input source types passed to Targets
@@ -131,7 +130,7 @@ if T.TYPE_CHECKING:
 
     BuildTargetSource = T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.StructuredSources]
 
-    ProgramVersionFunc = T.Callable[[T.Union[ExternalProgram, build.Executable, OverrideProgram]], str]
+    ProgramVersionFunc = T.Callable[[Program], str]
 
     TestClass = T.TypeVar('TestClass', bound=Test)
 
@@ -287,6 +286,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build_func_dict()
         self.build_holder_map()
         self.user_defined_options = user_defined_options
+        self.find_overrides: T.Dict[str, Program] = {}
         self.compilers: PerMachine[T.Dict[str, 'compilers.Compiler']] = PerMachine({}, {})
         self.parse_project()
         self._redetect_machines()
@@ -419,7 +419,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.Generator: OBJ.GeneratorHolder,
             build.GeneratedList: OBJ.GeneratedListHolder,
             build.ExtractedObjects: OBJ.GeneratedObjectsHolder,
-            build.OverrideExecutable: OBJ.OverrideExecutableHolder,
             build.RunTarget: OBJ.RunTargetHolder,
             build.AliasTarget: OBJ.AliasTargetHolder,
             build.Headers: OBJ.HeadersHolder,
@@ -449,7 +448,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         '''
         self.bound_holder_map.update({
             dependencies.Dependency: OBJ.DependencyHolder,
-            ExternalProgram: OBJ.ExternalProgramHolder,
+            Program: OBJ.ProgramHolder,
             compilers.Compiler: compilerOBJ.CompilerHolder,
             ModuleObject: OBJ.ModuleObjectHolder,
             MutableModuleObject: OBJ.MutableModuleObjectHolder,
@@ -747,8 +746,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     # better error messages when overridden
     @typed_pos_args(
         'run_command',
-        (build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str),
-        varargs=(build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str))
+        (build.Executable, Program, compilers.Compiler, mesonlib.File, str),
+        varargs=(build.Executable, Program, compilers.Compiler, mesonlib.File, str))
     @typed_kwargs(
         'run_command',
         KwargInfo('check', (bool, NoneType), since='0.47.0'),
@@ -756,14 +755,21 @@ class Interpreter(InterpreterBase, HoldableObject):
         ENV_KW.evolve(since='0.50.0'),
     )
     def func_run_command(self, node: mparser.BaseNode,
-                         args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str],
-                                       T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
+                         args: T.Tuple[T.Union[build.Executable, Program, compilers.Compiler, mesonlib.File, str],
+                                       T.List[T.Union[build.Executable, Program, compilers.Compiler, mesonlib.File, str]]],
                          kwargs: 'kwtypes.RunCommand') -> RunProcess:
         return self.run_command_impl(args, kwargs)
 
+    def _compiled_exe_error(self, cmd: T.Union[Program, build.Executable]) -> T.NoReturn:
+        descr = cmd.name if isinstance(cmd, build.Executable) else cmd.description()
+        for name, exe in self.find_overrides.items():
+            if cmd == exe:
+                raise InterpreterException(f'Program {name!r} was overridden with the compiled executable {descr!r} and therefore cannot be used during configuration')
+        raise InterpreterException(f'Program {descr!r} is a compiled executable and therefore cannot be used during configuration')
+
     def run_command_impl(self,
-                         args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str],
-                                       T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
+                         args: T.Tuple[T.Union[build.Executable, Program, compilers.Compiler, mesonlib.File, str],
+                                       T.List[T.Union[build.Executable, Program, compilers.Compiler, mesonlib.File, str]]],
                          kwargs: 'kwtypes.RunCommand',
                          in_builddir: bool = False) -> RunProcess:
         cmd, cargs = args
@@ -777,21 +783,14 @@ class Interpreter(InterpreterBase, HoldableObject):
             mlog.warning(implicit_check_false_warning, once=True)
             check = False
 
-        overridden_msg = ('Program {!r} was overridden with the compiled '
-                          'executable {!r} and therefore cannot be used during '
-                          'configuration')
         expanded_args: T.List[str] = []
         if isinstance(cmd, build.Executable):
-            for name, exe in self.build.find_overrides.items():
-                if cmd == exe:
-                    progname = name
-                    break
-            else:
-                raise InterpreterException(f'Program {cmd.description()!r} is a compiled executable and therefore cannot be used during configuration')
-            raise InterpreterException(overridden_msg.format(progname, cmd.description()))
-        if isinstance(cmd, ExternalProgram):
+            self._compiled_exe_error(cmd)
+        elif isinstance(cmd, Program):
             if not cmd.found():
                 raise InterpreterException(f'command {cmd.get_name()!r} not found or not executable')
+            if not cmd.runnable():
+                self._compiled_exe_error(cmd)
         elif isinstance(cmd, compilers.Compiler):
             expanded_args = cmd.get_exe_args()
             cmd = cmd.get_exe()
@@ -813,7 +812,11 @@ class Interpreter(InterpreterBase, HoldableObject):
                 expanded_args.append(a)
             elif isinstance(a, mesonlib.File):
                 expanded_args.append(a.absolute_path(srcdir, builddir))
-            elif isinstance(a, ExternalProgram):
+            elif isinstance(a, Program):
+                if not a.found():
+                    raise InterpreterException(f'command {cmd.get_name()!r} not found or not executable')
+                if not a.runnable():
+                    self._compiled_exe_error(a)
                 expanded_args.append(a.get_path())
             elif isinstance(a, compilers.Compiler):
                 FeatureNew.single_use('Compiler object as a variadic argument to `run_command`', '0.61.0', self.subproject, location=self.current_node)
@@ -822,7 +825,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     raise InterpreterException(f'Program {cmd!r} not found or not executable')
                 expanded_args.append(prog.get_path())
             else:
-                raise InterpreterException(overridden_msg.format(a.name, cmd.description()))
+                self._compiled_exe_error(a)
 
         # If any file that was used as an argument to the command
         # changes, we must re-run the configuration step.
@@ -993,6 +996,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             subi.holder_map = self.holder_map
             subi.bound_holder_map = self.bound_holder_map
             subi.summary = self.summary
+            subi.find_overrides = self.find_overrides
 
             subi.subproject_stack = self.subproject_stack + [subp_name]
             current_active = self.active_projectname
@@ -1585,12 +1589,12 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def program_from_overrides(self, command_names: T.List[mesonlib.FileOrString],
                                extra_info: T.List['mlog.TV_Loggable']
-                               ) -> T.Optional[T.Union[ExternalProgram, OverrideProgram, build.OverrideExecutable]]:
+                               ) -> T.Optional[Program]:
         for name in command_names:
             if not isinstance(name, str):
                 continue
-            if name in self.build.find_overrides:
-                exe = self.build.find_overrides[name]
+            if name in self.find_overrides:
+                exe = self.find_overrides[name]
                 extra_info.append(mlog.blue('(overridden)'))
                 return exe
         return None
@@ -1600,12 +1604,12 @@ class Interpreter(InterpreterBase, HoldableObject):
             if isinstance(name, str):
                 self.build.searched_programs.add(name)
 
-    def add_find_program_override(self, name: str, exe: T.Union[build.OverrideExecutable, ExternalProgram, 'OverrideProgram']) -> None:
+    def add_find_program_override(self, name: str, exe: Program) -> None:
         if name in self.build.searched_programs:
             raise InterpreterException(f'Tried to override finding of executable "{name}" which has already been found.')
-        if name in self.build.find_overrides:
+        if name in self.find_overrides:
             raise InterpreterException(f'Tried to override executable "{name}" which has already been overridden.')
-        self.build.find_overrides[name] = exe
+        self.find_overrides[name] = exe
         if name == 'pkg-config' and isinstance(exe, ExternalProgram):
             from ..dependencies.pkgconfig import PkgConfigInterface
             PkgConfigInterface.set_program_override(exe, MachineChoice.HOST)
@@ -1625,7 +1629,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                           search_dirs: T.Optional[T.List[str]] = None,
                           version_arg: T.Optional[str] = '',
                           version_func: T.Optional[ProgramVersionFunc] = None
-                          ) -> T.Union['ExternalProgram', 'build.OverrideExecutable', 'OverrideProgram']:
+                          ) -> Program:
         args = mesonlib.listify(args)
 
         extra_info: T.List[mlog.TV_Loggable] = []
@@ -1645,8 +1649,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.store_name_lookups(args)
         if not silent:
             mlog.log('Program', mlog.bold(progobj.name), 'found:', mlog.green('YES'), *extra_info)
-        if isinstance(progobj, build.Executable):
-            progobj.was_returned_by_find_program = True
         return progobj
 
     def program_lookup(self, args: T.List[mesonlib.FileOrString], for_machine: MachineChoice,
@@ -1657,7 +1659,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                        version_arg: T.Optional[str],
                        version_func: T.Optional[ProgramVersionFunc],
                        extra_info: T.List[mlog.TV_Loggable]
-                       ) -> T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]]:
+                       ) -> T.Optional[Program]:
         progobj = self.program_from_overrides(args, extra_info)
         if progobj:
             return progobj
@@ -1693,7 +1695,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         return progobj
 
-    def check_program_version(self, progobj: T.Union[ExternalProgram, build.Executable, OverrideProgram],
+    def check_program_version(self, progobj: Program,
                               wanted: T.Union[str, T.List[str]],
                               version_func: T.Optional[ProgramVersionFunc],
                               extra_info: T.List[mlog.TV_Loggable]) -> bool:
@@ -1720,7 +1722,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def find_program_fallback(self, fallback: str, args: T.List[mesonlib.FileOrString],
                               default_options: OptionDict,
                               required: bool, extra_info: T.List[mlog.TV_Loggable]
-                              ) -> T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]]:
+                              ) -> T.Optional[Program]:
         mlog.log('Fallback to subproject', mlog.bold(fallback), 'which provides program',
                  mlog.bold(' '.join(args)))
         sp_kwargs: kwtypes.DoSubproject = {
@@ -1747,7 +1749,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @disablerIfNotFound
     def func_find_program(self, node: mparser.BaseNode, args: T.Tuple[T.List[mesonlib.FileOrString]],
                           kwargs: 'kwtypes.FindProgram',
-                          ) -> T.Union['build.Executable', ExternalProgram, 'OverrideProgram']:
+                          ) -> Program:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Program', mlog.bold(' '.join(args[0])), 'skipped: feature', mlog.bold(feature), 'disabled')
@@ -1923,7 +1925,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # Cannot use the COMMAND_KW because command is allowed to be empty
         KwargInfo(
             'command',
-            ContainerTypeInfo(list, (str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, ExternalProgram, mesonlib.File)),
+            ContainerTypeInfo(list, (str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, Program, mesonlib.File)),
             listify=True,
             default=[],
         ),
@@ -1950,7 +1952,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if maincmd.found():
                     vcs_cmd[0] = maincmd
             else:
-                FeatureNew.single_use('vcs_tag with custom_tgt, external_program, or exe as the first argument', '0.63.0', self.subproject, location=node)
+                FeatureNew.single_use('vcs_tag with custom_tgt, program, or exe as the first argument', '0.63.0', self.subproject, location=node)
         else:
             vcs = mesonlib.detect_vcs(source_dir)
             if vcs:
@@ -2183,7 +2185,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.add_target(name, tg)
         return tg
 
-    @typed_pos_args('generator', (build.Executable, ExternalProgram))
+    @typed_pos_args('generator', (build.Executable, Program))
     @typed_kwargs(
         'generator',
         KwargInfo('arguments', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
@@ -2193,7 +2195,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('capture', bool, default=False, since='0.43.0'),
     )
     def func_generator(self, node: mparser.FunctionNode,
-                       args: T.Tuple[T.Union[build.Executable, ExternalProgram]],
+                       args: T.Tuple[T.Union[build.Executable, Program]],
                        kwargs: 'kwtypes.FuncGenerator') -> build.Generator:
         for rule in kwargs['output']:
             if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule:
@@ -2207,17 +2209,17 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         return build.Generator(self.environment, args[0], **kwargs)
 
-    @typed_pos_args('benchmark', str, (build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex))
+    @typed_pos_args('benchmark', str, (build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex))
     @typed_kwargs('benchmark', *TEST_KWS)
     def func_benchmark(self, node: mparser.BaseNode,
-                       args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
+                       args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File]],
                        kwargs: 'kwtypes.FuncBenchmark') -> None:
         self.add_test(node, args, kwargs, False)
 
-    @typed_pos_args('test', str, (build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex))
+    @typed_pos_args('test', str, (build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex))
     @typed_kwargs('test', *TEST_KWS, KwargInfo('is_parallel', bool, default=True))
     def func_test(self, node: mparser.BaseNode,
-                  args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
+                  args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
                   kwargs: 'kwtypes.FuncTest') -> None:
         self.add_test(node, args, kwargs, True)
 
@@ -2231,7 +2233,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return ENV_KW.convertor(envlist)
 
     def make_test(self, node: mparser.BaseNode,
-                  args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
+                  args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
                   kwargs: 'kwtypes.BaseTest',
                   klass: T.Type[TestClass] = Test) -> TestClass:
         name = args[0]
@@ -2240,12 +2242,14 @@ class Interpreter(InterpreterBase, HoldableObject):
                              location=node)
             name = name.replace(':', '_')
         exe = args[1]
-        if isinstance(exe, ExternalProgram):
+        if isinstance(exe, Program):
             if not exe.found():
                 raise InvalidArguments('Tried to use not-found external program as test exe')
+            if isinstance(exe, build.LocalProgram):
+                exe = exe.program
         elif isinstance(exe, mesonlib.File):
             exe = self.find_program_impl([exe])
-        elif isinstance(exe, build.CustomTarget):
+        if isinstance(exe, (build.Executable, build.CustomTarget)):
             kwargs.setdefault('depends', []).append(exe)
         elif isinstance(exe, build.CustomTargetIndex):
             kwargs.setdefault('depends', []).append(exe.target)
@@ -2284,7 +2288,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if isinstance(args[1], (build.CustomTarget, build.CustomTargetIndex)):
             FeatureNew.single_use('test with CustomTarget as command', '1.4.0', self.subproject)
         if any(isinstance(i, ExternalProgram) for i in kwargs['args']):
-            FeatureNew.single_use('test with external_program in args', '1.6.0', self.subproject)
+            FeatureNew.single_use('test with program in args', '1.6.0', self.subproject)
 
         t = self.make_test(node, args, kwargs)
         if is_base_test:
@@ -2604,7 +2608,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('capture', bool, default=False, since='0.41.0'),
         KwargInfo(
             'command',
-            (ContainerTypeInfo(list, (build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str), allow_empty=False), NoneType),
+            (ContainerTypeInfo(list, (build.Executable, Program, compilers.Compiler, mesonlib.File, str), allow_empty=False), NoneType),
             listify=True,
         ),
         KwargInfo(
