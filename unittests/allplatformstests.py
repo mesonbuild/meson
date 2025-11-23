@@ -2541,6 +2541,20 @@ class AllPlatformTests(BasePlatformTests):
                 self._run(ninja,
                             workdir=os.path.join(tmpdir, 'builddir'))
 
+            # custom executable name
+            if target_type == 'executable':
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    self._run(self.meson_command + ['init', '--language', lang, '--type', target_type,
+                                                    '--executable', 'foobar'], workdir=tmpdir)
+                    self._run(self.setup_command + ['--backend=ninja', 'builddir'],
+                                workdir=tmpdir)
+                    self._run(ninja,
+                                workdir=os.path.join(tmpdir, 'builddir'))
+
+                    if lang not in {'cs', 'java'}:
+                        exe = os.path.join(tmpdir, 'builddir', 'foobar' + exe_suffix)
+                        self.assertTrue(os.path.exists(exe))
+
         def _template_test_dirty(lang, target_type):
             if is_windows() and lang == 'fortran' and target_type == 'library':
                 # non-Gfortran Windows Fortran compilers do not do shared libraries in a Fortran standard way
