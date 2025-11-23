@@ -1890,7 +1890,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertIn('build t13-e1: c_LINKER t13-e1.p/main.c.o | libt12-s1.a libt13-s3.a\n', content)
 
     def test_top_options_in_sp(self):
-        testdir = os.path.join(self.unit_test_dir, '126 pkgsubproj')
+        testdir = os.path.join(self.unit_test_dir, '127 pkgsubproj')
         self.init(testdir)
 
     def test_unreadable_dir_in_declare_dep(self):
@@ -1986,7 +1986,7 @@ class LinuxlikeTests(BasePlatformTests):
             self.wipe()
 
     def test_sanitizers(self):
-        testdir = os.path.join(self.unit_test_dir, '128 sanitizers')
+        testdir = os.path.join(self.unit_test_dir, '129 sanitizers')
 
         with self.subTest('no b_sanitize value'):
             try:

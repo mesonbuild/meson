@@ -1,8 +1,0 @@
-{
-    "stdout": [
-        {
-            "line": "test cases/failing/135 rust link_language/meson.build:10:0: ERROR: cannot build Rust sources with a different link_language"
-        }
-    ]
-}
-

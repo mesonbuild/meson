@@ -456,7 +456,7 @@ class RewriterTests(BasePlatformTests):
         self.assertEqualIgnoreOrder(out, expected)
 
     def test_tricky_dataflow(self):
-        self.prime('8 tricky dataflow')
+        self.prime('9 tricky dataflow')
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'addSrc.json'))
         expected = {
             'target': {

@@ -1,7 +1,0 @@
-{
-  "stdout": [
-    {
-      "line": "test cases/failing/136 invalid build_subdir/meson.build:18:0: ERROR: Build subdir \"existing-dir\" in \"config.h\" exists in source tree."
-    }
-  ]
-}
