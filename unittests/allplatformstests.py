@@ -1449,7 +1449,7 @@ class AllPlatformTests(BasePlatformTests):
         Test that conflicts between -D for builtin options and the corresponding
         long option are detected without false positives or negatives.
         '''
-        testdir = os.path.join(self.unit_test_dir, '129 long opt vs D')
+        testdir = os.path.join(self.unit_test_dir, '130 long opt vs D')
 
         for opt in ['-Dsysconfdir=/etc', '-Dsysconfdir2=/etc']:
             exception_raised = False
@@ -2472,10 +2472,10 @@ class AllPlatformTests(BasePlatformTests):
         # lexer/parser/interpreter we have tests for.
         for (t, f) in [
             ('10 out of bounds', 'meson.build'),
-            ('18 wrong plusassign', 'meson.build'),
-            ('56 bad option argument', 'meson_options.txt'),
-            ('94 subdir parse error', os.path.join('subdir', 'meson.build')),
-            ('95 invalid option file', 'meson_options.txt'),
+            ('17 wrong plusassign', 'meson.build'),
+            ('55 bad option argument', 'meson_options.txt'),
+            ('93 subdir parse error', os.path.join('subdir', 'meson.build')),
+            ('94 invalid option file', 'meson_options.txt'),
         ]:
             tdir = os.path.join(self.src_root, 'test cases', 'failing', t)
 
@@ -3093,7 +3093,7 @@ class AllPlatformTests(BasePlatformTests):
     @skipIf(is_windows(), 'POSIX only')
     def test_python_build_config_extensions(self):
         testdir = os.path.join(self.unit_test_dir,
-                               '125 python extension')
+                               '126 python extension')
 
         VERSION_INFO_KEYS = ('major', 'minor', 'micro', 'releaselevel', 'serial')
         EXTENSION_SUFFIX = '.extension-suffix.so'
@@ -4508,7 +4508,7 @@ class AllPlatformTests(BasePlatformTests):
         if self.backend is not Backend.ninja:
             raise SkipTest('ninja backend needed for "meson test" to build test dependencies')
 
-        testdir = os.path.join(self.unit_test_dir, '131 custom target index test')
+        testdir = os.path.join(self.unit_test_dir, '132 custom target index test')
         self.init(testdir)
         self.run_tests()
 
@@ -5466,7 +5466,7 @@ class AllPlatformTests(BasePlatformTests):
         self.__test_multi_stds(test_objc=True)
 
     def test_slice(self):
-        testdir = os.path.join(self.unit_test_dir, '127 test slice')
+        testdir = os.path.join(self.unit_test_dir, '128 test slice')
         self.init(testdir)
         self.build()
 
