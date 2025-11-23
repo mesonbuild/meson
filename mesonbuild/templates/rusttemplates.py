@@ -50,9 +50,13 @@ rust = import('rust')
 dependencies = [{dependencies}
 ]
 
+sources = [{source_files}
+
+]
+
 lib = static_library(
   '{lib_name}',
-  '{source_file}',
+  [sources],
   dependencies : dependencies,
   install : true,
 )
@@ -86,9 +90,13 @@ hello_rust_meson_template = '''project(
 dependencies = [{dependencies}
 ]
 
+sources = [{source_files}
+
+]
+
 exe = executable(
   '{exe_name}',
-  '{source_name}',
+  [sources],
   dependencies : dependencies,
   install : true,
 )

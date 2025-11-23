@@ -56,9 +56,13 @@ lib_args = ['-DBUILDING_{utoken}']
 dependencies = [{dependencies}
 ]
 
+sources = [{source_files}
+
+]
+
 lib = library(
   '{lib_name}',
-  '{source_file}',
+  [sources],
   install : true,
   fortran_shared_args : lib_args,
   gnu_symbol_visibility : 'hidden',
@@ -110,9 +114,13 @@ hello_fortran_meson_template = '''project(
 dependencies = [{dependencies}
 ]
 
+sources = [{source_files}
+
+]
+
 exe = executable(
   '{exe_name}',
-  '{source_name}',
+  [sources],
   dependencies : dependencies,
   install : true,
 )

@@ -47,7 +47,7 @@ from mesonbuild.compilers.c import VisualStudioCCompiler, ClangClCCompiler
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler, ClangClCPPCompiler
 from mesonbuild.compilers import (
     detect_static_linker, detect_c_compiler, compiler_from_language,
-    detect_compiler_for
+    detect_compiler_for, lang_suffixes
 )
 from mesonbuild.linkers import linkers
 
@@ -2572,6 +2572,22 @@ class AllPlatformTests(BasePlatformTests):
                 self._run(ninja,
                             workdir=os.path.join(tmpdir, 'builddir'))
 
+            # Check for whether we're doing source collection by repeating
+            # with a bogus file we should pick up (and then fail to compile).
+            with tempfile.TemporaryDirectory() as tmpdir:
+                suffix = lang_suffixes[lang][0]
+                # Assume that this is a good enough string to error out
+                # in all languages.
+                with open(os.path.join(tmpdir, 'bar.' + suffix), 'w', encoding='utf-8') as f:
+                    f.write('error bar')
+                self._run(self.meson_command + ['init', '--language', lang, '--type', target_type],
+                        workdir=tmpdir)
+                self._run(self.setup_command + ['--backend=ninja', 'builddir'],
+                        workdir=tmpdir)
+                with self.assertRaises(subprocess.CalledProcessError):
+                    self._run(ninja,
+                            workdir=os.path.join(tmpdir, 'builddir'))
+
             # test directory with existing code file
             if lang in {'c', 'cpp', 'd'}:
                 with tempfile.TemporaryDirectory() as tmpdir:
@@ -2579,35 +2595,11 @@ class AllPlatformTests(BasePlatformTests):
                         f.write('int main(void) {}')
                     self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
 
-                # Check for whether we're doing source collection by repeating
-                # with a bogus file we should pick up (and then fail to compile).
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    with open(os.path.join(tmpdir, 'bar.' + lang), 'w', encoding='utf-8') as f:
-                        f.write('#error bar')
-                    self._run(self.meson_command + ['init'], workdir=tmpdir)
-                    self._run(self.setup_command + ['--backend=ninja', 'builddir'],
-                            workdir=tmpdir)
-                    with self.assertRaises(subprocess.CalledProcessError):
-                        self._run(ninja,
-                                workdir=os.path.join(tmpdir, 'builddir'))
-
             elif lang in {'java'}:
                 with tempfile.TemporaryDirectory() as tmpdir:
                     with open(os.path.join(tmpdir, 'Foo.' + lang), 'w', encoding='utf-8') as f:
                         f.write('public class Foo { public static void main() {} }')
                     self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
-
-                # Check for whether we're doing source collection by repeating
-                # with a bogus file we should pick up (and then fail to compile).
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    with open(os.path.join(tmpdir, 'Bar.' + lang), 'w', encoding='utf-8') as f:
-                        f.write('public class Bar { public private static void main() {} }')
-                    self._run(self.meson_command + ['init'], workdir=tmpdir)
-                    self._run(self.setup_command + ['--backend=ninja', 'builddir'],
-                            workdir=tmpdir)
-                    with self.assertRaises(subprocess.CalledProcessError):
-                        self._run(ninja,
-                                workdir=os.path.join(tmpdir, 'builddir'))
 
         for lang, target_type, fresh in itertools.product(langs, ('executable', 'library'), (True, False)):
             with self.subTest(f'Language: {lang}; type: {target_type}; fresh: {fresh}'):
