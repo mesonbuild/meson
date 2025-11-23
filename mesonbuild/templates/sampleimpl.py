@@ -133,7 +133,7 @@ class FileImpl(SampleImpl):
 
     def __init__(self, args: Arguments):
         super().__init__(args)
-        self.sources = args.srcfiles if args.srcfiles else [Path(f'{self.executable_name}.{self.source_ext}')]
+        self.sources = args.srcfiles if args.srcfiles else [Path(f'{self.name}.{self.source_ext}')]
 
     def create_executable(self) -> None:
         source_name = f'{self.lowercase_token}.{self.source_ext}'
