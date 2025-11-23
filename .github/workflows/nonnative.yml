@@ -49,3 +49,16 @@ jobs:
     - uses: actions/checkout@v4
     - name: Run tests
       run: bash -c 'source /ci/env_vars.sh; cd $GITHUB_WORKSPACE; ./run_tests.py $CI_ARGS --cross cuda-cross.json --cross-only'
+
+  cross-android:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cfg:
+          - { platform: android, arch: aarch64 }
+          - { platform: android, arch: x86_64 }
+    container: mesonbuild/android:latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Run tests
+      run: bash -c 'source /ci/env_vars.sh; cd $GITHUB_WORKSPACE; ./run_tests.py --cross /opt/android/meson/android-${ANDROID_NDKVER}-${{ matrix.cfg.platform }}${ANDROID_TARGET}-${{ matrix.cfg.arch }}-cross.json --cross-only'

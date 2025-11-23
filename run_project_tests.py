@@ -39,6 +39,8 @@ from mesonbuild import mlog
 from mesonbuild import mtest
 from mesonbuild.compilers import compiler_from_language
 from mesonbuild.build import ConfigurationData
+from mesonbuild.envconfig import MachineInfo, detect_machine_info
+from mesonbuild.machinefile import parse_machine_files
 from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWinProof, setup_vsenv
 from mesonbuild.mlog import blue, bold, cyan, green, red, yellow, normal_green
 from mesonbuild.coredata import version as meson_version
@@ -605,9 +607,10 @@ def format_parameter_file(file_basename: str, test: TestDef, test_build_dir: str
 
     return destination
 
-def detect_parameter_files(test: TestDef, test_build_dir: str) -> T.Tuple[Path, Path]:
+def detect_parameter_files(test: TestDef, test_build_dir: str) -> T.Tuple[Path, Path, Path]:
     nativefile = test.path / 'nativefile.ini'
     crossfile = test.path / 'crossfile.ini'
+    optionsfile = test.path / 'optionsfile.ini'
 
     if os.path.exists(str(test.path / 'nativefile.ini.in')):
         nativefile = format_parameter_file('nativefile.ini', test, test_build_dir)
@@ -615,7 +618,10 @@ def detect_parameter_files(test: TestDef, test_build_dir: str) -> T.Tuple[Path, 
     if os.path.exists(str(test.path / 'crossfile.ini.in')):
         crossfile = format_parameter_file('crossfile.ini', test, test_build_dir)
 
-    return nativefile, crossfile
+    if os.path.exists(str(test.path / 'optionsfile.ini.in')):
+        optionsfile = format_parameter_file('optionsfile.ini', test, test_build_dir)
+
+    return nativefile, crossfile, optionsfile
 
 # In previous python versions the global variables are lost in ProcessPoolExecutor.
 # So, we use this tuple to restore some of them
@@ -671,12 +677,14 @@ def _run_test(test: TestDef,
         gen_args += ['--libdir', 'lib']
     gen_args += [test.path.as_posix(), test_build_dir] + backend_flags + extra_args
 
-    nativefile, crossfile = detect_parameter_files(test, test_build_dir)
+    nativefile, crossfile, optionsfile = detect_parameter_files(test, test_build_dir)
 
     if nativefile.exists():
         gen_args.extend(['--native-file', nativefile.as_posix()])
     if crossfile.exists():
         gen_args.extend(['--cross-file', crossfile.as_posix()])
+    if optionsfile.exists():
+        gen_args.extend(['--cross-file' if '--cross-file' in extra_args else '--native-file', optionsfile.as_posix()])
     inprocess, res = run_configure(gen_args, env=test.env, catch_exception=True)
     returncode, stdo, stde = res
     cmd = '(inprocess) $ ' if inprocess else '$ '
@@ -1079,7 +1087,7 @@ def should_skip_wayland() -> bool:
         return True
     return False
 
-def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List[T.Tuple[str, T.List[TestDef], bool]]:
+def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool, host_machine: MachineInfo) -> T.List[T.Tuple[str, T.List[TestDef], bool]]:
     """
     Parameters
     ----------
@@ -1123,8 +1131,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
         TestCategory('platform-osx', 'osx', not mesonlib.is_osx()),
         TestCategory('platform-windows', 'windows', not mesonlib.is_windows() and not mesonlib.is_cygwin()),
         TestCategory('platform-linux', 'linuxlike', mesonlib.is_osx() or mesonlib.is_windows()),
-        # FIXME, does not actually run in CI, change to run the test if an Android cross toolchain is detected.
-        TestCategory('platform-android', 'android', not mesonlib.is_android()),
+        TestCategory('platform-android', 'android', not host_machine.is_android()),
         TestCategory('java', 'java', backend is not Backend.ninja or not have_java()),
         TestCategory('C#', 'csharp', skip_csharp(backend)),
         TestCategory('vala', 'vala', backend is not Backend.ninja or not shutil.which(os.environ.get('VALAC', 'valac'))),
@@ -1689,6 +1696,13 @@ if __name__ == '__main__':
     script_dir = os.path.split(__file__)[0]
     if script_dir != '':
         os.chdir(script_dir)
+
+    if options.cross_file is not None:
+        config = parse_machine_files([options.cross_file], script_dir)
+        host_machine = MachineInfo.from_literal(config['host_machine']) if 'host_machine' in config else detect_machine_info()
+    else:
+        host_machine = detect_machine_info()
+
     check_meson_commands_work(options.use_tmpdir, options.extra_args)
     only = collections.defaultdict(list)
     for i in options.only:
@@ -1698,7 +1712,7 @@ if __name__ == '__main__':
         except ValueError:
             only[i].append('')
     try:
-        all_tests = detect_tests_to_run(only, options.use_tmpdir)
+        all_tests = detect_tests_to_run(only, options.use_tmpdir, host_machine)
         res = run_tests(all_tests, 'meson-test-run', options.failfast, options.extra_args, options.use_tmpdir, options.num_workers)
         (passing_tests, failing_tests, skipped_tests) = res
     except StopException:

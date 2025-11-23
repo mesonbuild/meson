@@ -98,11 +98,13 @@ foreach cc : compilers
   # For some functions one needs to define _GNU_SOURCE before including the
   # right headers to get them picked up. Make sure we can detect these functions
   # as well without any prefix
-  if cc.has_header_symbol('sys/stat.h', 'statx',
-                          prefix : '#define _GNU_SOURCE',
-                          args : unit_test_args)
-    assert (cc.has_function('statx', args : unit_test_args),
-            'Failed to detect function "statx" (should always exist).')
+  if host_machine.system() != 'android' or cc.compute_int('__ANDROID_API__') >= 30
+    if cc.has_header_symbol('sys/stat.h', 'statx',
+                            prefix : '#define _GNU_SOURCE',
+                            args : unit_test_args)
+      assert (cc.has_function('statx', args : unit_test_args),
+              'Failed to detect function "statx" (should always exist).')
+    endif
   endif
 
   # We should be able to find GCC and Clang __builtin functions
