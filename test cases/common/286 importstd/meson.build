@@ -6,16 +6,11 @@ cpp = meson.get_compiler('cpp')
 cpp_id = cpp.get_id()
 cpp_version = cpp.version()
 
-if cpp_id == 'gcc' and cpp_version.version_compare('>=15.1')
-  if host_machine.system() == 'windows'
-    istd_supported = cpp_version.version_compare('>=15.3')
-  else
-    if cpp_version.version_compare('=15.2.0') or cpp_version.version_compare('>=15.3.0')
-      istd_supported = true
-    else
-      istd_supported = false
-    endif
-  endif
+if cpp_id == 'gcc' and cpp_version.version_compare('>=15.3')
+  # Versions between 15.0 and 15.2 are too unreliable to test.
+  # The same version number of GCC works in some distros
+  # but fails in others.
+  istd_supported = true
 elif cpp_id == 'msvc' and cpp_version.version_compare('>=19.44.35219')
   istd_supported = get_option('backend') == 'ninja'
 else
