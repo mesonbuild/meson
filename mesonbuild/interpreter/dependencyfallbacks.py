@@ -8,7 +8,7 @@ from .. import mlog
 from .. import dependencies
 from .. import build
 from ..wrap import WrapMode
-from ..mesonlib import stringlistify, version_compare_many, MachineChoice
+from ..mesonlib import stringlistify, version_compare_many
 from ..options import OptionKey
 from ..dependencies import Dependency, DependencyException, NotFoundDependency
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew,
@@ -96,7 +96,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         self._handle_featurenew_dependencies(name)
         dep = dependencies.find_external_dependency(name, self.environment, kwargs)
         if dep.found():
-            for_machine = kwargs.get('native', MachineChoice.HOST)
+            for_machine = kwargs['native']
             identifier = dependencies.get_dep_identifier(name, kwargs)
             self.coredata.deps[for_machine].put(identifier, dep)
             return dep
@@ -209,7 +209,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         # of None in the case the dependency is cached as not-found, or if cached
         # version does not match. In that case we don't want to continue with
         # other candidates.
-        for_machine = kwargs.get('native', MachineChoice.HOST)
+        for_machine = kwargs['native']
         identifier = dependencies.get_dep_identifier(name, kwargs)
         wanted_vers = stringlistify(kwargs.get('version', []))
 
@@ -366,7 +366,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                 # Override this dependency to have consistent results in subsequent
                 # dependency lookups.
                 for name in self.names:
-                    for_machine = kwargs.get('native', MachineChoice.HOST)
+                    for_machine = kwargs['native']
                     identifier = dependencies.get_dep_identifier(name, kwargs)
                     if identifier not in self.build.dependency_overrides[for_machine]:
                         self.build.dependency_overrides[for_machine][identifier] = \
