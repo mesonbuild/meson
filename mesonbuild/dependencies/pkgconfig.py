@@ -249,6 +249,12 @@ class PkgConfigCLI(PkgConfigInterface):
             if validate(potential_pkgbin):
                 return
 
+        # else, look for a program that is called "pkgconf" (popular pkg-config alternative)
+        for potential_pkgbin in find_external_program(self.env, self.for_machine, "pkgconf", "pkgconf",
+                                                      self.env.default_pkgconfig, allow_default_for_cross=False):
+            if validate(potential_pkgbin):
+                return
+
         self.pkgbin = None
 
     def _check_pkgconfig(self, pkgbin: ExternalProgram) -> T.Optional[str]:
