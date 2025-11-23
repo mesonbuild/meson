@@ -2,6 +2,7 @@
 # Copyright 2016-2021 The Meson development team
 # Copyright © 2023-2025 Intel Corporation
 
+import itertools
 import subprocess
 import re
 import json
@@ -2523,61 +2524,80 @@ class AllPlatformTests(BasePlatformTests):
         if is_osx():
             langs = [l for l in langs if l != 'd']
 
-        for lang in langs:
-            for target_type in ('executable', 'library'):
-                with self.subTest(f'Language: {lang}; type: {target_type}; fresh: yes'):
-                    if is_windows() and lang == 'fortran' and target_type == 'library':
-                        # non-Gfortran Windows Fortran compilers do not do shared libraries in a Fortran standard way
-                        # see "test cases/fortran/6 dynamic"
-                        fc = detect_compiler_for(env, 'fortran', MachineChoice.HOST, True, '')
-                        if fc.get_id() in {'intel-cl', 'pgi'}:
-                            continue
-                    # test empty directory
-                    with tempfile.TemporaryDirectory() as tmpdir:
-                        self._run(self.meson_command + ['init', '--language', lang, '--type', target_type],
-                                  workdir=tmpdir)
-                        self._run(self.setup_command + ['--backend=ninja', 'builddir'],
-                                  workdir=tmpdir)
+        def _template_test_fresh(lang, target_type):
+            if is_windows() and lang == 'fortran' and target_type == 'library':
+                # non-Gfortran Windows Fortran compilers do not do shared libraries in a Fortran standard way
+                # see "test cases/fortran/6 dynamic"
+                fc = detect_compiler_for(env, 'fortran', MachineChoice.HOST, True, '')
+                if fc.get_id() in {'intel-cl', 'pgi'}:
+                    return
+
+            # test empty directory
+            with tempfile.TemporaryDirectory() as tmpdir:
+                self._run(self.meson_command + ['init', '--language', lang, '--type', target_type],
+                            workdir=tmpdir)
+                self._run(self.setup_command + ['--backend=ninja', 'builddir'],
+                            workdir=tmpdir)
+                self._run(ninja,
+                            workdir=os.path.join(tmpdir, 'builddir'))
+
+        def _template_test_dirty(lang, target_type):
+            if is_windows() and lang == 'fortran' and target_type == 'library':
+                # non-Gfortran Windows Fortran compilers do not do shared libraries in a Fortran standard way
+                # see "test cases/fortran/6 dynamic"
+                fc = detect_compiler_for(env, 'fortran', MachineChoice.HOST, True, '')
+                if fc.get_id() in {'intel-cl', 'pgi'}:
+                    return
+
+            # test empty directory
+            with tempfile.TemporaryDirectory() as tmpdir:
+                self._run(self.meson_command + ['init', '--language', lang, '--type', target_type],
+                            workdir=tmpdir)
+                self._run(self.setup_command + ['--backend=ninja', 'builddir'],
+                            workdir=tmpdir)
+                self._run(ninja,
+                            workdir=os.path.join(tmpdir, 'builddir'))
+
+            # test directory with existing code file
+            if lang in {'c', 'cpp', 'd'}:
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    with open(os.path.join(tmpdir, 'foo.' + lang), 'w', encoding='utf-8') as f:
+                        f.write('int main(void) {}')
+                    self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
+
+                # Check for whether we're doing source collection by repeating
+                # with a bogus file we should pick up (and then fail to compile).
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    with open(os.path.join(tmpdir, 'bar.' + lang), 'w', encoding='utf-8') as f:
+                        f.write('#error bar')
+                    self._run(self.meson_command + ['init'], workdir=tmpdir)
+                    self._run(self.setup_command + ['--backend=ninja', 'builddir'],
+                            workdir=tmpdir)
+                    with self.assertRaises(subprocess.CalledProcessError):
                         self._run(ninja,
-                                  workdir=os.path.join(tmpdir, 'builddir'))
+                                workdir=os.path.join(tmpdir, 'builddir'))
 
-                with self.subTest(f'Language: {lang}; type: {target_type}; fresh: no'):
-                    # test directory with existing code file
-                    if lang in {'c', 'cpp', 'd'}:
-                        with tempfile.TemporaryDirectory() as tmpdir:
-                            with open(os.path.join(tmpdir, 'foo.' + lang), 'w', encoding='utf-8') as f:
-                                f.write('int main(void) {}')
-                            self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
+            elif lang in {'java'}:
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    with open(os.path.join(tmpdir, 'Foo.' + lang), 'w', encoding='utf-8') as f:
+                        f.write('public class Foo { public static void main() {} }')
+                    self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
 
-                        # Check for whether we're doing source collection by repeating
-                        # with a bogus file we should pick up (and then fail to compile).
-                        with tempfile.TemporaryDirectory() as tmpdir:
-                            with open(os.path.join(tmpdir, 'bar.' + lang), 'w', encoding='utf-8') as f:
-                                f.write('#error bar')
-                            self._run(self.meson_command + ['init'], workdir=tmpdir)
-                            self._run(self.setup_command + ['--backend=ninja', 'builddir'],
-                                    workdir=tmpdir)
-                            with self.assertRaises(subprocess.CalledProcessError):
-                                self._run(ninja,
-                                        workdir=os.path.join(tmpdir, 'builddir'))
+                # Check for whether we're doing source collection by repeating
+                # with a bogus file we should pick up (and then fail to compile).
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    with open(os.path.join(tmpdir, 'Bar.' + lang), 'w', encoding='utf-8') as f:
+                        f.write('public class Bar { public private static void main() {} }')
+                    self._run(self.meson_command + ['init'], workdir=tmpdir)
+                    self._run(self.setup_command + ['--backend=ninja', 'builddir'],
+                            workdir=tmpdir)
+                    with self.assertRaises(subprocess.CalledProcessError):
+                        self._run(ninja,
+                                workdir=os.path.join(tmpdir, 'builddir'))
 
-                    elif lang in {'java'}:
-                        with tempfile.TemporaryDirectory() as tmpdir:
-                            with open(os.path.join(tmpdir, 'Foo.' + lang), 'w', encoding='utf-8') as f:
-                                f.write('public class Foo { public static void main() {} }')
-                            self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
-
-                        # Check for whether we're doing source collection by repeating
-                        # with a bogus file we should pick up (and then fail to compile).
-                        with tempfile.TemporaryDirectory() as tmpdir:
-                            with open(os.path.join(tmpdir, 'Bar.' + lang), 'w', encoding='utf-8') as f:
-                                f.write('public class Bar { public private static void main() {} }')
-                            self._run(self.meson_command + ['init'], workdir=tmpdir)
-                            self._run(self.setup_command + ['--backend=ninja', 'builddir'],
-                                    workdir=tmpdir)
-                            with self.assertRaises(subprocess.CalledProcessError):
-                                self._run(ninja,
-                                        workdir=os.path.join(tmpdir, 'builddir'))
+        for lang, target_type, fresh in itertools.product(langs, ('executable', 'library'), (True, False)):
+            with self.subTest(f'Language: {lang}; type: {target_type}; fresh: {fresh}'):
+                _template_test_fresh(lang, target_type) if fresh else _template_test_dirty(lang, target_type)
 
     def test_compiler_run_command(self):
         '''
