@@ -232,11 +232,11 @@ class PkgConfigCLI(PkgConfigInterface):
         if pkgbin and validate(pkgbin):
             return
 
-        # first, check if PKG_CONFIG_EXECUTABLE is set
+        # first, check if PKG_CONFIG is set
         #
         # this is especially useful in Windows environments where "pkgconf" is often used
         # as an alternative to pkg-config
-        pkg_config_executable = os.environ.get("PKG_CONFIG_EXECUTABLE")
+        pkg_config_executable = os.environ.get("PKG_CONFIG")
         if pkg_config_executable is not None:
             potential_pkgbin = ExternalProgram(pkg_config_executable)
             if validate(potential_pkgbin):
