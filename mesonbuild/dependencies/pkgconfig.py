@@ -239,7 +239,7 @@ class PkgConfigCLI(PkgConfigInterface):
         pkg_config_executable = os.environ.get("PKG_CONFIG_EXECUTABLE")
         if pkg_config_executable is not None:
             potential_pkgbin = ExternalProgram(pkg_config_executable)
-            if validate(potential_pkgbin)
+            if validate(potential_pkgbin):
                 self.pkgbin = potential_pkgbin
                 return
 
