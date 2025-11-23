@@ -232,10 +232,23 @@ class PkgConfigCLI(PkgConfigInterface):
         if pkgbin and validate(pkgbin):
             return
 
+        # first, check if PKG_CONFIG_EXECUTABLE is set
+        #
+        # this is especially useful in Windows environments where "pkgconf" is often used
+        # as an alternative to pkg-config
+        pkg_config_executable = os.environ.get("PKG_CONFIG_EXECUTABLE")
+        if pkg_config_executable is not None:
+            potential_pkgbin = ExternalProgram(pkg_config_executable)
+            if validate(potential_pkgbin)
+                self.pkgbin = potential_pkgbin
+                return
+
+        # else, look for a program that is called "pkg-config"
         for potential_pkgbin in find_external_program(self.env, self.for_machine, "pkg-config", "Pkg-config",
                                                       self.env.default_pkgconfig, allow_default_for_cross=False):
             if validate(potential_pkgbin):
                 return
+
         self.pkgbin = None
 
     def _check_pkgconfig(self, pkgbin: ExternalProgram) -> T.Optional[str]:
