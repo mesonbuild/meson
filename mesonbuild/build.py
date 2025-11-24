@@ -1986,7 +1986,7 @@ class GeneratedList(HoldableObject):
         self.infilelist: T.List[FileMaybeInTargetPrivateDir] = []
         self.outfilelist: T.List[str] = []
         self.outmap: T.Dict[FileMaybeInTargetPrivateDir, T.List[str]] = {}
-        self.extra_depends = []  # XXX: Doesn't seem to be used?
+        self.extra_depends: T.List[BuildTargetTypes] = []
         self.depend_files: T.List[File] = []
 
         if self.extra_args is None:
@@ -1995,9 +1995,12 @@ class GeneratedList(HoldableObject):
         if self.env is None:
             self.env: EnvironmentVariables = EnvironmentVariables()
 
-        if isinstance(self.generator.exe, programs.ExternalProgram):
+        if isinstance(self.generator.exe, programs.Program):
             if not self.generator.exe.found():
                 raise InvalidArguments('Tried to use not-found external program as generator')
+        if isinstance(self.generator.exe, Executable):
+            self.extra_depends.append(self.generator.exe)
+        else:
             path = self.generator.exe.get_path()
             if os.path.isabs(path):
                 # Can only add a dependency on an external program which we
