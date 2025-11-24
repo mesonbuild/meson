@@ -40,7 +40,7 @@ sources = [{source_files}
 
 exe = executable(
   '{exe_name}',
-  [sources],
+  sources,
   install : true,
   dependencies : dependencies,
 )
@@ -131,12 +131,11 @@ dependencies = [{dependencies}
 lib_args = ['-DBUILDING_{utoken}']
 
 sources = [{source_files}
-
 ]
 
 lib = library(
   '{lib_name}',
-  [sources],
+  sources,
   install : true,
   cpp_shared_args : lib_args,
   gnu_symbol_visibility : 'hidden',
