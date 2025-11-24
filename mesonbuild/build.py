@@ -364,7 +364,7 @@ class Build:
         self.stdlibs = PerMachine({}, {})
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
-        self.find_overrides: T.Dict[str, T.Union['OverrideExecutable', programs.Program]] = {}
+        self.find_overrides: T.Dict[str, programs.Program] = {}
         self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
 
         # If we are doing a cross build we need two caches, if we're doing a
@@ -2154,10 +2154,6 @@ class Executable(BuildTarget):
     def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
         return self.environment.get_bindir(), '{bindir}'
 
-    def description(self):
-        '''Human friendly description of the executable'''
-        return self.name
-
     def type_suffix(self):
         return "@exe"
 
@@ -2179,21 +2175,6 @@ class Executable(BuildTarget):
 
     def is_linkable_target(self) -> bool:
         return self.is_linkwithable
-
-    def get_command(self) -> 'ImmutableListProtocol[str]':
-        """Provides compatibility with ExternalProgram.
-
-        Since you can override ExternalProgram instances with Executables.
-        """
-        return self.outputs
-
-    def get_path(self) -> str:
-        """Provides compatibility with ExternalProgram."""
-        return os.path.join(self.subdir, self.filename)
-
-    def found(self) -> bool:
-        """Provides compatibility with ExternalProgram."""
-        return True
 
 
 class StaticLibrary(BuildTarget):
@@ -3329,18 +3310,6 @@ class ConfigurationData(HoldableObject):
 
     def keys(self) -> T.Iterator[str]:
         return self.values.keys()
-
-class OverrideExecutable(Executable):
-    def __init__(self, executable: Executable, version: str):
-        self._executable = executable
-        self._version = version
-
-    def __getattr__(self, name: str) -> T.Any:
-        _executable = object.__getattribute__(self, '_executable')
-        return getattr(_executable, name)
-
-    def get_version(self, interpreter: T.Optional[Interpreter] = None) -> str:
-        return self._version
 
 class LocalProgram(programs.Program):
     '''A wrapper for a program that acts as a build dependency
