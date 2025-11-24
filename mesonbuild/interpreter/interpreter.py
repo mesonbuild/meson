@@ -2187,7 +2187,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.add_target(name, tg)
         return tg
 
-    @typed_pos_args('generator', (build.Executable, ExternalProgram))
+    @typed_pos_args('generator', (build.Executable, Program))
     @typed_kwargs(
         'generator',
         KwargInfo('arguments', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
@@ -2197,7 +2197,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('capture', bool, default=False, since='0.43.0'),
     )
     def func_generator(self, node: mparser.FunctionNode,
-                       args: T.Tuple[T.Union[build.Executable, ExternalProgram]],
+                       args: T.Tuple[T.Union[build.Executable, Program]],
                        kwargs: 'kwtypes.FuncGenerator') -> build.Generator:
         for rule in kwargs['output']:
             if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule:
@@ -2209,7 +2209,11 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if '@OUTPUT@' in o:
                     raise InvalidArguments('Tried to use @OUTPUT@ in a rule with more than one output.')
 
-        return build.Generator(self.environment, args[0], **kwargs)
+        if isinstance(args[0], build.Executable):
+            exe_prg = build.LocalProgram(args[0], self.project_version)
+        else:
+            exe_prg = args[0]
+        return build.Generator(self.environment, exe_prg, **kwargs)
 
     @typed_pos_args('benchmark', str, (build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex))
     @typed_kwargs('benchmark', *TEST_KWS)

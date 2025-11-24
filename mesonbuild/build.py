@@ -1890,7 +1890,7 @@ class FileMaybeInTargetPrivateDir:
 
 class Generator(HoldableObject):
     def __init__(self, env: Environment,
-                 exe: T.Union['Executable', programs.ExternalProgram],
+                 exe: programs.Program,
                  arguments: T.List[str],
                  output: T.List[str],
                  # how2dataclass
@@ -1912,7 +1912,7 @@ class Generator(HoldableObject):
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.exe)
 
-    def get_exe(self) -> T.Union['Executable', programs.ExternalProgram]:
+    def get_exe(self) -> programs.Program:
         return self.exe
 
     def get_base_outnames(self, inname: str) -> T.List[str]:
@@ -1998,8 +1998,8 @@ class GeneratedList(HoldableObject):
         if isinstance(self.generator.exe, programs.Program):
             if not self.generator.exe.found():
                 raise InvalidArguments('Tried to use not-found external program as generator')
-        if isinstance(self.generator.exe, Executable):
-            self.extra_depends.append(self.generator.exe)
+        if isinstance(self.generator.exe, LocalProgram):
+            self.extra_depends.append(self.generator.exe.program)
         else:
             path = self.generator.exe.get_path()
             if os.path.isabs(path):
