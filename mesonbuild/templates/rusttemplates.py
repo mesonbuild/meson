@@ -51,12 +51,11 @@ dependencies = [{dependencies}
 ]
 
 sources = [{source_files}
-
 ]
 
 lib = static_library(
   '{lib_name}',
-  [sources],
+  sources,
   dependencies : dependencies,
   install : true,
 )
@@ -91,12 +90,11 @@ dependencies = [{dependencies}
 ]
 
 sources = [{source_files}
-
 ]
 
 exe = executable(
   '{exe_name}',
-  [sources],
+  sources,
   dependencies : dependencies,
   install : true,
 )

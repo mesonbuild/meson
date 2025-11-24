@@ -36,12 +36,11 @@ dependencies = [{dependencies}
 ]
 
 sources = [{source_files}
-
 ]
 
 exe = executable(
   '{exe_name}',
-  [sources],
+  sources,
   install : true,
   dependencies : dependencies,
 )
@@ -88,12 +87,11 @@ dependencies = [{dependencies}
 ]
 
 sources = [{source_files}
-
 ]
 
 stlib = shared_library(
   '{lib_name}',
-  [sources],
+  sources,
   dependencies : dependencies,
   install : true,
 )

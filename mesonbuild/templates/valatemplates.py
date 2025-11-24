@@ -29,7 +29,7 @@ sources = [{source_files}
 
 exe = executable(
   '{exe_name}',
-  [sources],
+  sources,
   dependencies : dependencies,
   install : true,
 )
@@ -71,14 +71,13 @@ dependencies = [
 ]
 
 sources = [{source_files}
-
 ]
 
 # These arguments are only used to build the shared library
 # not the executables that use the library.
 lib = shared_library(
   'foo',
-  [sources],
+  sources,
   dependencies : dependencies,
   install : true,
   install_dir : [true, true, true],
