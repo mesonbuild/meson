@@ -15,7 +15,6 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
     from . import ModuleState
-    from ..build import Executable
     from ..dependencies import Dependency
     from ..interpreter import Interpreter
     from ..programs import Program
@@ -42,7 +41,7 @@ class WaylandModule(ExtensionModule):
 
         self.protocols_dep: T.Optional[Dependency] = None
         self.pkgdatadir: T.Optional[str] = None
-        self.scanner_bin: T.Optional[T.Union[Program, Executable]] = None
+        self.scanner_bin: T.Optional[Program] = None
 
         self.methods.update({
             'scan_xml': self.scan_xml,
@@ -89,7 +88,7 @@ class WaylandModule(ExtensionModule):
             targets.append(code)
 
             for side in sides:
-                command: T.List[T.Union[Program, Executable, str]] = [self.scanner_bin, f'{side}-header', '@INPUT@', '@OUTPUT@']
+                command: T.List[T.Union[Program, str]] = [self.scanner_bin, f'{side}-header', '@INPUT@', '@OUTPUT@']
                 if kwargs['include_core_only']:
                     command.append('--include-core-only')
 

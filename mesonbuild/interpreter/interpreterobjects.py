@@ -686,6 +686,8 @@ class ProgramHolder(ObjectHolder[_PROG]):
     @FeatureNew('ExternalProgram.version', '0.62.0')
     @InterpreterObject.method('version')
     def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        if isinstance(self.held_object, build.LocalProgram) and isinstance(self.held_object.program, build.Executable):
+            FeatureNew.single_use('Program.version with an executable', '1.9.0', subproject=self.subproject, location=self.current_node)
         if not self.found():
             raise InterpreterException('Unable to get the version of a not-found external program')
         try:
@@ -1202,11 +1204,3 @@ class StructuredSourcesHolder(ObjectHolder[build.StructuredSources]):
 
     def __init__(self, sources: build.StructuredSources, interp: 'Interpreter'):
         super().__init__(sources, interp)
-
-class OverrideExecutableHolder(BuildTargetHolder[build.OverrideExecutable]):
-    @noPosargs
-    @noKwargs
-    @FeatureNew('OverrideExecutable.version', '1.9.0')
-    @InterpreterObject.method('version')
-    def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
-        return self.held_object.get_version(self.interpreter)
