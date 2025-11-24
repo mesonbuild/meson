@@ -1182,11 +1182,12 @@ class CMakeInterpreter:
                 'objects': [method(x, 'extract_all_objects') for x in objec_libs],
             }
 
-            # Only set version if we know it
-            if tgt.version:
-                tgt_kwargs['version'] = tgt.version
-            if tgt.soversion:
-                tgt_kwargs['soversion'] = tgt.soversion
+            # Only set version if we know it and this is not a static lib
+            if tgt_func != 'static_library':
+                if tgt.version:
+                    tgt_kwargs['version'] = tgt.version
+                if tgt.soversion:
+                    tgt_kwargs['soversion'] = tgt.soversion
 
             # Only set if installed and only override if it is set
             if install_tgt and tgt.install_dir:
