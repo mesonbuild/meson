@@ -36,12 +36,11 @@ dependencies = [{dependencies}
 ]
 
 sources = [{source_files}
-
 ]
 
 exe = jar(
   '{exe_name}',
-  [sources],
+  sources,
   main_class : '{exe_name}',
   dependencies : dependencies,
   install : true,
@@ -91,12 +90,11 @@ dependencies = [{dependencies}
 ]
 
 sources = [{source_files}
-
 ]
 
 jarlib = jar(
   '{class_name}',
-  [sources],
+  sources,
   dependencies : dependencies,
   main_class : '{class_name}',
   install : true,
