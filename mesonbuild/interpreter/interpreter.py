@@ -420,6 +420,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.GeneratedList: OBJ.GeneratedListHolder,
             build.ExtractedObjects: OBJ.GeneratedObjectsHolder,
             build.OverrideExecutable: OBJ.OverrideExecutableHolder,
+            build.LocalProgram: OBJ.LocalProgramHolder,
             build.RunTarget: OBJ.RunTargetHolder,
             build.AliasTarget: OBJ.AliasTargetHolder,
             build.Headers: OBJ.HeadersHolder,

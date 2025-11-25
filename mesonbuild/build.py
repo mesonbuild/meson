@@ -3354,6 +3354,51 @@ class OverrideExecutable(Executable):
     def get_version(self, interpreter: T.Optional[Interpreter] = None) -> str:
         return self._version
 
+class LocalProgram(HoldableObject):
+    ''' A wrapper for a program that may have build dependencies.'''
+    def __init__(self, program: T.Union[programs.ExternalProgram, Executable, CustomTarget, CustomTargetIndex], version: str,
+                 depends: T.Optional[T.List[T.Union[BuildTarget, CustomTarget]]] = None,
+                 depend_files: T.Optional[T.List[File]] = None) -> None:
+        super().__init__()
+        if isinstance(program, CustomTarget):
+            if len(program.outputs) != 1:
+                raise InvalidArguments('CustomTarget used as LocalProgram must have exactly one output.')
+        self.name = program.name
+        self.for_machine = program.for_machine
+        self.program = program
+        self.depends = list(depends or [])
+        self.depend_files = list(depend_files or [])
+        self.version = version
+
+    def found(self) -> bool:
+        return True
+
+    def get_version(self, interpreter: T.Optional[Interpreter] = None) -> str:
+        return self.version
+
+    def get_command(self) -> T.List[str]:
+        if isinstance(self.program, (Executable, CustomTarget, CustomTargetIndex)):
+            return [os.path.join(self.program.subdir, self.program.get_filename())]
+        return self.program.get_command()
+
+    def get_path(self) -> str:
+        if isinstance(self.program, (Executable, CustomTarget, CustomTargetIndex)):
+            return os.path.join(self.program.subdir, self.program.get_filename())
+        return self.program.get_path()
+
+    def description(self) -> str:
+        if isinstance(self.program, Executable):
+            return self.program.name
+        if isinstance(self.program, (CustomTarget, CustomTargetIndex)):
+            return self.program.get_filename()
+        return self.program.description()
+
+    def run_program(self) -> T.Optional[programs.ExternalProgram]:
+        ''' Returns an ExternalProgram if it can be run at configure time.'''
+        if isinstance(self.program, programs.ExternalProgram) and not self.depends:
+            return self.program
+        return None
+
 # A bit poorly named, but this represents plain data files to copy
 # during install.
 @dataclass(eq=False)

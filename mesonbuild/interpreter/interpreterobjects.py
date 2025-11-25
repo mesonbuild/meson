@@ -1212,3 +1212,16 @@ class OverrideExecutableHolder(BuildTargetHolder[build.OverrideExecutable]):
     @InterpreterObject.method('version')
     def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.get_version(self.interpreter)
+
+class LocalProgramHolder(ObjectHolder[build.LocalProgram]):
+    @noPosargs
+    @noKwargs
+    @InterpreterObject.method('version')
+    def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        return self.held_object.version
+
+    @noPosargs
+    @noKwargs
+    @InterpreterObject.method('found')
+    def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
+        return True
