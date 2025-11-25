@@ -9,25 +9,18 @@ import json
 import pathlib
 import shutil
 import tempfile
-import locale
+import pickle
 
 from .. import mlog
 from .core import MesonException
-from .universal import is_windows, windows_detect_native_arch
+from .universal import (is_windows, windows_detect_native_arch, windows_proof_rm,
+                        get_meson_command, join_args)
 
 
 __all__ = [
     'setup_vsenv',
 ]
 
-
-bat_template = '''@ECHO OFF
-
-call "{}"
-
-ECHO {}
-SET
-'''
 
 # If on Windows and VS is installed but not set up in the environment,
 # set it to be runnable. In this way Meson can be directly invoked
@@ -91,42 +84,24 @@ def _setup_vsenv(force: bool) -> bool:
         raise MesonException(f'Could not find {bat_path}')
 
     mlog.log('Activating VS', bat_info[0]['catalog']['productDisplayVersion'])
-    bat_separator = '---SPLIT---'
-    bat_contents = bat_template.format(bat_path, bat_separator)
-    bat_file = tempfile.NamedTemporaryFile('w', suffix='.bat', encoding='utf-8', delete=False)
-    bat_file.write(bat_contents)
-    bat_file.flush()
-    bat_file.close()
-    bat_output = subprocess.check_output(bat_file.name, universal_newlines=True,
-                                         encoding=locale.getpreferredencoding(False))
-    os.unlink(bat_file.name)
-    bat_lines = bat_output.split('\n')
-    bat_separator_seen = False
-    for bat_line in bat_lines:
-        if bat_line == bat_separator:
-            bat_separator_seen = True
-            continue
-        if not bat_separator_seen:
-            continue
-        if not bat_line:
-            continue
-        try:
-            k, v = bat_line.split('=', 1)
-        except ValueError:
-            # there is no "=", ignore junk data
-            pass
-        else:
-            try:
-                os.environ[k] = v
-            except ValueError:
-                # FIXME: When a value contains a newline, the output of SET
-                # command is impossible to parse because it makes not escaping.
-                # `VAR="Hello\n=World"` gets split into two lines:
-                # `VAR=Hello` and `=World`. That 2nd line will cause ValueError
-                # exception here. Just ignore for now because variables we do
-                # care won't have multiline values.
-                pass
-
+    # Write a bat file that first activates VS environment, and then calls
+    # a Meson script that pickles the environment into a temp file.
+    with tempfile.NamedTemporaryFile(delete=False) as env_file:
+        pass
+    vcvars_cmd = ['call', str(bat_path)]
+    pickle_cmd = get_meson_command() + ['--internal', 'pickle_env', env_file.name]
+    with tempfile.NamedTemporaryFile('w', suffix='.bat', encoding='utf-8', delete=False) as bat_file:
+        bat_file.write(join_args(vcvars_cmd) + '\n')
+        bat_file.write(join_args(pickle_cmd))
+    try:
+        subprocess.check_call([bat_file.name], stdout=subprocess.DEVNULL)
+        with open(env_file.name, 'rb') as f:
+            vsenv = pickle.load(f)
+        for k, v in vsenv.items():
+            os.environ[k] = v
+    finally:
+        windows_proof_rm(env_file.name)
+        windows_proof_rm(bat_file.name)
     return True
 
 def setup_vsenv(force: bool = False) -> bool:
