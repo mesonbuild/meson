@@ -347,6 +347,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                            'executable': self.func_executable,
                            'files': self.func_files,
                            'find_program': self.func_find_program,
+                           'local_program': self.func_local_program,
                            'generator': self.func_generator,
                            'get_option': self.func_get_option,
                            'get_variable': self.func_get_variable,
@@ -1768,6 +1769,18 @@ class Interpreter(InterpreterBase, HoldableObject):
         return self.find_program_impl(args[0], kwargs['native'], default_options=default_options, required=required,
                                       silent=False, wanted=kwargs['version'], version_arg=kwargs['version_argument'],
                                       search_dirs=search_dirs)
+
+    @FeatureNew('local_program', '1.10.0')
+    @typed_pos_args('local_program', (str, mesonlib.File, build.Executable, build.CustomTarget, build.CustomTargetIndex))
+    @typed_kwargs(
+        'local_program',
+        DEPENDS_KW,
+        DEPEND_FILES_KW,
+        KwargInfo('interpreter', (NoneType, ExternalProgram, ContainerTypeInfo(list, (ExternalProgram, str))), default=None),
+    )
+    def func_local_program(self, node: mparser.BaseNode, args: T.Tuple[T.Union[mesonlib.FileOrString, build.Executable, build.CustomTarget, build.CustomTargetIndex]],
+                           kwargs: kwtypes.LocalProgram) -> build.LocalProgram:
+        return self._local_program_impl(args[0], kwargs['depends'], kwargs['depend_files'], kwargs['interpreter'])
 
     def _local_program_impl(self, exe: T.Union[mesonlib.FileOrString, build.Executable, build.CustomTarget, build.CustomTargetIndex],
                             depends_: T.Optional[T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]] = None,

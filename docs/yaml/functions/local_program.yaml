@@ -1,0 +1,45 @@
+name: local_program
+returns: external_program
+since: 1.10.0
+description: |
+  Similar to [[find_program]], but only work with a program that exists in
+  source tree, or a built target. Meson will not look for the program in the
+  system or in a subproject.
+
+  In addition, `depends` keyword argument can be specified in case the program
+  depends on built targets, for example a Python script could require a compiled
+  C module. If any such dependency is present, the program can only be used in
+  build-time commands (e.g. [[custom_target]]).
+
+  The program can be passed to [[meson.override_find_program]] and used in
+  subprojects.
+
+posargs:
+  program:
+    type: str | file | exe | custom_tgt | custom_idx
+    description: |
+      A [[@file]] object or the name of a program in the current source directory.
+
+kwargs:
+  depend_files:
+    type: array[str | file]
+    description: |
+      files ([[@str]],
+      [[@file]], or the return value of [[configure_file]] that
+      this target depends on. Useful for adding regen dependencies.
+
+  depends:
+    type: array[build_tgt | custom_tgt | custom_idx]
+    description: |
+      Specifies that this target depends on the specified
+      target(s). If specified, this program can only be used at build time,
+      after those targets have been built.
+
+  interpreter:
+    type: external_program | array[external_program | str]
+    description: |
+      When the program is a [[@custom_tgt]], Meson cannot derive the interpreter
+      from the file's "shebang" (`#!`) line before it's built. If needed, this
+      argument allows specifying an interpreter for the script.
+      If arguments are needed for the interpreter, an array can be passed where
+      the first element is the interpreter program and the rest are strings.
