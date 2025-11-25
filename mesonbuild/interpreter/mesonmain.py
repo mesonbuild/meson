@@ -14,7 +14,7 @@ from .. import mlog
 
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
-from ..programs import ExternalProgram
+from ..programs import ExternalProgram, Program
 from ..interpreter.type_checking import ENV_KW, ENV_METHOD_KW, ENV_SEPARATOR_KW, env_convertor_with_method
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated,
                                typed_pos_args,  noArgsFlattening, noPosargs, noKwargs,
@@ -58,9 +58,9 @@ class MesonMain(MesonInterpreterObject):
         self.interpreter = interpreter
 
     def _find_source_script(
-            self, name: str, prog: T.Union[str, mesonlib.File, build.Executable, ExternalProgram, build.LocalProgram],
+            self, name: str, prog: T.Union[str, mesonlib.File, build.Executable, Program],
             args: T.List[str], allow_built_program: bool = False) -> 'ExecutableSerialisation':
-        largs: T.List[T.Union[str, build.Executable, ExternalProgram, build.LocalProgram]] = []
+        largs: T.List[T.Union[str, build.Executable, Program]] = []
 
         if isinstance(prog, (build.Executable, ExternalProgram)):
             FeatureNew.single_use(f'Passing executable/found program object to script parameter of {name}',
@@ -119,7 +119,7 @@ class MesonMain(MesonInterpreterObject):
 
     @typed_pos_args(
         'meson.add_install_script',
-        (str, mesonlib.File, build.Executable, ExternalProgram, build.LocalProgram),
+        (str, mesonlib.File, build.Executable, Program),
         varargs=(str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, ExternalProgram)
     )
     @typed_kwargs(
@@ -150,7 +150,7 @@ class MesonMain(MesonInterpreterObject):
     @InterpreterObject.method('add_postconf_script')
     def add_postconf_script_method(
             self,
-            args: T.Tuple[T.Union[str, mesonlib.File, ExternalProgram, build.LocalProgram],
+            args: T.Tuple[T.Union[str, mesonlib.File, Program],
                           T.List[T.Union[str, mesonlib.File, ExternalProgram]]],
             kwargs: 'TYPE_kwargs') -> None:
         script_args = self._process_script_args('add_postconf_script', args[1])
@@ -167,7 +167,7 @@ class MesonMain(MesonInterpreterObject):
     @InterpreterObject.method('add_dist_script')
     def add_dist_script_method(
             self,
-            args: T.Tuple[T.Union[str, mesonlib.File, ExternalProgram, build.LocalProgram],
+            args: T.Tuple[T.Union[str, mesonlib.File, Program],
                           T.List[T.Union[str, mesonlib.File, ExternalProgram]]],
             kwargs: 'TYPE_kwargs') -> None:
         if args[1]:
@@ -315,10 +315,10 @@ class MesonMain(MesonInterpreterObject):
         self.build.dep_manifest_name = args[0]
 
     @FeatureNew('meson.override_find_program', '0.46.0')
-    @typed_pos_args('meson.override_find_program', str, (mesonlib.File, ExternalProgram, build.Executable, build.LocalProgram))
+    @typed_pos_args('meson.override_find_program', str, (mesonlib.File, Program, build.Executable))
     @noKwargs
     @InterpreterObject.method('override_find_program')
-    def override_find_program_method(self, args: T.Tuple[str, T.Union[mesonlib.File, ExternalProgram, build.Executable, build.LocalProgram]], kwargs: 'TYPE_kwargs') -> None:
+    def override_find_program_method(self, args: T.Tuple[str, T.Union[mesonlib.File, Program, build.Executable]], kwargs: 'TYPE_kwargs') -> None:
         name, exe = args
         if isinstance(exe, mesonlib.File):
             abspath = exe.absolute_path(self.interpreter.environment.source_dir,

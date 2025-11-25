@@ -24,7 +24,7 @@ if T.TYPE_CHECKING:
     from .interpreter import Interpreter
 
 
-class BaseProgram(mesonlib.HoldableObject, metaclass=ABCMeta):
+class Program(mesonlib.HoldableObject, metaclass=ABCMeta):
     ''' A base class for LocalProgram and ExternalProgram.'''
 
     name: str
@@ -51,7 +51,7 @@ class BaseProgram(mesonlib.HoldableObject, metaclass=ABCMeta):
         '''Human friendly description of the command'''
 
 
-class ExternalProgram(BaseProgram):
+class ExternalProgram(Program):
 
     """A program that is found on the system.
     :param name: The name of the program

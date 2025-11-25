@@ -6,7 +6,7 @@ import os
 import typing as T
 
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
-from ..build import CustomTarget, LocalProgram
+from ..build import CustomTarget
 from ..interpreter.type_checking import NoneType, in_set_validator
 from ..interpreterbase import typed_pos_args, typed_kwargs, KwargInfo, FeatureNew
 from ..mesonlib import File, MesonException
@@ -17,8 +17,8 @@ if T.TYPE_CHECKING:
     from . import ModuleState
     from ..dependencies import Dependency
     from ..interpreter import Interpreter
-    from ..programs import ExternalProgram
     from ..mesonlib import FileOrString
+    from ..programs import Program
 
     class ScanXML(TypedDict):
 
@@ -41,7 +41,7 @@ class WaylandModule(ExtensionModule):
 
         self.protocols_dep: T.Optional[Dependency] = None
         self.pkgdatadir: T.Optional[str] = None
-        self.scanner_bin: T.Optional[T.Union[ExternalProgram, LocalProgram]] = None
+        self.scanner_bin: T.Optional[Program] = None
 
         self.methods.update({
             'scan_xml': self.scan_xml,
@@ -88,7 +88,7 @@ class WaylandModule(ExtensionModule):
             targets.append(code)
 
             for side in sides:
-                command = [self.scanner_bin, f'{side}-header', '@INPUT@', '@OUTPUT@']
+                command: T.List[T.Union[str, Program]] = [self.scanner_bin, f'{side}-header', '@INPUT@', '@OUTPUT@']
                 if kwargs['include_core_only']:
                     command.append('--include-core-only')
 

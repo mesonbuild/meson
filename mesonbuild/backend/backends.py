@@ -535,7 +535,7 @@ class Backend:
         return result
 
     def get_executable_serialisation(
-            self, cmd: T.Sequence[T.Union[programs.ExternalProgram, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, File, str, build.LocalProgram]],
+            self, cmd: T.Sequence[T.Union[programs.Program, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, File, str]],
             workdir: T.Optional[str] = None,
             extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
             capture: T.Optional[str] = None,
@@ -550,7 +550,7 @@ class Backend:
         exe, *raw_cmd_args = cmd
         if isinstance(exe, build.LocalProgram):
             exe = exe.program
-        if isinstance(exe, programs.ExternalProgram):
+        if isinstance(exe, programs.Program):
             exe_cmd = exe.get_command()
             exe_for_machine = exe.for_machine
         elif isinstance(exe, build.BuildTarget):
@@ -575,7 +575,7 @@ class Backend:
         for c in raw_cmd_args:
             if isinstance(c, build.LocalProgram):
                 c = c.program
-            if isinstance(c, programs.ExternalProgram):
+            if isinstance(c, programs.Program):
                 cmd_args += c.get_command()
             elif isinstance(c, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 cmd_args.append(self.get_target_filename_abs(c))
@@ -1128,7 +1128,7 @@ class Backend:
         return results
 
     def determine_windows_extra_paths(
-            self, target: T.Union[build.BuildTargetTypes, programs.ExternalProgram, mesonlib.File, str],
+            self, target: T.Union[build.BuildTargetTypes, programs.Program, mesonlib.File, str],
             extra_bdeps: T.Sequence[build.BuildTargetTypes]) -> T.List[str]:
         """On Windows there is no such thing as an rpath.
 

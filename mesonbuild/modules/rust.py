@@ -13,7 +13,7 @@ from mesonbuild.interpreterbase.decorators import FeatureNew
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mesonlib, mlog
 from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
-                     CustomTarget, InvalidArguments, Jar, LocalProgram, StructuredSources, SharedLibrary, StaticLibrary)
+                     CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary, StaticLibrary)
 from ..compilers.compilers import are_asserts_disabled_for_subproject, lang_suffixes
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
@@ -34,6 +34,7 @@ if T.TYPE_CHECKING:
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
     from ..interpreter.interpreterobjects import Test
     from ..interpreter.type_checking import SourcesVarargsType
+    from ..programs import Program
 
     from typing_extensions import TypedDict, Literal
 
@@ -90,7 +91,7 @@ class RustModule(ExtensionModule):
 
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
-        self._bindgen_bin: T.Optional[T.Union[ExternalProgram, LocalProgram]] = None
+        self._bindgen_bin: T.Optional[Program] = None
         if 'rust' in interpreter.compilers.host:
             rustc = T.cast('RustCompiler', interpreter.compilers.host['rust'])
             self._bindgen_rust_target = 'nightly' if rustc.is_nightly else rustc.version

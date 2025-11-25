@@ -23,7 +23,7 @@ from ..interpreterbase import (
                                flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
 from ..interpreter.type_checking import NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
-from ..programs import ExternalProgram, BaseProgram
+from ..programs import ExternalProgram, Program
 from ..mesonlib import HoldableObject, listify, Popen_safe
 
 import typing as T
@@ -633,9 +633,9 @@ class DependencyHolder(ObjectHolder[Dependency]):
             raise InterpreterException('as_shared method is only supported on declare_dependency() objects')
         return self.held_object.get_as_shared(kwargs['recursive'])
 
-_BASEPROG = T.TypeVar('_BASEPROG', bound=BaseProgram)
+_BASEPROG = T.TypeVar('_BASEPROG', bound=Program)
 
-class BaseProgramHolder(ObjectHolder[_BASEPROG]):
+class ProgramHolder(ObjectHolder[_BASEPROG]):
     def __init__(self, ep: _BASEPROG, interpreter: 'Interpreter') -> None:
         super().__init__(ep, interpreter)
 

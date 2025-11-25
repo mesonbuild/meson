@@ -363,7 +363,7 @@ class Build:
         self.stdlibs = PerMachine({}, {})
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
-        self.find_overrides: T.Dict[str, T.Union[programs.ExternalProgram, LocalProgram]] = {}
+        self.find_overrides: T.Dict[str, programs.Program] = {}
         self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
 
         # If we are doing a cross build we need two caches, if we're doing a
@@ -1980,7 +1980,7 @@ class FileMaybeInTargetPrivateDir:
 
 class Generator(HoldableObject):
     def __init__(self, env: Environment,
-                 exe: T.Union[Executable, programs.ExternalProgram, LocalProgram, CustomTarget, CustomTargetIndex],
+                 exe: T.Union[Executable, programs.Program, CustomTarget, CustomTargetIndex],
                  arguments: T.List[str],
                  output: T.List[str],
                  # how2dataclass
@@ -2766,7 +2766,7 @@ class CommandBase:
     dependencies: T.List[T.Union[BuildTarget, 'CustomTarget']]
     subproject: str
 
-    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.ExternalProgram, BuildTargetTypes, LocalProgram]]) -> \
+    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.Program, BuildTargetTypes]]) -> \
             T.List[T.Union[str, File, BuildTarget, CustomTarget, programs.ExternalProgram]]:
         cmd = listify(cmd)
         final_cmd: T.List[T.Union[str, File, BuildTarget, 'CustomTarget']] = []
@@ -2840,7 +2840,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  environment: Environment,
                  command: T.Sequence[T.Union[
                      str, BuildTargetTypes, GeneratedList,
-                     programs.ExternalProgram, File, LocalProgram]],
+                     programs.Program, File]],
                  sources: T.Sequence[T.Union[
                      str, File, BuildTargetTypes, ExtractedObjects,
                      GeneratedList, programs.ExternalProgram]],
@@ -3101,7 +3101,7 @@ class RunTarget(Target, CommandBase):
     typename = 'run'
 
     def __init__(self, name: str,
-                 command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.ExternalProgram, LocalProgram]],
+                 command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.Program]],
                  dependencies: T.Sequence[AnyTargetType],
                  subdir: str,
                  subproject: str,
@@ -3331,7 +3331,7 @@ class ConfigurationData(HoldableObject):
     def keys(self) -> T.Iterator[str]:
         return self.values.keys()
 
-class LocalProgram(programs.BaseProgram):
+class LocalProgram(programs.Program):
     ''' A wrapper for a program that may have build dependencies.'''
     def __init__(self, program: T.Union[programs.ExternalProgram, Executable, CustomTarget, CustomTargetIndex], version: str,
                  depends: T.Optional[T.List[T.Union[BuildTarget, CustomTarget]]] = None,
