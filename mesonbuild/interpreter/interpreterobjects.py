@@ -663,6 +663,8 @@ class BaseProgramHolder(ObjectHolder[_BASEPROG]):
     def _full_path(self) -> str:
         if not self.found():
             raise InterpreterException('Unable to get the path of a not-found external program')
+        if isinstance(self.held_object, build.LocalProgram) and isinstance(self.held_object.program, (build.Executable, build.CustomTarget, build.CustomTargetIndex)):
+            return self.interpreter.backend.get_target_filename_abs(self.held_object.program)
         path = self.held_object.get_path()
         assert path is not None
         return path
@@ -674,6 +676,8 @@ class BaseProgramHolder(ObjectHolder[_BASEPROG]):
     def cmd_array_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[str]:
         if not self.found():
             raise InterpreterException('Unable to get the path of a not-found external program')
+        if isinstance(self.held_object, build.LocalProgram) and isinstance(self.held_object.program, (build.Executable, build.CustomTarget, build.CustomTargetIndex)):
+            return [self.interpreter.backend.get_target_filename_abs(self.held_object.program)]
         cmd = self.held_object.get_command()
         assert cmd is not None
         return cmd

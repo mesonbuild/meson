@@ -3355,12 +3355,14 @@ class LocalProgram(programs.BaseProgram):
 
     def get_command(self) -> T.List[str]:
         if isinstance(self.program, (Executable, CustomTarget, CustomTargetIndex)):
-            return [os.path.join(self.program.subdir, self.program.get_filename())]
+            # Only the backend knows the actual path to the build program.
+            raise MesonBugException('Cannot call get_command() on program that is a build target.')
         return self.program.get_command()
 
     def get_path(self) -> str:
         if isinstance(self.program, (Executable, CustomTarget, CustomTargetIndex)):
-            return os.path.join(self.program.subdir, self.program.get_filename())
+            # Only the backend knows the actual path to the build program.
+            raise MesonBugException('Cannot call get_path() on program that is a build target.')
         return self.program.get_path()
 
     def description(self) -> str:
