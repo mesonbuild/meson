@@ -1250,7 +1250,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return []
 
     @lru_cache(maxsize=None)
-    def _get_all_include_args_for_dir(self, d: str, basedir: str, is_system: bool) -> \
+    def _get_all_include_args_for_dir(self, d: str, basedir: str, is_system: bool,
+                                      only_existing: bool = False) -> \
             T.Tuple['ImmutableListProtocol[str]', 'ImmutableListProtocol[str]']:
         # Avoid superfluous '/.' at the end of paths when d is '.'
         if d not in ('', '.'):
@@ -1265,13 +1266,13 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         # inc = include_directories('foo/bar/baz')
         #
         # But never subdir()s into the actual dir.
-        if os.path.isdir(os.path.join(self.environment.get_build_dir(), expdir)):
+        if not only_existing or os.path.isdir(os.path.join(self.environment.get_build_dir(), expdir)):
             bargs = self.get_include_args(expdir, is_system)
         else:
             bargs = []
         return (sargs, bargs)
 
-    def get_include_dirs_args(self, dirs: T.List['IncludeDirs']) -> T.List[str]:
+    def get_include_dirs_args(self, dirs: T.List['IncludeDirs'], only_existing: bool = False) -> T.List[str]:
         commands = self.compiler_args()
         for i in reversed(dirs):
             basedir = i.get_curdir()
@@ -1280,7 +1281,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             # flags will be added in reversed order.
             for d in reversed(i.get_incdirs()):
                 # Add source subdir first so that the build subdir overrides it
-                (compile_obj, includeargs) = self._get_all_include_args_for_dir(d, basedir, i.is_system)
+                (compile_obj, includeargs) = \
+                    self._get_all_include_args_for_dir(d, basedir, i.is_system, only_existing)
                 commands += compile_obj
                 commands += includeargs
             for d in i.get_extra_build_dirs():

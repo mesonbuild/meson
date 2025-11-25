@@ -3053,7 +3053,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Include dirs from internal deps should override include dirs from
         # external deps and must maintain the order in which they are specified.
         # compiler.get_include_dirs_args() reverses the list so the order is preserved.
-        commands += compiler.get_include_dirs_args(target.get_include_dirs())
+        commands += compiler.get_include_dirs_args(target.get_include_dirs(), only_existing=True)
         # Add per-target compile args, f.ex, `c_args : ['-DFOO']`. We set these
         # near the end since these are supposed to override everything else.
         commands += self.escape_extra_args(target.get_extra_args(compiler.get_language()))
