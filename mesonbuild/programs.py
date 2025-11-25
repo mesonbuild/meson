@@ -28,6 +28,7 @@ class BaseProgram(mesonlib.HoldableObject, metaclass=ABCMeta):
     ''' A base class for LocalProgram and ExternalProgram.'''
 
     name: str
+    for_machine: MachineChoice
 
     @abstractmethod
     def found(self) -> bool:
