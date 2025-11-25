@@ -20,7 +20,7 @@ class Vs2026Backend(Vs2010Backend):
     def __init__(self, build: T.Optional[Build], gen_lite: bool = False):
         super().__init__(build, gen_lite=gen_lite)
         self.sln_file_version = '12.00'
-        self.sln_version_comment = 'Version 17'
+        self.sln_version_comment = 'Version 18'
 
     def detect_toolset(self) -> None:
         if self.environment is not None:
