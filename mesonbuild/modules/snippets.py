@@ -79,6 +79,9 @@ class SnippetsModule(NewExtensionModule):
             #if (defined(_WIN32) || defined(__CYGWIN__)) && !defined({static_compilation})
             #  define {api}_EXPORT __declspec(dllexport)
             #  define {api}_IMPORT __declspec(dllimport)
+            #elif defined(__OS2__) && !defined({static_compilation})
+            #  define {api}_EXPORT __declspec(dllexport)
+            #  define {api}_IMPORT
             #elif __GNUC__ >= 4
             #  define {api}_EXPORT __attribute__((visibility("default")))
             #  define {api}_IMPORT
