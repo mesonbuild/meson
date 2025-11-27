@@ -206,7 +206,7 @@ and the shared dependency with the shared lib.
 
 #### Details for `os2_emxomf`
 
-The `--os2_emxomf` argument is supported since `1.10.0`, `-Dos2_emxomf=true`
+The `--os2-emxomf` argument is supported since `1.10.0`, `-Dos2_emxomf=true`
 syntax is supported since `1.10.0`.
 
 Setting the `os2_emxomf` option to `true` forces to use emxomf toolchains in
