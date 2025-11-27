@@ -18,6 +18,12 @@ lib_h_template = '''#pragma once
   #else
     #define {utoken}_PUBLIC __declspec(dllimport)
   #endif
+#elif defined __OS2__
+  #ifdef BUILDING_{utoken}
+    #define {utoken}_PUBLIC __declspec(dllexport)
+  #else
+    #define {utoken}_PUBLIC
+  #endif
 #else
   #ifdef BUILDING_{utoken}
       #define {utoken}_PUBLIC __attribute__ ((visibility ("default")))
