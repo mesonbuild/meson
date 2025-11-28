@@ -59,7 +59,7 @@ ALL_TYPES = ['file', 'git', 'hg', 'svn', 'redirect']
 
 if sys.version_info >= (3, 14):
     import tarfile
-    tarfile.TarFile.extraction_filter = tarfile.fully_trusted_filter
+    tarfile.TarFile.extraction_filter = staticmethod(tarfile.fully_trusted_filter)
 
 if mesonlib.is_windows():
     from ..programs import ExternalProgram
