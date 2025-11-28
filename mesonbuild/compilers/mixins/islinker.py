@@ -40,8 +40,8 @@ class BasicLinkerIsCompilerMixin(Compiler):
     def sanitizer_link_args(self, target: BuildTarget, value: T.List[str]) -> T.List[str]:
         return []
 
-    def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
-                          thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
+    def get_lto_link_args(self, *, target: T.Optional[BuildTarget] = None, threads: int = 0,
+                          mode: str = 'default', thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         return []
 
     def can_linker_accept_rsp(self) -> bool:

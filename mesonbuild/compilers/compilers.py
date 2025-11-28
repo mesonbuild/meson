@@ -279,6 +279,7 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
             num_threads = get_option_value_for_target(env, target, OptionKey('b_lto_threads'), 0)
             ltomode = get_option_value_for_target(env, target, OptionKey('b_lto_mode'), 'default')
             args.extend(compiler.get_lto_compile_args(
+                target=target,
                 threads=num_threads,
                 mode=ltomode))
             lto = True
@@ -357,6 +358,7 @@ def get_base_link_args(target: 'BuildTarget',
             num_threads = get_option_value_for_target(env, target, OptionKey('b_lto_threads'), 0)
             lto_mode = get_option_value_for_target(env, target, OptionKey('b_lto_mode'), 'default')
             args.extend(linker.get_lto_link_args(
+                target=target,
                 threads=num_threads,
                 mode=lto_mode,
                 thinlto_cache_dir=thinlto_cache_dir))
@@ -1043,11 +1045,12 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_embed_bitcode_args(self, bitcode: bool, lto: bool) -> T.List[str]:
         return []
 
-    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
+    def get_lto_compile_args(self, *, target: T.Optional[BuildTarget] = None, threads: int = 0,
+                             mode: str = 'default') -> T.List[str]:
         return []
 
-    def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
-                          thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
+    def get_lto_link_args(self, *, target: T.Optional[BuildTarget] = None, threads: int = 0,
+                          mode: str = 'default', thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         return self.linker.get_lto_args()
 
     def get_lto_obj_cache_path(self, path: str) -> T.List[str]:
