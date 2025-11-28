@@ -367,6 +367,9 @@ class RustCompiler(Compiler):
 
     def get_lto_compile_args(self, *, target: T.Optional[BuildTarget] = None, threads: int = 0,
                              mode: str = 'default') -> T.List[str]:
+        if target.rust_crate_type in {'dylib', 'proc-macro'}:
+            return []
+
         # TODO: what about -Clinker-plugin-lto?
         rustc_lto = 'lto=thin' if mode == 'thin' else 'lto'
         return ['-C', rustc_lto]
