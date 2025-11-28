@@ -2507,9 +2507,12 @@ class AllPlatformTests(BasePlatformTests):
         if ninja is None:
             raise SkipTest('This test currently requires ninja. Fix this once "meson build" works.')
 
-        langs = ['c']
+        langs = []
         env = get_fake_env()
-        for l in ['cpp', 'cs', 'd', 'java', 'cuda', 'fortran', 'objc', 'objcpp', 'rust', 'vala']:
+        for l in ['c', 'cpp', 'cs', 'd', 'java', 'cuda', 'fortran', 'objc', 'objcpp', 'rust', 'vala']:
+            # Vala requires a working C compiler
+            if l == 'vala' and 'c' not in langs:
+                continue
             try:
                 comp = detect_compiler_for(env, l, MachineChoice.HOST, True, '')
                 with tempfile.TemporaryDirectory() as d:
