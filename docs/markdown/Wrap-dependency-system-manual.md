@@ -364,9 +364,13 @@ Some naming conventions need to be respected:
 - The `features` variable is pre-defined and contains the list of features enabled
   on this crate.
 
-Since *1.5.0* Cargo wraps can also be provided with `Cargo.lock` file at the root
-of (sub)project source tree. Meson will automatically load that file and convert
-it into a series of wraps definitions.
+Since *1.5.0* Cargo wraps can also be provided with `Cargo.lock` file at the
+root of (sub)project source tree. Meson will automatically load that file, looking
+for crates found on `crates.io` or in a git repository, and will convert those
+crates into a series of wraps definitions.  Since *1.11.0* the overlay directory
+(`patch_directory`) is automatically detected, using the same directory as the
+dependency name for `crates.io` URLs, and the final component of the URL
+(possibly with the `.git` suffix removed) for "git" URLs.
 
 Since *1.10.0* Workspace Cargo.toml are supported. For the time being it is
 recommended to regroup all Cargo dependencies inside a single workspace invoked
