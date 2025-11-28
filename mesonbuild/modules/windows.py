@@ -155,6 +155,9 @@ class WindowsModule(ExtensionModule):
                     build.IncludeDirs('', [], False, [os.path.join('@BUILD_ROOT@', self.interpreter.backend.get_target_dir(d))])
                 ])
         include_directories = self.interpreter.extract_incdirs(kwargs)
+        self_dir = build.IncludeDirs(state.subdir, ['.'], False)
+        if self_dir not in include_directories:
+            include_directories.append(self_dir)
         extra_args += state.get_include_args(include_directories)
 
         rescomp, rescomp_type = self._find_resource_compiler(state)
