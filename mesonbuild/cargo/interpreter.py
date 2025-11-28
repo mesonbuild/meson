@@ -12,6 +12,7 @@ port will be required.
 from __future__ import annotations
 import dataclasses
 import functools
+import itertools
 import os
 import pathlib
 import collections
@@ -428,6 +429,20 @@ class Interpreter:
         for condition, dependencies in pkg.manifest.target.items():
             if eval_cfg(condition, cfgs):
                 pkg.manifest.dependencies.update(dependencies)
+
+        # If you specify the optional dependency with the dep: prefix anywhere in the [features]
+        # table, that disables the implicit feature.
+        deps = set(feature[4:]
+                   for feature in itertools.chain.from_iterable(pkg.manifest.features.values())
+                   if feature.startswith('dep:'))
+        for name, dep in itertools.chain(pkg.manifest.dependencies.items(),
+                                         pkg.manifest.dev_dependencies.items(),
+                                         pkg.manifest.build_dependencies.items()):
+            if dep.optional and name not in deps:
+                pkg.manifest.features.setdefault(name, [])
+                pkg.manifest.features[name].append(f'dep:{name}')
+                deps.add(name)
+
         # Fetch required dependencies recursively.
         for depname, dep in pkg.manifest.dependencies.items():
             if not dep.optional:
@@ -499,9 +514,6 @@ class Interpreter:
         if feature in cfg.features:
             return
         cfg.features.add(feature)
-        # A feature can also be a dependency.
-        if feature in pkg.manifest.dependencies:
-            self._add_dependency(pkg, feature)
         # Recurse on extra features and dependencies this feature pulls.
         # https://doc.rust-lang.org/cargo/reference/features.html#the-features-section
         for f in pkg.manifest.features.get(feature, []):
