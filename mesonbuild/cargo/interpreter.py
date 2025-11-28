@@ -144,6 +144,8 @@ class PackageState:
             args.extend(lint.to_arguments(has_check_cfg))
 
         if has_check_cfg:
+            args.append('--check-cfg')
+            args.append('cfg(test)')
             for feature in self.manifest.features:
                 if feature != 'default':
                     args.append('--check-cfg')

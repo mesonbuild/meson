@@ -428,7 +428,7 @@ class CargoTomlTest(unittest.TestCase):
         self.assertEqual(manifest.lints[2].name, 'unexpected_cfgs')
         self.assertEqual(manifest.lints[2].level, 'deny')
         self.assertEqual(manifest.lints[2].priority, 0)
-        self.assertEqual(manifest.lints[2].check_cfg, ['cfg(test)', 'cfg(MESON)'])
+        self.assertEqual(manifest.lints[2].check_cfg, ['cfg(MESON)'])
 
     def test_cargo_toml_lints_to_args(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -444,8 +444,7 @@ class CargoTomlTest(unittest.TestCase):
         self.assertEqual(manifest.lints[1].to_arguments(True), ['-A', 'unknown_lints'])
         self.assertEqual(manifest.lints[2].to_arguments(False), ['-D', 'unexpected_cfgs'])
         self.assertEqual(manifest.lints[2].to_arguments(True),
-                         ['-D', 'unexpected_cfgs', '--check-cfg', 'cfg(test)',
-                          '--check-cfg', 'cfg(MESON)'])
+                         ['-D', 'unexpected_cfgs', '--check-cfg', 'cfg(MESON)'])
 
     def test_cargo_toml_dependencies(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
