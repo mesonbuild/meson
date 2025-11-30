@@ -3947,6 +3947,17 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem.add_dep(list(self.all_structured_sources))
         self.add_build(elem)
 
+    def generate_clippy_json(self) -> None:
+        if 'clippy-json' in self.all_outputs or not self.have_language('rust'):
+            return
+
+        cmd = self.environment.get_build_command() + \
+            ['--internal', 'clippy', self.environment.build_dir, '--error-format=json']
+        elem = self.create_phony_target('clippy-json', 'CUSTOM_COMMAND', 'PHONY')
+        elem.add_item('COMMAND', cmd)
+        elem.add_item('pool', 'console')
+        self.add_build(elem)        
+
     def generate_rustdoc(self) -> None:
         if 'rustdoc' in self.all_outputs or not self.have_language('rust'):
             return
@@ -4036,6 +4047,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.generate_clangformat()
         self.generate_clangtidy()
         self.generate_clippy()
+        self.generate_clippy_json()        
         self.generate_rustdoc()
         self.generate_tags('etags', 'TAGS')
         self.generate_tags('ctags', 'ctags')
