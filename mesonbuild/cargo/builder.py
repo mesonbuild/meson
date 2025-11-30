@@ -162,7 +162,7 @@ class Builder:
         :param rhs: the right hand side of the "not in"
         :return: A comparison node
         """
-        return mparser.ComparisonNode('notin', lhs, self._symbol('not in'), rhs)
+        return mparser.ComparisonNode('not in', lhs, self._symbol('not in'), rhs)
 
     def or_(self, lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.OrNode:
         """Create and OrNode
@@ -202,7 +202,7 @@ class Builder:
         :param rhs: The right of the addition
         :return: The ArithmeticNode
         """
-        return mparser.ArithmeticNode('add', lhs, self._symbol('+'), rhs)
+        return mparser.ArithmeticNode('+', lhs, self._symbol('+'), rhs)
 
     def plusassign(self, value: mparser.BaseNode, varname: str) -> mparser.PlusAssignmentNode:
         """Create a "+=" node
