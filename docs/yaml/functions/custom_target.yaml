@@ -124,7 +124,7 @@ kwargs:
       serializing all targets in this pool.
 
   command:
-    type: array[str | file | exe | external_program]
+    type: array[str | file | exe | program]
     description: |
       Command to run to create outputs from inputs. The command
       may be strings or the return value of functions that return file-like

@@ -13,17 +13,53 @@ import sys
 import re
 import typing as T
 from pathlib import Path
+from abc import ABCMeta, abstractmethod
 
 from . import mesonlib
 from . import mlog
 from .mesonlib import MachineChoice, OrderedSet
 
 if T.TYPE_CHECKING:
+    from typing_extensions import TypeAlias
     from .environment import Environment
     from .interpreter import Interpreter
 
+    CommandListEntry: TypeAlias = T.Union[str, 'Program']
+    CommandList: TypeAlias = T.List[CommandListEntry]
 
-class ExternalProgram(mesonlib.HoldableObject):
+
+class Program(mesonlib.HoldableObject, metaclass=ABCMeta):
+    ''' A base class for LocalProgram and ExternalProgram.'''
+
+    name: str
+    for_machine = MachineChoice.BUILD
+
+    @abstractmethod
+    def found(self) -> bool:
+        pass
+
+    @abstractmethod
+    def get_version(self, interpreter: T.Optional[Interpreter] = None) -> str:
+        pass
+
+    @abstractmethod
+    def get_command(self) -> T.List[str]:
+        pass
+
+    @abstractmethod
+    def get_path(self) -> T.Optional[str]:
+        pass
+
+    @abstractmethod
+    def runnable(self) -> bool:
+        pass
+
+    @abstractmethod
+    def description(self) -> str:
+        '''Human friendly description of the command'''
+
+
+class ExternalProgram(Program):
 
     """A program that is found on the system.
     :param name: The name of the program
@@ -34,7 +70,6 @@ class ExternalProgram(mesonlib.HoldableObject):
     :param exclude_paths: A list of directories to exclude when searching in PATH"""
 
     windows_exts = ('exe', 'msc', 'com', 'bat', 'cmd')
-    for_machine = MachineChoice.BUILD
 
     def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
                  silent: bool = False, search_dirs: T.Optional[T.List[T.Optional[str]]] = None,
@@ -333,6 +368,9 @@ class ExternalProgram(mesonlib.HoldableObject):
         # all executables whether in PATH or with an absolute path
         return [command]
 
+    def runnable(self) -> bool:
+        return self.found()
+
     def found(self) -> bool:
         return self.command[0] is not None
 
@@ -361,17 +399,6 @@ class NonExistingExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-i
     def found(self) -> bool:
         return False
 
-
-class OverrideProgram(ExternalProgram):
-
-    """A script overriding a program."""
-
-    def __init__(self, name: str, version: str, command: T.Optional[T.List[str]] = None,
-                 silent: bool = False, search_dirs: T.Optional[T.List[T.Optional[str]]] = None,
-                 exclude_paths: T.Optional[T.List[str]] = None):
-        super().__init__(name, command=command, silent=silent,
-                         search_dirs=search_dirs, exclude_paths=exclude_paths)
-        self.cached_version = version
 
 def find_external_program(env: 'Environment', for_machine: MachineChoice, name: str,
                           display_name: str, default_names: T.List[str],

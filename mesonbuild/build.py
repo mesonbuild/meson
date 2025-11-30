@@ -363,7 +363,6 @@ class Build:
         self.stdlibs = PerMachine({}, {})
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
-        self.find_overrides: T.Dict[str, T.Union['OverrideExecutable', programs.ExternalProgram, programs.OverrideProgram]] = {}
         self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
 
         # If we are doing a cross build we need two caches, if we're doing a
@@ -1980,7 +1979,7 @@ class FileMaybeInTargetPrivateDir:
 
 class Generator(HoldableObject):
     def __init__(self, env: Environment,
-                 exe: T.Union['Executable', programs.ExternalProgram],
+                 exe: programs.Program,
                  arguments: T.List[str],
                  output: T.List[str],
                  # how2dataclass
@@ -2002,7 +2001,7 @@ class Generator(HoldableObject):
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.exe)
 
-    def get_exe(self) -> T.Union['Executable', programs.ExternalProgram]:
+    def get_exe(self) -> programs.Program:
         return self.exe
 
     def get_base_outnames(self, inname: str) -> T.List[str]:
@@ -2076,7 +2075,7 @@ class GeneratedList(HoldableObject):
         self.infilelist: T.List[FileMaybeInTargetPrivateDir] = []
         self.outfilelist: T.List[str] = []
         self.outmap: T.Dict[FileMaybeInTargetPrivateDir, T.List[str]] = {}
-        self.extra_depends = []  # XXX: Doesn't seem to be used?
+        self.extra_depends = []
         self.depend_files: T.List[File] = []
 
         if self.extra_args is None:
@@ -2085,9 +2084,12 @@ class GeneratedList(HoldableObject):
         if self.env is None:
             self.env: EnvironmentVariables = EnvironmentVariables()
 
-        if isinstance(self.generator.exe, programs.ExternalProgram):
+        if isinstance(self.generator.exe, programs.Program):
             if not self.generator.exe.found():
                 raise InvalidArguments('Tried to use not-found external program as generator')
+        if isinstance(self.generator.exe, LocalProgram):
+            self.extra_depends.append(self.generator.exe.program)
+        else:
             path = self.generator.exe.get_path()
             if os.path.isabs(path):
                 # Can only add a dependency on an external program which we
@@ -2158,8 +2160,6 @@ class Executable(BuildTarget):
         self.implib_name = kwargs.get('implib')
         # Only linkwithable if using export_dynamic
         self.is_linkwithable = self.export_dynamic
-        # Remember that this exe was returned by `find_program()` through an override
-        self.was_returned_by_find_program = False
 
         self.vs_module_defs: T.Optional[File] = None
         self.process_vs_module_defs_kw(kwargs)
@@ -2241,10 +2241,6 @@ class Executable(BuildTarget):
     def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
         return self.environment.get_bindir(), '{bindir}'
 
-    def description(self):
-        '''Human friendly description of the executable'''
-        return self.name
-
     def type_suffix(self):
         return "@exe"
 
@@ -2266,21 +2262,6 @@ class Executable(BuildTarget):
 
     def is_linkable_target(self) -> bool:
         return self.is_linkwithable
-
-    def get_command(self) -> 'ImmutableListProtocol[str]':
-        """Provides compatibility with ExternalProgram.
-
-        Since you can override ExternalProgram instances with Executables.
-        """
-        return self.outputs
-
-    def get_path(self) -> str:
-        """Provides compatibility with ExternalProgram."""
-        return os.path.join(self.subdir, self.filename)
-
-    def found(self) -> bool:
-        """Provides compatibility with ExternalProgram."""
-        return True
 
 
 class StaticLibrary(BuildTarget):
@@ -2781,17 +2762,19 @@ class CommandBase:
     dependencies: T.List[T.Union[BuildTarget, 'CustomTarget']]
     subproject: str
 
-    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.ExternalProgram, BuildTargetTypes]]) -> \
-            T.List[T.Union[str, File, BuildTarget, CustomTarget, programs.ExternalProgram]]:
+    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.Program, BuildTargetTypes]]) -> \
+            T.List[T.Union[str, File, BuildTarget, CustomTarget, programs.Program]]:
         cmd = listify(cmd)
         final_cmd: T.List[T.Union[str, File, BuildTarget, 'CustomTarget']] = []
         for c in cmd:
+            if isinstance(c, LocalProgram):
+                c = c.program
             if isinstance(c, str):
                 final_cmd.append(c)
             elif isinstance(c, File):
                 self.depend_files.append(c)
                 final_cmd.append(c)
-            elif isinstance(c, programs.ExternalProgram):
+            elif isinstance(c, programs.Program):
                 if not c.found():
                     raise InvalidArguments('Tried to use not-found external program in "command"')
                 path = c.get_path()
@@ -2851,10 +2834,10 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  environment: Environment,
                  command: T.Sequence[T.Union[
                      str, BuildTargetTypes, GeneratedList,
-                     programs.ExternalProgram, File]],
+                     programs.Program, File]],
                  sources: T.Sequence[T.Union[
                      str, File, BuildTargetTypes, ExtractedObjects,
-                     GeneratedList, programs.ExternalProgram]],
+                     GeneratedList, programs.Program]],
                  outputs: T.List[str],
                  *,
                  build_always_stale: bool = False,
@@ -2961,7 +2944,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
     def get_filename(self) -> str:
         return self.outputs[0]
 
-    def get_sources(self) -> T.List[T.Union[str, File, BuildTarget, GeneratedTypes, ExtractedObjects, programs.ExternalProgram]]:
+    def get_sources(self) -> T.List[T.Union[str, File, BuildTarget, GeneratedTypes, ExtractedObjects, programs.Program]]:
         return self.sources
 
     def get_generated_lists(self) -> T.List[GeneratedList]:
@@ -3112,7 +3095,7 @@ class RunTarget(Target, CommandBase):
     typename = 'run'
 
     def __init__(self, name: str,
-                 command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.ExternalProgram]],
+                 command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.Program]],
                  dependencies: T.Sequence[AnyTargetType],
                  subdir: str,
                  subproject: str,
@@ -3342,17 +3325,45 @@ class ConfigurationData(HoldableObject):
     def keys(self) -> T.Iterator[str]:
         return self.values.keys()
 
-class OverrideExecutable(Executable):
-    def __init__(self, executable: Executable, version: str):
-        self._executable = executable
-        self._version = version
+class LocalProgram(programs.Program):
+    ''' A wrapper for a program that acts as a build dependency
+        for other targets.'''
+    def __init__(self, program: T.Union[programs.ExternalProgram, Executable, CustomTarget, CustomTargetIndex], version: str) -> None:
+        super().__init__()
+        if isinstance(program, CustomTarget):
+            if len(program.outputs) != 1:
+                raise InvalidArguments('CustomTarget used as LocalProgram must have exactly one output.')
+        self.name = program.name
+        self.program = program
+        self.version = version
 
-    def __getattr__(self, name: str) -> T.Any:
-        _executable = object.__getattribute__(self, '_executable')
-        return getattr(_executable, name)
+    def found(self) -> bool:
+        return True
 
     def get_version(self, interpreter: T.Optional[Interpreter] = None) -> str:
-        return self._version
+        return self.version
+
+    def get_command(self) -> T.List[str]:
+        if isinstance(self.program, programs.ExternalProgram):
+            return self.program.get_command()
+        # Only the backend knows the actual path to the build program.
+        raise MesonBugException('Cannot call get_command() on program that is a build target.')
+
+    def get_path(self) -> str:
+        if isinstance(self.program, programs.ExternalProgram):
+            return self.program.get_path()
+        # Only the backend knows the actual path to the build program.
+        raise MesonBugException('Cannot call get_path() on program that is a build target.')
+
+    def description(self) -> str:
+        if isinstance(self.program, programs.ExternalProgram):
+            return self.program.description()
+        if isinstance(self.program, Executable):
+            return self.program.name
+        return self.program.get_filename()
+
+    def runnable(self) -> bool:
+        return isinstance(self.program, programs.ExternalProgram)
 
 # A bit poorly named, but this represents plain data files to copy
 # during install.

@@ -4,7 +4,7 @@ description: |
   Defines a test to run with the test harness. Takes two positional
   arguments, the first is the name of the test and the second is the
   executable to run. The executable can be an [[@exe]] object returned by
-  [[executable]] or an [[@external_program]] object] returned by
+  [[executable]] or an [[@program]] object] returned by
   [[find_program]].
 
   *(since 0.55.0)* When cross compiling, if an exe_wrapper is needed and

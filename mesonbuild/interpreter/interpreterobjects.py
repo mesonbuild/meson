@@ -23,7 +23,7 @@ from ..interpreterbase import (
                                flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
 from ..interpreter.type_checking import NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
-from ..programs import ExternalProgram
+from ..programs import ExternalProgram, Program
 from ..mesonlib import HoldableObject, listify, Popen_safe
 
 import typing as T
@@ -223,7 +223,7 @@ class FeatureOptionHolder(ObjectHolder[options.UserFeatureOption]):
 class RunProcess(MesonInterpreterObject):
 
     def __init__(self,
-                 cmd: ExternalProgram,
+                 cmd: Program,
                  args: T.List[str],
                  env: mesonlib.EnvironmentVariables,
                  source_dir: str,
@@ -234,13 +234,11 @@ class RunProcess(MesonInterpreterObject):
                  check: bool = False,
                  capture: bool = True) -> None:
         super().__init__()
-        if not isinstance(cmd, ExternalProgram):
-            raise AssertionError('BUG: RunProcess must be passed an ExternalProgram')
         self.capture = capture
         self.returncode, self.stdout, self.stderr = self.run_command(cmd, args, env, source_dir, build_dir, subdir, mesonintrospect, in_builddir, check)
 
     def run_command(self,
-                    cmd: ExternalProgram,
+                    cmd: Program,
                     args: T.List[str],
                     env: mesonlib.EnvironmentVariables,
                     source_dir: str,
@@ -633,10 +631,10 @@ class DependencyHolder(ObjectHolder[Dependency]):
             raise InterpreterException('as_shared method is only supported on declare_dependency() objects')
         return self.held_object.get_as_shared(kwargs['recursive'])
 
-_EXTPROG = T.TypeVar('_EXTPROG', bound=ExternalProgram)
+_PROG = T.TypeVar('_PROG', bound=Program)
 
-class _ExternalProgramHolder(ObjectHolder[_EXTPROG]):
-    def __init__(self, ep: _EXTPROG, interpreter: 'Interpreter') -> None:
+class ProgramHolder(ObjectHolder[_PROG]):
+    def __init__(self, ep: _PROG, interpreter: 'Interpreter') -> None:
         super().__init__(ep, interpreter)
 
     @noPosargs
@@ -647,15 +645,15 @@ class _ExternalProgramHolder(ObjectHolder[_EXTPROG]):
 
     @noPosargs
     @noKwargs
-    @FeatureDeprecated('ExternalProgram.path', '0.55.0',
-                       'use ExternalProgram.full_path() instead')
+    @FeatureDeprecated('Program.path', '0.55.0',
+                       'use Program.full_path() instead')
     @InterpreterObject.method('path')
     def path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self._full_path()
 
     @noPosargs
     @noKwargs
-    @FeatureNew('ExternalProgram.full_path', '0.55.0')
+    @FeatureNew('Program.full_path', '0.55.0')
     @InterpreterObject.method('full_path')
     def full_path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self._full_path()
@@ -663,26 +661,34 @@ class _ExternalProgramHolder(ObjectHolder[_EXTPROG]):
     def _full_path(self) -> str:
         if not self.found():
             raise InterpreterException('Unable to get the path of a not-found external program')
+        if not self.held_object.runnable():
+            assert isinstance(self.held_object, build.LocalProgram) and \
+                isinstance(self.held_object.program, (build.BuildTarget, build.CustomTargetIndex))
+            return self.interpreter.backend.get_target_filename_abs(self.held_object.program)
         path = self.held_object.get_path()
         assert path is not None
         return path
 
     @noPosargs
     @noKwargs
-    @FeatureNew('ExternalProgram.cmd_array', '1.10.0')
+    @FeatureNew('Program.cmd_array', '1.10.0')
     @InterpreterObject.method('cmd_array')
     def cmd_array_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[str]:
         if not self.found():
             raise InterpreterException('Unable to get the path of a not-found external program')
+        if not self.held_object.runnable():
+            return [self._full_path()]
         cmd = self.held_object.get_command()
         assert cmd is not None
         return cmd
 
     @noPosargs
     @noKwargs
-    @FeatureNew('ExternalProgram.version', '0.62.0')
+    @FeatureNew('Program.version', '0.62.0')
     @InterpreterObject.method('version')
     def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        if isinstance(self.held_object, build.LocalProgram) and isinstance(self.held_object.program, build.Executable):
+            FeatureNew.single_use('Program.version with an executable', '1.9.0', subproject=self.subproject, location=self.current_node)
         if not self.found():
             raise InterpreterException('Unable to get the version of a not-found external program')
         try:
@@ -693,8 +699,6 @@ class _ExternalProgramHolder(ObjectHolder[_EXTPROG]):
     def found(self) -> bool:
         return self.held_object.found()
 
-class ExternalProgramHolder(_ExternalProgramHolder[ExternalProgram]):
-    pass
 
 class ExternalLibraryHolder(ObjectHolder[ExternalLibrary]):
     def __init__(self, el: ExternalLibrary, interpreter: 'Interpreter'):
@@ -955,9 +959,8 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @noPosargs
     @noKwargs
     @InterpreterObject.method('found')
+    @FeatureNew('BuildTarget.found', '0.59.0')
     def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
-        if not (isinstance(self.held_object, build.Executable) and self.held_object.was_returned_by_find_program):
-            FeatureNew.single_use('BuildTarget.found', '0.59.0', subproject=self.held_object.subproject)
         return True
 
     @noPosargs
@@ -1201,11 +1204,3 @@ class StructuredSourcesHolder(ObjectHolder[build.StructuredSources]):
 
     def __init__(self, sources: build.StructuredSources, interp: 'Interpreter'):
         super().__init__(sources, interp)
-
-class OverrideExecutableHolder(BuildTargetHolder[build.OverrideExecutable]):
-    @noPosargs
-    @noKwargs
-    @FeatureNew('OverrideExecutable.version', '1.9.0')
-    @InterpreterObject.method('version')
-    def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
-        return self.held_object.get_version(self.interpreter)

@@ -2792,6 +2792,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         exe = generator.get_exe()
         infilelist = genlist.get_inputs()
         extra_dependencies = self.get_target_depend_files(genlist)
+        for d in genlist.extra_depends:
+            # Add a dependency on all the outputs of this target
+            for output in d.get_outputs():
+                extra_dependencies.append(os.path.join(self.get_target_dir(d), output))
         for curfile in infilelist:
             infilename = curfile.rel_to_builddir(self.build_to_src, self.get_target_private_dir(target))
             base_args = generator.get_arglist(infilename)
@@ -2838,8 +2842,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 reason = f' (wrapped by meson {reason})'
             elem.add_item('DESC', f'Generating {what}{reason}')
 
-            if isinstance(exe, build.BuildTarget):
-                elem.add_dep(self.get_target_filename(exe))
             elem.add_item('COMMAND', cmdlist)
             self.add_build(elem)
 

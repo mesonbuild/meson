@@ -381,10 +381,7 @@ class Vs2010Backend(backends.Backend):
                     all_deps[gendep.target.get_id()] = gendep.target
                 else:
                     generator = gendep.get_generator()
-                    gen_exe = generator.get_exe()
-                    if isinstance(gen_exe, build.Executable):
-                        all_deps[gen_exe.get_id()] = gen_exe
-                    for d in itertools.chain(generator.depends, gendep.depends):
+                    for d in itertools.chain(generator.depends, gendep.depends, gendep.extra_depends):
                         if isinstance(d, build.CustomTargetIndex):
                             all_deps[d.get_id()] = d.target
                         elif isinstance(d, build.Target):

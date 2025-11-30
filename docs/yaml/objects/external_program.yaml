@@ -1,4 +1,4 @@
-name: external_program
+name: program
 long_name: External program
 description: Opaque object representing an external program
 
@@ -11,7 +11,7 @@ methods:
   returns: str
   deprecated: 0.55.0
   description: |
-    *Deprecated:* Use [[external_program.full_path]] instead.
+    *Deprecated:* Use [[program.full_path]] instead.
 
     Returns a string pointing to the script or executable.
 
