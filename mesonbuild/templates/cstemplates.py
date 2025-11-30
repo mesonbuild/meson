@@ -35,9 +35,12 @@ hello_cs_meson_template = '''project(
 dependencies = [{dependencies}
 ]
 
+sources = [{source_files}
+]
+
 exe = executable(
   '{exe_name}',
-  '{source_name}',
+  sources,
   install : true,
   dependencies : dependencies,
 )
@@ -83,9 +86,12 @@ lib_cs_meson_template = '''project(
 dependencies = [{dependencies}
 ]
 
+sources = [{source_files}
+]
+
 stlib = shared_library(
   '{lib_name}',
-  '{source_file}',
+  sources,
   dependencies : dependencies,
   install : true,
 )

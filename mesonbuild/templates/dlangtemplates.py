@@ -36,12 +36,11 @@ dependencies = [{dependencies}
 ]
 
 sources = [{source_files}
-
 ]
 
 exe = executable(
   '{exe_name}',
-  [sources],
+  sources,
   dependencies : dependencies,
   install : true,
 )
@@ -89,12 +88,11 @@ dependencies = [{dependencies}
 ]
 
 sources = [{source_files}
-
 ]
 
 stlib = static_library(
   '{lib_name}',
-  [sources],
+  sources,
   install : true,
   gnu_symbol_visibility : 'hidden',
   dependencies : dependencies,

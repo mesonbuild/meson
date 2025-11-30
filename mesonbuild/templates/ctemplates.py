@@ -82,7 +82,7 @@ sources = [{source_files}
 
 lib = library(
   '{lib_name}',
-  [sources],
+  sources,
   install : true,
   c_shared_args : lib_args,
   gnu_symbol_visibility : 'hidden',
@@ -147,7 +147,7 @@ sources = [{source_files}
 
 exe = executable(
   '{exe_name}',
-  [sources],
+  sources,
   dependencies : dependencies,
   install : true,
 )
