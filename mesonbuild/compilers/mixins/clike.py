@@ -385,7 +385,7 @@ class CLikeCompiler(Compiler):
             sys_ld_args = self.environment.coredata.get_external_link_args(self.for_machine, self.language)
             # CFLAGS and CXXFLAGS go to both linking and compiling, but we want them
             # to only appear on the command line once. Remove dupes.
-            largs += [x for x in sys_ld_args if x not in sys_args]
+            largs += [x for x in sys_ld_args if x not in cleaned_sys_args]
 
         cargs += self.get_compiler_args_for_mode(mode)
         return cargs, largs
