@@ -20,6 +20,7 @@ from .gnu import GnuLikeCompiler
 if T.TYPE_CHECKING:
     from ...options import MutableKeyedOptionDictType
     from ...dependencies import Dependency  # noqa: F401
+    from ...build import BuildTarget
     from ..compilers import Compiler
 
     CompilerMixinBase = Compiler
@@ -211,7 +212,8 @@ class ClangCompiler(GnuLikeCompiler):
     def get_embed_bitcode_args(self, bitcode: bool, lto: bool) -> T.List[str]:
         return ['-fembed-bitcode'] if bitcode else []
 
-    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
+    def get_lto_compile_args(self, *, target: T.Optional[BuildTarget] = None, threads: int = 0,
+                             mode: str = 'default') -> T.List[str]:
         args: T.List[str] = []
         if mode == 'thin':
             # ThinLTO requires the use of gold, lld, ld64, lld-link or mold 1.1+
@@ -224,7 +226,7 @@ class ClangCompiler(GnuLikeCompiler):
             args.append(f'-flto={mode}')
         else:
             assert mode == 'default', 'someone forgot to wire something up'
-            args.extend(super().get_lto_compile_args(threads=threads))
+            args.extend(super().get_lto_compile_args(target=target, threads=threads))
         return args
 
     def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:
@@ -233,9 +235,9 @@ class ClangCompiler(GnuLikeCompiler):
         else:
             return args
 
-    def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
-                          thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
-        args = self.get_lto_compile_args(threads=threads, mode=mode)
+    def get_lto_link_args(self, *, target: T.Optional[BuildTarget] = None, threads: int = 0,
+                          mode: str = 'default', thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
+        args = self.get_lto_compile_args(target=target, threads=threads, mode=mode)
         if mode == 'thin' and thinlto_cache_dir is not None:
             # We check for ThinLTO linker support above in get_lto_compile_args, and all of them support
             # get_thinlto_cache_args as well

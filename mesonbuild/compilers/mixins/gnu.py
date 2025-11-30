@@ -481,7 +481,8 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
                 return self._split_fetch_real_dirs(line.split('=', 1)[1])
         return []
 
-    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
+    def get_lto_compile_args(self, *, target: T.Optional[BuildTarget] = None, threads: int = 0,
+                             mode: str = 'default') -> T.List[str]:
         # This provides a base for many compilers, GCC and Clang override this
         # for their specific arguments
         return ['-flto']
@@ -612,8 +613,8 @@ class GnuCompiler(GnuLikeCompiler):
     def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
         return [prelink_name], ['-r', '-o', prelink_name] + obj_list
 
-    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default',
-                             thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
+    def get_lto_compile_args(self, *, target: T.Optional[BuildTarget] = None, threads: int = 0,
+                             mode: str = 'default', thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
 
         if threads == 0:
@@ -626,7 +627,7 @@ class GnuCompiler(GnuLikeCompiler):
         elif threads > 0:
             args.append(f'-flto={threads}')
         else:
-            args.extend(super().get_lto_compile_args(threads=threads))
+            args.extend(super().get_lto_compile_args(target=target, threads=threads))
 
         if thinlto_cache_dir is not None:
             # We check for ThinLTO linker support above in get_lto_compile_args, and all of them support
@@ -646,10 +647,10 @@ class GnuCompiler(GnuLikeCompiler):
             return ['-fuse-ld=mold']
         return super().use_linker_args(linker, version)
 
-    def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
-                          thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
+    def get_lto_link_args(self, *, target: T.Optional[BuildTarget] = None, threads: int = 0,
+                          mode: str = 'default', thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
-        args.extend(self.get_lto_compile_args(threads=threads, thinlto_cache_dir=thinlto_cache_dir))
+        args.extend(self.get_lto_compile_args(target=target, threads=threads, thinlto_cache_dir=thinlto_cache_dir))
         return args
 
     def get_profile_use_args(self) -> T.List[str]:
