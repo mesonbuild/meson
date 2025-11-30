@@ -15,7 +15,7 @@ if T.TYPE_CHECKING:
     from ..compilers.rust import RustCompiler
 
 class ClippyDriver:
-    def __init__(self, build: build.Build, tempdir: str):
+    def __init__(self, build: build.Build, tempdir: str, args: list[str]):
         self.tools: PerMachine[T.List[str]] = PerMachine([], [])
         self.warned: T.DefaultDict[str, bool] = defaultdict(lambda: False)
         self.tempdir = tempdir
@@ -24,6 +24,7 @@ class ClippyDriver:
             if 'rust' in compilers:
                 compiler = T.cast('RustCompiler', compilers['rust'])
                 self.tools[machine] = compiler.get_rust_tool('clippy-driver')
+        self.args = args
 
     def warn_missing_clippy(self, machine: str) -> None:
         if self.warned[machine]:
@@ -64,13 +65,14 @@ class ClippyDriver:
                 # and --emit dep-info= is not enough for clippy to do
                 # enough analysis, so use --emit metadata.
                 cmdlist.append('--emit')
-                cmdlist.append('metadata')
+                cmdlist.append('link')
                 cmdlist.append('--out-dir')
                 cmdlist.append(self.tempdir)
+                cmdlist += self.args
                 yield run_with_buffered_output(cmdlist)
 
 def run(args: T.List[str]) -> int:
     os.chdir(args[0])
     build_data = build.load(os.getcwd())
     with tempfile.TemporaryDirectory() as d:
-        return run_tool_on_targets(ClippyDriver(build_data, d))
+        return run_tool_on_targets(ClippyDriver(build_data, d, args[1:]))
