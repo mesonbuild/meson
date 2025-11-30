@@ -6,16 +6,18 @@ from collections import defaultdict
 import os
 import tempfile
 import typing as T
+import subprocess
 
 from .run_tool import run_tool_on_targets, run_with_buffered_output
 from .. import build, mlog
 from ..mesonlib import MachineChoice, PerMachine
+from ..tooldetect import detect_ninja
 
 if T.TYPE_CHECKING:
     from ..compilers.rust import RustCompiler
 
 class ClippyDriver:
-    def __init__(self, build: build.Build, tempdir: str):
+    def __init__(self, build: build.Build, tempdir: str, args: list[str]):
         self.tools: PerMachine[T.List[str]] = PerMachine([], [])
         self.warned: T.DefaultDict[str, bool] = defaultdict(lambda: False)
         self.tempdir = tempdir
@@ -24,6 +26,7 @@ class ClippyDriver:
             if 'rust' in compilers:
                 compiler = T.cast('RustCompiler', compilers['rust'])
                 self.tools[machine] = compiler.get_rust_tool('clippy-driver')
+        self.args = args
 
     def warn_missing_clippy(self, machine: str) -> None:
         if self.warned[machine]:
@@ -67,10 +70,17 @@ class ClippyDriver:
                 cmdlist.append('metadata')
                 cmdlist.append('--out-dir')
                 cmdlist.append(self.tempdir)
+                cmdlist += self.args
                 yield run_with_buffered_output(cmdlist)
 
 def run(args: T.List[str]) -> int:
     os.chdir(args[0])
     build_data = build.load(os.getcwd())
+
+    # Build as much of the project as possible, or else
+    # we get errors about missing libraries in the build directory and
+    # other related errors.
+    subprocess.run(detect_ninja() + ['clippy-json-prereq', '-k0'])
+
     with tempfile.TemporaryDirectory() as d:
-        return run_tool_on_targets(ClippyDriver(build_data, d))
+        return run_tool_on_targets(ClippyDriver(build_data, d, args[1:]))
