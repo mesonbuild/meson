@@ -91,6 +91,13 @@ write files into the source directory). [See the upstream
 docs](https://rust-analyzer.github.io/book/non_cargo_based_projects.html) for
 more information on how to configure that.
 
+### Clippy
+You can use the "clippy-json" build target as rust-analyer's "check command" to recieve clippy diagnostics in your editor. 
+
+Without overriding the check command, the LSP will function in a limited state, only showing certain errors (for example, no borrow checking errors are shown).
+
+[Non cargo based projects](https://rust-analyzer.github.io/book/non_cargo_based_projects.html) shows how to override the check command, you probably want to set it to `ninja clippy-json -C build`.
+
 ## Linking with standard libraries
 
 Meson will link the Rust standard libraries (e.g. libstd) statically, unless the
