@@ -15,7 +15,6 @@ from .. import mesonlib
 from ..mesonlib import (
     Popen_safe, version_compare_many
 )
-from ..envconfig import detect_cpu_family
 
 from .base import DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
 from .configtool import ConfigToolDependency
@@ -190,10 +189,34 @@ class VulkanDependencySystem(SystemDependency):
             inc_dir = 'include'
             if self.env.machines[self.for_machine].is_windows():
                 lib_name = 'vulkan-1'
-                lib_dir = 'Lib32'
+                lib_dir = ''
                 inc_dir = 'Include'
-                if detect_cpu_family(self.env.coredata.compilers.host) == 'x86_64':
-                    lib_dir = 'Lib'
+                build_cpu = self.env.machines.build.cpu_family
+                host_cpu = self.env.machines.host.cpu_family
+                if build_cpu == 'x86_64':
+                    if host_cpu == build_cpu:
+                        lib_dir = 'Lib'
+                    elif host_cpu == 'aarch64':
+                        lib_dir = 'Lib-ARM64'
+                    elif host_cpu == 'x86':
+                        lib_dir = 'Lib32'
+                elif build_cpu == 'aarch64':
+                    if host_cpu == build_cpu:
+                        lib_dir = 'Lib'
+                    elif host_cpu == 'x86_64':
+                        lib_dir = 'Lib-x64'
+                    elif host_cpu == 'x86':
+                        lib_dir = 'Lib32'
+                elif build_cpu == 'x86':
+                    if host_cpu == build_cpu:
+                        lib_dir = 'Lib32'
+                    if host_cpu == 'aarch64':
+                        lib_dir = 'Lib-ARM64'
+                    elif host_cpu == 'x86_64':
+                        lib_dir = 'Lib'
+
+                if lib_dir == '':
+                    raise DependencyException(f'Target architecture \'{host_cpu}\' is not supported for this Vulkan SDK.')
 
             # make sure header and lib are valid
             inc_path = os.path.join(self.vulkan_sdk, inc_dir)
