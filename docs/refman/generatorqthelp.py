@@ -6,8 +6,6 @@ from .generatormd import GeneratorMD, _ROOT_BASENAME
 
 import xml.etree.ElementTree as ET
 import subprocess
-import os
-import shutil
 from pathlib import Path
 
 from mesonbuild import mlog
@@ -48,6 +46,13 @@ class GeneratorQtHelp(GeneratorMD):
     def _get_doc_title(self, md: Path) -> str:
         if not md.exists() or not md.is_file():
             return ''
+
+        # Function reference pages don't have the title attribute.
+        # But that's fine, because the title is included in the filename,
+        # so we don't need to open the file.
+        _FUNCTIONS_BASENAME = f'{_ROOT_BASENAME}_functions_'
+        if md.stem.find(_FUNCTIONS_BASENAME) == 0:
+            return md.stem[len(_FUNCTIONS_BASENAME):]
 
         with open(md, 'r') as doc:
             for line in doc:
@@ -92,7 +97,7 @@ class GeneratorQtHelp(GeneratorMD):
                     self.qhp_data.start('section', {'title': 'Meson documentation', 'ref': 'index.html'})
                     continue
 
-                doc = line[level:-3] # Trimmed markdown filename without extension
+                doc = line[level:-3] # Trimmed filename without .md extension
                 md = self._find_doc_path(doc)
                 title = self._get_doc_title(md)
                 if title == '':
@@ -111,7 +116,7 @@ class GeneratorQtHelp(GeneratorMD):
             self.qhp_data.start('keyword', {
                 'name': f.name,
                 'id': f.name,
-                'ref': f'{_ROOT_BASENAME}_functions.html#{f.name}',
+                'ref': f'{_ROOT_BASENAME}_functions_{f.name}.html',
             })
             self.qhp_data.end('keyword')
 
