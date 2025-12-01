@@ -1943,7 +1943,7 @@ class NinjaBackend(backends.Backend):
 
         crate = RustCrate(
             len(self.rust_crates),
-            name,
+            self._get_rust_crate_name(name),
             main_rust_file,
             crate_type,
             target_name,
