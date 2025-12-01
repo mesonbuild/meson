@@ -154,6 +154,8 @@ if not get_option('qthelp')
     subdir_done()
 endif
 
+qhelpgenerator = find_program('qhelpgenerator', '/usr/libexec/qt6/qhelpgenerator', '/usr/bin/qhelpgenerator-qt5', required: true)
+
 refman_qthelp = custom_target(
     'gen_refman_qthelp',
     input: refman_binary,
@@ -165,6 +167,7 @@ refman_qthelp = custom_target(
         '-s', sitemap,
         '-i', '@INPUT@',
         '-o', '@OUTPUT0@',
+        '--qhelpgenerator', qhelpgenerator.full_path(),
         '--link-defs', '@OUTPUT1@',
         '--force-color',
         '--no-modules',
