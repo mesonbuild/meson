@@ -21,12 +21,15 @@ _FILTER_ATTR_VER = '1.0'
 _VIRTUAL_FOLDER = 'doc'
 
 class GeneratorQtHelp(GeneratorMD):
-    def __init__(self, manual: ReferenceManual, sitemap_out: Path, sitemap_in: Path, link_def_out: Path, enable_modules: bool) -> None:
+    def __init__(self, manual: ReferenceManual, sitemap_out: Path, sitemap_in: Path,
+                 link_def_out: Path, enable_modules: bool, qhelpgenerator: Path) -> None:
         super().__init__(manual, sitemap_out, sitemap_in, link_def_out, enable_modules)
         #self.out_dir /= "qthelp"
 
         # Qt Help Project data
         self.qhp_data = ET.TreeBuilder()
+
+        self.qhelpgenerator = qhelpgenerator
 
     def generate(self) -> None:
         super().generate()
@@ -149,22 +152,5 @@ class GeneratorQtHelp(GeneratorMD):
 
         self.qhp_data.end('QtHelpProject')
 
-    def _find_qhelpgenerator(self):
-        out = shutil.which('qhelpgenerator')
-        if out:
-            return out
-        out = shutil.which('qhelpgenerator-qt5')
-        if out:
-            return out
-        out = shutil.which('qhelpgenerator-qt6')
-        if out:
-            return out
-        mlog.error('Could not find the QtHelp generator.\n' +
-                   'Tried: "qhelpgenerator", "qhelpgenerator-qt5", "qhelpgenerator-qt6".',
-                   fatal=True)
-        return None
-
     def _generate_qch(self):
-        generator = self._find_qhelpgenerator()
-        subprocess.run([generator, '-o', 'Meson.qch'], cwd=self.out_dir,
-                       stdout=mlog._logger.log_file)
+        subprocess.run([self.qhelpgenerator, 'Meson.qhp', '-o', 'Meson.qch'], cwd=self.out_dir)
