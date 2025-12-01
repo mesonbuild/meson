@@ -18,7 +18,6 @@ from .compilers import Compiler, CompileCheckMode, clike_debug_args, is_library
 
 if T.TYPE_CHECKING:
     from ..options import MutableKeyedOptionDictType
-    from ..envconfig import MachineInfo
     from ..environment import Environment  # noqa: F401
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
@@ -65,6 +64,15 @@ def get_rustup_run_and_args(exelist: T.List[str]) -> T.Optional[T.Tuple[T.List[s
     except StopIteration:
         return None
 
+def rustc_link_args(args: T.List[str]) -> T.List[str]:
+    if not args:
+        return args
+    rustc_args: T.List[str] = []
+    for arg in args:
+        rustc_args.append('-C')
+        rustc_args.append(f'link-arg={arg}')
+    return rustc_args
+
 class RustCompiler(Compiler):
 
     # rustc doesn't invoke the compiler itself, it doesn't need a LINKER_PREFIX
@@ -79,36 +87,42 @@ class RustCompiler(Compiler):
         'everything': ['-W', 'warnings'],
     }
 
-    # Those are static libraries, but we use dylib= here as workaround to avoid
-    # rust --tests to use /WHOLEARCHIVE.
-    # https://github.com/rust-lang/rust/issues/116910
+    allow_nightly: bool
+
+    # libcore can be compiled with either static or dynamic CRT, so disable
+    # both of them just in case.
     MSVCRT_ARGS: T.Mapping[str, T.List[str]] = {
         'none': [],
-        'md': [], # this is the default, no need to inject anything
-        'mdd': ['-l', 'dylib=msvcrtd'],
-        'mt': ['-l', 'dylib=libcmt'],
-        'mtd': ['-l', 'dylib=libcmtd'],
+        'md': ['-Clink-arg=/nodefaultlib:libcmt', '-Clink-arg=/defaultlib:msvcrt'],
+        'mdd': ['-Clink-arg=/nodefaultlib:libcmt', '-Clink-arg=/nodefaultlib:msvcrt', '-Clink-arg=/defaultlib:msvcrtd'],
+        'mt': ['-Clink-arg=/defaultlib:libcmt', '-Clink-arg=/nodefaultlib:msvcrt'],
+        'mtd': ['-Clink-arg=/nodefaultlib:libcmt', '-Clink-arg=/nodefaultlib:msvcrt', '-Clink-arg=/defaultlib:libcmtd'],
     }
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo',
-                 full_version: T.Optional[str] = None,
+                 env: Environment, full_version: T.Optional[str] = None,
                  linker: T.Optional['DynamicLinker'] = None):
-        super().__init__([], exelist, version, for_machine, info,
-                         is_cross=is_cross, full_version=full_version,
-                         linker=linker)
+        super().__init__([], exelist, version, for_machine, env,
+                         full_version=full_version, linker=linker)
         self.rustup_run_and_args: T.Optional[T.Tuple[T.List[str], T.List[str]]] = get_rustup_run_and_args(exelist)
-        self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_ndebug']})
+        self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_coverage', 'b_ndebug', 'b_pgo']})
         if isinstance(self.linker, VisualStudioLikeLinkerMixin):
             self.base_options.add(OptionKey('b_vscrt'))
         self.native_static_libs: T.List[str] = []
         self.is_beta = '-beta' in full_version
         self.is_nightly = '-nightly' in full_version
+        self.has_check_cfg = version_compare(version, '>=1.80.0')
+
+    def init_from_options(self) -> None:
+        nightly_opt = self.get_compileropt_value('nightly', None)
+        if nightly_opt == 'enabled' and not self.is_nightly:
+            raise EnvironmentException(f'Rust compiler {self.name_string()} is not a nightly compiler as required by the "nightly" option.')
+        self.allow_nightly = nightly_opt != 'disabled' and self.is_nightly
 
     def needs_static_linker(self) -> bool:
         return False
 
-    def sanity_check(self, work_dir: str, environment: Environment) -> None:
+    def sanity_check(self, work_dir: str) -> None:
         source_name = os.path.join(work_dir, 'sanity.rs')
         output_name = os.path.join(work_dir, 'rusttest.exe')
         cmdlist = self.exelist.copy()
@@ -142,7 +156,7 @@ class RustCompiler(Compiler):
         if pc.returncode != 0:
             raise EnvironmentException(f'Rust compiler {self.name_string()} cannot compile programs.')
         self._native_static_libs(work_dir, source_name)
-        self.run_sanity_check(environment, [output_name], work_dir)
+        self.run_sanity_check([output_name], work_dir)
 
     def _native_static_libs(self, work_dir: str, source_name: str) -> None:
         # Get libraries needed to link with a Rust staticlib
@@ -195,6 +209,22 @@ class RustCompiler(Compiler):
     def get_crt_static(self) -> bool:
         return 'target_feature="crt-static"' in self.get_cfgs()
 
+    def get_nightly(self, target: T.Optional[BuildTarget]) -> bool:
+        if not target:
+            return self.allow_nightly
+        key = self.form_compileropt_key('nightly')
+        nightly_opt = self.environment.coredata.get_option_for_target(target, key)
+        if nightly_opt == 'enabled' and not self.is_nightly:
+            raise EnvironmentException(f'Rust compiler {self.name_string()} is not a nightly compiler as required by the "nightly" option.')
+        return nightly_opt != 'disabled' and self.is_nightly
+
+    def sanitizer_link_args(self, target: T.Optional[BuildTarget], value: T.List[str]) -> T.List[str]:
+        # Sanitizers are not supported yet for Rust code.  Nightly supports that
+        # with -Zsanitizer=, but procedural macros cannot use them.  But even if
+        # Rust code cannot be instrumented, we can link in the sanitizer libraries
+        # for the sake of C/C++ code
+        return rustc_link_args(super().sanitizer_link_args(target, value))
+
     @functools.lru_cache(maxsize=None)
     def has_verbatim(self) -> bool:
         if version_compare(self.version, '< 1.67.0'):
@@ -209,7 +239,7 @@ class RustCompiler(Compiler):
         # being linked.  However, Meson uses "bundle", not "whole_archive".
         return False
 
-    def lib_file_to_l_arg(self, env: Environment, libname: str) -> T.Optional[str]:
+    def lib_file_to_l_arg(self, libname: str) -> T.Optional[str]:
         """Undo the effects of -l on the filename, returning the
            argument that can be passed to -l, or None if the
            library name is not supported."""
@@ -220,7 +250,7 @@ class RustCompiler(Compiler):
         # On Windows, rustc's -lfoo searches either foo.lib or libfoo.a.
         # Elsewhere, it searches both static and shared libraries and always with
         # the "lib" prefix; for simplicity just skip .lib on non-Windows.
-        if env.machines[self.for_machine].is_windows():
+        if self.info.is_windows():
             if ext == '.lib':
                 return libname
             if ext != '.a':
@@ -240,16 +270,13 @@ class RustCompiler(Compiler):
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return rust_optimization_args[optimization_level]
 
-    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
-                         target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
+    def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
+                         extra_paths: T.Optional[T.List[str]] = None
+                         ) -> T.Tuple[T.List[str], T.Set[bytes]]:
         # add rustc's sysroot to account for rustup installations
-        args, to_remove = super().build_rpath_args(env, build_dir, from_dir, target, [self.get_target_libdir()])
-
-        rustc_rpath_args = []
-        for arg in args:
-            rustc_rpath_args.append('-C')
-            rustc_rpath_args.append(f'link-arg={arg}')
-        return rustc_rpath_args, to_remove
+        args, to_remove = super().build_rpath_args(
+            build_dir, from_dir, target, [self.get_target_libdir()])
+        return rustc_link_args(args), to_remove
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
@@ -287,6 +314,12 @@ class RustCompiler(Compiler):
             'Whether to link Rust build targets to a dynamic libstd',
             False)
 
+        key = self.form_compileropt_key('nightly')
+        opts[key] = options.UserFeatureOption(
+            self.make_option_name(key),
+            "Nightly Rust compiler (enabled=required, disabled=don't use nightly feature, auto=use nightly feature if available)",
+            'auto')
+
         return opts
 
     def get_dependency_compile_args(self, dep: 'Dependency') -> T.List[str]:
@@ -295,9 +328,9 @@ class RustCompiler(Compiler):
         # provided by the linker flags.
         return []
 
-    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
             args.append('--edition=' + std)
@@ -310,6 +343,9 @@ class RustCompiler(Compiler):
     def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         if not isinstance(self.linker, VisualStudioLikeLinkerMixin):
             return []
+        # Rustc always use non-debug Windows runtime. Inject the one selected
+        # by Meson options instead.
+        # https://github.com/rust-lang/rust/issues/39016
         return self.MSVCRT_ARGS[self.get_crt_val(crt_val, buildtype)]
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
@@ -317,13 +353,61 @@ class RustCompiler(Compiler):
             return [f'--color={colortype}']
         raise MesonException(f'Invalid color type for rust {colortype}')
 
+    @functools.lru_cache(maxsize=None)
     def get_linker_always_args(self) -> T.List[str]:
-        args: T.List[str] = []
-        # Rust is super annoying, calling -C link-arg foo does not work, it has
-        # to be -C link-arg=foo
-        for a in super().get_linker_always_args():
-            args.extend(['-C', f'link-arg={a}'])
-        return args
+        return rustc_link_args(super().get_linker_always_args()) + ['-Cdefault-linker-libraries']
+
+    def get_embed_bitcode_args(self, bitcode: bool, lto: bool) -> T.List[str]:
+        if bitcode:
+            return ['-C', 'embed-bitcode=yes']
+        elif lto:
+            return []
+        else:
+            return ['-C', 'embed-bitcode=no']
+
+    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
+        # TODO: what about -Clinker-plugin-lto?
+        rustc_lto = 'lto=thin' if mode == 'thin' else 'lto'
+        return ['-C', rustc_lto]
+
+    def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
+                          thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
+        # no need to specify anything because the rustc command line
+        # includes the result of get_lto_compile_args()
+        return []
+
+    def get_lto_obj_cache_path(self, path: str) -> T.List[str]:
+        return rustc_link_args(super().get_lto_obj_cache_path(path))
+
+    def get_coverage_args(self) -> T.List[str]:
+        return ['-C', 'instrument-coverage']
+
+    def get_coverage_link_args(self) -> T.List[str]:
+        return rustc_link_args(super().get_coverage_link_args())
+
+    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
+        return rustc_link_args(super().gen_vs_module_defs_args(defsfile))
+
+    def get_profile_generate_args(self) -> T.List[str]:
+        return ['-C', 'profile-generate']
+
+    def get_profile_use_args(self) -> T.List[str]:
+        return ['-C', 'profile-use']
+
+    @functools.lru_cache(maxsize=None)
+    def get_asneeded_args(self) -> T.List[str]:
+        return rustc_link_args(super().get_asneeded_args())
+
+    def bitcode_args(self) -> T.List[str]:
+        return ['-C', 'embed-bitcode=yes']
+
+    @functools.lru_cache(maxsize=None)
+    def headerpad_args(self) -> T.List[str]:
+        return rustc_link_args(super().headerpad_args())
+
+    @functools.lru_cache(maxsize=None)
+    def get_allow_undefined_link_args(self) -> T.List[str]:
+        return rustc_link_args(super().get_allow_undefined_link_args())
 
     def get_werror_args(self) -> T.List[str]:
         # Use -D warnings, which makes every warning not explicitly allowed an
@@ -343,11 +427,11 @@ class RustCompiler(Compiler):
         # pic is on by rustc
         return []
 
-    def get_assert_args(self, disable: bool, env: 'Environment') -> T.List[str]:
+    def get_assert_args(self, disable: bool) -> T.List[str]:
         action = "no" if disable else "yes"
         return ['-C', f'debug-assertions={action}', '-C', 'overflow-checks=no']
 
-    def get_rust_tool(self, name: str, env: Environment) -> T.List[str]:
+    def get_rust_tool(self, name: str) -> T.List[str]:
         if self.rustup_run_and_args:
             rustup_exelist, args = self.rustup_run_and_args
             # do not use extend so that exelist is copied
@@ -357,7 +441,7 @@ class RustCompiler(Compiler):
             args = self.get_exe_args()
 
         from ..programs import find_external_program
-        for prog in find_external_program(env, self.for_machine, exelist[0], exelist[0],
+        for prog in find_external_program(self.environment, self.for_machine, exelist[0], exelist[0],
                                           [exelist[0]], allow_default_for_cross=False):
             exelist[0] = prog.path
             break
@@ -366,22 +450,32 @@ class RustCompiler(Compiler):
 
         return exelist + args
 
-    def has_multi_arguments(self, args: T.List[str], env: Environment) -> T.Tuple[bool, bool]:
-        return self.compiles('fn main() { std::process::exit(0) }\n', env, extra_args=args, mode=CompileCheckMode.COMPILE)
+    def has_multi_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
+        return self.compiles('fn main() { std::process::exit(0) }\n', extra_args=args, mode=CompileCheckMode.COMPILE)
 
-    def has_multi_link_arguments(self, args: T.List[str], env: Environment) -> T.Tuple[bool, bool]:
-        args = self.linker.fatal_warnings() + args
-        return self.compiles('fn main() { std::process::exit(0) }\n', env, extra_args=args, mode=CompileCheckMode.LINK)
+    def has_multi_link_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
+        args = rustc_link_args(self.linker.fatal_warnings()) + args
+        return self.compiles('fn main() { std::process::exit(0) }\n', extra_args=args, mode=CompileCheckMode.LINK)
 
     @functools.lru_cache(maxsize=None)
-    def get_rustdoc(self, env: 'Environment') -> T.Optional[RustdocTestCompiler]:
-        exelist = self.get_rust_tool('rustdoc', env)
+    def get_rustdoc(self) -> T.Optional[RustdocTestCompiler]:
+        exelist = self.get_rust_tool('rustdoc')
         if not exelist:
             return None
 
         return RustdocTestCompiler(exelist, self.version, self.for_machine,
-                                   self.is_cross, self.info, full_version=self.full_version,
+                                   self.environment,
+                                   full_version=self.full_version,
                                    linker=self.linker, rustc=self)
+
+    def enable_env_set_args(self) -> T.Optional[T.List[str]]:
+        '''Extra arguments to enable --env-set support in rustc.
+        Returns None if not supported.
+        '''
+        if version_compare(self.version, '>= 1.76') and self.allow_nightly:
+            return ['-Z', 'unstable-options']
+        return None
+
 
 class ClippyRustCompiler(RustCompiler):
 
@@ -402,11 +496,10 @@ class RustdocTestCompiler(RustCompiler):
     id = 'rustdoc --test'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo',
-                 full_version: T.Optional[str],
+                 env: Environment, full_version: T.Optional[str],
                  linker: T.Optional['DynamicLinker'], rustc: RustCompiler):
         super().__init__(exelist, version, for_machine,
-                         is_cross, info, full_version, linker)
+                         env, full_version, linker)
         self.rustc = rustc
 
     @functools.lru_cache(maxsize=None)

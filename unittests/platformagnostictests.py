@@ -96,7 +96,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.init(testdir, override_envvars={'PKG_CONFIG': 'notfound'})
 
     def test_vala_target_with_internal_glib(self):
-        testdir = os.path.join(self.unit_test_dir, '130 vala internal glib')
+        testdir = os.path.join(self.unit_test_dir, '131 vala internal glib')
         for run in [{ 'version': '2.84.4', 'expected': '2.84'}, { 'version': '2.85.2', 'expected': '2.84' }]:
             self.new_builddir()
             self.init(testdir, extra_args=[f'-Dglib-version={run["version"]}'])

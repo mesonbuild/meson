@@ -25,16 +25,19 @@ with tarfile.open(infile , 'r') as tf:
 
 fname = os.path.split(infile)[1]
 tmp = fname.replace('-', '_')
-if '0rc' in fname:
-    version = tmp[6:-7]
-    base_version = tmp[6:-10]
+
+assert fname.endswith('.tar.gz')
+version_part = fname.split('-', 1)[1][:-7]
+
+if 'rc' in version_part:
+    base_version, rcnum = version_part.split('rc')
+    version = base_version + 'rc' + rcnum
     extension = tmp[-7:]
-    rcnum = tmp[-8:-7]
     dchversion = base_version + '~rc' + rcnum
-    origname = tmp[:11] + '~rc' + rcnum + '.orig' + extension
+    origname = tmp.split('rc', 1)[0] + '~rc' + rcnum + '.orig' + extension
 else:
-    origname = tmp[:11] + '.orig.' + tmp[-6:]
-    version = tmp[6:-7]
+    origname = tmp[:-7] + '.orig.' + tmp[-6:]
+    version = version_part
     dchversion = version
 version_lines = pathlib.Path(relfile).read_text().split('\n')[:-1]
 prev_ver = version_lines[-1]

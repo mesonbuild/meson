@@ -7,11 +7,9 @@ from __future__ import annotations
 import copy
 
 from . import mlog, options
-import argparse
 import pickle, os, uuid
 import sys
 from functools import lru_cache
-from itertools import chain
 from collections import OrderedDict
 import textwrap
 
@@ -23,16 +21,10 @@ from .mesonlib import (
 
 from .options import OptionKey
 
-from .machinefile import CmdLineFileParser
-
-import ast
 import enum
-import shlex
 import typing as T
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Protocol
-
     from . import dependencies
     from .compilers.compilers import Compiler, CompileResult, RunResult, CompileCheckMode
     from .dependencies.detect import TV_DepID
@@ -41,33 +33,18 @@ if T.TYPE_CHECKING:
     from .interpreterbase import SubProject
     from .options import ElementaryOptionValues, MutableKeyedOptionDictType
     from .build import BuildTarget
-
-    class SharedCMDOptions(Protocol):
-
-        """Representation of command line options from Meson setup, configure,
-        and dist.
-
-        :param cmd_line_options: command line options parsed into an OptionKey:
-            str mapping
-        """
-
-        cmd_line_options: T.Dict[OptionKey, T.Optional[str]]
-        cross_file: T.List[str]
-        native_file: T.List[str]
+    from .cmdline import SharedCMDOptions
 
     OptionDictType = T.Dict[str, options.AnyOptionType]
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], CompileCheckMode]
     # code, args
     RunCheckCacheKey = T.Tuple[str, T.Tuple[str, ...]]
 
-    # typeshed
-    StrOrBytesPath = T.Union[str, bytes, os.PathLike[str], os.PathLike[bytes]]
-
 # Check major_versions_differ() if changing versioning scheme.
 #
 # Pip requires that RCs are named like this: '0.1.0.rc1'
 # But the corresponding Git tag needs to be '0.1.0rc1'
-version = '1.9.99'
+version = '1.10.0.rc1'
 
 # The next stable version when we are in dev. This is used to allow projects to
 # require meson version >=1.2.0 when using 1.1.99. FeatureNew won't warn when
@@ -219,7 +196,7 @@ class CMakeStateCache:
     def items(self) -> T.Iterator[T.Tuple[str, T.Dict[str, T.List[str]]]]:
         return iter(self.__cache.items())
 
-    def update(self, language: str, variables: T.Dict[str, T.List[str]]):
+    def update(self, language: str, variables: T.Dict[str, T.List[str]]) -> None:
         if language not in self.__cache:
             self.__cache[language] = {}
         self.__cache[language].update(variables)
@@ -251,7 +228,7 @@ class CoreData:
         self.regen_guid = str(uuid.uuid4()).upper()
         self.install_guid = str(uuid.uuid4()).upper()
         self.meson_command = meson_command
-        self.target_guids = {}
+        self.target_guids: T.Dict[str, str] = {}
         self.version = version
         self.cross_files = self.__load_config_files(cmd_options, scratch_dir, 'cross')
         self.compilers: PerMachine[T.Dict[str, Compiler]] = PerMachine(OrderedDict(), OrderedDict())
@@ -374,7 +351,7 @@ class CoreData:
             # key and target have the same subproject for consistency.
             # Now just do this to get things going.
             newkey = newkey.evolve(subproject=target.subproject)
-        (option_object, value) = self.optstore.get_value_object_and_value_for(newkey)
+        option_object, value = self.optstore.get_option_and_value_for(newkey)
         override = target.get_override(newkey.name)
         if override is not None:
             return option_object.validate_value(override)
@@ -412,6 +389,8 @@ class CoreData:
             return []
         actual_opt = self.optstore.get_value_for('optimization')
         actual_debug = self.optstore.get_value_for('debug')
+        assert isinstance(actual_opt, str) # for mypy
+        assert isinstance(actual_debug, bool) # for mypy
         if actual_opt != opt:
             result.append(('optimization', actual_opt, opt))
         if actual_debug != debug:
@@ -469,6 +448,8 @@ class CoreData:
             if skey not in self.optstore:
                 self.optstore.add_system_option(skey, copy.deepcopy(options.COMPILER_BASE_OPTIONS[key]))
 
+        comp.init_from_options()
+
         self.emit_base_options_warnings()
 
     def emit_base_options_warnings(self) -> None:
@@ -479,67 +460,6 @@ class CoreData:
                                      Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.''')
             mlog.warning(msg, once=True, fatal=False)
 
-def get_cmd_line_file(build_dir: str) -> str:
-    return os.path.join(build_dir, 'meson-private', 'cmd_line.txt')
-
-def read_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
-    filename = get_cmd_line_file(build_dir)
-    if not os.path.isfile(filename):
-        return
-
-    config = CmdLineFileParser()
-    config.read(filename)
-
-    # Do a copy because config is not really a dict. options.cmd_line_options
-    # overrides values from the file.
-    d = {OptionKey.from_string(k): v for k, v in config['options'].items()}
-    d.update(options.cmd_line_options)
-    options.cmd_line_options = d
-
-    properties = config['properties']
-    if not options.cross_file:
-        options.cross_file = ast.literal_eval(properties.get('cross_file', '[]'))
-    if not options.native_file:
-        # This will be a string in the form: "['first', 'second', ...]", use
-        # literal_eval to get it into the list of strings.
-        options.native_file = ast.literal_eval(properties.get('native_file', '[]'))
-
-def write_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
-    filename = get_cmd_line_file(build_dir)
-    config = CmdLineFileParser()
-
-    properties: OrderedDict[str, str] = OrderedDict()
-    if options.cross_file:
-        properties['cross_file'] = options.cross_file
-    if options.native_file:
-        properties['native_file'] = options.native_file
-
-    config['options'] = {str(k): str(v) for k, v in options.cmd_line_options.items()}
-    config['properties'] = properties
-    with open(filename, 'w', encoding='utf-8') as f:
-        config.write(f)
-
-def update_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
-    filename = get_cmd_line_file(build_dir)
-    config = CmdLineFileParser()
-    config.read(filename)
-    for k, v in options.cmd_line_options.items():
-        keystr = str(k)
-        if v is not None:
-            config['options'][keystr] = str(v)
-        elif keystr in config['options']:
-            del config['options'][keystr]
-
-    with open(filename, 'w', encoding='utf-8') as f:
-        config.write(f)
-
-def format_cmd_line_options(options: SharedCMDOptions) -> str:
-    cmdline = ['-D{}={}'.format(str(k), v) for k, v in options.cmd_line_options.items()]
-    if options.cross_file:
-        cmdline += [f'--cross-file={f}' for f in options.cross_file]
-    if options.native_file:
-        cmdline += [f'--native-file={f}' for f in options.native_file]
-    return ' '.join([shlex.quote(x) for x in cmdline])
 
 def major_versions_differ(v1: str, v2: str) -> bool:
     v1_major, v1_minor = v1.rsplit('.', 1)
@@ -567,77 +487,6 @@ def save(obj: CoreData, build_dir: str) -> str:
         os.fsync(f.fileno())
     os.replace(tempfilename, filename)
     return filename
-
-
-class KeyNoneAction(argparse.Action):
-    """
-    Custom argparse Action that stores values in a dictionary as keys with value None.
-    """
-
-    def __init__(self, option_strings, dest, nargs=None, **kwargs: object) -> None:
-        assert nargs is None or nargs == 1
-        super().__init__(option_strings, dest, nargs=1, **kwargs)
-
-    def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace,
-                 arg: T.List[str], option_string: str = None) -> None:
-        current_dict = getattr(namespace, self.dest)
-        if current_dict is None:
-            current_dict = {}
-            setattr(namespace, self.dest, current_dict)
-
-        key = OptionKey.from_string(arg[0])
-        current_dict[key] = None
-
-
-class KeyValueAction(argparse.Action):
-    """
-    Custom argparse Action that parses KEY=VAL arguments and stores them in a dictionary.
-    """
-
-    def __init__(self, option_strings, dest, nargs=None, **kwargs: object) -> None:
-        assert nargs is None or nargs == 1
-        super().__init__(option_strings, dest, nargs=1, **kwargs)
-
-    def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace,
-                 arg: T.List[str], option_string: str = None) -> None:
-        current_dict = getattr(namespace, self.dest)
-        if current_dict is None:
-            current_dict = {}
-            setattr(namespace, self.dest, current_dict)
-
-        try:
-            keystr, value = arg[0].split('=', 1)
-            key = OptionKey.from_string(keystr)
-            current_dict[key] = value
-        except ValueError:
-            parser.error(f'The argument for option {option_string!r} must be in OPTION=VALUE format.')
-
-
-def register_builtin_arguments(parser: argparse.ArgumentParser) -> None:
-    for n, b in options.BUILTIN_OPTIONS.items():
-        options.option_to_argparse(b, n, parser, '')
-    for n, b in options.BUILTIN_OPTIONS_PER_MACHINE.items():
-        options.option_to_argparse(b, n, parser, ' (just for host machine)')
-        options.option_to_argparse(b, n.as_build(), parser, ' (just for build machine)')
-    parser.add_argument('-D', action=KeyValueAction, dest='cmd_line_options', default={}, metavar="option=value",
-                        help='Set the value of an option, can be used several times to set multiple options.')
-
-def parse_cmd_line_options(args: SharedCMDOptions) -> None:
-    # Merge builtin options set with --option into the dict.
-    for key in chain(
-            options.BUILTIN_OPTIONS.keys(),
-            (k.as_build() for k in options.BUILTIN_OPTIONS_PER_MACHINE.keys()),
-            options.BUILTIN_OPTIONS_PER_MACHINE.keys(),
-    ):
-        name = str(key)
-        value = getattr(args, name, None)
-        if value is not None:
-            if key in args.cmd_line_options:
-                cmdline_name = options.argparse_name_to_arg(name)
-                raise MesonException(
-                    f'Got argument {name} as both -D{name} and {cmdline_name}. Pick one.')
-            args.cmd_line_options[key] = value
-            delattr(args, name)
 
 
 FORBIDDEN_TARGET_NAMES = frozenset({

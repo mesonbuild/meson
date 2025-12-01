@@ -8,6 +8,7 @@ import typing as T
 
 from . import backends
 from .. import build
+from .. import compilers
 from .. import mesonlib
 from .. import mlog
 from ..arglist import CompilerArgs
@@ -1512,7 +1513,7 @@ class XCodeBackend(backends.Backend):
             phase_dict.add_item('files', file_arr)
             for s in self.build_targets[name].sources:
                 s = os.path.join(s.subdir, s.fname)
-                if not self.environment.is_header(s):
+                if not compilers.is_header(s):
                     file_arr.add_item(self.buildfile_ids[(name, s)], os.path.join(self.environment.get_source_dir(), s))
             generator_id = 0
             for gt in t.generated:
@@ -1661,7 +1662,7 @@ class XCodeBackend(backends.Backend):
             # Swift can import declarations from C-based code using bridging headers.
             # There can only be one header, and it must be included as a source file.
             for i in target.get_sources():
-                if self.environment.is_header(i) and is_swift:
+                if compilers.is_header(i) and is_swift:
                     relh = i.rel_to_builddir(self.build_to_src)
                     bridging_header = os.path.normpath(os.path.join(self.environment.get_build_dir(), relh))
                     break
@@ -1742,8 +1743,8 @@ class XCodeBackend(backends.Backend):
                     continue
                 # Start with warning args
                 warn_args = compiler.get_warn_args(self.get_target_option(target, 'warning_level'))
-                std_args = compiler.get_option_compile_args(target, self.environment, target.subproject)
-                std_args += compiler.get_option_std_args(target, self.environment, target.subproject)
+                std_args = compiler.get_option_compile_args(target, target.subproject)
+                std_args += compiler.get_option_std_args(target, target.subproject)
                 # Add compile args added using add_project_arguments()
                 pargs = self.build.projects_args[target.for_machine].get(target.subproject, {}).get(lang, [])
                 # Add compile args added using add_global_arguments()
@@ -1801,9 +1802,7 @@ class XCodeBackend(backends.Backend):
                 # Xcode uses GCC_PREFIX_HEADER which only allows one file per target/executable. Precompiling various header files and
                 # applying a particular pch to each source file will require custom scripts (as a build phase) and build flags per each
                 # file. Since Xcode itself already discourages precompiled headers in favor of modules we don't try much harder here.
-                pchs = target.get_pch('c') + target.get_pch('cpp') + target.get_pch('objc') + target.get_pch('objcpp')
-                # Make sure to use headers (other backends require implementation files like *.c *.cpp, etc; these should not be used here)
-                pchs = [pch for pch in pchs if pch.endswith('.h') or pch.endswith('.hh') or pch.endswith('hpp')]
+                pchs = [t[0] for t in [target.pch['c'], target.pch['cpp']] if t is not None]
                 if pchs:
                     if len(pchs) > 1:
                         mlog.warning(f'Unsupported Xcode configuration: More than 1 precompiled header found "{pchs!s}". Target "{target.name}" might not compile correctly.')

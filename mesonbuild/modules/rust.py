@@ -21,7 +21,7 @@ from ..interpreter.type_checking import (
 )
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
 from ..interpreter.interpreterobjects import Doctest
-from ..mesonlib import File, MesonException, PerMachine
+from ..mesonlib import File, MachineChoice, MesonException, PerMachine
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
@@ -181,7 +181,7 @@ class RustModule(ExtensionModule):
 
         new_target_kwargs = T.cast('ExecutableKeywordArguments', base_target.original_kwargs.copy())
         del new_target_kwargs['rust_crate_type']
-        for kw in ('pic', 'prelink', 'rust_abi', 'version', 'soversion', 'darwin_versions'):
+        for kw in ('pic', 'prelink', 'rust_abi', 'version', 'soversion', 'darwin_versions', 'shortname'):
             if kw in new_target_kwargs:
                 del new_target_kwargs[kw]  # type: ignore[misc]
 
@@ -272,7 +272,7 @@ class RustModule(ExtensionModule):
 
         if self.rustdoc[base_target.for_machine] is None:
             rustc = T.cast('RustCompiler', base_target.compilers['rust'])
-            rustdoc = rustc.get_rustdoc(state.environment)
+            rustdoc = rustc.get_rustdoc()
             if rustdoc:
                 self.rustdoc[base_target.for_machine] = ExternalProgram(rustdoc.get_exe())
             else:
@@ -494,8 +494,8 @@ class RustModule(ExtensionModule):
     @typed_pos_args('rust.proc_macro', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('rust.proc_macro', *SHARED_LIB_KWS, allow_unknown=True)
     def proc_macro(self, state: ModuleState, args: T.Tuple[str, SourcesVarargsType], kwargs: _kwargs.SharedLibrary) -> SharedLibrary:
-        kwargs['native'] = True  # type: ignore
-        kwargs['rust_crate_type'] = 'proc-macro'  # type: ignore
+        kwargs['native'] = MachineChoice.BUILD
+        kwargs['rust_crate_type'] = 'proc-macro'
         kwargs['rust_args'] = kwargs['rust_args'] + ['--extern', 'proc_macro']
         target = state._interpreter.build_target(state.current_node, args, kwargs, SharedLibrary)
         return target

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, InitVar
-import os, subprocess
+import sys, os, subprocess
 import argparse
 import asyncio
 import fnmatch
@@ -60,6 +60,9 @@ if T.TYPE_CHECKING:
         save: bool
 
 ALL_TYPES_STRING = ', '.join(ALL_TYPES)
+
+if sys.version_info >= (3, 14):
+    tarfile.TarFile.extraction_filter = staticmethod(tarfile.fully_trusted_filter)
 
 def read_archive_files(path: Path, base_path: Path) -> T.Set[Path]:
     if path.suffix == '.zip':

@@ -21,8 +21,8 @@ from mesonbuild.compilers.compilers import CompileCheckMode
 
 if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
+    from ...build import BuildTarget
     from ...options import MutableKeyedOptionDictType
-    from ...environment import Environment
     from ..compilers import Compiler
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
@@ -373,8 +373,8 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         self.can_compile_suffixes.add('sx')
 
     def get_pic_args(self) -> T.List[str]:
-        if self.info.is_windows() or self.info.is_cygwin() or self.info.is_darwin():
-            return [] # On Window and OS X, pic is always on.
+        if self.info.is_windows() or self.info.is_cygwin() or self.info.is_darwin() or self.info.is_os2():
+            return [] # On Window, OS X and OS/2, pic is always on.
         return ['-fPIC']
 
     def get_pie_args(self) -> T.List[str]:
@@ -401,23 +401,13 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return gnulike_default_include_dirs(tuple(self.get_exelist(ccache=False)), self.language).copy()
 
     @abc.abstractmethod
-    def openmp_flags(self, env: Environment) -> T.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         pass
 
     def gnu_symbol_visibility_args(self, vistype: str) -> T.List[str]:
         if vistype == 'inlineshidden' and self.language not in {'cpp', 'objcpp'}:
             vistype = 'hidden'
         return gnu_symbol_visibility_args[vistype]
-
-    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
-        if not isinstance(defsfile, str):
-            raise RuntimeError('Module definitions file should be str')
-        # On Windows targets, .def files may be specified on the linker command
-        # line like an object file.
-        if self.info.is_windows() or self.info.is_cygwin():
-            return [defsfile]
-        # For other targets, discard the .def file.
-        return []
 
     @staticmethod
     def get_argument_syntax() -> str:
@@ -437,9 +427,9 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return parameter_list
 
     @functools.lru_cache()
-    def _get_search_dirs(self, env: 'Environment') -> str:
+    def _get_search_dirs(self) -> str:
         extra_args = ['--print-search-dirs']
-        with self._build_wrapper('', env, extra_args=extra_args,
+        with self._build_wrapper('', extra_args=extra_args,
                                  dependencies=None, mode=CompileCheckMode.COMPILE,
                                  want_output=True) as p:
             return p.stdout
@@ -481,11 +471,11 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
                     result.append(unresolved)
         return result
 
-    def get_compiler_dirs(self, env: 'Environment', name: str) -> T.List[str]:
+    def get_compiler_dirs(self, name: str) -> T.List[str]:
         '''
         Get dirs from the compiler, either `libraries:` or `programs:`
         '''
-        stdo = self._get_search_dirs(env)
+        stdo = self._get_search_dirs()
         for line in stdo.split('\n'):
             if line.startswith(name + ':'):
                 return self._split_fetch_real_dirs(line.split('=', 1)[1])
@@ -496,7 +486,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # for their specific arguments
         return ['-flto']
 
-    def sanitizer_compile_args(self, value: T.List[str]) -> T.List[str]:
+    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], value: T.List[str]) -> T.List[str]:
         if not value:
             return value
         args = ['-fsanitize=' + ','.join(value)]
@@ -547,13 +537,21 @@ class GnuCompiler(GnuLikeCompiler):
     """
     id = 'gcc'
 
+    _COLOR_VERSION = '>=4.9.0'
+    _WPEDANTIC_VERSION = '>=4.8.0'
+    _LTO_AUTO_VERSION = '>=10.0'
+    _LTO_CACHE_VERSION = '>=15.1'
+    _USE_MOLD_VERSION = '>=12.0.1'
+
     def __init__(self, defines: T.Optional[T.Dict[str, str]]):
         super().__init__()
         self.defines = defines or {}
-        self.base_options.update({OptionKey('b_colorout'), OptionKey('b_lto_threads')})
-        self._has_color_support = mesonlib.version_compare(self.version, '>=4.9.0')
-        self._has_wpedantic_support = mesonlib.version_compare(self.version, '>=4.8.0')
-        self._has_lto_auto_support = mesonlib.version_compare(self.version, '>=10.0')
+        self.base_options.update({OptionKey('b_colorout'), OptionKey('b_lto_threads'),
+                                  OptionKey('b_thinlto_cache'), OptionKey('b_thinlto_cache_dir')})
+        self._has_color_support = mesonlib.version_compare(self.version, self._COLOR_VERSION)
+        self._has_wpedantic_support = mesonlib.version_compare(self.version, self._WPEDANTIC_VERSION)
+        self._has_lto_auto_support = mesonlib.version_compare(self.version, self._LTO_AUTO_VERSION)
+        self._has_lto_cache_support = mesonlib.version_compare(self.version, self._LTO_CACHE_VERSION)
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         if self._has_color_support:
@@ -590,15 +588,15 @@ class GnuCompiler(GnuLikeCompiler):
     def get_pch_suffix(self) -> str:
         return 'gch'
 
-    def openmp_flags(self, env: Environment) -> T.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         return ['-fopenmp']
 
-    def has_arguments(self, args: T.List[str], env: 'Environment', code: str,
+    def has_arguments(self, args: T.List[str], code: str,
                       mode: CompileCheckMode) -> T.Tuple[bool, bool]:
         # For some compiler command line arguments, the GNU compilers will
         # emit a warning on stderr indicating that an option is valid for a
         # another language, but still complete with exit_success
-        with self._build_wrapper(code, env, args, None, mode) as p:
+        with self._build_wrapper(code, args, None, mode) as p:
             result = p.returncode == 0
             if self.language in {'cpp', 'objcpp'} and 'is valid for C/ObjC' in p.stderr:
                 result = False
@@ -614,25 +612,54 @@ class GnuCompiler(GnuLikeCompiler):
     def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
         return [prelink_name], ['-r', '-o', prelink_name] + obj_list
 
-    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
+    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default',
+                             thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
+        args: T.List[str] = []
+
         if threads == 0:
             if self._has_lto_auto_support:
-                return ['-flto=auto']
-            # This matches clang's behavior of using the number of cpus, but
-            # obeying meson's MESON_NUM_PROCESSES convention.
-            return [f'-flto={mesonlib.determine_worker_count()}']
+                args.append('-flto=auto')
+            else:
+                # This matches gcc's behavior of using the number of cpus, but
+                # obeying meson's MESON_NUM_PROCESSES convention.
+                args.append(f'-flto={mesonlib.determine_worker_count()}')
         elif threads > 0:
-            return [f'-flto={threads}']
-        return super().get_lto_compile_args(threads=threads)
+            args.append(f'-flto={threads}')
+        else:
+            args.extend(super().get_lto_compile_args(threads=threads))
+
+        if thinlto_cache_dir is not None:
+            # We check for ThinLTO linker support above in get_lto_compile_args, and all of them support
+            # get_thinlto_cache_args as well
+            args.extend(self.get_thinlto_cache_args(thinlto_cache_dir))
+
+        return args
+
+    def get_thinlto_cache_args(self, path: str) -> T.List[str]:
+        # Unlike the ThinLTO support for Clang, everything is handled in GCC
+        # and the linker has no direct involvement other than the usual w/ LTO.
+        return [f'-flto-incremental={path}']
 
     @classmethod
     def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
-        if linker == 'mold' and mesonlib.version_compare(version, '>=12.0.1'):
+        if linker == 'mold' and mesonlib.version_compare(version, cls._USE_MOLD_VERSION):
             return ['-fuse-ld=mold']
         return super().use_linker_args(linker, version)
 
+    def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
+                          thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
+        args: T.List[str] = []
+        args.extend(self.get_lto_compile_args(threads=threads, thinlto_cache_dir=thinlto_cache_dir))
+        return args
+
     def get_profile_use_args(self) -> T.List[str]:
         return super().get_profile_use_args() + ['-fprofile-correction']
+
+    def get_always_args(self) -> T.List[str]:
+        args: T.List[str] = []
+        if self.info.is_os2() and self.get_linker_id() == 'emxomfld':
+            args += ['-Zomf']
+        return super().get_always_args() + args
 
 
 class GnuCStds(Compiler):

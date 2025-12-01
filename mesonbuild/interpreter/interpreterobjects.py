@@ -31,11 +31,12 @@ import typing as T
 if T.TYPE_CHECKING:
     from . import kwargs
     from ..cmake.interpreter import CMakeInterpreter
+    from ..dependencies.base import IncludeType
     from ..envconfig import MachineInfo
     from ..interpreterbase import FeatureCheckBase, SubProject, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs
     from .interpreter import Interpreter
 
-    from typing_extensions import TypedDict
+    from typing_extensions import Literal, TypedDict
 
     class EnvironmentSeparatorKW(TypedDict):
 
@@ -51,18 +52,36 @@ _ERROR_MSG_KW: KwargInfo[T.Optional[str]] = KwargInfo('error_message', (str, Non
 def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired',
                            subproject: 'SubProject',
                            feature_check: T.Optional[FeatureCheckBase] = None,
-                           default: bool = True) -> T.Tuple[bool, bool, T.Optional[str]]:
+                           default: bool = True
+                           ) -> T.Union[T.Tuple[Literal[True], bool, str],
+                                        T.Tuple[Literal[False], bool, None]]:
+    """Check common keyword arguments for required status.
+
+    This handles booleans vs feature option.
+
+    :param kwargs:
+      keyword arguments from the Interpreter, containing a `required` argument
+    :param subproject: The subproject this is
+    :param feature_check:
+        A custom feature check for this use of `required` with a
+        `UserFeatureOption`, defaults to None.
+    :param default:
+        The default value is `required` is not set in  `kwargs`, defaults to
+        True
+    :raises InterpreterException: If the type of `kwargs['required']` is invalid
+    :return:
+        a tuple of `disabled, required, feature_name`. If `disabled` is `True`
+        `feature_name` will be a string, otherwise it is `None`
+    """
     val = kwargs.get('required', default)
-    disabled = False
     required = False
-    feature: T.Optional[str] = None
     if isinstance(val, options.UserFeatureOption):
         if not feature_check:
             feature_check = FeatureNew('User option "feature"', '0.47.0')
         feature_check.use(subproject)
         feature = val.name
         if val.is_disabled():
-            disabled = True
+            return True, required, feature
         elif val.is_enabled():
             required = True
     elif isinstance(val, bool):
@@ -75,7 +94,7 @@ def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired',
     # TODO: this should be removed, and those callers should learn about FeatureOptions
     kwargs['required'] = required
 
-    return disabled, required, feature
+    return False, required, None
 
 def extract_search_dirs(kwargs: 'kwargs.ExtractSearchDirs') -> T.List[str]:
     search_dirs_str = mesonlib.stringlistify(kwargs.get('dirs', []))
@@ -94,7 +113,7 @@ class FeatureOptionHolder(ObjectHolder[options.UserFeatureOption]):
         super().__init__(option, interpreter)
         if option and option.is_auto():
             # TODO: we need to cast here because options is not a TypedDict
-            auto = T.cast('options.UserFeatureOption', self.env.coredata.optstore.get_value_object_for('auto_features'))
+            auto = T.cast('options.UserFeatureOption', self.env.coredata.optstore.resolve_option('auto_features'))
             self.held_object = copy.copy(auto)
             self.held_object.name = option.name
 
@@ -569,7 +588,16 @@ class DependencyHolder(ObjectHolder[Dependency]):
     @typed_pos_args('dependency.as_system', optargs=[str])
     @InterpreterObject.method('as_system')
     def as_system_method(self, args: T.Tuple[T.Optional[str]], kwargs: TYPE_kwargs) -> Dependency:
-        return self.held_object.generate_system_dependency(args[0] or 'system')
+        include_type: IncludeType
+        if args[0] is None:
+            include_type = 'system'
+        elif args[0] not in {'preserve', 'system', 'non-system'}:
+            raise InvalidArguments(
+                'Dependency.as_system: if an argument is given it must be one '
+                f'of: "preserve", "system", "non-system", not: "{args[0]}"')
+        else:
+            include_type = T.cast('IncludeType', args[0])
+        return self.held_object.generate_system_dependency(include_type)
 
     @FeatureNew('dependency.as_link_whole', '0.56.0')
     @noKwargs
@@ -638,6 +666,17 @@ class _ExternalProgramHolder(ObjectHolder[_EXTPROG]):
         path = self.held_object.get_path()
         assert path is not None
         return path
+
+    @noPosargs
+    @noKwargs
+    @FeatureNew('ExternalProgram.cmd_array', '1.10.0')
+    @InterpreterObject.method('cmd_array')
+    def cmd_array_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[str]:
+        if not self.found():
+            raise InterpreterException('Unable to get the path of a not-found external program')
+        cmd = self.held_object.get_command()
+        assert cmd is not None
+        return cmd
 
     @noPosargs
     @noKwargs
@@ -950,6 +989,8 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @typed_pos_args('extract_objects', varargs=(mesonlib.File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList))
     @InterpreterObject.method('extract_objects')
     def extract_objects_method(self, args: T.Tuple[T.List[T.Union[mesonlib.FileOrString, 'build.GeneratedTypes']]], kwargs: TYPE_nkwargs) -> build.ExtractedObjects:
+        if self.subproject != self.held_object.subproject:
+            raise InterpreterException('Tried to extract objects from a different subproject.')
         tobj = self._target_object
         unity_value = self.interpreter.coredata.get_option_for_target(tobj, "unity")
         is_unity = (unity_value == 'on' or (unity_value == 'subprojects' and tobj.subproject != ''))
@@ -1100,10 +1141,7 @@ class _CustomTargetHolder(ObjectHolder[_CT]):
     @noKwargs
     @InterpreterObject.method('to_list')
     def to_list_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[build.CustomTargetIndex]:
-        result = []
-        for i in self.held_object:
-            result.append(i)
-        return result
+        return list(self.held_object)
 
     @noKwargs
     @typed_operator(MesonOperator.INDEX, int)

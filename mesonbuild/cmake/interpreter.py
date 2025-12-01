@@ -786,12 +786,12 @@ class ConverterCustomTarget:
         mlog.log('  -- depends:      ', mlog.bold(str(self.depends)))
 
 class CMakeInterpreter:
-    def __init__(self, subdir: Path, install_prefix: Path, env: 'Environment', backend: 'Backend'):
+    def __init__(self, subdir: Path, env: 'Environment', backend: 'Backend'):
         self.subdir = subdir
         self.src_dir = Path(env.get_source_dir(), subdir)
         self.build_dir_rel = subdir / '__CMake_build'
         self.build_dir = Path(env.get_build_dir()) / self.build_dir_rel
-        self.install_prefix = install_prefix
+        self.install_prefix = Path(T.cast('str', env.coredata.optstore.get_value_for(OptionKey('prefix'))))
         self.env = env
         self.for_machine = MachineChoice.HOST # TODO make parameter
         self.backend_name = backend.name
@@ -842,6 +842,8 @@ class CMakeInterpreter:
         cmake_args = []
         cmake_args += cmake_get_generator_args(self.env)
         cmake_args += [f'-DCMAKE_INSTALL_PREFIX={self.install_prefix}']
+        libdir = self.env.coredata.optstore.get_value_for(OptionKey('libdir'))
+        cmake_args += [f'-DCMAKE_INSTALL_LIBDIR={libdir}']
         cmake_args += extra_cmake_options
         if not any(arg.startswith('-DCMAKE_BUILD_TYPE=') for arg in cmake_args):
             # Our build type is favored over any CMAKE_BUILD_TYPE environment variable

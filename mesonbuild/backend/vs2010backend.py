@@ -60,6 +60,10 @@ def autodetect_vs_version(build: T.Optional[build.Build]) -> backends.Backend:
        'Visual Studio\\2022' in vs_install_dir:
         from mesonbuild.backend.vs2022backend import Vs2022Backend
         return Vs2022Backend(build)
+    if vs_version == '18.0' or 'Visual Studio 26' in vs_install_dir or \
+       'Visual Studio\\2026' in vs_install_dir:
+        from mesonbuild.backend.vs2026backend import Vs2026Backend
+        return Vs2026Backend(build)
     if 'Visual Studio 10.0' in vs_install_dir:
         return Vs2010Backend(build)
     raise MesonException('Could not detect Visual Studio using VisualStudioVersion: {!r} or VSINSTALLDIR: {!r}!\n'
@@ -416,7 +420,8 @@ class Vs2010Backend(backends.Backend):
 
     def generate_solution(self, sln_filename: str, projlist: T.List[Project]) -> None:
         default_projlist = self.get_build_by_default_targets()
-        default_projlist.update(self.get_testlike_targets())
+        for t in self.get_testlike_targets():
+            default_projlist[t.get_id()] = t
         sln_filename_tmp = sln_filename + '~'
         # Note using the utf-8 BOM requires the blank line, otherwise Visual Studio Version Selector fails.
         # Without the BOM, VSVS fails if there is a blank line.
@@ -569,16 +574,16 @@ class Vs2010Backend(backends.Backend):
         objects = []
         languages = []
         for i in srclist:
-            if self.environment.is_header(i):
+            if compilers.is_header(i):
                 headers.append(i)
-            elif self.environment.is_object(i):
+            elif compilers.is_object(i):
                 objects.append(i)
-            elif self.environment.is_source(i):
+            elif compilers.is_source(i):
                 sources.append(i)
                 lang = self.lang_from_source_file(i)
                 if lang not in languages:
                     languages.append(lang)
-            elif self.environment.is_library(i):
+            elif compilers.is_library(i):
                 pass
             else:
                 # Everything that is not an object or source file is considered a header.
@@ -819,23 +824,27 @@ class Vs2010Backend(backends.Backend):
             return 'masm'
         raise MesonException(f'Could not guess language from source file {src}.')
 
-    def add_pch(self, pch_sources, lang, inc_cl):
+    def add_pch(self, pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
+                lang, inc_cl) -> None:
         if lang in pch_sources:
             self.use_pch(pch_sources, lang, inc_cl)
 
-    def create_pch(self, pch_sources, lang, inc_cl):
+    def create_pch(self, pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
+                   lang, inc_cl) -> None:
         pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
         pch.text = 'Create'
         self.add_pch_files(pch_sources, lang, inc_cl)
 
-    def use_pch(self, pch_sources, lang, inc_cl):
+    def use_pch(self, pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
+                lang, inc_cl) -> None:
         pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
         pch.text = 'Use'
         header = self.add_pch_files(pch_sources, lang, inc_cl)
         pch_include = ET.SubElement(inc_cl, 'ForcedIncludeFiles')
         pch_include.text = header + ';%(ForcedIncludeFiles)'
 
-    def add_pch_files(self, pch_sources, lang, inc_cl):
+    def add_pch_files(self, pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
+                      lang, inc_cl) -> str:
         header = os.path.basename(pch_sources[lang][0])
         pch_file = ET.SubElement(inc_cl, 'PrecompiledHeaderFile')
         # When USING PCHs, MSVC will not do the regular include
@@ -1023,9 +1032,9 @@ class Vs2010Backend(backends.Backend):
                 file_args[l] += compilers.get_base_compile_args(
                     target, comp, self.environment)
                 file_args[l] += comp.get_option_compile_args(
-                    target, self.environment, target.subproject)
+                    target, target.subproject)
                 file_args[l] += comp.get_option_std_args(
-                    target, self.environment, target.subproject)
+                    target, target.subproject)
 
         # Add compile args added using add_project_arguments()
         for l, args in self.build.projects_args[target.for_machine].get(target.subproject, {}).items():
@@ -1143,11 +1152,10 @@ class Vs2010Backend(backends.Backend):
 
         return (target_args, file_args), (target_defines, file_defines), (target_inc_dirs, file_inc_dirs)
 
-    @staticmethod
-    def get_build_args(compiler, optimization_level: str, debug: bool, sanitize: str) -> T.List[str]:
+    def get_build_args(self, target: build.BuildTarget, compiler, optimization_level: str, debug: bool, sanitize: str) -> T.List[str]:
         build_args = compiler.get_optimization_args(optimization_level)
         build_args += compiler.get_debug_args(debug)
-        build_args += compiler.sanitizer_compile_args(sanitize)
+        build_args += compiler.sanitizer_compile_args(target, sanitize)
 
         return build_args
 
@@ -1462,7 +1470,7 @@ class Vs2010Backend(backends.Backend):
         # to be after all internal and external libraries so that unresolved
         # symbols from those can be found here. This is needed when the
         # *_winlibs that we want to link to are static mingw64 libraries.
-        extra_link_args += compiler.get_option_link_args(target, self.environment, target.subproject)
+        extra_link_args += compiler.get_option_link_args(target, target.subproject)
         (additional_libpaths, additional_links, extra_link_args) = self.split_link_args(extra_link_args.to_native())
 
         # Add more libraries to be linked if needed
@@ -1481,13 +1489,13 @@ class Vs2010Backend(backends.Backend):
                     # Unfortunately, we can't use self.object_filename_from_source()
                     for gen in l.genlist:
                         for src in gen.get_outputs():
-                            if self.environment.is_source(src):
+                            if compilers.is_source(src):
                                 path = self.get_target_generated_dir(t, gen, src)
                                 gen_src_ext = '.' + os.path.splitext(path)[1][1:]
                                 extra_link_args.append(path[:-len(gen_src_ext)] + '.obj')
 
                     for src in l.srclist:
-                        if self.environment.is_source(src):
+                        if compilers.is_source(src):
                             target_private_dir = self.relpath(self.get_target_private_dir(t),
                                                               self.get_target_dir(t))
                             rel_obj = self.object_filename_from_source(t, compiler, src, target_private_dir)
@@ -1653,7 +1661,7 @@ class Vs2010Backend(backends.Backend):
         gen_hdrs += custom_hdrs
 
         compiler = self._get_cl_compiler(target)
-        build_args = Vs2010Backend.get_build_args(compiler, self.optimization, self.debug, self.sanitize)
+        build_args = self.get_build_args(target, compiler, self.optimization, self.debug, self.sanitize)
 
         assert isinstance(target, (build.Executable, build.SharedLibrary, build.StaticLibrary, build.SharedModule)), 'for mypy'
         # Prefix to use to access the build root from the vcxproj dir
@@ -1686,25 +1694,25 @@ class Vs2010Backend(backends.Backend):
             else:
                 return False
 
-        pch_sources = {}
+        pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]] = {}
         if self.target_uses_pch(target):
             for lang in ['c', 'cpp']:
-                pch = target.get_pch(lang)
+                pch = target.pch[lang]
                 if not pch:
                     continue
                 if compiler.id == 'msvc':
-                    if len(pch) == 1:
+                    if pch[1] is None:
                         # Auto generate PCH.
                         src = os.path.join(proj_to_build_root, self.create_msvc_pch_implementation(target, lang, pch[0]))
                         pch_header_dir = os.path.dirname(os.path.join(proj_to_src_dir, pch[0]))
                     else:
                         src = os.path.join(proj_to_src_dir, pch[1])
                         pch_header_dir = None
-                    pch_sources[lang] = [pch[0], src, lang, pch_header_dir]
+                    pch_sources[lang] = (pch[0], src, lang, pch_header_dir)
                 else:
                     # I don't know whether its relevant but let's handle other compilers
                     # used with a vs backend
-                    pch_sources[lang] = [pch[0], None, lang, None]
+                    pch_sources[lang] = (pch[0], None, lang, None)
 
         previous_includes = []
         if len(headers) + len(gen_hdrs) + len(target.extra_files) + len(pch_sources) > 0:

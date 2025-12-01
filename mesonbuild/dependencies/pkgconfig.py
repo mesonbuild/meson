@@ -25,6 +25,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..utils.core import EnvironOrDict
     from ..interpreter.type_checking import PkgConfigDefineType
+    from .base import DependencyObjectKWs
 
 class PkgConfigInterface:
     '''Base class wrapping a pkg-config implementation'''
@@ -305,7 +306,7 @@ class PkgConfigCLI(PkgConfigInterface):
 
 class PkgConfigDependency(ExternalDependency):
 
-    def __init__(self, name: str, environment: Environment, kwargs: T.Dict[str, T.Any],
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs,
                  language: T.Optional[str] = None,
                  extra_paths: T.Optional[T.List[str]] = None) -> None:
         super().__init__(DependencyTypeName('pkgconfig'), environment, kwargs, language=language)
@@ -487,9 +488,8 @@ class PkgConfigDependency(ExternalDependency):
                 if lib in libs_found:
                     continue
                 if self.clib_compiler:
-                    args = self.clib_compiler.find_library(lib[2:], self.env,
-                                                           libpaths, self.libtype,
-                                                           lib_prefix_warning=False)
+                    args = self.clib_compiler.find_library(
+                        lib[2:], libpaths, self.libtype, lib_prefix_warning=False)
                 # If the project only uses a non-clib language such as D, Rust,
                 # C#, Python, etc, all we can do is limp along by adding the
                 # arguments as-is and then adding the libpaths at the end.

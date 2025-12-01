@@ -1523,7 +1523,7 @@ class LinuxlikeTests(BasePlatformTests):
         env = get_fake_env()
         cc = detect_c_compiler(env, MachineChoice.HOST)
         linker = cc.linker
-        if not linker.export_dynamic_args(env):
+        if not linker.export_dynamic_args():
             raise SkipTest('Not applicable for linkers without --export-dynamic')
         self.init(testdir)
         build_ninja = os.path.join(self.builddir, 'build.ninja')
@@ -1759,16 +1759,13 @@ class LinuxlikeTests(BasePlatformTests):
             self.assertNotIn('-lfoo', content)
 
     def test_prelinking(self):
-        # Prelinking currently only works on recently new GNU toolchains.
-        # Skip everything else. When support for other toolchains is added,
-        # remove limitations as necessary.
-        if 'clang' in os.environ.get('CC', 'dummy') and not is_osx():
-            raise SkipTest('Prelinking not supported with Clang.')
         testdir = os.path.join(self.unit_test_dir, '86 prelinking')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.id == "gcc" and not version_compare(cc.version, '>=9'):
             raise SkipTest('Prelinking not supported with gcc 8 or older.')
+        if cc.id == 'clang' and not version_compare(cc.version, '>=14'):
+            raise SkipTest('Prelinking not supported with Clang 13 or older.')
         self.init(testdir)
         self.build()
         outlib = os.path.join(self.builddir, 'libprelinked.a')
@@ -1893,7 +1890,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertIn('build t13-e1: c_LINKER t13-e1.p/main.c.o | libt12-s1.a libt13-s3.a\n', content)
 
     def test_top_options_in_sp(self):
-        testdir = os.path.join(self.unit_test_dir, '126 pkgsubproj')
+        testdir = os.path.join(self.unit_test_dir, '127 pkgsubproj')
         self.init(testdir)
 
     def test_unreadable_dir_in_declare_dep(self):
@@ -1971,8 +1968,25 @@ class LinuxlikeTests(BasePlatformTests):
             self.check_has_flag(compdb, sub1src, '-O2')
             self.check_has_flag(compdb, sub2src, '-O2')
 
+    @skip_if_not_language('rust')
+    @skip_if_not_base_option('b_sanitize')
+    def test_rust_sanitizers(self):
+        args = ['-Drust_nightly=disabled', '-Db_lundef=false']
+        testdir = os.path.join(self.rust_test_dir, '28 mixed')
+        tests = ['address']
+
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cpp = detect_cpp_compiler(env, MachineChoice.HOST)
+        if cpp.find_library('ubsan', []):
+            tests += ['address,undefined']
+
+        for value in tests:
+            self.init(testdir, extra_args=args + ['-Db_sanitize=' + value])
+            self.build()
+            self.wipe()
+
     def test_sanitizers(self):
-        testdir = os.path.join(self.unit_test_dir, '128 sanitizers')
+        testdir = os.path.join(self.unit_test_dir, '129 sanitizers')
 
         with self.subTest('no b_sanitize value'):
             try:

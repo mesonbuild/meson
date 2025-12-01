@@ -1,4 +1,4 @@
-project('find program')
+project('find program', meson_version: '>= 1.10.0',)
 
 if build_machine.system() == 'windows'
   # Things Windows does not provide:
@@ -40,3 +40,21 @@ assert(not prog.found(), 'Program should not be found')
 
 prog = find_program('test_subdir.py', dirs : ['/nonexistent', meson.current_source_dir() / 'scripts'])
 assert(prog.found(), 'Program should be found')
+
+prog = find_program('print-version.py')
+if build_machine.system() != 'cygwin'
+  assert(prog.cmd_array() != [prog.full_path()])
+  assert(prog.cmd_array().length() == 2)
+endif
+
+ret = run_command(prog.cmd_array(),'--version', check: true)
+assert(ret.returncode() == 0)
+assert(ret.stdout().strip() == '1.0')
+
+if build_machine.system() == 'windows'
+  prog = find_program('cmd.exe')
+  assert(prog.cmd_array() == [prog.full_path()])
+else
+  prog = find_program('ld')
+  assert(prog.cmd_array() == [prog.full_path()])
+endif

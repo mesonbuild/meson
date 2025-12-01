@@ -29,7 +29,7 @@ import unicodedata
 import xml.etree.ElementTree as et
 
 from . import build
-from . import environment
+from . import tooldetect
 from . import mlog
 from .coredata import MesonVersionMismatchException, major_versions_differ
 from .coredata import version as coredata_version
@@ -793,6 +793,7 @@ class JsonLogfileBuilder(TestFileLogger):
             'name': result.name,
             'stdout': result.stdo,
             'result': result.res.value,
+            'is_fail': result.res.is_bad(),
             'starttime': result.starttime,
             'duration': result.duration,
             'returncode': result.returncode,
@@ -1702,7 +1703,7 @@ class TestHarness:
         if self.options.no_rebuild:
             return
 
-        self.ninja = environment.detect_ninja()
+        self.ninja = tooldetect.detect_ninja()
         if not self.ninja:
             print("Can't find ninja, can't rebuild test.")
             # If ninja can't be found return exit code 127, indicating command
@@ -1890,7 +1891,12 @@ class TestHarness:
             raise RuntimeError('Test harness object can only be used once.')
         self.is_run = True
         tests = self.get_tests()
-        rebuild_only_tests = tests if self.options.args else []
+        # NOTE: If all tests are selected anyway, we pass
+        # an empty list to `rebuild_deps`, which then will execute
+        # the "meson-test-prereq" ninja target as a fallback.
+        # This prevents situations, where ARG_MAX may overflow
+        # if there are many targets.
+        rebuild_only_tests = tests if tests != self.tests else []
         if not tests:
             return 0
         if not self.options.no_rebuild and not rebuild_deps(self.ninja, self.options.wd, rebuild_only_tests, self.options.benchmark):
@@ -1921,7 +1927,7 @@ class TestHarness:
             self.run_tests(runners)
         finally:
             os.chdir(startdir)
-        return self.total_failure_count()
+        return 1 if self.total_failure_count() > 0 else 0
 
     @staticmethod
     def split_suite_string(suite: str) -> T.Tuple[str, str]:
@@ -1939,29 +1945,22 @@ class TestHarness:
             for prjst in test.suite:
                 (prj, st) = TestHarness.split_suite_string(prjst)
 
-                # the SUITE can be passed as
-                #     suite_name
-                # or
-                #     project_name:suite_name
-                # so we need to select only the test belonging to project_name
-
-                # this if handle the first case (i.e., SUITE == suite_name)
-
-                # in this way we can run tests belonging to different
-                # (sub)projects which share the same suite_name
-                if not st_match and st == prj_match:
-                    return True
-
-                # these two conditions are needed to handle the second option
-                # i.e., SUITE == project_name:suite_name
-
-                # in this way we select the only the tests of
-                # project_name with suite_name
-                if prj_match and prj != prj_match:
-                    continue
-                if st_match and st != st_match:
-                    continue
-                return True
+                # The SUITE can be passed as
+                # - `name` - We select tests belonging to (sub)project OR suite
+                #   with the given name.
+                # - `:suite_name` - We select tests belonging to any (sub)projects
+                #   and in suite_name.
+                # - `project_name:suite_name` - We select tests belonging
+                #   to project_name and in suite_name.
+                if not st_match:
+                    if prj_match in {prj, st}:
+                        return True
+                elif not prj_match:
+                    if st == st_match:
+                        return True
+                else:
+                    if prj == prj_match and st == st_match:
+                        return True
         return False
 
     def test_suitable(self, test: TestSerialisation) -> bool:
@@ -2080,21 +2079,25 @@ class TestHarness:
         return wrap
 
     def get_pretty_suite(self, test: TestSerialisation) -> str:
-        if len(self.suites) > 1 and test.suite:
-            rv = TestHarness.split_suite_string(test.suite[0])[0]
-            s = "+".join(TestHarness.split_suite_string(s)[1] for s in test.suite)
+        assert test.suite, 'Interpreter should ensure there is always at least one suite'
+        prj = TestHarness.split_suite_string(test.suite[0])[0]
+        suites: T.List[str] = []
+        for i in test.suite:
+            s = TestHarness.split_suite_string(i)[1]
             if s:
-                rv += ":"
-            return rv + s + " / " + test.name
-        else:
-            return test.name
+                suites.append(s)
+        name = f'{prj}:{test.name}'
+        if suites:
+            s = '+'.join(suites)
+            name = f'{s} - {name}'
+        return name
 
     def run_tests(self, runners: T.List[SingleTestRunner]) -> None:
         try:
             self.open_logfiles()
 
             # TODO: this is the default for python 3.8
-            if sys.platform == 'win32':
+            if sys.platform == 'win32' and sys.version_info < (3, 8):
                 asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
             asyncio.run(self._run_tests(runners))

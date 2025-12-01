@@ -15,7 +15,7 @@ import sys
 import typing as T
 import re
 
-from . import build, environment
+from . import build, tooldetect
 from .backend.backends import InstallData
 from .mesonlib import (MesonException, Popen_safe, RealPathAction, is_windows,
                        is_aix, setup_vsenv, pickle_load, is_osx)
@@ -803,7 +803,7 @@ def rebuild_all(wd: str, backend: str) -> bool:
         print('Only ninja backend is supported to rebuild the project before installation.')
         return True
 
-    ninja = environment.detect_ninja()
+    ninja = tooldetect.detect_ninja()
     if not ninja:
         print("Can't find ninja, can't rebuild test.")
         return False

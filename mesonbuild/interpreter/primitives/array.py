@@ -7,12 +7,14 @@ import typing as T
 from ...interpreterbase import (
     InterpreterObject,
     IterableObject,
+    KwargInfo,
     MesonOperator,
     ObjectHolder,
     typed_operator,
     noKwargs,
     noPosargs,
     noArgsFlattening,
+    typed_kwargs,
     typed_pos_args,
     FeatureNew,
 
@@ -79,6 +81,18 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
                 raise InvalidArguments(f'Array index {index} is out of bounds for array of size {len(self.held_object)}.')
             return args[1]
         return self.held_object[index]
+
+    @FeatureNew('array.slice', '1.10.0')
+    @typed_kwargs('array.slice', KwargInfo('step', int, default=1))
+    @typed_pos_args('array.slice', optargs=[int, int])
+    @InterpreterObject.method('slice')
+    def slice_method(self, args: T.Tuple[T.Optional[int], T.Optional[int]], kwargs: T.Dict[str, int]) -> TYPE_var:
+        start, stop = args
+        if start is not None and stop is None:
+            raise InvalidArguments('Providing only one positional slice argument is ambiguous.')
+        if kwargs['step'] == 0:
+            raise InvalidArguments('Slice step cannot be zero.')
+        return self.held_object[start:stop:kwargs['step']]
 
     @typed_operator(MesonOperator.PLUS, object)
     @InterpreterObject.operator(MesonOperator.PLUS)

@@ -1,7 +1,0 @@
-{
-    "stdout": [
-      {
-        "line": "test cases/failing/132 module use inside project decl/meson.build:4:21: ERROR: Module methods (python.find_installation) cannot be invoked during project declaration."
-      }
-    ]
-  }

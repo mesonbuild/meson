@@ -6,9 +6,8 @@ from __future__ import annotations
 import subprocess
 import shutil
 import tempfile
-from ..environment import detect_ninja, detect_scanbuild
-from ..coredata import get_cmd_line_file
-from ..machinefile import CmdLineFileParser
+from ..cmdline import get_cmd_line_file, CmdLineFileParser
+from ..tooldetect import detect_ninja, detect_scanbuild
 from ..mesonlib import windows_proof_rmtree, determine_worker_count
 from pathlib import Path
 import typing as T

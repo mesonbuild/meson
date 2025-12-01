@@ -35,9 +35,12 @@ hello_cpp_meson_template = '''project(
 dependencies = [{dependencies}
 ]
 
+sources = [{source_files}
+]
+
 exe = executable(
   '{exe_name}',
-  '{source_name}',
+  [sources],
   install : true,
   dependencies : dependencies,
 )
@@ -51,6 +54,12 @@ lib_hpp_template = '''#pragma once
     #define {utoken}_PUBLIC __declspec(dllexport)
   #else
     #define {utoken}_PUBLIC __declspec(dllimport)
+  #endif
+#elif defined __OS2__
+  #ifdef BUILDING_{utoken}
+    #define {utoken}_PUBLIC __declspec(dllexport)
+  #else
+    #define {utoken}_PUBLIC
   #endif
 #else
   #ifdef BUILDING_{utoken}
@@ -121,9 +130,13 @@ dependencies = [{dependencies}
 # not the executables that use the library.
 lib_args = ['-DBUILDING_{utoken}']
 
+sources = [{source_files}
+
+]
+
 lib = library(
   '{lib_name}',
-  '{source_file}',
+  [sources],
   install : true,
   cpp_shared_args : lib_args,
   gnu_symbol_visibility : 'hidden',

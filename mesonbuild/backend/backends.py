@@ -24,6 +24,7 @@ from .. import dependencies
 from .. import programs
 from .. import mesonlib
 from .. import mlog
+from .. import compilers
 from ..compilers import detect, lang_suffixes
 from ..mesonlib import (
     File, MachineChoice, MesonException, MesonBugException, OrderedSet,
@@ -245,6 +246,9 @@ def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None) -
     elif backend == 'vs2022':
         from . import vs2022backend
         return vs2022backend.Vs2022Backend(build)
+    elif backend == 'vs2026':
+        from . import vs2026backend
+        return vs2026backend.Vs2026Backend(build)
     elif backend == 'xcode':
         from . import xcodebackend
         return xcodebackend.XCodeBackend(build)
@@ -335,9 +339,9 @@ class Backend:
 
     def get_build_dir_include_args(self, target: build.BuildTarget, compiler: 'Compiler', *, absolute_path: bool = False) -> T.List[str]:
         if absolute_path:
-            curdir = os.path.join(self.build_dir, target.get_subdir())
+            curdir = os.path.join(self.build_dir, target.get_builddir())
         else:
-            curdir = target.get_subdir()
+            curdir = target.get_builddir()
             if curdir == '':
                 curdir = '.'
         return compiler.get_include_args(curdir, False)
@@ -372,9 +376,12 @@ class Backend:
             # this produces no output, only a dummy top-level name
             dirname = ''
         elif self.environment.coredata.optstore.get_value_for(OptionKey('layout')) == 'mirror':
-            dirname = target.get_subdir()
+            dirname = target.get_builddir()
         else:
             dirname = 'meson-out'
+            build_subdir = target.get_build_subdir()
+            if build_subdir:
+                dirname = os.path.join(dirname, build_subdir)
         return dirname
 
     def get_target_dir_relative_to(self,
@@ -487,7 +494,7 @@ class Backend:
         for obj in objects:
             if isinstance(obj, str):
                 o = os.path.join(proj_dir_to_build_root,
-                                 self.build_to_src, target.get_subdir(), obj)
+                                 self.build_to_src, target.get_builddir(), obj)
                 obj_list.append(o)
             elif isinstance(obj, mesonlib.File):
                 if obj.is_built:
@@ -589,7 +596,7 @@ class Backend:
         else:
             if exe_cmd[0].endswith('.jar'):
                 exe_cmd = ['java', '-jar'] + exe_cmd
-            elif exe_cmd[0].endswith('.exe') and not (mesonlib.is_windows() or mesonlib.is_cygwin() or mesonlib.is_wsl()):
+            elif exe_cmd[0].endswith('.exe') and not (mesonlib.is_windows() or mesonlib.is_cygwin() or mesonlib.is_wsl() or machine.is_os2()):
                 exe_cmd = ['mono'] + exe_cmd
             exe_wrapper = None
 
@@ -812,18 +819,19 @@ class Backend:
         # Filter out headers and all non-source files
         sources: T.List['FileOrString'] = []
         for s in raw_sources:
-            if self.environment.is_source(s):
+            if compilers.is_source(s):
                 sources.append(s)
-            elif self.environment.is_object(s):
+            elif compilers.is_object(s):
                 result.append(s.relative_name())
 
         # MSVC generate an object file for PCH
         if extobj.pch and self.target_uses_pch(extobj.target):
             for lang, pch in extobj.target.pch.items():
-                compiler = extobj.target.compilers[lang]
-                if compiler.get_argument_syntax() == 'msvc':
-                    objname = self.get_msvc_pch_objname(lang, pch)
-                    result.append(os.path.join(targetdir, objname))
+                if pch:
+                    compiler = extobj.target.compilers[lang]
+                    if compiler.get_argument_syntax() == 'msvc':
+                        objname = self.get_msvc_pch_objname(lang, pch)
+                        result.append(os.path.join(targetdir, objname))
 
         # extobj could contain only objects and no sources
         if not sources:
@@ -858,13 +866,13 @@ class Backend:
         args: T.List[str] = []
         pchpath = self.get_target_private_dir(target)
         includeargs = compiler.get_include_args(pchpath, False)
-        p = target.get_pch(compiler.get_language())
+        p = target.pch.get(compiler.get_language())
         if p:
             args += compiler.get_pch_use_args(pchpath, p[0])
         return includeargs + args
 
-    def get_msvc_pch_objname(self, lang: str, pch: T.List[str]) -> str:
-        if len(pch) == 1:
+    def get_msvc_pch_objname(self, lang: str, pch: T.Tuple[str, T.Optional[str]]) -> str:
+        if pch[1] is None:
             # Same name as in create_msvc_pch_implementation() below.
             return f'meson_pch-{lang}.obj'
         return os.path.splitext(pch[1])[0] + '.obj'
@@ -930,8 +938,8 @@ class Backend:
             commands += compiler.get_werror_args()
         # Add compile args for c_* or cpp_* build options set on the
         # command-line or default_options inside project().
-        commands += compiler.get_option_compile_args(target, self.environment, target.subproject)
-        commands += compiler.get_option_std_args(target, self.environment, target.subproject)
+        commands += compiler.get_option_compile_args(target, target.subproject)
+        commands += compiler.get_option_std_args(target, target.subproject)
 
         optimization = self.get_target_option(target, 'optimization')
         assert isinstance(optimization, str), 'for mypy'
@@ -994,7 +1002,7 @@ class Backend:
                         if dep.version_reqs is not None:
                             for req in dep.version_reqs:
                                 if req.startswith(('>=', '==')):
-                                    commands += ['--target-glib', req[2:]]
+                                    commands += ['--target-glib', req[2:].strip()]
                                     break
                     elif isinstance(dep, dependencies.InternalDependency) and dep.version is not None:
                         glib_version = dep.version.split('.')
@@ -1055,8 +1063,8 @@ class Backend:
         # Get program and library dirs from all target compilers
         if isinstance(target, build.BuildTarget):
             for cc in target.compilers.values():
-                paths.update(cc.get_program_dirs(self.environment))
-                paths.update(cc.get_library_dirs(self.environment))
+                paths.update(cc.get_program_dirs())
+                paths.update(cc.get_library_dirs())
         return list(paths)
 
     @staticmethod
@@ -1228,7 +1236,7 @@ class Backend:
                                 ld_lib_path_libs.add(l)
 
                 env_build_dir = self.environment.get_build_dir()
-                ld_lib_path: T.Set[str] = set(os.path.join(env_build_dir, l.get_subdir()) for l in ld_lib_path_libs)
+                ld_lib_path: T.Set[str] = set(os.path.join(env_build_dir, l.get_builddir()) for l in ld_lib_path_libs)
 
                 if ld_lib_path:
                     t_env.prepend('LD_LIBRARY_PATH', list(ld_lib_path), ':')
@@ -1373,27 +1381,31 @@ class Backend:
                 result[name] = b
         return result
 
-    def get_testlike_targets(self, benchmark: bool = False) -> T.OrderedDict[str, T.Union[build.BuildTarget, build.CustomTarget]]:
-        result: T.OrderedDict[str, T.Union[build.BuildTarget, build.CustomTarget]] = OrderedDict()
+    def get_testlike_targets(self, benchmark: bool = False) -> T.Iterable[T.Union[build.BuildTarget, build.CustomTarget]]:
         targets = self.build.get_benchmarks() if benchmark else self.build.get_tests()
         for t in targets:
             exe = t.exe
-            if isinstance(exe, (build.CustomTarget, build.BuildTarget)):
-                result[exe.get_id()] = exe
+            if isinstance(exe, build.CustomTargetIndex):
+                yield exe.target
+            elif isinstance(exe, (build.CustomTarget, build.BuildTarget)):
+                yield exe
             for arg in t.cmd_args:
-                if not isinstance(arg, (build.CustomTarget, build.BuildTarget)):
-                    continue
-                result[arg.get_id()] = arg
+                if isinstance(arg, build.CustomTargetIndex):
+                    yield arg.target
+                elif isinstance(arg, (build.CustomTarget, build.BuildTarget)):
+                    yield arg
             for dep in t.depends:
                 assert isinstance(dep, (build.CustomTarget, build.BuildTarget, build.CustomTargetIndex))
-                result[dep.get_id()] = dep
-        return result
+                if isinstance(dep, build.CustomTargetIndex):
+                    yield dep.target
+                else:
+                    yield dep
 
     @lru_cache(maxsize=None)
     def get_custom_target_provided_by_generated_source(self, generated_source: build.CustomTarget) -> 'ImmutableListProtocol[str]':
         libs: T.List[str] = []
         for f in generated_source.get_outputs():
-            if self.environment.is_library(f):
+            if compilers.is_library(f):
                 libs.append(os.path.join(self.get_target_dir(generated_source), f))
         return libs
 

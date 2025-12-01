@@ -255,7 +255,9 @@ kwargs:
       `default`, `internal`, `hidden`, `protected` or `inlineshidden`, which
       is the same as `hidden` but also includes things like C++ implicit
       constructors as specified in the GCC manual. Ignored on compilers that
-      do not support GNU visibility arguments.
+      do not support GNU visibility arguments. See also
+      [`snippets.symbol_visibility_header()`](Snippets-module.md#symbol_visibility_header)
+      method to help with defining public API.
 
   d_import_dirs:
     type: array[inc | str]
@@ -325,11 +327,13 @@ kwargs:
     type: dict[str]
     since: 1.2.0
     description: |
-      On rust targets this provides a map of library names to the crate name
-      with which it would be available inside the rust code.
+      On rust targets this allows giving custom names to the crates that are
+      linked into the target.  For example, passing a dependency map of
+      `{ 'gtk4': 'gtk' }` has the same effect of writing `gtk.package = "gtk4"`
+      in the `dependencies` section of a Cargo.toml file, or
+      `extern crate gtk4 as gtk` inside Rust code.
 
-      This allows renaming similar to the dependency renaming feature of cargo
-      or `extern crate foo as bar` inside rust code.
+      *Since 1.10.0*, the keys can be either crate names or target names.
 
   vala_header:
     type: str
@@ -352,3 +356,21 @@ kwargs:
     description: |
       If set, generates a GIR file with the given name. If this is unset then
       no GIR file will be generated.
+
+  build_subdir:
+    type: str
+    since: 1.10.0
+    description:
+      Places the build results in a subdirectory of the given name
+      rather than directly into the build directory. This does not
+      affect the install directory, which uses install_dir.
+
+      This allows inserting a directory name into the build path,
+      either when needed to use the build result while building other
+      targets or as a way to support multiple targets with the same
+      basename by using unique build_subdir values for each one.
+
+      To prevent collisions within the build directory, build_subdir
+      is not allowed to match a file or directory in the source
+      directory, nor contain '..' to refer to the parent of the build
+      directory.

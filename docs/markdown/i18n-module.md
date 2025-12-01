@@ -83,7 +83,7 @@ i18n.xgettext(name, sources..., args: [...], recursive: false)
 ```
 
 Invokes the `xgettext` program on given sources, to generate a `.pot` file.
-This function is to be used when the `gettext` function workflow it not suitable
+This function is to be used when the `gettext` function workflow is not suitable
 for your project. For example, it can be used to produce separate `.pot` files
 for each executable.
 

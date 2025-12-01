@@ -60,8 +60,8 @@ DEFAULT_YIELDING = False
 # Can't bind this near the class method it seems, sadly.
 _T = T.TypeVar('_T')
 
-backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'xcode', 'none']
-genvslitelist = ['vs2022']
+backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'vs2026', 'xcode', 'none']
+genvslitelist = ['vs2022', 'vs2026']
 buildtypelist = ['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom']
 
 # This is copied from coredata. There is no way to share this, because this
@@ -105,6 +105,7 @@ _BUILTIN_NAMES = {
     'pkg_config_path',
     'cmake_prefix_path',
     'vsenv',
+    'os2_emxomf',
 }
 
 _BAD_VALUE = 'Qwert Zuiopü'
@@ -733,6 +734,7 @@ BUILTIN_CORE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
         UserComboOption('wrap_mode', 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote']),
         UserStringArrayOption('force_fallback_for', 'Force fallback for those subprojects', []),
         UserBooleanOption('vsenv', 'Activate Visual Studio environment', False, readonly=True),
+        UserBooleanOption('os2_emxomf', 'Use OMF format on OS/2', False),
 
         # Pkgconfig module
         UserBooleanOption('pkgconfig.relocatable', 'Generate pkgconfig files as relocatable', False),
@@ -846,7 +848,7 @@ class OptionStore:
     def __len__(self) -> int:
         return len(self.options)
 
-    def get_value_object_for(self, key: 'T.Union[OptionKey, str]') -> AnyOptionType:
+    def resolve_option(self, key: 'T.Union[OptionKey, str]') -> AnyOptionType:
         key = self.ensure_and_validate_key(key)
         potential = self.options.get(key, None)
         if self.is_project_option(key):
@@ -863,21 +865,21 @@ class OptionStore:
                 return self.options[parent_key]
         return potential
 
-    def get_value_object_and_value_for(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
+    def get_option_and_value_for(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
         assert isinstance(key, OptionKey)
         key = self.ensure_and_validate_key(key)
-        vobject = self.get_value_object_for(key)
-        computed_value = vobject.value
+        option_object = self.resolve_option(key)
+        computed_value = option_object.value
         if key in self.augments:
             assert key.subproject is not None
             computed_value = self.augments[key]
-        elif vobject.yielding:
-            computed_value = vobject.parent.value
-        return (vobject, computed_value)
+        elif option_object.yielding:
+            computed_value = option_object.parent.value
+        return (option_object, computed_value)
 
     def option_has_value(self, key: OptionKey, value: ElementaryOptionValues) -> bool:
-        vobject, current_value = self.get_value_object_and_value_for(key)
-        return vobject.validate_value(value) == current_value
+        option_object, current_value = self.get_option_and_value_for(key)
+        return option_object.validate_value(value) == current_value
 
     def get_value_for(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
         if isinstance(name, str):
@@ -885,7 +887,7 @@ class OptionStore:
         else:
             assert subproject is None
             key = name
-        vobject, resolved_value = self.get_value_object_and_value_for(key)
+        _, resolved_value = self.get_option_and_value_for(key)
         return resolved_value
 
     def add_system_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
@@ -933,13 +935,11 @@ class OptionStore:
                 # Subproject is set to yield, but top level
                 # project does not have an option of the same
                 pass
-        valobj.yielding = bool(valobj.parent)
+        valobj.yielding = valobj.parent is not None
 
         self.options[key] = valobj
         self.project_options.add(key)
-        pval = self.pending_options.pop(key, None)
-        if pval is not None:
-            self.set_option(key, pval)
+        assert key not in self.pending_options
 
     def add_module_option(self, modulename: str, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
@@ -1035,7 +1035,7 @@ class OptionStore:
             new_value = self.sanitize_dir_option_value(prefix, key, new_value)
 
         try:
-            opt = self.get_value_object_for(key)
+            opt = self.resolve_option(key)
         except KeyError:
             raise MesonException(f'Unknown option: "{error_key}".')
 
@@ -1336,16 +1336,6 @@ class OptionStore:
         if first_invocation and self.is_backend_option(key):
             return True
         return self.is_base_option(key)
-
-    def validate_cmd_line_options(self, cmd_line_options: OptionDict) -> None:
-        unknown_options = []
-        for key, valstr in cmd_line_options.items():
-            if key in self.pending_options and not self.accept_as_pending_option(key):
-                unknown_options.append(f'"{key}"')
-
-        if unknown_options:
-            keys = ', '.join(unknown_options)
-            raise MesonException(f'Unknown options: {keys}')
 
     def initialize_from_subproject_call(self,
                                         subproject: str,

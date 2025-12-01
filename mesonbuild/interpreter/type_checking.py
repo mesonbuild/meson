@@ -12,8 +12,8 @@ from ..build import (CustomTarget, BuildTarget,
                      CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs,
                      BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources)
 from ..options import OptionKey, UserFeatureOption
-from ..dependencies import Dependency, InternalDependency
-from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken
+from ..dependencies import Dependency, DependencyMethods, InternalDependency
+from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken, FeatureDeprecated
 from ..mesonlib import (File, FileMode, MachineChoice, has_path_sep, listify, stringlistify,
                         EnvironmentVariables)
 from ..programs import ExternalProgram
@@ -490,6 +490,12 @@ VARIABLES_KW: KwargInfo[T.Dict[str, str]] = KwargInfo(
 
 PRESERVE_PATH_KW: KwargInfo[bool] = KwargInfo('preserve_path', bool, default=False, since='0.63.0')
 
+def suite_convertor(suite: T.List[str]) -> T.List[str]:
+    # Ensure we always have at least one suite.
+    if not suite:
+        return ['']
+    return suite
+
 TEST_KWS_NO_ARGS: T.List[KwargInfo] = [
     KwargInfo('should_fail', bool, default=False),
     KwargInfo('timeout', int, default=30),
@@ -503,7 +509,7 @@ TEST_KWS_NO_ARGS: T.List[KwargInfo] = [
     # TODO: env needs reworks of the way the environment variable holder itself works probably
     ENV_KW,
     DEPENDS_KW.evolve(since='0.46.0'),
-    KwargInfo('suite', ContainerTypeInfo(list, str), listify=True, default=['']),  # yes, a list of empty string
+    KwargInfo('suite', ContainerTypeInfo(list, str), listify=True, default=[], convertor=suite_convertor),
     KwargInfo('verbose', bool, default=False, since='0.62.0'),
 ]
 
@@ -582,11 +588,24 @@ def _target_install_convertor(val: object) -> bool:
     return bool(val)
 
 
+def _extra_files_validator(args: T.List[T.Union[File, str]]) -> T.Optional[str]:
+    generated = [a for a in args if isinstance(a, File) and a.is_built]
+    if generated:
+        return 'extra_files contains generated files: {}'.format(', '.join(f"{f.fname}" for f in generated))
+    return None
+
+
 # Applies to all build_target like classes
 _ALL_TARGET_KWS: T.List[KwargInfo] = [
     OVERRIDE_OPTIONS_KW,
     KwargInfo('build_by_default', bool, default=True, since='0.38.0'),
-    KwargInfo('extra_files', ContainerTypeInfo(list, (str, File)), default=[], listify=True),
+    KwargInfo(
+        'extra_files',
+        ContainerTypeInfo(list, (str, File)),
+        default=[],
+        listify=True,
+        validator=_extra_files_validator,
+    ),
     KwargInfo(
         'install',
         object,
@@ -609,6 +628,7 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
                 ('1.1.0', 'generated sources as positional "objects" arguments')
         },
     ),
+    KwargInfo('build_subdir', str, default='', since='1.10.0')
 ]
 
 
@@ -632,6 +652,63 @@ _NAME_PREFIX_KW: KwargInfo[T.Optional[T.Union[str, T.List]]] = KwargInfo(
 )
 
 
+def _pch_validator(args: T.List[str]) -> T.Optional[str]:
+    num_args = len(args)
+    if num_args == 1:
+        if not compilers.is_header(args[0]):
+            return f'PCH argument {args[0]} is not a header.'
+    elif num_args == 2:
+        if compilers.is_header(args[0]):
+            if not compilers.is_source(args[1]):
+                return 'PCH definition must contain one header and at most one source.'
+        elif compilers.is_source(args[0]):
+            if not compilers.is_header(args[1]):
+                return 'PCH definition must contain one header and at most one source.'
+        else:
+            return f'PCH argument {args[0]} has neither a known header or code extension.'
+
+        if os.path.dirname(args[0]) != os.path.dirname(args[1]):
+            return 'PCH files must be stored in the same folder.'
+    elif num_args > 2:
+        return 'A maximum of two elements are allowed for PCH arguments'
+    if num_args >= 1 and not has_path_sep(args[0]):
+        return f'PCH header {args[0]} must not be in the same directory as source files'
+    if num_args == 2 and not has_path_sep(args[1]):
+        return f'PCH source {args[0]} must not be in the same directory as source files'
+    return None
+
+
+def _pch_feature_validator(args: T.List[str]) -> T.Iterable[FeatureCheckBase]:
+    if len(args) > 1:
+        yield FeatureDeprecated('PCH source files', '0.50.0', 'Only a single header file should be used.')
+
+
+def _pch_convertor(args: T.List[str]) -> T.Optional[T.Tuple[str, T.Optional[str]]]:
+    num_args = len(args)
+
+    if num_args == 1:
+        return (args[0], None)
+
+    if num_args == 2:
+        if compilers.is_source(args[0]):
+            # Flip so that we always have [header, src]
+            return (args[1], args[0])
+        return (args[0], args[1])
+
+    return None
+
+
+_PCH_ARGS: KwargInfo[T.List[str]] = KwargInfo(
+    'pch',
+    ContainerTypeInfo(list, str),
+    listify=True,
+    default=[],
+    validator=_pch_validator,
+    feature_validator=_pch_feature_validator,
+    convertor=_pch_convertor,
+)
+
+
 # Applies to all build_target classes except jar
 _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     *_ALL_TARGET_KWS,
@@ -641,6 +718,8 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     _NAME_PREFIX_KW,
     _NAME_PREFIX_KW.evolve(name='name_suffix', validator=_name_suffix_validator),
     RUST_CRATE_TYPE_KW,
+    _PCH_ARGS.evolve(name='c_pch'),
+    _PCH_ARGS.evolve(name='cpp_pch'),
     KwargInfo('d_debug', ContainerTypeInfo(list, (str, int)), default=[], listify=True),
     D_MODULE_VERSIONS_KW,
     KwargInfo('d_unittest', bool, default=False),
@@ -729,7 +808,7 @@ _DARWIN_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
 
 # Arguments exclusive to Executable. These are separated to make integrating
 # them into build_target easier
-_EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
+EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
     KwargInfo('export_dynamic', (bool, NoneType), since='0.45.0'),
     KwargInfo('gui_app', (bool, NoneType), deprecated='0.56.0', deprecated_message="Use 'win_subsystem' instead"),
     KwargInfo(
@@ -758,7 +837,7 @@ _EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
 # The total list of arguments used by Executable
 EXECUTABLE_KWS = [
     *_BUILD_TARGET_KWS,
-    *_EXCLUSIVE_EXECUTABLE_KWS,
+    *EXCLUSIVE_EXECUTABLE_KWS,
     _VS_MODULE_DEFS_KW.evolve(since='1.3.0', since_values=None),
     _JAVA_LANG_KW,
 ]
@@ -783,16 +862,22 @@ STATIC_LIB_KWS = [
     _JAVA_LANG_KW,
 ]
 
+def _shortname_validator(shortname: T.Optional[str]) -> T.Optional[str]:
+    if shortname is not None and len(shortname) > 8:
+        return 'must have a maximum of 8 characters'
+    return None
+
 # Arguments exclusive to SharedLibrary. These are separated to make integrating
 # them into build_target easier
 _EXCLUSIVE_SHARED_LIB_KWS: T.List[KwargInfo] = [
     _DARWIN_VERSIONS_KW,
     KwargInfo('soversion', (str, int, NoneType), convertor=lambda x: str(x) if x is not None else None),
     KwargInfo('version', (str, NoneType), validator=_validate_shlib_version),
+    KwargInfo('shortname', (str, NoneType), since='1.10.0', validator=_shortname_validator),
 ]
 
 # The total list of arguments used by SharedLibrary
-SHARED_LIB_KWS = [
+SHARED_LIB_KWS: T.List[KwargInfo] = [
     *_BUILD_TARGET_KWS,
     *_EXCLUSIVE_SHARED_LIB_KWS,
     *_EXCLUSIVE_LIB_KWS,
@@ -860,8 +945,9 @@ BUILD_TARGET_KWS = [
     *_EXCLUSIVE_SHARED_LIB_KWS,
     *_EXCLUSIVE_SHARED_MOD_KWS,
     *_EXCLUSIVE_STATIC_LIB_KWS,
-    *_EXCLUSIVE_EXECUTABLE_KWS,
+    *EXCLUSIVE_EXECUTABLE_KWS,
     *_SHARED_STATIC_ARGS,
+    RUST_ABI_KW.evolve(since='1.10.0'),
     *[a.evolve(deprecated='1.3.0', deprecated_message='The use of "jar" in "build_target()" is deprecated, and this argument is only used by jar()')
       for a in _EXCLUSIVE_JAR_KWS],
     KwargInfo(
@@ -895,7 +981,63 @@ PKGCONFIG_DEFINE_KW: KwargInfo = KwargInfo(
     convertor=_pkgconfig_define_convertor,
 )
 
+INCLUDE_TYPE = KwargInfo(
+    'include_type',
+    str,
+    default='preserve',
+    since='0.52.0',
+    validator=in_set_validator({'system', 'non-system', 'preserve'})
+)
+
+
+_DEPRECATED_DEPENDENCY_METHODS = frozenset(
+    {'sdlconfig', 'cups-config', 'pcap-config', 'libwmf-config', 'qmake'})
+
+
+def _dependency_method_convertor(value: str) -> DependencyMethods:
+    if value in _DEPRECATED_DEPENDENCY_METHODS:
+        return DependencyMethods.CONFIG_TOOL
+    return DependencyMethods(value)
+
+
+DEPENDENCY_METHOD_KW = KwargInfo(
+    'method',
+    str,
+    default='auto',
+    since='0.40.0',
+    validator=in_set_validator(
+        {m.value for m in DependencyMethods} | _DEPRECATED_DEPENDENCY_METHODS),
+    convertor=_dependency_method_convertor,
+    deprecated_values={
+        'sdlconfig': ('0.44.0', 'use config-tool instead'),
+        'cups-config': ('0.44.0', 'use config-tool instead'),
+        'pcap-config': ('0.44.0', 'use config-tool instead'),
+        'libwmf-config': ('0.44.0', 'use config-tool instead'),
+        'qmake': ('0.58.0', 'use config-tool instead'),
+    },
+)
+
 
 DEPENDENCY_KWS: T.List[KwargInfo] = [
     DEFAULT_OPTIONS.evolve(since='0.38.0'),
+    DEPENDENCY_METHOD_KW,
+    DISABLER_KW.evolve(since='0.49.0'),
+    INCLUDE_TYPE,
+    NATIVE_KW,
+    REQUIRED_KW,
+    KwargInfo('allow_fallback', (bool, NoneType), since='0.56.0'),
+    KwargInfo('cmake_args', ContainerTypeInfo(list, str), listify=True, default=[], since='0.50.0'),
+    KwargInfo('cmake_module_path', ContainerTypeInfo(list, str), listify=True, default=[], since='0.50.0'),
+    KwargInfo('cmake_package_version', str, default='', since='0.57.0'),
+    KwargInfo('components', ContainerTypeInfo(list, str), listify=True, default=[], since='0.54.0'),
+    KwargInfo('fallback', (ContainerTypeInfo(list, str), str, NoneType), since='0.54.0'),
+    KwargInfo('language', (str, NoneType), convertor=lambda x: x.lower() if x is not None else x,
+              validator=lambda x: 'Must be a valid language if set' if (x is not None and x not in compilers.all_languages) else None),
+    KwargInfo('main', bool, default=False),
+    KwargInfo('modules', ContainerTypeInfo(list, str), listify=True, default=[]),
+    KwargInfo('not_found_message', str, default='', since='0.50.0'),
+    KwargInfo('optional_modules', ContainerTypeInfo(list, str), listify=True, default=[]),
+    KwargInfo('private_headers', bool, default=False),
+    KwargInfo('static', (bool, NoneType)),
+    KwargInfo('version', ContainerTypeInfo(list, str), listify=True, default=[]),
 ]

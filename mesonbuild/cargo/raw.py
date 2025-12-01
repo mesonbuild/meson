@@ -10,6 +10,7 @@ from typing_extensions import Literal, TypedDict, Required
 
 EDITION = Literal['2015', '2018', '2021']
 CRATE_TYPE = Literal['bin', 'lib', 'dylib', 'staticlib', 'cdylib', 'rlib', 'proc-macro']
+LINT_LEVEL = Literal['allow', 'deny', 'forbid', 'warn']
 
 
 class FromWorkspace(TypedDict):
@@ -59,6 +60,7 @@ class Badge(TypedDict):
     """An entry in the badge section."""
 
     status: Literal['actively-developed', 'passively-developed', 'as-is', 'experimental', 'deprecated', 'none']
+    repository: str
 
 
 Dependency = TypedDict(
@@ -120,6 +122,26 @@ class Target(TypedDict):
     dependencies: T.Dict[str, T.Union[FromWorkspace, DependencyV]]
 
 
+Lint = TypedDict(
+    'Lint',
+    {
+        'level': Required[LINT_LEVEL],
+        'priority': int,
+        'check-cfg': T.List[str],
+    },
+    total=True,
+)
+"""The representation of a linter setting.
+
+This does not include the name or tool, since those are the keys of the
+dictionaries that point to Lint.
+"""
+
+
+LintV = T.Union[Lint, str]
+"""A Lint entry, either a string or a Lint Dict."""
+
+
 class Workspace(TypedDict):
 
     """The representation of a workspace.
@@ -153,6 +175,7 @@ Manifest = TypedDict(
         'features': T.Dict[str, T.List[str]],
         'target': T.Dict[str, Target],
         'workspace': Workspace,
+        'lints': T.Union[FromWorkspace, T.Dict[str, T.Dict[str, LintV]]],
 
         # TODO: patch?
         # TODO: replace?

@@ -11,15 +11,14 @@ import typing as T
 
 from ... import mesonlib
 from ... import options
-from ...linkers.linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker, \
-    MoldDynamicLinker, VisualStudioLikeLinkerMixin
+from ...linkers.linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, \
+    GnuBFDDynamicLinker, GnuGoldDynamicLinker, MoldDynamicLinker, VisualStudioLikeLinkerMixin
 from ...options import OptionKey
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 
 if T.TYPE_CHECKING:
     from ...options import MutableKeyedOptionDictType
-    from ...environment import Environment
     from ...dependencies import Dependency  # noqa: F401
     from ..compilers import Compiler
 
@@ -149,7 +148,7 @@ class ClangCompiler(GnuLikeCompiler):
                 myargs.append('-Werror=ignored-optimization-argument')
         return super().get_compiler_check_args(mode) + myargs
 
-    def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
+    def has_function(self, funcname: str, prefix: str, *,
                      extra_args: T.Optional[T.List[str]] = None,
                      dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         if extra_args is None:
@@ -161,10 +160,10 @@ class ClangCompiler(GnuLikeCompiler):
         # TODO: this really should be communicated by the linker
         if isinstance(self.linker, AppleDynamicLinker) and mesonlib.version_compare(self.version, '>=8.0'):
             extra_args.append('-Wl,-no_weak_imports')
-        return super().has_function(funcname, prefix, env, extra_args=extra_args,
+        return super().has_function(funcname, prefix, extra_args=extra_args,
                                     dependencies=dependencies)
 
-    def openmp_flags(self, env: Environment) -> T.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=3.8.0'):
             return ['-fopenmp']
         elif mesonlib.version_compare(self.version, '>=3.7.0'):
@@ -172,13 +171,6 @@ class ClangCompiler(GnuLikeCompiler):
         else:
             # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
             return []
-
-    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
-        if isinstance(self.linker, VisualStudioLikeLinkerMixin):
-            # With MSVC, DLLs only export symbols that are explicitly exported,
-            # so if a module defs file is specified, we use that to export symbols
-            return ['-Wl,/DEF:' + defsfile]
-        return super().gen_vs_module_defs_args(defsfile)
 
     @classmethod
     def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
@@ -208,8 +200,16 @@ class ClangCompiler(GnuLikeCompiler):
         # error.
         return ['-Werror=attributes']
 
+    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+        if not mesonlib.version_compare(self.version, '>=14'):
+            raise mesonlib.MesonException('prelinking requires clang >=14')
+        return [prelink_name], ['-r', '-o', prelink_name] + obj_list
+
     def get_coverage_link_args(self) -> T.List[str]:
         return ['--coverage']
+
+    def get_embed_bitcode_args(self, bitcode: bool, lto: bool) -> T.List[str]:
+        return ['-fembed-bitcode'] if bitcode else []
 
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         args: T.List[str] = []
@@ -219,8 +219,8 @@ class ClangCompiler(GnuLikeCompiler):
                 # https://github.com/rui314/mold/commit/46995bcfc3e3113133620bf16445c5f13cd76a18
                 if not mesonlib.version_compare(self.linker.version, '>=1.1'):
                     raise mesonlib.MesonException("LLVM's ThinLTO requires mold 1.1+")
-            elif not isinstance(self.linker, (AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker)):
-                raise mesonlib.MesonException(f"LLVM's ThinLTO only works with gold, lld, lld-link, ld64 or mold, not {self.linker.id}")
+            elif not isinstance(self.linker, (AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuBFDDynamicLinker, GnuGoldDynamicLinker)):
+                raise mesonlib.MesonException(f"LLVM's ThinLTO only works with bfd, gold, lld, lld-link, ld64, or mold, not {self.linker.id}")
             args.append(f'-flto={mode}')
         else:
             assert mode == 'default', 'someone forgot to wire something up'

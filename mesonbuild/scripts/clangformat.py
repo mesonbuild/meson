@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 
 from .run_tool import run_clang_tool, run_with_buffered_output
-from ..environment import detect_clangformat
+from ..tooldetect import detect_clangformat
 from ..mesonlib import version_compare
 from ..programs import ExternalProgram
 import typing as T

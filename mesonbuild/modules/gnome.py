@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2015-2016 The Meson development team
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 '''This module provides helper functions for Gnome/GLib related
 functionality such as gobject-introspection, gresources and gtk-doc'''
@@ -283,7 +283,7 @@ class GnomeModule(ExtensionModule):
     def _get_native_glib_version(self, state: 'ModuleState') -> str:
         if self.native_glib_version is None:
             glib_dep = PkgConfigDependency('glib-2.0', state.environment,
-                                           {'native': True, 'required': False})
+                                           {'native': MachineChoice.BUILD, 'required': False})
             if glib_dep.found():
                 self.native_glib_version = glib_dep.get_version()
             else:
@@ -924,7 +924,7 @@ class GnomeModule(ExtensionModule):
             if OptionKey('b_sanitize') in compiler.base_options:
                 sanitize = state.environment.coredata.optstore.get_value_for('b_sanitize')
                 assert isinstance(sanitize, list)
-                cflags += compiler.sanitizer_compile_args(sanitize)
+                cflags += compiler.sanitizer_compile_args(None, sanitize)
                 # These must be first in ldflags
                 if 'address' in sanitize:
                     internal_ldflags += ['-lasan']
@@ -934,7 +934,7 @@ class GnomeModule(ExtensionModule):
                     internal_ldflags += ['-lubsan']
                 # FIXME: Linking directly to lib*san is not recommended but g-ir-scanner
                 # does not understand -f LDFLAGS. https://bugzilla.gnome.org/show_bug.cgi?id=783892
-                # ldflags += compiler.sanitizer_link_args(sanitize)
+                # ldflags += compiler.sanitizer_link_args(None, state.environment, sanitize)
 
         return cflags, internal_ldflags, external_ldflags
 

@@ -13,9 +13,9 @@ import typing as T
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
-    Popen_safe, extract_as_list, version_compare_many
+    Popen_safe, version_compare_many
 )
-from ..environment import detect_cpu_family
+from ..envconfig import detect_cpu_family
 
 from .base import DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
 from .configtool import ConfigToolDependency
@@ -24,10 +24,11 @@ from .factory import DependencyFactory
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
+    from .base import DependencyObjectKWs
 
 
 class GLDependencySystem(SystemDependency):
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
         super().__init__(name, environment, kwargs)
 
         if self.env.machines[self.for_machine].is_darwin():
@@ -43,8 +44,8 @@ class GLDependencySystem(SystemDependency):
             # FIXME: Detect version using self.clib_compiler
             return
         else:
-            links = self.clib_compiler.find_library('GL', environment, [])
-            has_header = self.clib_compiler.has_header('GL/gl.h', '', environment)[0]
+            links = self.clib_compiler.find_library('GL', [])
+            has_header = self.clib_compiler.has_header('GL/gl.h', '')[0]
             if links and has_header:
                 self.is_found = True
                 self.link_args = links
@@ -56,7 +57,7 @@ class GnuStepDependency(ConfigToolDependency):
     tools = ['gnustep-config']
     tool_name = 'gnustep-config'
 
-    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
         super().__init__('gnustep', environment, kwargs, language='objc')
         if not self.is_found:
             return
@@ -135,7 +136,7 @@ class SDL2DependencyConfigTool(ConfigToolDependency):
     tools = ['sdl2-config']
     tool_name = 'sdl2-config'
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
@@ -148,11 +149,11 @@ class WxDependency(ConfigToolDependency):
     tools = ['wx-config-3.0', 'wx-config-3.1', 'wx-config', 'wx-config-gtk3']
     tool_name = 'wx-config'
 
-    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
         super().__init__('WxWidgets', environment, kwargs, language='cpp')
         if not self.is_found:
             return
-        self.requested_modules = self.get_requested(kwargs)
+        self.requested_modules = kwargs.get('modules', [])
 
         extra_args = []
         if self.static:
@@ -170,21 +171,11 @@ class WxDependency(ConfigToolDependency):
         self.compile_args = self.get_config_value(['--cxxflags'] + extra_args + self.requested_modules, 'compile_args')
         self.link_args = self.get_config_value(['--libs'] + extra_args + self.requested_modules, 'link_args')
 
-    @staticmethod
-    def get_requested(kwargs: T.Dict[str, T.Any]) -> T.List[str]:
-        if 'modules' not in kwargs:
-            return []
-        candidates = extract_as_list(kwargs, 'modules')
-        for c in candidates:
-            if not isinstance(c, str):
-                raise DependencyException('wxwidgets module argument is not a string')
-        return candidates
-
 packages['wxwidgets'] = WxDependency
 
 class VulkanDependencySystem(SystemDependency):
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None) -> None:
         super().__init__(name, environment, kwargs, language=language)
 
         self.vulkan_sdk = os.environ.get('VULKAN_SDK', os.environ.get('VK_SDK_PATH'))
@@ -208,7 +199,7 @@ class VulkanDependencySystem(SystemDependency):
             inc_path = os.path.join(self.vulkan_sdk, inc_dir)
             header = os.path.join(inc_path, 'vulkan', 'vulkan.h')
             lib_path = os.path.join(self.vulkan_sdk, lib_dir)
-            find_lib = self.clib_compiler.find_library(lib_name, environment, [lib_path])
+            find_lib = self.clib_compiler.find_library(lib_name, [lib_path])
 
             if not find_lib:
                 raise DependencyException('VULKAN_SDK point to invalid directory (no lib)')
@@ -224,8 +215,8 @@ class VulkanDependencySystem(SystemDependency):
             self.link_args.append('-l' + lib_name)
         else:
             # simply try to guess it, usually works on linux
-            libs = self.clib_compiler.find_library('vulkan', environment, [])
-            if libs is not None and self.clib_compiler.has_header('vulkan/vulkan.h', '', environment, disable_cache=True)[0]:
+            libs = self.clib_compiler.find_library('vulkan', [])
+            if libs is not None and self.clib_compiler.has_header('vulkan/vulkan.h', '', disable_cache=True)[0]:
                 self.is_found = True
                 for lib in libs:
                     self.link_args.append(lib)
@@ -238,7 +229,6 @@ class VulkanDependencySystem(SystemDependency):
                 components = [str(self.clib_compiler.compute_int(f'VK_VERSION_{c}(VK_HEADER_VERSION_COMPLETE)',
                                                                  low=0, high=None, guess=e,
                                                                  prefix='#include <vulkan/vulkan.h>',
-                                                                 env=environment,
                                                                  extra_args=self.compile_args,
                                                                  dependencies=None))
                               # list containing vulkan version components and their expected value

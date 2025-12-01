@@ -331,10 +331,9 @@ Cargo subprojects automatically call `override_dependency` with the name
   * `0.0.x` -> '0'
   It allows to make different dependencies for incompatible versions of the same
   crate.
-- the suffix is `-rs` for `rlib` and `dylib` crate types, otherwise it is the
-  crate type (e.g. `staticlib` or `cdylib`).  The suffix is added to distinguish
-  Rust crates from regular system dependencies; for example `gstreamer-1.0` is a
-  system pkg-config dependency and `gstreamer-0.22-rs` is a Cargo dependency.
+- the suffix is `-rs` for `rlib` and `dylib` crate types.  The suffix is added to
+  distinguish Rust crates from C-ABI dependencies; for example `gstreamer-1.0`
+  is a system pkg-config dependency and `gstreamer-0.22-rs` is a Cargo dependency.
 
 That means the `.wrap` file should have `dependency_names = foo-1-rs` in their
 `[provide]` section when `Cargo.toml` has package name `foo` and version `1.2`.

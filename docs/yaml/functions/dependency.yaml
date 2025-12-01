@@ -174,11 +174,16 @@ kwargs:
       libraries instead of dynamic ones (note that this is not supported
       by all dependency backends)
 
+      Leaving this value unset will result in an implementation defined default
+      value. For most dependencies this means the value of the `prefer_static`
+      option, but some custom dependencies have their own method for determining
+      the most useful default option.
+
       *Since 0.60.0* it also sets `default_library` option accordingly on the fallback
       subproject if it was not set explicitly in `default_options` keyword argument.
 
-      *Since 0.63.0* when the `prefer_static` option is set to `true` the default
-      value is `true` otherwise the default value is `false`.
+      *Since 0.63.0* when the `prefer_static` option is used to calculate the
+      default value.
 
   version:
     type: array[str] | str

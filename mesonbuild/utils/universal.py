@@ -34,7 +34,7 @@ if T.TYPE_CHECKING:
 
     from .._typing import ImmutableListProtocol
     from ..build import ConfigurationData
-    from ..coredata import StrOrBytesPath
+    from ..cmdline import StrOrBytesPath
     from ..environment import Environment
     from ..compilers.compilers import Compiler
     from ..interpreterbase.baseobjects import SubProject
@@ -126,6 +126,7 @@ __all__ = [
     'is_linux',
     'is_netbsd',
     'is_openbsd',
+    'is_os2',
     'is_osx',
     'is_parent_path',
     'is_qnx',
@@ -152,6 +153,7 @@ __all__ = [
     'set_meson_command',
     'split_args',
     'stringlistify',
+    'underscorify',
     'substitute_values',
     'substring_is_in_list',
     'typeslistify',
@@ -682,6 +684,9 @@ def is_qnx() -> bool:
 
 def is_aix() -> bool:
     return platform.system().lower() == 'aix'
+
+def is_os2() -> bool:
+    return platform.system().lower() == 'os/2'
 
 @lru_cache(maxsize=None)
 def darwin_get_object_archs(objpath: str) -> 'ImmutableListProtocol[str]':
@@ -1692,6 +1697,8 @@ def typeslistify(item: 'T.Union[_T, T.Sequence[_T]]',
 def stringlistify(item: T.Union[T.Any, T.Sequence[T.Any]]) -> T.List[str]:
     return typeslistify(item, str)
 
+def underscorify(item: str) -> str:
+    return re.sub(r'[^a-zA-Z0-9]', '_', item)
 
 def expand_arguments(args: T.Iterable[str]) -> T.Optional[T.List[str]]:
     expended_args: T.List[str] = []
@@ -2236,6 +2243,7 @@ _BUILTIN_NAMES = {
     'pkg_config_path',
     'cmake_prefix_path',
     'vsenv',
+    'os2_emxomf',
 }
 
 

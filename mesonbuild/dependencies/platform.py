@@ -12,13 +12,12 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
+    from .base import DependencyObjectKWs
 
 class AppleFrameworks(ExternalDependency):
-    def __init__(self, env: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
         super().__init__(DependencyTypeName('appleframeworks'), env, kwargs)
         modules = kwargs.get('modules', [])
-        if isinstance(modules, str):
-            modules = [modules]
         if not modules:
             raise DependencyException("AppleFrameworks dependency requires at least one module.")
         self.frameworks = modules
@@ -27,7 +26,7 @@ class AppleFrameworks(ExternalDependency):
         self.is_found = True
         for f in self.frameworks:
             try:
-                args = self.clib_compiler.find_framework(f, env, [])
+                args = self.clib_compiler.find_framework(f, [])
             except MesonException as e:
                 if 'non-clang' in str(e):
                     self.is_found = False

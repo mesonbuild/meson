@@ -1,0 +1,6 @@
+{
+  "env": {
+    "CC": "clang -target x86_64-unknown-linux-musl",
+    "RUSTC": "rustc --target x86_64-unknown-linux-musl"
+  }
+}

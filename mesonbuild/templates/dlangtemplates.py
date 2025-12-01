@@ -35,9 +35,13 @@ hello_d_meson_template = '''project(
 dependencies = [{dependencies}
 ]
 
+sources = [{source_files}
+
+]
+
 exe = executable(
   '{exe_name}',
-  '{source_name}',
+  [sources],
   dependencies : dependencies,
   install : true,
 )
@@ -84,10 +88,13 @@ lib_d_meson_template = '''project(
 dependencies = [{dependencies}
 ]
 
+sources = [{source_files}
+
+]
 
 stlib = static_library(
   '{lib_name}',
-  '{source_file}',
+  [sources],
   install : true,
   gnu_symbol_visibility : 'hidden',
   dependencies : dependencies,

@@ -14,13 +14,13 @@ from ..build import known_shmod_kwargs, CustomTarget, CustomTargetIndex, BuildTa
 from ..dependencies import NotFoundDependency
 from ..dependencies.detect import get_dep_identifier, find_external_dependency
 from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase
-from ..interpreter import extract_required_kwarg, permitted_dependency_kwargs, primitives as P_OBJ
+from ..interpreter import extract_required_kwarg, primitives as P_OBJ
 from ..interpreter.interpreterobjects import _ExternalProgramHolder
 from ..interpreter.type_checking import NoneType, DEPENDENCY_KWS, PRESERVE_PATH_KW, SHARED_MOD_KWS
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs, ContainerTypeInfo,
     InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
-    FeatureNew, FeatureNewKwargs, disablerIfNotFound, InterpreterObject
+    FeatureNew, disablerIfNotFound, InterpreterObject
 )
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
@@ -31,10 +31,10 @@ if T.TYPE_CHECKING:
 
     from . import ModuleState
     from ..build import Build, Data
-    from ..dependencies import Dependency
+    from ..dependencies.base import Dependency, DependencyObjectKWs
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import BuildTargetSource
-    from ..interpreter.kwargs import ExtractRequired, SharedModule as SharedModuleKw
+    from ..interpreter.kwargs import ExtractRequired, SharedModule as SharedModuleKw, FuncDependency
     from ..interpreterbase.baseobjects import TYPE_var, TYPE_kwargs
 
     class PyInstallKw(TypedDict):
@@ -246,8 +246,8 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
 
         return '0x{:02x}{:02x}0000'.format(major, minor)
 
-    def _dependency_method_impl(self, kwargs: TYPE_kwargs) -> Dependency:
-        for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
+    def _dependency_method_impl(self, kwargs: DependencyObjectKWs) -> Dependency:
+        for_machine = kwargs.get('native', MachineChoice.HOST)
         identifier = get_dep_identifier(self._full_path(), kwargs)
 
         dep = self.interpreter.coredata.deps[for_machine].get(identifier)
@@ -266,19 +266,23 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         self.interpreter.coredata.deps[for_machine].put(identifier, dep)
         return dep
 
-    @disablerIfNotFound
-    @permittedKwargs(permitted_dependency_kwargs | {'embed'})
-    @FeatureNewKwargs('python_installation.dependency', '0.53.0', ['embed'])
     @noPosargs
-    @typed_kwargs('python_installation.dependency', *DEPENDENCY_KWS, allow_unknown=True)
+    @typed_kwargs(
+        'python_installation.dependency',
+        *DEPENDENCY_KWS,
+        KwargInfo('embed', bool, default=False, since='0.53.0'),
+    )
+    @disablerIfNotFound
     @InterpreterObject.method('dependency')
-    def dependency_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> 'Dependency':
+    def dependency_method(self, args: T.List['TYPE_var'], kwargs: FuncDependency) -> 'Dependency':
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
+        nkwargs = T.cast('DependencyObjectKWs', kwargs.copy())
+        nkwargs['required'] = required
         if disabled:
             mlog.log('Dependency', mlog.bold('python'), 'skipped: feature', mlog.bold(feature), 'disabled')
             return NotFoundDependency('python', self.interpreter.environment)
         else:
-            dep = self._dependency_method_impl(kwargs)
+            dep = self._dependency_method_impl(nkwargs)
             if required and not dep.found():
                 raise mesonlib.MesonException('Python dependency not found')
             return dep

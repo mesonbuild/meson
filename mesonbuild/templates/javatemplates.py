@@ -35,9 +35,13 @@ hello_java_meson_template = '''project(
 dependencies = [{dependencies}
 ]
 
+sources = [{source_files}
+
+]
+
 exe = jar(
   '{exe_name}',
-  '{source_name}',
+  [sources],
   main_class : '{exe_name}',
   dependencies : dependencies,
   install : true,
@@ -86,9 +90,13 @@ lib_java_meson_template = '''project(
 dependencies = [{dependencies}
 ]
 
+sources = [{source_files}
+
+]
+
 jarlib = jar(
   '{class_name}',
-  '{source_file}',
+  [sources],
   dependencies : dependencies,
   main_class : '{class_name}',
   install : true,
