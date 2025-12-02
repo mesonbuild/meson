@@ -209,9 +209,11 @@ class XgettextProgram:
         depends = set()
         for source in sources:
             if isinstance(source, build.BuildTarget):
-                for source_id in self._get_source_id(source.get_dependencies()):
+                dependencies = source.get_dependencies()
+                for source_id in self._get_source_id(dependencies):
                     if source_id in self.pot_files:
                         depends.add(self.pot_files[source_id])
+                depends.update(self._get_depends(dependencies))
             elif isinstance(source, build.CustomTarget):
                 # Dependency on another extracted pot file
                 source_id = source.get_id()
