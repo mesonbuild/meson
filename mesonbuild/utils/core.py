@@ -97,8 +97,9 @@ class EnvironmentVariables(HoldableObject):
             if name in self.unset_vars:
                 self.unset_vars.remove(name)
         if other.unset_vars:
-            self.can_use_env = False
             self.unset_vars.update(other.unset_vars)
+        if not other.can_use_env:
+            self.can_use_env = False
 
     def set(self, name: str, values: T.List[str], separator: str = os.pathsep) -> None:
         if name in self.unset_vars:
