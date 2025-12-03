@@ -108,7 +108,10 @@ class StringHolder(ObjectHolder[str]):
     @typed_pos_args('str.split', optargs=[str])
     @InterpreterObject.method('split')
     def split_method(self, args: T.Tuple[T.Optional[str]], kwargs: TYPE_kwargs) -> T.List[str]:
-        return self.held_object.split(args[0])
+        delimiter = args[0]
+        if delimiter == '':
+            raise InvalidArguments('str.split() delimitier must not be an empty string')
+        return self.held_object.split(delimiter)
 
     @noKwargs
     @typed_pos_args('str.strip', optargs=[str])
