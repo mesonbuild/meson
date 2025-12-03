@@ -1082,9 +1082,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
     assert categories == ALL_TESTS, 'argparse("--only", choices=ALL_TESTS) need to be updated to match all_tests categories'
 
     if only:
-        for key in only.keys():
-            assert key in categories, f'key `{key}` is not a recognized category'
-        all_tests = [t for t in all_tests if t.category in only.keys()]
+        all_tests = [t for t in all_tests if t.category in only]
 
     gathered_tests = [(t.category, gather_tests(Path('test cases', t.subdir), t.stdout_mandatory, only[t.category], t.skip), t.skip) for t in all_tests]
     return gathered_tests
@@ -1580,7 +1578,7 @@ if __name__ == '__main__':
                         help='Stop running if test case fails')
     parser.add_argument('--no-unittests', action='store_true',
                         help='Not used, only here to simplify run_tests.py')
-    parser.add_argument('--only', default=[],
+    parser.add_argument('--only', default=[], choices=ALL_TESTS,
                         help='name of test(s) to run, in format "category[/name]" where category is one of: ' + ', '.join(ALL_TESTS), nargs='+')
     parser.add_argument('-v', default=False, action='store_true',
                         help='Verbose mode')
