@@ -250,7 +250,7 @@ methods:
   returns: str
   description: |
     The opposite of split,
-    for example `'.'.join(['a', 'b', 'c']` yields `'a.b.c'`.
+    for example `'.'.join(['a', 'b', 'c'])` yields `'a.b.c'`.
 
   example: |
     ```meson
