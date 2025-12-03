@@ -22,7 +22,7 @@ from . import programs
 from .mesonlib import (
     HoldableObject, SecondLevelHolder,
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
-    extract_as_list, typeslistify, stringlistify, classify_unity_sources,
+    extract_as_list, typeslistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
     is_parent_path, relpath, PerMachineDefaultable,
     MesonBugException, EnvironmentVariables, pickle_load, lazy_property,
@@ -85,7 +85,7 @@ if T.TYPE_CHECKING:
         install_dir: T.List[T.Union[str, Literal[False]]]
         install_mode: FileMode
         install_rpath: str
-        install_tag: T.List[str]
+        install_tag: T.List[T.Optional[str]]
         language_args: T.DefaultDict[str, T.List[str]]
         link_args: T.List[str]
         link_depends: T.List[T.Union[str, File, CustomTarget, CustomTargetIndex]]
@@ -1292,7 +1292,7 @@ class BuildTarget(Target):
         self.install_dir = typeslistify(kwargs.get('install_dir', []),
                                         (str, bool))
         self.install_mode = kwargs.get('install_mode', None)
-        self.install_tag = stringlistify(kwargs.get('install_tag', [None]))
+        self.install_tag: T.List[T.Optional[str]] = kwargs.get('install_tag') or [None]
         self.extra_files = kwargs.get('extra_files', [])
         self.install_rpath: str = kwargs.get('install_rpath', '')
         self.build_rpath = kwargs.get('build_rpath', '')

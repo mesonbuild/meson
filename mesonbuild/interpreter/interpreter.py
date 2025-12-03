@@ -3553,6 +3553,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             if isinstance(kwargs['implib'], bool):
                 kwargs['implib'] = None
 
+        kwargs['install_tag'] = [kwargs['install_tag']]
+
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
                              self.environment, self.compilers[for_machine], kwargs)
         if objs and target.uses_rust():
