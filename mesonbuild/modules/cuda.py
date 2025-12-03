@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright 2017 The Meson development team
+# Copyright 2017-2025 The Meson development team
 
 from __future__ import annotations
 
@@ -215,42 +215,50 @@ class CudaModule(NewExtensionModule):
         # except that a bug with cuda_arch_list="All" is worked around by
         # tracking both lower and upper limits on GPU architectures.
 
-        cuda_known_gpu_architectures   = ['Fermi', 'Kepler', 'Maxwell']  # noqa: E221
+        cuda_known_gpu_architectures   = []  # noqa: E221
         cuda_common_gpu_architectures  = ['3.0', '3.5', '5.0']           # noqa: E221
         cuda_hi_limit_gpu_architecture = None                            # noqa: E221
         cuda_lo_limit_gpu_architecture = '2.0'                           # noqa: E221
         cuda_all_gpu_architectures     = ['3.0', '3.2', '3.5', '5.0']    # noqa: E221
 
-        if version_compare(cuda_version, '<7.0'):
-            cuda_hi_limit_gpu_architecture = '5.2'
+        # Fermi and Kepler support have been dropped since 12.0
+        if version_compare(cuda_version, '<12.0'):
+            cuda_known_gpu_architectures.extend(['Fermi', 'Kepler'])
 
-        if version_compare(cuda_version, '>=7.0'):
-            cuda_known_gpu_architectures  += ['Kepler+Tegra', 'Kepler+Tesla', 'Maxwell+Tegra']  # noqa: E221
-            cuda_common_gpu_architectures += ['5.2']                                            # noqa: E221
+        # Everything older than Turing is dropped by 13.0
+        if version_compare(cuda_version, '<13.0'):
+            cuda_known_gpu_architectures.append('Maxwell')
 
-            if version_compare(cuda_version, '<8.0'):
-                cuda_common_gpu_architectures += ['5.2+PTX']  # noqa: E221
-                cuda_hi_limit_gpu_architecture = '6.0'        # noqa: E221
+            if version_compare(cuda_version, '<7.0'):
+                cuda_hi_limit_gpu_architecture = '5.2'
 
-        if version_compare(cuda_version, '>=8.0'):
-            cuda_known_gpu_architectures  += ['Pascal', 'Pascal+Tegra']  # noqa: E221
-            cuda_common_gpu_architectures += ['6.0', '6.1']              # noqa: E221
-            cuda_all_gpu_architectures    += ['6.0', '6.1', '6.2']       # noqa: E221
+            if version_compare(cuda_version, '>=7.0'):
+                cuda_known_gpu_architectures  += ['Kepler+Tegra', 'Kepler+Tesla', 'Maxwell+Tegra']  # noqa: E221
+                cuda_common_gpu_architectures += ['5.2']                                            # noqa: E221
 
-            if version_compare(cuda_version, '<9.0'):
-                cuda_common_gpu_architectures += ['6.1+PTX']  # noqa: E221
-                cuda_hi_limit_gpu_architecture = '7.0'        # noqa: E221
+                if version_compare(cuda_version, '<8.0'):
+                    cuda_common_gpu_architectures += ['5.2+PTX']  # noqa: E221
+                    cuda_hi_limit_gpu_architecture = '6.0'        # noqa: E221
 
-        if version_compare(cuda_version, '>=9.0'):
-            cuda_known_gpu_architectures  += ['Volta', 'Xavier'] # noqa: E221
-            cuda_common_gpu_architectures += ['7.0']             # noqa: E221
-            cuda_all_gpu_architectures    += ['7.0', '7.2']      # noqa: E221
-            # https://docs.nvidia.com/cuda/archive/9.0/cuda-toolkit-release-notes/index.html#unsupported-features
-            cuda_lo_limit_gpu_architecture = '3.0'               # noqa: E221
+            if version_compare(cuda_version, '>=8.0'):
+                cuda_known_gpu_architectures  += ['Pascal', 'Pascal+Tegra']  # noqa: E221
+                cuda_common_gpu_architectures += ['6.0', '6.1']              # noqa: E221
+                cuda_all_gpu_architectures    += ['6.0', '6.1', '6.2']       # noqa: E221
 
-            if version_compare(cuda_version, '<10.0'):
-                cuda_common_gpu_architectures += ['7.2+PTX']  # noqa: E221
-                cuda_hi_limit_gpu_architecture = '8.0'        # noqa: E221
+                if version_compare(cuda_version, '<9.0'):
+                    cuda_common_gpu_architectures += ['6.1+PTX']  # noqa: E221
+                    cuda_hi_limit_gpu_architecture = '7.0'        # noqa: E221
+
+            if version_compare(cuda_version, '>=9.0'):
+                cuda_known_gpu_architectures  += ['Volta', 'Xavier'] # noqa: E221
+                cuda_common_gpu_architectures += ['7.0']             # noqa: E221
+                cuda_all_gpu_architectures    += ['7.0', '7.2']      # noqa: E221
+                # https://docs.nvidia.com/cuda/archive/9.0/cuda-toolkit-release-notes/index.html#unsupported-features
+                cuda_lo_limit_gpu_architecture = '3.0'               # noqa: E221
+
+                if version_compare(cuda_version, '<10.0'):
+                    cuda_common_gpu_architectures += ['7.2+PTX']  # noqa: E221
+                    cuda_hi_limit_gpu_architecture = '8.0'        # noqa: E221
 
         if version_compare(cuda_version, '>=10.0'):
             cuda_known_gpu_architectures  += ['Turing'] # noqa: E221
@@ -302,6 +310,26 @@ class CudaModule(NewExtensionModule):
 
             if version_compare(cuda_version, '<13'):
                 cuda_hi_limit_gpu_architecture = '10.0'       # noqa: E221
+
+        if version_compare(cuda_version, '>=12.8'):
+            cuda_known_gpu_architectures.append('Blackwell')
+            cuda_common_gpu_architectures.extend(['10.0', '10.1', '12.0'])
+            cuda_all_gpu_architectures.extend(['10.0', '10.1', '12.0'])
+
+            if version_compare(cuda_version, '<13'):
+                cuda_hi_limit_gpu_architecture = '12.1'
+
+        if version_compare(cuda_version, '>=12.9'):
+            cuda_common_gpu_architectures.extend(['10.3', '12.1'])
+            cuda_all_gpu_architectures.extend(['10.3', '12.1'])
+
+        if version_compare(cuda_version, '>=13.0'):
+            cuda_common_gpu_architectures.append('11.0')
+            cuda_all_gpu_architectures.append('11.0')
+            cuda_lo_limit_gpu_architecture = '7.5'
+
+            if version_compare(cuda_version, '<14'):
+                cuda_hi_limit_gpu_architecture = '12.1'
 
         if not cuda_arch_list:
             cuda_arch_list = 'Auto'
@@ -355,6 +383,7 @@ class CudaModule(NewExtensionModule):
                     'Orin':          (['8.7'],             []),
                     'Lovelace':      (['8.9'],             ['8.9']),
                     'Hopper':        (['9.0'],             ['9.0']),
+                    'Blackwell':     (['10.0'],            ['10.0']),
                 }.get(arch_name, (None, None))
 
             if arch_bin is None:
