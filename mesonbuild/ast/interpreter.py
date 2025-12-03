@@ -577,7 +577,7 @@ class AstInterpreter(InterpreterBase):
                 return [left] + right
             if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
                 return UnknownValue()
-            if node.operation == 'add':
+            if node.operation == '+':
                 if isinstance(left, dict) and isinstance(right, dict):
                     ret = left.copy()
                     for k, v in right.items():
@@ -588,16 +588,16 @@ class AstInterpreter(InterpreterBase):
                         right = [right]
                     return left + right
                 return left + right
-            elif node.operation == 'sub':
+            elif node.operation == '-':
                 return left - right
-            elif node.operation == 'mul':
+            elif node.operation == '*':
                 return left * right
-            elif node.operation == 'div':
+            elif node.operation == '/':
                 if isinstance(left, int) and isinstance(right, int):
                     return left // right
                 elif isinstance(left, str) and isinstance(right, str):
                     return os.path.join(left, right).replace('\\', '/')
-            elif node.operation == 'mod':
+            elif node.operation == '%':
                 if isinstance(left, int) and isinstance(right, int):
                     return left % right
         elif isinstance(node, (UnknownValue, IntrospectionBuildTarget, IntrospectionFile, IntrospectionDependency, str, bool, int)):
@@ -619,7 +619,7 @@ class AstInterpreter(InterpreterBase):
                 return left != right
             elif node.ctype == 'in':
                 return left in right
-            elif node.ctype == 'notin':
+            elif node.ctype == 'not in':
                 return left not in right
         elif isinstance(node, mparser.TernaryNode):
             cond = self.node_to_runtime_value(node.condition)
@@ -671,7 +671,7 @@ class AstInterpreter(InterpreterBase):
         if isinstance(lhs, UnknownValue):
             newval = UnknownValue()
         else:
-            newval = mparser.ArithmeticNode(operation='add', left=lhs, operator=_symbol('+'), right=node.value)
+            newval = mparser.ArithmeticNode(operation='+', left=lhs, operator=_symbol('+'), right=node.value)
         self.cur_assignments[node.var_name.value].append((self.nesting.copy(), newval))
         self.all_assignment_nodes[node.var_name.value].append(node)
 

@@ -83,12 +83,12 @@ class MachineFileParser():
         elif isinstance(node, mparser.ArithmeticNode):
             l = self._evaluate_statement(node.left)
             r = self._evaluate_statement(node.right)
-            if node.operation == 'add':
+            if node.operation == '+':
                 if isinstance(l, str) and isinstance(r, str):
                     return l + r
                 if isinstance(l, list) and isinstance(r, list):
                     return l + r
-            elif node.operation == 'div':
+            elif node.operation == '/':
                 if isinstance(l, str) and isinstance(r, str):
                     return os.path.join(l, r)
         raise MesonException('Unsupported node type')

@@ -28,6 +28,7 @@ from .exceptions import (
 )
 
 from .. import mlog
+from . import operator
 from .decorators import FeatureNew
 from .disabler import Disabler, is_disabled
 from .helpers import default_resolve_key, flatten, resolve_second_level_holders, stringifyUserArguments
@@ -344,24 +345,14 @@ class InterpreterBase:
         if isinstance(val2, Disabler):
             return val2
 
-        # New code based on InterpreterObjects
-        operator = {
-            'in': MesonOperator.IN,
-            'notin': MesonOperator.NOT_IN,
-            '==': MesonOperator.EQUALS,
-            '!=': MesonOperator.NOT_EQUALS,
-            '>': MesonOperator.GREATER,
-            '<': MesonOperator.LESS,
-            '>=': MesonOperator.GREATER_EQUALS,
-            '<=': MesonOperator.LESS_EQUALS,
-        }[node.ctype]
+        op = operator.MAPPING[node.ctype]
 
         # Check if the arguments should be reversed for simplicity (this essentially converts `in` to `contains`)
-        if operator in (MesonOperator.IN, MesonOperator.NOT_IN):
+        if op in (MesonOperator.IN, MesonOperator.NOT_IN):
             val1, val2 = val2, val1
 
         val1.current_node = node
-        return self._holderify(val1.operator_call(operator, _unholder(val2)))
+        return self._holderify(val1.operator_call(op, _unholder(val2)))
 
     def evaluate_andstatement(self, cur: mparser.AndNode) -> InterpreterObject:
         l = self.evaluate_statement(cur.left)
@@ -414,15 +405,8 @@ class InterpreterBase:
         if l is None or r is None:
             raise InvalidCodeOnVoid(cur.operation)
 
-        mapping: T.Dict[str, MesonOperator] = {
-            'add': MesonOperator.PLUS,
-            'sub': MesonOperator.MINUS,
-            'mul': MesonOperator.TIMES,
-            'div': MesonOperator.DIV,
-            'mod': MesonOperator.MOD,
-        }
         l.current_node = cur
-        res = l.operator_call(mapping[cur.operation], _unholder(r))
+        res = l.operator_call(operator.MAPPING[cur.operation], _unholder(r))
         return self._holderify(res)
 
     def evaluate_ternary(self, node: mparser.TernaryNode) -> T.Optional[InterpreterObject]:
