@@ -741,6 +741,12 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     ),
     KwargInfo('install_rpath', str, default=''),
     KwargInfo(
+        'link_args',
+        ContainerTypeInfo(list, str),
+        default=[],
+        listify=True,
+    ),
+    KwargInfo(
         'link_depends',
         ContainerTypeInfo(list, (str, File, CustomTarget, CustomTargetIndex, BuildTarget)),
         default=[],
