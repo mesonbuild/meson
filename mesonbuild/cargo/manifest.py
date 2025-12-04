@@ -442,8 +442,7 @@ class Lint:
                     settings = T.cast('raw.Lint', {'level': settings})
                 check_cfg = None
                 if name == 'unexpected_cfgs':
-                    # 'cfg(test)' is added automatically by cargo
-                    check_cfg = ['cfg(test)'] + settings.get('check-cfg', [])
+                    check_cfg = settings.get('check-cfg', [])
                 lints[name] = Lint(name=name,
                                    level=settings['level'],
                                    priority=settings.get('priority', 0),
