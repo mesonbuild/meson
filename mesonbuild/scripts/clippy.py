@@ -32,6 +32,8 @@ class ClippyDriver:
         self.warned[machine] = True
 
     def __call__(self, target: T.Dict[str, T.Any]) -> T.Iterable[T.Coroutine[None, None, int]]:
+        if target['subproject']:
+            return
         for src_block in target['target_sources']:
             if 'compiler' in src_block and src_block['language'] == 'rust':
                 clippy = getattr(self.tools, src_block['machine'])
