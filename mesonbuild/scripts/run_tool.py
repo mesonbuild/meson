@@ -19,14 +19,14 @@ import typing as T
 
 Info = T.TypeVar("Info")
 
-async def run_with_buffered_output(cmdlist: T.List[str]) -> int:
+async def run_with_buffered_output(cmdlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> int:
     """Run the command in cmdlist, buffering the output so that it is
        not mixed for multiple child processes.  Kill the child on
        cancellation."""
     quoted_cmdline = join_args(cmdlist)
     p: T.Optional[asyncio.subprocess.Process] = None
     try:
-        p = await asyncio.create_subprocess_exec(*cmdlist,
+        p = await asyncio.create_subprocess_exec(*cmdlist, env=env,
                                                  stdin=asyncio.subprocess.DEVNULL,
                                                  stdout=asyncio.subprocess.PIPE,
                                                  stderr=asyncio.subprocess.STDOUT)

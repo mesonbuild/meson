@@ -15,8 +15,8 @@ from ..wrap import WrapMode, wrap
 if T.TYPE_CHECKING:
     from ..compilers.rust import RustCompiler
 
-async def run_and_confirm_success(cmdlist: T.List[str], crate: str) -> int:
-    returncode = await run_with_buffered_output(cmdlist)
+async def run_and_confirm_success(cmdlist: T.List[str], environ: T.Dict[str, str], crate: str) -> int:
+    returncode = await run_with_buffered_output(cmdlist, environ)
     if returncode == 0:
         print(mlog.green('Generated'), os.path.join('doc', crate))
     return returncode
@@ -54,18 +54,25 @@ class Rustdoc:
                 prev = None
                 crate_name = None
                 is_test = False
+                environ = dict(os.environ)
                 for arg in src_block['parameters']:
                     if prev:
                         if prev == '--crate-name':
                             cmdlist.extend((prev, arg))
                             crate_name = arg
+                        elif prev == '--env-set':
+                            try:
+                                key, val = arg.split('=', maxsplit=1)
+                                environ[key] = val
+                            except ValueError:
+                                pass
                         prev = None
                         continue
 
                     if arg == '--test':
                         is_test = True
                         break
-                    elif arg in {'--crate-name', '--emit', '--out-dir', '-l'}:
+                    elif arg in {'--crate-name', '--emit', '--out-dir', '-l', '--env-set'}:
                         prev = arg
                     elif arg != '-g' and not arg.startswith('-l'):
                         cmdlist.append(arg)
@@ -80,7 +87,7 @@ class Rustdoc:
                     cmdlist.append('--document-private-items')
                     cmdlist.append('-o')
                     cmdlist.append('doc')
-                    yield run_and_confirm_success(cmdlist, crate_name)
+                    yield run_and_confirm_success(cmdlist, environ, crate_name)
                 else:
                     print(mlog.yellow('Skipping'), target['name'], '(no crate name)')
 
