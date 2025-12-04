@@ -16,6 +16,7 @@ from .generatorjson import GeneratorJSON
 from .generatorprint import GeneratorPrint
 from .generatorpickle import GeneratorPickle
 from .generatormd import GeneratorMD
+from .generatorqthelp import GeneratorQtHelp
 from .generatorman import GeneratorMan
 from .generatorvim import GeneratorVim
 
@@ -24,7 +25,7 @@ meson_root = Path(__file__).absolute().parents[2]
 def main() -> int:
     parser = argparse.ArgumentParser(description='Meson reference manual generator')
     parser.add_argument('-l', '--loader', type=str, default='yaml', choices=['yaml', 'fastyaml', 'pickle'], help='Information loader backend')
-    parser.add_argument('-g', '--generator', type=str, choices=['print', 'pickle', 'md', 'json', 'man', 'vim'], required=True, help='Generator backend')
+    parser.add_argument('-g', '--generator', type=str, choices=['print', 'pickle', 'md', 'json', 'man', 'vim', 'qthelp'], required=True, help='Generator backend')
     parser.add_argument('-s', '--sitemap', type=Path, default=meson_root / 'docs' / 'sitemap.txt', help='Path to the input sitemap.txt')
     parser.add_argument('-o', '--out', type=Path, required=True, help='Output directory for generated files')
     parser.add_argument('-i', '--input', type=Path, default=meson_root / 'docs' / 'yaml', help='Input path for the selected loader')
@@ -33,6 +34,7 @@ def main() -> int:
     parser.add_argument('-q', '--quiet', action='store_true', help='Suppress verbose output')
     parser.add_argument('--force-color', action='store_true', help='Force enable colors')
     parser.add_argument('--no-modules', action='store_true', help='Disable building modules')
+    parser.add_argument('--qhelpgenerator', type=Path, default=None, help='Path to qhelpgenerator for use with the \'qthelp\' generator.')
     args = parser.parse_args()
 
     if args.quiet:
@@ -54,6 +56,7 @@ def main() -> int:
         'print': lambda: GeneratorPrint(refMan),
         'pickle': lambda: GeneratorPickle(refMan, args.out),
         'md': lambda: GeneratorMD(refMan, args.out, args.sitemap, args.link_defs, not args.no_modules),
+        'qthelp': lambda: GeneratorQtHelp(refMan, args.out, args.sitemap, args.link_defs, not args.no_modules, args.qhelpgenerator),
         'json': lambda: GeneratorJSON(refMan, args.out, not args.no_modules),
         'man': lambda: GeneratorMan(refMan, args.out, not args.no_modules),
         'vim': lambda: GeneratorVim(refMan, args.out),
