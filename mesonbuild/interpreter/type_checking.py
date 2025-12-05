@@ -438,10 +438,14 @@ D_MODULE_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
 _LINK_WITH_ERROR = '''can only be self-built targets, external dependencies (including libraries) must go in "dependencies".'''
 
 def _link_with_validator(values: T.List[T.Union[BothLibraries, SharedLibrary, StaticLibrary,
-                                                CustomTarget, CustomTargetIndex, Jar, Executable]]
+                                                CustomTarget, CustomTargetIndex, Jar, Executable,
+                                                ]]
                          ) -> T.Optional[str]:
-    if any(isinstance(i, Dependency) for i in values):
-        return _LINK_WITH_ERROR
+    for value in values:
+        if isinstance(value, Dependency):
+            return _LINK_WITH_ERROR
+        if not value.is_linkable_target():
+            return f'Link target "{value!s}" is not linkable'
     return None
 
 # Allow Dependency for the better error message? But then in other cases it will list this as one of the allowed types!
@@ -725,6 +729,7 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     BT_SOURCES_KW,
     INCLUDE_DIRECTORIES.evolve(name='d_import_dirs'),
     LINK_WHOLE_KW,
+    LINK_WITH_KW,
     _NAME_PREFIX_KW,
     _NAME_PREFIX_KW.evolve(name='name_suffix', validator=_name_suffix_validator),
     RUST_CRATE_TYPE_KW,
