@@ -1511,16 +1511,12 @@ class BuildTarget(Target):
             self.check_can_link_together(t)
             self.link_targets.append(t)
 
-    def link_whole(self, targets: T.List[BuildTargetTypes], promoted: bool = False) -> None:
+    def link_whole(
+            self,
+            targets: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]],
+            promoted: bool = False) -> None:
         for t in targets:
-            if isinstance(t, (CustomTarget, CustomTargetIndex)):
-                if not t.is_linkable_target():
-                    raise InvalidArguments(f'Custom target {t!r} is not linkable.')
-                if t.links_dynamically():
-                    raise InvalidArguments('Can only link_whole custom targets that are static archives.')
-            elif not isinstance(t, StaticLibrary):
-                raise InvalidArguments(f'{t!r} is not a static library.')
-            elif isinstance(self, SharedLibrary) and not t.pic:
+            if isinstance(self, SharedLibrary) and not getattr(t, 'pic', True):
                 msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)

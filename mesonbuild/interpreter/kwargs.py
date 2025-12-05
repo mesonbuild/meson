@@ -347,6 +347,7 @@ class _BaseBuildTarget(TypedDict):
     implicit_include_directories: bool
     link_depends: T.List[T.Union[str, File, build.GeneratedTypes]]
     link_language: T.Optional[str]
+    link_whole: T.List[T.Union[build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]]
     name_prefix: T.Optional[str]
     name_suffix: T.Optional[str]
     native: MachineChoice
