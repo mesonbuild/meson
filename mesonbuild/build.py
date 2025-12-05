@@ -796,7 +796,7 @@ class BuildTarget(Target):
         self.external_deps: T.List[dependencies.Dependency] = []
         self.include_dirs: T.List['IncludeDirs'] = []
         self.link_language = kwargs.get('link_language')
-        self.link_targets: T.List[LibTypes] = []
+        self.link_targets: T.List[BuildTargetTypes] = []
         self.link_whole_targets: T.List[StaticTargetTypes] = []
         self.depend_files: T.List[File] = []
         self.link_depends: T.List[T.Union[File, BuildTargetTypes]] = []
@@ -1468,18 +1468,6 @@ class BuildTarget(Target):
 
     def link(self, targets: T.List[BuildTargetTypes]) -> None:
         for t in targets:
-            if not isinstance(t, (Target, CustomTargetIndex)):
-                if isinstance(t, dependencies.ExternalLibrary):
-                    raise MesonException(textwrap.dedent('''\
-                        An external library was used in link_with keyword argument, which
-                        is reserved for libraries built as part of this project. External
-                        libraries must be passed using the dependencies keyword argument
-                        instead, because they are conceptually "external dependencies",
-                        just like those detected with the dependency() function.
-                    '''))
-                raise InvalidArguments(f'{t!r} is not a target.')
-            if not t.is_linkable_target():
-                raise InvalidArguments(f"Link target '{t!s}' is not linkable.")
             if isinstance(self, StaticLibrary) and self.install and t.is_internal():
                 # When we're a static library and we link_with to an
                 # internal/convenience library, promote to link_whole.
@@ -2757,6 +2745,10 @@ class BothLibraries(SecondLevelHolder):
 
     def get_id(self) -> str:
         return self.get_default_object().get_id()
+
+    def is_linkable_target(self) -> bool:
+        # For polymorphism with build targets
+        return True
 
 class CommandBase:
 

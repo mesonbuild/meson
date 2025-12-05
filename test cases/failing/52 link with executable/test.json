@@ -1,7 +1,7 @@
 {
   "stdout": [
     {
-      "line": "test cases/failing/52 link with executable/meson.build:4:4: ERROR: Link target 'prog' is not linkable."
+      "line": "test cases/failing/52 link with executable/meson.build:4:4: ERROR: shared_module keyword argument \"link_with\" Link target \"prog\" is not linkable"
     }
   ]
 }
