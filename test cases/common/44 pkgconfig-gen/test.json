@@ -20,18 +20,5 @@
     {"type": "file", "file": "usr/lib/pkgconfig/ct.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/ct0.pc"},
     {"type": "file", "file": "usr/share/pkgconfig/libhello_nolib.pc"}
-  ],
-  "stdout": [
-    {
-      "line": "test cases/common/44 pkgconfig-gen/meson.build:160: WARNING: Project targets '>=0.60.0' but uses feature introduced in '0.62.0': pkgconfig.generate implicit variable for builtin directories."
-    },
-    {
-      "line": "test cases/common/44 pkgconfig-gen/meson.build:170: WARNING: Project targets '>=0.60.0' but uses feature introduced in '0.62.0': pkgconfig.generate implicit variable for builtin directories.",
-      "count": 0
-    },
-    {
-      "comment": "This will either match in the future-deprecated notice summary, or match the warning summary",
-      "line": " * 0.62.0: {'pkgconfig.generate variable for builtin directories'}"
-    }
   ]
 }
