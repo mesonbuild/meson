@@ -1488,15 +1488,6 @@ class BuildTarget(Target):
 
     def link(self, targets: T.List[BuildTargetTypes]) -> None:
         for t in targets:
-            if isinstance(self, StaticLibrary) and self.install and t.is_internal():
-                # When we're a static library and we link_with to an
-                # internal/convenience library, promote to link_whole.
-                self.link_whole([t], promoted=True)
-                continue
-            if isinstance(self, SharedLibrary) and isinstance(t, StaticLibrary) and not t.pic:
-                msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
-                msg += "Use the 'pic' option to static_library to build with PIC."
-                raise InvalidArguments(msg)
             self.check_can_link_together(t)
             self.link_targets.append(t)
 
@@ -2366,6 +2357,16 @@ class StaticLibrary(BuildTarget):
                     self._bundle_static_library(lib, True)
             self.link_whole_targets.append(t)
 
+    def link(self, targets: T.List[BuildTargetTypes]) -> None:
+        for t in targets:
+            if self.install and t.is_internal():
+                # When we're a static library and we link_with to an
+                # internal/convenience library, promote to link_whole.
+                self.link_whole([t], promoted=True)
+                continue
+            self.check_can_link_together(t)
+            self.link_targets.append(t)
+
     def _bundle_static_library(self, t: StaticTargetTypes, promoted: bool = False) -> None:
         if self.uses_rust():
             # Rustc can bundle static libraries, no need to extract objects.
@@ -2703,6 +2704,15 @@ class SharedLibrary(BuildTarget):
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
             self.link_whole_targets.append(t)
+
+    def link(self, targets: T.List[BuildTargetTypes]) -> None:
+        for t in targets:
+            if isinstance(t, StaticLibrary) and not t.pic:
+                msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
+                msg += "Use the 'pic' option to static_library to build with PIC."
+                raise InvalidArguments(msg)
+            self.check_can_link_together(t)
+            self.link_targets.append(t)
 
 # A shared library that is meant to be used with dlopen rather than linking
 # into something else.
