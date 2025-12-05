@@ -21,18 +21,16 @@ from ..utils.core import HoldableObject
 from .. import mlog
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypeAlias, TypedDict
+    from typing_extensions import Literal, TypedDict
 
     from . import ModuleState
     from .._typing import ImmutableListProtocol
-    from ..build import Executable
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import ExtractRequired
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..mesonlib import MachineChoice
-    from ..programs import OverrideProgram
+    from ..programs import Program
 
-    Program: TypeAlias = T.Union[Executable, ExternalProgram, OverrideProgram]
     LexImpls = Literal['lex', 'flex', 'reflex', 'win_flex']
     YaccImpls = Literal['yacc', 'byacc', 'bison', 'win_bison']
 
