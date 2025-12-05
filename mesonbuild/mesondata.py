@@ -25,7 +25,7 @@ class DataFile:
 
     def write_to_private(self, env: 'Environment') -> Path:
         try:
-            resource = importlib.resources.files('mesonbuild') / self.path
+            resource = importlib.resources.files('mesonbuild') / self.path.as_posix()
             if isinstance(resource, Path):
                 return resource
         except AttributeError:
