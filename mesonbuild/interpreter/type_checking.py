@@ -437,13 +437,23 @@ D_MODULE_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
 
 _LINK_WITH_ERROR = 'Dependency and external_library objects must go in the "dependencies" keyword argument'
 
+def _link_with_validator(values: T.List[T.Union[BothLibraries, SharedLibrary, StaticLibrary,
+                                                CustomTarget, CustomTargetIndex, Jar, Executable,
+                                                ]]
+                         ) -> T.Optional[str]:
+    for value in values:
+        if not value.is_linkable_target():
+            return f'Link target "{value!s}" is not linkable'
+    return None
+
 # Allow Dependency for the better error message? But then in other cases it will list this as one of the allowed types!
 LINK_WITH_KW: KwargInfo[T.List[T.Union[BothLibraries, SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex, Jar, Executable]]] = KwargInfo(
     'link_with',
     ContainerTypeInfo(list, (BothLibraries, SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex, Jar, Executable)),
     listify=True,
     default=[],
-    extra_types={Dependency: lambda _: _LINK_WITH_ERROR}
+    extra_types={Dependency: lambda _: _LINK_WITH_ERROR},
+    validator=_link_with_validator,
 )
 
 def link_whole_validator(values: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]) -> T.Optional[str]:
@@ -725,6 +735,7 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     INCLUDE_DIRECTORIES.evolve(since_values={ContainerTypeInfo(list, str): '0.50.0'}),
     INCLUDE_DIRECTORIES.evolve(name='d_import_dirs'),
     LINK_WHOLE_KW,
+    LINK_WITH_KW,
     _NAME_PREFIX_KW,
     _NAME_PREFIX_KW.evolve(name='name_suffix', validator=_name_suffix_validator),
     RUST_CRATE_TYPE_KW,
