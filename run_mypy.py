@@ -41,6 +41,7 @@ modules = [
     'mesonbuild/interpreter/interpreterobjects.py',
     'mesonbuild/interpreter/type_checking.py',
     'mesonbuild/machinefile.py',
+    'mesonbuild/mesondata.py',
     'mesonbuild/mcompile.py',
     'mesonbuild/mdevenv.py',
     'mesonbuild/mconf.py',
