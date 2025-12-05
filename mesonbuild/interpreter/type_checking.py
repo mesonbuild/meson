@@ -459,6 +459,8 @@ def link_whole_validator(values: T.List[T.Union[StaticLibrary, CustomTarget, Cus
             return f'{type(l).__name__} returning a shared library is not allowed'
         if isinstance(l, Dependency):
             return _LINK_WITH_ERROR
+        if not l.is_linkable_target():
+            return f'Link target "{l!s}" is not linkable'
     return None
 
 LINK_WHOLE_KW: KwargInfo[T.List[T.Union[BothLibraries, StaticLibrary, CustomTarget, CustomTargetIndex]]] = KwargInfo(
