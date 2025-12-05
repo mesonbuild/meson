@@ -130,6 +130,9 @@ the addition of the following:
 
 Additionally, the following diverge from [[shared_module]]'s default behavior:
 
+- `install_dir` may only be a string, boolean, or unset, but an `array` is not
+  allowed.
+
 - `gnu_symbol_visibility`: if unset, it will default to `'hidden'` on versions
   of Python that support this (the python headers define `PyMODINIT_FUNC` has
   default visibility).
