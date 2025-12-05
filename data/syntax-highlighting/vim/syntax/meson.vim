@@ -93,6 +93,7 @@ syn keyword mesonBuiltin
   \ executable
   \ files
   \ find_program
+  \ local_program
   \ generator
   \ get_option
   \ get_variable
