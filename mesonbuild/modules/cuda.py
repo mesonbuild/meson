@@ -313,10 +313,13 @@ class CudaModule(NewExtensionModule):
 
         if version_compare(cuda_version, '>=12.8'):
             cuda_known_gpu_architectures.append('Blackwell')
-            cuda_common_gpu_architectures.extend(['10.0', '10.1', '12.0'])
-            cuda_all_gpu_architectures.extend(['10.0', '10.1', '12.0'])
+            cuda_common_gpu_architectures.extend(['10.0', '12.0'])
+            cuda_all_gpu_architectures.extend(['10.0', '12.0'])
 
             if version_compare(cuda_version, '<13'):
+                # Yes, 12.8 and 12.9 support 10.1, but 13.0 doesn't
+                cuda_common_gpu_architectures.append('10.1')
+                cuda_all_gpu_architectures.append('10.1')
                 cuda_hi_limit_gpu_architecture = '12.1'
 
         if version_compare(cuda_version, '>=12.9'):
