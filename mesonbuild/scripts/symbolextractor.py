@@ -273,7 +273,7 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
             windows_syms(impfilename, outfilename)
         else:
             dummy_syms(outfilename)
-    elif mesonlib.is_linux() or mesonlib.is_hurd():
+    elif mesonlib.is_linux() or mesonlib.is_hurd() or mesonlib.is_haiku():
         gnu_syms(libfilename, outfilename)
     elif mesonlib.is_osx():
         osx_syms(libfilename, outfilename)
