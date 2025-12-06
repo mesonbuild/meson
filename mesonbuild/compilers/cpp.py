@@ -572,6 +572,14 @@ class NvidiaHPC_CPPCompiler(PGICompiler, CPPCompiler):
         std_opt.set_versions(cppstd_choices)
         return opts
 
+    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+        args: T.List[str] = []
+        std = self.get_compileropt_value('std', target, subproject)
+        assert isinstance(std, str)
+        if std != 'none':
+            args.append(self._find_best_cpp_std(std))
+        return args
+
 
 class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
