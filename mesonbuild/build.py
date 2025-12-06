@@ -1271,10 +1271,7 @@ class BuildTarget(Target):
         self.pch['c'] = kwargs.get('c_pch')
         self.pch['cpp'] = kwargs.get('cpp_pch')
 
-        self.link_args = extract_as_list(kwargs, 'link_args')
-        for i in self.link_args:
-            if not isinstance(i, str):
-                raise InvalidArguments('Link_args arguments must be strings.')
+        self.link_args = kwargs.get('link_args', [])
         for l in self.link_args:
             if '-Wl,-rpath' in l or l.startswith('-rpath'):
                 mlog.warning(textwrap.dedent('''\
