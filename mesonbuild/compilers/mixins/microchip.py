@@ -124,7 +124,7 @@ class Xc32Compiler(CompilerBase):
 
     _COLOR_VERSION = '>=3.0'       # XC32 version based on GCC 8.3.1+
     _WPEDANTIC_VERSION = '>=1.40'  # XC32 version based on GCC 4.8.3+
-    _LTO_AUTO_VERSION = '==-1'
+    _LTO_AUTO_VERSION = '>=5.00'   # XC32 version based on GCC 13.2.1+
     _LTO_CACHE_VERSION = '==-1'
     _USE_MOLD_VERSION = '==-1'
 
@@ -184,7 +184,7 @@ class Xc32CStds(GnuCStds):
     """Mixin for setting C standards based on XC32 version."""
 
     _C18_VERSION = '>=3.0'
-    _C2X_VERSION = '==-1'
+    _C2X_VERSION = '>=5.00'
     _C23_VERSION = '==-1'
     _C2Y_VERSION = '==-1'
 
@@ -192,5 +192,5 @@ class Xc32CPPStds(GnuCPPStds):
 
     """Mixin for setting C++ standards based on XC32 version."""
 
-    _CPP23_VERSION = '==-1'
+    _CPP23_VERSION = '>=5.00'
     _CPP26_VERSION = '==-1'
