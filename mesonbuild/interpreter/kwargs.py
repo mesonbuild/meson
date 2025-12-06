@@ -341,6 +341,7 @@ class _BaseBuildTarget(TypedDict):
     gnu_symbol_visibility: str
     install: bool
     install_mode: FileMode
+    install_tag: T.Optional[str]
     install_rpath: str
     implicit_include_directories: bool
     link_depends: T.List[T.Union[str, File, build.GeneratedTypes]]
