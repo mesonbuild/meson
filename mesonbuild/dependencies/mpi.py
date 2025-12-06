@@ -39,7 +39,7 @@ def mpi_factory(env: 'Environment',
     compiler = detect_compiler('mpi', env, for_machine, language)
     if not compiler:
         return []
-    compiler_is_intel = compiler.get_id() in {'intel', 'intel-cl'}
+    compiler_is_intel = compiler.get_id().startswith('intel')
 
     if DependencyMethods.CONFIG_TOOL in methods:
         nwargs = kwargs.copy()
