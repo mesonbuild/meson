@@ -70,17 +70,6 @@ meson.override_dependency('arrow', arrow_dep)
 arrow_compute_dep = declare_dependency(...)
 meson.override_dependency('arrow-compute', arrow_compute_dep)
 ```
-Note that `meson.override_dependency` was introduced in Meson version
-0.54.0. If your project supports older versions of Meson, you should
-add a condition to only call that function in versions where it is
-available:
-
-```meson
-if meson.version().version_compare('>=0.54.0')
-    meson.override_dependency('arrow', arrow_dep)
-    meson.override_dependency('arrow-compute', arrow_compute_dep)
-endif
-```
 
 ## How to contribute a new wrap
 
