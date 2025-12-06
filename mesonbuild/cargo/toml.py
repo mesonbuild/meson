@@ -31,17 +31,28 @@ class TomlImplementationMissing(MesonException):
     pass
 
 
+class CargoTomlError(MesonException):
+    """Exception for TOML parsing errors, keeping proper location info."""
+
+
 def load_toml(filename: str) -> T.Dict[str, object]:
     if tomllib:
-        with open(filename, 'rb') as f:
-            raw = tomllib.load(f)
+        try:
+            with open(filename, 'rb') as f:
+                raw = tomllib.load(f)
+        except tomllib.TOMLDecodeError as e:
+            if hasattr(e, 'msg'):
+                raise CargoTomlError(e.msg, file=filename, lineno=e.lineno, colno=e.colno) from e
+            else:
+                raise CargoTomlError(str(e), file=filename) from e
     else:
         if toml2json is None:
             raise TomlImplementationMissing('Could not find an implementation of tomllib, nor toml2json')
 
         p, out, err = Popen_safe([toml2json, filename])
         if p.returncode != 0:
-            raise MesonException('toml2json failed to decode output\n', err)
+            error_msg = err.strip() or 'toml2json failed to decode TOML'
+            raise CargoTomlError(error_msg, file=filename)
 
         raw = json.loads(out)
 
