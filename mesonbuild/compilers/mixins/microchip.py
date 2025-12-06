@@ -125,6 +125,7 @@ class Xc32Compiler(CompilerBase):
     _COLOR_VERSION = '>=3.0'       # XC32 version based on GCC 8.3.1+
     _WPEDANTIC_VERSION = '>=1.40'  # XC32 version based on GCC 4.8.3+
     _LTO_AUTO_VERSION = '==-1'
+    _LTO_CACHE_VERSION = '==-1'
     _USE_MOLD_VERSION = '==-1'
 
     def __init__(self) -> None:
