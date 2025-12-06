@@ -32,7 +32,12 @@ Wrap manual](Wrap-dependency-system-manual.md).
     patch_hash = 2327a42c8f73a4289ee8c9cd4abc43b324d0decc28d6e609e927f0a50321af4a
 
 Add this file to your project with the name `subprojects/zlib.wrap`.
-Then you can use it in your `meson.build` file with this directive:
+Or, as a shortcut, you can add the latest wrap file for `zlib` to your
+project with this command:
+
+    meson wrap install zlib
+
+Now you can use it in your `meson.build` file with this directive:
 
     zproj = subproject('zlib')
 
@@ -41,7 +46,7 @@ patch the source files.
 
 ## Contributing build definitions
 
-The contents of the Wrap database are tracked in git repos of the
-[Mesonbuild project](https://github.com/mesonbuild). The actual
+The contents of the Wrap database are tracked
+[on GitHub](https://github.com/mesonbuild/wrapdb). The actual
 process is simple and described in [submission
 documentation](Adding-new-projects-to-wrapdb.md).

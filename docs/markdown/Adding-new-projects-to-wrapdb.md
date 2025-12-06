@@ -203,11 +203,15 @@ any issues faster.
 You can test the wrap itself with the following commands:
 
     meson subprojects purge --confirm
-    meson setup builddir/ -Dwraps=<project-name>
+    tools/sanity_checks.py
 
 The first command is to ensure the wrap is correctly fetched from the
-latest packagefiles. The second command configures meson and selects a
-set of subprojects to enable.
+latest packagefiles. The second command builds the project and runs tests.
+
+If you want to manually build the project without running the full test
+suite, you can:
+
+    meson setup builddir/ -Dwraps=<project-name>
 
 The GitHub project contains automatic CI on pushing to run the project
 and check the metadata for obvious mistakes. This can be checked from
