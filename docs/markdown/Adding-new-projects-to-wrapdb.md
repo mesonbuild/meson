@@ -145,7 +145,7 @@ Remember that all files go in the directory
 `subprojects/packagefiles/<project-name>`.
 
 ```
-${EDITOR} meson.build meson.options
+${EDITOR} meson.build meson_options.txt
 ```
 
 In order to apply the locally added build files to the upstream
