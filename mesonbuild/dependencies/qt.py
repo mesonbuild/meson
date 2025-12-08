@@ -167,6 +167,9 @@ class _QtBase:
     def log_details(self) -> str:
         return f'modules: {", ".join(sorted(self.requested_modules))}'
 
+    def _get_common_defines(self) -> T.List[str]:
+        is_debug = self.env.coredata.optstore.get_value_for('debug')
+        return ['-DQT_DEBUG' if is_debug else '-DQT_NO_DEBUG']
 
 class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta):
 
@@ -226,6 +229,8 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
 
         self.libexecdir = self.get_pkgconfig_host_libexecs(self)
 
+        self.compile_args += self._get_common_defines()
+
     @staticmethod
     @abc.abstractmethod
     def get_pkgconfig_host_bins(core: PkgConfigDependency) -> T.Optional[str]:
@@ -268,6 +273,8 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
         ConfigToolDependency.__init__(self, name, env, kwargs)
         if not self.found():
             return
+
+        self.compile_args += self._get_common_defines()
 
         # Query library path, header path, and binary path
         stdo = self.get_config_value(['-query'], 'args')
