@@ -3559,7 +3559,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         for l in target.compilers.keys():
             dep = self.build.stdlibs[target.for_machine].get(l, None)
             if dep:
-                target.add_deps(dep)
+                target.add_deps([dep])
 
     def check_sources_exist(self, subdir, sources):
         for s in sources:
