@@ -1509,6 +1509,9 @@ class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
     def fatal_warnings(self) -> T.List[str]:
         return ['-WX']
 
+    def get_lto_args(self) -> T.List[str]:
+        return ['/LTCG']
+
 
 class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
