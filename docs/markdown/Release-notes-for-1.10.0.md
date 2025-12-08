@@ -99,7 +99,7 @@ linker.
 ## Added `build_subdir` arg to various targets
 
 `custom_target()`, `build_target()` and `configure_file()` now support
-the `build_subdir` argument. This directs meson to place the build
+the `build_subdir` argument. This directs Meson to place the build
 result within the specified sub-directory path of the build directory.
 
 ```meson
@@ -141,7 +141,7 @@ A new module wrapping some common code generators has been added. Currently it s
 ## Methods from compiler object now accept strings for include_directories
 
 The various [[@compiler]] methods with a `include_directories` keyword argument
-now accept stings or array of strings, in addition to [[@inc]] objects
+now accept strings or array of strings, in addition to [[@inc]] objects
 generated from [[include_directories]] function, as it was already the case for
 [[build_target]] family of functions.
 
@@ -204,7 +204,7 @@ Cargo subprojects remain unstable and subject to change.
 Add a second log file `meson-setup.txt` which contains the configure logs
 displayed on stdout during the meson `setup` stage.
 It allows user to navigate through the setup logs without searching in the terminal
-or the extensive informations of `meson-log.txt`.
+or the extensive information of `meson-log.txt`.
 
 ## Added new `namingscheme` option
 
@@ -287,4 +287,3 @@ Previously, [[@custom_tgt]] were accepted but silently ignored, and
 
 Now, they both can be used, and the generated outputs will be scanned to extract
 translation strings.
-
