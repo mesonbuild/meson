@@ -833,14 +833,13 @@ def detect_vcs(source_dir: T.Union[str, Path]) -> T.Optional[VcsData]:
     return None
 
 def current_vs_supports_modules() -> bool:
+    # if in a developer terminal, the version is available
+    # and can be used to avoid using modules for older versions
+    # of the MSVC executable.
     vsver = os.environ.get('VSCMD_VER', '')
-    nums = vsver.split('.', 2)
-    major = int(nums[0])
-    if major >= 17:
-        return True
-    if major == 16 and int(nums[1]) >= 10:
-        return True
-    return vsver.startswith('16.9.0') and '-pre.' in vsver
+    return not vsver \
+        or version_compare(vsver, '>=16.10.0') \
+        or (vsver.startswith('16.9.0') and '-pre.' in vsver)
 
 _VERSION_TOK_RE = re.compile(r'(\d+)|([a-zA-Z]+)')
 
