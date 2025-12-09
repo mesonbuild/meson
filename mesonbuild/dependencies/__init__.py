@@ -222,6 +222,7 @@ packages.defaults.update({
     'intl': 'misc',
     'atomic': 'misc',
     'dl': 'misc',
+    'rt': 'misc',
     'openssl': 'misc',
     'libcrypto': 'misc',
     'libssl': 'misc',

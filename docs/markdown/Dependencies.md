@@ -469,6 +469,17 @@ providing them instead.
 
 `method` may be `auto`, `builtin` or `system`.
 
+## rt (librt)
+
+*(added 1.11.0)*
+
+Provides access to the POSIX Realtime Extensions interface (functions:
+shm_open, clock_getres, timer_create and others). On systems where this
+is not built into libc (mostly glibc < 2.34), tries to find an external
+library providing them instead.
+
+`method` may be `auto`, `builtin` or `system`.
+
 ## Fortran Coarrays
 
 *(added 0.50.0)*

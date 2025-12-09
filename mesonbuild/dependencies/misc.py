@@ -96,6 +96,27 @@ class DlSystemDependency(SystemDependency):
             self.is_found = True
 
 
+class RtBuiltinDependency(BuiltinDependency):
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, env, kwargs)
+        self.feature_since = ('1.11.0', "consider checking for `shm_open` with and without `find_library('rt')`")
+
+        if self.clib_compiler.has_function('shm_open', '#include <sys/mman.h>')[0]:
+            self.is_found = True
+
+
+class RtSystemDependency(SystemDependency):
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, env, kwargs)
+        self.feature_since = ('1.11.0', "consider checking for `shm_open` with and without `find_library('rt')`")
+
+        h = self.clib_compiler.has_header('sys/mman.h', '')
+        self.link_args = self.clib_compiler.find_library('rt', [], self.libtype)
+
+        if h[0] and self.link_args:
+            self.is_found = True
+
+
 class OpenMPDependency(SystemDependency):
     # Map date of specification release (which is the macro value) to a version.
     VERSIONS = {
@@ -611,6 +632,13 @@ packages['dl'] = dl_factory = DependencyFactory(
     [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
     builtin_class=DlBuiltinDependency,
     system_class=DlSystemDependency,
+)
+
+packages['rt'] = rt_factory = DependencyFactory(
+    'rt',
+    [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
+    builtin_class=RtBuiltinDependency,
+    system_class=RtSystemDependency,
 )
 
 packages['gpgme'] = gpgme_factory = DependencyFactory(
