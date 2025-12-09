@@ -548,9 +548,13 @@ class NinjaBackend(backends.Backend):
                                 filebase)
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(dedent('''\
-                #include<stdio.h>
+                #include"incdetect2"
                 int dummy;
             '''))
+        filename_inc = os.path.join(self.environment.get_scratch_dir(),
+                                    'incdetect2')
+        with open(filename_inc, 'w', encoding='utf-8') as f:
+            pass
 
         # The output of cl dependency information is language
         # and locale dependent. Any attempt at converting it to
@@ -562,18 +566,18 @@ class NinjaBackend(backends.Backend):
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdout, stderr) = pc.communicate()
 
-        # We want to match 'Note: including file: ' in the line
-        # 'Note: including file: d:\MyDir\include\stdio.h', however
+        # 'Note: including file: d:\build\meson-private\incdetect2', however
         # different locales have different messages with a different
-        # number of colons. Match up to the drive name 'd:\'.
+        # number of colons. Match up to the drive name 'd:\' or
+        # a relative path '.\'.
         # When used in cross compilation, the path separator is a
         # forward slash rather than a backslash so handle both; i.e.
-        # the path is /MyDir/include/stdio.h.
+        # the path is /build/meson-private/incdetect or ./incdetect2.
         # With certain cross compilation wrappings of MSVC, the paths
         # use backslashes, but without the leading drive name, so
         # allow the path to start with any path separator, i.e.
-        # \MyDir\include\stdio.h.
-        matchre = re.compile(rb"^(.*\s)([a-zA-Z]:[\\/]|[\\\/]).*stdio.h$")
+        # \build\meson-private\incdetect2
+        matchre = re.compile(rb"^(.*\s)([a-zA-Z]:[\\/]|\.?[\\/]).*incdetect2$")
 
         def detect_prefix(out: bytes) -> T.TextIO:
             for line in re.split(rb'\r?\n', out):
