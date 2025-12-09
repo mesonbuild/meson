@@ -89,9 +89,9 @@ meson setup --cross-file \
 
 Arrays now have a `.slice()` method which allows for subsetting of arrays.
 
-## `-Db_msvcrt` on clang
+## `-Db_vscrt` on clang
 
-`-Db_msvcrt` will now link the appropriate runtime library, and set
+`-Db_vscrt` will now link the appropriate runtime library, and set
 the appropriate preprocessor symbols, also when the compiler is clang.
 This is only supported when using `link.exe` or `lld-link.exe` as the
 linker.
