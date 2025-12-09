@@ -309,12 +309,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # Re-initialize machine descriptions. We can do a better job now because we
         # have the compilers needed to gain more knowledge, so wipe out old
         # inference and start over.
-        machines = self.build.environment.machines.miss_defaulting()
-        machines.build = envconfig.detect_machine_info(self.coredata.compilers.build)
-        self.build.environment.machines = machines.default_missing()
-        assert self.build.environment.machines.build.cpu is not None
-        assert self.build.environment.machines.host.cpu is not None
-        assert self.build.environment.machines.target.cpu is not None
+        self.build.environment.update_build_machine()
 
         self.builtin['build_machine'] = \
             OBJ.MachineHolder(self.build.environment.machines.build, self)
