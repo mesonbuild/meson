@@ -1328,8 +1328,9 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     compilers, _ = _get_compilers(env, 'nasm', for_machine, allow_build_machine=True)
 
     # We need a C compiler to properly detect the machine info and linker
-    
     cc = detect_c_compiler(env, for_machine)
+    if not env.is_cross_build(for_machine):
+        env.update_build_machine({'c': cc})
 
     popen_exceptions: T.Dict[str, Exception] = {}
     for comp in compilers:
@@ -1370,9 +1371,9 @@ def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     # We need a C compiler to properly detect the machine info and linker
     cc = detect_c_compiler(env, for_machine)
     if not env.is_cross_build(for_machine):
-        info = detect_machine_info({'c': cc})
-    else:
-        info = env.machines[for_machine]
+        env.update_build_machine({'c': cc})
+
+    info = env.machines[for_machine]
 
     from .asm import MasmCompiler, MasmARMCompiler
     comp_class: T.Type[ASMCompiler]
@@ -1412,6 +1413,8 @@ def detect_linearasm_compiler(env: Environment, for_machine: MachineChoice) -> C
     comp_class: T.Type[ASMCompiler] = TILinearAsmCompiler
     arg = '-h'
     cc = detect_c_compiler(env, for_machine)
+    if not env.is_cross_build(for_machine):
+        env.update_build_machine({'c': cc})
 
     popen_exceptions: T.Dict[str, Exception] = {}
     try:
