@@ -839,7 +839,7 @@ def load_cargo_lock(filename: str, subproject_dir: str) -> T.Optional[CargoLock]
             meson_depname = _dependency_name(package.name, version.api(package.version))
             if package.source is None:
                 # This is project's package, or one of its workspace members.
-                pass
+                continue
             elif package.source == 'registry+https://github.com/rust-lang/crates.io-index':
                 checksum = package.checksum
                 if checksum is None:
