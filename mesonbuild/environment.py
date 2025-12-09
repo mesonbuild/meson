@@ -230,6 +230,8 @@ class Environment:
         self.default_pkgconfig = ['pkg-config']
         self.wrap_resolver: T.Optional['Resolver'] = None
 
+        self.build_machines_are_exact = False
+
     def mfilestr2key(self, machine_file_string: str, section: T.Optional[str], section_subproject: T.Optional[str], machine: MachineChoice) -> OptionKey:
         key = OptionKey.from_string(machine_file_string)
         if key.subproject:
@@ -613,3 +615,20 @@ class Environment:
             # This is how autotools works, and the env vars feature is for
             # autotools compatibility.
             largs.extend_value(comp_options)
+
+    def update_build_machine(self, compilers: T.Optional[T.Dict[str, Compiler]] = None) -> None:
+        """Redetect the build machine and update the machine definitions
+
+        :compilers: An optional dictionary of compilers to use instead of the coredata dict.
+        """
+        if self.build_machines_are_exact:
+            return
+
+        compilers = compilers or self.coredata.compilers.build
+        if not compilers:
+            return
+
+        machines = self.machines.miss_defaulting()
+        machines.build = detect_machine_info(compilers)
+        self.machines = machines.default_missing()
+        self.build_machines_are_exact = True
