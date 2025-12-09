@@ -532,7 +532,6 @@ class RewriterTests(BasePlatformTests):
         self.assertEqual(dag_as_str.strip(), expected)
 
     @skip_if_not_language('nasm')
-    @unittest.expectedFailure
     def test_nasm(self) -> None:
         srcdir = os.path.join(self.unit_test_dir, '133 nasm language only')
         self.rewrite_raw(srcdir, ['kwargs', 'info', 'project', '/'])
