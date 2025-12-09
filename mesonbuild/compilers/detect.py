@@ -8,7 +8,7 @@ from ..mesonlib import (
     search_version, is_windows, Popen_safe, Popen_safe_logged, version_compare, windows_proof_rm,
 )
 from ..programs import ExternalProgram
-from ..envconfig import BinaryTable, detect_cpu_family, detect_machine_info
+from ..envconfig import BinaryTable, detect_cpu_family
 from .. import mlog
 
 from ..linkers import guess_win_linker, guess_nix_linker
@@ -1328,6 +1328,7 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     compilers, _ = _get_compilers(env, 'nasm', for_machine, allow_build_machine=True)
 
     # We need a C compiler to properly detect the machine info and linker
+    
     cc = detect_c_compiler(env, for_machine)
 
     popen_exceptions: T.Dict[str, Exception] = {}
