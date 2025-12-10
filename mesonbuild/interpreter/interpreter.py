@@ -685,7 +685,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_declare_dependency(self, node: mparser.BaseNode, args: T.List[TYPE_var],
                                 kwargs: kwtypes.FuncDeclareDependency) -> dependencies.Dependency:
         deps = kwargs['dependencies']
-        incs = self.extract_incdirs(kwargs)
+        incs = self.extract_incdirs(kwargs['include_directories'])
         libs = kwargs['link_with']
         libs_whole = kwargs['link_whole']
         objects = kwargs['objects']
@@ -698,7 +698,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if version is None:
             version = self.project_version
         d_module_versions = kwargs['d_module_versions']
-        d_import_dirs = self.extract_incdirs(kwargs, 'd_import_dirs')
+        d_import_dirs = self.extract_incdirs(kwargs['d_import_dirs'], True)
         srcdir = self.environment.source_dir
         subproject_dir = os.path.abspath(os.path.join(srcdir, self.subproject_dir))
         project_root = os.path.abspath(os.path.join(srcdir, self.root_subdir))
@@ -2792,29 +2792,21 @@ class Interpreter(InterpreterBase, HoldableObject):
                                               install_tag=install_tag, data_type='configure'))
         return mesonlib.File.from_built_file(self.subdir, output)
 
-    def extract_incdirs(self, kwargs, key: str = 'include_directories', strings_since: T.Optional[str] = None) -> T.List[build.IncludeDirs]:
-        prospectives = extract_as_list(kwargs, key)
-        if strings_since:
-            for i in prospectives:
-                if isinstance(i, str):
-                    FeatureNew.single_use(f'{key} kwarg of type string', strings_since, self.subproject,
-                                          f'Use include_directories({i!r}) instead', location=self.current_node)
-                    break
-
+    def extract_incdirs(self, prospectives: T.List[T.Union[str, build.IncludeDirs]],
+                        is_d_import_dirs: bool = False
+                        ) -> T.List[build.IncludeDirs]:
         result: T.List[build.IncludeDirs] = []
         for p in prospectives:
             if isinstance(p, build.IncludeDirs):
                 result.append(p)
-            elif isinstance(p, str):
-                if key == 'd_import_dirs' and os.path.normpath(p).startswith(self.environment.get_source_dir()):
+            else:
+                if is_d_import_dirs and os.path.normpath(p).startswith(self.environment.get_source_dir()):
                     FeatureDeprecated.single_use('Building absolute path to source dir is not supported',
                                                  '0.45', self.subproject,
                                                  'Use a relative path instead.',
                                                  location=self.current_node)
                     p = os.path.relpath(p, os.path.join(self.environment.get_source_dir(), self.subdir))
                 result.append(self.build_incdir_object([p]))
-            else:
-                raise InterpreterException('Include directory objects can only be created from strings or include directories.')
         return result
 
     @typed_pos_args('include_directories', varargs=str)
@@ -3481,7 +3473,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if targetclass is not build.Jar:
             self.check_for_jar_sources(sources, targetclass)
-            kwargs['d_import_dirs'] = self.extract_incdirs(kwargs, 'd_import_dirs')
+            kwargs['d_import_dirs'] = self.extract_incdirs(kwargs['d_import_dirs'], True)
             missing: T.List[str] = []
             for each in itertools.chain(kwargs['c_pch'] or [], kwargs['cpp_pch'] or []):
                 if each is not None:
@@ -3525,7 +3517,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                             node=node)
                     outputs.update(o)
 
-        kwargs['include_directories'] = self.extract_incdirs(kwargs, strings_since='0.50.0')
+        kwargs['include_directories'] = self.extract_incdirs(kwargs['include_directories'])
 
         if targetclass is build.Executable:
             kwargs = T.cast('kwtypes.Executable', kwargs)
