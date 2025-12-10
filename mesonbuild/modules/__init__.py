@@ -53,6 +53,7 @@ class ModuleState:
         self.global_args = interpreter.build.global_args.host
         self.project_args = interpreter.current_build_project().project_args.host
         self.current_node = interpreter.current_node
+        self.is_build_only_subproject = interpreter.build.is_build_only
 
     def get_include_args(self, include_dirs: T.Iterable[T.Union[str, build.IncludeDirs]], prefix: str = '-I') -> T.List[str]:
         if not include_dirs:

@@ -1767,7 +1767,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         if len(names) > 1:
             FeatureNew('dependency with more than one name', '0.60.0').use(self.subproject)
         default_options = kwargs.get('default_options')
+
         for_machine = kwargs['native']
+        if self.build.is_build_only:
+            for_machine = MachineChoice.BUILD
         df = DependencyFallbacksHolder(self, names, for_machine, kwargs['allow_fallback'], default_options)
         df.set_fallback(kwargs['fallback'])
         not_found_message = kwargs['not_found_message']
@@ -1989,6 +1992,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             cmd,
             self.source_strings_to_files(kwargs['input']),
             kwargs['output'],
+            self.build.is_build_only,
             build_by_default=True,
             build_always_stale=True,
             install=install,
@@ -2121,6 +2125,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             command,
             inputs,
             kwargs['output'],
+            self.build.is_build_only,
             build_always_stale=build_always_stale,
             build_by_default=build_by_default,
             capture=kwargs['capture'],
@@ -3559,7 +3564,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         kwargs['install_tag'] = [kwargs['install_tag']]
 
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
-                             self.environment, self.compilers[for_machine], kwargs)
+                             self.environment, self.compilers[for_machine], self.build.is_build_only, kwargs)
         if objs and target.uses_rust():
             FeatureNew.single_use('objects in Rust targets', '1.8.0', self.subproject)
 

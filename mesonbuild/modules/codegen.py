@@ -184,6 +184,7 @@ class LexHolder(ObjectHolder[LexGenerator]):
             command,
             [input],
             outputs,
+            self.interpreter.build.is_build_only,
             backend=self.interpreter.backend,
             description='Generating lexer {{}} with {}'.format(self.held_object.name),
         )
@@ -259,6 +260,7 @@ class YaccHolder(ObjectHolder[YaccGenerator]):
             command,
             [input],
             outputs,
+            self.interpreter.build.is_build_only,
             backend=self.interpreter.backend,
             description='Generating parser {{}} with {}'.format(self.held_object.name),
         )
