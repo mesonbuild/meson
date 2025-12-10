@@ -34,7 +34,6 @@ def main() -> int:
     parser.add_argument('-q', '--quiet', action='store_true', help='Suppress verbose output')
     parser.add_argument('--force-color', action='store_true', help='Force enable colors')
     parser.add_argument('--no-modules', action='store_true', help='Disable building modules')
-    parser.add_argument('--qhelpgenerator', type=Path, default=None, help='Path to qhelpgenerator for use with the \'qthelp\' generator.')
     args = parser.parse_args()
 
     if args.quiet:
@@ -56,7 +55,7 @@ def main() -> int:
         'print': lambda: GeneratorPrint(refMan),
         'pickle': lambda: GeneratorPickle(refMan, args.out),
         'md': lambda: GeneratorMD(refMan, args.out, args.sitemap, args.link_defs, not args.no_modules),
-        'qthelp': lambda: GeneratorQtHelp(refMan, args.out, args.sitemap, args.link_defs, not args.no_modules, args.qhelpgenerator),
+        'qthelp': lambda: GeneratorQtHelp(refMan, args.out, args.sitemap, args.link_defs, not args.no_modules),
         'json': lambda: GeneratorJSON(refMan, args.out, not args.no_modules),
         'man': lambda: GeneratorMan(refMan, args.out, not args.no_modules),
         'vim': lambda: GeneratorVim(refMan, args.out),

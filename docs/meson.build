@@ -154,8 +154,6 @@ if not get_option('qthelp')
     subdir_done()
 endif
 
-qhelpgenerator = find_program('qhelpgenerator', '/usr/libexec/qt6/qhelpgenerator', '/usr/bin/qhelpgenerator-qt5', required: true)
-
 refman_qthelp = custom_target(
     'gen_refman_qthelp',
     input: refman_binary,
@@ -167,7 +165,6 @@ refman_qthelp = custom_target(
         '-s', sitemap,
         '-i', '@INPUT@',
         '-o', '@OUTPUT0@',
-        '--qhelpgenerator', qhelpgenerator.full_path(),
         '--link-defs', '@OUTPUT1@',
         '--force-color',
         '--no-modules',
@@ -193,4 +190,19 @@ documentation_qthelp = hotdoc.generate_doc(meson.project_name() + '-qthelp',
     refman_data_file: refman_qthelp[1],
     fatal_warnings: true,
     devhelp_activate: false,
+)
+
+qhelpgenerator = find_program('qhelpgenerator', '/usr/libexec/qt6/qhelpgenerator', '/usr/bin/qhelpgenerator-qt5', required: true)
+
+generate_qch = custom_target(
+    'gen_qch',
+    input: [],
+    output: 'Meson.qch',
+    depends: documentation_qthelp,
+    command: [
+        py, meson.current_source_dir() / 'runprogram.py',
+        qhelpgenerator, documentation_qthelp.full_path() / 'html',
+        meson.current_build_dir() / 'Meson.qhp',
+        '-o', '@OUTPUT@'
+    ],
 )
