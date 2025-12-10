@@ -2393,7 +2393,7 @@ class NinjaBackend(backends.Backend):
         self.add_build(elem)
         if isinstance(target, build.StaticLibrary):
             elem = self.generate_link(target, self.get_target_filename(target),
-                                      rel_objects, self.build.static_linker[target.for_machine])
+                                      rel_objects, self.build.get_static_linker(target.for_machine))
             self.add_build(elem)
         elif isinstance(target, build.Executable):
             elem = NinjaBuildElement(self.all_outputs, self.get_target_filename(target), rulename, [])
@@ -2423,7 +2423,7 @@ class NinjaBackend(backends.Backend):
         if 'java' in self.environment.coredata.compilers.host:
             self.generate_java_link()
         for for_machine in MachineChoice:
-            static_linker = self.build.static_linker[for_machine]
+            static_linker = self.build.get_static_linker(for_machine)
             if static_linker is None:
                 continue
             rule = 'STATIC_LINKER{}'.format(self.get_rule_suffix(for_machine))

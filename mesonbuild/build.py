@@ -352,7 +352,7 @@ class Build:
         self.emptydir: T.List[EmptyDir] = []
         self.data: T.List[Data] = []
         self.symlinks: T.List[SymlinkData] = []
-        self.static_linker: PerMachine[StaticLinker] = PerMachine(None, None)
+        self.static_linker: PerMachine[T.Optional[StaticLinker]] = PerMachine(None, None)
         self.subprojects: T.Dict[str, str] = {}
         self.subproject_dir = ''
         self.install_scripts: T.List['ExecutableSerialisation'] = []
@@ -417,9 +417,14 @@ class Build:
         for k, v in other.__dict__.items():
             self.__dict__[k] = v
 
+    def get_static_linker(self, for_machine: MachineChoice) -> T.Optional[StaticLinker]:
+        for_machine = for_machine if self.environment.is_cross_build() else MachineChoice.HOST
+        return self.static_linker[for_machine]
+
     def ensure_static_linker(self, compiler: Compiler) -> None:
-        if self.static_linker[compiler.for_machine] is None and compiler.needs_static_linker():
-            self.static_linker[compiler.for_machine] = detect_static_linker(self.environment, compiler)
+        for_machine = compiler.for_machine if self.environment.is_cross_build() else MachineChoice.HOST
+        if self.static_linker[for_machine] is None and compiler.needs_static_linker():
+            self.static_linker[for_machine] = detect_static_linker(self.environment, compiler)
 
     def get_project(self) -> T.Dict[str, str]:
         return self.projects['']
