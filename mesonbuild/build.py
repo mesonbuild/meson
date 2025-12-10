@@ -1589,14 +1589,12 @@ class BuildTarget(Target):
             else:
                 mlog.warning(msg + ' This will fail in cross build.')
 
-    def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: T.Optional[str] = None) -> None:
+    def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: str = 'preserve') -> None:
         ids: T.List['IncludeDirs'] = []
         for a in args:
             if not isinstance(a, IncludeDirs):
                 raise InvalidArguments('Include directory to be added is not an include directory object.')
             ids.append(a)
-        if set_is_system is None:
-            set_is_system = 'preserve'
         if set_is_system != 'preserve':
             is_system = set_is_system == 'system'
             ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in ids]
