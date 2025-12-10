@@ -1130,7 +1130,7 @@ class BuildTarget(Target):
                 self.link_depends.append(s)
             elif isinstance(s, str):
                 self.link_depends.append(
-                    File.from_source_file(self.environment.source_dir, self.subdir, s))
+                    File.from_source_file(self.environment.source_dir, self.get_subdir(), s))
             else:
                 self.link_depends.append(s)
 
@@ -1245,7 +1245,7 @@ class BuildTarget(Target):
         result: OrderedSet[str] = OrderedSet()
         for i in self.link_targets:
             if not isinstance(i, StaticLibrary):
-                result.add(i.get_subdir())
+                result.add(i.get_builddir())
             result.update(i.get_link_dep_subdirs())
         return result
 
@@ -1790,7 +1790,7 @@ class BuildTarget(Target):
             self.vs_module_defs = path
         else:
             # When passing output of a Custom Target
-            self.vs_module_defs = File.from_built_file(path.get_subdir(), path.get_filename())
+            self.vs_module_defs = File.from_built_file(path.get_builddir(), path.get_filename())
         self.process_link_depends([path])
 
     def extract_targets_as_list(self, kwargs: BuildTargetKeywordArguments, key: T.Literal['link_with', 'link_whole']) -> T.List[LibTypes]:
@@ -2035,7 +2035,7 @@ class Generator(HoldableObject):
         for e in files:
             if isinstance(e, (CustomTarget, CustomTargetIndex)):
                 output.depends.add(e)
-                fs = [File.from_built_file(e.get_subdir(), f) for f in e.get_outputs()]
+                fs = [File.from_built_file(e.get_builddir(), f) for f in e.get_outputs()]
             elif isinstance(e, GeneratedList):
                 if preserve_path_from:
                     raise InvalidArguments("generator.process: 'preserve_path_from' is not allowed if one input is a 'generated_list'.")

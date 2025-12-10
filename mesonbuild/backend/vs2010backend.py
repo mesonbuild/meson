@@ -1787,7 +1787,7 @@ class Vs2010Backend(backends.Backend):
                         self.add_additional_options(lang, inc_cl, file_args)
                         self.add_preprocessor_defines(lang, inc_cl, file_defines)
                         self.add_include_dirs(lang, inc_cl, file_inc_dirs)
-                        s = File.from_built_file(target.get_subdir(), s)
+                        s = File.from_built_file(target.get_builddir(), s)
                         ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + \
                             self.object_filename_from_source(target, compiler, s)
             for lang, headers in pch_sources.items():
