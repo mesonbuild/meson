@@ -1285,8 +1285,7 @@ class BuildTarget(Target):
         self.process_link_depends(kwargs.get('link_depends', []))
         # Target-specific include dirs must be added BEFORE include dirs from
         # internal deps (added inside self.add_deps()) to override them.
-        inclist = extract_as_list(kwargs, 'include_directories')
-        self.add_include_dirs(inclist)
+        self.add_include_dirs(kwargs.get('include_directories', []))
         # Add dependencies (which also have include_directories)
         deplist = extract_as_list(kwargs, 'dependencies')
         self.add_deps(deplist)
@@ -1587,15 +1586,11 @@ class BuildTarget(Target):
                 mlog.warning(msg + ' This will fail in cross build.')
 
     def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: str = 'preserve') -> None:
-        ids: T.List['IncludeDirs'] = []
-        for a in args:
-            if not isinstance(a, IncludeDirs):
-                raise InvalidArguments('Include directory to be added is not an include directory object.')
-            ids.append(a)
         if set_is_system != 'preserve':
             is_system = set_is_system == 'system'
-            ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in ids]
-        self.include_dirs += ids
+            self.include_dirs.extend([IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in args])
+        else:
+            self.include_dirs.extend(args)
 
     def get_aliases(self) -> T.List[T.Tuple[str, str, str]]:
         return []
