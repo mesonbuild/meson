@@ -20,14 +20,12 @@ _VIRTUAL_FOLDER = 'doc'
 
 class GeneratorQtHelp(GeneratorMD):
     def __init__(self, manual: ReferenceManual, sitemap_out: Path, sitemap_in: Path,
-                 link_def_out: Path, enable_modules: bool, qhelpgenerator: Path) -> None:
+                 link_def_out: Path, enable_modules: bool) -> None:
         super().__init__(manual, sitemap_out, sitemap_in, link_def_out, enable_modules)
         #self.out_dir /= "qthelp"
 
         # Qt Help Project data
         self.qhp_data = ET.TreeBuilder()
-
-        self.qhelpgenerator = qhelpgenerator
 
     def generate(self) -> None:
         super().generate()
@@ -38,10 +36,6 @@ class GeneratorQtHelp(GeneratorMD):
             qhp_tree = ET.ElementTree(self.qhp_data.close())
             with open('Meson.qhp', 'wb+') as qhp_file:
                 qhp_tree.write(qhp_file, encoding='utf-8', xml_declaration=True)
-
-        mlog.log('Generating Qt Compressed Help file...')
-        with mlog.nested():
-            self._generate_qch()
 
     def _get_doc_title(self, md: Path) -> str:
         if not md.exists() or not md.is_file():
@@ -156,6 +150,3 @@ class GeneratorQtHelp(GeneratorMD):
         self.qhp_data.end('filterSection')
 
         self.qhp_data.end('QtHelpProject')
-
-    def _generate_qch(self):
-        subprocess.run([self.qhelpgenerator, 'Meson.qhp', '-o', 'Meson.qch'], cwd=self.out_dir)
