@@ -15,7 +15,7 @@ from .. import build
 from .. import options
 from .. import mlog
 from ..dependencies import DependencyMethods, find_external_dependency, Dependency, ExternalLibrary, InternalDependency
-from ..mesonlib import MesonException, File, FileMode, version_compare, Popen_safe
+from ..mesonlib import MachineChoice, MesonException, File, FileMode, version_compare, Popen_safe
 from ..interpreter import extract_required_kwarg
 from ..interpreter.type_checking import DEPENDENCY_METHOD_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType
 from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, typed_kwargs, typed_pos_args
@@ -270,7 +270,7 @@ class QtBaseModule(ExtensionModule):
             return
         self._tools_detected = True
         mlog.log(f'Detecting Qt{self.qt_version} tools')
-        kwargs: DependencyObjectKWs = {'required': required, 'modules': ['Core'], 'method': method}
+        kwargs: DependencyObjectKWs = {'required': required, 'modules': ['Core'], 'method': method, 'native': MachineChoice.HOST}
         # Just pick one to make mypy happy
         qt = T.cast('QtPkgConfigDependency', find_external_dependency(f'qt{self.qt_version}', state.environment, kwargs))
         if qt.found():

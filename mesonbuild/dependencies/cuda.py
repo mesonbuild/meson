@@ -28,16 +28,17 @@ class CudaDependency(SystemDependency):
     supported_languages = ['cpp', 'c', 'cuda'] # see also _default_language
     targets_dir = 'targets' # Directory containing CUDA targets.
 
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        for_machine = kwargs.get('native', mesonlib.MachineChoice.HOST)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        for_machine = kwargs['native']
         compilers = environment.coredata.compilers[for_machine]
         machine = environment.machines[for_machine]
-        language = self._detect_language(compilers)
+        if not kwargs.get('language'):
+            kwargs['language'] = self._detect_language(compilers)
 
-        if language not in self.supported_languages:
-            raise DependencyException(f'Language \'{language}\' is not supported by the CUDA Toolkit. Supported languages are {self.supported_languages}.')
+        if kwargs['language'] not in self.supported_languages:
+            raise DependencyException(f'Language \'{kwargs["language"]}\' is not supported by the CUDA Toolkit. Supported languages are {self.supported_languages}.')
 
-        super().__init__('cuda', environment, kwargs, language=language)
+        super().__init__(name, environment, kwargs)
         self.lib_modules: T.Dict[str, T.List[str]] = {}
         self.requested_modules = kwargs.get('modules', [])
         if not any(runtime in self.requested_modules for runtime in ['cudart', 'cudart_static']):
