@@ -235,7 +235,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def _determine_args(self, kwargs: BaseCompileKW,
                         mode: CompileCheckMode = CompileCheckMode.LINK) -> T.List[str]:
         args: T.List[str] = []
-        for i in self.interpreter.extract_incdirs(kwargs):
+        for i in self.interpreter.extract_incdirs(kwargs['include_directories']):
             for idir in i.to_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
                 args.extend(self.compiler.get_include_args(idir, False))
         if not kwargs['no_builtin_args']:
@@ -913,7 +913,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             compiler,
             self.interpreter.backend,
             kwargs['compile_args'],
-            self.interpreter.extract_incdirs(kwargs),
+            self.interpreter.extract_incdirs(kwargs['include_directories']),
             kwargs['dependencies'],
             kwargs['depends'])
         self.interpreter.add_target(tg.name, tg)
