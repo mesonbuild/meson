@@ -3473,6 +3473,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if targetclass is not build.Jar:
             self.check_for_jar_sources(sources, targetclass)
+            kwargs['include_directories'] = self.extract_incdirs(kwargs['include_directories'])
             kwargs['d_import_dirs'] = self.extract_incdirs(kwargs['d_import_dirs'], True)
             missing: T.List[str] = []
             for each in itertools.chain(kwargs['c_pch'] or [], kwargs['cpp_pch'] or []):
@@ -3516,8 +3517,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                             f"Conflicting sources in structured sources: {', '.join(sorted(conflicts))}",
                             node=node)
                     outputs.update(o)
-
-        kwargs['include_directories'] = self.extract_incdirs(kwargs['include_directories'])
 
         if targetclass is build.Executable:
             kwargs = T.cast('kwtypes.Executable', kwargs)
