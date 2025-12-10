@@ -417,8 +417,11 @@ class Build:
             self.__dict__[k] = v
 
     def ensure_static_linker(self, compiler: Compiler) -> None:
-        if self.static_linker[compiler.for_machine] is None and compiler.needs_static_linker():
-            self.static_linker[compiler.for_machine] = detect_static_linker(self.environment, compiler)
+        for_machine = compiler.for_machine if self.environment.is_cross_build() else MachineChoice.HOST
+        if self.static_linker[for_machine] is None and compiler.needs_static_linker():
+            self.static_linker[for_machine] = detect_static_linker(self.environment, compiler)
+            if not self.environment.is_cross_build():
+                self.static_linker[MachineChoice.BUILD] = self.static_linker[MachineChoice.HOST]
 
     def get_project(self) -> T.Dict[str, str]:
         return self.projects['']
