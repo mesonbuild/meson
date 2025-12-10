@@ -1866,7 +1866,7 @@ class NinjaBackend(backends.Backend):
                 if isinstance(gen, GeneratedList):
                     ssrc = os.path.join(self.get_target_private_dir(target), ssrc)
                 else:
-                    ssrc = os.path.join(gen.get_subdir(), ssrc)
+                    ssrc = os.path.join(gen.get_builddir(), ssrc)
                 if ssrc.endswith('.pyx'):
                     output = os.path.join(self.get_target_private_dir(target), f'{ssrc}.{ext}')
                     element = NinjaBuildElement(
@@ -1879,7 +1879,7 @@ class NinjaBackend(backends.Backend):
                     # TODO: introspection?
                     cython_sources.append(output)
                 else:
-                    generated_sources[ssrc] = mesonlib.File.from_built_file(gen.get_subdir(), ssrc)
+                    generated_sources[ssrc] = mesonlib.File.from_built_file(gen.get_builddir(), ssrc)
                     # Following logic in L883-900 where we determine whether to add generated source
                     # as a header(order-only) dep to the .so compilation rule
                     if not compilers.is_source(ssrc) and \
@@ -2001,7 +2001,7 @@ class NinjaBackend(backends.Backend):
                     else:
                         for h in g.get_outputs():
                             if h.endswith('.rs'):
-                                main_rust_file = os.path.join(g.get_subdir(), h)
+                                main_rust_file = os.path.join(g.get_builddir(), h)
                                 break
                     if main_rust_file is not None:
                         break
@@ -2025,7 +2025,7 @@ class NinjaBackend(backends.Backend):
                 if isinstance(g, GeneratedList):
                     fname = os.path.join(self.get_target_private_dir(target), i)
                 else:
-                    fname = os.path.join(g.get_subdir(), i)
+                    fname = os.path.join(g.get_builddir(), i)
                 if main_rust_file is None and fname.endswith('.rs'):
                     main_rust_file = fname
                 orderdeps.append(fname)
