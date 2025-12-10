@@ -1402,9 +1402,6 @@ class BuildTarget(Target):
         for t in self.link_whole_targets:
             t.get_dependencies_recurse(result, include_internals, include_proc_macros)
 
-    def get_source_subdir(self):
-        return self.subdir
-
     def get_sources(self) -> T.List[File]:
         return self.sources
 

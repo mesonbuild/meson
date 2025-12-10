@@ -3415,10 +3415,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if pch[1] is None:
             # Auto generate PCH.
             source = self.create_msvc_pch_implementation(target, compiler.get_language(), pch[0])
-            pch_header_dir = os.path.dirname(os.path.join(self.build_to_src, target.get_source_subdir(), header))
+            pch_header_dir = os.path.dirname(os.path.join(self.build_to_src, target.get_subdir(), header))
             commands += compiler.get_include_args(pch_header_dir, False)
         else:
-            source = os.path.join(self.build_to_src, target.get_source_subdir(), pch[1])
+            source = os.path.join(self.build_to_src, target.get_subdir(), pch[1])
 
         just_name = os.path.basename(header)
         (objname, pch_args) = compiler.gen_pch_args(just_name, source, dst)
@@ -3459,16 +3459,16 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             compiler: Compiler = target.compilers[lang]
             if compiler.get_argument_syntax() == 'msvc':
                 (commands, dep, dst, objs, src) = self.generate_msvc_pch_command(target, compiler, pch)
-                extradep = os.path.join(self.build_to_src, target.get_source_subdir(), pch[0])
+                extradep = os.path.join(self.build_to_src, target.get_subdir(), pch[0])
             elif compiler.id == 'intel':
                 # Intel generates on target generation
                 continue
             elif 'mwcc' in compiler.id:
-                src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[0])
+                src = os.path.join(self.build_to_src, target.get_subdir(), pch[0])
                 (commands, dep, dst, objs) = self.generate_mwcc_pch_command(target, compiler, pch[0])
                 extradep = None
             else:
-                src = os.path.join(self.build_to_src, target.get_source_subdir(), pch[0])
+                src = os.path.join(self.build_to_src, target.get_subdir(), pch[0])
                 (commands, dep, dst, objs) = self.generate_gcc_pch_command(target, compiler, pch[0])
                 extradep = None
             pch_objects += objs
