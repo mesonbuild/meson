@@ -1,4 +1,4 @@
-project('find program', meson_version: '>= 1.10.0',)
+project('find program', 'c', meson_version: '>= 1.10.0',)
 
 if build_machine.system() == 'windows'
   # Things Windows does not provide:
@@ -58,3 +58,10 @@ else
   prog = find_program('ld')
   assert(prog.cmd_array() == [prog.full_path()])
 endif
+
+exe = executable('app', 'main.c')
+meson.override_find_program('foo', exe)
+prog = find_program('foo')
+assert(prog.found())
+assert(prog.full_path() == exe.full_path())
+assert(prog.cmd_array() == [exe.full_path()])
