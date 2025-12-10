@@ -673,7 +673,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         D_MODULE_VERSIONS_KW.evolve(since='0.62.0'),
         KwargInfo('link_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         DEPENDENCIES_KW,
-        INCLUDE_DIRECTORIES,
+        INCLUDE_DIRECTORIES.evolve(since_values={ContainerTypeInfo(list, str): '0.50.0'}),
         LINK_WITH_KW,
         LINK_WHOLE_KW.evolve(since='0.46.0'),
         DEPENDENCY_SOURCES_KW,
@@ -685,7 +685,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_declare_dependency(self, node: mparser.BaseNode, args: T.List[TYPE_var],
                                 kwargs: kwtypes.FuncDeclareDependency) -> dependencies.Dependency:
         deps = kwargs['dependencies']
-        incs = self.extract_incdirs(kwargs, strings_since='0.50.0')
+        incs = self.extract_incdirs(kwargs)
         libs = kwargs['link_with']
         libs_whole = kwargs['link_whole']
         objects = kwargs['objects']
