@@ -14,7 +14,7 @@ elif cc.get_id() == 'intel-cl'
   add_project_arguments('/Qdiag-error:10159', language : 'c')
 endif
 
-exe = executable('trivialprog', sources : sources)
+exe = executable('trivialprog', sources : sources, link_args : '')
 assert(exe.name() == 'trivialprog')
 test('runtest', exe) # This is a comment
 
