@@ -41,7 +41,7 @@ def mpi_factory(env: 'Environment',
         return []
     compiler_is_intel = compiler.get_id() in {'intel', 'intel-cl'}
 
-    if DependencyMethods.CONFIG_TOOL in methods:
+    if DependencyMethods.CONFIG_TOOL in methods and not env.machines[for_machine].is_windows():
         nwargs = kwargs.copy()
 
         # We try the environment variables for the tools first, but then
