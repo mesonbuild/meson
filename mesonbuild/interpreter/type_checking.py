@@ -710,6 +710,12 @@ _PCH_ARGS: KwargInfo[T.List[str]] = KwargInfo(
 )
 
 
+def _link_args_feature_validator(values: T.List[str]) -> T.Iterable[FeatureCheckBase]:
+    if values == ['']:
+        yield FeatureBroken('passing an empty strings to link_args', '1.10.1',
+                            'replace an empty string with an empty array: `link_args : []`')
+
+
 # Applies to all build_target classes except jar
 _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     *_ALL_TARGET_KWS,
@@ -746,6 +752,9 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
         ContainerTypeInfo(list, str),
         default=[],
         listify=True,
+        # Replace `''` with `[]`. See: https://github.com/mesonbuild/meson/issues/15376
+        convertor=lambda x: [] if x == [''] else x,
+        feature_validator=_link_args_feature_validator,
     ),
     KwargInfo(
         'link_depends',
