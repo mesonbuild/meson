@@ -264,6 +264,25 @@ def windows_syms(impfilename: str, outfilename: str) -> None:
     result += symbols
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
+def os2_syms(impfilename: str, outfilename: str) -> None:
+    # Get a list of all symbols exported with the name of the library
+    all_stderr = ''
+    # First try nm.exe for aout .a
+    output, e = call_tool_nowarn(get_tool('nm') + ['-P', impfilename])
+    if output:
+        result = [x for x in output.split('\n') if ' E ' in x]
+        write_if_changed('\n'.join(result) + '\n', outfilename)
+        return
+    all_stderr += e
+    # Next try listomf.exe for omf .lib
+    output, e = call_tool_nowarn(get_tool('listomf') + ['-d', impfilename])
+    if output:
+        result = [x for x in output.split('\n') if ' IMPDEF ' in x]
+        write_if_changed('\n'.join(result) + '\n', outfilename)
+        return
+    all_stderr += e
+    print_tool_warning(['nm', 'listomf'], 'do not work or were not found', all_stderr)
+
 def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host: str) -> None:
     if cross_host is not None:
         # In case of cross builds just always relink. In theory we could
@@ -299,6 +318,13 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
             dummy_syms(outfilename)
     elif mesonlib.is_sunos():
         solaris_syms(libfilename, outfilename)
+    elif mesonlib.is_os2():
+        if os.path.isfile(impfilename):
+            os2_syms(impfilename, outfilename)
+        else:
+            # No import library. Not sure how the DLL is being used, so just
+            # rebuild everything that links to it every time.
+            dummy_syms(outfilename)
     else:
         if not os.path.exists(TOOL_WARNING_FILE):
             mlog.warning('Symbol extracting has not been implemented for this '
