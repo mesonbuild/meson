@@ -1,0 +1,8 @@
+{
+  "stdout": [
+    {
+      "match": "re",
+      "line": "test cases/failing/136 cargo toml error/(subprojects/foo-0-rs/Cargo\\.toml:6:13|meson\\.build:19:10): ERROR: Cannot overwrite a value( \\(at.*)?"
+    }
+  ]
+}
