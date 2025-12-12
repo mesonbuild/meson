@@ -494,7 +494,7 @@ class Backend:
         for obj in objects:
             if isinstance(obj, str):
                 o = os.path.join(proj_dir_to_build_root,
-                                 self.build_to_src, target.get_builddir(), obj)
+                                 self.build_to_src, target.get_subdir(), obj)
                 obj_list.append(o)
             elif isinstance(obj, mesonlib.File):
                 if obj.is_built:
@@ -1458,9 +1458,9 @@ class Backend:
                     deps.append(i.rel_to_builddir(self.build_to_src))
             else:
                 if absolute_paths:
-                    deps.append(os.path.join(self.environment.get_source_dir(), target.subdir, i))
+                    deps.append(os.path.join(self.environment.get_source_dir(), target.get_subdir(), i))
                 else:
-                    deps.append(os.path.join(self.build_to_src, target.subdir, i))
+                    deps.append(os.path.join(self.build_to_src, target.get_subdir(), i))
         return deps
 
     def get_custom_target_output_dir(self, target: build.AnyTargetType) -> str:
@@ -1540,7 +1540,7 @@ class Backend:
                 if '@BUILD_ROOT@' in i:
                     i = i.replace('@BUILD_ROOT@', build_root)
                 if '@CURRENT_SOURCE_DIR@' in i:
-                    i = i.replace('@CURRENT_SOURCE_DIR@', os.path.join(source_root, target.subdir))
+                    i = i.replace('@CURRENT_SOURCE_DIR@', os.path.join(source_root, target.get_subdir()))
                 if '@DEPFILE@' in i:
                     if target.depfile is None:
                         msg = f'Custom target {target.name!r} has @DEPFILE@ but no depfile ' \
@@ -1601,7 +1601,7 @@ class Backend:
         if target.default_env:
             env.set('MESON_SOURCE_ROOT', [self.environment.get_source_dir()])
             env.set('MESON_BUILD_ROOT', [self.environment.get_build_dir()])
-            env.set('MESON_SUBDIR', [target.subdir])
+            env.set('MESON_SUBDIR', [target.get_subdir()])
             env.set('MESONINTROSPECT', [self.get_introspect_command()])
         return env
 
@@ -1938,7 +1938,7 @@ class Backend:
                 elif isinstance(j, str):
                     source_list += [os.path.join(self.source_dir, j)]
                 elif isinstance(j, (build.CustomTarget, build.BuildTarget)):
-                    source_list += [os.path.join(self.build_dir, j.get_subdir(), o) for o in j.get_outputs()]
+                    source_list += [os.path.join(self.build_dir, j.get_builddir(), o) for o in j.get_outputs()]
             source_list = [os.path.normpath(s) for s in source_list]
 
             compiler: T.List[str] = []

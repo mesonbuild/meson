@@ -1813,7 +1813,7 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
             unquoted_headers = [self.get_target_private_dir_abs(target)]
             if target.implicit_include_directories:
-                unquoted_headers.append(os.path.join(self.environment.get_build_dir(), target.get_subdir()))
+                unquoted_headers.append(os.path.join(self.environment.get_build_dir(), target.get_builddir()))
                 unquoted_headers.append(os.path.join(self.environment.get_source_dir(), target.get_subdir()))
             unquoted_headers += headerdirs
             settings_dict.add_item('HEADER_SEARCH_PATHS', self.normalize_header_search_paths(unquoted_headers))
