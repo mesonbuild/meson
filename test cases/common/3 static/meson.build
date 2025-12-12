@@ -16,4 +16,4 @@ assert(not is_disabler(lib), 'Static library is a disabler.')
 if get_option('default_library') == 'static'
   library('lib2', 'lib3.c', c_static_args : ['-DWORK'], c_shared_args : ['-DBREAK'])
 endif
-build_target('lib4', 'lib3.c', c_static_args : ['-DWORK'], target_type : 'static_library')
+build_target('lib4', 'lib3.c', c_static_args : ['-DWORK'], target_type : 'static_library', link_args : '')
