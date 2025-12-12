@@ -1690,10 +1690,10 @@ class Backend:
             # Sanity-check the outputs and install_dirs
             num_outdirs, num_out = len(outdirs), len(t.get_outputs())
             if num_outdirs not in {1, num_out}:
-                m = 'Target {!r} has {} outputs: {!r}, but only {} "install_dir"s were found.\n' \
+                m = 'Target {!r} has {} outputs: {!r}, but {} "install_dir"s were found: {!r}.\n' \
                     "Pass 'false' for outputs that should not be installed and 'true' for\n" \
                     'using the default installation directory for an output.'
-                raise MesonException(m.format(t.name, num_out, t.get_outputs(), num_outdirs))
+                raise MesonException(m.format(t.name, num_out, t.get_outputs(), num_outdirs, outdirs))
             assert len(t.install_tag) == num_out
             install_mode = t.get_custom_install_mode()
             # because mypy gets confused type narrowing in lists
@@ -1979,7 +1979,7 @@ class Backend:
                 # directory. We have to add in PATH the location of every DLL needed.
                 library_paths.update(self.determine_windows_extra_paths(t, []))
 
-            if t.get_install_dir()[2]:
+            if t.has_custom_install_dir:
                 # Do not update paths for target installed in non default location
                 continue
 
