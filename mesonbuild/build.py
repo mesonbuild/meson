@@ -1288,8 +1288,7 @@ class BuildTarget(Target):
         inclist = extract_as_list(kwargs, 'include_directories')
         self.add_include_dirs(inclist)
         # Add dependencies (which also have include_directories)
-        deplist = extract_as_list(kwargs, 'dependencies')
-        self.add_deps(deplist)
+        self.add_deps(kwargs.get('dependencies', []))
         # If an item in this list is False, the output corresponding to
         # the list index of that item will not be installed
         self.install_dir = typeslistify(kwargs.get('install_dir', []),
@@ -1423,8 +1422,7 @@ class BuildTarget(Target):
     def get_include_dirs(self) -> T.List['IncludeDirs']:
         return self.include_dirs
 
-    def add_deps(self, deps):
-        deps = listify(deps)
+    def add_deps(self, deps: T.List[dependencies.Dependency]) -> None:
         for dep in deps:
             if dep in self.added_deps:
                 # Prefer to add dependencies to added_deps which have a name
@@ -1452,29 +1450,11 @@ class BuildTarget(Target):
                     self.external_deps.append(extpart)
                 # Deps of deps.
                 self.add_deps(dep.ext_deps)
-            elif isinstance(dep, dependencies.Dependency):
+            else:
                 if dep not in self.external_deps:
                     self.external_deps.append(dep)
                     self.process_sourcelist(dep.get_sources())
                 self.add_deps(dep.ext_deps)
-            elif isinstance(dep, BuildTarget):
-                raise InvalidArguments(f'Tried to use a build target {dep.name} as a dependency of target {self.name}.\n'
-                                       'You probably should put it in link_with instead.')
-            else:
-                # This is a bit of a hack. We do not want Build to know anything
-                # about the interpreter so we can't import it and use isinstance.
-                # This should be reliable enough.
-                if hasattr(dep, 'held_object'):
-                    # FIXME: subproject is not a real ObjectHolder so we have to do this by hand
-                    dep = dep.held_object
-                if hasattr(dep, 'project_args_frozen') or hasattr(dep, 'global_args_frozen'):
-                    raise InvalidArguments('Tried to use subproject object as a dependency.\n'
-                                           'You probably wanted to use a dependency declared in it instead.\n'
-                                           'Access it by calling get_variable() on the subproject object.')
-                raise InvalidArguments(f'Argument is of an unacceptable type {type(dep).__name__!r}.\nMust be '
-                                       'either an external dependency (returned by find_library() or '
-                                       'dependency()) or an internal dependency (returned by '
-                                       'declare_dependency()).')
 
             dep_d_features = dep.d_features
 

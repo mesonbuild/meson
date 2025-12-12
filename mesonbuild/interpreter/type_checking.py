@@ -419,13 +419,20 @@ ENV_METHOD_KW = KwargInfo('method', str, default='set', since='0.62.0',
 
 ENV_SEPARATOR_KW = KwargInfo('separator', str, default=os.pathsep)
 
+def _dependency_validator(args: T.List[T.Union[Dependency, InternalDependency, BuildTarget]]) -> T.Optional[str]:
+    for arg in args:
+        if isinstance(arg, BuildTarget):
+            return f'Tried to use a build_target {arg.name} as a dependency. This should be in `link_with` or `link_whole` instead.'
+    return None
+
 DEPENDENCIES_KW: KwargInfo[T.List[Dependency]] = KwargInfo(
     'dependencies',
     # InternalDependency is a subclass of Dependency, but we want to
     # print it in error messages
-    ContainerTypeInfo(list, (Dependency, InternalDependency)),
+    ContainerTypeInfo(list, (Dependency, InternalDependency, BuildTarget)),
     listify=True,
     default=[],
+    validator=_dependency_validator,
 )
 
 D_MODULE_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
@@ -715,6 +722,7 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     *_ALL_TARGET_KWS,
     *_LANGUAGE_KWS,
     BT_SOURCES_KW,
+    DEPENDENCIES_KW,
     INCLUDE_DIRECTORIES.evolve(name='d_import_dirs'),
     _NAME_PREFIX_KW,
     _NAME_PREFIX_KW.evolve(name='name_suffix', validator=_name_suffix_validator),
