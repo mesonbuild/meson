@@ -10,7 +10,7 @@ import typing as T
 
 from glob import glob
 from .wrap import (open_wrapdburl, read_and_decompress, WrapException, get_releases,
-                   get_releases_data, parse_patch_url)
+                   get_releases_data, parse_patch_url, warn_if_deprecated)
 from .. import mesonlib, msubprojects
 
 if T.TYPE_CHECKING:
@@ -65,12 +65,15 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
 def list_projects(options: 'argparse.Namespace') -> None:
     releases = get_releases(options.allow_insecure)
     for p in releases.keys():
-        print(p)
+        if 'deprecated' not in releases[p]:
+            print(p)
 
 def search(options: 'argparse.Namespace') -> None:
     name = options.name
     releases = get_releases(options.allow_insecure)
     for p, info in releases.items():
+        if 'deprecated' in releases[p]:
+            continue
         if p.find(name) != -1:
             print(p)
         else:
@@ -83,6 +86,7 @@ def get_latest_version(name: str, allow_insecure: bool) -> T.Tuple[str, str]:
     info = releases.get(name)
     if not info:
         raise WrapException(f'Wrap {name} not found in wrapdb')
+    warn_if_deprecated(name, info)
     latest_version = info['versions'][0]
     version, revision = latest_version.rsplit('-', 1)
     return version, revision
@@ -129,6 +133,7 @@ def info(options: 'argparse.Namespace') -> None:
     info = releases.get(name)
     if not info:
         raise WrapException(f'Wrap {name} not found in wrapdb')
+    warn_if_deprecated(name, info)
     print(f'Available versions of {name}:')
     for v in info['versions']:
         print(' ', v)

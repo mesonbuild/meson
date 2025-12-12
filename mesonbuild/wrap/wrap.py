@@ -164,6 +164,19 @@ def get_releases(allow_insecure: bool) -> T.Dict[str, T.Any]:
     data = get_releases_data(allow_insecure)
     return T.cast('T.Dict[str, T.Any]', json.loads(data.decode()))
 
+def warn_if_deprecated(name: str, info: T.Dict[str, T.Any]) -> None:
+    deprecated = info.get('deprecated')
+    if deprecated is None:
+        return
+    if 'replacement' in deprecated:
+        mlog.warning(f'Wrap {name} is deprecated: use {deprecated["replacement"]} instead')
+    elif 'successor' in deprecated:
+        mlog.warning(f'Wrap {name} is deprecated: port project to {deprecated["successor"]}')
+    elif 'reason' in deprecated:
+        mlog.warning(f'Wrap {name} is deprecated: {deprecated["reason"]}')
+    else:
+        mlog.warning(f'Wrap {name} is deprecated')
+
 def update_wrap_file(wrapfile: str, name: str, new_version: str, new_revision: str, allow_insecure: bool) -> None:
     url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{name}_{new_version}-{new_revision}/{name}.wrap',
                          allow_insecure, True, True)
@@ -447,6 +460,7 @@ class Resolver:
         info = self.wrapdb.get(subp_name)
         if not info:
             return None
+        warn_if_deprecated(subp_name, info)
         self.check_can_download()
         latest_version = info['versions'][0]
         version, revision = latest_version.rsplit('-', 1)
