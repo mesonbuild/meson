@@ -435,7 +435,18 @@ D_MODULE_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
     default=[],
 )
 
-_link_with_error = '''can only be self-built targets, external dependencies (including libraries) must go in "dependencies".'''
+_LINK_WITH_ERROR = '''can only be self-built targets, external dependencies (including libraries) must go in "dependencies".'''
+
+def _link_with_validator(values: T.List[T.Union[BothLibraries, SharedLibrary, StaticLibrary,
+                                                CustomTarget, CustomTargetIndex, Jar, Executable,
+                                                ]]
+                         ) -> T.Optional[str]:
+    for value in values:
+        if isinstance(value, Dependency):
+            return _LINK_WITH_ERROR
+        if not value.is_linkable_target():
+            return f'Link target "{value!s}" is not linkable'
+    return None
 
 # Allow Dependency for the better error message? But then in other cases it will list this as one of the allowed types!
 LINK_WITH_KW: KwargInfo[T.List[T.Union[BothLibraries, SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex, Jar, Executable]]] = KwargInfo(
@@ -443,7 +454,7 @@ LINK_WITH_KW: KwargInfo[T.List[T.Union[BothLibraries, SharedLibrary, StaticLibra
     ContainerTypeInfo(list, (BothLibraries, SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex, Jar, Executable, Dependency)),
     listify=True,
     default=[],
-    validator=lambda x: _link_with_error if any(isinstance(i, Dependency) for i in x) else None,
+    validator=_link_with_validator,
 )
 
 def link_whole_validator(values: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex, Dependency]]) -> T.Optional[str]:
@@ -451,7 +462,9 @@ def link_whole_validator(values: T.List[T.Union[StaticLibrary, CustomTarget, Cus
         if isinstance(l, (CustomTarget, CustomTargetIndex)) and l.links_dynamically():
             return f'{type(l).__name__} returning a shared library is not allowed'
         if isinstance(l, Dependency):
-            return _link_with_error
+            return _LINK_WITH_ERROR
+        if not l.is_linkable_target():
+            return f'Link target "{l!s}" is not linkable'
     return None
 
 LINK_WHOLE_KW: KwargInfo[T.List[T.Union[BothLibraries, StaticLibrary, CustomTarget, CustomTargetIndex]]] = KwargInfo(
@@ -716,6 +729,8 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     *_LANGUAGE_KWS,
     BT_SOURCES_KW,
     INCLUDE_DIRECTORIES.evolve(name='d_import_dirs'),
+    LINK_WHOLE_KW,
+    LINK_WITH_KW,
     _NAME_PREFIX_KW,
     _NAME_PREFIX_KW.evolve(name='name_suffix', validator=_name_suffix_validator),
     RUST_CRATE_TYPE_KW,
