@@ -16,10 +16,14 @@ import copy
 import typing as T
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Protocol
+    from typing_extensions import Protocol, TypeAlias, TypeIs
 
     from .. import mparser
-    from .baseobjects import InterpreterObject, SubProject, TV_func, TYPE_var, TYPE_kwargs
+    from ..modules import ModuleObject, ModuleState
+    from ..mparser import FunctionNode
+    from ..optinterpreter import OptionInterpreter
+    from .baseobjects import InterpreterObject, ObjectHolder, SubProject, TV_func, TYPE_var, TYPE_kwargs
+    from .interpreterbase import InterpreterBase
     from .operator import MesonOperator
 
     _TV_IntegerObject = T.TypeVar('_TV_IntegerObject', bound=InterpreterObject, contravariant=True)
@@ -29,20 +33,53 @@ if T.TYPE_CHECKING:
         def __call__(s, self: _TV_IntegerObject, other: _TV_ARG1) -> TYPE_var: ...
     _TV_FN_Operator = T.TypeVar('_TV_FN_Operator', bound=FN_Operator)
 
-def get_callee_args(wrapped_args: T.Sequence[T.Any]) -> T.Tuple['mparser.BaseNode', T.List['TYPE_var'], 'TYPE_kwargs', 'SubProject']:
-    # First argument could be InterpreterBase, InterpreterObject or ModuleObject.
-    # In the case of a ModuleObject it is the 2nd argument (ModuleState) that
-    # contains the needed information.
-    s = wrapped_args[0]
-    if not hasattr(s, 'current_node'):
+    CalleeArgs: TypeAlias = T.Tuple[mparser.BaseNode, T.Optional[T.List[TYPE_var]], T.Optional[TYPE_kwargs], SubProject]
+
+
+def is_module(obj: object) -> TypeIs[ModuleObject]:
+    return not hasattr(obj, 'current_node')
+
+
+@T.overload
+def get_callee_args(wrapped_args: T.Tuple[InterpreterObject, T.List[TYPE_var], TYPE_kwargs]) -> CalleeArgs: ...
+
+
+@T.overload
+def get_callee_args(wrapped_args: T.Tuple[ObjectHolder, object]) -> CalleeArgs: ...
+
+
+@T.overload
+def get_callee_args(wrapped_args: T.Tuple[InterpreterBase, FunctionNode, T.List[TYPE_var], TYPE_kwargs]) -> CalleeArgs: ...
+
+
+@T.overload
+def get_callee_args(wrapped_args: T.Tuple[ModuleObject, ModuleState, T.List[TYPE_var], TYPE_kwargs]) -> CalleeArgs: ...
+
+
+@T.overload
+def get_callee_args(wrapped_args: T.Tuple[OptionInterpreter, str, str, T.List[TYPE_var], TYPE_kwargs]) -> CalleeArgs: ...
+
+
+def get_callee_args(wrapped_args: T.Union[
+            T.Tuple[InterpreterObject, T.List[TYPE_var], TYPE_kwargs],
+            T.Tuple[ObjectHolder, object],
+            T.Tuple[InterpreterBase, FunctionNode, T.List[TYPE_var], TYPE_kwargs],
+            T.Tuple[ModuleObject, ModuleState, T.List[TYPE_var], TYPE_kwargs],
+            T.Tuple[OptionInterpreter, str, str, T.List[TYPE_var], TYPE_kwargs],
+        ]) -> CalleeArgs:
+    if is_module(wrapped_args[0]):
         s = wrapped_args[1]
+    else:
+        s = wrapped_args[0]
     node = s.current_node
     subproject = s.subproject
-    args = kwargs = None
+    args: T.Optional[T.List[TYPE_var]] = None
+    kwargs: T.Optional[TYPE_kwargs] = None
     if len(wrapped_args) >= 3:
         args = wrapped_args[-2]
         kwargs = wrapped_args[-1]
     return node, args, kwargs, subproject
+
 
 def noPosargs(f: TV_func) -> TV_func:
     @wraps(f)
