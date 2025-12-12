@@ -61,6 +61,22 @@ class AtomicBuiltinDependency(BuiltinDependency):
 
         if self.clib_compiler.has_function('atomic_flag_clear', '#include <stdatomic.h>')[0]:
             self.is_found = True
+        elif self.clib_compiler.get_id() == 'msvc':
+            feature_flag = '/experimental:c11atomics'
+            std_args = self.clib_compiler.get_option_std_args(None, None)
+            # atomic_flag_clear forwards to __c11_atomic_store in msvc,
+            # which behaves like __builtin_* in gcc, and we're unable to detect it with .has_function().
+            if self.clib_compiler.has_function(
+                "_Atomic_thread_fence", "#include <stdatomic.h>", extra_args=std_args
+            )[0]:
+                self.is_found = True
+            elif self.clib_compiler.has_function(
+                "_Atomic_thread_fence",
+                "#include <stdatomic.h>",
+                extra_args=std_args + [feature_flag],
+            )[0]:
+                self.compile_args = [feature_flag]
+                self.is_found = True
 
 
 class AtomicSystemDependency(SystemDependency):
