@@ -1791,7 +1791,7 @@ class TaskingLinker(DynamicLinker):
         return l
 
 class DiabLinker(DynamicLinker):
-    """Linker for DiabCppCompiler
+    """Linker for the Wind River Diab compiler suite
 
     When used by DiabCppCompiler, prefix should be `-W:ld:,`, and empty if instantiated
     independently controlling the Diab ld program _dld_ directly.
@@ -1799,7 +1799,7 @@ class DiabLinker(DynamicLinker):
     id = 'diab'
 
     def get_output_args(self, outputname: str) -> T.List[str]:
-        return ["-o", outputname]
+        return ["-o", outputname, f"-@O={outputname}.map"]
 
     def get_search_args(self, dirname: str) -> T.List[str]:
         return ["-L", dirname]
@@ -1811,7 +1811,7 @@ class DiabLinker(DynamicLinker):
         return list(itertools.chain(*([self._apply_prefix("-A")[0], arg] for arg in args)))
 
 class DiabArchiver(StaticLinker):
-    """Archiver for DiabCppCompiler"""
+    """Archiver for the Wind River Diab compiler suite"""
     id = 'diab'
 
     def can_linker_accept_rsp(self) -> bool:

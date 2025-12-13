@@ -1132,4 +1132,39 @@ class MetrowerksCPPCompilerEmbeddedPowerPC(MetrowerksCompiler, CPPCompiler):
 
 
 class DiabCppCompiler(DiabCompilerMixin, CPPCompiler):
-    pass
+    """C++ compiler for the Wind River Diab compiler suite"""
+    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
+                is_cross: bool, info: 'MachineInfo',
+                linker: T.Optional['DynamicLinker'] = None,
+                full_version: T.Optional[str] = None):
+        CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
+                            info, linker=linker, full_version=full_version)
+        DiabCompilerMixin.__init__(self)
+
+    def _create_boolean_option(self, key: str, description: str, default: bool) -> T.Tuple[options.OptionKey, options.UserBooleanOption]:
+        return self.form_compileropt_key(key), options.UserBooleanOption(key, description, default)
+
+    def get_options(self) -> 'MutableKeyedOptionDictType':
+        opts = super().get_options()
+        key = self.form_compileropt_key("std")
+        std_opt = opts[key]
+        assert isinstance(std_opt, options.UserStdOption), "for mypy"
+        std_opt.set_versions(["c++98"])
+        opts.update([
+            self._create_boolean_option('eh', 'C++ exception handling', True),
+            self._create_boolean_option('rtti', 'Enable RTTI', True),
+        ])
+        return opts
+
+    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+        args: T.List[str] = []
+        if not self.get_compileropt_value('eh', env, target, subproject):
+            args += ['-Xexceptions-off']
+        if not self.get_compileropt_value('rtti', env, target, subproject):
+            args += ['-Xrtti-off']
+
+        return args
+
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
+        """Override CPPCompiler.get_compiler_check_args() which adds non-Diab flag -fpermissive"""
+        return Compiler.get_compiler_check_args(self, mode)
