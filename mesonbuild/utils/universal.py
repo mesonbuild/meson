@@ -154,6 +154,7 @@ __all__ = [
     'substitute_values',
     'substring_is_in_list',
     'typeslistify',
+    'unique_list',
     'verbose_git',
     'version_compare',
     'version_compare_condition_with_min',
@@ -2079,6 +2080,10 @@ def substring_is_in_list(substr: str, strlist: T.List[str]) -> bool:
         if substr in s:
             return True
     return False
+
+
+def unique_list(x: T.Iterable[_T]) -> T.List[_T]:
+    return list(dict.fromkeys(x))
 
 
 class OrderedSet(T.MutableSet[_T]):
