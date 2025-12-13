@@ -13,7 +13,6 @@ from ..compilers import clike_debug_args, clike_optimization_args
 from ...options import OptionKey
 
 if T.TYPE_CHECKING:
-    from ...environment import Environment
     from ...compilers.compilers import Compiler
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
@@ -51,7 +50,7 @@ class PGICompiler(Compiler):
             return ['-fPIC']
         return []
 
-    def openmp_flags(self, env: Environment) -> T.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         return ['-mp']
 
     def get_preprocess_only_args(self) -> T.List[str]:
@@ -89,6 +88,6 @@ class PGICompiler(Compiler):
         else:
             return []
 
-    def thread_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_flags(self) -> T.List[str]:
         # PGI cannot accept -pthread, it's already threaded
         return []

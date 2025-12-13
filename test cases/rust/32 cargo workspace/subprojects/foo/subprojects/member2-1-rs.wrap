@@ -1,0 +1,6 @@
+[wrap-file]
+directory=member2-1.0
+method=cargo
+
+[provide]
+dependency_names=member2-1-rs

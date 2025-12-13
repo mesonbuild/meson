@@ -104,7 +104,7 @@ following example.
 `meson.build`:
 ```meson
 project('tig', 'c',
-  version : run_command('version.sh', 'get-vcs').stdout.strip())
+  version : run_command('version.sh', 'get-vcs').stdout().strip())
 
 meson.add_dist_script('version.sh', 'set-dist', meson.project_version())
 ```

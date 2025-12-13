@@ -1,5 +1,6 @@
 subdir('lib1')
 subdir('lib2')
+subdir('lib3')
 
 main = executable('say', 'main.c', link_with: [lib2], include_directories: lib2_includes)
 

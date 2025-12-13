@@ -19,7 +19,7 @@ from ..mparser import BaseNode, ArrayNode, ElementaryNode, IdNode, FunctionNode,
 from .interpreter import AstInterpreter, IntrospectionBuildTarget, IntrospectionDependency
 
 if T.TYPE_CHECKING:
-    from ..build import BuildTarget
+    from ..build import BuildTarget, BuildTargetKeywordArguments
     from ..interpreterbase import TYPE_var
     from .visitor import AstVisitor
 
@@ -100,16 +100,6 @@ class IntrospectionInterpreter(AstInterpreter):
                 return [node.value]
             return None
 
-        def create_options_dict(options: T.List[str], subproject: str = '') -> T.Mapping[OptionKey, str]:
-            result: T.MutableMapping[OptionKey, str] = {}
-            for o in options:
-                try:
-                    (key, value) = o.split('=', 1)
-                except ValueError:
-                    raise mesonlib.MesonException(f'Option {o!r} must have a value separated by equals sign.')
-                result[OptionKey(key)] = value
-            return result
-
         proj_name = args[0]
         proj_vers = kwargs.get('version', 'undefined')
         if isinstance(proj_vers, ElementaryNode):
@@ -138,10 +128,8 @@ class IntrospectionInterpreter(AstInterpreter):
                     if os.path.isdir(os.path.join(subprojects_dir, i)):
                         self.do_subproject(SubProject(i))
 
-        self.coredata.init_backend_options(self.backend)
-        options = {k: v for k, v in self.environment.options.items() if self.environment.coredata.optstore.is_backend_option(k)}
+        self.environment.init_backend_options(self.backend)
 
-        self.coredata.set_options(options)
         self._add_languages(proj_langs, True, MachineChoice.HOST)
         self._add_languages(proj_langs, True, MachineChoice.BUILD)
 
@@ -255,9 +243,10 @@ class IntrospectionInterpreter(AstInterpreter):
                 extraf_nodes = v
 
         # Make sure nothing can crash when creating the build class
-        kwargs_reduced = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs and k in {'install', 'build_by_default', 'build_always', 'name_prefix'}}
-        kwargs_reduced = {k: v.value if isinstance(v, ElementaryNode) else v for k, v in kwargs_reduced.items()}
-        kwargs_reduced = {k: v for k, v in kwargs_reduced.items() if not isinstance(v, BaseNode)}
+        _kwargs_reduced = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs and k in {'install', 'build_by_default', 'build_always', 'name_prefix'}}
+        _kwargs_reduced = {k: v.value if isinstance(v, ElementaryNode) else v for k, v in _kwargs_reduced.items()}
+        _kwargs_reduced = {k: v for k, v in _kwargs_reduced.items() if not isinstance(v, (BaseNode, UnknownValue))}
+        kwargs_reduced = T.cast('BuildTargetKeywordArguments', _kwargs_reduced)
         for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
         objects: T.List[T.Any] = []
         empty_sources: T.List[T.Any] = []
@@ -267,6 +256,14 @@ class IntrospectionInterpreter(AstInterpreter):
                              self.environment, self.coredata.compilers[for_machine], kwargs_reduced)
         target.process_compilers_late()
 
+        build_by_default: T.Union[UnknownValue, bool] = target.build_by_default
+        if 'build_by_default' in kwargs and isinstance(kwargs['build_by_default'], UnknownValue):
+            build_by_default = kwargs['build_by_default']
+
+        install: T.Union[UnknownValue, bool] = target.should_install()
+        if 'install' in kwargs and isinstance(kwargs['install'], UnknownValue):
+            install = kwargs['install']
+
         new_target = IntrospectionBuildTarget(
             name=target.get_basename(),
             machine=target.for_machine.get_lower_case_name(),
@@ -274,8 +271,8 @@ class IntrospectionInterpreter(AstInterpreter):
             typename=target.get_typename(),
             defined_in=os.path.normpath(os.path.join(self.source_root, self.subdir, environment.build_filename)),
             subdir=self.subdir,
-            build_by_default=target.build_by_default,
-            installed=target.should_install(),
+            build_by_default=build_by_default,
+            installed=install,
             outputs=target.get_outputs(),
             source_nodes=source_nodes,
             extra_files=extraf_nodes,

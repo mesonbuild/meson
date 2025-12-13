@@ -12,6 +12,7 @@ configure_file("config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
 
 add_library(cmModLib       SHARED lib/cmMod.cpp)
 add_library(cmModLibStatic STATIC lib/cmMod.cpp)
+set_target_properties(cmModLibStatic PROPERTIES SOVERSION 1)
 include(GenerateExportHeader)
 generate_export_header(cmModLib)
 

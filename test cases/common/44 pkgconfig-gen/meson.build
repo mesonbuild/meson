@@ -193,3 +193,11 @@ simple7 = library('simple7', include_directories: 'inc1')
 dep = declare_dependency(include_directories: 'inc2')
 install_headers('inc1/inc1.h', 'inc2/inc2.h')
 pkgg.generate(simple7, libraries: dep)
+
+# Regression test: empty string passed to requires.private should not
+# fail the build
+pkgg.generate(
+  name : 'emptytest',
+  description : 'Check that requires.private can be an empty string',
+  requires_private: '',
+)

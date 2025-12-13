@@ -1,5 +1,5 @@
 # Copyright 2021 The Meson development team
-# SPDX-license-identifier: Apache-2.0
+# SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
 from ...interpreterbase import (

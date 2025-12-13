@@ -24,9 +24,12 @@ dependencies = [
   dependency('gobject-2.0'),{dependencies}
 ]
 
+sources = [{source_files}
+]
+
 exe = executable(
   '{exe_name}',
-  '{source_name}',
+  sources,
   dependencies : dependencies,
   install : true,
 )
@@ -67,11 +70,14 @@ dependencies = [
   dependency('gobject-2.0'),{dependencies}
 ]
 
+sources = [{source_files}
+]
+
 # These arguments are only used to build the shared library
 # not the executables that use the library.
 lib = shared_library(
   'foo',
-  '{source_file}',
+  sources,
   dependencies : dependencies,
   install : true,
   install_dir : [true, true, true],

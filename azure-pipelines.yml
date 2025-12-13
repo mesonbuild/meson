@@ -54,28 +54,28 @@ variables:
 
 jobs:
 
-- job: vs2019
+- job: vs2022
   timeoutInMinutes: 120
   pool:
-    vmImage: windows-2019
+    vmImage: windows-2022
 
   strategy:
     matrix:
-        vc2019x64ninja:
+        vc2022x64ninja:
           arch: x64
-          compiler: msvc2019
+          compiler: msvc2022
           backend: ninja
           ifort: true
-        vc2019x64vs:
+        vc2022x64vs:
           arch: x64
-          compiler: msvc2019
-          backend: vs2019
+          compiler: msvc2022
+          backend: vs2022
           # mysteriously, several tests fail because vs cannot find
           # executables such as cmd.exe ???
           ifort: false
-        vc2019arm64ninjacross:
+        vc2022arm64ninjacross:
           arch: arm64
-          compiler: msvc2019
+          compiler: msvc2022
           backend: ninja
           extraargs: --cross arm64cl.txt --cross-only
           # ifort doesn't support arm64
@@ -105,7 +105,7 @@ jobs:
     displayName: insert ifort into environment
     inputs:
       filename: ci/intel-scripts/activate_windows.bat
-      arguments: vs2019
+      arguments: vs2022
       modifyEnvironment: True
     condition: eq(variables.ifort, 'true')
   - task: PowerShell@2

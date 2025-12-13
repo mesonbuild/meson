@@ -322,6 +322,11 @@ class ExternalProgram(mesonlib.HoldableObject):
             paths = OrderedSet(path.split(os.pathsep)).difference(exclude_paths)
             path = os.pathsep.join(paths)
         command = shutil.which(name, path=path)
+        if not command and mesonlib.is_os2():
+            for ext in ['exe', 'cmd']:
+                command = shutil.which(f'{name}.{ext}', path=path)
+                if command:
+                    return [command]
         if mesonlib.is_windows():
             return self._search_windows_special_cases(name, command, exclude_paths)
         # On UNIX-like platforms, shutil.which() is enough to find
@@ -364,9 +369,9 @@ class OverrideProgram(ExternalProgram):
     def __init__(self, name: str, version: str, command: T.Optional[T.List[str]] = None,
                  silent: bool = False, search_dirs: T.Optional[T.List[T.Optional[str]]] = None,
                  exclude_paths: T.Optional[T.List[str]] = None):
-        self.cached_version = version
         super().__init__(name, command=command, silent=silent,
                          search_dirs=search_dirs, exclude_paths=exclude_paths)
+        self.cached_version = version
 
 def find_external_program(env: 'Environment', for_machine: MachineChoice, name: str,
                           display_name: str, default_names: T.List[str],

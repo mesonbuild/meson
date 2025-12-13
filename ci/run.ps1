@@ -49,7 +49,7 @@ function DownloadFile([String] $Source, [String] $Destination) {
 
 if (($env:backend -eq 'ninja') -and ($env:arch -ne 'arm64')) { $dmd = $true } else { $dmd = $false }
 
-DownloadFile -Source https://github.com/mesonbuild/cidata/releases/download/ci5/ci_data.zip -Destination $env:AGENT_WORKFOLDER\ci_data.zip
+DownloadFile -Source https://github.com/mesonbuild/cidata/releases/download/ci7/ci_data.zip -Destination $env:AGENT_WORKFOLDER\ci_data.zip
 echo "Extracting ci_data.zip"
 Expand-Archive $env:AGENT_WORKFOLDER\ci_data.zip -DestinationPath $env:AGENT_WORKFOLDER\ci_data
 & "$env:AGENT_WORKFOLDER\ci_data\install.ps1" -Arch $env:arch -Compiler $env:compiler -Boost $true -DMD $dmd

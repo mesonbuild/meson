@@ -4,7 +4,7 @@ description: |
   Installs files from the source tree that are listed as positional arguments.
   Please note that this can only install static files from the source tree.
   Generated files are installed via the `install_dir:` kwarg on the respective
-  generators, such as `custom_target()` or `configure_file().
+  generators, such as `custom_target()` or `configure_file()`.
 
   See [Installing](Installing.md) for more examples.
 

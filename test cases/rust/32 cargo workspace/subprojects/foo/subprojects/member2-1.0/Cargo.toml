@@ -1,0 +1,9 @@
+[package]
+name = "member2"
+edition.workspace = true
+version.workspace = true
+
+[features]
+default = []
+f1 = []
+f2 = []

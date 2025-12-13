@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/133 java sources in non jar target/meson.build:3:0: ERROR: Build target of type \"executable\" cannot build java source: \"Test.java\". Use \"jar\" instead."
+    }
+  ]
+}

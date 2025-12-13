@@ -100,3 +100,23 @@ n = [
     2,
     3,
 ]
+
+# Overindent regressions (issue #14935)
+if (host_cpu_family == 'x86' and host_system in [
+    'cygwin',
+    'windows',
+    'os2',
+    'interix',
+])
+    message('hi')
+endif
+
+# Underindent in files() (issue #14998)
+sources = files(
+    # bar
+    # more bar
+    'bar.c',
+    # foo
+    # more foo
+    'foo.c',
+)

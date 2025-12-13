@@ -117,7 +117,16 @@ if ['gcc', 'intel'].contains(c.get_id())
   endif
 endif
 
+if c.get_id() == 'clang'
+  if c.version().version_compare('>= 18.0.0')
+    attributes += 'counted_by'
+  endif
+endif
+
 if c.get_id() == 'gcc'
+  if c.version().version_compare('>= 15.1')
+    attributes += 'counted_by'
+  endif
   if c.version().version_compare('>= 14.1')
     attributes += 'null_terminated_string_arg'
   endif
@@ -128,19 +137,27 @@ if get_option('mode') == 'single'
     x = c.has_function_attribute(a)
     expected_result = expected.get(a, expected_default)
     assert(x == expected_result, '@0@: @1@'.format(c.get_id(), a))
-    x = cpp.has_function_attribute(a)
-    assert(x == expected_result, '@0@: @1@'.format(cpp.get_id(), a))
+    # counted_by is not currently supported by GCC or clang on C++
+    if a != 'counted_by'
+      x = cpp.has_function_attribute(a)
+      assert(x == expected_result, '@0@: @1@'.format(cpp.get_id(), a))
+    endif
   endforeach
 else
-  multi_expected = []
+  multi_expected_c = []
+  multi_expected_cpp = []
   foreach a : attributes
     if expected.get(a, expected_default)
-      multi_expected += a
+      multi_expected_c += a
+      # counted_by is not currently supported by GCC or clang on C++
+      if a != 'counted_by'
+        multi_expected_cpp += a
+      endif
     endif
   endforeach
 
   multi_check = c.get_supported_function_attributes(attributes)
-  assert(multi_check == multi_expected, 'get_supported_function_arguments works (C)')
+  assert(multi_check == multi_expected_c, 'get_supported_function_arguments works (C)')
   multi_check = cpp.get_supported_function_attributes(attributes)
-  assert(multi_check == multi_expected, 'get_supported_function_arguments works (C++)')
+  assert(multi_check == multi_expected_cpp, 'get_supported_function_arguments works (C++)')
 endif

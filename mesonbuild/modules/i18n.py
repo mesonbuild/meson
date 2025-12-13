@@ -56,16 +56,15 @@ if T.TYPE_CHECKING:
     class ItsJoinFile(TypedDict):
 
         input: T.List[T.Union[
-            str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
-            build.ExtractedObjects, build.GeneratedList, ExternalProgram,
-            mesonlib.File]]
+            str, build.BuildTarget, build.GeneratedTypes,
+            build.ExtractedObjects, ExternalProgram, mesonlib.File]]
         output: str
         build_by_default: bool
         install: bool
         install_dir: T.Optional[str]
         install_tag: T.Optional[str]
         its_files: T.List[str]
-        mo_targets: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]
+        mo_targets: T.List[build.BuildTargetTypes]
 
     class XgettextProgramT(TypedDict):
 
@@ -75,7 +74,7 @@ if T.TYPE_CHECKING:
         install_dir: T.Optional[str]
         install_tag: T.Optional[str]
 
-    SourcesType = T.Union[str, mesonlib.File, build.BuildTarget, build.BothLibraries, build.CustomTarget]
+    SourcesType = T.Union[str, mesonlib.File, build.BuildTargetTypes, build.BothLibraries]
 
 
 _ARGS: KwargInfo[T.List[str]] = KwargInfo(
@@ -202,6 +201,8 @@ class XgettextProgram:
                 source_files.update(source.get_sources())
             elif isinstance(source, build.BothLibraries):
                 source_files.update(source.get('shared').get_sources())
+            elif isinstance(source, (build.CustomTarget, build.CustomTargetIndex)):
+                source_files.update(mesonlib.File.from_built_file(source.get_subdir(), f) for f in source.get_outputs())
         return source_files
 
     def _get_depends(self, sources: T.Iterable[SourcesType]) -> T.Set[build.CustomTarget]:
@@ -237,7 +238,7 @@ class XgettextProgram:
         return mesonlib.File.from_built_file(self.interpreter.subdir, rsp_file.name)
 
     @staticmethod
-    def _get_source_id(sources: T.Iterable[T.Union[SourcesType, build.CustomTargetIndex]]) -> T.Iterable[str]:
+    def _get_source_id(sources: T.Iterable[SourcesType]) -> T.Iterable[str]:
         for source in sources:
             if isinstance(source, build.Target):
                 yield source.get_id()
@@ -307,8 +308,7 @@ class I18nModule(ExtensionModule):
         ddirs = self._get_data_dirs(state, kwargs['data_dirs'])
         datadirs = '--datadirs=' + ':'.join(ddirs) if ddirs else None
 
-        command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget,
-                                build.CustomTargetIndex, 'ExternalProgram', mesonlib.File]] = []
+        command: T.List[T.Union[str, build.BuildTargetTypes, ExternalProgram, mesonlib.File]] = []
         command.extend(state.environment.get_build_command())
         command.extend([
             '--internal', 'msgfmthelper',
@@ -487,8 +487,7 @@ class I18nModule(ExtensionModule):
         for target in mo_targets:
             mo_fnames.append(path.join(target.get_subdir(), target.get_outputs()[0]))
 
-        command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget,
-                                build.CustomTargetIndex, 'ExternalProgram', mesonlib.File]] = []
+        command: T.List[T.Union[str, build.BuildTargetTypes, ExternalProgram, mesonlib.File]] = []
         command.extend(state.environment.get_build_command())
 
         itstool_cmd = self.tools['itstool'].get_command()
@@ -531,7 +530,7 @@ class I18nModule(ExtensionModule):
         return ModuleReturnValue(ct, [ct])
 
     @FeatureNew('i18n.xgettext', '1.8.0')
-    @typed_pos_args('i18n.xgettext', str, varargs=(str, mesonlib.File, build.BuildTarget, build.BothLibraries, build.CustomTarget), min_varargs=1)
+    @typed_pos_args('i18n.xgettext', str, varargs=(str, mesonlib.File, build.BuildTarget, build.BothLibraries, build.CustomTarget, build.CustomTargetIndex), min_varargs=1)
     @typed_kwargs(
         'i18n.xgettext',
         _ARGS,
@@ -541,6 +540,11 @@ class I18nModule(ExtensionModule):
         INSTALL_TAG_KW,
     )
     def xgettext(self, state: ModuleState, args: T.Tuple[str, T.List[SourcesType]], kwargs: XgettextProgramT) -> build.CustomTarget:
+        if any(isinstance(a, build.CustomTarget) for a in args[1]):
+            FeatureNew.single_use('i18n.xgettext with custom_target is broken until 1.10', '1.10.0', self.interpreter.subproject, location=self.interpreter.current_node)
+        if any(isinstance(a, build.CustomTargetIndex) for a in args[1]):
+            FeatureNew.single_use('i18n.xgettext with custom_target index', '1.10.0', self.interpreter.subproject, location=self.interpreter.current_node)
+
         toolname = 'xgettext'
         if self.tools[toolname] is None or not self.tools[toolname].found():
             self.tools[toolname] = state.find_program(toolname, required=True, for_machine=mesonlib.MachineChoice.BUILD)

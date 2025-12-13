@@ -12,7 +12,6 @@ from .compilers import Compiler
 
 if T.TYPE_CHECKING:
     from ..options import MutableKeyedOptionDictType
-    from ..environment import Environment
     from ..build import BuildTarget
 
 
@@ -49,9 +48,9 @@ class CythonCompiler(Compiler):
     def get_depfile_suffix(self) -> str:
         return 'dep'
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str) -> None:
         code = 'print("hello world")'
-        with self.cached_compile(code, environment.coredata) as p:
+        with self.cached_compile(code) as p:
             if p.returncode != 0:
                 raise EnvironmentException(f'Cython compiler {self.id!r} cannot compile programs')
 
@@ -86,13 +85,13 @@ class CythonCompiler(Compiler):
 
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
-        version = self.get_compileropt_value('version', env, target, subproject)
+        version = self.get_compileropt_value('version', target, subproject)
         assert isinstance(version, str)
         args.append(f'-{version}')
 
-        lang = self.get_compileropt_value('language', env, target, subproject)
+        lang = self.get_compileropt_value('language', target, subproject)
         assert isinstance(lang, str)
         if lang == 'cpp':
             args.append('--cplus')

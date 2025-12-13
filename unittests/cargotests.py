@@ -8,9 +8,10 @@ import tempfile
 import textwrap
 import typing as T
 
-from mesonbuild.cargo import cfg, load_wraps
+from mesonbuild.cargo import cfg
 from mesonbuild.cargo.cfg import TokenType
-from mesonbuild.cargo.manifest import Dependency, Manifest, Package, Workspace
+from mesonbuild.cargo.interpreter import load_cargo_lock
+from mesonbuild.cargo.manifest import Dependency, Lint, Manifest, Package, Workspace
 from mesonbuild.cargo.toml import load_toml
 from mesonbuild.cargo.version import convert
 
@@ -179,9 +180,10 @@ class CargoCfgTest(unittest.TestCase):
                 self.assertEqual(value, expected)
 
 class CargoLockTest(unittest.TestCase):
-    def test_cargo_lock(self) -> None:
+    def test_wraps(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            with open(os.path.join(tmpdir, 'Cargo.lock'), 'w', encoding='utf-8') as f:
+            filename = os.path.join(tmpdir, 'Cargo.lock')
+            with open(filename, 'w', encoding='utf-8') as f:
                 f.write(textwrap.dedent('''\
                     version = 3
                     [[package]]
@@ -193,21 +195,27 @@ class CargoLockTest(unittest.TestCase):
                     name = "bar"
                     version = "0.1"
                     source = "git+https://github.com/gtk-rs/gtk-rs-core?branch=0.19#23c5599424cc75ec66618891c915d9f490f6e4c2"
+                    [[package]]
+                    name = "member"
+                    version = "0.1"
+                    source = "git+https://github.com/gtk-rs/gtk-rs-core?branch=0.19#23c5599424cc75ec66618891c915d9f490f6e4c2"
                     '''))
-            wraps = load_wraps(tmpdir, 'subprojects')
+            cargolock = load_cargo_lock(filename, 'subprojects')
+            wraps = cargolock.wraps
             self.assertEqual(len(wraps), 2)
-            self.assertEqual(wraps[0].name, 'foo-0.1-rs')
-            self.assertEqual(wraps[0].directory, 'foo-0.1')
-            self.assertEqual(wraps[0].type, 'file')
-            self.assertEqual(wraps[0].get('method'), 'cargo')
-            self.assertEqual(wraps[0].get('source_url'), 'https://crates.io/api/v1/crates/foo/0.1/download')
-            self.assertEqual(wraps[0].get('source_hash'), '8a30b2e23b9e17a9f90641c7ab1549cd9b44f296d3ccbf309d2863cfe398a0cb')
-            self.assertEqual(wraps[1].name, 'bar-0.1-rs')
-            self.assertEqual(wraps[1].directory, 'bar')
-            self.assertEqual(wraps[1].type, 'git')
-            self.assertEqual(wraps[1].get('method'), 'cargo')
-            self.assertEqual(wraps[1].get('url'), 'https://github.com/gtk-rs/gtk-rs-core')
-            self.assertEqual(wraps[1].get('revision'), '23c5599424cc75ec66618891c915d9f490f6e4c2')
+            self.assertEqual(wraps['foo-0.1-rs'].name, 'foo-0.1-rs')
+            self.assertEqual(wraps['foo-0.1-rs'].directory, 'foo-0.1')
+            self.assertEqual(wraps['foo-0.1-rs'].type, 'file')
+            self.assertEqual(wraps['foo-0.1-rs'].get('method'), 'cargo')
+            self.assertEqual(wraps['foo-0.1-rs'].get('source_url'), 'https://crates.io/api/v1/crates/foo/0.1/download')
+            self.assertEqual(wraps['foo-0.1-rs'].get('source_hash'), '8a30b2e23b9e17a9f90641c7ab1549cd9b44f296d3ccbf309d2863cfe398a0cb')
+            self.assertEqual(wraps['gtk-rs-core-0.19'].name, 'gtk-rs-core-0.19')
+            self.assertEqual(wraps['gtk-rs-core-0.19'].directory, 'gtk-rs-core-0.19')
+            self.assertEqual(wraps['gtk-rs-core-0.19'].type, 'git')
+            self.assertEqual(wraps['gtk-rs-core-0.19'].get('method'), 'cargo')
+            self.assertEqual(wraps['gtk-rs-core-0.19'].get('url'), 'https://github.com/gtk-rs/gtk-rs-core')
+            self.assertEqual(wraps['gtk-rs-core-0.19'].get('revision'), '23c5599424cc75ec66618891c915d9f490f6e4c2')
+            self.assertEqual(list(wraps['gtk-rs-core-0.19'].provided_deps), ['gtk-rs-core-0.19', 'bar-0.1-rs', 'member-0.1-rs'])
 
 class CargoTomlTest(unittest.TestCase):
     CARGO_TOML_1 = textwrap.dedent('''\
@@ -237,6 +245,13 @@ class CargoTomlTest(unittest.TestCase):
         once_cell = "1"
         async-channel = "2.0"
         zerocopy = { version = "0.7", features = ["derive"] }
+
+        [lints.rust]
+        unknown_lints = "allow"
+        unexpected_cfgs = { level = "deny", check-cfg = [ 'cfg(MESON)' ] }
+
+        [lints.clippy]
+        pedantic = {level = "warn", priority = -1}
 
         [dev-dependencies.gir-format-check]
         version = "^0.1"
@@ -272,6 +287,18 @@ class CargoTomlTest(unittest.TestCase):
         ]
     ''')
 
+    CARGO_TOML_3 = textwrap.dedent('''\
+        [package]
+        name = "bits"
+        edition = "2021"
+        rust-version = "1.70"
+        version = "0.1.0"
+
+        [lib]
+        proc-macro = true
+        crate-type = ["lib"] # ignored
+    ''')
+
     CARGO_TOML_WS = textwrap.dedent('''\
         [workspace]
         resolver = "2"
@@ -288,7 +315,28 @@ class CargoTomlTest(unittest.TestCase):
         gtk = { package = "gtk4", version = "0.9" }
         once_cell = "1.0"
         syn = { version = "2", features = ["parse"] }
+
+        [workspace.lints.rust]
+        warnings = "deny"
     ''')
+
+    def test_cargo_toml_ws_lints(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, 'Cargo.toml')
+            with open(fname, 'w', encoding='utf-8') as f:
+                f.write(self.CARGO_TOML_WS)
+            workspace_toml = load_toml(fname)
+
+        workspace = Workspace.from_raw(workspace_toml, tmpdir)
+        pkg = Manifest.from_raw({'package': {'name': 'foo'},
+                                 'lints': {'workspace': True}}, 'Cargo.toml', workspace)
+        lints = pkg.lints
+        self.assertEqual(lints[0].name, 'warnings')
+        self.assertEqual(lints[0].level, 'deny')
+        self.assertEqual(lints[0].priority, 0)
+
+        pkg = Manifest.from_raw({'package': {'name': 'bar'}}, 'Cargo.toml', workspace)
+        self.assertEqual(pkg.lints, [])
 
     def test_cargo_toml_ws_package(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -297,7 +345,7 @@ class CargoTomlTest(unittest.TestCase):
                 f.write(self.CARGO_TOML_WS)
             workspace_toml = load_toml(fname)
 
-        workspace = Workspace.from_raw(workspace_toml)
+        workspace = Workspace.from_raw(workspace_toml, tmpdir)
         pkg = Package.from_raw({'name': 'foo', 'version': {'workspace': True}}, workspace)
         self.assertEqual(pkg.name, 'foo')
         self.assertEqual(pkg.version, '0.14.0-alpha.1')
@@ -311,7 +359,7 @@ class CargoTomlTest(unittest.TestCase):
                 f.write(self.CARGO_TOML_WS)
             workspace_toml = load_toml(fname)
 
-        workspace = Workspace.from_raw(workspace_toml)
+        workspace = Workspace.from_raw(workspace_toml, tmpdir)
         dep = Dependency.from_raw('glib', {'workspace': True}, 'member', workspace)
         self.assertEqual(dep.package, 'glib')
         self.assertEqual(dep.version, '')
@@ -358,6 +406,47 @@ class CargoTomlTest(unittest.TestCase):
         print(manifest.package.metadata)
         self.assertEqual(len(manifest.package.metadata), 1)
 
+    def test_cargo_toml_lints(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, 'Cargo.toml')
+            with open(fname, 'w', encoding='utf-8') as f:
+                f.write(self.CARGO_TOML_1)
+            manifest_toml = load_toml(fname)
+            manifest = Manifest.from_raw(manifest_toml, 'Cargo.toml')
+
+        self.assertEqual(len(manifest.lints), 3)
+        self.assertEqual(manifest.lints[0].name, 'clippy::pedantic')
+        self.assertEqual(manifest.lints[0].level, 'warn')
+        self.assertEqual(manifest.lints[0].priority, -1)
+        self.assertEqual(manifest.lints[0].check_cfg, None)
+
+        self.assertEqual(manifest.lints[1].name, 'unknown_lints')
+        self.assertEqual(manifest.lints[1].level, 'allow')
+        self.assertEqual(manifest.lints[1].priority, 0)
+        self.assertEqual(manifest.lints[1].check_cfg, None)
+
+        self.assertEqual(manifest.lints[2].name, 'unexpected_cfgs')
+        self.assertEqual(manifest.lints[2].level, 'deny')
+        self.assertEqual(manifest.lints[2].priority, 0)
+        self.assertEqual(manifest.lints[2].check_cfg, ['cfg(test)', 'cfg(MESON)'])
+
+    def test_cargo_toml_lints_to_args(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, 'Cargo.toml')
+            with open(fname, 'w', encoding='utf-8') as f:
+                f.write(self.CARGO_TOML_1)
+            manifest_toml = load_toml(fname)
+            manifest = Manifest.from_raw(manifest_toml, 'Cargo.toml')
+
+        self.assertEqual(manifest.lints[0].to_arguments(False), ['-W', 'clippy::pedantic'])
+        self.assertEqual(manifest.lints[0].to_arguments(True), ['-W', 'clippy::pedantic'])
+        self.assertEqual(manifest.lints[1].to_arguments(False), ['-A', 'unknown_lints'])
+        self.assertEqual(manifest.lints[1].to_arguments(True), ['-A', 'unknown_lints'])
+        self.assertEqual(manifest.lints[2].to_arguments(False), ['-D', 'unexpected_cfgs'])
+        self.assertEqual(manifest.lints[2].to_arguments(True),
+                         ['-D', 'unexpected_cfgs', '--check-cfg', 'cfg(test)',
+                          '--check-cfg', 'cfg(MESON)'])
+
     def test_cargo_toml_dependencies(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             fname = os.path.join(tmpdir, 'Cargo.toml')
@@ -398,6 +487,24 @@ class CargoTomlTest(unittest.TestCase):
         self.assertEqual(manifest.dev_dependencies['gir-format-check'].meson_version, ['>= 0.1', '< 0.2'])
         self.assertEqual(manifest.dev_dependencies['gir-format-check'].api, '0.1')
 
+    def test_cargo_toml_proc_macro(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, 'Cargo.toml')
+            with open(fname, 'w', encoding='utf-8') as f:
+                f.write(self.CARGO_TOML_3)
+            manifest_toml = load_toml(fname)
+            manifest = Manifest.from_raw(manifest_toml, 'Cargo.toml')
+
+        self.assertEqual(manifest.lib.name, 'bits')
+        self.assertEqual(manifest.lib.crate_type, ['proc-macro'])
+        self.assertEqual(manifest.lib.path, 'src/lib.rs')
+
+        del manifest_toml['lib']['crate-type']
+        manifest = Manifest.from_raw(manifest_toml, 'Cargo.toml')
+        self.assertEqual(manifest.lib.name, 'bits')
+        self.assertEqual(manifest.lib.crate_type, ['proc-macro'])
+        self.assertEqual(manifest.lib.path, 'src/lib.rs')
+
     def test_cargo_toml_targets(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             fname = os.path.join(tmpdir, 'Cargo.toml')
@@ -408,29 +515,27 @@ class CargoTomlTest(unittest.TestCase):
 
         self.assertEqual(manifest.lib.name, 'pango')
         self.assertEqual(manifest.lib.crate_type, ['lib'])
-        self.assertEqual(manifest.lib.path, os.path.join('src', 'lib.rs'))
+        self.assertEqual(manifest.lib.path, 'src/lib.rs')
         self.assertEqual(manifest.lib.test, True)
         self.assertEqual(manifest.lib.doctest, True)
         self.assertEqual(manifest.lib.bench, True)
         self.assertEqual(manifest.lib.doc, True)
         self.assertEqual(manifest.lib.harness, True)
-        self.assertEqual(manifest.lib.edition, '2015')
+        self.assertEqual(manifest.lib.edition, '2021')
         self.assertEqual(manifest.lib.required_features, [])
         self.assertEqual(manifest.lib.plugin, False)
-        self.assertEqual(manifest.lib.proc_macro, False)
-        self.assertEqual(manifest.lib.doc_scrape_examples, True)
 
         self.assertEqual(len(manifest.test), 1)
         self.assertEqual(manifest.test[0].name, 'check_gir')
         self.assertEqual(manifest.test[0].crate_type, ['bin'])
         self.assertEqual(manifest.test[0].path, 'tests/check_gir.rs')
-        self.assertEqual(manifest.lib.path, os.path.join('src', 'lib.rs'))
+        self.assertEqual(manifest.lib.path, 'src/lib.rs')
         self.assertEqual(manifest.test[0].test, True)
-        self.assertEqual(manifest.test[0].doctest, False)
-        self.assertEqual(manifest.test[0].bench, True)
+        self.assertEqual(manifest.test[0].doctest, True)
+        self.assertEqual(manifest.test[0].bench, False)
         self.assertEqual(manifest.test[0].doc, False)
         self.assertEqual(manifest.test[0].harness, True)
-        self.assertEqual(manifest.test[0].edition, '2015')
+        self.assertEqual(manifest.test[0].edition, '2021')
         self.assertEqual(manifest.test[0].required_features, [])
         self.assertEqual(manifest.test[0].plugin, False)
 

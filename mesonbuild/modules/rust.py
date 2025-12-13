@@ -5,6 +5,7 @@ from __future__ import annotations
 import itertools
 import os
 import re
+import textwrap
 import typing as T
 
 from mesonbuild.interpreterbase.decorators import FeatureNew
@@ -20,12 +21,12 @@ from ..interpreter.type_checking import (
 )
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
 from ..interpreter.interpreterobjects import Doctest
-from ..mesonlib import File, MesonException, PerMachine
+from ..mesonlib import File, MachineChoice, MesonException, PerMachine
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
-    from ..build import IncludeDirs, LibTypes
+    from ..build import BuildTargetTypes, ExecutableKeywordArguments, IncludeDirs, LibTypes
     from ..compilers.rust import RustCompiler
     from ..dependencies import Dependency, ExternalLibrary
     from ..interpreter import Interpreter
@@ -44,7 +45,7 @@ if T.TYPE_CHECKING:
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         is_parallel: bool
         link_with: T.List[LibTypes]
-        link_whole: T.List[LibTypes]
+        link_whole: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]
         rust_args: T.List[str]
 
     FuncTest = FuncRustTest[_kwargs.TestArgs]
@@ -178,17 +179,16 @@ class RustModule(ExtensionModule):
         tkwargs['args'] = extra_args + ['--test', '--format', 'pretty']
         tkwargs['protocol'] = 'rust'
 
-        new_target_kwargs = base_target.original_kwargs.copy()
-        # Don't mutate the shallow copied list, instead replace it with a new
-        # one
+        new_target_kwargs = T.cast('ExecutableKeywordArguments', base_target.original_kwargs.copy())
+        del new_target_kwargs['rust_crate_type']
+        for kw in ('pic', 'prelink', 'rust_abi', 'version', 'soversion', 'darwin_versions', 'shortname'):
+            if kw in new_target_kwargs:
+                del new_target_kwargs[kw]  # type: ignore[misc]
+
         new_target_kwargs['install'] = False
         new_target_kwargs['dependencies'] = new_target_kwargs.get('dependencies', []) + kwargs['dependencies']
-        new_target_kwargs['link_with'] = new_target_kwargs.get('link_with', []) + kwargs['link_with']
+        new_target_kwargs['link_with'] = new_target_kwargs.get('link_with', []) + T.cast('T.List[BuildTargetTypes]', kwargs['link_with'])
         new_target_kwargs['link_whole'] = new_target_kwargs.get('link_whole', []) + kwargs['link_whole']
-        del new_target_kwargs['rust_crate_type']
-        for kw in ['pic', 'prelink', 'rust_abi', 'version', 'soversion', 'darwin_versions']:
-            if kw in new_target_kwargs:
-                del new_target_kwargs[kw]
 
         lang_args = base_target.extra_args.copy()
         lang_args['rust'] = base_target.extra_args['rust'] + kwargs['rust_args'] + ['--test']
@@ -201,8 +201,7 @@ class RustModule(ExtensionModule):
             name, base_target.subdir, state.subproject, base_target.for_machine,
             sources, base_target.structured_sources,
             base_target.objects, base_target.environment, base_target.compilers,
-            new_target_kwargs
-        )
+            new_target_kwargs)
         return new_target, tkwargs
 
     @typed_pos_args('rust.test', str, BuildTarget)
@@ -273,7 +272,7 @@ class RustModule(ExtensionModule):
 
         if self.rustdoc[base_target.for_machine] is None:
             rustc = T.cast('RustCompiler', base_target.compilers['rust'])
-            rustdoc = rustc.get_rustdoc(state.environment)
+            rustdoc = rustc.get_rustdoc()
             if rustdoc:
                 self.rustdoc[base_target.for_machine] = ExternalProgram(rustdoc.get_exe())
             else:
@@ -336,6 +335,24 @@ class RustModule(ExtensionModule):
         # Copy to avoid subsequent calls mutating the original
         # TODO: if we want this to be per-machine we'll need a native kwarg
         clang_args = state.environment.properties.host.get_bindgen_clang_args().copy()
+
+        # Find the first C'ish compiler to fetch the default compiler flags
+        # from. Append those to the bindgen flags to ensure we use a compatible
+        # environment.
+        comp = mesonlib.first(
+            [state.environment.coredata.compilers.host.get(l) for l in ['c', 'cpp', 'objc', 'objcpp']],
+            lambda x: x is not None,
+        )
+        if comp:
+            clang_args.extend(comp.get_always_args())
+        else:
+            mlog.warning(textwrap.dedent('''\
+                Using `rust.bindgen` without configuring C (or a C-like)
+                language in Meson will skip compiler detection and can cause
+                ABI incompatibilities due to missing crucial compiler flags.
+                Consider calling `add_languages('c')` in your Meson build
+                files.
+            '''))
 
         for i in state.process_include_dirs(kwargs['include_directories']):
             # bindgen always uses clang, so it's safe to hardcode -I here
@@ -443,7 +460,7 @@ class RustModule(ExtensionModule):
         if self._bindgen_rust_target and '--rust-target' not in cmd:
             cmd.extend(['--rust-target', self._bindgen_rust_target])
         if self._bindgen_set_std and '--rust-edition' not in cmd:
-            rust_std = state.environment.coredata.optstore.get_value('rust_std')
+            rust_std = state.environment.coredata.optstore.get_value_for('rust_std')
             assert isinstance(rust_std, str), 'for mypy'
             if rust_std != 'none':
                 cmd.extend(['--rust-edition', rust_std])
@@ -477,8 +494,8 @@ class RustModule(ExtensionModule):
     @typed_pos_args('rust.proc_macro', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('rust.proc_macro', *SHARED_LIB_KWS, allow_unknown=True)
     def proc_macro(self, state: ModuleState, args: T.Tuple[str, SourcesVarargsType], kwargs: _kwargs.SharedLibrary) -> SharedLibrary:
-        kwargs['native'] = True  # type: ignore
-        kwargs['rust_crate_type'] = 'proc-macro'  # type: ignore
+        kwargs['native'] = MachineChoice.BUILD
+        kwargs['rust_crate_type'] = 'proc-macro'
         kwargs['rust_args'] = kwargs['rust_args'] + ['--extern', 'proc_macro']
         target = state._interpreter.build_target(state.current_node, args, kwargs, SharedLibrary)
         return target

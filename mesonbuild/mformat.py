@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import difflib
 import re
 import typing as T
 from configparser import ConfigParser, MissingSectionHeaderError, ParsingError
@@ -255,6 +256,19 @@ class MultilineArgumentDetector(FullAstVisitor):
         super().visit_ArgumentNode(node)
 
 
+class MultilineParenthesesDetector(FullAstVisitor):
+
+    def __init__(self) -> None:
+        self.last_whitespaces: T.Optional[mparser.WhitespaceNode] = None
+
+    def enter_node(self, node: mparser.BaseNode) -> None:
+        self.last_whitespaces = None
+
+    def exit_node(self, node: mparser.BaseNode) -> None:
+        if node.whitespaces and node.whitespaces.value:
+            self.last_whitespaces = node.whitespaces
+
+
 class TrimWhitespaces(FullAstVisitor):
 
     def __init__(self, config: FormatterConfig):
@@ -287,6 +301,8 @@ class TrimWhitespaces(FullAstVisitor):
 
     def add_space_after(self, node: mparser.BaseNode) -> None:
         if not node.whitespaces.value:
+            node.whitespaces.value = ' '
+        elif '#' not in node.whitespaces.value:
             node.whitespaces.value = ' '
 
     def add_nl_after(self, node: mparser.BaseNode, force: bool = False) -> None:
@@ -344,6 +360,7 @@ class TrimWhitespaces(FullAstVisitor):
         super().visit_SymbolNode(node)
         if node.value in "([{" and node.whitespaces.value == '\n':
             node.whitespaces.value = ''
+        node.whitespaces.accept(self)
 
     def visit_StringNode(self, node: mparser.StringNode) -> None:
         self.enter_node(node)
@@ -356,7 +373,7 @@ class TrimWhitespaces(FullAstVisitor):
             if node.is_fstring and '@' not in node.value:
                 node.is_fstring = False
 
-        self.exit_node(node)
+        node.whitespaces.accept(self)
 
     def visit_UnaryOperatorNode(self, node: mparser.UnaryOperatorNode) -> None:
         super().visit_UnaryOperatorNode(node)
@@ -540,18 +557,28 @@ class TrimWhitespaces(FullAstVisitor):
     def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
         self.enter_node(node)
 
-        is_multiline = node.lpar.lineno != node.rpar.lineno
-        if is_multiline:
+        if node.lpar.whitespaces and '#' in node.lpar.whitespaces.value:
+            node.is_multiline = True
+
+        elif not node.is_multiline:
+            ml_detector = MultilineParenthesesDetector()
+            node.inner.accept(ml_detector)
+            if ml_detector.last_whitespaces and '\n' in ml_detector.last_whitespaces.value:
+                # We keep it multiline if last parenthesis is on a separate line
+                node.is_multiline = True
+
+        if node.is_multiline:
             self.indent_comments += self.config.indent_by
 
         node.lpar.accept(self)
         node.inner.accept(self)
 
-        if is_multiline:
+        if node.is_multiline:
             node.inner.whitespaces.value = self.dedent(node.inner.whitespaces.value)
             self.indent_comments = self.dedent(self.indent_comments)
-            if node.lpar.whitespaces and '\n' in node.lpar.whitespaces.value:
-                self.add_nl_after(node.inner)
+            self.add_nl_after(node.inner)
+        else:
+            node.inner.whitespaces = None
 
         node.rpar.accept(self)
         self.move_whitespaces(node.rpar, node)
@@ -564,6 +591,7 @@ class ArgumentFormatter(FullAstVisitor):
         self.level = 0
         self.indent_after = False
         self.is_function_arguments = False
+        self.par_level = 0
 
     def add_space_after(self, node: mparser.BaseNode) -> None:
         if not node.whitespaces.value:
@@ -574,7 +602,7 @@ class ArgumentFormatter(FullAstVisitor):
             node.whitespaces.value = '\n'
         indent_by = (node.condition_level + indent) * self.config.indent_by
         if indent_by:
-            node.whitespaces.value += indent_by
+            node.whitespaces.value = re.sub(rf'\n({self.config.indent_by})*', '\n' + indent_by, node.whitespaces.value)
 
     def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:
         self.enter_node(node)
@@ -682,11 +710,11 @@ class ArgumentFormatter(FullAstVisitor):
                         # keep '--arg', 'value' on same line
                         self.add_space_after(node.commas[arg_index])
                     elif arg_index < len(node.commas):
-                        self.add_nl_after(node.commas[arg_index], self.level)
+                        self.add_nl_after(node.commas[arg_index], self.level + self.par_level)
                     arg_index += 1
 
             for comma in node.commas[arg_index:-1]:
-                self.add_nl_after(comma, self.level)
+                self.add_nl_after(comma, self.level + self.par_level)
             if node.arguments or node.kwargs:
                 self.add_nl_after(node, self.level - 1)
 
@@ -701,15 +729,36 @@ class ArgumentFormatter(FullAstVisitor):
 
     def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
         self.enter_node(node)
-        is_multiline = '\n' in node.lpar.whitespaces.value
-        if is_multiline:
+        if node.is_multiline:
+            self.par_level += 1
             current_indent_after = self.indent_after
             self.indent_after = True
         node.lpar.accept(self)
+        if node.is_multiline:
+            self.add_nl_after(node.lpar, indent=self.level + self.par_level)
         node.inner.accept(self)
-        if is_multiline:
+        if node.is_multiline:
+            self.par_level -= 1
             self.indent_after = current_indent_after
         node.rpar.accept(self)
+        self.exit_node(node)
+
+    def visit_OrNode(self, node: mparser.OrNode) -> None:
+        self.enter_node(node)
+        node.left.accept(self)
+        if self.par_level:
+            self.add_nl_after(node.left, indent=self.level + self.par_level)
+        node.operator.accept(self)
+        node.right.accept(self)
+        self.exit_node(node)
+
+    def visit_AndNode(self, node: mparser.AndNode) -> None:
+        self.enter_node(node)
+        node.left.accept(self)
+        if self.par_level:
+            self.add_nl_after(node.left, indent=self.level + self.par_level)
+        node.operator.accept(self)
+        node.right.accept(self)
         self.exit_node(node)
 
 
@@ -809,6 +858,16 @@ class ComputeLineLengths(FullAstVisitor):
         node.args.accept(self)
         node.rcurl.accept(self)
         self.split_if_needed(node.args)  # split if closing bracket is too far
+        self.exit_node(node)
+
+    def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
+        self.enter_node(node)
+        node.lpar.accept(self)
+        node.inner.accept(self)
+        node.rpar.accept(self)
+        if not node.is_multiline and self.length > self.config.max_line_length:
+            node.is_multiline = True
+            self.need_regenerate = True
         self.exit_node(node)
 
 
@@ -938,7 +997,13 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     inplace_group.add_argument(
         '-q', '--check-only',
         action='store_true',
-        help='exit with 1 if files would be modified by meson format'
+        help='silently exit with 1 if files would be modified by meson format'
+    )
+    inplace_group.add_argument(
+        '-d', '--check-diff',
+        action='store_true',
+        default=False,
+        help='exit with 1 and show diff if files would be modified by meson format'
     )
     inplace_group.add_argument(
         '-i', '--inplace',
@@ -1034,9 +1099,14 @@ def run(options: argparse.Namespace) -> int:
                     sf.write(formatted)
             except IOError as e:
                 raise MesonException(f'Unable to write to {src_file}') from e
-        elif options.check_only:
-            # TODO: add verbose output showing diffs
+        elif options.check_only or options.check_diff:
             if code != formatted:
+                if options.check_diff:
+                    diff = difflib.unified_diff(code.splitlines(), formatted.splitlines(),
+                                                str(src_file), str(src_file),
+                                                '(original)', '(reformatted)',
+                                                lineterm='')
+                    print('\n'.join(diff))
                 return 1
         elif options.output:
             try:

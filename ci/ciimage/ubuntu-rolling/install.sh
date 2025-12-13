@@ -43,7 +43,9 @@ eatmydata apt-get -y build-dep meson
 eatmydata apt-get -y install "${pkgs[@]}"
 eatmydata apt-get -y install --no-install-recommends wine-stable  # Wine is special
 
-install_python_packages hotdoc
+# HACK: build hotdoc from git repo since current sdist is broken on modern compilers
+# change back to 'hotdoc' once it's fixed
+install_python_packages git+https://github.com/hotdoc/hotdoc
 
 # Lower ulimit before running dub, otherwise there's a very high chance it will OOM.
 # See: https://github.com/dlang/phobos/pull/9048 and https://github.com/dlang/phobos/pull/8990

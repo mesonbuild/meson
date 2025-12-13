@@ -16,8 +16,8 @@ pkgs=(
   qt6-declarative-devel  qt6-base-devel qt6-tools qt6-tools-linguist qt6-declarative-tools qt6-core-private-devel
   libwmf-devel valgrind cmake nasm gnustep-base-devel gettext-tools gettext-runtime gettext-csharp ncurses-devel
   libxml2-devel libxslt-devel libyaml-devel glib2-devel json-glib-devel
-  boost-devel libboost_date_time-devel libboost_filesystem-devel libboost_locale-devel libboost_system-devel
-  libboost_test-devel libboost_log-devel libboost_regex-devel
+  boost-devel libboost_date_time-devel libboost_filesystem-devel libboost_locale-devel
+  libboost_headers-devel libboost_test-devel libboost_log-devel libboost_regex-devel
   libboost_python3-devel libboost_regex-devel
   # HACK: remove npm once we switch back to hotdoc sdist
   npm

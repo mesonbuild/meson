@@ -84,6 +84,7 @@ machine](#specifying-options-per-machine) section for details.
 | errorlogs                              | true          | Whether to print the logs from failing tests.                  | no             | no                |
 | install_umask {preserve, 0000-0777}    | 022           | Default umask to apply on permissions of installed files       | no             | no                |
 | layout {mirror,flat}                   | mirror        | Build directory layout                                         | no             | no                |
+| namingscheme {platform, classic} | classic | Library naming scheme to use                                  | no             | 1.10.0             |
 | optimization {plain, 0, g, 1, 2, 3, s} | 0             | Optimization level                                             | no             | 1.8.0             |
 | pkg_config_path {OS separated path}    | ''            | Additional paths for pkg-config to search before builtin paths | yes            | no                |
 | prefer_static                          | false         | Whether to try static linking before shared linking            | no             | no                |
@@ -97,6 +98,7 @@ machine](#specifying-options-per-machine) section for details.
 | wrap_mode {default, nofallback,<br>nodownload, forcefallback, nopromote} | default | Wrap mode to use                   | no             | no                |
 | force_fallback_for                     | []            | Force fallback for those dependencies                          | no             | no                |
 | vsenv                                  | false         | Activate Visual Studio environment                             | no             | no                |
+| os2_emxomf                             | false         | Use OMF format on OS/2                                         | no             | no                |
 
 (For the Rust language only, `warning_level=0` disables all warnings).
 
@@ -202,6 +204,16 @@ When `default_both_libraries` is 'auto', passing a [[@both_libs]] dependency
 in [[both_libraries]] will link the static dependency with the static lib,
 and the shared dependency with the shared lib.
 
+#### Details for `os2_emxomf`
+
+The `--os2-emxomf` argument is supported since `1.10.0`, `-Dos2_emxomf=true`
+syntax is supported since `1.10.0`.
+
+Setting the `os2_emxomf` option to `true` forces to use emxomf toolchains in
+order to generate OMF files instead of aout toolchains.
+
+`os2_emxomf` is `false` by default.
+
 ## Base options
 
 These are set in the same way as universal options, either by
@@ -302,8 +314,10 @@ or compiler being used:
 | cpp_rtti         | true          | true, false                              | Whether to enable RTTI (runtime type identification) |
 | cpp_thread_count | 4             | integer value ≥ 0                        | Number of threads to use with emcc when using threads |
 | cpp_winlibs      | see below     | free-form comma-separated list           | Standard Windows libs to link against |
+| cpp_importstd    | false         | true or false                            | Whether to use `import std` |
 | fortran_std      | none          | [none, legacy, f95, f2003, f2008, f2018] | Fortran language standard to use |
 | rust_dynamic_std | false         | true, false                              | Whether to link dynamically to the Rust standard library *(Added in 1.9.0)* |
+| rust_nightly     | auto          | enabled, disabled, auto                  | Nightly Rust compiler (enabled=required, disabled=don't use nightly feature, auto=use nightly feature if available) *(Added in 1.10.0)* |
 | cuda_ccbindir    |               | filesystem path                          | CUDA non-default toolchain directory to use (-ccbin) *(Added in 0.57.1)* |
 
 The default values of `c_winlibs` and `cpp_winlibs` are in
@@ -449,7 +463,7 @@ install prefix. For example: if the install prefix is `/usr` and the
 | platlibdir        |               | Directory path              | Directory for site-specific, platform-specific files (Since 0.60.0) |
 | purelibdir        |               | Directory path              | Directory for site-specific, non-platform-specific files  (Since 0.60.0) |
 | allow_limited_api | true          | true, false                 | Disables project-wide use of the Python Limited API (Since 1.3.0) |
-| build_config      |               | File path                   | Specifies the Python build configuration file (PEP 739) (Since 1.9.0) |
+| build_config      |               | File path                   | Specifies the Python build configuration file (PEP 739) (Since 1.10.0) |
 
 *Since 0.60.0* The `python.platlibdir` and `python.purelibdir` options are used
 by the python module methods `python.install_sources()` and

@@ -38,6 +38,7 @@ index.md
 		Code-formatting.md
 		Modules.md
 			CMake-module.md
+			Codegen-module.md
 			Cuda-module.md
 			Dlang-module.md
 			External-Project-module.md
@@ -55,6 +56,7 @@ index.md
 			Qt6-module.md
 			Rust-module.md
 			Simd-module.md
+			Snippets-module.md
 			SourceSet-module.md
 			Windows-module.md
 			i18n-module.md
@@ -88,6 +90,7 @@ index.md
 		Wrap-best-practices-and-tips.md
 		Shipping-prebuilt-binaries-as-wraps.md
 	Release-notes.md
+		Release-notes-for-1.10.0.md
 		Release-notes-for-1.9.0.md
 		Release-notes-for-1.8.0.md
 		Release-notes-for-1.7.0.md

@@ -23,7 +23,7 @@ from ..interpreterbase import (ObjectHolder, noPosargs, noKwargs,
 from ..interpreterbase.decorators import ContainerTypeInfo, typed_kwargs, KwargInfo, typed_pos_args
 from ..options import OptionKey
 from .interpreterobjects import (extract_required_kwarg, extract_search_dirs)
-from .type_checking import REQUIRED_KW, in_set_validator, NoneType
+from .type_checking import INCLUDE_DIRECTORIES, REQUIRED_KW, in_set_validator, NoneType
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
@@ -86,7 +86,7 @@ if T.TYPE_CHECKING:
         # prepended to the key
         header_args: T.List[str]
         header_dependencies: T.List[dependencies.Dependency]
-        header_include_directories: T.List[build.IncludeDirs]
+        header_include_directories: T.List[T.Union[build.IncludeDirs, str]]
         header_no_builtin_args: bool
         header_prefix: str
         header_required: T.Union[bool, options.UserFeatureOption]
@@ -94,9 +94,9 @@ if T.TYPE_CHECKING:
     class PreprocessKW(TypedDict):
         output: str
         compile_args: T.List[str]
-        include_directories: T.List[build.IncludeDirs]
+        include_directories: T.List[T.Union[build.IncludeDirs, str]]
         dependencies: T.List[dependencies.Dependency]
-        depends: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]
+        depends: T.List[build.BuildTargetTypes]
 
 
 class _TestMode(enum.Enum):
@@ -148,17 +148,11 @@ _DEPENDENCIES_KW: KwargInfo[T.List['dependencies.Dependency']] = KwargInfo(
     listify=True,
     default=[],
 )
-_DEPENDS_KW: KwargInfo[T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]] = KwargInfo(
+_DEPENDS_KW: KwargInfo[T.List[build.BuildTargetTypes]] = KwargInfo(
     'depends',
     ContainerTypeInfo(list, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)),
     listify=True,
     default=[],
-)
-_INCLUDE_DIRS_KW: KwargInfo[T.List[build.IncludeDirs]] = KwargInfo(
-    'include_directories',
-    ContainerTypeInfo(list, build.IncludeDirs),
-    default=[],
-    listify=True,
 )
 _PREFIX_KW: KwargInfo[str] = KwargInfo(
     'prefix',
@@ -173,10 +167,10 @@ _WERROR_KW = KwargInfo('werror', bool, default=False, since='1.3.0')
 
 # Many of the compiler methods take this kwarg signature exactly, this allows
 # simplifying the `typed_kwargs` calls
-_COMMON_KWS: T.List[KwargInfo] = [_ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRS_KW, _PREFIX_KW, _NO_BUILTIN_ARGS_KW]
+_COMMON_KWS: T.List[KwargInfo] = [_ARGS_KW, _DEPENDENCIES_KW, INCLUDE_DIRECTORIES, _PREFIX_KW, _NO_BUILTIN_ARGS_KW]
 
 # Common methods of compiles, links, runs, and similar
-_COMPILES_KWS: T.List[KwargInfo] = [_NAME_KW, _ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRS_KW, _NO_BUILTIN_ARGS_KW,
+_COMPILES_KWS: T.List[KwargInfo] = [_NAME_KW, _ARGS_KW, _DEPENDENCIES_KW, INCLUDE_DIRECTORIES, _NO_BUILTIN_ARGS_KW,
                                     _WERROR_KW,
                                     REQUIRED_KW.evolve(since='1.5.0', default=False)]
 
@@ -232,14 +226,14 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def _determine_args(self, kwargs: BaseCompileKW,
                         mode: CompileCheckMode = CompileCheckMode.LINK) -> T.List[str]:
         args: T.List[str] = []
-        for i in kwargs['include_directories']:
+        for i in self.interpreter.extract_incdirs(kwargs, strings_since='1.10.0'):
             for idir in i.to_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
                 args.extend(self.compiler.get_include_args(idir, False))
         if not kwargs['no_builtin_args']:
-            args += self.compiler.get_option_compile_args(None, self.interpreter.environment, self.subproject)
-            args += self.compiler.get_option_std_args(None, self.interpreter.environment, self.subproject)
+            args += self.compiler.get_option_compile_args(None, self.subproject)
+            args += self.compiler.get_option_std_args(None, self.subproject)
             if mode is CompileCheckMode.LINK:
-                args.extend(self.compiler.get_option_link_args(None, self.interpreter.environment, self.subproject))
+                args.extend(self.compiler.get_option_link_args(None, self.subproject))
         if kwargs.get('werror', False):
             args.extend(self.compiler.get_werror_args())
         args.extend(kwargs['args'])
@@ -260,7 +254,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def alignment_method(self, args: T.Tuple[str], kwargs: 'AlignmentKw') -> int:
         typename = args[0]
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=self.compiler.is_cross)
-        result, cached = self.compiler.alignment(typename, kwargs['prefix'], self.environment,
+        result, cached = self.compiler.alignment(typename, kwargs['prefix'],
                                                  extra_args=kwargs['args'],
                                                  dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
@@ -290,8 +284,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                 code.rel_to_builddir(self.environment.source_dir))
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False, endl=None)
-        result = self.compiler.run(code, self.environment, extra_args=extra_args,
-                                   dependencies=deps)
+        result = self.compiler.run(code, extra_args=extra_args, dependencies=deps)
         if required and result.returncode != 0:
             raise InterpreterException(f'Could not run {testname if testname else "code"}')
 
@@ -326,7 +319,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         Check if the compiler prefixes _ (underscore) to global C symbols
         See: https://en.wikipedia.org/wiki/Name_mangling#C
         '''
-        return self.compiler.symbols_have_underscore_prefix(self.environment)
+        return self.compiler.symbols_have_underscore_prefix()
 
     @typed_pos_args('compiler.has_member', str, str)
     @typed_kwargs('compiler.has_member', _HAS_REQUIRED_KW, *_COMMON_KWS)
@@ -340,9 +333,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         had, cached = self.compiler.has_members(typename, [membername], kwargs['prefix'],
-                                                self.environment,
-                                                extra_args=extra_args,
-                                                dependencies=deps)
+                                                extra_args=extra_args, dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
         if required and not had:
             raise InterpreterException(f'{self.compiler.get_display_language()} member {membername!r} of type {typename!r} not usable')
@@ -367,9 +358,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         had, cached = self.compiler.has_members(typename, membernames, kwargs['prefix'],
-                                                self.environment,
-                                                extra_args=extra_args,
-                                                dependencies=deps)
+                                                extra_args=extra_args, dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
         if required and not had:
             # print members as array: ['member1', 'member2']
@@ -393,7 +382,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             return False
         extra_args = self._determine_args(kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False)
-        had, cached = self.compiler.has_function(funcname, kwargs['prefix'], self.environment,
+        had, cached = self.compiler.has_function(funcname, kwargs['prefix'],
                                                  extra_args=extra_args,
                                                  dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
@@ -417,7 +406,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
-        had, cached = self.compiler.has_type(typename, kwargs['prefix'], self.environment,
+        had, cached = self.compiler.has_type(typename, kwargs['prefix'],
                                              extra_args=extra_args, dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
         if required and not had:
@@ -445,8 +434,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=self.compiler.is_cross)
         res = self.compiler.compute_int(expression, kwargs['low'], kwargs['high'],
                                         kwargs['guess'], kwargs['prefix'],
-                                        self.environment, extra_args=extra_args,
-                                        dependencies=deps)
+                                        extra_args=extra_args, dependencies=deps)
         mlog.log('Computing int of', mlog.bold(expression, True), msg, res)
         return res
 
@@ -457,7 +445,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         element = args[0]
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=self.compiler.is_cross)
-        esize, cached = self.compiler.sizeof(element, kwargs['prefix'], self.environment,
+        esize, cached = self.compiler.sizeof(element, kwargs['prefix'],
                                              extra_args=extra_args, dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
         mlog.log('Checking for size of',
@@ -472,9 +460,8 @@ class CompilerHolder(ObjectHolder['Compiler']):
         element = args[0]
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
-        value, cached = self.compiler.get_define(element, kwargs['prefix'], self.environment,
-                                                 extra_args=extra_args,
-                                                 dependencies=deps)
+        value, cached = self.compiler.get_define(element, kwargs['prefix'],
+                                                 extra_args=extra_args, dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
         value_msg = '(undefined)' if value is None else value
         mlog.log('Fetching value of define', mlog.bold(element, True), msg, value_msg, cached_msg)
@@ -488,9 +475,8 @@ class CompilerHolder(ObjectHolder['Compiler']):
         define_name = args[0]
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
-        value, cached = self.compiler.get_define(define_name, kwargs['prefix'], self.environment,
-                                                 extra_args=extra_args,
-                                                 dependencies=deps)
+        value, cached = self.compiler.get_define(define_name, kwargs['prefix'],
+                                                 extra_args=extra_args, dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
         h = mlog.green('YES') if value is not None else mlog.red('NO')
         mlog.log('Checking if define', mlog.bold(define_name, True), msg, 'exists:', h, cached_msg)
@@ -519,7 +505,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                 code.absolute_path(self.environment.source_dir, self.environment.build_dir))
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
-        result, cached = self.compiler.compiles(code, self.environment,
+        result, cached = self.compiler.compiles(code,
                                                 extra_args=extra_args,
                                                 dependencies=deps)
         if required and not result:
@@ -569,7 +555,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False, endl=None)
-        result, cached = self.compiler.links(code, self.environment,
+        result, cached = self.compiler.links(code,
                                              compiler=compiler,
                                              extra_args=extra_args,
                                              dependencies=deps)
@@ -597,7 +583,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
-        haz, cached = self.compiler.check_header(hname, kwargs['prefix'], self.environment,
+        haz, cached = self.compiler.check_header(hname, kwargs['prefix'],
                                                  extra_args=extra_args,
                                                  dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
@@ -617,7 +603,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
-        haz, cached = self.compiler.has_header(hname, kwargs['prefix'], self.environment,
+        haz, cached = self.compiler.has_header(hname, kwargs['prefix'],
                                                extra_args=extra_args, dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
         if required and not haz:
@@ -646,7 +632,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
-        haz, cached = self.compiler.has_header_symbol(hname, symbol, kwargs['prefix'], self.environment,
+        haz, cached = self.compiler.has_header_symbol(hname, symbol, kwargs['prefix'],
                                                       extra_args=extra_args,
                                                       dependencies=deps)
         if required and not haz:
@@ -687,13 +673,15 @@ class CompilerHolder(ObjectHolder['Compiler']):
             mlog.log('Library', mlog.bold(libname), 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.notfound_library(libname)
 
+        include_directories = self.interpreter.extract_incdirs(kwargs, key='header_include_directories', strings_since='1.10.0')
+
         # This could be done with a comprehension, but that confuses the type
         # checker, and having it check this seems valuable
         has_header_kwargs: 'HeaderKW' = {
             'required': required,
             'args': kwargs['header_args'],
             'dependencies': kwargs['header_dependencies'],
-            'include_directories': kwargs['header_include_directories'],
+            'include_directories': include_directories,
             'prefix': kwargs['header_prefix'],
             'no_builtin_args': kwargs['header_no_builtin_args'],
         }
@@ -712,7 +700,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             libtype = mesonlib.LibType.PREFER_STATIC
         else:
             libtype = mesonlib.LibType.PREFER_SHARED
-        linkargs = self.compiler.find_library(libname, self.environment, search_dirs, libtype)
+        linkargs = self.compiler.find_library(libname, search_dirs, libtype)
         if required and not linkargs:
             if libtype == mesonlib.LibType.PREFER_SHARED:
                 libtype_s = 'shared or static'
@@ -745,7 +733,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             mlog.log(*logargs)
             return False
         test = self.compiler.has_multi_link_arguments if mode is _TestMode.LINKER else self.compiler.has_multi_arguments
-        result, cached = test(arguments, self.environment)
+        result, cached = test(arguments)
         if required and not result:
             logargs += ['not usable']
             raise InterpreterException(*logargs)
@@ -851,7 +839,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             logargs += ['skipped: feature', mlog.bold(feature), 'disabled']
             mlog.log(*logargs)
             return False
-        had, cached = self.compiler.has_func_attribute(attr, self.environment)
+        had, cached = self.compiler.has_func_attribute(attr)
         if required and not had:
             logargs += ['not usable']
             raise InterpreterException(*logargs)
@@ -890,7 +878,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         'compiler.preprocess',
         KwargInfo('output', str, default='@PLAINNAME@.i'),
         KwargInfo('compile_args', ContainerTypeInfo(list, str), listify=True, default=[]),
-        _INCLUDE_DIRS_KW,
+        INCLUDE_DIRECTORIES,
         _DEPENDENCIES_KW.evolve(since='1.1.0'),
         _DEPENDS_KW.evolve(since='1.4.0'),
     )
@@ -918,7 +906,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             compiler,
             self.interpreter.backend,
             kwargs['compile_args'],
-            kwargs['include_directories'],
+            self.interpreter.extract_incdirs(kwargs, strings_since='1.10.0'),
             kwargs['dependencies'],
             kwargs['depends'])
         self.interpreter.add_target(tg.name, tg)

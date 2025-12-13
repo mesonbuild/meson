@@ -12,6 +12,10 @@ description: |
   custom_target('foo', output: 'file.txt', ...)
   ```
 
+  The files passed to `output:` cannot contain path separators. See the 
+  [manual on custom build targets](Custom-build-targets.md#details-on-command-invocation) for
+  an explanation on where output files should be placed.
+
   You can install the outputted files with the `install_dir:` kwarg, see below.
 
   *Since 0.60.0* the name argument is optional and defaults to the basename of the first
@@ -217,7 +221,8 @@ kwargs:
 
   output:
     type: array[str]
-    description: Array of output files.
+    description: |
+      Array of output files. These cannot contain path separators.
 
   env:
     since: 0.57.0

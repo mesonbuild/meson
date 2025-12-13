@@ -37,15 +37,18 @@ kwargs:
     since: 0.45.0
     description: |
        when set to true causes the target's symbols to be
-        dynamically exported, allowing modules built using the
-        [[shared_module]] function to refer to functions,
-        variables and other symbols defined in the executable itself. Implies
-        the `implib` argument.
+       dynamically exported, allowing modules built using the
+       [[shared_module]] function to refer to functions,
+       variables and other symbols defined in the executable itself.
 
   implib:
     type: bool | str
     since: 0.42.0
     description: |
+      When set to a string, that will be the name of a generated import library.
+
+      *Since 1.10.0* passing a boolean value is deprecated.
+
       When set to true, an import library is generated for the
       executable (the name of the import library is based on *exe_name*).
       Alternatively, when set to a string, that gives the base name for

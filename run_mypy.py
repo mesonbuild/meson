@@ -23,27 +23,26 @@ modules = [
     'mesonbuild/linkers/',
     'mesonbuild/scripts/',
     'mesonbuild/templates/',
+    'mesonbuild/utils/',
     'mesonbuild/wrap/',
 
     # specific files
     'mesonbuild/arglist.py',
     'mesonbuild/backend/backends.py',
     'mesonbuild/backend/nonebackend.py',
-    # 'mesonbuild/coredata.py',
+    'mesonbuild/cmdline.py',
+    'mesonbuild/coredata.py',
     'mesonbuild/depfile.py',
     'mesonbuild/envconfig.py',
     'mesonbuild/environment.py',
     'mesonbuild/interpreter/compiler.py',
+    'mesonbuild/interpreter/dependencyfallbacks.py',
     'mesonbuild/interpreter/mesonmain.py',
     'mesonbuild/interpreter/interpreterobjects.py',
     'mesonbuild/interpreter/type_checking.py',
     'mesonbuild/machinefile.py',
     'mesonbuild/mcompile.py',
     'mesonbuild/mdevenv.py',
-    'mesonbuild/utils/core.py',
-    'mesonbuild/utils/platform.py',
-    'mesonbuild/utils/universal.py',
-    'mesonbuild/utils/vsenv.py',
     'mesonbuild/mconf.py',
     'mesonbuild/mdist.py',
     'mesonbuild/mformat.py',
@@ -54,7 +53,9 @@ modules = [
     'mesonbuild/msubprojects.py',
     'mesonbuild/modules/__init__.py',
     'mesonbuild/modules/cmake.py',
+    'mesonbuild/modules/codegen.py',
     'mesonbuild/modules/cuda.py',
+    'mesonbuild/modules/dlang.py',
     'mesonbuild/modules/external_project.py',
     'mesonbuild/modules/fs.py',
     'mesonbuild/modules/gnome.py',
@@ -70,6 +71,7 @@ modules = [
     'mesonbuild/modules/qt6.py',
     'mesonbuild/modules/rust.py',
     'mesonbuild/modules/simd.py',
+    'mesonbuild/modules/snippets.py',
     'mesonbuild/modules/sourceset.py',
     'mesonbuild/modules/wayland.py',
     'mesonbuild/modules/windows.py',
@@ -80,6 +82,7 @@ modules = [
     'mesonbuild/options.py',
     'mesonbuild/programs.py',
     'mesonbuild/rewriter.py',
+    'mesonbuild/tooldetect.py',
 ]
 additional = [
     'run_mypy.py',
@@ -90,11 +93,6 @@ additional = [
     'docs/refman',
     'unittests/helpers.py',
 ]
-
-if os.name == 'posix':
-    modules.append('mesonbuild/utils/posix.py')
-elif os.name == 'nt':
-    modules.append('mesonbuild/utils/win32.py')
 
 def check_mypy() -> None:
     try:

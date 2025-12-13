@@ -109,8 +109,8 @@ class IntrospectionBuildTarget(MesonInterpreterObject):
     typename: str
     defined_in: str
     subdir: str
-    build_by_default: bool
-    installed: bool
+    build_by_default: T.Union[bool, UnknownValue]
+    installed: T.Union[bool, UnknownValue]
     outputs: T.List[str]
     source_nodes: T.List[BaseNode]
     extra_files: BaseNode
@@ -188,6 +188,12 @@ class AstInterpreter(InterpreterBase):
         self.dataflow_dag = DataflowDAG()
         self.funcvals: T.Dict[BaseNode, T.Any] = {}
         self.tainted = False
+        self.predefined_vars = {
+            'meson': UnknownValue(),
+            'host_machine': UnknownValue(),
+            'build_machine': UnknownValue(),
+            'target_machine': UnknownValue()
+        }
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
                            'benchmark': self.func_do_nothing,
@@ -486,8 +492,8 @@ class AstInterpreter(InterpreterBase):
         return ret
 
     def get_cur_value_if_defined(self, var_name: str) -> T.Union[BaseNode, UnknownValue, UndefinedVariable]:
-        if var_name in {'meson', 'host_machine', 'build_machine', 'target_machine'}:
-            return UnknownValue()
+        if var_name in self.predefined_vars:
+            return self.predefined_vars[var_name]
         ret: T.Union[BaseNode, UnknownValue, UndefinedVariable] = UndefinedVariable()
         for nesting, value in reversed(self.cur_assignments[var_name]):
             if len(self.nesting) >= len(nesting) and self.nesting[:len(nesting)] == nesting:
@@ -571,7 +577,7 @@ class AstInterpreter(InterpreterBase):
                 return [left] + right
             if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
                 return UnknownValue()
-            if node.operation == 'add':
+            if node.operation == '+':
                 if isinstance(left, dict) and isinstance(right, dict):
                     ret = left.copy()
                     for k, v in right.items():
@@ -582,16 +588,16 @@ class AstInterpreter(InterpreterBase):
                         right = [right]
                     return left + right
                 return left + right
-            elif node.operation == 'sub':
+            elif node.operation == '-':
                 return left - right
-            elif node.operation == 'mul':
+            elif node.operation == '*':
                 return left * right
-            elif node.operation == 'div':
+            elif node.operation == '/':
                 if isinstance(left, int) and isinstance(right, int):
                     return left // right
                 elif isinstance(left, str) and isinstance(right, str):
                     return os.path.join(left, right).replace('\\', '/')
-            elif node.operation == 'mod':
+            elif node.operation == '%':
                 if isinstance(left, int) and isinstance(right, int):
                     return left % right
         elif isinstance(node, (UnknownValue, IntrospectionBuildTarget, IntrospectionFile, IntrospectionDependency, str, bool, int)):
@@ -613,7 +619,7 @@ class AstInterpreter(InterpreterBase):
                 return left != right
             elif node.ctype == 'in':
                 return left in right
-            elif node.ctype == 'notin':
+            elif node.ctype == 'not in':
                 return left not in right
         elif isinstance(node, mparser.TernaryNode):
             cond = self.node_to_runtime_value(node.condition)
@@ -665,7 +671,7 @@ class AstInterpreter(InterpreterBase):
         if isinstance(lhs, UnknownValue):
             newval = UnknownValue()
         else:
-            newval = mparser.ArithmeticNode(operation='add', left=lhs, operator=_symbol('+'), right=node.value)
+            newval = mparser.ArithmeticNode(operation='+', left=lhs, operator=_symbol('+'), right=node.value)
         self.cur_assignments[node.var_name.value].append((self.nesting.copy(), newval))
         self.all_assignment_nodes[node.var_name.value].append(node)
 
@@ -731,7 +737,8 @@ class AstInterpreter(InterpreterBase):
         else:
             args = [args_raw]
 
-        flattened_args: T.List[TYPE_var] = []
+        # BaseNode resolves to Any. :/
+        flattened_args: T.List[T.Union[TYPE_var, T.Any]] = []
 
         # Resolve the contents of args
         for i in args:

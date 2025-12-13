@@ -100,35 +100,3 @@ jobs:
         export PATH="$HOME/tools:/opt/homebrew/opt/qt@5/bin:/opt/homebrew/opt/ncurses/bin:$PATH:/opt/homebrew/opt/llvm/bin"
         export PKG_CONFIG_PATH="/opt/homebrew/opt/qt@5/lib/pkgconfig:/opt/homebrew/opt/lapack/lib/pkgconfig:/opt/homebrew/opt/ncurses/lib/pkgconfig:$PKG_CONFIG_PATH"
         ./run_project_tests.py --backend=ninja
-
-  Qt4macos:
-    # This job only works on Intel Macs, because OpenSSL 1.0 doesn't build on
-    # Apple ARM
-    runs-on: macos-13
-    env:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
-    - run: python -m pip install -e .
-    - run: brew install pkg-config ninja gcc
-    - run: brew tap cartr/qt4
-    - run: brew install qt@4
-    - run: brew link qt@4
-      # qt4 tap seems to be broken
-    - run: ln -sfn /usr/local/Cellar/qt@4/4.8.7_6.reinstall /usr/local/Cellar/qt@4/4.8.7_6
-    - run: meson setup "test cases/frameworks/4 qt" build -Drequired=qt4
-    - run: meson compile -C build
-    - uses: actions/upload-artifact@v4
-      if: failure()
-      with:
-        name: Qt4_Mac_build
-        path: build/meson-logs/meson-log.txt
-    - run: meson test -C build -v
-    - uses: actions/upload-artifact@v4
-      if: failure()
-      with:
-        name: Qt4_Mac_test
-        path: build/meson-logs/testlog.txt

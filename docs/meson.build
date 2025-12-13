@@ -148,4 +148,4 @@ run_target('upload',
     depends: documentation,
 )
 
-test('validate_links', find_program('./validatelinks.py'), args: meson.current_source_dir() / 'markdown' / 'Users.md')
+test('validate_links', find_program('./validatelinks.py'), args: meson.current_source_dir() / 'markdown' / 'Users.md', timeout: 65)

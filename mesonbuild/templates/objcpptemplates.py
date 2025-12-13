@@ -18,6 +18,12 @@ lib_h_template = '''#pragma once
   #else
     #define {utoken}_PUBLIC __declspec(dllimport)
   #endif
+#elif defined __OS2__
+  #ifdef BUILDING_{utoken}
+    #define {utoken}_PUBLIC __declspec(dllexport)
+  #else
+    #define {utoken}_PUBLIC
+  #endif
 #else
   #ifdef BUILDING_{utoken}
       #define {utoken}_PUBLIC __attribute__ ((visibility ("default")))
@@ -67,13 +73,16 @@ lib_objcpp_meson_template = '''project(
 dependencies = [{dependencies}
 ]
 
+sources = [{source_files}
+]
+
 # These arguments are only used to build the shared library
 # not the executables that use the library.
 lib_args = ['-DBUILDING_{utoken}']
 
 lib = library(
   '{lib_name}',
-  '{source_file}',
+  sources,
   install : true,
   objcpp_shared_args : lib_args,
   dependencies : dependencies,
@@ -133,9 +142,12 @@ hello_objcpp_meson_template = '''project(
 dependencies = [{dependencies}
 ]
 
+sources = [{source_files}
+]
+
 exe = executable(
   '{exe_name}',
-  '{source_name}',
+  sources,
   dependencies : dependencies,
   install : true,
 )

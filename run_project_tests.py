@@ -79,7 +79,7 @@ ALL_TESTS = ['cmake', 'common', 'native', 'warning-meson', 'failing-meson', 'fai
              'keyval', 'platform-osx', 'platform-windows', 'platform-linux', 'platform-android',
              'java', 'C#', 'vala', 'cython', 'rust', 'd', 'objective c', 'objective c++',
              'fortran', 'swift', 'cuda', 'python3', 'python', 'fpga', 'frameworks', 'nasm', 'wasm', 'wayland',
-             'format',
+             'format', 'snippets',
              ]
 
 
@@ -355,15 +355,15 @@ def setup_commands(optbackend: str) -> None:
 def platform_fix_name(fname: str, canonical_compiler: str, env: environment.Environment) -> str:
     if '?lib' in fname:
         if env.machines.host.is_windows() and canonical_compiler == 'msvc':
-            fname = re.sub(r'lib/\?lib(.*)\.', r'bin/\1.', fname)
+            fname = re.sub(r'lib/\?lib(.*)$', r'bin/\1', fname)
             fname = re.sub(r'/\?lib/', r'/bin/', fname)
         elif env.machines.host.is_windows():
-            fname = re.sub(r'lib/\?lib(.*)\.', r'bin/lib\1.', fname)
+            fname = re.sub(r'lib/\?lib(.*)$', r'bin/lib\1', fname)
             fname = re.sub(r'\?lib(.*)\.dll$', r'lib\1.dll', fname)
             fname = re.sub(r'/\?lib/', r'/bin/', fname)
         elif env.machines.host.is_cygwin():
             fname = re.sub(r'lib/\?lib(.*)\.so$', r'bin/cyg\1.dll', fname)
-            fname = re.sub(r'lib/\?lib(.*)\.', r'bin/cyg\1.', fname)
+            fname = re.sub(r'lib/\?lib(.*)$', r'bin/cyg\1', fname)
             fname = re.sub(r'\?lib(.*)\.dll$', r'cyg\1.dll', fname)
             fname = re.sub(r'/\?lib/', r'/bin/', fname)
         else:
@@ -999,7 +999,7 @@ def have_working_compiler(lang: str, use_tmp: bool) -> bool:
             return False
         env.coredata.process_compiler_options(lang, compiler, '')
         try:
-            compiler.sanity_check(env.get_scratch_dir(), env)
+            compiler.sanity_check(env.get_scratch_dir())
         except mesonlib.MesonException:
             return False
     return True
@@ -1145,6 +1145,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
         TestCategory('wasm', 'wasm', shutil.which('emcc') is None or backend is not Backend.ninja),
         TestCategory('wayland', 'wayland', should_skip_wayland()),
         TestCategory('format', 'format'),
+        TestCategory('snippets', 'snippets'),
     ]
 
     categories = [t.category for t in all_tests]
@@ -1577,11 +1578,11 @@ def detect_tools(report: bool = True) -> None:
         print('{0:<{2}}: {1}'.format(tool.tool, get_version(tool), max_width))
     print()
 
-symlink_test_dir1 = None
-symlink_test_dir2 = None
-symlink_file1 = None
-symlink_file2 = None
-symlink_file3 = None
+symlink_test_dir1: T.Optional[Path] = None
+symlink_test_dir2: T.Optional[Path] = None
+symlink_file1: T.Optional[Path] = None
+symlink_file2: T.Optional[Path] = None
+symlink_file3: T.Optional[Path] = None
 
 def scan_test_data_symlinks() -> None:
     global symlink_test_dir1, symlink_test_dir2, symlink_file1, symlink_file2, symlink_file3

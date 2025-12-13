@@ -78,7 +78,8 @@ class ObjectType(Enum):
     ELEMENTARY = 0
     BUILTIN = 1
     MODULE = 2
-    RETURNED = 3
+    FUNCTIONS = 3
+    RETURNED = 4
 
 @dataclass
 class Object(NamedObject, FetureCheck):

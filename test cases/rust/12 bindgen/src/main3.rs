@@ -1,4 +1,4 @@
-// SPDX-license-identifer: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // Copyright © 2023 Red Hat, Inc
 
 #![allow(non_upper_case_globals)]

@@ -1,5 +1,5 @@
 
-// SPDX-license-identifer: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 // Copyright © 2021 Intel Corporation
 
 #![allow(non_upper_case_globals)]

@@ -60,8 +60,8 @@ DEFAULT_YIELDING = False
 # Can't bind this near the class method it seems, sadly.
 _T = T.TypeVar('_T')
 
-backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'xcode', 'none']
-genvslitelist = ['vs2022']
+backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'vs2026', 'xcode', 'none']
+genvslitelist = ['vs2022', 'vs2026']
 buildtypelist = ['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom']
 
 # This is copied from coredata. There is no way to share this, because this
@@ -105,6 +105,7 @@ _BUILTIN_NAMES = {
     'pkg_config_path',
     'cmake_prefix_path',
     'vsenv',
+    'os2_emxomf',
 }
 
 _BAD_VALUE = 'Qwert Zuiopü'
@@ -715,25 +716,25 @@ BUILTIN_CORE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
         ),
         UserComboOption('buildtype', 'Build type to use', 'debug', choices=buildtypelist),
         UserBooleanOption('debug', 'Enable debug symbols and other information', True),
-        UserComboOption('default_library', 'Default library type', 'shared', choices=['shared', 'static', 'both'],
-                        yielding=False),
+        UserComboOption('default_library', 'Default library type', 'shared', choices=['shared', 'static', 'both']),
         UserComboOption('default_both_libraries', 'Default library type for both_libraries', 'shared',
                         choices=['shared', 'static', 'auto']),
         UserBooleanOption('errorlogs', "Whether to print the logs from failing tests", True),
         UserUmaskOption('install_umask', 'Default umask to apply on permissions of installed files', OctalInt(0o022)),
         UserComboOption('layout', 'Build directory layout', 'mirror', choices=['mirror', 'flat']),
+        UserComboOption('namingscheme', 'How target file names are formed', 'classic', choices=['platform', 'classic']),
         UserComboOption('optimization', 'Optimization level', '0', choices=['plain', '0', 'g', '1', '2', '3', 's']),
         UserBooleanOption('prefer_static', 'Whether to try static linking before shared linking', False),
         UserBooleanOption('stdsplit', 'Split stdout and stderr in test logs', True),
         UserBooleanOption('strip', 'Strip targets on install', False),
         UserComboOption('unity', 'Unity build', 'off', choices=['on', 'off', 'subprojects']),
         UserIntegerOption('unity_size', 'Unity block size', 4, min_value=2),
-        UserComboOption('warning_level', 'Compiler warning level to use', '1', choices=['0', '1', '2', '3', 'everything'],
-                        yielding=False),
-        UserBooleanOption('werror', 'Treat warnings as errors', False, yielding=False),
+        UserComboOption('warning_level', 'Compiler warning level to use', '1', choices=['0', '1', '2', '3', 'everything']),
+        UserBooleanOption('werror', 'Treat warnings as errors', False),
         UserComboOption('wrap_mode', 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote']),
         UserStringArrayOption('force_fallback_for', 'Force fallback for those subprojects', []),
         UserBooleanOption('vsenv', 'Activate Visual Studio environment', False, readonly=True),
+        UserBooleanOption('os2_emxomf', 'Use OMF format on OS/2', False),
 
         # Pkgconfig module
         UserBooleanOption('pkgconfig.relocatable', 'Generate pkgconfig files as relocatable', False),
@@ -844,13 +845,10 @@ class OptionStore:
             return self.options[key].value
         return self.pending_options.get(key, default)
 
-    def get_value(self, key: T.Union[OptionKey, str]) -> ElementaryOptionValues:
-        return self.get_value_for(key)
-
     def __len__(self) -> int:
         return len(self.options)
 
-    def get_value_object_for(self, key: 'T.Union[OptionKey, str]') -> AnyOptionType:
+    def resolve_option(self, key: 'T.Union[OptionKey, str]') -> AnyOptionType:
         key = self.ensure_and_validate_key(key)
         potential = self.options.get(key, None)
         if self.is_project_option(key):
@@ -867,21 +865,21 @@ class OptionStore:
                 return self.options[parent_key]
         return potential
 
-    def get_value_object_and_value_for(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
+    def get_option_and_value_for(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
         assert isinstance(key, OptionKey)
         key = self.ensure_and_validate_key(key)
-        vobject = self.get_value_object_for(key)
-        computed_value = vobject.value
+        option_object = self.resolve_option(key)
+        computed_value = option_object.value
         if key in self.augments:
             assert key.subproject is not None
             computed_value = self.augments[key]
-        elif vobject.yielding:
-            computed_value = vobject.parent.value
-        return (vobject, computed_value)
+        elif option_object.yielding:
+            computed_value = option_object.parent.value
+        return (option_object, computed_value)
 
     def option_has_value(self, key: OptionKey, value: ElementaryOptionValues) -> bool:
-        vobject, current_value = self.get_value_object_and_value_for(key)
-        return vobject.validate_value(value) == current_value
+        option_object, current_value = self.get_option_and_value_for(key)
+        return option_object.validate_value(value) == current_value
 
     def get_value_for(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
         if isinstance(name, str):
@@ -889,7 +887,7 @@ class OptionStore:
         else:
             assert subproject is None
             key = name
-        vobject, resolved_value = self.get_value_object_and_value_for(key)
+        _, resolved_value = self.get_option_and_value_for(key)
         return resolved_value
 
     def add_system_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
@@ -909,12 +907,10 @@ class OptionStore:
         if key.subproject:
             proj_key = key.evolve(subproject=None)
             self.add_system_option_internal(proj_key, valobj)
-            if pval is not None:
-                self.augments[key] = pval
         else:
             self.options[key] = valobj
-            if pval is not None:
-                self.set_option(key, pval)
+        if pval is not None:
+            self.set_option(key, pval)
 
     def add_compiler_option(self, language: str, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
@@ -939,13 +935,11 @@ class OptionStore:
                 # Subproject is set to yield, but top level
                 # project does not have an option of the same
                 pass
-        valobj.yielding = bool(valobj.parent)
+        valobj.yielding = valobj.parent is not None
 
         self.options[key] = valobj
         self.project_options.add(key)
-        pval = self.pending_options.pop(key, None)
-        if pval is not None:
-            self.set_option(key, pval)
+        assert key not in self.pending_options
 
     def add_module_option(self, modulename: str, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
@@ -955,6 +949,27 @@ class OptionStore:
             raise MesonException('Internal error: module option name {key.name} does not start with module prefix {modulename}.')
         self.add_system_option_internal(key, valobj)
         self.module_options.add(key)
+
+    def add_builtin_option(self, key: OptionKey, opt: AnyOptionType) -> None:
+        # Create a copy of the object, as we're going to mutate it
+        opt = copy.copy(opt)
+        assert key.subproject is None
+        new_value = argparse_prefixed_default(opt, key, default_prefix())
+        opt.set_value(new_value)
+
+        modulename = key.get_module_prefix()
+        if modulename:
+            self.add_module_option(modulename, key, opt)
+        else:
+            self.add_system_option(key, opt)
+
+    def init_builtins(self) -> None:
+        # Create builtin options with default values
+        for key, opt in BUILTIN_OPTIONS.items():
+            self.add_builtin_option(key, opt)
+        for for_machine in iter(MachineChoice):
+            for key, opt in BUILTIN_OPTIONS_PER_MACHINE.items():
+                self.add_builtin_option(key.evolve(machine=for_machine), opt)
 
     def sanitize_prefix(self, prefix: str) -> str:
         prefix = os.path.expanduser(prefix)
@@ -1020,7 +1035,7 @@ class OptionStore:
             new_value = self.sanitize_dir_option_value(prefix, key, new_value)
 
         try:
-            opt = self.get_value_object_for(key)
+            opt = self.resolve_option(key)
         except KeyError:
             raise MesonException(f'Unknown option: "{error_key}".')
 
@@ -1150,21 +1165,9 @@ class OptionStore:
                     new_value = prefix_mapping[new_prefix]
             valobj.set_value(new_value)
 
-    # FIXME, this should be removed.or renamed to "change_type_of_existing_object" or something like that
-    def set_value_object(self, key: T.Union[OptionKey, str], new_object: AnyOptionType) -> None:
-        key = self.ensure_and_validate_key(key)
-        self.options[key] = new_object
-
     def get_value_object(self, key: T.Union[OptionKey, str]) -> AnyOptionType:
         key = self.ensure_and_validate_key(key)
         return self.options[key]
-
-    def get_default_for_b_option(self, key: OptionKey) -> ElementaryOptionValues:
-        assert self.is_base_option(key)
-        try:
-            return T.cast('ElementaryOptionValues', COMPILER_BASE_OPTIONS[key.evolve(subproject=None)].default)
-        except KeyError:
-            raise MesonBugException(f'Requested base option {key} which does not exist.')
 
     def remove(self, key: OptionKey) -> None:
         del self.options[key]
@@ -1188,16 +1191,6 @@ class OptionStore:
 
     def items(self) -> T.ItemsView['OptionKey', 'AnyOptionType']:
         return self.options.items()
-
-    # FIXME: this method must be deleted and users moved to use "add_xxx_option"s instead.
-    def update(self, **kwargs: AnyOptionType) -> None:
-        self.options.update(**kwargs)
-
-    def setdefault(self, k: OptionKey, o: AnyOptionType) -> AnyOptionType:
-        return self.options.setdefault(k, o)
-
-    def get(self, o: OptionKey, default: T.Optional[AnyOptionType] = None, **kwargs: T.Any) -> T.Optional[AnyOptionType]:
-        return self.options.get(o, default, **kwargs)
 
     def is_project_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a project option."""
@@ -1229,7 +1222,8 @@ class OptionStore:
 
     def is_base_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a base option."""
-        return key.name.startswith('b_')
+        # The "startswith" check is just an optimization
+        return key.name.startswith('b_') and key.evolve(subproject=None, machine=MachineChoice.HOST) in COMPILER_BASE_OPTIONS
 
     def is_backend_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a backend option."""
@@ -1326,14 +1320,7 @@ class OptionStore:
 
         # ignore subprojects for now for machine file and command line
         # options; they are applied later
-        for key, valstr in machine_file_options.items():
-            # Due to backwards compatibility we ignore all build-machine options
-            # when building natively.
-            if not self.is_cross and key.is_for_build():
-                continue
-            if not key.subproject:
-                self.set_user_option(key, valstr, True)
-        for key, valstr in cmd_line_options.items():
+        for key, valstr in itertools.chain(machine_file_options.items(), cmd_line_options.items()):
             # Due to backwards compatibility we ignore all build-machine options
             # when building natively.
             if not self.is_cross and key.is_for_build():
@@ -1348,18 +1335,7 @@ class OptionStore:
             return True
         if first_invocation and self.is_backend_option(key):
             return True
-        return (self.is_base_option(key) and
-                key.evolve(subproject=None, machine=MachineChoice.HOST) in COMPILER_BASE_OPTIONS)
-
-    def validate_cmd_line_options(self, cmd_line_options: OptionDict) -> None:
-        unknown_options = []
-        for key, valstr in cmd_line_options.items():
-            if key in self.pending_options and not self.accept_as_pending_option(key):
-                unknown_options.append(f'"{key}"')
-
-        if unknown_options:
-            keys = ', '.join(unknown_options)
-            raise MesonException(f'Unknown options: {keys}')
+        return self.is_base_option(key)
 
     def initialize_from_subproject_call(self,
                                         subproject: str,
@@ -1428,6 +1404,7 @@ class OptionStore:
 
     def update_project_options(self, project_options: MutableKeyedOptionDictType, subproject: SubProject) -> None:
         for key, value in project_options.items():
+            assert key.machine is MachineChoice.HOST
             if key not in self.options:
                 self.add_project_option(key, value)
                 continue
@@ -1441,7 +1418,7 @@ class OptionStore:
                 # If the choices have changed, use the new value, but attempt
                 # to keep the old options. If they are not valid keep the new
                 # defaults but warn.
-                self.set_value_object(key, value)
+                self.options[key] = value
                 try:
                     value.set_value(oldval.value)
                 except MesonException:

@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright 2017 The Meson development team
+# Copyright 2017-2025 The Meson development team
 
 from __future__ import annotations
 
+import dataclasses
 import re
 import typing as T
 
@@ -31,6 +32,78 @@ if T.TYPE_CHECKING:
 
 DETECTED_KW: KwargInfo[T.Union[None, T.List[str]]] = KwargInfo('detected', (ContainerTypeInfo(list, str), NoneType), listify=True)
 
+
+@dataclasses.dataclass
+class _CudaVersion:
+
+    meson: str
+    windows: str
+    linux: str
+
+    def compare(self, version: str, machine: str) -> T.Optional[str]:
+        if version_compare(version, f'>={self.meson}'):
+            return self.windows if machine == 'windows' else self.linux
+        return None
+
+
+# Copied from: https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#id7
+_DRIVER_TABLE_VERSION: T.List[_CudaVersion] = [
+    _CudaVersion('13.0.2', 'unknown', '580.95.05'),
+    _CudaVersion('13.0.1', 'unknown', '580.82.07'),
+    _CudaVersion('13.0.0', 'unknown', '580.65.06'),
+    _CudaVersion('12.9.1', '576.57', '575.57.08'),
+    _CudaVersion('12.9.0', '576.02', '575.51.03'),
+    _CudaVersion('12.8.1', '572.61', '570.124.06'),
+    _CudaVersion('12.8.0', '570.65', '570.26'),
+    _CudaVersion('12.6.3', '561.17', '560.35.05'),
+    _CudaVersion('12.6.2', '560.94', '560.35.03'),
+    _CudaVersion('12.6.1', '560.94', '560.35.03'),
+    _CudaVersion('12.6.0', '560.76', '560.28.03'),
+    _CudaVersion('12.5.1', '555.85', '555.42.06'),
+    _CudaVersion('12.5.0', '555.85', '555.42.02'),
+    _CudaVersion('12.4.1', '551.78', '550.54.15'),
+    _CudaVersion('12.4.0', '551.61', '550.54.14'),
+    _CudaVersion('12.3.1', '546.12', '545.23.08'),
+    _CudaVersion('12.3.0', '545.84', '545.23.06'),
+    _CudaVersion('12.2.2', '537.13', '535.104.05'),
+    _CudaVersion('12.2.1', '536.67', '535.86.09'),
+    _CudaVersion('12.2.0', '536.25', '535.54.03'),
+    _CudaVersion('12.1.1', '531.14', '530.30.02'),
+    _CudaVersion('12.1.0', '531.14', '530.30.02'),
+    _CudaVersion('12.0.1', '528.33', '525.85.11'),
+    _CudaVersion('12.0.0', '527.41', '525.60.13'),
+    _CudaVersion('11.8.0', '522.06', '520.61.05'),
+    _CudaVersion('11.7.1', '516.31', '515.48.07'),
+    _CudaVersion('11.7.0', '516.01', '515.43.04'),
+    _CudaVersion('11.6.1', '511.65', '510.47.03'),  # 11.6.2 is identical
+    _CudaVersion('11.6.0', '511.23', '510.39.01'),
+    _CudaVersion('11.5.1', '496.13', '495.29.05'),  # 11.5.2 is identical
+    _CudaVersion('11.5.0', '496.04', '495.29.05'),
+    _CudaVersion('11.4.3', '472.50', '470.82.01'),  # 11.4.4 is identical
+    _CudaVersion('11.4.1', '471.41', '470.57.02'),  # 11.4.2 is identical
+    _CudaVersion('11.4.0', '471.11', '470.42.01'),
+    _CudaVersion('11.3.0', '465.89', '465.19.01'),  # 11.3.1 is identical
+    _CudaVersion('11.2.2', '461.33', '460.32.03'),
+    _CudaVersion('11.2.1', '461.09', '460.32.03'),
+    _CudaVersion('11.2.0', '460.82', '460.27.03'),
+    _CudaVersion('11.1.1', '456.81', '455.32'),
+    _CudaVersion('11.1.0', '456.38', '455.23'),
+    _CudaVersion('11.0.3', '451.82', '450.51.06'),  # 11.0.3.1 is identical
+    _CudaVersion('11.0.2', '451.48', '450.51.05'),
+    _CudaVersion('11.0.1', '451.22', '450.36.06'),
+    _CudaVersion('10.2.89', '441.22', '440.33'),
+    _CudaVersion('10.1.105', '418.96', '418.39'),
+    _CudaVersion('10.0.130', '411.31', '410.48'),
+    _CudaVersion('9.2.148', '398.26', '396.37'),
+    _CudaVersion('9.2.88', '397.44', '396.26'),
+    _CudaVersion('9.1.85', '391.29', '390.46'),
+    _CudaVersion('9.0.76', '385.54', '384.81'),
+    _CudaVersion('8.0.61', '376.51', '375.26'),
+    _CudaVersion('8.0.44', '369.30', '367.48'),
+    _CudaVersion('7.5.16', '353.66', '352.31'),
+    _CudaVersion('7.0.28', '347.62', '346.46'),
+]
+
 class CudaModule(NewExtensionModule):
 
     INFO = ModuleInfo('CUDA', '0.50.0', unstable=True)
@@ -51,52 +124,16 @@ class CudaModule(NewExtensionModule):
                                     'a CUDA Toolkit version string. Beware that, since CUDA 11.0, ' +
                                     'the CUDA Toolkit\'s components (including NVCC) are versioned ' +
                                     'independently from each other (and the CUDA Toolkit as a whole).')
-
         if len(args) != 1 or not isinstance(args[0], str):
             raise argerror
 
         cuda_version = args[0]
-        driver_version_table = [
-            {'cuda_version': '>=12.0.0',   'windows': '527.41', 'linux': '525.60.13'},
-            {'cuda_version': '>=11.8.0',   'windows': '522.06', 'linux': '520.61.05'},
-            {'cuda_version': '>=11.7.1',   'windows': '516.31', 'linux': '515.48.07'},
-            {'cuda_version': '>=11.7.0',   'windows': '516.01', 'linux': '515.43.04'},
-            {'cuda_version': '>=11.6.1',   'windows': '511.65', 'linux': '510.47.03'},
-            {'cuda_version': '>=11.6.0',   'windows': '511.23', 'linux': '510.39.01'},
-            {'cuda_version': '>=11.5.1',   'windows': '496.13', 'linux': '495.29.05'},
-            {'cuda_version': '>=11.5.0',   'windows': '496.04', 'linux': '495.29.05'},
-            {'cuda_version': '>=11.4.3',   'windows': '472.50', 'linux': '470.82.01'},
-            {'cuda_version': '>=11.4.1',   'windows': '471.41', 'linux': '470.57.02'},
-            {'cuda_version': '>=11.4.0',   'windows': '471.11', 'linux': '470.42.01'},
-            {'cuda_version': '>=11.3.0',   'windows': '465.89', 'linux': '465.19.01'},
-            {'cuda_version': '>=11.2.2',   'windows': '461.33', 'linux': '460.32.03'},
-            {'cuda_version': '>=11.2.1',   'windows': '461.09', 'linux': '460.32.03'},
-            {'cuda_version': '>=11.2.0',   'windows': '460.82', 'linux': '460.27.03'},
-            {'cuda_version': '>=11.1.1',   'windows': '456.81', 'linux': '455.32'},
-            {'cuda_version': '>=11.1.0',   'windows': '456.38', 'linux': '455.23'},
-            {'cuda_version': '>=11.0.3',   'windows': '451.82', 'linux': '450.51.06'},
-            {'cuda_version': '>=11.0.2',   'windows': '451.48', 'linux': '450.51.05'},
-            {'cuda_version': '>=11.0.1',   'windows': '451.22', 'linux': '450.36.06'},
-            {'cuda_version': '>=10.2.89',  'windows': '441.22', 'linux': '440.33'},
-            {'cuda_version': '>=10.1.105', 'windows': '418.96', 'linux': '418.39'},
-            {'cuda_version': '>=10.0.130', 'windows': '411.31', 'linux': '410.48'},
-            {'cuda_version': '>=9.2.148',  'windows': '398.26', 'linux': '396.37'},
-            {'cuda_version': '>=9.2.88',   'windows': '397.44', 'linux': '396.26'},
-            {'cuda_version': '>=9.1.85',   'windows': '391.29', 'linux': '390.46'},
-            {'cuda_version': '>=9.0.76',   'windows': '385.54', 'linux': '384.81'},
-            {'cuda_version': '>=8.0.61',   'windows': '376.51', 'linux': '375.26'},
-            {'cuda_version': '>=8.0.44',   'windows': '369.30', 'linux': '367.48'},
-            {'cuda_version': '>=7.5.16',   'windows': '353.66', 'linux': '352.31'},
-            {'cuda_version': '>=7.0.28',   'windows': '347.62', 'linux': '346.46'},
-        ]
 
-        driver_version = 'unknown'
-        for d in driver_version_table:
-            if version_compare(cuda_version, d['cuda_version']):
-                driver_version = d.get(state.environment.machines.host.system, d['linux'])
-                break
-
-        return driver_version
+        for d in _DRIVER_TABLE_VERSION:
+            driver_version = d.compare(cuda_version, state.environment.machines.host.system)
+            if driver_version is not None:
+                return driver_version
+        return 'unknown'
 
     @typed_pos_args('cuda.nvcc_arch_flags', (str, CudaCompiler), varargs=str)
     @typed_kwargs('cuda.nvcc_arch_flags', DETECTED_KW)
@@ -178,42 +215,50 @@ class CudaModule(NewExtensionModule):
         # except that a bug with cuda_arch_list="All" is worked around by
         # tracking both lower and upper limits on GPU architectures.
 
-        cuda_known_gpu_architectures   = ['Fermi', 'Kepler', 'Maxwell']  # noqa: E221
+        cuda_known_gpu_architectures   = []  # noqa: E221
         cuda_common_gpu_architectures  = ['3.0', '3.5', '5.0']           # noqa: E221
         cuda_hi_limit_gpu_architecture = None                            # noqa: E221
         cuda_lo_limit_gpu_architecture = '2.0'                           # noqa: E221
         cuda_all_gpu_architectures     = ['3.0', '3.2', '3.5', '5.0']    # noqa: E221
 
-        if version_compare(cuda_version, '<7.0'):
-            cuda_hi_limit_gpu_architecture = '5.2'
+        # Fermi and Kepler support have been dropped since 12.0
+        if version_compare(cuda_version, '<12.0'):
+            cuda_known_gpu_architectures.extend(['Fermi', 'Kepler'])
 
-        if version_compare(cuda_version, '>=7.0'):
-            cuda_known_gpu_architectures  += ['Kepler+Tegra', 'Kepler+Tesla', 'Maxwell+Tegra']  # noqa: E221
-            cuda_common_gpu_architectures += ['5.2']                                            # noqa: E221
+        # Everything older than Turing is dropped by 13.0
+        if version_compare(cuda_version, '<13.0'):
+            cuda_known_gpu_architectures.append('Maxwell')
 
-            if version_compare(cuda_version, '<8.0'):
-                cuda_common_gpu_architectures += ['5.2+PTX']  # noqa: E221
-                cuda_hi_limit_gpu_architecture = '6.0'        # noqa: E221
+            if version_compare(cuda_version, '<7.0'):
+                cuda_hi_limit_gpu_architecture = '5.2'
 
-        if version_compare(cuda_version, '>=8.0'):
-            cuda_known_gpu_architectures  += ['Pascal', 'Pascal+Tegra']  # noqa: E221
-            cuda_common_gpu_architectures += ['6.0', '6.1']              # noqa: E221
-            cuda_all_gpu_architectures    += ['6.0', '6.1', '6.2']       # noqa: E221
+            if version_compare(cuda_version, '>=7.0'):
+                cuda_known_gpu_architectures  += ['Kepler+Tegra', 'Kepler+Tesla', 'Maxwell+Tegra']  # noqa: E221
+                cuda_common_gpu_architectures += ['5.2']                                            # noqa: E221
 
-            if version_compare(cuda_version, '<9.0'):
-                cuda_common_gpu_architectures += ['6.1+PTX']  # noqa: E221
-                cuda_hi_limit_gpu_architecture = '7.0'        # noqa: E221
+                if version_compare(cuda_version, '<8.0'):
+                    cuda_common_gpu_architectures += ['5.2+PTX']  # noqa: E221
+                    cuda_hi_limit_gpu_architecture = '6.0'        # noqa: E221
 
-        if version_compare(cuda_version, '>=9.0'):
-            cuda_known_gpu_architectures  += ['Volta', 'Xavier'] # noqa: E221
-            cuda_common_gpu_architectures += ['7.0']             # noqa: E221
-            cuda_all_gpu_architectures    += ['7.0', '7.2']      # noqa: E221
-            # https://docs.nvidia.com/cuda/archive/9.0/cuda-toolkit-release-notes/index.html#unsupported-features
-            cuda_lo_limit_gpu_architecture = '3.0'               # noqa: E221
+            if version_compare(cuda_version, '>=8.0'):
+                cuda_known_gpu_architectures  += ['Pascal', 'Pascal+Tegra']  # noqa: E221
+                cuda_common_gpu_architectures += ['6.0', '6.1']              # noqa: E221
+                cuda_all_gpu_architectures    += ['6.0', '6.1', '6.2']       # noqa: E221
 
-            if version_compare(cuda_version, '<10.0'):
-                cuda_common_gpu_architectures += ['7.2+PTX']  # noqa: E221
-                cuda_hi_limit_gpu_architecture = '8.0'        # noqa: E221
+                if version_compare(cuda_version, '<9.0'):
+                    cuda_common_gpu_architectures += ['6.1+PTX']  # noqa: E221
+                    cuda_hi_limit_gpu_architecture = '7.0'        # noqa: E221
+
+            if version_compare(cuda_version, '>=9.0'):
+                cuda_known_gpu_architectures  += ['Volta', 'Xavier'] # noqa: E221
+                cuda_common_gpu_architectures += ['7.0']             # noqa: E221
+                cuda_all_gpu_architectures    += ['7.0', '7.2']      # noqa: E221
+                # https://docs.nvidia.com/cuda/archive/9.0/cuda-toolkit-release-notes/index.html#unsupported-features
+                cuda_lo_limit_gpu_architecture = '3.0'               # noqa: E221
+
+                if version_compare(cuda_version, '<10.0'):
+                    cuda_common_gpu_architectures += ['7.2+PTX']  # noqa: E221
+                    cuda_hi_limit_gpu_architecture = '8.0'        # noqa: E221
 
         if version_compare(cuda_version, '>=10.0'):
             cuda_known_gpu_architectures  += ['Turing'] # noqa: E221
@@ -265,6 +310,29 @@ class CudaModule(NewExtensionModule):
 
             if version_compare(cuda_version, '<13'):
                 cuda_hi_limit_gpu_architecture = '10.0'       # noqa: E221
+
+        if version_compare(cuda_version, '>=12.8'):
+            cuda_known_gpu_architectures.append('Blackwell')
+            cuda_common_gpu_architectures.extend(['10.0', '12.0'])
+            cuda_all_gpu_architectures.extend(['10.0', '12.0'])
+
+            if version_compare(cuda_version, '<13'):
+                # Yes, 12.8 and 12.9 support 10.1, but 13.0 doesn't
+                cuda_common_gpu_architectures.append('10.1')
+                cuda_all_gpu_architectures.append('10.1')
+                cuda_hi_limit_gpu_architecture = '12.1'
+
+        if version_compare(cuda_version, '>=12.9'):
+            cuda_common_gpu_architectures.extend(['10.3', '12.1'])
+            cuda_all_gpu_architectures.extend(['10.3', '12.1'])
+
+        if version_compare(cuda_version, '>=13.0'):
+            cuda_common_gpu_architectures.append('11.0')
+            cuda_all_gpu_architectures.append('11.0')
+            cuda_lo_limit_gpu_architecture = '7.5'
+
+            if version_compare(cuda_version, '<14'):
+                cuda_hi_limit_gpu_architecture = '12.1'
 
         if not cuda_arch_list:
             cuda_arch_list = 'Auto'
@@ -318,6 +386,7 @@ class CudaModule(NewExtensionModule):
                     'Orin':          (['8.7'],             []),
                     'Lovelace':      (['8.9'],             ['8.9']),
                     'Hopper':        (['9.0'],             ['9.0']),
+                    'Blackwell':     (['10.0'],            ['10.0']),
                 }.get(arch_name, (None, None))
 
             if arch_bin is None:

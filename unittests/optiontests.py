@@ -260,8 +260,7 @@ class OptionTests(unittest.TestCase):
 
         cmd_line = {key: opt_value}
         optstore.initialize_from_top_level_project_call({}, cmd_line, {})
-        self.assertEqual(optstore.get_value_object_and_value_for(key.as_build())[1], opt_value)
-        self.assertEqual(optstore.get_value(key.as_build()), opt_value)
+        self.assertEqual(optstore.get_option_and_value_for(key.as_build())[1], opt_value)
         self.assertEqual(optstore.get_value_for(key.as_build()), opt_value)
 
     def test_build_to_host_subproject(self):
@@ -280,10 +279,8 @@ class OptionTests(unittest.TestCase):
         spcall = {key: opt_value}
         optstore.initialize_from_top_level_project_call({}, {}, {})
         optstore.initialize_from_subproject_call(subp, spcall, {}, {}, {})
-        self.assertEqual(optstore.get_value_object_and_value_for(key.evolve(subproject=subp,
+        self.assertEqual(optstore.get_option_and_value_for(key.evolve(subproject=subp,
                                                                             machine=MachineChoice.BUILD))[1], opt_value)
-        self.assertEqual(optstore.get_value(key.evolve(subproject=subp,
-                                                       machine=MachineChoice.BUILD)), opt_value)
         self.assertEqual(optstore.get_value_for(key.evolve(subproject=subp,
                                                            machine=MachineChoice.BUILD)), opt_value)
 
@@ -304,17 +301,10 @@ class OptionTests(unittest.TestCase):
         optstore.initialize_from_top_level_project_call({}, cmd_line, {})
         print(optstore.options)
 
-        self.assertEqual(optstore.get_value_object_and_value_for(key)[1], opt_value)
-        self.assertEqual(optstore.get_value_object_and_value_for(key.as_build())[1], def_value)
-        self.assertEqual(optstore.get_value(key), opt_value)
-        self.assertEqual(optstore.get_value(key.as_build()), def_value)
+        self.assertEqual(optstore.get_option_and_value_for(key)[1], opt_value)
+        self.assertEqual(optstore.get_option_and_value_for(key.as_build())[1], def_value)
         self.assertEqual(optstore.get_value_for(key), opt_value)
         self.assertEqual(optstore.get_value_for(key.as_build()), def_value)
-
-    def test_b_default(self):
-        optstore = OptionStore(False)
-        value = optstore.get_default_for_b_option(OptionKey('b_vscrt'))
-        self.assertEqual(value, 'from_buildtype')
 
     def test_b_nonexistent(self):
         optstore = OptionStore(False)
@@ -472,5 +462,36 @@ class OptionTests(unittest.TestCase):
                               deprecated={'true': '1'})
         optstore.add_system_option(name, do)
         optstore.set_option(OptionKey(name), True)
-        value = optstore.get_value(name)
+        value = optstore.get_value_for(name)
         self.assertEqual(value, '1')
+
+    def test_pending_augment_validation(self):
+        name = 'b_lto'
+        subproject = 'mysubproject'
+
+        optstore = OptionStore(False)
+        prefix = UserStringOption('prefix', 'This is needed by OptionStore', '/usr')
+        optstore.add_system_option('prefix', prefix)
+
+        optstore.initialize_from_top_level_project_call({}, {}, {})
+        optstore.initialize_from_subproject_call(subproject, {}, {OptionKey(name): 'true'}, {}, {})
+
+        bo = UserBooleanOption(name, 'LTO', False)
+        key = OptionKey(name, subproject=subproject)
+        optstore.add_system_option(key, bo)
+        stored_value = optstore.get_value_for(key)
+        self.assertIsInstance(stored_value, bool)
+        self.assertTrue(stored_value)
+
+    def test_yielding_boolean_option_with_falsy_parent(self):
+        """Test that yielding is correctly initialized when parent option value is False."""
+        optstore = OptionStore(False)
+        name = 'someoption'
+        subproject_name = 'sub'
+        parent_option = UserBooleanOption(name, 'A parent boolean option', False, yielding=True)
+        optstore.add_project_option(OptionKey(name, ''), parent_option)
+
+        child_option = UserBooleanOption(name, 'A child boolean option', True, yielding=True)
+        child_key = OptionKey(name, subproject_name)
+        optstore.add_project_option(child_key, child_option)
+        self.assertTrue(optstore.options[child_key].yielding)

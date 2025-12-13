@@ -181,6 +181,7 @@
       "mesonbuild.backend.backends",
       "mesonbuild.backend.ninjabackend",
       "mesonbuild.build",
+      "mesonbuild.cmdline",
       "mesonbuild.compilers",
       "mesonbuild.compilers.compilers",
       "mesonbuild.compilers.detect",
@@ -230,15 +231,15 @@
       "mesonbuild.programs",
       "mesonbuild.scripts",
       "mesonbuild.scripts.meson_exe",
+      "mesonbuild.tooldetect",
       "mesonbuild.utils",
       "mesonbuild.utils.core",
       "mesonbuild.utils.platform",
-      "mesonbuild.utils.posix",
       "mesonbuild.utils.universal",
       "mesonbuild.utils.vsenv",
       "mesonbuild.wrap",
       "mesonbuild.wrap.wrap"
     ],
-    "count": 69
+    "count": 71
   }
 }

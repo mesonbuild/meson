@@ -28,6 +28,7 @@ from .exceptions import (
 )
 
 from .. import mlog
+from . import operator
 from .decorators import FeatureNew
 from .disabler import Disabler, is_disabled
 from .helpers import default_resolve_key, flatten, resolve_second_level_holders, stringifyUserArguments
@@ -344,24 +345,14 @@ class InterpreterBase:
         if isinstance(val2, Disabler):
             return val2
 
-        # New code based on InterpreterObjects
-        operator = {
-            'in': MesonOperator.IN,
-            'notin': MesonOperator.NOT_IN,
-            '==': MesonOperator.EQUALS,
-            '!=': MesonOperator.NOT_EQUALS,
-            '>': MesonOperator.GREATER,
-            '<': MesonOperator.LESS,
-            '>=': MesonOperator.GREATER_EQUALS,
-            '<=': MesonOperator.LESS_EQUALS,
-        }[node.ctype]
+        op = operator.MAPPING[node.ctype]
 
         # Check if the arguments should be reversed for simplicity (this essentially converts `in` to `contains`)
-        if operator in (MesonOperator.IN, MesonOperator.NOT_IN):
+        if op in (MesonOperator.IN, MesonOperator.NOT_IN):
             val1, val2 = val2, val1
 
         val1.current_node = node
-        return self._holderify(val1.operator_call(operator, _unholder(val2)))
+        return self._holderify(val1.operator_call(op, _unholder(val2)))
 
     def evaluate_andstatement(self, cur: mparser.AndNode) -> InterpreterObject:
         l = self.evaluate_statement(cur.left)
@@ -414,15 +405,8 @@ class InterpreterBase:
         if l is None or r is None:
             raise InvalidCodeOnVoid(cur.operation)
 
-        mapping: T.Dict[str, MesonOperator] = {
-            'add': MesonOperator.PLUS,
-            'sub': MesonOperator.MINUS,
-            'mul': MesonOperator.TIMES,
-            'div': MesonOperator.DIV,
-            'mod': MesonOperator.MOD,
-        }
         l.current_node = cur
-        res = l.operator_call(mapping[cur.operation], _unholder(r))
+        res = l.operator_call(operator.MAPPING[cur.operation], _unholder(r))
         return self._holderify(res)
 
     def evaluate_ternary(self, node: mparser.TernaryNode) -> T.Optional[InterpreterObject]:
@@ -555,12 +539,6 @@ class InterpreterBase:
             return Disabler()
         if not isinstance(obj, InterpreterObject):
             raise InvalidArguments(f'{object_display_name} is not callable.')
-        # TODO: InterpreterBase **really** shouldn't be in charge of checking this
-        if method_name == 'extract_objects':
-            if isinstance(obj, ObjectHolder):
-                self.validate_extraction(obj.held_object)
-            elif not isinstance(obj, Disabler):
-                raise InvalidArguments(f'Invalid operation "extract_objects" on {object_display_name} of type {type(obj).__name__}')
         obj.current_node = self.current_node = node
         res = obj.method_call(method_name, args, kwargs)
         return self._holderify(res) if res is not None else None
@@ -675,9 +653,6 @@ class InterpreterBase:
             return self.variables[varname]
         raise InvalidCode(f'Unknown variable "{varname}".')
 
-    def validate_extraction(self, buildtarget: mesonlib.HoldableObject) -> None:
-        raise InterpreterException('validate_extraction is not implemented in this context (please file a bug)')
-
     def _load_option_file(self) -> None:
         from .. import optinterpreter  # prevent circular import
 
@@ -733,6 +708,11 @@ class InterpreterBase:
         except mesonlib.MesonException as me:
             me.file = absname
             raise me
+        self._evaluate_codeblock(codeblock, subdir, visitors)
+        return True
+
+    def _evaluate_codeblock(self, codeblock: mparser.CodeBlockNode, subdir: str,
+                            visitors: T.Optional[T.Iterable[AstVisitor]] = None) -> None:
         try:
             prev_subdir = self.subdir
             self.subdir = subdir
@@ -744,4 +724,3 @@ class InterpreterBase:
             pass
         finally:
             self.subdir = prev_subdir
-        return True

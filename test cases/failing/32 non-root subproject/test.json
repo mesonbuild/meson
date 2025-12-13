@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/32 non-root subproject/some/meson.build:1:0: ERROR: Attempted to resolve subproject without subprojects directory present."
+    }
+  ]
+}

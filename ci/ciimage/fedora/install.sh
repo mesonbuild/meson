@@ -12,7 +12,7 @@ pkgs=(
   boost-python3-devel
   itstool gtk3-devel java-latest-openjdk-devel gtk-doc llvm-devel clang-devel SDL2-devel graphviz-devel zlib zlib-devel zlib-static
   #hdf5-openmpi-devel hdf5-devel netcdf-openmpi-devel netcdf-devel netcdf-fortran-openmpi-devel netcdf-fortran-devel scalapack-openmpi-devel
-  doxygen vulkan-devel vulkan-validation-layers-devel openssh lksctp-tools-devel objfw mercurial gtk-sharp2-devel libpcap-devel gpgme-devel
+  doxygen vulkan-devel vulkan-validation-layers-devel openssh lksctp-tools-devel objfw mercurial gtk-sharp3-devel libpcap-devel gpgme-devel
   qt5-qtbase-devel qt5-qttools-devel qt5-linguist qt5-qtbase-private-devel
   qt6-qtdeclarative-devel qt6-qtbase-devel qt6-qttools-devel qt6-linguist qt6-qtbase-private-devel
   libwmf-devel valgrind cmake openmpi-devel nasm gnustep-base-devel gettext-devel ncurses-devel

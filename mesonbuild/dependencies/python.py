@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: Apache-2.
 # Copyright 2022 The Meson development team
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from .detect import packages
 from .factory import DependencyFactory
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
-from ..environment import detect_cpu_family
+from ..envconfig import detect_cpu_family
 from ..programs import ExternalProgram
 from ..options import OptionKey
 
@@ -24,6 +24,7 @@ if T.TYPE_CHECKING:
     from .factory import DependencyGenerator
     from ..environment import Environment
     from ..mesonlib import MachineChoice
+    from .base import DependencyObjectKWs
 
     class PythonIntrospectionDict(TypedDict):
 
@@ -56,7 +57,7 @@ class Pybind11ConfigToolDependency(ConfigToolDependency):
     # in the meantime
     skip_version = '--pkgconfigdir'
 
-    def __init__(self, name: str, environment: Environment, kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
@@ -67,7 +68,7 @@ class NumPyConfigToolDependency(ConfigToolDependency):
 
     tools = ['numpy-config']
 
-    def __init__(self, name: str, environment: Environment, kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
@@ -324,7 +325,7 @@ class _PythonDependencyBase(_Base):
                 libname += self.variables['ABIFLAGS']
             libdirs = []
 
-        largs = self.clib_compiler.find_library(libname, environment, libdirs)
+        largs = self.clib_compiler.find_library(libname, libdirs)
         if largs is not None:
             self.link_args = largs
             self.is_found = True
@@ -397,7 +398,7 @@ class _PythonDependencyBase(_Base):
                     is_debug_build = debug or buildtype == 'debug'
                     vscrt_debug = False
                     if OptionKey('b_vscrt') in self.env.coredata.optstore:
-                        vscrt = self.env.coredata.optstore.get_value('b_vscrt')
+                        vscrt = self.env.coredata.optstore.get_value_for('b_vscrt')
                         if vscrt in {'mdd', 'mtd', 'from_buildtype', 'static_from_buildtype'}:
                             vscrt_debug = True
                     if is_debug_build and vscrt_debug and not self.variables.get('Py_DEBUG'):
@@ -456,7 +457,7 @@ class _PythonDependencyBase(_Base):
 
 class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 
-    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any],
+    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs,
                  installation: 'BasicPythonExternalProgram', embed: bool,
                  for_machine: 'MachineChoice'):
         pkg_embed = '-embed' if embed and mesonlib.version_compare(installation.info['version'], '>=3.8') else ''
@@ -508,7 +509,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase):
 
     def __init__(self, name: str, environment: 'Environment',
-                 kwargs: T.Dict[str, T.Any], installation: 'BasicPythonExternalProgram',
+                 kwargs: DependencyObjectKWs, installation: 'BasicPythonExternalProgram',
                  for_machine: 'MachineChoice'):
         ExtraFrameworkDependency.__init__(self, name, environment, kwargs)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False), for_machine)
@@ -517,7 +518,7 @@ class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase)
 class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
     def __init__(self, name: str, environment: 'Environment',
-                 kwargs: T.Dict[str, T.Any], installation: 'BasicPythonExternalProgram',
+                 kwargs: DependencyObjectKWs, installation: 'BasicPythonExternalProgram',
                  for_machine: 'MachineChoice'):
         SystemDependency.__init__(self, name, environment, kwargs)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False), for_machine)
@@ -527,7 +528,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         # `link_libpython` (which *shouldn't* be set, but just in case)
         if self.platform.startswith('ios-'):
             # iOS doesn't use link_libpython - it links with the *framework*.
-            self.link_args = ['-framework', 'Python', '-F', self.variables.get('prefix')]
+            self.link_args = ['-framework', 'Python', '-F', self.variables.get('base_prefix')]
             self.is_found = True
         elif self.link_libpython:
             # link args
@@ -555,7 +556,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         if mesonlib.is_windows() and self.get_windows_python_arch().endswith('64') and mesonlib.version_compare(self.version, '<3.12'):
             self.compile_args += ['-DMS_WIN64=']
 
-        if not self.clib_compiler.has_header('Python.h', '', environment, extra_args=self.compile_args)[0]:
+        if not self.clib_compiler.has_header('Python.h', '', extra_args=self.compile_args)[0]:
             self.is_found = False
 
     @staticmethod
@@ -563,7 +564,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         return 'sysconfig'
 
 def python_factory(env: 'Environment', for_machine: 'MachineChoice',
-                   kwargs: T.Dict[str, T.Any],
+                   kwargs: DependencyObjectKWs,
                    installation: T.Optional['BasicPythonExternalProgram'] = None) -> T.List['DependencyGenerator']:
     # We can't use the factory_methods decorator here, as we need to pass the
     # extra installation argument

@@ -2,4 +2,4 @@
 method = cargo
 
 [provide]
-dependency_names = foo-0-cdylib
+dependency_names = foo-0

@@ -17,7 +17,6 @@ from ...mesonlib import Popen_safe
 from ...options import OptionKey
 
 if T.TYPE_CHECKING:
-    from ...environment import Environment
     from ...build import BuildTarget
 
 
@@ -39,7 +38,7 @@ class ElbrusCompiler(GnuLikeCompiler):
 
     # FIXME: use _build_wrapper to call this so that linker flags from the env
     # get applied
-    def get_library_dirs(self, env: 'Environment', elf_class: T.Optional[int] = None) -> T.List[str]:
+    def get_library_dirs(self, elf_class: T.Optional[int] = None) -> T.List[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         stdo = Popen_safe(self.get_exelist(ccache=False) + ['--print-search-dirs'], env=os_env)[1]
@@ -50,7 +49,7 @@ class ElbrusCompiler(GnuLikeCompiler):
                 return [os.path.realpath(p) for p in libstr.split(':') if os.path.exists(p)]
         return []
 
-    def get_program_dirs(self, env: 'Environment') -> T.List[str]:
+    def get_program_dirs(self) -> T.List[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         stdo = Popen_safe(self.get_exelist(ccache=False) + ['--print-search-dirs'], env=os_env)[1]
@@ -83,17 +82,17 @@ class ElbrusCompiler(GnuLikeCompiler):
         # Actually it's not supported for now, but probably will be supported in future
         return 'pch'
 
-    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
         key = OptionKey(f'{self.language}_std', subproject=subproject, machine=self.for_machine)
         if target:
-            std = env.coredata.get_option_for_target(target, key)
+            std = self.environment.coredata.get_option_for_target(target, key)
         else:
-            std = env.coredata.optstore.get_value_for(key)
+            std = self.environment.coredata.optstore.get_value_for(key)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
 
-    def openmp_flags(self, env: Environment) -> T.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         return ['-fopenmp']

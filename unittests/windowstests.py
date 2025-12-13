@@ -398,7 +398,16 @@ class WindowsTests(BasePlatformTests):
         if OptionKey('b_vscrt') not in cc.base_options:
             raise SkipTest('Compiler does not support setting the VS CRT')
 
+        MSVCRT_MAP = {
+            '/MD': '-fms-runtime-lib=dll',
+            '/MDd': '-fms-runtime-lib=dll_dbg',
+            '/MT': '-fms-runtime-lib=static',
+            '/MTd': '-fms-runtime-lib=static_dbg',
+        }
+
         def sanitycheck_vscrt(vscrt):
+            if cc.get_argument_syntax() != 'msvc':
+                vscrt = MSVCRT_MAP[vscrt]
             checks = self.get_meson_log_sanitychecks()
             self.assertGreater(len(checks), 0)
             for check in checks:

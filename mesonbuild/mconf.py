@@ -13,6 +13,7 @@ import typing as T
 import collections
 
 from . import build
+from . import cmdline
 from . import coredata
 from . import options
 from . import environment
@@ -28,7 +29,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Protocol
     import argparse
 
-    class CMDOptions(coredata.SharedCMDOptions, Protocol):
+    class CMDOptions(cmdline.SharedCMDOptions, Protocol):
 
         builddir: str
         clearcache: bool
@@ -40,13 +41,13 @@ if T.TYPE_CHECKING:
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
-    coredata.register_builtin_arguments(parser)
+    cmdline.register_builtin_arguments(parser)
     parser.add_argument('builddir', nargs='?', default='.')
     parser.add_argument('--clearcache', action='store_true', default=False,
                         help='Clear cached state (e.g. found dependencies)')
     parser.add_argument('--no-pager', action='store_false', dest='pager',
                         help='Do not redirect output to a pager')
-    parser.add_argument('-U', action=coredata.KeyNoneAction, dest='cmd_line_options', default={},
+    parser.add_argument('-U', action=cmdline.KeyNoneAction, dest='cmd_line_options', default={},
                         help='Remove a subproject option.')
 
 def stringify(val: T.Any) -> str:
@@ -377,7 +378,7 @@ def run_impl(options: CMDOptions, builddir: str) -> int:
         save = False
         if has_option_flags(options):
             save |= c.coredata.set_from_configure_command(options)
-            coredata.update_cmd_line_file(builddir, options)
+            cmdline.update_cmd_line_file(builddir, options)
         if options.clearcache:
             c.clear_cache()
             save = True
@@ -396,6 +397,6 @@ def run_impl(options: CMDOptions, builddir: str) -> int:
     return 0
 
 def run(options: CMDOptions) -> int:
-    coredata.parse_cmd_line_options(options)
+    cmdline.parse_cmd_line_options(options)
     builddir = os.path.abspath(os.path.realpath(options.builddir))
     return run_impl(options, builddir)

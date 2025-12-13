@@ -88,7 +88,7 @@ class SimdModule(ExtensionModule):
                 mlog.log(f'Compiler supports {iset}:', mlog.red('NO'))
                 continue
 
-            if not compiler.has_multi_arguments(compile_args, state.environment)[0]:
+            if not compiler.has_multi_arguments(compile_args)[0]:
                 mlog.log(f'Compiler supports {iset}:', mlog.red('NO'))
                 continue
             mlog.log(f'Compiler supports {iset}:', mlog.green('YES'))

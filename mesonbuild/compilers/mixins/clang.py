@@ -11,16 +11,16 @@ import typing as T
 
 from ... import mesonlib
 from ... import options
-from ...linkers.linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker, \
-    MoldDynamicLinker, MSVCDynamicLinker
+from ...linkers.linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, \
+    GnuBFDDynamicLinker, GnuGoldDynamicLinker, MoldDynamicLinker, VisualStudioLikeLinkerMixin
 from ...options import OptionKey
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 
 if T.TYPE_CHECKING:
     from ...options import MutableKeyedOptionDictType
-    from ...environment import Environment
     from ...dependencies import Dependency  # noqa: F401
+    from ...build import BuildTarget
     from ..compilers import Compiler
 
     CompilerMixinBase = Compiler
@@ -54,6 +54,26 @@ class ClangCompiler(GnuLikeCompiler):
 
     id = 'clang'
 
+    # -fms-runtime-lib is a compilation option which sets up an automatic dependency
+    # from the .o files to the final link product
+    CRT_D_ARGS: T.Dict[str, T.List[str]] = {
+        'none': [],
+        'md': ['-fms-runtime-lib=dll'],
+        'mdd': ['-fms-runtime-lib=dll_dbg'],
+        'mt': ['-fms-runtime-lib=static'],
+        'mtd': ['-fms-runtime-lib=static_dbg'],
+    }
+
+    # disable libcmt to avoid warnings, as that is the default and clang
+    # adds it by default.
+    CRT_ARGS: T.Dict[str, T.List[str]] = {
+        'none': [],
+        'md': ['-Wl,/nodefaultlib:libcmt'],
+        'mdd': ['-Wl,/nodefaultlib:libcmt'],
+        'mt': [],
+        'mtd': ['-Wl,/nodefaultlib:libcmt'],
+    }
+
     def __init__(self, defines: T.Optional[T.Dict[str, str]]):
         super().__init__()
         self.defines = defines or {}
@@ -65,10 +85,22 @@ class ClangCompiler(GnuLikeCompiler):
         # linkers don't have base_options.
         if isinstance(self.linker, AppleDynamicLinker):
             self.base_options.add(OptionKey('b_bitcode'))
-        elif isinstance(self.linker, MSVCDynamicLinker):
+        elif isinstance(self.linker, VisualStudioLikeLinkerMixin):
             self.base_options.add(OptionKey('b_vscrt'))
         # All Clang backends can also do LLVM IR
         self.can_compile_suffixes.add('ll')
+
+    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+        if not isinstance(self.linker, VisualStudioLikeLinkerMixin):
+            return []
+        crt_val = self.get_crt_val(crt_val, buildtype)
+        return self.CRT_D_ARGS[crt_val]
+
+    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+        if not isinstance(self.linker, VisualStudioLikeLinkerMixin):
+            return []
+        crt_val = self.get_crt_val(crt_val, buildtype)
+        return self.CRT_ARGS[crt_val]
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         return clang_color_args[colortype][:]
@@ -117,7 +149,7 @@ class ClangCompiler(GnuLikeCompiler):
                 myargs.append('-Werror=ignored-optimization-argument')
         return super().get_compiler_check_args(mode) + myargs
 
-    def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
+    def has_function(self, funcname: str, prefix: str, *,
                      extra_args: T.Optional[T.List[str]] = None,
                      dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         if extra_args is None:
@@ -129,10 +161,10 @@ class ClangCompiler(GnuLikeCompiler):
         # TODO: this really should be communicated by the linker
         if isinstance(self.linker, AppleDynamicLinker) and mesonlib.version_compare(self.version, '>=8.0'):
             extra_args.append('-Wl,-no_weak_imports')
-        return super().has_function(funcname, prefix, env, extra_args=extra_args,
+        return super().has_function(funcname, prefix, extra_args=extra_args,
                                     dependencies=dependencies)
 
-    def openmp_flags(self, env: Environment) -> T.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=3.8.0'):
             return ['-fopenmp']
         elif mesonlib.version_compare(self.version, '>=3.7.0'):
@@ -140,13 +172,6 @@ class ClangCompiler(GnuLikeCompiler):
         else:
             # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
             return []
-
-    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
-        if isinstance(self.linker, (ClangClDynamicLinker, MSVCDynamicLinker)):
-            # With MSVC, DLLs only export symbols that are explicitly exported,
-            # so if a module defs file is specified, we use that to export symbols
-            return ['-Wl,/DEF:' + defsfile]
-        return super().gen_vs_module_defs_args(defsfile)
 
     @classmethod
     def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
@@ -176,10 +201,19 @@ class ClangCompiler(GnuLikeCompiler):
         # error.
         return ['-Werror=attributes']
 
+    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+        if not mesonlib.version_compare(self.version, '>=14'):
+            raise mesonlib.MesonException('prelinking requires clang >=14')
+        return [prelink_name], ['-r', '-o', prelink_name] + obj_list
+
     def get_coverage_link_args(self) -> T.List[str]:
         return ['--coverage']
 
-    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
+    def get_embed_bitcode_args(self, bitcode: bool, lto: bool) -> T.List[str]:
+        return ['-fembed-bitcode'] if bitcode else []
+
+    def get_lto_compile_args(self, *, target: T.Optional[BuildTarget] = None, threads: int = 0,
+                             mode: str = 'default') -> T.List[str]:
         args: T.List[str] = []
         if mode == 'thin':
             # ThinLTO requires the use of gold, lld, ld64, lld-link or mold 1.1+
@@ -187,23 +221,23 @@ class ClangCompiler(GnuLikeCompiler):
                 # https://github.com/rui314/mold/commit/46995bcfc3e3113133620bf16445c5f13cd76a18
                 if not mesonlib.version_compare(self.linker.version, '>=1.1'):
                     raise mesonlib.MesonException("LLVM's ThinLTO requires mold 1.1+")
-            elif not isinstance(self.linker, (AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker)):
-                raise mesonlib.MesonException(f"LLVM's ThinLTO only works with gold, lld, lld-link, ld64 or mold, not {self.linker.id}")
+            elif not isinstance(self.linker, (AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuBFDDynamicLinker, GnuGoldDynamicLinker)):
+                raise mesonlib.MesonException(f"LLVM's ThinLTO only works with bfd, gold, lld, lld-link, ld64, or mold, not {self.linker.id}")
             args.append(f'-flto={mode}')
         else:
             assert mode == 'default', 'someone forgot to wire something up'
-            args.extend(super().get_lto_compile_args(threads=threads))
+            args.extend(super().get_lto_compile_args(target=target, threads=threads))
         return args
 
     def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:
-        if isinstance(self.linker, (ClangClDynamicLinker, MSVCDynamicLinker)):
+        if isinstance(self.linker, VisualStudioLikeLinkerMixin):
             return [flag if flag.startswith('-Wl,') or flag.startswith('-fuse-ld=') else f'-Wl,{flag}' for flag in args]
         else:
             return args
 
-    def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
-                          thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
-        args = self.get_lto_compile_args(threads=threads, mode=mode)
+    def get_lto_link_args(self, *, target: T.Optional[BuildTarget] = None, threads: int = 0,
+                          mode: str = 'default', thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
+        args = self.get_lto_compile_args(target=target, threads=threads, mode=mode)
         if mode == 'thin' and thinlto_cache_dir is not None:
             # We check for ThinLTO linker support above in get_lto_compile_args, and all of them support
             # get_thinlto_cache_args as well

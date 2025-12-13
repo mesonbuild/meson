@@ -304,6 +304,40 @@ In this example, the second and third elements of the `install_dir`
 array indicate the destination with `true` to use default directories
 (i.e. `include` and `share/vala/vapi`).
 
+### Depending on C header
+
+*(since 1.10.0)*
+
+Given the previous example,
+
+```meson
+foo_lib = shared_library(...)
+foo_h = foo_lib.vala_header()
+```
+
+This header can now be used like any other generated header to create an
+order-only dependency.
+
+
+### Depending on VAPI header
+
+*(since 1.10.0)*
+
+Given the previous example,
+
+```meson
+foo_lib = shared_library(...)
+foo_vapi = foo_lib.vala_vapi()
+```
+
+### Depending on generated GIR
+
+*(since 1.10.0)*
+
+```meson
+foo_lib = shared_library(..., vala_gir : 'foo.gir')
+foo_gir = foo_lib.vala_gir()
+```
 
 ### GObject Introspection and language bindings
 
@@ -338,6 +372,21 @@ directory (i.e. `share/gir-1.0` for GIRs). The fourth element in the
 
 To then generate a typelib file use a custom target with the
 `g-ir-compiler` program and a dependency on the library:
+
+*Since Meson 1.10*, use the `.vala_gir()` method to get a handle to the generated `.gir` file:
+
+```meson
+g_ir_compiler = find_program('g-ir-compiler')
+custom_target('foo typelib', command: [g_ir_compiler, '--output', '@OUTPUT@', '@INPUT@'],
+              input: foo_lib.vala_gir(),
+              output: 'Foo-1.0.typelib',
+              install: true,
+              install_dir: get_option('libdir') / 'girepository-1.0')
+```
+
+
+*Before Meson 1.10*, calculating the path to the input is required, as is adding a
+manual dependency to the vala target:
 
 ```meson
 g_ir_compiler = find_program('g-ir-compiler')
