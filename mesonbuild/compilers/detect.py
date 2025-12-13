@@ -643,12 +643,15 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
         if 'Wind River Systems, Inc.' in out:
             cls = c.DiabCCompiler if lang == "c" else cpp.DiabCppCompiler
             env.add_lang_args(cls.language, cls, for_machine)
-            # ld = env.lookup_binary_entry(for_machine, cls.language + '_ld')
-            # if ld is None:
-            #     raise MesonException(f'{cls.language}_ld was not properly defined in your cross file')
-            linker = linkers.DiabLinker(
-                compiler, for_machine, "-W:ld:,", [], system="none", version=version
-            )
+            ld = env.lookup_binary_entry(for_machine, cls.language + '_ld')
+            if ld is not None:
+                linker = linkers.DiabLinker(
+                    ld, for_machine, None, ["-lc"] if lang == "c" else ["-lc", "-ld"], system="none", version=version
+                )
+            else:
+                linker = linkers.DiabLinker(
+                    compiler, for_machine, "-W:ld:,", [], system="none", version=version
+                )
             return cls(ccache, compiler, version, for_machine, is_cross, info, linker)
 
     _handle_exceptions(popen_exceptions, compilers)

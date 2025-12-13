@@ -1793,8 +1793,11 @@ class TaskingLinker(DynamicLinker):
 class DiabLinker(DynamicLinker):
     """Linker for the Wind River Diab compiler suite
 
-    When used by DiabCppCompiler, prefix should be `-W:ld:,`, and empty if instantiated
-    independently controlling the Diab ld program _dld_ directly.
+    The linker program _dld_ may be used directly, in which case always_args should 
+    include -lc, and also -ld if linking C++. 
+
+    When the compiler suite entry points _dplus_ or _dcc_ are used, prefix_args should
+    be `-W:ld:,`. Note that any cpp_args options need to be escaped manually with prefix.
     """
     id = 'diab'
 
