@@ -345,24 +345,21 @@ class MetrowerksAsmCompilerEmbeddedPowerPC(MetrowerksAsmCompiler):
         return mwasmeppc_instruction_set_args.get(instruction_set, None)
 
 
-class DiabAsmCompiler(Compiler):
+class DiabAsmCompiler(ASMCompiler):
     """Assembler for the Wind River Diab compiler suite"""
     id = 'diab'
 
     language = 'nasm'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
-                 for_machine: 'MachineChoice', info: 'MachineInfo',
+                 for_machine: MachineChoice, environment: Environment,
                  linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None, is_cross: bool = False):
-        Compiler.__init__(self, ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
+                 full_version: T.Optional[str] = None):
+        Compiler.__init__(self, ccache, exelist, version, for_machine, environment, linker, full_version)
         self.can_compile_suffixes.add('s')
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return []
-
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
-        pass
 
     def get_output_args(self, outputname: str) -> T.List[str]:
         return ['-o', outputname]

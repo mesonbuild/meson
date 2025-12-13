@@ -786,11 +786,10 @@ class TaskingCCompiler(TaskingCompiler, CCompiler):
 class DiabCCompiler(DiabCompilerMixin, CCompiler):
     """C++ compiler for the Wind River Diab compiler suite"""
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo',
-                 linker: T.Optional['DynamicLinker'] = None,
+                 env: Environment, linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
-        CCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                           info, linker=linker, full_version=full_version)
+        CCompiler.__init__(self, ccache, exelist, version, for_machine, env,
+                           linker=linker, full_version=full_version)
         DiabCompilerMixin.__init__(self)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
@@ -799,7 +798,7 @@ class DiabCCompiler(DiabCompilerMixin, CCompiler):
         return opts
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
-        std = self.get_compileropt_value('std', env, target, subproject)
+        std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         flag = {
             'c89': 'dialect-ansi',

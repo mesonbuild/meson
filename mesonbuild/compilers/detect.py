@@ -256,7 +256,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
         if 'TASKING VX-toolset' in err:
             return linkers.TaskingStaticLinker(linker, env)
         if 'Wind River Systems, Inc.' in out:
-            return linkers.DiabArchiver(linker)
+            return linkers.DiabArchiver(linker, env)
         if p.returncode == 0:
             return linkers.ArLinker(compiler.for_machine, linker, env)
         if p.returncode == 1 and err.startswith('usage'): # OSX
@@ -674,13 +674,13 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             ld = env.lookup_binary_entry(for_machine, cls.language + '_ld')
             if ld is not None:
                 linker = linkers.DiabLinker(
-                    ld, for_machine, None, ["-lc"] if lang == "c" else ["-lc", "-ld"], system="none", version=version
+                    ld, env, for_machine, None, ["-lc"] if lang == "c" else ["-lc", "-ld"], system="none", version=version
                 )
             else:
                 linker = linkers.DiabLinker(
-                    compiler, for_machine, "-W:ld:,", [], system="none", version=version
+                    compiler, env, for_machine, "-W:ld:,", [], system="none", version=version
                 )
-            return cls(ccache, compiler, version, for_machine, is_cross, info, linker)
+            return cls(ccache, compiler, version, for_machine, env, linker)
 
     _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException(f'Unknown compiler {compilers}')
@@ -1396,7 +1396,7 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         elif 'Wind River Systems, Inc.' in output:
             cls = DiabAsmCompiler
             env.add_lang_args(cls.language, cls, for_machine)
-            return DiabAsmCompiler([], comp, version, for_machine, info, cc.linker, is_cross=is_cross)
+            return DiabAsmCompiler([], comp, version, for_machine, env, cc.linker)
     _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
 

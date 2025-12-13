@@ -1138,11 +1138,10 @@ class Xc32CPPCompiler(Xc32CPPStds, Xc32Compiler, GnuCPPCompiler):
 class DiabCppCompiler(DiabCompilerMixin, CPPCompiler):
     """C++ compiler for the Wind River Diab compiler suite"""
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
-                is_cross: bool, info: 'MachineInfo',
-                linker: T.Optional['DynamicLinker'] = None,
-                full_version: T.Optional[str] = None):
-        CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                            info, linker=linker, full_version=full_version)
+                 env: Environment, linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        CPPCompiler.__init__(self, ccache, exelist, version, for_machine, env,
+                             linker=linker, full_version=full_version)
         DiabCompilerMixin.__init__(self)
 
     def _create_boolean_option(self, key: str, description: str, default: bool) -> T.Tuple[options.OptionKey, options.UserBooleanOption]:
@@ -1162,9 +1161,9 @@ class DiabCppCompiler(DiabCompilerMixin, CPPCompiler):
 
     def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
-        if not self.get_compileropt_value('eh', env, target, subproject):
+        if not self.get_compileropt_value('eh', target, subproject):
             args += ['-Xexceptions-off']
-        if not self.get_compileropt_value('rtti', env, target, subproject):
+        if not self.get_compileropt_value('rtti', target, subproject):
             args += ['-Xrtti-off']
 
         return args
