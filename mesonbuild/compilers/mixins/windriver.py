@@ -140,7 +140,7 @@ class DiabCompilerMixin(Compiler):
         "g": ["-O", "-Xno-optimized-debug"],
         "1": ["-O"],
         "2": ["-O", "-Xinline=40"],
-        "3": ["XO"],
+        "3": ["-XO"],
         "s": ["-Xsize-opt"],
     }
 
@@ -276,3 +276,6 @@ class DiabCompilerMixin(Compiler):
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         return super(CPPCompiler, self).get_compiler_check_args(mode)
+
+    def get_pic_args(self) -> T.List[str]:
+        raise MesonException('Compiler support for PIC not implemented')
