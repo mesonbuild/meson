@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from mesonbuild.utils.core import MesonException
 
-"""Representations specific to the TASKING embedded C/C++ compiler family."""
-
 import os
 import typing as T
 
