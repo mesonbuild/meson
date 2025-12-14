@@ -8,18 +8,9 @@ from mesonbuild.utils.core import MesonException
 
 import os
 import typing as T
-import functools
-import enum
-
-from ...mesonlib import EnvironmentException
-from ...options import OptionKey
-from ... import options
 
 if T.TYPE_CHECKING:
     from ...compilers.compilers import Compiler
-    from ...mesonlib import File, FileOrString
-    from ...environment import Environment
-    from ...build import BuildTarget
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
     # Compiler, so we get all of the methods and attributes defined for us, but

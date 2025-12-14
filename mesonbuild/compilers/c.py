@@ -790,14 +790,13 @@ class DiabCCompiler(DiabCompilerMixin, CCompiler):
                  full_version: T.Optional[str] = None):
         CCompiler.__init__(self, ccache, exelist, version, for_machine, env,
                            linker=linker, full_version=full_version)
-        DiabCompilerMixin.__init__(self)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
         self._update_language_stds(opts, ['c89', 'c90', 'c99'])
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
         std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         flag = {

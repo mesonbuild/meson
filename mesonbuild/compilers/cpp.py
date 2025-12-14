@@ -1142,7 +1142,6 @@ class DiabCppCompiler(DiabCompilerMixin, CPPCompiler):
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, env,
                              linker=linker, full_version=full_version)
-        DiabCompilerMixin.__init__(self)
 
     def _create_boolean_option(self, key: str, description: str, default: bool) -> T.Tuple[options.OptionKey, options.UserBooleanOption]:
         return self.form_compileropt_key(key), options.UserBooleanOption(key, description, default)
@@ -1159,7 +1158,7 @@ class DiabCppCompiler(DiabCompilerMixin, CPPCompiler):
         ])
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
         if not self.get_compileropt_value('eh', target, subproject):
             args += ['-Xexceptions-off']
