@@ -1904,13 +1904,14 @@ class OS2OmfDynamicLinker(OS2DynamicLinker):
 class DiabLinker(DynamicLinker):
     """Linker for the Wind River Diab compiler suite
 
-    The linker program _dld_ may be used directly, in which case always_args should 
-    include -lc, and also -ld if linking C++. 
+    The linker program _dld_ may be used directly, in which case always_args should
+    include -lc, and also -ld if linking C++.
 
     When the compiler suite entry points _dplus_ or _dcc_ are used, prefix_args should
     be `-W:ld:,`. Note that any cpp_args options need to be escaped manually with prefix.
     """
-    id = 'diab'
+
+    id = "diab"
 
     def get_output_args(self, outputname: str) -> T.List[str]:
         return ["-o", outputname, f"-@O={outputname}.map"]
@@ -1922,12 +1923,15 @@ class DiabLinker(DynamicLinker):
         return []
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
-        return list(itertools.chain(*([self._apply_prefix("-A")[0], arg] for arg in args)))
+        return list(
+            itertools.chain(*([self._apply_prefix("-A")[0], arg] for arg in args))
+        )
 
 
 class DiabArchiver(StaticLinker):
     """Archiver for the Wind River Diab compiler suite"""
-    id = 'diab'
+
+    id = "diab"
 
     def can_linker_accept_rsp(self) -> bool:
         return False
@@ -1935,5 +1939,5 @@ class DiabArchiver(StaticLinker):
     def get_output_args(self, target: str) -> T.List[str]:
         return [target]
 
-    def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
+    def get_std_link_args(self, env: "Environment", is_thin: bool) -> T.List[str]:
         return ["-rc"]
