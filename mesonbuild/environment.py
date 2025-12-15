@@ -620,8 +620,6 @@ class Environment:
         :compilers: An optional dictionary of compilers to use instead of the coredata dict.
         """
         compilers = compilers or self.coredata.compilers.build
-        if not compilers:
-            return
 
         machines = self.machines.miss_defaulting()
         machines.build = detect_machine_info(compilers)
