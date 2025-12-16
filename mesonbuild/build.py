@@ -371,8 +371,11 @@ class Build:
         self.dep_manifest: T.Dict[str, DepManifest] = {}
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
-        self.find_overrides: T.Dict[str, programs.Program] = {}
-        self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
+        self.find_overrides: PerMachine[T.Dict[str, programs.Program]] = PerMachineDefaultable.default(
+            environment.is_cross_build(), {}, {})
+        # The list of all programs that have been searched for.
+        self.searched_programs: PerMachine[T.Set[str]] = PerMachineDefaultable.default(
+            environment.is_cross_build(), set(), set())
 
         # If we are doing a cross build we need two caches, if we're doing a
         # build == host compilation the both caches should point to the same place.
