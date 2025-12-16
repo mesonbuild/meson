@@ -435,31 +435,30 @@ D_MODULE_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
     default=[],
 )
 
-_link_with_error = '''can only be self-built targets, external dependencies (including libraries) must go in "dependencies".'''
+_LINK_WITH_ERROR = 'Dependency and external_library objects must go in the "dependencies" keyword argument'
 
 # Allow Dependency for the better error message? But then in other cases it will list this as one of the allowed types!
 LINK_WITH_KW: KwargInfo[T.List[T.Union[BothLibraries, SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex, Jar, Executable]]] = KwargInfo(
     'link_with',
-    ContainerTypeInfo(list, (BothLibraries, SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex, Jar, Executable, Dependency)),
+    ContainerTypeInfo(list, (BothLibraries, SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex, Jar, Executable)),
     listify=True,
     default=[],
-    validator=lambda x: _link_with_error if any(isinstance(i, Dependency) for i in x) else None,
+    extra_types={Dependency: lambda _: _LINK_WITH_ERROR}
 )
 
 def link_whole_validator(values: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex, Dependency]]) -> T.Optional[str]:
     for l in values:
         if isinstance(l, (CustomTarget, CustomTargetIndex)) and l.links_dynamically():
             return f'{type(l).__name__} returning a shared library is not allowed'
-        if isinstance(l, Dependency):
-            return _link_with_error
     return None
 
 LINK_WHOLE_KW: KwargInfo[T.List[T.Union[BothLibraries, StaticLibrary, CustomTarget, CustomTargetIndex]]] = KwargInfo(
     'link_whole',
-    ContainerTypeInfo(list, (BothLibraries, StaticLibrary, CustomTarget, CustomTargetIndex, Dependency)),
+    ContainerTypeInfo(list, (BothLibraries, StaticLibrary, CustomTarget, CustomTargetIndex)),
     listify=True,
     default=[],
     validator=link_whole_validator,
+    extra_types={Dependency: lambda _: _LINK_WITH_ERROR}
 )
 
 DEPENDENCY_SOURCES_KW: KwargInfo[T.List[T.Union[str, File, GeneratedTypes]]] = KwargInfo(
