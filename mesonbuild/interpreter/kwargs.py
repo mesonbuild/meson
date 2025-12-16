@@ -317,6 +317,7 @@ class Subproject(ExtractRequired):
 
     default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
     version: T.List[str]
+    native: MachineChoice
 
 
 class DoSubproject(ExtractRequired):

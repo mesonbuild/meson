@@ -849,6 +849,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs(
         'subproject',
         REQUIRED_KW,
+        NATIVE_KW.evolve(since='1.11.0'),
         DEFAULT_OPTIONS.evolve(since='0.38.0'),
         KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True),
     )
@@ -859,7 +860,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             'version': kwargs['version'],
             'options': None,
             'cmake_options': [],
-            'for_machine': MachineChoice.HOST,
+            'for_machine': kwargs['native'],
         }
         return self.do_subproject(args[0], kw)
 
