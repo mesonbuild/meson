@@ -14,7 +14,7 @@ from ..options import OptionKey
 from ..cmake import TargetOptions, cmake_defines_to_args
 from ..dependencies.cmake import CMakeDependency
 from ..interpreter import SubprojectHolder
-from ..interpreter.type_checking import REQUIRED_KW, INSTALL_DIR_KW, INCLUDE_TYPE, NoneType, in_set_validator
+from ..interpreter.type_checking import NATIVE_KW, REQUIRED_KW, INSTALL_DIR_KW, INCLUDE_TYPE, NoneType, in_set_validator
 from ..interpreterbase import (
     FeatureNew,
 
@@ -59,6 +59,7 @@ if T.TYPE_CHECKING:
 
         options: T.Optional[CMakeSubprojectOptions]
         cmake_options: T.List[str]
+        native: mesonlib.MachineChoice
 
     class TargetKW(TypedDict):
 
@@ -426,6 +427,7 @@ class CmakeModule(ExtensionModule):
     @typed_kwargs(
         'cmake.subproject',
         REQUIRED_KW,
+        NATIVE_KW.evolve(since='1.12.0'),
         KwargInfo('options', (CMakeSubprojectOptions, NoneType), since='0.55.0'),
         KwargInfo(
             'cmake_options',
@@ -446,7 +448,7 @@ class CmakeModule(ExtensionModule):
             'cmake_options': kwargs_['cmake_options'],
             'default_options': {},
             'version': [],
-            'for_machine': mesonlib.MachineChoice.HOST,
+            'for_machine': kwargs_['native'],
         }
         subp = self.interpreter.do_subproject(subp_name, kw, force_method='cmake')
         if not subp.found():
