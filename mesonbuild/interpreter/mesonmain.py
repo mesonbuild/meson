@@ -128,6 +128,8 @@ class MesonMain(MesonInterpreterObject):
             self,
             args: T.Tuple[T.Union[str, mesonlib.File, build.Executable, Program], T.List[build.CommandTypes]],
             kwargs: 'AddInstallScriptKW') -> None:
+        if self.interpreter.current_build_project().for_machine is MachineChoice.BUILD:
+            return
         script_args = self._process_script_args('add_install_script', args[1])
         script = self._find_source_script('add_install_script', args[0], script_args, allow_built_program=True)
         script.skip_if_destdir = kwargs['skip_if_destdir']
@@ -147,6 +149,8 @@ class MesonMain(MesonInterpreterObject):
             args: T.Tuple[T.Union[str, mesonlib.File, Program],
                           T.List[T.Union[str, mesonlib.File, Program]]],
             kwargs: 'TYPE_kwargs') -> None:
+        if self.interpreter.current_build_project().for_machine is MachineChoice.BUILD:
+            return
         script_args = self._process_script_args('add_postconf_script', args[1])
         script = self._find_source_script('add_postconf_script', args[0], script_args)
         self.build.postconf_scripts.append(script)
