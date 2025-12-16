@@ -2365,6 +2365,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_install_headers(self, node: mparser.BaseNode,
                              args: T.Tuple[T.List['mesonlib.FileOrString']],
                              kwargs: 'kwtypes.FuncInstallHeaders') -> build.Headers:
+        if self.build.is_build_only:
+            return
         install_mode = self._warn_kwarg_install_mode_sticky(kwargs['install_mode'])
         source_files = self.source_strings_to_files(args[0])
         install_subdir = kwargs['subdir']
@@ -2405,6 +2407,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_install_man(self, node: mparser.BaseNode,
                          args: T.Tuple[T.List['mesonlib.FileOrString']],
                          kwargs: 'kwtypes.FuncInstallMan') -> build.Man:
+        if self.build.is_build_only:
+            return
         install_mode = self._warn_kwarg_install_mode_sticky(kwargs['install_mode'])
         # We just need to narrow this, because the input is limited to files and
         # Strings as inputs, so only Files will be returned
@@ -2430,6 +2434,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('install_tag', (str, NoneType), since='0.62.0')
     )
     def func_install_emptydir(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs) -> None:
+        if self.build.is_build_only:
+            return
         d = build.EmptyDir(args[0], kwargs['install_mode'], self.subproject, kwargs['install_tag'])
         self.build.emptydir.append(d)
 
@@ -2446,6 +2452,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_install_symlink(self, node: mparser.BaseNode,
                              args: T.Tuple[T.List[str]],
                              kwargs) -> build.SymlinkData:
+        if self.build.is_build_only:
+            return
         name = args[0] # Validation while creating the SymlinkData object
         target = kwargs['pointing_to']
         l = build.SymlinkData(target, name, kwargs['install_dir'],
@@ -2553,6 +2561,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_install_data(self, node: mparser.BaseNode,
                           args: T.Tuple[T.List['mesonlib.FileOrString']],
                           kwargs: 'kwtypes.FuncInstallData') -> build.Data:
+        if self.build.is_build_only:
+            return
         sources = self.source_strings_to_files(args[0] + kwargs['sources'])
         rename = kwargs['rename'] or None
         if rename:
@@ -2621,6 +2631,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     )
     def func_install_subdir(self, node: mparser.BaseNode, args: T.Tuple[str],
                             kwargs: 'kwtypes.FuncInstallSubdir') -> build.InstallDir:
+        if self.build.is_build_only:
+            return
         exclude = (set(kwargs['exclude_files']), set(kwargs['exclude_directories']))
 
         srcdir = os.path.join(self.environment.source_dir, self.subdir, args[0])
