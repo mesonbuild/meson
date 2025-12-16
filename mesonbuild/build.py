@@ -545,10 +545,12 @@ class IncludeDirs(HoldableObject):
             be added if this is unset
         :returns: A list of strings (without compiler argument)
         """
+        bsubdir = f'build.{self.curdir}' if self.is_build_only_subproject else self.curdir
+
         strlist: T.List[str] = []
         for idir in self.incdirs:
             strlist.append(os.path.join(sourcedir, self.curdir, idir))
-            strlist.append(os.path.join(builddir, self.curdir, idir))
+            strlist.append(os.path.join(builddir, bsubdir, idir))
         return strlist
 
 @dataclass(eq=False)
@@ -682,7 +684,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
                 Target "{self.name}" has a path separator in its name.
                 This is not supported, it can cause unexpected failures and will become
                 a hard error in the future.'''))
-        self.builddir = self.subdir
+        self.builddir = f'build.{self.subdir}' if self.build_only_subproject else self.subdir
         if self.build_subdir:
             self.builddir = os.path.join(self.subdir, self.build_subdir)
 
@@ -762,7 +764,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         return h.hexdigest()[:7]
 
     @staticmethod
-    def construct_id_from_path(subdir: str, name: str, type_suffix: str) -> str:
+    def construct_id_from_path(subdir: str, name: str, type_suffix: str, build_subproject: bool = False) -> str:
         """Construct target ID from subdir, name and type suffix.
 
         This helper function is made public mostly for tests."""
@@ -777,7 +779,9 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         if subdir:
             subdir_part = Target._get_id_hash(subdir)
             # preserve myid for better debuggability
-            return subdir_part + '@@' + my_id
+            my_id = f'{subdir_part}@@{my_id}'
+        if build_subproject:
+            my_id = f'build.{my_id}'
         return my_id
 
     @lazy_property
@@ -786,9 +790,13 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         if getattr(self, 'name_suffix_set', False):
             name += '.' + self.suffix
         return self.construct_id_from_path(
-            self.builddir, name, self.type_suffix())
+            self.builddir, name, self.type_suffix(), self.build_only_subproject)
 
     def get_id(self) -> str:
+        """Get the unique ID of the target.
+
+        :return: A unique string id
+        """
         return self.id
 
     def get_override(self, name: str) -> T.Optional[str]:
