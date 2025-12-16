@@ -759,9 +759,10 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def _compiled_exe_error(self, cmd: T.Union[Program, build.Executable]) -> T.NoReturn:
         descr = cmd.name if isinstance(cmd, build.Executable) else cmd.description()
-        for name, exe in self.build.find_overrides.items():
-            if cmd == exe:
-                raise InterpreterException(f'Program {name!r} was overridden with the compiled executable {descr!r} and therefore cannot be used during configuration')
+        for for_machine in MachineChoice:
+            for name, exe in self.build.find_overrides[for_machine].items():
+                if cmd == exe:
+                    raise InterpreterException(f'Program {name!r} was overridden with the compiled executable {descr!r} and therefore cannot be used during configuration')
         raise InterpreterException(f'Program {descr!r} is a compiled executable and therefore cannot be used during configuration')
 
     def run_command_impl(self,
@@ -1609,31 +1610,32 @@ class Interpreter(InterpreterBase, HoldableObject):
         return None
 
     def program_from_overrides(self, command_names: T.List[mesonlib.FileOrString],
+                               for_machine: MachineChoice,
                                extra_info: T.List['mlog.TV_Loggable']
                                ) -> T.Optional[Program]:
         for name in command_names:
             if not isinstance(name, str):
                 continue
-            if name in self.build.find_overrides:
-                exe = self.build.find_overrides[name]
+            if name in self.build.find_overrides[for_machine]:
+                exe = self.build.find_overrides[for_machine][name]
                 extra_info.append(mlog.blue('(overridden)'))
                 return exe
         return None
 
-    def store_name_lookups(self, command_names: T.List[mesonlib.FileOrString]) -> None:
+    def store_name_lookups(self, command_names: T.List[mesonlib.FileOrString], for_machine: MachineChoice) -> None:
         for name in command_names:
             if isinstance(name, str):
-                self.build.searched_programs.add(name)
+                self.build.searched_programs[for_machine].add(name)
 
-    def add_find_program_override(self, name: str, exe: Program) -> None:
-        if name in self.build.searched_programs:
+    def add_find_program_override(self, name: str, exe: Program, for_machine: MachineChoice) -> None:
+        if name in self.build.searched_programs[for_machine]:
             raise InterpreterException(f'Tried to override finding of executable "{name}" which has already been found.')
-        if name in self.build.find_overrides:
+        if name in self.build.find_overrides[for_machine]:
             raise InterpreterException(f'Tried to override executable "{name}" which has already been overridden.')
-        self.build.find_overrides[name] = exe
+        self.build.find_overrides[for_machine][name] = exe
         if name == 'pkg-config' and isinstance(exe, ExternalProgram):
             from ..dependencies.pkgconfig import PkgConfigInterface
-            PkgConfigInterface.set_program_override(exe, MachineChoice.HOST)
+            PkgConfigInterface.set_program_override(exe, for_machine)
 
     def notfound_program(self, args: T.List[mesonlib.FileOrString]) -> ExternalProgram:
         return NonExistingExternalProgram(' '.join(
@@ -1667,7 +1669,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             return progobj
 
         # Only store successful lookups
-        self.store_name_lookups(args)
+        self.store_name_lookups(args, for_machine)
         if not silent:
             mlog.log('Program', mlog.bold(progobj.name), 'found:', mlog.green('YES'), *extra_info)
         return progobj
@@ -1681,7 +1683,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                        version_func: T.Optional[ProgramVersionFunc],
                        extra_info: T.List[mlog.TV_Loggable]
                        ) -> T.Optional[Program]:
-        progobj = self.program_from_overrides(args, extra_info)
+        progobj = self.program_from_overrides(args, for_machine, extra_info)
         if progobj:
             return progobj
 
@@ -1694,7 +1696,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if wrap_mode != WrapMode.nofallback and self.environment.wrap_resolver:
             fallback = self.environment.wrap_resolver.find_program_provider(args)
         if fallback and wrap_mode == WrapMode.forcefallback:
-            return self.find_program_fallback(fallback, args, default_options, required, extra_info)
+            return self.find_program_fallback(fallback, args, for_machine, default_options, required, extra_info)
 
         progobj = self.program_from_file_for(for_machine, args)
         if progobj is None:
@@ -1712,7 +1714,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             progobj = self.notfound_program(args)
             mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'), *extra_info)
             extra_info.clear()
-            progobj = self.find_program_fallback(fallback, args, default_options, required, extra_info)
+            progobj = self.find_program_fallback(fallback, args, for_machine, default_options, required, extra_info)
 
         return progobj
 
@@ -1741,6 +1743,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return True
 
     def find_program_fallback(self, fallback: str, args: T.List[mesonlib.FileOrString],
+                              for_machine: MachineChoice,
                               default_options: OptionDict,
                               required: bool, extra_info: T.List[mlog.TV_Loggable]
                               ) -> T.Optional[Program]:
@@ -1754,7 +1757,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             'options': None,
         }
         self.do_subproject(fallback, sp_kwargs)
-        return self.program_from_overrides(args, extra_info)
+        return self.program_from_overrides(args, for_machine, extra_info)
 
     @typed_pos_args('find_program', varargs=(str, mesonlib.File), min_varargs=1)
     @typed_kwargs(

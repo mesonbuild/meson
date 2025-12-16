@@ -392,6 +392,15 @@ methods:
         type: exe | file | program
         description: The program to set as the override for `progname`.
 
+      native:
+        type: bool
+        since: 1.11.0
+        default: false
+        description : |
+          If set to `true`, the override is for the build machine, and will be returned
+          by `find_program(..., native : true)`, otherwise for the host machine. This
+          is an important distinction when cross compiling.
+
   - name: override_dependency
     returns: void
     since: 0.54.0
