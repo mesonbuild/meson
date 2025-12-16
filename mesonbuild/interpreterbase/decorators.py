@@ -353,6 +353,10 @@ class KwargInfo(T.Generic[_T]):
     :param not_set_warning: A warning message that is logged if the kwarg is not
         set by the user.
     :param feature_validator: A callable returning an iterable of FeatureNew | FeatureDeprecated objects.
+    :param extra_types:
+        A mapping of types to a callable that is passed that type and returns an
+        error message. These types are specifically *not* added to the general
+        error message
     """
     def __init__(self, name: str,
                  types: T.Union[T.Type[_T], T.Tuple[T.Union[T.Type[_T], ContainerTypeInfo], ...], ContainerTypeInfo],
@@ -367,7 +371,8 @@ class KwargInfo(T.Generic[_T]):
                  feature_validator: T.Optional[T.Callable[[_T], T.Iterable[FeatureCheckBase]]] = None,
                  validator: T.Optional[T.Callable[[T.Any], T.Optional[str]]] = None,
                  convertor: T.Optional[T.Callable[[_T], object]] = None,
-                 not_set_warning: T.Optional[str] = None):
+                 not_set_warning: T.Optional[str] = None,
+                 extra_types: T.Optional[T.Mapping[T.Type, T.Callable[[object], str]]] = None):
         self.name = name
         self.types = types
         self.required = required
@@ -383,6 +388,7 @@ class KwargInfo(T.Generic[_T]):
         self.validator = validator
         self.convertor = convertor
         self.not_set_warning = not_set_warning
+        self.extra_types = extra_types if extra_types is not None else {}
 
     def evolve(self, *,
                name: T.Union[str, _NULL_T] = _NULL,
@@ -397,7 +403,9 @@ class KwargInfo(T.Generic[_T]):
                deprecated_values: T.Union[T.Dict[T.Union[_T, ContainerTypeInfo, type], T.Union[str, T.Tuple[str, str]]], None, _NULL_T] = _NULL,
                feature_validator: T.Union[T.Callable[[_T], T.Iterable[FeatureCheckBase]], None, _NULL_T] = _NULL,
                validator: T.Union[T.Callable[[_T], T.Optional[str]], None, _NULL_T] = _NULL,
-               convertor: T.Union[T.Callable[[_T], object], None, _NULL_T] = _NULL) -> 'KwargInfo':
+               convertor: T.Union[T.Callable[[_T], object], None, _NULL_T] = _NULL,
+               extra_types: T.Union[T.Mapping[T.Type, T.Callable[[object], str]], None, _NULL_T] = _NULL,
+               ) -> 'KwargInfo':
         """Create a shallow copy of this KwargInfo, with modifications.
 
         This allows us to create a new copy of a KwargInfo with modifications.
@@ -424,6 +432,7 @@ class KwargInfo(T.Generic[_T]):
             feature_validator=feature_validator if not isinstance(feature_validator, _NULL_T) else self.feature_validator,
             validator=validator if not isinstance(validator, _NULL_T) else self.validator,
             convertor=convertor if not isinstance(convertor, _NULL_T) else self.convertor,
+            extra_types=extra_types if not isinstance(extra_types, _NULL_T) else self.extra_types,
         )
 
 
@@ -529,7 +538,20 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                     if info.listify:
                         kwargs[info.name] = value = mesonlib.listify(value)
                     if not check_value_type(types_tuple, value):
+                        extra_desc: T.List[str] = []
+                        if info.extra_types:
+                            if isinstance(value, list):
+                                for (t, cb), v in itertools.product(info.extra_types.items(), value):
+                                    if isinstance(v, t):
+                                        extra_desc.append(cb(v))
+                            else:
+                                for t, cb in info.extra_types.items():
+                                    if isinstance(value, t):
+                                        extra_desc.append(cb(value))
+
                         shouldbe = types_description(types_tuple)
+                        if extra_desc:
+                            shouldbe = '{}. {}'.format(shouldbe, '. '.join(extra_desc))
                         raise InvalidArguments(f'{name} keyword argument {info.name!r} was of type {raw_description(value)} but should have been {shouldbe}')
 
                     if info.validator is not None:
