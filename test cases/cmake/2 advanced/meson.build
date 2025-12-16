@@ -1,4 +1,4 @@
-project('cmakeSubTest_advanced', ['c', 'cpp'])
+project('cmakeSubTest_advanced', ['c', 'cpp'], meson_version: '>= 1.11.0')
 
 dep_test = dependency('ZLIB', method: 'cmake', required: false)
 if not dep_test.found()
@@ -45,3 +45,12 @@ else
   lib_version_ok = true
 endif
 assert(lib_version_ok, f'Shared library version @lib_file_name@ not picked up correctly')
+
+# Test the "normal" subproject call for the build machine
+sub_pro_b = cm.subproject('cmMod', native : true)
+sub_dep_b = sub_pro_b.dependency('cmModLib')
+sub_sta_b = sub_pro_b.dependency('cmModLibStatic')
+
+# Build some files
+exe1_b = executable('main1_b', ['main.cpp'], dependencies: [sub_dep_b], native : true)
+exe2_b = executable('main2_b', ['main.cpp'], dependencies: [sub_sta_b], native : true)
