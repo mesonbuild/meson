@@ -348,6 +348,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.builtin['target_machine'] = \
             OBJ.MachineHolder(self.build.environment.machines[self.build.machine_map.target], self)
 
+    def is_internal_machine(self, for_machine: MachineChoice) -> bool:
+        # Return whether applying the caller's effect to the build and
+        # host machine would duplicate the effect
+        return self.build.machine_map[for_machine] is MachineChoice.BUILD
+
     def apply_machine_map_to_kwargs(self, kwargs: kwtypes.BaseBuildTarget | kwtypes.MachineMapArgs) -> None:
         orig_for_machine: MachineChoice | None = kwargs.get('native', None)
         if orig_for_machine is not None:
@@ -2420,7 +2425,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                               follow_symlinks=kwargs['follow_symlinks'],
                               install_tag=kwargs['install_tag'])
             ret_headers.append(h)
-            self.build.headers.append(h)
+            if not self.is_internal_machine(MachineChoice.HOST):
+                self.build.headers.append(h)
 
         return ret_headers
 
@@ -2449,7 +2455,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         m = build.Man(sources, kwargs['install_dir'], install_mode,
                       self.subproject, kwargs['locale'], kwargs['install_tag'])
-        self.build.man.append(m)
+        if not self.is_internal_machine(MachineChoice.HOST):
+            self.build.man.append(m)
 
         return m
 
@@ -2462,8 +2469,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_install_emptydir(self, node: mparser.BaseNode, args: T.Tuple[str],
                               kwargs: kwtypes.FuncInstallEmptyDir) -> build.EmptyDir:
         d = build.EmptyDir(args[0], kwargs['install_mode'], self.subproject, kwargs['install_tag'])
-        self.build.emptydir.append(d)
-
+        if not self.is_internal_machine(MachineChoice.HOST):
+            self.build.emptydir.append(d)
         return d
 
     @FeatureNew('install_symlink', '0.61.0')
@@ -2481,7 +2488,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         target = kwargs['pointing_to']
         l = build.SymlinkData(target, name, kwargs['install_dir'],
                               self.subproject, kwargs['install_tag'])
-        self.build.symlinks.append(l)
+        if not self.is_internal_machine(MachineChoice.HOST):
+            self.build.symlinks.append(l)
         return l
 
     @FeatureNew('structured_sources', '0.62.0')
@@ -2632,7 +2640,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                            follow_symlinks)
             ret_data.append(d)
 
-        self.build.data.extend(ret_data)
+        if not self.is_internal_machine(MachineChoice.HOST):
+            self.build.data.extend(ret_data)
         return ret_data
 
     @typed_pos_args('install_subdir', str)
@@ -2676,7 +2685,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.subproject,
             install_tag=kwargs['install_tag'],
             follow_symlinks=kwargs['follow_symlinks'])
-        self.build.install_dirs.append(idir)
+        if not self.is_internal_machine(MachineChoice.HOST):
+            self.build.install_dirs.append(idir)
         return idir
 
     def validate_build_subdir(self, build_subdir: str, target: str) -> None:
