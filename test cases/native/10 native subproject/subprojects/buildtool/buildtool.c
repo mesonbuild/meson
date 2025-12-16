@@ -1,6 +1,9 @@
 #include <stdio.h>
 
+const char * gen_main(void);
+
 int main() {
-    printf("int main() { return 0; }\n");
+    printf("%s", gen_main());
+    printf("{ return 0; }\n");
     return 0;
 }
