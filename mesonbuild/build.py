@@ -2375,10 +2375,8 @@ class StaticLibrary(BuildTarget):
             # To extract objects from a custom target we would have to extract
             # the archive, WIP implementation can be found in
             # https://github.com/mesonbuild/meson/pull/9218.
-            # For Rust C ABI we could in theory have access to objects, but there
-            # are several meson issues that need to be fixed:
-            # https://github.com/mesonbuild/meson/issues/10722
-            # https://github.com/mesonbuild/meson/issues/10723
+            # For Rust C ABI we could in theory have access to objects, but we
+            # don't currently build them in such a way that this is possible:
             # https://github.com/mesonbuild/meson/issues/10724
             m = (f'Cannot link_whole a custom or Rust target {t.name!r} into a static library {self.name!r}. '
                  'Instead, pass individual object files with the "objects:" keyword argument if possible.')
