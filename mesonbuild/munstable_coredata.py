@@ -3,25 +3,37 @@
 
 from __future__ import annotations
 
-
 from . import coredata as cdata
 from .mesonlib import MachineChoice
 from .options import OptionKey
+import typing as T
 
 import os.path
 import pprint
 import textwrap
 
+if T.TYPE_CHECKING:
+    import argparse
+
+    from .import dependencies
+    from .compilers.compilers import CompilerDict
+    from .dependencies.detect import TV_DepID
+
+    class Arguments(T.Protocol):
+
+        builddir: str
+        all: bool
+
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
-def add_arguments(parser):
+def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--all', action='store_true', dest='all', default=False,
                         help='Show data not used by current backend.')
 
     parser.add_argument('builddir', nargs='?', default='.', help='The build directory')
 
 
-def dump_compilers(compilers):
+def dump_compilers(compilers: CompilerDict) -> None:
     for lang, compiler in compilers.items():
         print('  ' + lang + ':')
         print('      Id: ' + compiler.id)
@@ -32,12 +44,12 @@ def dump_compilers(compilers):
             print('      Detected version: ' + compiler.version)
 
 
-def dump_guids(d):
+def dump_guids(d: dict[str, str]) -> None:
     for name, value in d.items():
         print('  ' + name + ': ' + value)
 
 
-def run(options):
+def run(options: Arguments) -> int:
     datadir = 'meson-private'
     if options.builddir is not None:
         datadir = os.path.join(options.builddir, datadir)
@@ -54,6 +66,7 @@ def run(options):
 
     coredata = cdata.load(options.builddir)
     backend = coredata.optstore.get_value_for(OptionKey('backend'))
+    assert isinstance(backend, str), 'for mypy'
     for k, v in sorted(coredata.__dict__.items()):
         if k in {'backend_options', 'base_options', 'builtins', 'compiler_options', 'user_options'}:
             # use `meson configure` to view these
@@ -88,8 +101,8 @@ def run(options):
                     for_machine.get_lower_case_name()))
                 dump_compilers(v[for_machine])
         elif k == 'deps':
-            def print_dep(dep_key, dep):
-                print('  ' + dep_key[0][1] + ": ")
+            def print_dep(dep_key: TV_DepID, dep: dependencies.Dependency) -> None:
+                print('  ' + str(dep_key[0][1]) + ": ")
                 print('      compile args: ' + repr(dep.get_compile_args()))
                 print('      link args: ' + repr(dep.get_link_args()))
                 if dep.get_sources():
@@ -106,3 +119,4 @@ def run(options):
         else:
             print(k + ':')
             print(textwrap.indent(pprint.pformat(v), '  '))
+    return 0

@@ -53,6 +53,7 @@ modules = [
     'mesonbuild/mparser.py',
     'mesonbuild/msetup.py',
     'mesonbuild/mtest.py',
+    'mesonbuild/munstable_coredata.py',
     'mesonbuild/optinterpreter.py',
     'mesonbuild/options.py',
     'mesonbuild/programs.py',
