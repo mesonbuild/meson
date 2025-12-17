@@ -10,6 +10,14 @@ test('dep', exe)
 executable('dummy', 'main.c',
   dependencies : [entity_dep, []])
 
+testcase expect_error('declare_dependency keyword argument \'link_with\' was of type array[InternalDependency] but should have been array[BothLibraries | SharedLibrary | StaticLibrary | CustomTarget | CustomTargetIndex | Jar | Executable]. Dependency and external_library objects must go in the "dependencies" keyword argument')
+  declare_dependency(link_with : entity_dep)
+endtestcase
+
+testcase expect_error('declare_dependency keyword argument \'link_whole\' was of type array[InternalDependency] but should have been array[BothLibraries | StaticLibrary | CustomTarget | CustomTargetIndex]. Dependency and external_library objects must go in the "dependencies" keyword argument')
+  declare_dependency(link_whole : entity_dep)
+endtestcase
+
 # simple case
 declare_dependency(dependencies : entity_dep)
 
