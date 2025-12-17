@@ -492,7 +492,7 @@ class RustModule(ExtensionModule):
     @permittedKwargs({'rust_args', 'rust_dependency_map', 'sources', 'dependencies', 'extra_files',
                       'link_args', 'link_depends', 'link_with', 'override_options'})
     @typed_pos_args('rust.proc_macro', str, varargs=SOURCES_VARARGS)
-    @typed_kwargs('rust.proc_macro', *SHARED_LIB_KWS, allow_unknown=True)
+    @typed_kwargs('rust.proc_macro', *SHARED_LIB_KWS)
     def proc_macro(self, state: ModuleState, args: T.Tuple[str, SourcesVarargsType], kwargs: _kwargs.SharedLibrary) -> SharedLibrary:
         kwargs['native'] = MachineChoice.BUILD
         kwargs['rust_crate_type'] = 'proc-macro'

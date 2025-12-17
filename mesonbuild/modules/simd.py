@@ -62,8 +62,7 @@ class SimdModule(ExtensionModule):
     @typed_kwargs('simd.check',
                   KwargInfo('compiler', Compiler, required=True),
                   *[BT_SOURCES_KW.evolve(name=iset, default=None) for iset in ISETS],
-                  *[a for a in STATIC_LIB_KWS if a.name != 'sources'],
-                  allow_unknown=True) # Because we also accept STATIC_LIB_KWS, but build targets have not been completely ported to typed_pos_args/typed_kwargs.
+                  *[a for a in STATIC_LIB_KWS if a.name != 'sources'])
     @permittedKwargs({'compiler', *ISETS, *build.known_stlib_kwargs}) # Also remove this, per above comment
     def check(self, state: ModuleState, args: T.Tuple[str], kwargs: CheckKw) -> T.List[T.Union[T.List[build.StaticLibrary], build.ConfigurationData]]:
         result: T.List[build.StaticLibrary] = []
