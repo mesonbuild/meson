@@ -524,6 +524,9 @@ class IncludeDirs(HoldableObject):
     # actually exist.
     extra_build_dirs: T.List[str] = field(default_factory=list)
 
+    # We need to know this for stringifying correctly
+    is_build_only_subproject: bool = False
+
     def __repr__(self) -> str:
         r = '<{} {}/{}>'
         return r.format(self.__class__.__name__, self.curdir, self.incdirs)
@@ -1560,7 +1563,8 @@ class BuildTarget(Target):
     def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: str = 'preserve') -> None:
         if set_is_system != 'preserve':
             is_system = set_is_system == 'system'
-            self.include_dirs.extend([IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in args])
+            self.include_dirs.extend([IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs(),
+                                                  x.is_build_only_subproject) for x in args])
         else:
             self.include_dirs.extend(args)
 
