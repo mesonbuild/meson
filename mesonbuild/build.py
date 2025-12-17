@@ -132,6 +132,8 @@ if T.TYPE_CHECKING:
         pic: bool
         prelink: bool
 
+_T = T.TypeVar('_T')
+
 DEFAULT_STATIC_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str]] = {
     'unix': ('lib', 'a'),
     'windows': ('', 'lib'),
@@ -404,11 +406,18 @@ class Build:
         return custom_targets
 
     def copy(self) -> Build:
+        def copy_value(v: _T) -> _T:
+            if isinstance(v, PerMachine):
+                build = copy_value(v.build)
+                host = build if v.build is v.host else copy_value(v.host)
+                return PerMachine(build=build, host=host)
+            if isinstance(v, (list, dict, set, OrderedDict)):
+                return v.copy()
+            return v
+
         other = Build.__new__(Build)
         for k, v in self.__dict__.items():
-            if isinstance(v, (list, dict, set, OrderedDict)):
-                v = v.copy()
-            setattr(other, k, v)
+            setattr(other, k, copy_value(v))
         return other
 
     def merge(self, other: Build) -> None:
@@ -417,7 +426,12 @@ class Build:
             if k in {'global_args', 'global_link_args'}:
                 continue
 
-            setattr(self, k, v)
+            if isinstance(v, PerMachine):
+                dest = getattr(self, k)
+                dest.build = v.build
+                dest.host = v.host
+            else:
+                setattr(self, k, v)
 
     def get_static_linker(self, for_machine: MachineChoice) -> T.Optional[StaticLinker]:
         for_machine = for_machine if self.environment.is_cross_build() else MachineChoice.HOST
