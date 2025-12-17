@@ -403,16 +403,19 @@ class Build:
         return custom_targets
 
     def copy(self) -> Build:
-        other = Build(self.environment)
+        other = Build.__new__(Build)
         for k, v in self.__dict__.items():
             if isinstance(v, (list, dict, set, OrderedDict)):
-                other.__dict__[k] = v.copy()
-            else:
-                other.__dict__[k] = v
+                v = v.copy()
+            other.__dict__[k] = v
         return other
 
     def merge(self, other: Build) -> None:
         for k, v in other.__dict__.items():
+            # These are not modified in subprojects
+            if k in {'global_args', 'global_link_args'}:
+                continue
+
             self.__dict__[k] = v
 
     def ensure_static_linker(self, compiler: Compiler) -> None:
