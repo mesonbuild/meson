@@ -41,7 +41,7 @@ if T.TYPE_CHECKING:
     from .environment import Environment
     from ._typing import ImmutableListProtocol
     from .backend.backends import Backend
-    from .compilers import Compiler
+    from .compilers.compilers import Compiler, CompilerDict, Language
     from .interpreter.interpreter import SourceOutputs, Interpreter
     from .interpreter.interpreterobjects import Test, Doctest
     from .interpreterbase import SubProject
@@ -87,10 +87,10 @@ if T.TYPE_CHECKING:
         install_mode: FileMode
         install_rpath: str
         install_tag: T.List[T.Optional[str]]
-        language_args: T.DefaultDict[str, T.List[str]]
+        language_args: T.DefaultDict[Language, T.List[str]]
         link_args: T.List[str]
         link_depends: T.List[T.Union[str, File, CustomTarget, CustomTargetIndex]]
-        link_language: str
+        link_language: Language
         link_whole: T.List[StaticTargetTypes]
         link_with: T.List[BuildTargetTypes]
         name_prefix: T.Optional[str]
@@ -786,11 +786,11 @@ class BuildTarget(Target):
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
             environment: Environment,
-            compilers: T.Dict[str, 'Compiler'],
+            compilers: CompilerDict,
             kwargs: BuildTargetKeywordArguments):
         super().__init__(name, subdir, subproject, True, for_machine, environment, install=kwargs.get('install', False), build_subdir=kwargs.get('build_subdir', ''))
         self.all_compilers = compilers
-        self.compilers: OrderedDict[str, Compiler] = OrderedDict()
+        self.compilers: CompilerDict = {}
         self.objects: T.List[ObjectTypes] = []
         self.structured_sources = structured_sources
         self.external_deps: T.List[dependencies.Dependency] = []
@@ -810,8 +810,8 @@ class BuildTarget(Target):
         # The list of all files outputted by this target. Useful in cases such
         # as Vala which generates .vapi and .h besides the compiled output.
         self.outputs = [self.filename]
-        self.pch: T.Dict[str, T.Optional[T.Tuple[str, T.Optional[str]]]] = {}
-        self.extra_args: T.DefaultDict[str, T.List[str]] = kwargs.get('language_args', defaultdict(list))
+        self.pch: T.Dict[Language, T.Optional[T.Tuple[str, T.Optional[str]]]] = {}
+        self.extra_args: T.DefaultDict[Language, T.List[str]] = kwargs.get('language_args', defaultdict(list))
         self.sources: T.List[File] = []
         # If the same source is defined multiple times, use it only once.
         self.seen_sources: T.Set[File] = set()
@@ -1364,7 +1364,7 @@ class BuildTarget(Target):
     def get_outputs(self) -> T.List[str]:
         return self.outputs
 
-    def get_extra_args(self, language: str) -> T.List[str]:
+    def get_extra_args(self, language: Language) -> T.List[str]:
         return self.extra_args[language]
 
     @lru_cache(maxsize=None)
@@ -1515,7 +1515,7 @@ class BuildTarget(Target):
     def get_aliases(self) -> T.List[T.Tuple[str, str, str]]:
         return []
 
-    def get_langs_used_by_deps(self) -> T.List[str]:
+    def get_langs_used_by_deps(self) -> T.List[Language]:
         '''
         Sometimes you want to link to a C++ library that exports C API, which
         means the linker must link in the C++ stdlib, and we must use a C++
@@ -1524,7 +1524,7 @@ class BuildTarget(Target):
 
         See: https://github.com/mesonbuild/meson/issues/1653
         '''
-        langs: T.List[str] = []
+        langs: T.List[Language] = []
 
         # Check if any of the external libraries were written in this language
         for dep in self.external_deps:
@@ -1611,7 +1611,7 @@ class BuildTarget(Target):
 
         raise AssertionError(f'Could not get a dynamic linker for build target {self.name!r}')
 
-    def get_used_stdlib_args(self, link_language: str) -> T.List[str]:
+    def get_used_stdlib_args(self, link_language: Language) -> T.List[str]:
         all_compilers = self.environment.coredata.compilers[self.for_machine]
         all_langs = set(self.compilers).union(self.get_langs_used_by_deps())
         stdlib_args: T.List[str] = []
@@ -2056,7 +2056,7 @@ class Executable(BuildTarget):
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
             environment: Environment,
-            compilers: T.Dict[str, 'Compiler'],
+            compilers: CompilerDict,
             kwargs: ExecutableKeywordArguments):
         self.export_dynamic = kwargs.get('export_dynamic', False)
         self.rust_crate_type = kwargs.get('rust_crate_type', 'bin')
@@ -2208,7 +2208,7 @@ class StaticLibrary(BuildTarget):
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
             environment: Environment,
-            compilers: T.Dict[str, 'Compiler'],
+            compilers: CompilerDict,
             kwargs: StaticLibraryKeywordArguments):
         self.prelink = kwargs.get('prelink', False)
         self.rust_crate_type = kwargs.get('rust_crate_type', 'rlib')
@@ -2385,7 +2385,7 @@ class SharedLibrary(BuildTarget):
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
             environment: Environment,
-            compilers: T.Dict[str, 'Compiler'],
+            compilers: CompilerDict,
             kwargs):
         self.soversion: T.Optional[str] = None
         self.ltversion: T.Optional[str] = None
@@ -2712,7 +2712,7 @@ class SharedModule(SharedLibrary):
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
             environment: Environment,
-            compilers: T.Dict[str, 'Compiler'],
+            compilers: CompilerDict,
             kwargs):
         if 'version' in kwargs:
             raise MesonException('Shared modules must not specify the version kwarg.')
@@ -3161,7 +3161,7 @@ class Jar(BuildTarget):
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
-                 objects, environment: Environment, compilers: T.Dict[str, 'Compiler'],
+                 objects, environment: Environment, compilers: CompilerDict,
                  kwargs):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)

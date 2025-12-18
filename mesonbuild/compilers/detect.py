@@ -22,7 +22,7 @@ import os
 import typing as T
 
 if T.TYPE_CHECKING:
-    from .compilers import Compiler
+    from .compilers import Language, Compiler, CompilerDict
     from .asm import ASMCompiler
     from .c import CCompiler
     from .cpp import CPPCompiler
@@ -105,7 +105,7 @@ def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineCh
     }
     return lang_map[lang](env, for_machine) if lang in lang_map else None
 
-def detect_compiler_for(env: 'Environment', lang: str, for_machine: MachineChoice, skip_sanity_check: bool, subproject: str) -> T.Optional[Compiler]:
+def detect_compiler_for(env: 'Environment', lang: Language, for_machine: MachineChoice, skip_sanity_check: bool, subproject: str) -> T.Optional[Compiler]:
     comp = compiler_from_language(env, lang, for_machine)
     if comp is None:
         return comp
@@ -1185,7 +1185,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
 
     # Detect the target architecture, required for proper architecture handling on Windows.
     # MSVC compiler is required for correct platform detection.
-    c_compiler = {'c': detect_c_compiler(env, for_machine)}
+    c_compiler: CompilerDict = {'c': detect_c_compiler(env, for_machine)}
     is_msvc = isinstance(c_compiler['c'], c.VisualStudioCCompiler)
     if not is_msvc:
         c_compiler = {}

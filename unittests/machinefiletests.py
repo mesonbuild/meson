@@ -773,14 +773,16 @@ class CrossFileTests(BasePlatformTests):
                 f.write(cross_content)
             name = os.path.basename(f.name)
 
-            with mock.patch.dict(os.environ, {'XDG_DATA_HOME': d}):
-                self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
-                self.wipe()
+            with self.subTest('using XDG_DATA_HOME'):
+                with mock.patch.dict(os.environ, {'XDG_DATA_HOME': d}):
+                    self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
+                    self.wipe()
 
-            with mock.patch.dict(os.environ, {'XDG_DATA_DIRS': d}):
-                os.environ.pop('XDG_DATA_HOME', None)
-                self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
-                self.wipe()
+            with self.subTest('using XDG_DATA_DIRS'):
+                with mock.patch.dict(os.environ, {'XDG_DATA_DIRS': d}):
+                    os.environ.pop('XDG_DATA_HOME', None)
+                    self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
+                    self.wipe()
 
         with tempfile.TemporaryDirectory() as d:
             dir_ = os.path.join(d, '.local', 'share', 'meson', 'cross')
@@ -792,11 +794,12 @@ class CrossFileTests(BasePlatformTests):
             # If XDG_DATA_HOME is set in the environment running the
             # tests this test will fail, os mock the environment, pop
             # it, then test
-            with mock.patch.dict(os.environ):
-                os.environ.pop('XDG_DATA_HOME', None)
-                with mock.patch('mesonbuild.coredata.os.path.expanduser', lambda x: x.replace('~', d)):
-                    self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
-                    self.wipe()
+            with self.subTest('env vars unset'):
+                with mock.patch.dict(os.environ):
+                    os.environ.pop('XDG_DATA_HOME', None)
+                    with mock.patch('mesonbuild.coredata.os.path.expanduser', lambda x: x.replace('~', d)):
+                        self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
+                        self.wipe()
 
     def helper_create_cross_file(self, values):
         """Create a config file as a temporary file.

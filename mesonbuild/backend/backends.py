@@ -38,20 +38,20 @@ from ..options import OptionKey
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
     from ..arglist import CompilerArgs
-    from ..compilers import Compiler
+    from ..compilers.compilers import Compiler, Language
     from ..environment import Environment
     from ..interpreter import Test
     from ..linkers.linkers import StaticLinker
     from ..mesonlib import FileMode, FileOrString
     from ..options import ElementaryOptionValues
 
-    from typing_extensions import TypedDict, NotRequired
+    from typing_extensions import Literal, TypedDict, NotRequired
 
     _ALL_SOURCES_TYPE = T.List[T.Union[File, build.GeneratedTypes]]
 
     class TargetIntrospectionData(TypedDict):
 
-        language: str
+        language: T.Union[Language, Literal['unknown']]
         machine: NotRequired[str]
         compiler: T.List[str]
         parameters: T.List[str]
