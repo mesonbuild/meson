@@ -841,7 +841,7 @@ class OptionStore:
         #
         # I did not do this yet, because it would make this MR even
         # more massive than it already is. Later then.
-        if not self.is_cross:
+        if not (self.is_cross and self.is_per_machine_option(key)):
             key = key.as_host()
         return key
 
