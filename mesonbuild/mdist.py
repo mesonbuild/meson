@@ -393,9 +393,10 @@ def run(options: argparse.Namespace) -> int:
     extra_meson_args = []
     if options.include_subprojects:
         subproject_dir = os.path.join(src_root, b.subproject_dir)
-        for sub in b.subprojects:
-            directory = wrap.get_directory(subproject_dir, sub)
-            subprojects[sub] = os.path.join(b.subproject_dir, directory)
+        for sub in b.projects:
+            if sub:
+                directory = wrap.get_directory(subproject_dir, sub)
+                subprojects[sub] = os.path.join(b.subproject_dir, directory)
         extra_meson_args.append('-Dwrap_mode=nodownload')
 
     cls: T.Type[Dist]
