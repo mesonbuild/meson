@@ -33,7 +33,7 @@ from . import compilers
 from mesonbuild import envconfig
 
 if T.TYPE_CHECKING:
-    from .compilers import Compiler
+    from .compilers.compilers import Compiler, CompilerDict, Language
     from .options import OptionDict, ElementaryOptionValues
     from .wrap.wrap import Resolver
 
@@ -576,7 +576,7 @@ class Environment:
             env.prepend('PATH', list(extra_paths))
         return env
 
-    def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
+    def add_lang_args(self, lang: Language, comp: T.Type['Compiler'],
                       for_machine: MachineChoice) -> None:
         """Add global language arguments that are needed before compiler/linker detection."""
         description = f'Extra arguments passed to the {lang}'
@@ -617,7 +617,7 @@ class Environment:
             # autotools compatibility.
             largs.extend_value(comp_options)
 
-    def update_build_machine(self, compilers: T.Optional[T.Dict[str, Compiler]] = None) -> None:
+    def update_build_machine(self, compilers: T.Optional[CompilerDict] = None) -> None:
         """Redetect the build machine and update the machine definitions
 
         :compilers: An optional dictionary of compilers to use instead of the coredata dict.

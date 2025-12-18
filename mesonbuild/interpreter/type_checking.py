@@ -788,7 +788,9 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     KwargInfo(
         'link_language',
         (str, NoneType),
-        validator=in_set_validator(set(compilers.all_languages)),
+        # Yes, neither mypy no pyright can figure out that `set[literal[str]]``
+        # is a subset of `set[str]`
+        validator=in_set_validator(T.cast('T.Set[str]', compilers.all_languages)),
         since='0.51.0',
     ),
     KwargInfo('vala_gir', (str, NoneType)),

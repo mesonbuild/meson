@@ -11,9 +11,9 @@ from .. import mlog, options
 from ..mesonlib import first, MesonException, version_compare
 from .compilers import Compiler, clike_debug_args
 
-
 if T.TYPE_CHECKING:
     from .. import build
+    from ..compilers.compilers import Language
     from ..options import MutableKeyedOptionDictType
     from ..dependencies import Dependency
     from ..environment import Environment
@@ -138,7 +138,7 @@ class SwiftCompiler(Compiler):
             args += ['-swift-version', std]
 
         # Pass C compiler -std=... arg to swiftc
-        c_langs = ['objc', 'c']
+        c_langs: T.List[Language] = ['objc', 'c']
         if target.uses_swift_cpp_interop():
             c_langs = ['objcpp', 'cpp', *c_langs]
 

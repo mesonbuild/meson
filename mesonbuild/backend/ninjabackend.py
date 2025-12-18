@@ -43,6 +43,7 @@ if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
     from ..build import ExtractedObjects, LibTypes
     from ..linkers.linkers import DynamicLinker, StaticLinker
+    from ..compilers.compilers import Language
     from ..compilers.cs import CsCompiler
     from ..compilers.fortran import FortranCompiler
     from ..compilers.rust import RustCompiler
@@ -3091,12 +3092,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     # Returns a dictionary, mapping from each compiler src type (e.g. 'c', 'cpp', etc.) to a list of compiler arg strings
     # used for that respective src type.
     # Currently used for the purpose of populating VisualStudio intellisense fields but possibly useful in other scenarios.
-    def generate_common_compile_args_per_src_type(self, target: build.BuildTarget) -> dict[str, list[str]]:
+    def generate_common_compile_args_per_src_type(self, target: build.BuildTarget) -> T.Dict[Language, T.List[str]]:
         src_type_to_args = {}
 
         use_pch = self.target_uses_pch(target)
 
-        for src_type_str in target.compilers.keys():
+        for src_type_str in target.compilers:
             compiler = target.compilers[src_type_str]
             commands = self._generate_single_compile_base_args(target, compiler)
 
@@ -3427,7 +3428,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_pch(self, target: build.BuildTarget, header_deps=None):
         header_deps = header_deps if header_deps is not None else []
         pch_objects = []
-        for lang in ['c', 'cpp']:
+        for lang in T.cast('T.Tuple[Language, ...]', ('c', 'cpp')):
             pch = target.pch[lang]
             if not pch:
                 continue

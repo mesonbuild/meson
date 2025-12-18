@@ -16,8 +16,9 @@ from .detect import packages
 from ..mesonlib import LibType
 
 if T.TYPE_CHECKING:
+    from .._typing import ImmutableListProtocol
     from ..environment import Environment
-    from ..compilers import Compiler
+    from ..compilers.compilers import Language, CompilerDict
     from ..envconfig import MachineInfo
     from .base import DependencyObjectKWs
 
@@ -25,7 +26,7 @@ if T.TYPE_CHECKING:
 
 class CudaDependency(SystemDependency):
 
-    supported_languages = ['cpp', 'c', 'cuda'] # see also _default_language
+    supported_languages: ImmutableListProtocol[Language] = ['cpp', 'c', 'cuda']
     targets_dir = 'targets' # Directory containing CUDA targets.
 
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
@@ -78,7 +79,7 @@ class CudaDependency(SystemDependency):
         self.is_found = self._find_requested_libraries()
 
     @classmethod
-    def _detect_language(cls, compilers: T.Dict[str, 'Compiler']) -> str:
+    def _detect_language(cls, compilers: CompilerDict) -> Language:
         for lang in cls.supported_languages:
             if lang in compilers:
                 return lang
@@ -315,7 +316,7 @@ class CudaDependency(SystemDependency):
     def log_info(self) -> str:
         return self.cuda_path if self.cuda_path else ''
 
-    def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
+    def get_link_args(self, language: T.Optional[Language] = None, raw: bool = False) -> T.List[str]:
         # when using nvcc to link, we should instead use the native driver options
         REWRITE_MODULES = {
             'cudart': ['-cudart', 'shared'],

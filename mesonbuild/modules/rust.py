@@ -27,6 +27,7 @@ from ..programs import ExternalProgram, NonExistingExternalProgram
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..build import BuildTargetTypes, ExecutableKeywordArguments, IncludeDirs, LibTypes
+    from ..compilers.compilers import Language
     from ..compilers.rust import RustCompiler
     from ..dependencies import Dependency, ExternalLibrary
     from ..interpreter import Interpreter
@@ -340,7 +341,9 @@ class RustModule(ExtensionModule):
         # from. Append those to the bindgen flags to ensure we use a compatible
         # environment.
         comp = mesonlib.first(
-            [state.environment.coredata.compilers.host.get(l) for l in ['c', 'cpp', 'objc', 'objcpp']],
+            # The cast here shouldn't be necessary
+            [state.environment.coredata.compilers.host.get(T.cast('Language', l))
+             for l in ('c', 'cpp', 'objc', 'objcpp')],
             lambda x: x is not None,
         )
         if comp:

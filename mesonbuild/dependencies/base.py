@@ -24,7 +24,7 @@ from ..options import OptionKey
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Required, TypedDict, TypeAlias
 
-    from ..compilers.compilers import Compiler
+    from ..compilers.compilers import Language, Compiler
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
     from ..build import (
@@ -48,7 +48,7 @@ if T.TYPE_CHECKING:
         cmake_package_version: str
         components: T.List[str]
         include_type: IncludeType
-        language: T.Optional[str]
+        language: T.Optional[Language]
         main: bool
         method: DependencyMethods
         modules: T.List[str]
@@ -140,7 +140,7 @@ class Dependency(HoldableObject):
         self._id = uuid.uuid4().int
         self.name = f'dep{self._id}'
         self.version:  T.Optional[str] = None
-        self.language: T.Optional[str] = kwargs.get('language') # None means C-like
+        self.language: T.Optional[Language] = kwargs.get('language') # None means C-like
         self.is_found = False
         self.compile_args: T.List[str] = []
         self.link_args:    T.List[str] = []
@@ -206,7 +206,7 @@ class Dependency(HoldableObject):
         return list(itertools.chain(self.get_compile_args(),
                                     *(d.get_all_compile_args() for d in self.ext_deps)))
 
-    def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
+    def get_link_args(self, language: T.Optional[Language] = None, raw: bool = False) -> T.List[str]:
         if raw and self.raw_link_args is not None:
             return self.raw_link_args
         return self.link_args
@@ -529,7 +529,7 @@ class ExternalLibrary(ExternalDependency):
     type_name = DependencyTypeName('library')
 
     def __init__(self, name: str, link_args: T.List[str], environment: 'Environment',
-                 language: str, for_machine: MachineChoice, silent: bool = False) -> None:
+                 language: Language, for_machine: MachineChoice, silent: bool = False) -> None:
         super().__init__(name, environment, {'language': language, 'native': for_machine})
         self.is_found = False
         if link_args:
@@ -541,7 +541,7 @@ class ExternalLibrary(ExternalDependency):
             else:
                 mlog.log('Library', mlog.bold(name), 'found:', mlog.red('NO'))
 
-    def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
+    def get_link_args(self, language: T.Optional[Language] = None, raw: bool = False) -> T.List[str]:
         '''
         External libraries detected using a compiler must only be used with
         compatible code. For instance, Vala libraries (.vapi files) cannot be
@@ -647,7 +647,7 @@ def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: Dependenc
     return methods
 
 def detect_compiler(name: str, env: 'Environment', for_machine: MachineChoice,
-                    language: T.Optional[str]) -> T.Union['MissingCompiler', 'Compiler']:
+                    language: T.Optional[Language]) -> T.Union['MissingCompiler', 'Compiler']:
     """Given a language and environment find the compiler used."""
     compilers = env.coredata.compilers[for_machine]
 
@@ -660,7 +660,10 @@ def detect_compiler(name: str, env: 'Environment', for_machine: MachineChoice,
             raise DependencyException(m.format(language.capitalize()))
         return compilers[language]
     else:
-        for lang in clib_langs:
+        # https://github.com/python/mypy/issues/18826
+        # However, we need to support versions of mypy that cannot deduce the
+        # tuple.
+        for lang in T.cast('T.Tuple[Language, ...]', clib_langs):
             try:
                 return compilers[lang]
             except KeyError:

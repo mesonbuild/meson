@@ -28,6 +28,7 @@ from .. import coredata
 
 if T.TYPE_CHECKING:
     from ..arglist import CompilerArgs
+    from ..compilers.compilers import Language
 
     Project = T.Tuple[str, Path, str, MachineChoice]
 
@@ -1693,7 +1694,7 @@ class Vs2010Backend(backends.Backend):
 
         pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]] = {}
         if self.target_uses_pch(target):
-            for lang in ['c', 'cpp']:
+            for lang in T.cast('T.Tuple[Language]', ('c', 'cpp')):
                 pch = target.pch[lang]
                 if not pch:
                     continue
