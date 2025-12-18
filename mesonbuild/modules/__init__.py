@@ -83,9 +83,9 @@ class ModuleState:
                                                    wanted=wanted, silent=silent, for_machine=for_machine)
 
     def find_tool(self, name: str, depname: str, varname: str, required: bool = True,
-                  wanted: T.Optional[str] = None) -> T.Union[build.OverrideExecutable, ExternalProgram, 'OverrideProgram']:
+                  wanted: T.Optional[str] = None, for_machine: MachineChoice = MachineChoice.HOST) -> T.Union[build.OverrideExecutable, ExternalProgram, 'OverrideProgram']:
         # Look in overrides in case it's built as subproject
-        progobj = self._interpreter.program_from_overrides([name], [])
+        progobj = self._interpreter.program_from_overrides([name], [], for_machine)
         if progobj is not None:
             return progobj
 
