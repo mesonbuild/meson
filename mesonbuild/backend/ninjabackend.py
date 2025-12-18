@@ -2791,7 +2791,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         subdir = genlist.subdir
         exe = generator.get_exe()
         infilelist = genlist.get_inputs()
-        extra_dependencies = self.get_target_depend_files(genlist)
+        extra_dependencies: set[str] = set()
+        for dep in genlist.extra_depends:
+            extra_dependencies.update(dep.get_outputs())
+        extra_dependencies.update(self.get_target_depend_files(genlist))
         for curfile in infilelist:
             infilename = curfile.rel_to_builddir(self.build_to_src, self.get_target_private_dir(target))
             base_args = generator.get_arglist(infilename)
@@ -2827,7 +2830,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if generator.depfile is not None:
                 elem.add_item('DEPFILE', depfile)
             if len(extra_dependencies) > 0:
-                elem.add_dep(extra_dependencies)
+                elem.add_dep(list(extra_dependencies))
 
             if len(generator.outputs) == 1:
                 what = f'{sole_output!r}'
