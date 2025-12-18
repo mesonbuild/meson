@@ -347,7 +347,8 @@ class Build:
         self.project_name = 'name of master project'
         self.project_version: T.Optional[str] = None
         self.environment = environment
-        self.projects: T.Dict[SubProject, BuildProject] = {}
+        self.projects: PerMachine[T.Dict[SubProject, BuildProject]] = PerMachineDefaultable.default(
+            environment.is_cross_build(), {}, {})
         self.targets: 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]' = OrderedDict()
         self.targetnames: T.Set[T.Tuple[str, str]] = set() # Set of executable names and their subdir
         self.global_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
@@ -369,8 +370,11 @@ class Build:
         self.dep_manifest: T.Dict[str, DepManifest] = {}
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
-        self.find_overrides: T.Dict[str, programs.Program] = {}
-        self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
+        self.find_overrides: PerMachine[T.Dict[str, programs.Program]] = PerMachineDefaultable.default(
+            environment.is_cross_build(), {}, {})
+        # The list of all programs that have been searched for.
+        self.searched_programs: PerMachine[T.Set[str]] = PerMachineDefaultable.default(
+            environment.is_cross_build(), set(), set())
 
         # If we are doing a cross build we need two caches, if we're doing a
         # build == host compilation the both caches should point to the same place.
@@ -451,7 +455,7 @@ class Build:
             self.static_linker[for_machine] = detect_static_linker(self.environment, compiler)
 
     def get_project(self) -> str:
-        return self.projects[SubProject('')].name
+        return self.projects.host[SubProject('')].name
 
     def get_subproject_dir(self):
         return self.subproject_dir
@@ -488,7 +492,9 @@ class Build:
         return d.get(compiler.get_language(), [])
 
     def get_project_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
-        args = self.projects[target.subproject].project_args[target.for_machine]
+        for_machine = MachineChoice.BUILD if target.build_only_subproject else MachineChoice.HOST
+        d = self.projects[for_machine][target.subproject]
+        args = d.project_args[target.for_machine]
         if not args:
             return []
         return args.get(compiler.get_language(), [])
@@ -498,7 +504,9 @@ class Build:
         return d.get(compiler.get_language(), [])
 
     def get_project_link_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
-        link_args = self.projects[target.subproject].project_link_args[target.for_machine]
+        for_machine = MachineChoice.BUILD if target.build_only_subproject else MachineChoice.HOST
+        d = self.projects[for_machine][target.subproject]
+        link_args = d.project_link_args[target.for_machine]
         if not link_args:
             return []
 
