@@ -376,6 +376,7 @@ class _BuildTarget(_BaseBuildTarget):
     swift_interoperability_mode: Literal['c', 'cpp']
     swift_module_name: str
     sources: SourcesVarargsType
+    link_args: T.List[str]
     c_pch: T.List[str]
     cpp_pch: T.List[str]
     c_args: T.List[str]
