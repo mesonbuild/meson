@@ -385,7 +385,7 @@ class Build:
         return self._def_files
 
     @def_files.setter
-    def def_files(self, value: T.List[str]):
+    def def_files(self, value: T.List[str]) -> None:
         if self._def_files is not None:
             raise MesonBugException('build.def_files already set')
         self._def_files = value
@@ -421,10 +421,10 @@ class Build:
         if self.static_linker[compiler.for_machine] is None and compiler.needs_static_linker():
             self.static_linker[compiler.for_machine] = detect_static_linker(self.environment, compiler)
 
-    def get_project(self) -> T.Dict[str, str]:
+    def get_project(self) -> str:
         return self.projects['']
 
-    def get_subproject_dir(self):
+    def get_subproject_dir(self) -> str:
         return self.subproject_dir
 
     def get_targets(self) -> 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]':
