@@ -1,0 +1,3 @@
+project('subproject')
+
+dependency('foobar')
