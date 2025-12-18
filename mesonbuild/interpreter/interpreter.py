@@ -900,7 +900,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if required and not subproject.found():
                 raise InterpreterException(f'Subproject "{subproject.subdir}" required but not found.')
             if kwargs['version']:
-                pv = self.build.subprojects[subp_name]
+                pv = self.build.projects[subp_name].version
                 wanted = kwargs['version']
                 if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
                     raise InterpreterException(f'Subproject {subp_name} version is {pv} but {wanted} required.')
@@ -1015,7 +1015,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         # We always need the subi.build_def_files, to propagate sub-sub-projects
         self.build_def_files.update(subi.get_build_def_files())
         self.build.merge(subi.build)
-        self.build.subprojects[subp_name] = subi.project_version
         return self.subprojects[subp_name]
 
     def _do_subproject_cmake(self, subp_name: SubProject, subdir: str,
@@ -1275,7 +1274,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if self.cargo is None:
             self.load_root_cargo_lock_file()
 
-        self.build.projects[self.subproject] = proj_name
+        self.build.projects[self.subproject] = build.BuildProject(proj_name, self.project_version)
         mlog.log('Project name:', mlog.bold(proj_name))
         mlog.log('Project version:', mlog.bold(self.project_version))
 
@@ -2938,12 +2937,17 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('add_project_arguments', varargs=str)
     @typed_kwargs('add_project_arguments', NATIVE_KW, LANGUAGE_KW)
     def func_add_project_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
-        self._add_project_arguments(node, self.build.projects_args[kwargs['native']], args[0], kwargs)
+        self._add_project_arguments(node, self.current_build_project().project_args[kwargs['native']],
+                                    args[0], kwargs)
 
     @typed_pos_args('add_project_link_arguments', varargs=str)
     @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
     def func_add_project_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
-        self._add_project_arguments(node, self.build.projects_link_args[kwargs['native']], args[0], kwargs)
+        self._add_project_arguments(node, self.current_build_project().project_link_args[kwargs['native']],
+                                    args[0], kwargs)
+
+    def current_build_project(self) -> build.BuildProject:
+        return self.build.projects[self.subproject]
 
     @FeatureNew('add_project_dependencies', '0.63.0')
     @typed_pos_args('add_project_dependencies', varargs=dependencies.Dependency)
@@ -2963,8 +2967,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                     for idir in i.abs_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
                         compile_args.extend(comp.get_include_args(idir, system_incdir))
 
-            self._add_project_arguments(node, self.build.projects_args[for_machine], compile_args, kwargs)
-            self._add_project_arguments(node, self.build.projects_link_args[for_machine], d.get_link_args(), kwargs)
+            self._add_project_arguments(node, self.current_build_project().project_args[for_machine],
+                                        compile_args, kwargs)
+            self._add_project_arguments(node, self.current_build_project().project_link_args[for_machine],
+                                        d.get_link_args(), kwargs)
 
     def _warn_about_builtin_args(self, args: T.List[str]) -> None:
         # -Wpedantic is deliberately not included, since some people want to use it but not use -Wextra
@@ -3009,10 +3015,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def _add_project_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.Dict[str, T.List[str]]],
                                args: T.List[str], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
-        if self.subproject not in argsdict:
-            argsdict[self.subproject] = {}
-        self._add_arguments(node, argsdict[self.subproject],
-                            self.project_args_frozen, args, kwargs)
+        self._add_arguments(node, argsdict, self.project_args_frozen, args, kwargs)
 
     def _add_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.List[str]],
                        args_frozen: bool, args: T.List[str], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
