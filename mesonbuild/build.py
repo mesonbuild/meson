@@ -478,9 +478,9 @@ class Build:
         d = self.global_args[for_machine]
         return d.get(compiler.get_language(), [])
 
-    def get_project_args(self, compiler: 'Compiler', project: str, for_machine: 'MachineChoice') -> T.List[str]:
-        d = self.projects_args[for_machine]
-        args = d.get(project)
+    def get_project_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
+        d = self.projects_args[target.for_machine]
+        args = d.get(target.subproject)
         if not args:
             return []
         return args.get(compiler.get_language(), [])
@@ -489,10 +489,10 @@ class Build:
         d = self.global_link_args[for_machine]
         return d.get(compiler.get_language(), [])
 
-    def get_project_link_args(self, compiler: 'Compiler', project: str, for_machine: 'MachineChoice') -> T.List[str]:
-        d = self.projects_link_args[for_machine]
+    def get_project_link_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
+        d = self.projects_link_args[target.for_machine]
 
-        link_args = d.get(project)
+        link_args = d.get(target.subproject)
         if not link_args:
             return []
 
