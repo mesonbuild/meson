@@ -26,7 +26,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from . import dependencies
-    from .compilers.compilers import Compiler, CompileResult, RunResult, CompileCheckMode
+    from .compilers.compilers import Compiler, CompilerDict, CompileResult, RunResult, CompileCheckMode, Language
     from .dependencies.detect import TV_DepID
     from .mesonlib import FileOrString
     from .cmake.traceparser import CMakeCacheEntry
@@ -231,7 +231,7 @@ class CoreData:
         self.target_guids: T.Dict[str, str] = {}
         self.version = version
         self.cross_files = self.__load_config_files(cmd_options, scratch_dir, 'cross')
-        self.compilers: PerMachine[T.Dict[str, Compiler]] = PerMachine(OrderedDict(), OrderedDict())
+        self.compilers: PerMachine[CompilerDict] = PerMachine(OrderedDict(), OrderedDict())
         self.optstore = options.OptionStore(self.is_cross_build())
 
         # Stores the (name, hash) of the options file, The name will be either
@@ -415,7 +415,7 @@ class CoreData:
             return False
         return len(self.cross_files) > 0
 
-    def add_compiler_options(self, c_options: MutableKeyedOptionDictType, lang: str, for_machine: MachineChoice,
+    def add_compiler_options(self, c_options: MutableKeyedOptionDictType, lang: Language, for_machine: MachineChoice,
                              subproject: str) -> None:
         for k, o in c_options.items():
             assert k.subproject is None and k.machine is for_machine
@@ -429,7 +429,7 @@ class CoreData:
             else:
                 self.optstore.add_compiler_option(lang, k, o)
 
-    def process_compiler_options(self, lang: str, comp: Compiler, subproject: str) -> None:
+    def process_compiler_options(self, lang: Language, comp: Compiler, subproject: str) -> None:
         self.add_compiler_options(comp.get_options(), lang, comp.for_machine, subproject)
 
         for key in [OptionKey(f'{lang}_args'), OptionKey(f'{lang}_link_args')]:

@@ -20,6 +20,7 @@ from .interpreter import AstInterpreter, IntrospectionBuildTarget, Introspection
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget, BuildTargetKeywordArguments
+    from ..compilers.compilers import Language
     from ..interpreterbase import TYPE_var
     from .visitor import AstVisitor
 
@@ -158,15 +159,15 @@ class IntrospectionInterpreter(AstInterpreter):
         return UnknownValue()
 
     def _add_languages(self, raw_langs: T.List[TYPE_var], required: T.Union[bool, UnknownValue], for_machine: MachineChoice) -> None:
-        langs: T.List[str] = []
+        langs: T.List[Language] = []
         for l in self.flatten_args(raw_langs):
+            # we need to call .lower() here because `project('foo', 'CpP')` is valid.
             if isinstance(l, str):
-                langs.append(l)
+                langs.append(T.cast('Language', l.lower()))
             elif isinstance(l, StringNode):
-                langs.append(l.value)
+                langs.append(T.cast('Language', l.value.lower()))
 
         for lang in sorted(langs, key=compilers.sort_clink):
-            lang = lang.lower()
             if lang not in self.coredata.compilers[for_machine]:
                 try:
                     comp = detect_compiler_for(self.environment, lang, for_machine, True, self.subproject)
