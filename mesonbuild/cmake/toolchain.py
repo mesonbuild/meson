@@ -185,7 +185,7 @@ class CMakeToolchain:
                 defaults['CMAKE_MSVC_DEBUG_INFORMATION_FORMAT'] = ['EditAndContinue']
 
         for lang, comp_obj in self.compilers.items():
-            language = language_map.get(lang, None)
+            language = language_map.get(lang)
 
             if not language:
                 continue # unsupported language

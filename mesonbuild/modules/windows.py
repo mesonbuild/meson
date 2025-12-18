@@ -20,7 +20,7 @@ from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
-    from ..compilers import Compiler
+    from ..compilers.compilers import Language, Compiler
     from ..interpreter import Interpreter
     from ..programs import CommandList
 
@@ -50,8 +50,11 @@ class WindowsModule(ExtensionModule):
             'compile_resources': self.compile_resources,
         })
 
-    def detect_compiler(self, compilers: T.Dict[str, 'Compiler']) -> 'Compiler':
-        for l in ('c', 'cpp'):
+    def detect_compiler(self, compilers: T.Dict[Language, 'Compiler']) -> 'Compiler':
+        # https://github.com/python/mypy/issues/18826
+        # However, we need to support versions of mypy that cannot deduce the
+        # tuple either.
+        for l in T.cast('T.Tuple[Language, ...]', ('c', 'cpp')):
             if l in compilers:
                 return compilers[l]
         raise MesonException('Resource compilation requires a C or C++ compiler.')

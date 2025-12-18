@@ -118,6 +118,7 @@ if T.TYPE_CHECKING:
     from .. import cargo
     from . import kwargs as kwtypes
     from ..backend.backends import Backend
+    from ..compilers.compilers import CompilerDict, Language
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs, SubProject
     from ..options import OptionDict
     from .type_checking import SourcesVarargsType
@@ -288,7 +289,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build_holder_map()
         self.user_defined_options = user_defined_options
         self.find_overrides: T.Dict[str, Program] = {}
-        self.compilers: PerMachine[T.Dict[str, 'compilers.Compiler']] = PerMachine({}, {})
+        # Languages added in the current subproject
+        self.compilers: PerMachine[CompilerDict] = PerMachine({}, {})
         self.parse_project()
         self._redetect_machines()
 
@@ -1148,13 +1150,13 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         self.environment.init_backend_options(backend_name)
 
-    def _validate_languages(self, langs: T.List[str], required: bool, node: mparser.BaseNode) -> T.List[str]:
-        valid: T.List[str] = []
+    def _validate_languages(self, langs: T.List[str], required: bool, node: mparser.BaseNode) -> T.List[Language]:
+        valid: T.List[Language] = []
 
         for lang in langs:
             lang = lang.lower()
             if lang in compilers.all_languages:
-                valid.append(lang)
+                valid.append(T.cast('Language', lang))
                 continue
 
             FeatureBroken.single_use(
@@ -1486,7 +1488,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     return True
         return ExpectErrorObject(args[0], kwargs['how'], self.subproject)
 
-    def add_languages(self, args: T.List[str], required: bool, for_machine: MachineChoice) -> bool:
+    def add_languages(self, args: T.List[Language], required: bool, for_machine: MachineChoice) -> bool:
         success = self.add_languages_for(args, required, for_machine)
         self._redetect_machines()
         return success
@@ -1501,7 +1503,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             return False
         return should
 
-    def add_languages_for(self, args: T.List[str], required: bool, for_machine: MachineChoice) -> bool:
+    def add_languages_for(self, args: T.List[Language], required: bool, for_machine: MachineChoice) -> bool:
         langs = set(self.compilers[for_machine])
         langs.update(args)
         # We'd really like to add cython's default language here, but it can't

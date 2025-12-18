@@ -12,6 +12,7 @@ from typing_extensions import TypedDict, Literal, Protocol, NotRequired
 from .. import build
 from .. import options
 from ..compilers import Compiler
+from ..compilers.compilers import Language
 from ..dependencies.base import Dependency, DependencyMethods, IncludeType
 from ..mesonlib import EnvironmentVariables, MachineChoice, File, FileMode, FileOrString
 from ..options import OptionKey
@@ -34,7 +35,7 @@ class FuncAddProjectArgs(TypedDict):
     """
 
     native: MachineChoice
-    language: T.List[str]
+    language: T.List[Language]
 
 
 class BaseTest(TypedDict):
@@ -347,7 +348,7 @@ class _BaseBuildTarget(TypedDict):
     install_rpath: str
     implicit_include_directories: bool
     link_depends: T.List[T.Union[str, File, build.GeneratedTypes]]
-    link_language: T.Optional[str]
+    link_language: T.Optional[Language]
     link_whole: T.List[build.StaticTargetTypes]
     link_with: T.List[build.BuildTargetTypes]
     name_prefix: T.Optional[str]
@@ -513,7 +514,7 @@ class FuncDependency(ExtractRequired):
     default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
     fallback: T.Union[str, T.List[str], None]
     include_type: IncludeType
-    language: T.Optional[str]
+    language: T.Optional[Language]
     main: bool
     method: DependencyMethods
     modules: T.List[str]

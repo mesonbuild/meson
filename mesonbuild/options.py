@@ -38,6 +38,7 @@ if T.TYPE_CHECKING:
 
     from .envconfig import MachineInfo
     from .interpreterbase import SubProject
+    from .compilers.compilers import Language
 
     DeprecatedType: TypeAlias = T.Union[bool, str, T.Dict[str, str], T.List[str]]
     AnyOptionType: TypeAlias = T.Union[
@@ -934,7 +935,7 @@ class OptionStore:
         if pval is not None:
             self.set_option(key, pval)
 
-    def add_compiler_option(self, language: str, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
+    def add_compiler_option(self, language: Language, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
         if not key.name.startswith(language + '_'):
             raise MesonException(f'Internal error: all compiler option names must start with language prefix. ({key.name} vs {language}_)')

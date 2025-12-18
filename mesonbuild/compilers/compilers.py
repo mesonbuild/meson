@@ -24,6 +24,8 @@ from ..options import OptionKey
 from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Literal, TypeAlias
+
     from .. import coredata
     from ..build import BuildTarget, DFeatures
     from ..options import MutableKeyedOptionDictType
@@ -34,7 +36,12 @@ if T.TYPE_CHECKING:
     from ..mesonlib import MachineChoice
     from ..dependencies import Dependency
 
-    CompilerType = T.TypeVar('CompilerType', bound='Compiler')
+    # See the comment on `lang_suffixes` if modifying this list.
+    Language = Literal[
+        'c', 'cpp', 'cuda', 'fortran', 'd', 'objc', 'objcpp', 'rust', 'vala',
+        'cs', 'swift', 'java', 'cython', 'nasm', 'masm', 'linearasm'
+    ]
+    CompilerDict: TypeAlias = T.Dict[Language, 'Compiler']
 
 _T = T.TypeVar('_T')
 
@@ -49,7 +56,10 @@ lib_suffixes = {'a', 'lib', 'dll', 'dll.a', 'dylib', 'so', 'js'}
 # Mapping of language to suffixes of files that should always be in that language
 # This means we can't include .h headers here since they could be C, C++, ObjC, etc.
 # First suffix is the language's default.
-lang_suffixes: T.Mapping[str, T.Tuple[str, ...]] = {
+
+# Don't forget to update the Language if adding new keys, as well as
+# docs/yaml/functions/project.yaml
+lang_suffixes: T.Mapping[Language, T.Tuple[str, ...]] = {
     'c': ('c',),
     'cpp': ('cpp', 'cppm', 'cc', 'cp', 'cxx', 'c++', 'hh', 'hp', 'hpp', 'ipp', 'hxx', 'h++', 'ino', 'ixx', 'CPP', 'C', 'HPP', 'H'),
     'cuda': ('cu',),
@@ -73,7 +83,7 @@ lang_suffixes: T.Mapping[str, T.Tuple[str, ...]] = {
 compiler_suffixes: T.Mapping[str, T.Tuple[str, ...]] = {
     'msvc': ('c', 'cxx', 'cpp', 'obj', 'lib', 'def'),
 }
-all_languages = lang_suffixes.keys()
+all_languages: mesonlib.OrderedSet[Language] = mesonlib.OrderedSet(sorted(lang_suffixes))
 c_cpp_suffixes = {'h'}
 cpp_suffixes = set(lang_suffixes['cpp']) | c_cpp_suffixes
 c_suffixes = set(lang_suffixes['c']) | c_cpp_suffixes
@@ -472,7 +482,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     LINKER_PREFIX: T.Union[None, str, T.List[str]] = None
     INVOKES_LINKER = True
 
-    language: str
+    language: Language
     id: str
     warn_args: T.Dict[str, T.List[str]]
     mode = 'COMPILER'
@@ -546,7 +556,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             details += ['"%s"' % (self.full_version)]
         return '(%s)' % (' '.join(details))
 
-    def get_language(self) -> str:
+    def get_language(self) -> Language:
         return self.language
 
     @classmethod
