@@ -701,7 +701,7 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         cls = CudaCompiler
         env.add_lang_args(cls.language, cls, for_machine)
         key = OptionKey('cuda_link_args', machine=for_machine)
-        if env.is_cross_build(for_machine):
+        if not env.is_cross_build(for_machine):
             key = key.as_host()
         if key in env.options:
             # To fix LDFLAGS issue
