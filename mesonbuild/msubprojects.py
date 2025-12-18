@@ -18,7 +18,8 @@ from . import mlog
 from .ast import IntrospectionInterpreter
 from .mesonlib import quiet_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
 from .wrap.wrap import (Resolver, WrapException, ALL_TYPES,
-                        parse_patch_url, update_wrap_file, get_releases)
+                        parse_patch_url, update_wrap_file, get_releases,
+                        warn_if_deprecated)
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
@@ -154,6 +155,7 @@ class Runner:
         if not info:
             self.log('  -> Wrap not found in wrapdb')
             return True
+        warn_if_deprecated(self.wrap.name, info)
 
         # Determine current version
         try:
