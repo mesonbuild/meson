@@ -8,7 +8,12 @@ if meson.backend() != 'ninja'
   error('MESON_SKIP_TEST: Ninja backend required')
 endif
 
-py = import('python').find_installation(pure: false, required: true)
+py = import('python').find_installation()
+py_dep = py.dependency(required: false)
+
+if not py_dep.found()
+  error('MESON_SKIP_TEST: Python library not found.')
+endif
 
 metric = py.extension_module(
   'metric',
