@@ -26,6 +26,8 @@ from ..mesonlib import MachineChoice
 from ..options import OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
+_T = T.TypeVar('_T')
+
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict, NotRequired
 
@@ -43,6 +45,7 @@ if T.TYPE_CHECKING:
         pure: T.Optional[bool]
         subdir: str
         install_tag: T.Optional[str]
+        preserve_path: bool
 
     class FindInstallationKw(ExtractRequired):
 
@@ -118,12 +121,16 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         assert isinstance(prefix, str), 'for mypy'
 
         if python.build_config:
-            self.version = python.build_config['language']['version']
-            self.platform = python.build_config['platform']
-            self.suffix = python.build_config['abi']['extension_suffix']
-            self.limited_api_suffix = python.build_config['abi']['stable_abi_suffix']
-            self.link_libpython = python.build_config['libpython']['link_extensions']
-            self.is_pypy = python.build_config['implementation']['name'] == 'pypy'
+            def as_(obj: object, type_: T.Type[_T]) -> _T:
+                assert isinstance(obj, type_), 'for mypy'
+                return obj
+
+            self.version = as_(python.build_config['language']['version'], str)
+            self.platform = as_(python.build_config['platform'], str)
+            self.suffix = as_(python.build_config['abi']['extension_suffix'], str)
+            self.limited_api_suffix = as_(python.build_config['abi']['stable_abi_suffix'], str)
+            self.link_libpython = as_(python.build_config['libpython']['link_extensions'], bool)
+            self.is_pypy = as_(python.build_config['implementation']['name'], str) == 'pypy'
         else:
             self.version = info['version']
             self.platform = info['platform']
@@ -268,6 +275,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
             return dep
 
         build_config = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.build_config'))
+        assert isinstance(build_config, str), 'for mypy'
 
         new_kwargs = kwargs.copy()
         new_kwargs['required'] = False
@@ -402,7 +410,7 @@ class PythonModule(ExtensionModule):
 
     def _get_install_scripts(self) -> T.List[mesonlib.ExecutableSerialisation]:
         backend = self.interpreter.backend
-        ret = []
+        ret: T.List[mesonlib.ExecutableSerialisation] = []
         optlevel = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.bytecompile'))
         if optlevel == -1:
             return ret
@@ -412,7 +420,7 @@ class PythonModule(ExtensionModule):
         installdata = backend.create_install_data()
         py_files = []
 
-        def should_append(f, isdir: bool = False):
+        def should_append(f: str, isdir: bool = False) -> bool:
             # This uses the install_plan decorated names to see if the original source was propagated via
             # install_sources() or get_install_dir().
             return f.startswith(('{py_platlib}', '{py_purelib}')) and (f.endswith('.py') or isdir)
@@ -434,7 +442,6 @@ class PythonModule(ExtensionModule):
 
         for i in self.installations.values():
             if isinstance(i, PythonExternalProgram) and i.run_bytecompile[i.info['version']]:
-                i = T.cast('PythonExternalProgram', i)
                 manifest = f'python-{i.info["version"]}-installed.json'
                 manifest_json = []
                 for name, f in py_files:
@@ -471,6 +478,7 @@ class PythonModule(ExtensionModule):
 
     def _find_installation_impl(self, state: 'ModuleState', display_name: str, name_or_path: str, required: bool) -> MaybePythonProg:
         build_config = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.build_config'))
+        assert isinstance(build_config, str), 'for mypy'
 
         if not name_or_path:
             python = PythonExternalProgram('python3', mesonlib.python_command, build_config_path=build_config)
