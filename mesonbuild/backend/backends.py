@@ -956,7 +956,7 @@ class Backend:
         commands += compiler.get_debug_args(debug)
 
         # Add compile args added using add_project_arguments()
-        commands += self.build.get_project_args(compiler, target.subproject, target.for_machine)
+        commands += self.build.get_project_args(compiler, target)
         # Add compile args added using add_global_arguments()
         # These override per-project arguments
         commands += self.build.get_global_args(compiler, target.for_machine)
