@@ -68,6 +68,7 @@ if T.TYPE_CHECKING:
         silent: bool
         tools: T.List[str]
         version_arg: str
+        build_config: str
 
     _MissingCompilerBase = Compiler
 else:
