@@ -1741,7 +1741,7 @@ class XCodeBackend(backends.Backend):
                 std_args = compiler.get_option_compile_args(target, target.subproject)
                 std_args += compiler.get_option_std_args(target, target.subproject)
                 # Add compile args added using add_project_arguments()
-                pargs = self.build.projects_args[target.for_machine].get(target.subproject, {}).get(lang, [])
+                pargs = self.build.get_project_args(compiler, target.subproject, target.for_machine)
                 # Add compile args added using add_global_arguments()
                 # These override per-project arguments
                 gargs = self.build.global_args[target.for_machine].get(lang, [])

@@ -1034,9 +1034,10 @@ class Vs2010Backend(backends.Backend):
                     target, target.subproject)
 
         # Add compile args added using add_project_arguments()
-        for l, args in self.build.projects_args[target.for_machine].get(target.subproject, {}).items():
-            if l in file_args:
-                file_args[l] += args
+        for l, comp in target.compilers.items():
+            file_args[l] += self.build.get_project_args(
+                comp, target.subproject, target.for_machine)
+
         # Add compile args added using add_global_arguments()
         # These override per-project arguments
         for l, args in self.build.global_args[target.for_machine].items():
