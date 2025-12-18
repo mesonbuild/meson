@@ -327,6 +327,14 @@ class DepManifest:
         }
 
 
+@dataclass(eq=False)
+class BuildProject:
+    name: str
+    version: str
+    project_args: PerMachine[T.Dict[str, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
+    project_link_args: PerMachine[T.Dict[str, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
+
+
 # literally everything isn't dataclass stuff
 class Build:
     """A class that holds the status of one build including
@@ -339,13 +347,11 @@ class Build:
         self.project_name = 'name of master project'
         self.project_version: T.Optional[str] = None
         self.environment = environment
-        self.projects: T.Dict[SubProject, str] = {}
+        self.projects: T.Dict[SubProject, BuildProject] = {}
         self.targets: 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]' = OrderedDict()
         self.targetnames: T.Set[T.Tuple[str, str]] = set() # Set of executable names and their subdir
         self.global_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
         self.global_link_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
-        self.projects_args: PerMachine[T.Dict[str, T.Dict[str, T.List[str]]]] = PerMachine({}, {})
-        self.projects_link_args: PerMachine[T.Dict[str, T.Dict[str, T.List[str]]]] = PerMachine({}, {})
         self.tests: T.List['Test'] = []
         self.benchmarks: T.List['Test'] = []
         self.headers: T.List[Headers] = []
@@ -354,7 +360,6 @@ class Build:
         self.data: T.List[Data] = []
         self.symlinks: T.List[SymlinkData] = []
         self.static_linker: PerMachine[T.Optional[StaticLinker]] = PerMachine(None, None)
-        self.subprojects: T.Dict[SubProject, str] = {}
         self.subproject_dir = ''
         self.install_scripts: T.List['ExecutableSerialisation'] = []
         self.postconf_scripts: T.List['ExecutableSerialisation'] = []
@@ -442,7 +447,7 @@ class Build:
                 self.static_linker[MachineChoice.BUILD] = self.static_linker[MachineChoice.HOST]
 
     def get_project(self) -> str:
-        return self.projects[SubProject('')]
+        return self.projects[SubProject('')].name
 
     def get_subproject_dir(self):
         return self.subproject_dir
@@ -479,8 +484,7 @@ class Build:
         return d.get(compiler.get_language(), [])
 
     def get_project_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
-        d = self.projects_args[target.for_machine]
-        args = d.get(target.subproject)
+        args = self.projects[target.subproject].project_args[target.for_machine]
         if not args:
             return []
         return args.get(compiler.get_language(), [])
@@ -490,9 +494,7 @@ class Build:
         return d.get(compiler.get_language(), [])
 
     def get_project_link_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
-        d = self.projects_link_args[target.for_machine]
-
-        link_args = d.get(target.subproject)
+        link_args = self.projects[target.subproject].project_link_args[target.for_machine]
         if not link_args:
             return []
 

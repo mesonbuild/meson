@@ -22,7 +22,7 @@ import typing as T
 from . import build, environment, mesonlib, options, coredata as cdata
 from .ast import IntrospectionInterpreter, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
 from .backend import backends
-from .interpreterbase import SubProject, UnknownValue
+from .interpreterbase import UnknownValue
 from .options import OptionKey
 
 if T.TYPE_CHECKING:
@@ -457,12 +457,13 @@ def list_projinfo(builddata: build.Build) -> T.Dict[str, T.Union[str, T.List[str
         'subproject_dir': builddata.subproject_dir,
     }
     subprojects = []
-    for k, v in builddata.subprojects.items():
-        subp = SubProject(k)
+    for k, build_proj in builddata.projects.items():
+        if not k:
+            continue
         c: T.Dict[str, str] = {
             'name': k,
-            'version': v,
-            'descriptive_name': builddata.projects.get(subp),
+            'version': build_proj.version,
+            'descriptive_name': build_proj.name,
         }
         subprojects.append(c)
     result['subprojects'] = subprojects
