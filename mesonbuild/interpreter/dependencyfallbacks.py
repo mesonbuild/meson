@@ -22,6 +22,7 @@ if T.TYPE_CHECKING:
     from ..dependencies.base import DependencyObjectKWs
     from ..options import ElementaryOptionValues, OptionDict
     from .interpreterobjects import SubprojectHolder
+    from ..mesonlib import MachineChoice
 
     CandidateType: TypeAlias = T.Tuple[T.Callable[[DependencyObjectKWs, str, DoSubproject], T.Optional[Dependency]], str]
 
@@ -29,13 +30,13 @@ if T.TYPE_CHECKING:
 class DependencyFallbacksHolder(MesonInterpreterObject):
     def __init__(self,
                  interpreter: 'Interpreter',
-                 names: T.List[str],
+                 names: T.List[str], for_machine: MachineChoice,
                  allow_fallback: T.Optional[bool] = None,
                  default_options: T.Optional[T.Dict[OptionKey, ElementaryOptionValues]] = None) -> None:
         super().__init__(subproject=interpreter.subproject)
         self.interpreter = interpreter
         self.subproject = interpreter.subproject
-        self.for_machine = MachineChoice.HOST
+        self.for_machine = for_machine
         self.coredata = interpreter.coredata
         self.build = interpreter.build
         self.environment = interpreter.environment
@@ -97,9 +98,8 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         self._handle_featurenew_dependencies(name)
         dep = dependencies.find_external_dependency(name, self.environment, kwargs)
         if dep.found():
-            for_machine = kwargs['native']
             identifier = dependencies.get_dep_identifier(name, kwargs)
-            self.coredata.deps[for_machine].put(identifier, dep)
+            self.coredata.deps[self.for_machine].put(identifier, dep)
             return dep
         return None
 
@@ -217,12 +217,11 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         # of None in the case the dependency is cached as not-found, or if cached
         # version does not match. In that case we don't want to continue with
         # other candidates.
-        for_machine = kwargs['native']
         identifier = dependencies.get_dep_identifier(name, kwargs)
         wanted_vers = stringlistify(kwargs.get('version', []))
 
         info: mlog.TV_LoggableList = [mlog.blue('(cached)')]
-        override = self.build.dependency_overrides[for_machine].get(identifier)
+        override = self.build.dependency_overrides[self.for_machine].get(identifier)
         if override:
             if override.explicit:
                 info = [mlog.blue('(overridden)')]
@@ -236,7 +235,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         elif self.forcefallback and self.subproject_name:
             cached_dep = None
         else:
-            cached_dep = self.coredata.deps[for_machine].get(identifier)
+            cached_dep = self.coredata.deps[self.for_machine].get(identifier)
 
         if cached_dep:
             found_vers = cached_dep.get_version()
@@ -372,10 +371,9 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                 # Override this dependency to have consistent results in subsequent
                 # dependency lookups.
                 for name in self.names:
-                    for_machine = kwargs['native']
                     identifier = dependencies.get_dep_identifier(name, kwargs)
-                    if identifier not in self.build.dependency_overrides[for_machine]:
-                        self.build.dependency_overrides[for_machine][identifier] = \
+                    if identifier not in self.build.dependency_overrides[self.for_machine]:
+                        self.build.dependency_overrides[self.for_machine][identifier] = \
                             build.DependencyOverride(dep, self.interpreter.current_node, explicit=False)
                 return dep
             elif required and (dep or i == last):
