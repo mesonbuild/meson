@@ -1200,7 +1200,8 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
         'generator.process',
         KwargInfo('preserve_path_from', (str, NoneType), since='0.45.0'),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
-        ENV_KW.evolve(since='1.3.0')
+        ENV_KW.evolve(since='1.3.0'),
+        KwargInfo('depends', ContainerTypeInfo(list, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)), listify=True, default=[], since='1.12.0'),
     )
     @InterpreterObject.method('process')
     def process_method(self,
@@ -1219,7 +1220,8 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
                 '0.57.0', self.interpreter.subproject)
 
         gl = self.held_object.process_files(args[0], self.interpreter.subdir,
-                                            preserve_path_from, extra_args=kwargs['extra_args'], env=kwargs['env'])
+                                            preserve_path_from, extra_args=kwargs['extra_args'], env=kwargs['env'],
+                                            extra_depends=kwargs['depends'])
 
         return gl
 
