@@ -568,7 +568,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     FeatureNew.single_use('stdlib without variable name', '0.56.0', self.subproject, location=self.current_node)
                 kwargs: dependencies.base.DependencyObjectKWs = {'native': for_machine}
                 name = l + '_stdlib'
-                df = DependencyFallbacksHolder(self, [name])
+                df = DependencyFallbacksHolder(self, [name], for_machine)
                 df.set_fallback(di)
                 dep = df.lookup(kwargs, force_fallback=True)
                 self.build.stdlibs[for_machine][l] = dep
@@ -1765,7 +1765,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             FeatureNew('dependency with more than one name', '0.60.0').use(self.subproject)
         default_options = kwargs.get('default_options')
         for_machine = kwargs['native']
-        df = DependencyFallbacksHolder(self, names, kwargs['allow_fallback'], default_options)
+        df = DependencyFallbacksHolder(self, names, for_machine, kwargs['allow_fallback'], default_options)
         df.set_fallback(kwargs['fallback'])
         not_found_message = kwargs['not_found_message']
 
