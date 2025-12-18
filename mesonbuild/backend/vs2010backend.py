@@ -186,6 +186,10 @@ class Vs2010Backend(backends.Backend):
                     sole_output = ''
                 infilename = os.path.join(down, curfile.rel_to_builddir(self.build_to_src, target_private_dir))
                 deps = self.get_target_depend_files(genlist, True)
+                for d in genlist.extra_depends:
+                    # Add a dependency on all the outputs of this target
+                    for output in d.get_outputs():
+                        deps.append(os.path.join(self.get_target_dir(d), output))
                 base_args = generator.get_arglist(infilename)
                 outfiles_rel = genlist.get_outputs_for(curfile)
                 outfiles = [os.path.join(target_private_dir, of) for of in outfiles_rel]
