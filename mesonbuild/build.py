@@ -272,6 +272,7 @@ class Man(HoldableObject):
     custom_install_mode: 'FileMode'
     subproject: str
     locale: T.Optional[str]
+    install_tag: T.Optional[str] = None
 
     def get_custom_install_dir(self) -> T.Optional[str]:
         return self.custom_install_dir
