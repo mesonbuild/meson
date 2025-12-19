@@ -85,3 +85,11 @@ kwargs:
     description: |
       If true, dereferences links and copies their target instead.  The default
       value will become false in the future.
+
+  install_tag:
+    type: str
+    since: 1.11.0
+    description: |
+      A string used by the `meson install --tags` command
+      to install only a subset of the files. By default these files have the `devel`
+      install tag which means they are installed explicitly or when no tags given at all.
