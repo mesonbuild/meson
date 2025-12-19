@@ -157,7 +157,7 @@ def main() -> int:
         print('Running mypy (this can take some time) ...')
 
     if opts.allver:
-        versions = ['default'] + [f'3.{minor}' for minor in range(7, sys.version_info[1])]
+        versions = ['default'] + [f'3.{minor}' for minor in range(10, sys.version_info[1])]
     else:
         versions = ['default']
 
