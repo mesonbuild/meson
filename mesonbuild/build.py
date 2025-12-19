@@ -780,11 +780,8 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
 
     @lazy_property
     def id(self) -> str:
-        name = self.name
-        if getattr(self, 'name_suffix_set', False):
-            name += '.' + self.suffix
         return self.construct_id_from_path(
-            self.builddir, name, self.type_suffix())
+            self.builddir, self.name, self.type_suffix())
 
     def get_id(self) -> str:
         return self.id
@@ -900,6 +897,14 @@ class BuildTarget(Target):
         self.check_unknown_kwargs(kwargs)
         self.validate_install()
         self.check_module_linking()
+
+    @lazy_property
+    def id(self) -> str:
+        name = self.name
+        if self.name_suffix_set:
+            name += '.' + self.suffix
+        return self.construct_id_from_path(
+            self.builddir, name, self.type_suffix())
 
     def _set_vala_args(self, kwargs: BuildTargetKeywordArguments) -> None:
         if self.uses_vala():
