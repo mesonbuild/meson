@@ -2372,6 +2372,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('locale', (str, NoneType), since='0.58.0'),
         INSTALL_MODE_KW.evolve(since='0.47.0'),
         INSTALL_DIR_KW,
+        INSTALL_TAG_KW.evolve(since='1.11.0')
     )
     def func_install_man(self, node: mparser.BaseNode,
                          args: T.Tuple[T.List['mesonlib.FileOrString']],
@@ -2389,7 +2390,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InvalidArguments('Man file must have a file extension of a number between 1 and 9')
 
         m = build.Man(sources, kwargs['install_dir'], install_mode,
-                      self.subproject, kwargs['locale'])
+                      self.subproject, kwargs['locale'], kwargs['install_tag'])
         self.build.man.append(m)
 
         return m
