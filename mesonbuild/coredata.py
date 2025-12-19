@@ -354,7 +354,7 @@ class CoreData:
         if self.is_cross_build():
             newkey = newkey.evolve(machine=target.for_machine)
         option_object, value = self.optstore.get_option_and_value_for(newkey)
-        override = target.get_override(newkey.name)
+        override = target.get_override(newkey)
         if override is not None:
             return option_object.validate_value(override)
         return value

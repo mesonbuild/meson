@@ -750,9 +750,6 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def get_id(self) -> str:
         return self.id
 
-    def get_override(self, name: str) -> T.Optional[str]:
-        return self.raw_overrides.get(name, None)
-
     def is_linkable_target(self) -> bool:
         return False
 
@@ -1102,10 +1099,11 @@ class BuildTarget(Target):
             # because this object is currently being constructed so it is not
             # yet placed in the data store. Grab it directly from override strings
             # instead.
-            value = self.get_override('cython_language')
+            key = OptionKey('cython_language', machine=self.for_machine)
+            value = self.get_override(key)
             if value is None:
-                key = OptionKey('cython_language', machine=self.for_machine)
                 value = self.environment.coredata.optstore.get_value_for(key)
+                assert isinstance(value, str), 'for mypy'
             try:
                 self.compilers[value] = self.all_compilers[value]
             except KeyError:
@@ -1259,6 +1257,9 @@ class BuildTarget(Target):
 
     def get_custom_install_mode(self) -> T.Optional['FileMode']:
         return self.install_mode
+
+    def get_override(self, name: OptionKey) -> T.Optional[str]:
+        return self.raw_overrides.get(name, None)
 
     def process_kwargs(self, kwargs: BuildTargetKeywordArguments) -> None:
         self.original_kwargs = kwargs
