@@ -29,10 +29,8 @@ class DataFile:
             if isinstance(resource, Path):
                 return resource
         except AttributeError:
-            # fall through to python 3.7 compatible code
-            pass
-
-        out_file = Path(env.scratch_dir) / 'data' / self.path.name
-        out_file.parent.mkdir(exist_ok=True)
-        self.write_once(out_file)
-        return out_file
+            # fall through to zipapp compatible code
+            out_file = Path(env.scratch_dir) / 'data' / self.path.name
+            out_file.parent.mkdir(exist_ok=True)
+            self.write_once(out_file)
+            return out_file

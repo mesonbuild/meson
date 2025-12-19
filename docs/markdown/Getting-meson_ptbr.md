@@ -1,6 +1,6 @@
 # Obtendo o Meson
 
-Meson é implementado em Python 3, e requer a versão 3.7 ou mais nova.
+Meson é implementado em Python 3, e requer a versão 3.10 ou mais nova.
 se o seu sistema operacional provê um gerenciador de pacotes, você deve
 instalar o Meson com ele. Para plataformas que não tem um gerenciador de
 pacotes, você precisa baixa-lo da [página inicial do Python]. Veja abaixo
@@ -14,7 +14,7 @@ do git sem fazer nada de especial.
 
 No Windows, se você não instalar o Python com a opção do instalador que fazem
 os *scripts* Python executáveis, você vai ter que executar `python
-/path/to/meson.py`, onde `python` é o Python 3.7 ou mais novo.
+/path/to/meson.py`, onde `python` é o Python 3.10 ou mais novo.
 
 O código de desenvolvimento mais recente pode ser obtido diretamente do [Git],
 e nós lutamos para garatir que ele vai estar sempre funcionando e usável. Todos
