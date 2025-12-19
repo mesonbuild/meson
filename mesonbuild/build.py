@@ -219,7 +219,7 @@ def _process_install_tag(install_tag: T.Optional[T.List[T.Optional[str]]],
 
 
 @lru_cache(maxsize=None)
-def get_target_macos_dylib_install_name(ld) -> str:
+def get_target_macos_dylib_install_name(ld: SharedLibrary) -> str:
     name = ['@rpath/', ld.prefix, ld.name]
     if ld.soversion is not None:
         name.append('.' + ld.soversion)
@@ -361,7 +361,7 @@ class Build:
         self.install_dirs: T.List[InstallDir] = []
         self.dep_manifest_name: T.Optional[str] = None
         self.dep_manifest: T.Dict[str, DepManifest] = {}
-        self.stdlibs = PerMachine({}, {})
+        self.stdlibs: PerMachine[T.Dict[str, dependencies.Dependency]] = PerMachine({}, {})
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
         self.find_overrides: T.Dict[str, T.Union['OverrideExecutable', programs.ExternalProgram, programs.OverrideProgram]] = {}
@@ -800,7 +800,7 @@ class BuildTarget(Target):
         self.link_whole_targets: T.List[StaticTargetTypes] = []
         self.depend_files: T.List[File] = []
         self.link_depends: T.List[T.Union[File, BuildTargetTypes]] = []
-        self.added_deps = set()
+        self.added_deps: T.Set[dependencies.Dependency] = set()
         self.name_prefix_set = False
         self.name_suffix_set = False
         self.filename = 'no_name'
@@ -899,14 +899,14 @@ class BuildTarget(Target):
                 self.outputs.append(self.vala_gir)
                 self.install_tag.append('devel')
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.filename)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name}"
 
-    def validate_install(self):
+    def validate_install(self) -> None:
         if self.for_machine is MachineChoice.BUILD and self.install:
             if self.environment.is_cross_build():
                 raise InvalidArguments('Tried to install a target for the build machine in a cross build.')
@@ -928,7 +928,7 @@ class BuildTarget(Target):
         if len(unknowns) > 0:
             mlog.warning('Unknown keyword argument(s) in target {}: {}.'.format(self.name, ', '.join(unknowns)))
 
-    def process_objectlist(self, objects):
+    def process_objectlist(self, objects: T.List[ObjectTypes]) -> None:
         assert isinstance(objects, list)
         deprecated_non_objects = []
         for s in objects:
@@ -1112,7 +1112,7 @@ class BuildTarget(Target):
 
         return missing_languages
 
-    def validate_sources(self):
+    def validate_sources(self) -> None:
         if len(self.compilers) > 1 and any(lang in self.compilers for lang in ['cs', 'java']):
             langs = ', '.join(self.compilers.keys())
             raise InvalidArguments(f'Cannot mix those languages into a target: {langs}')
@@ -1664,7 +1664,7 @@ class BuildTarget(Target):
         # Mixing many languages with MSVC is not supported yet so ignore stdlibs.
         return compiler and compiler.get_linker_id() in {'link', 'lld-link', 'xilink', 'optlink'}
 
-    def check_module_linking(self):
+    def check_module_linking(self) -> None:
         '''
         Warn if shared modules are linked with target: (link_with) #2865
         '''
@@ -2151,11 +2151,11 @@ class Executable(BuildTarget):
     def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
         return self.environment.get_bindir(), '{bindir}'
 
-    def description(self):
+    def description(self) -> str:
         '''Human friendly description of the executable'''
         return self.name
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@exe"
 
     def get_import_filename(self) -> T.Optional[str]:
@@ -2298,7 +2298,7 @@ class StaticLibrary(BuildTarget):
     def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
         return self.environment.get_static_lib_dir(), '{libdir_static}'
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@rlib" if self.uses_rust_abi() else "@sta"
 
     def is_linkable_target(self) -> bool:
@@ -2543,7 +2543,7 @@ class SharedLibrary(BuildTarget):
                 filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         return (prefix, suffix, filename_tpl, import_filename_tpl, create_debug_file)
 
-    def determine_filenames(self):
+    def determine_filenames(self) -> None:
         """
         See https://github.com/mesonbuild/meson/pull/417 for details.
 
@@ -2653,7 +2653,7 @@ class SharedLibrary(BuildTarget):
         aliases.append((self.basic_filename_tpl.format(self), ltversion_filename, tag))
         return aliases
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@sha"
 
     def is_linkable_target(self) -> bool:
@@ -2926,7 +2926,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                 bdeps.update(d.get_transitive_build_target_deps())
         return bdeps
 
-    def get_dependencies(self):
+    def get_dependencies(self) -> T.List[T.Union[CustomTarget, coredata.BuildTarget]]:
         return self.dependencies
 
     def should_install(self) -> bool:
@@ -2998,7 +2998,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
     def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
         return OrderedSet()
 
-    def get_all_link_deps(self):
+    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return []
 
     def is_internal(self) -> bool:
@@ -3012,7 +3012,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
     def extract_all_objects(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
         return self.get_outputs()
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@cus"
 
     def __getitem__(self, index: int) -> 'CustomTargetIndex':
@@ -3149,7 +3149,7 @@ class AliasTarget(RunTarget):
                  subdir: str, subproject: str, environment: Environment):
         super().__init__(name, [], dependencies, subdir, subproject, environment)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0} {1}>"
         return repr_str.format(self.__class__.__name__, self.get_id())
 
@@ -3185,17 +3185,17 @@ class Jar(BuildTarget):
     def type_suffix(self) -> str:
         return "@jar"
 
-    def get_java_args(self):
+    def get_java_args(self) -> T.List[str]:
         return self.java_args
 
     def get_java_resources(self) -> T.Optional[StructuredSources]:
         return self.java_resources
 
-    def validate_install(self):
+    def validate_install(self) -> None:
         # All jar targets are installable.
         pass
 
-    def is_linkable_target(self):
+    def is_linkable_target(self) -> bool:
         return True
 
     def get_classpath_args(self) -> T.List[str]:
@@ -3258,7 +3258,7 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     def get_id(self) -> str:
         return self.target.get_id()
 
-    def get_all_link_deps(self):
+    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return self.target.get_all_link_deps()
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
