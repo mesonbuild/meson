@@ -473,7 +473,7 @@ LINK_WHOLE_KW: KwargInfo[T.List[T.Union[BothLibraries, StaticLibrary, CustomTarg
     listify=True,
     default=[],
     validator=link_whole_validator,
-    extra_types={Dependency: lambda _: _LINK_WITH_ERROR}
+    extra_types={Dependency: lambda _: _LINK_WITH_ERROR},
 )
 
 DEPENDENCY_SOURCES_KW: KwargInfo[T.List[T.Union[str, File, GeneratedTypes]]] = KwargInfo(
@@ -748,8 +748,12 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     DEPENDENCIES_KW,
     INCLUDE_DIRECTORIES.evolve(name='d_import_dirs'),
     LINK_ARGS_KW,
-    LINK_WHOLE_KW,
-    LINK_WITH_KW,
+    LINK_WHOLE_KW.evolve(
+        as_default=[('', ('1.11.0', "Replace an empty string with an empty array: `link_whole : ''` -> `link_whole : []`"))],
+    ),
+    LINK_WITH_KW.evolve(
+        as_default=[('', ('1.11.0', "Replace an empty string with an empty array: `link_with : ''` -> `link_with : []`"))],
+    ),
     _NAME_PREFIX_KW,
     _NAME_PREFIX_KW.evolve(name='name_suffix', validator=_name_suffix_validator),
     RUST_CRATE_TYPE_KW,
