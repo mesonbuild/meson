@@ -473,7 +473,7 @@ LINK_WHOLE_KW: KwargInfo[T.List[T.Union[BothLibraries, StaticLibrary, CustomTarg
     listify=True,
     default=[],
     validator=link_whole_validator,
-    extra_types={Dependency: lambda _: _LINK_WITH_ERROR}
+    extra_types={Dependency: lambda _: _LINK_WITH_ERROR},
 )
 
 DEPENDENCY_SOURCES_KW: KwargInfo[T.List[T.Union[str, File, GeneratedTypes]]] = KwargInfo(
@@ -730,6 +730,15 @@ _PCH_ARGS: KwargInfo[T.List[str]] = KwargInfo(
 )
 
 
+LINK_ARGS_KW: KwargInfo[T.List[str]] = KwargInfo(
+    'link_args',
+    ContainerTypeInfo(list, str),
+    default=[],
+    listify=True,
+    as_default=[('', ('1.10.1', "Replace an empty string with an empty array: `link_args : ''` -> `link_args : []`"))],
+)
+
+
 # Applies to all build_target classes except jar
 _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     *_ALL_TARGET_KWS,
@@ -738,8 +747,13 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     INCLUDE_DIRECTORIES.evolve(since_values={ContainerTypeInfo(list, str): '0.50.0'}),
     DEPENDENCIES_KW,
     INCLUDE_DIRECTORIES.evolve(name='d_import_dirs'),
-    LINK_WHOLE_KW,
-    LINK_WITH_KW,
+    LINK_ARGS_KW,
+    LINK_WHOLE_KW.evolve(
+        as_default=[('', ('1.11.0', "Replace an empty string with an empty array: `link_whole : ''` -> `link_whole : []`"))],
+    ),
+    LINK_WITH_KW.evolve(
+        as_default=[('', ('1.11.0', "Replace an empty string with an empty array: `link_with : ''` -> `link_with : []`"))],
+    ),
     _NAME_PREFIX_KW,
     _NAME_PREFIX_KW.evolve(name='name_suffix', validator=_name_suffix_validator),
     RUST_CRATE_TYPE_KW,
@@ -765,12 +779,6 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
         since='0.48.0',
     ),
     KwargInfo('install_rpath', str, default=''),
-    KwargInfo(
-        'link_args',
-        ContainerTypeInfo(list, str),
-        default=[],
-        listify=True,
-    ),
     KwargInfo(
         'link_depends',
         ContainerTypeInfo(list, (str, File, CustomTarget, CustomTargetIndex, BuildTarget)),

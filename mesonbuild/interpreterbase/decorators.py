@@ -357,6 +357,7 @@ class KwargInfo(T.Generic[_T]):
         A mapping of types to a callable that is passed that type and returns an
         error message. These types are specifically *not* added to the general
         error message
+    :param as_default: Extra values to treat as empty values. These are always considered to be broken.
     """
     def __init__(self, name: str,
                  types: T.Union[T.Type[_T], T.Tuple[T.Union[T.Type[_T], ContainerTypeInfo], ...], ContainerTypeInfo],
@@ -372,7 +373,8 @@ class KwargInfo(T.Generic[_T]):
                  validator: T.Optional[T.Callable[[T.Any], T.Optional[str]]] = None,
                  convertor: T.Optional[T.Callable[[_T], object]] = None,
                  not_set_warning: T.Optional[str] = None,
-                 extra_types: T.Optional[T.Mapping[T.Type, T.Callable[[object], str]]] = None):
+                 extra_types: T.Optional[T.Mapping[T.Type, T.Callable[[object], str]]] = None,
+                 as_default: T.Optional[T.List[T.Tuple[object, T.Union[str, T.Tuple[str, str]]]]] = None):
         self.name = name
         self.types = types
         self.required = required
@@ -389,6 +391,7 @@ class KwargInfo(T.Generic[_T]):
         self.convertor = convertor
         self.not_set_warning = not_set_warning
         self.extra_types = extra_types if extra_types is not None else {}
+        self.as_default = as_default
 
     def evolve(self, *,
                name: T.Union[str, _NULL_T] = _NULL,
@@ -405,6 +408,7 @@ class KwargInfo(T.Generic[_T]):
                validator: T.Union[T.Callable[[_T], T.Optional[str]], None, _NULL_T] = _NULL,
                convertor: T.Union[T.Callable[[_T], object], None, _NULL_T] = _NULL,
                extra_types: T.Union[T.Mapping[T.Type, T.Callable[[object], str]], None, _NULL_T] = _NULL,
+               as_default: T.Union[T.List[T.Tuple[object, T.Union[str, T.Tuple[str, str]]]], None, _NULL_T] = _NULL
                ) -> 'KwargInfo':
         """Create a shallow copy of this KwargInfo, with modifications.
 
@@ -433,6 +437,7 @@ class KwargInfo(T.Generic[_T]):
             validator=validator if not isinstance(validator, _NULL_T) else self.validator,
             convertor=convertor if not isinstance(convertor, _NULL_T) else self.convertor,
             extra_types=extra_types if not isinstance(extra_types, _NULL_T) else self.extra_types,
+            as_default=as_default if not isinstance(as_default, _NULL_T) else self.as_default,
         )
 
 
@@ -535,6 +540,15 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                     if info.deprecated:
                         feature_name = info.name + ' arg in ' + name
                         FeatureDeprecated.single_use(feature_name, info.deprecated, subproject, info.deprecated_message, location=node)
+                    if info.as_default:
+                        found = mesonlib.first(info.as_default, lambda x: value == x[0])
+                        if found is not None:
+                            msg = found[1]
+                            extra = ''
+                            if isinstance(msg, tuple):
+                                msg, extra = msg
+                            FeatureBroken.single_use(f"Using '{value}' as an empty value in {info.name}", msg, subproject, extra, node)
+                            value = copy.copy(info.default)
                     if info.listify:
                         kwargs[info.name] = value = mesonlib.listify(value)
                     if not check_value_type(types_tuple, value):
