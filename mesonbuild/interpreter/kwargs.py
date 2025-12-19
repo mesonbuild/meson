@@ -337,6 +337,7 @@ class _BaseBuildTarget(TypedDict):
 
     build_by_default: bool
     build_rpath: str
+    dependencies: T.List[Dependency]
     extra_files: T.List[FileOrString]
     gnu_symbol_visibility: str
     include_directories: T.List[build.IncludeDirs]
@@ -347,6 +348,8 @@ class _BaseBuildTarget(TypedDict):
     implicit_include_directories: bool
     link_depends: T.List[T.Union[str, File, build.GeneratedTypes]]
     link_language: T.Optional[str]
+    link_whole: T.List[build.StaticTargetTypes]
+    link_with: T.List[build.BuildTargetTypes]
     name_prefix: T.Optional[str]
     name_suffix: T.Optional[str]
     native: MachineChoice
@@ -367,6 +370,7 @@ class _BuildTarget(_BaseBuildTarget):
     d_import_dirs: T.List[T.Union[str, build.IncludeDirs]]
     d_module_versions: T.List[T.Union[str, int]]
     d_unittest: bool
+    install_dir: T.List[T.Union[str, bool]]
     rust_crate_type: T.Optional[Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']]
     rust_dependency_map: T.Dict[str, str]
     swift_interoperability_mode: Literal['c', 'cpp']
@@ -490,8 +494,8 @@ class FuncDeclareDependency(TypedDict):
     extra_files: T.List[FileOrString]
     include_directories: T.List[T.Union[build.IncludeDirs, str]]
     link_args: T.List[str]
-    link_whole: T.List[T.Union[build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]]
-    link_with: T.List[build.LibTypes]
+    link_whole: T.List[build.StaticTargetTypes]
+    link_with: T.List[build.BuildTargetTypes]
     objects: T.List[build.ExtractedObjects]
     sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
     variables: T.Dict[str, str]

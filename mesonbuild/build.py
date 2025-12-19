@@ -22,7 +22,7 @@ from . import programs
 from .mesonlib import (
     HoldableObject, SecondLevelHolder,
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
-    extract_as_list, typeslistify, classify_unity_sources,
+    classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
     is_parent_path, relpath, PerMachineDefaultable,
     MesonBugException, EnvironmentVariables, pickle_load, lazy_property,
@@ -52,6 +52,7 @@ if T.TYPE_CHECKING:
     GeneratedTypes: TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
     BuildTargetTypes: TypeAlias = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
+    StaticTargetTypes: TypeAlias = T.Union['StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
     ObjectTypes: TypeAlias = T.Union[str, 'File', 'ExtractedObjects', 'GeneratedTypes']
     AnyTargetType: TypeAlias = T.Union['Target', 'CustomTargetIndex']
     RustCrateType: TypeAlias = Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
@@ -90,7 +91,7 @@ if T.TYPE_CHECKING:
         link_args: T.List[str]
         link_depends: T.List[T.Union[str, File, CustomTarget, CustomTargetIndex]]
         link_language: str
-        link_whole: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]
+        link_whole: T.List[StaticTargetTypes]
         link_with: T.List[BuildTargetTypes]
         name_prefix: T.Optional[str]
         name_suffix: T.Optional[str]
@@ -795,8 +796,8 @@ class BuildTarget(Target):
         self.external_deps: T.List[dependencies.Dependency] = []
         self.include_dirs: T.List['IncludeDirs'] = []
         self.link_language = kwargs.get('link_language')
-        self.link_targets: T.List[LibTypes] = []
-        self.link_whole_targets: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]] = []
+        self.link_targets: T.List[BuildTargetTypes] = []
+        self.link_whole_targets: T.List[StaticTargetTypes] = []
         self.depend_files: T.List[File] = []
         self.link_depends: T.List[T.Union[File, BuildTargetTypes]] = []
         self.added_deps = set()
@@ -1287,12 +1288,10 @@ class BuildTarget(Target):
         # internal deps (added inside self.add_deps()) to override them.
         self.add_include_dirs(kwargs.get('include_directories', []))
         # Add dependencies (which also have include_directories)
-        deplist = extract_as_list(kwargs, 'dependencies')
-        self.add_deps(deplist)
+        self.add_deps(kwargs.get('dependencies', []))
         # If an item in this list is False, the output corresponding to
         # the list index of that item will not be installed
-        self.install_dir = typeslistify(kwargs.get('install_dir', []),
-                                        (str, bool))
+        self.install_dir = kwargs.get('install_dir', [])
         self.install_mode = kwargs.get('install_mode', None)
         self.install_tag: T.List[T.Optional[str]] = kwargs.get('install_tag') or [None]
         self.extra_files = kwargs.get('extra_files', [])
@@ -1419,8 +1418,7 @@ class BuildTarget(Target):
     def get_include_dirs(self) -> T.List['IncludeDirs']:
         return self.include_dirs
 
-    def add_deps(self, deps):
-        deps = listify(deps)
+    def add_deps(self, deps: T.List[dependencies.Dependency]) -> None:
         for dep in deps:
             if dep in self.added_deps:
                 # Prefer to add dependencies to added_deps which have a name
@@ -1448,29 +1446,11 @@ class BuildTarget(Target):
                     self.external_deps.append(extpart)
                 # Deps of deps.
                 self.add_deps(dep.ext_deps)
-            elif isinstance(dep, dependencies.Dependency):
+            else:
                 if dep not in self.external_deps:
                     self.external_deps.append(dep)
                     self.process_sourcelist(dep.get_sources())
                 self.add_deps(dep.ext_deps)
-            elif isinstance(dep, BuildTarget):
-                raise InvalidArguments(f'Tried to use a build target {dep.name} as a dependency of target {self.name}.\n'
-                                       'You probably should put it in link_with instead.')
-            else:
-                # This is a bit of a hack. We do not want Build to know anything
-                # about the interpreter so we can't import it and use isinstance.
-                # This should be reliable enough.
-                if hasattr(dep, 'held_object'):
-                    # FIXME: subproject is not a real ObjectHolder so we have to do this by hand
-                    dep = dep.held_object
-                if hasattr(dep, 'project_args_frozen') or hasattr(dep, 'global_args_frozen'):
-                    raise InvalidArguments('Tried to use subproject object as a dependency.\n'
-                                           'You probably wanted to use a dependency declared in it instead.\n'
-                                           'Access it by calling get_variable() on the subproject object.')
-                raise InvalidArguments(f'Argument is of an unacceptable type {type(dep).__name__!r}.\nMust be '
-                                       'either an external dependency (returned by find_library() or '
-                                       'dependency()) or an internal dependency (returned by '
-                                       'declare_dependency()).')
 
             dep_d_features = dep.d_features
 
@@ -1488,62 +1468,24 @@ class BuildTarget(Target):
 
     def link(self, targets: T.List[BuildTargetTypes]) -> None:
         for t in targets:
-            if not isinstance(t, (Target, CustomTargetIndex)):
-                if isinstance(t, dependencies.ExternalLibrary):
-                    raise MesonException(textwrap.dedent('''\
-                        An external library was used in link_with keyword argument, which
-                        is reserved for libraries built as part of this project. External
-                        libraries must be passed using the dependencies keyword argument
-                        instead, because they are conceptually "external dependencies",
-                        just like those detected with the dependency() function.
-                    '''))
-                raise InvalidArguments(f'{t!r} is not a target.')
-            if not t.is_linkable_target():
-                raise InvalidArguments(f"Link target '{t!s}' is not linkable.")
-            if isinstance(self, StaticLibrary) and self.install and t.is_internal():
-                # When we're a static library and we link_with to an
-                # internal/convenience library, promote to link_whole.
-                self.link_whole([t], promoted=True)
-                continue
-            if isinstance(self, SharedLibrary) and isinstance(t, StaticLibrary) and not t.pic:
-                msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
-                msg += "Use the 'pic' option to static_library to build with PIC."
-                raise InvalidArguments(msg)
             self.check_can_link_together(t)
             self.link_targets.append(t)
 
-    def link_whole(self, targets: T.List[BuildTargetTypes], promoted: bool = False) -> None:
+    def link_whole(
+            self,
+            targets: T.List[StaticTargetTypes],
+            promoted: bool = False) -> None:
         for t in targets:
-            if isinstance(t, (CustomTarget, CustomTargetIndex)):
-                if not t.is_linkable_target():
-                    raise InvalidArguments(f'Custom target {t!r} is not linkable.')
-                if t.links_dynamically():
-                    raise InvalidArguments('Can only link_whole custom targets that are static archives.')
-            elif not isinstance(t, StaticLibrary):
-                raise InvalidArguments(f'{t!r} is not a static library.')
-            elif isinstance(self, SharedLibrary) and not t.pic:
-                msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
-                msg += "Use the 'pic' option to static_library to build with PIC."
-                raise InvalidArguments(msg)
             self.check_can_link_together(t)
-            if isinstance(self, StaticLibrary):
-                # When we're a static library and we link_whole: to another static
-                # library, we need to add that target's objects to ourselves.
-                self._bundle_static_library(t, promoted)
-                # If we install this static library we also need to include objects
-                # from all uninstalled static libraries it depends on.
-                if self.install:
-                    for lib in t.get_internal_static_libraries():
-                        self._bundle_static_library(lib, True)
             self.link_whole_targets.append(t)
 
     @lru_cache(maxsize=None)
-    def get_internal_static_libraries(self) -> OrderedSet[BuildTargetTypes]:
-        result: OrderedSet[BuildTargetTypes] = OrderedSet()
+    def get_internal_static_libraries(self) -> OrderedSet[StaticTargetTypes]:
+        result: OrderedSet[StaticTargetTypes] = OrderedSet()
         self.get_internal_static_libraries_recurse(result)
         return result
 
-    def get_internal_static_libraries_recurse(self, result: OrderedSet[BuildTargetTypes]) -> None:
+    def get_internal_static_libraries_recurse(self, result: OrderedSet[StaticTargetTypes]) -> None:
         for t in self.link_targets:
             if t.is_internal() and t not in result:
                 result.add(t)
@@ -1551,28 +1493,6 @@ class BuildTarget(Target):
         for t in self.link_whole_targets:
             if t.is_internal():
                 t.get_internal_static_libraries_recurse(result)
-
-    def _bundle_static_library(self, t: T.Union[BuildTargetTypes], promoted: bool = False) -> None:
-        if self.uses_rust():
-            # Rustc can bundle static libraries, no need to extract objects.
-            self.link_whole_targets.append(t)
-        elif isinstance(t, (CustomTarget, CustomTargetIndex)) or t.uses_rust():
-            # To extract objects from a custom target we would have to extract
-            # the archive, WIP implementation can be found in
-            # https://github.com/mesonbuild/meson/pull/9218.
-            # For Rust C ABI we could in theory have access to objects, but there
-            # are several meson issues that need to be fixed:
-            # https://github.com/mesonbuild/meson/issues/10722
-            # https://github.com/mesonbuild/meson/issues/10723
-            # https://github.com/mesonbuild/meson/issues/10724
-            m = (f'Cannot link_whole a custom or Rust target {t.name!r} into a static library {self.name!r}. '
-                 'Instead, pass individual object files with the "objects:" keyword argument if possible.')
-            if promoted:
-                m += (f' Meson had to promote link to link_whole because {self.name!r} is installed but not {t.name!r},'
-                      f' and thus has to include objects from {t.name!r} to be usable.')
-            raise InvalidArguments(m)
-        else:
-            self.objects.append(t.extract_all_objects())
 
     def check_can_link_together(self, t: BuildTargetTypes) -> None:
         links_with_rust_abi = isinstance(t, BuildTarget) and t.uses_rust_abi()
@@ -2399,6 +2319,54 @@ class StaticLibrary(BuildTarget):
             result.link_targets = [t.get(lib_type, True) for t in self.link_targets]
         return result
 
+    def link_whole(
+            self,
+            targets: T.List[StaticTargetTypes],
+            promoted: bool = False) -> None:
+        for t in targets:
+            self.check_can_link_together(t)
+
+            # When we're a static library and we link_whole: to another static
+            # library, we need to add that target's objects to ourselves.
+            self._bundle_static_library(t, promoted)
+
+            # If we install this static library we also need to include objects
+            # from all uninstalled static libraries it depends on.
+            if self.install:
+                for lib in t.get_internal_static_libraries():
+                    self._bundle_static_library(lib, True)
+            self.link_whole_targets.append(t)
+
+    def link(self, targets: T.List[BuildTargetTypes]) -> None:
+        for t in targets:
+            if self.install and t.is_internal():
+                # When we're a static library and we link_with to an
+                # internal/convenience library, promote to link_whole.
+                self.link_whole([t], promoted=True)
+                continue
+            self.check_can_link_together(t)
+            self.link_targets.append(t)
+
+    def _bundle_static_library(self, t: StaticTargetTypes, promoted: bool = False) -> None:
+        if self.uses_rust():
+            # Rustc can bundle static libraries, no need to extract objects.
+            self.link_whole_targets.append(t)
+        elif isinstance(t, (CustomTarget, CustomTargetIndex)) or t.uses_rust():
+            # To extract objects from a custom target we would have to extract
+            # the archive, WIP implementation can be found in
+            # https://github.com/mesonbuild/meson/pull/9218.
+            # For Rust C ABI we could in theory have access to objects, but we
+            # don't currently build them in such a way that this is possible:
+            # https://github.com/mesonbuild/meson/issues/10724
+            m = (f'Cannot link_whole a custom or Rust target {t.name!r} into a static library {self.name!r}. '
+                 'Instead, pass individual object files with the "objects:" keyword argument if possible.')
+            if promoted:
+                m += (f' Meson had to promote link to link_whole because {self.name!r} is installed but not {t.name!r},'
+                      f' and thus has to include objects from {t.name!r} to be usable.')
+            raise InvalidArguments(m)
+        else:
+            self.objects.append(t.extract_all_objects())
+
 class SharedLibrary(BuildTarget):
     known_kwargs = known_shlib_kwargs
 
@@ -2703,6 +2671,27 @@ class SharedLibrary(BuildTarget):
             result.link_targets = [t.get(lib_type, True) for t in self.link_targets]
         return result
 
+    def link_whole(
+            self,
+            targets: T.List[StaticTargetTypes],
+            promoted: bool = False) -> None:
+        for t in targets:
+            self.check_can_link_together(t)
+            if not getattr(t, 'pic', True):
+                msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
+                msg += "Use the 'pic' option to static_library to build with PIC."
+                raise InvalidArguments(msg)
+            self.link_whole_targets.append(t)
+
+    def link(self, targets: T.List[BuildTargetTypes]) -> None:
+        for t in targets:
+            if isinstance(t, StaticLibrary) and not t.pic:
+                msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
+                msg += "Use the 'pic' option to static_library to build with PIC."
+                raise InvalidArguments(msg)
+            self.check_can_link_together(t)
+            self.link_targets.append(t)
+
 # A shared library that is meant to be used with dlopen rather than linking
 # into something else.
 class SharedModule(SharedLibrary):
@@ -2765,6 +2754,10 @@ class BothLibraries(SecondLevelHolder):
     def get_id(self) -> str:
         return self.get_default_object().get_id()
 
+    def is_linkable_target(self) -> bool:
+        # For polymorphism with build targets
+        return True
+
 class CommandBase:
 
     depend_files: T.List[File]
@@ -2817,10 +2810,10 @@ class CustomTargetBase:
     def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes], include_internals: bool = True) -> None:
         pass
 
-    def get_internal_static_libraries(self) -> OrderedSet[BuildTargetTypes]:
+    def get_internal_static_libraries(self) -> OrderedSet[StaticTargetTypes]:
         return OrderedSet()
 
-    def get_internal_static_libraries_recurse(self, result: OrderedSet[BuildTargetTypes]) -> None:
+    def get_internal_static_libraries_recurse(self, result: OrderedSet[StaticTargetTypes]) -> None:
         pass
 
     def get_all_linked_targets(self) -> ImmutableListProtocol[BuildTargetTypes]:

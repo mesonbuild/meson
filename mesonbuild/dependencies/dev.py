@@ -17,7 +17,7 @@ from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 from .. import mesonlib, mlog
 from ..tooldetect import get_llvm_tool_names
 from ..mesonlib import version_compare, version_compare_many, search_version
-from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyTypeName
+from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyCandidate
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
@@ -48,12 +48,13 @@ def get_shared_library_suffix(environment: 'Environment', for_machine: MachineCh
 
 class GTestDependencySystem(SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__(name, environment, kwargs, language='cpp')
+        kwargs['language'] = 'cpp'
+        super().__init__(name, environment, kwargs)
         self.main = kwargs.get('main', False)
 
         sysroot = environment.properties[self.for_machine].get_sys_root() or ''
         self.src_dirs = [sysroot + '/usr/src/gtest/src', sysroot + '/usr/src/googletest/googletest/src']
-        if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
+        if not self._add_sub_dependency(threads_factory(environment, {'native': self.for_machine})):
             self.is_found = False
             return
         self.detect()
@@ -113,22 +114,24 @@ class GTestDependencyPC(PkgConfigDependency):
 
 class GMockDependencySystem(SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__(name, environment, kwargs, language='cpp')
+        kwargs['language'] = 'cpp'
+        super().__init__(name, environment, kwargs)
         self.main = kwargs.get('main', False)
-        if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
+        if not self._add_sub_dependency(threads_factory(environment, {'native': self.for_machine})):
             self.is_found = False
             return
 
         # If we are getting main() from GMock, we definitely
         # want to avoid linking in main() from GTest
         gtest_kwargs = kwargs.copy()
+        gtest_kwargs['native'] = self.for_machine
         if self.main:
             gtest_kwargs['main'] = False
 
         # GMock without GTest is pretty much useless
         # this also mimics the structure given in WrapDB,
         # where GMock always pulls in GTest
-        found = self._add_sub_dependency(gtest_factory(environment, self.for_machine, gtest_kwargs))
+        found = self._add_sub_dependency(gtest_factory(environment, gtest_kwargs))
         if not found:
             self.is_found = False
             return
@@ -188,20 +191,21 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
     __cpp_blacklist = {'-DNDEBUG'}
 
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+        kwargs['language'] = 'cpp'
         self.tools = get_llvm_tool_names('llvm-config')
 
         # Fedora starting with Fedora 30 adds a suffix of the number
         # of bits in the isa that llvm targets, for example, on x86_64
         # and aarch64 the name will be llvm-config-64, on x86 and arm
         # it will be llvm-config-32.
-        if environment.machines[kwargs.get('native', mesonlib.MachineChoice.HOST)].is_64_bit:
+        if environment.machines[kwargs['native']].is_64_bit:
             self.tools.append('llvm-config-64')
         else:
             self.tools.append('llvm-config-32')
 
         # It's necessary for LLVM <= 3.8 to use the C++ linker. For 3.9 and 4.0
         # the C linker works fine if only using the C API.
-        super().__init__(name, environment, kwargs, language='cpp')
+        super().__init__(name, environment, kwargs)
         self.provided_modules: T.List[str] = []
         self.required_modules: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
         self.module_details:   T.List[str] = []
@@ -224,7 +228,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
             self._set_old_link_args()
         self.link_args = strip_system_libdirs(environment, self.for_machine, self.link_args)
         self.link_args = self.__fix_bogus_link_args(self.link_args)
-        if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
+        if not self._add_sub_dependency(threads_factory(environment, {'native': self.for_machine})):
             self.is_found = False
             return
 
@@ -383,18 +387,18 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
 
 class LLVMDependencyCMake(CMakeDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        kwargs['language'] = 'cpp'
         self.llvm_modules = kwargs.get('modules', [])
         self.llvm_opt_modules = kwargs.get('optional_modules', [])
 
-        for_machine = kwargs.get('native', mesonlib.MachineChoice.HOST)
+        for_machine = kwargs['native']
         compilers = env.coredata.compilers[for_machine]
         if not compilers or not {'c', 'cpp'}.issubset(compilers):
             # Initialize basic variables
-            ExternalDependency.__init__(self, DependencyTypeName('cmake'), env, kwargs)
+            ExternalDependency.__init__(self, name, env, kwargs)
 
             # Initialize CMake specific variables
             self.found_modules: T.List[str] = []
-            self.name = name
 
             langs: T.List[str] = []
             if not compilers:
@@ -422,7 +426,7 @@ class LLVMDependencyCMake(CMakeDependency):
             )
             return
 
-        super().__init__(name, env, kwargs, language='cpp', force_use_global_compilers=True)
+        super().__init__(name, env, kwargs, force_use_global_compilers=True)
 
         if not self.cmakebin.found():
             return
@@ -444,7 +448,7 @@ class LLVMDependencyCMake(CMakeDependency):
         temp = ['-I' + x for x in inc_dirs] + defs
         self.compile_args += [x for x in temp if x not in self.compile_args]
         self.compile_args = strip_system_includedirs(env, self.for_machine, self.compile_args)
-        if not self._add_sub_dependency(threads_factory(env, self.for_machine, {})):
+        if not self._add_sub_dependency(threads_factory(env, {'native': self.for_machine})):
             self.is_found = False
             return
 
@@ -506,8 +510,8 @@ class ValgrindDependency(PkgConfigDependency):
     Consumers of Valgrind usually only need the compile args and do not want to
     link to its (static) libraries.
     '''
-    def __init__(self, env: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__('valgrind', env, kwargs)
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, env, kwargs)
 
     def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
         return []
@@ -554,8 +558,8 @@ class ZlibSystemDependency(SystemDependency):
 
 
 class JNISystemDependency(SystemDependency):
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__('jni', environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, environment, kwargs)
 
         self.feature_since = ('0.62.0', '')
 
@@ -682,8 +686,8 @@ packages['jni'] = JNISystemDependency
 
 
 class JDKSystemDependency(JNISystemDependency):
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__(environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__('jni', environment, kwargs)
 
         self.feature_since = ('0.59.0', '')
         self.featurechecks.append(FeatureDeprecated(
@@ -748,8 +752,8 @@ class DiaSDKSystemDependency(SystemDependency):
         defval, _ = compiler.get_define(dname, '', [], [])
         return defval is not None
 
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__('diasdk', environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        super().__init__(name, environment, kwargs)
         self.is_found = False
 
         compilers = environment.coredata.compilers.host
@@ -798,27 +802,27 @@ packages['diasdk'] = DiaSDKSystemDependency
 packages['llvm'] = llvm_factory = DependencyFactory(
     'LLVM',
     [DependencyMethods.CMAKE, DependencyMethods.CONFIG_TOOL],
-    cmake_class=LLVMDependencyCMake,
-    configtool_class=LLVMDependencyConfigTool,
+    cmake=LLVMDependencyCMake,
+    configtool=LLVMDependencyConfigTool,
 )
 
 packages['gtest'] = gtest_factory = DependencyFactory(
     'gtest',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
-    pkgconfig_class=GTestDependencyPC,
-    system_class=GTestDependencySystem,
+    pkgconfig=GTestDependencyPC,
+    system=GTestDependencySystem,
 )
 
 packages['gmock'] = gmock_factory = DependencyFactory(
     'gmock',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
-    pkgconfig_class=GMockDependencyPC,
-    system_class=GMockDependencySystem,
+    pkgconfig=GMockDependencyPC,
+    system=GMockDependencySystem,
 )
 
 packages['zlib'] = zlib_factory = DependencyFactory(
     'zlib',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE, DependencyMethods.SYSTEM],
-    cmake_name='ZLIB',
-    system_class=ZlibSystemDependency,
+    cmake=DependencyCandidate.from_dependency('ZLIB', CMakeDependency),
+    system=ZlibSystemDependency,
 )

@@ -289,15 +289,21 @@ class OptionKey:
 
     def as_root(self) -> OptionKey:
         """Convenience method for key.evolve(subproject='')."""
-        return self.evolve(subproject='')
+        if self.subproject != '':
+            return self.evolve(subproject='')
+        return self
 
     def as_build(self) -> OptionKey:
         """Convenience method for key.evolve(machine=MachineChoice.BUILD)."""
-        return self.evolve(machine=MachineChoice.BUILD)
+        if self.machine != MachineChoice.BUILD:
+            return self.evolve(machine=MachineChoice.BUILD)
+        return self
 
     def as_host(self) -> OptionKey:
         """Convenience method for key.evolve(machine=MachineChoice.HOST)."""
-        return self.evolve(machine=MachineChoice.HOST)
+        if self.machine != MachineChoice.HOST:
+            return self.evolve(machine=MachineChoice.HOST)
+        return self
 
     def has_module_prefix(self) -> bool:
         return '.' in self.name
@@ -835,7 +841,7 @@ class OptionStore:
         #
         # I did not do this yet, because it would make this MR even
         # more massive than it already is. Later then.
-        if not self.is_cross and key.machine == MachineChoice.BUILD:
+        if not (self.is_cross and self.is_per_machine_option(key)):
             key = key.as_host()
         return key
 

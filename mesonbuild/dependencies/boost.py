@@ -340,8 +340,9 @@ class BoostLibraryFile():
         return [self.path.as_posix()]
 
 class BoostDependency(SystemDependency):
-    def __init__(self, environment: Environment, kwargs: DependencyObjectKWs) -> None:
-        super().__init__('boost', environment, kwargs, language='cpp')
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs) -> None:
+        kwargs['language'] = 'cpp'
+        super().__init__(name, environment, kwargs)
         buildtype = environment.coredata.optstore.get_value_for(OptionKey('buildtype'))
         assert isinstance(buildtype, str)
         self.debug = buildtype.startswith('debug')
@@ -361,7 +362,7 @@ class BoostDependency(SystemDependency):
 
         # Do we need threads?
         if 'thread' in self.modules:
-            if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
+            if not self._add_sub_dependency(threads_factory(environment, {'native': self.for_machine})):
                 self.is_found = False
                 return
 
@@ -676,7 +677,7 @@ class BoostDependency(SystemDependency):
         # Try getting the BOOST_ROOT from a boost.pc if it exists. This primarily
         # allows BoostDependency to find boost from Conan. See #5438
         try:
-            boost_pc = PkgConfigDependency('boost', self.env, {'required': False})
+            boost_pc = PkgConfigDependency('boost', self.env, {'required': False, 'native': self.for_machine})
             if boost_pc.found():
                 boost_lib_dir = boost_pc.get_variable(pkgconfig='libdir')
                 boost_inc_dir = boost_pc.get_variable(pkgconfig='includedir')

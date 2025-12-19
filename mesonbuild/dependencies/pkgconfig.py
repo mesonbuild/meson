@@ -306,11 +306,11 @@ class PkgConfigCLI(PkgConfigInterface):
 
 class PkgConfigDependency(ExternalDependency):
 
+    type_name = DependencyTypeName('pkgconfig')
+
     def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs,
-                 language: T.Optional[str] = None,
                  extra_paths: T.Optional[T.List[str]] = None) -> None:
-        super().__init__(DependencyTypeName('pkgconfig'), environment, kwargs, language=language)
-        self.name = name
+        super().__init__(name, environment, kwargs)
         self.is_libtool = False
         self.extra_paths = extra_paths or []
         pkgconfig = PkgConfigInterface.instance(self.env, self.for_machine, self.silent, self.extra_paths)
@@ -584,10 +584,6 @@ class PkgConfigDependency(ExternalDependency):
         # From the comments in extract_libtool(), older libtools had
         # a path rather than the raw dlname
         return os.path.basename(dlname)
-
-    @staticmethod
-    def log_tried() -> str:
-        return 'pkgconfig'
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,

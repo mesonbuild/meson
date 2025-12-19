@@ -4,15 +4,14 @@
 # This file contains the detection logic for miscellaneous external dependencies.
 from __future__ import annotations
 
-import functools
 import re
 import typing as T
 
 from .. import mesonlib
 from .. import mlog
-from .base import DependencyException, DependencyMethods
+from .base import DependencyCandidate, DependencyException, DependencyMethods
 from .base import BuiltinDependency, SystemDependency
-from .cmake import CMakeDependency, CMakeDependencyFactory
+from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import DependencyFactory, factory_methods
@@ -27,7 +26,6 @@ if T.TYPE_CHECKING:
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
 def netcdf_factory(env: 'Environment',
-                   for_machine: 'mesonlib.MachineChoice',
                    kwargs: DependencyObjectKWs,
                    methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     language = kwargs.get('language')
@@ -44,10 +42,12 @@ def netcdf_factory(env: 'Environment',
         else:
             pkg = 'netcdf'
 
-        candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs, language=language))
+        candidates.append(DependencyCandidate.from_dependency(
+            pkg, PkgConfigDependency, (env, kwargs)))
 
     if DependencyMethods.CMAKE in methods:
-        candidates.append(functools.partial(CMakeDependency, 'NetCDF', env, kwargs, language=language))
+        candidates.append(DependencyCandidate.from_dependency(
+            'NetCDF', CMakeDependency, (env, kwargs)))
 
     return candidates
 
@@ -113,9 +113,8 @@ class OpenMPDependency(SystemDependency):
         '199810': '1.0',
     }
 
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        language = kwargs.get('language')
-        super().__init__('openmp', environment, kwargs, language=language)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        super().__init__(name, environment, kwargs)
         self.is_found = False
         if self.clib_compiler.get_id() == 'nagfor':
             # No macro defined for OpenMP, but OpenMP 3.1 is supported.
@@ -181,8 +180,8 @@ class ThreadDependency(SystemDependency):
 
 
 class BlocksDependency(SystemDependency):
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        super().__init__('blocks', environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        super().__init__(name, environment, kwargs)
         self.name = 'blocks'
         self.is_found = False
 
@@ -304,8 +303,8 @@ class GpgmeDependencyConfigTool(ConfigToolDependency):
 
 class ShadercDependency(SystemDependency):
 
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__('shaderc', environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, environment, kwargs)
 
         static_lib = 'shaderc_combined'
         shared_lib = 'shaderc_shared'
@@ -336,7 +335,7 @@ class CursesConfigToolDependency(ConfigToolDependency):
     # ncurses5.4-config is for macOS Catalina
     tools = ['ncursesw6-config', 'ncursesw5-config', 'ncurses6-config', 'ncurses5-config', 'ncurses5.4-config']
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None):
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
         exclude_paths = None
         # macOS mistakenly ships /usr/bin/ncurses5.4-config and a man page for
         # it, but none of the headers or libraries. Ignore /usr/bin because it
@@ -344,7 +343,7 @@ class CursesConfigToolDependency(ConfigToolDependency):
         # Homebrew is /usr/local or /opt/homebrew.
         if env.machines.build and env.machines.build.system == 'darwin':
             exclude_paths = ['/usr/bin']
-        super().__init__(name, env, kwargs, language, exclude_paths=exclude_paths)
+        super().__init__(name, env, kwargs, exclude_paths=exclude_paths)
         if not self.is_found:
             return
         self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
@@ -450,7 +449,7 @@ class IntlSystemDependency(SystemDependency):
             self.is_found = True
 
             if self.static:
-                if not self._add_sub_dependency(iconv_factory(env, self.for_machine, {'static': True})):
+                if not self._add_sub_dependency(iconv_factory(env, {'static': True, 'native': self.for_machine})):
                     self.is_found = False
 
 
@@ -461,6 +460,7 @@ class OpensslSystemDependency(SystemDependency):
         dependency_kwargs: DependencyObjectKWs = {
             'method': DependencyMethods.SYSTEM,
             'static': self.static,
+            'native': kwargs.get('native'),
         }
         if not self.clib_compiler.has_header('openssl/ssl.h', '')[0]:
             return
@@ -478,8 +478,8 @@ class OpensslSystemDependency(SystemDependency):
             self.version = '.'.join(str(i) for i in version_ints[:3]) + chr(ord('a') + version_ints[3] - 1)
 
         if name == 'openssl':
-            if self._add_sub_dependency(libssl_factory(env, self.for_machine, dependency_kwargs)) and \
-                    self._add_sub_dependency(libcrypto_factory(env, self.for_machine, dependency_kwargs)):
+            if self._add_sub_dependency(libssl_factory(env, dependency_kwargs)) and \
+                    self._add_sub_dependency(libcrypto_factory(env, dependency_kwargs)):
                 self.is_found = True
             return
         else:
@@ -491,11 +491,11 @@ class OpensslSystemDependency(SystemDependency):
             self.is_found = True
         else:
             if name == 'libssl':
-                if self._add_sub_dependency(libcrypto_factory(env, self.for_machine, dependency_kwargs)):
+                if self._add_sub_dependency(libcrypto_factory(env, dependency_kwargs)):
                     self.is_found = True
             elif name == 'libcrypto':
                 use_threads = self.clib_compiler.has_header_symbol('openssl/opensslconf.h', 'OPENSSL_THREADS', '', dependencies=[self])[0]
-                if not use_threads or self._add_sub_dependency(threads_factory(env, self.for_machine, {})):
+                if not use_threads or self._add_sub_dependency(threads_factory(env, {'native': self.for_machine})):
                     self.is_found = True
                 # only relevant on platforms where it is distributed with the libc, in which case it always succeeds
                 sublib = self.clib_compiler.find_library('dl', [], self.libtype)
@@ -508,8 +508,8 @@ class ObjFWDependency(ConfigToolDependency):
     tools = ['objfw-config']
     tool_name = 'objfw-config'
 
-    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__('objfw', environment, kwargs)
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, environment, kwargs)
         self.feature_since = ('1.5.0', '')
         if not self.is_found:
             return
@@ -529,25 +529,28 @@ class ObjFWDependency(ConfigToolDependency):
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
 def curses_factory(env: 'Environment',
-                   for_machine: 'mesonlib.MachineChoice',
                    kwargs: DependencyObjectKWs,
                    methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     candidates: T.List['DependencyGenerator'] = []
+    for_machine = kwargs['native']
 
     if DependencyMethods.PKGCONFIG in methods:
         pkgconfig_files = ['pdcurses', 'ncursesw', 'ncurses', 'curses']
         for pkg in pkgconfig_files:
-            candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs))
+            candidates.append(DependencyCandidate.from_dependency(
+                pkg, PkgConfigDependency, (env, kwargs)))
 
     # There are path handling problems with these methods on msys, and they
     # don't apply to windows otherwise (cygwin is handled separately from
     # windows)
     if not env.machines[for_machine].is_windows():
         if DependencyMethods.CONFIG_TOOL in methods:
-            candidates.append(functools.partial(CursesConfigToolDependency, 'curses', env, kwargs))
+            candidates.append(DependencyCandidate.from_dependency(
+                'curses', CursesConfigToolDependency, (env, kwargs)))
 
         if DependencyMethods.SYSTEM in methods:
-            candidates.append(functools.partial(CursesSystemDependency, 'curses', env, kwargs))
+            candidates.append(DependencyCandidate.from_dependency(
+                'curses', CursesSystemDependency, (env, kwargs)))
 
     return candidates
 packages['curses'] = curses_factory
@@ -555,7 +558,6 @@ packages['curses'] = curses_factory
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM})
 def shaderc_factory(env: 'Environment',
-                    for_machine: 'mesonlib.MachineChoice',
                     kwargs: DependencyObjectKWs,
                     methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     """Custom DependencyFactory for ShaderC.
@@ -578,15 +580,16 @@ def shaderc_factory(env: 'Environment',
         if static is None:
             static = T.cast('bool', env.coredata.optstore.get_value_for(OptionKey('prefer_static')))
         if static:
-            c = [functools.partial(PkgConfigDependency, name, env, kwargs)
+            c = [DependencyCandidate.from_dependency(name, PkgConfigDependency, (env, kwargs))
                  for name in static_libs + shared_libs]
         else:
-            c = [functools.partial(PkgConfigDependency, name, env, kwargs)
+            c = [DependencyCandidate.from_dependency(name, PkgConfigDependency, (env, kwargs))
                  for name in shared_libs + static_libs]
         candidates.extend(c)
 
     if DependencyMethods.SYSTEM in methods:
-        candidates.append(functools.partial(ShadercDependency, env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            'shaderc', ShadercDependency, (env, kwargs)))
 
     return candidates
 packages['shaderc'] = shaderc_factory
@@ -595,89 +598,89 @@ packages['shaderc'] = shaderc_factory
 packages['atomic'] = atomic_factory = DependencyFactory(
     'atomic',
     [DependencyMethods.SYSTEM, DependencyMethods.BUILTIN],
-    system_class=AtomicSystemDependency,
-    builtin_class=AtomicBuiltinDependency,
+    system=AtomicSystemDependency,
+    builtin=AtomicBuiltinDependency,
 )
 
 packages['cups'] = cups_factory = DependencyFactory(
     'cups',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE],
-    configtool_class=CupsDependencyConfigTool,
-    cmake_name='Cups',
+    configtool=CupsDependencyConfigTool,
+    cmake=DependencyCandidate.from_dependency('Cups', CMakeDependency),
 )
 
 packages['dl'] = dl_factory = DependencyFactory(
     'dl',
     [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
-    builtin_class=DlBuiltinDependency,
-    system_class=DlSystemDependency,
+    builtin=DlBuiltinDependency,
+    system=DlSystemDependency,
 )
 
 packages['gpgme'] = gpgme_factory = DependencyFactory(
     'gpgme',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
-    configtool_class=GpgmeDependencyConfigTool,
+    configtool=GpgmeDependencyConfigTool,
 )
 
 packages['libgcrypt'] = libgcrypt_factory = DependencyFactory(
     'libgcrypt',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
-    configtool_class=LibGCryptDependencyConfigTool,
+    configtool=LibGCryptDependencyConfigTool,
 )
 
 packages['libwmf'] = libwmf_factory = DependencyFactory(
     'libwmf',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
-    configtool_class=LibWmfDependencyConfigTool,
+    configtool=LibWmfDependencyConfigTool,
 )
 
 packages['pcap'] = pcap_factory = DependencyFactory(
     'pcap',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
-    configtool_class=PcapDependencyConfigTool,
-    pkgconfig_name='libpcap',
+    configtool=PcapDependencyConfigTool,
+    pkgconfig=DependencyCandidate.from_dependency('libpcap', PkgConfigDependency),
 )
 
 packages['threads'] = threads_factory = DependencyFactory(
     'threads',
     [DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
-    cmake_name='Threads',
-    system_class=ThreadDependency,
+    cmake=DependencyCandidate.from_dependency('Threads', CMakeDependency),
+    system=ThreadDependency,
 )
 
 packages['iconv'] = iconv_factory = DependencyFactory(
     'iconv',
     [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
-    builtin_class=IconvBuiltinDependency,
-    system_class=IconvSystemDependency,
+    builtin=IconvBuiltinDependency,
+    system=IconvSystemDependency,
 )
 
 packages['intl'] = intl_factory = DependencyFactory(
     'intl',
     [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
-    builtin_class=IntlBuiltinDependency,
-    system_class=IntlSystemDependency,
+    builtin=IntlBuiltinDependency,
+    system=IntlSystemDependency,
 )
 
 packages['openssl'] = openssl_factory = DependencyFactory(
     'openssl',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
-    system_class=OpensslSystemDependency,
-    cmake_class=CMakeDependencyFactory('OpenSSL', modules=['OpenSSL::Crypto', 'OpenSSL::SSL']),
+    system=OpensslSystemDependency,
+    cmake=DependencyCandidate.from_dependency('OpenSSL', CMakeDependency, modules=['OpenSSL::Crypto', 'OpenSSL::SSL']),
 )
 
 packages['libcrypto'] = libcrypto_factory = DependencyFactory(
     'libcrypto',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
-    system_class=OpensslSystemDependency,
-    cmake_class=CMakeDependencyFactory('OpenSSL', modules=['OpenSSL::Crypto']),
+    system=OpensslSystemDependency,
+    cmake=DependencyCandidate.from_dependency('OpenSSL', CMakeDependency, modules=['OpenSSL::Crypto']),
 )
 
 packages['libssl'] = libssl_factory = DependencyFactory(
     'libssl',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
-    system_class=OpensslSystemDependency,
-    cmake_class=CMakeDependencyFactory('OpenSSL', modules=['OpenSSL::SSL']),
+    system=OpensslSystemDependency,
+    cmake=DependencyCandidate.from_dependency('OpenSSL', CMakeDependency, modules=['OpenSSL::SSL']),
 )
 
 packages['objfw'] = ObjFWDependency

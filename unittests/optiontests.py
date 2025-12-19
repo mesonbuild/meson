@@ -495,3 +495,44 @@ class OptionTests(unittest.TestCase):
         child_key = OptionKey(name, subproject_name)
         optstore.add_project_option(child_key, child_option)
         self.assertTrue(optstore.options[child_key].yielding)
+
+    def test_machine_canonicalization_cross(self):
+        """Test that BUILD machine options are handled correctly in cross compilation."""
+        optstore = OptionStore(True)
+
+        # Test that BUILD machine per-machine option is NOT canonicalized to HOST
+        host_pkg_config = OptionKey('pkg_config_path', machine=MachineChoice.HOST)
+        build_pkg_config = OptionKey('pkg_config_path', machine=MachineChoice.BUILD)
+        host_option_obj = UserStringArrayOption('pkg_config_path', 'Host pkg-config paths', ['/mingw/lib64/pkgconfig'])
+        build_option_obj = UserStringArrayOption('pkg_config_path', 'Build pkg-config paths', ['/usr/lib64/pkgconfig'])
+        optstore.add_system_option(host_pkg_config, host_option_obj)
+        optstore.add_system_option(build_pkg_config, build_option_obj)
+        option, value = optstore.get_option_and_value_for(build_pkg_config)
+        self.assertEqual(value, ['/usr/lib64/pkgconfig'])
+
+        # Test that non-per-machine BUILD option IS canonicalized to HOST
+        build_opt = OptionKey('optimization', machine=MachineChoice.BUILD)
+        host_opt = OptionKey('optimization', machine=MachineChoice.HOST)
+        common_option_obj = UserComboOption('optimization', 'Optimization level', '0',
+                                            choices=['plain', '0', 'g', '1', '2', '3', 's'])
+        optstore.add_system_option(host_opt, common_option_obj)
+        self.assertEqual(optstore.get_value_for(build_opt), '0')
+
+    def test_machine_canonicalization_native(self):
+        """Test that BUILD machine options are canonicalized to HOST when not cross compiling."""
+        optstore = OptionStore(False)
+
+        host_pkg_config = OptionKey('pkg_config_path', machine=MachineChoice.HOST)
+        build_pkg_config = OptionKey('pkg_config_path', machine=MachineChoice.BUILD)
+        host_option_obj = UserStringArrayOption('pkg_config_path', 'Host pkg-config paths', ['/mingw/lib64/pkgconfig'])
+        build_option_obj = UserStringArrayOption('pkg_config_path', 'Build pkg-config paths', ['/usr/lib64/pkgconfig'])
+
+        # Add per-machine option for HOST only (BUILD will be canonicalized)
+        optstore.add_system_option(host_pkg_config, host_option_obj)
+        option, value = optstore.get_option_and_value_for(build_pkg_config)
+        self.assertEqual(value, ['/mingw/lib64/pkgconfig'])
+
+        # Try again adding build option too, for completeness
+        optstore.add_system_option(build_pkg_config, build_option_obj)
+        option, value = optstore.get_option_and_value_for(build_pkg_config)
+        self.assertEqual(value, ['/mingw/lib64/pkgconfig'])

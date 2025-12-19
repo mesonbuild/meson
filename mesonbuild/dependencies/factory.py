@@ -7,7 +7,8 @@ from __future__ import annotations
 import functools
 import typing as T
 
-from .base import DependencyException, DependencyMethods
+from ..mesonlib import MachineChoice
+from .base import DependencyCandidate, DependencyException, DependencyMethods
 from .base import process_method_kw
 from .base import BuiltinDependency, SystemDependency
 from .cmake import CMakeDependency
@@ -15,16 +16,17 @@ from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
-    from .base import DependencyObjectKWs, ExternalDependency
+    from typing_extensions import TypeAlias
+
+    from .base import DependencyObjectKWs, ExternalDependency, DepType
     from .configtool import ConfigToolDependency
     from ..environment import Environment
-    from ..mesonlib import MachineChoice
 
-    DependencyGenerator = T.Callable[[], ExternalDependency]
+    # TODO: remove this?
+    DependencyGenerator: TypeAlias = DependencyCandidate[ExternalDependency]
     FactoryFunc = T.Callable[
         [
             'Environment',
-            MachineChoice,
             DependencyObjectKWs,
             T.List[DependencyMethods]
         ],
@@ -34,15 +36,10 @@ if T.TYPE_CHECKING:
     WrappedFactoryFunc = T.Callable[
         [
             'Environment',
-            MachineChoice,
             DependencyObjectKWs,
         ],
         T.List[DependencyGenerator]
     ]
-
-    # This should be str, Environment, T.Dict[str, T.Any], T.Optional[str]
-    # But if you try that, you get error: Cannot infer type of lambda
-    CmakeDependencyFunc = T.Callable[..., CMakeDependency]
 
 class DependencyFactory:
 
@@ -52,53 +49,61 @@ class DependencyFactory:
     for various kinds of dependencies. When the initialized object is called
     it returns a list of callables return Dependency objects to try in order.
 
-    :name: The name of the dependency. This will be passed as the name
+    :param name: The name of the dependency. This will be passed as the name
         parameter of the each dependency unless it is overridden on a per
         type basis.
-    :methods: An ordered list of DependencyMethods. This is the order
+    :param methods: An ordered list of DependencyMethods. This is the order
         dependencies will be returned in unless they are removed by the
         _process_method function
-    :*_name: This will overwrite the name passed to the corresponding class.
-        For example, if the name is 'zlib', but cmake calls the dependency
-        'Z', then using `cmake_name='Z'` will pass the name as 'Z' to cmake.
-    :*_class: A *type* or callable that creates a class, and has the
-        signature of an ExternalDependency
-    :system_class: If you pass DependencyMethods.SYSTEM in methods, you must
-        set this argument.
+    :param extra_kwargs: Additional keyword arguments to add when creating the
+        DependencyCandidate
+    :param pkgconfig: A custom PackageConfig lookup to use
+    :param cmake: A custom CMake lookup to use
+    :param framework: A custom AppleFramework lookup to use
+    :param configtool: A custom ConfigTool lookup to use. If
+        DependencyMethods.CONFIG_TOOL is in the `:param:methods` argument,
+        this must be set.
+    :param builtin: A custom Builtin lookup to use. If
+        DependencyMethods.BUILTIN is in the `:param:methods` argument,
+        this must be set.
+    :param system: A custom System lookup to use. If
+        DependencyMethods.SYSTEM is in the `:param:methods` argument,
+        this must be set.
     """
 
     def __init__(self, name: str, methods: T.List[DependencyMethods], *,
                  extra_kwargs: T.Optional[DependencyObjectKWs] = None,
-                 pkgconfig_name: T.Optional[str] = None,
-                 pkgconfig_class: 'T.Type[PkgConfigDependency]' = PkgConfigDependency,
-                 cmake_name: T.Optional[str] = None,
-                 cmake_class: 'T.Union[T.Type[CMakeDependency], CmakeDependencyFunc]' = CMakeDependency,
-                 configtool_class: 'T.Optional[T.Type[ConfigToolDependency]]' = None,
-                 framework_name: T.Optional[str] = None,
-                 framework_class: 'T.Type[ExtraFrameworkDependency]' = ExtraFrameworkDependency,
-                 builtin_class: 'T.Type[BuiltinDependency]' = BuiltinDependency,
-                 system_class: 'T.Type[SystemDependency]' = SystemDependency):
+                 pkgconfig: T.Union[DependencyCandidate[PkgConfigDependency], T.Type[PkgConfigDependency], None] = PkgConfigDependency,
+                 cmake: T.Union[DependencyCandidate[CMakeDependency], T.Type[CMakeDependency], None] = CMakeDependency,
+                 framework: T.Union[DependencyCandidate[ExtraFrameworkDependency], T.Type[ExtraFrameworkDependency], None] = ExtraFrameworkDependency,
+                 configtool: T.Union[DependencyCandidate[ConfigToolDependency], T.Type[ConfigToolDependency], None] = None,
+                 builtin: T.Union[DependencyCandidate[BuiltinDependency], T.Type[BuiltinDependency], None] = None,
+                 system: T.Union[DependencyCandidate[SystemDependency], T.Type[SystemDependency], None] = None):
 
-        if DependencyMethods.CONFIG_TOOL in methods and not configtool_class:
-            raise DependencyException('A configtool must have a custom class')
+        if DependencyMethods.CONFIG_TOOL in methods and not configtool:
+            raise DependencyException('A configtool dependency must have a custom class')
+        if DependencyMethods.BUILTIN in methods and not builtin:
+            raise DependencyException('A builtin dependency must have a custom class')
+        if DependencyMethods.SYSTEM in methods and not system:
+            raise DependencyException('A system dependency must have a custom class')
 
-        self.extra_kwargs = extra_kwargs or {}
+        def make(arg: T.Union[DependencyCandidate[DepType], T.Type[DepType], None]) -> T.Optional[DependencyCandidate[DepType]]:
+            if arg is None or isinstance(arg, DependencyCandidate):
+                return arg
+            return DependencyCandidate.from_dependency(name, arg)
+
+        self.extra_kwargs = extra_kwargs
         self.methods = methods
-        self.classes: T.Dict[
-            DependencyMethods,
-            T.Callable[['Environment', DependencyObjectKWs], ExternalDependency]
-        ] = {
+        self.classes: T.Mapping[DependencyMethods, T.Optional[DependencyCandidate[ExternalDependency]]] = {
             # Just attach the correct name right now, either the generic name
             # or the method specific name.
-            DependencyMethods.EXTRAFRAMEWORK: functools.partial(framework_class, framework_name or name),
-            DependencyMethods.PKGCONFIG: functools.partial(pkgconfig_class, pkgconfig_name or name),
-            DependencyMethods.CMAKE: functools.partial(cmake_class, cmake_name or name),
-            DependencyMethods.SYSTEM: functools.partial(system_class, name),
-            DependencyMethods.BUILTIN: functools.partial(builtin_class, name),
-            DependencyMethods.CONFIG_TOOL: None,
+            DependencyMethods.EXTRAFRAMEWORK: make(framework),
+            DependencyMethods.PKGCONFIG: make(pkgconfig),
+            DependencyMethods.CMAKE: make(cmake),
+            DependencyMethods.SYSTEM: make(system),
+            DependencyMethods.BUILTIN: make(builtin),
+            DependencyMethods.CONFIG_TOOL: make(configtool),
         }
-        if configtool_class is not None:
-            self.classes[DependencyMethods.CONFIG_TOOL] = functools.partial(configtool_class, name)
 
     @staticmethod
     def _process_method(method: DependencyMethods, env: 'Environment', for_machine: MachineChoice) -> bool:
@@ -115,15 +120,24 @@ class DependencyFactory:
             return False
         return True
 
-    def __call__(self, env: 'Environment', for_machine: MachineChoice,
-                 kwargs: DependencyObjectKWs) -> T.List['DependencyGenerator']:
+    def __call__(self, env: 'Environment', kwargs: DependencyObjectKWs) -> T.List['DependencyGenerator']:
         """Return a list of Dependencies with the arguments already attached."""
         methods = process_method_kw(self.methods, kwargs)
-        nwargs = self.extra_kwargs.copy()
-        nwargs.update(kwargs)
+        if self.extra_kwargs:
+            nwargs = self.extra_kwargs.copy()
+            nwargs.update(kwargs)
+        else:
+            nwargs = kwargs.copy()
 
-        return [functools.partial(self.classes[m], env, nwargs) for m in methods
-                if self._process_method(m, env, for_machine)]
+        ret: T.List[DependencyGenerator] = []
+        for m in methods:
+            if self._process_method(m, env, kwargs['native']):
+                c = self.classes[m]
+                if c is None:
+                    continue
+                c.arguments = (env, nwargs)
+                ret.append(c)
+        return ret
 
 
 def factory_methods(methods: T.Set[DependencyMethods]) -> T.Callable[['FactoryFunc'], 'WrappedFactoryFunc']:
@@ -138,8 +152,8 @@ def factory_methods(methods: T.Set[DependencyMethods]) -> T.Callable[['FactoryFu
     def inner(func: 'FactoryFunc') -> 'WrappedFactoryFunc':
 
         @functools.wraps(func)
-        def wrapped(env: 'Environment', for_machine: MachineChoice, kwargs: DependencyObjectKWs) -> T.List['DependencyGenerator']:
-            return func(env, for_machine, kwargs, process_method_kw(methods, kwargs))
+        def wrapped(env: 'Environment', kwargs: DependencyObjectKWs) -> T.List['DependencyGenerator']:
+            return func(env, kwargs, process_method_kw(methods, kwargs))
 
         return wrapped
 

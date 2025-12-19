@@ -68,6 +68,8 @@ class DubDependency(ExternalDependency):
     class_dubbin_searched = False
     class_cache_dir = ''
 
+    type_name = DependencyTypeName('dub')
+
     # Map Meson Compiler ID's to Dub Compiler ID's
     _ID_MAP: T.Mapping[str, str] = {
         'dmd': 'dmd',
@@ -76,8 +78,8 @@ class DubDependency(ExternalDependency):
     }
 
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
-        super().__init__(DependencyTypeName('dub'), environment, kwargs, language='d')
-        self.name = name
+        kwargs['language'] = 'd'
+        super().__init__(name, environment, kwargs)
         from ..compilers.d import DCompiler, d_feature_args
 
         _temp_comp = super().get_compiler()
@@ -304,7 +306,7 @@ class DubDependency(ExternalDependency):
         for lib in bs['libs']:
             if os.name != 'nt':
                 # trying to add system libraries by pkg-config
-                pkgdep = PkgConfigDependency(lib, environment, {'required': True, 'silent': True})
+                pkgdep = PkgConfigDependency(lib, environment, {'required': True, 'silent': True, 'native': self.for_machine})
                 if pkgdep.is_found:
                     for arg in pkgdep.get_compile_args():
                         self.compile_args.append(arg)

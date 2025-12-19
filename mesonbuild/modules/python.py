@@ -51,6 +51,8 @@ if T.TYPE_CHECKING:
 
     class ExtensionModuleKw(SharedModuleKw):
 
+        # Yes, these are different between SharedModule and ExtensionModule
+        install_dir: T.Union[str, bool, None]  # type: ignore[misc]
         subdir: NotRequired[T.Optional[str]]
 
     MaybePythonProg = T.Union[NonExistingExternalProgram, 'PythonExternalProgram']
@@ -60,7 +62,8 @@ mod_kwargs = {'subdir', 'limited_api'}
 mod_kwargs.update(known_shmod_kwargs)
 mod_kwargs -= {'name_prefix', 'name_suffix'}
 
-_MOD_KWARGS = [k for k in SHARED_MOD_KWS if k.name not in {'name_prefix', 'name_suffix'}]
+_MOD_KWARGS = [k for k in SHARED_MOD_KWS if
+               k.name not in {'name_prefix', 'name_suffix', 'install_dir'}]
 
 
 class PythonExternalProgram(BasicPythonExternalProgram):
@@ -139,26 +142,35 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
 
     @permittedKwargs(mod_kwargs)
     @typed_pos_args('python.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
-    @typed_kwargs('python.extension_module', *_MOD_KWARGS, _DEFAULTABLE_SUBDIR_KW, _LIMITED_API_KW, allow_unknown=True)
+    @typed_kwargs(
+        'python.extension_module',
+        *_MOD_KWARGS,
+        _DEFAULTABLE_SUBDIR_KW,
+        _LIMITED_API_KW,
+        KwargInfo('install_dir', (str, bool, NoneType)),
+        allow_unknown=True
+    )
     @InterpreterObject.method('extension_module')
     def extension_module_method(self, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: ExtensionModuleKw) -> 'SharedModule':
-        if 'install_dir' in kwargs:
+        if kwargs['install_dir'] is not None:
             if kwargs['subdir'] is not None:
                 raise InvalidArguments('"subdir" and "install_dir" are mutually exclusive')
+            # the build_target() method now expects this to be correct.
+            kwargs['install_dir'] = [kwargs['install_dir']]
         else:
             # We want to remove 'subdir', but it may be None and we want to replace it with ''
             # It must be done this way since we don't allow both `install_dir`
             # and `subdir` to be set at the same time
             subdir = kwargs.pop('subdir') or ''
 
-            kwargs['install_dir'] = self._get_install_dir_impl(False, subdir)
+            kwargs['install_dir'] = [self._get_install_dir_impl(False, subdir)]
 
         target_suffix = self.suffix
 
         new_deps = mesonlib.extract_as_list(kwargs, 'dependencies')
         pydep = next((dep for dep in new_deps if isinstance(dep, _PythonDependencyBase)), None)
         if pydep is None:
-            pydep = self._dependency_method_impl({})
+            pydep = self._dependency_method_impl({'native': kwargs['native']})
             if not pydep.found():
                 raise mesonlib.MesonException('Python dependency not found')
             new_deps.append(pydep)
@@ -247,7 +259,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         return '0x{:02x}{:02x}0000'.format(major, minor)
 
     def _dependency_method_impl(self, kwargs: DependencyObjectKWs) -> Dependency:
-        for_machine = kwargs.get('native', MachineChoice.HOST)
+        for_machine = kwargs['native']
         identifier = get_dep_identifier(self._full_path(), kwargs)
 
         dep = self.interpreter.coredata.deps[for_machine].get(identifier)
@@ -260,7 +272,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         new_kwargs['required'] = False
         if build_config:
             new_kwargs['build_config'] = build_config
-        candidates = python_factory(self.interpreter.environment, for_machine, new_kwargs, self.held_object)
+        candidates = python_factory(self.interpreter.environment, new_kwargs, self.held_object)
         dep = find_external_dependency('python', self.interpreter.environment, new_kwargs, candidates)
 
         self.interpreter.coredata.deps[for_machine].put(identifier, dep)
