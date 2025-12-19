@@ -1,0 +1,19 @@
+# Based on the example in the Meson style guide
+
+sources = files(
+    'aaa/a1.c',
+    'aaa/A2.c',
+    'aaa/a3.c',
+    'bbb/subdir1/b1.c',
+    'bbb/subdir2/b2.c',
+    'bbb/subdir10/b3.c',
+    'bbb/subdir20/b4.c',
+    'bbb/b5.c',
+    'bbb/b6.c',
+    'c/a111.c',
+    'c/ab0.c',
+    'f1.c',
+    'f2.c',
+    'f10.c',
+    'f20.c',
+)
