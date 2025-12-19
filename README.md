@@ -12,7 +12,7 @@ build system.
 
 #### Dependencies
 
- - [Python](https://python.org) (version 3.7 or newer)
+ - [Python](https://python.org) (version 3.10 or newer)
  - [Ninja](https://ninja-build.org) (version 1.8.2 or newer)
 
 Latest Meson version supporting previous Python versions:
