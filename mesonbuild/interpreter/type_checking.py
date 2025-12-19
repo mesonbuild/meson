@@ -638,7 +638,9 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
         listify=True,
     ),
     KwargInfo('implicit_include_directories', bool, default=True, since='0.42.0'),
-    LINK_WITH_KW,
+    LINK_WITH_KW.evolve(
+        as_default=[('', ('1.11.0', "Replace an empty string with an empty array: `link_with : ''` -> `link_with : []`"))],
+    ),
     NATIVE_KW,
     KwargInfo('resources', ContainerTypeInfo(list, str), default=[], listify=True),
     KwargInfo(
@@ -749,7 +751,9 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     BT_SOURCES_KW,
     INCLUDE_DIRECTORIES.evolve(name='d_import_dirs'),
     LINK_ARGS_KW,
-    LINK_WHOLE_KW,
+    LINK_WHOLE_KW.evolve(
+        as_default=[('', ('1.11.0', "Replace an empty string with an empty array: `link_whole : ''` -> `link_whole : []`"))],
+    ),
     _NAME_PREFIX_KW,
     _NAME_PREFIX_KW.evolve(name='name_suffix', validator=_name_suffix_validator),
     RUST_CRATE_TYPE_KW,
