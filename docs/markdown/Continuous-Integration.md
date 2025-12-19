@@ -233,33 +233,6 @@ The following statement is sufficient for Meson to find Boost:
  - cmd: set BOOST_ROOT=C:\Libraries\boost_1_67_0
 ```
 
-## Travis without Docker
-
-Non-Docker Travis-CI builds can use Linux, MacOS or Windows.
-Set the desired compiler(s) in the build **matrix**.
-This example is for **Linux** (Ubuntu 18.04) and **C**.
-
-```yaml
-dist: bionic
-group: travis_latest
-
-os: linux
-language: python
-
-matrix:
-  include:
-    - env: CC=gcc
-    - env: CC=clang
-
-install:
-  - pip install meson ninja
-
-script:
-  - meson setup builddir
-  - meson compile -C builddir
-  - meson test -C builddir
-```
-
 ## GitHub Actions
 
 GitHub Actions provides a versatile platform for continuous integration
