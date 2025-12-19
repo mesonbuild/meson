@@ -2337,6 +2337,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         INSTALL_MODE_KW.evolve(since='0.47.0'),
         INSTALL_DIR_KW,
         INSTALL_FOLLOW_SYMLINKS,
+        INSTALL_TAG_KW.evolve(since='1.11.0'),
     )
     def func_install_headers(self, node: mparser.BaseNode,
                              args: T.Tuple[T.List['mesonlib.FileOrString']],
@@ -2364,7 +2365,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         for childdir in dirs:
             h = build.Headers(dirs[childdir], os.path.join(install_subdir, childdir), kwargs['install_dir'],
                               install_mode, self.subproject,
-                              follow_symlinks=kwargs['follow_symlinks'])
+                              follow_symlinks=kwargs['follow_symlinks'],
+                              install_tag=kwargs['install_tag'])
             ret_headers.append(h)
             self.build.headers.append(h)
 

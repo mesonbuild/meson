@@ -1853,7 +1853,7 @@ class Backend:
 
             for f in h.get_sources():
                 abspath = f.absolute_path(srcdir, builddir)
-                i = InstallDataBase(abspath, outdir, outdir_name, h.get_custom_install_mode(), h.subproject, tag='devel', follow_symlinks=h.follow_symlinks)
+                i = InstallDataBase(abspath, outdir, outdir_name, h.get_custom_install_mode(), h.subproject, tag=h.install_tag, follow_symlinks=h.follow_symlinks)
                 d.headers.append(i)
 
     def generate_man_install(self, d: InstallData) -> None:
