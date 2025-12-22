@@ -4062,6 +4062,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                         t.get_outputs()[0] = linker.get_archive_name(t.get_outputs()[0])
                 targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
 
+                # Add an import library if shared library in OS/2 for build all
+                if isinstance(t, build.SharedLibrary):
+                    if self.environment.machines[t.for_machine].is_os2():
+                        targetlist.append(os.path.join(self.get_target_dir(t), t.import_filename))
+
             elem = NinjaBuildElement(self.all_outputs, targ, 'phony', targetlist)
             self.add_build(elem)
 
