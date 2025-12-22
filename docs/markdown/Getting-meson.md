@@ -1,6 +1,6 @@
 # Getting Meson
 
-Meson is implemented in Python 3, and requires 3.7 or newer. If your
+Meson is implemented in Python 3, and requires 3.10 or newer. If your
 operating system provides a package manager, you should install it
 with that. For platforms that don't have a package manager, you need
 to download it from [Python's home page]. See below for
@@ -14,7 +14,7 @@ itself without doing anything special.
 
 On Windows, if you did not install Python with the installer options
 that make Python scripts executable, you will have to run `python
-/path/to/meson.py`, where `python` is Python 3.7 or newer.
+/path/to/meson.py`, where `python` is Python 3.10 or newer.
 
 The newest development code can be obtained directly from [Git], and
 we strive to ensure that it will always be working and usable. All
