@@ -345,7 +345,10 @@ bug fixes.
 
 - python 3.5: [supported through Meson 0.56.2](Release-notes-for-0.56.0.md#python-35-support-will-be-dropped-in-the-next-release)
 - python 3.6: [supported through Meson 0.61.5](Release-notes-for-0.61.0.md#python-36-support-will-be-dropped-in-the-next-release)
-- python 3.7: currently actively supported by Meson
+- python 3.7: [supported through Meson 1.11.x](Release-notes-for-1.11.0.md#last-major-version-supporting-python-37-38-and-39)
+- python 3.8: [supported through Meson 1.11.x](Release-notes-for-1.11.0.md#last-major-version-supporting-python-37-38-and-39)
+- python 3.9: [supported through Meson 1.11.x](Release-notes-for-1.11.0.md#last-major-version-supporting-python-37-38-and-39)
+- python 3.10: Currently supported
 
 We encourage projects to support a wide range of Meson versions if they are not
 actually using the latest features anyway. In many, many cases it is quite
