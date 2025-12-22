@@ -71,6 +71,7 @@ if T.TYPE_CHECKING:
 
         build_by_default: bool
         build_rpath: str
+        build_subdir: T.Optional[str]
         c_pch: T.Optional[T.Tuple[str, T.Optional[str]]]
         cpp_pch: T.Optional[T.Tuple[str, T.Optional[str]]]
         d_debug: T.List[T.Union[str, int]]
@@ -219,7 +220,7 @@ def _process_install_tag(install_tag: T.Optional[T.List[T.Optional[str]]],
 
 
 @lru_cache(maxsize=None)
-def get_target_macos_dylib_install_name(ld) -> str:
+def get_target_macos_dylib_install_name(ld: SharedLibrary) -> str:
     name = ['@rpath/', ld.prefix, ld.name]
     if ld.soversion is not None:
         name.append('.' + ld.soversion)
@@ -353,7 +354,7 @@ class Build:
         self.data: T.List[Data] = []
         self.symlinks: T.List[SymlinkData] = []
         self.static_linker: PerMachine[StaticLinker] = PerMachine(None, None)
-        self.subprojects = {}
+        self.subprojects: T.Dict[SubProject, str] = {}
         self.subproject_dir = ''
         self.install_scripts: T.List['ExecutableSerialisation'] = []
         self.postconf_scripts: T.List['ExecutableSerialisation'] = []
@@ -361,7 +362,7 @@ class Build:
         self.install_dirs: T.List[InstallDir] = []
         self.dep_manifest_name: T.Optional[str] = None
         self.dep_manifest: T.Dict[str, DepManifest] = {}
-        self.stdlibs = PerMachine({}, {})
+        self.stdlibs: PerMachine[T.Dict[str, dependencies.Dependency]] = PerMachine({}, {})
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
         self.find_overrides: T.Dict[str, T.Union['OverrideExecutable', programs.ExternalProgram, programs.OverrideProgram]] = {}
@@ -385,7 +386,7 @@ class Build:
         return self._def_files
 
     @def_files.setter
-    def def_files(self, value: T.List[str]):
+    def def_files(self, value: T.List[str]) -> None:
         if self._def_files is not None:
             raise MesonBugException('build.def_files already set')
         self._def_files = value
@@ -421,10 +422,10 @@ class Build:
         if self.static_linker[compiler.for_machine] is None and compiler.needs_static_linker():
             self.static_linker[compiler.for_machine] = detect_static_linker(self.environment, compiler)
 
-    def get_project(self) -> T.Dict[str, str]:
+    def get_project(self) -> str:
         return self.projects['']
 
-    def get_subproject_dir(self):
+    def get_subproject_dir(self) -> str:
         return self.subproject_dir
 
     def get_targets(self) -> 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]':
@@ -740,17 +741,11 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
 
     @lazy_property
     def id(self) -> str:
-        name = self.name
-        if getattr(self, 'name_suffix_set', False):
-            name += '.' + self.suffix
         return self.construct_id_from_path(
-            self.builddir, name, self.type_suffix())
+            self.builddir, self.name, self.type_suffix())
 
     def get_id(self) -> str:
         return self.id
-
-    def get_override(self, name: str) -> T.Optional[str]:
-        return self.raw_overrides.get(name, None)
 
     def is_linkable_target(self) -> bool:
         return False
@@ -800,7 +795,7 @@ class BuildTarget(Target):
         self.link_whole_targets: T.List[StaticTargetTypes] = []
         self.depend_files: T.List[File] = []
         self.link_depends: T.List[T.Union[File, BuildTargetTypes]] = []
-        self.added_deps = set()
+        self.added_deps: T.Set[dependencies.Dependency] = set()
         self.name_prefix_set = False
         self.name_suffix_set = False
         self.filename = 'no_name'
@@ -861,6 +856,14 @@ class BuildTarget(Target):
         self.validate_install()
         self.check_module_linking()
 
+    @lazy_property
+    def id(self) -> str:
+        name = self.name
+        if self.name_suffix_set:
+            name += '.' + self.suffix
+        return self.construct_id_from_path(
+            self.builddir, name, self.type_suffix())
+
     def _set_vala_args(self, kwargs: BuildTargetKeywordArguments) -> None:
         if self.uses_vala():
             self.vala_header = kwargs.get('vala_header') or self.name + '.h'
@@ -899,14 +902,14 @@ class BuildTarget(Target):
                 self.outputs.append(self.vala_gir)
                 self.install_tag.append('devel')
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.filename)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name}"
 
-    def validate_install(self):
+    def validate_install(self) -> None:
         if self.for_machine is MachineChoice.BUILD and self.install:
             if self.environment.is_cross_build():
                 raise InvalidArguments('Tried to install a target for the build machine in a cross build.')
@@ -928,7 +931,7 @@ class BuildTarget(Target):
         if len(unknowns) > 0:
             mlog.warning('Unknown keyword argument(s) in target {}: {}.'.format(self.name, ', '.join(unknowns)))
 
-    def process_objectlist(self, objects):
+    def process_objectlist(self, objects: T.List[ObjectTypes]) -> None:
         assert isinstance(objects, list)
         deprecated_non_objects = []
         for s in objects:
@@ -1101,10 +1104,11 @@ class BuildTarget(Target):
             # because this object is currently being constructed so it is not
             # yet placed in the data store. Grab it directly from override strings
             # instead.
-            value = self.get_override('cython_language')
+            key = OptionKey('cython_language', machine=self.for_machine)
+            value = self.get_override(key)
             if value is None:
-                key = OptionKey('cython_language', machine=self.for_machine)
                 value = self.environment.coredata.optstore.get_value_for(key)
+                assert isinstance(value, str), 'for mypy'
             try:
                 self.compilers[value] = self.all_compilers[value]
             except KeyError:
@@ -1112,7 +1116,7 @@ class BuildTarget(Target):
 
         return missing_languages
 
-    def validate_sources(self):
+    def validate_sources(self) -> None:
         if len(self.compilers) > 1 and any(lang in self.compilers for lang in ['cs', 'java']):
             langs = ', '.join(self.compilers.keys())
             raise InvalidArguments(f'Cannot mix those languages into a target: {langs}')
@@ -1258,6 +1262,9 @@ class BuildTarget(Target):
 
     def get_custom_install_mode(self) -> T.Optional['FileMode']:
         return self.install_mode
+
+    def get_override(self, name: OptionKey) -> T.Optional[str]:
+        return self.raw_overrides.get(name, None)
 
     def process_kwargs(self, kwargs: BuildTargetKeywordArguments) -> None:
         self.original_kwargs = kwargs
@@ -1664,7 +1671,7 @@ class BuildTarget(Target):
         # Mixing many languages with MSVC is not supported yet so ignore stdlibs.
         return compiler and compiler.get_linker_id() in {'link', 'lld-link', 'xilink', 'optlink'}
 
-    def check_module_linking(self):
+    def check_module_linking(self) -> None:
         '''
         Warn if shared modules are linked with target: (link_with) #2865
         '''
@@ -2151,11 +2158,11 @@ class Executable(BuildTarget):
     def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
         return self.environment.get_bindir(), '{bindir}'
 
-    def description(self):
+    def description(self) -> str:
         '''Human friendly description of the executable'''
         return self.name
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@exe"
 
     def get_import_filename(self) -> T.Optional[str]:
@@ -2298,7 +2305,7 @@ class StaticLibrary(BuildTarget):
     def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
         return self.environment.get_static_lib_dir(), '{libdir_static}'
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@rlib" if self.uses_rust_abi() else "@sta"
 
     def is_linkable_target(self) -> bool:
@@ -2543,7 +2550,7 @@ class SharedLibrary(BuildTarget):
                 filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         return (prefix, suffix, filename_tpl, import_filename_tpl, create_debug_file)
 
-    def determine_filenames(self):
+    def determine_filenames(self) -> None:
         """
         See https://github.com/mesonbuild/meson/pull/417 for details.
 
@@ -2653,7 +2660,7 @@ class SharedLibrary(BuildTarget):
         aliases.append((self.basic_filename_tpl.format(self), ltversion_filename, tag))
         return aliases
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@sha"
 
     def is_linkable_target(self) -> bool:
@@ -2926,7 +2933,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                 bdeps.update(d.get_transitive_build_target_deps())
         return bdeps
 
-    def get_dependencies(self):
+    def get_dependencies(self) -> T.List[T.Union[CustomTarget, coredata.BuildTarget]]:
         return self.dependencies
 
     def should_install(self) -> bool:
@@ -2998,7 +3005,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
     def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
         return OrderedSet()
 
-    def get_all_link_deps(self):
+    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return []
 
     def is_internal(self) -> bool:
@@ -3012,7 +3019,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
     def extract_all_objects(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
         return self.get_outputs()
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@cus"
 
     def __getitem__(self, index: int) -> 'CustomTargetIndex':
@@ -3149,7 +3156,7 @@ class AliasTarget(RunTarget):
                  subdir: str, subproject: str, environment: Environment):
         super().__init__(name, [], dependencies, subdir, subproject, environment)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0} {1}>"
         return repr_str.format(self.__class__.__name__, self.get_id())
 
@@ -3185,17 +3192,17 @@ class Jar(BuildTarget):
     def type_suffix(self) -> str:
         return "@jar"
 
-    def get_java_args(self):
+    def get_java_args(self) -> T.List[str]:
         return self.java_args
 
     def get_java_resources(self) -> T.Optional[StructuredSources]:
         return self.java_resources
 
-    def validate_install(self):
+    def validate_install(self) -> None:
         # All jar targets are installable.
         pass
 
-    def is_linkable_target(self):
+    def is_linkable_target(self) -> bool:
         return True
 
     def get_classpath_args(self) -> T.List[str]:
@@ -3258,7 +3265,7 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     def get_id(self) -> str:
         return self.target.get_id()
 
-    def get_all_link_deps(self):
+    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return self.target.get_all_link_deps()
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
