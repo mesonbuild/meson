@@ -1,0 +1,3 @@
+project('wraptest')
+
+subproject('subproject')

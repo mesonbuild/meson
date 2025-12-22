@@ -419,19 +419,21 @@ class Resolver:
             self.add_wrap(wrap)
         self.loaded_dirs.add(self.subdir)
 
-    def add_wrap(self, wrap: PackageDefinition) -> None:
+    def add_wrap(self, wrap: PackageDefinition, ignore_dups: bool = False) -> None:
         for k in wrap.provided_deps.keys():
-            if k in self.provided_deps:
+            if k not in self.provided_deps:
+                self.provided_deps[k] = wrap
+            elif not ignore_dups:
                 prev_wrap = self.provided_deps[k]
                 m = f'Multiple wrap files provide {k!r} dependency: {wrap.name} and {prev_wrap.name}'
                 raise WrapException(m)
-            self.provided_deps[k] = wrap
         for k in wrap.provided_programs:
-            if k in self.provided_programs:
+            if k not in self.provided_programs:
+                self.provided_programs[k] = wrap
+            elif not ignore_dups:
                 prev_wrap = self.provided_programs[k]
                 m = f'Multiple wrap files provide {k!r} program: {wrap.name} and {prev_wrap.name}'
                 raise WrapException(m)
-            self.provided_programs[k] = wrap
 
     def load_wrapdb(self) -> None:
         try:
@@ -474,7 +476,9 @@ class Resolver:
                 del self.provided_deps[v.directory.lower()]
             if k not in self.wraps:
                 self.wraps[k] = v
-                self.add_wrap(v)
+                # it's fine if a dependency or program is provided by a wrap
+                # from *another* project (including the superproject).
+                self.add_wrap(v, ignore_dups=True)
 
     def load_and_merge(self, subdir: str, subproject: SubProject) -> None:
         if self.wrap_mode != WrapMode.nopromote and subdir not in self.loaded_dirs:
