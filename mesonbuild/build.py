@@ -1508,12 +1508,10 @@ class BuildTarget(Target):
                 self.link_whole_targets.extend(dep.whole_libraries)
                 if dep.get_compile_args() or dep.get_link_args():
                     # Those parts that are external.
-                    extpart = dependencies.InternalDependency('undefined',
-                                                              [],
-                                                              dep.get_compile_args(),
-                                                              dep.get_link_args(),
-                                                              [], [], [], [], [], {}, [], [], [],
-                                                              dep.name)
+                    extpart = dependencies.InternalDependency(dep.version,
+                                                              compile_args=dep.get_compile_args(),
+                                                              link_args=dep.get_link_args(),
+                                                              name=dep.name)
                     self.external_deps.append(extpart)
                 # Deps of deps.
                 self.add_deps(dep.ext_deps)
