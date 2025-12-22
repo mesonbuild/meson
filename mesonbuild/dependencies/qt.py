@@ -22,7 +22,7 @@ from .. import mlog
 from .. import mesonlib
 
 if T.TYPE_CHECKING:
-    from ..compilers import Compiler
+    from ..compilers.compilers import Compiler
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..dependencies import MissingCompiler

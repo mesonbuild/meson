@@ -33,7 +33,7 @@ from . import compilers
 from mesonbuild import envconfig
 
 if T.TYPE_CHECKING:
-    from .compilers import Compiler
+    from .compilers.compilers import Compiler, Language
     from .options import OptionDict, ElementaryOptionValues
     from .wrap.wrap import Resolver
 
@@ -573,7 +573,7 @@ class Environment:
             env.prepend('PATH', list(extra_paths))
         return env
 
-    def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
+    def add_lang_args(self, lang: Language, comp: T.Type['Compiler'],
                       for_machine: MachineChoice) -> None:
         """Add global language arguments that are needed before compiler/linker detection."""
         description = f'Extra arguments passed to the {lang}'
