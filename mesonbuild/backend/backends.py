@@ -1854,7 +1854,10 @@ class Backend:
                 srcabs = f.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
                 dstname = os.path.join(subdir, os.path.basename(fname))
                 dstabs = dstname.replace('{mandir}', manroot)
-                i = InstallDataBase(srcabs, dstabs, dstname, m.get_custom_install_mode(), m.subproject, tag='man')
+                tag = 'man'
+                if m.install_tag is not None:
+                    tag = m.install_tag
+                i = InstallDataBase(srcabs, dstabs, dstname, m.get_custom_install_mode(), m.subproject, tag=tag)
                 d.man.append(i)
 
     def generate_emptydir_install(self, d: InstallData) -> None:
