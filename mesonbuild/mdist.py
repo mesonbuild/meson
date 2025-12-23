@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import abc
 import argparse
+import itertools
 import os
 import sys
 import shlex
@@ -32,6 +33,7 @@ from .scripts.meson_exe import run_exe
 
 if T.TYPE_CHECKING:
     from ._typing import ImmutableListProtocol
+    from .interpreterbase.baseobjects import SubProject
     from .mesonlib import ExecutableSerialisation
 
 archive_choices = ['bztar', 'gztar', 'xztar', 'zip']
@@ -124,7 +126,7 @@ class Dist(metaclass=abc.ABCMeta):
     src_root: str
     bld_root: str
     dist_scripts: T.List[ExecutableSerialisation]
-    subprojects: T.Dict[str, str]
+    subprojects: T.Dict[SubProject, str]
     options: argparse.Namespace
 
     def __post_init__(self) -> None:
@@ -388,13 +390,14 @@ def run(options: argparse.Namespace) -> int:
 
     archives = determine_archives_to_generate(options)
 
-    subprojects = {}
+    subprojects: T.Dict[SubProject, str] = {}
     extra_meson_args = []
     if options.include_subprojects:
         subproject_dir = os.path.join(src_root, b.subproject_dir)
-        for sub in b.subprojects:
-            directory = wrap.get_directory(subproject_dir, sub)
-            subprojects[sub] = os.path.join(b.subproject_dir, directory)
+        for sub in set(itertools.chain(b.projects.host, b.projects.build)):
+            if sub:
+                directory = wrap.get_directory(subproject_dir, sub)
+                subprojects[sub] = os.path.join(b.subproject_dir, directory)
         extra_meson_args.append('-Dwrap_mode=nodownload')
 
     cls: T.Type[Dist]

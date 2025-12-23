@@ -261,6 +261,24 @@ class CoreData:
         self.builtin_options_libdir_cross_fixup()
         self.optstore.init_builtins()
 
+    def copy_for_build_machine(self) -> CoreData:
+        """Create a copy if this coredata, but for the build machine.
+
+        If this is not a cross build, then a reference to self will be returned
+        instead.
+        """
+        if not self.is_cross_build():
+            return self
+        new = copy.copy(self)
+        # Use only the build deps, not any host ones
+        new.deps = PerMachineDefaultable(self.deps.build).default_missing()
+        new.compilers = PerMachineDefaultable(self.compilers.build).default_missing()
+        new.cmake_cache = PerMachineDefaultable(self.cmake_cache.build).default_missing()
+
+        # Keep cross files so is_cross_build() returns True for correct machine lookups
+        # Build-only subprojects are still cross-builds conceptually, they just share state
+        return new
+
     @staticmethod
     def __load_config_files(cmd_options: SharedCMDOptions, scratch_dir: str, ftype: str) -> T.List[str]:
         # Need to try and make the passed filenames absolute because when the
