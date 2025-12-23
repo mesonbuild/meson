@@ -5,18 +5,19 @@ from .model import ReferenceManual
 from .generatormd import GeneratorMD, _ROOT_BASENAME
 
 import xml.etree.ElementTree as ET
-import subprocess
 from pathlib import Path
 
 from mesonbuild import mlog
+from mesonbuild.coredata import version as _MESON_VERSION
 
-# TODO: version number
-_NAMESPACE = 'com.mesonbuild.meson.1.0'
+_NAMESPACE = 'com.mesonbuild.meson.' + _MESON_VERSION
 _NAMESPACE_ID = 'Mesonbuild'
-_FILTER_NAME = 'Meson 1.0'
+_FILTER_NAME = 'Meson ' + _MESON_VERSION
 _FILTER_ATTR_NAME = 'meson'
-_FILTER_ATTR_VER = '1.0'
+_FILTER_ATTR_VER = _MESON_VERSION
 _VIRTUAL_FOLDER = 'doc'
+
+_TITLE = 'Meson ' + _MESON_VERSION + ' documentation'
 
 class GeneratorQtHelp(GeneratorMD):
     def __init__(self, manual: ReferenceManual, sitemap_out: Path, sitemap_in: Path,
@@ -88,7 +89,7 @@ class GeneratorQtHelp(GeneratorMD):
 
                 if line == 'index.md':
                     mlog.log('Added top-level section')
-                    self.qhp_data.start('section', {'title': 'Meson documentation', 'ref': 'index.html'})
+                    self.qhp_data.start('section', {'title': _TITLE, 'ref': 'index.html'})
                     continue
 
                 doc = line[level:-3] # Trimmed filename without .md extension
