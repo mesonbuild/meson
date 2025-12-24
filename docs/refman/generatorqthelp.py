@@ -19,11 +19,20 @@ _VIRTUAL_FOLDER = 'doc'
 
 _TITLE = 'Meson ' + _MESON_VERSION + ' documentation'
 
+# HACK: It seems qhelpgenerator retrieves files from the same directory
+# as the .qhp file. Therefore, we must place the .qhp file wherever the
+# html files are generated. Well, the html files and other assets are generated
+# by the hotdoc meson target, but we can't get the directory where they are placed,
+# because in the meson.build, the hotdoc target has not been declared yet.
+# And that target has not been declared yet, because it depends on
+# refman_qthelp. Luckily, the hotdoc target's output path seems to be deterministic,
+# so we can just write it here like this.
+_QHP_PATH = Path('Meson documentation-qthelp-doc') / 'html' # Relative to out_dir
+
 class GeneratorQtHelp(GeneratorMD):
     def __init__(self, manual: ReferenceManual, sitemap_out: Path, sitemap_in: Path,
                  link_def_out: Path, enable_modules: bool) -> None:
         super().__init__(manual, sitemap_out, sitemap_in, link_def_out, enable_modules)
-        #self.out_dir /= "qthelp"
 
         # Qt Help Project data
         self.qhp_data = ET.TreeBuilder()
@@ -35,7 +44,7 @@ class GeneratorQtHelp(GeneratorMD):
         with mlog.nested():
             self._build_qhp_tree()
             qhp_tree = ET.ElementTree(self.qhp_data.close())
-            with open('Meson.qhp', 'wb+') as qhp_file:
+            with open(self.out_dir / _QHP_PATH / 'Meson.qhp', 'wb+') as qhp_file:
                 qhp_tree.write(qhp_file, encoding='utf-8', xml_declaration=True)
 
     def _get_doc_title(self, md: Path) -> str:

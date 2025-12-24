@@ -200,9 +200,8 @@ generate_qch = custom_target(
     output: 'Meson.qch',
     depends: documentation_qthelp,
     command: [
-        py, meson.current_source_dir() / 'runprogram.py',
-        qhelpgenerator, documentation_qthelp.full_path() / 'html',
-        meson.current_build_dir() / 'Meson.qhp',
+        qhelpgenerator,
+        documentation_qthelp.full_path() / 'html' / 'Meson.qhp',
         '-o', '@OUTPUT@'
     ],
 )
