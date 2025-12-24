@@ -69,6 +69,10 @@ lang_suffixes: T.Mapping[str, T.Tuple[str, ...]] = {
     'masm': ('masm',),
     'linearasm': ('sa',),
 }
+# Some compilers only recognize files with specific suffixes.
+compiler_suffixes: T.Mapping[str, T.Tuple[str, ...]] = {
+    'msvc': ('c', 'cxx', 'cpp', 'obj', 'lib', 'def'),
+}
 all_languages = lang_suffixes.keys()
 c_cpp_suffixes = {'h'}
 cpp_suffixes = set(lang_suffixes['cpp']) | c_cpp_suffixes
@@ -849,6 +853,16 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             else:
                 srcname = code.fname
                 code_debug = f'Source file: {srcname}'
+
+            compiler_id = self.get_id()
+            suffixes = compiler_suffixes.get(compiler_id)
+            if suffixes:
+                suffix = os.path.splitext(srcname)[1]
+                if suffix and suffix[1:] not in suffixes:
+                    err = f'Unrecognized filename suffix for "{srcname}", will be ignored by {compiler_id}'
+                    mlog.error(err)
+                    yield CompileResult('', err, [], 1, srcname)
+                    return
 
             # Construct the compiler command-line
             commands = self.compiler_args()
