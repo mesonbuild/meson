@@ -37,6 +37,7 @@ backend_generator_map = {
     'vs2017': 'Visual Studio 15 2017',
     'vs2019': 'Visual Studio 16 2019',
     'vs2022': 'Visual Studio 17 2022',
+    'vs2026': 'Visual Studio 18 2026',
 }
 
 blacklist_cmake_defs = [
