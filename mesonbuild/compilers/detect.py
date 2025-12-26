@@ -206,8 +206,10 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
 
         if any(os.path.basename(x) in {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'} for x in linker):
             arg = '/?'
-        elif linker_name in {'ar2000', 'ar2000.exe', 'ar430', 'ar430.exe', 'armar', 'armar.exe', 'ar6x', 'ar6x.exe'}:
+        elif linker_name in {'ar2000', 'ar2000.exe', 'ar430', 'ar430.exe', 'ar6x', 'ar6x.exe'}:
             arg = '?'
+        elif linker_name in {'armar', 'armar.exe'}:
+            arg = '-h'
         else:
             arg = '--version'
         try:
