@@ -198,7 +198,7 @@ if T.TYPE_CHECKING:
         vtail: T.Optional[str]
         depends: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]
 
-    ToolType: TypeAlias = T.Union[Executable, ExternalProgram, OverrideProgram]
+    ToolType: TypeAlias = T.Union[build.OverrideExecutable, ExternalProgram, OverrideProgram]
 
 
 # Differs from the CustomTarget version in that it straight defaults to True
@@ -309,7 +309,7 @@ class GnomeModule(ExtensionModule):
                      once=True, fatal=False)
 
     @staticmethod
-    def _find_tool(state: 'ModuleState', tool: str) -> 'ToolType':
+    def _find_tool(state: 'ModuleState', tool: str, required: bool = True) -> 'ToolType':
         tool_map = {
             'gio-querymodules': 'gio-2.0',
             'glib-compile-schemas': 'gio-2.0',
@@ -319,10 +319,11 @@ class GnomeModule(ExtensionModule):
             'glib-mkenums': 'glib-2.0',
             'g-ir-scanner': 'gobject-introspection-1.0',
             'g-ir-compiler': 'gobject-introspection-1.0',
+            'gi-compile-repository': 'girepository-2.0',
         }
         depname = tool_map[tool]
         varname = tool.replace('-', '_')
-        return state.find_tool(tool, depname, varname)
+        return state.find_tool(tool, depname, varname, required)
 
     @typed_kwargs(
         'gnome.post_install',
@@ -789,12 +790,23 @@ class GnomeModule(ExtensionModule):
         if self.devenv is not None:
             b.devenv.append(self.devenv)
 
-    def _get_gir_dep(self, state: 'ModuleState') -> T.Tuple[Dependency, T.Union[Executable, 'ExternalProgram', 'OverrideProgram'],
-                                                            T.Union[Executable, 'ExternalProgram', 'OverrideProgram']]:
+    def _get_gir_dep(self, state: 'ModuleState') -> T.Tuple[Dependency, ToolType, ToolType]:
         if not self.gir_dep:
-            self.gir_dep = state.dependency('gobject-introspection-1.0')
+            # Look first for the compiler's new name. If it is found,
+            # girepository-2.0 might not be available yet, in the case we are
+            # generating GIR for girepository-2.0 itself.
+            self.gicompiler = self._find_tool(state, 'gi-compile-repository', required=False)
+            if self.gicompiler.found():
+                self.gir_dep = state.dependency('girepository-2.0', required=False)
+                if not self.gir_dep.found():
+                    self.gir_dep = InternalDependency(
+                        self.gicompiler.get_version(),
+                        [], [], [], [], [], [], [], [], {}, [], [], [],
+                        'girepository-2.0')
+            else:
+                self.gir_dep = state.dependency('gobject-introspection-1.0')
+                self.gicompiler = self._find_tool(state, 'g-ir-compiler')
             self.giscanner = self._find_tool(state, 'g-ir-scanner')
-            self.gicompiler = self._find_tool(state, 'g-ir-compiler')
         return self.gir_dep, self.giscanner, self.gicompiler
 
     def _giscanner_version_compare(self, state: 'ModuleState', cmp: str) -> bool:
