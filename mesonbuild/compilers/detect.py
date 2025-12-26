@@ -1148,7 +1148,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
                         exelist=cc.linker.exelist, version=cc.linker.version,
                         **extra_args)  # type: ignore
                 else:
-                    linker = type(cc.linker)(compiler, env, for_machine, cc.LINKER_PREFIX,
+                    linker = type(cc.linker)(cc.linker.exelist, env, for_machine, cc.LINKER_PREFIX,
                                              always_args=always_args, system=cc.linker.system,
                                              version=cc.linker.version, **extra_args)
             elif 'link' in override[0]:
