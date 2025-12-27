@@ -13,6 +13,7 @@ from .. import mesonlib
 from .. import mlog
 from .base import DependencyException, SystemDependency
 from .detect import packages
+from ..envconfig import MachineInfo
 from ..mesonlib import LibType
 
 if T.TYPE_CHECKING:
