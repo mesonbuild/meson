@@ -13,10 +13,10 @@ if __name__ == '__main__':
        not args[2].startswith('--output'):
         print(args[0], '--input=input_file --output=output_file')
         sys.exit(1)
-    with open(args[1].split('=')[1]) as f:
+    with open(args[1].split('=', 1)[1]) as f:
         ifile = f.read()
     if ifile != 'This is a text only input file.\n':
         print('Malformed input')
         sys.exit(1)
-    with open(args[2].split('=')[1], 'w') as ofile:
+    with open(args[2].split('=', 1)[1], 'w') as ofile:
         ofile.write('This is a binary output file.\n')
