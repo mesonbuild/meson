@@ -227,34 +227,35 @@ the following command-line options:
 * **--wrap-mode=nofallback**
 
     Meson will not use subproject fallbacks for any dependency
-    declarations in the build files, and will only look for them in the
-    system. Note that this does not apply to unconditional subproject()
-    calls, and those are meant to be used for sources that cannot be
-    provided by the system, such as copylibs.
+    declarations and program lookups in the build files, and will only
+    look for them in the system. Note that this does not apply to
+    unconditional subproject() calls, and those are meant to be used for
+    sources that cannot be provided by the system, such as copylibs.
 
     This option may be overridden by `--force-fallback-for` for specific
     dependencies.
 
 * **--wrap-mode=forcefallback**
 
-    Meson will not look at the system for any dependencies which have
-    subproject fallbacks available, and will *only* use subprojects for
-    them. This is useful when you want to test your fallback setup, or
-    want to specifically build against the library sources provided by
-    your subprojects.
+    Meson will not look at the system for any dependencies and programs
+    which have subproject fallbacks available, and will *only* use
+    subprojects for them. This is useful when you want to test your
+    fallback setup, or want to specifically build against the library
+    sources provided by your subprojects.
 
-* **--force-fallback-for=list,of,dependencies**
+* **--force-fallback-for=list,of,dependencies,or,subprojects**
 
-    Meson will not look at the system for any dependencies listed there,
-    provided a fallback was supplied when the dependency was declared.
+    Meson will not look at the system for any dependencies and
+    subprojects listed there, provided a fallback was supplied in the
+    wrapfile or when the dependency was declared.
 
     This option takes precedence over `--wrap-mode=nofallback`, and when
     used in combination with `--wrap-mode=nodownload` will only work
-    if the dependency has already been downloaded.
+    if the subproject has already been downloaded.
 
-    This is useful when your project has many fallback dependencies,
-    but you only want to build against the library sources for a few
-    of them.
+    This is useful when your project has many fallback dependencies or
+    programs, but you only want to build against the library sources for
+    a few of them.
 
     **Warning**: This could lead to mixing system and subproject version of the
     same library in the same process. Take this case as example:
