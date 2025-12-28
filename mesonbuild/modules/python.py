@@ -15,7 +15,7 @@ from ..dependencies import NotFoundDependency
 from ..dependencies.detect import get_dep_identifier, find_external_dependency
 from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase
 from ..interpreter import extract_required_kwarg, primitives as P_OBJ
-from ..interpreter.interpreterobjects import _ExternalProgramHolder
+from ..interpreter.interpreterobjects import BaseProgramHolder
 from ..interpreter.type_checking import NoneType, DEPENDENCY_KWS, PRESERVE_PATH_KW, SHARED_MOD_KWS
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs, ContainerTypeInfo,
@@ -112,9 +112,9 @@ _SUBDIR_KW = KwargInfo('subdir', str, default='')
 _LIMITED_API_KW = KwargInfo('limited_api', str, default='', since='1.3.0')
 _DEFAULTABLE_SUBDIR_KW = KwargInfo('subdir', (str, NoneType))
 
-class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
+class PythonInstallation(BaseProgramHolder['PythonExternalProgram']):
     def __init__(self, python: 'PythonExternalProgram', interpreter: 'Interpreter'):
-        _ExternalProgramHolder.__init__(self, python, interpreter)
+        BaseProgramHolder.__init__(self, python, interpreter)
         info = python.info
         prefix = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('prefix'))
         assert isinstance(prefix, str), 'for mypy'
