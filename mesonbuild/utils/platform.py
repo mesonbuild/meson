@@ -54,6 +54,7 @@ if sys.platform == 'win32':
             except OSError:
                 if self.action == DirectoryLockAction.IGNORE or self.optional:
                     return
+                raise
 
             try:
                 mode = msvcrt.LK_LOCK
@@ -89,6 +90,7 @@ else:
             except OSError:
                 if self.action == DirectoryLockAction.IGNORE or self.optional:
                     return
+                raise
 
             try:
                 flags = fcntl.LOCK_EX
