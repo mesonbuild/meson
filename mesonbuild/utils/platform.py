@@ -23,7 +23,7 @@ class DirectoryLockAction(enum.Enum):
 
 class DirectoryLockBase:
 
-    lockfile: T.TextIO
+    lockfile: T.Optional[T.TextIO] = None
 
     def __init__(self, directory: str, lockfile: str, action: DirectoryLockAction, err: str,
                  optional: bool = False) -> None:
