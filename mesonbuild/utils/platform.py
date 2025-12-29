@@ -48,6 +48,7 @@ class DirectoryLockBase:
         except OSError:
             if self.action == DirectoryLockAction.IGNORE or self.optional:
                 return
+            raise
 
         try:
             self._lock()
