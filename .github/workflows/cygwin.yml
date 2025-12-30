@@ -49,7 +49,7 @@ jobs:
         id: restore-cache
         with:
           # should use 'pip3 cache dir' to discover this path
-          path: C:\cygwin\home\runneradmin\.cache\pip
+          path: D:\cygwin\home\runneradmin\.cache\pip
           key: cygwin-pip-${{ github.run_number }}
           restore-keys: cygwin-pip-
 
@@ -57,7 +57,7 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      - uses: cygwin/cygwin-install-action@v5
+      - uses: cygwin/cygwin-install-action@v6
         with:
           platform: ${{ matrix.ARCH }}
           packages: |
@@ -88,12 +88,12 @@ jobs:
         run: |
           export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
           python3 -m pip --disable-pip-version-check install gcovr fastjsonschema pefile pytest pytest-subtests pytest-xdist
-        shell: C:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
+        shell: D:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
 
       - uses: actions/cache/save@v4
         with:
           # should use 'pip3 cache dir' to discover this path
-          path: C:\cygwin\home\runneradmin\.cache\pip
+          path: D:\cygwin\home\runneradmin\.cache\pip
           key: cygwin-pip-${{ github.run_number }}
 
       - name: Run tests
@@ -104,7 +104,7 @@ jobs:
           # Cygwin's static boost installation is broken (some static library
           # variants such as boost_thread are not present)
           SKIP_STATIC_BOOST: 1
-        shell: C:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
+        shell: D:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
 
       - uses: actions/upload-artifact@v4
         with:
