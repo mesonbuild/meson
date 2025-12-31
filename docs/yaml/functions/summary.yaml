@@ -47,18 +47,17 @@ example: |
   My Project 1.0
 
     Directories
-      prefix         : /opt/gnome
       bindir         : bin
       libdir         : lib/x86_64-linux-gnu
       datadir        : share
 
     Configuration
-      Some boolean   : False
-      Another boolean: True
+      Some boolean   : false
+      Another boolean: true
       Some string    : Hello World
-      An array        : string
+      An array       : string
                        1
-                       True
+                       true
   ```
 
 arg_flattening: false

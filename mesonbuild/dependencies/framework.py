@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from .base import DependencyTypeName, ExternalDependency, DependencyException
-from ..mesonlib import MesonException, Version, stringlistify
+from ..mesonlib import MesonException, Version
 from .. import mlog
 from pathlib import Path
 import typing as T
@@ -16,10 +16,11 @@ if T.TYPE_CHECKING:
 class ExtraFrameworkDependency(ExternalDependency):
     system_framework_paths: T.Optional[T.List[str]] = None
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None) -> None:
-        paths = stringlistify(kwargs.get('paths', []))
-        super().__init__(DependencyTypeName('extraframeworks'), env, kwargs, language=language)
-        self.name = name
+    type_name = DependencyTypeName('extraframeworks')
+
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        paths = kwargs.get('paths', [])
+        super().__init__(name, env, kwargs)
         # Full path to framework directory
         self.framework_path: T.Optional[str] = None
         if not self.clib_compiler:
@@ -111,7 +112,3 @@ class ExtraFrameworkDependency(ExternalDependency):
 
     def log_info(self) -> str:
         return self.framework_path or ''
-
-    @staticmethod
-    def log_tried() -> str:
-        return 'framework'

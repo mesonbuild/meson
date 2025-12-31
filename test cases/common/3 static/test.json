@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/common/3 static/meson.build:19: DEPRECATION: Project uses feature that was always broken, and is now deprecated since '1.10.1': Using '' as an empty value in link_args. Replace an empty string with an empty array: `link_args : ''` -> `link_args : []`"
+    }
+  ]
+}

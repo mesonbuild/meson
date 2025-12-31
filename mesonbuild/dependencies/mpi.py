@@ -3,14 +3,13 @@
 
 from __future__ import annotations
 
-import functools
 import typing as T
 import os
 import re
 
 from ..envconfig import detect_cpu_family
 from ..mesonlib import Popen_safe
-from .base import DependencyException, DependencyMethods, detect_compiler, SystemDependency
+from .base import DependencyCandidate, DependencyException, DependencyMethods, detect_compiler, SystemDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import factory_methods
@@ -19,21 +18,19 @@ from .pkgconfig import PkgConfigDependency
 if T.TYPE_CHECKING:
     from .factory import DependencyGenerator
     from ..environment import Environment
-    from ..mesonlib import MachineChoice
     from .base import DependencyObjectKWs
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
 def mpi_factory(env: 'Environment',
-                for_machine: 'MachineChoice',
                 kwargs: DependencyObjectKWs,
                 methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
-    language = kwargs.get('language')
-    if language is None:
-        language = 'c'
+    language = kwargs.get('language') or 'c'
     if language not in {'c', 'cpp', 'fortran'}:
         # OpenMPI doesn't work without any other languages
         return []
+
+    for_machine = kwargs['native']
 
     candidates: T.List['DependencyGenerator'] = []
     compiler = detect_compiler('mpi', env, for_machine, language)
@@ -77,14 +74,14 @@ def mpi_factory(env: 'Environment',
             tool_names.extend(['mpifort', 'mpif90', 'mpif77'])
 
         nwargs['tools'] = tool_names
-        candidates.append(functools.partial(
-            MPIConfigToolDependency, tool_names[0], env, nwargs, language=language))
+        candidates.append(DependencyCandidate.from_dependency(
+            tool_names[0], MPIConfigToolDependency, (env, nwargs)))
 
     if DependencyMethods.SYSTEM in methods and env.machines[for_machine].is_windows():
-        candidates.append(functools.partial(
-            MSMPIDependency, 'msmpi', env, kwargs, language=language))
-        candidates.append(functools.partial(
-            IMPIDependency, 'impi', env, kwargs, language=language))
+        candidates.append(DependencyCandidate.from_dependency(
+            'msmpi', MSMPIDependency, (env, kwargs)))
+        candidates.append(DependencyCandidate.from_dependency(
+            'impi', IMPIDependency, (env, kwargs)))
 
     # Only OpenMPI has pkg-config, and it doesn't work with the intel compilers
     # for MPI, environment variables and commands like mpicc should have priority
@@ -96,8 +93,8 @@ def mpi_factory(env: 'Environment',
             pkg_name = 'ompi-cxx'
         elif language == 'fortran':
             pkg_name = 'ompi-fort'
-        candidates.append(functools.partial(
-            PkgConfigDependency, pkg_name, env, kwargs, language=language))
+        candidates.append(DependencyCandidate.from_dependency(
+            pkg_name, PkgConfigDependency, (env, kwargs)))
 
     return candidates
 
@@ -107,9 +104,8 @@ packages['mpi'] = mpi_factory
 class MPIConfigToolDependency(ConfigToolDependency):
     """Wrapper around mpicc, Intel's mpiicc and friends."""
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs,
-                 language: T.Optional[str] = None):
-        super().__init__(name, env, kwargs, language=language)
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, env, kwargs)
         if not self.is_found:
             return
 
@@ -217,11 +213,10 @@ class MSMPIDependency(SystemDependency):
 
     """The Microsoft MPI."""
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs,
-                 language: T.Optional[str] = None):
-        super().__init__(name, env, kwargs, language=language)
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+        super().__init__(name, env, kwargs)
         # MSMPI only supports the C API
-        if language not in {'c', 'fortran', None}:
+        if self.language not in {'c', 'fortran', None}:
             self.is_found = False
             return
         # MSMPI is only for windows, obviously
@@ -253,9 +248,8 @@ class IMPIDependency(SystemDependency):
 
     """Intel(R) MPI for Windows."""
 
-    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs,
-                 language: T.Optional[str] = None):
-        super().__init__(name, env, kwargs, language=language)
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
+        super().__init__(name, env, kwargs)
         # only for windows
         if not self.env.machines[self.for_machine].is_windows():
             return

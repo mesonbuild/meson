@@ -228,12 +228,12 @@ def list_targets(builddata: build.Build, installdata: backends.InstallData, back
         if not isinstance(target, build.Target):
             raise RuntimeError('The target object in `builddata.get_targets()` is not of type `build.Target`. Please file a bug with this error message.')
 
-        outdir = get_target_dir(builddata.environment.coredata, target.subdir)
+        outdir = get_target_dir(builddata.environment.coredata, target.get_builddir())
         t = {
             'name': target.get_basename(),
             'id': idname,
             'type': target.get_typename(),
-            'defined_in': os.path.normpath(os.path.join(src_dir, target.subdir, environment.build_filename)),
+            'defined_in': os.path.normpath(os.path.join(src_dir, target.get_subdir(), environment.build_filename)),
             'filename': [os.path.join(build_dir, outdir, x) for x in target.get_outputs()],
             'build_by_default': target.build_by_default,
             'target_sources': backend.get_introspection_data(idname, target),

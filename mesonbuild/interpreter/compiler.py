@@ -47,7 +47,7 @@ if T.TYPE_CHECKING:
 
     class BaseCompileKW(TypedDict):
         no_builtin_args: bool
-        include_directories: T.List[build.IncludeDirs]
+        include_directories: T.List[T.Union[str, build.IncludeDirs]]
         args: T.List[str]
 
     class CompileKW(BaseCompileKW, ExtractRequired):
@@ -165,14 +165,23 @@ _NO_BUILTIN_ARGS_KW = KwargInfo('no_builtin_args', bool, default=False)
 _NAME_KW = KwargInfo('name', str, default='')
 _WERROR_KW = KwargInfo('werror', bool, default=False, since='1.3.0')
 
+_INCLUDE_DIRECTORIES_KW = INCLUDE_DIRECTORIES.evolve(
+    since_values={ContainerTypeInfo(list, str): '1.10.0'}
+)
+
 # Many of the compiler methods take this kwarg signature exactly, this allows
 # simplifying the `typed_kwargs` calls
-_COMMON_KWS: T.List[KwargInfo] = [_ARGS_KW, _DEPENDENCIES_KW, INCLUDE_DIRECTORIES, _PREFIX_KW, _NO_BUILTIN_ARGS_KW]
+_COMMON_KWS: T.List[KwargInfo] = [
+    _ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRECTORIES_KW, _PREFIX_KW,
+    _NO_BUILTIN_ARGS_KW,
+]
 
 # Common methods of compiles, links, runs, and similar
-_COMPILES_KWS: T.List[KwargInfo] = [_NAME_KW, _ARGS_KW, _DEPENDENCIES_KW, INCLUDE_DIRECTORIES, _NO_BUILTIN_ARGS_KW,
-                                    _WERROR_KW,
-                                    REQUIRED_KW.evolve(since='1.5.0', default=False)]
+_COMPILES_KWS: T.List[KwargInfo] = [
+    _NAME_KW, _ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRECTORIES_KW,
+    _NO_BUILTIN_ARGS_KW, _WERROR_KW,
+    REQUIRED_KW.evolve(since='1.5.0', default=False),
+]
 
 _HEADER_KWS: T.List[KwargInfo] = [REQUIRED_KW.evolve(since='0.50.0', default=False), *_COMMON_KWS]
 _HAS_REQUIRED_KW = REQUIRED_KW.evolve(since='1.3.0', default=False)
@@ -226,7 +235,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def _determine_args(self, kwargs: BaseCompileKW,
                         mode: CompileCheckMode = CompileCheckMode.LINK) -> T.List[str]:
         args: T.List[str] = []
-        for i in self.interpreter.extract_incdirs(kwargs, strings_since='1.10.0'):
+        for i in self.interpreter.extract_incdirs(kwargs['include_directories']):
             for idir in i.to_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
                 args.extend(self.compiler.get_include_args(idir, False))
         if not kwargs['no_builtin_args']:
@@ -649,6 +658,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         lib = dependencies.ExternalLibrary(libname, None,
                                            self.environment,
                                            self.compiler.language,
+                                           self.held_object.for_machine,
                                            silent=True)
         return lib
 
@@ -673,15 +683,13 @@ class CompilerHolder(ObjectHolder['Compiler']):
             mlog.log('Library', mlog.bold(libname), 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.notfound_library(libname)
 
-        include_directories = self.interpreter.extract_incdirs(kwargs, key='header_include_directories', strings_since='1.10.0')
-
         # This could be done with a comprehension, but that confuses the type
         # checker, and having it check this seems valuable
         has_header_kwargs: 'HeaderKW' = {
             'required': required,
             'args': kwargs['header_args'],
             'dependencies': kwargs['header_dependencies'],
-            'include_directories': include_directories,
+            'include_directories': kwargs['header_include_directories'],
             'prefix': kwargs['header_prefix'],
             'no_builtin_args': kwargs['header_no_builtin_args'],
         }
@@ -710,7 +718,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                                        .format(self.compiler.get_display_language(),
                                                libtype_s, libname))
         lib = dependencies.ExternalLibrary(libname, linkargs, self.environment,
-                                           self.compiler.language)
+                                           self.compiler.language, self.held_object.for_machine)
         return lib
 
     def _has_argument_impl(self, arguments: T.Union[str, T.List[str]],
@@ -878,7 +886,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         'compiler.preprocess',
         KwargInfo('output', str, default='@PLAINNAME@.i'),
         KwargInfo('compile_args', ContainerTypeInfo(list, str), listify=True, default=[]),
-        INCLUDE_DIRECTORIES,
+        _INCLUDE_DIRECTORIES_KW,
         _DEPENDENCIES_KW.evolve(since='1.1.0'),
         _DEPENDS_KW.evolve(since='1.4.0'),
     )
@@ -906,7 +914,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             compiler,
             self.interpreter.backend,
             kwargs['compile_args'],
-            self.interpreter.extract_incdirs(kwargs, strings_since='1.10.0'),
+            self.interpreter.extract_incdirs(kwargs['include_directories']),
             kwargs['dependencies'],
             kwargs['depends'])
         self.interpreter.add_target(tg.name, tg)
