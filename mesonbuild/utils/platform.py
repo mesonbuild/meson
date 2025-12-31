@@ -23,7 +23,7 @@ class DirectoryLockAction(enum.Enum):
 
 class DirectoryLockBase:
 
-    lockfile: T.TextIO
+    lockfile: T.Optional[T.TextIO] = None
 
     def __init__(self, directory: str, lockfile: str, action: DirectoryLockAction, err: str,
                  optional: bool = False) -> None:
@@ -32,83 +32,62 @@ class DirectoryLockBase:
         self.lockpath = os.path.join(directory, lockfile)
         self.optional = optional
 
-    def __enter__(self) -> None:
+    def _lock(self) -> None:
         mlog.debug('Calling the no-op version of DirectoryLock')
 
-    def __exit__(self, *args: T.Any) -> None:
+    def _unlock(self, *args: T.Any) -> None:
         pass
 
+    def __enter__(self) -> None:
+        try:
+            self.lockfile = open(self.lockpath, 'w+', encoding='utf-8')
+        except (FileNotFoundError, IsADirectoryError):
+            # For FileNotFoundError, there is nothing to lock.
+            # For IsADirectoryError, something is seriously wrong.
+            raise
+        except OSError:
+            if self.action == DirectoryLockAction.IGNORE or self.optional:
+                return
+            raise
+
+        try:
+            self._lock()
+        except BlockingIOError:
+            self.lockfile.close()
+            if self.action == DirectoryLockAction.IGNORE:
+                return
+            raise MesonException(self.err)
+        except PermissionError:
+            self.lockfile.close()
+            raise MesonException(self.err)
+
+    def __exit__(self, *args: T.Any) -> None:
+        if self.lockfile is None or self.lockfile.closed:
+            return
+        self._unlock()
+        self.lockfile.close()
 
 if sys.platform == 'win32':
     import msvcrt
 
     class DirectoryLock(DirectoryLockBase):
+        def _lock(self) -> None:
+            mode = msvcrt.LK_LOCK
+            if self.action != DirectoryLockAction.WAIT:
+                mode = msvcrt.LK_NBLCK
+            msvcrt.locking(self.lockfile.fileno(), mode, 1)
 
-        def __enter__(self) -> None:
-            try:
-                self.lockfile = open(self.lockpath, 'w+', encoding='utf-8')
-            except (FileNotFoundError, IsADirectoryError):
-                # For FileNotFoundError, there is nothing to lock.
-                # For IsADirectoryError, something is seriously wrong.
-                raise
-            except OSError:
-                if self.action == DirectoryLockAction.IGNORE or self.optional:
-                    return
-
-            try:
-                mode = msvcrt.LK_LOCK
-                if self.action != DirectoryLockAction.WAIT:
-                    mode = msvcrt.LK_NBLCK
-                msvcrt.locking(self.lockfile.fileno(), mode, 1)
-            except BlockingIOError:
-                self.lockfile.close()
-                if self.action == DirectoryLockAction.IGNORE:
-                    return
-                raise MesonException(self.err)
-            except PermissionError:
-                self.lockfile.close()
-                raise MesonException(self.err)
-
-        def __exit__(self, *args: T.Any) -> None:
-            if self.lockfile is None or self.lockfile.closed:
-                return
+        def _unlock(self) -> None:
             msvcrt.locking(self.lockfile.fileno(), msvcrt.LK_UNLCK, 1)
-            self.lockfile.close()
 else:
     import fcntl
 
     class DirectoryLock(DirectoryLockBase):
+        def _lock(self) -> None:
+            flags = fcntl.LOCK_EX
+            if self.action != DirectoryLockAction.WAIT:
+                flags = flags | fcntl.LOCK_NB
+            fcntl.flock(self.lockfile, flags)
 
-        def __enter__(self) -> None:
-            try:
-                self.lockfile = open(self.lockpath, 'w+', encoding='utf-8')
-            except (FileNotFoundError, IsADirectoryError):
-                # For FileNotFoundError, there is nothing to lock.
-                # For IsADirectoryError, something is seriously wrong.
-                raise
-            except OSError:
-                if self.action == DirectoryLockAction.IGNORE or self.optional:
-                    return
-
-            try:
-                flags = fcntl.LOCK_EX
-                if self.action != DirectoryLockAction.WAIT:
-                    flags = flags | fcntl.LOCK_NB
-                fcntl.flock(self.lockfile, flags)
-            except BlockingIOError:
-                self.lockfile.close()
-                if self.action == DirectoryLockAction.IGNORE:
-                    return
-                raise MesonException(self.err)
-            except PermissionError:
-                self.lockfile.close()
-                raise MesonException(self.err)
-            except OSError as e:
-                self.lockfile.close()
-                raise MesonException(f'Failed to lock directory {self.lockpath}: {e.strerror}')
-
-        def __exit__(self, *args: T.Any) -> None:
-            if self.lockfile is None or self.lockfile.closed:
-                return
+        def _unlock(self) -> None:
             fcntl.flock(self.lockfile, fcntl.LOCK_UN)
-            self.lockfile.close()
