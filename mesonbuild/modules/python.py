@@ -148,7 +148,6 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         _DEFAULTABLE_SUBDIR_KW,
         _LIMITED_API_KW,
         KwargInfo('install_dir', (str, bool, NoneType)),
-        allow_unknown=True
     )
     @InterpreterObject.method('extension_module')
     def extension_module_method(self, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: ExtensionModuleKw) -> 'SharedModule':
