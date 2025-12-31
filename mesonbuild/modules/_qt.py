@@ -454,6 +454,7 @@ class QtBaseModule(ExtensionModule):
                 self.tools['rcc'].get_command() + ['-name', name, '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
                 sources,
                 [f'{name}.cpp'],
+                state.is_build_only_subproject,
                 depend_files=qrc_deps,
                 depfile=f'{name}.d',
                 description='Compiling Qt resources {}',
@@ -475,6 +476,7 @@ class QtBaseModule(ExtensionModule):
                     self.tools['rcc'].get_command() + ['-name', '@BASENAME@', '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
                     [rcc_file],
                     [f'{name}.cpp'],
+                    state.is_build_only_subproject,
                     depend_files=qrc_deps,
                     depfile=f'{name}.d',
                     description='Compiling Qt resources {}',
@@ -741,6 +743,7 @@ class QtBaseModule(ExtensionModule):
                 cmd,
                 [ts],
                 ['@BASENAME@.qm'],
+                state.is_build_only_subproject,
                 install=kwargs['install'],
                 install_dir=[kwargs['install_dir']],
                 install_tag=['i18n'],
@@ -880,6 +883,7 @@ class QtBaseModule(ExtensionModule):
             self.tools['moc'].get_command() + ['--collect-json', '-o', '@OUTPUT@'] + input_args,
             moc_json,
             [f'{target_name}_json_collect.json'],
+            state.is_build_only_subproject,
             description=f'Collecting json type information for {target_name}',
         )
 
@@ -926,6 +930,7 @@ class QtBaseModule(ExtensionModule):
             [kwargs['qml_qrc']],
             #output name format matters here
             [f'{target_name}_qmlcache_loader.cpp'],
+            state.is_build_only_subproject,
             description=f'Qml cache loader for {target_name}',
         )
         output.append(cacheloader_target)
@@ -982,6 +987,7 @@ class QtBaseModule(ExtensionModule):
             cmd,
             inputs,
             outputs,
+            state.is_build_only_subproject,
             install=kwargs['install'],
             install_dir=install_dir,
             install_tag=install_tag,

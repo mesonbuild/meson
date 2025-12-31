@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import copy
 import itertools
 import os, re
 import typing as T
@@ -423,6 +424,28 @@ class Environment:
         for k, v in self.options.items():
             if self.coredata.optstore.is_backend_option(k):
                 self.coredata.optstore.set_option(k, v)
+
+    def copy_for_build_machine(self) -> Environment:
+        if not self.is_cross_build():
+            return self
+
+        # note that machine file options remain untouched; build machine options
+        # are limited to the few that return True for is_per_machine_option()
+        # and they are looked up for the build machine via BuildTarget.native,
+        # DependencyObjectKWs['native'], etc.
+        new = copy.copy(self)
+
+        new.coredata = self.coredata.copy_for_build_machine()
+
+        # When copying for build we won't need an exe wrapper
+        new.exe_wrapper = None
+
+        new.machines = PerThreeMachineDefaultable(target=self.machines.target, build=self.machines.build).default_missing()
+        new.binaries = PerMachineDefaultable(self.binaries.build).default_missing()
+        new.properties = PerMachineDefaultable(self.properties.build).default_missing()
+        new.cmakevars = PerMachineDefaultable(self.cmakevars.build).default_missing()
+
+        return new
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         return self.coredata.is_cross_build(when_building_for)
