@@ -23,7 +23,6 @@ permitted_files = (
     'ci/ciimage/ubuntu-rolling/test.sh',
     'ci/ciimage/cuda-cross/install.sh',
     'ci/ciimage/cuda/install.sh',
-    'ci/ciimage/bionic/install.sh',
     'ci/ciimage/fedora/install.sh',
     'ci/ciimage/arch/install.sh',
     'ci/ciimage/gentoo/install.sh',
