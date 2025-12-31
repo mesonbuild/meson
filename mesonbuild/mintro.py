@@ -457,11 +457,13 @@ def list_projinfo(builddata: build.Build) -> T.Dict[str, T.Union[str, T.List[str
         'subproject_dir': builddata.subproject_dir,
     }
     subprojects = []
-    for k, v in builddata.subprojects.items():
+    for k, build_proj in builddata.projects.items():
+        if not k:
+            continue
         c: T.Dict[str, str] = {
             'name': k,
-            'version': v,
-            'descriptive_name': builddata.projects.get(k),
+            'version': build_proj.version,
+            'descriptive_name': build_proj.name,
         }
         subprojects.append(c)
     result['subprojects'] = subprojects
