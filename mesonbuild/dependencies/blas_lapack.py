@@ -229,9 +229,8 @@ class OpenBLASPkgConfigDependency(OpenBLASMixin, PkgConfigDependency):
 
 
 class OpenBLASCMakeDependency(OpenBLASMixin, CMakeDependency):
-    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs,
-                 language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> None:
-        super().__init__('OpenBLAS', env, kwargs, language, force_use_global_compilers)
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs) -> None:
+        super().__init__('OpenBLAS', env, kwargs)
         self.feature_since = ('1.11.0', '')
         self.parse_modules(kwargs)
 
