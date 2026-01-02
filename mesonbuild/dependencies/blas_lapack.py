@@ -804,12 +804,12 @@ packages['flexiblas'] = flexiblas_factory
 packages['accelerate'] = DependencyFactory(
     'accelerate',
     [DependencyMethods.SYSTEM],
-    system_class=AccelerateSystemDependency,
+    system=AccelerateSystemDependency,
 )
 
 packages['mkl'] = DependencyFactory(
     'mkl',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
-    pkgconfig_class=MKLPkgConfigDependency,
-    system_class=MKLSystemDependency,
+    pkgconfig=MKLPkgConfigDependency,
+    system=MKLSystemDependency,
 )
