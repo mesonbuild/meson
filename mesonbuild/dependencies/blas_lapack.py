@@ -723,7 +723,7 @@ class FlexiBLASPkgConfigDependency(BLASLAPACKMixin, PkgConfigDependency):
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE})
-def openblas_factory(env: Environment, for_machine: MachineChoice,
+def openblas_factory(env: Environment,
                      kwargs: DependencyObjectKWs,
                      methods: T.List[DependencyMethods]) -> T.List[DependencyGenerator]:
     candidates: T.List[DependencyGenerator] = []
@@ -747,7 +747,7 @@ packages['openblas'] = openblas_factory
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM})
-def netlib_blas_factory(env: Environment, for_machine: MachineChoice,
+def netlib_blas_factory(env: Environment,
                         kwargs: DependencyObjectKWs,
                         methods: T.List[DependencyMethods]) -> T.List[DependencyGenerator]:
     candidates: T.List[DependencyGenerator] = []
@@ -765,7 +765,7 @@ def netlib_blas_factory(env: Environment, for_machine: MachineChoice,
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM})
-def netlib_lapack_factory(env: Environment, for_machine: MachineChoice,
+def netlib_lapack_factory(env: Environment,
                           kwargs: DependencyObjectKWs,
                           methods: T.List[DependencyMethods]) -> T.List[DependencyGenerator]:
     candidates: T.List[DependencyGenerator] = []
@@ -783,7 +783,7 @@ def netlib_lapack_factory(env: Environment, for_machine: MachineChoice,
 
 
 @factory_methods({DependencyMethods.PKGCONFIG})
-def flexiblas_factory(env: Environment, for_machine: MachineChoice,
+def flexiblas_factory(env: Environment,
                       kwargs: DependencyObjectKWs,
                       methods: T.List[DependencyMethods]) -> T.List[DependencyGenerator]:
     candidates: T.List[DependencyGenerator] = []
