@@ -151,7 +151,7 @@ or only included in very recent versions of the dependency? We can use the
 foo_factory = DependencyFactory(
     'foo',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
-    system_class=FooSystemDependency,
+    system=FooSystemDependency,
 )
 ```
 
