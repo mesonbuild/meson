@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from pathlib import Path
 import abc
-import functools
 import os
 import platform
 import re
@@ -18,7 +17,7 @@ from .. import mesonlib
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
 
-from .base import DependencyException, DependencyMethods, SystemDependency
+from .base import DependencyCandidate, DependencyException, DependencyMethods, SystemDependency
 from .cmake import CMakeDependency
 from .detect import packages
 from .factory import DependencyFactory, factory_methods
@@ -730,16 +729,16 @@ def openblas_factory(env: Environment,
 
     if DependencyMethods.PKGCONFIG in methods:
         for pkg in ['openblas64', 'openblas_ilp64', 'openblas']:
-            candidates.append(functools.partial(
-                OpenBLASPkgConfigDependency, pkg, env, kwargs))
+            candidates.append(DependencyCandidate.from_dependency(
+                pkg, OpenBLASPkgConfigDependency, (env, kwargs)))
 
     if DependencyMethods.SYSTEM in methods:
-        candidates.append(functools.partial(
-            OpenBLASSystemDependency, 'openblas', env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            'openblas', OpenBLASSystemDependency, (env, kwargs)))
 
     if DependencyMethods.CMAKE in methods:
-        candidates.append(functools.partial(
-            OpenBLASCMakeDependency, 'OpenBLAS', env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            'OpenBLAS', OpenBLASCMakeDependency, (env, kwargs)))
 
     return candidates
 
@@ -754,12 +753,12 @@ def netlib_blas_factory(env: Environment,
 
     if DependencyMethods.PKGCONFIG in methods:
         for pkg in ['blas64-netlib', 'blas-netlib', 'blas64', 'blas']:
-            candidates.append(functools.partial(
-                NetlibBLASPkgConfigDependency, pkg, env, kwargs))
+            candidates.append(DependencyCandidate.from_dependency(
+                pkg, NetlibBLASPkgConfigDependency, (env, kwargs)))
 
     if DependencyMethods.SYSTEM in methods:
-        candidates.append(functools.partial(
-            NetlibBLASSystemDependency, 'blas', env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            'blas', NetlibBLASSystemDependency, (env, kwargs)))
 
     return candidates
 
@@ -772,12 +771,12 @@ def netlib_lapack_factory(env: Environment,
 
     if DependencyMethods.PKGCONFIG in methods:
         for pkg in ['lapack64-netlib', 'lapack-netlib', 'lapack64', 'lapack']:
-            candidates.append(functools.partial(
-                NetlibLAPACKPkgConfigDependency, pkg, env, kwargs))
+            candidates.append(DependencyCandidate.from_dependency(
+                pkg, NetlibLAPACKPkgConfigDependency, (env, kwargs)))
 
     if DependencyMethods.SYSTEM in methods:
-        candidates.append(functools.partial(
-            NetlibLAPACKSystemDependency, 'lapack', env, kwargs))
+        candidates.append(DependencyCandidate.from_dependency(
+            'lapack', NetlibLAPACKSystemDependency, (env, kwargs)))
 
     return candidates
 
@@ -790,8 +789,8 @@ def flexiblas_factory(env: Environment,
 
     if DependencyMethods.PKGCONFIG in methods:
         for pkg in ['flexiblas64', 'flexiblas']:
-            candidates.append(functools.partial(
-                FlexiBLASPkgConfigDependency, pkg, env, kwargs))
+            candidates.append(DependencyCandidate.from_dependency(
+                pkg, FlexiBLASPkgConfigDependency, (env, kwargs)))
 
     return candidates
 
