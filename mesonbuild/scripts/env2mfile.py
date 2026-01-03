@@ -338,28 +338,32 @@ def detect_language_args_from_envvars(langname: str, envvar_suffix: str = '') ->
 
 def detect_compilers_from_envvars(envvar_suffix: str = '') -> MachineInfo:
     infos = MachineInfo()
-    for langname, envvarname in envconfig.ENV_VAR_COMPILER_MAP.items():
-        compilerstr = os.environ.get(envvarname + envvar_suffix)
-        if not compilerstr:
-            continue
-        if os.path.exists(compilerstr):
-            compiler = [compilerstr]
-        else:
-            compiler = shlex.split(compilerstr)
-        infos.compilers[langname] = compiler
-        lang_compile_args, lang_link_args = detect_language_args_from_envvars(langname, envvar_suffix)
-        if lang_compile_args:
-            infos.compile_args[langname] = lang_compile_args
-        if lang_link_args:
-            infos.link_args[langname] = lang_link_args
+    for langname, envvarnames in envconfig.ENV_VAR_COMPILER_MAP.items():
+        for envvarname in envvarnames:
+            compilerstr = os.environ.get(envvarname + envvar_suffix)
+            if not compilerstr:
+                continue
+            if os.path.exists(compilerstr):
+                compiler = [compilerstr]
+            else:
+                compiler = shlex.split(compilerstr)
+            infos.compilers[langname] = compiler
+            lang_compile_args, lang_link_args = detect_language_args_from_envvars(langname, envvar_suffix)
+            if lang_compile_args:
+                infos.compile_args[langname] = lang_compile_args
+            if lang_link_args:
+                infos.link_args[langname] = lang_link_args
+            break
     return infos
 
 def detect_binaries_from_envvars(infos: MachineInfo, envvar_suffix: str = '') -> None:
-    for binname, envvar_base in envconfig.ENV_VAR_TOOL_MAP.items():
-        envvar = envvar_base + envvar_suffix
-        binstr = os.environ.get(envvar)
-        if binstr:
-            infos.binaries[binname] = shlex.split(binstr)
+    for binname, envvar_bases in envconfig.ENV_VAR_TOOL_MAP.items():
+        for envvar_base in envvar_bases:
+            envvar = envvar_base + envvar_suffix
+            binstr = os.environ.get(envvar)
+            if binstr:
+                infos.binaries[binname] = shlex.split(binstr)
+                break
 
 def detect_properties_from_envvars(infos: MachineInfo, envvar_suffix: str = '') -> None:
     var = os.environ.get('PKG_CONFIG_LIBDIR' + envvar_suffix)
