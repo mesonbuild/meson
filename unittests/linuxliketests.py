@@ -1629,11 +1629,11 @@ class LinuxlikeTests(BasePlatformTests):
             raise SkipTest('Solaris currently cannot override the linker.')
         if not shutil.which(check):
             raise SkipTest(f'Could not find {check}.')
-        envvars = [mesonbuild.envconfig.ENV_VAR_PROG_MAP[f'{lang}_ld']]
+        envvars = mesonbuild.envconfig.ENV_VAR_PROG_MAP[f'{lang}_ld'].copy()
 
         # Also test a deprecated variable if there is one.
         if f'{lang}_ld' in mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP:
-            envvars.append(
+            envvars.extend(
                 mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP[f'{lang}_ld'])
 
         for envvar in envvars:

@@ -145,7 +145,7 @@ class ExternalProject(NewExtensionModule):
                 continue
             cargs = self.env.coredata.get_external_args(MachineChoice.HOST, lang)
             assert isinstance(cargs, list), 'for mypy'
-            self.run_env[ENV_VAR_PROG_MAP[lang]] = self._quote_and_join(compiler.get_exelist())
+            self.run_env[ENV_VAR_PROG_MAP[lang][0]] = self._quote_and_join(compiler.get_exelist())
             self.run_env[CFLAGS_MAPPING[lang]] = self._quote_and_join(cargs)
             if not link_exelist:
                 link_exelist = compiler.get_linker_exelist()
