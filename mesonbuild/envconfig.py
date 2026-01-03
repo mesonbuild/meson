@@ -20,6 +20,7 @@ if T.TYPE_CHECKING:
     from .options import ElementaryOptionValues
     from .compilers.compilers import CompilerDict
     from .compilers.mixins.visualstudio import VisualStudioLikeCompiler
+    from ._typing import ImmutableListProtocol
 
 
 # These classes contains all the data pulled from configuration files (native
@@ -94,64 +95,64 @@ CPU_FAMILIES_64_BIT = [
 ]
 
 # Map from language identifiers to environment variables.
-ENV_VAR_COMPILER_MAP: T.Mapping[str, str] = {
+ENV_VAR_COMPILER_MAP: T.Mapping[str, ImmutableListProtocol[str]] = {
     # Compilers
-    'c': 'CC',
-    'cpp': 'CXX',
-    'cs': 'CSC',
-    'cython': 'CYTHON',
-    'd': 'DC',
-    'fortran': 'FC',
-    'objc': 'OBJC',
-    'objcpp': 'OBJCXX',
-    'rust': 'RUSTC',
-    'vala': 'VALAC',
-    'nasm': 'NASM',
+    'c': ['CC'],
+    'cpp': ['CXX'],
+    'cs': ['CSC'],
+    'cython': ['CYTHON'],
+    'd': ['DC'],
+    'fortran': ['FC'],
+    'objc': ['OBJC'],
+    'objcpp': ['OBJCXX'],
+    'rust': ['RUSTC'],
+    'vala': ['VALAC'],
+    'nasm': ['NASM'],
 
     # Linkers
-    'c_ld': 'CC_LD',
-    'cpp_ld': 'CXX_LD',
-    'd_ld': 'DC_LD',
-    'fortran_ld': 'FC_LD',
-    'objc_ld': 'OBJC_LD',
-    'objcpp_ld': 'OBJCXX_LD',
-    'rust_ld': 'RUSTC_LD',
+    'c_ld': ['CC_LD'],
+    'cpp_ld': ['CXX_LD'],
+    'd_ld': ['DC_LD'],
+    'fortran_ld': ['FC_LD'],
+    'objc_ld': ['OBJC_LD'],
+    'objcpp_ld': ['OBJCXX_LD'],
+    'rust_ld': ['RUSTC_LD'],
 }
 
 # Map from utility names to environment variables.
-ENV_VAR_TOOL_MAP: T.Mapping[str, str] = {
+ENV_VAR_TOOL_MAP: T.Mapping[str, ImmutableListProtocol[str]] = {
     # Binutils
-    'ar': 'AR',
-    'as': 'AS',
-    'ld': 'LD',
-    'nm': 'NM',
-    'objcopy': 'OBJCOPY',
-    'objdump': 'OBJDUMP',
-    'ranlib': 'RANLIB',
-    'readelf': 'READELF',
-    'size': 'SIZE',
-    'strings': 'STRINGS',
-    'strip': 'STRIP',
-    'windres': 'WINDRES',
+    'ar': ['AR'],
+    'as': ['AS'],
+    'ld': ['LD'],
+    'nm': ['NM'],
+    'objcopy': ['OBJCOPY'],
+    'objdump': ['OBJDUMP'],
+    'ranlib': ['RANLIB'],
+    'readelf': ['READELF'],
+    'size': ['SIZE'],
+    'strings': ['STRINGS'],
+    'strip': ['STRIP'],
+    'windres': ['WINDRES'],
 
     # Other tools
-    'cmake': 'CMAKE',
-    'qmake': 'QMAKE',
-    'pkg-config': 'PKG_CONFIG',
-    'make': 'MAKE',
-    'vapigen': 'VAPIGEN',
-    'llvm-config': 'LLVM_CONFIG',
+    'cmake': ['CMAKE'],
+    'qmake': ['QMAKE'],
+    'pkg-config': ['PKG_CONFIG'],
+    'make': ['MAKE'],
+    'vapigen': ['VAPIGEN'],
+    'llvm-config': ['LLVM_CONFIG'],
 }
 
 ENV_VAR_PROG_MAP = {**ENV_VAR_COMPILER_MAP, **ENV_VAR_TOOL_MAP}
 
 # Deprecated environment variables mapped from the new variable to the old one
 # Deprecated in 0.54.0
-DEPRECATED_ENV_PROG_MAP: T.Mapping[str, str] = {
-    'd_ld': 'D_LD',
-    'fortran_ld': 'F_LD',
-    'rust_ld': 'RUST_LD',
-    'objcpp_ld': 'OBJCPP_LD',
+DEPRECATED_ENV_PROG_MAP: T.Mapping[str, ImmutableListProtocol[str]] = {
+    'd_ld': ['D_LD'],
+    'fortran_ld': ['F_LD'],
+    'rust_ld': ['RUST_LD'],
+    'objcpp_ld': ['OBJCPP_LD'],
 }
 
 class CMakeSkipCompilerTest(Enum):

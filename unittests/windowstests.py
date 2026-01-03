@@ -285,11 +285,11 @@ class WindowsTests(BasePlatformTests):
     def _check_ld(self, name: str, lang: str, expected: str) -> None:
         if not shutil.which(name):
             raise SkipTest(f'Could not find {name}.')
-        envvars = [mesonbuild.envconfig.ENV_VAR_PROG_MAP[f'{lang}_ld']]
+        envvars = mesonbuild.envconfig.ENV_VAR_PROG_MAP[f'{lang}_ld'].copy()
 
         # Also test a deprecated variable if there is one.
         if f'{lang}_ld' in mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP:
-            envvars.append(
+            envvars.extend(
                 mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP[f'{lang}_ld'])
 
         for envvar in envvars:
