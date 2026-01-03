@@ -133,7 +133,7 @@ ENV_VAR_TOOL_MAP: T.Mapping[str, ImmutableListProtocol[str]] = {
     'size': ['SIZE'],
     'strings': ['STRINGS'],
     'strip': ['STRIP'],
-    'windres': ['WINDRES'],
+    'windres': ['RC', 'WINDRES'],
 
     # Other tools
     'cmake': ['CMAKE'],
