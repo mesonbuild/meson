@@ -665,7 +665,12 @@ class CLikeCompiler(Compiler):
             raise mesonlib.MesonBugException('Delimiters not found in preprocessor output.')
         define_value = p.stdout[star_idx + len(delim_start):end_idx]
 
-        if define_value == sentinel_undef:
+        # Due to https://developercommunity.visualstudio.com/t/Inconsistent-whitespace-with-standard-pr/11023343,
+        # MSVC can end up producing an unexpected space after the sentinel_undef
+        # string (if building with -std:c11, and if the test source is written
+        # with unix newlines). To avoid treating this as an actual predefined
+        # macro, look for the buggy value as well.
+        if define_value == sentinel_undef or define_value == sentinel_undef + ' ':
             define_value = None
         else:
             # Merge string literals
