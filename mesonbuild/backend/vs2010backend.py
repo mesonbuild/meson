@@ -1080,7 +1080,7 @@ class Vs2010Backend(backends.Backend):
                     except ValueError:
                         # Include is on different drive
                         args.append('-I' + os.path.normpath(curdir))
-                for i in d.get_extra_build_dirs():
+                for i in d.extra_build_dirs:
                     curdir = os.path.join(d.get_curdir(), i)
                     args.append('-I' + self.relpath(curdir, target.subdir))  # build dir
         # Add per-target compile args, f.ex, `c_args : ['/DFOO']`. We set these
