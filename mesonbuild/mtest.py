@@ -555,7 +555,7 @@ class ConsoleLogger(TestLogger):
         try:
             self.cols, _ = os.get_terminal_size(1)
             self.is_tty = True
-        except OSError:
+        except (OSError, AttributeError):
             self.cols = 80
             self.is_tty = False
 
