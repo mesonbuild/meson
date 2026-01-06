@@ -658,7 +658,7 @@ class GnuCompiler(GnuLikeCompiler):
 
     def get_always_args(self) -> T.List[str]:
         args: T.List[str] = []
-        if self.info.is_os2() and self.get_linker_id() == 'emxomfld':
+        if self.info.is_os2() and self.environment.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
             args += ['-Zomf']
         return super().get_always_args() + args
 
