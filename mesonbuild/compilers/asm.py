@@ -79,6 +79,14 @@ class NasmCompiler(ASMCompiler):
         elif self.info.is_darwin():
             plat = 'macho'
             define = 'MACHO'
+        elif self.info.is_os2():
+            cpu = ''
+            if self.environment.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
+                plat = 'obj2'
+                define = 'OBJ2'
+            else:
+                plat = 'aout'
+                define = 'AOUT'
         else:
             plat = 'elf'
             define = 'ELF'
