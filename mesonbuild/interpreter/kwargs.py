@@ -171,7 +171,8 @@ class FuncAddLanguages(ExtractRequired):
 
 class RunTarget(TypedDict):
 
-    command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget, ExternalProgram, File]]
+    command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget, ExternalProgram,
+                            File, build.LocalProgram]]
     depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
     env: EnvironmentVariables
 
@@ -183,7 +184,7 @@ class CustomTarget(TypedDict):
     build_by_default: T.Optional[bool]
     build_subdir: str
     capture: bool
-    command: T.List[T.Union[str, build.BuildTargetTypes, ExternalProgram, File]]
+    command: T.List[T.Union[str, build.BuildTargetTypes, ExternalProgram, File, build.LocalProgram]]
     console: bool
     depend_files: T.List[FileOrString]
     depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
@@ -245,6 +246,13 @@ class FindProgram(ExtractRequired, ExtractSearchDirs):
     default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
     native: MachineChoice
     version: T.List[str]
+
+
+class LocalProgram(TypedDict):
+
+    depend_files: T.List[FileOrString]
+    depends: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]
+    interpreter: T.Optional[ExternalProgram]
 
 
 class RunCommand(TypedDict):

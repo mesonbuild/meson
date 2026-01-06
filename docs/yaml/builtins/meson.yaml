@@ -383,6 +383,10 @@ methods:
       check is passed to [[find_program]] for a program that has been overridden with
       an executable, the current project version is used.
 
+      *(since 1.10.0)* It is also possible to override with a [[@custom_tgt]] or
+      [[@custom_idx]]. In that case, be aware that an interpreter could be required
+      on Windows in which case [[local_program]] should be used.
+
     posargs:
       progname:
         type: str

@@ -6,7 +6,7 @@ import os
 import typing as T
 
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
-from ..build import CustomTarget
+from ..build import CustomTarget, LocalProgram
 from ..interpreter.type_checking import NoneType, in_set_validator
 from ..interpreterbase import typed_pos_args, typed_kwargs, KwargInfo, FeatureNew
 from ..mesonlib import File, MesonException
@@ -15,7 +15,6 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
     from . import ModuleState
-    from ..build import Executable
     from ..dependencies import Dependency
     from ..interpreter import Interpreter
     from ..programs import ExternalProgram
@@ -42,7 +41,7 @@ class WaylandModule(ExtensionModule):
 
         self.protocols_dep: T.Optional[Dependency] = None
         self.pkgdatadir: T.Optional[str] = None
-        self.scanner_bin: T.Optional[T.Union[ExternalProgram, Executable]] = None
+        self.scanner_bin: T.Optional[T.Union[ExternalProgram, LocalProgram]] = None
 
         self.methods.update({
             'scan_xml': self.scan_xml,

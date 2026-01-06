@@ -25,14 +25,13 @@ if T.TYPE_CHECKING:
 
     from . import ModuleState
     from .._typing import ImmutableListProtocol
-    from ..build import Executable
+    from ..build import LocalProgram
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import ExtractRequired
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..mesonlib import MachineChoice
-    from ..programs import OverrideProgram
 
-    Program: TypeAlias = T.Union[Executable, ExternalProgram, OverrideProgram]
+    Program: TypeAlias = T.Union[ExternalProgram, LocalProgram]
     LexImpls = Literal['lex', 'flex', 'reflex', 'win_flex']
     YaccImpls = Literal['yacc', 'byacc', 'bison', 'win_bison']
 
