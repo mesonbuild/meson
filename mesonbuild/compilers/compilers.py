@@ -617,7 +617,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return self.linker.get_accepts_rsp()
 
     def get_linker_always_args(self) -> T.List[str]:
-        return self.linker.get_always_args()
+        return self.linker.get_always_args() if self.linker else []
 
     def get_linker_lib_prefix(self) -> str:
         return self.linker.get_lib_prefix()
@@ -819,6 +819,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             args += self.get_preprocess_only_args()
         else:
             assert mode is CompileCheckMode.LINK
+            args += self.get_linker_always_args()
         return args
 
     def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> CompilerArgs:
