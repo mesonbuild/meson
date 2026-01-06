@@ -555,12 +555,13 @@ class ConsoleLogger(TestLogger):
         self.test_count = 0
         self.started_tests = 0
         self.spinner_index = 0
-        try:
-            self.cols, _ = os.get_terminal_size(1)
-            self.is_tty = True
-        except OSError:
-            self.cols = 80
-            self.is_tty = False
+        self.is_tty = os.isatty(1)
+        self.cols = 80
+        if self.is_tty:
+            try:
+                self.cols, _ = os.get_terminal_size(1)
+            except (OSError, AttributeError):
+                self.is_tty = False
 
         self.output_start = dashes(self.SCISSORS, self.HLINE, self.cols - 2)
         self.output_end = dashes('', self.HLINE, self.cols - 2)
