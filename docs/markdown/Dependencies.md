@@ -803,7 +803,8 @@ flags. (since v0.47.0)
 **Note** using private headers in your project is a bad idea, do so at
 your own risk.
 
-`method` may be `auto`, `pkg-config` or `qmake`.
+`method` may be `auto`, `pkg-config`, `config-tool` or `qmake` (*deprecated
+since 0.58.0*; use `config-tool` instead).
 
 ## SDL2
 
