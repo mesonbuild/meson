@@ -3084,7 +3084,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 (compile_obj, includeargs) = self.generate_inc_dir(compiler, d, basedir, i.is_system)
                 commands += compile_obj
                 commands += includeargs
-            for d in i.get_extra_build_dirs():
+            for d in i.extra_build_dirs:
                 commands += compiler.get_include_args(d, i.is_system)
         # Add per-target compile args, f.ex, `c_args : ['-DFOO']`. We set these
         # near the end since these are supposed to override everything else.
