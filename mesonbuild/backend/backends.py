@@ -535,7 +535,7 @@ class Backend:
         return result
 
     def get_executable_serialisation(
-            self, cmd: T.Sequence[T.Union[programs.ExternalProgram, build.BuildTarget, build.CustomTarget, File, str]],
+            self, cmd: T.Sequence[T.Union[programs.Program, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, File, str]],
             workdir: T.Optional[str] = None,
             extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
             capture: T.Optional[str] = None,
@@ -548,13 +548,15 @@ class Backend:
 
         # XXX: cmd_args either need to be lowered to strings, or need to be checked for non-string arguments, right?
         exe, *raw_cmd_args = cmd
-        if isinstance(exe, programs.ExternalProgram):
+        if isinstance(exe, build.LocalProgram):
+            exe = exe.program
+        if isinstance(exe, programs.Program):
             exe_cmd = exe.get_command()
             exe_for_machine = exe.for_machine
         elif isinstance(exe, build.BuildTarget):
             exe_cmd = [self.get_target_filename_abs(exe)]
             exe_for_machine = exe.for_machine
-        elif isinstance(exe, build.CustomTarget):
+        elif isinstance(exe, (build.CustomTarget, build.CustomTargetIndex)):
             # The output of a custom target can either be directly runnable
             # or not, that is, a script, a native binary or a cross compiled
             # binary when exe wrapper is available and when it is not.
@@ -571,9 +573,11 @@ class Backend:
 
         cmd_args: T.List[str] = []
         for c in raw_cmd_args:
-            if isinstance(c, programs.ExternalProgram):
+            if isinstance(c, build.LocalProgram):
+                c = c.program
+            if isinstance(c, programs.Program):
                 cmd_args += c.get_command()
-            elif isinstance(c, (build.BuildTarget, build.CustomTarget)):
+            elif isinstance(c, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 cmd_args.append(self.get_target_filename_abs(c))
             elif isinstance(c, mesonlib.File):
                 cmd_args.append(c.rel_to_builddir(self.environment.source_dir))
@@ -1124,7 +1128,7 @@ class Backend:
         return results
 
     def determine_windows_extra_paths(
-            self, target: T.Union[build.BuildTargetTypes, programs.ExternalProgram, mesonlib.File, str],
+            self, target: T.Union[build.BuildTargetTypes, programs.Program, mesonlib.File, str],
             extra_bdeps: T.Sequence[build.BuildTargetTypes]) -> T.List[str]:
         """On Windows there is no such thing as an rpath.
 

@@ -16,7 +16,7 @@ if T.TYPE_CHECKING:
 
     from . import ModuleState
     from ..interpreter import Interpreter
-    from ..programs import ExternalProgram
+    from ..programs import Program
 
     class ProjectKwargs(TypedDict):
 
@@ -29,7 +29,7 @@ class IceStormModule(ExtensionModule):
 
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
-        self.tools: T.Dict[str, T.Union[ExternalProgram, build.Executable]] = {}
+        self.tools: T.Dict[str, Program] = {}
         self.methods.update({
             'project': self.project,
         })

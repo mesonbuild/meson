@@ -22,20 +22,18 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypeAlias
 
     from . import ModuleState
-    from ..build import OverrideExecutable
     from ..interpreter.interpreter import Interpreter
     from ..interpreterbase.baseobjects import TYPE_kwargs
-    from ..programs import ExternalProgram, OverrideProgram
+    from ..programs import Program
 
-    _AnyProgram: TypeAlias = T.Union[OverrideExecutable, ExternalProgram, OverrideProgram]
     _JSONTypes: TypeAlias = T.Union[str, int, bool, None, T.List['_JSONTypes'], T.Dict[str, '_JSONTypes']]
 
 
 class DlangModule(ExtensionModule):
-    class_dubbin: T.Union[_AnyProgram, Literal[False], None] = None
+    class_dubbin: T.Union[Program, Literal[False], None] = None
     init_dub = False
 
-    dubbin: T.Union[_AnyProgram, Literal[False], None]
+    dubbin: T.Union[Program, Literal[False], None]
 
     INFO = ModuleInfo('dlang', '0.48.0')
 
@@ -122,7 +120,7 @@ class DlangModule(ExtensionModule):
         p, out = Popen_safe(self.dubbin.get_command() + args, env=env)[0:2]
         return p.returncode, out.strip()
 
-    def check_dub(self, state: ModuleState) -> T.Union[_AnyProgram, Literal[False]]:
+    def check_dub(self, state: ModuleState) -> T.Union[Program, Literal[False]]:
         dubbin = state.find_program('dub', silent=True)
         if dubbin.found():
             try:
