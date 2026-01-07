@@ -326,6 +326,9 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         state = self.held_object.state
         content_files = []
         for s in sources:
+            if not isinstance(s, (File, str)):
+                FeatureNew.single_use('python_installation.install_sources with non-File/str source', '1.11.0',
+                                      self.subproject, location=self.current_node)
             if isinstance(s, Target):
                 s.build_by_default = True
             if isinstance(s, (CustomTarget, CustomTargetIndex)):
