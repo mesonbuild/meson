@@ -16,7 +16,7 @@ from ..interpreterbase import (
     noPosargs, noKwargs, disablerIfNotFound, InterpreterObject
 )
 from ..mesonlib import File, MesonException, Popen_safe, version_compare
-from ..programs import ExternalProgram, NonExistingExternalProgram
+from ..programs import Program, ExternalProgram, NonExistingExternalProgram
 from ..utils.core import HoldableObject
 from .. import mlog
 
@@ -31,7 +31,7 @@ if T.TYPE_CHECKING:
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..mesonlib import MachineChoice
 
-    AnyProgram: TypeAlias = T.Union[Executable, ExternalProgram]
+    AnyProgram: TypeAlias = T.Union[Executable, Program]
     LexImpls = Literal['lex', 'flex', 'reflex', 'win_flex']
     YaccImpls = Literal['yacc', 'byacc', 'bison', 'win_bison']
 

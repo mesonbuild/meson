@@ -25,9 +25,9 @@ if T.TYPE_CHECKING:
     from ..build import OverrideExecutable
     from ..interpreter.interpreter import Interpreter
     from ..interpreterbase.baseobjects import TYPE_kwargs
-    from ..programs import ExternalProgram
+    from ..programs import Program
 
-    _AnyProgram: TypeAlias = T.Union[OverrideExecutable, ExternalProgram]
+    _AnyProgram: TypeAlias = T.Union[OverrideExecutable, Program]
     _JSONTypes: TypeAlias = T.Union[str, int, bool, None, T.List['_JSONTypes'], T.Dict[str, '_JSONTypes']]
 
 
