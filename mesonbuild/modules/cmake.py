@@ -438,6 +438,7 @@ class CmakeModule(ExtensionModule):
             'cmake_options': kwargs_['cmake_options'],
             'default_options': {},
             'version': [],
+            'for_machine': mesonlib.MachineChoice.HOST,
         }
         subp = self.interpreter.do_subproject(subp_name, kw, force_method='cmake')
         if not subp.found():
