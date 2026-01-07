@@ -108,6 +108,8 @@ class GeneratorProcess(TypedDict):
     preserve_path_from: T.Optional[str]
     extra_args: T.List[str]
     env: EnvironmentVariables
+    depends: T.List[T.Union[build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
+
 
 class DependencyMethodPartialDependency(TypedDict):
 
