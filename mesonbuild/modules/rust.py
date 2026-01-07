@@ -33,6 +33,7 @@ if T.TYPE_CHECKING:
     from ..interpreter import kwargs as _kwargs
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
     from ..interpreter.interpreterobjects import Test
+    from ..programs import Program
     from ..interpreter.type_checking import SourcesVarargsType
 
     from typing_extensions import TypedDict, Literal
@@ -90,7 +91,7 @@ class RustModule(ExtensionModule):
 
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
-        self._bindgen_bin: T.Optional[T.Union[ExternalProgram, Executable]] = None
+        self._bindgen_bin: T.Optional[T.Union[Program, Executable]] = None
         if 'rust' in interpreter.compilers.host:
             rustc = T.cast('RustCompiler', interpreter.compilers.host['rust'])
             self._bindgen_rust_target = 'nightly' if rustc.is_nightly else rustc.version
@@ -382,9 +383,7 @@ class RustModule(ExtensionModule):
                 if 'Got an invalid' in err or 'is not a valid Rust target' in err:
                     self._bindgen_rust_target = None
 
-            # TODO: Executable needs to learn about get_version
-            if isinstance(self._bindgen_bin, ExternalProgram):
-                self._bindgen_set_std = mesonlib.version_compare(self._bindgen_bin.get_version(), '>= 0.71')
+            self._bindgen_set_std = mesonlib.version_compare(self._bindgen_bin.get_version(), '>= 0.71')
 
         name: str
         if isinstance(header, File):

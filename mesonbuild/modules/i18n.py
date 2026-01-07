@@ -27,12 +27,13 @@ if T.TYPE_CHECKING:
     from ..build import Target
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var
+    from ..programs import Program
 
     class MergeFile(TypedDict):
 
         input: T.List[T.Union[
             str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
-            build.ExtractedObjects, build.GeneratedList, ExternalProgram,
+            build.ExtractedObjects, build.GeneratedList, Program,
             mesonlib.File]]
         output: str
         build_by_default: bool
@@ -57,7 +58,7 @@ if T.TYPE_CHECKING:
 
         input: T.List[T.Union[
             str, build.BuildTarget, build.GeneratedTypes,
-            build.ExtractedObjects, ExternalProgram, mesonlib.File]]
+            build.ExtractedObjects, Program, mesonlib.File]]
         output: str
         build_by_default: bool
         install: bool
@@ -259,7 +260,7 @@ class I18nModule(ExtensionModule):
             'itstool_join': self.itstool_join,
             'xgettext': self.xgettext,
         })
-        self.tools: T.Dict[str, T.Optional[T.Union[ExternalProgram, build.Executable]]] = {
+        self.tools: T.Dict[str, T.Optional[T.Union[Program, build.Executable]]] = {
             'itstool': None,
             'msgfmt': None,
             'msginit': None,
@@ -308,7 +309,7 @@ class I18nModule(ExtensionModule):
         ddirs = self._get_data_dirs(state, kwargs['data_dirs'])
         datadirs = '--datadirs=' + ':'.join(ddirs) if ddirs else None
 
-        command: T.List[T.Union[str, build.BuildTargetTypes, ExternalProgram, mesonlib.File]] = []
+        command: T.List[T.Union[str, build.BuildTargetTypes, Program, mesonlib.File]] = []
         command.extend(state.environment.get_build_command())
         command.extend([
             '--internal', 'msgfmthelper',
@@ -487,7 +488,7 @@ class I18nModule(ExtensionModule):
         for target in mo_targets:
             mo_fnames.append(path.join(target.get_builddir(), target.get_outputs()[0]))
 
-        command: T.List[T.Union[str, build.BuildTargetTypes, ExternalProgram, mesonlib.File]] = []
+        command: T.List[T.Union[str, build.BuildTargetTypes, Program, mesonlib.File]] = []
         command.extend(state.environment.get_build_command())
 
         itstool_cmd = self.tools['itstool'].get_command()
