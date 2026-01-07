@@ -10,13 +10,13 @@ from . import ExtensionModule, ModuleInfo
 from .. import mesonlib
 from .. import mlog
 from ..options import UserFeatureOption
-from ..build import known_shmod_kwargs, CustomTarget, CustomTargetIndex, BuildTarget, GeneratedList, StructuredSources, ExtractedObjects, SharedModule
+from ..build import known_shmod_kwargs, CustomTarget, CustomTargetIndex, BuildTarget, GeneratedList, StructuredSources, ExtractedObjects, SharedModule, Target, File
 from ..dependencies import NotFoundDependency
 from ..dependencies.detect import get_dep_identifier, find_external_dependency
 from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase
 from ..interpreter import extract_required_kwarg, primitives as P_OBJ
 from ..interpreter.interpreterobjects import _ExternalProgramHolder
-from ..interpreter.type_checking import NoneType, DEPENDENCY_KWS, PRESERVE_PATH_KW, SHARED_MOD_KWS
+from ..interpreter.type_checking import NoneType, DEPENDENCY_KWS, PRESERVE_PATH_KW, SHARED_MOD_KWS, SOURCES_VARARGS
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs, ContainerTypeInfo,
     InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
@@ -36,6 +36,7 @@ if T.TYPE_CHECKING:
     from ..interpreter.interpreter import BuildTargetSource
     from ..interpreter.kwargs import ExtractRequired, SharedModule as SharedModuleKw, FuncDependency
     from ..interpreterbase.baseobjects import TYPE_var, TYPE_kwargs
+    from ..interpreter.type_checking import SourcesVarargsType
 
     class PyInstallKw(TypedDict):
 
@@ -79,6 +80,7 @@ class PythonExternalProgram(BasicPythonExternalProgram):
             self.platlib = self._get_path(state, 'platlib')
             self.purelib = self._get_path(state, 'purelib')
             self.run_bytecompile.setdefault(self.info['version'], False)
+            self.state = state
         return ret
 
     def _get_path(self, state: T.Optional['ModuleState'], key: str) -> str:
@@ -299,7 +301,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
                 raise mesonlib.MesonException('Python dependency not found')
             return dep
 
-    @typed_pos_args('install_data', varargs=(str, mesonlib.File))
+    @typed_pos_args('install_data', varargs=SOURCES_VARARGS)
     @typed_kwargs(
         'python_installation.install_sources',
         _PURE_KW,
@@ -308,17 +310,39 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         KwargInfo('install_tag', (str, NoneType), since='0.60.0')
     )
     @InterpreterObject.method('install_sources')
-    def install_sources_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File]]],
+    def install_sources_method(self, args: T.Tuple[T.List[SourcesVarargsType]],
                                kwargs: 'PyInstallKw') -> 'Data':
         self.held_object.run_bytecompile[self.version] = True
         tag = kwargs['install_tag'] or 'python-runtime'
         pure = kwargs['pure'] if kwargs['pure'] is not None else self.pure
         install_dir = self._get_install_dir_impl(pure, kwargs['subdir'])
         return self.interpreter.install_data_impl(
-            self.interpreter.source_strings_to_files(args[0]),
+            self._source_to_files(args[0]),
             install_dir,
             mesonlib.FileMode(), rename=None, tag=tag, install_data_type='python',
             preserve_path=kwargs['preserve_path'])
+
+    def _source_to_files(self, sources: T.List[SourcesVarargsType]) -> T.List[File]:
+        state = self.held_object.state
+        content_files = []
+        for s in sources:
+            if isinstance(s, Target):
+                s.build_by_default = True
+            if isinstance(s, (CustomTarget, CustomTargetIndex)):
+                for o in s.get_outputs():
+                    content_files.append(File.from_built_file(state.backend.get_target_dir(s), o))
+            elif isinstance(s, File):
+                content_files.append(s)
+            elif isinstance(s, GeneratedList):
+                for gen_src in s.get_outputs():
+                    content_files.append(File.from_built_file(state.subdir, gen_src))
+            else:
+                content_files.append(File.from_source_file(
+                    state.environment.get_source_dir(),
+                    state.subdir,
+                    s
+                ))
+        return content_files
 
     @noPosargs
     @typed_kwargs('python_installation.install_dir', _PURE_KW, _SUBDIR_KW)
