@@ -565,3 +565,18 @@ class PlatformAgnosticTests(BasePlatformTests):
         """Mixing unity and unity_size as long and short options should work."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '1 trivial'))
         self.init(testdir, extra_args=['-Dunity=on', '--unity-size=123'])
+
+    def test_readonly_sourcedir(self) -> None:
+        """Test building with read-only source directory."""
+        testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '233 wrap case'))
+
+        # Make the source directory and all its contents read-only recursively
+        # Keep execute permission on directories
+        for dir, _, files in os.walk(testdir):
+            os.chmod(dir, 0o555)
+            for file in files:
+                filepath = os.path.join(dir, file)
+                os.chmod(filepath, 0o444)
+
+        self.init(testdir)
+        self.build()
