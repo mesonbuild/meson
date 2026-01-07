@@ -33,7 +33,6 @@ from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, join_args, quote_arg
 )
 from ..options import OptionKey
-from ..programs import OverrideProgram
 from ..scripts.gettext import read_linguas
 
 if T.TYPE_CHECKING:
@@ -807,7 +806,7 @@ class GnomeModule(ExtensionModule):
     @functools.lru_cache(maxsize=None)
     def _gir_has_option(self, option: str) -> bool:
         exe = self.giscanner
-        if isinstance(exe, (LocalProgram, OverrideProgram)):
+        if isinstance(exe, LocalProgram):
             # Handle overridden g-ir-scanner
             assert option in {'--extra-library', '--sources-top-dirs'}
             return True

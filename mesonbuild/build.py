@@ -3309,9 +3309,7 @@ class ConfigurationData(HoldableObject):
         return self.values.keys()
 
 class LocalProgram(programs.Program):
-    '''A wrapper for a program that acts as a build dependency
-       for other targets.'''
-    def __init__(self, program: T.Union[Executable, CustomTarget, CustomTargetIndex], version: str) -> None:
+    def __init__(self, program: T.Union[programs.ExternalProgram, Executable, CustomTarget, CustomTargetIndex], version: str) -> None:
         super().__init__()
         if isinstance(program, CustomTarget):
             if len(program.outputs) != 1:
@@ -3328,21 +3326,26 @@ class LocalProgram(programs.Program):
         return self.version
 
     def get_command(self) -> T.List[str]:
-        # Only the backend knows the actual path to the built program.
+        if isinstance(self.program, programs.ExternalProgram):
+            return self.program.get_command()
+        # Only the backend knows the actual path to the build program.
         raise MesonBugException('Cannot call get_command() on program that is a build target.')
 
     def get_path(self) -> str:
-        # Only the backend knows the actual path to the built program.
+        if isinstance(self.program, programs.ExternalProgram):
+            return self.program.get_path()
+        # Only the backend knows the actual path to the build program.
         raise MesonBugException('Cannot call get_path() on program that is a build target.')
 
     def description(self) -> str:
+        if isinstance(self.program, programs.ExternalProgram):
+            return self.program.description()
         if isinstance(self.program, Executable):
             return self.program.name
         return self.program.get_filename()
 
     def runnable(self) -> bool:
-        # A built program is not runnable within "meson setup".
-        return False
+        return isinstance(self.program, programs.ExternalProgram)
 
 # A bit poorly named, but this represents plain data files to copy
 # during install.
