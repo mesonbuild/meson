@@ -1013,13 +1013,12 @@ class BuildTarget(Target):
             for t in itertools.chain(self.link_targets, self.link_whole_targets):
                 if isinstance(t, (CustomTarget, CustomTargetIndex)):
                     continue # We can't know anything about these.
-                for name, compiler in t.compilers.items():
-                    if name == 'rust':
-                        # Rust is always linked through a C-ABI target, so do not add
-                        # the compiler here
-                        continue
-                    if name in link_langs and name not in self.compilers:
-                        self.compilers[name] = compiler
+                target_langs = [t.link_language] if t.link_language else list(t.compilers)
+                for lang in target_langs:
+                    # Rust is always linked through a C-ABI target, so do not add
+                    # the compiler here
+                    if lang != 'rust' and lang in link_langs and lang not in self.compilers:
+                        self.compilers[lang] = t.all_compilers[lang]
 
         if not self.compilers:
             # No source files or parent targets, target consists of only object
@@ -1550,11 +1549,12 @@ class BuildTarget(Target):
                 langs.append(dep.language)
         # Check if any of the internal libraries this target links to were
         # written in this language
-        for link_target in itertools.chain(self.link_targets, self.link_whole_targets):
-            if isinstance(link_target, (CustomTarget, CustomTargetIndex)):
+        for t in itertools.chain(self.link_targets, self.link_whole_targets):
+            if isinstance(t, (CustomTarget, CustomTargetIndex)):
                 continue
-            for language in link_target.compilers:
-                if language == 'rust' and not link_target.uses_rust_abi():
+            target_langs = [t.link_language] if t.link_language else list(t.compilers)
+            for language in target_langs:
+                if language == 'rust' and not t.uses_rust_abi():
                     # All Rust dependencies must go through a C-ABI dependency, so ignore it
                     continue
                 if language not in langs:
