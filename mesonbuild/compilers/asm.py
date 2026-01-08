@@ -356,7 +356,6 @@ class MetrowerksAsmCompilerEmbeddedPowerPC(MetrowerksAsmCompiler):
 class DiabAsmCompiler(ASMCompiler):
     """Assembler for the Wind River Diab compiler suite"""
     id = 'diab'
-
     language = 'nasm'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
