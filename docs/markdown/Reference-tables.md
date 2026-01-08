@@ -400,6 +400,7 @@ machine](#Environment-variables-per-machine) section for details.
 | C#            | CSC      | CSC       | The linker is the compiler                  |
 | Cython        | CYTHON   |           |                                             |
 | nasm          | NASM     |           | Uses the C linker                           |
+| java          | JAVAC    |           |                                             |
 | archiver      |          | AR        |                                             |
 
 *The old environment variables are still supported, but are deprecated
