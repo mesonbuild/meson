@@ -5412,6 +5412,20 @@ class AllPlatformTests(BasePlatformTests):
             olddata = newdata
             oldmtime = newmtime
 
+    def test_link_language_promotion(self):
+        if self.backend is Backend.vs:
+            raise SkipTest('target introspection is lacking linker details')
+        testdir = os.path.join(self.unit_test_dir, '133 promote link_language')
+        self.init(testdir)
+        cintrospection = self.introspect('--compilers')
+        clinker = cintrospection['host']['c']['linker_exelist']
+
+        tintrospection = self.introspect('--targets')
+        consumer = next(t for t in tintrospection if t['name'] == 'consumer')
+        linker_src = next(s for s in consumer['target_sources'] if 'linker' in s)
+
+        self.assertEqual(clinker, linker_src['linker'])
+
     def __test_multi_stds(self, test_c: bool = True, test_objc: bool = False) -> None:
         assert test_c or test_objc, 'must test something'
         testdir = os.path.join(self.unit_test_dir, '115 c cpp stds')
