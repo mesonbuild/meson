@@ -30,6 +30,7 @@ from .mixins.emscripten import EmscriptenMixin
 from .mixins.metrowerks import MetrowerksCompiler
 from .mixins.metrowerks import mwccarm_instruction_set_args, mwcceppc_instruction_set_args
 from .mixins.tasking import TaskingCompiler
+from .mixins.windriver import DiabCompilerMixin
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
@@ -781,3 +782,26 @@ class TaskingCCompiler(TaskingCompiler, CCompiler):
         CCompiler.__init__(self, ccache, exelist, version, for_machine,
                            env, linker=linker, full_version=full_version)
         TaskingCompiler.__init__(self)
+
+class DiabCCompiler(DiabCompilerMixin, CCompiler):
+    """C++ compiler for the Wind River Diab compiler suite"""
+    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 env: Environment, linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        CCompiler.__init__(self, ccache, exelist, version, for_machine, env,
+                           linker=linker, full_version=full_version)
+
+    def get_options(self) -> 'MutableKeyedOptionDictType':
+        opts = super().get_options()
+        self._update_language_stds(opts, ['c89', 'c90', 'c99'])
+        return opts
+
+    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+        std = self.get_compileropt_value('std', target, subproject)
+        assert isinstance(std, str)
+        arg = {
+            'c89': '-Xdialect-ansi',
+            'c90': '-Xdialect-c89',
+            'c99': '-Xdialect-c99',
+        }.get(std)
+        return [arg] if arg is not None else []

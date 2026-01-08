@@ -351,3 +351,39 @@ class MetrowerksAsmCompilerEmbeddedPowerPC(MetrowerksAsmCompiler):
 
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         return mwasmeppc_instruction_set_args.get(instruction_set, None)
+
+
+class DiabAsmCompiler(ASMCompiler):
+    """Assembler for the Wind River Diab compiler suite"""
+    id = 'diab'
+
+    language = 'nasm'
+
+    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
+                 for_machine: MachineChoice, environment: Environment,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        Compiler.__init__(self, ccache, exelist, version, for_machine, environment, linker, full_version)
+        self.can_compile_suffixes.add('s')
+
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        return []
+
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
+
+    def needs_static_linker(self) -> bool:
+        return True
+
+    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
+        for idx, i in enumerate(parameter_list):
+            if i[:2] == '-I' or i[:2] == '-L':
+                parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
+
+        return parameter_list
+
+    def get_depfile_suffix(self) -> str:
+        return 'd'
+
+    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+        return ['-I' + path]
