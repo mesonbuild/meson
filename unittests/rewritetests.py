@@ -8,14 +8,17 @@ import os
 from pathlib import Path
 import shutil
 import unittest
+import typing as T
 
 from mesonbuild.ast import IntrospectionInterpreter, AstIDGenerator
 from mesonbuild.ast.printer import RawPrinter
-from mesonbuild.mesonlib import windows_proof_rmtree
+from mesonbuild.mesonlib import windows_proof_rmtree, is_windows, is_linux
+
 from .baseplatformtests import BasePlatformTests
+from .helpers import skip_if_not_language
 
 class RewriterTests(BasePlatformTests):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.maxDiff = None
 
@@ -24,7 +27,7 @@ class RewriterTests(BasePlatformTests):
             windows_proof_rmtree(self.builddir)
         shutil.copytree(os.path.join(self.rewrite_test_dir, dirname), self.builddir)
 
-    def rewrite_raw(self, directory, args):
+    def rewrite_raw(self, directory: str, args: T.Sequence[str]) -> T.Dict:
         if isinstance(args, str):
             args = [args]
         command = self.rewrite_command + ['--verbose', '--skip', '--sourcedir', directory] + args
@@ -41,7 +44,7 @@ class RewriterTests(BasePlatformTests):
             return {}
         return json.loads(p.stdout)
 
-    def rewrite(self, directory, args):
+    def rewrite(self, directory: str, args: T.Sequence[str]) -> T.Dict:
         if isinstance(args, str):
             args = [args]
         return self.rewrite_raw(directory, ['command'] + args)
@@ -527,3 +530,10 @@ class RewriterTests(BasePlatformTests):
 
         expected = Path(test_path / "expected_dag.txt").read_text(encoding='utf-8').strip()
         self.assertEqual(dag_as_str.strip(), expected)
+
+    @skip_if_not_language('nasm')
+    @unittest.expectedFailure
+    def test_nasm(self) -> None:
+        srcdir = os.path.join(self.unit_test_dir, '133 nasm language only')
+        self.rewrite_raw(srcdir, ['kwargs', 'info', 'project', '/'])
+
