@@ -545,15 +545,11 @@ class IncludeDirs(HoldableObject):
         strlist: T.List[str] = []
         for idirs, add_src in [(self.incdirs, True), (self.extra_build_dirs, False)]:
             for idir in idirs:
-                bld_dir = os.path.normpath(os.path.join(self.curdir, idir))
-                if idir not in {'', '.'}:
-                    expdir = bld_dir
-                else:
-                    expdir = self.curdir
-                if build_root is None or os.path.isdir(os.path.join(build_root, expdir)):
-                    strlist.append(bld_dir)
+                dir = os.path.normpath(os.path.join(self.curdir, idir))
+                if build_root is None or os.path.isdir(os.path.join(build_root, dir)):
+                    strlist.append(dir)
                 if add_src:
-                    strlist.append(os.path.normpath(os.path.join(build_to_src, expdir)))
+                    strlist.append(os.path.normpath(os.path.join(build_to_src, dir)))
 
         return strlist
 
