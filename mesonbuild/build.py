@@ -528,6 +528,9 @@ class IncludeDirs(HoldableObject):
     is_system: bool
     extra_build_dirs: T.List[str] = field(default_factory=list)
 
+    # We need to know this for stringifying correctly
+    is_build_only_subproject: bool = False
+
     def abs_string_list(self, sourcedir: str, builddir: str) -> T.List[str]:
         """Convert IncludeDirs object to a list of absolute string paths.
 
@@ -536,12 +539,14 @@ class IncludeDirs(HoldableObject):
             be added if this is unset
         :returns: A list of strings (without compiler argument)
         """
+        bsubdir = f'build.{self.curdir}' if self.is_build_only_subproject else self.curdir
+
         strlist: T.List[str] = []
         for idir in self.incdirs:
             strlist.append(os.path.join(sourcedir, self.curdir, idir))
-            strlist.append(os.path.join(builddir, self.curdir, idir))
+            strlist.append(os.path.join(builddir, bsubdir, idir))
         for idir in self.extra_build_dirs:
-            strlist.append(os.path.join(builddir, self.curdir, idir))
+            strlist.append(os.path.join(builddir, bsubdir, idir))
         return strlist
 
     def rel_string_list(self, build_to_src: str, build_root: T.Optional[str] = None) -> T.List[str]:
@@ -553,13 +558,15 @@ class IncludeDirs(HoldableObject):
         :return: A list if strings (without compiler argument)
         """
         strlist: T.List[str] = []
+        bsubdir = f'build.{self.curdir}' if self.is_build_only_subproject else self.curdir
+
         for idirs, add_src in [(self.incdirs, True), (self.extra_build_dirs, False)]:
             for idir in idirs:
-                dir = os.path.normpath(os.path.join(self.curdir, idir))
-                if build_root is None or os.path.isdir(os.path.join(build_root, dir)):
-                    strlist.append(dir)
+                bld_dir = os.path.normpath(os.path.join(bsubdir, idir))
+                if build_root is None or os.path.isdir(os.path.join(build_root, bld_dir)):
+                    strlist.append(bld_dir)
                 if add_src:
-                    strlist.append(os.path.normpath(os.path.join(build_to_src, dir)))
+                    strlist.append(os.path.normpath(os.path.join(build_to_src, self.curdir, idir)))
 
         return strlist
 
@@ -695,7 +702,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
                 Target "{self.name}" has a path separator in its name.
                 This is not supported, it can cause unexpected failures and will become
                 a hard error in the future.'''))
-        self.builddir = self.subdir
+        self.builddir = f'build.{self.subdir}' if self.build_only_subproject else self.subdir
         if self.build_subdir:
             self.builddir = os.path.join(self.subdir, self.build_subdir)
 
@@ -775,7 +782,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         return h.hexdigest()[:7]
 
     @staticmethod
-    def construct_id_from_path(subdir: str, name: str, type_suffix: str) -> str:
+    def construct_id_from_path(subdir: str, name: str, type_suffix: str, build_subproject: bool = False) -> str:
         """Construct target ID from subdir, name and type suffix.
 
         This helper function is made public mostly for tests."""
@@ -790,7 +797,9 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         if subdir:
             subdir_part = Target._get_id_hash(subdir)
             # preserve myid for better debuggability
-            return subdir_part + '@@' + my_id
+            my_id = f'{subdir_part}@@{my_id}'
+        if build_subproject:
+            my_id = f'build.{my_id}'
         return my_id
 
     @lazy_property
@@ -799,9 +808,13 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         if getattr(self, 'name_suffix_set', False):
             name += '.' + self.suffix
         return self.construct_id_from_path(
-            self.builddir, name, self.type_suffix())
+            self.builddir, name, self.type_suffix(), self.build_only_subproject)
 
     def get_id(self) -> str:
+        """Get the unique ID of the target.
+
+        :return: A unique string id
+        """
         return self.id
 
     def get_override(self, name: str) -> T.Optional[str]:
@@ -1565,7 +1578,8 @@ class BuildTarget(Target):
     def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: str = 'preserve') -> None:
         if set_is_system != 'preserve':
             is_system = set_is_system == 'system'
-            self.include_dirs.extend([IncludeDirs(x.curdir, x.incdirs, is_system, x.extra_build_dirs) for x in args])
+            self.include_dirs.extend([IncludeDirs(x.curdir, x.incdirs, is_system, x.extra_build_dirs,
+                                                  x.is_build_only_subproject) for x in args])
         else:
             self.include_dirs.extend(args)
 
