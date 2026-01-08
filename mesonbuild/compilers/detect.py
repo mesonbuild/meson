@@ -205,7 +205,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             arg = '/?'
         elif linker_name in {'ar2000', 'ar2000.exe', 'ar430', 'ar430.exe', 'armar', 'armar.exe', 'ar6x', 'ar6x.exe'}:
             arg = '?'
-        elif linker_name in {'dar'}:
+        elif linker_name == 'dar':
             arg = '-V'
         else:
             arg = '--version'
