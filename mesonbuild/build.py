@@ -794,7 +794,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         return h.hexdigest()[:7]
 
     @staticmethod
-    def construct_id_from_path(subdir: str, name: str, type_suffix: str) -> str:
+    def construct_id_from_path(subdir: str, name: str, type_suffix: str, build_subproject: bool = False) -> str:
         """Construct target ID from subdir, name and type suffix.
 
         This helper function is made public mostly for tests."""
@@ -809,13 +809,15 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         if subdir:
             subdir_part = Target._get_id_hash(subdir)
             # preserve myid for better debuggability
-            return subdir_part + '@@' + my_id
+            my_id = f'{subdir_part}@@{my_id}'
+        if build_subproject:
+            my_id = f'build.{my_id}'
         return my_id
 
     @lazy_property
     def id(self) -> str:
         return self.construct_id_from_path(
-            self.builddir, self.name, self.type_suffix())
+            self.builddir, self.name, self.type_suffix(), self.build_only_subproject)
 
     def get_id(self) -> str:
         return self.id
@@ -940,7 +942,7 @@ class BuildTarget(Target):
         if self.name_suffix_set:
             name += '.' + self.suffix
         return self.construct_id_from_path(
-            self.builddir, name, self.type_suffix())
+            self.builddir, name, self.type_suffix(), self.build_only_subproject)
 
     def _set_vala_args(self, kwargs: BuildTargetKeywordArguments) -> None:
         if self.uses_vala():
