@@ -39,5 +39,6 @@ The resource compiler executable used is the first which exists from the
 following list:
 
 1. The `windres` executable given in the `[binaries]` section of the cross-file
-2. The `WINDRES` environment variable
-3. The resource compiler which is part of the same toolset as the C or C++ compiler in use.
+2. The `RC` environment variable
+3. The `WINDRES` environment variable
+4. The resource compiler which is part of the same toolset as the C or C++ compiler in use.
