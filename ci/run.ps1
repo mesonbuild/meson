@@ -20,7 +20,7 @@ if ($env:arch -eq 'x64') {
     # Rust puts its shared stdlib in a secret place, but it is needed to run tests.
     $env:Path += ";$HOME/.rustup/toolchains/stable-i686-pc-windows-msvc/bin"
     # Need 32-bit Python for tests that need the Python dependency
-    $env:Path = "C:\hostedtoolcache\windows\Python\3.7.9\x86;C:\hostedtoolcache\windows\Python\3.7.9\x86\Scripts;$env:Path"
+    $env:Path = "C:\hostedtoolcache\windows\Python\3.10.19\x86;C:\hostedtoolcache\windows\Python\3.10.19\x86\Scripts;$env:Path"
 }
 
 # Set the CI env var for the meson test framework
@@ -92,7 +92,7 @@ python --version
 
 # Needed for running unit tests in parallel.
 echo ""
-python -m pip --disable-pip-version-check install --upgrade pefile pytest-xdist pytest-subtests fastjsonschema 
+python -m pip --disable-pip-version-check install --upgrade pefile pytest-xdist pytest-subtests fastjsonschema
 
 # Needed for running the Cython tests
 python -m pip --disable-pip-version-check install cython

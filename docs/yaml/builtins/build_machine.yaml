@@ -5,8 +5,8 @@ description: |
   See [Cross-compilation](Cross-compilation.md).
 
   Currently, these values are populated using
-  [`platform.system()`](https://docs.python.org/3.7/library/platform.html#platform.system) and
-  [`platform.machine()`](https://docs.python.org/3.7/library/platform.html#platform.machine).
+  [`platform.system()`](https://docs.python.org/3.10/library/platform.html#platform.system) and
+  [`platform.machine()`](https://docs.python.org/3.10/library/platform.html#platform.machine).
   If you think the returned values for any of these are incorrect for
   your system or CPU, or if your OS is not in the linked table, please
   [file a bug](https://github.com/mesonbuild/meson/issues/new) report

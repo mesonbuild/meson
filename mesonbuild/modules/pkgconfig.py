@@ -368,7 +368,7 @@ class DependenciesHelper:
         # pylance/pyright gets this right, but for mypy we have to ignore the
         # error
         @T.overload
-        def _fn(xs: T.List[str], libs: bool = False) -> T.List[str]: ...  # type: ignore
+        def _fn(xs: T.List[str], libs: bool = False) -> T.List[str]: ...
 
         @T.overload
         def _fn(xs: T.List[LIBS], libs: bool = False) -> T.List[LIBS]: ...
