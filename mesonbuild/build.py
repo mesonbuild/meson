@@ -33,7 +33,7 @@ from .compilers import (
     is_header, is_object, is_source, clink_langs, sort_clink, all_languages,
     is_known_suffix, detect_static_linker, LANGUAGES_USING_LDFLAGS
 )
-from .interpreterbase import FeatureNew, FeatureDeprecated
+from .interpreterbase import FeatureNew, FeatureDeprecated, SubProject
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypeAlias, TypedDict
@@ -44,7 +44,6 @@ if T.TYPE_CHECKING:
     from .compilers import Compiler
     from .interpreter.interpreter import SourceOutputs, Interpreter
     from .interpreter.interpreterobjects import Test, Doctest
-    from .interpreterbase import SubProject
     from .linkers.linkers import StaticLinker
     from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
     from .mparser import BaseNode
@@ -132,6 +131,8 @@ if T.TYPE_CHECKING:
 
         pic: bool
         prelink: bool
+
+_T = T.TypeVar('_T')
 
 DEFAULT_STATIC_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str]] = {
     'unix': ('lib', 'a'),
@@ -326,6 +327,14 @@ class DepManifest:
         }
 
 
+@dataclass(eq=False)
+class BuildProject:
+    name: str
+    version: str
+    project_args: PerMachine[T.Dict[str, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
+    project_link_args: PerMachine[T.Dict[str, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
+
+
 # literally everything isn't dataclass stuff
 class Build:
     """A class that holds the status of one build including
@@ -338,13 +347,11 @@ class Build:
         self.project_name = 'name of master project'
         self.project_version: T.Optional[str] = None
         self.environment = environment
-        self.projects: T.Dict[str, str] = {}
+        self.projects: T.Dict[SubProject, BuildProject] = {}
         self.targets: 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]' = OrderedDict()
         self.targetnames: T.Set[T.Tuple[str, str]] = set() # Set of executable names and their subdir
         self.global_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
         self.global_link_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
-        self.projects_args: PerMachine[T.Dict[str, T.Dict[str, T.List[str]]]] = PerMachine({}, {})
-        self.projects_link_args: PerMachine[T.Dict[str, T.Dict[str, T.List[str]]]] = PerMachine({}, {})
         self.tests: T.List['Test'] = []
         self.benchmarks: T.List['Test'] = []
         self.headers: T.List[Headers] = []
@@ -352,8 +359,7 @@ class Build:
         self.emptydir: T.List[EmptyDir] = []
         self.data: T.List[Data] = []
         self.symlinks: T.List[SymlinkData] = []
-        self.static_linker: PerMachine[StaticLinker] = PerMachine(None, None)
-        self.subprojects = {}
+        self.static_linker: PerMachine[T.Optional[StaticLinker]] = PerMachine(None, None)
         self.subproject_dir = ''
         self.install_scripts: T.List['ExecutableSerialisation'] = []
         self.postconf_scripts: T.List['ExecutableSerialisation'] = []
@@ -361,15 +367,17 @@ class Build:
         self.install_dirs: T.List[InstallDir] = []
         self.dep_manifest_name: T.Optional[str] = None
         self.dep_manifest: T.Dict[str, DepManifest] = {}
-        self.stdlibs = PerMachine({}, {})
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
         self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
 
         # If we are doing a cross build we need two caches, if we're doing a
         # build == host compilation the both caches should point to the same place.
+        self.stdlibs = PerMachineDefaultable.default(
+            environment.is_cross_build(), {}, {})
         self.dependency_overrides: PerMachine[T.Dict[T.Tuple, DependencyOverride]] = PerMachineDefaultable.default(
             environment.is_cross_build(), {}, {})
+
         self.devenv: T.List[EnvironmentVariables] = []
         self.modules: T.Set[str] = set()
         """Used to track which modules are enabled in all subprojects.
@@ -404,24 +412,44 @@ class Build:
         return custom_targets
 
     def copy(self) -> Build:
-        other = Build(self.environment)
-        for k, v in self.__dict__.items():
+        def copy_value(v: _T) -> _T:
+            if isinstance(v, PerMachine):
+                build = copy_value(v.build)
+                host = build if v.build is v.host else copy_value(v.host)
+                return PerMachine(build=build, host=host)
             if isinstance(v, (list, dict, set, OrderedDict)):
-                other.__dict__[k] = v.copy()
-            else:
-                other.__dict__[k] = v
+                return v.copy()
+            return v
+
+        other = Build.__new__(Build)
+        for k, v in self.__dict__.items():
+            setattr(other, k, copy_value(v))
         return other
 
     def merge(self, other: Build) -> None:
         for k, v in other.__dict__.items():
-            self.__dict__[k] = v
+            # These are not modified in subprojects
+            if k in {'global_args', 'global_link_args'}:
+                continue
+
+            if isinstance(v, PerMachine):
+                dest = getattr(self, k)
+                dest.build = v.build
+                dest.host = v.host
+            else:
+                setattr(self, k, v)
+
+    def get_static_linker(self, for_machine: MachineChoice) -> T.Optional[StaticLinker]:
+        for_machine = for_machine if self.environment.is_cross_build() else MachineChoice.HOST
+        return self.static_linker[for_machine]
 
     def ensure_static_linker(self, compiler: Compiler) -> None:
-        if self.static_linker[compiler.for_machine] is None and compiler.needs_static_linker():
-            self.static_linker[compiler.for_machine] = detect_static_linker(self.environment, compiler)
+        for_machine = compiler.for_machine if self.environment.is_cross_build() else MachineChoice.HOST
+        if self.static_linker[for_machine] is None and compiler.needs_static_linker():
+            self.static_linker[for_machine] = detect_static_linker(self.environment, compiler)
 
-    def get_project(self) -> T.Dict[str, str]:
-        return self.projects['']
+    def get_project(self) -> str:
+        return self.projects[SubProject('')].name
 
     def get_subproject_dir(self):
         return self.subproject_dir
@@ -457,9 +485,8 @@ class Build:
         d = self.global_args[for_machine]
         return d.get(compiler.get_language(), [])
 
-    def get_project_args(self, compiler: 'Compiler', project: str, for_machine: 'MachineChoice') -> T.List[str]:
-        d = self.projects_args[for_machine]
-        args = d.get(project)
+    def get_project_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
+        args = self.projects[target.subproject].project_args[target.for_machine]
         if not args:
             return []
         return args.get(compiler.get_language(), [])
@@ -468,10 +495,8 @@ class Build:
         d = self.global_link_args[for_machine]
         return d.get(compiler.get_language(), [])
 
-    def get_project_link_args(self, compiler: 'Compiler', project: str, for_machine: 'MachineChoice') -> T.List[str]:
-        d = self.projects_link_args[for_machine]
-
-        link_args = d.get(project)
+    def get_project_link_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
+        link_args = self.projects[target.subproject].project_link_args[target.for_machine]
         if not link_args:
             return []
 

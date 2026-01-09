@@ -118,7 +118,7 @@ if T.TYPE_CHECKING:
     from .. import cargo
     from . import kwargs as kwtypes
     from ..backend.backends import Backend
-    from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
+    from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs, SubProject
     from ..options import OptionDict
     from .type_checking import SourcesVarargsType
 
@@ -248,7 +248,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 self,
                 _build: build.Build,
                 backend: T.Optional[Backend] = None,
-                subproject: str = '',
+                subproject: SubProject = '',
                 subdir: str = '',
                 subproject_dir: str = 'subprojects',
                 invoker_method_default_options: T.Optional[OptionDict] = None,
@@ -568,7 +568,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     FeatureNew.single_use('stdlib without variable name', '0.56.0', self.subproject, location=self.current_node)
                 kwargs: dependencies.base.DependencyObjectKWs = {'native': for_machine}
                 name = l + '_stdlib'
-                df = DependencyFallbacksHolder(self, [name])
+                df = DependencyFallbacksHolder(self, [name], for_machine)
                 df.set_fallback(di)
                 dep = df.lookup(kwargs, force_fallback=True)
                 self.build.stdlibs[for_machine][l] = dep
@@ -855,17 +855,15 @@ class Interpreter(InterpreterBase, HoldableObject):
         }
         return self.do_subproject(args[0], kw)
 
-    def disabled_subproject(self, subp_name: str, disabled_feature: T.Optional[str] = None,
+    def disabled_subproject(self, subp_name: SubProject, disabled_feature: T.Optional[str] = None,
                             exception: T.Optional[Exception] = None) -> SubprojectHolder:
         sub = SubprojectHolder(NullSubprojectInterpreter(), os.path.join(self.subproject_dir, subp_name),
                                disabled_feature=disabled_feature, exception=exception)
         self.subprojects[subp_name] = sub
         return sub
 
-    def do_subproject(self, subp_name: str, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None,
+    def do_subproject(self, subp_name: SubProject, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None,
                       forced_options: T.Optional[OptionDict] = None) -> SubprojectHolder:
-        if subp_name == 'sub_static':
-            pass
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
@@ -903,7 +901,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if required and not subproject.found():
                 raise InterpreterException(f'Subproject "{subproject.subdir}" required but not found.')
             if kwargs['version']:
-                pv = self.build.subprojects[subp_name]
+                pv = self.build.projects[subp_name].version
                 wanted = kwargs['version']
                 if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
                     raise InterpreterException(f'Subproject {subp_name} version is {pv} but {wanted} required.')
@@ -934,7 +932,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             m += ['method', mlog.bold(method)]
         mlog.log(*m, '\n', nested=False)
 
-        methods_map: T.Dict[wrap.Method, T.Callable[[str, str, OptionDict, kwtypes.DoSubproject],
+        methods_map: T.Dict[wrap.Method, T.Callable[[SubProject, str, OptionDict, kwtypes.DoSubproject],
                                                     SubprojectHolder]] = {
             'meson': self._do_subproject_meson,
             'cmake': self._do_subproject_cmake,
@@ -969,7 +967,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         mlog.log('Generated Meson AST:', meson_filename)
         mlog.cmd_ci_include(meson_filename)
 
-    def _do_subproject_meson(self, subp_name: str, subdir: str,
+    def _do_subproject_meson(self, subp_name: SubProject, subdir: str,
                              default_options: OptionDict,
                              kwargs: kwtypes.DoSubproject,
                              ast: T.Optional[mparser.CodeBlockNode] = None,
@@ -1018,10 +1016,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         # We always need the subi.build_def_files, to propagate sub-sub-projects
         self.build_def_files.update(subi.get_build_def_files())
         self.build.merge(subi.build)
-        self.build.subprojects[subp_name] = subi.project_version
         return self.subprojects[subp_name]
 
-    def _do_subproject_cmake(self, subp_name: str, subdir: str,
+    def _do_subproject_cmake(self, subp_name: SubProject, subdir: str,
                              default_options: OptionDict,
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from ..cmake import CMakeInterpreter
@@ -1046,7 +1043,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             result.cm_interpreter = cm_int
         return result
 
-    def _do_subproject_cargo(self, subp_name: str, subdir: str,
+    def _do_subproject_cargo(self, subp_name: SubProject, subdir: str,
                              default_options: OptionDict,
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from .. import cargo
@@ -1278,7 +1275,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if self.cargo is None:
             self.load_root_cargo_lock_file()
 
-        self.build.projects[self.subproject] = proj_name
+        self.build.projects[self.subproject] = build.BuildProject(proj_name, self.project_version)
         mlog.log('Project name:', mlog.bold(proj_name))
         mlog.log('Project version:', mlog.bold(self.project_version))
 
@@ -1767,7 +1764,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         if len(names) > 1:
             FeatureNew('dependency with more than one name', '0.60.0').use(self.subproject)
         default_options = kwargs.get('default_options')
-        df = DependencyFallbacksHolder(self, names, kwargs['allow_fallback'], default_options)
+        for_machine = kwargs['native']
+        df = DependencyFallbacksHolder(self, names, for_machine, kwargs['allow_fallback'], default_options)
         df.set_fallback(kwargs['fallback'])
         not_found_message = kwargs['not_found_message']
 
@@ -1776,7 +1774,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             name = names[0]
             if kwargs['modules']:
                 name = name + '(modules: {})'.format(', '.join(kwargs['modules']))
-            mlog.log('Dependency', mlog.bold(name), 'skipped: feature', mlog.bold(feature), 'disabled')
+            mlog.log('Dependency', mlog.bold(name),
+                     'for', mlog.bold(for_machine.get_lower_case_name()), 'machine',
+                     'skipped: feature', mlog.bold(feature), 'disabled')
             return dependencies.NotFoundDependency(names[0], self.environment)
 
         nkwargs = T.cast('dependencies.base.DependencyObjectKWs', kwargs.copy())
@@ -2938,12 +2938,17 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('add_project_arguments', varargs=str)
     @typed_kwargs('add_project_arguments', NATIVE_KW, LANGUAGE_KW)
     def func_add_project_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
-        self._add_project_arguments(node, self.build.projects_args[kwargs['native']], args[0], kwargs)
+        self._add_project_arguments(node, self.current_build_project().project_args[kwargs['native']],
+                                    args[0], kwargs)
 
     @typed_pos_args('add_project_link_arguments', varargs=str)
     @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
     def func_add_project_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
-        self._add_project_arguments(node, self.build.projects_link_args[kwargs['native']], args[0], kwargs)
+        self._add_project_arguments(node, self.current_build_project().project_link_args[kwargs['native']],
+                                    args[0], kwargs)
+
+    def current_build_project(self) -> build.BuildProject:
+        return self.build.projects[self.subproject]
 
     @FeatureNew('add_project_dependencies', '0.63.0')
     @typed_pos_args('add_project_dependencies', varargs=dependencies.Dependency)
@@ -2963,8 +2968,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                     for idir in i.abs_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
                         compile_args.extend(comp.get_include_args(idir, system_incdir))
 
-            self._add_project_arguments(node, self.build.projects_args[for_machine], compile_args, kwargs)
-            self._add_project_arguments(node, self.build.projects_link_args[for_machine], d.get_link_args(), kwargs)
+            self._add_project_arguments(node, self.current_build_project().project_args[for_machine],
+                                        compile_args, kwargs)
+            self._add_project_arguments(node, self.current_build_project().project_link_args[for_machine],
+                                        d.get_link_args(), kwargs)
 
     def _warn_about_builtin_args(self, args: T.List[str]) -> None:
         # -Wpedantic is deliberately not included, since some people want to use it but not use -Wextra
@@ -3009,10 +3016,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def _add_project_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.Dict[str, T.List[str]]],
                                args: T.List[str], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
-        if self.subproject not in argsdict:
-            argsdict[self.subproject] = {}
-        self._add_arguments(node, argsdict[self.subproject],
-                            self.project_args_frozen, args, kwargs)
+        self._add_arguments(node, argsdict, self.project_args_frozen, args, kwargs)
 
     def _add_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.List[str]],
                        args_frozen: bool, args: T.List[str], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:

@@ -740,7 +740,7 @@ class Backend:
         Otherwise, we query the target for the dynamic linker.
         '''
         if isinstance(target, build.StaticLibrary):
-            return self.build.static_linker[target.for_machine], []
+            return self.build.get_static_linker(target.for_machine), []
         l, stdlib_args = target.get_clink_dynamic_linker_and_stdlibs()
         return l, stdlib_args
 
@@ -954,7 +954,7 @@ class Backend:
         commands += compiler.get_debug_args(debug)
 
         # Add compile args added using add_project_arguments()
-        commands += self.build.get_project_args(compiler, target.subproject, target.for_machine)
+        commands += self.build.get_project_args(compiler, target)
         # Add compile args added using add_global_arguments()
         # These override per-project arguments
         commands += self.build.get_global_args(compiler, target.for_machine)

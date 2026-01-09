@@ -1688,7 +1688,7 @@ class XCodeBackend(backends.Backend):
             else:
                 linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
             if not isinstance(target, build.StaticLibrary):
-                ldargs += self.build.get_project_link_args(linker, target.subproject, target.for_machine)
+                ldargs += self.build.get_project_link_args(linker, target)
                 ldargs += self.build.get_global_link_args(linker, target.for_machine)
             cargs = []
             for dep in target.get_external_deps():
@@ -1741,7 +1741,7 @@ class XCodeBackend(backends.Backend):
                 std_args = compiler.get_option_compile_args(target, target.subproject)
                 std_args += compiler.get_option_std_args(target, target.subproject)
                 # Add compile args added using add_project_arguments()
-                pargs = self.build.projects_args[target.for_machine].get(target.subproject, {}).get(lang, [])
+                pargs = self.build.get_project_args(compiler, target)
                 # Add compile args added using add_global_arguments()
                 # These override per-project arguments
                 gargs = self.build.global_args[target.for_machine].get(lang, [])
