@@ -205,6 +205,8 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             arg = '/?'
         elif linker_name in {'ar2000', 'ar2000.exe', 'ar430', 'ar430.exe', 'armar', 'armar.exe', 'ar6x', 'ar6x.exe'}:
             arg = '?'
+        elif linker_name == 'dar':
+            arg = '-V'
         else:
             arg = '--version'
         try:
@@ -252,6 +254,8 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
                 return linkers.MetrowerksStaticLinkerEmbeddedPowerPC(linker, env)
         if 'TASKING VX-toolset' in err:
             return linkers.TaskingStaticLinker(linker, env)
+        if 'Wind River Systems, Inc.' in out:
+            return linkers.DiabArchiver(linker, env)
         if p.returncode == 0:
             return linkers.ArLinker(compiler.for_machine, linker, env)
         if p.returncode == 1 and err.startswith('usage'): # OSX
@@ -329,6 +333,9 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
         elif compiler_name in {'icl', 'icl.exe'}:
             # if you pass anything to icl you get stuck in a pager
             arg = ''
+        elif compiler_name in {'dcc', 'dcc.exe', 'dplus', 'dplus.exe'}:
+            # Wind River Diab
+            arg = '-V'
         else:
             arg = '--version'
 
@@ -657,6 +664,20 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             return cls(
                 ccache, compiler, tasking_version, for_machine, env,
                 full_version=full_version, linker=linker)
+
+        if 'Wind River Systems, Inc.' in out:
+            cls = c.DiabCCompiler if lang == 'c' else cpp.DiabCppCompiler
+            env.add_lang_args(cls.language, cls, for_machine)
+            ld = env.lookup_binary_entry(for_machine, cls.language + '_ld')
+            if ld is not None:
+                linker = linkers.DiabLinker(
+                    ld, env, for_machine, None, ['-lc'] if lang == 'c' else ['-lc', '-ld'], system='none', version=version
+                )
+            else:
+                linker = linkers.DiabLinker(
+                    compiler, env, for_machine, '-W:ld:,', [], system='none', version=version
+                )
+            return cls(ccache, compiler, version, for_machine, env, linker)
 
     _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException(f'Unknown compiler {compilers}')
@@ -1321,7 +1342,7 @@ def detect_swift_compiler(env: 'Environment', for_machine: MachineChoice) -> Com
     raise EnvironmentException('Unknown compiler: ' + join_args(exelist))
 
 def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
-    from .asm import NasmCompiler, YasmCompiler, MetrowerksAsmCompilerARM, MetrowerksAsmCompilerEmbeddedPowerPC
+    from .asm import NasmCompiler, YasmCompiler, MetrowerksAsmCompilerARM, MetrowerksAsmCompilerEmbeddedPowerPC, DiabAsmCompiler
 
     # When cross compiling and nasm is not defined in the cross file we can
     # fallback to the build machine nasm.
@@ -1334,12 +1355,20 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
 
     popen_exceptions: T.Dict[str, Exception] = {}
     for comp in compilers:
+        compiler_name = os.path.basename(comp[0])
+
         if comp == ['nasm'] and is_windows() and not shutil.which(comp[0]):
             # nasm is not in PATH on Windows by default
             default_path = os.path.join(os.environ['ProgramFiles'], 'NASM')
             comp[0] = shutil.which(comp[0], path=default_path) or comp[0]
+        if compiler_name == 'das':
+            # Wind River Diab
+            arg = '-V'
+        else:
+            arg = '--version'
+
         try:
-            output = Popen_safe_logged(comp + ['--version'], msg='Detecting compiler via')[1]
+            output = Popen_safe_logged(comp + [arg], msg='Detecting compiler via')[1]
         except OSError as e:
             popen_exceptions[' '.join(comp + ['--version'])] = e
             continue
@@ -1363,7 +1392,10 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
                 comp_class_mwasmeppc = MetrowerksAsmCompilerEmbeddedPowerPC
                 env.add_lang_args(comp_class_mwasmeppc.language, comp_class_mwasmeppc, for_machine)
                 return comp_class_mwasmeppc([], comp, version, for_machine, env, cc.linker)
-
+        elif 'Wind River Systems, Inc.' in output:
+            cls = DiabAsmCompiler
+            env.add_lang_args(cls.language, cls, for_machine)
+            return DiabAsmCompiler([], comp, version, for_machine, env, cc.linker)
     _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
 

@@ -33,6 +33,7 @@ from .mixins.emscripten import EmscriptenMixin
 from .mixins.metrowerks import MetrowerksCompiler
 from .mixins.metrowerks import mwccarm_instruction_set_args, mwcceppc_instruction_set_args
 from .mixins.microchip import Xc32Compiler, Xc32CPPStds
+from .mixins.windriver import DiabCompilerMixin
 
 if T.TYPE_CHECKING:
     from ..options import MutableKeyedOptionDictType
@@ -1132,3 +1133,35 @@ class Xc32CPPCompiler(Xc32CPPStds, Xc32Compiler, GnuCPPCompiler):
         GnuCPPCompiler.__init__(self, ccache, exelist, version, for_machine, env,
                                 linker=linker, full_version=full_version, defines=defines)
         Xc32Compiler.__init__(self)
+
+
+class DiabCppCompiler(DiabCompilerMixin, CPPCompiler):
+    """C++ compiler for the Wind River Diab compiler suite"""
+
+    std_args = {
+        'c++98': ['-Xdialect-strict-ansi']
+    }
+
+    def _create_boolean_option(self, key: str, description: str, default: bool) -> T.Tuple[options.OptionKey, options.UserBooleanOption]:
+        return self.form_compileropt_key(key), options.UserBooleanOption(key, description, default)
+
+    def get_options(self) -> 'MutableKeyedOptionDictType':
+        opts = super().get_options()
+        opts.update([
+            self._create_boolean_option('eh', 'C++ exception handling', True),
+            self._create_boolean_option('rtti', 'Enable RTTI', True),
+        ])
+        return opts
+
+    def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+        args: T.List[str] = []
+        if not self.get_compileropt_value('eh', target, subproject):
+            args += ['-Xexceptions-off']
+        if not self.get_compileropt_value('rtti', target, subproject):
+            args += ['-Xrtti-off']
+
+        return args
+
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
+        """Override CPPCompiler.get_compiler_check_args() which adds non-Diab flag -fpermissive"""
+        return Compiler.get_compiler_check_args(self, mode)

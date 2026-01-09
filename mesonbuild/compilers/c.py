@@ -30,6 +30,7 @@ from .mixins.emscripten import EmscriptenMixin
 from .mixins.metrowerks import MetrowerksCompiler
 from .mixins.metrowerks import mwccarm_instruction_set_args, mwcceppc_instruction_set_args
 from .mixins.tasking import TaskingCompiler
+from .mixins.windriver import DiabCompilerMixin
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
@@ -781,3 +782,12 @@ class TaskingCCompiler(TaskingCompiler, CCompiler):
         CCompiler.__init__(self, ccache, exelist, version, for_machine,
                            env, linker=linker, full_version=full_version)
         TaskingCompiler.__init__(self)
+
+class DiabCCompiler(DiabCompilerMixin, CCompiler):
+    """C++ compiler for the Wind River Diab compiler suite"""
+
+    std_args = {
+        'c89': ['-Xdialect-ansi'],
+        'c90': ['-Xdialect-c89'],
+        'c99': ['-Xdialect-c99'],
+    }
