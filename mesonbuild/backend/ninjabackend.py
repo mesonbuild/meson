@@ -2721,11 +2721,16 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # Scanning command is the same for native and cross compilation.
             return
 
+        # We restate the json data the depscanner writes out, as it is possible
+        # to change a source file without changing the module output. We do not
+        # restat the dd file, because we know that if the json data has changed
+        # A new dd file is needed.
+
         command = self.environment.get_build_command() + \
             ['--internal', 'depscan']
         args = ['$picklefile', '$out', '$in']
         description = 'Scanning target $name for modules'
-        rule = NinjaRule(rulename, command, args, description)
+        rule = NinjaRule(rulename, command, args, description, extra='restat = 1')
         self.add_rule(rule)
 
         rulename = 'depaccumulate'
