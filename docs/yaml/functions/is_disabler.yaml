@@ -1,7 +1,11 @@
 name: is_disabler
 returns: bool
 since: 0.52.0
-description: Returns true if a variable is a disabler and false otherwise.
+description: |
+  Returns true if a variable is a disabler and false otherwise.
+
+  Since 1.10.0, the variable can be a list and true is returned if any of its
+  items is a disabler.
 
 posargs:
   var:
