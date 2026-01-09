@@ -38,7 +38,7 @@ class DiabCompilerMixin(Compiler):
         '3': ['-XO'],
         's': ['-Xsize-opt'],
     }
-    
+
     @property
     @abstractmethod
     def std_args(self) -> T.Dict[str, T.List[str]]: ...
