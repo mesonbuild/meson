@@ -31,7 +31,7 @@ def precedence_level(node: mparser.BaseNode) -> int:
             return 6
     elif isinstance(node, (mparser.NotNode, mparser.UMinusNode)):
         return 7
-    elif isinstance(node, mparser.FunctionNode):
+    elif isinstance(node, (mparser.FunctionNode, mparser.IndexNode, mparser.MethodNode)):
         return 8
     elif isinstance(node, (mparser.ArrayNode, mparser.DictNode)):
         return 9
