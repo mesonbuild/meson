@@ -25,7 +25,7 @@ from .type_checking import NATIVE_KW, NoneType
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
-    from ..compilers import Compiler
+    from ..compilers.compilers import Compiler, Language
     from ..dependencies.base import DependencyObjectKWs
     from ..interpreterbase import TYPE_kwargs, TYPE_var
     from ..mesonlib import ExecutableSerialisation
@@ -287,7 +287,12 @@ class MesonMain(MesonInterpreterObject):
     @typed_kwargs('meson.get_compiler', NATIVE_KW)
     @InterpreterObject.method('get_compiler')
     def get_compiler_method(self, args: T.Tuple[str], kwargs: 'NativeKW') -> 'Compiler':
+        from ..compilers.compilers import all_languages
         lang = args[0]
+        if lang not in all_languages:
+            raise InterpreterException(f'The language "{lang}" is not supported by Meson, this may be a typing mistake, or you may need a newer version of Meson')
+        lang = T.cast('Language', lang)
+
         for_machine = kwargs['native']
         try:
             return self.interpreter.compilers[for_machine][lang]

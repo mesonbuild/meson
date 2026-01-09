@@ -118,6 +118,7 @@ if T.TYPE_CHECKING:
     from .. import cargo
     from . import kwargs as kwtypes
     from ..backend.backends import Backend
+    from ..compilers.compilers import CompilerDict, Language
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
     from ..options import OptionDict
     from .type_checking import SourcesVarargsType
@@ -288,7 +289,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build_holder_map()
         self.user_defined_options = user_defined_options
         self.find_overrides: T.Dict[str, Program] = {}
-        self.compilers: PerMachine[T.Dict[str, 'compilers.Compiler']] = PerMachine({}, {})
+        # Languages added in the current subproject
+        self.compilers: PerMachine[CompilerDict] = PerMachine({}, {})
         self.parse_project()
         self._redetect_machines()
 
@@ -1152,6 +1154,26 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         self.environment.init_backend_options(backend_name)
 
+    def _validate_languages(self, langs: T.List[str], required: bool, node: mparser.BaseNode) -> T.List[Language]:
+        valid: T.List[Language] = []
+
+        for lang in langs:
+            lang = lang.lower()
+            if lang in compilers.all_languages:
+                valid.append(T.cast('Language', lang))
+                continue
+
+            FeatureBroken.single_use(
+                f'Adding unknown language {lang}', '1.11.0', self.subproject,
+                'This language will never be found, it is either a typo or should be removed',
+                node)
+            if required:
+                raise InterpreterException.from_node(
+                    f'Attempted to add language {lang}, which is not supported by Meson.',
+                    node=node)
+
+        return valid
+
     @typed_pos_args('project', str, varargs=str)
     @typed_kwargs(
         'project',
@@ -1169,9 +1191,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('subproject_dir', str, default='subprojects'),
     )
     def func_project(self, node: mparser.FunctionNode, args: T.Tuple[str, T.List[str]], kwargs: 'kwtypes.Project') -> None:
-        proj_name, proj_langs = args
+        proj_name, proj_langs_ = args
         if ':' in proj_name:
             raise InvalidArguments(f"Project name {proj_name!r} must not contain ':'")
+
+        proj_langs = self._validate_languages(proj_langs_, True, node)
 
         # This needs to be evaluated as early as possible, as meson uses this
         # for things like deprecation testing.
@@ -1291,9 +1315,10 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs('add_languages', KwargInfo('native', (bool, NoneType), since='0.54.0'), REQUIRED_KW)
     @typed_pos_args('add_languages', varargs=str)
     def func_add_languages(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddLanguages') -> bool:
-        langs = args[0]
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         native = kwargs['native']
+
+        langs = self._validate_languages(args[0], required, node)
 
         if disabled:
             for lang in sorted(langs, key=compilers.sort_clink):
@@ -1308,7 +1333,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                 mlog.warning('add_languages is missing native:, assuming languages are wanted for both host and build.',
                              location=node)
 
-            success = self.add_languages(langs, required, MachineChoice.HOST)
+            # If languages were removed as invalid, then return false
+            success = len(langs) == len(args[0])
+            success &= self.add_languages(langs, required, MachineChoice.HOST)
             success &= self.add_languages(langs, False, MachineChoice.BUILD)
             return success
 
@@ -1464,7 +1491,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     return True
         return ExpectErrorObject(args[0], kwargs['how'], self.subproject)
 
-    def add_languages(self, args: T.List[str], required: bool, for_machine: MachineChoice) -> bool:
+    def add_languages(self, args: T.List[Language], required: bool, for_machine: MachineChoice) -> bool:
         success = self.add_languages_for(args, required, for_machine)
         self._redetect_machines()
         return success
@@ -1479,9 +1506,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             return False
         return should
 
-    def add_languages_for(self, args: T.List[str], required: bool, for_machine: MachineChoice) -> bool:
-        args = [a.lower() for a in args]
-        langs = set(self.compilers[for_machine].keys())
+    def add_languages_for(self, args: T.List[Language], required: bool, for_machine: MachineChoice) -> bool:
+        langs = set(self.compilers[for_machine])
         langs.update(args)
         # We'd really like to add cython's default language here, but it can't
         # actually be done because the cython compiler hasn't been initialized,
