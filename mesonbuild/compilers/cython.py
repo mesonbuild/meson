@@ -1,13 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright © 2021-2025 Intel Corporation
-from __future__ import annotations
 
 """Abstraction for Cython language compilers."""
 
+from __future__ import annotations
+import os
 import typing as T
 
 from .. import options
-from ..mesonlib import EnvironmentException, version_compare
+from .. import mlog
+from ..mesonlib import version_compare, EnvironmentException
 from .compilers import Compiler
 
 if T.TYPE_CHECKING:
@@ -48,15 +50,59 @@ class CythonCompiler(Compiler):
     def get_depfile_suffix(self) -> str:
         return 'dep'
 
-    def sanity_check(self, work_dir: str) -> None:
-        code = 'print("hello world")'
-        with self.cached_compile(code) as p:
-            if p.returncode != 0:
-                raise EnvironmentException(f'Cython compiler {self.id!r} cannot compile programs')
-
     def get_pic_args(self) -> T.List[str]:
         # We can lie here, it's fine
         return []
+
+    def _sanity_check_filenames(self) -> T.Tuple[str, T.Optional[str], str]:
+        sourcename, _, binname = super()._sanity_check_filenames()
+
+        lang = self.get_compileropt_value('language', None)
+        assert isinstance(lang, str)
+
+        # This is almost certainly not good enough
+        ext = 'dll' if self.environment.machines[self.for_machine].is_windows() else 'so'
+
+        return (sourcename, f'{os.path.splitext(sourcename)[0]}.{lang}',
+                f'{os.path.splitext(binname)[0]}.{ext}')
+
+    def _transpiled_sanity_check_compile_args(
+            self, compiler: Compiler, sourcename: str, binname: str
+            ) -> T.Tuple[T.List[str], T.List[str]]:
+        version = self.get_compileropt_value('version', None)
+        assert isinstance(version, str)
+
+        from ..dependencies import find_external_dependency
+        with mlog.no_logging():
+            dep = find_external_dependency(
+                f'python{version}', self.environment, {'required': False, 'native': self.for_machine})
+        if not dep.found():
+            raise EnvironmentException(
+                'Cython requires python3 dependency for link testing, but it could not be found')
+
+        args, largs = super()._transpiled_sanity_check_compile_args(compiler, sourcename, binname)
+        args.extend(compiler.get_pic_args())
+        args.extend(dep.get_all_compile_args())
+
+        largs.extend(dep.get_all_link_args())
+        largs.extend(compiler.get_std_shared_lib_link_args())
+        largs.extend(compiler.get_allow_undefined_link_args())
+        return args, largs
+
+    def _sanity_check_compile_args(self, sourcename: str, binname: str
+                                   ) -> T.Tuple[T.List[str], T.List[str]]:
+        args, largs = super()._sanity_check_compile_args(sourcename, binname)
+        args.extend(self.get_option_compile_args(None))
+        return args, largs
+
+    def _sanity_check_source_code(self) -> str:
+        return 'def func():\n    print("Hello world")'
+
+    def _run_sanity_check(self, cmdlist: T.List[str], work_dir: str) -> None:
+        # XXX: this is a punt
+        # This means we transpile the Cython .pyx file into C or C++, and we
+        # link it, but we don't actually attempt to run it.
+        return
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:

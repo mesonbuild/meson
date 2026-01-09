@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import os.path
 import re
-import subprocess
 import typing as T
 
 from .. import mesonlib
@@ -436,24 +435,14 @@ class DCompiler(Compiler):
                          full_version=full_version)
         self.arch = arch
 
-    def sanity_check(self, work_dir: str) -> None:
-        source_name = os.path.join(work_dir, 'sanity.d')
-        output_name = os.path.join(work_dir, 'dtest')
-        with open(source_name, 'w', encoding='utf-8') as ofile:
-            ofile.write('''void main() { }''')
+    def _sanity_check_source_code(self) -> str:
+        return 'void main() { }'
 
-        compile_cmdlist = self.exelist + self.get_output_args(output_name) + self._get_target_arch_args() + [source_name]
-
-        # If cross-compiling, we can't run the sanity check, only compile it.
-        if self.is_cross and not self.environment.has_exe_wrapper():
-            compile_cmdlist += self.get_compile_only_args()
-
-        pc = subprocess.Popen(compile_cmdlist, cwd=work_dir)
-        pc.wait()
-        if pc.returncode != 0:
-            raise EnvironmentException('D compiler %s cannot compile programs.' % self.name_string())
-
-        stdo, stde = self.run_sanity_check([output_name], work_dir)
+    def _sanity_check_compile_args(self, sourcename: str, binname: str
+                                   ) -> T.Tuple[T.List[str], T.List[str]]:
+        args, largs = super()._sanity_check_compile_args(sourcename, binname)
+        largs.extend(self._get_target_arch_args())
+        return args, largs
 
     def needs_static_linker(self) -> bool:
         return True
