@@ -292,6 +292,8 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             compiler = [compiler]
         compiler_name = os.path.basename(compiler[0])
 
+        compiler_for_detection = compiler
+
         if any(os.path.basename(x) in {'cl', 'cl.exe', 'clang-cl', 'clang-cl.exe'} for x in compiler):
             # Watcom C provides its own cl.exe clone that mimics an older
             # version of Microsoft's compiler. Since Watcom's cl.exe is
@@ -329,10 +331,14 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
         elif compiler_name in {'icl', 'icl.exe'}:
             # if you pass anything to icl you get stuck in a pager
             arg = ''
+        elif compiler_name == 'zig':
+            if len(compiler) >= 2 and compiler[1] in {'cc', 'c++'}:
+                compiler_for_detection = compiler[:2]
+            arg = '--version'
         else:
             arg = '--version'
 
-        cmd = compiler + [arg]
+        cmd = compiler_for_detection + [arg]
         try:
             p, out, err = Popen_safe_logged(cmd, msg='Detecting compiler via')
         except OSError as e:
@@ -464,7 +470,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
         if 'clang' in out or 'Clang' in out:
             linker = None
 
-            defines = _get_clang_compiler_defines(compiler, lang)
+            defines = _get_clang_compiler_defines(compiler_for_detection, lang)
 
             # Even if the for_machine is darwin, we could be using vanilla
             # clang.
@@ -478,11 +484,11 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 # style ld, but for clang on "real" windows we'll use
                 # either link.exe or lld-link.exe
                 try:
-                    linker = guess_win_linker(env, compiler, cls, version, for_machine, invoked_directly=False)
+                    linker = guess_win_linker(env, compiler_for_detection, cls, version, for_machine, invoked_directly=False)
                 except MesonException:
                     pass
             if linker is None:
-                linker = guess_nix_linker(env, compiler, cls, version, for_machine)
+                linker = guess_nix_linker(env, compiler_for_detection, cls, version, for_machine)
 
             return cls(
                 ccache, compiler, version, for_machine, env,
