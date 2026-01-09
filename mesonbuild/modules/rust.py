@@ -336,6 +336,22 @@ class RustModule(ExtensionModule):
         # TODO: if we want this to be per-machine we'll need a native kwarg
         clang_args = state.environment.properties.host.get_bindgen_clang_args().copy()
 
+        # Look for --target= or --target in the rust command itself if there
+        # isn't one passed in the clang_args
+        if not any(a.startswith('--target') for a in clang_args):
+            rust_args = iter(state._interpreter.compilers.host['rust'].get_exe_args())
+            for arg in rust_args:
+                if arg.startswith('--target='):
+                    clang_args.append(arg)
+                    break
+                if arg == '--target':
+                    try:
+                        arg = next(rust_args)
+                    except StopIteration:
+                        raise MesonException('Rust compiler has --target argument with no value')
+                    clang_args.append(f'--target={arg}')
+                    break
+
         # Find the first C'ish compiler to fetch the default compiler flags
         # from. Append those to the bindgen flags to ensure we use a compatible
         # environment.
