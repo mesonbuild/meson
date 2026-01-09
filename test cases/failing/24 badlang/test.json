@@ -1,7 +1,7 @@
 {
   "stdout": [
     {
-      "line": "test cases/failing/24 badlang/meson.build:3:0: ERROR: Tried to use unknown language \"nonexisting\"."
+      "line": "test cases/failing/24 badlang/meson.build:3:0: ERROR: Attempted to add language \"nonexisting\", which is not known to this version of Meson."
     }
   ]
 }
