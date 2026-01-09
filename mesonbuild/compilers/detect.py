@@ -484,11 +484,11 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 # style ld, but for clang on "real" windows we'll use
                 # either link.exe or lld-link.exe
                 try:
-                    linker = guess_win_linker(env, compiler_for_detection, cls, version, for_machine, invoked_directly=False)
+                    linker = guess_win_linker(env, compiler, cls, version, for_machine, invoked_directly=False)
                 except MesonException:
                     pass
             if linker is None:
-                linker = guess_nix_linker(env, compiler_for_detection, cls, version, for_machine)
+                linker = guess_nix_linker(env, compiler, cls, version, for_machine)
 
             return cls(
                 ccache, compiler, version, for_machine, env,
