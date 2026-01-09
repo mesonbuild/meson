@@ -726,3 +726,8 @@ Even though [MSVC documentation](https://learn.microsoft.com/en-us/cpp/build/ref
 uses `/D` for preprocessor defines, its [command-line syntax](https://learn.microsoft.com/en-us/cpp/build/reference/compiler-command-line-syntax)
 accepts `-` instead of `/`.
 It's not necessary to treat preprocessor defines specially in Meson ([GH-6269](https://github.com/mesonbuild/meson/issues/6269#issuecomment-560003922)).
+
+## Why do all outputs go to the build directory that corresponds to the source directory in which they are declared?
+
+This simplifies debugging build problems, since you always know that files in
+build directory X must come from the corresponding source directory X.
