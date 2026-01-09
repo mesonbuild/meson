@@ -801,7 +801,7 @@ class CrossFileTests(BasePlatformTests):
                         self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
                         self.wipe()
 
-    def helper_create_cross_file(self, values):
+    def helper_create_cross_file(self, values: T.Dict[str, T.Dict[str, T.Any]]) -> str:
         """Create a config file as a temporary file.
 
         values should be a nested dictionary structure of {section: {key:
@@ -994,3 +994,52 @@ class CrossFileTests(BasePlatformTests):
                 break
         else:
             self.fail('Did not find expected option.')
+
+    @skip_if_not_language('rust')
+    @skipIfNoExecutable('bindgen')
+    def test_bindgen_finds_target_in_clang_options(self) -> None:
+        testcase = os.path.join(self.unit_test_dir, '134 minimal bindgen')
+
+        def check_target(include: T.Optional[str], exclude: T.Optional[str] = None) -> None:
+            configuration = self.introspect('--targets')
+            for each in configuration:
+                if each['name'].startswith('rustmod-bindgen'):
+                    if include:
+                        self.assertIn(f'--target={include}', each['target_sources'][0]['compiler'])
+                    if exclude:
+                        self.assertNotIn(f'--target={exclude}', each['target_sources'][0]['compiler'])
+                    if not (include or exclude):
+                        self.assertFalse(any(x.startswith('--target') for x in each['target_sources'][0]['compiler']))
+                    break
+            else:
+                self.fail('--target was not set')
+
+        with self.subTest('none set'):
+            self.init(testcase)
+            check_target(None)
+
+        rustc = shutil.which('rustc')
+        assert rustc is not None, 'Should have skipped'
+        build_tuple = subprocess.run([rustc, '--print', 'host-tuple'], universal_newlines=True, check=True, capture_output=True).stdout.strip()
+        host_tuple = 'aarch64-unknown-linux-gnu'
+
+        with self.subTest('properties only'):
+            self.new_builddir()
+            config = self.helper_create_cross_file({'properties': {'bindgen_clang_arguments': [f'--target={build_tuple}']}})
+            self.init(testcase, extra_args=['--native-file', config])
+            check_target(build_tuple)
+
+        with self.subTest('compiler only'):
+            self.new_builddir()
+            config = self.helper_create_cross_file({'binaries': {'rust': [rustc, f'--target={build_tuple}']}})
+            self.init(testcase, extra_args=['--cross-file', config])
+            check_target(build_tuple)
+
+        with self.subTest('properties and compiler'):
+            self.new_builddir()
+            config = self.helper_create_cross_file({
+                'binaries': {'rust': [rustc, f'--target={build_tuple}']},
+                'properties': {'bindgen_clang_arguments': [f'--target={host_tuple}']},
+            })
+            self.init(testcase, extra_args=['--cross-file', config])
+            check_target(host_tuple, build_tuple)
