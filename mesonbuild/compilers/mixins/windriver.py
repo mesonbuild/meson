@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2023 The Meson development team
 from __future__ import annotations
+from abc import abstractmethod, ABC
 
 from mesonbuild.utils.core import MesonException
 
@@ -9,12 +10,14 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ...compilers.compilers import Compiler
+    from ...options import MutableKeyedOptionDictType
+    from ...build import BuildTarget
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
     # Compiler, so we get all of the methods and attributes defined for us, but
     # for runtime we make them descend from object (which all classes normally
     # do). This gives us DRYer type checking, with no runtime impact
-    Compiler = object
+    Compiler = ABC
 
 class DiabCompilerMixin(Compiler):
     """The Wind River Diab compiler suite for bare-metal PowerPC
@@ -35,6 +38,15 @@ class DiabCompilerMixin(Compiler):
         '3': ['-XO'],
         's': ['-Xsize-opt'],
     }
+    
+    @property
+    @abstractmethod
+    def std_args(self) -> T.Dict[str, T.List[str]]: ...
+
+    def get_options(self) -> 'MutableKeyedOptionDictType':
+        opts = super().get_options()
+        self._update_language_stds(opts, list(self.std_args))
+        return opts
 
     def get_warn_args(self, level: str) -> T.List[str]:
         """No such levels"""
@@ -45,6 +57,11 @@ class DiabCompilerMixin(Compiler):
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return self.optimization_args[optimization_level]
+
+    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+        std = self.get_compileropt_value('std', target, subproject)
+        assert isinstance(std, str)
+        return self.std_args.get(std, [])
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return ['-g'] if is_debug else []

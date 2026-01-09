@@ -785,23 +785,9 @@ class TaskingCCompiler(TaskingCompiler, CCompiler):
 
 class DiabCCompiler(DiabCompilerMixin, CCompiler):
     """C++ compiler for the Wind River Diab compiler suite"""
-    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 env: Environment, linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None):
-        CCompiler.__init__(self, ccache, exelist, version, for_machine, env,
-                           linker=linker, full_version=full_version)
 
-    def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = super().get_options()
-        self._update_language_stds(opts, ['c89', 'c90', 'c99'])
-        return opts
-
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
-        arg = {
-            'c89': '-Xdialect-ansi',
-            'c90': '-Xdialect-c89',
-            'c99': '-Xdialect-c99',
-        }.get(std)
-        return [arg] if arg is not None else []
+    std_args = {
+        'c89': ['-Xdialect-ansi'],
+        'c90': ['-Xdialect-c89'],
+        'c99': ['-Xdialect-c99'],
+    }

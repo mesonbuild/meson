@@ -1137,21 +1137,16 @@ class Xc32CPPCompiler(Xc32CPPStds, Xc32Compiler, GnuCPPCompiler):
 
 class DiabCppCompiler(DiabCompilerMixin, CPPCompiler):
     """C++ compiler for the Wind River Diab compiler suite"""
-    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 env: Environment, linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None):
-        CPPCompiler.__init__(self, ccache, exelist, version, for_machine, env,
-                             linker=linker, full_version=full_version)
+
+    std_args = {
+        'c++98': ['-Xdialect-strict-ansi']
+    }
 
     def _create_boolean_option(self, key: str, description: str, default: bool) -> T.Tuple[options.OptionKey, options.UserBooleanOption]:
         return self.form_compileropt_key(key), options.UserBooleanOption(key, description, default)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
-        key = self.form_compileropt_key('std')
-        std_opt = opts[key]
-        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
-        std_opt.set_versions(['c++98'])
         opts.update([
             self._create_boolean_option('eh', 'C++ exception handling', True),
             self._create_boolean_option('rtti', 'Enable RTTI', True),
