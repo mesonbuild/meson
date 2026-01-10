@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import copy
 import itertools
+import pathlib
 import functools
 import os
 import subprocess
@@ -990,6 +991,10 @@ class GnomeModule(ExtensionModule):
         run_env = PkgConfigInterface.get_env(state.environment, MachineChoice.HOST, uninstalled=True)
         # g-ir-scanner uses Python's distutils to find the compiler, which uses 'CC'
         cc_exelist = state.environment.coredata.compilers.host['c'].get_exelist()
+        # g-ir-scanner uses distutils/setuptools which splits CC with both Posix
+        # and Windows rules to get the first argument, which breaks if there are
+        # backslashes, so best avoid them entirely.
+        cc_exelist = [pathlib.Path(exe).as_posix() for exe in cc_exelist]
         run_env.set('CC', [quote_arg(x) for x in cc_exelist], ' ')
         run_env.set('CFLAGS', [quote_arg(x) for x in env_flags], ' ')
         run_env.merge(kwargs['env'])
