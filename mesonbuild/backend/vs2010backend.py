@@ -1034,9 +1034,9 @@ class Vs2010Backend(backends.Backend):
                     target, target.subproject)
 
         # Add compile args added using add_project_arguments()
-        for l, args in self.build.projects_args[target.for_machine].get(target.subproject, {}).items():
-            if l in file_args:
-                file_args[l] += args
+        for l, comp in target.compilers.items():
+            file_args[l] += self.build.get_project_args(comp, target)
+
         # Add compile args added using add_global_arguments()
         # These override per-project arguments
         for l, args in self.build.global_args[target.for_machine].items():
@@ -1436,7 +1436,7 @@ class Vs2010Backend(backends.Backend):
             if isinstance(target, build.SharedModule):
                 extra_link_args += compiler.get_std_shared_module_link_args(target)
             # Add link args added using add_project_link_arguments()
-            extra_link_args += self.build.get_project_link_args(compiler, target.subproject, target.for_machine)
+            extra_link_args += self.build.get_project_link_args(compiler, target)
             # Add link args added using add_global_link_arguments()
             # These override per-project link arguments
             extra_link_args += self.build.get_global_link_args(compiler, target.for_machine)
@@ -2150,7 +2150,7 @@ class Vs2010Backend(backends.Backend):
         compiler = self._get_cl_compiler(target)
         link_args = compiler.compiler_args()
         if not isinstance(target, build.StaticLibrary):
-            link_args += self.build.get_project_link_args(compiler, target.subproject, target.for_machine)
+            link_args += self.build.get_project_link_args(compiler, target)
             link_args += self.build.get_global_link_args(compiler, target.for_machine)
             link_args += self.environment.coredata.get_external_link_args(
                 target.for_machine, compiler.get_language())
