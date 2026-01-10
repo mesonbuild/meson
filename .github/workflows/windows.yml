@@ -1,0 +1,158 @@
+name: windows
+
+on:
+  push:
+    branches:
+      - 'master'
+      # Release branches
+      - '1.*'
+    paths:
+      - 'mesonbuild/**'
+      - 'test cases/**'
+      - 'unittests/**'
+      - '.github/workflows/*.yml'
+      - 'ci/run.ps1'
+      - 'run_project_tests.py'
+      - 'run_tests.py'
+      - 'run_unittests.py'
+  pull_request:
+    paths:
+      - 'mesonbuild/**'
+      - 'test cases/**'
+      - 'unittests/**'
+      - '.github/workflows/*.yml'
+      - 'ci/run.ps1'
+      - 'run_project_tests.py'
+      - 'run_tests.py'
+      - 'run_unittests.py'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vs2022:
+    runs-on: windows-2022
+    timeout-minutes: 120
+    name: ${{ matrix.name }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: vc2022x64vs
+            arch: x64
+            compiler: msvc2022
+            backend: vs2022
+            # mysteriously, several tests fail because vs cannot find
+            # executables such as cmd.exe ???
+            ifort: false
+          - name: vc2022arm64ninjacross
+            arch: amd64_arm64
+            compiler: msvc2022
+            backend: ninja
+            extraargs: --cross arm64cl.txt --cross-only
+            # ifort doesn't support arm64
+            ifort: false
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.7'
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+
+      - name: Install PyPy
+        if: matrix.arch == 'x64'
+        shell: pwsh
+        run: |
+          $pypyUrl = "https://downloads.python.org/pypy/pypy3.8-v7.3.9-win64.zip"
+          $pypyZip = "${{ runner.temp }}\pypy38.zip"
+          $pypyDir = "${{ runner.temp }}\pypy38"
+          Invoke-WebRequest -Uri $pypyUrl -OutFile $pypyZip
+          Expand-Archive $pypyZip -DestinationPath $pypyDir
+          $pypyPath = "$pypyDir\pypy3.8-v7.3.9-win64"
+          "PYPY_PATH=$pypyPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          & "$pypyPath\pypy3.exe" -m ensurepip
+
+      - name: Install Python 2.7
+        if: matrix.arch == 'x64'
+        shell: pwsh
+        run: |
+          $python27Url = "https://www.python.org/ftp/python/2.7.18/python-2.7.18.amd64.msi"
+          $python27Msi = "${{ runner.temp }}\python27.msi"
+          Invoke-WebRequest -Uri $python27Url -OutFile $python27Msi
+          Start-Process msiexec.exe -Wait -ArgumentList "/I $python27Msi /quiet"
+
+      - name: Install pkg-config
+        shell: pwsh
+        run: |
+          $pkgconfigDir = "${{ runner.temp }}\pkgconfig"
+          New-Item -ItemType Directory -Path $pkgconfigDir -Force
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mesonbuild/cidata/refs/heads/master/win32/pkg-config.exe" -OutFile "$pkgconfigDir\pkg-config.exe"
+          echo "$pkgconfigDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install NASM
+        shell: pwsh
+        run: choco install -y nasm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable-x86_64-pc-windows-msvc
+          components: clippy
+
+      - name: Add Rust library path (Windows)
+        run: |
+          $rustlib = (rustc --print sysroot) + "\bin"
+          echo $rustlib | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        shell: pwsh
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip --disable-pip-version-check install --upgrade pefile pytest-xdist pytest-subtests fastjsonschema cython
+
+      - name: Run tests
+        env:
+          MESON_CI_JOBNAME: windows-${{ matrix.name }}
+        shell: pwsh
+        run: |
+          # Remove Chocolatey, MinGW, Strawberry Perl from path
+          $env:Path = ($env:Path.Split(';') | Where-Object { $_ -notmatch 'mingw|Strawberry|Chocolatey|PostgreSQL' }) -join ';'
+
+          if ( '${{ matrix.arch }}' -eq 'x64' ) {
+            $env:Path = $env:Path + ";$env:PYPY_PATH"
+          }
+
+          echo "=== PATH BEGIN ==="
+          echo ($env:Path).Replace(';',"`n")
+          echo "=== PATH END ==="
+
+          $progs = @("python","ninja","pkg-config","cl","rc","link","pypy3","ifort")
+          foreach ($prog in $progs) {
+            echo ""
+            echo "Locating ${prog}:"
+            where.exe $prog
+          }
+
+          echo ""
+          echo "Ninja / MSBuild version:"
+          if ($env:backend -eq 'ninja') {
+            ninja --version
+          } else {
+            MSBuild /version
+          }
+
+          echo ""
+          echo "Python version:"
+          python --version
+
+          echo "=== Running tests ==="
+          python 2>&1 run_tests.py --backend "${{ matrix.backend }}" ${{ matrix.extraargs }}
