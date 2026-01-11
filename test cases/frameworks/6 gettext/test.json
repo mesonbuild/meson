@@ -22,5 +22,5 @@
       ]
     }
   },
-  "expect_skip_on_jobname": ["azure", "cygwin"]
+  "expect_skip_on_jobname": ["azure", "cygwin", "windows"]
 }
