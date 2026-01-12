@@ -60,9 +60,10 @@ def get_provider(rules: T.List[Rule], name: str) -> T.Optional[str]:
     for r in rules:
         for p in r.get('provides', []):
             if p['logical-name'] == name:
-                obj = r['primary-output']
-                _PROVIDER_CACHE[name] = obj
-                return obj
+                obj = p.get('compiled-module-path')
+                if obj:
+                    _PROVIDER_CACHE[name] = obj
+                    return obj
     return None
 
 
