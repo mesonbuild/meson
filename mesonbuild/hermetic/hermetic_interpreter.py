@@ -8,7 +8,7 @@ import typing as T
 
 from mesonbuild.backend.nonebackend import NoneBackend
 from mesonbuild.interpreterbase import InterpreterObject
-from mesonbuild.interpreterbase.decorators import noKwargs
+from mesonbuild.interpreterbase.decorators import TypedArgs
 from mesonbuild.interpreter import Interpreter
 from mesonbuild.interpreter.interpreterobjects import RunProcess
 from mesonbuild.compilers import Compiler
@@ -40,22 +40,22 @@ class MachineHolder(InterpreterObject):
         self.holder = machine_info
 
     @InterpreterObject.method('system')
-    @noKwargs
+    @TypedArgs('machine.system')
     def system_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.holder.system
 
     @InterpreterObject.method('cpu_family')
-    @noKwargs
+    @TypedArgs('machine.cpu_family')
     def cpu_family_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.holder.cpu_family
 
     @InterpreterObject.method('cpu')
-    @noKwargs
+    @TypedArgs('machine.cpu')
     def cpu_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.holder.cpu
 
     @InterpreterObject.method('endian')
-    @noKwargs
+    @TypedArgs('machine.endian')
     def endian_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.holder.endian
 

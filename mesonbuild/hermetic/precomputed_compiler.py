@@ -285,9 +285,15 @@ class PrecomputedHermeticRustCompiler(PrecomputedHermeticCompiler):
         version = conf.get('version', '1.90.0')
         exelist = ['/usr/bin/true']
         self.is_nightly = False
-        self.native_static_libs: T.List[str] = []
+        self.native_static_libs: T.Dict[bool, T.List[str]] = {}
 
         super().__init__(exelist, version, for_machine, env, conf, full_version=version)
+        self.base_options.update({OptionKey(o) for o in [
+            'b_colorout', 'b_coverage', 'b_freestanding', 'b_ndebug', 'b_pgo',
+        ]})
+
+    def get_native_static_libs(self, freestanding: bool) -> T.List[str]:
+        return []
 
     def needs_static_linker(self) -> bool:
         return False

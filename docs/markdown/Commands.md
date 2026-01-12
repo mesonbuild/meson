@@ -17,6 +17,48 @@ Optional arguments. The most common workflow is to run
 For the full list of all available options for a specific command use
 the following syntax: `meson COMMAND --help`
 
+### convert
+
+{{ convert_usage.inc }}
+
+Converts the meson project to an another build system. The input
+are a series of TOML files, and the output are files in the target
+build system. Soong and Bazel are supported to varying degrees.
+
+**This is an unstable API.**
+
+{{ convert_arguments.inc }}
+
+#### Examples:
+
+Each project maintains own TOML to define the hermetic transformation.
+
+```
+meson convert --config=/path/to/myproject.toml \
+--project-dir=/path/to/my/target_repo
+--platforms/path/to/myplatform.toml \
+--dependencies=/path/to/mydeps.toml
+--output_dir=/path/to/output-dir
+```
+
+For more convenience, meson will also look for a `hermetic` subdirectory at
+the project root. Within that `hermetic` subdirectory, users are expected to
+specify additional directories that define a hermetic project. Within those
+hermetic project directories, users MUST specify:
+
+```
+hermetic/{hermetic_project}/{project_config}.toml
+hermetic/{hermetic_project}/dependencies.toml
+hermetic/{hermetic_project}/platforms.toml
+```
+
+For example, if the hermetic project was `android`, and the project config file
+was `aosp_mesa3d.toml`, one may do as a fast-path lookup:
+
+```
+meson convert android aosp_mesa3d
+```
+
 ### configure
 
 {{ configure_usage.inc }}
