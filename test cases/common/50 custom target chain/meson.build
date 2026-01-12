@@ -14,6 +14,7 @@ infile = files('data_source.txt')[0]
 mytarget = custom_target('bindat',
   output : 'data.dat',
   command : [python, comp, infile, '@OUTPUT@'],
+  env: {'SOME_ENV_VAR': ['garbage', ['in', 'garbage', 'out']]},
 )
 
 mytarget2 = custom_target('bindat2',
