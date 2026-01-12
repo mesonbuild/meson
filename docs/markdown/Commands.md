@@ -17,6 +17,71 @@ Optional arguments. The most common workflow is to run
 For the full list of all available options for a specific command use
 the following syntax: `meson COMMAND --help`
 
+### check-toolchain
+
+{{ check-toolchain_usage.inc }}
+
+Check the properties of the specified toolchain and sysroot.
+The output is displayed as a TOML file.
+
+The checked properties are an amalgamation of checks performed
+by popular Meson-based projects. Users are encouraged to
+upstream properties of interest.
+
+{{ check-toolchain_arguments.inc }}
+
+#### Examples:
+
+Check the properties of the default system toolchain.
+
+```
+meson check-toolchain
+```
+
+Check the properties with a cross-file specified toolchain.
+
+```
+meson check-toolchain --cross-file CROSS_FILE
+```
+
+Check the properties of Android NDK toolchains.
+
+```
+meson check-toolchain --android-ndk-path PATH_TO_ANDROID_NDK
+```
+
+### convert
+
+{{ convert_usage.inc }}
+
+Converts the meson project to an another build system. The input
+are a series of TOML files, and the output are files in the target
+build system. Soong and Bazel are supported to varying degrees.
+
+Meson maintains reference TOML files for certain hermetic trees
+and projects, and users are encouraged to upstream their use
+cases.
+
+{{ convert_arguments.inc }}
+
+#### Examples:
+
+Convert Mesa3D to Soong using reference TOML files.
+
+```
+meson convert android aosp_mesa3d
+```
+
+Power user maintains own TOML for their hermetic project.
+
+```
+meson convert --config=/path/to/myproject.toml \
+--project-dir=/path/to/my/target_repo
+--toolchain=/path/to/mytoolchain.toml \
+--dependencies=/path/to/mydeps.toml
+--output_dir=/path/to/output-dir
+```
+
 ### configure
 
 {{ configure_usage.inc }}
