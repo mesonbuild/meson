@@ -6,7 +6,7 @@ import typing as T
 import os
 
 from mesonbuild.build import BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList
-from mesonbuild.interpreterbase import InterpreterException, noKwargs, noPosargs, typed_kwargs
+from mesonbuild.interpreterbase import InterpreterException, TypedArgs, noPosargs
 from mesonbuild.dependencies import base as dependency_base
 from mesonbuild.convert.convert_project_config import ConvertProjectConfig
 from mesonbuild.convert.convert_project_instance import ConvertProjectInstance
@@ -32,7 +32,7 @@ class ConvertRustModule(RustModule):
         self.methods.update({'bindgen': self.bindgen, 'cbindgen': self.cbindgen})
 
     @noPosargs
-    @typed_kwargs('rust.bindgen', *BINDGEN_KWS)
+    @TypedArgs('rust.bindgen', kw_types=BINDGEN_KWS)
     def bindgen(self, state: ModuleState, args: T.List, kwargs: FuncBindgen) -> ModuleReturnValue:
         _header, *_deps = kwargs['input']
         input_file = self.interpreter.source_strings_to_files([_header])[0]
@@ -75,6 +75,6 @@ class ConvertRustModule(RustModule):
         return ModuleReturnValue(convert_bindgen, [convert_bindgen])
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('rust.cbindgen')
     def cbindgen(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> ModuleReturnValue:
         raise InterpreterException('rust.cbindgen is not supported by the convert tool')
