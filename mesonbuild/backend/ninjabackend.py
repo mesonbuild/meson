@@ -1179,10 +1179,12 @@ class NinjaBackend(backends.Backend):
             if self.should_use_dyndeps_for_target(t):
                 infiles.add(self.get_dep_scan_file_for(t)[0])
         _, od = self.flatten_object_list(target)
-        infiles.update({self.get_dep_scan_file_for(t)[0] for t in od if t.uses_fortran()})
+        depfiles = {self.get_dep_scan_file_for(t)[0] for t in od if t.uses_fortran()}
+        infiles.update(depfiles)
 
         elem = NinjaBuildElement(self.all_outputs, depscan_file, 'depaccumulate', [json_file] + sorted(infiles))
         elem.add_item('name', target.name)
+        elem.add_dep(depfiles)
         self.add_build(elem)
 
     def select_sources_to_scan(self, compiled_sources: T.List[str],
