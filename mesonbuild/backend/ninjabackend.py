@@ -314,14 +314,14 @@ class NinjaBuildElement:
         self.all_outputs = all_outputs
         self.output_errors = ''
 
-    def add_dep(self, dep: T.Union[str, T.List[str]]) -> None:
-        if isinstance(dep, list):
+    def add_dep(self, dep: T.Union[str, T.List[str], T.Set[str]]) -> None:
+        if isinstance(dep, (list, set)):
             self.deps.update(dep)
         else:
             self.deps.add(dep)
 
-    def add_orderdep(self, dep) -> None:
-        if isinstance(dep, list):
+    def add_orderdep(self, dep: T.Union[str, T.List[str], T.Set[str]]) -> None:
+        if isinstance(dep, (list, set)):
             self.orderdeps.update(dep)
         else:
             self.orderdeps.add(dep)
