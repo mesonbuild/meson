@@ -249,7 +249,7 @@ def env_convertor_with_method(value: _FullEnvInitValueType,
     elif isinstance(value, list):
         return EnvironmentVariables(dict(split_equal_string(v) for v in listify(value)), init_method, separator)
     elif isinstance(value, dict):
-        return EnvironmentVariables(value, init_method, separator)
+        return EnvironmentVariables({k: listify(dv) for k, dv in value.items()}, init_method, separator)
     elif value is None:
         return EnvironmentVariables()
     return value
