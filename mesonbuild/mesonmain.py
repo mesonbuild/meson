@@ -72,7 +72,7 @@ def errorhandler(e: Exception, command: str) -> int:
 class CommandLineParser:
     def __init__(self) -> None:
         # only import these once we do full argparse processing
-        from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv, mformat
+        from . import mconf, mcheckplatforms, mconvert, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv, mformat
         from .scripts import env2mfile, reprotest
         from .wrap import wraptool
         import shutil
@@ -89,6 +89,10 @@ class CommandLineParser:
                          help_msg='Configure the project')
         self.add_command('configure', mconf.add_arguments, mconf.run,
                          help_msg='Change project options',)
+        self.add_command('check-platforms', mcheckplatforms.add_arguments, mcheckplatforms.run,
+                         help_msg='Check platform properties')
+        self.add_command('convert', mconvert.add_arguments, mconvert.run,
+                         help_msg='Convert a Meson project to another build system',)
         self.add_command('dist', mdist.add_arguments, mdist.run,
                          help_msg='Generate release archive',)
         self.add_command('install', minstall.add_arguments, minstall.run,
