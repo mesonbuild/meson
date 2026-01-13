@@ -2,8 +2,14 @@
 # Copyright 2024 Meson project contributors
 
 from mesonbuild.options import *
+from mesonbuild.envconfig import MachineInfo
 
+import os
 import unittest
+
+
+def make_machine(system: str) -> MachineInfo:
+    return MachineInfo(system, 'x86_64', 'x86_64', 'little', None, None)
 
 
 def num_options(store: OptionStore) -> int:
@@ -536,3 +542,100 @@ class OptionTests(unittest.TestCase):
         optstore.add_system_option(build_pkg_config, build_option_obj)
         option, value = optstore.get_option_and_value_for(build_pkg_config)
         self.assertEqual(value, ['/mingw/lib64/pkgconfig'])
+
+    def test_sanitize_prefix_windows_host(self):
+        """Test that Windows paths are accepted when host is Windows."""
+        optstore = OptionStore(True)  # cross-compile
+        optstore.set_host_machine(make_machine('windows'))
+        result = optstore.sanitize_prefix('C:\\Windows')
+        self.assertEqual(result, 'C:\\Windows')
+        result = optstore.sanitize_prefix('\\\\server\\share')
+        self.assertEqual(result, '\\\\server\\share')
+        # Forward slashes should also be accepted on Windows
+        result = optstore.sanitize_prefix('C:/Windows')
+        self.assertEqual(result, 'C:/Windows')
+        result = optstore.sanitize_prefix('//server/share')
+        self.assertEqual(result, '//server/share')
+
+    def test_sanitize_prefix_posix_host(self):
+        """Test that POSIX paths are accepted when host is POSIX."""
+        optstore = OptionStore(True)  # cross-compile
+        optstore.set_host_machine(make_machine('linux'))
+        result = optstore.sanitize_prefix('/usr/local')
+        self.assertEqual(result, '/usr/local')
+        # Windows path should be rejected
+        with self.assertRaises(MesonException):
+            optstore.sanitize_prefix('\\myprog')
+        with self.assertRaises(MesonException):
+            optstore.sanitize_prefix('C:\\Windows')
+        with self.assertRaises(MesonException):
+            optstore.sanitize_prefix('C:/Windows')
+        with self.assertRaises(MesonException):
+            optstore.sanitize_prefix('\\\\server\\share')
+        # This one is not parsed as UNC
+        result = optstore.sanitize_prefix('//server/share')
+        self.assertEqual(result, '//server/share')
+
+    def test_sanitize_prefix_cygwin_host(self):
+        """Test that Cygwin uses POSIX-style paths."""
+        optstore = OptionStore(True)
+        optstore.set_host_machine(make_machine('cygwin'))
+        result = optstore.sanitize_prefix('/usr/local')
+        self.assertEqual(result, '/usr/local')
+        result = optstore.sanitize_prefix('/cygdrive/c/Windows')
+        self.assertEqual(result, '/cygdrive/c/Windows')
+
+    def test_sanitize_dir_option_cross_to_windows(self):
+        """Test directory option sanitization when cross-compiling to Windows."""
+        optstore = OptionStore(True)
+        optstore.set_host_machine(make_machine('windows'))
+        optstore.init_builtins()
+        # Set libdir to absolute path inside prefix, should be relativized
+        optstore.set_option(OptionKey('prefix'), 'C:\\Program Files\\MyProg')
+        optstore.set_option(OptionKey('libdir'), 'C:\\Program Files\\MyProg\\lib')
+        self.assertEqual(optstore.get_value_for('libdir'), 'lib')
+
+    def test_sanitize_dir_option_cross_to_linux(self):
+        """Test directory option sanitization when cross-compiling to Linux."""
+        optstore = OptionStore(True)
+        optstore.set_host_machine(make_machine('linux'))
+        optstore.init_builtins()
+        # Set libdir to absolute path inside prefix, should be relativized
+        optstore.set_option(OptionKey('prefix'), '/opt/myapp')
+        optstore.set_option(OptionKey('libdir'), '/opt/myapp/lib64')
+        self.assertEqual(optstore.get_value_for('libdir'), 'lib64')
+
+    def test_sanitize_prefix_native_path(self):
+        """Test that native paths are accepted without set_host_machine()."""
+        optstore = OptionStore(False)
+        native_path = os.sep + 'myprog'
+        result = optstore.sanitize_prefix(native_path)
+        self.assertEqual(result, native_path)
+
+    def test_is_host_absolute(self):
+        """Test _is_host_absolute with various host configurations."""
+        # POSIX host
+        optstore = OptionStore(True)
+        optstore.set_host_machine(make_machine('linux'))
+        self.assertTrue(optstore._is_host_absolute('/usr'))
+        self.assertTrue(optstore._is_host_absolute('/usr/local'))
+        self.assertFalse(optstore._is_host_absolute('relative'))
+        self.assertFalse(optstore._is_host_absolute('C:\\Windows'))
+        self.assertFalse(optstore._is_host_absolute('C:/Windows'))
+
+        # Windows host - accepts both full absolute and root-relative
+        optstore = OptionStore(True)
+        optstore.set_host_machine(make_machine('windows'))
+        self.assertTrue(optstore._is_host_absolute('C:\\Windows'))
+        self.assertTrue(optstore._is_host_absolute('C:/Windows'))
+        self.assertTrue(optstore._is_host_absolute('//server/share'))
+        self.assertTrue(optstore._is_host_absolute('\\\\server\\share'))
+        # Root-relative paths accepted for backwards compat
+        self.assertTrue(optstore._is_host_absolute('/usr'))
+        self.assertTrue(optstore._is_host_absolute('\\myprog'))
+        self.assertFalse(optstore._is_host_absolute('relative'))
+
+        # No host set - uses build machine semantics
+        optstore = OptionStore(False)
+        self.assertTrue(optstore._is_host_absolute(os.sep + 'myprog'))
+        self.assertTrue(optstore._is_host_absolute('/myprog'))
