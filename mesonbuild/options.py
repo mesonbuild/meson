@@ -36,6 +36,7 @@ from . import mlog
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Final, TypeAlias, TypedDict
 
+    from .envconfig import MachineInfo
     from .interpreterbase import SubProject
 
     DeprecatedType: TypeAlias = T.Union[bool, str, T.Dict[str, str], T.List[str]]
@@ -827,6 +828,21 @@ class OptionStore:
         self.pending_options: OptionDict = {}
         # Subproject options from toplevel project()
         self.pending_subproject_options: OptionDict = {}
+        # Class for host-aware path handling
+        self.pure_path_class: T.Type[pathlib.PurePath] = pathlib.PurePath
+
+    def set_host_machine(self, machine: MachineInfo) -> None:
+        """Use the given MachineInfo for host-aware path handling."""
+        self.pure_path_class = machine.pure_path_class
+
+    def _is_host_absolute(self, path: str) -> bool:
+        """Check if path is absolute according to host machine path semantics."""
+        path_obj = self.pure_path_class(path)
+        if isinstance(path_obj, pathlib.PureWindowsPath) and path_obj.root:
+            # Accept Windows root-relative paths (root but no drive, like /myprog)
+            # so that the same path can be used in cross-compilation setups
+            return True
+        return path_obj.is_absolute()
 
     def ensure_and_validate_key(self, key: T.Union[OptionKey, str]) -> OptionKey:
         if isinstance(key, str):
@@ -979,7 +995,7 @@ class OptionStore:
 
     def sanitize_prefix(self, prefix: str) -> str:
         prefix = os.path.expanduser(prefix)
-        if not os.path.isabs(prefix):
+        if not self._is_host_absolute(prefix):
             raise MesonException(f'prefix value {prefix!r} must be an absolute path')
         if prefix.endswith('/') or prefix.endswith('\\'):
             # On Windows we need to preserve the trailing slash if the
@@ -1005,7 +1021,7 @@ class OptionStore:
         should not be relied upon.
         '''
         try:
-            value = pathlib.PurePath(value)
+            value = self.pure_path_class(value)
         except TypeError:
             return value
         if option.name.endswith('dir') and value.is_absolute() and \

@@ -197,6 +197,9 @@ class Environment:
         self.properties = properties.default_missing()
         self.cmakevars = cmakevars.default_missing()
 
+        # Set host machine info for machine-aware handling of directory options
+        self.coredata.optstore.set_host_machine(self.machines.host)
+
         # Take default value from env if not set in cross/native files or command line.
         self._set_default_options_from_env()
         self._set_default_binaries_from_env()
