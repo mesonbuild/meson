@@ -19,7 +19,7 @@ from ..wrap import wrap, WrapMode
 from .. import mesonlib
 from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException, HoldableObject,
                         FileMode, MachineChoice, is_parent_path, listify,
-                        extract_as_list, has_path_sep, path_is_in_root, PerMachine)
+                        extract_as_list, has_path_sep, path_has_root, path_is_in_root, PerMachine)
 from ..options import OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram, Program
 from ..dependencies import Dependency
@@ -701,7 +701,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         for k, v in variables.items():
             if not v:
                 FeatureNew.single_use('empty variable value in declare_dependency', '1.4.0', self.subproject, location=node)
-            if os.path.isabs(v) \
+            if path_has_root(v) \
                     and (self.is_subproject() or not is_parent_path(subproject_dir, v)) \
                     and is_parent_path(project_root, v) \
                     and os.path.isdir(v):
@@ -827,8 +827,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # changes, we must re-run the configuration step.
         self.add_build_def_file(cmd.get_path())
         for a in expanded_args:
-            if not os.path.isabs(a):
-                a = os.path.join(builddir if in_builddir else srcdir, self.subdir, a)
+            a = os.path.join(builddir if in_builddir else srcdir, self.subdir, a)
             self.add_build_def_file(a)
 
         return RunProcess(cmd, expanded_args, env, srcdir, builddir, self.subdir,
@@ -889,7 +888,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException('Subproject name must not start with a period.')
         if '..' in subp_name:
             raise InterpreterException('Subproject name must not contain a ".." path segment.')
-        if os.path.isabs(subp_name):
+        if path_has_root(subp_name):
             raise InterpreterException('Subproject name must not be an absolute path.')
         if has_path_sep(subp_name):
             mlog.warning('Subproject name has a path separator. This may cause unexpected behaviour.',
@@ -1256,7 +1255,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         spdirname = kwargs['subproject_dir']
         if not isinstance(spdirname, str):
             raise InterpreterException('Subproject_dir must be a string')
-        if os.path.isabs(spdirname):
+        if path_has_root(spdirname):
             raise InterpreterException('Subproject_dir must not be an absolute path.')
         if spdirname.startswith('.'):
             raise InterpreterException('Subproject_dir must not begin with a period.')
@@ -2317,7 +2316,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if install_subdir is not None:
             if kwargs['install_dir'] is not None:
                 raise InterpreterException('install_headers: cannot specify both "install_dir" and "subdir". Use only "install_dir".')
-            if os.path.isabs(install_subdir):
+            if path_has_root(install_subdir):
                 mlog.deprecation('Subdir keyword must not be an absolute path. This will be a hard error in meson 2.0.')
         else:
             install_subdir = ''
@@ -2449,7 +2448,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InvalidArguments('The "meson-" prefix is reserved and cannot be used for top-level subdir().')
         if args[0] == '':
             raise InvalidArguments("The argument given to subdir() is the empty string ''. This is prohibited.")
-        if os.path.isabs(args[0]):
+        if path_has_root(args[0]):
             raise InvalidArguments('Subdir argument must be a relative path.')
         for i in kwargs['if_found']:
             if not i.found():
@@ -2556,10 +2555,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('strip_directory', bool, default=False),
         KwargInfo('exclude_files', ContainerTypeInfo(list, str),
                   default=[], listify=True, since='0.42.0',
-                  validator=lambda x: 'cannot be absolute' if any(os.path.isabs(d) for d in x) else None),
+                  validator=lambda x: 'cannot be absolute' if any(path_has_root(d) for d in x) else None),
         KwargInfo('exclude_directories', ContainerTypeInfo(list, str),
                   default=[], listify=True, since='0.42.0',
-                  validator=lambda x: 'cannot be absolute' if any(os.path.isabs(d) for d in x) else None),
+                  validator=lambda x: 'cannot be absolute' if any(path_has_root(d) for d in x) else None),
         INSTALL_MODE_KW.evolve(since='0.38.0'),
         INSTALL_TAG_KW.evolve(since='0.60.0'),
         INSTALL_FOLLOW_SYMLINKS,
