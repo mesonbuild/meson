@@ -11,10 +11,10 @@ import platform
 import sys
 
 from . import mesonlib
-from .mesonlib import EnvironmentException, HoldableObject, Popen_safe
+from .mesonlib import EnvironmentException, HoldableObject, lazy_property, Popen_safe
 from .programs import ExternalProgram
 from . import mlog
-from pathlib import Path
+from pathlib import Path, PurePath, PurePosixPath, PureWindowsPath
 
 if T.TYPE_CHECKING:
     from .options import ElementaryOptionValues
@@ -317,6 +317,13 @@ class MachineInfo(HoldableObject):
         Machine is cygwin?
         """
         return self.system == 'cygwin'
+
+    @lazy_property
+    def pure_path_class(self) -> T.Type[PurePath]:
+        """Get the appropriate PurePath class for this machine."""
+        if self.is_windows():
+            return PureWindowsPath
+        return PurePosixPath
 
     def is_linux(self) -> bool:
         """
