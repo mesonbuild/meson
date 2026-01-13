@@ -90,6 +90,9 @@ def is_windows() -> bool:
 def is_cygwin() -> bool:
     return sys.platform == 'cygwin'
 
+def is_os2() -> bool:
+    return platform.system().lower() == 'os/2'
+
 UNIWIDTH_MAPPING = {'F': 2, 'H': 1, 'W': 2, 'Na': 1, 'N': 1, 'A': 1}
 def uniwidth(s: str) -> int:
     result = 0
@@ -1604,7 +1607,7 @@ class SingleTestRunner:
                                                  stderr=stderr,
                                                  env=env,
                                                  cwd=cwd,
-                                                 preexec_fn=preexec_fn if not is_windows() else None)
+                                                 preexec_fn=preexec_fn if not (is_windows() or is_os2()) else None)
         return TestSubprocess(p, stdout=stdout, stderr=stderr,
                               postwait_fn=postwait_fn if not is_windows() else None)
 
