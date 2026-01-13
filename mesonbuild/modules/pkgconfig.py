@@ -454,9 +454,10 @@ class PkgConfigModule(NewExtensionModule):
             value = value.as_posix()
         return value.replace(' ', r'\ ')
 
-    def _make_relative(self, prefix: T.Union[PurePath, str], subdir: T.Union[PurePath, str]) -> str:
-        prefix = PurePath(prefix)
-        subdir = PurePath(subdir)
+    def _make_relative(self, prefix: T.Union[PurePath, str], subdir: T.Union[PurePath, str],
+                       path_class: T.Type[PurePath]) -> str:
+        prefix = path_class(prefix)
+        subdir = path_class(subdir)
         try:
             libdir = subdir.relative_to(prefix)
         except ValueError:
@@ -513,13 +514,15 @@ class PkgConfigModule(NewExtensionModule):
             outdir = os.path.join(state.environment.build_dir, 'meson-uninstalled')
             if not os.path.exists(outdir):
                 os.mkdir(outdir)
+            pure_path_class = PurePath
             prefix = PurePath(state.environment.get_build_dir())
             srcdir = PurePath(state.environment.get_source_dir())
         else:
+            pure_path_class = state.environment.machines.host.pure_path_class
             outdir = state.environment.scratch_dir
-            prefix = PurePath(_as_str(coredata.optstore.get_value_for(OptionKey('prefix'))))
+            prefix = pure_path_class(_as_str(coredata.optstore.get_value_for(OptionKey('prefix'))))
             if pkgroot:
-                pkgroot_ = PurePath(pkgroot)
+                pkgroot_ = pure_path_class(pkgroot)
                 if not pkgroot_.is_absolute():
                     pkgroot_ = prefix / pkgroot
                 elif prefix not in pkgroot_.parents:
@@ -581,12 +584,13 @@ class PkgConfigModule(NewExtensionModule):
                             continue
                         if isinstance(l, build.BuildTarget) and 'cs' in l.compilers:
                             if isinstance(install_dir, str):
-                                Lflag = '-r{}/{}'.format(self._escape(self._make_relative(prefix, install_dir)), l.filename)
+                                Lflag = '-r{}/{}'.format(self._escape(self._make_relative(prefix, install_dir, pure_path_class)),
+                                                         l.filename)
                             else:  # install_dir is True
                                 Lflag = '-r${libdir}/%s' % l.filename
                         else:
                             if isinstance(install_dir, str):
-                                Lflag = '-L{}'.format(self._escape(self._make_relative(prefix, install_dir)))
+                                Lflag = '-L{}'.format(self._escape(self._make_relative(prefix, install_dir, pure_path_class)))
                             else:  # install_dir is True
                                 Lflag = '-L${libdir}'
                         if Lflag not in Lflags:
