@@ -18,7 +18,7 @@ import re
 from . import build, tooldetect
 from .backend.backends import InstallData
 from .mesonlib import (MesonException, Popen_safe, RealPathAction, is_windows,
-                       is_aix, setup_vsenv, pickle_load, is_osx)
+                       is_aix, setup_vsenv, path_has_root, pickle_load, is_osx)
 from .options import OptionKey
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
@@ -267,7 +267,7 @@ def restore_selinux_contexts() -> None:
               'Standard error:', err, sep='\n')
 
 def get_destdir_path(destdir: str, fullprefix: str, path: str) -> str:
-    if os.path.isabs(path):
+    if path_has_root(path):
         output = destdir_join(destdir, path)
     else:
         output = os.path.join(fullprefix, path)
@@ -443,7 +443,7 @@ class Installer:
 
     def do_symlink(self, target: str, link: str, destdir: str, full_dst_dir: str) -> bool:
         abs_target = target
-        if not os.path.isabs(target):
+        if not path_has_root(target):
             abs_target = os.path.join(full_dst_dir, target)
         elif not os.path.exists(abs_target):
             abs_target = destdir_join(destdir, abs_target)
@@ -543,7 +543,7 @@ class Installer:
         destdir = self.options.destdir
         if destdir is None:
             destdir = os.environ.get('DESTDIR')
-        if destdir and not os.path.isabs(destdir):
+        if destdir and not path_has_root(destdir):
             destdir = os.path.join(d.build_dir, destdir)
         # Override in the env because some scripts could use it and require an
         # absolute path.
