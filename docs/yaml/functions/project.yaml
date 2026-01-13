@@ -8,7 +8,7 @@ description: |
 
   The project name can be any string you want, it's not used for
   anything except descriptive purposes. However since it is written to
-  e.g. the dependency manifest is usually makes sense to have it be the
+  e.g. the dependency manifest it usually makes sense to have it be the
   same as the project tarball or pkg-config name. So for example you
   would probably want to use the name _libfoobar_ instead of _The Foobar
   Library_.
