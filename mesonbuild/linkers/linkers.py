@@ -11,7 +11,7 @@ import re
 
 from .base import ArLikeLinker, RSPFileSyntax
 from .. import mesonlib
-from ..mesonlib import EnvironmentException, MesonException
+from ..mesonlib import EnvironmentException, MesonException, path_has_root
 from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
@@ -612,7 +612,7 @@ def order_rpaths(rpath_list: T.List[str]) -> T.List[str]:
 def evaluate_rpath(p: str, build_dir: str, from_dir: str) -> str:
     if p == from_dir:
         return '' # relpath errors out in this case
-    elif os.path.isabs(p):
+    elif path_has_root(p):
         return p # These can be outside of build dir.
     else:
         return os.path.relpath(os.path.join(build_dir, p), os.path.join(build_dir, from_dir))

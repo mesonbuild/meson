@@ -260,7 +260,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         for arg in args:
             if arg.startswith(('/LIBPATH:', '-LIBPATH:')):
                 result.append('-L' + arg[9:])
-            elif arg.endswith(('.a', '.lib')) and not os.path.isabs(arg):
+            elif arg.endswith(('.a', '.lib')) and not mesonlib.path_has_root(arg):
                 result.append('-l' + arg)
             else:
                 result.append(arg)
