@@ -7,7 +7,7 @@ from pathlib import Path
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
 from ..mesonlib import (EnvironmentVariables, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged, MachineChoice,
-                        join_args, MesonException)
+                        join_args, MesonException, path_has_root)
 from ..options import OptionKey
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
@@ -420,7 +420,7 @@ class PkgConfigDependency(ExternalDependency):
         for arg in raw_link_args:
             if arg.startswith('-L') and not arg.startswith(('-L-l', '-L-L')):
                 path = arg[2:]
-                if not os.path.isabs(path):
+                if not path_has_root(path):
                     # Resolve the path as a compiler in the build directory would
                     path = os.path.join(self.env.get_build_dir(), path)
                 prefix_libpaths.add(path)
