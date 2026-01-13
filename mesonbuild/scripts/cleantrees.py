@@ -9,10 +9,12 @@ import shutil
 import pickle
 import typing as T
 
+from ..mesonlib import path_has_root
+
 def rmtrees(build_dir: str, trees: T.List[str]) -> None:
     for t in trees:
         # Never delete trees outside of the builddir
-        if os.path.isabs(t):
+        if path_has_root(t):
             print(f'Cannot delete dir with absolute path {t!r}')
             continue
         bt = os.path.join(build_dir, t)
