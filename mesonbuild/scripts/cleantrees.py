@@ -9,7 +9,7 @@ import shutil
 import pickle
 import typing as T
 
-from ..mesonlib import path_has_root
+from ..utils.platform import path_has_root
 
 def rmtrees(build_dir: str, trees: T.List[str]) -> None:
     for t in trees:
