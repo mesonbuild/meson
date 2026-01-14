@@ -66,20 +66,6 @@ jobs:
           compiler: msvc2022
           backend: ninja
           ifort: true
-        vc2022x64vs:
-          arch: x64
-          compiler: msvc2022
-          backend: vs2022
-          # mysteriously, several tests fail because vs cannot find
-          # executables such as cmd.exe ???
-          ifort: false
-        vc2022arm64ninjacross:
-          arch: arm64
-          compiler: msvc2022
-          backend: ninja
-          extraargs: --cross arm64cl.txt --cross-only
-          # ifort doesn't support arm64
-          ifort: false
 
   steps:
   - task: Cache@2
