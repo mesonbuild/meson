@@ -4,7 +4,7 @@
 from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
-from pathlib import PurePath
+from pathlib import PurePath, PurePosixPath
 import itertools
 import os
 import typing as T
@@ -466,6 +466,24 @@ class PkgConfigModule(NewExtensionModule):
         # pathlib joining makes sure absolute libdir is not appended to '${prefix}'
         return ('${prefix}' / libdir).as_posix()
 
+    def _get_relocatable_prefix(self, pkgroot: str, prefix: PurePath,
+                                path_class: T.Type[PurePath]) -> PurePosixPath:
+        '''Compute the prefix variable for relocatable pkg-config files.
+
+        Returns a path expression like '${pcfiledir}/../..' that represents
+        the relative path from the pkgconfig directory up to the installation prefix.
+        '''
+        pkgroot_ = path_class(pkgroot)
+        if not pkgroot_.is_absolute():
+            pkgroot_ = prefix / pkgroot
+        elif prefix not in pkgroot_.parents:
+            raise mesonlib.MesonException('Pkgconfig prefix cannot be outside of the prefix '
+                                          'when pkgconfig.relocatable=true. '
+                                          f'Pkgconfig prefix is {pkgroot_}.')
+        # relative_to only works for subpaths
+        rel = pkgroot_.relative_to(prefix)
+        return '${pcfiledir}' / PurePosixPath(*(['..'] * len(rel.parts)))
+
     def _generate_pkgconfig_file(self, state: ModuleState, deps: DependenciesHelper,
                                  subdirs: T.List[str], name: str,
                                  description: str, url: str, version: str,
@@ -523,14 +541,10 @@ class PkgConfigModule(NewExtensionModule):
             outdir = state.environment.scratch_dir
             prefix = pure_path_class(_as_str(coredata.optstore.get_value_for(OptionKey('prefix'))))
             if pkgroot:
-                pkgroot_ = pure_path_class(pkgroot)
-                if not pkgroot_.is_absolute():
-                    pkgroot_ = prefix / pkgroot
-                elif prefix not in pkgroot_.parents:
-                    raise mesonlib.MesonException('Pkgconfig prefix cannot be outside of the prefix '
-                                                  'when pkgconfig.relocatable=true. '
-                                                  f'Pkgconfig prefix is {pkgroot_.as_posix()}.')
-                prefix = PurePath('${pcfiledir}', os.path.relpath(prefix, pkgroot_))
+                prefix = self._get_relocatable_prefix(pkgroot, prefix, pure_path_class)
+                # relocatable paths will never have a drive letter
+                pure_path_class = PurePosixPath
+
         fname = os.path.join(outdir, pcfile)
         with open(fname, 'w', encoding='utf-8') as ofile:
             for optname in optnames:
