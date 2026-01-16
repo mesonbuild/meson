@@ -300,6 +300,10 @@ class Interpreter:
                 return
             pkg = ws.packages[member]
             cfg = pkg.cfg
+            if not cfg:
+                raise MesonException(f'Package {pkg.manifest.package.name!r} is not enabled for this build '
+                                     'configuration. Maybe you forgot to enable a Cargo feature, or to check '
+                                     'a Meson option?')
             for depname in cfg.required_deps:
                 dep = pkg.manifest.dependencies[depname]
                 if dep.path:
