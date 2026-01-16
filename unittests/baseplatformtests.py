@@ -25,7 +25,7 @@ import mesonbuild.environment
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
-    is_cygwin, join_args, split_args, windows_proof_rmtree, python_command
+    is_windows, is_cygwin, join_args, split_args, windows_proof_rmtree, python_command
 )
 import mesonbuild.modules.pkgconfig
 
@@ -45,6 +45,7 @@ __unittest = True
 class BasePlatformTests(TestCase):
     prefix = '/usr'
     libdir = 'lib'
+    _mktmpdir: T.Callable[[], str]
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -94,6 +95,21 @@ class BasePlatformTests(TestCase):
         os.environ['COLUMNS'] = '80'
         os.environ['PYTHONIOENCODING'] = 'utf8'
 
+        # If set to 1, force unittests to put their working stuff in /tmp
+        # Many Windows virus scanners have issues with the files being in the
+        # tmp directory.
+        #
+        # Store as an attribute because this path is very hot.
+        # the use of `staticmethod()` here is required because of Python's
+        # Object model, which otherwise sees these as methods
+        if (is_windows() or is_cygwin()) and not os.environ.get('MESON_FORCE_UNITTEST_IN_TMP', '0') == '1':
+            def tmpdir() -> str:
+                return tempfile.mkdtemp(dir=os.getcwd())
+
+            cls._mktmpdir = staticmethod(tmpdir)
+        else:
+            cls._mktmpdir = staticmethod(tempfile.mkdtemp)
+
     @classmethod
     def tearDownClass(cls) -> None:
         super().tearDownClass()
@@ -105,7 +121,7 @@ class BasePlatformTests(TestCase):
         self.meson_cross_files = []
         self.new_builddir()
 
-    def change_builddir(self, newdir):
+    def change_builddir(self, newdir: str) -> None:
         self.builddir = newdir
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         self.logdir = os.path.join(self.builddir, 'meson-logs')
@@ -117,10 +133,8 @@ class BasePlatformTests(TestCase):
         else:
             self.addCleanup(windows_proof_rmtree, self.builddir)
 
-    def new_builddir(self):
-        # Keep builddirs inside the source tree so that virus scanners
-        # don't complain
-        newdir = tempfile.mkdtemp(dir=os.getcwd())
+    def new_builddir(self) -> None:
+        newdir = self._mktmpdir()
         # In case the directory is inside a symlinked directory, find the real
         # path otherwise we might not find the srcdir from inside the builddir.
         newdir = os.path.realpath(newdir)
