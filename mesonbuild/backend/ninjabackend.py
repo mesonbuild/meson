@@ -1089,7 +1089,6 @@ class NinjaBackend(backends.Backend):
         if is_compile_target:
             # Skip the link stage for this special type of target
             return
-        linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
 
         if not isinstance(target, build.StaticLibrary):
             final_obj_list = obj_list
@@ -1104,6 +1103,7 @@ class NinjaBackend(backends.Backend):
             self.generate_rust_target(target, outname, final_obj_list, fortran_order_deps)
             return
 
+        linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
         elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
         self.add_build(elem)
         #In AIX, we archive shared libraries. If the instance is a shared library, we add a command to archive the shared library
