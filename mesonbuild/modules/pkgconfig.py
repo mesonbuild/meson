@@ -20,7 +20,7 @@ from ..options import BUILTIN_DIR_OPTIONS
 from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
 from ..interpreter.primitives import OptionString
 from ..interpreter.type_checking import D_MODULE_VERSIONS_KW, INSTALL_DIR_KW, VARIABLES_KW, NoneType
-from ..interpreterbase import FeatureNew, FeatureDeprecated
+from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
 
 if T.TYPE_CHECKING:
@@ -635,7 +635,7 @@ class PkgConfigModule(NewExtensionModule):
                     if d == '.':
                         cflags.append('-I${includedir}')
                     else:
-                        cflags.append(self._escape(PurePath('-I${includedir}') / d))
+                        cflags.append('-I' + self._escape(PurePosixPath('${includedir}', d)))
             cflags += [self._escape(f) for f in deps.cflags]
             if cflags and not dataonly:
                 ofile.write('Cflags: {}\n'.format(' '.join(cflags)))
@@ -704,6 +704,11 @@ class PkgConfigModule(NewExtensionModule):
             default_install_dir = OptionString(os.path.join(state.environment.get_datadir(), 'pkgconfig'), os.path.join('{datadir}', 'pkgconfig'))
 
         subdirs = kwargs['subdirs'] or default_subdirs
+        if any(mesonlib.path_has_root(d) for d in subdirs):
+            FeatureBroken.single_use('subdirs cannot be absolute', '1.10.2', state.subproject,
+                                     'This never worked; absolute paths ended up in Cflags without the -I option.',
+                                     location=state.current_node)
+
         version = kwargs['version'] if kwargs['version'] is not None else default_version
         name = kwargs['name'] if kwargs['name'] is not None else default_name
         assert isinstance(name, str), 'for mypy'
