@@ -186,6 +186,9 @@ testcase expect_error('pkgconfig.generate: if a library is not passed as a posit
   pkgg.generate(name: 'foobar')
 endtestcase
 
+# Test for FeatureBroken warning with absolute subdirs
+pkgg.generate(name: 'abssubdir', description: 'absolute subdirs test', subdirs: '/usr/include')
+
 # Make sure the -uninstalled.pc file contains both include directories.
 # See dependencies/test2.c that gets built against both simple7.pc and
 # simple7-uninstalled.pc.
