@@ -455,7 +455,7 @@ class PkgConfigModule(NewExtensionModule):
         return value.replace(' ', r'\ ')
 
     def _make_relative(self, prefix: T.Union[PurePath, str], subdir: T.Union[PurePath, str],
-                       path_class: T.Type[PurePath]) -> str:
+                       path_class: T.Type[PurePath]) -> PurePosixPath:
         prefix = path_class(prefix)
         subdir = path_class(subdir)
         try:
@@ -463,7 +463,7 @@ class PkgConfigModule(NewExtensionModule):
         except ValueError:
             libdir = subdir
         # pathlib joining makes sure absolute libdir is not appended to '${prefix}'
-        return ('${prefix}' / libdir).as_posix()
+        return '${prefix}' / PurePosixPath(libdir)
 
     def _get_relocatable_prefix(self, pkgroot: str, prefix: PurePath,
                                 path_class: T.Type[PurePath]) -> PurePosixPath:
@@ -627,7 +627,7 @@ class PkgConfigModule(NewExtensionModule):
             if uninstalled:
                 for d in deps.uninstalled_incdirs:
                     for basedir in ['${prefix}', '${srcdir}']:
-                        path = self._escape(PurePath(basedir, d).as_posix())
+                        path = self._escape(PurePosixPath(basedir, d))
                         cflags.append(f'-I{path}')
             else:
                 for d in subdirs:
