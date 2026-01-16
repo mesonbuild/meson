@@ -4,6 +4,7 @@
 
 from pathlib import Path
 import argparse
+import concurrent.futures
 import os
 import subprocess
 import sys
@@ -146,23 +147,61 @@ def main() -> int:
         to_check.extend(modules)
         additional_to_check.extend(additional)
 
-    if to_check:
-        command = [opts.mypy] if opts.mypy else [sys.executable, '-m', 'mypy']
-        if not opts.quiet:
-            print('Running mypy (this can take some time) ...')
-        retcode = subprocess.run(command + args + to_check + additional_to_check, cwd=root).returncode
-        if opts.allver and retcode == 0:
-            for minor in range(7, sys.version_info[1]):
-                if not opts.quiet:
-                    print(f'Checking mypy with python version: 3.{minor}')
-                p = subprocess.run(command + args + to_check + [f'--python-version=3.{minor}'], cwd=root)
-                if p.returncode != 0:
-                    retcode = p.returncode
-        return retcode
-    else:
+    if not to_check:
         if not opts.quiet:
             print('nothing to do...')
         return 0
+
+    command = [opts.mypy] if opts.mypy else [sys.executable, '-m', 'mypy']
+    if not opts.quiet:
+        print('Running mypy (this can take some time) ...')
+
+    if opts.allver:
+        versions = ['default'] + [f'3.{minor}' for minor in range(7, sys.version_info[1])]
+    else:
+        versions = ['default']
+
+    def run_mypy_version(version: str) -> T.Tuple[int, str, str]:
+        if version == 'default':
+            cmd = command + args + to_check + additional_to_check
+        else:
+            cmd = command + args + to_check + [f'--python-version={version}']
+
+        env = os.environ.copy()
+        if sys.stdout.isatty():
+            env['MYPY_FORCE_COLOR'] = "1"
+
+        result = subprocess.run(
+            cmd,
+            cwd=root,
+            capture_output=True,
+            text=True,
+            env=env
+        )
+
+        return (result.returncode, version, result.stdout + result.stderr)
+
+    if not opts.quiet and opts.allver:
+        for version in versions:
+            print(f'Starting mypy check for python version: {version}')
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [executor.submit(run_mypy_version, version) for version in versions]
+
+        retcode = 0
+        for future in concurrent.futures.as_completed(futures):
+            exit_code, version, output = future.result()
+
+            if not opts.allver:
+                print(output, end='')
+            else:
+                if not opts.quiet:
+                    print(f'Results for python version: {version} (exit code: {exit_code})')
+                print(output, end='')
+
+            retcode = max(retcode, exit_code)
+
+    return retcode
 
 if __name__ == '__main__':
     sys.exit(main())
