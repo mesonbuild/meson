@@ -207,8 +207,8 @@ class PlatformAgnosticTests(BasePlatformTests):
     def test_validate_dirs(self):
         testdir = os.path.join(self.common_test_dir, '1 trivial')
 
-        # Using parent as builddir should fail
-        self.builddir = os.path.dirname(self.builddir)
+        # Using parent as source directory should fail
+        self.builddir = os.path.dirname(os.getcwd())
         with self.assertRaises(subprocess.CalledProcessError) as cm:
             self.init(testdir)
         self.assertIn('cannot be a parent of source directory', cm.exception.stdout)
