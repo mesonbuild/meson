@@ -270,7 +270,8 @@ class QtBaseModule(ExtensionModule):
             return
         self._tools_detected = True
         mlog.log(f'Detecting Qt{self.qt_version} tools')
-        kwargs: DependencyObjectKWs = {'required': required, 'modules': ['Core'], 'method': method, 'native': MachineChoice.HOST}
+        native = MachineChoice.BUILD if state.is_build_only_subproject else MachineChoice.HOST
+        kwargs: DependencyObjectKWs = {'required': required, 'modules': ['Core'], 'method': method, 'native': native}
         # Just pick one to make mypy happy
         qt = T.cast('QtPkgConfigDependency', find_external_dependency(f'qt{self.qt_version}', state.environment, kwargs))
         if qt.found():
