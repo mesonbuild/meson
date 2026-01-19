@@ -4085,7 +4085,7 @@ class AllPlatformTests(BasePlatformTests):
                 long comma list: alpha, alphacolor, apetag, audiofx, audioparsers, auparse,
                                  autodetect, avi
 
-              Subprojects
+              Subprojects (for host machine)
                 sub            : YES
                 sub2           : NO Problem encountered: This subproject failed
                 subsub         : YES (from sub2)
