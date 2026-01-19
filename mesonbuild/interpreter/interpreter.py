@@ -17,9 +17,9 @@ from .. import compilers
 from .. import envconfig
 from ..wrap import wrap, WrapMode
 from .. import mesonlib
-from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException, HoldableObject,
-                        FileMode, MachineChoice, is_parent_path, listify,
-                        extract_as_list, has_path_sep, path_has_root, path_is_in_root, PerMachine)
+from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException,
+                        FileMode, HoldableObject, MachineChoice, PerMachine, PerMachineDefaultable,
+                        extract_as_list, has_path_sep, is_parent_path, listify, path_has_root, path_is_in_root)
 from ..options import OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram, Program
 from ..dependencies import Dependency
@@ -275,8 +275,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.validated_cache: T.Set[str] = set()
         self.project_args_frozen = False
         self.global_args_frozen = False  # implies self.project_args_frozen
-        self.subprojects: T.Dict[str, SubprojectHolder] = {}
-        self.subproject_stack: T.List[str] = []
+        self.subprojects: PerMachine[T.Dict[str, SubprojectHolder]] = PerMachineDefaultable.default(
+            self.environment.is_cross_build(), {}, {})
+        self.subproject_stack: T.List[T.Tuple[str, MachineChoice]] = []
         self.configure_file_outputs: T.Dict[str, int] = {}
         # Passed from the outside, only used in subprojects.
         if invoker_method_default_options:
@@ -860,8 +861,21 @@ class Interpreter(InterpreterBase, HoldableObject):
                             exception: T.Optional[Exception] = None) -> SubprojectHolder:
         sub = SubprojectHolder(NullSubprojectInterpreter(), os.path.join(self.subproject_dir, subp_name),
                                disabled_feature=disabled_feature, exception=exception)
-        self.subprojects[subp_name] = sub
+        self.subprojects.host[subp_name] = sub
         return sub
+
+    @staticmethod
+    def format_subproject_stack(stack: T.List[T.Tuple[str, MachineChoice]], join: str = ' => ') -> str:
+        prefix = ''
+        result = ''
+        for_build = False
+        for subp_name, machine in stack:
+            result += prefix + subp_name
+            if machine is MachineChoice.BUILD and not for_build:
+                result += ' (build)'
+                for_build = True
+            prefix = join
+        return result
 
     def do_subproject(self, subp_name: SubProject, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None,
                       forced_options: T.Optional[OptionDict] = None) -> SubprojectHolder:
@@ -893,16 +907,16 @@ class Interpreter(InterpreterBase, HoldableObject):
         if has_path_sep(subp_name):
             mlog.warning('Subproject name has a path separator. This may cause unexpected behaviour.',
                          location=self.current_node)
-        if subp_name in self.subproject_stack:
-            fullstack = self.subproject_stack + [subp_name]
-            incpath = ' => '.join(fullstack)
+        fullstack = self.subproject_stack + [(subp_name, MachineChoice.HOST)]
+        if (subp_name, MachineChoice.HOST) in self.subproject_stack:
+            incpath = self.format_subproject_stack(fullstack)
             raise InvalidCode(f'Recursive include of subprojects: {incpath}.')
-        if subp_name in self.subprojects:
-            subproject = self.subprojects[subp_name]
+        if subp_name in self.subprojects.host:
+            subproject = self.subprojects.host[subp_name]
             if required and not subproject.found():
                 raise InterpreterException(f'Subproject "{subproject.subdir}" required but not found.')
             if kwargs['version']:
-                pv = self.build.projects[subp_name].version
+                pv = self.build.projects.host[subp_name].version
                 wanted = kwargs['version']
                 if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
                     raise InterpreterException(f'Subproject {subp_name} version is {pv} but {wanted} required.')
@@ -927,7 +941,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
 
-        stack = ':'.join(self.subproject_stack + [subp_name])
+        stack = self.format_subproject_stack(fullstack, ':')
         m = ['\nExecuting subproject', mlog.bold(stack)]
         if method != 'meson':
             m += ['method', mlog.bold(method)]
@@ -992,7 +1006,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             subi.bound_holder_map = self.bound_holder_map
             subi.summary = self.summary
 
-            subi.subproject_stack = self.subproject_stack + [subp_name]
+            subi.subproject_stack = self.subproject_stack + [(subp_name, MachineChoice.HOST)]
             current_active = self.active_projectname
             with mlog.nested_warnings():
                 subi.run()
@@ -1007,16 +1021,16 @@ class Interpreter(InterpreterBase, HoldableObject):
             if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
                 raise InterpreterException(f'Subproject {subp_name} version is {pv} but {wanted} required.')
         self.active_projectname = current_active
-        self.subprojects.update(subi.subprojects)
-        self.subprojects[subp_name] = SubprojectHolder(subi, subdir, warnings=subi_warnings,
-                                                       callstack=self.subproject_stack)
+        self.subprojects.host.update(subi.subprojects.host)
+        self.subprojects.host[subp_name] = SubprojectHolder(subi, subdir, warnings=subi_warnings,
+                                                            callstack=self.subproject_stack)
         # Duplicates are possible when subproject uses files from project root
         if build_def_files:
             self.build_def_files.update(build_def_files)
         # We always need the subi.build_def_files, to propagate sub-sub-projects
         self.build_def_files.update(subi.get_build_def_files())
         self.build.merge(subi.build)
-        return self.subprojects[subp_name]
+        return self.subprojects.host[subp_name]
 
     def _do_subproject_cmake(self, subp_name: SubProject, subdir: str,
                              default_options: OptionDict,
@@ -1272,7 +1286,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             proj_license_files.append((ifname, i))
         self.build.dep_manifest[proj_name] = build.DepManifest(self.project_version, proj_license,
                                                                proj_license_files, self.subproject)
-        if self.subproject in self.build.projects:
+        if self.subproject in self.build.projects.host:
             raise InvalidCode('Second call to project().')
 
         # spdirname is the subproject_dir for this project, relative to self.subdir.
@@ -1302,7 +1316,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if self.cargo is None:
             self.load_root_cargo_lock_file()
 
-        self.build.projects[self.subproject] = build.BuildProject(proj_name, self.project_version)
+        self.build.projects.host[self.subproject] = build.BuildProject(proj_name, self.project_version)
         mlog.log('Project name:', mlog.bold(proj_name))
         mlog.log('Project version:', mlog.bold(self.project_version))
 
@@ -1386,7 +1400,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def _print_summary(self) -> None:
         # Add automatic 'Subprojects' section in main project.
         all_subprojects = collections.OrderedDict()
-        for name, subp in sorted(self.subprojects.items()):
+        for name, subp in sorted(self.subprojects.host.items()):
             value = [subp.found()]
             if subp.disabled_feature:
                 value += [f'Feature {subp.disabled_feature!r} disabled']
@@ -1395,7 +1409,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             elif subp.warnings > 0:
                 value += [f'{subp.warnings} warnings']
             if subp.callstack:
-                stack = ' => '.join(subp.callstack)
+                stack = self.format_subproject_stack(subp.callstack)
                 value += [f'(from {stack})']
             all_subprojects[name] = value
         if all_subprojects:
@@ -1425,7 +1439,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         mlog.log('')  # newline
         main_summary = self.summary.pop('', None)
         for subp_name, summary in sorted(self.summary.items()):
-            if self.subprojects[subp_name].found():
+            if self.subprojects.host[subp_name].found():
                 summary.dump()
         if main_summary:
             main_summary.dump()
@@ -1727,7 +1741,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 version = version_func(progobj)
             elif isinstance(progobj, build.Executable):
                 if progobj.subproject:
-                    interp = self.subprojects[progobj.subproject].held_object
+                    interp = self.subprojects.host[progobj.subproject].held_object
                 else:
                     interp = self
                 assert isinstance(interp, Interpreter), 'for mypy'
@@ -2980,7 +2994,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                     args[0], kwargs)
 
     def current_build_project(self) -> build.BuildProject:
-        return self.build.projects[self.subproject]
+        return self.build.projects.host[self.subproject]
 
     @FeatureNew('add_project_dependencies', '0.63.0')
     @typed_pos_args('add_project_dependencies', varargs=dependencies.Dependency)
