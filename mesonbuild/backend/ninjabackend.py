@@ -1231,10 +1231,12 @@ class NinjaBackend(backends.Backend):
         deps += self.get_target_depend_files(target)
         if target.build_always_stale:
             deps.append('PHONY')
-        if target.depfile is None:
-            rulename = 'CUSTOM_COMMAND'
-        else:
+        if target.depfile_type == 'gcc':
             rulename = 'CUSTOM_COMMAND_DEP'
+        elif target.depfile_type == 'msvc':
+            rulename = 'CUSTOM_COMMAND_MSVC_DEP'
+        else:
+            rulename = 'CUSTOM_COMMAND'
         elem = NinjaBuildElement(self.all_outputs, ofilenames, rulename, srcs)
         elem.add_dep(deps)
         for d in target.extra_depends:
@@ -1399,12 +1401,16 @@ class NinjaBackend(backends.Backend):
         self.generate_static_link_rules()
         self.generate_dynamic_link_rules()
         self.add_rule_comment(NinjaComment('Other rules'))
+
         # Ninja errors out if you have deps = gcc but no depfile, so we must
         # have two rules for custom commands.
         self.add_rule(NinjaRule('CUSTOM_COMMAND', ['$COMMAND'], [], '$DESC',
                                 extra='restat = 1'))
         self.add_rule(NinjaRule('CUSTOM_COMMAND_DEP', ['$COMMAND'], [], '$DESC',
                                 deps='gcc', depfile='$DEPFILE',
+                                extra='restat = 1'))
+        self.add_rule(NinjaRule('CUSTOM_COMMAND_MSVC_DEP', ['$COMMAND'], [], '$DESC',
+                                deps='msvc',
                                 extra='restat = 1'))
         self.add_rule(NinjaRule('COPY_FILE', self.environment.get_build_command() + ['--internal', 'copy'],
                                 ['$in', '$out'], 'Copying $in to $out'))
