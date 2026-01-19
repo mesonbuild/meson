@@ -58,6 +58,7 @@ class ModuleState:
         self.global_args = interpreter.build.global_args.host
         self.project_args = interpreter.current_build_project().project_args.host
         self.current_node = interpreter.current_node
+        self.machine_map = interpreter.build.machine_map
 
     def get_include_args(self, include_dirs: T.Iterable[T.Union[str, build.IncludeDirs]], implicit: bool = False, prefix: str = '-I') -> T.List[str]:
         srcdir = self.environment.get_source_dir()

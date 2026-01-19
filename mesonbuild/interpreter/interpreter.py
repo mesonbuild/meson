@@ -347,7 +347,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.builtin['target_machine'] = \
             OBJ.MachineHolder(self.build.environment.machines[self.build.machine_map.target], self)
 
-    def apply_machine_map_to_kwargs(self, kwargs: kwtypes.MachineMapArgs) -> None:
+    def apply_machine_map_to_kwargs(self, kwargs: kwtypes.BaseBuildTarget | kwtypes.MachineMapArgs) -> None:
         orig_for_machine: MachineChoice | None = kwargs.get('native', None)
         if orig_for_machine is not None:
             kwargs['native'] = self.build.machine_map[orig_for_machine]
@@ -1362,7 +1362,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('add_languages', varargs=str)
     def func_add_languages(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddLanguages') -> bool:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
-        native = kwargs['native']
+        for_machine = kwargs['native']
 
         langs = self._validate_languages(args[0], required, node)
 
@@ -1370,8 +1370,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             for lang in sorted(langs, key=compilers.sort_clink):
                 mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        if native is not None:
-            return self.add_languages(langs, required, native)
+        if for_machine is not None:
+            for_machine = self.build.machine_map[for_machine]
+            return self.add_languages(langs, required, for_machine)
         else:
             # absent 'native' means 'both' for backwards compatibility
             tv = FeatureNew.get_target_version(self.subproject)
@@ -3103,8 +3104,18 @@ class Interpreter(InterpreterBase, HoldableObject):
                                args: T.List[str], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
         self._add_arguments(node, argsdict, self.project_args_frozen, args, kwargs)
 
+    def is_dup_machine(self, for_machine: MachineChoice) -> bool:
+        # Return whether applying the caller's effect to the build and
+        # host machine would duplicate the effect
+        return \
+            for_machine is not MachineChoice.HOST and \
+            self.build.machine_map[for_machine] is self.build.machine_map.host
+
     def _add_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[Language, T.List[str]],
                        args_frozen: bool, args: T.List[str], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
+        if self.is_dup_machine(kwargs['native']):
+            return
+
         if args_frozen:
             msg = f'Tried to use \'{node.func_name.value}\' after a build target has been declared.\n' \
                   'This is not permitted. Please declare all arguments before your targets.'
@@ -3842,7 +3853,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             mlog.debug('Unknown target type:', str(targetclass))
             raise RuntimeError('Unreachable code')
 
+        self.apply_machine_map_to_kwargs(kwargs)
         for_machine = kwargs['native']
+
         if kwargs.get('rust_crate_type') == 'proc-macro':
             # Silently force to native because that's the only sensible value
             # and rust_crate_type is deprecated any way.
