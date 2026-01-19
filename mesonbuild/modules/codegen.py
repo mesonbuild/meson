@@ -9,6 +9,7 @@ import typing as T
 from . import ExtensionModule, ModuleInfo
 from ..build import CustomTarget, CustomTargetIndex, GeneratedList
 from ..compilers.compilers import lang_suffixes
+from ..interpreter.decorators import build_only_constraints
 from ..interpreter.interpreterobjects import extract_required_kwarg
 from ..interpreter.type_checking import NoneType, REQUIRED_KW, DISABLER_KW, NATIVE_KW
 from ..interpreterbase import (
@@ -299,6 +300,7 @@ class CodeGenModule(ExtensionModule):
         DISABLER_KW,
         NATIVE_KW
     )
+    @build_only_constraints
     @disablerIfNotFound
     def lex_method(self, state: ModuleState, args: T.Tuple, kwargs: FindLexKwargs) -> LexGenerator:
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject)
@@ -378,6 +380,7 @@ class CodeGenModule(ExtensionModule):
         DISABLER_KW,
         NATIVE_KW,
     )
+    @build_only_constraints
     @disablerIfNotFound
     def yacc_method(self, state: ModuleState, args: T.Tuple, kwargs: FindYaccKwargs) -> YaccGenerator:
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject)
