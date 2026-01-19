@@ -26,7 +26,7 @@ from ..interpreterbase import (
 from ..interpreter.type_checking import NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram, Program
-from ..mesonlib import HoldableObject, listify
+from ..mesonlib import HoldableObject, listify, MachineChoice
 
 import typing as T
 
@@ -901,7 +901,7 @@ class SubprojectHolder(MesonInterpreterObject):
                  warnings: int = 0,
                  disabled_feature: T.Optional[str] = None,
                  exception: T.Optional[Exception] = None,
-                 callstack: T.Optional[T.List[str]] = None) -> None:
+                 callstack: T.Optional[T.List[T.Tuple[str, MachineChoice]]] = None) -> None:
         super().__init__()
         self.held_object = subinterpreter
         self.warnings = warnings
