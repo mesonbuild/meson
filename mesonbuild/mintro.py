@@ -13,6 +13,7 @@ project files and don't need this info."""
 from contextlib import redirect_stdout
 import collections
 import dataclasses
+import itertools
 import json
 import os
 from pathlib import Path, PurePath
@@ -457,9 +458,12 @@ def list_projinfo(builddata: build.Build) -> T.Dict[str, T.Union[str, T.List[str
         'subproject_dir': builddata.subproject_dir,
     }
     subprojects = []
-    for k, build_proj in builddata.projects.items():
-        if not k:
+    seen = set([''])
+    for k, build_proj in itertools.chain(builddata.projects.host.items(),
+                                         builddata.projects.build.items()):
+        if k in seen:
             continue
+        seen.add(k)
         c: T.Dict[str, str] = {
             'name': k,
             'version': build_proj.version,
