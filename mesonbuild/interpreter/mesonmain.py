@@ -19,6 +19,7 @@ from ..interpreter.type_checking import ENV_KW, ENV_METHOD_KW, ENV_SEPARATOR_KW,
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated, FeatureBroken,
                                typed_pos_args,  noArgsFlattening, noPosargs, noKwargs,
                                typed_kwargs, KwargInfo, InterpreterException, InterpreterObject)
+from .decorators import build_only_constraints
 from .primitives import MesonVersionString
 from .type_checking import NATIVE_KW, NoneType
 
@@ -287,6 +288,7 @@ class MesonMain(MesonInterpreterObject):
     @typed_pos_args('meson.get_compiler', str)
     @typed_kwargs('meson.get_compiler', NATIVE_KW)
     @InterpreterObject.method('get_compiler')
+    @build_only_constraints
     def get_compiler_method(self, args: T.Tuple[str], kwargs: 'NativeKW') -> 'Compiler':
         from ..compilers.compilers import all_languages
         lang = args[0]
@@ -330,6 +332,7 @@ class MesonMain(MesonInterpreterObject):
     @typed_pos_args('meson.override_find_program', str, (mesonlib.File, Program, build.Executable))
     @typed_kwargs('meson.override_find_program', NATIVE_KW.evolve(since='1.11.0'))
     @InterpreterObject.method('override_find_program')
+    @build_only_constraints
     def override_find_program_method(self, args: T.Tuple[str, T.Union[mesonlib.File, Program, build.Executable]],
                                      kwargs: NativeKW) -> None:
         name, exe = args
@@ -352,6 +355,7 @@ class MesonMain(MesonInterpreterObject):
     @typed_pos_args('meson.override_dependency', str, dependencies.Dependency)
     @FeatureNew('meson.override_dependency', '0.54.0')
     @InterpreterObject.method('override_dependency')
+    @build_only_constraints
     def override_dependency_method(self, args: T.Tuple[str, dependencies.Dependency], kwargs: 'FuncOverrideDependency') -> None:
         name, dep = args
         if not name:
@@ -467,6 +471,7 @@ class MesonMain(MesonInterpreterObject):
     @typed_pos_args('meson.get_external_property', str, optargs=[object])
     @typed_kwargs('meson.get_external_property', NATIVE_KW)
     @InterpreterObject.method('get_external_property')
+    @build_only_constraints
     def get_external_property_method(self, args: T.Tuple[str, T.Optional[object]], kwargs: 'NativeKW') -> object:
         propname, fallback = args
         return self.__get_external_property_impl(propname, fallback, kwargs['native'])
@@ -475,6 +480,7 @@ class MesonMain(MesonInterpreterObject):
     @typed_pos_args('meson.has_external_property', str)
     @typed_kwargs('meson.has_external_property', NATIVE_KW)
     @InterpreterObject.method('has_external_property')
+    @build_only_constraints
     def has_external_property_method(self, args: T.Tuple[str], kwargs: 'NativeKW') -> bool:
         prop_name = args[0]
         return prop_name in self.interpreter.environment.properties[kwargs['native']]
