@@ -31,6 +31,7 @@ if T.TYPE_CHECKING:
         depend_files: T.List[mesonlib.FileOrString]
         depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
+        implicit_include_directories: bool
         args: T.List[str]
 
 
@@ -111,6 +112,7 @@ class WindowsModule(ExtensionModule):
         DEPEND_FILES_KW.evolve(since='0.47.0'),
         DEPENDS_KW.evolve(since='0.47.0'),
         INCLUDE_DIRECTORIES,
+        KwargInfo('implicit_include_directories', bool, default=False, since='1.11.0'),
         KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
     )
     def compile_resources(self, state: 'ModuleState',
@@ -124,7 +126,7 @@ class WindowsModule(ExtensionModule):
                 extra_args += state.get_include_args([
                     build.IncludeDirs('', [], False, [self.interpreter.backend.get_target_dir(d)])
                 ])
-        extra_args += state.get_include_args(kwargs['include_directories'])
+        extra_args += state.get_include_args(kwargs['include_directories'], kwargs['implicit_include_directories'])
 
         rescomp, rescomp_type = self._find_resource_compiler(state)
         if rescomp_type == ResourceCompilerType.rc:
