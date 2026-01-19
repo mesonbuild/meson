@@ -24,7 +24,7 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from ..programs import CommandList
 
-    from typing_extensions import TypedDict
+    from typing_extensions import Literal, TypedDict
 
     class CompileResources(TypedDict):
 
@@ -176,13 +176,26 @@ class WindowsModule(ExtensionModule):
             name = name.replace('/', '_').replace('\\', '_').replace(':', '_')
             name_formatted = name_formatted.replace('/', '_').replace('\\', '_').replace(':', '_')
             output = f'{name}_@BASENAME@.{suffix}'
+            depfile: T.Optional[str] = None
+            depfile_type: T.Optional[Literal['gcc', 'msvc']] = None
             command: CommandList = []
+
+            if rescomp_type == ResourceCompilerType.rc:
+                compiler = self.detect_compiler(state.environment.coredata.compilers[MachineChoice.HOST])
+                depfile_type = 'msvc'
+
+                command.extend(state.environment.get_build_command())
+                command.extend(['--internal', 'rc',
+                                '--cl', compiler.get_exelist(False)[0],
+                                '--rc'])
+
             command.append(rescomp)
             command.extend(res_args)
-            depfile: T.Optional[str] = None
+
             # instruct binutils windres to generate a preprocessor depfile
             if rescomp_type == ResourceCompilerType.windres:
                 depfile = f'{output}.d'
+                depfile_type = 'gcc'
                 command.extend(['--preprocessor-arg=-MD',
                                 '--preprocessor-arg=-MQ@OUTPUT@',
                                 '--preprocessor-arg=-MF@DEPFILE@'])
@@ -196,6 +209,7 @@ class WindowsModule(ExtensionModule):
                 [src],
                 [output],
                 depfile=depfile,
+                depfile_type=depfile_type,
                 depend_files=wrc_depend_files,
                 extra_depends=wrc_depends,
                 description='Compiling Windows resource {}',

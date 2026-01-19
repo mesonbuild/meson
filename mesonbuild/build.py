@@ -2870,7 +2870,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  depend_files: T.Optional[T.Sequence[FileOrString]] = None,
                  extra_depends: T.Optional[T.Sequence[T.Union[str, SourceOutputs]]] = None,
                  depfile: T.Optional[str] = None,
-                 depfile_type: T.Optional[T.Literal['gcc', 'msvc']] = None,
+                 depfile_type: T.Optional[Literal['gcc', 'msvc']] = None,
                  env: T.Optional[EnvironmentVariables] = None,
                  feed: bool = False,
                  install: bool = False,
