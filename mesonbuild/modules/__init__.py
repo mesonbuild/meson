@@ -89,7 +89,8 @@ class ModuleState:
     def find_tool(self, name: str, depname: str, varname: str, required: bool = True,
                   wanted: T.Optional[str] = None, native: bool = True) -> Program:
         # Look in overrides in case it's built as subproject
-        progobj = self._interpreter.program_from_overrides([name], MachineChoice.HOST, [])
+        for_machine = MachineChoice.BUILD if native else MachineChoice.HOST
+        progobj = self._interpreter.program_from_overrides([name], for_machine, [])
         if progobj is not None:
             return progobj
 
