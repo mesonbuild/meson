@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import abc
 import argparse
+import itertools
 import os
 import sys
 import shlex
@@ -393,7 +394,7 @@ def run(options: argparse.Namespace) -> int:
     extra_meson_args = []
     if options.include_subprojects:
         subproject_dir = os.path.join(src_root, b.subproject_dir)
-        for sub in b.projects:
+        for sub in set(itertools.chain(b.projects.host, b.projects.build)):
             if sub:
                 directory = wrap.get_directory(subproject_dir, sub)
                 subprojects[sub] = os.path.join(b.subproject_dir, directory)
