@@ -326,6 +326,7 @@ class DoSubproject(ExtractRequired):
     version: T.List[str]
     cmake_options: T.List[str]
     options: T.Optional[CMakeSubprojectOptions]
+    for_machine: MachineChoice
 
 
 class _BaseBuildTarget(TypedDict):
