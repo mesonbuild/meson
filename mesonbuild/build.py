@@ -685,6 +685,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     build_by_default: bool
     for_machine: MachineChoice
     environment: Environment
+    build_only_subproject: bool
     install: bool = False
     build_always_stale: bool = False
     extra_files: T.List[File] = field(default_factory=list)
@@ -852,7 +853,7 @@ class BuildTarget(Target):
             compilers: CompilerDict,
             build_only_subproject: bool,
             kwargs: BuildTargetKeywordArguments):
-        super().__init__(name, subdir, subproject, True, for_machine, environment,
+        super().__init__(name, subdir, subproject, True, for_machine, environment, build_only_subproject,
                          install=kwargs.get('install', False), build_subdir=kwargs.get('build_subdir', ''))
         self.all_compilers = compilers
         self.compilers: CompilerDict = {}
@@ -2932,6 +2933,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                      str, File, BuildTargetTypes, ExtractedObjects,
                      GeneratedList, programs.Program]],
                  outputs: T.List[str],
+                 build_only_subproject: bool,
                  *,
                  build_always_stale: bool = False,
                  build_by_default: T.Optional[bool] = None,
@@ -2955,7 +2957,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  ):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST, environment,
-                         install, build_always_stale, build_subdir = build_subdir)
+                         build_only_subproject, install, build_always_stale, build_subdir = build_subdir)
         self.sources = list(sources)
         self.outputs = substitute_values(
             outputs, get_filenames_templates_dict(
@@ -3200,7 +3202,7 @@ class RunTarget(Target, CommandBase):
                  env: T.Optional[EnvironmentVariables] = None,
                  default_env: bool = True):
         # These don't produce output artifacts
-        super().__init__(name, subdir, subproject, False, MachineChoice.BUILD, environment)
+        super().__init__(name, subdir, subproject, False, MachineChoice.BUILD, environment, False)
         self.dependencies = dependencies
         self.depend_files = []
         self.command = self.flatten_command(command)
