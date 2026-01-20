@@ -940,6 +940,7 @@ class RustModule(ExtensionModule):
             cmd,
             [header],
             outputs,
+            state.is_build_only_subproject,
             depfile='@PLAINNAME@.d',
             extra_depends=depends,
             depend_files=depend_files,

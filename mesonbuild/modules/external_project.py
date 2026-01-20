@@ -101,7 +101,7 @@ class ExternalProject(NewExtensionModule):
 
         self._configure(state)
 
-        self.targets = self._create_targets(extra_depends)
+        self.targets = self._create_targets(extra_depends, state.is_build_only_subproject)
 
     def _cygpath_convert(self, winpath: Path) -> Path:
         # On Cygwin, MSYS2 and GitBash, the configure command and the prefix
@@ -234,7 +234,7 @@ class ExternalProject(NewExtensionModule):
                 print(contents)
             raise MesonException(m)
 
-    def _create_targets(self, extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']]) -> T.List['TYPE_var']:
+    def _create_targets(self, extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']], is_build_only_subproject: bool) -> T.List['TYPE_var']:
         cmd = self.env.get_build_command()
         cmd += ['--internal', 'externalproject',
                 '--name', self.name,
@@ -255,6 +255,7 @@ class ExternalProject(NewExtensionModule):
             cmd + ['@OUTPUT@', '@DEPFILE@'],
             [],
             [f'{self.name}.stamp'],
+            is_build_only_subproject,
             depfile=f'{self.name}.d',
             console=True,
             extra_depends=extra_depends,
