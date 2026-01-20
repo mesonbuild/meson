@@ -124,7 +124,8 @@ class WindowsModule(ExtensionModule):
         for d in wrc_depends:
             if isinstance(d, build.CustomTarget):
                 extra_args += state.get_include_args([
-                    build.IncludeDirs('', [], False, [self.interpreter.backend.get_target_dir(d)])
+                    build.IncludeDirs('', [], False, [self.interpreter.backend.get_target_dir(d)],
+                                      state.is_build_only_subproject)
                 ])
         extra_args += state.get_include_args(kwargs['include_directories'], kwargs['implicit_include_directories'])
 

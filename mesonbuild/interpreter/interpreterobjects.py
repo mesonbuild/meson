@@ -967,7 +967,8 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @noKwargs
     @InterpreterObject.method('private_dir_include')
     def private_dir_include_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.IncludeDirs:
-        return build.IncludeDirs('', [], False, [self.interpreter.backend.get_target_private_dir(self._target_object)])
+        return build.IncludeDirs('', [], False, [self.interpreter.backend.get_target_private_dir(self._target_object)],
+                                 self.interpreter.build.is_build_only)
 
     @noPosargs
     @noKwargs
