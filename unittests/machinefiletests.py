@@ -202,12 +202,11 @@ class NativeFileTests(BasePlatformTests):
     def test_find_program(self):
         self._simple_test('find_program', 'bash')
 
+    @skipIfNoExecutable('llvm-config')
     def test_config_tool_dep(self):
         # Do the skip at this level to avoid screwing up the cache
         if mesonbuild.envconfig.detect_msys2_arch():
             raise SkipTest('Skipped due to problems with LLVM on MSYS2')
-        if not shutil.which('llvm-config'):
-            raise SkipTest('No llvm-installed, cannot test')
         self._simple_test('config_dep', 'llvm-config')
 
     def test_python3_module(self):
