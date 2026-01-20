@@ -2085,6 +2085,8 @@ class NinjaBackend(backends.Backend):
             args.append(f'-Clink-arg={o}')
             deps.append(o)
 
+        deps.extend([self.get_dependency_filename(t) for t in target.link_depends])
+
         linkdirs = mesonlib.OrderedSet()
         external_deps = target.external_deps.copy()
         target_deps = target.get_dependencies()
