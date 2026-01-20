@@ -306,6 +306,10 @@ class BuildProject:
     project_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
     project_link_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
 
+    @lazy_property
+    def prefix(self) -> str:
+        return 'build.' if self.for_machine is MachineChoice.BUILD else ''
+
 
 # literally everything isn't dataclass stuff
 class Build:
@@ -488,6 +492,7 @@ class IncludeDirs(HoldableObject):
     curdir: str
     incdirs: T.List[str]
     is_system: bool
+    build_project: BuildProject
     extra_build_dirs: T.List[str] = field(default_factory=list)
 
     def abs_string_list(self, sourcedir: str, builddir: str) -> T.List[str]:
@@ -498,12 +503,14 @@ class IncludeDirs(HoldableObject):
             be added if this is unset
         :returns: A list of strings (without compiler argument)
         """
+        bsubdir = self.build_project.prefix + self.curdir
+
         strlist: T.List[str] = []
         for idir in self.incdirs:
             strlist.append(os.path.join(sourcedir, self.curdir, idir))
-            strlist.append(os.path.join(builddir, self.curdir, idir))
+            strlist.append(os.path.join(builddir, bsubdir, idir))
         for idir in self.extra_build_dirs:
-            strlist.append(os.path.join(builddir, self.curdir, idir))
+            strlist.append(os.path.join(builddir, bsubdir, idir))
         return strlist
 
     def rel_string_list(self, build_to_src: str, build_root: T.Optional[str] = None) -> T.List[str]:
@@ -515,13 +522,15 @@ class IncludeDirs(HoldableObject):
         :return: A list if strings (without compiler argument)
         """
         strlist: T.List[str] = []
+        bsubdir = self.build_project.prefix + self.curdir
+
         for idirs, add_src in [(self.incdirs, True), (self.extra_build_dirs, False)]:
             for idir in idirs:
-                dir = os.path.normpath(os.path.join(self.curdir, idir))
-                if build_root is None or os.path.isdir(os.path.join(build_root, dir)):
-                    strlist.append(dir)
+                bld_dir = os.path.normpath(os.path.join(bsubdir, idir))
+                if build_root is None or os.path.isdir(os.path.join(build_root, bld_dir)):
+                    strlist.append(bld_dir)
                 if add_src:
-                    strlist.append(os.path.normpath(os.path.join(build_to_src, dir)))
+                    strlist.append(os.path.normpath(os.path.join(build_to_src, self.curdir, idir)))
 
         return strlist
 
@@ -648,9 +657,9 @@ class Target(HoldableObject, metaclass=SimpleABC):
                 Target "{self.name}" has a path separator in its name.
                 This is not supported, it can cause unexpected failures and will become
                 a hard error in the future.'''))
-        self.builddir = self.subdir
+        self.builddir = self.build_project.prefix + self.subdir
         if self.build_subdir:
-            self.builddir = os.path.join(self.subdir, self.build_subdir)
+            self.builddir = os.path.join(self.builddir, self.build_subdir)
 
     # dataclass comparators?
     def __lt__(self, other: object) -> bool:
@@ -1611,7 +1620,8 @@ class BuildTarget(Target):
     def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: str = 'preserve') -> None:
         if set_is_system != 'preserve':
             is_system = set_is_system == 'system'
-            self.include_dirs.extend([IncludeDirs(x.curdir, x.incdirs, is_system, x.extra_build_dirs) for x in args])
+            self.include_dirs.extend([IncludeDirs(x.curdir, x.incdirs, is_system, x.build_project,
+                                                  x.extra_build_dirs) for x in args])
         else:
             self.include_dirs.extend(args)
 
