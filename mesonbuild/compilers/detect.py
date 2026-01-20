@@ -149,7 +149,10 @@ def _handle_exceptions(
     if exceptions:
         errmsg += '\nThe following exception(s) were encountered:'
         for c, e in exceptions.items():
-            errmsg += f'\nRunning `{c}` gave "{e}"'
+            if isinstance(e, MesonException):
+                errmsg += f'\nUsing `{c}` failed: {e}'
+            else:
+                errmsg += f'\nRunning `{c}` gave "{e}"'
     raise EnvironmentException(errmsg)
 
 
