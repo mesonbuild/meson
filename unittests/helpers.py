@@ -111,9 +111,12 @@ class _PkgConfigSkip:
 
         Note: Yes, we provide pkg-config even while running Windows CI
         '''
+        if is_ci():
+            return f
+
         @functools.wraps(f)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
-            if not is_ci() and self.pkgconf is None:
+            if self.pkgconf is None:
                 raise unittest.SkipTest('pkg-config not found')
             return f(*args, **kwargs)
         return wrapped
@@ -170,9 +173,12 @@ class _ExecutableHelper:
         cmake installed on, f.ex., macOS, while ensuring that our CI does not
         silently skip the test because of misconfiguration.
         '''
+        if is_ci():
+            return f
+
         @functools.wraps(f)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
-            if not is_ci() and not self._exists('cmake'):
+            if not self._exists('cmake'):
                 raise unittest.SkipTest('cmake not found')
             return f(*args, **kwargs)
         return wrapped
