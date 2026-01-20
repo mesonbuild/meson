@@ -136,6 +136,7 @@ class XgettextProgram:
         self.interpreter = interpreter
 
     def extract(self,
+                state: ModuleState,
                 name: str,
                 sources: T.List[SourcesType],
                 args: T.List[str],
@@ -175,6 +176,7 @@ class XgettextProgram:
             command,
             inputs,
             [name],
+            state.is_build_only_subproject,
             depend_files = depend_files,
             extra_depends = depends,
             install = install,
@@ -336,6 +338,7 @@ class I18nModule(ExtensionModule):
             command,
             kwargs['input'],
             [kwargs['output']],
+            state.is_build_only_subproject,
             build_by_default=build_by_default,
             install=kwargs['install'],
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] is not None else None,
@@ -426,6 +429,7 @@ class I18nModule(ExtensionModule):
                 [self.tools['msgfmt'], '-o', '@OUTPUT@', '@INPUT@'],
                 [po_file],
                 [f'{packagename}.mo'],
+                state.is_build_only_subproject,
                 install=install,
                 # We have multiple files all installed as packagename+'.mo' in different install subdirs.
                 # What we really wanted to do, probably, is have a rename: kwarg, but that's not available
@@ -520,6 +524,7 @@ class I18nModule(ExtensionModule):
             command,
             kwargs['input'],
             [kwargs['output']],
+            state.is_build_only_subproject,
             build_by_default=build_by_default,
             extra_depends=mo_targets,
             install=kwargs['install'],
@@ -554,7 +559,7 @@ class I18nModule(ExtensionModule):
             raise InvalidArguments('i18n.xgettext: "install_dir" keyword argument must be set when "install" is true.')
 
         xgettext_program = XgettextProgram(T.cast('ExternalProgram', self.tools[toolname]), self.interpreter)
-        return xgettext_program.extract(*args, **kwargs)
+        return xgettext_program.extract(state, *args, **kwargs)
 
 
 def initialize(interp: 'Interpreter') -> I18nModule:
