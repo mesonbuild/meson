@@ -386,6 +386,7 @@ class Build:
             environment.is_cross_build(), {}, {})
 
         self.devenv: T.List[EnvironmentVariables] = []
+        self.is_build_only = False
         self.modules: T.Set[str] = set()
         """Used to track which modules are enabled in all subprojects.
 
@@ -433,8 +434,27 @@ class Build:
             other.__dict__[k] = copy_value(v)
         return other
 
+    def copy_for_build_machine(self) -> Build:
+        """Create a build-only copy for build machine subprojects.
+
+        Build-only subprojects run with host==build configuration so that get_compiler(),
+        dependency() etc. look up the native (non-cross) environments.  However, note
+        that the environment is still a cross one so that the build-machine options,
+        dependencies, etc. are looked up.
+        """
+        new = self.copy()
+        new.is_build_only = True
+        return new
+
     def merge(self, other: Build) -> None:
+        if self.is_build_only != other.is_build_only:
+            assert self.is_build_only is False, 'We should never merge a multi machine subproject into a single machine subproject, right?'
+
         for k, v in other.__dict__.items():
+            # These are modified for the build-only config, and are the same
+            # for all build != host config.  No need to copy them.
+            if k == 'is_build_only':
+                continue
             # These are not modified in subprojects
             if k in {'global_args', 'global_link_args'}:
                 continue
