@@ -509,7 +509,8 @@ class Build:
         return d.get(compiler.get_language(), [])
 
     def get_project_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
-        d = self.projects.host[target.subproject]
+        for_machine = MachineChoice.BUILD if target.build_only_subproject else MachineChoice.HOST
+        d = self.projects[for_machine][target.subproject]
         args = d.project_args[target.for_machine]
         if not args:
             return []
@@ -520,7 +521,8 @@ class Build:
         return d.get(compiler.get_language(), [])
 
     def get_project_link_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
-        d = self.projects.host[target.subproject]
+        for_machine = MachineChoice.BUILD if target.build_only_subproject else MachineChoice.HOST
+        d = self.projects[for_machine][target.subproject]
         link_args = d.project_link_args[target.for_machine]
         if not link_args:
             return []
@@ -849,8 +851,10 @@ class BuildTarget(Target):
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_only_subproject: bool,
             kwargs: BuildTargetKeywordArguments):
-        super().__init__(name, subdir, subproject, True, for_machine, environment, install=kwargs.get('install', False), build_subdir=kwargs.get('build_subdir', ''))
+        super().__init__(name, subdir, subproject, True, for_machine, environment,
+                         install=kwargs.get('install', False), build_subdir=kwargs.get('build_subdir', ''))
         self.all_compilers = compilers
         self.compilers: CompilerDict = {}
         self.objects: T.List[ObjectTypes] = []
@@ -920,7 +924,7 @@ class BuildTarget(Target):
                          'This was never supposed to be allowed but did because of a bug, '
                          'support will be removed in a future release of Meson')
         self.check_unknown_kwargs(kwargs)
-        self.validate_install()
+        self.validate_cross()
         self.check_module_linking()
 
     def _set_vala_args(self, kwargs: BuildTargetKeywordArguments) -> None:
@@ -968,7 +972,13 @@ class BuildTarget(Target):
     def __str__(self) -> str:
         return f"{self.name}"
 
-    def validate_install(self) -> None:
+    def validate_cross(self) -> None:
+        if self.build_only_subproject and self.environment.is_cross_build():
+            if self.for_machine is MachineChoice.HOST:
+                raise MesonBugException('Tried to build a target for the host machine in a build-only subproject.')
+            if self.install:
+                raise MesonBugException('Tried to build an installable target in a build-only subproject.')
+
         if self.for_machine is MachineChoice.BUILD and self.install:
             if self.environment.is_cross_build():
                 raise InvalidArguments('Tried to install a target for the build machine in a cross build.')
@@ -2124,11 +2134,12 @@ class Executable(BuildTarget):
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_only_subproject: bool,
             kwargs: ExecutableKeywordArguments):
         self.export_dynamic = kwargs.get('export_dynamic', False)
         self.rust_crate_type = kwargs.get('rust_crate_type', 'bin')
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+                         environment, compilers, build_only_subproject, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
         self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
         # Check for export_dynamic
@@ -2255,11 +2266,12 @@ class StaticLibrary(BuildTarget):
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_only_subproject: bool,
             kwargs: StaticLibraryKeywordArguments):
         self.prelink = kwargs.get('prelink', False)
         self.rust_crate_type = kwargs.get('rust_crate_type', 'rlib')
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+                         environment, compilers, build_only_subproject, kwargs)
         self.pic = self._extract_pic_pie(kwargs, 'pic', 'b_staticpic')
         if not self.pic:
             self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
@@ -2432,6 +2444,7 @@ class SharedLibrary(BuildTarget):
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_only_subproject: bool,
             kwargs):
         self.soversion: T.Optional[str] = None
         self.ltversion: T.Optional[str] = None
@@ -2447,7 +2460,7 @@ class SharedLibrary(BuildTarget):
         self.shared_library_only = False
         self.rust_crate_type = kwargs.get('rust_crate_type', 'dylib')
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+                         environment, compilers, build_only_subproject, kwargs)
 
     def post_init(self) -> None:
         super().post_init()
@@ -2759,13 +2772,14 @@ class SharedModule(SharedLibrary):
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_only_subproject: bool,
             kwargs):
         if 'version' in kwargs:
             raise MesonException('Shared modules must not specify the version kwarg.')
         if 'soversion' in kwargs:
             raise MesonException('Shared modules must not specify the soversion kwarg.')
         super().__init__(name, subdir, subproject, for_machine, sources,
-                         structured_sources, objects, environment, compilers, kwargs)
+                         structured_sources, objects, environment, compilers, build_only_subproject, kwargs)
         # We need to set the soname in cases where build files link the module
         # to build targets, see: https://github.com/mesonbuild/meson/issues/9492
         self.force_soname = False
@@ -3099,6 +3113,7 @@ class CompileTarget(BuildTarget):
                  compile_args: T.List[str],
                  include_directories: T.List[IncludeDirs],
                  dependencies: T.List[dependencies.Dependency],
+                 build_only_subproject: bool,
                  depends: T.List[BuildTargetTypes]):
         compilers = {compiler.get_language(): compiler}
         kwargs = {
@@ -3108,7 +3123,8 @@ class CompileTarget(BuildTarget):
             'dependencies': dependencies,
         }
         super().__init__(name, subdir, subproject, compiler.for_machine,
-                         sources, None, [], environment, compilers, kwargs)
+                         sources, None, [], environment, compilers,
+                         build_only_subproject, kwargs)
         self.filename = name
         self.compiler = compiler
         self.output_templ = output_templ
@@ -3210,9 +3226,9 @@ class Jar(BuildTarget):
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
                  objects, environment: Environment, compilers: CompilerDict,
-                 kwargs):
+                 build_only_subproject: bool, kwargs):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+                         environment, compilers, build_only_subproject, kwargs)
         for s in self.sources:
             if not s.endswith('.java'):
                 raise InvalidArguments(f'Jar source {s} is not a java file.')
