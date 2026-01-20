@@ -14,16 +14,18 @@ from pathlib import Path
 from contextlib import contextmanager
 from unittest import mock
 
-from mesonbuild.compilers import detect_c_compiler, compiler_from_language
+from mesonbuild.compilers import compiler_from_language
 from mesonbuild.mesonlib import (
-    MachineChoice, is_osx, is_cygwin, EnvironmentException, MachineChoice,
-    OrderedSet
+    MachineChoice, is_osx, is_cygwin, OrderedSet, EnvironmentException,
 )
 from mesonbuild.options import OptionKey
 from run_tests import get_fake_env
 
 if T.TYPE_CHECKING:
     from typing_extensions import ParamSpec
+
+    from mesonbuild.compilers import Compiler
+    from mesonbuild.compilers.compilers import CompilerDict, Language
 
     P = ParamSpec('P')
     R = T.TypeVar('R')
@@ -33,84 +35,165 @@ def is_ci() -> bool:
     return os.environ.get('MESON_CI_JOBNAME', 'thirdparty') != 'thirdparty'
 
 
-def skip_if_not_base_option(feature: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]]:
-    """Skip tests if The compiler does not support a given base option.
+class _CompilerSkip:
 
-    for example, ICC doesn't currently support b_sanitize.
+    """Helper class for skipping based on whether the C compiler supports a
+    compiler option.
+
+    Known limits:
+      - only checks a C compiler
+      - only checks the host machine
     """
-    def actual(f: T.Callable[P, R]) -> T.Callable[P, R]:
+
+    def __init__(self) -> None:
+        self._env = get_fake_env()
+        self._cache: CompilerDict = {}
+
+    def _compiler(self, lang: Language) -> T.Optional[Compiler]:
+        try:
+            return self._cache[lang]
+        except KeyError:
+            try:
+                comp = compiler_from_language(self._env, lang, MachineChoice.HOST)
+            except EnvironmentException:
+                comp = None
+            self._cache[lang] = comp
+            return comp
+
+    def require_base_opt(self, feature: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]]:
+        """Skip tests if the compiler does not support a given base option.
+
+        for example, ICC doesn't currently support b_sanitize.
+        """
+        def actual(f: T.Callable[P, R]) -> T.Callable[P, R]:
+            key = OptionKey(feature)
+
+            @functools.wraps(f)
+            def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
+                comp = self._compiler('c')
+                assert comp is not None
+                if key not in comp.base_options:
+                    raise unittest.SkipTest(
+                        f'{feature} not available with {comp.id}')
+
+                return f(*args, **kwargs)
+            return wrapped
+        return actual
+
+    def require_language(self, lang: Language) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]]:
+        def wrapper(func: T.Callable[P, R]) -> T.Callable[P, R]:
+            @functools.wraps(func)
+            def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
+                if not self._compiler(lang):
+                    raise unittest.SkipTest(f'No {lang} compiler found.')
+                return func(*args, **kwargs)
+            return wrapped
+        return wrapper
+
+
+_compiler = _CompilerSkip()
+skip_if_not_base_option = _compiler.require_base_opt
+skip_if_not_language = _compiler.require_language
+
+
+class _PkgConfigSkip:
+
+    def __init__(self) -> None:
+        self.pkgconf = shutil.which('pkg-config') or shutil.which('pkgconf')
+        self.depcache: T.Dict[str, bool] = {}
+
+    def require_pkgconf(self, f: T.Callable[P, R]) -> T.Callable[P, R]:
+        '''
+        Skip this test if no pkg-config is found, unless we're on CI.
+        This allows users to run our test suite without having
+        pkg-config installed on, f.ex., macOS, while ensuring that our CI does not
+        silently skip the test because of misconfiguration.
+
+        Note: Yes, we provide pkg-config even while running Windows CI
+        '''
         @functools.wraps(f)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
-            env = get_fake_env()
-            cc = detect_c_compiler(env, MachineChoice.HOST)
-            key = OptionKey(feature)
-            if key not in cc.base_options:
-                raise unittest.SkipTest(
-                    f'{feature} not available with {cc.id}')
+            if not is_ci() and self.pkgconf is None:
+                raise unittest.SkipTest('pkg-config not found')
             return f(*args, **kwargs)
         return wrapped
-    return actual
+
+    def _has_dep(self, depname: str) -> bool:
+        try:
+            return self.depcache[depname]
+        except KeyError:
+            found = subprocess.call([self.pkgconf, '--exists', depname]) == 0
+            self.depcache[depname] = found
+            return found
+
+    def require_dep(self, depname: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]]:
+        '''
+        Skip this test if the given pkg-config dep is not found, unless we're on CI.
+        '''
+        def wrapper(func: T.Callable[P, R]) -> T.Callable[P, R]:
+            if is_ci():
+                return func
+
+            @functools.wraps(func)
+            def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
+                if self.pkgconf is None:
+                    raise unittest.SkipTest('pkg-config not found')
+                if not self._has_dep(depname):
+                    raise unittest.SkipTest(f'pkg-config dependency {depname} not found.')
+                return func(*args, **kwargs)
+            return wrapped
+        return wrapper
 
 
-def skipIfNoPkgconfig(f: T.Callable[P, R]) -> T.Callable[P, R]:
-    '''
-    Skip this test if no pkg-config is found, unless we're on CI.
-    This allows users to run our test suite without having
-    pkg-config installed on, f.ex., macOS, while ensuring that our CI does not
-    silently skip the test because of misconfiguration.
-
-    Note: Yes, we provide pkg-config even while running Windows CI
-    '''
-    @functools.wraps(f)
-    def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
-        if not is_ci() and shutil.which('pkg-config') is None:
-            raise unittest.SkipTest('pkg-config not found')
-        return f(*args, **kwargs)
-    return wrapped
+_pkgconf = _PkgConfigSkip()
+skipIfNoPkgconfig = _pkgconf.require_pkgconf
+skipIfNoPkgconfigDep = _pkgconf.require_dep
 
 
-def skipIfNoPkgconfigDep(depname: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]]:
-    '''
-    Skip this test if the given pkg-config dep is not found, unless we're on CI.
-    '''
-    def wrapper(func: T.Callable[P, R]) -> T.Callable[P, R]:
-        @functools.wraps(func)
+class _ExecutableHelper:
+
+    def __init__(self) -> None:
+        self._cache: T.Dict[str, bool] = {}
+
+    def _exists(self, name: str) -> bool:
+        try:
+            return self._cache[name]
+        except KeyError:
+            found = shutil.which(name) is not None
+            self._cache[name] = found
+            return found
+
+    def require_cmake(self, f: T.Callable[P, R]) -> T.Callable[P, R]:
+        '''
+        Skip this test if no cmake is found, unless we're on CI.
+        This allows users to run our test suite without having
+        cmake installed on, f.ex., macOS, while ensuring that our CI does not
+        silently skip the test because of misconfiguration.
+        '''
+        @functools.wraps(f)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
-            if not is_ci() and shutil.which('pkg-config') is None:
-                raise unittest.SkipTest('pkg-config not found')
-            if not is_ci() and subprocess.call(['pkg-config', '--exists', depname]) != 0:
-                raise unittest.SkipTest(f'pkg-config dependency {depname} not found.')
-            return func(*args, **kwargs)
+            if not is_ci() and not self._exists('cmake'):
+                raise unittest.SkipTest('cmake not found')
+            return f(*args, **kwargs)
         return wrapped
-    return wrapper
+
+    def require_executable(self, exename: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]]:
+        '''
+        Skip this test if the given executable is not found.
+        '''
+        def wrapper(func: T.Callable[P, R]) -> T.Callable[P, R]:
+            @functools.wraps(func)
+            def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
+                if not self._exists(exename):
+                    raise unittest.SkipTest(exename + ' not found')
+                return func(*args, **kwargs)
+            return wrapped
+        return wrapper
 
 
-def skip_if_no_cmake(f: T.Callable[P, R]) -> T.Callable[P, R]:
-    '''
-    Skip this test if no cmake is found, unless we're on CI.
-    This allows users to run our test suite without having
-    cmake installed on, f.ex., macOS, while ensuring that our CI does not
-    silently skip the test because of misconfiguration.
-    '''
-    @functools.wraps(f)
-    def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
-        if not is_ci() and shutil.which('cmake') is None:
-            raise unittest.SkipTest('cmake not found')
-        return f(*args, **kwargs)
-    return wrapped
-
-
-def skip_if_not_language(lang: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]]:
-    def wrapper(func: T.Callable[P, R]) -> T.Callable[P, R]:
-        @functools.wraps(func)
-        def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
-            try:
-                compiler_from_language(get_fake_env(), lang, MachineChoice.HOST)
-            except EnvironmentException:
-                raise unittest.SkipTest(f'No {lang} compiler found.')
-            return func(*args, **kwargs)
-        return wrapped
-    return wrapper
+_exe = _ExecutableHelper()
+skip_if_no_cmake = _exe.require_cmake
+skipIfNoExecutable = _exe.require_executable
 
 
 def skip_if_env_set(key: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]]:
@@ -125,20 +208,6 @@ def skip_if_env_set(key: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]
             with mock.patch.dict(os.environ):
                 os.environ.pop(key, None)
                 return func(*args, **kwargs)
-        return wrapped
-    return wrapper
-
-
-def skipIfNoExecutable(exename: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]]:
-    '''
-    Skip this test if the given executable is not found.
-    '''
-    def wrapper(func: T.Callable[P, R]) -> T.Callable[P, R]:
-        @functools.wraps(func)
-        def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
-            if shutil.which(exename) is None:
-                raise unittest.SkipTest(exename + ' not found')
-            return func(*args, **kwargs)
         return wrapped
     return wrapper
 

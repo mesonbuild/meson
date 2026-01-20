@@ -30,6 +30,7 @@ from mesonbuild import coredata
 from mesonbuild.compilers.c import ClangCCompiler, GnuCCompiler
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler
+from mesonbuild.compilers.detect import detect_c_compiler
 from mesonbuild.linkers import linkers
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectHolder
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_kwargs, ContainerTypeInfo, KwargInfo

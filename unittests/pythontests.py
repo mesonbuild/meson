@@ -11,6 +11,7 @@ from .allplatformstests import git_init
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
 
+from mesonbuild.compilers.detect import detect_c_compiler
 from mesonbuild.mesonlib import MachineChoice, TemporaryDirectoryWinProof, is_windows
 from mesonbuild.modules.python import PythonModule
 
