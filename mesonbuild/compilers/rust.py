@@ -225,6 +225,10 @@ class RustCompiler(Compiler):
         # for the sake of C/C++ code
         return rustc_link_args(super().sanitizer_link_args(target, value))
 
+    def get_soname_args(self, prefix: str, shlib_name: str, suffix: str, soversion: str,
+                        darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+        return rustc_link_args(super().get_soname_args(prefix, shlib_name, suffix, soversion, darwin_versions))
+
     @functools.lru_cache(maxsize=None)
     def has_verbatim(self) -> bool:
         if version_compare(self.version, '< 1.67.0'):
