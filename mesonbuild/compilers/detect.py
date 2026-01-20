@@ -1059,9 +1059,6 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
     from ..linkers import linkers
     popen_exceptions: T.Dict[str, Exception] = {}
     compilers, _ = _get_compilers(env, 'rust', for_machine)
-
-    cc = detect_c_compiler(env, for_machine)
-    is_link_exe = isinstance(cc.linker, linkers.VisualStudioLikeLinkerMixin)
     override = env.lookup_binary_entry(for_machine, 'rust_ld')
 
     for compiler in compilers:
@@ -1104,12 +1101,33 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
         if 'rustc' in out:
             # On Linux and mac rustc will invoke gcc (clang for mac
             # presumably) and it can do this windows, for dynamic linking.
-            # this means the easiest way to C compiler for dynamic linking.
-            # figure out what linker to use is to just get the value of the
-            # C compiler and use that as the basis of the rust linker.
+            # this means the easiest way to figure out what linker to use
+            # is to just get the value of the C compiler and use that as
+            # the basis of the rust linker.
+            #
             # However, there are two things we need to change, if CC is not
             # the default use that, and second add the necessary arguments
             # to rust to use -fuse-ld
+            #
+            # For MSVC targets, require an MSVC-compatible C compiler to get
+            # the corresponding linker
+            rust_target = rust.parse_target(compiler)
+            if rust_target and rust_target.endswith('-msvc'):
+                try:
+                    cc = _detect_c_or_cpp_compiler(env, 'c', for_machine,
+                                                   override_compiler=['clang-cl', 'cl'])
+                except EnvironmentException:
+                    popen_exceptions[join_args(compiler)] = \
+                        EnvironmentException('No MSVC-compatible C compiler found for MSVC Rust target')
+                    continue
+            else:
+                try:
+                    cc = detect_c_compiler(env, for_machine)
+                except EnvironmentException as e:
+                    popen_exceptions[join_args(compiler)] = e
+                    continue
+
+            is_link_exe = isinstance(cc.linker, linkers.VisualStudioLikeLinkerMixin)
 
             if any(a.startswith('linker=') for a in compiler):
                 mlog.warning(
