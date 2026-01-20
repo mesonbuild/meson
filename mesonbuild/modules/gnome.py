@@ -308,20 +308,19 @@ class GnomeModule(ExtensionModule):
     @staticmethod
     def _find_tool(state: 'ModuleState', tool: str) -> Program:
         tool_map = {
-            'gio-querymodules': 'gio-2.0',
-            'glib-compile-schemas': 'gio-2.0',
-            'glib-compile-resources': 'gio-2.0',
-            'gdbus-codegen': 'gio-2.0',
-            'glib-genmarshal': 'glib-2.0',
-            'glib-mkenums': 'glib-2.0',
-            'g-ir-scanner': 'gobject-introspection-1.0',
-            'g-ir-compiler': 'gobject-introspection-1.0',
-            'vapigen': 'vapigen',
+            'gio-querymodules': ('gio-2.0', False),
+            'glib-compile-schemas': ('gio-2.0', True),
+            'glib-compile-resources': ('gio-2.0', True),
+            'gdbus-codegen': ('gio-2.0', True),
+            'glib-genmarshal': ('glib-2.0', True),
+            'glib-mkenums': ('glib-2.0', True),
+            'g-ir-scanner': ('gobject-introspection-1.0', False),
+            'g-ir-compiler': ('gobject-introspection-1.0', False),
+            'vapigen': ('vapigen', False),
         }
-        native_deps = {'gio-2.0', 'glib-2.0'}
-        depname = tool_map[tool]
+        depname, native = tool_map[tool]
         varname = tool.replace('-', '_')
-        return state.find_tool(tool, depname, varname, native=depname in native_deps)
+        return state.find_tool(tool, depname, varname, native=native)
 
     @typed_kwargs(
         'gnome.post_install',
