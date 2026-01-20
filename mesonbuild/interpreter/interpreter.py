@@ -2994,7 +2994,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                                     args[0], kwargs)
 
     def current_build_project(self) -> build.BuildProject:
-        return self.build.projects.host[self.subproject]
+        for_machine = MachineChoice.BUILD if self.build.is_build_only else MachineChoice.HOST
+        return self.build.projects[for_machine][self.subproject]
 
     @FeatureNew('add_project_dependencies', '0.63.0')
     @typed_pos_args('add_project_dependencies', varargs=dependencies.Dependency)
