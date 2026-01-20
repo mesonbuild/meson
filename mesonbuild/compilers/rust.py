@@ -417,6 +417,9 @@ class RustCompiler(Compiler):
     def get_allow_undefined_link_args(self) -> T.List[str]:
         return rustc_link_args(super().get_allow_undefined_link_args())
 
+    def get_target_link_args(self, target: 'BuildTarget') -> T.List[str]:
+        return rustc_link_args(super().get_target_link_args(target))
+
     def get_werror_args(self) -> T.List[str]:
         # Use -D warnings, which makes every warning not explicitly allowed an
         # error
