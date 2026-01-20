@@ -2046,6 +2046,7 @@ class NinjaBackend(backends.Backend):
             args += compilers.get_base_link_args(target, rustc, self.environment)
             # Add soname for shared libraries
             args += self.get_soname_args(target, rustc)
+            args += rustc.get_target_link_args(target)
 
         args += self.generate_basic_compiler_args(target, rustc)
         args += ['--crate-name', self._get_rust_crate_name(target.name)]
