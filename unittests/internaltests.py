@@ -1061,7 +1061,7 @@ class InternalTests(unittest.TestCase):
                 from jsonschema import validate, ValidationError as JsonSchemaFailure
                 fast = False
             except:
-                if is_ci():
+                if IS_CI:
                     raise
                 raise unittest.SkipTest('neither Python fastjsonschema nor jsonschema module not found.')
 

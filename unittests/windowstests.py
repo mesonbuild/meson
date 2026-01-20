@@ -338,7 +338,7 @@ class WindowsTests(BasePlatformTests):
         try:
             import pefile
         except ImportError:
-            if is_ci():
+            if IS_CI:
                 raise
             raise SkipTest('pefile module not found')
         testdir = os.path.join(self.common_test_dir, '6 linkshared')
@@ -373,10 +373,10 @@ class WindowsTests(BasePlatformTests):
             raise SkipTest('Compiler does not support setting the VS CRT')
         # Verify that qmake is for Qt5
         if not shutil.which('qmake-qt5'):
-            if not shutil.which('qmake') and not is_ci():
+            if not shutil.which('qmake') and not IS_CI:
                 raise SkipTest('QMake not found')
             output = subprocess.getoutput('qmake --version')
-            if 'Qt version 5' not in output and not is_ci():
+            if 'Qt version 5' not in output and not IS_CI:
                 raise SkipTest('Qmake found, but it is not for Qt 5.')
         # Setup with /MDd
         testdir = os.path.join(self.framework_test_dir, '4 qt')

@@ -1153,7 +1153,7 @@ class AllPlatformTests(BasePlatformTests):
                         ecc = compiler_from_language(env, lang, MachineChoice.HOST)
                     except EnvironmentException:
                         # always raise in ci, we expect to have a valid ObjC and ObjC++ compiler of some kind
-                        if is_ci():
+                        if IS_CI:
                             self.fail(f'Could not find a compiler for {lang}')
                         if sys.version_info < (3, 11):
                             continue
@@ -1193,7 +1193,7 @@ class AllPlatformTests(BasePlatformTests):
                     cc = compiler_from_language(env, lang, MachineChoice.HOST)
                 except EnvironmentException:
                     # always raise in ci, we expect to have a valid ObjC and ObjC++ compiler of some kind
-                    if is_ci():
+                    if IS_CI:
                         self.fail(f'Could not find a compiler for {lang}')
                     if sys.version_info < (3, 11):
                         continue
@@ -1266,7 +1266,7 @@ class AllPlatformTests(BasePlatformTests):
                     wcc = compiler_from_language(env, lang, MachineChoice.HOST)
                 except EnvironmentException:
                     # always raise in ci, we expect to have a valid ObjC and ObjC++ compiler of some kind
-                    if is_ci():
+                    if IS_CI:
                         self.fail(f'Could not find a compiler for {lang}')
                     if sys.version_info < (3, 11):
                         continue
@@ -2320,7 +2320,7 @@ class AllPlatformTests(BasePlatformTests):
     # Call this method before file operations in appropriate places
     # to make things work.
     def mac_ci_delay(self):
-        if is_osx() and is_ci():
+        if is_osx() and IS_CI:
             import time
             time.sleep(1)
 

@@ -31,8 +31,7 @@ if T.TYPE_CHECKING:
     R = T.TypeVar('R')
 
 
-def is_ci() -> bool:
-    return os.environ.get('MESON_CI_JOBNAME', 'thirdparty') != 'thirdparty'
+IS_CI = os.environ.get('MESON_CI_JOBNAME', 'thirdparty') != 'thirdparty'
 
 
 class _CompilerSkip:
@@ -111,7 +110,7 @@ class _PkgConfigSkip:
 
         Note: Yes, we provide pkg-config even while running Windows CI
         '''
-        if is_ci():
+        if IS_CI:
             return f
 
         @functools.wraps(f)
@@ -134,7 +133,7 @@ class _PkgConfigSkip:
         Skip this test if the given pkg-config dep is not found, unless we're on CI.
         '''
         def wrapper(func: T.Callable[P, R]) -> T.Callable[P, R]:
-            if is_ci():
+            if IS_CI:
                 return func
 
             @functools.wraps(func)
@@ -173,7 +172,7 @@ class _ExecutableHelper:
         cmake installed on, f.ex., macOS, while ensuring that our CI does not
         silently skip the test because of misconfiguration.
         '''
-        if is_ci():
+        if IS_CI:
             return f
 
         @functools.wraps(f)
@@ -209,7 +208,7 @@ def skip_if_env_set(key: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]
     def wrapper(func: T.Callable[P, R]) -> T.Callable[P, R]:
         @functools.wraps(func)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
-            if key in os.environ and not is_ci():
+            if key in os.environ and not IS_CI:
                 raise unittest.SkipTest(f'Env var {key!r} set, skipping')
             with mock.patch.dict(os.environ):
                 os.environ.pop(key, None)
