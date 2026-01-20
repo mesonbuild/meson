@@ -316,10 +316,12 @@ class GnomeModule(ExtensionModule):
             'glib-mkenums': 'glib-2.0',
             'g-ir-scanner': 'gobject-introspection-1.0',
             'g-ir-compiler': 'gobject-introspection-1.0',
+            'vapigen': 'vapigen',
         }
+        native_deps = {'gio-2.0', 'glib-2.0'}
         depname = tool_map[tool]
         varname = tool.replace('-', '_')
-        return state.find_tool(tool, depname, varname, native=depname != "gobject-introspection-1.0")
+        return state.find_tool(tool, depname, varname, native=depname in native_deps)
 
     @typed_kwargs(
         'gnome.post_install',
@@ -2240,7 +2242,7 @@ class GnomeModule(ExtensionModule):
         build_dir = os.path.join(state.environment.get_build_dir(), state.subdir)
         source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
         pkg_cmd, vapi_depends, vapi_packages, vapi_includes, packages = self._extract_vapi_packages(state, kwargs['packages'])
-        cmd: CommandList = [state.find_program('vapigen'), '--quiet', f'--library={library}', f'--directory={build_dir}']
+        cmd: CommandList = [self._find_tool(state, 'vapigen'), '--quiet', f'--library={library}', f'--directory={build_dir}']
         cmd.extend([f'--vapidir={d}' for d in kwargs['vapi_dirs']])
         cmd.extend([f'--metadatadir={d}' for d in kwargs['metadata_dirs']])
         cmd.extend([f'--girdir={d}' for d in kwargs['gir_dirs']])
