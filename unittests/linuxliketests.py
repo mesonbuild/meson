@@ -1080,14 +1080,12 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Db_coverage=true'], default_args=False)
         self.build('reconfigure')
 
+    @skip_if_not_language('vala')
     def test_vala_generated_source_buildir_inside_source_tree(self):
         '''
         Test that valac outputs generated C files in the expected location when
         the builddir is a subdir of the source tree.
         '''
-        if not shutil.which('valac'):
-            raise SkipTest('valac not installed.')
-
         testdir = os.path.join(self.vala_test_dir, '8 generated sources')
         newdir = os.path.join(self.builddir, 'srctree')
         shutil.copytree(testdir, newdir)

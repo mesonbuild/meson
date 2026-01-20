@@ -523,14 +523,13 @@ class AllPlatformTests(BasePlatformTests):
         fixed_string = mtest.replace_unencodable_xml_chars(invalid_string)
         self.assertEqual(fixed_string, valid_string)
 
+    @skipIfNoExecutable('xmllint')
     def test_replace_unencodable_xml_chars_unit(self):
         '''
         Test that unencodable xml chars are replaced with their
         printable representation
         https://github.com/mesonbuild/meson/issues/9894
         '''
-        if not shutil.which('xmllint'):
-            raise SkipTest('xmllint not installed')
         testdir = os.path.join(self.unit_test_dir, '111 replace unencodable xml chars')
         self.init(testdir)
         tests_command_output = self.run_tests()
@@ -791,10 +790,8 @@ class AllPlatformTests(BasePlatformTests):
             line_number += 1
         self.assertEqual(i, 100001)
 
-
+    @skipIfNoExecutable('valgrind')
     def test_testsetups(self):
-        if not shutil.which('valgrind'):
-            raise SkipTest('Valgrind not installed.')
         testdir = os.path.join(self.unit_test_dir, '2 testsetups')
         self.init(testdir)
         self.build()
@@ -1013,15 +1010,11 @@ class AllPlatformTests(BasePlatformTests):
         self.build(target=('barprog' + exe_suffix))
         self.assertPathExists(exe2)
 
+    @skip_if_not_language('cython')
     def test_build_generated_pyx_directly(self):
         # Check that the transpile stage also includes
         # dependencies for the compilation stage as dependencies
         testdir = os.path.join("test cases/cython", '2 generated sources')
-        env = get_fake_env(testdir, self.builddir, self.prefix)
-        try:
-            detect_compiler_for(env, "cython", MachineChoice.HOST, True, '')
-        except EnvironmentException:
-            raise SkipTest("Cython is not installed")
         self.init(testdir)
         # Need to get the full target name of the pyx.c target
         # (which is unfortunately not provided by introspection :( )
@@ -1541,9 +1534,8 @@ class AllPlatformTests(BasePlatformTests):
             for src in t['target_sources']:
                 self.assertTrue(expected.issubset(set(src['parameters'])), f'Incorrect values for {t["name"]}')
 
+    @skipIfNoExecutable('git')
     def test_dist_git(self):
-        if not shutil.which('git'):
-            raise SkipTest('Git not found')
         if self.backend is not Backend.ninja:
             raise SkipTest('Dist is only supported with Ninja')
 
@@ -1592,9 +1584,8 @@ class AllPlatformTests(BasePlatformTests):
             # fails sometimes.
             pass
 
+    @skipIfNoExecutable('git')
     def test_dist_git_script(self):
-        if not shutil.which('git'):
-            raise SkipTest('Git not found')
         if self.backend is not Backend.ninja:
             raise SkipTest('Dist is only supported with Ninja')
 
@@ -3438,13 +3429,11 @@ class AllPlatformTests(BasePlatformTests):
                 os.unlink(includefile)
 
     @skipIfNoExecutable('clang-tidy')
+    @skipIfNoExecutable('c++')
+    @skipIf(is_osx(), 'Apple ships a broken clang-tidy that chokes on -pipe.')
     def test_clang_tidy(self):
         if self.backend is not Backend.ninja:
             raise SkipTest(f'Clang-tidy is for now only supported on Ninja, not {self.backend.name}')
-        if shutil.which('c++') is None:
-            raise SkipTest('Clang-tidy breaks when ccache is used and "c++" not in path.')
-        if is_osx():
-            raise SkipTest('Apple ships a broken clang-tidy that chokes on -pipe.')
         testdir = os.path.join(self.unit_test_dir, '68 clang-tidy')
         dummydir = os.path.join(testdir, 'dummydir.h')
         self.init(testdir, override_envvars={'CXX': 'c++'})
@@ -3453,13 +3442,11 @@ class AllPlatformTests(BasePlatformTests):
         self.assertNotIn(dummydir, out)
 
     @skipIfNoExecutable('clang-tidy')
+    @skipIfNoExecutable('c++')
+    @skipIf(is_osx(), 'Apple ships a broken clang-tidy that chokes on -pipe.')
     def test_clang_tidy_fix(self):
         if self.backend is not Backend.ninja:
             raise SkipTest(f'Clang-tidy is for now only supported on Ninja, not {self.backend.name}')
-        if shutil.which('c++') is None:
-            raise SkipTest('Clang-tidy breaks when ccache is used and "c++" not in path.')
-        if is_osx():
-            raise SkipTest('Apple ships a broken clang-tidy that chokes on -pipe.')
         testdir = os.path.join(self.unit_test_dir, '68 clang-tidy')
 
         # Ensure that test project is in git even when running meson from tarball.
@@ -4735,11 +4722,10 @@ class AllPlatformTests(BasePlatformTests):
         result = subprocess.run(cmd, encoding='utf-8')
         self.assertEqual(result.returncode, 42)
 
+    @skipIfNoExecutable('clang-format')
     def test_clang_format_check(self):
         if self.backend is not Backend.ninja:
             raise SkipTest(f'Skipping clang-format tests with {self.backend.name} backend')
-        if not shutil.which('clang-format'):
-            raise SkipTest('clang-format not found')
 
         testdir = os.path.join(self.unit_test_dir, '93 clangformat')
         newdir = os.path.join(self.builddir, 'testdir')
@@ -5250,7 +5236,7 @@ class AllPlatformTests(BasePlatformTests):
                     self.assertEqual(res[data_type][file], details)
 
     @skip_if_not_language('rust')
-    @unittest.skipIf(not shutil.which('rustdoc'), 'Test requires rustdoc')
+    @skipIfNoExecutable('rustdoc')
     def test_rustdoc(self) -> None:
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('Rust is only supported with ninja currently')
@@ -5268,7 +5254,7 @@ class AllPlatformTests(BasePlatformTests):
             pass
 
     @skip_if_not_language('rust')
-    @unittest.skipIf(not shutil.which('clippy-driver'), 'Test requires clippy-driver')
+    @skipIfNoExecutable('clippy-driver')
     def test_rust_clippy(self) -> None:
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('Rust is only supported with ninja currently')
@@ -5286,7 +5272,7 @@ class AllPlatformTests(BasePlatformTests):
                         'error: use of a disallowed/placeholder name `foo`' in cm.exception.stdout)
 
     @skip_if_not_language('rust')
-    @unittest.skipIf(not shutil.which('clippy-driver'), 'Test requires clippy-driver')
+    @skipIfNoExecutable('clippy-driver')
     def test_rust_clippy_as_rustc(self) -> None:
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('Rust is only supported with ninja currently')

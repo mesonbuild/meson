@@ -92,9 +92,8 @@ class LinuxCrossArmTests(BaseLinuxCrossTests):
         self.build()
 
     @skipIfNoPkgconfig
+    @skipIfNoExecutable('arm-linux-gnueabihf-pkg-config')
     def test_pkg_config_option(self):
-        if not shutil.which('arm-linux-gnueabihf-pkg-config'):
-            raise unittest.SkipTest('Cross-pkgconfig not found.')
         testdir = os.path.join(self.unit_test_dir, '57 pkg_config_path option')
         self.init(testdir, extra_args=[
             '-Dbuild.pkg_config_path=' + os.path.join(testdir, 'build_extra_path'),
