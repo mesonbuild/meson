@@ -4983,7 +4983,7 @@ class AllPlatformTests(BasePlatformTests):
                            for_machine=MachineChoice.HOST, sources=[],
                            structured_sources=None,
                            objects=[], environment=env, compilers=env.coredata.compilers[MachineChoice.HOST],
-                           kwargs={})
+                           build_only_subproject=False, kwargs={})
             target.process_compilers_late()
             return target.filename
 

@@ -3603,7 +3603,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         kwargs['install_tag'] = [kwargs['install_tag']]
 
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
-                             self.environment, self.compilers[for_machine], kwargs)
+                             self.environment, self.compilers[for_machine], self.build.is_build_only, kwargs)
         if objs and target.uses_rust():
             FeatureNew.single_use('objects in Rust targets', '1.8.0', self.subproject)
 
