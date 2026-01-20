@@ -1,3 +1,11 @@
 extern crate stuff;
 
-fn main() { println!("printing: {}", stuff::explore()); }
+extern "C" {
+    fn not_so_rusty() -> i64;
+}
+
+fn main() {
+    println!("printing: {} {}", stuff::explore(), unsafe {
+        not_so_rusty()
+    });
+}
