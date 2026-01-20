@@ -2994,7 +2994,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             absdir_build = os.path.join(absbase_build, a)
             if not os.path.isdir(absdir_src) and not os.path.isdir(absdir_build):
                 raise InvalidArguments(f'Include dir {a} does not exist.')
-        i = build.IncludeDirs(self.subdir, incdir_strings, is_system)
+        i = build.IncludeDirs(self.subdir, incdir_strings, is_system, self.current_build_project())
         return i
 
     @typed_pos_args('add_test_setup', str)
