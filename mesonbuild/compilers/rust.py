@@ -429,6 +429,9 @@ class RustCompiler(Compiler):
     def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
         return rustc_link_args(super().gen_vs_module_defs_args(defsfile))
 
+    def gen_export_dynamic_link_args(self) -> T.List[str]:
+        return rustc_link_args(self.linker.export_dynamic_args())
+
     def get_profile_generate_args(self) -> T.List[str]:
         return ['-C', 'profile-generate']
 
@@ -456,6 +459,9 @@ class RustCompiler(Compiler):
     def get_target_link_args(self, target: 'BuildTarget') -> T.List[str]:
         return rustc_link_args(super().get_target_link_args(target))
 
+    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+        return rustc_link_args(super().get_win_subsystem_args(value))
+
     def get_werror_args(self) -> T.List[str]:
         # Use -D warnings, which makes every warning not explicitly allowed an
         # error
@@ -469,7 +475,24 @@ class RustCompiler(Compiler):
         # relocation-model=pic is rustc's default already.
         return []
 
+    def get_std_link_args(self, env: Environment, is_thin: bool) -> T.List[str]:
+        # Rust handles static library creation via --crate-type
+        return []
+
+    def get_std_shared_lib_link_args(self) -> T.List[str]:
+        # Rust handles shared library creation via --crate-type
+        return []
+
+    def get_std_shared_module_link_args(self, target: BuildTarget) -> T.List[str]:
+        # Rust handles shared module creation via --crate-type
+        return []
+
     def get_pie_args(self) -> T.List[str]:
+        # Rustc currently has no way to toggle this, it's controlled by whether
+        # pic is on by rustc
+        return []
+
+    def get_pie_link_args(self) -> T.List[str]:
         # Rustc currently has no way to toggle this, it's controlled by whether
         # pic is on by rustc
         return []
