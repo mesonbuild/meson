@@ -208,7 +208,7 @@ def skip_if_env_set(key: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]
     def wrapper(func: T.Callable[P, R]) -> T.Callable[P, R]:
         @functools.wraps(func)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
-            if key in os.environ and not IS_CI:
+            if not IS_CI and key in os.environ:
                 raise unittest.SkipTest(f'Env var {key!r} set, skipping')
             with mock.patch.dict(os.environ):
                 os.environ.pop(key, None)

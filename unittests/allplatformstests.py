@@ -2320,7 +2320,7 @@ class AllPlatformTests(BasePlatformTests):
     # Call this method before file operations in appropriate places
     # to make things work.
     def mac_ci_delay(self):
-        if is_osx() and IS_CI:
+        if IS_CI and is_osx():
             import time
             time.sleep(1)
 
