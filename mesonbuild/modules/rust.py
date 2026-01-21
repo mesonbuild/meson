@@ -287,7 +287,9 @@ class RustModule(ExtensionModule):
             self.interpreter.current_node, (name, rustdoc_prog), tkwargs, Doctest)
 
         # Note that the new_target is intentionally not returned, as it
-        # is only reached via the base_target and never built by "ninja"
+        # is only reached via the base_target and never built by "ninja",
+        # so we need to complete its initialization here
+        new_target.process_compilers_late()
         doctests.target = new_target
         base_target.doctests = doctests
         return ModuleReturnValue(None, [doctests])
