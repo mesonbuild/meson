@@ -1100,6 +1100,8 @@ class NinjaBackend(backends.Backend):
 
         self.generate_dependency_scan_target(target, compiled_sources, source2object, fortran_order_deps)
 
+        if isinstance(target, build.SharedLibrary):
+            self.generate_shsym(target)
         if target.uses_rust():
             self.generate_rust_target(target, outname, final_obj_list, fortran_order_deps)
             return
@@ -2236,8 +2238,6 @@ class NinjaBackend(backends.Backend):
         element.add_item('ARGS', args)
         element.add_item('targetdep', depfile)
         self.add_build(element)
-        if isinstance(target, build.SharedLibrary):
-            self.generate_shsym(target)
         self.create_target_source_introspection(target, rustc, args, [main_rust_file], [])
 
         if target.doctests:
@@ -3692,13 +3692,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             linker_base = 'STATIC'
         else:
             linker_base = linker.get_language() # Fixme.
-        if isinstance(target, build.SharedLibrary):
-            self.generate_shsym(target)
-            if self.environment.machines[target.for_machine].is_os2():
-                target_file = self.get_target_filename(target)
-                import_name = self.get_import_filename(target)
-                elem = NinjaBuildElement(self.all_outputs, import_name, 'IMPORTLIB', target_file)
-                self.add_build(elem)
+        if isinstance(target, build.SharedLibrary) and self.environment.machines[target.for_machine].is_os2():
+            target_file = self.get_target_filename(target)
+            import_name = self.get_import_filename(target)
+            elem = NinjaBuildElement(self.all_outputs, import_name, 'IMPORTLIB', target_file)
+            self.add_build(elem)
         crstr = self.get_rule_suffix(target.for_machine)
         linker_rule = linker_base + '_LINKER' + crstr
         # Create an empty commands list, and start adding link arguments from
