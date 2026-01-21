@@ -17,7 +17,7 @@ from .. import mesonlib
 from .. import options
 from ..mesonlib import (
     HoldableObject,
-    EnvironmentException, MesonException,
+    EnvironmentException, MesonBugException, MesonException,
     Popen_safe_logged, LibType, TemporaryDirectoryWinProof,
 )
 from ..options import OptionKey
@@ -640,6 +640,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """
         return []
 
+    def gen_export_dynamic_link_args(self) -> T.List[str]:
+        raise MesonException('Language %s does not support export_dynamic.' % self.get_display_language())
+
     def make_option_name(self, key: OptionKey) -> str:
         return f'{self.language}_{key.name}'
 
@@ -953,6 +956,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def get_link_debugfile_args(self, targetfile: str) -> T.List[str]:
         return self.linker.get_debugfile_args(targetfile)
+
+    def get_std_link_args(self, env: Environment, is_thin: bool) -> T.List[str]:
+        raise MesonBugException("get_std_link_args() not implemented; if needs_static_linker() is False it needs to be")
 
     def get_std_shared_lib_link_args(self) -> T.List[str]:
         return self.linker.get_std_shared_lib_args()
