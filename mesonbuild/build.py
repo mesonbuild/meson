@@ -1663,7 +1663,8 @@ class BuildTarget(Target):
                 # subproject
                 stdlib_args.extend(all_compilers[dl].language_stdlib_only_link_flags())
         return stdlib_args
-
+    def uses_cpp(self) -> bool:
+            return 'cpp' in self.compilers
     def uses_rust(self) -> bool:
         return 'rust' in self.compilers
 

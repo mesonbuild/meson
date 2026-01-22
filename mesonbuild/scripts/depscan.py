@@ -200,9 +200,35 @@ class DependencyScanner:
             json.dump(description, f)
 
         return 0
+class CppDependenciesScanner:
+    pass
 
+class ClangDependencyScanner(CppDependenciesScanner):
+    def __init__(self, compilation_db_file, json_output_file, dd_output_file=None):
+        self.compilation_db_file = compilation_db_file
+        self.json_output_file = json_output_file
+        self.dd_output_file = dd_output_file
+
+    def scan(self):
+        try:
+            result = sp.run(
+                ["clang-scan-deps",
+                 "-format=p1689",
+                 "-compilation-database", self.compilation_db_file],
+                capture_output=True,
+                check=True
+            )
+            print(result.stdout)
+            return 0
+        except sp.SubprocessError:
+            return 1
+        except sp.TimeoutExpired:
+            return 2
 def run(args: T.List[str]) -> int:
-    assert len(args) == 2, 'got wrong number of arguments!'
-    outfile, pickle_file = args
-    scanner = DependencyScanner(pickle_file, outfile)
-    return scanner.scan()
+    assert len(args) > 2, 'At least <compilation_db> and <json_output-file> arguments'
+    comp_db, json_output, dd_output = args
+    ClangDependencyScanner(compilation_db_file, output_file)
+    # assert len(args) == 2, 'got wrong number of arguments!'
+    # outfile, pickle_file = args
+    # scanner = DependencyScanner(pickle_file, outfile)
+    # return scanner.scan()
