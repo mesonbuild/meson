@@ -445,13 +445,14 @@ class ExternalDependency(Dependency):
         new = copy.copy(self)
         new._id = uuid.uuid4().int
         if not compile_args:
-            new.compile_args = []
+            if includes:
+                new.compile_args = [c for c in self.compile_args if c.startswith('-I')]
+            else:
+                new.compile_args = []
         if not link_args:
             new.link_args = []
         if not sources:
             new.sources = []
-        if not includes:
-            pass # TODO maybe filter compile_args?
         if not sources:
             new.sources = []
 
