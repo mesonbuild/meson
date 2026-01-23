@@ -1629,9 +1629,11 @@ class BuildTarget(Target):
         # Pick a compiler based on the language priority-order
         for l in T.cast('T.Tuple[Language, ...]', clink_langs):
             if l in self.compilers or l in dep_langs:
-                try:
+                if l in self.compilers:
+                    linker = self.compilers[l]
+                elif l in all_compilers:
                     linker = all_compilers[l]
-                except KeyError:
+                else:
                     raise MesonException(
                         f'Could not get a dynamic linker for build target {self.name!r}. '
                         f'Requires a linker for language "{l}", but that is not '
