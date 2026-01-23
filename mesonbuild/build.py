@@ -832,7 +832,6 @@ class BuildTarget(Target):
         self.structured_sources = structured_sources
         self.external_deps: T.List[dependencies.Dependency] = []
         self.include_dirs: T.List['IncludeDirs'] = []
-        self.link_language: T.Optional[Language] = kwargs.get('link_language')
         self.link_targets: T.List[BuildTargetTypes] = []
         self.link_whole_targets: T.List[StaticTargetTypes] = []
         self.depend_files: T.List[File] = []
@@ -887,6 +886,7 @@ class BuildTarget(Target):
         self.link_whole_targets.clear()
         self.link(link_targets)
         self.link_whole(link_whole_targets)
+        self.link_language = kwargs.get('link_language') or self._calculcate_link_language()
         self._set_vala_args(kwargs)
 
         if not any([[src for src in self.sources if not is_header(src)], self.generated, self.objects,
@@ -905,6 +905,47 @@ class BuildTarget(Target):
             name += '.' + self.suffix
         return self.construct_id_from_path(
             self.builddir, name, self.type_suffix())
+
+    def _calculcate_link_language(self) -> Language:
+        def calculate() -> Language:
+            # Take all languages used by this target and by the targets it links
+            # with, but don't count vala and cython, which do not do their own
+            # linking.
+            languages = sorted(
+                set(self.compilers).union(self.missing_languages).union(self.get_langs_used_by_deps()).difference({'vala', 'cython'}),
+                # Sort languages from the highest priority clink, to the lowest,
+                # and then non-clink languages, as we want to use the highest
+                # priority clink language before non-clink.
+                key=lambda x: clink_langs.index(x) if x in clink_langs else len(clink_langs) + 1,
+            )
+
+            # If we have rust sources, then we have to link with rust.
+            if self.uses_rust():
+                if 'rust' not in languages:
+                    raise MesonException('A target with rust sources must be linked with a rust compiler')
+                return 'rust'
+
+            if not languages:
+                # No source files or parent targets, target consists of only object
+                # files of unknown origin. Just add the first clink compiler
+                # that we have and hope that it can link these objects.
+
+                # TODO: pyright understands this, mypy doesn't.
+                for lang in T.cast('T.Iterable[Language]', reversed(clink_langs)):
+                    if lang in self.all_compilers:
+                        return lang
+
+            return languages[0]
+
+        # It's possible that an auto-calulcated link_language will rely on a
+        # compiler from a subproject. In that case, we need to add that language
+        # to the missing compilers set so they're added later. We don't want to do
+        # this when the user sets the link_language, as we expect them to
+        # properly configure their languages.
+        lang = calculate()
+        if lang not in self.all_compilers:
+            self.missing_languages.append(lang)
+        return lang
 
     def _set_vala_args(self, kwargs: BuildTargetKeywordArguments) -> None:
         if self.uses_vala():
