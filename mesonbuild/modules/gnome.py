@@ -623,9 +623,9 @@ class GnomeModule(ExtensionModule):
         link_command: T.List[str] = []
         new_depends = list(depends)
         # Construct link args
+        libdir = os.path.join(state.environment.get_build_dir(), state.backend.get_target_dir(lib))
+        link_command.append('-L' + libdir)
         if isinstance(lib, build.SharedLibrary):
-            libdir = os.path.join(state.environment.get_build_dir(), state.backend.get_target_dir(lib))
-            link_command.append('-L' + libdir)
             if include_rpath:
                 link_command.append('-Wl,-rpath,' + libdir)
             new_depends.append(lib)
@@ -671,7 +671,7 @@ class GnomeModule(ExtensionModule):
                 cflags.update(dep.get_compile_args())
                 cflags.update(state.get_include_args(dep.include_directories))
                 for lib in dep.libraries:
-                    if isinstance(lib, build.SharedLibrary):
+                    if isinstance(lib, (build.SharedLibrary, build.StaticLibrary)):
                         _ld, depends = self._get_link_args(state, lib, depends, include_rpath)
                         internal_ldflags.update(_ld)
                         libdepflags = self._get_dependencies_flags_raw(lib.get_external_deps(), state, depends, include_rpath,
@@ -1585,15 +1585,16 @@ class GnomeModule(ExtensionModule):
         deps_cflags, internal_ldflags, external_ldflags, _gi_includes, new_depends = \
             self._get_dependencies_flags(deps, state, depends, include_rpath=True)
 
+        compiler = state.environment.coredata.compilers[MachineChoice.HOST]['c']
+
         cflags.extend(deps_cflags)
         cflags.extend(state.get_include_args(inc_dirs))
-        ldflags: T.List[str] = []
+        ldflags = compiler.compiler_args()
         ldflags.extend(internal_ldflags)
         ldflags.extend(external_ldflags)
 
         cflags.extend(state.environment.coredata.get_external_args(MachineChoice.HOST, 'c'))
         ldflags.extend(state.environment.coredata.get_external_link_args(MachineChoice.HOST, 'c'))
-        compiler = state.environment.coredata.compilers[MachineChoice.HOST]['c']
 
         compiler_flags = self._get_langs_compilers_flags(state, [('c', compiler)])
         cflags.extend(compiler_flags[0])
@@ -1605,7 +1606,7 @@ class GnomeModule(ExtensionModule):
         if cflags:
             args += ['--cflags=%s' % join_args(cflags)]
         if ldflags:
-            args += ['--ldflags=%s' % join_args(ldflags)]
+            args += ['--ldflags=%s' % join_args(ldflags.to_native())]
 
         return args, new_depends
 
