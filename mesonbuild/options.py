@@ -798,6 +798,7 @@ COMPILER_BASE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
         UserComboOption(
             'b_ndebug', 'Disable asserts', 'false', choices=['true', 'false', 'if-release']),
         UserBooleanOption('b_staticpic', 'Build static libraries as position independent', True),
+        UserBooleanOption('b_time64', 'Set _TIME_BITS=64', False),
         UserBooleanOption('b_pie', 'Build executables as position independent', False),
         UserBooleanOption('b_bitcode', 'Generate and embed bitcode (only macOS/iOS/tvOS)', False),
         UserComboOption(
