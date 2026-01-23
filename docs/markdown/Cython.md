@@ -22,13 +22,11 @@ extension_module method:
 ```meson
 project('my project', 'cython')
 
-py = import('python').find_installation()
-dep_py = py.dependency()
+py = import('python').find_installation(pure: false)
 
 py.extension_module(
     'foo',
     'foo.pyx',
-    dependencies : dep_py,
 )
 ```
 
@@ -39,7 +37,6 @@ You can pass arguments accepted by the `cython` CLI script with the
 py.extension_module(
     'foo-bounds'
     'foo.pyx',
-    dependencies : dep_py,
     cython_args : ['-Xboundscheck=False'],
 )
 ```
@@ -51,24 +48,17 @@ py.extension_module(
 An option has been added to control this, called `cython_language`. This can be
 either `'c'` or `'cpp'`.
 
-For those coming from setuptools/distutils, they will find two things. First,
-meson ignores `# distutils: language = c++` inline directives. Second that Meson
-allows options only on a per-target granularity. This means that if you need to mix
-cython files being transpiled to C and to C++ you need two targets:
+For those coming from setuptools/distutils, note that meson ignores
+`# distutils: ` inline directives in Cython source files, hence
+`# distutils: language = c++` has no effect. The `override_options` keyword
+should be used instead:
 
 ```meson
 project('my project', 'cython')
 
-cython_cpp_lib = static_library(
-    'helper_lib',
-    'foo_cpp.pyx',  # will be transpiled to C++
-    override_options : ['cython_language=cpp'],
-)
-
 py.extension_module(
     'foo',
-    'foo.pyx',  # will be transpiled to C
-    link_with : [cython_cpp_lib],
-    dependencies : dep_py,
+    'foo_cpp.pyx',  # will be transpiled to C++
+    override_options : ['cython_language=cpp'],
 )
 ```
