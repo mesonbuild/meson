@@ -685,8 +685,8 @@ Meson uses pkg-config to find NetCDF.
 *(added 1.4.0)*
 
 `method` may be `auto`, `pkg-config`, or `config-tool`.
-`dependency('numpy')` supports regular use of the NumPy C API.
-Use of `numpy.f2py` for binding Fortran code isn't yet supported.
+`dependency('numpy')` supports regular use of the NumPy C API, for
+`numpy>=2.0`. Use of `numpy.f2py` for binding Fortran code isn't yet supported.
 
 ## ObjFW
 
