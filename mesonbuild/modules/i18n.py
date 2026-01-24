@@ -13,6 +13,7 @@ from .. import build
 from .. import mesonlib
 from ..options import OptionKey
 from .. import mlog
+from ..interpreter.primitives import OptionString
 from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, INSTALL_TAG_KW, OUTPUT_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, in_set_validator
 from ..interpreterbase import FeatureNew
 from ..interpreterbase.exceptions import InvalidArguments
@@ -416,8 +417,11 @@ class I18nModule(ExtensionModule):
         if not languages:
             languages = read_linguas(path.join(state.environment.source_dir, state.subdir))
         for l in languages:
-            po_file = mesonlib.File.from_source_file(state.environment.source_dir,
-                                                     state.subdir, l+'.po')
+            po_file = mesonlib.File.from_source_file(state.environment.source_dir, state.subdir, l+'.po')
+            mo_install_dir = path.join(install_dir, l, 'LC_MESSAGES')
+            if isinstance(install_dir, OptionString):
+                name = path.join(install_dir.optname, l, 'LC_MESSAGES')
+                mo_install_dir = OptionString(mo_install_dir, name)
             gmotarget = build.CustomTarget(
                 f'{packagename}-{l}.mo',
                 path.join(state.subdir, l, 'LC_MESSAGES'),
@@ -431,7 +435,7 @@ class I18nModule(ExtensionModule):
                 # What we really wanted to do, probably, is have a rename: kwarg, but that's not available
                 # to custom_targets. Crude hack: set the build target's subdir manually.
                 # Bonus: the build tree has something usable as an uninstalled bindtextdomain() target dir.
-                install_dir=[path.join(install_dir, l, 'LC_MESSAGES')],
+                install_dir=[mo_install_dir],
                 install_tag=['i18n'],
                 description='Building translation {}',
             )
