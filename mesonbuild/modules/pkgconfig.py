@@ -18,6 +18,7 @@ from ..options import OptionKey
 from .. import mlog
 from ..options import BUILTIN_DIR_OPTIONS
 from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
+from ..interpreter.primitives import OptionString
 from ..interpreter.type_checking import D_MODULE_VERSIONS_KW, INSTALL_DIR_KW, VARIABLES_KW, NoneType
 from ..interpreterbase import FeatureNew, FeatureDeprecated
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
@@ -666,6 +667,8 @@ class PkgConfigModule(NewExtensionModule):
             install_dir = mainlib.get_custom_install_dir()
             if install_dir and isinstance(install_dir[0], str):
                 default_install_dir = os.path.join(install_dir[0], 'pkgconfig')
+                if isinstance(install_dir[0], OptionString):
+                    default_install_dir = OptionString(default_install_dir, os.path.join(install_dir[0].optname, 'pkgconfig'))
         else:
             if kwargs['version'] is None:
                 FeatureNew.single_use('pkgconfig.generate implicit version keyword', '0.46.0', state.subproject)
@@ -684,7 +687,7 @@ class PkgConfigModule(NewExtensionModule):
             # Mypy can't figure out that this TypedDict index is correct, without repeating T.Literal for the entire list
             if any(kwargs[k] for k in blocked_vars):  # type: ignore
                 raise mesonlib.MesonException(f'Cannot combine dataonly with any of {blocked_vars}')
-            default_install_dir = os.path.join(state.environment.get_datadir(), 'pkgconfig')
+            default_install_dir = OptionString(os.path.join(state.environment.get_datadir(), 'pkgconfig'), os.path.join('{datadir}', 'pkgconfig'))
 
         subdirs = kwargs['subdirs'] or default_subdirs
         version = kwargs['version'] if kwargs['version'] is not None else default_version
@@ -735,6 +738,8 @@ class PkgConfigModule(NewExtensionModule):
 
         pcfile = filebase + '.pc'
         pkgroot = pkgroot_name = kwargs['install_dir'] or default_install_dir
+        if isinstance(pkgroot, OptionString):
+            pkgroot_name = pkgroot.optname
         if pkgroot is None:
             m = state.environment.machines.host
             if m.is_freebsd():
