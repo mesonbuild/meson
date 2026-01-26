@@ -1,5 +1,7 @@
 project('rust shared library', 'rust', 'c')
 
+rustc = meson.get_compiler('rust')
+
 subdir('cdylib')
 
 s = static_library('static', 'value.c')
@@ -7,7 +9,7 @@ s = static_library('static', 'value.c')
 # Test link_depends with a custom_target for Rust shared library.
 # rustc provides a version script of its own; GNU ld does not
 # support multiple version scripts, lld does
-if host_machine.system() == 'linux' and find_program('lld', required : false).found()
+if host_machine.system() == 'linux' and rustc.has_link_argument('-fuse-ld=lld')
   ct_map = import('fs').copyfile('stuff.map', 'stuff-ct.map')
   vflag = ['-fuse-ld=lld', '-Wl,--version-script,' + ct_map.full_path()]
   rustl = shared_library('stuff', 'stuff.rs', link_whole : s, install : true,
