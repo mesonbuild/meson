@@ -383,7 +383,6 @@ class Interpreter:
                 ast.append(build.function('subdir', [build.string(member)]))
             processed_members[member] = pkg
 
-        ast.append(build.assign(build.function('import', [build.string('rust')]), 'rust'))
         for member in ws.required_members:
             _process_member(member)
         ast = self._create_project(name, processed_members.get('.'), build) + ast
@@ -660,25 +659,30 @@ class Interpreter:
             # for the upkeep of the module
             'meson_version': build.string(f'>= {coredata.stable_version}'),
         }
-        if not pkg:
-            return [
-                build.function('project', args, kwargs),
-            ]
+        if pkg:
+            default_options: T.Dict[str, mparser.BaseNode] = {}
+            if pkg.downloaded:
+                default_options['warning_level'] = build.string('0')
 
-        default_options: T.Dict[str, mparser.BaseNode] = {}
-        if pkg.downloaded:
-            default_options['warning_level'] = build.string('0')
+            kwargs.update({
+                'version': build.string(pkg.manifest.package.version),
+                'default_options': build.dict({build.string(k): v for k, v in default_options.items()}),
+            })
+            if pkg.manifest.package.license:
+                kwargs['license'] = build.string(pkg.manifest.package.license)
+            elif pkg.manifest.package.license_file:
+                kwargs['license_files'] = build.string(pkg.manifest.package.license_file)
 
-        kwargs.update({
-            'version': build.string(pkg.manifest.package.version),
-            'default_options': build.dict({build.string(k): v for k, v in default_options.items()}),
-        })
-        if pkg.manifest.package.license:
-            kwargs['license'] = build.string(pkg.manifest.package.license)
-        elif pkg.manifest.package.license_file:
-            kwargs['license_files'] = build.string(pkg.manifest.package.license_file)
-
-        return [build.function('project', args, kwargs)]
+        # project(...)
+        # rust = import('rust')
+        # cargo_ws = rust.workspace()
+        return [
+            build.function('project', args, kwargs),
+            build.assign(build.function('import', [build.string('rust')]),
+                         'rust'),
+            build.assign(build.method('workspace', build.identifier('rust'), []),
+                         'cargo_ws')
+        ]
 
     def _create_dependencies(self, pkg: PackageState, build: builder.Builder) -> T.List[mparser.BaseNode]:
         cfg = pkg.cfg
