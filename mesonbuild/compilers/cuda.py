@@ -814,7 +814,8 @@ class CudaCompiler(Compiler):
         args = self._to_host_flags(args)
         return self.compiles('int main(void) { return 0; }', extra_args=args, mode=CompileCheckMode.COMPILE)
 
-    def has_multi_link_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
-        args = ['-Xnvlink='+self._shield_nvcc_list_arg(s) for s in self.linker.fatal_warnings()]
-        args += self._to_host_flags(args, phase=Phase.LINKER)
+    def has_multi_link_arguments(self, args: T.List[str], to_host_args: bool = True) -> T.Tuple[bool, bool]:
+        if to_host_args:
+            args = self._to_host_flags(args, phase=Phase.LINKER)
+        args = ['-Xnvlink='+self._shield_nvcc_list_arg(s) for s in self.linker.fatal_warnings()] + args
         return self.compiles('int main(void) { return 0; }', extra_args=args, mode=CompileCheckMode.LINK)

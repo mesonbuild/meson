@@ -496,7 +496,9 @@ class RustCompiler(Compiler):
     def has_multi_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
         return self.compiles('fn main() { std::process::exit(0) }\n', extra_args=args, mode=CompileCheckMode.COMPILE)
 
-    def has_multi_link_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
+    def has_multi_link_arguments(self, args: T.List[str], to_host_args: bool = True) -> T.Tuple[bool, bool]:
+        if to_host_args:
+            args = rustc_link_args(args)
         args = rustc_link_args(self.linker.fatal_warnings()) + args
         return self.compiles('fn main() { std::process::exit(0) }\n', extra_args=args, mode=CompileCheckMode.LINK)
 
