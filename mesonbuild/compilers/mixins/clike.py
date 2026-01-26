@@ -1327,7 +1327,7 @@ class CLikeCompiler(Compiler):
         args = self.linker_to_compiler_args(args)
         return self.has_arguments(args, code, mode=CompileCheckMode.LINK)
 
-    def has_multi_link_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
+    def has_multi_link_arguments(self, args: T.List[str], to_host_args: bool = True) -> T.Tuple[bool, bool]:
         return self._has_multi_link_arguments(args, 'int main(void) { return 0; }\n')
 
     @staticmethod

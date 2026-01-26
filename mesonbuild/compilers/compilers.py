@@ -390,7 +390,7 @@ def get_base_link_args(target: 'BuildTarget',
         # We consider that if there are no sanitizer arguments returned, then
         # the language doesn't support them.
         if sanitizer_args:
-            if not linker.has_multi_link_arguments(sanitizer_args)[0]:
+            if not linker.has_multi_link_arguments(sanitizer_args, False)[0]:
                 raise MesonException(f'Linker {linker.name_string()} does not support sanitizer arguments {sanitizer_args}')
             args.extend(sanitizer_args)
     except KeyError:
@@ -802,8 +802,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             'Language {} does not support has_multi_arguments.'.format(
                 self.get_display_language()))
 
-    def has_multi_link_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
+    def has_multi_link_arguments(self, args: T.List[str], to_host_args: bool = True) -> T.Tuple[bool, bool]:
         """Checks if the linker has all of the arguments.
+
+        to_host_args is False if the arguments were returned by this same Compiler object.
 
         :returns:
             A tuple of (bool, bool). The first value is whether the check

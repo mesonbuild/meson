@@ -109,7 +109,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
     def has_multi_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
         return self._has_multi_arguments(args, 'stop; end program')
 
-    def has_multi_link_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
+    def has_multi_link_arguments(self, args: T.List[str], to_host_args: bool = True) -> T.Tuple[bool, bool]:
         return self._has_multi_link_arguments(args, 'stop; end program')
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
