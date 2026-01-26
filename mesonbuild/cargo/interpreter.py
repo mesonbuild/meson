@@ -36,7 +36,7 @@ if T.TYPE_CHECKING:
     from .. import mparser
     from typing_extensions import Literal
 
-    from .manifest import Dependency, SystemDependency
+    from .manifest import Dependency
     from ..environment import Environment
     from ..compilers.rust import RustCompiler
 
@@ -45,10 +45,6 @@ if T.TYPE_CHECKING:
 def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
     basename = package_name[:-len(suffix)] if suffix and package_name.endswith(suffix) else package_name
     return f'{basename}-{api}{suffix}'
-
-
-def _dependency_varname(dep: Dependency) -> str:
-    return f'{fixup_meson_varname(dep.package)}_{(dep.api.replace(".", "_"))}_dep'
 
 
 def _library_name(name: str, api: str, lib_type: Literal['rust', 'c', 'proc-macro'] = 'rust') -> str:
@@ -358,7 +354,7 @@ class Interpreter:
                 build.identifier('features'),
             ]),
         ]
-        ast += self._create_dependencies(pkg, build)
+        ast += self._create_feature_checks(pkg, build)
         ast += self._create_meson_subdir(build)
 
         if pkg.manifest.lib:
@@ -718,49 +714,26 @@ class Interpreter:
                          'cargo_ws')
         ]
 
-    def _create_dependencies(self, pkg: PackageState, build: builder.Builder) -> T.List[mparser.BaseNode]:
+    def _create_feature_checks(self, pkg: PackageState, build: builder.Builder) -> T.List[mparser.BaseNode]:
         cfg = pkg.cfg
         ast: T.List[mparser.BaseNode] = []
         for depname in cfg.required_deps:
             dep = pkg.manifest.dependencies[depname]
             dep_pkg = self._dep_package(pkg, dep)
             if dep_pkg.manifest.lib:
-                ast += self._create_dependency(dep_pkg, dep, build)
-        for name, sys_dep in pkg.manifest.system_dependencies.items():
-            if sys_dep.enabled(cfg.features):
-                ast += self._create_system_dependency(name, sys_dep, build)
+                ast += self._create_feature_check(dep_pkg, dep, build)
         return ast
 
-    def _create_system_dependency(self, name: str, dep: SystemDependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
-        # TODO: handle feature_overrides
-        kw = {
-            'version': build.array([build.string(s) for s in dep.meson_version]),
-            'required': build.bool(not dep.optional),
-        }
-        varname = f'{fixup_meson_varname(name)}_system_dep'
-        return [
-            build.assign(
-                build.method(
-                    'to_system_dependency',
-                    build.identifier('rust'), [
-                        build.function(
-                            'dependency',
-                            [build.string(dep.name)],
-                            kw,
-                        ),
-                        build.string(name)
-                    ]),
-                varname,
-            ),
-        ]
-
-    def _create_dependency(self, pkg: PackageState, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
+    def _create_feature_check(self, pkg: PackageState, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
         cfg = pkg.cfg
-        dep_obj: mparser.BaseNode
-        dep_pkg = self.cargolock and self.resolve_package(dep.package, dep.api)
-        if dep_pkg and dep_pkg.ws_subdir != pkg.ws_subdir:
-            dep_obj = build.method(
-                'dependency',
+        feat_obj: mparser.BaseNode
+        feat_pkg = self.cargolock and self.resolve_package(dep.package, dep.api)
+        if feat_pkg:
+            if feat_pkg.ws_subdir == pkg.ws_subdir:
+                return []
+
+            feat_obj = build.method(
+                'features',
                 build.method(
                     'subproject',
                     build.identifier('cargo_ws'),
@@ -770,10 +743,21 @@ class Interpreter:
             kw = {
                 'version': build.array([build.string(s) for s in version_]),
             }
+            # actual_features = dependency(...).get_variable('features', default_value : '').split(',')
             dep_obj = build.function(
                  'dependency',
                  [build.string(_dependency_name(dep.package, dep.api))],
                  kw)
+            feat_obj = build.method(
+                'split',
+                build.method(
+                    'get_variable',
+                    dep_obj,
+                    [build.string('features')],
+                    {'default_value': build.string('')}
+                ),
+                [build.string(',')],
+            )
 
         # However, this subproject could have been previously configured with a
         # different set of features. Cargo collects the set of features globally
@@ -785,23 +769,9 @@ class Interpreter:
         # option manually with -Dxxx-rs:feature-yyy=true, or the main project can do
         # that in its project(..., default_options: ['xxx-rs:feature-yyy=true']).
         return [
-            # xxx_dep = cargo_ws.subproject('xxx', 'api').dependency()
+            # actual_features = dependency(...).get_variable('features', default_value : '').split(',')
             build.assign(
-                dep_obj,
-                _dependency_varname(dep),
-            ),
-            # actual_features = xxx_dep.get_variable('features', default_value : '').split(',')
-            build.assign(
-                build.method(
-                    'split',
-                    build.method(
-                        'get_variable',
-                        build.identifier(_dependency_varname(dep)),
-                        [build.string('features')],
-                        {'default_value': build.string('')}
-                    ),
-                    [build.string(',')],
-                ),
+                feat_obj,
                 'actual_features'
             ),
             # needed_features = [f1, f2, ...]
@@ -846,21 +816,13 @@ class Interpreter:
     def _create_lib(self, pkg: PackageState, build: builder.Builder, subdir: str,
                     lib_type: RUST_ABI,
                     static: bool = False, shared: bool = False) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg
-        dependencies: T.List[mparser.BaseNode] = []
-        for name in cfg.required_deps:
-            dep = pkg.manifest.dependencies[name]
-            dependencies.append(build.identifier(_dependency_varname(dep)))
-
-        for name, sys_dep in pkg.manifest.system_dependencies.items():
-            if sys_dep.enabled(cfg.features):
-                dependencies.append(build.identifier(f'{fixup_meson_varname(name)}_system_dep'))
+        pkg_dependencies = build.method('dependencies', build.identifier('pkg_obj'))
+        extra_deps_ref = build.identifier(_extra_deps_varname())
+        dependencies = build.plus(pkg_dependencies, extra_deps_ref)
 
         package_rust_args = build.method('rust_args', build.identifier('pkg_obj'))
         extra_args_ref = build.identifier(_extra_args_varname())
         rust_args = build.plus(package_rust_args, extra_args_ref)
-
-        dependencies.append(build.identifier(_extra_deps_varname()))
 
         override_options: T.Dict[mparser.BaseNode, mparser.BaseNode] = {
             build.string('rust_std'): build.string(pkg.manifest.package.edition),
@@ -872,7 +834,7 @@ class Interpreter:
         ]
 
         kwargs: T.Dict[str, mparser.BaseNode] = {
-            'dependencies': build.array(dependencies),
+            'dependencies': dependencies,
             'rust_dependency_map': build.method('rust_dependency_map', build.identifier('pkg_obj')),
             'rust_args': rust_args,
             'override_options': build.dict(override_options),
