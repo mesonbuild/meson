@@ -17,6 +17,7 @@ from ..options import OptionKey
 from .compilers import Compiler, CompileCheckMode, clike_debug_args, is_library
 
 if T.TYPE_CHECKING:
+    from .. import build
     from ..options import MutableKeyedOptionDictType
     from ..environment import Environment  # noqa: F401
     from ..linkers.linkers import DynamicLinker
@@ -416,6 +417,9 @@ class RustCompiler(Compiler):
     @functools.lru_cache(maxsize=None)
     def get_allow_undefined_link_args(self) -> T.List[str]:
         return rustc_link_args(super().get_allow_undefined_link_args())
+
+    def get_build_link_args(self, target: BuildTarget, build: build.Build) -> T.List[str]:
+        return rustc_link_args(super().get_build_link_args(target, build))
 
     def get_target_link_args(self, target: 'BuildTarget') -> T.List[str]:
         return rustc_link_args(super().get_target_link_args(target))

@@ -106,3 +106,16 @@ target name.  First, dashes, spaces and dots are replaced with underscores.  Sec
 *since 1.10.0* anything after the first `+` is dropped.  This allows creating multiple
 targets for the same crate name, for example when the same crate is built multiple
 times with different features, or for both the build and the host machine.
+
+## Compiler vs. linker arguments for Rust
+
+While `rustc` integrates the compiler and linker phase, it is useful
+to pass linker arguments to it via the `-Clink-arg=` command line
+option.
+
+*Since 1.11.0* `add_project_link_arguments()`,
+`add_global_link_arguments()`, the `link_args` keyword argument wrap the
+arguments with `-Clink-arg=` before passing them to the Rust compiler.
+Furthermore, these arguments are only included when creating binary or
+shared library crates.  Likewise, methods such as `has_link_argument()`
+wrap the arguments being tested with `-Clink-arg=`.
