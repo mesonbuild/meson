@@ -3743,14 +3743,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             commands += self.get_link_whole_args(linker, target)
 
         if not isinstance(target, build.StaticLibrary):
-            # Add link args added using add_project_link_arguments()
-            commands += self.build.get_project_link_args(linker, target)
-            # Add link args added using add_global_link_arguments()
-            # These override per-project link arguments
-            commands += self.build.get_global_link_args(linker, target.for_machine)
-            # Link args added from the env: LDFLAGS. We want these to override
-            # all the defaults but not the per-target link args.
-            commands += self.environment.coredata.get_external_link_args(target.for_machine, linker.get_language())
+            commands += linker.get_build_link_args(target, self.build)
 
         # Now we will add libraries and library paths from various sources
 

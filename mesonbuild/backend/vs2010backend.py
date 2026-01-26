@@ -1436,16 +1436,7 @@ class Vs2010Backend(backends.Backend):
         if not isinstance(target, build.StaticLibrary):
             if isinstance(target, build.SharedModule):
                 extra_link_args += compiler.get_std_shared_module_link_args(target)
-            # Add link args added using add_project_link_arguments()
-            extra_link_args += self.build.get_project_link_args(compiler, target)
-            # Add link args added using add_global_link_arguments()
-            # These override per-project link arguments
-            extra_link_args += self.build.get_global_link_args(compiler, target.for_machine)
-            # Link args added from the env: LDFLAGS, or the cross file. We want
-            # these to override all the defaults but not the per-target link
-            # args.
-            extra_link_args += self.environment.coredata.get_external_link_args(
-                target.for_machine, compiler.get_language())
+            extra_link_args += compiler.get_build_link_args(target, self.build)
             # Only non-static built targets need link args and link dependencies
             extra_link_args += target.link_args
             # External deps must be last because target link libraries may depend on them.
@@ -2151,10 +2142,7 @@ class Vs2010Backend(backends.Backend):
         compiler = self._get_cl_compiler(target)
         link_args = compiler.compiler_args()
         if not isinstance(target, build.StaticLibrary):
-            link_args += self.build.get_project_link_args(compiler, target)
-            link_args += self.build.get_global_link_args(compiler, target.for_machine)
-            link_args += self.environment.coredata.get_external_link_args(
-                target.for_machine, compiler.get_language())
+            link_args += compiler.get_build_link_args(target, self.build)
             link_args += target.link_args
 
         for arg in reversed(link_args):
