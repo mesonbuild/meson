@@ -1688,8 +1688,7 @@ class XCodeBackend(backends.Backend):
             else:
                 linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
             if not isinstance(target, build.StaticLibrary):
-                ldargs += self.build.get_project_link_args(linker, target)
-                ldargs += self.build.get_global_link_args(linker, target.for_machine)
+                ldargs += linker.get_build_link_args(target, self.build)
             cargs = []
             for dep in target.get_external_deps():
                 cargs += dep.get_compile_args()

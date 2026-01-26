@@ -26,6 +26,7 @@ from ..arglist import CompilerArgs
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypeAlias
 
+    from .. import build
     from .. import coredata
     from ..build import BuildTarget, DFeatures
     from ..options import MutableKeyedOptionDictType
@@ -1104,6 +1105,14 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return self.linker.get_soname_args(
             prefix, shlib_name, suffix, soversion,
             darwin_versions)
+
+    def get_build_link_args(self, target: BuildTarget, build: build.Build) -> T.List[str]:
+        # Link args added using add_global_link_arguments() override
+        # per-project link arguments.  Link args added from the env (LDFLAGS)
+        # override all the defaults but not the per-target link args.
+        return build.get_project_link_args(self, target) \
+            + build.get_global_link_args(self, self.for_machine) \
+            + self.environment.coredata.get_external_link_args(self.for_machine, self.get_language())
 
     def get_target_link_args(self, target: 'BuildTarget') -> T.List[str]:
         return target.link_args
