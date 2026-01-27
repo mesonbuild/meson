@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import argparse
 import functools
 import os.path
 import textwrap
@@ -24,6 +25,11 @@ if T.TYPE_CHECKING:
     from ..dependencies import Dependency
     from ..build import BuildTarget
 
+    from typing_extensions import Protocol
+
+    class TargetParse(Protocol):
+        target: T.Optional[str]
+
 
 rust_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
@@ -34,6 +40,32 @@ rust_optimization_args: T.Dict[str, T.List[str]] = {
     '3': ['-C', 'opt-level=3'],
     's': ['-C', 'opt-level=s'],
 }
+
+
+class _TargetParser:
+
+    """Helper for bindgen to look for --target in various command line arguments.
+
+    Storing this as a helper class avoids the need to set up the ArgumentParser
+    multiple times, and simplifies it's use as well as the typing.
+    """
+
+    def __init__(self) -> None:
+        parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+        parser.add_argument('--target', action='store', default=None)
+        self._parser = parser
+
+    def parse(self, args: T.List[str]) -> T.Optional[str]:
+        """Parse arguments looking for --target
+
+        :param args: A list of arguments to search
+        :return: the argument to --target if it exists, otherwise None
+        """
+        parsed = T.cast('TargetParse', self._parser.parse_known_args(args)[0])
+        return parsed.target
+
+
+parse_target = _TargetParser().parse
 
 def get_rustup_run_and_args(exelist: T.List[str]) -> T.Optional[T.Tuple[T.List[str], T.List[str]]]:
     """Given the command for a rustc executable, check if it is invoked via
