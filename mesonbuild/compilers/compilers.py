@@ -1295,6 +1295,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_werror_args(self) -> T.List[str]:
         return []
 
+    def get_cpp_modules_args(self) -> T.List[str]:
+        return []
+
     @abc.abstractmethod
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         pass

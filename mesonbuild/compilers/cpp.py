@@ -84,6 +84,9 @@ class CPPCompiler(CLikeCompiler, Compiler):
     def get_no_stdlib_link_args(self) -> T.List[str]:
         return ['-nostdlib++']
 
+    def get_cpp_modules_args(self) -> T.List[str]:
+        return []
+
     def sanity_check(self, work_dir: str) -> None:
         code = 'class breakCCompiler;int main(void) { return 0; }\n'
         return self._sanity_check_impl(work_dir, 'sanitycheckcpp.cc', code)
@@ -325,6 +328,10 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
             return ['-fpch-instantiate-templates'] + args
         return args
 
+    def get_cpp_modules_args(self) -> T.List[str]:
+        # Although -fmodules-ts is removed in LLVM 17, we keep this in for compatibility with old compilers.
+        return ['-fmodules', '-fmodules-ts']
+
 
 class ArmLtdClangCPPCompiler(ClangCPPCompiler):
 
@@ -539,6 +546,9 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
 
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return ['-fpch-preprocess', '-include', os.path.basename(header)]
+
+    def get_cpp_modules_args(self) -> T.List[str]:
+        return ['-fmodules', '-fmodules-ts']
 
 
 class PGICPPCompiler(PGICompiler, CPPCompiler):
@@ -927,6 +937,9 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
             del args[i]
         return args
 
+    def get_cpp_modules_args(self) -> T.List[str]:
+        return ['/interface']
+
 class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, ClangClCompiler, CPPCompiler):
 
     id = 'clang-cl'
@@ -942,6 +955,10 @@ class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, Cl
     def get_options(self) -> 'MutableKeyedOptionDictType':
         cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++20', 'vc++20', 'c++latest']
         return self._get_options_impl(super().get_options(), cpp_stds)
+
+    def get_cpp_modules_args(self) -> T.List[str]:
+        # clang-cl does not support /interface.
+        return ['-fmodules', '-fmodules-ts']
 
 
 class IntelClCPPCompiler(VisualStudioLikeCPPCompilerMixin, IntelVisualStudioLikeCompiler, CPPCompiler):
