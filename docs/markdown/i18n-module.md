@@ -17,6 +17,8 @@ argument which is the name of the gettext module.
 
 * `args`: list of extra arguments to pass to `xgettext` when
   generating the pot file
+* `msgfmt_args`: (*Added 1.11.0*) list of extra arguments to pass to `msgfmt` when
+  building the translations
 * `data_dirs`: (*Added 0.36.0*) list of directories to be set for
   `GETTEXTDATADIRS` env var (Requires gettext 0.19.8+), used for local
   its files
