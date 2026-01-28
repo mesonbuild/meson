@@ -8,7 +8,7 @@ import typing as T
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import EnvironmentException, version_compare, LibType
+from ..mesonlib import version_compare, LibType
 from ..options import OptionKey
 from .compilers import CompileCheckMode, Compiler
 
@@ -31,6 +31,7 @@ class ValaCompiler(Compiler):
         self.base_options = {OptionKey('b_colorout')}
         self.force_link = False
         self._has_color_support = version_compare(self.version, '>=0.37.1')
+        self._has_posix_profile = version_compare(self.version, '>= 0.44')
 
     def needs_static_linker(self) -> bool:
         return False # Because compiles into C.
@@ -106,18 +107,41 @@ class ValaCompiler(Compiler):
 
         return parameter_list
 
-    def sanity_check(self, work_dir: str) -> None:
-        code = 'class MesonSanityCheck : Object { }'
-        extra_flags: T.List[str] = []
-        extra_flags += self.environment.coredata.get_external_args(self.for_machine, self.language)
-        if self.is_cross:
-            extra_flags += self.get_compile_only_args()
-        else:
-            extra_flags += self.environment.coredata.get_external_link_args(self.for_machine, self.language)
-        with self.cached_compile(code, extra_args=extra_flags, mode=CompileCheckMode.COMPILE) as p:
-            if p.returncode != 0:
-                msg = f'Vala compiler {self.name_string()!r} cannot compile programs'
-                raise EnvironmentException(msg)
+    def _sanity_check_source_code(self) -> str:
+        return 'public static int main() { return 0; }'
+
+    def _sanity_check_compile_args(self, sourcename: str, binname: str
+                                   ) -> T.Tuple[T.List[str], T.List[str]]:
+        args, largs = super()._sanity_check_compile_args(sourcename, binname)
+        if self._has_posix_profile:
+            # This removes the glib requirement. Posix and libc are equivalent,
+            # but posix is available in older versions of valac
+            args.append('--profile=posix')
+        return args, largs
+
+    def _transpiled_sanity_check_compile_args(
+            self, compiler: Compiler, sourcename: str, binname: str
+            ) -> T.Tuple[T.List[str], T.List[str]]:
+        args, largs = super()._transpiled_sanity_check_compile_args(compiler, sourcename, binname)
+        if self._has_posix_profile:
+            return args, largs
+
+        # If valac is too old for the posix profile then we need to find goobject-2.0 for linking.
+        from ..dependencies import find_external_dependency
+        with mlog.no_logging():
+            dep = find_external_dependency('gobject-2.0', self.environment,
+                                           {'required': False, 'native': self.for_machine})
+        if not dep.found():
+            raise mesonlib.EnvironmentException(
+                'Valac < 0.44 requires gobject-2.0 for link testing, bit it could not be found.')
+
+        args.extend(dep.get_all_compile_args())
+        largs.extend(dep.get_all_link_args())
+        return args, largs
+
+    def _sanity_check_filenames(self) -> T.Tuple[str, T.Optional[str], str]:
+        sourcename, _, binname = super()._sanity_check_filenames()
+        return sourcename, f'{os.path.splitext(sourcename)[0]}.c', binname
 
     def find_library(self, libname: str, extra_dirs: T.List[str], libtype: LibType = LibType.PREFER_SHARED,
                      lib_prefix_warning: bool = True, ignore_system_dirs: bool = False) -> T.Optional[T.List[str]]:

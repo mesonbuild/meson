@@ -1252,7 +1252,6 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def name_string(self) -> str:
         return ' '.join(self.exelist)
 
-    @abc.abstractmethod
     def sanity_check(self, work_dir: str) -> None:
         """Check that this compiler actually works.
 
@@ -1261,24 +1260,152 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         main(): return 0
         ```
         is good enough here.
+
+        :param work_dir: A directory to put temporary artifacts
+        :raises mesonlib.EnvironmentException: If building the binary fails
+        :raises mesonlib.EnvironmentException: If running the binary is attempted and fails
+        """
+        sourcename, transpiled, binname = self._sanity_check_filenames()
+
+        with open(os.path.join(work_dir, sourcename), 'w', encoding='utf-8') as f:
+            f.write(self._sanity_check_source_code())
+
+        if transpiled:
+            cmdlist, linker_args = self._sanity_check_compile_args(sourcename, transpiled)
+            cmdlist.extend(linker_args)
+            pc, stdo, stde = mesonlib.Popen_safe(cmdlist, cwd=work_dir)
+            mlog.debug('Sanity check transpiler command line:', mesonlib.join_args(cmdlist))
+            mlog.debug('Sanity check transpiler stdout:')
+            mlog.debug(stdo)
+            mlog.debug('-----\nSanity check transpiler stderr:')
+            mlog.debug(stde)
+            mlog.debug('-----')
+            if pc.returncode != 0:
+                raise mesonlib.EnvironmentException(f'Compiler {self.name_string()} cannot transpile programs.')
+
+            comp_lang = SUFFIX_TO_LANG[transpiled.rsplit('.', maxsplit=1)[1]]
+            comp = self.environment.coredata.compilers[self.for_machine].get(comp_lang)
+            if not comp:
+                raise mesonlib.MesonBugException(f'Need a {comp_lang} compiler for {self.language} compiler test, but one doesnt exist')
+
+            cmdlist, linker_args = self._transpiled_sanity_check_compile_args(comp, transpiled, binname)
+
+            mlog.debug('checking compilation of transpiled source:')
+        else:
+            cmdlist, linker_args = self._sanity_check_compile_args(sourcename, binname)
+
+        cmdlist.extend(linker_args)
+        pc, stdo, stde = mesonlib.Popen_safe(cmdlist, cwd=work_dir)
+        mlog.debug('Sanity check compiler command line:', mesonlib.join_args(cmdlist))
+        mlog.debug('Sanity check compile stdout:')
+        mlog.debug(stdo)
+        mlog.debug('-----\nSanity check compile stderr:')
+        mlog.debug(stde)
+        mlog.debug('-----')
+        if pc.returncode != 0:
+            raise mesonlib.EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
+
+        self._run_sanity_check([os.path.join(work_dir, binname)], work_dir)
+
+    def _sanity_check_filenames(self) -> T.Tuple[str, T.Optional[str], str]:
+        """Generate the name of the source and binary file for the sanity check.
+
+        The returned names should be just the names of the files with
+        extensions, but no paths.
+
+        The return value consists of a source name, a transpiled source name (if
+        there is one), and the final binary name.
+
+        :return: A tuple of (sourcename, transpiled, binaryname)
+        """
+        default_ext = lang_suffixes[self.language][0]
+        template = f'sanity_check_for_{self.language}'
+        sourcename = f'{template}.{default_ext}'
+        cross_or_not = "_cross" if self.is_cross else ""
+        binaryname = f'{template}{cross_or_not}.exe'
+        return sourcename, None, binaryname
+
+    def _transpiled_sanity_check_compile_args(
+            self, compiler: Compiler, sourcename: str, binname: str
+            ) -> T.Tuple[T.List[str], T.List[str]]:
+        """Get arguments to run compiler for sanity check.
+
+        By default this will just return the compile arguments for the compiler in question.
+
+        Linker arguments are separated from compiler arguments because some
+        compilers do not allow linker and compiler arguments to be mixed together
+
+        Overriding this is useful when needing to change the kind of output
+        produced, or adding extra arguments.
+
+        :param compiler: The :class:`Compiler` that is used for compiling the transpiled sources
+        :param sourcename: the name of the source file to generate
+        :param binname: the name of the binary file to generate
+        :return: a tuple of arguments, the first is the executable and compiler
+            arguments, the second is linker arguments
+        """
+        return compiler._sanity_check_compile_args(sourcename, binname)
+
+    def _sanity_check_compile_args(self, sourcename: str, binname: str
+                                   ) -> T.Tuple[T.List[str], T.List[str]]:
+        """Get arguments to run compiler for sanity check.
+
+        Linker arguments are separated from compiler arguments because some
+        compilers do not allow linker and compiler arguments to be mixed together
+
+        :param sourcename: the name of the source file to generate
+        :param binname: the name of the binary file to generate
+        :return: a tuple of arguments, the first is the executable and compiler
+            arguments, the second is linker arguments
+        """
+        return self.exelist_no_ccache + self.get_always_args() + self.get_output_args(binname) + [sourcename], []
+
+    @abc.abstractmethod
+    def _sanity_check_source_code(self) -> str:
+        """Get the source code to run for a sanity check
+
+        :return: A string to be written into a file and ran.
         """
 
-    def run_sanity_check(self, cmdlist: T.List[str], work_dir: str, use_exe_wrapper_for_cross: bool = True) -> T.Tuple[str, str]:
-        # Run sanity check
-        if self.is_cross and use_exe_wrapper_for_cross:
-            if not self.environment.has_exe_wrapper():
-                # Can't check if the binaries run so we have to assume they do
-                return ('', '')
-            cmdlist = self.environment.exe_wrapper.get_command() + cmdlist
-        mlog.debug('Running test binary command: ', mesonlib.join_args(cmdlist))
+    def _sanity_check_run_with_exe_wrapper(self, command: T.List[str]) -> T.List[str]:
+        """Wrap the binary to run in the test with the exe_wrapper if necessary
+
+        Languages that do no want to use an exe_wrapper (or always want to use
+        some kind of wrapper) should override this method
+
+        :param command: The string list of commands to run
+        :return: The list of commands wrapped by the exe_wrapper if it is needed, otherwise the original commands
+        """
+        if self.is_cross and self.environment.has_exe_wrapper():
+            assert self.environment.exe_wrapper is not None, 'for mypy'
+            return self.environment.exe_wrapper.get_command() + command
+        return command
+
+    def _run_sanity_check(self, cmdlist: T.List[str], work_dir: str) -> None:
+        """Run a sanity test binary
+
+        :param cmdlist: A list of strings to pass to :func:`subprocess.run` or equivalent to run the test
+        :param work_dir: A directory to place temporary artifacts
+        :raises mesonlib.EnvironmentException: If the binary cannot be run or if it returns a non-zero exit code
+        """
+        # Can't check binaries, so we have to assume they work
+        if self.is_cross and not self.environment.has_exe_wrapper():
+            mlog.debug('Cannot run cross check')
+            return
+
+        cmdlist = self._sanity_check_run_with_exe_wrapper(cmdlist)
+        mlog.debug('Sanity check built target output for', self.for_machine, self.language, 'compiler')
+        mlog.debug(' -- Running test binary command: ', mesonlib.join_args(cmdlist))
         try:
             pe, stdo, stde = Popen_safe_logged(cmdlist, 'Sanity check', cwd=work_dir)
+            mlog.debug(' -- stdout:\n', stdo)
+            mlog.debug(' -- stderr:\n', stde)
+            mlog.debug(' -- returncode:', pe.returncode)
         except Exception as e:
             raise mesonlib.EnvironmentException(f'Could not invoke sanity check executable: {e!s}.')
 
         if pe.returncode != 0:
             raise mesonlib.EnvironmentException(f'Executables created by {self.language} compiler {self.name_string()} are not runnable.')
-        return stdo, stde
 
     def split_shlib_to_parts(self, fname: str) -> T.Tuple[T.Optional[str], str]:
         return None, fname
