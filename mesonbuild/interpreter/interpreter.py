@@ -3225,6 +3225,10 @@ class Interpreter(InterpreterBase, HoldableObject):
     def source_strings_to_files(self, sources: T.List[kwtypes.CustomTargetInputs]) -> T.List['CustomTargetSources']: ... # noqa: F811
 
     @T.overload
+    def source_strings_to_files(self, sources: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.StructuredSources]]
+                                ) -> T.List[T.Union[mesonlib.File, build.GeneratedTypes, build.StructuredSources]]: ... # noqa: F811
+
+    @T.overload
     def source_strings_to_files(self, sources: T.List['SourceInputs'], strict: bool = True) -> T.List['SourceOutputs']: ... # noqa: F811
 
     @T.overload
@@ -3513,26 +3517,24 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         # Because who owns this isn't clear
         kwargs = kwargs.copy()
-        name, sources = args
+        name, raw_sources = args
         # Avoid mutating, since there could be other references to sources
-        sources = sources + kwargs['sources']
-        if any(isinstance(s, build.BuildTarget) for s in sources):
+        raw_sources = raw_sources + T.cast('SourcesVarargsType', kwargs['sources'])
+        if any(isinstance(s, build.BuildTarget) for s in raw_sources):
             FeatureBroken.single_use('passing references to built targets as a source file', '1.1.0', self.subproject,
                                      'Consider using `link_with` or `link_whole` if you meant to link, or dropping them as otherwise they are ignored.',
                                      node)
-        if any(isinstance(s, build.ExtractedObjects) for s in sources):
+        if any(isinstance(s, build.ExtractedObjects) for s in raw_sources):
             FeatureBroken.single_use('passing object files as sources', '1.1.0', self.subproject,
                                      'Pass these to the `objects` keyword instead, they are ignored when passed as sources.',
                                      node)
         # Go ahead and drop these here, since they're only allowed through for
         # backwards compatibility anyway
-        sources = [s for s in sources
-                   if not isinstance(s, (build.BuildTarget, build.ExtractedObjects))]
-        sources = self.source_strings_to_files(sources)
+        sources = self.source_strings_to_files([
+            s for s in raw_sources if not isinstance(s, (build.BuildTarget, build.ExtractedObjects))])
         objs = kwargs['objects']
         # TODO: When we can do strings -> Files in the typed_kwargs validator, do this there too
         kwargs['extra_files'] = mesonlib.unique_list(self.source_strings_to_files(kwargs['extra_files']))
-        self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
         self.__process_language_args(kwargs)
         if targetclass is build.StaticLibrary:
             kwargs = T.cast('kwtypes.StaticLibrary', kwargs)
@@ -3692,14 +3694,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             dep = self.build.stdlibs[target.for_machine].get(l, None)
             if dep:
                 target.add_deps([dep])
-
-    def check_sources_exist(self, subdir, sources):
-        for s in sources:
-            if not isinstance(s, str):
-                continue # This means a generated source and they always exist.
-            fname = os.path.join(subdir, s)
-            if not os.path.isfile(fname):
-                raise InterpreterException(f'Tried to add non-existing source file {s}.')
 
     def check_for_jar_sources(self, sources, targetclass):
         for s in sources:
