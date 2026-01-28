@@ -282,6 +282,7 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         'python_installation.dependency',
         *DEPENDENCY_KWS,
         KwargInfo('embed', bool, default=False, since='0.53.0'),
+        KwargInfo('limited_api', bool, default=False, since='1.11.0'), # 1.11.0 is a placeholder for the next version.
     )
     @disablerIfNotFound
     @InterpreterObject.method('dependency')
