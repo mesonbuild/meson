@@ -78,6 +78,7 @@ if T.TYPE_CHECKING:
         d_module_versions: T.List[T.Union[str, int]]
         d_unittest: bool
         dependencies: T.List[dependencies.Dependency]
+        depend_files: T.List[File]
         extra_files: T.List[File]
         gnu_symbol_visibility: Literal['default', 'internal', 'hidden', 'protected', 'inlineshidden', '']
         implicit_include_directories: bool
