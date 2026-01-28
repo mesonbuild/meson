@@ -1,0 +1,4 @@
+[style]
+based_on_style = pep8
+split_before_named_assigns = true
+column_limit = 100

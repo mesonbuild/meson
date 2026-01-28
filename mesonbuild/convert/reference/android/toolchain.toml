@@ -1,0 +1,314 @@
+# Copyright 2026 The Meson Development Team
+# SPDX-License-Identifier-Apache-2.0
+
+[[toolchain]]
+name = "android_arm64"
+
+[toolchain.host_machine]
+cpu_family = "aarch64"
+cpu = "aarch64"
+system = "android"
+endian = "little"
+
+[toolchain.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[toolchain.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[toolchain.rust]
+compiler_id = "rustc"
+linker_id = "ld.lld"
+version = "1.90.0"
+
+[toolchain.c.links.fails]
+"GCC 64bit atomics" = true
+
+[toolchain.c.check_header.fails]
+"pthread_np.h" = true
+
+[toolchain.c.has_header_symbol.fails]
+"sys/mkdev.h" = { major = true, minor = true, makedev = true }
+"errno.h" = { program_invocation_name = true }
+
+[toolchain.c.has_function.fails]
+qsort_s = true
+secure_getenv = true
+pthread_setaffinity_np = true
+__builtin_add_overflow_p = true
+__builtin_sub_overflow_p = true
+
+[toolchain.c.supported_arguments.fails]
+args = [
+    "-Wno-nonnull-compare",
+]
+
+[toolchain.cpp.supported_arguments.fails]
+args = [
+    "-flifetime-dse=1",
+]
+
+[[toolchain]]
+name = "android_x86"
+
+[toolchain.host_machine]
+cpu_family = "x86"
+cpu = "i686"
+system = "android"
+endian = "little"
+
+[toolchain.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[toolchain.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[toolchain.rust]
+compiler_id = "rustc"
+linker_id = "ld.lld"
+version = "1.90.0"
+
+[toolchain.c.compiles.fails]
+"__uint128_t" = true
+
+[toolchain.c.links.fails]
+"GCC 64bit atomics" = true
+
+[toolchain.c.check_header.fails]
+"pthread_np.h" = true
+
+[toolchain.c.has_header_symbol.fails]
+"sys/mkdev.h" = { major = true, minor = true, makedev = true }
+"errno.h" = { program_invocation_name = true }
+
+[toolchain.c.has_function.fails]
+qsort_s = true
+secure_getenv = true
+pthread_setaffinity_np = true
+__builtin_add_overflow_p = true
+__builtin_sub_overflow_p = true
+
+[toolchain.c.supported_arguments.fails]
+args = [
+    "-Wno-nonnull-compare",
+]
+
+[toolchain.cpp.supported_arguments.fails]
+args = [
+    "-flifetime-dse=1",
+]
+
+[[toolchain]]
+name = "android_x86_64"
+
+[toolchain.host_machine]
+cpu_family = "x86_64"
+cpu = "x86_64"
+system = "android"
+endian = "little"
+
+[toolchain.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[toolchain.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[toolchain.rust]
+compiler_id = "rustc"
+linker_id = "ld.lld"
+version = "1.90.0"
+
+[toolchain.c.links.fails]
+"GCC 64bit atomics" = true
+
+[toolchain.c.check_header.fails]
+"pthread_np.h" = true
+
+[toolchain.c.has_header_symbol.fails]
+"sys/mkdev.h" = { major = true, minor = true, makedev = true }
+"errno.h" = { program_invocation_name = true }
+
+[toolchain.c.has_function.fails]
+qsort_s = true
+secure_getenv = true
+pthread_setaffinity_np = true
+__builtin_add_overflow_p = true
+__builtin_sub_overflow_p = true
+
+[toolchain.c.supported_arguments.fails]
+args = [
+    "-Wno-nonnull-compare",
+]
+
+[toolchain.cpp.supported_arguments.fails]
+args = [
+    "-flifetime-dse=1",
+]
+
+[[toolchain]]
+name = "linux_glibc_x86_64"
+
+[toolchain.host_machine]
+cpu_family = "x86_64"
+cpu = "x86_64"
+system = "linux"
+endian = "little"
+
+[toolchain.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[toolchain.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[toolchain.rust]
+compiler_id = "rustc"
+linker_id = "ld.lld"
+version = "1.90.0"
+
+[toolchain.c.check_header.fails]
+"pthread_np.h" = true
+"linux/udmabuf.h" = true
+
+[toolchain.c.has_header_symbol.fails]
+"sys/mkdev.h" = { major = true, minor = true, makedev = true }
+"errno.h" = { program_invocation_name = true }
+
+[toolchain.c.has_function.fails]
+memfd_create = true
+qsort_s = true
+pthread_setaffinity_np = true
+thrd_create = true
+getrandom = true
+__builtin_add_overflow_p = true
+__builtin_sub_overflow_p = true
+reallocarray = true
+
+[toolchain.c.supported_arguments.fails]
+args = [
+    "-Wno-nonnull-compare",
+]
+
+[toolchain.cpp.supported_arguments.fails]
+args = [
+    "-flifetime-dse=1",
+]
+
+[[toolchain]]
+name = "linux_musl_x86_64"
+
+[toolchain.host_machine]
+cpu_family = "x86_64"
+cpu = "x86_64"
+system = "linux"
+endian = "little"
+
+[toolchain.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[toolchain.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[toolchain.rust]
+compiler_id = "rustc"
+linker_id = "ld.lld"
+version = "1.90.0"
+
+[toolchain.c.check_header.fails]
+"pthread_np.h" = true
+"linux/udmabuf.h" = true
+"xlocale.h" = true
+
+[toolchain.c.has_header_symbol.fails]
+"sys/mkdev.h" = { major = true, minor = true, makedev = true }
+"errno.h" = { program_invocation_name = true }
+
+[toolchain.c.has_function.fails]
+memfd_create = true
+qsort_s = true
+pthread_setaffinity_np = true
+thrd_create = true
+getrandom = true
+__builtin_add_overflow_p = true
+__builtin_sub_overflow_p = true
+
+[toolchain.c.supported_arguments.fails]
+args = [
+    "-Wno-nonnull-compare",
+]
+
+[toolchain.cpp.supported_arguments.fails]
+args = [
+    "-flifetime-dse=1",
+]
+
+[[toolchain]]
+name = "linux_musl_aarch64"
+
+[toolchain.host_machine]
+cpu_family = "aarch64"
+cpu = "aarch64"
+system = "linux"
+endian = "little"
+
+[toolchain.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[toolchain.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[toolchain.rust]
+compiler_id = "rustc"
+linker_id = "ld.lld"
+version = "1.90.0"
+
+[toolchain.c.check_header.fails]
+"pthread_np.h" = true
+"linux/udmabuf.h" = true
+"xlocale.h" = true
+
+[toolchain.c.has_header_symbol.fails]
+"sys/mkdev.h" = { major = true, minor = true, makedev = true }
+"errno.h" = { program_invocation_name = true }
+
+[toolchain.c.has_function.fails]
+memfd_create = true
+qsort_s = true
+pthread_setaffinity_np = true
+thrd_create = true
+getrandom = true
+__builtin_add_overflow_p = true
+__builtin_sub_overflow_p = true
+
+[toolchain.c.supported_arguments.fails]
+args = [
+    "-Wno-nonnull-compare",
+]
+
+[toolchain.cpp.supported_arguments.fails]
+args = [
+    "-flifetime-dse=1",
+]
