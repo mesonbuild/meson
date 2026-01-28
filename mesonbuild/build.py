@@ -906,7 +906,6 @@ class BuildTarget(Target):
             mlog.warning(f'Build target {name} has no sources. '
                          'This was never supposed to be allowed but did because of a bug, '
                          'support will be removed in a future release of Meson')
-        self.check_unknown_kwargs(kwargs)
         self.validate_install()
         self.check_module_linking()
 
@@ -961,21 +960,6 @@ class BuildTarget(Target):
                 raise InvalidArguments('Tried to install a target for the build machine in a cross build.')
             else:
                 mlog.warning('Installing target build for the build machine. This will fail in a cross build.')
-
-    def check_unknown_kwargs(self, kwargs: BuildTargetKeywordArguments) -> None:
-        # Override this method in derived classes that have more
-        # keywords.
-        self.check_unknown_kwargs_int(kwargs, self.known_kwargs)
-
-    def check_unknown_kwargs_int(self, kwargs: BuildTargetKeywordArguments, known_kwargs: T.Set[str]) -> None:
-        unknowns = []
-        for k in kwargs:
-            if k == 'language_args':
-                continue
-            if k not in known_kwargs:
-                unknowns.append(k)
-        if len(unknowns) > 0:
-            mlog.warning('Unknown keyword argument(s) in target {}: {}.'.format(self.name, ', '.join(unknowns)))
 
     def process_objectlist(self, objects):
         assert isinstance(objects, list)
