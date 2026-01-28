@@ -341,7 +341,7 @@ class _BaseBuildTarget(TypedDict):
     dependencies: T.List[Dependency]
     extra_files: T.List[FileOrString]
     gnu_symbol_visibility: str
-    include_directories: T.List[build.IncludeDirs]
+    include_directories: T.List[T.Union[str, build.IncludeDirs]]
     install: bool
     install_mode: FileMode
     install_tag: T.Optional[str]
