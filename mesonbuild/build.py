@@ -115,7 +115,6 @@ if T.TYPE_CHECKING:
         vala_vapi: T.Optional[str]
         install_vala_vapi: bool
         install_vala_vapi_dir: T.Optional[str]
-        win_subsystem: str
 
         _allow_no_sources: bool
 
@@ -126,6 +125,7 @@ if T.TYPE_CHECKING:
         export_dynamic: bool
         pie: bool
         vs_module_defs: T.Union[str, File, CustomTarget, CustomTargetIndex]
+        win_subsystem: str
 
     class SharedModuleKeywordArguments(BuildTargetKeywordArguments, total=False):
 
