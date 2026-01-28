@@ -3190,6 +3190,9 @@ class Interpreter(InterpreterBase, HoldableObject):
     def source_strings_to_files(self, sources: T.List['mesonlib.FileOrString'], strict: bool = False) -> T.List['mesonlib.FileOrString']: ... # noqa: F811
 
     @T.overload
+    def source_strings_to_files(self, sources: T.List[T.Union[mesonlib.FileOrString, build.BuildTargetTypes]]) -> T.List[T.Union[mesonlib.File, build.BuildTargetTypes]]: ...
+
+    @T.overload
     def source_strings_to_files(self, sources: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]) -> T.List[T.Union[mesonlib.File, build.GeneratedTypes]]: ... # noqa: F811
 
     @T.overload
@@ -3376,7 +3379,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         return depend_files, args
 
-    def __process_language_args(self, kwargs: T.Dict[str, T.List[mesonlib.FileOrString]]) -> None:
+    def __process_language_args(self, kwargs: kwtypes.BuildTarget
+                                ) -> T.Tuple[T.DefaultDict[Language, T.List[str]], T.List[mesonlib.File]]:
         """Convert split language args into a combined dictionary.
 
         The Meson DSL takes arguments in the form `<lang>_args : args`, but in the
@@ -3384,14 +3388,14 @@ class Interpreter(InterpreterBase, HoldableObject):
         This function extracts the arguments from the DSL format and prepares
         them for the IR.
         """
-        d = kwargs.setdefault('depend_files', [])
-        new_args: T.DefaultDict[str, T.List[str]] = collections.defaultdict(list)
+        deps: T.List[mesonlib.File] = []
+        new_args: T.DefaultDict[Language, T.List[str]] = collections.defaultdict(list)
 
         for l in compilers.all_languages:
-            deps, args = self.__convert_file_args(kwargs[f'{l}_args'])
+            deps, args = self.__convert_file_args(kwargs[f'{l}_args'])  # type: ignore[literal-required]
             new_args[l] = args
-            d.extend(deps)
-        kwargs['language_args'] = new_args
+            deps.extend(deps)
+        return new_args, deps
 
     @staticmethod
     def _handle_rust_abi(abi: T.Optional[Literal['c', 'rust']],
@@ -3427,6 +3431,219 @@ class Interpreter(InterpreterBase, HoldableObject):
             crate_type = default_rust_type
         return crate_type
 
+    def __convert_build_target_base_kwargs(self, kwargs: kwtypes.BuildTarget, final: build.BuildTargetKeywordArguments) -> None:
+        """Convert shared arguments for BuildTargets to the Build layer form.
+
+        This takes the raw DSL form, and builds a new dict in the form that the BuildTarget expects
+
+        :param kwargs: The arguments in raw DSL form
+        :param final: A new dictionary to fill in with the Build layer
+        :raises InvalidArguments: If one the PCH files doesn't exit
+        """
+        # copy common arguments directly
+        for arg in ('build_by_default', 'build_rpath', 'build_subdir', 'c_pch',
+                    'cpp_pch', 'd_debug', 'd_module_versions', 'd_unittest',
+                    'dependencies', 'gnu_symbol_visibility', 'install',
+                    'install_mode', 'install_rpath',
+                    'implicit_include_directories', 'link_args',
+                    'link_language', 'link_with', 'link_whole', 'name_prefix',
+                    'name_suffix', 'native', 'resources', 'vala_header',
+                    'vala_gir', 'vala_vapi', 'swift_interoperability_mode',
+                    'swift_module_name', 'rust_crate_type',
+                    'rust_dependency_map', 'override_options'):
+            final[arg] = kwargs[arg]
+
+        # this is not accessable from the DSL, so we need to initialize it
+        # ourselves
+        final['depend_files'] = []
+
+        # Check for non-existant PCH files
+        missing: T.List[str] = []
+        for each in itertools.chain(kwargs['c_pch'] or [], kwargs['cpp_pch'] or []):
+            if each is not None:
+                if not os.path.isfile(os.path.join(self.environment.source_dir, self.subdir, each)):
+                    missing.append(os.path.join(self.subdir, each))
+        if missing:
+            raise InvalidArguments('The following PCH files do not exist: {}'.format(', '.join(missing)))
+
+        # The build layer and interpreter don't agree here, and it's not clear
+        # that we're hanlding this correctly
+        final['install_dir'] = kwargs['install_dir']  # type: ignore[typeddict-item]
+        final['link_depends'] = self.source_strings_to_files(kwargs['link_depends'])
+        final['install_tag'] = [kwargs['install_tag']]
+        final['extra_files'] = mesonlib.unique_list(self.source_strings_to_files(kwargs['extra_files']))
+
+        # Convert into IncludeDirs objects
+        final['include_directories'] = self.extract_incdirs(kwargs['include_directories'])
+        final['d_import_dirs'] = self.extract_incdirs(kwargs['d_import_dirs'], True)
+
+        # Convert language arguments
+        lang_args, deps = self.__process_language_args(kwargs)
+        final['language_args'] = lang_args
+        final['depend_files'].extend(deps)
+
+    def __convert_executable_kwargs(self, node: mparser.BaseNode, kwargs: kwtypes.Executable) -> build.ExecutableKeywordArguments:
+        """Convert Executable arguments from DSL form to the build layer form.
+
+        :param node: The Node being evaluated
+        :param kwargs: The DSL keyword arguments
+        :raises InvalidArguments: If both gui_app and win_subsystem are set
+        :raises InvalidArguments: If implib is false and export_dynamic is true
+        :raises InvalidArguments: If the rust_crate_type is set to anything except bin
+        :return: The keyword arguments as the Build layer expects
+        """
+        final: build.ExecutableKeywordArguments = {}
+        self.__convert_build_target_base_kwargs(kwargs, final)
+
+        # Exe exclusive arguments
+        for exe_arg in ('android_exe_type', 'pie', 'vs_module_defs'):
+            final[exe_arg] = kwargs[exe_arg]
+
+        # rewrite `gui_app` to `win_subsystem`
+        if kwargs['gui_app'] is not None:
+            if kwargs['win_subsystem'] is not None:
+                raise InvalidArguments.from_node(
+                    'Executable got both "gui_app", and "win_subsystem" arguments, which are mutually exclusive',
+                    node=node)
+            final['win_subsystem'] = 'windows'
+        elif kwargs['win_subsystem'] is not None:
+            final['win_subsystem'] = kwargs['win_subsystem']
+        else:
+            final['win_subsystem'] = 'console'
+
+        # handle interactions between implib and export_dynamic
+        if kwargs['implib']:
+            if kwargs['export_dynamic'] is False:
+                FeatureDeprecated.single_use(
+                    'implib overrides explicit export_dynamic off', '1.3.0', self.subproject,
+                    'Do not set ths if want export_dynamic disabled if implib is enabled',
+                    location=node)
+            kwargs['export_dynamic'] = True
+        elif kwargs['export_dynamic']:
+            if kwargs['implib'] is False:
+                raise InvalidArguments.from_node(
+                    '"implib" keyword" must not be false if "export_dynamic" is set and not false.',
+                    node=node)
+        if kwargs['export_dynamic'] is None:
+            kwargs['export_dynamic'] = False
+        if isinstance(kwargs['implib'], bool):
+            final['implib'] = None
+        else:
+            final['implib'] = kwargs['implib']
+        final['export_dynamic'] = kwargs['export_dynamic']
+
+        # Handle executable speicific rust_crate_type
+        if kwargs['rust_crate_type'] not in {None, 'bin'}:
+            raise InvalidArguments.from_node(
+                'Crate type for executable must be "bin"', node=node)
+        final['rust_crate_type'] = 'bin'
+
+        return final
+
+    def __convert_static_library_kwargs(self, node: mparser.BaseNode, kwargs: kwtypes.StaticLibrary) -> build.StaticLibraryKeywordArguments:
+        """Convert StaticLibrary arguments to the Build format.
+
+        :param node: The Node currently be evaluated.
+        :param kwargs: The DSL form of the keyword arguments.
+        :return: The arguments in Build layer format.
+        """
+        final: build.StaticLibraryKeywordArguments = {}
+        self.__convert_build_target_base_kwargs(kwargs, final)
+
+        for arg in ('pic', 'prelink'):
+            final[arg] = kwargs[arg]
+
+        for lang in compilers.all_languages - {'java'}:
+            deps, args = self.__convert_file_args(kwargs.get(f'{lang}_static_args', []))  # type: ignore[arg-type]
+            final['language_args'][lang].extend(args)
+            final['depend_files'].extend(deps)
+        final['rust_crate_type'] = self._handle_rust_abi(
+            kwargs['rust_abi'], kwargs['rust_crate_type'], 'rlib', 'staticlib',
+            build.StaticLibrary.typename)
+
+        return final
+
+    def __convert_shared_library_kwargs(self, node: mparser.BaseNode, kwargs: kwtypes.SharedLibrary) -> build.SharedLibraryKeywordArguments:
+        """Convert SharedLibrary arguments to the Build format.
+
+        :param node: The Node currently be evaluated.
+        :param kwargs: The DSL form of the keyword arguments.
+        :return: The arguments in Build layer format.
+        """
+        final: build.SharedLibraryKeywordArguments = {}
+        self.__convert_build_target_base_kwargs(kwargs, final)
+
+        for arg in ('version', 'soversion', 'darwin_versions', 'shortname'):
+            final[arg] = kwargs[arg]
+
+        for lang in compilers.all_languages - {'java'}:
+            deps, args = self.__convert_file_args(kwargs.get(f'{lang}_shared_args', []))  # type: ignore[arg-type]
+            final['language_args'][lang].extend(args)
+            final['depend_files'].extend(deps)
+        final['rust_crate_type'] = self._handle_rust_abi(
+            kwargs['rust_abi'], kwargs['rust_crate_type'], 'dylib', 'cdylib',
+            build.SharedLibrary.typename, extra_valid_types={'proc-macro'})
+
+        return final
+
+    def __convert_shared_module_kwargs(self, node: mparser.BaseNode, kwargs: kwtypes.SharedModule) -> build.SharedModuleKeywordArguments:
+        """Convert SharedModule arguments to the Build format.
+
+        :param node: The Node currently be evaluated.
+        :param kwargs: The DSL form of the keyword arguments.
+        :return: The arguments in Build layer format.
+        """
+        final: build.SharedModuleKeywordArguments = {}
+        self.__convert_build_target_base_kwargs(kwargs, final)
+
+        for arg in ('vs_module_defs', ):
+            final[arg] = kwargs[arg]
+
+        for lang in compilers.all_languages - {'java'}:
+            deps, args = self.__convert_file_args(kwargs.get(f'{lang}_shared_args', []))  # type: ignore[arg-type]
+            final['language_args'][lang].extend(args)
+            final['depend_files'].extend(deps)
+        final['rust_crate_type'] = self._handle_rust_abi(
+            kwargs['rust_abi'], kwargs['rust_crate_type'], 'dylib', 'cdylib',
+            build.SharedModule.typename, extra_valid_types={'proc-macro'})
+
+        return final
+
+    def __convert_jar_kwargs(self, node: mparser.BaseNode, kwargs: kwtypes.Jar) -> build.JarKeywordArguments:
+        """Convert Jar arguments to the Build format.
+
+        :param node: The Node currently be evaluated.
+        :param kwargs: The DSL form of the keyword arguments.
+        :return: The arguments in Build layer format.
+        """
+        final: build.JarKeywordArguments = {}
+
+        # copy common arguments directly
+        for arg in ('build_by_default', 'build_subdir', 'dependencies',
+                    'install', 'install_mode', 'implicit_include_directories',
+                    'link_with', 'java_args', 'java_resources', 'main_class'):
+            final[arg] = kwargs[arg]
+
+        # this is not accessable from the DSL, so we need to initialize it
+        # ourselves
+        final['depend_files'] = []
+
+        # The build layer and interpreter don't agree here, and it's not clear
+        # that we're hanlding this correctly
+        final['install_dir'] = kwargs['install_dir']  # type: ignore[typeddict-item]
+        final['install_tag'] = [kwargs['install_tag']]
+        final['extra_files'] = mesonlib.unique_list(self.source_strings_to_files(kwargs['extra_files']))
+
+        # Convert into IncludeDirs objects
+        final['include_directories'] = self.extract_incdirs(kwargs['include_directories'])
+
+        # Convert language arguments
+        lang_args, deps = self.__process_language_args(kwargs)
+        final['language_args'] = lang_args
+        final['depend_files'].extend(deps)
+
+        return final
+
     @T.overload
     def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
                      kwargs: kwtypes.Executable, targetclass: T.Type[build.Executable]) -> build.Executable: ...
@@ -3455,9 +3672,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             mlog.debug('Unknown target type:', str(targetclass))
             raise RuntimeError('Unreachable code')
 
-        # Because who owns this isn't clear
-        kwargs = kwargs.copy()
-
         name, raw_sources = args
         for_machine = kwargs['native']
         if kwargs.get('rust_crate_type') == 'proc-macro':
@@ -3480,49 +3694,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         sources = self.source_strings_to_files([
             s for s in raw_sources if not isinstance(s, (build.BuildTarget, build.ExtractedObjects))])
         objs = kwargs['objects']
-        # TODO: When we can do strings -> Files in the typed_kwargs validator, do this there too
-        kwargs['extra_files'] = mesonlib.unique_list(self.source_strings_to_files(kwargs['extra_files']))
-        self.__process_language_args(kwargs)
-        if targetclass is build.StaticLibrary:
-            kwargs = T.cast('kwtypes.StaticLibrary', kwargs)
-            for lang in compilers.all_languages - {'java'}:
-                deps, args = self.__convert_file_args(kwargs.get(f'{lang}_static_args', []))
-                kwargs['language_args'][lang].extend(args)
-                kwargs['depend_files'].extend(deps)
-            kwargs['rust_crate_type'] = self._handle_rust_abi(
-                kwargs['rust_abi'], kwargs['rust_crate_type'], 'rlib', 'staticlib', targetclass.typename)
-
-        elif targetclass is build.SharedLibrary:
-            kwargs = T.cast('kwtypes.SharedLibrary', kwargs)
-            for lang in compilers.all_languages - {'java'}:
-                deps, args = self.__convert_file_args(kwargs.get(f'{lang}_shared_args', []))
-                kwargs['language_args'][lang].extend(args)
-                kwargs['depend_files'].extend(deps)
-            kwargs['rust_crate_type'] = self._handle_rust_abi(
-                kwargs['rust_abi'], kwargs['rust_crate_type'], 'dylib', 'cdylib', targetclass.typename,
-                extra_valid_types={'proc-macro'})
-
-        elif targetclass is build.Executable:
-            kwargs = T.cast('kwtypes.Executable', kwargs)
-            if kwargs['rust_crate_type'] not in {None, 'bin'}:
-                raise InvalidArguments('Crate type for executable must be "bin"')
-            kwargs['rust_crate_type'] = 'bin'
-
-        if targetclass is not build.Jar:
-            self.check_for_jar_sources(sources, targetclass)
-            kwargs['include_directories'] = self.extract_incdirs(kwargs['include_directories'])
-            kwargs['d_import_dirs'] = self.extract_incdirs(kwargs['d_import_dirs'], True)
-            missing: T.List[str] = []
-            for each in itertools.chain(kwargs['c_pch'] or [], kwargs['cpp_pch'] or []):
-                if each is not None:
-                    if not os.path.isfile(os.path.join(self.environment.source_dir, self.subdir, each)):
-                        missing.append(os.path.join(self.subdir, each))
-            if missing:
-                raise InvalidArguments('The following PCH files do not exist: {}'.format(', '.join(missing)))
-
-        # Filter out kwargs from other target types. For example 'soversion'
-        # passed to library() when default_library == 'static'.
-        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs | {'language_args'}}
 
         srcs: T.List['SourceInputs'] = []
         struct: T.Optional[build.StructuredSources] = build.StructuredSources()
@@ -3556,35 +3727,18 @@ class Interpreter(InterpreterBase, HoldableObject):
                     outputs.update(o)
 
         if targetclass is build.Executable:
-            kwargs = T.cast('kwtypes.Executable', kwargs)
-            if kwargs['gui_app'] is not None:
-                if kwargs['win_subsystem'] is not None:
-                    raise InvalidArguments.from_node(
-                        'Executable got both "gui_app", and "win_subsystem" arguments, which are mutually exclusive',
-                        node=node)
-                if kwargs['gui_app']:
-                    kwargs['win_subsystem'] = 'windows'
-            if kwargs['win_subsystem'] is None:
-                kwargs['win_subsystem'] = 'console'
-
-            if kwargs['implib']:
-                if kwargs['export_dynamic'] is False:
-                    FeatureDeprecated.single_use('implib overrides explicit export_dynamic off', '1.3.0', self.subproject,
-                                                 'Do not set ths if want export_dynamic disabled if implib is enabled',
-                                                 location=node)
-                kwargs['export_dynamic'] = True
-            elif kwargs['export_dynamic']:
-                if kwargs['implib'] is False:
-                    raise InvalidArguments('"implib" keyword" must not be false if "export_dynamic" is set and not false.')
-            if kwargs['export_dynamic'] is None:
-                kwargs['export_dynamic'] = False
-            if isinstance(kwargs['implib'], bool):
-                kwargs['implib'] = None
-
-        kwargs['install_tag'] = [kwargs['install_tag']]
+            nkwargs = self.__convert_executable_kwargs(node, kwargs)
+        elif targetclass is build.StaticLibrary:
+            nkwargs = self.__convert_static_library_kwargs(node, kwargs)
+        elif targetclass is build.SharedLibrary:
+            nkwargs = self.__convert_shared_library_kwargs(node, kwargs)
+        elif targetclass is build.SharedModule:
+            nkwargs = self.__convert_shared_module_kwargs(node, kwargs)
+        else:
+            nkwargs = self.__convert_jar_kwargs(node, kwargs)
 
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
-                             self.environment, self.compilers[for_machine], kwargs)
+                             self.environment, self.compilers[for_machine], nkwargs)
         if objs and target.uses_rust():
             FeatureNew.single_use('objects in Rust targets', '1.8.0', self.subproject)
 

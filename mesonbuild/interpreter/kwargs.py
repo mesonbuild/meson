@@ -364,7 +364,7 @@ class _BaseBuildTarget(TypedDict):
     vala_gir: T.Optional[str]
 
 
-class _BuildTarget(_BaseBuildTarget):
+class BuildTarget(_BaseBuildTarget):
 
     """Arguments shared by non-JAR functions"""
 
@@ -402,7 +402,7 @@ class _LibraryMixin(TypedDict):
     rust_abi: T.Optional[RustAbi]
 
 
-class Executable(_BuildTarget):
+class Executable(BuildTarget):
 
     export_dynamic: T.Optional[bool]
     gui_app: T.Optional[bool]
@@ -419,7 +419,7 @@ class _StaticLibMixin(TypedDict):
     pic: T.Optional[bool]
 
 
-class StaticLibrary(_BuildTarget, _StaticLibMixin, _LibraryMixin):
+class StaticLibrary(BuildTarget, _StaticLibMixin, _LibraryMixin):
     pass
 
 
@@ -432,16 +432,16 @@ class _SharedLibMixin(TypedDict):
     shortname: str
 
 
-class SharedLibrary(_BuildTarget, _SharedLibMixin, _LibraryMixin):
+class SharedLibrary(BuildTarget, _SharedLibMixin, _LibraryMixin):
     pass
 
 
-class SharedModule(_BuildTarget, _LibraryMixin):
+class SharedModule(BuildTarget, _LibraryMixin):
 
     vs_module_defs: T.Optional[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex]]
 
 
-class Library(_BuildTarget, _SharedLibMixin, _StaticLibMixin, _LibraryMixin):
+class Library(BuildTarget, _SharedLibMixin, _StaticLibMixin, _LibraryMixin):
 
     """For library, both_library, and as a base for build_target"""
 
