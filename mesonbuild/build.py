@@ -846,7 +846,7 @@ class BuildTarget(Target):
         self.link_language: T.Optional[Language] = kwargs.get('link_language')
         self.link_targets: T.List[BuildTargetTypes] = []
         self.link_whole_targets: T.List[StaticTargetTypes] = []
-        self.depend_files: T.List[File] = []
+        self.depend_files = kwargs.get('depend_files', [])
         self.link_depends: T.List[T.Union[File, BuildTargetTypes]] = []
         self.added_deps = set()
         self.name_prefix_set = False
