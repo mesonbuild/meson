@@ -428,6 +428,7 @@ class _SharedLibMixin(TypedDict):
     soversion: T.Optional[str]
     version: T.Optional[str]
     vs_module_defs: T.Optional[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex]]
+    shortname: str
 
 
 class SharedLibrary(_BuildTarget, _SharedLibMixin, _LibraryMixin):
