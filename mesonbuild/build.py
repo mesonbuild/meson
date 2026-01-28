@@ -93,7 +93,7 @@ if T.TYPE_CHECKING:
         language_args: T.DefaultDict[Language, T.List[str]]
         link_args: T.List[str]
         link_early_args: T.List[str]
-        link_depends: T.List[T.Union[str, File, CustomTarget, CustomTargetIndex]]
+        link_depends: T.List[T.Union[File, BuildTargetTypes]]
         link_language: Language
         link_whole: T.List[StaticTargetTypes]
         link_with: T.List[BuildTargetTypes]
