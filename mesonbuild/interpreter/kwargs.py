@@ -347,7 +347,7 @@ class _BaseBuildTarget(TypedDict):
     install_tag: T.Optional[str]
     install_rpath: str
     implicit_include_directories: bool
-    link_depends: T.List[T.Union[str, File, build.GeneratedTypes]]
+    link_depends: T.List[T.Union[str, File, build.BuildTargetTypes]]
     link_language: T.Optional[Language]
     link_whole: T.List[build.StaticTargetTypes]
     link_with: T.List[build.BuildTargetTypes]
