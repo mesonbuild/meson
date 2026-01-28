@@ -3210,7 +3210,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 compiler_name = self.compiler_to_rule_name(compiler)
         else:
             compiler_name = self.compiler_to_rule_name(compiler)
-        extra_deps = []
+        extra_deps: T.List[str] = []
+        extra_deps.extend(self.get_target_depend_files(target))
         if compiler.get_language() == 'fortran':
             # Can't read source file to scan for deps if it's generated later
             # at build-time. Skip scanning for deps, and just set the module
