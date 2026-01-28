@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 import dataclasses
+import os.path
 import typing as T
 
 from .. import build, mesonlib
@@ -55,10 +56,7 @@ class ModuleState:
         self.project_args = interpreter.current_build_project().project_args.host
         self.current_node = interpreter.current_node
 
-    def get_include_args(self, include_dirs: T.Iterable[T.Union[str, build.IncludeDirs]], prefix: str = '-I') -> T.List[str]:
-        if not include_dirs:
-            return []
-
+    def get_include_args(self, include_dirs: T.Iterable[T.Union[str, build.IncludeDirs]], implicit: bool = False, prefix: str = '-I') -> T.List[str]:
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
 
@@ -69,6 +67,11 @@ class ModuleState:
             else:
                 dirs_str.extend([f'{prefix}{i}' for i in dirs.abs_string_list(srcdir, builddir)])
 
+        if implicit:
+            build_cur_dir = os.path.normpath(os.path.join(builddir, self.subdir))
+            dirs_str.append(f'{prefix}{build_cur_dir}')
+            source_cur_dir = os.path.normpath(os.path.join(srcdir, self.subdir))
+            dirs_str.append(f'{prefix}{source_cur_dir}')
         return dirs_str
 
     def find_program(self, prog: T.Union[mesonlib.FileOrString, T.List[mesonlib.FileOrString]],

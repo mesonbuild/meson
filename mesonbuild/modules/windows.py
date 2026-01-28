@@ -24,13 +24,14 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from ..programs import CommandList
 
-    from typing_extensions import TypedDict
+    from typing_extensions import Literal, TypedDict
 
     class CompileResources(TypedDict):
 
         depend_files: T.List[mesonlib.FileOrString]
         depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
+        implicit_include_directories: bool
         args: T.List[str]
 
 
@@ -111,6 +112,7 @@ class WindowsModule(ExtensionModule):
         DEPEND_FILES_KW.evolve(since='0.47.0'),
         DEPENDS_KW.evolve(since='0.47.0'),
         INCLUDE_DIRECTORIES,
+        KwargInfo('implicit_include_directories', bool, default=False, since='1.11.0'),
         KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
     )
     def compile_resources(self, state: 'ModuleState',
@@ -124,7 +126,7 @@ class WindowsModule(ExtensionModule):
                 extra_args += state.get_include_args([
                     build.IncludeDirs('', [], False, [self.interpreter.backend.get_target_dir(d)])
                 ])
-        extra_args += state.get_include_args(kwargs['include_directories'])
+        extra_args += state.get_include_args(kwargs['include_directories'], kwargs['implicit_include_directories'])
 
         rescomp, rescomp_type = self._find_resource_compiler(state)
         if rescomp_type == ResourceCompilerType.rc:
@@ -177,13 +179,26 @@ class WindowsModule(ExtensionModule):
             name = name.replace('/', '_').replace('\\', '_').replace(':', '_')
             name_formatted = name_formatted.replace('/', '_').replace('\\', '_').replace(':', '_')
             output = f'{name}_@BASENAME@.{suffix}'
+            depfile: T.Optional[str] = None
+            depfile_type: T.Optional[Literal['gcc', 'msvc']] = None
             command: CommandList = []
+
+            if rescomp_type == ResourceCompilerType.rc:
+                compiler = self.detect_compiler(state.environment.coredata.compilers[MachineChoice.HOST])
+                depfile_type = 'msvc'
+
+                command.extend(state.environment.get_build_command())
+                command.extend(['--internal', 'rc',
+                                '--cl', compiler.get_exelist(False)[0],
+                                '--rc'])
+
             command.append(rescomp)
             command.extend(res_args)
-            depfile: T.Optional[str] = None
+
             # instruct binutils windres to generate a preprocessor depfile
             if rescomp_type == ResourceCompilerType.windres:
                 depfile = f'{output}.d'
+                depfile_type = 'gcc'
                 command.extend(['--preprocessor-arg=-MD',
                                 '--preprocessor-arg=-MQ@OUTPUT@',
                                 '--preprocessor-arg=-MF@DEPFILE@'])
@@ -197,6 +212,7 @@ class WindowsModule(ExtensionModule):
                 [src],
                 [output],
                 depfile=depfile,
+                depfile_type=depfile_type,
                 depend_files=wrc_depend_files,
                 extra_depends=wrc_depends,
                 description='Compiling Windows resource {}',

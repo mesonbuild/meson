@@ -2872,6 +2872,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  depend_files: T.Optional[T.Sequence[FileOrString]] = None,
                  extra_depends: T.Optional[T.Sequence[T.Union[str, SourceOutputs]]] = None,
                  depfile: T.Optional[str] = None,
+                 depfile_type: T.Optional[Literal['gcc', 'msvc']] = None,
                  env: T.Optional[EnvironmentVariables] = None,
                  feed: bool = False,
                  install: bool = False,
@@ -2900,6 +2901,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
         # must be after depend_files and dependencies
         self.command = self.flatten_command(command)
         self.depfile = depfile
+        self.depfile_type = 'gcc' if depfile else depfile_type
         self.env = env or EnvironmentVariables()
         self.extra_depends = list(extra_depends or [])
         self.feed = feed

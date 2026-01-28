@@ -14,6 +14,7 @@ Windows.
                             depend_files: [](string | File),
                             depends: [](BuildTarget | CustomTarget | CustomTargetIndex)
                             include_directories: [](IncludeDirectories | string)): []CustomTarget
+                            implicit_include_directories: bool
 ```
 
 Compiles Windows `rc` files specified in the positional arguments.
@@ -34,6 +35,8 @@ This method has the following keyword arguments:
 - `include_directories` lists directories to be both searched by the resource
   compiler for referenced resource files, and added to the preprocessor include
   search path.
+- `implicit_include_directories` Controls whether Meson adds
+  the current source and build directories to the include path (*since 1.11.0*)
 
 The resource compiler executable used is the first which exists from the
 following list:
