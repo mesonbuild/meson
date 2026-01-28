@@ -19,7 +19,7 @@ from ..wrap import wrap, WrapMode
 from .. import mesonlib
 from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException, HoldableObject,
                         FileMode, MachineChoice, is_parent_path, listify,
-                        extract_as_list, has_path_sep, path_has_root, path_is_in_root, PerMachine)
+                        has_path_sep, path_has_root, path_is_in_root, PerMachine)
 from ..options import OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram, Program
 from ..dependencies import Dependency
@@ -3476,7 +3476,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                    if not isinstance(s, (build.BuildTarget, build.ExtractedObjects))]
         sources = self.source_strings_to_files(sources)
         objs = kwargs['objects']
-        kwargs['dependencies'] = extract_as_list(kwargs, 'dependencies')
         # TODO: When we can do strings -> Files in the typed_kwargs validator, do this there too
         kwargs['extra_files'] = mesonlib.unique_list(self.source_strings_to_files(kwargs['extra_files']))
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
