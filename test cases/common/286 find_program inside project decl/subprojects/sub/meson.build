@@ -1,0 +1,3 @@
+project('sub')
+
+state = false
