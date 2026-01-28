@@ -47,6 +47,7 @@ if T.TYPE_CHECKING:
     from .linkers.linkers import StaticLinker
     from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
     from .mparser import BaseNode
+    from .options import ElementaryOptionValues
 
     GeneratedTypes: TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
@@ -95,7 +96,7 @@ if T.TYPE_CHECKING:
         name_prefix: T.Optional[str]
         name_suffix: T.Optional[str]
         native: MachineChoice
-        override_options: T.Dict[OptionKey, str]
+        override_options: T.Dict[str, ElementaryOptionValues]
         resources: T.List[str]
         swift_interoperability_mode: Literal['c', 'cpp']
         swift_module_name: str
@@ -788,7 +789,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def get_id(self) -> str:
         return self.id
 
-    def get_override(self, name: str) -> T.Optional[str]:
+    def get_override(self, name: str) -> T.Optional[ElementaryOptionValues]:
         return self.raw_overrides.get(name, None)
 
     def is_linkable_target(self) -> bool:
