@@ -378,8 +378,8 @@ class _BuildTarget(_BaseBuildTarget):
     swift_module_name: str
     sources: SourcesVarargsType
     link_args: T.List[str]
-    c_pch: T.List[str]
-    cpp_pch: T.List[str]
+    c_pch: T.Optional[T.Tuple[str, T.Optional[str]]]
+    cpp_pch: T.Optional[T.Tuple[str, T.Optional[str]]]
     c_args: T.List[str]
     cpp_args: T.List[str]
     cuda_args: T.List[str]
