@@ -134,6 +134,13 @@ if T.TYPE_CHECKING:
         pic: bool
         prelink: bool
 
+    class JarKeywordArguments(BuildTargetKeywordArguments, total=False):
+
+        java_args: T.List[str]
+        java_resources: T.Optional[StructuredSources]
+        main_class: str
+
+
 _T = T.TypeVar('_T')
 
 DEFAULT_STATIC_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str]] = {
@@ -3189,7 +3196,7 @@ class Jar(BuildTarget):
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
                  objects, environment: Environment, compilers: CompilerDict,
-                 kwargs):
+                 kwargs: JarKeywordArguments):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
         for s in self.sources:
