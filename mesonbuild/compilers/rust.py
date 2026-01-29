@@ -331,10 +331,6 @@ class RustCompiler(Compiler):
     def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
         return ['-C', f'linker={linker}']
 
-    # Rust does not have a use_linker_args because it dispatches to a gcc-like
-    # C compiler for dynamic linking, as such we invoke the C compiler's
-    # use_linker_args method instead.
-
     def get_options(self) -> MutableKeyedOptionDictType:
         opts = super().get_options()
 
