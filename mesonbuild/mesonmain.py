@@ -187,7 +187,7 @@ class CommandLineParser:
         # support for old python. If this is already the oldest supported version, then
         # this can never be true and does nothing.
         pending_python_deprecation_notice = \
-            command in {'setup', 'compile', 'test', 'install'} and sys.version_info < (3, 7)
+            command in {'setup', 'compile', 'test', 'install'} and sys.version_info < (3, 10)
 
         try:
             return options.run_func(options)
@@ -198,8 +198,8 @@ class CommandLineParser:
                 mlog.warning('Running the setup command as `meson [options]` instead of '
                              '`meson setup [options]` is ambiguous and deprecated.', fatal=False)
             if pending_python_deprecation_notice:
-                mlog.notice('You are using Python 3.6 which is EOL. Starting with v0.62.0, '
-                            'Meson will require Python 3.7 or newer', fatal=False)
+                mlog.notice(f'You are using Python 3.{sys.version_info.minor} which is EOL. Starting with v1.12.0, '
+                            'Meson will require Python 3.10 or newer', fatal=False)
             mlog.shutdown()
 
 def run_script_command(script_name: str, script_args: T.List[str]) -> int:
