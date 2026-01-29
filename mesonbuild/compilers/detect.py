@@ -1141,37 +1141,23 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
             compiler = compiler.copy()  # avoid mutating the original list
 
             if override is None:
-                extra_args: T.Dict[str, T.Union[str, bool]] = {}
-                always_args: T.List[str] = []
-                if is_link_exe:
-                    compiler.extend(cls.use_linker_args(cc.linker.get_exe(), ''))
-                    extra_args['direct'] = True
-                    extra_args['machine'] = cc.linker.machine
-                else:
-                    exelist = cc.linker.exelist + cc.linker.get_always_args()
-                    c = exelist.pop(0)
-                    compiler.extend(cls.use_linker_args(c, ''))
-
-                    # Also ensure that we pass any extra arguments to the linker
-                    for l in exelist:
-                        compiler.extend(['-C', f'link-arg={l}'])
-
-                # This trickery with type() gets us the class of the linker
-                # so we can initialize a new copy for the Rust Compiler
-                # TODO rewrite this without type: ignore
                 assert cc.linker is not None, 'for mypy'
                 linker: DynamicLinker
                 if is_link_exe:
-                    # TODO: Due to initializer mismatch we can't use the VisualStudioLikeMixin here
-                    # But all of these ahve the same API so we can just pick one.
+                    exelist = cc.linker.exelist.copy()
+                    # This trickery with type() gets us the class of the linker
+                    # so we can initialize a new copy for the Rust Compiler
+                    # Due to initializer mismatch we can't use the VisualStudioLikeMixin here
+                    # But all of these have the same API so we can just pick one.
                     linker = T.cast('T.Type[linkers.MSVCDynamicLinker]', type(cc.linker))(
-                        env, for_machine, always_args,
+                        env, for_machine, always_args=[],
                         exelist=cc.linker.exelist, version=cc.linker.version,
-                        **extra_args)  # type: ignore
+                        direct=True, machine=cc.linker.machine)
                 else:
+                    exelist = cc.linker.exelist + cc.linker.get_always_args()
                     linker = type(cc.linker)(cc.linker.exelist, env, for_machine, cc.LINKER_PREFIX,
-                                             always_args=always_args, system=cc.linker.system,
-                                             version=cc.linker.version, **extra_args)
+                                             always_args=[], system=cc.linker.system,
+                                             version=cc.linker.version)
             elif 'link' in override[0]:
                 linker = guess_win_linker(env,
                                           override, cls, version, for_machine, use_linker_prefix=False)
@@ -1179,7 +1165,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
                 # inserts the correct prefix itself.
                 assert isinstance(linker, linkers.VisualStudioLikeLinkerMixin)
                 linker.direct = True
-                compiler.extend(cls.use_linker_args(linker.get_exe(), ''))
+                exelist = linker.exelist.copy()
             else:
                 # On linux and macos rust will invoke the c compiler for
                 # linking, on windows it will use lld-link or link.exe.
@@ -1187,7 +1173,11 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
                 # it, and use that.
                 cc = _detect_c_or_cpp_compiler(env, 'c', for_machine, override_compiler=override)
                 linker = cc.linker
-                compiler.extend(cls.use_linker_args(linker.exelist[0], ''))
+                exelist = linker.exelist.copy()
+
+            c = exelist.pop(0)
+            compiler.extend(cls.use_linker_args(c, ''))
+            compiler.extend(rust.rustc_link_args(exelist))
 
             env.add_lang_args(cls.language, cls, for_machine)
             return cls(
