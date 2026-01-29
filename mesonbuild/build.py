@@ -71,6 +71,7 @@ if T.TYPE_CHECKING:
 
         build_by_default: bool
         build_rpath: str
+        build_subdir: str
         c_pch: T.Optional[T.Tuple[str, T.Optional[str]]]
         cpp_pch: T.Optional[T.Tuple[str, T.Optional[str]]]
         d_debug: T.List[T.Union[str, int]]

@@ -338,6 +338,7 @@ class _BaseBuildTarget(TypedDict):
 
     build_by_default: bool
     build_rpath: str
+    build_subdir: str
     dependencies: T.List[Dependency]
     extra_files: T.List[FileOrString]
     gnu_symbol_visibility: str
