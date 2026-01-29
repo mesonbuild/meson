@@ -1675,6 +1675,19 @@ class LinuxlikeTests(BasePlatformTests):
     def test_ld_environment_variable_rust(self):
         self._check_ld('gcc', 'gcc -fuse-ld=gold', 'rust', 'ld.gold')
 
+    @skip_if_not_language('rust')
+    @skipIfNoExecutable('ld.lld')
+    def test_rust_ld_link_args(self):
+        env = get_fake_env()
+        env.binaries.host.binaries['rust_ld'] = ['gcc', '-fuse-ld=lld']
+        compiler = compiler_from_language(env, 'rust', MachineChoice.HOST)
+        # Collect all arguments that follow -C flags
+        c_args = [compiler.exelist[i + 1]
+                  for i, arg in enumerate(compiler.exelist)
+                  if arg == '-C']
+        self.assertIn('linker=gcc', c_args)
+        self.assertIn('link-arg=-fuse-ld=lld', c_args)
+
     def test_ld_environment_variable_cpp(self):
         self._check_ld('ld.gold', 'gold', 'cpp', 'ld.gold')
 
