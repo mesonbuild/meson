@@ -1998,6 +1998,21 @@ class LinuxlikeTests(BasePlatformTests):
             self.build()
             self.wipe()
 
+    @skip_if_not_language('rust')
+    def test_rust_staticlib_rlib_deps(self):
+        '''
+        Test that when a C executable links with a Rust staticlib, the rlib
+        dependencies of the staticlib are not passed to the C linker.
+        See: https://github.com/mesonbuild/meson/issues/11721
+        '''
+        testdir = os.path.join(self.rust_test_dir, '34 staticlib rlib deps')
+        self.init(testdir)
+        targets = self.introspect('--targets')
+        executable = next(t for t in targets if t['type'] == 'executable')
+        linker = next(src for src in executable['target_sources'] if 'linker' in src)
+        for param in linker['parameters']:
+            self.assertNotIn('liblib.rlib', param)
+
     def test_sanitizers(self):
         testdir = os.path.join(self.unit_test_dir, '129 sanitizers')
 

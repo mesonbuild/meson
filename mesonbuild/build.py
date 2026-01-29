@@ -1438,10 +1438,27 @@ class BuildTarget(Target):
         for t in self.link_targets:
             if t in result:
                 continue
-            if not handled_by_rustc and t.rust_crate_type == 'proc-macro':
-                continue
             uses_rust_abi = isinstance(t, BuildTarget) and t.uses_rust_abi()
-            if include_internals or not t.is_internal():
+            if not handled_by_rustc and uses_rust_abi:
+                # Rules for including libraries via Rust rlibs and staticlibs are complex:
+                # - proc-macro crates should be skipped completely when the build product
+                #   is not a Rust program, because only rustc knows that they are
+                #   special build-machine shared libraries
+                # - rlibs must always be returned for Rust programs, because even though
+                #   the -l flag is implicitly added, the -L flag is not.  ninjabackend.py
+                #   handles leaving out the -l flag
+                # - rlibs are bundled into staticlibs and need not be in the command line of
+                #   non-Rust programs; this is the case when t is not added to result.
+                # - C-ABI libraries included in link_with use -lstatic:-bundle, so even for
+                #   staticlibs we do need to recurse into rlibs and collect these non-bundled
+                #   libraries.  So don't return, unlike for procedural macros
+                if t.rust_crate_type == 'proc-macro':
+                    continue
+
+            elif not include_internals and t.is_internal():
+                pass
+
+            else:
                 result.add(t)
             if isinstance(t, StaticLibrary):
                 t.get_dependencies_recurse(result, include_internals, handled_by_rustc and uses_rust_abi)
