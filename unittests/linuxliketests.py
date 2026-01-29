@@ -2011,6 +2011,25 @@ class LinuxlikeTests(BasePlatformTests):
             self.build()
             self.wipe()
 
+    @skip_if_not_language('rust')
+    def test_rust_staticlib_rlib_deps(self):
+        '''
+        Test that when a C executable links with a Rust staticlib, the rlib
+        dependencies of the staticlib are not passed to the C linker.
+        See: https://github.com/mesonbuild/meson/issues/11721
+        '''
+        testdir = os.path.join(self.rust_test_dir, '34 staticlib rlib deps')
+        self.init(testdir)
+        with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as f:
+            ninja_contents = f.read()
+        # Find the link command for the C executable
+        for line in ninja_contents.split('\n'):
+            if 'build main:' in line or 'build main.exe:' in line:
+                # The rlib should NOT be in the link command
+                self.assertNotIn('liblib.rlib', line)
+                return
+        raise RuntimeError('Could not find the build rule for main executable')
+
     def test_sanitizers(self):
         testdir = os.path.join(self.unit_test_dir, '129 sanitizers')
 
