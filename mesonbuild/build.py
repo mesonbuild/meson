@@ -220,7 +220,7 @@ def _process_install_tag(install_tag: T.Optional[T.List[T.Optional[str]]],
 
 
 @lru_cache(maxsize=None)
-def get_target_macos_dylib_install_name(ld) -> str:
+def get_target_macos_dylib_install_name(ld: SharedLibrary) -> str:
     name = ['@rpath/', ld.prefix, ld.name]
     if ld.soversion is not None:
         name.append('.' + ld.soversion)
@@ -347,7 +347,8 @@ class Build:
         self.project_name = 'name of master project'
         self.project_version: T.Optional[str] = None
         self.environment = environment
-        self.projects: T.Dict[SubProject, BuildProject] = {}
+        self.projects: PerMachine[T.Dict[SubProject, BuildProject]] = PerMachineDefaultable.default(
+            environment.is_cross_build(), {}, {})
         self.targets: 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]' = OrderedDict()
         self.targetnames: T.Set[T.Tuple[str, str]] = set() # Set of executable names and their subdir
         self.global_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
@@ -369,16 +370,21 @@ class Build:
         self.dep_manifest: T.Dict[str, DepManifest] = {}
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
-        self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
+        self.find_overrides: PerMachine[T.Dict[str, programs.Program]] = PerMachineDefaultable.default(
+            environment.is_cross_build(), {}, {})
+        # The list of all programs that have been searched for.
+        self.searched_programs: PerMachine[T.Set[str]] = PerMachineDefaultable.default(
+            environment.is_cross_build(), set(), set())
 
         # If we are doing a cross build we need two caches, if we're doing a
         # build == host compilation the both caches should point to the same place.
-        self.stdlibs = PerMachineDefaultable.default(
+        self.stdlibs: PerMachine[T.Dict[str, dependencies.Dependency]] = PerMachineDefaultable.default(
             environment.is_cross_build(), {}, {})
         self.dependency_overrides: PerMachine[T.Dict[T.Tuple, DependencyOverride]] = PerMachineDefaultable.default(
             environment.is_cross_build(), {}, {})
 
         self.devenv: T.List[EnvironmentVariables] = []
+        self.is_build_only = False
         self.modules: T.Set[str] = set()
         """Used to track which modules are enabled in all subprojects.
 
@@ -426,8 +432,27 @@ class Build:
             other.__dict__[k] = copy_value(v)
         return other
 
+    def copy_for_build_machine(self) -> Build:
+        """Create a build-only copy for build machine subprojects.
+
+        Build-only subprojects run with host==build configuration so that get_compiler(),
+        dependency() etc. look up the native (non-cross) environments.  However, note
+        that the environment is still a cross one so that the build-machine options,
+        dependencies, etc. are looked up.
+        """
+        new = self.copy()
+        new.is_build_only = True
+        return new
+
     def merge(self, other: Build) -> None:
+        if self.is_build_only != other.is_build_only:
+            assert self.is_build_only is False, 'We should never merge a multi machine subproject into a single machine subproject, right?'
+
         for k, v in other.__dict__.items():
+            # These are modified for the build-only config, and are the same
+            # for all build != host config.  No need to copy them.
+            if k == 'is_build_only':
+                continue
             # These are not modified in subprojects
             if k in {'global_args', 'global_link_args'}:
                 continue
@@ -447,7 +472,7 @@ class Build:
                 self.static_linker[MachineChoice.BUILD] = self.static_linker[MachineChoice.HOST]
 
     def get_project(self) -> str:
-        return self.projects[SubProject('')].name
+        return self.projects.host[SubProject('')].name
 
     def get_subproject_dir(self):
         return self.subproject_dir
@@ -484,7 +509,9 @@ class Build:
         return d.get(compiler.get_language(), [])
 
     def get_project_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
-        args = self.projects[target.subproject].project_args[target.for_machine]
+        for_machine = MachineChoice.BUILD if target.build_only_subproject else MachineChoice.HOST
+        d = self.projects[for_machine][target.subproject]
+        args = d.project_args[target.for_machine]
         if not args:
             return []
         return args.get(compiler.get_language(), [])
@@ -494,7 +521,9 @@ class Build:
         return d.get(compiler.get_language(), [])
 
     def get_project_link_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
-        link_args = self.projects[target.subproject].project_link_args[target.for_machine]
+        for_machine = MachineChoice.BUILD if target.build_only_subproject else MachineChoice.HOST
+        d = self.projects[for_machine][target.subproject]
+        link_args = d.project_link_args[target.for_machine]
         if not link_args:
             return []
 
@@ -516,6 +545,9 @@ class IncludeDirs(HoldableObject):
     is_system: bool
     extra_build_dirs: T.List[str] = field(default_factory=list)
 
+    # We need to know this for stringifying correctly
+    is_build_only_subproject: bool = False
+
     def abs_string_list(self, sourcedir: str, builddir: str) -> T.List[str]:
         """Convert IncludeDirs object to a list of absolute string paths.
 
@@ -524,12 +556,14 @@ class IncludeDirs(HoldableObject):
             be added if this is unset
         :returns: A list of strings (without compiler argument)
         """
+        bsubdir = f'build.{self.curdir}' if self.is_build_only_subproject else self.curdir
+
         strlist: T.List[str] = []
         for idir in self.incdirs:
             strlist.append(os.path.join(sourcedir, self.curdir, idir))
-            strlist.append(os.path.join(builddir, self.curdir, idir))
+            strlist.append(os.path.join(builddir, bsubdir, idir))
         for idir in self.extra_build_dirs:
-            strlist.append(os.path.join(builddir, self.curdir, idir))
+            strlist.append(os.path.join(builddir, bsubdir, idir))
         return strlist
 
     def rel_string_list(self, build_to_src: str, build_root: T.Optional[str] = None) -> T.List[str]:
@@ -541,17 +575,15 @@ class IncludeDirs(HoldableObject):
         :return: A list if strings (without compiler argument)
         """
         strlist: T.List[str] = []
+        bsubdir = f'build.{self.curdir}' if self.is_build_only_subproject else self.curdir
+
         for idirs, add_src in [(self.incdirs, True), (self.extra_build_dirs, False)]:
             for idir in idirs:
-                bld_dir = os.path.normpath(os.path.join(self.curdir, idir))
-                if idir not in {'', '.'}:
-                    expdir = bld_dir
-                else:
-                    expdir = self.curdir
-                if build_root is None or os.path.isdir(os.path.join(build_root, expdir)):
+                bld_dir = os.path.normpath(os.path.join(bsubdir, idir))
+                if build_root is None or os.path.isdir(os.path.join(build_root, bld_dir)):
                     strlist.append(bld_dir)
                 if add_src:
-                    strlist.append(os.path.normpath(os.path.join(build_to_src, expdir)))
+                    strlist.append(os.path.normpath(os.path.join(build_to_src, self.curdir, idir)))
 
         return strlist
 
@@ -658,6 +690,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     build_by_default: bool
     for_machine: MachineChoice
     environment: Environment
+    build_only_subproject: bool
     install: bool = False
     build_always_stale: bool = False
     extra_files: T.List[File] = field(default_factory=list)
@@ -679,7 +712,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
                 Target "{self.name}" has a path separator in its name.
                 This is not supported, it can cause unexpected failures and will become
                 a hard error in the future.'''))
-        self.builddir = self.subdir
+        self.builddir = f'build.{self.subdir}' if self.build_only_subproject else self.subdir
         if self.build_subdir:
             self.builddir = os.path.join(self.subdir, self.build_subdir)
 
@@ -759,7 +792,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         return h.hexdigest()[:7]
 
     @staticmethod
-    def construct_id_from_path(subdir: str, name: str, type_suffix: str) -> str:
+    def construct_id_from_path(subdir: str, name: str, type_suffix: str, build_subproject: bool = False) -> str:
         """Construct target ID from subdir, name and type suffix.
 
         This helper function is made public mostly for tests."""
@@ -774,7 +807,9 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         if subdir:
             subdir_part = Target._get_id_hash(subdir)
             # preserve myid for better debuggability
-            return subdir_part + '@@' + my_id
+            my_id = f'{subdir_part}@@{my_id}'
+        if build_subproject:
+            my_id = f'build.{my_id}'
         return my_id
 
     @lazy_property
@@ -783,7 +818,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         if getattr(self, 'name_suffix_set', False):
             name += '.' + self.suffix
         return self.construct_id_from_path(
-            self.builddir, name, self.type_suffix())
+            self.builddir, name, self.type_suffix(), self.build_only_subproject)
 
     def get_id(self) -> str:
         return self.id
@@ -826,8 +861,10 @@ class BuildTarget(Target):
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_only_subproject: bool,
             kwargs: BuildTargetKeywordArguments):
-        super().__init__(name, subdir, subproject, True, for_machine, environment, install=kwargs.get('install', False), build_subdir=kwargs.get('build_subdir', ''))
+        super().__init__(name, subdir, subproject, True, for_machine, environment, build_only_subproject,
+                         install=kwargs.get('install', False), build_subdir=kwargs.get('build_subdir', ''))
         self.all_compilers = compilers
         self.compilers: CompilerDict = {}
         self.objects: T.List[ObjectTypes] = []
@@ -839,7 +876,7 @@ class BuildTarget(Target):
         self.link_whole_targets: T.List[StaticTargetTypes] = []
         self.depend_files: T.List[File] = []
         self.link_depends: T.List[T.Union[File, BuildTargetTypes]] = []
-        self.added_deps = set()
+        self.added_deps: T.Set[dependencies.Dependency] = set()
         self.name_prefix_set = False
         self.name_suffix_set = False
         self.filename = 'no_name'
@@ -897,7 +934,7 @@ class BuildTarget(Target):
                          'This was never supposed to be allowed but did because of a bug, '
                          'support will be removed in a future release of Meson')
         self.check_unknown_kwargs(kwargs)
-        self.validate_install()
+        self.validate_cross()
         self.check_module_linking()
 
     def _set_vala_args(self, kwargs: BuildTargetKeywordArguments) -> None:
@@ -938,14 +975,20 @@ class BuildTarget(Target):
                 self.outputs.append(self.vala_gir)
                 self.install_tag.append('devel')
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.filename)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name}"
 
-    def validate_install(self):
+    def validate_cross(self) -> None:
+        if self.build_only_subproject and self.environment.is_cross_build():
+            if self.for_machine is MachineChoice.HOST:
+                raise MesonBugException('Tried to build a target for the host machine in a build-only subproject.')
+            if self.install:
+                raise MesonBugException('Tried to build an installable target in a build-only subproject.')
+
         if self.for_machine is MachineChoice.BUILD and self.install:
             if self.environment.is_cross_build():
                 raise InvalidArguments('Tried to install a target for the build machine in a cross build.')
@@ -967,7 +1010,7 @@ class BuildTarget(Target):
         if len(unknowns) > 0:
             mlog.warning('Unknown keyword argument(s) in target {}: {}.'.format(self.name, ', '.join(unknowns)))
 
-    def process_objectlist(self, objects):
+    def process_objectlist(self, objects: T.List[ObjectTypes]) -> None:
         assert isinstance(objects, list)
         deprecated_non_objects = []
         for s in objects:
@@ -1153,7 +1196,7 @@ class BuildTarget(Target):
 
         return missing_languages
 
-    def validate_sources(self):
+    def validate_sources(self) -> None:
         if len(self.compilers) > 1 and any(lang in self.compilers for lang in ['cs', 'java']):
             langs = ', '.join(self.compilers.keys())
             raise InvalidArguments(f'Cannot mix those languages into a target: {langs}')
@@ -1549,7 +1592,8 @@ class BuildTarget(Target):
     def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: str = 'preserve') -> None:
         if set_is_system != 'preserve':
             is_system = set_is_system == 'system'
-            self.include_dirs.extend([IncludeDirs(x.curdir, x.incdirs, is_system, x.extra_build_dirs) for x in args])
+            self.include_dirs.extend([IncludeDirs(x.curdir, x.incdirs, is_system, x.extra_build_dirs,
+                                                  x.is_build_only_subproject) for x in args])
         else:
             self.include_dirs.extend(args)
 
@@ -1705,7 +1749,7 @@ class BuildTarget(Target):
         # Mixing many languages with MSVC is not supported yet so ignore stdlibs.
         return compiler and compiler.get_linker_id() in {'link', 'lld-link', 'xilink', 'optlink'}
 
-    def check_module_linking(self):
+    def check_module_linking(self) -> None:
         '''
         Warn if shared modules are linked with target: (link_with) #2865
         '''
@@ -2101,11 +2145,12 @@ class Executable(BuildTarget):
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_only_subproject: bool,
             kwargs: ExecutableKeywordArguments):
         self.export_dynamic = kwargs.get('export_dynamic', False)
         self.rust_crate_type = kwargs.get('rust_crate_type', 'bin')
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+                         environment, compilers, build_only_subproject, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
         self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
         # Check for export_dynamic
@@ -2193,7 +2238,7 @@ class Executable(BuildTarget):
     def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
         return self.environment.get_bindir(), '{bindir}'
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@exe"
 
     def get_import_filename(self) -> T.Optional[str]:
@@ -2232,11 +2277,12 @@ class StaticLibrary(BuildTarget):
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_only_subproject: bool,
             kwargs: StaticLibraryKeywordArguments):
         self.prelink = kwargs.get('prelink', False)
         self.rust_crate_type = kwargs.get('rust_crate_type', 'rlib')
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+                         environment, compilers, build_only_subproject, kwargs)
         self.pic = self._extract_pic_pie(kwargs, 'pic', 'b_staticpic')
         if not self.pic:
             self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
@@ -2321,7 +2367,7 @@ class StaticLibrary(BuildTarget):
     def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
         return self.environment.get_static_lib_dir(), '{libdir_static}'
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@rlib" if self.uses_rust_abi() else "@sta"
 
     def is_linkable_target(self) -> bool:
@@ -2409,6 +2455,7 @@ class SharedLibrary(BuildTarget):
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_only_subproject: bool,
             kwargs):
         self.soversion: T.Optional[str] = None
         self.ltversion: T.Optional[str] = None
@@ -2424,7 +2471,7 @@ class SharedLibrary(BuildTarget):
         self.shared_library_only = False
         self.rust_crate_type = kwargs.get('rust_crate_type', 'dylib')
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+                         environment, compilers, build_only_subproject, kwargs)
 
     def post_init(self) -> None:
         super().post_init()
@@ -2566,7 +2613,7 @@ class SharedLibrary(BuildTarget):
                 filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         return (prefix, suffix, filename_tpl, import_filename_tpl, create_debug_file)
 
-    def determine_filenames(self):
+    def determine_filenames(self) -> None:
         """
         See https://github.com/mesonbuild/meson/pull/417 for details.
 
@@ -2676,7 +2723,7 @@ class SharedLibrary(BuildTarget):
         aliases.append((self.basic_filename_tpl.format(self), ltversion_filename, tag))
         return aliases
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@sha"
 
     def is_linkable_target(self) -> bool:
@@ -2736,13 +2783,14 @@ class SharedModule(SharedLibrary):
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_only_subproject: bool,
             kwargs):
         if 'version' in kwargs:
             raise MesonException('Shared modules must not specify the version kwarg.')
         if 'soversion' in kwargs:
             raise MesonException('Shared modules must not specify the soversion kwarg.')
         super().__init__(name, subdir, subproject, for_machine, sources,
-                         structured_sources, objects, environment, compilers, kwargs)
+                         structured_sources, objects, environment, compilers, build_only_subproject, kwargs)
         # We need to set the soname in cases where build files link the module
         # to build targets, see: https://github.com/mesonbuild/meson/issues/9492
         self.force_soname = False
@@ -2864,6 +2912,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                      str, File, BuildTargetTypes, ExtractedObjects,
                      GeneratedList, programs.Program]],
                  outputs: T.List[str],
+                 build_only_subproject: bool,
                  *,
                  build_always_stale: bool = False,
                  build_by_default: T.Optional[bool] = None,
@@ -2886,7 +2935,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  ):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST, environment,
-                         install, build_always_stale, build_subdir = build_subdir)
+                         build_only_subproject, install, build_always_stale, build_subdir = build_subdir)
         self.sources = list(sources)
         self.outputs = substitute_values(
             outputs, get_filenames_templates_dict(
@@ -2951,7 +3000,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                 bdeps.update(d.get_transitive_build_target_deps())
         return bdeps
 
-    def get_dependencies(self):
+    def get_dependencies(self) -> T.List[T.Union[CustomTarget, coredata.BuildTarget]]:
         return self.dependencies
 
     def should_install(self) -> bool:
@@ -3023,7 +3072,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
     def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
         return OrderedSet()
 
-    def get_all_link_deps(self):
+    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return []
 
     def is_internal(self) -> bool:
@@ -3037,7 +3086,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
     def extract_all_objects(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
         return self.get_outputs()
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@cus"
 
     def __getitem__(self, index: int) -> 'CustomTargetIndex':
@@ -3076,6 +3125,7 @@ class CompileTarget(BuildTarget):
                  compile_args: T.List[str],
                  include_directories: T.List[IncludeDirs],
                  dependencies: T.List[dependencies.Dependency],
+                 build_only_subproject: bool,
                  depends: T.List[BuildTargetTypes]):
         compilers = {compiler.get_language(): compiler}
         kwargs = {
@@ -3085,7 +3135,8 @@ class CompileTarget(BuildTarget):
             'dependencies': dependencies,
         }
         super().__init__(name, subdir, subproject, compiler.for_machine,
-                         sources, None, [], environment, compilers, kwargs)
+                         sources, None, [], environment, compilers,
+                         build_only_subproject, kwargs)
         self.filename = name
         self.compiler = compiler
         self.output_templ = output_templ
@@ -3128,7 +3179,7 @@ class RunTarget(Target, CommandBase):
                  env: T.Optional[EnvironmentVariables] = None,
                  default_env: bool = True):
         # These don't produce output artifacts
-        super().__init__(name, subdir, subproject, False, MachineChoice.BUILD, environment)
+        super().__init__(name, subdir, subproject, False, MachineChoice.BUILD, environment, False)
         self.dependencies = dependencies
         self.depend_files = []
         self.command = self.flatten_command(command)
@@ -3174,7 +3225,7 @@ class AliasTarget(RunTarget):
                  subdir: str, subproject: str, environment: Environment):
         super().__init__(name, [], dependencies, subdir, subproject, environment)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0} {1}>"
         return repr_str.format(self.__class__.__name__, self.get_id())
 
@@ -3187,9 +3238,9 @@ class Jar(BuildTarget):
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
                  objects, environment: Environment, compilers: CompilerDict,
-                 kwargs):
+                 build_only_subproject: bool, kwargs):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+                         environment, compilers, build_only_subproject, kwargs)
         for s in self.sources:
             if not s.endswith('.java'):
                 raise InvalidArguments(f'Jar source {s} is not a java file.')
@@ -3210,17 +3261,17 @@ class Jar(BuildTarget):
     def type_suffix(self) -> str:
         return "@jar"
 
-    def get_java_args(self):
+    def get_java_args(self) -> T.List[str]:
         return self.java_args
 
     def get_java_resources(self) -> T.Optional[StructuredSources]:
         return self.java_resources
 
-    def validate_install(self):
+    def validate_install(self) -> None:
         # All jar targets are installable.
         pass
 
-    def is_linkable_target(self):
+    def is_linkable_target(self) -> bool:
         return True
 
     def get_classpath_args(self) -> T.List[str]:
@@ -3283,7 +3334,7 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     def get_id(self) -> str:
         return self.target.get_id()
 
-    def get_all_link_deps(self):
+    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return self.target.get_all_link_deps()
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
