@@ -32,7 +32,7 @@ from ..mesonlib import (
     File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg, unique_list
 )
-from ..mesonlib import get_compiler_for_source, has_path_sep, is_parent_path
+from ..mesonlib import get_compiler_for_source, has_path_sep, is_parent_path, lookbehind
 from ..options import OptionKey
 from .backends import CleanTrees
 from ..build import GeneratedList, InvalidArguments
@@ -2151,9 +2151,20 @@ class NinjaBackend(backends.Backend):
                 args.append(f'-Clink-arg={lib}')
 
         for e in external_deps:
-            for a in e.get_link_args():
-                if a.startswith('-L'):
+            prev: T.Optional[str] = None
+            for prev, a in lookbehind(e.get_link_args()):
+                if prev == '-framework':
+                    args.append(f'-lframework={a}')
+                    continue
+                elif a.startswith('-L'):
                     args.append(a)
+                    continue
+                elif a.startswith('-F'):
+                    path = a[2:]
+                    args.append(f'-Lframework={path}')
+                    continue
+                elif a == '-framework':
+                    # handled once the framework name is available
                     continue
                 elif is_library(a):
                     if isinstance(target, build.StaticLibrary):
