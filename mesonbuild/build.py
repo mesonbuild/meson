@@ -1426,10 +1426,10 @@ class BuildTarget(Target):
             if t not in result:
                 result.add(t)
                 if isinstance(t, StaticLibrary):
-                    t.get_dependencies_recurse(result, include_proc_macros = self.uses_rust())
+                    t.get_dependencies_recurse(result, handled_by_rustc=self.uses_rust())
         return result
 
-    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes], include_internals: bool = True, include_proc_macros: bool = False) -> None:
+    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes], include_internals: bool = True, handled_by_rustc: bool = False) -> None:
         # self is always a static library because we don't need to pull dependencies
         # of shared libraries. If self is installed (not internal) it already
         # include objects extracted from all its internal dependencies so we can
@@ -1438,14 +1438,16 @@ class BuildTarget(Target):
         for t in self.link_targets:
             if t in result:
                 continue
-            if not include_proc_macros and t.rust_crate_type == 'proc-macro':
+            if not handled_by_rustc and t.rust_crate_type == 'proc-macro':
                 continue
+            uses_rust_abi = isinstance(t, BuildTarget) and t.uses_rust_abi()
             if include_internals or not t.is_internal():
                 result.add(t)
             if isinstance(t, StaticLibrary):
-                t.get_dependencies_recurse(result, include_internals, include_proc_macros)
+                t.get_dependencies_recurse(result, include_internals, handled_by_rustc and uses_rust_abi)
         for t in self.link_whole_targets:
-            t.get_dependencies_recurse(result, include_internals, include_proc_macros)
+            uses_rust_abi = isinstance(t, BuildTarget) and t.uses_rust_abi()
+            t.get_dependencies_recurse(result, include_internals, handled_by_rustc and uses_rust_abi)
 
     def get_sources(self) -> T.List[File]:
         return self.sources
