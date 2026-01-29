@@ -3,4 +3,7 @@ libb = static_library('libb', 'lib.rs',
   dependencies : [liba_dep],
 )
 
-libb_dep = declare_dependency(link_with : libb)
+libb_staticlib = static_library('libb', 'lib.rs',
+  rust_crate_type : 'staticlib',
+  dependencies : [liba_dep],
+)
