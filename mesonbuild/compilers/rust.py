@@ -459,6 +459,14 @@ class RustCompiler(Compiler):
         # pic is on by rustc
         return []
 
+    def get_compile_only_args(self) -> T.List[str]:
+        return ['--crate-type', 'lib']
+
+    def get_pie_link_args(self) -> T.List[str]:
+        # Rustc currently has no way to toggle this, it's controlled by whether
+        # pic is on by rustc
+        return []
+
     def get_assert_args(self, disable: bool) -> T.List[str]:
         action = "no" if disable else "yes"
         return ['-C', f'debug-assertions={action}', '-C', 'overflow-checks=no']
