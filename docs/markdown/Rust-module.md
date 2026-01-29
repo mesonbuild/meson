@@ -230,3 +230,38 @@ cargo_ws = rustmod.workspace(features: [])
 
 The first form says "use whatever features are configured," while the latter forms
 say "require this specific configuration," which may conflict with the parent project.
+
+## Workspace object
+
+### workspace.subproject()
+
+```meson
+package = ws.subproject(package_name, api)
+```
+
+Returns a `package` object for managing a specific package within the workspace.
+
+Positional arguments:
+- `package_name`: (`str`) The name of the package to retrieve
+- `api`: (`str`, optional) The version constraints for the package in Cargo format
+
+## Package object
+
+The package object returned by `workspace.subproject()` provides methods
+for working with individual packages in a Cargo workspace.
+
+### subproject.dependency()
+
+```meson
+dep = subproject.dependency(...)
+```
+
+Returns a dependency object for the subproject that can be used with other Meson targets.
+
+*Note*: right now, this method is implemented on top of the normal Meson function
+[[dependency]]; this is subject to change in future releases.  It is recommended
+to always retrieve a Cargo subproject's dependency object via this method.
+
+Keyword arguments:
+- `rust_abi`: (`str`, optional) The ABI to use for the dependency. Valid values are
+  `'rust'`, `'c'`, or `'proc-macro'`. The package must support the specified ABI.

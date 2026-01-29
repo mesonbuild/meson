@@ -16,11 +16,12 @@ from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, 
                      CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary, StaticLibrary)
 from ..compilers.compilers import are_asserts_disabled_for_subproject, lang_suffixes
 from ..compilers.rust import parse_target
+from ..dependencies import Dependency
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
     OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator
 )
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
+from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs, permittedKwargs
 from ..interpreter.interpreterobjects import Doctest
 from ..mesonlib import File, MachineChoice, MesonException, PerMachine
 from ..programs import ExternalProgram, NonExistingExternalProgram
@@ -29,13 +30,15 @@ if T.TYPE_CHECKING:
     from . import ModuleState
     from .. import cargo
     from ..build import BuildTargetTypes, ExecutableKeywordArguments, IncludeDirs, LibTypes
+    from ..cargo.interpreter import RUST_ABI
     from ..compilers.compilers import Language
     from ..compilers.rust import RustCompiler
-    from ..dependencies import Dependency, ExternalLibrary
+    from ..dependencies import ExternalLibrary
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
     from ..interpreter.interpreterobjects import Test
+    from ..interpreterbase import TYPE_kwargs
     from ..programs import Program
     from ..interpreter.type_checking import SourcesVarargsType
 
@@ -70,6 +73,9 @@ if T.TYPE_CHECKING:
         default_features: T.Optional[bool]
         features: T.List[str]
 
+    class FuncDependency(TypedDict):
+        rust_abi: T.Optional[RUST_ABI]
+
 RUST_TEST_KWS: T.List[KwargInfo] = [
      KwargInfo(
          'rust_args',
@@ -96,6 +102,55 @@ class RustWorkspace(ModuleObject):
         super().__init__()
         self.interpreter = interpreter
         self.ws = ws
+        self.methods.update({
+            'subproject': self.subproject_method,
+        })
+
+    def _do_subproject(self, pkg: cargo.PackageState) -> None:
+        kw: _kwargs.DoSubproject = {
+            'required': True,
+            'version': None,
+            'options': None,
+            'cmake_options': [],
+            'default_options': {},
+        }
+        subp_name = pkg.get_subproject_name()
+        self.interpreter.do_subproject(subp_name, kw, force_method='cargo')
+
+    @typed_pos_args('workspace.subproject', str, optargs=[str])
+    @noKwargs
+    def subproject_method(self, state: ModuleState, args: T.Tuple[str, T.Optional[str]], kwargs: TYPE_kwargs) -> RustSubproject:
+        """Returns a package object for a subproject package."""
+        package_name = args[0]
+        pkg = self.interpreter.cargo.resolve_package(package_name, args[1] or '')
+        if pkg is None:
+            if args[1]:
+                raise MesonException(f'No version of cargo package "{package_name}" provides API {args[1]}')
+            else:
+                raise MesonException(f'Cargo package "{package_name}" not available')
+
+        self._do_subproject(pkg)
+        return RustSubproject(self, pkg)
+
+
+class RustSubproject(ModuleObject):
+    """Represents a Rust package within a workspace."""
+
+    def __init__(self, rust_ws: RustWorkspace, package: cargo.PackageState) -> None:
+        super().__init__()
+        self.rust_ws = rust_ws
+        self.package = package
+        self.methods.update({
+            'dependency': self.dependency_method,
+        })
+
+    @noPosargs
+    @typed_kwargs('package.dependency',
+                  KwargInfo('rust_abi', (str, NoneType), default=None, validator=in_set_validator({'rust', 'c', 'proc-macro'})))
+    def dependency_method(self, state: ModuleState, args: T.List, kwargs: FuncDependency) -> Dependency:
+        """Returns dependency for the package with the given ABI."""
+        depname = self.package.get_dependency_name(kwargs['rust_abi'])
+        return state.overridden_dependency(depname)
 
 
 class RustModule(ExtensionModule):

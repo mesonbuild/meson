@@ -24,6 +24,7 @@ from . import builder, version
 from .cfg import eval_cfg
 from .toml import load_toml
 from .manifest import Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname
+from ..interpreterbase import SubProject
 from ..mesonlib import is_parent_path, MesonException, MachineChoice, unique_list, version_compare
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
@@ -31,12 +32,13 @@ from ..wrap.wrap import PackageDefinition
 if T.TYPE_CHECKING:
     from . import raw
     from .. import mparser
+    from typing_extensions import Literal
+
     from .manifest import Dependency, SystemDependency
     from ..environment import Environment
-    from ..interpreterbase import SubProject
     from ..compilers.rust import RustCompiler
 
-    from typing_extensions import Literal
+    RUST_ABI = Literal['rust', 'c', 'proc-macro']
 
 def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
     basename = package_name[:-len(suffix)] if suffix and package_name.endswith(suffix) else package_name
@@ -184,6 +186,43 @@ class PackageState:
         args.extend(self.get_env_args(rustc, environment, subdir))
         return args
 
+    def supported_abis(self) -> T.Set[RUST_ABI]:
+        """Return which ABIs are exposed by the package's crate_types."""
+        crate_types = self.manifest.lib.crate_type
+        abis: T.Set[RUST_ABI] = set()
+        if any(ct in {'lib', 'rlib', 'dylib'} for ct in crate_types):
+            abis.add('rust')
+        if any(ct in {'staticlib', 'cdylib'} for ct in crate_types):
+            abis.add('c')
+        if 'proc-macro' in crate_types:
+            abis.add('proc-macro')
+        return abis
+
+    def get_subproject_name(self) -> SubProject:
+        dep = _dependency_name(self.manifest.package.name, self.manifest.package.api)
+        return SubProject(dep)
+
+    def get_dependency_name(self, rust_abi: T.Optional[RUST_ABI]) -> str:
+        """Get the dependency name for a package with the given ABI."""
+        supported_abis = self.supported_abis()
+        if rust_abi is None:
+            if len(supported_abis) > 1:
+                raise MesonException(f'Package {self.manifest.package.name} support more than one ABI')
+            rust_abi = next(iter(supported_abis))
+        else:
+            if rust_abi not in supported_abis:
+                raise MesonException(f'Package {self.manifest.package.name} does not support ABI {rust_abi}')
+
+        package_name = self.manifest.package.name
+        api = self.manifest.package.api
+
+        if rust_abi in {'rust', 'proc-macro'}:
+            return _dependency_name(package_name, api)
+        elif rust_abi == 'c':
+            return _dependency_name(package_name, api, '')
+        else:
+            raise MesonException(f'Unknown rust_abi: {rust_abi}')
+
 
 @dataclasses.dataclass(frozen=True)
 class PackageKey:
@@ -296,13 +335,14 @@ class Interpreter:
             crate_type = pkg.manifest.lib.crate_type
             if 'dylib' in crate_type and 'cdylib' in crate_type:
                 raise MesonException('Cannot build both dylib and cdylib due to file name conflict')
-            if 'proc-macro' in crate_type:
+            abis = pkg.supported_abis()
+            if 'proc-macro' in abis:
                 ast.extend(self._create_lib(pkg, build, subdir, 'proc-macro', shared=True))
-            if any(x in crate_type for x in ['lib', 'rlib', 'dylib']):
+            if 'rust' in abis:
                 ast.extend(self._create_lib(pkg, build, subdir, 'rust',
                                             static=('lib' in crate_type or 'rlib' in crate_type),
                                             shared='dylib' in crate_type))
-            if any(x in crate_type for x in ['staticlib', 'cdylib']):
+            if 'c' in abis:
                 ast.extend(self._create_lib(pkg, build, subdir, 'c',
                                             static='staticlib' in crate_type,
                                             shared='cdylib' in crate_type))
@@ -312,7 +352,7 @@ class Interpreter:
     def interpret_workspace(self, ws: WorkspaceState, build: builder.Builder, subdir: str) -> mparser.CodeBlockNode:
         name = os.path.dirname(subdir)
         subprojects_dir = os.path.join(subdir, 'subprojects')
-        self.environment.wrap_resolver.load_and_merge(subprojects_dir, T.cast('SubProject', name))
+        self.environment.wrap_resolver.load_and_merge(subprojects_dir, SubProject(name))
         ast: T.List[mparser.BaseNode] = []
 
         # Call subdir() for each required member of the workspace. The order is
@@ -418,6 +458,13 @@ class Interpreter:
             raise MesonException(f'Cannot determine version of cargo package {package_name}')
         return None
 
+    def resolve_package(self, package_name: str, api: str) -> T.Optional[PackageState]:
+        cargo_pkg = self._resolve_package(package_name, version.convert(api))
+        if not cargo_pkg:
+            return None
+        api = version.api(cargo_pkg.version)
+        return self._fetch_package(package_name, api)
+
     def _fetch_package_from_subproject(self, package_name: str, meson_depname: str) -> PackageState:
         subp_name, _ = self.environment.wrap_resolver.find_dep_provider(meson_depname)
         if subp_name is None:
@@ -435,7 +482,7 @@ class Interpreter:
 
         subdir, _ = self.environment.wrap_resolver.resolve(subp_name)
         subprojects_dir = os.path.join(subdir, 'subprojects')
-        self.environment.wrap_resolver.load_and_merge(subprojects_dir, T.cast('SubProject', meson_depname))
+        self.environment.wrap_resolver.load_and_merge(subprojects_dir, SubProject(meson_depname))
         manifest, _ = self._load_manifest(subdir)
         downloaded = \
             subp_name in self.environment.wrap_resolver.wraps and \
@@ -755,7 +802,7 @@ class Interpreter:
         ]
 
     def _create_lib(self, pkg: PackageState, build: builder.Builder, subdir: str,
-                    lib_type: Literal['rust', 'c', 'proc-macro'],
+                    lib_type: RUST_ABI,
                     static: bool = False, shared: bool = False) -> T.List[mparser.BaseNode]:
         cfg = pkg.cfg
         dependencies: T.List[mparser.BaseNode] = []
