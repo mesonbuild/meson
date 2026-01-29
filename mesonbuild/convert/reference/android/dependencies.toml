@@ -1,0 +1,111 @@
+# Copyright 2026 The Meson Development Team
+# SPDX-License-Identifier: Apache-2.0
+
+[shared_libraries]
+android-base = [
+    { target_name = "libbase" }
+]
+libdrm = [
+    { target_name = "libdrm" }
+]
+libzstd = [
+    { target_name = "libzstd" }
+]
+hardware = [
+    { target_name = "libhardware" }
+]
+cutils = [
+    { target_name = "libcutils" }
+]
+log = [
+    { target_name = "liblog" }
+]
+nativewindow = [
+    { target_name = "libnativewindow" }
+]
+libclc = [
+    { target_name = "libclc_aosp_mesa", pkgconfig = {'libexecdir' = 'external/mesa3d/llvm-fake/clc-dir'}}
+]
+android-utils = [
+    { target_name = "libutils" }
+]
+sync = [
+    { target_name = "libsync" }
+]
+android-aemu-gl-codec = [
+    { target_name = "libOpenglCodecCommon" }
+]
+
+[static_libraries]
+llvm = [
+    { target_name = "libLLVM16_swiftshader", version = "16.0", configtool = { "has-rtti" = "YES", "libdir" = "/tmp/" } }
+]
+rustix = [
+    { target_name = "librustix" }
+]
+cfg-if = [
+    { target_name = "libcfg_if" }
+]
+remain = [
+    { target_name = "libremain", proc_macro = true }
+]
+zerocopy-derive = [
+    { target_name = "libzerocopy_derive", proc_macro = true }
+]
+bitflags = [
+    { target_name = "libbitflags" }
+]
+errno = [
+    { target_name = "liberrno" }
+]
+rust-libc = [
+    { target_name = "liblibc" }
+]
+rust-log = [
+    { target_name = "liblog_rust" }
+]
+thiserror = [
+    { target_name = "libthiserror" }
+]
+zerocopy = [
+    { target_name = "libzerocopy" }
+]
+android-aemu-ringbuffer = [
+    { target_name = "libringbuffer" }
+]
+android-aemu-qemupipe = [
+    { target_name = "libqemupipe.ranchu" }
+]
+android-aemu-rc-encoder = [
+    { target_name = "libgfxstream_rcEnc_static" }
+]
+android-aemu-base = [
+    { target_name = "libgfxstream_androidemu_static" }
+]
+android-arect = [
+    { target_name = "libarect" }
+]
+perfetto = [
+    { target_name = "libperfetto_client_experimental" }
+]
+
+[header_libraries]
+android-hwvulkan-headers = [
+    { target_name = "hwvulkan_headers" }
+]
+android-aemu-gralloc-headers = [
+    { target_name = "libgralloc_cb.ranchu" }
+]
+android-minigbm-headers = [
+    { target_name = "minigbm_headers" }
+]
+android-nativebase-headers = [
+    { target_name = "libnativebase_headers" }
+]
+
+[programs]
+python3 = { version = "3.9", dependencies = ["mako", "pyyaml"] }
+glslangValidator = { version = "Glslang Version: 12:44.4.0", path = "//external/deqp-deps/glslang:glslangValidator" }
+bindgen = { version = "1.71" }
+bison = { version = "3.8.2" }
+flex = { version = "2.6.4" }

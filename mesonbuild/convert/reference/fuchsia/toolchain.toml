@@ -1,0 +1,24 @@
+# Copyright 2026 The Meson Development Team
+# SPDX-License-Identifier: Apache-2.0
+
+[[toolchain]]
+name = "linux_fuchsia_arm64"
+
+[toolchain.host_machine]
+cpu_family = "aarch64"
+cpu = "armv8"
+system = "fuchsia"
+endian = "little"
+
+[toolchain.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "18.0.3"
+
+[toolchain.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "18.0.3"
+
+[toolchain.c.has_function.fails]
+qsort_s = true
