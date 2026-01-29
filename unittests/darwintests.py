@@ -174,3 +174,23 @@ class DarwinTests(BasePlatformTests):
         # Those RPATHs are no longer valid and should not be present after installation
         rpaths = self._get_darwin_rpaths(os.path.join(self.installdir, 'usr/lib/libbar.dylib'))
         self.assertListEqual(rpaths, [])
+
+    @skip_if_not_language('rust')
+    def test_rust_apple_framework_rlib(self):
+        '''
+        Test that Rust rlibs properly record Apple framework dependencies,
+        so that external tools (like cargo) can link against them without
+        meson's help.
+        '''
+        testdir = os.path.join(self.rust_test_dir, '35 apple framework')
+        self.init(testdir)
+        # Build only the library, not the executable
+        self.build(target='timelib')
+        # Manually invoke rustc to build the executable, using the rlib.
+        # This simulates what cargo or another build system would do.
+        rlib = os.path.join(self.builddir, 'libtimelib.rlib')
+        main_rs = os.path.join(testdir, 'main.rs')
+        out_exe = os.path.join(self.builddir, 'manual_main')
+        subprocess.check_call(['rustc', '--extern', f'timelib={rlib}', main_rs, '-o', out_exe])
+        # Run the executable to verify it works
+        subprocess.check_call([out_exe])
