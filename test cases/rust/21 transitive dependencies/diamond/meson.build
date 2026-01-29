@@ -15,6 +15,16 @@ libr3 = static_library('r3', 'r3.rs',
 )
 shared_library('main', 'main.c', link_whole: [libr3])
 
+#Same dependency graph, but r1 and r2 use link_whole.  c1 need not be
+#included in r3.
+libr1_whole = static_library('r1+whole', 'r1.rs', link_whole: libc1)
+libr2_whole = static_library('r2+whole', 'r2.rs', link_whole: libc1)
+libr3_whole = static_library('r3+whole', 'r3.rs',
+  link_with: [libr1_whole, libr2_whole],
+  rust_abi: 'c',
+)
+shared_library('main-whole', 'main.c', link_with: [libr3_whole])
+
 # Same dependency graph, but r3 is now installed. Since c1, r1 and r2 are
 # not installed, r3 must contain them.
 libr3 = static_library('r3-installed', 'r3.rs',
