@@ -139,6 +139,7 @@ __all__ = [
     'listify',
     'listify_array_value',
     'lookahead',
+    'lookbehind',
     'partition',
     'path_is_in_root',
     'pickle_load',
@@ -2534,6 +2535,24 @@ def get_subproject_dir(directory: str = '.') -> T.Optional[str]:
         return None
 
     return intr.extract_subproject_dir() or 'subprojects'
+
+
+def lookbehind(it_: T.Iterable[_T]) -> T.Iterator[T.Tuple[T.Optional[_T], _T]]:
+    """Get the current value of the iterable, and the previous if possible.
+
+    :param iter: The iterable to look into
+    :yield: A tuple of the previous value if possible, and the current one
+    :return: nothing
+    """
+    prev: T.Optional[_T] = None
+    it: T.Iterator[_T] = iter(it_)
+    while True:
+        try:
+            current = next(it)
+            yield prev, current
+            prev = current
+        except StopIteration:
+            break
 
 
 def lookahead(it_: T.Iterable[_T]) -> T.Iterator[T.Tuple[_T, T.Optional[_T]]]:
