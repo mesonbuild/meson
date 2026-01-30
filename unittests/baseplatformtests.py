@@ -36,6 +36,21 @@ from run_tests import (
     run_mtest_inprocess, handle_meson_skip_test,
 )
 
+if T.TYPE_CHECKING:
+    from typing_extensions import TypeAlias, TypedDict
+
+    class CompDbEntry(TypedDict):
+
+        # `output` is not strictly required, but Ninja always generates it
+        # `arguments` is allowed, but Ninja never generates it
+
+        directory: str
+        command: str
+        file: str
+        output: str
+
+    CompDB: TypeAlias = T.List[CompDbEntry]
+
 
 # magic attribute used by unittest.result.TestResult._is_relevant_tb_level
 # This causes tracebacks to hide these internal implementation details,
@@ -318,17 +333,17 @@ class BasePlatformTests(TestCase):
     def utime(self, f):
         os.utime(f)
 
-    def get_compdb(self):
+    def get_compdb(self) -> CompDB:
         if self.backend is not Backend.ninja:
             raise SkipTest(f'Compiler db not available with {self.backend.name} backend')
         try:
             with open(os.path.join(self.builddir, 'compile_commands.json'), encoding='utf-8') as ifile:
-                contents = json.load(ifile)
+                contents = T.cast('CompDB', json.load(ifile))
         except FileNotFoundError:
             raise SkipTest('Compiler db not found')
         # If Ninja is using .rsp files, generate them, read their contents, and
         # replace it as the command for all compile commands in the parsed json.
-        if len(contents) > 0 and contents[0]['command'].endswith('.rsp'):
+        if contents and contents[0]['command'].endswith('.rsp'):
             # Pretend to build so that the rsp files are generated
             self.build(extra_args=['-d', 'keeprsp', '-n'])
             for each in contents:
