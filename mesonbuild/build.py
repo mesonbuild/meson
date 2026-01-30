@@ -887,6 +887,10 @@ class BuildTarget(Target):
         self.link(link_targets)
         self.link_whole(link_whole_targets)
         self.link_language = kwargs.get('link_language') or self._calculcate_link_language()
+
+        # If the DSL defined the link_language
+        self._explicit_link_langauge = kwargs.get('link_language') is not None
+
         self._set_vala_args(kwargs)
 
         if not any([[src for src in self.sources if not is_header(src)], self.generated, self.objects,
@@ -958,7 +962,7 @@ class BuildTarget(Target):
         '''
         self.validate_sources()
         if self.uses_rust():
-            if self.link_language and self.link_language != 'rust':
+            if self.link_language != 'rust':
                 raise MesonException('cannot build Rust sources with a different link_language')
             if self.structured_sources:
                 # TODO: the interpreter should be able to generate a better error message?
@@ -1069,38 +1073,14 @@ class BuildTarget(Target):
         for lang in self.missing_languages:
             self.compilers[lang] = self.all_compilers[lang]
 
-        # did user override clink_langs for this target?
-        link_langs = (self.link_language, ) if self.link_language else clink_langs
-
-        if self.link_language:
-            if self.link_language not in self.all_compilers:
-                m = f'Target {self.name} requires {self.link_language} compiler not part of the project'
-                raise MesonException(m)
-
-        # If this library is linked against another library we need to consider
-        # the languages of those libraries as well.
-        if self.link_targets or self.link_whole_targets:
-            for t in itertools.chain(self.link_targets, self.link_whole_targets):
-                if isinstance(t, (CustomTarget, CustomTargetIndex)):
-                    continue # We can't know anything about these.
-                for name, compiler in t.compilers.items():
-                    if name == 'rust':
-                        # Rust is always linked through a C-ABI target, so do not add
-                        # the compiler here
-                        continue
-                    if name in link_langs and name not in self.compilers:
-                        self.compilers[name] = compiler
-
-        if not self.compilers:
-            # No source files or parent targets, target consists of only object
-            # files of unknown origin. Just add the first clink compiler
-            # that we have and hope that it can link these objects
-
-            # TODO: pyright understands this, mypy doesn't
-            for lang in T.cast('T.Iterable[Language]', reversed(link_langs)):
-                if lang in self.all_compilers:
-                    self.compilers[lang] = self.all_compilers[lang]
-                    break
+        # It's still possible in the following cases we don't have the compiler:
+        # - The compiler is set in the DSL
+        # - The compiler exists in the current project, and so isn't missing
+        try:
+            self.compilers[self.link_language] = self.all_compilers[self.link_language]
+        except KeyError:
+            m = f'Target {self.name} requires {self.link_language} compiler not part of the project'
+            raise MesonException(m)
 
         # Now that we have the final list of compilers we can sort it according
         # to clink_langs and do sanity checks.
@@ -1635,20 +1615,8 @@ class BuildTarget(Target):
         return langs
 
     def get_prelinker(self) -> Compiler:
-        if self.link_language:
-            comp = self.all_compilers[self.link_language]
-            return comp
-        for l in T.cast('T.Tuple[Language, ...]', clink_langs):
-            if l in self.compilers:
-                try:
-                    prelinker = self.all_compilers[l]
-                except KeyError:
-                    raise MesonException(
-                        f'Could not get a prelinker linker for build target {self.name!r}. '
-                        f'Requires a compiler for language "{l}", but that is not '
-                        'a project language.')
-                return prelinker
-        raise MesonException(f'Could not determine prelinker for {self.name!r}.')
+        comp = self.all_compilers[self.link_language]
+        return comp
 
     def get_clink_dynamic_linker_and_stdlibs(self) -> T.Tuple['Compiler', T.List[str]]:
         '''
@@ -1660,44 +1628,10 @@ class BuildTarget(Target):
         that can link compiled C. We don't actually need to add an exception
         for Vala here because of that.
         '''
-        # If the user set the link_language, just return that.
-        if self.link_language:
-            comp = self.all_compilers[self.link_language]
-            return comp, comp.language_stdlib_only_link_flags()
-
-        # Since dependencies could come from subprojects, they could have
-        # languages we don't have in self.all_compilers. Use the global list of
-        # all compilers here.
-        all_compilers = self.environment.coredata.compilers[self.for_machine]
-
-        # Languages used by dependencies
-        dep_langs = self.get_langs_used_by_deps()
-
-        # Pick a compiler based on the language priority-order
-        for l in T.cast('T.Tuple[Language, ...]', clink_langs):
-            if l in self.compilers or l in dep_langs:
-                try:
-                    linker = all_compilers[l]
-                except KeyError:
-                    raise MesonException(
-                        f'Could not get a dynamic linker for build target {self.name!r}. '
-                        f'Requires a linker for language "{l}", but that is not '
-                        'a project language.')
-                stdlib_args: T.List[str] = self.get_used_stdlib_args(linker.language)
-                # Type of var 'linker' is Compiler.
-                # Pretty hard to fix because the return value is passed everywhere
-                return linker, stdlib_args
-
-        # None of our compilers can do clink, this happens for example if the
-        # target only has ASM sources. Pick the first capable compiler.
-        for l in T.cast('T.Tuple[Language, ...]', clink_langs):
-            try:
-                comp = self.all_compilers[l]
-                return comp, comp.language_stdlib_only_link_flags()
-            except KeyError:
-                pass
-
-        raise AssertionError(f'Could not get a dynamic linker for build target {self.name!r}')
+        comp = self.all_compilers[self.link_language]
+        if self._explicit_link_langauge:
+            return comp, comp.language_stdlib_only_link_flags().copy()
+        return comp, self.get_used_stdlib_args(self.link_language)
 
     def get_used_stdlib_args(self, link_language: Language) -> T.List[str]:
         all_compilers = self.environment.coredata.compilers[self.for_machine]
