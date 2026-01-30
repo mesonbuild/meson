@@ -343,7 +343,7 @@ class BasePlatformTests(TestCase):
             raise SkipTest('Compiler db not found')
         # If Ninja is using .rsp files, generate them, read their contents, and
         # replace it as the command for all compile commands in the parsed json.
-        if len(contents) > 0 and contents[0]['command'].endswith('.rsp'):
+        if contents and contents[0]['command'].endswith('.rsp'):
             # Pretend to build so that the rsp files are generated
             self.build(extra_args=['-d', 'keeprsp', '-n'])
             for each in contents:
