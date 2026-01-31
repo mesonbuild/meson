@@ -6,6 +6,7 @@ description: |
   overridden by specifying it with the `install_dir` keyword argument.
 
   *(since 0.49.0)* [manpages are no longer compressed implicitly][install_man_49].
+  *(since 1.11.0)* install_man supports `install_tag` kwarg
 
   [install_man_49]:
   https://mesonbuild.com/Release-notes-for-0-49-0.html#manpages-are-no-longer-compressed-implicitly
@@ -31,6 +32,14 @@ kwargs:
   install_dir:
     type: str
     description: Where to install to.
+
+  install_tag:
+    type: str
+    since: 1.11.0
+    description: |
+      A string used by the `meson install --tags` command
+      to install only a subset of the files. By default these files have `man` install
+      tag which means they are installed explicitly or when no tags given at all
 
   locale:
     type: str
