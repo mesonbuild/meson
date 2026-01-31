@@ -135,7 +135,15 @@ class StringHolder(ObjectHolder[str]):
     @InterpreterObject.method('to_int')
     def to_int_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> int:
         try:
-            return int(self.held_object)
+            s = self.held_object.strip()
+            s_unsigned = s.lstrip('+-').lower()
+            # For backward compatibility, strings with leading zeros but no
+            # prefix (e.g. '010') must be treated as decimal. Python 3's int()
+            # with base=0 raises ValueError for such strings, so we explicitly
+            # use base=10.
+            if (s_unsigned.startswith('0') and len(s_unsigned) > 1 and s_unsigned[1].isdigit()):
+                return int(s, base=10)
+            return int(s, base=0)
         except ValueError:
             raise InvalidArguments(f'String {self.held_object!r} cannot be converted to int')
 
