@@ -34,8 +34,6 @@ set cpo&vim
 let s:maxoff = 50	" maximum number of lines to look backwards for ()
 
 function GetMesonIndent(lnum)
-  echom getline(line("."))
-
   " If this line is explicitly joined: If the previous line was also joined,
   " line it up with that one, otherwise add two 'shiftwidth'
   if getline(a:lnum - 1) =~ '\\$'
