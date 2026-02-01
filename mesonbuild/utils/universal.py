@@ -138,6 +138,7 @@ __all__ = [
     'lazy_property',
     'listify',
     'listify_array_value',
+    'lookahead',
     'partition',
     'path_is_in_root',
     'pickle_load',
@@ -2533,3 +2534,31 @@ def get_subproject_dir(directory: str = '.') -> T.Optional[str]:
         return None
 
     return intr.extract_subproject_dir() or 'subprojects'
+
+
+def lookahead(iter: T.Iterator[_T]) -> T.Iterator[T.Tuple[_T, T.Optional[_T]]]:
+    """Get the current value of the iterable, and the next if possible.
+
+    :param iter: The iterable to look into
+    :yield: A tuple of the current value, and, if possible, the next
+    :return: nothing
+    """
+    current: _T
+    next_: T.Optional[_T]
+    try:
+        next_ = next(iter)
+    except StopIteration:
+        # This is an empty iterator, there's nothing to look ahead to
+        return
+
+    while True:
+        current = next_
+        try:
+            next_ = next(iter)
+        except StopIteration:
+            next_ = None
+
+        yield current, next_
+
+        if next_ is None:
+            break
