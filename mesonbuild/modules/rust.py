@@ -10,31 +10,35 @@ import typing as T
 
 from mesonbuild.interpreterbase.decorators import FeatureNew
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo
+from . import ExtensionModule, ModuleReturnValue, ModuleInfo, ModuleObject
 from .. import mesonlib, mlog
 from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
                      CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary, StaticLibrary)
 from ..compilers.compilers import are_asserts_disabled_for_subproject, lang_suffixes
 from ..compilers.rust import parse_target
+from ..dependencies import Dependency
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
     OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator
 )
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
+from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs, permittedKwargs
 from ..interpreter.interpreterobjects import Doctest
 from ..mesonlib import File, MachineChoice, MesonException, PerMachine
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
+    from .. import cargo
     from ..build import BuildTargetTypes, ExecutableKeywordArguments, IncludeDirs, LibTypes
+    from ..cargo.interpreter import RUST_ABI
     from ..compilers.compilers import Language
     from ..compilers.rust import RustCompiler
-    from ..dependencies import Dependency, ExternalLibrary
+    from ..dependencies import ExternalLibrary
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
     from ..interpreter.interpreterobjects import Test
+    from ..interpreterbase import TYPE_kwargs
     from ..programs import Program
     from ..interpreter.type_checking import SourcesVarargsType
 
@@ -65,6 +69,12 @@ if T.TYPE_CHECKING:
         language: T.Optional[Literal['c', 'cpp']]
         bindgen_version: T.List[str]
 
+    class FuncWorkspace(TypedDict):
+        default_features: T.Optional[bool]
+        features: T.List[str]
+
+    class FuncDependency(TypedDict):
+        rust_abi: T.Optional[RUST_ABI]
 
 RUST_TEST_KWS: T.List[KwargInfo] = [
      KwargInfo(
@@ -82,6 +92,108 @@ def no_spaces_validator(arg: T.Optional[T.Union[str, T.List]]) -> T.Optional[str
     if any(bool(re.search(r'\s', x)) for x in arg):
         return 'must not contain spaces due to limitations of rustdoc'
     return None
+
+
+class RustWorkspace(ModuleObject):
+    """Represents a Rust workspace, controlling the build of packages
+       recorded in a Cargo.lock file."""
+
+    def __init__(self, interpreter: Interpreter, ws: cargo.WorkspaceState) -> None:
+        super().__init__()
+        self.interpreter = interpreter
+        self.ws = ws
+        self.methods.update({
+            'packages': self.packages_method,
+            'subproject': self.subproject_method,
+        })
+
+    @noPosargs
+    @noKwargs
+    def packages_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
+        """Returns list of package names in workspace."""
+        package_names = [pkg.manifest.package.name for pkg in self.ws.packages.values()]
+        return sorted(package_names)
+
+    def _do_subproject(self, pkg: cargo.PackageState) -> None:
+        kw: _kwargs.DoSubproject = {
+            'required': True,
+            'version': None,
+            'options': None,
+            'cmake_options': [],
+            'default_options': {},
+        }
+        subp_name = pkg.get_subproject_name()
+        self.interpreter.do_subproject(subp_name, kw, force_method='cargo')
+
+    @typed_pos_args('workspace.subproject', str, optargs=[str])
+    @noKwargs
+    def subproject_method(self, state: ModuleState, args: T.Tuple[str, T.Optional[str]], kwargs: TYPE_kwargs) -> RustSubproject:
+        """Returns a package object for a subproject package."""
+        package_name = args[0]
+        pkg = self.interpreter.cargo.resolve_package(package_name, args[1] or '')
+        if pkg is None:
+            if args[1]:
+                raise MesonException(f'No version of cargo package "{package_name}" provides API {args[1]}')
+            else:
+                raise MesonException(f'Cargo package "{package_name}" not available')
+
+        self._do_subproject(pkg)
+        return RustSubproject(self, pkg)
+
+
+class RustSubproject(ModuleObject):
+    """Represents a Rust package within a workspace."""
+
+    def __init__(self, rust_ws: RustWorkspace, package: cargo.PackageState) -> None:
+        super().__init__()
+        self.rust_ws = rust_ws
+        self.package = package
+        self.methods.update({
+            'all_features': self.all_features_method,
+            'api': self.api_method,
+            'dependency': self.dependency_method,
+            'features': self.features_method,
+            'name': self.name_method,
+            'version': self.version_method,
+        })
+
+    @noPosargs
+    @noKwargs
+    def name_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> str:
+        """Returns the name of the package."""
+        return self.package.manifest.package.name
+
+    @noPosargs
+    @noKwargs
+    def api_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> str:
+        """Returns the API version of the package."""
+        return self.package.manifest.package.api
+
+    @noPosargs
+    @noKwargs
+    def version_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> str:
+        """Returns the version of the package."""
+        return self.package.manifest.package.version
+
+    @noPosargs
+    @noKwargs
+    def all_features_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
+        """Returns all features for specific package."""
+        return sorted(list(self.package.manifest.features.keys()))
+
+    @noPosargs
+    @noKwargs
+    def features_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
+        """Returns chosen features for specific package."""
+        return sorted(list(self.package.cfg.features))
+
+    @noPosargs
+    @typed_kwargs('package.dependency',
+                  KwargInfo('rust_abi', (str, NoneType), default=None, validator=in_set_validator({'rust', 'c', 'proc-macro'})))
+    def dependency_method(self, state: ModuleState, args: T.List, kwargs: FuncDependency) -> Dependency:
+        """Returns dependency for the package with the given ABI."""
+        depname = self.package.get_dependency_name(kwargs['rust_abi'])
+        return state.overridden_dependency(depname)
 
 
 class RustModule(ExtensionModule):
@@ -106,6 +218,7 @@ class RustModule(ExtensionModule):
             'doctest': self.doctest,
             'bindgen': self.bindgen,
             'proc_macro': self.proc_macro,
+            'workspace': self.workspace,
         })
 
     def test_common(self, funcname: str, state: ModuleState, args: T.Tuple[str, BuildTarget], kwargs: FuncRustTest) -> T.Tuple[Executable, _kwargs.FuncTest]:
@@ -509,6 +622,42 @@ class RustModule(ExtensionModule):
         kwargs['rust_args'] = kwargs['rust_args'] + ['--extern', 'proc_macro']
         target = state._interpreter.build_target(state.current_node, args, kwargs, SharedLibrary)
         return target
+
+    @FeatureNew('rust.workspace', '1.11.0')
+    @noPosargs
+    @typed_kwargs(
+        'rust.workspace',
+        KwargInfo('default_features', (bool, NoneType), default=None),
+        KwargInfo(
+            'features',
+            (ContainerTypeInfo(list, str), NoneType),
+            default=None,
+            listify=True,
+        ),
+    )
+    def workspace(self, state: ModuleState, args: T.List, kwargs: FuncWorkspace) -> RustWorkspace:
+        """Creates a Rust workspace object, controlling the build of
+           all the packages in a Cargo.lock file."""
+        if self.interpreter.cargo is None:
+            raise MesonException("rust.workspace() requires a Cargo project (Cargo.toml and Cargo.lock)")
+
+        self.interpreter.add_languages(['rust'], True, MachineChoice.HOST)
+        self.interpreter.add_languages(['rust'], True, MachineChoice.BUILD)
+
+        default_features = kwargs['default_features']
+        features = kwargs['features']
+        if default_features is not None or features is not None:
+            # If custom features are provided, default_features = None should be treated as True
+            if default_features is None:
+                default_features = True
+
+            cargo_features = ['default'] if default_features else []
+            if features is not None:
+                cargo_features.extend(features)
+            self.interpreter.cargo.features = cargo_features
+
+        ws = self.interpreter.cargo.load_workspace(state.root_subdir)
+        return RustWorkspace(self.interpreter, ws)
 
 
 def initialize(interp: Interpreter) -> RustModule:
