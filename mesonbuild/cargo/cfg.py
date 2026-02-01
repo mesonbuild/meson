@@ -26,7 +26,7 @@ import enum
 import typing as T
 
 
-from ..mesonlib import MesonBugException
+from ..mesonlib import MesonBugException, lookahead
 
 if T.TYPE_CHECKING:
     _T = T.TypeVar('_T')
@@ -90,34 +90,6 @@ def lexer(raw: str) -> _LEX_STREAM:
     if val:
         # This should always be an identifier
         yield (TokenType.IDENTIFIER, val)
-
-
-def lookahead(iter: T.Iterator[_T]) -> T.Iterator[T.Tuple[_T, T.Optional[_T]]]:
-    """Get the current value of the iterable, and the next if possible.
-
-    :param iter: The iterable to look into
-    :yield: A tuple of the current value, and, if possible, the next
-    :return: nothing
-    """
-    current: _T
-    next_: T.Optional[_T]
-    try:
-        next_ = next(iter)
-    except StopIteration:
-        # This is an empty iterator, there's nothing to look ahead to
-        return
-
-    while True:
-        current = next_
-        try:
-            next_ = next(iter)
-        except StopIteration:
-            next_ = None
-
-        yield current, next_
-
-        if next_ is None:
-            break
 
 
 @dataclasses.dataclass
