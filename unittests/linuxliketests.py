@@ -1675,6 +1675,19 @@ class LinuxlikeTests(BasePlatformTests):
     def test_ld_environment_variable_rust(self):
         self._check_ld('gcc', 'gcc -fuse-ld=gold', 'rust', 'ld.gold')
 
+    @skip_if_not_language('rust')
+    @skipIfNoExecutable('ld.lld')
+    def test_rust_ld_link_args(self):
+        env = get_fake_env()
+        env.binaries.host.binaries['rust_ld'] = ['gcc', '-fuse-ld=lld']
+        compiler = compiler_from_language(env, 'rust', MachineChoice.HOST)
+        # Collect all arguments that follow -C flags
+        c_args = [compiler.exelist[i + 1]
+                  for i, arg in enumerate(compiler.exelist)
+                  if arg == '-C']
+        self.assertIn('linker=gcc', c_args)
+        self.assertIn('link-arg=-fuse-ld=lld', c_args)
+
     def test_ld_environment_variable_cpp(self):
         self._check_ld('ld.gold', 'gold', 'cpp', 'ld.gold')
 
@@ -1997,6 +2010,25 @@ class LinuxlikeTests(BasePlatformTests):
             self.init(testdir, extra_args=args + ['-Db_sanitize=' + value])
             self.build()
             self.wipe()
+
+    @skip_if_not_language('rust')
+    def test_rust_staticlib_rlib_deps(self):
+        '''
+        Test that when a C executable links with a Rust staticlib, the rlib
+        dependencies of the staticlib are not passed to the C linker.
+        See: https://github.com/mesonbuild/meson/issues/11721
+        '''
+        testdir = os.path.join(self.rust_test_dir, '34 staticlib rlib deps')
+        self.init(testdir)
+        with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as f:
+            ninja_contents = f.read()
+        # Find the link command for the C executable
+        for line in ninja_contents.split('\n'):
+            if 'build main:' in line or 'build main.exe:' in line:
+                # The rlib should NOT be in the link command
+                self.assertNotIn('liblib.rlib', line)
+                return
+        raise RuntimeError('Could not find the build rule for main executable')
 
     def test_sanitizers(self):
         testdir = os.path.join(self.unit_test_dir, '129 sanitizers')

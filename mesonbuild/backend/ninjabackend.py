@@ -2151,9 +2151,22 @@ class NinjaBackend(backends.Backend):
                 args.append(f'-Clink-arg={lib}')
 
         for e in external_deps:
+            prev: T.Optional[str] = None
             for a in e.get_link_args():
+                if prev == '-framework':
+                    args.append(f'-lframework={a}')
+                    prev = None
+                    continue
+                prev = None
                 if a.startswith('-L'):
                     args.append(a)
+                    continue
+                elif a.startswith('-F'):
+                    path = a[2:]
+                    args.append(f'-Lframework={path}')
+                    continue
+                elif a == '-framework':
+                    prev = a
                     continue
                 elif is_library(a):
                     if isinstance(target, build.StaticLibrary):

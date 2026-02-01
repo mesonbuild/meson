@@ -8,7 +8,11 @@ subdir('liba')
 subdir('libb')
 
 main = executable('main', 'main.rs',
-  dependencies : [libb_dep],
+  link_with : [libb],
+)
+
+main = executable('main-with-staticlib', 'main-with-staticlib.rs',
+  link_with : [libb_staticlib],
 )
 
 # Since foo-rs is a static library, its dependencies are normally added to
