@@ -204,7 +204,8 @@ class RustModule(ExtensionModule):
             name, base_target.subdir, state.subproject, base_target.for_machine,
             sources, base_target.structured_sources,
             base_target.objects, base_target.environment, base_target.compilers,
-            new_target_kwargs)
+            state.is_build_only_subproject, new_target_kwargs
+        )
         return new_target, tkwargs
 
     @typed_pos_args('rust.test', str, BuildTarget)
@@ -487,6 +488,7 @@ class RustModule(ExtensionModule):
             cmd,
             [header],
             outputs,
+            state.is_build_only_subproject,
             depfile='@PLAINNAME@.d',
             extra_depends=depends,
             depend_files=depend_files,
