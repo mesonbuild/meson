@@ -119,3 +119,59 @@ arguments with `-Clink-arg=` before passing them to the Rust compiler.
 Furthermore, these arguments are only included when creating binary or
 shared library crates.  Likewise, methods such as `has_link_argument()`
 wrap the arguments being tested with `-Clink-arg=`.
+
+## Cargo interaction
+
+*Since 1.11.0*
+
+In most cases, a Rust program will use Cargo to download crates.  Meson is able
+to build Rust library crates based on a `Cargo.toml` file; each external crate
+corresponds to a subproject.  Rust module's ` that do not need a `build.rs` file
+need no intervention, whereas if a `build.rs` file is present it needs to be
+converted manually to Meson code.
+
+To enable automatic configuration of Cargo dependencies, your project must
+have `Cargo.toml` and `Cargo.lock` files in the root source directory;
+this enables proper feature resolution across crates.  You can then
+create a workspace object using the Rust module, and retrieve specific
+packages from the workspace:
+
+```meson
+rust = import('rust')
+cargo_ws = rustmod.workspace()
+anyhow_dep = ws.subproject('anyhow').dependency()
+```
+
+The workspace object also enables configuration of Cargo features, for example
+from Meson options:
+
+```meson
+cargo_ws = rustmod.workspace(
+    features: ['feature1', 'feature2'])
+```
+
+Finally, the workspace object is able to build targets specified in `lib`
+or `bin` sections, extracting compiler arguments for dependencies and
+diagnostics from the Cargo.toml file.  The simplest case is that of building
+a simple binary crate:
+
+```meson
+cargo_ws.package().executable(install: true)
+```
+
+For a workspace:
+
+```meson
+pkg_lib = cargo_ws.package('myproject-lib')
+lib = pkg_lib.library(install: false)
+pkg_lib.override_dependency(declare_dependency(link_with: lib))
+
+cargo_ws.package().executable(install: true)
+```
+
+Sources are automatically discovered, but can be specified as a
+[[@structured_src]] if they are partly generated.
+
+It is still possible to use keyword arguments to link non-Rust build targets,
+or even to use the usual Meson functions such as [[static_library]] or
+[[executable]].

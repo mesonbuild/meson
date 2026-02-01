@@ -305,29 +305,31 @@ class InternalDependency(Dependency):
 
     type_name = DependencyTypeName('internal')
 
-    def __init__(self, version: str, incdirs: T.List['IncludeDirs'], compile_args: T.List[str],
-                 link_args: T.List[str],
-                 libraries: T.List[LibTypes],
-                 whole_libraries: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]],
-                 sources: T.Sequence[T.Union[mesonlib.File, GeneratedTypes, StructuredSources]],
-                 extra_files: T.Sequence[mesonlib.File],
-                 ext_deps: T.List[Dependency], variables: T.Dict[str, str],
-                 d_module_versions: T.List[T.Union[str, int]], d_import_dirs: T.List['IncludeDirs'],
-                 objects: T.List['ExtractedObjects'],
+    def __init__(self, version: str, incdirs: T.Optional[T.List['IncludeDirs']] = None,
+                 compile_args: T.Optional[T.List[str]] = None,
+                 link_args: T.Optional[T.List[str]] = None,
+                 libraries: T.Optional[T.List[LibTypes]] = None,
+                 whole_libraries: T.Optional[T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]] = None,
+                 sources: T.Optional[T.Sequence[T.Union[mesonlib.File, GeneratedTypes, StructuredSources]]] = None,
+                 extra_files: T.Optional[T.Sequence[mesonlib.File]] = None,
+                 ext_deps: T.Optional[T.List[Dependency]] = None, variables: T.Optional[T.Dict[str, str]] = None,
+                 d_module_versions: T.Optional[T.List[T.Union[str, int]]] = None,
+                 d_import_dirs: T.Optional[T.List['IncludeDirs']] = None,
+                 objects: T.Optional[T.List['ExtractedObjects']] = None,
                  name: T.Optional[str] = None):
         super().__init__({'native': MachineChoice.HOST})  # TODO: does the native key actually matter
         self.version = version
         self.is_found = True
-        self.include_directories = incdirs
-        self.compile_args = compile_args
-        self.link_args = link_args
-        self.libraries = libraries
-        self.whole_libraries = whole_libraries
-        self.sources = list(sources)
-        self.extra_files = list(extra_files)
-        self.ext_deps = ext_deps
-        self.variables = variables
-        self.objects = objects
+        self.include_directories = incdirs or []
+        self.compile_args = compile_args or []
+        self.link_args = link_args or []
+        self.libraries = libraries or []
+        self.whole_libraries = whole_libraries or []
+        self.sources = list(sources or [])
+        self.extra_files = list(extra_files or [])
+        self.ext_deps = ext_deps or []
+        self.variables = variables or {}
+        self.objects = objects or []
         if d_module_versions:
             self.d_features['versions'] = d_module_versions
         if d_import_dirs:
