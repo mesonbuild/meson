@@ -1149,8 +1149,6 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
                     extra_args['machine'] = cc.linker.machine
                 else:
                     exelist = cc.linker.exelist + cc.linker.get_always_args()
-                    if os.path.basename(exelist[0]) in {'ccache', 'sccache'}:
-                        del exelist[0]
                     c = exelist.pop(0)
                     compiler.extend(cls.use_linker_args(c, ''))
 
@@ -1189,11 +1187,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
                 # it, and use that.
                 cc = _detect_c_or_cpp_compiler(env, 'c', for_machine, override_compiler=override)
                 linker = cc.linker
-
-                # Of course, we're not going to use any of that, we just
-                # need it to get the proper arguments to pass to rustc
-                c = linker.exelist[1] if linker.exelist[0].endswith('ccache') else linker.exelist[0]
-                compiler.extend(cls.use_linker_args(c, ''))
+                compiler.extend(cls.use_linker_args(linker.exelist[0], ''))
 
             env.add_lang_args(cls.language, cls, for_machine)
             return cls(
