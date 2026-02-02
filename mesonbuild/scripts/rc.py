@@ -32,7 +32,7 @@ def run(args: T.List[str]) -> int:
     # Use preprocessor to display include files
     include_args = [a for a in rc_args if a.startswith(('/I', '-I'))]
     cmd = [cl, '/showIncludes', '/EP', '/nologo', '/DRC_INVOKED'] + include_args + ['/Tc' + target]
-    result = subprocess.call(cmd)
+    result = subprocess.call(cmd, stdout=subprocess.DEVNULL)
     if result != 0:
         print('Error running preprocessor to find resource dependencies')
         # continue anyway. rc.exe should catch the error later
