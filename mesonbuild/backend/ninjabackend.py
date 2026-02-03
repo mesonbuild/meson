@@ -3297,11 +3297,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def target_uses_import_std(self, target: build.BuildTarget) -> bool:
         if 'cpp' not in target.compilers:
             return False
-        if 'cpp_importstd' not in self.environment.coredata.optstore:
+        try:
+            if self.environment.coredata.get_option_for_target(target, 'cpp_importstd') == 'true':
+                return True
+        except KeyError:
             return False
-        if self.environment.coredata.get_option_for_target(target, 'cpp_importstd') == 'false':
-            return False
-        return True
 
     def handle_cpp_import_std(self, target: build.BuildTarget, compiler):
         istd_args = []
