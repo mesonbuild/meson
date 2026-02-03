@@ -751,7 +751,10 @@ def machine_info_can_run(machine_info: MachineInfo) -> bool:
     detect_cpu_family() here because we always want to know the OS
     architecture, not what the compiler environment tells us.
     """
-    if machine_info.system != detect_system():
+    system = detect_system()
+    if machine_info.system != system:
+        return False
+    if machine_info.subsystem != detect_subsystem(system):
         return False
     true_build_cpu_family = detect_cpu_family({})
     assert machine_info.cpu_family is not None, 'called on incomplete machine_info'
