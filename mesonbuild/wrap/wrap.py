@@ -61,20 +61,22 @@ if sys.version_info >= (3, 14):
     import tarfile
     tarfile.TarFile.extraction_filter = staticmethod(tarfile.fully_trusted_filter)
 
-if mesonlib.is_windows():
-    from ..programs import ExternalProgram
-    from ..mesonlib import version_compare
-    _exclude_paths: T.List[str] = []
-    while True:
-        _patch = ExternalProgram('patch', silent=True, exclude_paths=_exclude_paths)
-        if not _patch.found():
-            break
-        if version_compare(_patch.get_version(), '>=2.6.1'):
-            break
-        _exclude_paths.append(os.path.dirname(_patch.get_path()))
-    PATCH = _patch.get_path() if _patch.found() else None
-else:
-    PATCH = shutil.which('patch')
+@lru_cache(maxsize=None)
+def patch_command() -> T.Optional[str]:
+    if mesonlib.is_windows():
+        from ..programs import ExternalProgram
+        from ..mesonlib import version_compare
+        _exclude_paths: T.List[str] = []
+        while True:
+            _patch = ExternalProgram('patch', silent=True, exclude_paths=_exclude_paths)
+            if not _patch.found():
+                break
+            if version_compare(_patch.get_version(), '>=2.6.1'):
+                break
+            _exclude_paths.append(os.path.dirname(_patch.get_path()))
+        return _patch.get_path() if _patch.found() else None
+    else:
+        return shutil.which('patch')
 
 
 truststore_message = '''
@@ -945,11 +947,11 @@ class Resolver:
             if not path.exists():
                 raise WrapException(f'Diff file "{path}" does not exist')
             relpath = os.path.relpath(str(path), self.dirname)
-            if PATCH:
+            if patch_command():
                 # Always pass a POSIX path to patch, because on Windows it's MSYS
                 # Ignore whitespace when applying patches to workaround
                 # line-ending differences
-                cmd = [PATCH, '-l', '-f', '-p1', '-i', str(Path(relpath).as_posix())]
+                cmd = [patch_command(), '-l', '-f', '-p1', '-i', str(Path(relpath).as_posix())]
             elif GIT:
                 # If the `patch` command is not available, fall back to `git
                 # apply`. The `--work-tree` is necessary in case we're inside a
