@@ -1660,7 +1660,7 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_command_to_archive_shlib(self) -> T.List[str]:
         # Archive shared library object and remove the shared library object,
         # since it already exists in the archive.
-        command = ['ar', '-r', '-s', '-v', '$out', '$in', '&&', 'rm', '-f', '$in']
+        command = ['ar', '-X32_64', '-r', '-s', '-v', '$out', '$in', '&&', 'rm', '-f', '$in']
         return command
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
