@@ -2536,7 +2536,7 @@ def get_subproject_dir(directory: str = '.') -> T.Optional[str]:
     return intr.extract_subproject_dir() or 'subprojects'
 
 
-def lookahead(iter: T.Iterator[_T]) -> T.Iterator[T.Tuple[_T, T.Optional[_T]]]:
+def lookahead(it_: T.Iterable[_T]) -> T.Iterator[T.Tuple[_T, T.Optional[_T]]]:
     """Get the current value of the iterable, and the next if possible.
 
     :param iter: The iterable to look into
@@ -2545,8 +2545,9 @@ def lookahead(iter: T.Iterator[_T]) -> T.Iterator[T.Tuple[_T, T.Optional[_T]]]:
     """
     current: _T
     next_: T.Optional[_T]
+    it: T.Iterator[_T] = iter(it_)
     try:
-        next_ = next(iter)
+        next_ = next(it)
     except StopIteration:
         # This is an empty iterator, there's nothing to look ahead to
         return
@@ -2554,7 +2555,7 @@ def lookahead(iter: T.Iterator[_T]) -> T.Iterator[T.Tuple[_T, T.Optional[_T]]]:
     while True:
         current = next_
         try:
-            next_ = next(iter)
+            next_ = next(it)
         except StopIteration:
             next_ = None
 
