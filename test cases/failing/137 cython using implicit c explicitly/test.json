@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/137 cython using implicit c explicitly/meson.build:14:0: ERROR: No host machine compiler for 'foo.c'"
+    }
+  ]
+}
