@@ -1510,15 +1510,33 @@ class Interpreter(InterpreterBase, HoldableObject):
     def add_languages_for(self, args: T.List[Language], required: bool, for_machine: MachineChoice) -> bool:
         langs = set(self.compilers[for_machine])
         langs.update(args)
-        # We'd really like to add cython's default language here, but it can't
-        # actually be done because the cython compiler hasn't been initialized,
-        # so we can't actually get the option yet. Because we can't know what
-        # compiler to add by default, and we don't want to add unnecessary
-        # compilers we don't add anything for cython here, and instead do it
-        # When the first cython target using a particular language is used.
+
+        # Some languages are added only as implementation details of other
+        # languages. When that happens, we don't want to add those langauges to
+        # the project enabled langauges, as they are implementation details, not
+        # something the user explicitly asked for, and we don't want to be
+        # forced to keep them forever if the implementation changes.
+        internal: T.Set[Language] = set()
+
         if 'vala' in langs and 'c' not in langs:
             FeatureNew.single_use('Adding Vala language without C', '0.59.0', self.subproject, location=self.current_node)
             args.append('c')
+
+        # We need to initialize the default cython language here, as we need it
+        # for sanity checking. We may need to initialize a different langauge later
+        # if a target has the `cython_language` overridden. We only want to
+        # initialize a default if cython is a new langauge, not if it's an
+        # existing one from `self.compilers`.
+        if 'cython' in args:
+            _lang = self.coredata.optstore.get_pending_value(OptionKey('cython_language', None, for_machine), 'c')
+            assert isinstance(_lang, str), 'for mypy'
+            cython_lang = T.cast('Language', _lang)
+            if cython_lang not in langs:
+                FeatureNew.single_use(f'Adding Cython language without {cython_lang}', '1.11',
+                                      self.subproject, location=self.current_node)
+                args.append(cython_lang)
+                internal.add(cython_lang)
+
         if 'nasm' in langs:
             FeatureNew.single_use('Adding NASM language', '0.64.0', self.subproject, location=self.current_node)
 
@@ -1563,7 +1581,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                 logger_fun(comp.get_display_language(), 'linker for the', machine_name, 'machine:',
                            mlog.bold(' '.join(comp.linker.get_exelist())), comp.linker.id, comp.linker.version)
             self.build.ensure_static_linker(comp)
-            self.compilers[for_machine][lang] = comp
+            if lang not in internal:
+                self.compilers[for_machine][lang] = comp
 
         return success
 
