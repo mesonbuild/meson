@@ -9,7 +9,7 @@ from mesonbuild import _pathlib
 import sys
 sys.modules['pathlib'] = _pathlib
 
-from concurrent.futures import ProcessPoolExecutor, CancelledError
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, CancelledError, as_completed
 from enum import Enum
 from io import StringIO
 from pathlib import Path, PurePath
@@ -56,7 +56,7 @@ if T.TYPE_CHECKING:
     from concurrent.futures import Future
 
     from mesonbuild._typing import Protocol
-    from mesonbuild.compilers.compilers import Language
+    from mesonbuild.compilers.compilers import Compiler, Language
 
     class CompilerArgumentType(Protocol):
         cross_file: str
@@ -1408,19 +1408,36 @@ def detect_system_compiler(options: 'CompilerArgumentType') -> None:
     if options.native_file:
         fake_opts.native_file = [options.native_file]
 
-
     machines = [MachineChoice.HOST]
     if options.cross_file:
         machines.append(MachineChoice.BUILD)
 
     with tempfile.TemporaryDirectory(prefix='b_', dir=None if options.use_tmpdir else '.') as d:
         env = environment.Environment('', d, fake_opts)
-        for machine in machines:
-            for lang in sorted(compilers.all_languages, key=compilers.sort_clink):
+        futures: T.Dict[T.Tuple[Language, MachineChoice], Future[T.Tuple[Language, MachineChoice, T.Optional[Compiler]]]] = {}
+
+        def find_compiler(lang: Language, machine: MachineChoice) -> T.Callable[[], T.Tuple[Language, MachineChoice, T.Optional[Compiler]]]:
+            def inner() -> T.Tuple[Language, MachineChoice, T.Optional[Compiler]]:
+                # Vala and Cython need to have a working C compiler before they can be detected
+                if lang in {'vala', 'cython'}:
+                    futures[('c', machine)].result()
+
+                # Cuda needs a working C++ compiler before it can be detetected
+                if lang == 'cuda':
+                    futures[('cpp', machine)].result()
+
                 try:
                     comp = detect_compiler_for(env, lang, machine, False, '')
                 except mesonlib.MesonException:
                     comp = None
+                return lang, machine, comp
+            return inner
+
+        with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as pool:
+            for machine, lang in itertools.product(machines, compilers.all_languages):
+                futures[(lang, machine)] = pool.submit(find_compiler(lang, machine))
+            for future in as_completed(futures.values()):
+                lang, machine, comp = future.result()
                 all_compilers[machine][lang] = comp
 
     print_compilers(MachineChoice.HOST)
@@ -1432,7 +1449,7 @@ def print_compilers(machine: MachineChoice) -> None:
     print()
     print(f'{machine.get_lower_case_name()} machine compilers')
     print()
-    for lang, comp in all_compilers[machine].items():
+    for lang, comp in sorted(all_compilers[machine].items(), key=lambda x: x[0]):
         if comp is not None:
             details = '{:<10} {} {}'.format('[' + comp.get_id() + ']', ' '.join(comp.get_exelist()), comp.get_version_string())
         else:
