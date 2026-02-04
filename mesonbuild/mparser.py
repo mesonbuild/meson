@@ -95,10 +95,12 @@ class Token(T.Generic[TV_TokenTypes]):
         return NotImplemented
 
 
-IDENT_RE = re.compile('[_a-zA-Z][_0-9a-zA-Z]*')
+IDENT_RE_STR = r'[_a-zA-Z][_0-9a-zA-Z]*'
+IDENT_RE = re.compile(IDENT_RE_STR)
+IDENT_RE_MACHINEFILE = re.compile(IDENT_RE_STR + '|~')
 
 class Lexer:
-    def __init__(self, code: str):
+    def __init__(self, code: str, *, machinefile: bool = False):
         if code.startswith(codecs.BOM_UTF8.decode('utf-8')):
             line, *_ = code.split('\n', maxsplit=1)
             raise ParseException('Builder file must be encoded in UTF-8 (with no BOM)', line, lineno=0, colno=0)
@@ -116,7 +118,7 @@ class Lexer:
             ('whitespace', re.compile(r'[ \t]+')),
             ('multiline_fstring', re.compile(r"f'''(.|\n)*?'''", re.M)),
             ('fstring', re.compile(r"f'([^'\\]|(\\.))*'")),
-            ('id', IDENT_RE),
+            ('id', IDENT_RE_MACHINEFILE if machinefile else IDENT_RE),
             ('number', re.compile(r'0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|0|[1-9]\d*')),
             ('eol_cont', re.compile(r'\\[ \t]*(#.*)?\n')),
             ('multiline_string', re.compile(r"'''(.|\n)*?'''", re.M)),
@@ -717,8 +719,8 @@ MULDIV_MAP: T.Mapping[str, ARITH_OPERATORS] = {
 # 10 plain token
 
 class Parser:
-    def __init__(self, code: str, filename: str):
-        self.lexer = Lexer(code)
+    def __init__(self, code: str, filename: str, *, machinefile: bool = False):
+        self.lexer = Lexer(code, machinefile=machinefile)
         self.stream = self.lexer.lex(filename)
         self.current: Token = Token('eof', '', 0, 0, 0, (0, 0), None)
         self.previous = self.current

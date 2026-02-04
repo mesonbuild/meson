@@ -13,7 +13,7 @@ import threading
 import sys
 from itertools import chain
 from unittest import mock, skipIf, SkipTest, TestCase
-from pathlib import Path
+from pathlib import Path, PurePath
 import typing as T
 
 import mesonbuild.mlog
@@ -60,6 +60,38 @@ class MachineFileStoreTests(TestCase):
     def test_loading(self):
         store = machinefile.MachineFileStore([cross_dir / 'ubuntu-armhf.txt'], [], str(cross_dir))
         self.assertIsNotNone(store)
+
+    def test_home_variable(self):
+        """Test that ~ expands to the user's home directory."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.ini', delete=False) as f:
+            f.write(textwrap.dedent('''\
+                [constants]
+                toolchain = ~ / 'sdk'
+
+                [binaries]
+                c = ~ / 'bin' / 'gcc'
+                cpp = toolchain / 'bin' / 'g++'
+                '''))
+            fname = f.name
+
+        try:
+            parser = machinefile.MachineFileParser([fname], '/tmp')
+            if sys.platform in ('linux', 'darwin'):
+                home = PurePath(os.environ['HOME'])
+            elif sys.platform in ('win32', 'cygwin'):
+                # Even with MSYS2 and Cygwin, we must use the windows-native homedir
+                # https://github.com/mesonbuild/meson/pull/15524#issuecomment-3864016608
+                if 'USER' not in os.environ:
+                    raise SkipTest('No USER in env')
+                home = PurePath('C:\\', 'Users', os.environ['USER'])
+            else:
+                raise SkipTest('Don\'t know how to get homedir')
+
+            # Check that ~ expands correctly in binaries section
+            self.assertEqual(parser.sections['binaries']['c'], str(home / 'bin' / 'gcc'))
+            self.assertEqual(parser.sections['binaries']['cpp'], str(home / 'sdk' / 'bin' / 'g++'))
+        finally:
+            os.unlink(fname)
 
 class NativeFileTests(BasePlatformTests):
 

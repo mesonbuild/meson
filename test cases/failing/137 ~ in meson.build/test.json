@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/137 ~ in meson.build/meson.build:3:7: ERROR: lexer: unrecognized token '~'"
+    }
+  ]
+}
