@@ -15,10 +15,14 @@ from .mesonlib import MesonException
 if T.TYPE_CHECKING:
     from .options import ElementaryOptionValues
 
+
+HOMEDIR = os.path.expanduser('~')
+
+
 class MachineFileParser():
     def __init__(self, filenames: T.List[str], sourcedir: str) -> None:
         self.parser = CmdLineFileParser()
-        self.constants: T.Dict[str, ElementaryOptionValues] = {'True': True, 'False': False}
+        self.constants: T.Dict[str, ElementaryOptionValues] = {'True': True, 'False': False, '~': HOMEDIR}
         self.sections: T.Dict[str, T.Dict[str, ElementaryOptionValues]] = {}
 
         for fname in filenames:
@@ -53,7 +57,7 @@ class MachineFileParser():
             # Windows paths...
             value = value.replace('\\', '\\\\')
             try:
-                ast = mparser.Parser(value, 'machinefile').parse()
+                ast = mparser.Parser(value, 'machinefile', machinefile=True).parse()
                 if not ast.lines:
                     raise MesonException('value cannot be empty')
                 res = self._evaluate_statement(ast.lines[0])
