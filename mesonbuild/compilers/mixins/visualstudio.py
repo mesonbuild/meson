@@ -14,7 +14,6 @@ import typing as T
 
 from ... import arglist
 from ... import mesonlib
-from ... import mlog
 from mesonbuild.compilers.compilers import CompileCheckMode
 from ...options import OptionKey
 from mesonbuild.linkers.linkers import ClangClDynamicLinker, MSVCDynamicLinker
@@ -305,42 +304,6 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             return vs64_instruction_set_args.get(instruction_set, None)
         return vs32_instruction_set_args.get(instruction_set, None)
 
-    def _calculate_toolset_version(self, version: int) -> T.Optional[str]:
-        if version < 1310:
-            return '7.0'
-        elif version < 1400:
-            return '7.1' # (Visual Studio 2003)
-        elif version < 1500:
-            return '8.0' # (Visual Studio 2005)
-        elif version < 1600:
-            return '9.0' # (Visual Studio 2008)
-        elif version < 1700:
-            return '10.0' # (Visual Studio 2010)
-        elif version < 1800:
-            return '11.0' # (Visual Studio 2012)
-        elif version < 1900:
-            return '12.0' # (Visual Studio 2013)
-        elif version < 1910:
-            return '14.0' # (Visual Studio 2015)
-        elif version < 1920:
-            return '14.1' # (Visual Studio 2017)
-        elif version < 1930:
-            return '14.2' # (Visual Studio 2019)
-        elif version < 1940:
-            return '14.3' # (Visual Studio 2022)
-        elif version < 1950:
-            return '14.4' # (Visual Studio current preview version, might not be final)
-        mlog.warning(f'Could not find toolset for version {self.version!r}')
-        return None
-
-    def get_toolset_version(self) -> T.Optional[str]:
-        # See boost/config/compiler/visualc.cpp for up to date mapping
-        try:
-            version = int(''.join(self.version.split('.')[0:2]))
-        except ValueError:
-            return None
-        return self._calculate_toolset_version(version)
-
     def get_default_include_dirs(self) -> T.List[str]:
         if 'INCLUDE' not in os.environ:
             return []
@@ -483,10 +446,6 @@ class ClangClCompiler(VisualStudioLikeCompiler):
                 '-Werror=unused-command-line-argument',
             ]
         return super().has_arguments(args, code, mode)
-
-    def get_toolset_version(self) -> T.Optional[str]:
-        # XXX: what is the right thing to do here?
-        return '14.1'
 
     def get_pch_base_name(self, header: str) -> str:
         return header
