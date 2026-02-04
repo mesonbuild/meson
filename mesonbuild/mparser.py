@@ -95,7 +95,7 @@ class Token(T.Generic[TV_TokenTypes]):
         return NotImplemented
 
 
-IDENT_RE = re.compile('[_a-zA-Z][_0-9a-zA-Z]*')
+IDENT_RE = re.compile('[_a-zA-Z][_0-9a-zA-Z]*|~')
 
 class Lexer:
     def __init__(self, code: str):
