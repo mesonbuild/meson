@@ -48,6 +48,7 @@ foreach qt : ['qt4', 'qt5', 'qt6']
   qtdep = dependency(qt, modules : qt_modules, main : true, private_headers: true, required : required, method : get_option('method'))
   if qtdep.found()
     qtmodule = import(qt)
+    assert(qtmodule.has_tools(tools: ['moc'], method: get_option('method'), version: '>=4'))
     if get_option('expect_lrelease')
       assert(qtmodule.has_tools(), 'You may be missing a devel package. (qttools5-dev-tools on Debian based systems)')
     else
