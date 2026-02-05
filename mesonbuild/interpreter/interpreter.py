@@ -3285,7 +3285,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                                   '1.3.0', self.subproject, location=self.current_node)
 
         if isinstance(tobj, build.BuildTarget):
-            self.add_languages(tobj.missing_languages, True, tobj.for_machine)
+            # add_languages mutates the `args` parameter, so we need to copy here
+            self.add_languages(tobj.missing_languages.copy(), True, tobj.for_machine)
             tobj.process_compilers_late()
             self.add_stdlib_info(tobj)
 
