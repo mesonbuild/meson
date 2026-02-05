@@ -655,7 +655,7 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
         non_msvc_eh_options(eh, args)
 
         debugstl = self.get_compileropt_value('debugstl', target, subproject)
-        assert isinstance(debugstl, str)
+        assert isinstance(debugstl, bool)
         if debugstl:
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
