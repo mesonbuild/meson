@@ -1303,7 +1303,7 @@ class Vs2010Backend(backends.Backend):
             self,
             root: ET.Element,
             type_config: ET.Element,
-            target,
+            target: build.BuildTarget,
             platform: str,
             subsystem,
             build_args,
@@ -1321,8 +1321,20 @@ class Vs2010Backend(backends.Backend):
         # FIXME: Should the following just be set in create_basic_project(), even if
         # irrelevant for current target?
 
-        # FIXME: Meson's LTO support needs to be integrated here
-        ET.SubElement(type_config, 'WholeProgramOptimization').text = 'false'
+        lto = self.get_target_option(target, 'b_lto')
+        pgo = self.get_target_option(target, 'b_pgo')
+
+        if lto:
+            if pgo == 'off':
+                ET.SubElement(type_config, 'WholeProgramOptimization').text = 'true'
+            elif pgo == 'generate':
+                ET.SubElement(type_config, 'WholeProgramOptimization').text = 'PGInstrument'
+            elif pgo == 'use':
+                ET.SubElement(type_config, 'WholeProgramOptimization').text = 'PGOptimize'
+        else:
+            if pgo != 'off':
+                raise MesonException("b_pgo requires b_lto on MSVC.")
+
         # Let VS auto-set the RTC level
         ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'Default'
         # Incremental linking increases code size
