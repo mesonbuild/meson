@@ -1010,7 +1010,7 @@ class Vs2010Backend(backends.Backend):
         replace_if_different(ofname, ofname_tmp)
 
     # Returns:  (target_args,file_args), (target_defines,file_defines), (target_inc_dirs,file_inc_dirs)
-    def get_args_defines_and_inc_dirs(self, target, compiler, generated_files_include_dirs, proj_to_src_root, proj_to_src_dir, build_args):
+    def get_args_defines_and_inc_dirs(self, target: build.BuildTarget, compiler: compilers.Compiler, generated_files_include_dirs, proj_to_src_root, proj_to_src_dir, build_args):
         # Arguments, include dirs, defines for all files in the current target
         target_args = []
         target_defines = []
@@ -1020,13 +1020,14 @@ class Vs2010Backend(backends.Backend):
         #
         # file_args is also later split out into defines and include_dirs in
         # case someone passed those in there
-        file_args: T.Dict[str, CompilerArgs] = {l: c.compiler_args() for l, c in target.compilers.items()}
+        file_args: T.Dict[Language, CompilerArgs] = {l: c.compiler_args() for l, c in target.compilers.items()}
         file_defines = {l: [] for l in target.compilers}
         file_inc_dirs = {l: [] for l in target.compilers}
         # The order in which these compile args are added must match
         # generate_single_compile() and generate_basic_compiler_args()
         for l, comp in target.compilers.items():
             if l in file_args:
+                file_args[l] += comp.get_always_args()
                 file_args[l] += compilers.get_base_compile_args(
                     target, comp, self.environment)
                 file_args[l] += comp.get_option_compile_args(
