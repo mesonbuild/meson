@@ -631,6 +631,8 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
             cpp_stds += ['c++2a']
         if version_compare(self.version, '>=1.26.00'):
             cpp_stds += ['c++20']
+        if version_compare(self.version, '>=1.28.00'):
+            cpp_stds += ['c++2b', 'c++23']
 
         key = self.form_compileropt_key('std')
         std_opt = opts[key]

@@ -338,6 +338,8 @@ class ElbrusCCompiler(ElbrusCompiler, CCompiler):
             stds += ['c90', 'c1x', 'gnu90', 'gnu1x', 'iso9899:2011']
         if version_compare(self.version, '>=1.26.00'):
             stds += ['c17', 'c18', 'iso9899:2017', 'iso9899:2018', 'gnu17', 'gnu18']
+        if version_compare(self.version, '>=1.28.00'):
+            stds += ['c2x', 'gnu2x', 'c23', 'iso9899:2024', 'gnu23']
         key = self.form_compileropt_key('std')
         std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
