@@ -51,7 +51,7 @@ else:
 
 ALL_STDS = ['c89', 'c9x', 'c90', 'c99', 'c1x', 'c11', 'c17', 'c18', 'c2x', 'c23', 'c2y']
 ALL_STDS += [f'gnu{std[1:]}' for std in ALL_STDS]
-ALL_STDS += ['iso9899:1990', 'iso9899:199409', 'iso9899:1999', 'iso9899:2011', 'iso9899:2017', 'iso9899:2018']
+ALL_STDS += ['iso9899:1990', 'iso9899:199409', 'iso9899:1999', 'iso9899:2011', 'iso9899:2017', 'iso9899:2018', 'iso9899:2024']
 
 
 class CCompiler(CLikeCompiler, Compiler):
