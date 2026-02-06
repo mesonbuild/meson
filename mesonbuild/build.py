@@ -2004,13 +2004,15 @@ class Generator(HoldableObject):
                       subdir: str = '',
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None,
-                      env: T.Optional[EnvironmentVariables] = None) -> 'GeneratedList':
+                      env: T.Optional[EnvironmentVariables] = None,
+                      extra_depends: T.Optional[T.List[GeneratedTypes]] = None) -> 'GeneratedList':
         output = GeneratedList(
             self,
             subdir,
             preserve_path_from,
             extra_args=extra_args if extra_args is not None else [],
-            env=env if env is not None else EnvironmentVariables())
+            env=env if env is not None else EnvironmentVariables(),
+            extra_depends=extra_depends if extra_depends is not None else [])
 
         for e in files:
             if isinstance(e, (CustomTarget, CustomTargetIndex)):
@@ -2046,6 +2048,7 @@ class GeneratedList(HoldableObject):
     preserve_path_from: T.Optional[str]
     extra_args: T.List[str]
     env: T.Optional[EnvironmentVariables]
+    extra_depends: T.List[GeneratedTypes]
 
     def __post_init__(self) -> None:
         self.name = self.generator.exe
@@ -2053,7 +2056,6 @@ class GeneratedList(HoldableObject):
         self.infilelist: T.List[FileMaybeInTargetPrivateDir] = []
         self.outfilelist: T.List[str] = []
         self.outmap: T.Dict[FileMaybeInTargetPrivateDir, T.List[str]] = {}
-        self.extra_depends: T.List[BuildTargetTypes] = []
         self.depend_files: T.List[File] = []
 
         if self.extra_args is None:
@@ -2061,6 +2063,9 @@ class GeneratedList(HoldableObject):
 
         if self.env is None:
             self.env: EnvironmentVariables = EnvironmentVariables()
+
+        if self.extra_depends is None:
+            self.extra_depends: T.List[GeneratedTypes] = []
 
         if isinstance(self.generator.exe, programs.Program):
             if not self.generator.exe.found():

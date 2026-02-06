@@ -528,6 +528,8 @@ class XCodeBackend(backends.Backend):
                               t: build.AnyTargetType, generator_id: int) -> None:
         k = (tname, generator_id)
         assert k not in self.shell_targets
+        if len(genlist.extra_depends) == 0:
+            raise NotImplementedError('XCode backend does not support depends for generator.process')
         self.shell_targets[k] = self.gen_id()
         ofile_abs = []
         for i in genlist.get_inputs():
