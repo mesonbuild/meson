@@ -131,8 +131,11 @@ class MPIConfigToolDependency(ConfigToolDependency):
 
         for comp, link in commands:
             try:
-                c_args = self.get_config_value([comp], 'compile_args')
-                l_args = self.get_config_value([link], 'link_args') if link is not None else c_args
+                # Set required=True to ensure that the next set of options is
+                # tried when the current ones fail, even if the dependency is
+                # not required
+                c_args = self.get_config_value([comp], 'compile_args', required=True)
+                l_args = self.get_config_value([link], 'link_args', required=True) if link is not None else c_args
             except DependencyException:
                 continue
             else:
