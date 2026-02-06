@@ -13,6 +13,7 @@
     {"type": "file", "file": "usr/include/subdir-4/marshaller-4.h"},
     {"type": "file", "file": "usr/include/subdir-5/marshaller-5.h"},
     {"type": "expr", "file": "usr/lib/?libpython_gir_lib.so"},
+    {"type": "file", "platform": "cygwin", "file": "usr/lib/libpython_gir_lib.dll.a"},
     {"type": "expr", "file": "usr/lib/?libgir_lib.so"},
     {"type": "file", "platform": "cygwin", "file": "usr/lib/libgir_lib.dll.a"},
     {"type": "expr", "file": "usr/lib/?libgir_lib2.so"},
@@ -37,5 +38,5 @@
     {"type": "file", "file": "usr/include/simple-resources.h"},
     {"type": "file", "file": "usr/include/generated-gdbus.h"}
   ],
-  "expect_skip_on_jobname": ["azure", "cygwin", "macos", "msys2", "pypy", "windows"]
+  "expect_skip_on_jobname": ["azure", "macos", "msys2", "pypy", "windows"]
 }
