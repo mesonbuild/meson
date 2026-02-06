@@ -79,6 +79,7 @@ jobs:
             python3-devel
             python3-libxml2
             python3-libxslt
+            python3-gi
             python39-pip
             python39-wheel
             vala
