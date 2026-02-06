@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2022 The Meson development team
-# Copyright © 2023 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -1744,7 +1744,7 @@ class CudaLinker(PosixDynamicLinkerMixin, DynamicLinker):
         # Built on Sun_Sep_30_21:09:22_CDT_2018
         # Cuda compilation tools, release 10.0, V10.0.166
         # we need the most verbose version output. Luckily starting with V
-        return out.strip().rsplit('V', maxsplit=1)[-1]
+        return out.strip().rsplit('V', maxsplit=1)[-1].split(maxsplit=1)[0]
 
     def get_accepts_rsp(self) -> bool:
         # nvcc does not support response files
