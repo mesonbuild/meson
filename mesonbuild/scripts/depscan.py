@@ -87,7 +87,7 @@ class DependencyScanner:
     def scan_fortran_file(self, fname: str) -> None:
         fpath = pathlib.Path(fname)
         modules_in_this_file = set()
-        for line in fpath.read_text(encoding='utf-8', errors='ignore').split('\n'):
+        for line in fpath.read_text(encoding='utf-8-sig', errors='ignore').split('\n'):
             import_match = FORTRAN_USE_RE.match(line)
             export_match = FORTRAN_MODULE_RE.match(line)
             submodule_export_match = FORTRAN_SUBMOD_RE.match(line)
@@ -131,7 +131,7 @@ class DependencyScanner:
 
     def scan_cpp_file(self, fname: str) -> None:
         fpath = pathlib.Path(fname)
-        for line in fpath.read_text(encoding='utf-8', errors='ignore').split('\n'):
+        for line in fpath.read_text(encoding='utf-8-sig', errors='ignore').split('\n'):
             import_match = CPP_IMPORT_RE.match(line)
             export_match = CPP_EXPORT_RE.match(line)
             if import_match:
