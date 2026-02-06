@@ -20,8 +20,10 @@ class NoneBackend(Backend):
         if vslite_ctx:
             raise MesonBugException('We do not expect the none backend to be given a valid \'vslite_ctx\'')
 
-        if self.build.get_targets():
-            raise MesonBugException('None backend cannot generate target rules, but should have failed earlier.')
-        mlog.log('Generating simple install-only backend')
-        self.serialize_tests()
-        self.create_install_data_files()
+        # The `meson convert` tool generates build targets, but uses the none backend
+        # The below clause covers the non-convert use cases of the none backend, when
+        # build targets are not generated.
+        if not self.build.get_targets():
+            mlog.log('Generating simple install-only backend')
+            self.serialize_tests()
+            self.create_install_data_files()
