@@ -19,7 +19,7 @@ from ..compilers.rust import parse_target
 from ..dependencies import Dependency
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
-    OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator
+    NATIVE_KW, OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator
 )
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs, permittedKwargs
 from ..interpreter.interpreterobjects import Doctest
@@ -69,6 +69,9 @@ if T.TYPE_CHECKING:
         language: T.Optional[Literal['c', 'cpp']]
         bindgen_version: T.List[str]
 
+    class FuncSubproject(TypedDict):
+        native: MachineChoice
+
     class FuncWorkspace(TypedDict):
         default_features: T.Optional[bool]
         features: T.List[str]
@@ -114,22 +117,26 @@ class RustWorkspace(ModuleObject):
         package_names = [pkg.manifest.package.name for pkg in self.ws.packages.values()]
         return sorted(package_names)
 
-    def _do_subproject(self, pkg: cargo.PackageState) -> None:
+    def _do_subproject(self, pkg: cargo.PackageState, for_machine: MachineChoice) -> None:
         kw: _kwargs.DoSubproject = {
             'required': True,
             'version': None,
             'options': None,
             'cmake_options': [],
             'default_options': {},
+            'for_machine': for_machine,
         }
         subp_name = pkg.get_subproject_name()
         self.interpreter.do_subproject(subp_name, kw, force_method='cargo')
 
     @typed_pos_args('workspace.subproject', str, optargs=[str])
-    @noKwargs
-    def subproject_method(self, state: ModuleState, args: T.Tuple[str, T.Optional[str]], kwargs: TYPE_kwargs) -> RustSubproject:
+    @typed_kwargs(
+        'workspace.subproject',
+        NATIVE_KW)
+    def subproject_method(self, state: ModuleState, args: T.Tuple[str, T.Optional[str]], kwargs: FuncSubproject) -> RustSubproject:
         """Returns a package object for a subproject package."""
         package_name = args[0]
+        for_machine = kwargs['native'] if not state.is_build_only_subproject else MachineChoice.BUILD
         pkg = self.interpreter.cargo.resolve_package(package_name, args[1] or '')
         if pkg is None:
             if args[1]:
@@ -137,17 +144,18 @@ class RustWorkspace(ModuleObject):
             else:
                 raise MesonException(f'Cargo package "{package_name}" not available')
 
-        self._do_subproject(pkg)
-        return RustSubproject(self, pkg)
+        self._do_subproject(pkg, for_machine)
+        return RustSubproject(self, pkg, for_machine)
 
 
 class RustSubproject(ModuleObject):
     """Represents a Rust package within a workspace."""
 
-    def __init__(self, rust_ws: RustWorkspace, package: cargo.PackageState) -> None:
+    def __init__(self, rust_ws: RustWorkspace, package: cargo.PackageState, for_machine: MachineChoice) -> None:
         super().__init__()
         self.rust_ws = rust_ws
         self.package = package
+        self.for_machine = for_machine
         self.methods.update({
             'all_features': self.all_features_method,
             'api': self.api_method,
@@ -193,7 +201,7 @@ class RustSubproject(ModuleObject):
     def dependency_method(self, state: ModuleState, args: T.List, kwargs: FuncDependency) -> Dependency:
         """Returns dependency for the package with the given ABI."""
         depname = self.package.get_dependency_name(kwargs['rust_abi'])
-        return state.overridden_dependency(depname)
+        return state.overridden_dependency(depname, for_machine=self.for_machine)
 
 
 class RustModule(ExtensionModule):
