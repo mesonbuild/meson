@@ -1636,7 +1636,8 @@ class Backend:
             if rc != 0:
                 raise MesonException(f'Postconf script \'{name}\' failed with exit code {rc}.')
 
-    def create_install_data(self) -> InstallData:
+    @mesonlib.lazy_property
+    def install_data(self) -> InstallData:
         strip_bin = self.environment.lookup_binary_entry(MachineChoice.HOST, 'strip')
         if strip_bin is None:
             if self.environment.is_cross_build():
@@ -1670,7 +1671,7 @@ class Backend:
     def create_install_data_files(self) -> None:
         install_data_file = os.path.join(self.environment.get_scratch_dir(), 'install.dat')
         with open(install_data_file, 'wb') as ofile:
-            pickle.dump(self.create_install_data(), ofile)
+            pickle.dump(self.install_data, ofile)
 
     def guess_install_tag(self, fname: str, outdir: T.Optional[str] = None) -> T.Optional[str]:
         prefix = self.environment.get_prefix()
