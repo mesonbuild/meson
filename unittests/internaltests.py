@@ -7,6 +7,7 @@ from unittest import mock
 import argparse
 import contextlib
 import io
+import itertools
 import json
 import operator
 import os
@@ -832,6 +833,82 @@ class InternalTests(unittest.TestCase):
                     self.assertTrue(o(ver_a, ver_b), f'{ver_a} {name} {ver_b}')
                 for o, name in [(operator.lt, 'lt'), (operator.le, 'le'), (operator.eq, 'eq')]:
                     self.assertFalse(o(ver_a, ver_b), f'{ver_a} {name} {ver_b}')
+
+    def test_version_compare_conditions(self):
+        # {outer_op: {inner_op: [inner < outer, inner == outer, inner > outer]}}
+        tests = {
+            '>=': {
+                '>=': [True, True, None],
+                '>': [True, None, None],
+                '<': [False, False, None],
+                '<=': [False, None, None],
+                '=': [False, None, None],
+                '==': [False, None, None],
+                '!=': [True, None, None],
+            },
+            '>': {
+                '>=': [True, True, None],
+                '>': [True, True, None],
+                '<': [False, False, None],
+                '<=': [False, False, None],
+                '=': [False, False, None],
+                '==': [False, False, None],
+                '!=': [True, True, None],
+            },
+            '<': {
+                '>=': [None, False, False],
+                '>': [None, False, False],
+                '<': [None, True, True],
+                '<=': [None, True, True],
+                '=': [None, False, False],
+                '==': [None, False, False],
+                '!=': [None, True, True],
+            },
+            '<=': {
+                '>=': [None, None, False],
+                '>': [None, False, False],
+                '<': [None, None, True],
+                '<=': [None, True, True],
+                '=': [None, None, False],
+                '==': [None, None, False],
+                '!=': [None, None, True],
+            },
+            '=': {
+                '>=': [True, True, False],
+                '>': [True, False, False],
+                '<': [False, False, True],
+                '<=': [False, True, True],
+                '=': [False, True, False],
+                '==': [False, True, False],
+                '!=': [True, False, True],
+            },
+            '==': {
+                '>=': [True, True, False],
+                '>': [True, False, False],
+                '<': [False, False, True],
+                '<=': [False, True, True],
+                '=': [False, True, False],
+                '==': [False, True, False],
+                '!=': [True, False, True],
+            },
+            '!=': {
+                '>=': [None, None, None],
+                '>': [None, None, None],
+                '<': [None, None, None],
+                '<=': [None, None, None],
+                '=': [None, False, None],
+                '==': [None, False, None],
+                '!=': [None, True, None],
+            },
+        }
+        sufs = ('', '.0')
+        for outer_op, inner in tests.items():
+            for inner_op, results in inner.items():
+                for inner_val, result in zip((40, 50, 60), results):
+                    for outer_ext, inner_ext in itertools.product(sufs, sufs):
+                        self.assertEqual(mesonbuild.mesonlib.version_compare_conditions(f'{outer_op}0.50{outer_ext}',
+                                                                                        f'{inner_op}0.{inner_val}{inner_ext}'),
+                                         result)
 
     def test_msvc_toolset_version(self):
         '''
