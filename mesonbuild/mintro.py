@@ -61,21 +61,20 @@ def dump_ast(intr: IntrospectionInterpreter) -> T.Dict[str, T.Any]:
 def list_installed(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.Dict[str, str]:
     res = {}
     installdata = backend.create_install_data()
-    if installdata is not None:
-        for t in installdata.targets:
-            res[os.path.join(installdata.build_dir, t.fname)] = \
-                os.path.join(installdata.prefix, t.outdir, os.path.basename(t.fname))
-        for i in installdata.data:
-            res[i.path] = os.path.join(installdata.prefix, i.install_path)
-        for i in installdata.headers:
-            res[i.path] = os.path.join(installdata.prefix, i.install_path, os.path.basename(i.path))
-        for i in installdata.man:
-            res[i.path] = os.path.join(installdata.prefix, i.install_path)
-        for i in installdata.install_subdirs:
-            res[i.path] = os.path.join(installdata.prefix, i.install_path)
-        for s in installdata.symlinks:
-            basename = os.path.basename(s.name)
-            res[basename] = os.path.join(installdata.prefix, s.install_path, basename)
+    for t in installdata.targets:
+        res[os.path.join(installdata.build_dir, t.fname)] = \
+            os.path.join(installdata.prefix, t.outdir, os.path.basename(t.fname))
+    for i in installdata.data:
+        res[i.path] = os.path.join(installdata.prefix, i.install_path)
+    for i in installdata.headers:
+        res[i.path] = os.path.join(installdata.prefix, i.install_path, os.path.basename(i.path))
+    for i in installdata.man:
+        res[i.path] = os.path.join(installdata.prefix, i.install_path)
+    for i in installdata.install_subdirs:
+        res[i.path] = os.path.join(installdata.prefix, i.install_path)
+    for s in installdata.symlinks:
+        basename = os.path.basename(s.name)
+        res[basename] = os.path.join(installdata.prefix, s.install_path, basename)
     return res
 
 def list_install_plan(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.Dict[str, T.Dict[str, T.Dict[str, T.Union[str, T.List[str], None]]]]:
@@ -207,7 +206,7 @@ def list_targets(coredata: cdata.CoreData, builddata: build.Build, backend: back
         if win_subsystem is not None:
             t['win_subsystem'] = win_subsystem
 
-        if installdata and target.should_install():
+        if target.should_install():
             t['installed'] = True
             ifn = [install_lookuptable.get(x, [None]) for x in target.get_outputs()]
             t['install_filename'] = [x for sublist in ifn for x in sublist]  # flatten the list
