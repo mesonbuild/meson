@@ -243,7 +243,7 @@ class RustCrate(ModuleObject):
     @noKwargs
     def features_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns chosen features for specific package."""
-        return sorted(list(self.package.cfg.features))
+        return sorted(list(self.package.cfg[MachineChoice.HOST].features))
 
     @noPosargs
     @noKwargs
@@ -261,7 +261,7 @@ class RustCrate(ModuleObject):
     @noKwargs
     def rust_dependency_map_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.Dict[str, str]:
         """Returns rust dependency mapping for this package."""
-        return self.package.cfg.get_dependency_map(self.package.manifest)
+        return self.package.cfg[MachineChoice.HOST].get_dependency_map(self.package.manifest)
 
 
 class RustPackage(RustCrate):
@@ -281,7 +281,7 @@ class RustPackage(RustCrate):
     def _dependencies_method(self, state: ModuleState, kwargs: RustPackageDependencies,
                              for_machine: MachineChoice) -> T.List[Dependency]:
         dependencies: T.List[Dependency] = []
-        cfg = self.package.cfg
+        cfg = self.package.cfg[MachineChoice.HOST]
 
         if kwargs['dependencies']:
             for dep_key, dep_pkg in cfg.dep_packages.items():
@@ -341,7 +341,7 @@ class RustPackage(RustCrate):
 
         depmap = kwargs['rust_dependency_map']
         kwargs['rust_dependency_map'] = \
-            self.package.cfg.get_dependency_map(self.package.manifest)
+            self.package.cfg[MachineChoice.HOST].get_dependency_map(self.package.manifest)
         kwargs['rust_dependency_map'].update(depmap)
 
         rust_args = kwargs['rust_args']
