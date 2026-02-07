@@ -5597,3 +5597,6 @@ class AllPlatformTests(BasePlatformTests):
         output = entry['output']
 
         self.build(output, extra_args=['-j1'])
+
+    def test_link_language_in_subproject(self) -> None:
+        self.init(os.path.join(self.unit_test_dir, '135 lang regression'), extra_args=['-Dforce_fallback_for=pcre2'])
