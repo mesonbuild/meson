@@ -82,7 +82,7 @@ lang_suffixes: T.Mapping[Language, T.Tuple[str, ...]] = {
 }
 # Some compilers only recognize files with specific suffixes.
 compiler_suffixes: T.Mapping[str, T.Tuple[str, ...]] = {
-    'msvc': ('c', 'cxx', 'cpp', 'obj', 'lib', 'def'),
+    'msvc': ('c', 'cc', 'cxx', 'cpp', 'obj', 'lib', 'def'),
 }
 all_languages: mesonlib.OrderedSet[Language] = mesonlib.OrderedSet(sorted(lang_suffixes))
 c_cpp_suffixes = {'h'}
