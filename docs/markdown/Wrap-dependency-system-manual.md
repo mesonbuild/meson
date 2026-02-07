@@ -374,6 +374,10 @@ dependency name for `crates.io` URLs, and the final component of the URL
 
 Since *1.10.0* Workspace Cargo.toml are supported.
 
+Since *1.10.0* When a C ABI library is produced (`crate_type` contains `staticlib`
+and/or `cdylib`), Meson will follow the `default_library` option to decide
+whether a shared and/or static library should be built.
+
 ## Using wrapped projects
 
 Wraps provide a convenient way of obtaining a project into your
