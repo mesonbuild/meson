@@ -142,6 +142,8 @@ This method takes the following keyword arguments:
   `true` or an enabled [`feature`](Build-options.md#features) and some tools are
   missing Meson will abort.
 - `method` string: method used to find the Qt dependency (`auto` by default).
+- `version` str | array[str]: *Since 1.11.0*. Specifies the required version,
+  a string containing a comparison operator followed by the version string.
 
 ## Dependencies
 

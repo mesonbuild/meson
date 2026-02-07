@@ -163,6 +163,8 @@ This method takes the following keyword arguments:
 - `tools`: string[]: *Since 1.6.0*. List of tools to check. Testable tools
   are `moc`, `uic`, `rcc` and `lrelease`. By default `tools` is set to `['moc',
   'uic', 'rcc', 'lrelease']`
+- `version` str | array[str]: *Since 1.11.0*. Specifies the required version,
+  a string containing a comparison operator followed by the version string.
 
 ## qml_module
 

@@ -86,6 +86,7 @@ if T.TYPE_CHECKING:
 
         method: DependencyMethods
         tools: T.List[Literal['moc', 'uic', 'rcc', 'lrelease', 'qmlcachegen', 'qmltyperegistrar']]
+        version: T.List[str]
 
     class CompileTranslationsKwArgs(TypedDict):
 
@@ -265,12 +266,12 @@ class QtBaseModule(ExtensionModule):
             if p.found():
                 self.tools[name] = p
 
-    def _detect_tools(self, state: ModuleState, method: DependencyMethods, required: bool = True) -> None:
+    def _detect_tools(self, state: ModuleState, method: DependencyMethods, required: bool = True, version: T.List[str] = None) -> None:
         if self._tools_detected:
             return
         self._tools_detected = True
         mlog.log(f'Detecting Qt{self.qt_version} tools')
-        kwargs: DependencyObjectKWs = {'required': required, 'modules': ['Core'], 'method': method, 'native': MachineChoice.HOST}
+        kwargs: DependencyObjectKWs = {'required': required, 'modules': ['Core'], 'method': method, 'native': MachineChoice.HOST, 'version': version}
         # Just pick one to make mypy happy
         qt = T.cast('QtPkgConfigDependency', find_external_dependency(f'qt{self.qt_version}', state.environment, kwargs))
         if qt.found():
@@ -372,6 +373,7 @@ class QtBaseModule(ExtensionModule):
                   default=['moc', 'uic', 'rcc', 'lrelease'],
                   validator=_list_in_set_validator(_set_of_qt_tools),
                   since='1.6.0'),
+        KwargInfo('version', ContainerTypeInfo(list, str), listify=True, default=[], since='1.11'),
     )
     def has_tools(self, state: ModuleState, args: T.Tuple, kwargs: HasToolKwArgs) -> bool:
         method = kwargs['method']
@@ -382,7 +384,7 @@ class QtBaseModule(ExtensionModule):
         if disabled:
             mlog.log('qt.has_tools skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        self._detect_tools(state, method, required=False)
+        self._detect_tools(state, method, required=False, version=kwargs['version'])
         for tool in kwargs['tools']:
             assert tool in self._set_of_qt_tools, f'tools must be in {self._set_of_qt_tools}'
             if not self.tools[tool].found():
