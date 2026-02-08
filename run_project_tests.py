@@ -1349,12 +1349,12 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         conf_time += result.conftime
         build_time += result.buildtime
         test_time += result.testtime
-        total_time = conf_time + build_time + test_time
+        testcase_time = result.conftime + result.buildtime + result.testtime
         log_text_file(logfile, t.path, result)
         current_test = ET.SubElement(
             current_suite,
             'testcase',
-            {'name': testname, 'classname': t.category, 'time': '%.3f' % total_time}
+            {'name': testname, 'classname': t.category, 'time': '%.3f' % testcase_time}
         )
         if result.msg != '':
             ET.SubElement(current_test, 'failure', {'message': result.msg})
