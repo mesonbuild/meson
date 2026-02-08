@@ -1273,11 +1273,20 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         if is_skipped:
             skipped_tests += 1
 
+        if result:
+            testcase_time = result.conftime + result.buildtime + result.testtime
+        else:
+            testcase_time = 0
+
+        # XXX: maybe not add time if zero
+        current_test = ET.SubElement(current_suite,
+                                     'testcase',
+                                     {'name': testname, 'classname': t.category, 'time': '%.3f' % testcase_time})
+
         if is_skipped and skip_as_expected:
             f.update_log(TestStatus.SKIP)
             if not t.skip_category:
                 safe_print(bold('Reason:'), skip_reason)
-            current_test = ET.SubElement(current_suite, 'testcase', {'name': testname, 'classname': t.category})
             ET.SubElement(current_test, 'skipped', {})
             continue
 
@@ -1293,7 +1302,6 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 
             f.update_log(status)
             safe_print(bold('Reason:'), result.msg)
-            current_test = ET.SubElement(current_suite, 'testcase', {'name': testname, 'classname': t.category})
             ET.SubElement(current_test, 'failure', {'message': result.msg})
             continue
 
@@ -1349,13 +1357,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         conf_time += result.conftime
         build_time += result.buildtime
         test_time += result.testtime
-        testcase_time = result.conftime + result.buildtime + result.testtime
         log_text_file(logfile, t.path, result)
-        current_test = ET.SubElement(
-            current_suite,
-            'testcase',
-            {'name': testname, 'classname': t.category, 'time': '%.3f' % testcase_time}
-        )
         if result.msg != '':
             ET.SubElement(current_test, 'failure', {'message': result.msg})
         stdoel = ET.SubElement(current_test, 'system-out')
