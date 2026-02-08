@@ -1284,14 +1284,15 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             testcase_time = result.conftime + result.buildtime + result.testtime
             current_test.set('time', '%.3f' % testcase_time)
 
+        # skip
         if is_skipped and skip_as_expected:
             f.update_log(TestStatus.SKIP)
             if not t.skip_category:
                 safe_print(bold('Reason:'), skip_reason)
             ET.SubElement(current_test, 'skipped', {})
-            continue
 
-        if not skip_as_expected:
+        # unexrun/unexskip
+        elif not skip_as_expected:
             failing_tests += 1
             if is_skipped:
                 skip_msg = f'Test asked to be skipped ({skip_reason}), but was not expected to'
@@ -1304,10 +1305,9 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             f.update_log(status)
             safe_print(bold('Reason:'), result.msg)
             ET.SubElement(current_test, 'failure', {'message': result.msg})
-            continue
 
-        # Handle Failed tests
-        if result.msg != '':
+        # failed
+        elif result.msg != '':
             f.update_log(TestStatus.ERROR)
             safe_print(bold('During:'), result.step.name)
             safe_print(bold('Reason:'), result.msg)
@@ -1345,6 +1345,10 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                 safe_print("Cancelling the rest of the tests")
                 for f2 in futures:
                     f2.cancel()
+
+            ET.SubElement(current_test, 'failure', {'message': result.msg})
+
+        # success
         else:
             f.update_log(TestStatus.OK)
             passing_tests += 1
@@ -1355,16 +1359,19 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                     mesonlib.windows_proof_rm(abspath)
                 else:
                     mesonlib.windows_proof_rmtree(abspath)
-        conf_time += result.conftime
-        build_time += result.buildtime
-        test_time += result.testtime
-        log_text_file(logfile, t.path, result)
-        if result.msg != '':
-            ET.SubElement(current_test, 'failure', {'message': result.msg})
-        stdoel = ET.SubElement(current_test, 'system-out')
-        stdoel.text = result.stdo
-        stdeel = ET.SubElement(current_test, 'system-err')
-        stdeel.text = result.stde
+
+        if result:
+            # track total runtime
+            conf_time += result.conftime
+            build_time += result.buildtime
+            test_time += result.testtime
+
+            # attach stdout and stderr child nodes to 'testcase' node
+            ET.SubElement(current_test, 'system-out').text = result.stdo
+            ET.SubElement(current_test, 'system-err').text = result.stde
+
+            # write stdout/stderr to log file (and terminal)
+            log_text_file(logfile, t.path, result)
 
     # Reset, just in case
     safe_print = default_print
