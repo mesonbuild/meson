@@ -262,6 +262,9 @@ def get_genvslite_backend(genvsname: str, build: T.Optional[build.Build] = None)
     if genvsname == 'vs2022':
         from . import vs2022backend
         return vs2022backend.Vs2022Backend(build, gen_lite = True)
+    if genvsname == 'vs2026':
+        from . import vs2026backend
+        return vs2026backend.Vs2026Backend(build, gen_lite = True)
     return None
 
 # This class contains the basic functionality that is needed by all backends.
