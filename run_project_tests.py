@@ -1283,6 +1283,13 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                                      'testcase',
                                      {'name': testname, 'classname': t.category, 'time': '%.3f' % testcase_time})
 
+        # attach stdout, stderr and meson-log to 'testcase' node
+        if result:
+            ET.SubElement(current_test, 'system-out').text = result.stdo
+            ET.SubElement(current_test, 'system-err').text = result.stde
+            properties = ET.SubElement(current_test, 'properties')
+            ET.SubElement(properties, 'property', {'name': 'meson-log'}).text = result.mlog
+
         if is_skipped and skip_as_expected:
             f.update_log(TestStatus.SKIP)
             if not t.skip_category:
@@ -1360,10 +1367,6 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         log_text_file(logfile, t.path, result)
         if result.msg != '':
             ET.SubElement(current_test, 'failure', {'message': result.msg})
-        stdoel = ET.SubElement(current_test, 'system-out')
-        stdoel.text = result.stdo
-        stdeel = ET.SubElement(current_test, 'system-err')
-        stdeel.text = result.stde
 
     # Reset, just in case
     safe_print = default_print
