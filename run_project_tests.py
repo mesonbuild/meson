@@ -1288,7 +1288,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             ET.SubElement(current_test, 'system-out').text = result.stdo
             ET.SubElement(current_test, 'system-err').text = result.stde
             properties = ET.SubElement(current_test, 'properties')
-            ET.SubElement(properties, 'property', {'name': 'meson-log'}).text = result.mlog
+            ET.SubElement(properties, 'property', {'name': 'meson-log'}).text = result.mlog.replace('\0', '\\0')
 
         if is_skipped and skip_as_expected:
             f.update_log(TestStatus.SKIP)
