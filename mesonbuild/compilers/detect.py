@@ -507,7 +507,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             target = 'x86' if 'IA-32' in err else 'x86_64'
             cls = c.IntelLLVMClCCompiler if lang == 'c' else cpp.IntelLLVMClCPPCompiler
             env.add_lang_args(cls.language, cls, for_machine)
-            linker = linkers.XilinkDynamicLinker(env, for_machine, [], version=version)
+            linker = linkers.MSVCDynamicLinker(env, for_machine, [], version=version)
             return cls(
                 compiler, version, for_machine, env, target,
                 linker=linker)
@@ -796,7 +796,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                 target = 'x86' if 'IA-32' in err else 'x86_64'
                 cls = fortran.IntelLLVMClFortranCompiler
                 env.add_lang_args(cls.language, cls, for_machine)
-                linker = linkers.XilinkDynamicLinker(env, for_machine, [], version=version)
+                linker = linkers.MSVCDynamicLinker(env, for_machine, [], version=version)
                 return cls(
                     compiler, version, for_machine, env,
                     target, linker=linker)
