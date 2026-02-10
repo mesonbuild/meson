@@ -91,6 +91,7 @@ class BasePlatformTests(TestCase):
         cls.unit_test_dir = os.path.join(src_root, 'test cases/unit')
         cls.rewrite_test_dir = os.path.join(src_root, 'test cases/rewrite')
         cls.linuxlike_test_dir = os.path.join(src_root, 'test cases/linuxlike')
+        cls.java_test_dir = os.path.join(src_root, 'test cases/java')
         cls.objc_test_dir = os.path.join(src_root, 'test cases/objc')
         cls.objcpp_test_dir = os.path.join(src_root, 'test cases/objcpp')
         cls.darwin_test_dir = os.path.join(src_root, 'test cases/darwin')
