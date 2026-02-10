@@ -1032,6 +1032,10 @@ class BuildTarget(Target):
             except KeyError:
                 # In the case of cython it's possible that we have an
                 # implementation detail langauge
+                #
+                # It is intentional not to update self.all_compilers here, since
+                # that is a reference to Interpreter.compilers, which should
+                # only contain the compilers enabled explicilty by the project
                 if self.uses_cython() and lang == self.environment.coredata.get_option_for_target(self, 'cython_language'):
                     self.compilers[lang] = self.environment.coredata.compilers[self.for_machine][lang]
                 else:
@@ -1164,6 +1168,10 @@ class BuildTarget(Target):
                 self.compilers[value] = self.all_compilers[value]
             except KeyError:
                 # This might be an implementation detail (C or C++)
+                #
+                # It is intentional not to update self.all_compilers here, since
+                # that is a reference to Interpreter.compilers, which should
+                # only contain the compilers enabled explicilty by the project
                 try:
                     self.compilers[value] = self.environment.coredata.compilers[self.for_machine][value]
                 except KeyError:
