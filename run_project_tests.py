@@ -1420,11 +1420,13 @@ def detect_system_compiler(options: 'CompilerArgumentType') -> None:
             def inner() -> T.Tuple[Language, MachineChoice, T.Optional[Compiler]]:
                 # Vala and Cython need to have a working C compiler before they can be detected
                 if lang in {'vala', 'cython'}:
-                    futures[('c', machine)].result()
+                    if futures[('c', machine)].result()[2] is None:
+                        return lang, machine, None
 
                 # Cuda needs a working C++ compiler before it can be detetected
                 if lang == 'cuda':
-                    futures[('cpp', machine)].result()
+                    if futures[('cpp', machine)].result()[2] is None:
+                        return lang, machine, None
 
                 try:
                     comp = detect_compiler_for(env, lang, machine, False, '')
