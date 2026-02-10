@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "DEPRECATION: Project uses feature that was always broken, and is now deprecated since '1.11.0': Using `meson.get_compiler()` for languages only initialized in another subproject. This is extremely fragile, as your project likely cannot be used outside of your environment."
+    }
+  ]
+}

@@ -1048,10 +1048,14 @@ class BuildTarget(Target):
                     # Rust is always linked through a C-ABI target, so do not add
                     # the compiler here
                     if lang != 'rust' and lang in link_langs:
-                        if lang not in self.all_compilers:
-                            self.all_compilers[lang] = t.all_compilers[lang]
                         if lang not in self.compilers:
-                            self.compilers[lang] = t.all_compilers[lang]
+                            try:
+                                self.compilers[lang] = t.all_compilers[lang]
+                            except KeyError:
+                                # The language needed might be provided by a
+                                # subproject, and will not be in this project's
+                                # compiler set
+                                self.compilers[lang] = self.environment.coredata.compilers[self.for_machine][lang]
 
         if not self.compilers:
             # No source files or parent targets, target consists of only object
@@ -1119,8 +1123,6 @@ class BuildTarget(Target):
                 # dealing with compiled C code.
                 if comp.language == 'vala':
                     continue
-                if comp.language not in self.all_compilers:
-                    self.all_compilers[comp.language] = comp
                 if comp.language not in self.compilers:
                     self.compilers[comp.language] = comp
         if sources:
