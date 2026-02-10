@@ -438,8 +438,10 @@ class ConverterTarget:
                 mlog.warning('CMake: path', mlog.bold(x.as_posix()), 'is inside the root project but', mlog.bold('not'), 'inside the subproject.')
                 mlog.warning(' --> Ignoring. This can lead to build errors.')
                 return None
-            if path_is_in_root(x, Path(self.env.get_build_dir())) and is_header:
+            if path_is_in_root(x, Path(self.env.get_build_dir()) / subdir) and is_header:
                 return x.relative_to(Path(self.env.get_build_dir()) / subdir)
+            if path_is_in_root(x, Path(self.env.get_build_dir())) and is_header:
+                return x.relative_to(Path(self.env.get_build_dir()))
             if path_is_in_root(x, root_src_dir):
                 return x.relative_to(root_src_dir)
             return x
