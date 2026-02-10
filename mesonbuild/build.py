@@ -827,7 +827,10 @@ class BuildTarget(Target):
             compilers: CompilerDict,
             kwargs: BuildTargetKeywordArguments):
         super().__init__(name, subdir, subproject, True, for_machine, environment, install=kwargs.get('install', False), build_subdir=kwargs.get('build_subdir', ''))
-        self.all_compilers = compilers
+        # all_compilers is a reference to Interpreter.compilers, as such we
+        # cannot mutate it inside build. Use a Mapping to get help from the
+        # static type checker
+        self.all_compilers: T.Mapping[Language, Compiler] = compilers
         self.compilers: CompilerDict = {}
         self.objects: T.List[ObjectTypes] = []
         self.structured_sources = structured_sources
