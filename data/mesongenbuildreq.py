@@ -3,47 +3,59 @@ import json
 import sys
 import os
 
-#buildreq: prefix of build req dep, eg cmake()
-# method: discovery method as outlined in the introspect command
-def generate (method: list[str], buildreq: list[str], deps_json: dict):
-    deps = {entry['name']: entry['version']
-            for entry in deps_json
-            if (entry['method'] in method)}
-
-    # Output formatted build requirements
-    for lib, versions in deps.items():
-        # Join versions if available
-        version_str = f" {' '.join(versions)} " if versions else ''
-        line = [f"{prefix}({lib}){version_str}" for prefix in buildreq]
-        print(f"({' or '.join(line)})")
-
-# Read ignored dependencies from ENV
+# Configuration from ENV
 ignore_deps = set(os.environ.get("BUILDREQ_IGNORE_DEP", "").split())
-required_only = os.getenv("BUILDREQ_REQUIRED_ONLY") is not None
+only_required = os.environ.get("BUILDREQ_ONLY_REQUIRED", "false").lower() == "true"
 
-# Run introspection command
-deps_json = json.loads(
-    subprocess.run(
-        [sys.argv[1], "introspect", "--dependencies", "meson.build"],
-        capture_output=True,
-        text=True
-    ).stdout
-)
+# Run introspection
+try:
+    result = subprocess.run([sys.argv[1], "introspect", "--dependencies", "meson.build"],
+                            capture_output=True, text=True, check=True)
+    deps_json = json.loads(result.stdout)
+except Exception as e:
+    print(f"Error: {e}", file=sys.stderr)
+    sys.exit(1)
 
-# pre-run one-time filters
+deps = {}
+for entry in deps_json:
+    name = entry['name']
+    if name in ignore_deps:
+        continue
+    if only_required and not entry.get('required', True):
+        continue
+    deps[name] = entry['version']
 
-deps_json = {dep for dep in deps_json if (dep['name'] not in ignore_deps)}
-if required_only:
-    deps_json = {dep for dep in deps_json if dep['required'] == "true"}
+for lib, versions in deps.items():
+    formatted_versions = []
+    for v in versions:
+        # Step 1: Remove all spaces to get a "clean" string like ">=2.72.0"
+        v = v.replace(" ", "")
 
-#main part
-generate(['cmake', 'pkg-config', 'qmake', 'auto'],
-         ['cmake', 'pkgconfig', 'qmake'],
-         deps_json)
-generate(['sysconfig'],
-         ['python3dist'],
-         deps_json)
+        # Step 2: Separate the operator from the version
+        # We find where the first digit or letter starts
+        pivot = 0
+        for i, char in enumerate(v):
+            if char.isalnum():
+                pivot = i
+                break
 
+        # Step 3: Reconstruct with exactly one space: ">= 2.72.0"
+        if pivot > 0:
+            v = f"{v[:pivot]} {v[pivot:]}"
+        formatted_versions.append(v)
 
+    # Step 4: Ensure a space exists before the version block starts
+    # This ensures "pkgconfig(lib) >= 1.0" instead of "pkgconfig(lib)>= 1.0"
+    version_str = f" {' '.join(formatted_versions)}" if formatted_versions else ""
 
+    line = []
+    for prefix in ["cmake", "pkgconfig", "qmake"]:
+        buildreq = f"{prefix}({lib}){version_str}"
 
+        # Cleanup: remove trailing operators if version was empty
+        if buildreq.endswith(('=', '<', '>')):
+            buildreq = buildreq.rstrip('=<>')
+
+        line.append(buildreq)
+
+    print(f"({' or '.join(line)})")
