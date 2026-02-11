@@ -72,7 +72,10 @@ class CCompiler(CLikeCompiler, Compiler):
         CLikeCompiler.__init__(self)
 
     def get_no_stdinc_args(self) -> T.List[str]:
-        return ['-nostdinc']
+        if self.get_id() == 'msvc':
+            return ['/X']
+        else:
+            return ['-nostdinc']
 
     def _sanity_check_source_code(self) -> str:
         return 'int main(void) { int class=0; return class; }\n'
