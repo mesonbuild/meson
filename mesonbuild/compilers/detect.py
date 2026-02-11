@@ -796,7 +796,9 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                 target = 'x86' if 'IA-32' in err else 'x86_64'
                 cls = fortran.IntelLLVMClFortranCompiler
                 env.add_lang_args(cls.language, cls, for_machine)
-                linker = linkers.MSVCDynamicLinker(env, for_machine, [], version=version)
+                linker = guess_win_linker(
+                    env, ['link'], cls, version,
+                    for_machine )
                 return cls(
                     compiler, version, for_machine, env,
                     target, linker=linker)
