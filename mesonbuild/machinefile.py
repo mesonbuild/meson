@@ -18,7 +18,7 @@ if T.TYPE_CHECKING:
 class MachineFileParser():
     def __init__(self, filenames: T.List[str], sourcedir: str) -> None:
         self.parser = CmdLineFileParser()
-        self.constants: T.Dict[str, ElementaryOptionValues] = {'True': True, 'False': False}
+        self.constants: T.Dict[str, ElementaryOptionValues] = {'True': True, 'False': False, '~': os.path.expanduser('~')}
         self.sections: T.Dict[str, T.Dict[str, ElementaryOptionValues]] = {}
 
         for fname in filenames:
