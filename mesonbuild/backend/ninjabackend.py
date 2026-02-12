@@ -315,14 +315,14 @@ class NinjaBuildElement:
         self.all_outputs = all_outputs
         self.output_errors = ''
 
-    def add_dep(self, dep: T.Union[str, T.List[str]]) -> None:
-        if isinstance(dep, list):
+    def add_dep(self, dep: T.Union[str, T.List[str], T.Set[str]]) -> None:
+        if isinstance(dep, (list, set)):
             self.deps.update(dep)
         else:
             self.deps.add(dep)
 
-    def add_orderdep(self, dep) -> None:
-        if isinstance(dep, list):
+    def add_orderdep(self, dep: T.Union[str, T.List[str], T.Set[str]]) -> None:
+        if isinstance(dep, (list, set)):
             self.orderdeps.update(dep)
         else:
             self.orderdeps.add(dep)
@@ -1183,10 +1183,12 @@ class NinjaBackend(backends.Backend):
             if self.should_use_dyndeps_for_target(t):
                 infiles.add(self.get_dep_scan_file_for(t)[0])
         _, od = self.flatten_object_list(target)
-        infiles.update({self.get_dep_scan_file_for(t)[0] for t in od if t.uses_fortran()})
+        depfiles = {self.get_dep_scan_file_for(t)[0] for t in od if t.uses_fortran()}
+        infiles.update(depfiles)
 
         elem = NinjaBuildElement(self.all_outputs, depscan_file, 'depaccumulate', [json_file] + sorted(infiles))
         elem.add_item('name', target.name)
+        elem.add_dep(depfiles)
         self.add_build(elem)
 
     def select_sources_to_scan(self, compiled_sources: T.List[str],
@@ -2751,11 +2753,16 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # Scanning command is the same for native and cross compilation.
             return
 
+        # We restate the json data the depscanner writes out, as it is possible
+        # to change a source file without changing the module output. We do not
+        # restat the dd file, because we know that if the json data has changed
+        # A new dd file is needed.
+
         command = self.environment.get_build_command() + \
             ['--internal', 'depscan']
         args = ['$picklefile', '$out', '$in']
         description = 'Scanning target $name for modules'
-        rule = NinjaRule(rulename, command, args, description)
+        rule = NinjaRule(rulename, command, args, description, extra='restat = 1')
         self.add_rule(rule)
 
         rulename = 'depaccumulate'
