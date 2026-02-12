@@ -1,4 +1,4 @@
-project('pkgconfig-gen', 'c', meson_version: '>=0.60.0')
+project('pkgconfig-gen', 'c', meson_version: '>=1.9.0')
 
 # Some CI runners does not have zlib, just skip them as we need some common
 # external dependency.
@@ -36,6 +36,8 @@ pkgg.generate(
   requires : 'glib-2.0', # Not really, but only here to test that this works.
   requires_private : ['gio-2.0', 'gobject-2.0'],
   libraries_private : [lib, '-lz'],
+  cflags_private: '-DSIMPLE_STATIC',
+  license: 'Apache-2.0',
 )
 
 env = environment()

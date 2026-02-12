@@ -51,6 +51,7 @@ if T.TYPE_CHECKING:
         install_dir: T.Optional[str]
         d_module_versions: T.List[T.Union[str, int]]
         extra_cflags: T.List[str]
+        cflags_private: T.List[str]
         variables: T.Dict[str, str]
         uninstalled_variables: T.Dict[str, str]
         unescaped_variables: T.Dict[str, str]
@@ -98,6 +99,7 @@ class DependenciesHelper:
         self.priv_libs: T.List[LIBS] = []
         self.priv_reqs: T.List[str] = []
         self.cflags: T.List[str] = []
+        self.cflags_private: T.List[str] = []
         self.version_reqs: T.DefaultDict[str, T.Set[str]] = defaultdict(set)
         self.link_whole_targets: T.List[T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary]] = []
         self.uninstalled_incdirs: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
@@ -180,6 +182,9 @@ class DependenciesHelper:
 
     def add_cflags(self, cflags: T.List[str]) -> None:
         self.cflags += mesonlib.stringlistify(cflags)
+
+    def add_cflags_private(self, cflags_private: T.List[str]) -> None:
+        self.cflags_private += mesonlib.stringlistify(cflags_private)
 
     def _add_uninstalled_incdirs(self, incdirs: T.List[build.IncludeDirs], subdir: T.Optional[str] = None) -> None:
         for i in incdirs:
@@ -398,6 +403,7 @@ class DependenciesHelper:
         # Reset exclude list just in case some values can be both cflags and libs.
         exclude = set()
         self.cflags = _fn(self.cflags)
+        self.cflags_private = _fn(self.cflags_private)
 
 class PkgConfigModule(NewExtensionModule):
 
@@ -626,11 +632,16 @@ class PkgConfigModule(NewExtensionModule):
             if cflags and not dataonly:
                 ofile.write('Cflags: {}\n'.format(' '.join(cflags)))
 
+            cflags_private: T.List[str] = [self._escape(f) for f in deps.cflags_private]
+            if cflags_private and not dataonly:
+                ofile.write('Cflags.private: {}\n'.format(' '.join(cflags_private)))
+
     @typed_pos_args('pkgconfig.generate', optargs=[(build.SharedLibrary, build.StaticLibrary)])
     @typed_kwargs(
         'pkgconfig.generate',
         D_MODULE_VERSIONS_KW.evolve(since='0.43.0'),
         INSTALL_DIR_KW,
+        KwargInfo('cflags_private', ContainerTypeInfo(list, str), default=[], listify=True, since='1.9.0'),
         KwargInfo('conflicts', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo('dataonly', bool, default=False, since='0.54.0'),
         KwargInfo('description', (str, NoneType)),
@@ -683,7 +694,7 @@ class PkgConfigModule(NewExtensionModule):
         dataonly = kwargs['dataonly']
         if dataonly:
             default_subdirs = []
-            blocked_vars = ['libraries', 'libraries_private', 'requires_private', 'extra_cflags', 'subdirs']
+            blocked_vars = ['libraries', 'libraries_private', 'requires_private', 'extra_cflags', 'cflags_private', 'subdirs']
             # Mypy can't figure out that this TypedDict index is correct, without repeating T.Literal for the entire list
             if any(kwargs[k] for k in blocked_vars):  # type: ignore
                 raise mesonlib.MesonException(f'Cannot combine dataonly with any of {blocked_vars}')
@@ -712,6 +723,7 @@ class PkgConfigModule(NewExtensionModule):
         deps.add_pub_reqs(kwargs['requires'])
         deps.add_priv_reqs(kwargs['requires_private'])
         deps.add_cflags(kwargs['extra_cflags'])
+        deps.add_cflags_private(kwargs['cflags_private'])
 
         dversions = kwargs['d_module_versions']
         if dversions:
