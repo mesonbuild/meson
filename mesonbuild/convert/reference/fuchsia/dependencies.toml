@@ -1,0 +1,22 @@
+# Copyright 2026 The Meson Development Team
+# SPDX-License-Identifier: Apache-2.0
+[static_libraries]
+zlib = [
+    { target_name = "@zlib//:zlib" }
+]
+libmagma = [
+    { target_name = "@fuchsia_sdk//pkg/magma_client" }
+]
+fuchsia_io = [
+    { target_name = "@fuchsia_sdk//fidl/fuchsia.io:fuchsia.io_cpp" }
+]
+
+[shared_libraries]
+libmagma_virt = []
+
+[programs]
+python3 = { version = "3.9", dependencies = ["mako"] }
+glslangValidator = { version = "Glslang Version: 12:44.4.0", path = "//external/deqp-deps/glslang:glslangValidator" }
+bindgen = { version = "1.71" }
+bison = { version = "3.8.2" }
+flex = { version = "2.6.4" }
