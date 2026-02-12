@@ -27,10 +27,11 @@ from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
 from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
-from ..interpreterbase import Disabler, disablerIfNotFound
+from ..interpreterbase import Disabler, disablerIfNotFound, is_disabled
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
 from ..interpreterbase import stringifyUserArguments
+
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..optinterpreter import optname_regex
 
@@ -3671,8 +3672,16 @@ class Interpreter(InterpreterBase, HoldableObject):
     @FeatureNew('is_disabler', '0.52.0')
     @typed_pos_args('is_disabler', object)
     @noKwargs
+    @noArgsFlattening
     def func_is_disabler(self, node: mparser.BaseNode, args: T.Tuple[object], kwargs: 'TYPE_kwargs') -> bool:
-        return isinstance(args[0], Disabler)
+        if isinstance(args[0], Disabler):
+            return True
+        if isinstance(args[0], dict):
+            return is_disabled([], args[0])
+        if isinstance(args[0], list):
+            FeatureNew.single_use('is_disabler with list argument', '1.10.0', self.subproject, location=node)
+            return is_disabled(args[0], {})
+        return False
 
     @noKwargs
     @FeatureNew('range', '0.58.0')
