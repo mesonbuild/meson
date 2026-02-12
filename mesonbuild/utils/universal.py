@@ -142,6 +142,7 @@ __all__ = [
     'lookbehind',
     'partition',
     'path_is_in_root',
+    'pathname_sort_key',
     'pickle_load',
     'Popen_safe',
     'Popen_safe_logged',
@@ -2582,3 +2583,17 @@ def lookahead(it_: T.Iterable[_T]) -> T.Iterator[T.Tuple[_T, T.Optional[_T]]]:
 
         if next_ is None:
             break
+
+
+def pathname_sort_key(key: str) -> tuple[tuple[bool, tuple[int | str, ...]], ...]:
+    '''Sort key for natural pathname sort, as defined in the Meson style guide.
+    Use as the key= argument to sort() or sorted().'''
+
+    def convert(text: str) -> int | str:
+        return int(text) if text.isdigit() else text.lower()
+
+    def alphanum_key(key: str) -> tuple[int | str, ...]:
+        return tuple(convert(c) for c in re.split('([0-9]+)', key))
+
+    return tuple((key.count('/') <= idx, alphanum_key(x))
+                 for idx, x in enumerate(key.split('/')))
