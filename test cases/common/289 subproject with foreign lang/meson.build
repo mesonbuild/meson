@@ -7,3 +7,7 @@ lib = static_library('intlib', 'intlib.cpp',
 
 executable('p2test', 'p2test.cpp',
   link_with: lib)
+
+# This should warn, if it doesn't we've leaked a subproject language into our
+# super project
+c = meson.get_compiler('c')

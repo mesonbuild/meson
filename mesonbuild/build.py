@@ -827,7 +827,10 @@ class BuildTarget(Target):
             compilers: CompilerDict,
             kwargs: BuildTargetKeywordArguments):
         super().__init__(name, subdir, subproject, True, for_machine, environment, install=kwargs.get('install', False), build_subdir=kwargs.get('build_subdir', ''))
-        self.all_compilers = compilers
+        # all_compilers is a reference to Interpreter.compilers, as such we
+        # cannot mutate it inside build. Use a Mapping to get help from the
+        # static type checker
+        self.all_compilers: T.Mapping[Language, Compiler] = compilers
         self.compilers: CompilerDict = {}
         self.objects: T.List[ObjectTypes] = []
         self.structured_sources = structured_sources
@@ -1048,10 +1051,14 @@ class BuildTarget(Target):
                     # Rust is always linked through a C-ABI target, so do not add
                     # the compiler here
                     if lang != 'rust' and lang in link_langs:
-                        if lang not in self.all_compilers:
-                            self.all_compilers[lang] = t.all_compilers[lang]
                         if lang not in self.compilers:
-                            self.compilers[lang] = t.all_compilers[lang]
+                            try:
+                                self.compilers[lang] = t.all_compilers[lang]
+                            except KeyError:
+                                # The language needed might be provided by a
+                                # subproject, and will not be in this project's
+                                # compiler set
+                                self.compilers[lang] = self.environment.coredata.compilers[self.for_machine][lang]
 
         if not self.compilers:
             # No source files or parent targets, target consists of only object
@@ -1119,8 +1126,6 @@ class BuildTarget(Target):
                 # dealing with compiled C code.
                 if comp.language == 'vala':
                     continue
-                if comp.language not in self.all_compilers:
-                    self.all_compilers[comp.language] = comp
                 if comp.language not in self.compilers:
                     self.compilers[comp.language] = comp
         if sources:
