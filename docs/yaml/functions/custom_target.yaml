@@ -137,6 +137,9 @@ kwargs:
       '-arg1', '-arg2']` rather than as a string `'commandname -arg1
       -arg2'` as the latter will *not* work.
 
+      *Note:* due to an [issue with path handling](https://github.com/mesonbuild/meson/issues/1564)
+      any backslash (`\`) characters are rewritten as slash (`/`).
+
   depend_files:
     type: array[str | file]
     description: |
