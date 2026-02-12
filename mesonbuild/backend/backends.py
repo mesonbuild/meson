@@ -2000,7 +2000,7 @@ class Backend:
                 # directory. We have to add in PATH the location of every DLL needed.
                 library_paths.update(self.determine_windows_extra_paths(t, []))
 
-            if t.get_install_dir()[2]:
+            if t.has_custom_install_dir:
                 # Do not update paths for target installed in non default location
                 continue
 

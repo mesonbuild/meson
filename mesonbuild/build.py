@@ -83,7 +83,7 @@ if T.TYPE_CHECKING:
         implicit_include_directories: bool
         include_directories: T.List[IncludeDirs]
         install: bool
-        install_dir: T.List[T.Union[str, Literal[False]]]
+        install_dir: T.List[T.Union[str, bool]]
         install_mode: FileMode
         install_rpath: str
         install_tag: T.List[T.Optional[str]]
@@ -103,8 +103,14 @@ if T.TYPE_CHECKING:
         rust_crate_type: RustCrateType
         rust_dependency_map: T.Dict[str, str]
         vala_gir: T.Optional[str]
+        install_vala_gir: bool
+        install_vala_gir_dir: T.Optional[str]
         vala_header: T.Optional[str]
+        install_vala_header: bool
+        install_vala_header_dir: T.Optional[str]
         vala_vapi: T.Optional[str]
+        install_vala_vapi: bool
+        install_vala_vapi_dir: T.Optional[str]
         win_subsystem: str
 
         _allow_no_sources: bool
@@ -159,7 +165,7 @@ lang_arg_kwargs |= {
     'd_debug',
 }
 
-vala_kwargs = {'vala_header', 'vala_gir', 'vala_vapi'}
+vala_kwargs = {'vala_header', 'vala_gir', 'vala_vapi', 'install_vala_header', 'install_vala_gir', 'install_vala_vapi'}
 rust_kwargs = {'rust_crate_type', 'rust_dependency_map'}
 cs_kwargs = {'resources', 'cs_args'}
 swift_kwargs = {'swift_interoperability_mode', 'swift_module_name'}
@@ -706,34 +712,8 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
             return NotImplemented
         return self.get_id() >= other.get_id()
 
-    def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
-        raise NotImplementedError
-
     def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
         raise NotImplementedError
-
-    def get_install_dir(self) -> T.Tuple[T.List[T.Union[str, Literal[False]]], T.List[T.Optional[str]], bool]:
-        # Find the installation directory.
-        default_install_dir, default_install_dir_name = self.get_default_install_dir()
-        outdirs: T.List[T.Union[str, Literal[False]]] = self.get_custom_install_dir()
-        install_dir_names: T.List[T.Optional[str]]
-        if outdirs and outdirs[0] != default_install_dir and outdirs[0] is not True:
-            # Either the value is set to a non-default value, or is set to
-            # False (which means we want this specific output out of many
-            # outputs to not be installed).
-            custom_install_dir = True
-            install_dir_names = [getattr(i, 'optname', None) for i in outdirs]
-        else:
-            custom_install_dir = False
-            # if outdirs is empty we need to set to something, otherwise we set
-            # only the first value to the default.
-            if outdirs:
-                outdirs[0] = default_install_dir
-            else:
-                outdirs = [default_install_dir]
-            install_dir_names = [default_install_dir_name] * len(outdirs)
-
-        return outdirs, install_dir_names, custom_install_dir
 
     def get_basename(self) -> str:
         return self.name
@@ -802,7 +782,6 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
 class BuildTarget(Target):
     known_kwargs = known_build_target_kwargs
 
-    install_dir: T.List[T.Union[str, Literal[False]]]
     rust_crate_type: RustCrateType
 
     # This set contains all the languages a linker can link natively
@@ -910,8 +889,30 @@ class BuildTarget(Target):
     def _set_vala_args(self, kwargs: BuildTargetKeywordArguments) -> None:
         if self.uses_vala():
             self.vala_header = kwargs.get('vala_header') or self.name + '.h'
+            inst = kwargs.get('install_vala_header', False)
+            if inst is True:
+                dir_ = kwargs.get('install_vala_header_dir') or self.environment.get_includedir()
+                self.install_dir.append(dir_)
+            else:
+                self.install_dir.append(False)
+
             self.vala_vapi = kwargs.get('vala_vapi') or self.name + '.vapi'
+            inst = kwargs.get('install_vala_vapi', False)
+            if inst is True:
+                dir_ = kwargs.get('install_vala_vapi_dir') or os.path.join(self.environment.get_datadir(), 'vala', 'vapi')
+                self.install_dir.append(dir_)
+            else:
+                self.install_dir.append(False)
+
             self.vala_gir = kwargs.get('vala_gir')
+            if self.vala_gir:
+                inst = kwargs.get('install_vala_gir', False)
+                if inst is True:
+                    assert self.vala_gir is not None, 'Installing Vala GIR without generating one?'
+                    dir_ = kwargs.get('install_vala_gir_dir') or os.path.join(self.environment.get_datadir(), 'gir-1.0')
+                    self.install_dir.append(dir_)
+                elif self.vala_gir is not None:
+                    self.install_dir.append(False)
 
     def post_init(self) -> None:
         ''' Initialisations and checks requiring the final list of compilers to be known
@@ -967,7 +968,9 @@ class BuildTarget(Target):
     def check_unknown_kwargs_int(self, kwargs: BuildTargetKeywordArguments, known_kwargs: T.Set[str]) -> None:
         unknowns = []
         for k in kwargs:
-            if k == 'language_args':
+            if k in {'language_args', 'install_vala_header', 'install_vala_vapi',
+                     'install_vala_gir', 'install_vala_header_dir',
+                     'install_vala_vapi_dir', 'install_vala_gir_dir'}:
                 continue
             if k not in known_kwargs:
                 unknowns.append(k)
@@ -1302,7 +1305,7 @@ class BuildTarget(Target):
             result.update(i.get_link_dep_subdirs())
         return result
 
-    def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
+    def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_libdir(), '{libdir}'
 
     def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
@@ -1341,9 +1344,17 @@ class BuildTarget(Target):
         self.add_include_dirs(kwargs.get('include_directories', []))
         # Add dependencies (which also have include_directories)
         self.add_deps(kwargs.get('dependencies', []))
-        # If an item in this list is False, the output corresponding to
-        # the list index of that item will not be installed
-        self.install_dir = kwargs.get('install_dir', [])
+
+        self.has_custom_install_dir = False
+        i = kwargs.get('install_dir', [])
+        install_dir = i[0] if i else True
+        default_install_dir = self.get_default_install_dir()[0]
+        if install_dir is True:
+            install_dir = default_install_dir
+        elif install_dir != default_install_dir:
+            self.has_custom_install_dir = True
+        self.install_dir: T.List[T.Union[str, T.Literal[False]]] = [install_dir]
+
         self.install_mode = kwargs.get('install_mode', None)
         self.install_tag: T.List[T.Optional[str]] = kwargs.get('install_tag') or [None]
         self.extra_files = kwargs.get('extra_files', [])
@@ -1401,6 +1412,16 @@ class BuildTarget(Target):
             assert isinstance(val, bool), 'for mypy'
             return val
         return False
+
+    def get_install_dir(self) -> T.Tuple[T.List[T.Union[str, Literal[False]]], T.List[T.Optional[str]], bool]:
+        install_dir_names: T.List[T.Optional[str]]
+        if self.has_custom_install_dir:
+            install_dir_names = [getattr(i, 'optname', None) for i in self.install_dir]
+        else:
+            default = self.get_default_install_dir()[1]
+            install_dir_names = T.cast('T.List[T.Optional[str]]', [default]) * len(self.install_dir)
+
+        return self.install_dir, install_dir_names, self.has_custom_install_dir
 
     def get_filename(self) -> str:
         return self.filename
@@ -2221,7 +2242,7 @@ class Executable(BuildTarget):
                 name += '_' + self.suffix
             self.debug_filename = name + '.pdb'
 
-    def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
+    def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_bindir(), '{bindir}'
 
     def type_suffix(self) -> str:
@@ -2349,7 +2370,7 @@ class StaticLibrary(BuildTarget):
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         return {}
 
-    def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
+    def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_static_lib_dir(), '{libdir_static}'
 
     def type_suffix(self) -> str:
@@ -2479,13 +2500,14 @@ class SharedLibrary(BuildTarget):
         old = get_target_macos_dylib_install_name(self)
         if old not in mappings:
             fname = self.get_filename()
-            outdirs, _, _ = self.get_install_dir()
-            new = os.path.join(prefix, outdirs[0], fname)
+            install_dir = self.install_dir[0]
+            assert install_dir is not False, 'This is a bug'
+            new = os.path.join(prefix, install_dir, fname)
             result.update({old: new})
         mappings.update(result)
         return mappings
 
-    def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
+    def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_shared_lib_dir(), '{libdir_shared}'
 
     def determine_naming_info(self) -> T.Tuple[str, str, str, str, bool]:
@@ -2778,7 +2800,7 @@ class SharedModule(SharedLibrary):
         # to build targets, see: https://github.com/mesonbuild/meson/issues/9492
         self.force_soname = False
 
-    def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
+    def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_shared_module_dir(), '{moduledir_shared}'
 
 class BothLibraries(SecondLevelHolder):
@@ -2937,6 +2959,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
         self.extra_depends = list(extra_depends or [])
         self.feed = feed
         self.install_dir = list(install_dir or [])
+        self.has_custom_install_dir = bool(self.install_dir)
         self.install_mode = install_mode
         self.install_tag = _process_install_tag(install_tag, len(self.outputs))
         self.name = name if name else self.outputs[0]
@@ -2948,8 +2971,12 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
         # Whether to enable using response files for the underlying tool
         self.rspable = rspable
 
-    def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
-        return None, None
+    def get_install_dir(self) -> T.Tuple[T.List[T.Union[str, Literal[False]]], T.List[T.Optional[str]], bool]:
+        install_dir_names: T.List[T.Optional[str]] = []
+        if self.has_custom_install_dir:
+            install_dir_names = [getattr(i, 'optname', None) for i in self.install_dir]
+
+        return self.install_dir, install_dir_names, self.has_custom_install_dir
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
@@ -3263,7 +3290,7 @@ class Jar(BuildTarget):
             return ['-cp', os.pathsep.join(cp_paths)]
         return []
 
-    def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
+    def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_jar_dir(), '{jardir}'
 
 @dataclass(eq=False)
@@ -3356,6 +3383,12 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
 
     def get_basename(self) -> str:
         return self.target.get_basename()
+
+    def get_install_dir(self) -> T.Tuple[T.List[T.Union[str, Literal[False]]], T.List[T.Optional[str]], bool]:
+        # This is the same index for all of these
+        index = self.target.outputs.index(self.output)
+        install_dirs, install_dir_names, is_custom = self.target.get_install_dir()
+        return [install_dirs[index]], [install_dir_names[index]], is_custom
 
 
 class ConfigurationData(HoldableObject):
