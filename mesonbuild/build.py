@@ -1027,7 +1027,19 @@ class BuildTarget(Target):
         which compiler to use if one hasn't been selected already.
         """
         for lang in self.missing_languages:
-            self.compilers[lang] = self.all_compilers[lang]
+            try:
+                self.compilers[lang] = self.all_compilers[lang]
+            except KeyError:
+                # In the case of cython it's possible that we have an
+                # implementation detail langauge
+                #
+                # It is intentional not to update self.all_compilers here, since
+                # that is a reference to Interpreter.compilers, which should
+                # only contain the compilers enabled explicilty by the project
+                if self.uses_cython() and lang == self.environment.coredata.get_option_for_target(self, 'cython_language'):
+                    self.compilers[lang] = self.environment.coredata.compilers[self.for_machine][lang]
+                else:
+                    raise
 
         # did user override clink_langs for this target?
         link_langs = (self.link_language, ) if self.link_language else clink_langs
@@ -1149,18 +1161,21 @@ class BuildTarget(Target):
         if 'vala' in self.compilers and 'c' not in self.compilers:
             self.compilers['c'] = self.all_compilers['c']
         if 'cython' in self.compilers:
-            # Not great, but we can't ask for the override value from "the system"
-            # because this object is currently being constructed so it is not
-            # yet placed in the data store. Grab it directly from override strings
-            # instead.
-            value = T.cast('T.Optional[Language]', self.get_override('cython_language'))
-            if value is None:
-                key = OptionKey('cython_language', machine=self.for_machine)
-                value = T.cast('T.Optional[Language]', self.environment.coredata.optstore.get_value_for(key))
+            _value = self.environment.coredata.get_option_for_target(self, 'cython_language')
+            assert isinstance(_value, str), 'for mypy'
+            value = T.cast('Language', _value)
             try:
                 self.compilers[value] = self.all_compilers[value]
             except KeyError:
-                missing_languages.append(value)
+                # This might be an implementation detail (C or C++)
+                #
+                # It is intentional not to update self.all_compilers here, since
+                # that is a reference to Interpreter.compilers, which should
+                # only contain the compilers enabled explicilty by the project
+                try:
+                    self.compilers[value] = self.environment.coredata.compilers[self.for_machine][value]
+                except KeyError:
+                    missing_languages.append(value)
 
         return missing_languages
 
@@ -1703,6 +1718,9 @@ class BuildTarget(Target):
 
     def uses_fortran(self) -> bool:
         return 'fortran' in self.compilers
+
+    def uses_cython(self) -> bool:
+        return 'cython' in self.compilers
 
     def uses_vala(self) -> bool:
         return 'vala' in self.compilers
