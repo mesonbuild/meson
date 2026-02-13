@@ -37,6 +37,8 @@ class IntrospectionHelper:
         self.cross_file = [cross_file] if cross_file is not None else []
         self.native_file: T.List[str] = []
         self.cmd_line_options: T.Dict[OptionKey, str] = {}
+        self.builtin_keys: T.Set[OptionKey] = set()
+        self.d_keys: T.Set[OptionKey] = set()
         self.projectoptions: T.List[str] = []
 
     def __eq__(self, other: object) -> bool:

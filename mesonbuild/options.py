@@ -5,7 +5,6 @@
 from __future__ import annotations
 from collections import OrderedDict
 from itertools import chain
-import argparse
 import copy
 import dataclasses
 import itertools
@@ -34,7 +33,7 @@ from .mesonlib import (
 from . import mlog
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, Final, TypeAlias, TypedDict
+    from typing_extensions import Literal, Final, TypeAlias
 
     from .envconfig import MachineInfo
     from .interpreterbase import SubProject
@@ -49,13 +48,6 @@ if T.TYPE_CHECKING:
     MutableKeyedOptionDictType: TypeAlias = T.Dict['OptionKey', AnyOptionType]
 
     _OptionKeyTuple: TypeAlias = T.Tuple[T.Optional[str], MachineChoice, str]
-
-    class ArgparseKWs(TypedDict, total=False):
-
-        action: str
-        dest: str
-        default: str
-        choices: T.List
 
 DEFAULT_YIELDING = False
 
@@ -665,28 +657,6 @@ def argparse_prefixed_default(opt: AnyOptionType, name: OptionKey, prefix: str =
         return BUILTIN_DIR_NOPREFIX_OPTIONS[name][prefix]
     except KeyError:
         return T.cast('ElementaryOptionValues', opt.default)
-
-
-def option_to_argparse(option: AnyOptionType, name: OptionKey, parser: argparse.ArgumentParser, help_suffix: str) -> None:
-    kwargs: ArgparseKWs = {}
-
-    if isinstance(option, (EnumeratedUserOption, UserArrayOption)):
-        c = option.choices
-    else:
-        c = None
-    b = 'store_true' if isinstance(option.default, bool) else None
-    h = option.description
-    if not b:
-        h = '{} (default: {}).'.format(h.rstrip('.'), argparse_prefixed_default(option, name))
-    else:
-        kwargs['action'] = b
-    if c and not b:
-        kwargs['choices'] = c
-    kwargs['default'] = argparse.SUPPRESS
-    kwargs['dest'] = str(name)
-
-    cmdline_name = argparse_name_to_arg(str(name))
-    parser.add_argument(cmdline_name, help=h + help_suffix, **kwargs)
 
 
 # Update `docs/markdown/Builtin-options.md` after changing the options below
