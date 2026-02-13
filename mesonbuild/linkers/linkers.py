@@ -973,6 +973,13 @@ class LLVMLD64DynamicLinker(AppleDynamicLinker):
             return self._apply_prefix('-no_warn_duplicate_libraries')
         return []
 
+    def export_dynamic_args(self) -> T.List[str]:
+        # -export_dynamic existed before LLVM 13 but did not work properly
+        # on macOS until https://github.com/llvm/llvm-project/commit/3eb2fc4b
+        if mesonlib.version_compare(self.version, '>=13'):
+            return self._apply_prefix('-export_dynamic')
+        return []
+
 
 class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
 
