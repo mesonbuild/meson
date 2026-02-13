@@ -320,8 +320,9 @@ class BasePlatformTests(TestCase):
         if will_build:
             self.build()
 
-    def getconf(self, optname: str):
-        opts = self.introspect('--buildoptions')
+    def getconf(self, optname: str, opts=None):
+        if opts is None:
+            opts = self.introspect('--buildoptions')
         for x in opts:
             if x.get('name') == optname:
                 return x.get('value')
