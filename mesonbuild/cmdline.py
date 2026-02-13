@@ -146,18 +146,21 @@ class BuiltinAction(argparse.Action):
                  help_suffix: str = '', **kwargs: T.Any) -> None:
         self.option_key = option_key
 
-        h = option.description
+        h = option.description.rstrip('.')
         if isinstance(option.default, bool):
             kwargs['nargs'] = 0
         else:
             kwargs['nargs'] = 1
-            h = '{} (default: {}).'.format(h.rstrip('.'), options.argparse_prefixed_default(option, name=option_key))
+            if help_suffix:
+                help_suffix += ', '
+            help_suffix += 'default: ' + str(options.argparse_prefixed_default(option, name=option_key))
             if isinstance(option, (options.EnumeratedUserOption, options.UserArrayOption)):
                 kwargs['choices'] = option.choices
 
-        super().__init__(option_strings, 'cmd_line_options',
-                         default=argparse.SUPPRESS,
-                         help=h + help_suffix, **kwargs)
+        if help_suffix:
+            help_suffix = f' ({help_suffix})'
+        super().__init__(option_strings, 'cmd_line_options', default=argparse.SUPPRESS,
+                         help=f'{h}{help_suffix}.', **kwargs)
 
     def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace,
                  arg: T.Optional[T.List[str]], option_string: str = None) -> None: # type: ignore[override]
@@ -206,11 +209,11 @@ def register_builtin_arguments(parser: argparse.ArgumentParser) -> None:
     for n, b in options.BUILTIN_OPTIONS_PER_MACHINE.items():
         cmdline_name = options.argparse_name_to_arg(str(n))
         parser.add_argument(cmdline_name, action=BuiltinAction,
-                            option_key=n, option=b, help_suffix=' (just for host machine)')
+                            option_key=n, option=b, help_suffix='just for host machine')
         build_n = n.as_build()
         cmdline_name = options.argparse_name_to_arg(str(build_n))
         parser.add_argument(cmdline_name, action=BuiltinAction,
-                            option_key=build_n, option=b, help_suffix=' (just for build machine)')
+                            option_key=build_n, option=b, help_suffix='just for build machine')
     parser.add_argument('-D', action=KeyValueAction, dest='cmd_line_options', default={}, metavar="option=value",
                         help='Set the value of an option, can be used several times to set multiple options.')
     parser.set_defaults(builtin_keys=set(), d_keys=set())
