@@ -561,6 +561,34 @@ class PlatformAgnosticTests(BasePlatformTests):
 
         self._run(self.mtest_command + ['runner-with-exedep'])
 
+    def test_buildtype_debug_optimization_override(self) -> None:
+        """Explicitly setting debug or optimization should override buildtype."""
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+
+        for extra_args in [['--debug', '--buildtype=release'],
+                           ['-Ddebug=true', '--buildtype=release'],
+                           ['-Ddebug=true', '-Dbuildtype=release'],
+                           ['--debug', '-Dbuildtype=release']]:
+            with self.subTest(extra_args=extra_args):
+                self.new_builddir()
+                self.init(testdir, extra_args=extra_args)
+                opts = self.introspect('--buildoptions')
+                self.assertEqual(self.getconf('buildtype', opts), 'release')
+                self.assertEqual(self.getconf('debug', opts), True)
+                self.assertEqual(self.getconf('optimization', opts), '3')
+
+        for extra_args in [['--optimization=3', '--buildtype=debug'],
+                           ['-Doptimization=3', '--buildtype=debug'],
+                           ['-Doptimization=3', '-Dbuildtype=debug'],
+                           ['--optimization=3', '-Dbuildtype=debug']]:
+            with self.subTest(extra_args=extra_args):
+                self.new_builddir()
+                self.init(testdir, extra_args=extra_args)
+                opts = self.introspect('--buildoptions')
+                self.assertEqual(self.getconf('buildtype', opts), 'debug')
+                self.assertEqual(self.getconf('debug', opts), True)
+                self.assertEqual(self.getconf('optimization', opts), '3')
+
     def test_setup_mixed_long_short_options(self) -> None:
         """Mixing unity and unity_size as long and short options should work."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '1 trivial'))
