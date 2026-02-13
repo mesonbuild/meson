@@ -899,10 +899,19 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def bitcode_args(self) -> T.List[str]:
         return self._apply_prefix('-bitcode_bundle')
 
+    def no_warn_duplicate_libraries(self) -> T.List[str]:
+        # -no_warn_duplicate_libraries was added in Xcode 15, which has two
+        # linkers: classic ld64 (PROJECT:ld64-907) and the new one
+        # (PROJECT:dyld-1009.5).  Both version numbers are >= 907, so a
+        # single comparison works for both.
+        if mesonlib.version_compare(self.version, '>=907'):
+            return self._apply_prefix('-no_warn_duplicate_libraries')
+        return []
+
     def fatal_warnings(self) -> T.List[str]:
         # no one else warns for duplicate libraries, and they're harmless;
         # just make ld shup up when testing for supported flags
-        return self._apply_prefix('-fatal_warnings') + self._apply_prefix('-no_warn_duplicate_libraries')
+        return self._apply_prefix('-fatal_warnings') + self.no_warn_duplicate_libraries()
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
                         soversion: str, darwin_versions: T.Tuple[str, str]
@@ -956,6 +965,13 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 class LLVMLD64DynamicLinker(AppleDynamicLinker):
 
     id = 'ld64.lld'
+
+    def no_warn_duplicate_libraries(self) -> T.List[str]:
+        # The flag currently has no effect on ld64.lld, but it is accepted
+        # since LLVM 19 and may do something in the future.
+        if mesonlib.version_compare(self.version, '>=19'):
+            return self._apply_prefix('-no_warn_duplicate_libraries')
+        return []
 
 
 class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
