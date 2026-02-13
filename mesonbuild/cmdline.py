@@ -180,3 +180,11 @@ def parse_cmd_line_options(args: SharedCMDOptions) -> None:
                     f'Got argument {name} as both -D{name} and {cmdline_name}. Pick one.')
             args.cmd_line_options[key] = value
             delattr(args, name)
+
+    # Ensure buildtype is processed before debug and optimization, so that
+    # the buildtype expansion sets their defaults and explicit values for
+    # debug/optimization override them.
+    bt_key = OptionKey('buildtype')
+    if bt_key in args.cmd_line_options:
+        bt_val = args.cmd_line_options.pop(bt_key)
+        args.cmd_line_options = {bt_key: bt_val, **args.cmd_line_options}
