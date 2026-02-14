@@ -387,7 +387,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             # linker. It'll exit with an error code, but still print the
             # linker version.
             with tempfile.NamedTemporaryFile(suffix='.c') as f:
-                cmd = compiler + [cls.LINKER_PREFIX + "--version", f.name]
+                cmd = [*compiler, *cls.LINKER_PREFIX.wrap(['--version']), f.name]
                 _, o, _ = Popen_safe(cmd)
 
             linker = linkers.WASMDynamicLinker(

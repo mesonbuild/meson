@@ -525,7 +525,9 @@ class Backend:
         return obj_list, deps
 
     @staticmethod
-    def is_swift_target(target: build.BuildTarget) -> bool:
+    def is_swift_target(target: build.BuildTargetTypes) -> bool:
+        if not isinstance(target, build.BuildTarget):
+            return False
         for s in target.sources:
             if s.endswith('swift'):
                 return True

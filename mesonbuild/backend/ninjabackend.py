@@ -913,9 +913,6 @@ class NinjaBackend(backends.Backend):
         if 'cs' in target.compilers:
             self.generate_cs_target(target)
             return
-        if 'swift' in target.compilers:
-            self.generate_swift_target(target)
-            return
 
         # CompileTarget compiles all its sources and does not do a final link.
         # This is, for example, a preprocessor.
@@ -996,6 +993,29 @@ class NinjaBackend(backends.Backend):
         # For D language, the object of generated source files are added
         # as order only deps because other files may depend on them
         d_generated_deps = []
+
+        # Swiftc wants a single compiler invocation for all of the source files. Filter out relevant
+        # sources here.
+        if 'swift' in target.compilers:
+            swiftc = target.compilers['swift']
+            swift_generated_sources = [file for file in generated_source_files if swiftc.can_compile(file)]
+            generated_source_files[:] = [file for file in generated_source_files if file not in swift_generated_sources]
+            swift_sources = {}
+            for path, file in target_sources.items():
+                if swiftc.can_compile(file):
+                    swift_sources[path] = file
+            for path in swift_sources:
+                del target_sources[path]
+            objs, swift_generated_header = self.generate_swift_compile(target, swift_sources, swift_generated_sources, target_sources, generated_source_files)
+            obj_list.extend(objs)
+
+            if swift_generated_header and any(lang in target.compilers for lang in ['objc', 'cpp', 'objcpp']):
+                header_deps.append(swift_generated_header)
+
+        # For linking with a Swift target in a Obj-C/C++ target, include the Swift target's generated header.
+        if any(lang in target.compilers for lang in ['objc', 'cpp', 'objcpp']):
+            for header in self.determine_swift_dep_headers(target):
+                header_deps.append(header)
 
         # These are the generated source files that need to be built for use by
         # this target. We create the Ninja build file elements for this here
@@ -2287,36 +2307,58 @@ class NinjaBackend(backends.Backend):
     def compiler_to_pch_rule_name(cls, compiler: Compiler) -> str:
         return cls.get_compiler_rule_name(compiler.get_language(), compiler.for_machine, 'PCH')
 
-    def swift_module_file_name(self, target) -> str:
+    def swift_module_file_name(self, target: build.BuildTarget) -> str:
         return os.path.join(self.get_target_private_dir(target),
                             target.swift_module_name + '.swiftmodule')
 
-    def determine_swift_dep_modules(self, target) -> T.List[str]:
+    def swift_generated_header_file_name(self, target: build.BuildTarget) -> str:
+        return os.path.join(self.get_target_private_dir(target),
+                            target.swift_module_name + '-Swift.h')
+
+    def determine_swift_dep_modules(self, target: build.BuildTarget) -> T.List[str]:
         result = []
         for l in target.link_targets:
             if self.is_swift_target(l):
                 result.append(self.swift_module_file_name(l))
         return result
 
-    def get_swift_link_deps(self, target) -> T.List[str]:
+    def determine_swift_dep_headers(self, target: build.BuildTarget):
         result = []
         for l in target.link_targets:
-            result.append(self.get_target_filename(l))
+            if self.is_swift_target(l):
+                result.append(self.swift_generated_header_file_name(l))
         return result
 
-    def split_swift_generated_sources(self, target: build.BuildTarget) -> T.List[str]:
-        all_srcs = self.get_target_generated_sources(target)
-        srcs: T.List[str] = []
-        for i in all_srcs:
-            if i.endswith('.swift'):
-                srcs.append(i)
-        return srcs
+    def generate_swift_compile(self, target: build.BuildTarget,
+                               swift_sources: T.OrderedMapping[str, File], swift_generated_sources: T.List[File],
+                               sources: T.OrderedMapping[str, File], generated_sources: T.List[File]) -> T.Tuple[T.List[str], T.Optional[File]]:
+        if not swift_sources and not swift_generated_sources:
+            return [], None
 
-    def generate_swift_target(self, target: build.BuildTarget) -> None:
-        module_name = target.swift_module_name
         swiftc = T.cast('SwiftCompiler', target.compilers['swift'])
+
         abssrc = []
         relsrc = []
+        for i in swift_sources.values():
+            rels = i.rel_to_builddir(self.build_to_src)
+            abss = os.path.normpath(os.path.join(self.environment.get_build_dir(), rels))
+            relsrc.append(rels)
+            abssrc.append(abss)
+        abs_generated = []
+        rel_generated = []
+        for i in swift_generated_sources:
+            rels = i.rel_to_builddir(self.build_to_src)
+            abss = os.path.normpath(os.path.join(self.environment.get_build_dir(), rels))
+            rel_generated.append(rels)
+            abs_generated.append(abss)
+
+        # Swift outputs object files in the working directory (target's private dir), named after the input file
+        rel_objects = [] # Relative to build.ninja
+        for i in abssrc + abs_generated:
+            base = os.path.basename(i)
+            oname = os.path.splitext(base)[0] + '.o'
+            rel_objects.append(os.path.join(self.get_target_private_dir(target), oname))
+
         abs_headers = []
         header_imports = []
 
@@ -2333,22 +2375,21 @@ class NinjaBackend(backends.Backend):
                                      'Add "swift_interoperability_mode: \'cpp\'" to the definition of {0}.'
                                      .format(repr(target.name), target_word, first, and_word, last, enable_word))
 
-        for i in target.get_sources():
-            if swiftc.can_compile(i):
-                rels = i.rel_to_builddir(self.build_to_src)
-                abss = os.path.normpath(os.path.join(self.environment.get_build_dir(), rels))
-                relsrc.append(rels)
-                abssrc.append(abss)
-            elif compilers.is_header(i):
+        for i in itertools.chain(generated_sources, sources.values()):
+            if compilers.is_header(i):
                 relh = i.rel_to_builddir(self.build_to_src)
                 absh = os.path.normpath(os.path.join(self.environment.get_build_dir(), relh))
                 abs_headers.append(absh)
                 header_imports += swiftc.get_header_import_args(absh)
-            else:
-                raise InvalidArguments(f'Swift target {target.get_basename()} contains a non-swift source file.')
+        if header_imports != [] and not isinstance(target, build.Executable):
+            raise MesonException('C bridging headers are not supported in Swift library targets: {}. '
+                                 'Write a separate Clang module including the necessary headers and add it to this '
+                                 'target\'s include directories.'
+                                 .format(', '.join(repr(x) for x in header_imports)))
         os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
+
         compile_args = self.generate_basic_compiler_args(target, swiftc)
-        compile_args += swiftc.get_module_args(module_name)
+        # TODO: export header even when this target doesn't use swift
         compile_args += swiftc.get_cxx_interoperability_args(target)
         compile_args += self.build.get_project_args(swiftc, target)
         compile_args += self.build.get_global_args(swiftc, target.for_machine)
@@ -2363,68 +2404,52 @@ class NinjaBackend(backends.Backend):
             for path in i.abs_string_list(self.source_dir, self.build_dir):
                 compile_args.extend(swiftc.get_include_args(path, False))
         compile_args += target.get_extra_args('swift')
-        link_args = swiftc.get_output_args(os.path.join(self.environment.get_build_dir(), self.get_target_filename(target)))
-        link_args += self.build.get_project_link_args(swiftc, target)
-        link_args += self.build.get_global_link_args(swiftc, target.for_machine)
-        rundir = self.get_target_private_dir(target)
+        rundir = self.get_target_private_dir_abs(target)
         out_module_name = self.swift_module_file_name(target)
         in_module_files = self.determine_swift_dep_modules(target)
+
         abs_module_dirs = self.determine_swift_dep_dirs(target)
         module_includes = []
         for x in abs_module_dirs:
             module_includes += swiftc.get_include_args(x, False)
-        link_deps = self.get_swift_link_deps(target)
-        abs_link_deps = [os.path.join(self.environment.get_build_dir(), x) for x in link_deps]
-        for d in target.link_targets:
-            reldir = self.get_target_dir(d)
-            if reldir == '':
-                reldir = '.'
-            link_args += ['-L', os.path.normpath(os.path.join(self.environment.get_build_dir(), reldir))]
-        rel_generated = self.split_swift_generated_sources(target)
-        abs_generated = [os.path.join(self.environment.get_build_dir(), x) for x in rel_generated]
-        # We need absolute paths because swiftc needs to be invoked in a subdir
-        # and this is the easiest way about it.
-        objects = [] # Relative to swift invocation dir
-        rel_objects = [] # Relative to build.ninja
-        for i in abssrc + abs_generated:
-            base = os.path.basename(i)
-            oname = os.path.splitext(base)[0] + '.o'
-            objects.append(oname)
-            rel_objects.append(os.path.join(self.get_target_private_dir(target), oname))
 
-        rulename = self.compiler_to_rule_name(swiftc)
+        compile_rule = self.compiler_to_rule_name(swiftc)
+        module_rule = self.get_compiler_rule_name(swiftc.get_language(), swiftc.for_machine, 'SWIFTMODULE')
+        header_rule = self.get_compiler_rule_name(swiftc.get_language(), swiftc.for_machine, 'HEADER')
 
         # Swiftc does not seem to be able to emit objects and module files in one go.
-        elem = NinjaBuildElement(self.all_outputs, rel_objects, rulename, abssrc)
+        elem = NinjaBuildElement(self.all_outputs, rel_objects, compile_rule, abssrc)
         elem.add_dep(in_module_files + rel_generated)
         elem.add_dep(abs_headers)
-        elem.add_item('ARGS', swiftc.get_compile_only_args() + compile_args + header_imports + abs_generated + module_includes)
+        elem.add_item('TARGET', target.name)
+        elem.add_item('MODULE', target.swift_module_name)
+        elem.add_item('ARGS', compile_args + header_imports + abs_generated + module_includes)
         elem.add_item('RUNDIR', rundir)
         self.add_build(elem)
 
         # -g makes swiftc create a .o file with potentially the same name as one of the compile target generated ones.
         mod_gen_args = [el for el in compile_args if el != '-g']
 
-        elem = NinjaBuildElement(self.all_outputs, out_module_name, rulename, abssrc)
+        elem = NinjaBuildElement(self.all_outputs, out_module_name, module_rule, abssrc)
         elem.add_dep(in_module_files + rel_generated)
-        elem.add_item('ARGS', swiftc.get_mod_gen_args() + mod_gen_args + abs_generated + module_includes)
+        elem.add_item('MODULE', target.swift_module_name)
+        elem.add_item('ARGS', mod_gen_args + header_imports + abs_generated + module_includes)
         elem.add_item('RUNDIR', rundir)
         self.add_build(elem)
-        if isinstance(target, build.StaticLibrary):
-            elem = self.generate_link(target, self.get_target_filename(target),
-                                      rel_objects, self.build.static_linker[target.for_machine])
-            self.add_build(elem)
-        elif isinstance(target, build.Executable):
-            elem = NinjaBuildElement(self.all_outputs, self.get_target_filename(target), rulename, [])
-            elem.add_dep(rel_objects)
-            elem.add_dep(link_deps)
-            elem.add_item('ARGS', link_args + swiftc.get_std_exe_link_args() + objects + abs_link_deps)
-            elem.add_item('RUNDIR', rundir)
-            self.add_build(elem)
-        else:
-            raise MesonException('Swift supports only executable and static library targets.')
+
+        # Generate a header for importing into Obj-C/C++.
+        out_header_name = self.swift_generated_header_file_name(target)
+        elem = NinjaBuildElement(self.all_outputs, out_header_name, header_rule, [out_module_name])
+        elem.add_dep(in_module_files)
+        elem.add_item('ARGS', compile_args + module_includes)
+        self.add_build(elem)
+
+        out_header_name_path = PurePath(out_header_name)
+        generated_header = File(True, str(out_header_name_path.parent), out_header_name_path.name)
+
         # Introspection information
         self.create_target_source_introspection(target, swiftc, compile_args + header_imports + module_includes, relsrc, rel_generated)
+        return rel_objects, generated_header
 
     def _rsp_options(self, tool: T.Union['Compiler', 'StaticLinker', 'DynamicLinker']) -> T.Dict[str, T.Union[bool, RSPFileSyntax]]:
         """Helper method to get rsp options.
@@ -2587,7 +2612,6 @@ class NinjaBackend(backends.Backend):
                                 depfile=depfile))
 
     def generate_swift_compile_rules(self, compiler) -> None:
-        rule = self.compiler_to_rule_name(compiler)
         wd_args = compiler.get_working_directory_args('$RUNDIR')
 
         if wd_args is not None:
@@ -2600,8 +2624,36 @@ class NinjaBackend(backends.Backend):
             ]
             invoc = full_exe + compiler.get_exelist()
 
-        command = invoc + ['$ARGS', '$in']
-        description = 'Compiling Swift source $in'
+        rule = self.compiler_to_rule_name(compiler)
+        command = [
+            *invoc,
+            *compiler.get_compile_only_args(),
+            *compiler.get_module_args('$MODULE'),
+            '$ARGS',
+            '$in'
+        ]
+        description = 'Compiling Swift sources for $TARGET'
+        self.add_rule(NinjaRule(rule, command, [], description, extra='restat = 1'))
+
+        rule = self.get_compiler_rule_name(compiler.get_language(), compiler.for_machine, 'SWIFTMODULE')
+        command = [
+            *invoc,
+            *compiler.get_mod_gen_args(),
+            *compiler.get_module_args('$MODULE'),
+            '$ARGS',
+            '$in'
+        ]
+        description = 'Generating Swift module $out'
+        self.add_rule(NinjaRule(rule, command, [], description, extra='restat = 1'))
+
+        rule = self.get_compiler_rule_name(compiler.get_language(), compiler.for_machine, 'HEADER')
+        command = [
+            *compiler.get_exelist(), # don't need $RUNDIR for this one
+            *compiler.get_header_gen_args('$out'),
+            '$ARGS',
+            '$in'
+        ]
+        description = 'Generating C header for Swift module $in'
         self.add_rule(NinjaRule(rule, command, [], description, extra='restat = 1'))
 
     def use_dyndeps_for_fortran(self) -> bool:
