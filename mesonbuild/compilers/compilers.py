@@ -458,6 +458,12 @@ class RunResult(HoldableObject):
     cached: bool = False
 
 
+class LinkerOptionStyle(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def wrap(self, group: T.List[str]) -> T.List[str]:
+        ...
+
+
 @dataclass
 class PrefixArgumentLinkerOptionStyle(LinkerOptionStyle):
     """
