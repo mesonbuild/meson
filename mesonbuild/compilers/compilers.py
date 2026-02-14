@@ -485,6 +485,10 @@ class SimplePrefixLinkerOptionWrapperStyle:
         return [self.prefix + linker_arg for linker_arg in group]
 
 
+class LinkerOptionWrapException(MesonException):
+    pass
+
+
 @dataclass
 class ManyInOneLinkerOptionWrapperStyle:
     """
@@ -495,7 +499,25 @@ class ManyInOneLinkerOptionWrapperStyle:
     prefix: str
     separator: str
 
+    fallback: T.Optional[LinkerOptionWrapperStyle] = None
+
     def wrap(self, group: T.List[str]) -> T.List[str]:
+        for el in group:
+            if self.separator not in el:
+                continue
+
+            if self.fallback is not None:
+                return self.fallback.wrap(group)
+
+            full = ''
+            if len(group) > 1:
+                full = f' (part of arguments list {group!r})'
+            stripped = f'{self.prefix}{el}'
+            raise LinkerOptionWrapException(f'Cannot wrap linker argument {el!r}{full} for compiler interface: '
+                                            f'would result in {stripped!r}, which the compiler would interpret as '
+                                            f'multiple linker arguments since it treats {self.separator!r} as the '
+                                            'separator.')
+
         return [self.prefix + self.separator.join(group)]
 
 
