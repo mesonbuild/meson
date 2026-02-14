@@ -17,7 +17,7 @@ import typing as T
 from ... import mesonlib
 from ... import mlog
 from ...options import OptionKey, UserStdOption
-from mesonbuild.compilers.compilers import CompileCheckMode, ManyInOneLinkerOptionWrapperStyle
+from mesonbuild.compilers.compilers import CompileCheckMode, ManyInOneLinkerOptionWrapperStyle, PrefixArgumentLinkerOptionWrapperStyle
 
 if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
@@ -356,7 +356,8 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     that the actual concrete subclass define their own implementation.
     """
 
-    LINKER_PREFIX = ManyInOneLinkerOptionWrapperStyle('-Wl,', ',')
+    LINKER_PREFIX = ManyInOneLinkerOptionWrapperStyle('-Wl,', ',',
+                                                      fallback=PrefixArgumentLinkerOptionWrapperStyle('-Xlinker'))
 
     def __init__(self) -> None:
         self.base_options = {
