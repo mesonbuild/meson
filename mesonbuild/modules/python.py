@@ -157,6 +157,8 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
     @InterpreterObject.method('extension_module')
     def extension_module_method(self, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: ExtensionModuleKw) -> 'SharedModule':
         target_kwargs = T.cast('SharedModuleKw', {k: v for k, v in kwargs.items() if k not in {'install_dir', 'subdir', 'limited_api'}})
+        if kwargs['rust_abi'] is None and kwargs['rust_crate_type'] is None:
+            target_kwargs['rust_abi'] = 'c'
 
         if kwargs['install_dir'] is not None:
             if kwargs['subdir'] is not None:
@@ -247,7 +249,6 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
                 (self.is_pypy or mesonlib.version_compare(self.version, '>=3.9')):
             target_kwargs['gnu_symbol_visibility'] = 'inlineshidden'
 
-        kwargs.setdefault('rust_abi', 'c')
         return self.interpreter.build_target(
             self.current_node, T.cast('T.Tuple[str, SourcesVarargsType]', args),
             target_kwargs, SharedModule)
