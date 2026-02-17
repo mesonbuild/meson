@@ -37,6 +37,7 @@ from ..mesonlib import get_compiler_for_source, has_path_sep, is_parent_path, lo
 from ..options import OptionKey
 from .backends import CleanTrees
 from ..build import GeneratedList, InvalidArguments
+from mesonbuild.mesonlib import MachineChoice
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
@@ -1155,11 +1156,15 @@ class NinjaBackend(backends.Backend):
             return
         command = self.environment.get_build_command() + \
             ['--internal', 'depscanaccumulate']
-        args = ['$in', 'deps.json', '$out']
+        try:
+            cpp_compiler = self.environment.coredata.compilers[MachineChoice.HOST]['cpp']
+            cpp_exe = cpp_compiler.get_exelist()[0]
+        except KeyError:
+            cpp_exe = 'clang++'
+        args = ['$in', 'deps.json', '$out', cpp_exe]
         description = 'Scanning project for modules'
         rule = NinjaRule(rulename, command, args, description)
         self.add_rule(rule)
-
         rulename = 'cpp_module_precompile'
         command = ['$COMPILER', '--precompile', '-x', 'c++-module', '$in', '-o', '$out']
         args = ['$ARGS']

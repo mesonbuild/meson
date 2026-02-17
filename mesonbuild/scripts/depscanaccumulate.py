@@ -37,11 +37,11 @@ class DynDepRule:
         return self.output_str
 
 class ClangDependencyScanner(CppDependenciesScanner):
-    def __init__(self, compilation_db_file: str, json_output_file: str, dd_output_file: str = 'deps.dd', cpp: str = 'clang++'):
+    def __init__(self, compilation_db_file: str, json_output_file: str, dd_output_file: str = 'deps.dd', cpp_compiler: str = 'clang++'):
         self.compilation_db_file = compilation_db_file
         self.json_output_file = json_output_file
         self.dd_output_file = dd_output_file
-        self.clang_scan_deps = os.path.join(os.path.dirname(shutil.which(cpp) or cpp), 'clang-scan-deps')
+        self.clang_scan_deps = os.path.join(os.path.dirname(shutil.which(cpp_compiler)), 'clang-scan-deps')
 
     def scan(self) -> int:
         try:
