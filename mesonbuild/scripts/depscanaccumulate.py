@@ -45,10 +45,21 @@ class ClangDependencyScanner(CppDependenciesScanner):
 
     def scan(self) -> int:
         try:
+            with open(self.compilation_db_file, 'r') as f:
+                compile_commands = json.load(f)
+
+            cpp_extensions = {'.cpp', '.cc', '.cxx', '.c++', '.cppm'}
+            cpp_commands = [cmd for cmd in compile_commands
+                            if os.path.splitext(cmd['file'])[1] in cpp_extensions]
+
+            filtered_db = self.compilation_db_file + '.filtered.json'
+            with open(filtered_db, 'w') as f:
+                json.dump(cpp_commands, f)
+
             r = sp.run([self.clang_scan_deps,
                         "-format=p1689",
-                        "-compilation-database", self.compilation_db_file],
-                       capture_output=True)
+                        "-compilation-database", filtered_db],
+                    capture_output=True)
             if r.returncode != 0:
                 print(r.stderr)
                 raise sp.SubprocessError("Failed to run command")

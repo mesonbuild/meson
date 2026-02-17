@@ -261,6 +261,13 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
                 self.make_option_name(key),
                 'Standard Win libraries to link against',
                 gnu_winlibs)
+
+        if version_compare(self.version, '>=17'):
+            key = self.form_compileropt_key('importstd')
+            opts[key] = options.UserComboOption(self.make_option_name(key),
+                                                'Use #import std.',
+                                                'false',
+                                                choices=['false', 'true'])
         return opts
 
     def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:

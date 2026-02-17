@@ -18,7 +18,7 @@ import re
 import subprocess
 import subprocess as sp
 import typing as T
-
+from pathlib import Path as _Path
 from . import backends
 from .. import modules
 from .. import mesonlib
@@ -512,7 +512,7 @@ class NinjaBackend(backends.Backend):
         self._first_deps_dd_rule_generated = False
         self._all_scan_sources = []
         self.import_std: T.Optional[ImportStdInfo] = None
-
+        self._import_std_warning_shown = False
 
     def create_phony_target(self, dummy_outfile: str, rulename: str, phony_infilename: str) -> NinjaBuildElement:
         '''
@@ -1182,7 +1182,41 @@ class NinjaBackend(backends.Backend):
         if not self.should_use_dyndeps_for_target(target):
             return
         self._uses_dyndeps = True
-        self._all_scan_sources.extend(compiled_sources)
+        if 'cpp' in target.compilers and target.compilers['cpp'].get_id() == 'clang':
+            self._all_scan_sources.extend(compiled_sources)
+            return
+        # Fortran per-target path
+        json_file, depscan_file = self.get_dep_scan_file_for(target)
+        pickle_base = target.name + '.dat'
+        pickle_file = os.path.join(self.get_target_private_dir(target), pickle_base).replace('\\', '/')
+        pickle_abs = os.path.join(self.get_target_private_dir_abs(target), pickle_base).replace('\\', '/')
+        rule_name = 'depscan'
+        scan_sources = list(self.select_sources_to_scan(compiled_sources))
+        scaninfo = TargetDependencyScannerInfo(
+            self.get_target_private_dir(target), source2object, scan_sources)
+        write = True
+        if os.path.exists(pickle_abs):
+            with open(pickle_abs, 'rb') as p:
+                old = pickle.load(p)
+            write = old != scaninfo
+        if write:
+            with open(pickle_abs, 'wb') as p:
+                pickle.dump(scaninfo, p)
+        elem = NinjaBuildElement(self.all_outputs, json_file, rule_name, pickle_file)
+        for s in scan_sources:
+            elem.deps.add(s[0])
+        elem.orderdeps.update(object_deps)
+        elem.add_item('name', target.name)
+        self.add_build(elem)
+        infiles: T.Set[str] = set()
+        for t in target.get_all_linked_targets():
+            if self.should_use_dyndeps_for_target(t):
+                infiles.add(self.get_dep_scan_file_for(t)[0])
+        _, od = self.flatten_object_list(target)
+        infiles.update({self.get_dep_scan_file_for(t)[0] for t in od if t.uses_fortran()})
+        elem = NinjaBuildElement(self.all_outputs, depscan_file, 'depaccumulate', [json_file] + sorted(infiles))
+        elem.add_item('name', target.name)
+        self.add_build(elem)
 
     def select_sources_to_scan(self, compiled_sources: T.List[str],
                                ) -> T.Iterable[T.Tuple[str, Literal['cpp', 'fortran']]]:
@@ -2743,8 +2777,20 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_scanner_rules(self) -> None:
         rulename = 'depscan'
         if rulename in self.ruledict:
-            # Scanning command is the same for native and cross compilation.
             return
+        command = self.environment.get_build_command() + \
+            ['--internal', 'depscan']
+        args = ['$picklefile', '$out', '$in']
+        description = 'Scanning target $name for modules'
+        rule = NinjaRule(rulename, command, args, description)
+        self.add_rule(rule)
+        rulename = 'depaccumulate'
+        command = self.environment.get_build_command() + \
+            ['--internal', 'depaccumulate']
+        args = ['$out', '$in']
+        description = 'Generating dynamic dependency information for target $name'
+        rule = NinjaRule(rulename, command, args, description)
+        self.add_rule(rule)
         self.generate_project_wide_cpp_scanner_rules()
 
     def generate_compile_rules(self) -> None:
@@ -3335,7 +3381,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         istd_dep = []
         if not self.target_uses_import_std(target):
             return istd_args, istd_dep
-        mlog.warning('Import std support is experimental and might break compatibility in the future.')
+        if not self._import_std_warning_shown:
+            self._import_std_warning_shown = True
+            mlog.warning('Import std support is experimental and might break compatibility in the future.')
         # At the time of writing, all three major compilers work
         # wildly differently. Keep this isolated here until things
         # consolidate.
@@ -3370,6 +3418,36 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 self.import_std = ImportStdInfo(elem, mod_file, [mod_obj_file])
             istd_dep = [File(True, '', self.import_std.gen_module_file)]
             return istd_args, istd_dep
+        elif compiler.id == 'clang':
+            if self.import_std is None:
+                mod_file = 'std.pcm'
+                # Find libc++.modules.json in lib search dirs and resolve std.cppm path
+                lib_dirs = self.environment.coredata.get_external_link_args(MachineChoice.HOST, 'cpp')
+                in_file_str = None
+                for arg in lib_dirs:
+                    if arg.startswith('-L'):
+                        lib_dir = _Path(arg[2:])
+                        modules_json = lib_dir / 'libc++.modules.json'
+                        if modules_json.is_file():
+                            data = json.loads(modules_json.read_text())
+                            for mod in data['modules']:
+                                if mod['logical-name'] == 'std':
+                                    in_file_str = str((lib_dir / mod['source-path']).resolve())
+                                    break
+                        if in_file_str:
+                            break
+                if not in_file_str:
+                    raise MesonException('Could not find libc++.modules.json via -L paths in cpp_link_args.')
+                elem = NinjaBuildElement(self.all_outputs, [mod_file], 'CUSTOM_COMMAND', [in_file_str])
+                compile_args = [a for a in self.environment.coredata.get_external_args(MachineChoice.HOST, 'cpp')
+                                if a != '-fmodules']
+                compile_args += compiler.get_option_std_args(target, self.environment)
+                compile_args += ['--precompile', in_file_str, '-o', mod_file]
+                elem.add_item('COMMAND', compiler.exelist + compile_args)
+                self.add_build(elem)
+                self.import_std = ImportStdInfo(elem, mod_file, [])
+            istd_dep = [File(True, '', self.import_std.gen_module_file)]
+            return istd_args, istd_dep
         else:
             raise MesonException(f'Import std not supported on compiler {compiler.id} yet.')
 
@@ -3383,7 +3461,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             extension = extension.lower()
         if not (extension in compilers.lang_suffixes['fortran'] or extension in compilers.lang_suffixes['cpp']):
             return
-        dep_scan_file = 'deps.dd'
+        if extension in compilers.lang_suffixes['cpp'] and compiler.get_id() == 'clang':
+            dep_scan_file = 'deps.dd'
+        else:
+            dep_scan_file = self.get_dep_scan_file_for(target)[1]
         element.add_item('dyndep', dep_scan_file)
         element.add_orderdep(dep_scan_file)
 
