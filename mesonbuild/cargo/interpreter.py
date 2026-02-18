@@ -104,6 +104,10 @@ class PackageState:
     ws_member: T.Optional[str] = None
     # Package configuration state
     cfg: T.Optional[PackageConfiguration] = None
+    # Subproject name as known to the wrap resolver (may differ from the
+    # meson dep name for git sources, where the wrap is named after the
+    # git directory rather than the crate name + api version).
+    subproject_name: T.Optional[str] = None
 
     def get_env_dict(self, environment: Environment, subdir: str) -> T.Dict[str, str]:
         """Get environment variables for this package."""
@@ -199,6 +203,8 @@ class PackageState:
         return abis
 
     def get_subproject_name(self) -> SubProject:
+        if self.subproject_name is not None:
+            return SubProject(self.subproject_name)
         dep = _dependency_name(self.manifest.package.name, self.manifest.package.api)
         return SubProject(dep)
 
@@ -493,6 +499,7 @@ class Interpreter:
         ws = self._get_workspace(manifest, subdir, downloaded=downloaded)
         member = ws.packages_to_member[package_name]
         pkg = self._require_workspace_member(ws, member)
+        pkg.subproject_name = subp_name
         return pkg
 
     def _prepare_package(self, pkg: PackageState) -> None:
