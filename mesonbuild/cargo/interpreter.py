@@ -439,8 +439,7 @@ class Interpreter:
         pkg = self.packages.get(key)
         if pkg:
             return pkg
-        meson_depname = _dependency_name(package_name, api)
-        return self._fetch_package_from_subproject(package_name, meson_depname)
+        return self._fetch_package_from_provider(package_name, api)
 
     def _resolve_package(self, package_name: str, version_constraints: T.List[str]) -> T.Optional[CargoLockPackage]:
         """From all available versions from Cargo.lock, pick the most recent
@@ -464,7 +463,8 @@ class Interpreter:
         api = version.api(cargo_pkg.version)
         return self._fetch_package(package_name, api)
 
-    def _fetch_package_from_subproject(self, package_name: str, meson_depname: str) -> PackageState:
+    def _fetch_package_from_provider(self, package_name: str, api: str) -> PackageState:
+        meson_depname = _dependency_name(package_name, api)
         subp_name, _ = self.environment.wrap_resolver.find_dep_provider(meson_depname)
         if subp_name is None:
             if self.cargolock is None:
@@ -479,9 +479,12 @@ class Interpreter:
                 similar_msg = 'Cargo.lock does not contain this crate name.'
             raise MesonException(f'Dependency {meson_depname!r} not found in any wrap files or Cargo.lock; {similar_msg} This could be a Meson bug, please report it.')
 
+        return self._fetch_package_from_subproject(package_name, subp_name)
+
+    def _fetch_package_from_subproject(self, package_name: str, subp_name: str) -> PackageState:
         subdir, _ = self.environment.wrap_resolver.resolve(subp_name)
         subprojects_dir = os.path.join(subdir, 'subprojects')
-        self.environment.wrap_resolver.load_and_merge(subprojects_dir, SubProject(meson_depname))
+        self.environment.wrap_resolver.load_and_merge(subprojects_dir, SubProject(subp_name))
         manifest, _ = self._load_manifest(subdir)
         downloaded = \
             subp_name in self.environment.wrap_resolver.wraps and \
