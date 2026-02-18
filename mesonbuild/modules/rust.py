@@ -657,6 +657,12 @@ class RustModule(ExtensionModule):
             self.interpreter.cargo.features = cargo_features
 
         ws = self.interpreter.cargo.load_workspace(state.root_subdir)
+
+        # Cargo projects may not have a subprojects directory, because
+        # dependencies are declared in Cargo.toml rather than .wrap files.
+        # Create it now so that the wrap resolver can download the crates there
+        os.makedirs(self.interpreter.environment.wrap_resolver.subdir_root, exist_ok=True)
+
         return RustWorkspace(self.interpreter, ws)
 
 
