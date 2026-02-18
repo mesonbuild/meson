@@ -78,14 +78,14 @@ class PackageConfiguration:
     def get_features_args(self) -> T.List[str]:
         """Get feature configuration arguments."""
         args: T.List[str] = []
-        for feature in self.features:
+        for feature in sorted(self.features):
             args.extend(['--cfg', f'feature="{feature}"'])
         return args
 
     def get_dependency_map(self, manifest: Manifest) -> T.Dict[str, str]:
         """Get the rust dependency mapping for this package configuration."""
         dependency_map: T.Dict[str, str] = {}
-        for name in self.required_deps:
+        for name in sorted(self.required_deps):
             dep = manifest.dependencies[name]
             dep_key = PackageKey(dep.package, dep.api)
             dep_pkg = self.dep_packages[dep_key]
