@@ -1879,60 +1879,56 @@ def substitute_values(command: T.List[str | programs.Program], values: T.Dict[st
     The typing of this function is difficult, as only @OUTPUT@ and @INPUT@ can
     be lists, everything else is a string. However, TypeDict cannot represent
     this, as you can have optional keys, but not extra keys. We end up just
-    having to us asserts to convince type checkers that this is okay.
+    having to use asserts to convince type checkers that this is okay.
 
     https://github.com/python/mypy/issues/4617
     '''
 
-    def replace(m: T.Match[str]) -> str:
-        v = values[m.group(0)]
-        assert isinstance(v, str), 'for mypy'
-        return v
-
-    # Error checking
+    # Error checking and quick exit
     _substitute_values_check_errors(command, values)
+    if not values:
+        return list(command)
 
     # Substitution
-    outcmd: T.List[str | programs.Program] = []
-    rx_keys = [re.escape(key) for key in values if key not in ('@INPUT@', '@OUTPUT@')]
-    value_rx = re.compile('|'.join(rx_keys)) if rx_keys else None
-    for vv in command:
-        more: T.Optional[str] = None
-        if not isinstance(vv, str):
-            outcmd.append(vv)
-        elif '@INPUT@' in vv:
-            inputs = values['@INPUT@']
-            if vv == '@INPUT@':
-                outcmd += inputs
-            elif len(inputs) == 1:
-                outcmd.append(vv.replace('@INPUT@', inputs[0]))
-            else:
+    rx_keys = [re.escape(key) for key in values]
+    value_rx = re.compile('|'.join(rx_keys))
+
+    def replace(m: T.Match[str]) -> str:
+        v = values[m.group(0)]
+        if isinstance(v, list):
+            if len(v) > 1 and m.group(0) == '@INPUT@':
                 raise MesonException("Command has '@INPUT@' as part of a "
                                      "string and more than one input file")
-        elif '@OUTPUT@' in vv:
-            outputs = values['@OUTPUT@']
-            if vv == '@OUTPUT@':
-                outcmd += outputs
-            elif len(outputs) == 1:
-                outcmd.append(vv.replace('@OUTPUT@', outputs[0]))
-            else:
+            if len(v) > 1 and m.group(0) == '@OUTPUT@':
                 raise MesonException("Command has '@OUTPUT@' as part of a "
                                      "string and more than one output file")
+            return v[0]
+        return v
 
-        # Append values that are exactly a template string.
-        # This is faster than a string replace.
+    outcmd: T.List[str | programs.Program] = []
+    for vv in command:
+        if not isinstance(vv, str):
+            outcmd.append(vv)
         elif vv in values:
-            o = values[vv]
-            assert isinstance(o, str), 'for mypy'
-            more = o
-        # Substitute everything else with replacement
-        elif value_rx:
-            more = value_rx.sub(replace, vv)
+            # Append values that are exactly a template string.
+            # This is faster than a string replace, and makes it
+            # possible to special case @INPUT@ and @OUTPUT@ too
+            if vv == '@INPUT@':
+                inputs = values['@INPUT@']
+                assert isinstance(inputs, list)
+                outcmd += inputs
+            elif vv == '@OUTPUT@':
+                outputs = values['@OUTPUT@']
+                assert isinstance(outputs, list)
+                outcmd += outputs
+            else:
+                o = values[vv]
+                assert isinstance(o, str), 'for mypy'
+                outcmd.append(o)
         else:
-            more = vv
-
-        if more is not None:
-            outcmd.append(more)
+            # Substitute everything else with replacement
+            assert values
+            outcmd.append(value_rx.sub(replace, vv))
 
     return outcmd
 
