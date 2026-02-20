@@ -1,0 +1,46 @@
+/*
+ * Copyright (C) 2025-2026 The Magma GPU Project
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Generated via:
+ *   https://github.com/mesonbuild/meson/tree/master/mesonbuild/convert
+ *
+ * Submit patches, do not hand-edit.
+ *
+ */
+
+package {
+    // See: http://go/android-license-faq
+    default_applicable_licenses: ["test_license"],
+}
+
+python_binary_host {
+    name: "script_py_binary",
+    main: "script.py",
+    srcs: [
+        "script.py",
+    ],
+}
+
+genrule {
+    name: "copy-script",
+    out: [
+        "script_copy.py",
+    ],
+    tools: [
+        "cp",
+        "script_py_binary",
+    ],
+    cmd: "$(location cp) $(location script_py_binary) $(location script_copy.py)",
+}
+
+genrule {
+    name: "gen-hdr",
+    out: [
+        "generated.h",
+    ],
+    tools: [
+        "script_py_binary",
+    ],
+    cmd: "$(location script_py_binary) $(location generated.h)",
+}

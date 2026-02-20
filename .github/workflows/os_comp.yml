@@ -178,3 +178,9 @@ jobs:
         run: |
           source /ci/env_vars.sh
           python3 run_unittests.py CheckToolchainTests
+
+    - name: Run convert unit tests
+        shell: bash
+        run: |
+          source /ci/env_vars.sh
+          python3 run_unittests.py ConvertTests
