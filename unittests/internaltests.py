@@ -325,6 +325,9 @@ class InternalTests(unittest.TestCase):
         # Check substitutions
         cmd = ['some', 'ordinary', 'strings']
         self.assertEqual(substfunc(cmd, d), cmd)
+        cmd = ['@INPUT@ @OUTPUT@']
+        self.assertEqual(substfunc(cmd, d),
+                         [f'{inputs[0]} {outputs[0]}'])
         cmd = ['@INPUT@.out', '@OUTPUT@', 'strings']
         self.assertEqual(substfunc(cmd, d),
                          [inputs[0] + '.out'] + outputs + cmd[2:])
