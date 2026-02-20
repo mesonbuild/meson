@@ -1,0 +1,39 @@
+# Copyright 2026 The Meson Development Team
+# SPDX-License-Identifier: Apache-2.0
+
+[[wrap]]
+name = "android_ndk"
+source_url = "https://dl.google.com/android/repository/android-ndk-r29-linux.zip"
+source_filename = "android-ndk-r29.zip"
+source_hash = "4abbbcdc842f3d4879206e9695d52709603e52dd68d3c1fff04b3b5e7a308ecf"
+
+[[toolchain]]
+name = "android_ndk_toolchain_aarch64"
+wrap_name = "android_ndk"
+ar = "toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+cc = "toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang"
+cpp = "toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang++"
+strip = "toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
+
+[[platform]]
+name = "android_arm64"
+
+[platform.machine_info]
+cpu_family = "aarch64"
+cpu = "aarch64"
+system = "android"
+endian = "little"
+
+[platform.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+toolchain = "android_ndk_toolchain_aarch64"
+sysroot = { wrap_name = "android_ndk", path = "toolchains/llvm/prebuilt/linux-x86_64/sysroot" }
+
+[platform.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+toolchain = "android_ndk_toolchain_aarch64"
+sysroot = { wrap_name = "android_ndk", path = "toolchains/llvm/prebuilt/linux-x86_64/sysroot" }
