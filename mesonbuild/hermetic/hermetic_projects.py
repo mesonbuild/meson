@@ -39,9 +39,8 @@ HERMETIC_FAST_MAP: T.Dict[HermeticFastPathKey, str] = {
 }
 
 
-def get_known_toml_files(
-    hermetic_project: str, git_project: str, project_dir: str
-) -> T.Optional[T.Tuple[str, str, str]]:
+def get_known_toml_files(hermetic_project: str, git_project: str,
+                         project_dir: str) -> T.Optional[T.Tuple[str, str, str]]:  # fmt: skip
     key = HermeticFastPathKey(hermetic_project, git_project)
     directory = HERMETIC_FAST_MAP.get(key)
 

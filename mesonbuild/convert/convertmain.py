@@ -40,7 +40,7 @@ if T.TYPE_CHECKING:
         project_dir: str
         output_dir: T.Optional[str]
         config: str
-        platform: T.Optional[str]
+        platforms: T.Optional[str]
         dependencies: T.Optional[str]
         hermetic_project: T.Optional[str]
         git_project: T.Optional[str]

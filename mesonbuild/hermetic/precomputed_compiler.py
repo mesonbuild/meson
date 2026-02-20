@@ -122,20 +122,6 @@ class PrecomputedHermeticCLikeCompiler(PrecomputedHermeticCompiler):
 
         super().__init__(exelist, version, for_machine, env, conf, linker, full_version=version)
         base_opts = conf.get('base_options')
-        if base_opts is None:
-            base_opts = [
-                'b_pch',
-                'b_lto',
-                'b_pgo',
-                'b_coverage',
-                'b_ndebug',
-                'b_staticpic',
-                'b_pie',
-                'b_colorout',
-                'b_sanitize',
-                'b_lundef',
-                'b_asneeded',
-            ]
         self.base_options.update({OptionKey(o) for o in base_opts})
         self.can_compile_suffixes.update({'s', 'sx'})
 
@@ -247,26 +233,6 @@ class PrecomputedHermeticCCompiler(PrecomputedHermeticCLikeCompiler):
         opts = super().get_options()
         key = self.form_compileropt_key('std')
         choices = self.conf.get('standards')
-        if choices is None:
-            choices = [
-                'none',
-                'c89',
-                'c90',
-                'c99',
-                'c11',
-                'c17',
-                'c18',
-                'c2x',
-                'c23',
-                'gnu89',
-                'gnu90',
-                'gnu99',
-                'gnu11',
-                'gnu17',
-                'gnu18',
-                'gnu2x',
-                'gnu23',
-            ]
         opts[key] = options.UserComboOption(
             self.make_option_name(key), 'C language standard to use', 'none', choices=choices
         )
@@ -280,30 +246,6 @@ class PrecomputedHermeticCppCompiler(PrecomputedHermeticCLikeCompiler):
         opts = super().get_options()
         key = self.form_compileropt_key('std')
         choices = self.conf.get('standards')
-        if choices is None:
-            choices = [
-                'none',
-                'c++98',
-                'c++03',
-                'c++11',
-                'c++14',
-                'c++17',
-                'c++20',
-                'c++23',
-                'c++26',
-                'c++2b',
-                'c++2c',
-                'gnu++98',
-                'gnu++03',
-                'gnu++11',
-                'gnu++14',
-                'gnu++17',
-                'gnu++20',
-                'gnu++23',
-                'gnu++26',
-                'gnu++2b',
-                'gnu++2c',
-            ]
         opts[key] = options.UserComboOption(
             self.make_option_name(key), 'C++ language standard to use', 'none', choices=choices
         )
@@ -337,20 +279,15 @@ class PrecomputedHermeticRustCompiler(PrecomputedHermeticCompiler):
             conf['linker_id'] = 'rustc'
         version = conf.get('version', '1.90.0')
         exelist = ['/usr/bin/true']
+        self.is_nightly = False
+        self.native_static_libs = []
 
         super().__init__(exelist, version, for_machine, env, conf, full_version=version)
-        self.native_static_libs: T.List[str] = []
-        base_opts = conf.get('base_options')
-        if base_opts is None:
-            base_opts = ['b_colorout', 'b_coverage', 'b_ndebug', 'b_pgo', 'b_staticpic', 'b_pie']
-        self.base_options.update({OptionKey(o) for o in base_opts})
-
-        fv = version
-        self.is_beta = '-beta' in fv
-        self.is_nightly = '-nightly' in fv
-        self.has_check_cfg = version_compare(version, '>=1.80.0')
 
     def needs_static_linker(self) -> bool:
+        return False
+
+    def get_crt_static(self) -> bool:
         return False
 
     def get_rustdoc(self) -> T.Optional[RustdocTestCompiler]:
@@ -364,32 +301,6 @@ class PrecomputedHermeticRustCompiler(PrecomputedHermeticCompiler):
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return rust_optimization_args.get(optimization_level, [])
-
-    def get_sysroot(self) -> str:
-        return ''
-
-    def get_target_libdir(self) -> str:
-        return ''
-
-    def get_target_triple(self) -> str:
-        cpu = self.info.cpu_family
-        system = self.info.system
-        if system == 'linux':
-            return f'{cpu}-unknown-linux-gnu'
-        elif system == 'darwin':
-            return f'{cpu}-apple-darwin'
-        elif system == 'windows':
-            return f'{cpu}-pc-windows-msvc'
-        elif system == 'fuchsia':
-            return f'{cpu}-unknown-fuchsia'
-        return f'{cpu}-unknown-{system}'
-
-    def get_crt_static(self) -> bool:
-        return False
-
-    @functools.lru_cache(maxsize=None)
-    def get_cfgs(self) -> T.List[str]:
-        return []
 
     def get_options(self) -> options.MutableKeyedOptionDictType:
         opts = super().get_options()
@@ -417,3 +328,7 @@ class PrecomputedHermeticRustCompiler(PrecomputedHermeticCompiler):
         )
 
         return opts
+
+    @functools.lru_cache(maxsize=None)
+    def get_cfgs(self) -> T.List[str]:
+        return []

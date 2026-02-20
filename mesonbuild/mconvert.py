@@ -60,7 +60,7 @@ def run(options: ConvertOptions) -> int:
             options.config, options.platforms, options.dependencies = res
         else:
             sys.exit('Error looking up convert fast path')
-    elif not all([options.config, options.platform]):
+    elif not all([options.config, options.platforms]):
         sys.exit(
             'Error: You must specify either a hermetic project and git project, or --config and --platform paths.'
         )
