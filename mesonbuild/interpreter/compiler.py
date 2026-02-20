@@ -918,6 +918,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             kwargs['compile_args'],
             self.interpreter.extract_incdirs(kwargs['include_directories']),
             kwargs['dependencies'],
+            self.interpreter.build.is_build_only,
             kwargs['depends'])
         self.interpreter.add_target(tg.name, tg)
         # Expose this target as list of its outputs, so user can pass them to

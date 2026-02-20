@@ -508,6 +508,7 @@ class GnomeModule(ExtensionModule):
             target_cmd,
             [input_file],
             [output],
+            state.is_build_only_subproject,
             build_by_default=kwargs['build_by_default'],
             depfile=depfile,
             depend_files=depend_files,
@@ -531,6 +532,7 @@ class GnomeModule(ExtensionModule):
             cmd,
             [input_file],
             [f'{target_name}.h'],
+            state.is_build_only_subproject,
             build_by_default=kwargs['build_by_default'],
             extra_depends=depends,
             install=install_header,
@@ -1005,6 +1007,7 @@ class GnomeModule(ExtensionModule):
             scan_command,
             generated_files,
             [girfile],
+            state.is_build_only_subproject,
             build_by_default=kwargs['build_by_default'],
             extra_depends=depends,
             install=install,
@@ -1037,6 +1040,7 @@ class GnomeModule(ExtensionModule):
             typelib_cmd,
             generated_files,
             [typelib_output],
+            state.is_build_only_subproject,
             install=install,
             install_dir=[install_dir],
             install_tag=['typelib'],
@@ -1278,6 +1282,7 @@ class GnomeModule(ExtensionModule):
             cmd,
             [],
             ['gschemas.compiled'],
+            state.is_build_only_subproject,
             build_by_default=kwargs['build_by_default'],
             depend_files=kwargs['depend_files'],
             description='Compiling gschemas {}',
@@ -1396,6 +1401,7 @@ class GnomeModule(ExtensionModule):
                 [msgfmt, '@INPUT@', '-o', '@OUTPUT@'],
                 [po_file],
                 [gmo_file],
+                state.is_build_only_subproject,
                 install_tag=['doc'],
                 description='Generating yelp doc {}',
             )
@@ -1409,6 +1415,7 @@ class GnomeModule(ExtensionModule):
                 [itstool, '-m', os.path.join(l_subdir, gmo_file), '--lang', l, '-o', '@OUTDIR@', '@INPUT@'],
                 sources_files,
                 sources,
+                state.is_build_only_subproject,
                 extra_depends=[gmotarget],
                 install=True,
                 install_dir=[l_install_dir],
@@ -1558,6 +1565,7 @@ class GnomeModule(ExtensionModule):
             command + t_args,
             [],
             [f'{modulename}-decl.txt'],
+            state.is_build_only_subproject,
             build_always_stale=True,
             extra_depends=new_depends,
             description='Generating gtkdoc {}',
@@ -1725,6 +1733,7 @@ class GnomeModule(ExtensionModule):
             c_cmd,
             xml_files,
             [output],
+            state.is_build_only_subproject,
             build_by_default=build_by_default,
             description='Generating gdbus source {}',
         )
@@ -1746,6 +1755,7 @@ class GnomeModule(ExtensionModule):
             hfile_cmd,
             xml_files,
             [output],
+            state.is_build_only_subproject,
             build_by_default=build_by_default,
             extra_depends=depends,
             install=install_header,
@@ -1778,6 +1788,7 @@ class GnomeModule(ExtensionModule):
                 docbook_cmd,
                 xml_files,
                 outputs,
+                state.is_build_only_subproject,
                 build_by_default=build_by_default,
                 extra_depends=depends,
                 description='Generating gdbus docbook {}',
@@ -1800,6 +1811,7 @@ class GnomeModule(ExtensionModule):
                 cmd + ['--output-directory', '@OUTDIR@', '--generate-rst', rst, '@INPUT@'],
                 xml_files,
                 outputs,
+                state.is_build_only_subproject,
                 build_by_default=build_by_default,
                 description='Generating gdbus reStructuredText {}',
             )
@@ -1821,6 +1833,7 @@ class GnomeModule(ExtensionModule):
                 cmd + ['--output-directory', '@OUTDIR@', '--generate-md', markdown, '@INPUT@'],
                 xml_files,
                 outputs,
+                state.is_build_only_subproject,
                 build_by_default=build_by_default,
                 description='Generating gdbus markdown {}',
             )
@@ -2060,6 +2073,7 @@ class GnomeModule(ExtensionModule):
             real_cmd,
             sources,
             [output],
+            state.is_build_only_subproject,
             capture=True,
             install=install,
             install_dir=[_install_dir],
@@ -2130,6 +2144,7 @@ class GnomeModule(ExtensionModule):
             h_cmd,
             sources,
             [header_file],
+            state.is_build_only_subproject,
             install=install_header,
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] else [],
             install_tag=['devel'],
@@ -2152,6 +2167,7 @@ class GnomeModule(ExtensionModule):
             c_cmd,
             sources,
             [f'{output}.c'],
+            state.is_build_only_subproject,
             capture=capture,
             depend_files=kwargs['depend_files'],
             extra_depends=extra_deps,
@@ -2274,9 +2290,10 @@ class GnomeModule(ExtensionModule):
             state.subdir,
             state.subproject,
             state.environment,
-            command=cmd,
-            sources=inputs,
-            outputs=[vapi_output],
+            cmd,
+            inputs,
+            [vapi_output],
+            state.is_build_only_subproject,
             extra_depends=vapi_depends,
             install=kwargs['install'],
             install_dir=[install_dir],
@@ -2287,7 +2304,8 @@ class GnomeModule(ExtensionModule):
         # - link with the correct library
         # - include the vapi and dependent vapi files in sources
         # - add relevant directories to include dirs
-        incs = [build.IncludeDirs(state.subdir, ['.'] + vapi_includes, False)]
+        incs = [build.IncludeDirs(state.subdir, ['.'] + vapi_includes, False,
+                is_build_only_subproject=state.is_build_only_subproject)]
         sources = [vapi_target] + vapi_depends
         rv = InternalDependency(None, incs, [], [], link_with, [], sources, [], [], {}, [], [], [])
         created_values.append(rv)
