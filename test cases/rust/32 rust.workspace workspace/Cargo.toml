@@ -1,5 +1,5 @@
 [workspace]
-members = ["."]
+members = [".", "more"]
 
 [package]
 name = "workspace_test"
@@ -14,3 +14,4 @@ feature2 = []
 [dependencies]
 hello = { version = "1.0", path = "subprojects/hello-1.0", optional = true }
 answer = { version = "2.1", path = "subprojects/answer-2.1", optional = true }
+more = { path = "more" }

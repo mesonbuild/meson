@@ -8,7 +8,7 @@ import dataclasses
 import os.path
 import typing as T
 
-from .. import build, dependencies, mesonlib
+from .. import build, dependencies, mesonlib, mlog
 from ..options import OptionKey
 from ..build import IncludeDirs
 from ..interpreterbase.decorators import noKwargs, noPosargs
@@ -17,6 +17,7 @@ from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from ..compilers.compilers import Language
+    from ..dependencies.base import DependencyObjectKWs
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import ProgramVersionFunc
     from ..interpreterbase import TYPE_var, TYPE_kwargs
@@ -38,6 +39,7 @@ class ModuleState:
         self.source_root = interpreter.environment.get_source_dir()
         self.build_to_src = relpath(interpreter.environment.get_source_dir(),
                                     interpreter.environment.get_build_dir())
+        self.subproject_dir = interpreter.subproject_dir
         self.subproject = interpreter.subproject
         self.subdir = interpreter.subdir
         self.root_subdir = interpreter.root_subdir
@@ -112,6 +114,20 @@ class ModuleState:
         # Normal program lookup
         return self.find_program(name, required=required, wanted=wanted)
 
+    def override_dependency(self, depname: str, dep: Dependency, static: T.Optional[bool] = None,
+                            for_machine: MachineChoice = MachineChoice.HOST) -> None:
+        kwargs: DependencyObjectKWs = {'native': for_machine}
+        if static is not None:
+            kwargs['static'] = static
+        identifier = dependencies.get_dep_identifier(depname, kwargs)
+        override = self.dependency_overrides[for_machine].get(identifier)
+        if override:
+            m = 'Tried to override dependency {!r} which has already been resolved or overridden at {}'
+            location = mlog.get_error_location_string(override.node.filename, override.node.lineno)
+            raise mesonlib.MesonException(m.format(depname, location))
+        self.dependency_overrides[for_machine][identifier] = \
+            build.DependencyOverride(dep, self._interpreter.current_node)
+
     def overridden_dependency(self, depname: str, for_machine: MachineChoice = MachineChoice.HOST) -> Dependency:
         identifier = dependencies.get_dep_identifier(depname, {'native': for_machine})
         try:
@@ -120,7 +136,7 @@ class ModuleState:
             raise mesonlib.MesonException(f'dependency "{depname}" was not overridden for the {for_machine}')
 
     def dependency(self, depname: str, native: bool = False, required: bool = True,
-                   wanted: T.Optional[str] = None) -> 'Dependency':
+                   wanted: T.Optional[T.Union[str, T.List[str]]] = None) -> 'Dependency':
         kwargs: T.Dict[str, object] = {'native': native, 'required': required}
         if wanted:
             kwargs['version'] = wanted

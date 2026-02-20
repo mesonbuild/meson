@@ -25,7 +25,9 @@ from .cfg import eval_cfg
 from .toml import load_toml
 from .manifest import Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname
 from ..interpreterbase import SubProject
-from ..mesonlib import is_parent_path, MesonException, MachineChoice, unique_list, version_compare
+from ..mesonlib import (
+    is_parent_path, lazy_property, MesonException, MachineChoice,
+    unique_list, version_compare)
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
 
@@ -34,7 +36,7 @@ if T.TYPE_CHECKING:
     from .. import mparser
     from typing_extensions import Literal
 
-    from .manifest import Dependency, SystemDependency
+    from .manifest import Dependency
     from ..environment import Environment
     from ..compilers.rust import RustCompiler
 
@@ -43,19 +45,6 @@ if T.TYPE_CHECKING:
 def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
     basename = package_name[:-len(suffix)] if suffix and package_name.endswith(suffix) else package_name
     return f'{basename}-{api}{suffix}'
-
-
-def _dependency_varname(dep: Dependency) -> str:
-    return f'{fixup_meson_varname(dep.package)}_{(dep.api.replace(".", "_"))}_dep'
-
-
-def _library_name(name: str, api: str, lib_type: Literal['rust', 'c', 'proc-macro'] = 'rust') -> str:
-    # Add the API version to the library name to avoid conflicts when multiple
-    # versions of the same crate are used. The Ninja backend removed everything
-    # after the + to form the crate name.
-    if lib_type == 'c':
-        return name
-    return f'{name}+{api.replace(".", "_")}'
 
 
 def _extra_args_varname() -> str:
@@ -89,7 +78,7 @@ class PackageConfiguration:
             dep = manifest.dependencies[name]
             dep_key = PackageKey(dep.package, dep.api)
             dep_pkg = self.dep_packages[dep_key]
-            dep_lib_name = _library_name(dep_pkg.manifest.lib.name, dep_pkg.manifest.package.api)
+            dep_lib_name = dep_pkg.library_name()
             dep_crate_name = name if name != dep.package else dep_pkg.manifest.lib.name
             dependency_map[dep_lib_name] = dep_crate_name
         return dependency_map
@@ -104,6 +93,25 @@ class PackageState:
     ws_member: T.Optional[str] = None
     # Package configuration state
     cfg: T.Optional[PackageConfiguration] = None
+    # Subproject name as known to the wrap resolver (may differ from the
+    # meson dep name for git sources, where the wrap is named after the
+    # git directory rather than the crate name + api version).
+    subproject_name: T.Optional[str] = None
+
+    @lazy_property
+    def path(self) -> T.Optional[str]:
+        if not self.ws_subdir:
+            return None
+        return os.path.normpath(os.path.join(self.ws_subdir, self.ws_member))
+
+    def library_name(self, lib_type: RUST_ABI = 'rust') -> str:
+        # Add the API version to the library name to avoid conflicts when multiple
+        # versions of the same crate are used. The Ninja backend removed everything
+        # after the + to form the crate name.
+        name = fixup_meson_varname(self.manifest.package.name)
+        if lib_type == 'c':
+            return name
+        return f'{name}+{self.manifest.package.api.replace(".", "_")}'
 
     def get_env_dict(self, environment: Environment, subdir: str) -> T.Dict[str, str]:
         """Get environment variables for this package."""
@@ -199,20 +207,38 @@ class PackageState:
         return abis
 
     def get_subproject_name(self) -> SubProject:
+        if self.subproject_name is not None:
+            return SubProject(self.subproject_name)
         dep = _dependency_name(self.manifest.package.name, self.manifest.package.api)
         return SubProject(dep)
 
-    def get_dependency_name(self, rust_abi: T.Optional[RUST_ABI]) -> str:
-        """Get the dependency name for a package with the given ABI."""
+    def abi_resolve_default(self, rust_abi: T.Optional[RUST_ABI]) -> RUST_ABI:
         supported_abis = self.supported_abis()
         if rust_abi is None:
             if len(supported_abis) > 1:
                 raise MesonException(f'Package {self.manifest.package.name} support more than one ABI')
-            rust_abi = next(iter(supported_abis))
+            return next(iter(supported_abis))
         else:
             if rust_abi not in supported_abis:
                 raise MesonException(f'Package {self.manifest.package.name} does not support ABI {rust_abi}')
+            return rust_abi
 
+    def abi_has_shared(self, rust_abi: RUST_ABI) -> bool:
+        if rust_abi == 'proc-macro':
+            return True
+        return ('cdylib' if rust_abi == 'c' else 'dylib') in self.manifest.lib.crate_type
+
+    def abi_has_static(self, rust_abi: RUST_ABI) -> bool:
+        if rust_abi == 'proc-macro':
+            return False
+        crate_type = self.manifest.lib.crate_type
+        if rust_abi == 'c':
+            return 'staticlib' in crate_type
+        return 'lib' in crate_type or 'rlib' in crate_type
+
+    def get_dependency_name(self, rust_abi: T.Optional[RUST_ABI]) -> str:
+        """Get the dependency name for a package with the given ABI."""
+        rust_abi = self.abi_resolve_default(rust_abi)
         package_name = self.manifest.package.name
         api = self.manifest.package.api
 
@@ -299,6 +325,21 @@ class Interpreter:
             for feature in self.features:
                 self._enable_feature(pkg, feature)
 
+    def load_package(self, ws: WorkspaceState, package_name: T.Optional[str]) -> PackageState:
+        if package_name is None:
+            if not ws.workspace.root_package:
+                raise MesonException('no root package in workspace')
+            path = '.'
+        else:
+            try:
+                path = ws.packages_to_member[package_name]
+            except KeyError:
+                raise MesonException(f'workspace member "{package_name}" not found')
+
+        if is_parent_path(self.subprojects_dir, path):
+            raise MesonException('argument to package() cannot be a subproject')
+        return ws.packages[path]
+
     def interpret(self, subdir: str, project_root: T.Optional[str] = None) -> mparser.CodeBlockNode:
         filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')
         build = builder.Builder(filename)
@@ -320,32 +361,24 @@ class Interpreter:
         return build.block(ast)
 
     def _create_package(self, pkg: PackageState, build: builder.Builder, subdir: str) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg
         ast: T.List[mparser.BaseNode] = [
-            build.assign(build.array([build.string(f) for f in cfg.features]), 'features'),
+            build.assign(build.method('package', build.identifier('cargo_ws'),
+                                      [build.string(pkg.manifest.package.name)]), 'pkg_obj'),
+            build.assign(build.method('features', build.identifier('pkg_obj')), 'features'),
             build.function('message', [
                 build.string('Enabled features:'),
                 build.identifier('features'),
             ]),
         ]
-        ast += self._create_dependencies(pkg, build)
+        ast += self._create_feature_checks(pkg, build)
         ast += self._create_meson_subdir(build)
 
         if pkg.manifest.lib:
             crate_type = pkg.manifest.lib.crate_type
             if 'dylib' in crate_type and 'cdylib' in crate_type:
                 raise MesonException('Cannot build both dylib and cdylib due to file name conflict')
-            abis = pkg.supported_abis()
-            if 'proc-macro' in abis:
-                ast.extend(self._create_lib(pkg, build, subdir, 'proc-macro', shared=True))
-            if 'rust' in abis:
-                ast.extend(self._create_lib(pkg, build, subdir, 'rust',
-                                            static=('lib' in crate_type or 'rlib' in crate_type),
-                                            shared='dylib' in crate_type))
-            if 'c' in abis:
-                ast.extend(self._create_lib(pkg, build, subdir, 'c',
-                                            static='staticlib' in crate_type,
-                                            shared='cdylib' in crate_type))
+            for abi in pkg.supported_abis():
+                ast.extend(self._create_lib(pkg, build, subdir, abi))
 
         return ast
 
@@ -439,8 +472,7 @@ class Interpreter:
         pkg = self.packages.get(key)
         if pkg:
             return pkg
-        meson_depname = _dependency_name(package_name, api)
-        return self._fetch_package_from_subproject(package_name, meson_depname)
+        return self._fetch_package_from_provider(package_name, api)
 
     def _resolve_package(self, package_name: str, version_constraints: T.List[str]) -> T.Optional[CargoLockPackage]:
         """From all available versions from Cargo.lock, pick the most recent
@@ -464,7 +496,8 @@ class Interpreter:
         api = version.api(cargo_pkg.version)
         return self._fetch_package(package_name, api)
 
-    def _fetch_package_from_subproject(self, package_name: str, meson_depname: str) -> PackageState:
+    def _fetch_package_from_provider(self, package_name: str, api: str) -> PackageState:
+        meson_depname = _dependency_name(package_name, api)
         subp_name, _ = self.environment.wrap_resolver.find_dep_provider(meson_depname)
         if subp_name is None:
             if self.cargolock is None:
@@ -479,9 +512,12 @@ class Interpreter:
                 similar_msg = 'Cargo.lock does not contain this crate name.'
             raise MesonException(f'Dependency {meson_depname!r} not found in any wrap files or Cargo.lock; {similar_msg} This could be a Meson bug, please report it.')
 
+        return self._fetch_package_from_subproject(package_name, subp_name)
+
+    def _fetch_package_from_subproject(self, package_name: str, subp_name: str) -> PackageState:
         subdir, _ = self.environment.wrap_resolver.resolve(subp_name)
         subprojects_dir = os.path.join(subdir, 'subprojects')
-        self.environment.wrap_resolver.load_and_merge(subprojects_dir, SubProject(meson_depname))
+        self.environment.wrap_resolver.load_and_merge(subprojects_dir, SubProject(subp_name))
         manifest, _ = self._load_manifest(subdir)
         downloaded = \
             subp_name in self.environment.wrap_resolver.wraps and \
@@ -490,6 +526,7 @@ class Interpreter:
         ws = self._get_workspace(manifest, subdir, downloaded=downloaded)
         member = ws.packages_to_member[package_name]
         pkg = self._require_workspace_member(ws, member)
+        pkg.subproject_name = subp_name
         return pkg
 
     def _prepare_package(self, pkg: PackageState) -> None:
@@ -684,54 +721,26 @@ class Interpreter:
                          'cargo_ws')
         ]
 
-    def _create_dependencies(self, pkg: PackageState, build: builder.Builder) -> T.List[mparser.BaseNode]:
+    def _create_feature_checks(self, pkg: PackageState, build: builder.Builder) -> T.List[mparser.BaseNode]:
         cfg = pkg.cfg
         ast: T.List[mparser.BaseNode] = []
         for depname in cfg.required_deps:
             dep = pkg.manifest.dependencies[depname]
             dep_pkg = self._dep_package(pkg, dep)
             if dep_pkg.manifest.lib:
-                ast += self._create_dependency(dep_pkg, dep, build)
-        ast.append(build.assign(build.array([]), 'system_deps_args'))
-        for name, sys_dep in pkg.manifest.system_dependencies.items():
-            if sys_dep.enabled(cfg.features):
-                ast += self._create_system_dependency(name, sys_dep, build)
+                ast += self._create_feature_check(dep_pkg, dep, build)
         return ast
 
-    def _create_system_dependency(self, name: str, dep: SystemDependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
-        # TODO: handle feature_overrides
-        kw = {
-            'version': build.array([build.string(s) for s in dep.meson_version]),
-            'required': build.bool(not dep.optional),
-        }
-        varname = f'{fixup_meson_varname(name)}_system_dep'
-        cfg = f'system_deps_have_{fixup_meson_varname(name)}'
-        return [
-            build.assign(
-                build.function(
-                    'dependency',
-                    [build.string(dep.name)],
-                    kw,
-                ),
-                varname,
-            ),
-            build.if_(
-                build.method('found', build.identifier(varname)), build.block([
-                    build.plusassign(
-                        build.array([build.string('--cfg'), build.string(cfg)]),
-                        'system_deps_args'
-                    ),
-                ])
-            ),
-        ]
-
-    def _create_dependency(self, pkg: PackageState, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
+    def _create_feature_check(self, pkg: PackageState, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
         cfg = pkg.cfg
-        dep_obj: mparser.BaseNode
-        dep_pkg = self.cargolock and self.resolve_package(dep.package, dep.api)
-        if dep_pkg and dep_pkg.ws_subdir != pkg.ws_subdir:
-            dep_obj = build.method(
-                'dependency',
+        feat_obj: mparser.BaseNode
+        feat_pkg = self.cargolock and self.resolve_package(dep.package, dep.api)
+        if feat_pkg:
+            if feat_pkg.ws_subdir == pkg.ws_subdir:
+                return []
+
+            feat_obj = build.method(
+                'features',
                 build.method(
                     'subproject',
                     build.identifier('cargo_ws'),
@@ -741,10 +750,21 @@ class Interpreter:
             kw = {
                 'version': build.array([build.string(s) for s in version_]),
             }
+            # actual_features = dependency(...).get_variable('features', default_value : '').split(',')
             dep_obj = build.function(
                  'dependency',
                  [build.string(_dependency_name(dep.package, dep.api))],
                  kw)
+            feat_obj = build.method(
+                'split',
+                build.method(
+                    'get_variable',
+                    dep_obj,
+                    [build.string('features')],
+                    {'default_value': build.string('')}
+                ),
+                [build.string(',')],
+            )
 
         # However, this subproject could have been previously configured with a
         # different set of features. Cargo collects the set of features globally
@@ -756,23 +776,9 @@ class Interpreter:
         # option manually with -Dxxx-rs:feature-yyy=true, or the main project can do
         # that in its project(..., default_options: ['xxx-rs:feature-yyy=true']).
         return [
-            # xxx_dep = cargo_ws.subproject('xxx', 'api').dependency()
+            # actual_features = dependency(...).get_variable('features', default_value : '').split(',')
             build.assign(
-                dep_obj,
-                _dependency_varname(dep),
-            ),
-            # actual_features = xxx_dep.get_variable('features', default_value : '').split(',')
-            build.assign(
-                build.method(
-                    'split',
-                    build.method(
-                        'get_variable',
-                        build.identifier(_dependency_varname(dep)),
-                        [build.string('features')],
-                        {'default_value': build.string('')}
-                    ),
-                    [build.string(',')],
-                ),
+                feat_obj,
                 'actual_features'
             ),
             # needed_features = [f1, f2, ...]
@@ -815,60 +821,21 @@ class Interpreter:
         ]
 
     def _create_lib(self, pkg: PackageState, build: builder.Builder, subdir: str,
-                    lib_type: RUST_ABI,
-                    static: bool = False, shared: bool = False) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg
-        dependencies: T.List[mparser.BaseNode] = []
-        for name in cfg.required_deps:
-            dep = pkg.manifest.dependencies[name]
-            dependencies.append(build.identifier(_dependency_varname(dep)))
-
-        dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {
-            build.string(k): build.string(v) for k, v in cfg.get_dependency_map(pkg.manifest).items()}
-
-        for name, sys_dep in pkg.manifest.system_dependencies.items():
-            if sys_dep.enabled(cfg.features):
-                dependencies.append(build.identifier(f'{fixup_meson_varname(name)}_system_dep'))
-
-        rustc_args_list = pkg.get_rustc_args(self.environment, subdir, MachineChoice.HOST)
-        extra_args_ref = build.identifier(_extra_args_varname())
-        system_deps_args_ref = build.identifier('system_deps_args')
-        rust_args: T.List[mparser.BaseNode] = [build.string(a) for a in rustc_args_list]
-        rust_args.append(extra_args_ref)
-        rust_args.append(system_deps_args_ref)
-
-        dependencies.append(build.identifier(_extra_deps_varname()))
-
-        override_options: T.Dict[mparser.BaseNode, mparser.BaseNode] = {
-            build.string('rust_std'): build.string(pkg.manifest.package.edition),
-        }
-
+                    lib_type: RUST_ABI) -> T.List[mparser.BaseNode]:
         posargs: T.List[mparser.BaseNode] = [
-            build.string(_library_name(pkg.manifest.lib.name, pkg.manifest.package.api, lib_type)),
-            build.string(pkg.manifest.lib.path),
+            build.string(pkg.library_name(lib_type)),
         ]
 
         kwargs: T.Dict[str, mparser.BaseNode] = {
-            'dependencies': build.array(dependencies),
-            'rust_dependency_map': build.dict(dependency_map),
-            'rust_args': build.array(rust_args),
-            'override_options': build.dict(override_options),
+            'dependencies': build.identifier(_extra_deps_varname()),
+            'rust_args': build.identifier(_extra_args_varname()),
         }
 
-        depname_suffix = '' if lib_type == 'c' else '-rs'
-        depname = _dependency_name(pkg.manifest.package.name, pkg.manifest.package.api, depname_suffix)
-
-        lib: mparser.BaseNode
         if lib_type == 'proc-macro':
-            lib = build.method('proc_macro', build.identifier('rust'), posargs, kwargs)
+            lib = build.method('proc_macro', build.identifier('pkg_obj'), posargs, kwargs)
         else:
-            if static and shared:
-                target_type = 'both_libraries'
-            else:
-                target_type = 'shared_library' if shared else 'static_library'
-
             kwargs['rust_abi'] = build.string(lib_type)
-            lib = build.function(target_type, posargs, kwargs)
+            lib = build.method('library', build.identifier('pkg_obj'), posargs, kwargs)
 
         # lib = xxx_library()
         # dep = declare_dependency()
@@ -881,20 +848,19 @@ class Interpreter:
                     kw={
                         'link_with': build.identifier('lib'),
                         'variables': build.dict({
-                            build.string('features'): build.string(','.join(cfg.features)),
+                            build.string('features'): build.method('join', build.string(','),
+                                                                   [build.identifier('features')]),
                         }),
-                        'version': build.string(pkg.manifest.package.version),
+                        'version': build.method('version', build.identifier('pkg_obj')),
                     },
                 ),
                 'dep'
             ),
             build.method(
                 'override_dependency',
-                build.identifier('meson'),
-                [
-                    build.string(depname),
-                    build.identifier('dep'),
-                ],
+                build.identifier('pkg_obj'),
+                [build.identifier('dep')],
+                {'rust_abi': build.string(lib_type)}
             ),
         ]
 
