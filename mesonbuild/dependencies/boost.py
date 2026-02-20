@@ -456,6 +456,14 @@ class BoostDependency(SystemDependency):
 
         any_libs_found = len(libs) > 0
         if not any_libs_found:
+            if not self.modules:
+                inc = inc_dirs[0]
+                self.version = inc.version
+                self.compile_args = ['-I' + inc.path.as_posix()]
+                self.compile_args += self._extra_compile_args()
+                self.compile_args = list(mesonlib.OrderedSet(self.compile_args))
+                mlog.debug(f'  - final compile args: {self.compile_args}')
+                return True
             return False
 
         modules = ['boost_' + x for x in self.modules]
