@@ -239,6 +239,7 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
                 (self.is_pypy or mesonlib.version_compare(self.version, '>=3.9')):
             kwargs['gnu_symbol_visibility'] = 'inlineshidden'
 
+        kwargs.setdefault('rust_abi', 'c')
         return self.interpreter.build_target(self.current_node, args, kwargs, SharedModule)
 
     def _convert_api_version_to_py_version_hex(self, api_version: str, detected_version: str) -> str:

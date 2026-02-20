@@ -143,6 +143,9 @@ Note that Cython support uses `extension_module`, see [the reference for Cython]
 if one is not explicitly provided. To support older versions, the user may need to
 add `dependencies : py_installation.dependency()`, see [[dependency]].
 
+*Since 1.11.0* `rust_abi`, if unset, will default to `'c'` so that Rust
+extension modules produce a `cdylib` crate.
+
 **Returns**: a [[@build_tgt]] object
 
 #### `dependency()`
