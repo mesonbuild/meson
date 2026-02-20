@@ -148,6 +148,7 @@ class FuncInstallHeaders(TypedDict):
     install_mode: FileMode
     subdir: T.Optional[str]
     follow_symlinks: T.Optional[bool]
+    install_tag: T.Optional[str]
 
 
 class FuncInstallMan(TypedDict):

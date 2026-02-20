@@ -246,6 +246,11 @@ class Headers(HoldableObject):
     custom_install_mode: 'FileMode'
     subproject: str
     follow_symlinks: T.Optional[bool] = None
+    install_tag: T.Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if self.install_tag is None:
+            self.install_tag = 'devel'
 
     # TODO: we really don't need any of these methods, but they're preserved to
     # keep APIs relying on them working.
