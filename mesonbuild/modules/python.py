@@ -393,7 +393,7 @@ class PythonModule(ExtensionModule):
 
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
-        self.installations: T.Dict[str, MaybePythonProg] = {}
+        self.installations: T.Dict[(str, str), MaybePythonProg] = {}
         self.methods.update({
             'find_installation': self.find_installation,
         })
@@ -471,7 +471,9 @@ class PythonModule(ExtensionModule):
         build_config = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.build_config'))
 
         if not name_or_path:
-            python = PythonExternalProgram('python3', mesonlib.python_command, build_config_path=build_config)
+            python = PythonExternalProgram('python3', build_config_path=build_config)
+            if not python.found():
+                python = PythonExternalProgram('python3', mesonlib.python_command, build_config_path=build_config)
         else:
             tmp_python = ExternalProgram.from_entry(display_name, name_or_path)
             python = PythonExternalProgram(display_name, ext_prog=tmp_python, build_config_path=build_config)
@@ -533,10 +535,10 @@ class PythonModule(ExtensionModule):
             mlog.log('Program', name_or_path or 'python', 'found:', mlog.red('NO'), '(disabled by:', mlog.bold(feature), ')')
             return NonExistingExternalProgram()
 
-        python = self.installations.get(name_or_path)
+        python = self.installations.get((display_name, name_or_path))
         if not python:
             python = self._find_installation_impl(state, display_name, name_or_path, required)
-            self.installations[name_or_path] = python
+            self.installations[(display_name, name_or_path)] = python
 
         want_modules = kwargs['modules']
         found_modules: T.List[str] = []
