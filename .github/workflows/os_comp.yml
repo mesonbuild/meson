@@ -168,3 +168,15 @@ jobs:
         run: |
           source /ci/env_vars.sh
           python3 run_unittests.py ConvertTests
+
+  run-check-platforms:
+    name: 'Test check-plaforms'
+    runs-on: ubuntu-latest
+    container:
+      image: mesonbuild/ubuntu-rolling
+    steps:
+      - name: Run check-platform unit tests
+        shell: bash
+        run: |
+          source /ci/env_vars.sh
+          python3 run_unittests.py CheckPlatformsTests
