@@ -317,6 +317,7 @@ _arguments \
   '--formats=[comma separated list of archive types to create]:archive formats:_values -s , format '"$__meson_dist_formats"
   '--include-subprojects[Include source code of subprojects that have been used for the build]'
   '--no-tests[Do not build and test generated packages]'
+  {-j,--num-processes=}'[how many parallel processes to use]:number of processes'
   "$__meson_cd"
   )
 _arguments \
