@@ -348,6 +348,24 @@ class EnvironmentVariablesHolder(ObjectHolder[mesonlib.EnvironmentVariables], Mu
         self.warn_if_has_name(name)
         self.held_object.prepend(name, values, kwargs['separator'])
 
+    @FeatureNew('environment.prepend_library_path', '1.10.0')
+    @typed_pos_args('environment.prepend_library_path', build.BuildTarget)
+    @noKwargs
+    @InterpreterObject.method('prepend_library_path')
+    def prepend_library_path_method(self, args: T.Tuple[build.BuildTarget], kwargs: TYPE_kwargs) -> None:
+        target = args[0]
+        library_paths: T.Set[str] = set()
+        host_machine = self.interpreter.environment.machines[mesonlib.MachineChoice.HOST]
+        if (host_machine.is_windows() or host_machine.is_cygwin()) and isinstance(target, (build.Executable, build.SharedModule)):
+            # On windows we cannot rely on rpath to run executables from build
+            # directory. We have to add in PATH the location of every DLL needed.
+            library_paths.update(self.interpreter.backend.determine_windows_extra_paths(target, []))
+        tdir = os.path.join(self.interpreter.environment.get_build_dir(), self.interpreter.backend.get_target_dir(target))
+        if isinstance(target, build.SharedLibrary):
+            library_paths.add(tdir)
+        new_env = self.interpreter.environment.get_env_for_paths(library_paths, set())
+        self.held_object.merge(new_env)
+
 
 _CONF_DATA_SET_KWS: KwargInfo[T.Optional[str]] = KwargInfo('description', (str, NoneType))
 
