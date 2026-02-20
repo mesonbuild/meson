@@ -1031,7 +1031,7 @@ class CrossFileTests(BasePlatformTests):
         with self.subTest('compiler only'):
             self.new_builddir()
             config = self.helper_create_cross_file({'binaries': {'rust': [rustc, f'--target={build_tuple}']}})
-            self.init(testcase, extra_args=['--cross-file', config])
+            self.init(testcase, extra_args=['-Dadd_rust_language=true', '--cross-file', config])
             check_target(build_tuple)
 
         with self.subTest('properties and compiler'):
@@ -1040,5 +1040,13 @@ class CrossFileTests(BasePlatformTests):
                 'binaries': {'rust': [rustc, f'--target={build_tuple}']},
                 'properties': {'bindgen_clang_arguments': [f'--target={host_tuple}']},
             })
-            self.init(testcase, extra_args=['--cross-file', config])
+            self.init(testcase, extra_args=['-Dadd_rust_language=true', '--cross-file', config])
             check_target(host_tuple, build_tuple)
+
+        with self.subTest('unused compiler'):
+            self.new_builddir()
+            config = self.helper_create_cross_file({
+                'binaries': {'rust': [rustc, f'--target={build_tuple}']},
+            })
+            self.init(testcase, extra_args=['--cross-file', config])
+            check_target(None, build_tuple)
