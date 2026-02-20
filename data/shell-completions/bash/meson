@@ -363,6 +363,7 @@ _meson-dist() {
   shortopts=(
     h
     C
+    j
   )
 
   longopts=(
@@ -371,6 +372,7 @@ _meson-dist() {
     formats
     include-subprojects
     no-tests
+    num-processes
   )
 
   local cur prev
