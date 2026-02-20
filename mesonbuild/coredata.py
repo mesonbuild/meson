@@ -356,7 +356,10 @@ class CoreData:
         option_object, value = self.optstore.get_option_and_value_for(newkey)
         override = target.get_override(newkey.name)
         if override is not None:
-            return option_object.validate_value(override)
+            try:
+                return option_object.validate_value(override)
+            except MesonException as e:
+                raise MesonException(f'In override_options for {target}: {e!s}')
         return value
 
     def set_from_configure_command(self, options: SharedCMDOptions) -> bool:
