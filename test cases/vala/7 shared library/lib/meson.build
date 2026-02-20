@@ -27,7 +27,9 @@ shared_library('installed_vala_all_nolib', 'mylib.vala',
 shared_library('installed_vala_onlyh', 'mylib.vala',
   dependencies : valadeps,
   install : true,
-  install_dir : [false, get_option('includedir'), false])
+  install_vala_header : get_option('includedir'),
+  install_vala_vapi : false,
+  install_dir : [false])
 
 shared_library('installed_vala_onlyvapi', 'mylib.vala',
   dependencies : valadeps,
