@@ -456,7 +456,7 @@ class RustModule(ExtensionModule):
 
         # Look for --target in the rust command itself if there isn't one passed in clang_args
         target_arg = parse_target(clang_args)
-        if not target_arg:
+        if not target_arg and 'rust' in state._interpreter.compilers.host:
             rust_args = state._interpreter.compilers.host['rust'].get_exe_args()
             target_arg = parse_target(rust_args)
             if target_arg:
@@ -583,7 +583,10 @@ class RustModule(ExtensionModule):
         if self._bindgen_rust_target and '--rust-target' not in cmd:
             cmd.extend(['--rust-target', self._bindgen_rust_target])
         if self._bindgen_set_std and '--rust-edition' not in cmd:
-            rust_std = state.environment.coredata.optstore.get_value_for('rust_std')
+            try:
+                rust_std = state.environment.coredata.optstore.get_value_for('rust_std')
+            except KeyError:
+                rust_std = 'none'
             assert isinstance(rust_std, str), 'for mypy'
             if rust_std != 'none':
                 cmd.extend(['--rust-edition', rust_std])
