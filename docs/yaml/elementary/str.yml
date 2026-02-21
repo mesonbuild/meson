@@ -41,6 +41,34 @@ methods:
     description: The values to replace the @number@ placeholders in the format string.
     type: int | bool | str
 
+# str.hash(algorithm)
+- name: hash
+  description: Run the specified `algorithm` on the string and return the hash in hexadecimal
+  returns: str
+  example: |
+    ```meson
+        message('foobar'.hash('md5'))    # => '3858f62230ac3c915f300c664312c63f'
+        message('foobar'.hash('sha1'))   # => '8843d7f92416211de9ebb963ff4ce28125932878'
+        message('foobar'.hash('sha256')) # => 'c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2'
+        ...
+    ```
+
+  posargs:
+    algorithm:
+      description: |
+        It supports the following algorithms:
+        - md5
+        - sha1
+        - sha224
+        - sha256
+        - sha384
+        - sha512
+        - sha3_224
+        - sha3_256
+        - sha3_384
+        - sha3_512
+      type: str
+
 # str.replace(old, new)
 - name: replace
   description: Search all occurrences of `old` and replace it with `new`
