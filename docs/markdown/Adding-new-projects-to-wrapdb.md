@@ -70,17 +70,6 @@ meson.override_dependency('arrow', arrow_dep)
 arrow_compute_dep = declare_dependency(...)
 meson.override_dependency('arrow-compute', arrow_compute_dep)
 ```
-Note that `meson.override_dependency` was introduced in Meson version
-0.54.0. If your project supports older versions of Meson, you should
-add a condition to only call that function in versions where it is
-available:
-
-```meson
-if meson.version().version_compare('>=0.54.0')
-    meson.override_dependency('arrow', arrow_dep)
-    meson.override_dependency('arrow-compute', arrow_compute_dep)
-endif
-```
 
 ## How to contribute a new wrap
 
@@ -156,7 +145,7 @@ Remember that all files go in the directory
 `subprojects/packagefiles/<project-name>`.
 
 ```
-${EDITOR} meson.build meson.options
+${EDITOR} meson.build meson_options.txt
 ```
 
 In order to apply the locally added build files to the upstream
@@ -214,11 +203,15 @@ any issues faster.
 You can test the wrap itself with the following commands:
 
     meson subprojects purge --confirm
-    meson setup builddir/ -Dwraps=<project-name>
+    tools/sanity_checks.py
 
 The first command is to ensure the wrap is correctly fetched from the
-latest packagefiles. The second command configures meson and selects a
-set of subprojects to enable.
+latest packagefiles. The second command builds the project and runs tests.
+
+If you want to manually build the project without running the full test
+suite, you can:
+
+    meson setup builddir/ -Dwraps=<project-name>
 
 The GitHub project contains automatic CI on pushing to run the project
 and check the metadata for obvious mistakes. This can be checked from
