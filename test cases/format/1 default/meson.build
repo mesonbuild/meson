@@ -8,6 +8,7 @@ meson_files = {
     'comments': files('crazy_comments.meson'),
     'indentation': files('indentation.meson'),
     'gh13242': files('gh13242.meson'),
+    'sort': files('sort_files.meson'),
 }
 
 # Ensure empty function are formatted correctly on long lines
