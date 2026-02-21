@@ -180,6 +180,10 @@ if T.TYPE_CHECKING:
         install_dir: str
         install: bool
 
+    class FindToolKwArgs(kwargs.ExtractRequired):
+
+        method: str
+
 def _list_in_set_validator(choices: T.Set[str]) -> T.Callable[[T.List[str]], T.Optional[str]]:
     """Check that the choice given was one of the given set."""
     def inner(checklist: T.List[str]) -> T.Optional[str]:
@@ -221,6 +225,7 @@ class QtBaseModule(ExtensionModule):
             'compile_ui': self.compile_ui,
             'compile_moc': self.compile_moc,
             'qml_module': self.qml_module,
+            'find_tool': self.find_tool,
         })
 
     def compilers_detect(self, state: ModuleState, qt_dep: QtDependencyType) -> None:
@@ -1187,3 +1192,27 @@ class QtBaseModule(ExtensionModule):
             output.extend(self._compile_resources_impl(state, compile_resource_kwargs))
 
         return ModuleReturnValue(output, [output])
+
+    @FeatureNew('qt.find_tool', '1.9')
+    @typed_pos_args('qt.find_tool', str)
+    @typed_kwargs(
+        'qt.find_tool',
+        KwargInfo('required', (bool, options.UserFeatureOption), default=True),
+        KwargInfo('method', str, default='auto'),
+    )
+    def find_tool(self, state: ModuleState, args: T.Tuple, kwargs: FindToolKwArgs) -> T.Union[ExternalProgram, build.Executable]:
+        self._detect_tools(state, kwargs['method'])
+
+        tool_name: str = args[0]
+
+        if tool_name not in self.tools:
+            m = 'Unknwon Qt tool {!r}'
+            raise MesonException(m.format(tool_name))
+
+        tool = self.tools[tool_name]
+
+        if not tool.found() and kwargs['required']:
+            m = 'Qt tool {!r} not found'
+            raise MesonException(m.format(tool_name))
+
+        return self.tools[tool_name]
