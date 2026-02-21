@@ -1,0 +1,5 @@
+{
+  "env": {
+    "CFLAGS": "-O2 -D_FORTIFY_SOURCE=2 -Werror"
+  }
+}
