@@ -13,7 +13,7 @@
 # limitations under the License.
 
 dep_boost = dependency('boost')
-dep_boost_headers = dep_boost.partial_dependency(compile_args : true)
+dep_boost_headers = dep_boost.partial_dependency(includes : true)
 
 libfoo = static_library(
   'foo',
