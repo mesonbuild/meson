@@ -23,6 +23,7 @@ from .. import modules
 from .. import mesonlib
 from .. import build
 from .. import mlog
+from .. import nsbundle
 from .. import compilers
 from .. import tooldetect
 from ..arglist import CompilerArgs
@@ -889,6 +890,9 @@ class NinjaBackend(backends.Backend):
         if isinstance(target, build.RunTarget):
             self.generate_run_target(target)
             return
+        if isinstance(target, build.BundleTarget):
+            self.generate_bundle_target3(target)
+            return
         compiled_sources: T.List[str] = []
         source2object: T.Dict[str, str] = {}
         name = target.get_id()
@@ -948,7 +952,11 @@ class NinjaBackend(backends.Backend):
         self.scan_fortran_module_outputs(target)
 
         # Generate rules for building the remaining source files in this target
-        outname = self.get_target_filename(target)
+        if isinstance(target, build.BundleTargetBase):
+            outname = os.path.join(self.get_target_private_dir(target), target.get_executable_name())
+        else:
+            outname = self.get_target_filename(target)
+
         obj_list = []
         is_unity = self.is_unity(target)
         header_deps = []
@@ -1115,6 +1123,9 @@ class NinjaBackend(backends.Backend):
             if target.aix_so_archive:
                 elem = NinjaBuildElement(self.all_outputs, linker.get_archive_name(outname), 'AIX_LINKER', [outname])
                 self.add_build(elem)
+
+        if isinstance(target, build.BundleTargetBase):
+            self.generate_bundle_target(target, elem.outfilenames[0])
 
     def should_use_dyndeps_for_target(self, target: 'build.BuildTarget') -> bool:
         if not self.ninja_has_dyndeps:
@@ -1414,6 +1425,10 @@ class NinjaBackend(backends.Backend):
                                 extra='restat = 1'))
         self.add_rule(NinjaRule('COPY_FILE', self.environment.get_build_command() + ['--internal', 'copy'],
                                 ['$in', '$out'], 'Copying $in to $out'))
+        self.add_rule(NinjaRule('SYMLINK_FILE', self.environment.get_build_command() + ['--internal', 'symlink'],
+                                ['$TARGET', '$out'], 'Creating symlink $out -> $TARGET'))
+        self.add_rule(NinjaRule('MERGE_PLIST', self.environment.get_build_command() + ['--internal', 'merge-plist'],
+                                ['$out', '$in'], 'Merging plist $in to $out'))
 
         c = self.environment.get_build_command() + \
             ['--internal',
@@ -1521,6 +1536,104 @@ class NinjaBackend(backends.Backend):
         self.add_build(elem)
         # Create introspection information
         self.create_target_source_introspection(target, compiler, compile_args, src_list, gen_src_list)
+
+    def generate_bundle_target(self, target: build.BundleTargetBase, main_exe: str) -> None:
+        bi: nsbundle.BundleInfo = target.get_bundle_info()
+
+        main_exe_dir, main_exe_fname = os.path.split(main_exe)
+        bundle_rel = self.get_target_filename(target)
+
+        presets_path = os.path.join(self.get_target_private_dir(target), 'Presets', 'Info.plist')
+        presets_fullpath = os.path.join(self.environment.get_build_dir(), presets_path)
+        os.makedirs(os.path.dirname(presets_fullpath), exist_ok=True)
+
+        with open(presets_fullpath, 'wb') as fp:
+            import plistlib
+
+            d = bi.get_configured_info_dict()
+            plistlib.dump(d, fp)
+
+        presets_file = File(True, *os.path.split(presets_path))
+
+        if bi.info_dict_file:
+            info_plist = self.generate_merge_plist(target, 'Info.plist', [presets_file, bi.info_dict_file])
+        else:
+            info_plist = presets_file
+
+        layout = build.StructuredSources()
+        layout.sources[str(bi.get_executable_folder_path())] += [File(True, main_exe_dir, main_exe_fname)]
+        layout.sources[str(bi.get_infoplist_path())] += [info_plist]
+
+        if bi.resources is not None:
+            for k, v in bi.resources.sources.items():
+                layout.sources[str(bi.get_unlocalized_resources_folder_path() / k)] += v
+
+        if bi.contents is not None:
+            for k, v in bi.contents.sources.items():
+                layout.sources[str(bi.get_contents_folder_path() / k)] += v
+
+        if bi.headers is not None:
+            for k, v in bi.headers.sources.items():
+                layout.sources[str(bi.get_public_headers_folder_path() / k)] += v
+
+        if bi.extra_binaries is not None:
+            for v in bi.extra_binaries:
+                layout.sources[str(bi.get_executable_folder_path())] += v
+
+        for file in layout.as_list():
+            if isinstance(file, GeneratedList):
+                self.generate_genlist_for_target(file, target)
+
+        elem = NinjaBuildElement(self.all_outputs, bundle_rel, 'phony', [])
+        elem.add_orderdep(self.__generate_sources_structure(Path(bundle_rel), layout, target=target)[0])
+
+        # Create links for versioned bundles (frameworks only)
+        def make_relative_link(src: PurePath, dst: PurePath):
+            src_rel = src.relative_to(dst.parent, walk_up=True)
+            dst_path = Path(bundle_rel) / dst
+            elem.add_orderdep(str(dst_path))
+            self._generate_symlink_target(str(src_rel), dst_path)
+
+        contents_dir = bi.get_contents_folder_path()
+
+        for path in bi.get_paths_to_link_contents():
+            can_link_whole_dir = True
+
+            for d in layout.sources.keys():
+                if PurePath(d).is_relative_to(path):
+                    can_link_whole_dir = False
+                    break
+
+            if can_link_whole_dir:
+                make_relative_link(contents_dir, path)
+            else:
+                names = set()
+
+                for d in layout.sources.keys():
+                    d = PurePath(d)
+
+                    if not d.parent.is_relative_to(contents_dir):
+                        continue
+
+                    d = d.relative_to(contents_dir).parts[0]
+                    names.add(d)
+
+                for file in layout.sources[str(contents_dir)]:
+                    if isinstance(file, File):
+                        names.add(PurePath(file.fname).parts[0])
+                    else:
+                        names.update(file.get_outputs())
+
+                for n in names:
+                    assert n != '.'
+
+                    make_relative_link(contents_dir / n, path / n)
+
+        self.add_build(elem)
+
+    def generate_bundle_target3(self, target: build.BundleTarget) -> None:
+        main_exe = os.path.join(self.get_target_dir(target.main_exe), target.main_exe.get_filename())
+        self.generate_bundle_target(target, main_exe)
 
     def generate_cs_resource_tasks(self, target) -> T.Tuple[T.List[str], T.List[str]]:
         args = []
@@ -1904,15 +2017,22 @@ class NinjaBackend(backends.Backend):
     def _generate_copy_target(self, src: FileOrString, output: Path) -> None:
         """Create a target to copy a source file from one location to another."""
         if isinstance(src, File):
-            instr = src.absolute_path(self.environment.source_dir, self.environment.build_dir)
+            instr = src.rel_to_builddir(self.build_to_src)
         else:
             instr = src
         elem = NinjaBuildElement(self.all_outputs, [str(output)], 'COPY_FILE', [instr])
         elem.add_orderdep(instr)
         self.add_build(elem)
 
+    def _generate_symlink_target(self, src: str, output: Path) -> None:
+        """Create a target to create a symbolic link."""
+        elem = NinjaBuildElement(self.all_outputs, [str(output)], 'SYMLINK_FILE', [])
+        elem.add_item('TARGET', src)
+        self.add_build(elem)
+
     def __generate_sources_structure(self, root: Path, structured_sources: build.StructuredSources,
                                      main_file_ext: T.Union[str, T.Tuple[str, ...]] = tuple(),
+                                     target: T.Optional[build.Target] = None,
                                      ) -> T.Tuple[T.List[str], T.Optional[str]]:
         first_file: T.Optional[str] = None
         orderdeps: T.List[str] = []
@@ -1926,11 +2046,19 @@ class NinjaBackend(backends.Backend):
                     if first_file is None and out_s.endswith(main_file_ext):
                         first_file = out_s
                 else:
+                    if isinstance(file, GeneratedList):
+                        if target is None:
+                            raise MesonBugException('Encountered GeneratedList in StructuredSources with None target')
+
+                        srcdir = Path(self.get_target_private_dir(target))
+                    else:
+                        srcdir = Path(file.subdir)
+
                     for f in file.get_outputs():
                         out = root / path / f
                         out_s = str(out)
                         orderdeps.append(out_s)
-                        self._generate_copy_target(str(Path(file.subdir) / f), out)
+                        self._generate_copy_target(str(srcdir / f), out)
                         if first_file is None and out_s.endswith(main_file_ext):
                             first_file = out_s
         return orderdeps, first_file
@@ -3273,6 +3401,15 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if not self.use_dyndeps_for_fortran():
             for i in self.get_fortran_module_deps(target, compiler):
                 element.add_dep(i)
+
+        for lt in itertools.chain(target.link_targets, target.link_whole_targets):
+            # Linking against frameworks also pulls in its headers, therefore wait for it to be assembled. This is not
+            # exactly ideal, since it will also wait for the library to be linked, but it's better than no dep at all.
+            # TODO: check whether linking against framework is possible when only headers have been installed into the
+            # bundle
+            if isinstance(lt, build.FrameworkBundle):
+                element.add_orderdep(self.get_target_filename(lt))
+
         if dep_file:
             element.add_item('DEPFILE', dep_file)
         if compiler.get_language() == 'cuda':
@@ -3512,6 +3649,18 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             elem.add_item('CROSS', '--cross-host=' + self.environment.machines[target.for_machine].system)
         self.add_build(elem)
 
+    def generate_merge_plist(self, target: build.BuildTarget, out_name: str, in_files: T.List[File]) -> File:
+        out_path = os.path.join(self.get_target_private_dir(target), out_name)
+        elem = NinjaBuildElement(
+            self.all_outputs,
+            out_path,
+            'MERGE_PLIST',
+            [f.rel_to_builddir(self.build_to_src) for f in in_files],
+        )
+        self.add_build(elem)
+
+        return File(True, self.get_target_private_dir(target), out_name)
+
     def get_import_filename(self, target) -> str:
         return os.path.join(self.get_target_dir(target), target.import_filename)
 
@@ -3696,6 +3845,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                                                            self.get_target_dir(target))
         else:
             target_slashname_workaround_dir = self.get_target_dir(target)
+
+        if isinstance(target, build.BundleTargetBase):
+            target_slashname_workaround_dir = str(PurePath() / target_slashname_workaround_dir / target.get_filename() /
+                                                  target.get_bundle_info().get_executable_folder_path())
+
         (rpath_args, target.rpath_dirs_to_remove) = (
             linker.build_rpath_args(self.environment.get_build_dir(),
                                     target_slashname_workaround_dir,
@@ -3886,12 +4040,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             else:
                 self.implicit_meson_outs.append(aliasfile)
 
-    def generate_custom_target_clean(self, trees: T.List[str]) -> str:
+    def generate_dir_target_clean(self, trees: T.List[str]) -> str:
         e = self.create_phony_target('clean-ctlist', 'CUSTOM_COMMAND', 'PHONY')
         d = CleanTrees(self.environment.get_build_dir(), trees)
         d_file = os.path.join(self.environment.get_scratch_dir(), 'cleantrees.dat')
         e.add_item('COMMAND', self.environment.get_build_command() + ['--internal', 'cleantrees', d_file])
-        e.add_item('description', 'Cleaning custom target directories')
+        e.add_item('description', 'Cleaning directory target outputs')
         self.add_build(e)
         # Write out the data file passed to the script
         with open(d_file, 'wb') as ofile:
@@ -4054,6 +4208,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                     if self.environment.machines[t.for_machine].is_aix():
                         linker, stdlib_args = t.get_clink_dynamic_linker_and_stdlibs()
                         t.get_outputs()[0] = linker.get_archive_name(t.get_outputs()[0])
+
                 targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
 
                 # Add an import library if shared library in OS/2 for build all
@@ -4074,14 +4229,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # instead of files. This is needed because on platforms other than
         # Windows, Ninja only deletes directories while cleaning if they are
         # empty. https://github.com/mesonbuild/meson/issues/1220
-        ctlist = []
+        dir_output_list = []
         for t in self.build.get_targets().values():
-            if isinstance(t, build.CustomTarget):
-                # Create a list of all custom target outputs
-                for o in t.get_outputs():
-                    ctlist.append(os.path.join(self.get_target_dir(t), o))
-        if ctlist:
-            elem.add_dep(self.generate_custom_target_clean(ctlist))
+            for o in t.get_outputs():
+                if t.can_output_be_directory(o):
+                    dir_output_list.append(os.path.join(self.get_target_dir(t), o))
+        if dir_output_list:
+            elem.add_dep(self.generate_dir_target_clean(dir_output_list))
 
         if OptionKey('b_coverage') in self.environment.coredata.optstore and \
            self.environment.coredata.optstore.get_value_for('b_coverage'):

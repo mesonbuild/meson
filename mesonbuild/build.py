@@ -27,6 +27,7 @@ from .mesonlib import (
     is_parent_path, relpath, PerMachineDefaultable,
     MesonBugException, EnvironmentVariables, pickle_load, lazy_property,
 )
+from .nsbundle import BundleInfo, BundleLayout, BundleType
 from .options import OptionKey
 
 from .compilers import (
@@ -193,6 +194,13 @@ buildtarget_kwargs = {
     'win_subsystem',
 }
 
+bundle_kwargs = {
+    'bundle_resources',
+    'bundle_contents',
+    'bundle_extra_binaries',
+    'info_plist',
+}
+
 known_build_target_kwargs = (
     buildtarget_kwargs |
     lang_arg_kwargs |
@@ -207,6 +215,8 @@ known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_mo
 known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs', 'rust_abi'}
 known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink', 'rust_abi'}
 known_jar_kwargs = known_exe_kwargs | {'main_class', 'java_resources'}
+known_nsapp_kwargs = known_exe_kwargs | bundle_kwargs | {'bundle_layout', 'bundle_exe_dir_name'}
+known_nsframework_kwargs = known_exe_kwargs | bundle_kwargs | {'framework_headers'}
 
 def _process_install_tag(install_tag: T.Optional[T.List[T.Optional[str]]],
                          num_outputs: int) -> T.List[T.Optional[str]]:
@@ -796,6 +806,9 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def get_outputs(self) -> T.List[str]:
         return []
 
+    def can_output_be_directory(self, output: str) -> bool:
+        return False
+
     def should_install(self) -> bool:
         return False
 
@@ -1297,7 +1310,10 @@ class BuildTarget(Target):
     def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
         result: OrderedSet[str] = OrderedSet()
         for i in self.link_targets:
-            if not isinstance(i, StaticLibrary):
+            if isinstance(i, FrameworkBundle):
+                result.add(str(pathlib.PurePath() / i.get_builddir() / i.get_filename() /
+                               i.get_bundle_info().get_executable_folder_path()))
+            elif not isinstance(i, StaticLibrary):
                 result.add(i.get_builddir())
             result.update(i.get_link_dep_subdirs())
         return result
@@ -1765,17 +1781,7 @@ class BuildTarget(Target):
         if path is None:
             return
 
-        if isinstance(path, str):
-            if os.path.isabs(path):
-                self.vs_module_defs = File.from_absolute_file(path)
-            else:
-                self.vs_module_defs = File.from_source_file(self.environment.source_dir, self.subdir, path)
-        elif isinstance(path, File):
-            # When passing a generated file.
-            self.vs_module_defs = path
-        else:
-            # When passing output of a Custom Target
-            self.vs_module_defs = File.from_built_file(path.get_builddir(), path.get_filename())
+        self.vs_module_defs = _source_input_to_file(self, 'vs_module_defs', path)
         self.process_link_depends([path])
 
     def extract_targets_as_list(self, kwargs: BuildTargetKeywordArguments, key: T.Literal['link_with', 'link_whole']) -> T.List[LibTypes]:
@@ -1806,6 +1812,7 @@ class BuildTarget(Target):
             # Need a copy here
             result = OrderedSet(self.get_link_dep_subdirs())
         else:
+            # TODO: Bundle handling
             result = OrderedSet()
             result.add('meson-out')
         result.update(self.rpaths_for_non_system_absolute_shared_libraries())
@@ -1924,6 +1931,20 @@ class BuildTarget(Target):
             return 'darwin'
         else:
             return 'unix'
+
+
+def _source_input_to_file(t: Target, kw: str, source: T.Union[str, File, CustomTarget, CustomTargetIndex]) -> File:
+    if isinstance(source, str):
+        if os.path.isabs(source):
+            return File.from_absolute_file(source)
+        else:
+            return File.from_source_file(t.environment.source_dir, t.subdir, source)
+    elif isinstance(source, File):
+        # When passing a generated file.
+        return source
+    else:
+        # When passing output of a Custom Target
+        return File.from_built_file(source.get_builddir(), source.get_filename())
 
 
 class FileInTargetPrivateDir:
@@ -2164,7 +2185,7 @@ class Executable(BuildTarget):
             # Executable for Windows or C#/Mono
             if machine.is_windows() or machine.is_cygwin() or 'cs' in self.compilers:
                 self.suffix = 'exe'
-            elif machine.system.startswith('wasm') or machine.system == 'emscripten':
+            elif machine.is_wasm():
                 self.suffix = 'js'
             elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('armclang') or
                   'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('armclang')):
@@ -2999,6 +3020,9 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
     def get_outputs(self) -> T.List[str]:
         return self.outputs
 
+    def can_output_be_directory(self, output: str) -> bool:
+        return True
+
     def get_filename(self) -> str:
         return self.outputs[0]
 
@@ -3265,6 +3289,193 @@ class Jar(BuildTarget):
 
     def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
         return self.environment.get_jar_dir(), '{jardir}'
+
+
+class BundleTargetBase(Target):
+    @abc.abstractmethod
+    def get_bundle_info(self) -> BundleInfo:
+        pass
+
+    @abc.abstractmethod
+    def get_bundle_type(self) -> BundleType:
+        pass
+
+    @abc.abstractmethod
+    def get_executable_name(self) -> str:
+        pass
+
+
+def _fill_bundle_info_from_kwargs(tgt: BundleTargetBase, kwargs) -> None:
+    bi = tgt.get_bundle_info()
+    bi.resources = kwargs['bundle_resources']
+    bi.contents = kwargs['bundle_contents']
+    bi.extra_binaries = kwargs.get('bundle_extra_binaries', [])
+
+    if len(kwargs['info_plist']) > 1:
+        raise MesonException('Cannot specify more than one file for info_plist')
+    elif kwargs['info_plist'] != []:
+        bi.info_dict_file = _source_input_to_file(tgt, 'info_plist', kwargs['info_plist'][0])
+
+
+class AppBundle(Executable, BundleTargetBase):
+    known_kwargs = known_nsapp_kwargs
+
+    typename = 'nsapp'
+
+    def __init__(self, name: str, subdir: str, subproject: SubProject, for_machine: MachineChoice,
+                 sources: T.List[SourceOutputs], structured_sources: T.Optional[StructuredSources],
+                 objects: T.List[ObjectTypes], environment: environment.Environment, compilers: T.Dict[str, Compiler],
+                 kwargs):
+        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects, environment,
+                         compilers, kwargs)
+
+        self.bundle_info = BundleInfo(self)
+        _fill_bundle_info_from_kwargs(self, kwargs)
+
+        if kwargs['bundle_layout'] is not None:
+            try:
+                self.bundle_info.layout = BundleLayout(kwargs['bundle_layout'])
+            except ValueError:
+                raise MesonException('{!r} is not a valid value for bundle_layout'.format(kwargs['bundle_layout']))
+        if kwargs['bundle_exe_dir_name'] is not None:
+            self.bundle_info.executable_folder_name: T.Optional[str] = kwargs['bundle_exe_dir_name']
+
+    def type_suffix(self) -> str:
+        return '@nsapp'
+
+    def post_init(self) -> None:
+        super().post_init()
+        self.outputs[0] = self.get_filename()
+
+    def get_filename(self) -> str:
+        return self.bundle_info.get_wrapper_name()
+
+    def get_bundle_info(self) -> BundleInfo:
+        return self.bundle_info
+
+    def get_bundle_type(self) -> BundleType:
+        return BundleType.APPLICATION
+
+    def get_executable_name(self) -> str:
+        return self.filename
+
+    def can_output_be_directory(self, output: str) -> bool:
+        return output == self.get_filename()
+
+    def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
+        return self.environment.get_app_dir(), '{appdir}'
+
+
+class FrameworkBundle(SharedLibrary, BundleTargetBase):
+    known_kwargs = known_nsframework_kwargs
+
+    typename = 'nsframework'
+
+    def __init__(self, name: str, subdir: str, subproject: SubProject, for_machine: MachineChoice,
+                 sources: T.List[SourceOutputs], structured_sources: T.Optional[StructuredSources],
+                 objects: T.List[ObjectTypes], environment: environment.Environment, compilers: T.Dict[str, Compiler],
+                 kwargs):
+        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects, environment,
+                         compilers, kwargs)
+
+        self.bundle_info = BundleInfo(self)
+        _fill_bundle_info_from_kwargs(self, kwargs)
+        self.bundle_info.headers = kwargs['framework_headers']
+
+    def type_suffix(self) -> str:
+        return '@nsframework'
+
+    def post_init(self) -> None:
+        super().post_init()
+        self.outputs[0] = self.get_filename()
+
+    def get_filename(self) -> str:
+        return self.bundle_info.get_wrapper_name()
+
+    def get_bundle_info(self) -> BundleInfo:
+        return self.bundle_info
+
+    def get_bundle_type(self) -> BundleType:
+        return BundleType.FRAMEWORK
+
+    def get_executable_name(self) -> str:
+        return self.filename
+
+    def can_output_be_directory(self, output: str) -> bool:
+        return output == self.get_filename()
+
+    def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
+        return self.environment.get_framework_dir(), '{frameworkdir}'
+
+
+class BundleTarget(BundleTargetBase):
+    def __init__(self, name: str, subdir: str, subproject: str, environment: environment.Environment, main_exe: T.Union[Executable, SharedLibrary], bundle_type: BundleType):
+        super().__init__(name, subdir, subproject, True, main_exe.for_machine, environment)
+
+        self.main_exe: T.Union[Executable, SharedLibrary] = main_exe
+        self.bundle_type: BundleType = bundle_type
+        self.install_dir: T.Optional[str] = None
+
+        self.bundle_info: BundleInfo = BundleInfo(self)
+
+        if bundle_type == BundleType.APPLICATION:
+            assert isinstance(main_exe, Executable)
+        elif bundle_type == BundleType.FRAMEWORK:
+            assert isinstance(main_exe, SharedLibrary)
+
+    def __repr__(self):
+        repr_str = "<{0} {1}: {2}>"
+        return repr_str.format(self.__class__.__name__, self.get_id(), self.get_filename())
+
+    def __str__(self):
+        return f"{self.name}"
+
+    def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
+        if self.bundle_type == BundleType.APPLICATION:
+            return self.environment.get_app_dir(), '{appdir}'
+        elif self.bundle_type == BundleType.FRAMEWORK:
+            return self.environment.get_framework_dir(), '{frameworkdir}'
+        else:
+            return (None, None)
+
+    def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
+        return self.install_dir
+
+    def type_suffix(self) -> str:
+        if self.bundle_type == BundleType.APPLICATION:
+            return '@nsapp'
+        elif self.bundle_type == BundleType.FRAMEWORK:
+            return '@nsframework'
+        else:
+            return '@nsbundle'
+
+    @property
+    def typename(self) -> str:
+        if self.bundle_type == BundleType.APPLICATION:
+            return 'nsapp'
+        elif self.bundle_type == BundleType.FRAMEWORK:
+            return 'nsframework'
+        else:
+            return 'nsbundle'
+
+    def get_bundle_info(self) -> BundleInfo:
+        return self.bundle_info
+
+    def get_bundle_type(self) -> BundleType:
+        return self.bundle_type
+
+    def get_executable_name(self) -> str:
+        return self.main_exe.get_filename()
+
+    def get_filename(self) -> str:
+        return self.bundle_info.get_wrapper_name()
+
+    def can_output_be_directory(self, output: str) -> bool:
+        return output == self.get_filename()
+
+    def get_outputs(self) -> T.List[str]:
+        return [self.get_filename()]
+
 
 @dataclass(eq=False)
 class CustomTargetIndex(CustomTargetBase, HoldableObject):

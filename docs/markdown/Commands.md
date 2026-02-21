@@ -62,7 +62,7 @@ Builds a default or a specified target of a configured Meson project.
 - `NAME`: name of the target from `meson.build` (e.g. `foo` from `executable('foo', ...)`).
 - `SUFFIX`: name of the suffix of the target from `meson.build` (e.g. `exe` from `executable('foo', suffix: 'exe', ...)`).
 - `PATH`: path to the target relative to the root `meson.build` file. Note: relative path for a target specified in the root `meson.build` is `./`.
-- `TYPE`: type of the target. Can be one of the following: 'executable', 'static_library', 'shared_library', 'shared_module', 'custom', 'alias', 'run', 'jar'.
+- `TYPE`: type of the target. Can be one of the following: 'executable', 'static_library', 'shared_library', 'shared_module', 'custom', 'alias', 'run', 'jar', 'nsapp', 'nsframework', 'nsbundle'.
 
 `PATH`, `SUFFIX`, and `TYPE` can all be omitted if the resulting `TARGET` can be
 used to uniquely identify the target in `meson.build`.
