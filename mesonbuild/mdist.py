@@ -180,6 +180,14 @@ class GitDist(Dist):
         ret = subprocess.call(['git', '-C', self.src_root, 'diff-index', '--quiet', 'HEAD'])
         return ret == 1
 
+    def get_timestamp(self, src: T.Union[str, os.PathLike]):
+        tstamp_cmd = ['git', '-C', src, 'show', '--summary', '--format=%ct', 'HEAD']
+        run_cmd = subprocess.run(tstamp_cmd, capture_output=True, check=True)
+
+        ts = int(run_cmd.stdout.splitlines()[0])
+        return ts
+
+
     def copy_git(self, src: T.Union[str, os.PathLike], distdir: str, revision: str = 'HEAD',
                  prefix: T.Optional[str] = None, subdir: T.Optional[str] = None) -> None:
         cmd = ['git', 'archive', '--format', 'tar', revision]
@@ -234,6 +242,7 @@ class GitDist(Dist):
 
     def create_dist(self, archives: T.List[str]) -> T.List[str]:
         self.process_git_project(self.src_root, self.distdir)
+        ts = self.get_timestamp(self.src_root)
         for path in self.subprojects.values():
             sub_src_root = os.path.join(self.src_root, path)
             sub_distdir = os.path.join(self.distdir, path)
@@ -244,6 +253,7 @@ class GitDist(Dist):
             else:
                 shutil.copytree(sub_src_root, sub_distdir)
         self.run_dist_scripts()
+        os.utime(self.distdir, (ts, ts))
         output_names = []
         for a in archives:
             compressed_name = self.distdir + archive_extension[a]
