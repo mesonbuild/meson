@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright 2016-2022 The Meson development team
+# Copyright 2016-2025 The Meson development team
 
 import stat
 import subprocess
@@ -1163,7 +1163,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertTrue(relative_path_dep.found())
 
         # Ensure link_args are properly quoted
-        libpath = Path(self.builddir) / '../relativepath/lib'
+        libpath = Path(self.builddir).parent / 'relativepath/lib'
         link_args = ['-L' + libpath.as_posix(), '-lrelativepath']
         self.assertEqual(relative_path_dep.get_link_args(), link_args)
 
