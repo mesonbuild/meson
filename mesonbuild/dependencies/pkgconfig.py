@@ -553,7 +553,7 @@ class PkgConfigDependency(ExternalDependency):
     def extract_field(self, la_file: str, fieldname: str) -> T.Optional[str]:
         with open(la_file, encoding='utf-8') as f:
             for line in f:
-                arr = line.strip().split('=')
+                arr = line.strip().split('=', 1)
                 if arr[0] == fieldname:
                     return arr[1][1:-1]
         return None
