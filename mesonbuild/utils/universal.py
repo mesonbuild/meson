@@ -393,7 +393,7 @@ class File(HoldableObject):
         self.is_built = is_built
         self.subdir = subdir
         self.fname = fname
-        self.hash = hash((is_built, subdir, fname))
+        self.hash = hash((is_built, os.path.join(self.subdir, self.fname)))
 
     def __str__(self) -> str:
         return self.relative_name()
@@ -459,7 +459,11 @@ class File(HoldableObject):
             return NotImplemented
         if self.hash != other.hash:
             return False
-        return (self.fname, self.subdir, self.is_built) == (other.fname, other.subdir, other.is_built)
+        if self.is_built != other.is_built:
+            return False
+        spath = os.path.join(self.subdir, self.fname)
+        opath = os.path.join(other.subdir, other.fname)
+        return spath == opath
 
     def __hash__(self) -> int:
         return self.hash
