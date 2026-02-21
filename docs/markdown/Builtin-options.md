@@ -262,6 +262,11 @@ separated by a comma. Furthermore:
 
  - Otherwise, the array elements are returned in undefined order.
 
+Be aware that `b_lundef` is `true` by default, which is incompatible with the
+address sanitizer when building shared libraries with clang, as documented
+[by clang](https://clang.llvm.org/docs/AddressSanitizer.html#usage)
+(`b_lundef` makes meson use `-Wl,--no-undefined`, which is an alias for `-Wl,-z,defs`).
+
 \* < 0 means disable, == 0 means automatic selection, > 0 sets a specific number to use
 
 LLVM supports `thin` lto, for more discussion see [LLVM's documentation](https://clang.llvm.org/docs/ThinLTO.html)
