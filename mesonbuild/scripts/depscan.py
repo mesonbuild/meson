@@ -196,6 +196,12 @@ class DependencyScanner:
                 })
             description['rules'].append(rule)
 
+        if os.path.exists(self.outfile):
+            with open(self.outfile, 'r', encoding='utf-8') as f:
+                current: Description = json.load(f)
+                if current == description:
+                    return 0
+
         with open(self.outfile, 'w', encoding='utf-8') as f:
             json.dump(description, f)
 
