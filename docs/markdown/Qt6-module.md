@@ -240,6 +240,19 @@ replaced with `_`. Type registration may be invoked explicitly using
 See [Qt documentation](https://doc.qt.io/qt-6/resources.html#explicit-loading-and-unloading-of-embedded-resources)
 for more information
 
+## generate_qrc
+
+*New in 1.9.0*
+
+Generates a `.qrc` file that contains teh given files.
+
+It takes no positional arguments, and the following keyword arguments:
+  - `files` (File | string | custom_target | custom_target index | generator_output)[]:
+    A list of files that to be included in the `.qrc`.<br/>
+  - `output` string:
+    The name of the `.qrc` file.<br/>
+  - `prefix` (string | empty):
+    If provides it sets the `prefix` property in the `.qrc`.<br/>
 
 ## Dependencies
 
