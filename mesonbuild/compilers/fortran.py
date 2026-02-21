@@ -14,6 +14,7 @@ from .compilers import (
     clike_debug_args,
     Compiler,
     CompileCheckMode,
+    ManyInOneLinkerOptionWrapperStyle,
 )
 from .mixins.clike import CLikeCompiler
 from .mixins.gnu import GnuCompiler,  gnu_optimization_args
@@ -345,7 +346,7 @@ class ElbrusFortranCompiler(ElbrusCompiler, FortranCompiler):
 
 class G95FortranCompiler(FortranCompiler):
 
-    LINKER_PREFIX = '-Wl,'
+    LINKER_PREFIX = ManyInOneLinkerOptionWrapperStyle('-Wl,', ',')
     id = 'g95'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
@@ -366,7 +367,7 @@ class G95FortranCompiler(FortranCompiler):
 
 class SunFortranCompiler(FortranCompiler):
 
-    LINKER_PREFIX = '-Wl,'
+    LINKER_PREFIX = ManyInOneLinkerOptionWrapperStyle('-Wl,', ',')
     id = 'sun'
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:

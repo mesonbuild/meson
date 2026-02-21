@@ -9,7 +9,7 @@ import typing as T
 
 from .. import mlog, options
 from ..mesonlib import first, MesonException, version_compare
-from .compilers import Compiler, clike_debug_args
+from .compilers import Compiler, clike_debug_args, PrefixArgumentLinkerOptionWrapperStyle
 
 if T.TYPE_CHECKING:
     from .. import build
@@ -32,7 +32,7 @@ swift_optimization_args: T.Dict[str, T.List[str]] = {
 
 class SwiftCompiler(Compiler):
 
-    LINKER_PREFIX = ['-Xlinker']
+    LINKER_PREFIX = PrefixArgumentLinkerOptionWrapperStyle('-Xlinker')
     language = 'swift'
     id = 'llvm'
 
