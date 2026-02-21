@@ -1,0 +1,12 @@
+[wrap-file]
+directory = foo
+
+source_url = http://server.invalid/foo
+source_fallback_url = file:///home/mccakit/desktop/meson/test cases/unit/72 wrap file url/subprojects/foo.tar.xz
+source_filename = foo.tar.xz
+source_hash = dc6003a83f606030140c9f9cc3d9b0e776ea95de67afaac3fc2ea2bb6c4aecc2
+
+patch_url = http://server.invalid/foo
+patch_fallback_url = file:///home/mccakit/desktop/meson/test cases/unit/72 wrap file url/subprojects/foo-patch.tar.xz
+patch_filename = foo-patch.tar.xz
+patch_hash = c2ceccbb9dbdd80f62114aa2a993d721d2b5046e723a778604f0eb7593b3c1a5
