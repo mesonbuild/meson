@@ -43,3 +43,11 @@ methods:
           `{'NAME1': 'value1', 'NAME2': 'value2'}` or `['NAME1=value1', 'NAME2=value2']`,
           or an [[@env]] object which allows more
           sophisticated environment juggling.
+
+      depends:
+        type: array[build_tgt | custom_tgt | custom_idx]
+        since: 1.11.0
+        description: |
+          An array of build targets that must be built before attempting to run this
+          generator against the source files. This extends the `depends` value of the
+          generator to be run.
