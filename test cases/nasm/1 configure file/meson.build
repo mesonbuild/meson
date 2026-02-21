@@ -10,6 +10,8 @@ endif
 
 if host_machine.cpu_family() == 'x86'
   asm_format = 'elf32'
+elif host_machine.cpu() == 'x32'
+  asm_format = 'elfx32'
 else
   asm_format = 'elf64'
 endif
