@@ -834,6 +834,8 @@ def detect_vcs(source_dir: T.Union[str, Path]) -> T.Optional[VcsData]:
 def current_vs_supports_modules() -> bool:
     vsver = os.environ.get('VSCMD_VER', '')
     nums = vsver.split('.', 2)
+    if not nums[0]:
+        return True
     major = int(nums[0])
     if major >= 17:
         return True
