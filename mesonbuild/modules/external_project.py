@@ -244,6 +244,7 @@ class ExternalProject(NewExtensionModule):
             [f'{self.name}.stamp'],
             depfile=f'{self.name}.d',
             console=True,
+            build_by_default=True,
             extra_depends=extra_depends,
             description='Generating external project {}',
         )
@@ -256,6 +257,7 @@ class ExternalProject(NewExtensionModule):
                                 exclude=None,
                                 strip_directory=True,
                                 from_source_dir=False,
+                                follow_symlinks=False,
                                 subproject=self.subproject)
 
         return [self.target, idir]
