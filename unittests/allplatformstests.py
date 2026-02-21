@@ -5517,6 +5517,15 @@ class AllPlatformTests(BasePlatformTests):
                 self._run(self.mtest_command + ['--slice=' + arg])
             self.assertIn(expectation, cm.exception.output)
 
+    def test_skip_source_dir(self):
+        testdir = os.path.join(self.unit_test_dir, '126 skip_source_dir')
+        env = os.environ.copy()
+        env['PATH'] = os.path.join(testdir, 'path') + os.pathsep + env['PATH']
+        output = self.init(testdir, override_envvars=env)
+        self.assertRegex(output, r'no args *: from source directory')
+        self.assertRegex(output, r'skip_source_dir: true *: from source directory')
+        self.assertRegex(output, r'skip_source_dir: false *: from path')
+
     def test_rsp_support(self):
         env = get_fake_env()
         cc = detect_c_compiler(env, MachineChoice.HOST)
