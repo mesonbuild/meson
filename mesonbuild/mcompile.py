@@ -152,7 +152,12 @@ def generate_target_names_ninja(target: ParsedTargetName, builddir: Path, intros
     intro_target = get_target_from_intro_data(target, builddir, introspect_data)
 
     if intro_target['type'] in {'alias', 'run'}:
-        return [target.name]
+        if intro_target['subproject']:
+            # TODO: This naming is required because of NinjaBackend.build_run_target_name()
+            #  Can this be consolidated?
+            return [intro_target['subproject'] + '@@' + target.name]
+        else:
+            return [target.name]
     else:
         return [str(Path(out_file).relative_to(builddir.resolve())) for out_file in intro_target['filename']]
 
