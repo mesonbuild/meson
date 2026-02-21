@@ -1,0 +1,10 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/common/286 redundant version check/meson.build:2: WARNING: Version comparison '>=0.55.0' always evaluates to true"
+    },
+    {
+      "line": "test cases/common/286 redundant version check/meson.build:5: WARNING: Version comparison '<0.60.0' always evaluates to false"
+    }
+  ]
+}
