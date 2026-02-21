@@ -15,16 +15,6 @@ if T.TYPE_CHECKING:
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
 
-nasm_optimization_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    '0': ['-O0'],
-    'g': ['-O0'],
-    '1': ['-O1'],
-    '2': ['-Ox'],
-    '3': ['-Ox'],
-    's': ['-Ox'],
-}
-
 
 class ASMCompiler(Compiler):
 
@@ -114,7 +104,7 @@ class NasmCompiler(ASMCompiler):
         return outargs
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
-        return nasm_optimization_args[optimization_level]
+        return []
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         if is_debug:
