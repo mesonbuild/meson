@@ -55,7 +55,7 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
     # https://github.com/mesonbuild/meson/pull/4593#pullrequestreview-182016038
     dedup1_prefixes = ('-l', '-Wl,-l', '-Wl,-rpath,', '-Wl,-rpath-link,')
     dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')
-    dedup1_args = ('-c', '-S', '-E', '-pipe', '-pthread', '-Wl,--export-dynamic')
+    dedup1_args = ('-c', '-S', '-E', '-pipe', '-pthread', '-Wl,--export-dynamic', '-fopenmp', '-qopenmp')
 
     def to_native(self, copy: bool = False) -> T.List[str]:
         # This seems to be allowed, but could never work?
