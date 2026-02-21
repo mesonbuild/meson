@@ -307,6 +307,16 @@ timeout as well:
 $ meson test --timeout-multiplier 0
 ```
 
+You can also specify the timeout in seconds that meson uses when it kills a test
+process with `SIGTERM` when it times out or because meson itself is interrupted:
+
+```console
+$ meson test --sigterm-timeout 60
+```
+
+If the test process doesn't exit before the timeout expires, meson kills the test
+process with `SIGKILL`.
+
 For further information see the command line help of Meson by running
 `meson test -h`.
 
