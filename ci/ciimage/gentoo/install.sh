@@ -52,6 +52,7 @@ pkgs_stable=(
   net-print/cups
   dev-util/vulkan-headers
   media-libs/vulkan-loader
+  sci-libs/openblas
 
   # misc
   app-admin/sudo
@@ -86,6 +87,7 @@ pkgs_latest=(
 
   # ~arch only
   sci-libs/scalapack
+  sci-libs/mkl
 )
 pkgs=( "${pkgs_stable[@]}" "${pkgs_latest[@]}" )
 
@@ -117,6 +119,7 @@ cat <<-EOF > /etc/portage/package.use/ci
 	dev-lang/rust-bin clippy rustfmt
 	dev-libs/boost python
 	sci-libs/hdf5 cxx
+	sci-libs/lapack lapacke
 
 	# slimmed binpkg, nomesa
 	media-libs/libsdl2 -opengl -wayland -alsa -dbus -gles2 -udev -vulkan

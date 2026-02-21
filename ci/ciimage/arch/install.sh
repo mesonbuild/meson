@@ -15,7 +15,8 @@ pkgs=(
   doxygen vulkan-headers vulkan-icd-loader vulkan-validation-layers openssh mercurial gtk-sharp-3 qt5-tools
   libwmf cmake netcdf-fortran openmpi nasm gnustep-base gettext
   python-lxml hotdoc rust-bindgen qt6-base qt6-tools qt6-declarative wayland wayland-protocols
-  intel-oneapi-mkl
+  blas blas64 cblas cblas64 lapack lapack64 lapacke lapacke64
+  intel-oneapi-mkl intel-oneapi-openmp openblas tbb
   # cuda
 )
 
