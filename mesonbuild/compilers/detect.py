@@ -681,6 +681,12 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     popen_exceptions = {}
     compilers, ccache_exe = _get_compilers(env, 'cuda', for_machine)
     ccache = ccache_exe.get_command() if (ccache_exe and ccache_exe.found()) else []
+
+    try:
+        cpp_compiler = env.coredata.compilers[for_machine]['cpp']
+    except KeyError:
+        raise MesonException('Cuda requires a working C++ compiler for the same machine, but one could not be found')
+
     for compiler in compilers:
         arg = '--version'
         try:
@@ -701,10 +707,9 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         # instance, on Linux,
         #    - CUDA Toolkit 8.0.44 requires NVIDIA Driver 367.48
         #    - CUDA Toolkit 8.0.61 requires NVIDIA Driver 375.26
-        # Luckily, the "V" also makes it very simple to extract
-        # the full version:
-        version = out.strip().rsplit('V', maxsplit=1)[-1]
-        cpp_compiler = detect_cpp_compiler(env, for_machine)
+        # Split on the `V` to get the version, then strip additional lines after
+        # that.
+        version = out.strip().rsplit('V', maxsplit=1)[-1].split(maxsplit=1)[0]
         cls = CudaCompiler
         env.add_lang_args(cls.language, cls, for_machine)
         key = OptionKey('cuda_link_args', machine=for_machine)
@@ -717,7 +722,9 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
             env.coredata.optstore.set_option(key, cls.to_host_flags_base(val, Phase.LINKER))
         linker = CudaLinker(compiler, env, for_machine, CudaCompiler.LINKER_PREFIX, [], version=CudaLinker.parse_version())
         return cls(ccache, compiler, version, for_machine, cpp_compiler, env, linker=linker)
-    raise EnvironmentException(f'Could not find suitable CUDA compiler: "{"; ".join([" ".join(c) for c in compilers])}"')
+
+    _handle_exceptions(popen_exceptions, compilers)
+    raise EnvironmentException(f'Unknown compiler {compilers}')
 
 def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
     from . import fortran

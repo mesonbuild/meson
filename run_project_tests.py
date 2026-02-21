@@ -9,7 +9,7 @@ from mesonbuild import _pathlib
 import sys
 sys.modules['pathlib'] = _pathlib
 
-from concurrent.futures import ProcessPoolExecutor, CancelledError
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, CancelledError, as_completed
 from enum import Enum
 from io import StringIO
 from pathlib import Path, PurePath
@@ -37,7 +37,7 @@ from mesonbuild import compilers
 from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mtest
-from mesonbuild.compilers import compiler_from_language
+from mesonbuild.compilers import detect_compiler_for
 from mesonbuild.build import ConfigurationData
 from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWinProof, setup_vsenv
 from mesonbuild.mlog import blue, bold, cyan, green, red, yellow, normal_green
@@ -56,8 +56,7 @@ if T.TYPE_CHECKING:
     from concurrent.futures import Future
 
     from mesonbuild._typing import Protocol
-    from mesonbuild.compilers.compilers import Language
-    from mesonbuild.environment import Environment
+    from mesonbuild.compilers.compilers import Compiler, Language
 
     class CompilerArgumentType(Protocol):
         cross_file: str
@@ -138,11 +137,11 @@ class InstalledFile:
             # split on '' will return [''], we want an empty list though
             self.version = []
 
-    def get_path(self, compiler: str, env: environment.Environment) -> T.Optional[Path]:
+    def get_path(self, compiler: compilers.Compiler, env: environment.Environment) -> T.Optional[Path]:
         p = Path(self.path)
-        canonical_compiler = compiler
-        if ((compiler in ['clang-cl', 'intel-cl']) or
-                (env.machines.host.is_windows() and compiler in {'pgi', 'dmd', 'ldc'})):
+        canonical_compiler = compiler.get_id()
+        if ((canonical_compiler in ['clang-cl', 'intel-cl']) or
+                (env.machines.host.is_windows() and canonical_compiler in {'pgi', 'dmd', 'ldc'})):
             canonical_compiler = 'msvc'
 
         python_suffix = python.info['suffix']
@@ -233,7 +232,7 @@ class InstalledFile:
         elif self.typ in {'implib', 'implibempty'}:
             if env.machines.host.is_windows() and canonical_compiler == 'msvc':
                 # only MSVC doesn't generate empty implibs
-                if self.typ == 'implibempty' and compiler == 'msvc':
+                if self.typ == 'implibempty' and compiler.get_id() == 'msvc':
                     return None
                 return p.parent / (re.sub(r'^lib', '', p.name) + '.lib')
             elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
@@ -247,7 +246,7 @@ class InstalledFile:
 
         return p
 
-    def get_paths(self, compiler: str, env: environment.Environment, installdir: Path) -> T.List[Path]:
+    def get_paths(self, compiler: compilers.Compiler, env: environment.Environment, installdir: Path) -> T.List[Path]:
         p = self.get_path(compiler, env)
         if not p:
             return []
@@ -313,8 +312,8 @@ ci_jobname = raw_ci_jobname if raw_ci_jobname != 'thirdparty' else None
 do_debug = under_ci or print_debug
 no_meson_log_msg = 'No meson-log.txt found.'
 
-host_c_compiler: T.Optional[str]   = None
 compiler_id_map: T.Dict[str, str]  = {}
+all_compilers: mesonlib.PerMachine[T.Dict[Language, T.Optional[compilers.Compiler]]] = mesonlib.PerMachine({}, {})
 tool_vers_map:   T.Dict[str, str]  = {}
 
 compile_commands:   T.List[str]
@@ -347,7 +346,7 @@ signal.signal(signal.SIGINT, stop_handler)
 signal.signal(signal.SIGTERM, stop_handler)
 
 def setup_commands(optbackend: str) -> None:
-    global do_debug, backend, backend_flags
+    global backend, backend_flags
     global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands
     backend, backend_flags = guess_backend(optbackend, shutil.which('msbuild'))
     compile_commands, clean_commands, test_commands, install_commands, \
@@ -395,9 +394,15 @@ def platform_fix_name(fname: str, canonical_compiler: str, env: environment.Envi
 def validate_install(test: TestDef, installdir: Path, env: environment.Environment) -> str:
     ret_msg = ''
     expected_raw: T.List[Path] = []
+    c_compiler = all_compilers.host.get('c')
+
+    # We cannot do validation without a C compiler for the host
+    if c_compiler is None:
+        return None
+
     for i in test.installed_files:
         try:
-            expected_raw += i.get_paths(host_c_compiler, env, installdir)
+            expected_raw += i.get_paths(c_compiler, env, installdir)
         except RuntimeError as err:
             ret_msg += f'Expected path error: {err}\n'
     expected = {x: False for x in expected_raw}
@@ -631,7 +636,7 @@ class GlobalState(T.NamedTuple):
     backend:      'Backend'
     backend_flags: T.List[str]
 
-    host_c_compiler: T.Optional[str]
+    all_compilers: mesonlib.PerMachine[T.Dict[Language, T.Optional[compilers.Compiler]]] = mesonlib.PerMachine({}, {})
 
 def run_test(test: TestDef,
              extra_args: T.List[str],
@@ -639,9 +644,9 @@ def run_test(test: TestDef,
              use_tmp: bool,
              state: T.Optional[GlobalState] = None) -> T.Optional[TestResult]:
     # Unpack the global state
-    global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler
+    global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, all_compilers
     if state is not None:
-        compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler = state
+        compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, all_compilers = state
     # Store that this is a worker process
     global is_worker_process
     is_worker_process = True
@@ -963,53 +968,8 @@ def gather_tests(testdir: Path, stdout_mandatory: bool, only: T.List[str], skip_
     return sorted(all_tests)
 
 
-def have_d_compiler() -> bool:
-    if shutil.which("ldc2"):
-        return True
-    elif shutil.which("ldc"):
-        return True
-    elif shutil.which("gdc"):
-        return True
-    elif shutil.which("dmd"):
-        # The Windows installer sometimes produces a DMD install
-        # that exists but segfaults every time the compiler is run.
-        # Don't know why. Don't know how to fix. Skip in this case.
-        cp = subprocess.run(['dmd', '--version'],
-                            capture_output=True)
-        if cp.stdout == b'':
-            return False
-        return True
-    return False
-
-def have_objc_compiler(use_tmp: bool) -> bool:
-    return have_working_compiler('objc', use_tmp)
-
-def have_objcpp_compiler(use_tmp: bool) -> bool:
-    return have_working_compiler('objcpp', use_tmp)
-
-def have_cython_compiler(use_tmp: bool) -> bool:
-    return have_working_compiler('cython', use_tmp)
-
-def have_working_compiler(lang: Language, use_tmp: bool) -> bool:
-    with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmp else '.') as build_dir:
-        env = environment.Environment('', build_dir, get_fake_options('/'))
-        try:
-            compiler = compiler_from_language(env, lang, MachineChoice.HOST)
-        except mesonlib.MesonException:
-            return False
-        if not compiler:
-            return False
-        env.coredata.process_compiler_options(lang, compiler, '')
-        try:
-            compiler.sanity_check(env.get_scratch_dir())
-        except mesonlib.MesonException:
-            return False
-    return True
-
 def have_java() -> bool:
-    if shutil.which('javac') and shutil.which('java'):
-        return True
-    return False
+    return all_compilers.host['java'] is not None and shutil.which('java') is not None
 
 def skip_dont_care(t: TestDef) -> bool:
     # Everything is optional when not running on CI
@@ -1030,9 +990,12 @@ def skip_csharp(backend: Backend) -> bool:
         return True
     if not shutil.which('resgen'):
         return True
-    if shutil.which('mcs'):
+    comp = all_compilers.host['cs']
+    if comp is None:
+        return True
+    if comp.id == 'mono':
         return False
-    if shutil.which('csc'):
+    if comp.id == 'csc':
         # Only support VS2017 for now. Earlier versions fail
         # under CI in mysterious ways.
         try:
@@ -1046,33 +1009,6 @@ def skip_csharp(backend: Backend) -> bool:
         # Only support the version that ships with VS2017.
         return not stdo.startswith(b'2.')
     return True
-
-# In Azure some setups have a broken rustc that will error out
-# on all compilation attempts.
-
-def has_broken_rustc() -> bool:
-    dirname = Path('brokenrusttest')
-    if dirname.exists():
-        mesonlib.windows_proof_rmtree(dirname.as_posix())
-    dirname.mkdir()
-    sanity_file = dirname / 'sanity.rs'
-    sanity_file.write_text('fn main() {\n}\n', encoding='utf-8')
-    pc = subprocess.run(['rustc', '-o', 'sanity.exe', 'sanity.rs'],
-                        cwd=dirname.as_posix(),
-                        stdout = subprocess.DEVNULL,
-                        stderr = subprocess.DEVNULL)
-    mesonlib.windows_proof_rmtree(dirname.as_posix())
-    return pc.returncode != 0
-
-def should_skip_rust(backend: Backend) -> bool:
-    if not shutil.which('rustc'):
-        return True
-    if backend is not Backend.ninja:
-        return True
-    if mesonlib.is_windows():
-        if has_broken_rustc():
-            return True
-    return False
 
 def should_skip_wayland() -> bool:
     if mesonlib.is_windows() or mesonlib.is_osx():
@@ -1093,14 +1029,6 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
     gathered_tests: list of tuple of str, list of TestDef, bool
         tests to run
     """
-
-    skip_fortran = not(shutil.which('gfortran') or
-                       shutil.which('flang-new') or
-                       shutil.which('flang') or
-                       shutil.which('pgfortran') or
-                       shutil.which('nagfor') or
-                       shutil.which('ifort') or
-                       shutil.which('ifx'))
 
     skip_cmake = ((os.environ.get('compiler') == 'msvc2015' and under_ci) or
                   'cmake' not in tool_vers_map or
@@ -1129,16 +1057,16 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
         TestCategory('platform-android', 'android', not mesonlib.is_android()),
         TestCategory('java', 'java', backend is not Backend.ninja or not have_java()),
         TestCategory('C#', 'csharp', skip_csharp(backend)),
-        TestCategory('vala', 'vala', backend is not Backend.ninja or not shutil.which(os.environ.get('VALAC', 'valac'))),
-        TestCategory('cython', 'cython', backend is not Backend.ninja or not have_cython_compiler(options.use_tmpdir)),
-        TestCategory('rust', 'rust', should_skip_rust(backend)),
-        TestCategory('d', 'd', backend is not Backend.ninja or not have_d_compiler()),
-        TestCategory('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or not have_objc_compiler(options.use_tmpdir)),
-        TestCategory('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or not have_objcpp_compiler(options.use_tmpdir)),
-        TestCategory('fortran', 'fortran', skip_fortran or backend != Backend.ninja),
-        TestCategory('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
+        TestCategory('vala', 'vala', backend is not Backend.ninja or all_compilers.host['vala'] is None),
+        TestCategory('cython', 'cython', backend is not Backend.ninja or all_compilers.host['cython'] is None),
+        TestCategory('rust', 'rust', backend is not Backend.ninja or all_compilers.host['rust'] is None),
+        TestCategory('d', 'd', backend is not Backend.ninja or all_compilers.host['d'] is None),
+        TestCategory('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or all_compilers.host['objc'] is None),
+        TestCategory('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or all_compilers.host['objcpp'] is None),
+        TestCategory('fortran', 'fortran', backend is not Backend.ninja or all_compilers.host['fortran'] is None),
+        TestCategory('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or all_compilers.host['swift'] is None),
         # CUDA tests on Windows: use Ninja backend:  python run_project_tests.py --only cuda --backend ninja
-        TestCategory('cuda', 'cuda', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('nvcc')),
+        TestCategory('cuda', 'cuda', backend not in (Backend.ninja, Backend.xcode) or all_compilers.host['cuda'] is None),
         TestCategory('python3', 'python3', backend is not Backend.ninja or 'python3' not in sys.executable),
         TestCategory('python', 'python'),
         TestCategory('fpga', 'fpga', shutil.which('yosys') is None),
@@ -1154,9 +1082,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
     assert categories == ALL_TESTS, 'argparse("--only", choices=ALL_TESTS) need to be updated to match all_tests categories'
 
     if only:
-        for key in only.keys():
-            assert key in categories, f'key `{key}` is not a recognized category'
-        all_tests = [t for t in all_tests if t.category in only.keys()]
+        all_tests = [t for t in all_tests if t.category in only]
 
     gathered_tests = [(t.category, gather_tests(Path('test cases', t.subdir), t.stdout_mandatory, only[t.category], t.skip), t.skip) for t in all_tests]
     return gathered_tests
@@ -1231,7 +1157,6 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                use_tmp: bool,
                num_workers: int,
                logfile: T.TextIO) -> T.Tuple[int, int, int]:
-    global stop, host_c_compiler
     xmlname = log_name_base + '.xml'
     junit_root = ET.Element('testsuites')
     conf_time:  float = 0
@@ -1244,7 +1169,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     print(f'\nRunning tests with {num_workers} workers')
 
     # Pack the global state
-    state = GlobalState(compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler)
+    state = GlobalState(compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, all_compilers)
     executor = ProcessPoolExecutor(max_workers=num_workers)
 
     futures: T.List[RunFutureUnion] = []
@@ -1447,7 +1372,6 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     return passing_tests, failing_tests, skipped_tests
 
 def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None:
-    global backend, compile_commands, test_commands, install_commands
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
     meson_commands = mesonlib.python_command + [get_meson_script()]
     with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmpdir else '.') as build_dir:
@@ -1478,45 +1402,59 @@ def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None
 
 
 def detect_system_compiler(options: 'CompilerArgumentType') -> None:
-    global host_c_compiler, compiler_id_map
-
     fake_opts = get_fake_options('/')
     if options.cross_file:
         fake_opts.cross_file = [options.cross_file]
     if options.native_file:
         fake_opts.native_file = [options.native_file]
 
-    env = environment.Environment('', '', fake_opts)
-
-    print_compilers(env, MachineChoice.HOST)
+    machines = [MachineChoice.HOST]
     if options.cross_file:
-        print_compilers(env, MachineChoice.BUILD)
+        machines.append(MachineChoice.BUILD)
 
-    for lang in compilers.all_languages:
-        try:
-            comp = compiler_from_language(env, lang, MachineChoice.HOST)
-            # note compiler id for later use with test.json matrix
-            compiler_id_map[lang] = comp.get_id()
-        except mesonlib.MesonException:
-            comp = None
+    with tempfile.TemporaryDirectory(prefix='b_', dir=None if options.use_tmpdir else '.') as d:
+        env = environment.Environment('', d, fake_opts)
+        futures: T.Dict[T.Tuple[Language, MachineChoice], Future[T.Tuple[Language, MachineChoice, T.Optional[Compiler]]]] = {}
 
-        # note C compiler for later use by platform_fix_name()
-        if lang == 'c':
-            if comp:
-                host_c_compiler = comp.get_id()
-            else:
-                raise RuntimeError("Could not find C compiler.")
+        def find_compiler(lang: Language, machine: MachineChoice) -> T.Callable[[], T.Tuple[Language, MachineChoice, T.Optional[Compiler]]]:
+            def inner() -> T.Tuple[Language, MachineChoice, T.Optional[Compiler]]:
+                # Vala and Cython need to have a working C compiler before they can be detected
+                if lang in {'vala', 'cython'}:
+                    if futures[('c', machine)].result()[2] is None:
+                        return lang, machine, None
+
+                # Cuda needs a working C++ compiler before it can be detetected
+                if lang == 'cuda':
+                    if futures[('cpp', machine)].result()[2] is None:
+                        return lang, machine, None
+
+                try:
+                    comp = detect_compiler_for(env, lang, machine, False, '')
+                except mesonlib.MesonException:
+                    comp = None
+                return lang, machine, comp
+            return inner
+
+        with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as pool:
+            for machine, lang in itertools.product(machines, compilers.all_languages):
+                futures[(lang, machine)] = pool.submit(find_compiler(lang, machine))
+            for future in as_completed(futures.values()):
+                lang, machine, comp = future.result()
+                all_compilers[machine][lang] = comp
+
+    print_compilers(MachineChoice.HOST)
+    if all_compilers.build:
+        print_compilers(MachineChoice.BUILD)
 
 
-def print_compilers(env: 'Environment', machine: MachineChoice) -> None:
+def print_compilers(machine: MachineChoice) -> None:
     print()
     print(f'{machine.get_lower_case_name()} machine compilers')
     print()
-    for lang in compilers.all_languages:
-        try:
-            comp = compiler_from_language(env, lang, machine)
+    for lang, comp in sorted(all_compilers[machine].items(), key=lambda x: x[0]):
+        if comp is not None:
             details = '{:<10} {} {}'.format('[' + comp.get_id() + ']', ' '.join(comp.get_exelist()), comp.get_version_string())
-        except mesonlib.MesonException:
+        else:
             details = '[not found]'
         print(f'{lang:<7}: {details}')
 
@@ -1659,7 +1597,7 @@ if __name__ == '__main__':
                         help='Stop running if test case fails')
     parser.add_argument('--no-unittests', action='store_true',
                         help='Not used, only here to simplify run_tests.py')
-    parser.add_argument('--only', default=[],
+    parser.add_argument('--only', default=[], choices=ALL_TESTS,
                         help='name of test(s) to run, in format "category[/name]" where category is one of: ' + ', '.join(ALL_TESTS), nargs='+')
     parser.add_argument('-v', default=False, action='store_true',
                         help='Verbose mode')
