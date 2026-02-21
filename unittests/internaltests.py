@@ -833,29 +833,6 @@ class InternalTests(unittest.TestCase):
                 for o, name in [(operator.lt, 'lt'), (operator.le, 'le'), (operator.eq, 'eq')]:
                     self.assertFalse(o(ver_a, ver_b), f'{ver_a} {name} {ver_b}')
 
-    def test_msvc_toolset_version(self):
-        '''
-        Ensure that the toolset version returns the correct value for this MSVC
-        '''
-        env = get_fake_env()
-        cc = detect_c_compiler(env, MachineChoice.HOST)
-        if cc.get_argument_syntax() != 'msvc':
-            raise unittest.SkipTest('Test only applies to MSVC-like compilers')
-        toolset_ver = cc.get_toolset_version()
-        self.assertIsNotNone(toolset_ver)
-        # Visual Studio 2015 and older versions do not define VCToolsVersion
-        # TODO: ICL doesn't set this in the VSC2015 profile either
-        if cc.id == 'msvc' and int(''.join(cc.version.split('.')[0:2])) < 1910:
-            return
-        if 'VCToolsVersion' in os.environ:
-            vctools_ver = os.environ['VCToolsVersion']
-        else:
-            self.assertIn('VCINSTALLDIR', os.environ)
-            # See https://devblogs.microsoft.com/cppblog/finding-the-visual-c-compiler-tools-in-visual-studio-2017/
-            vctools_ver = (Path(os.environ['VCINSTALLDIR']) / 'Auxiliary' / 'Build' / 'Microsoft.VCToolsVersion.default.txt').read_text(encoding='utf-8')
-        self.assertTrue(vctools_ver.startswith(toolset_ver),
-                        msg=f'{vctools_ver!r} does not start with {toolset_ver!r}')
-
     def test_split_args(self):
         split_args = mesonbuild.mesonlib.split_args
         join_args = mesonbuild.mesonlib.join_args

@@ -146,15 +146,6 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
             ])
         return args
 
-    def get_toolset_version(self) -> T.Optional[str]:
-        # ICL provides a cl.exe that returns the version of MSVC it tries to
-        # emulate, so we'll get the version from that and pass it to the same
-        # function the real MSVC uses to calculate the toolset version.
-        _, _, err = mesonlib.Popen_safe(['cl.exe'])
-        v1, v2, *_ = mesonlib.search_version(err).split('.')
-        version = int(v1 + v2)
-        return self._calculate_toolset_version(version)
-
     def openmp_flags(self) -> T.List[str]:
         return ['/Qopenmp']
 
