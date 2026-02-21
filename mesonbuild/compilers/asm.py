@@ -76,7 +76,13 @@ class NasmCompiler(ASMCompiler):
         return True
 
     def get_always_args(self) -> T.List[str]:
-        cpu = '64' if self.info.is_64_bit else '32'
+        if self.info.is_64_bit:
+            if self.info.cpu == 'x32':
+                cpu = 'x32'
+            else:
+                cpu = '64'
+        else:
+            cpu = '32'
         if self.info.is_windows() or self.info.is_cygwin():
             plat = 'win'
             define = f'WIN{cpu}'
