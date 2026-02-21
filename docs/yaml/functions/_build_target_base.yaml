@@ -166,7 +166,7 @@ kwargs:
   install:
     type: bool
     default: false
-    description: When set to true, this executable should be installed.
+    description: When set to true, this file should be installed.
 
   install_dir:
     type: array[str | bool]
