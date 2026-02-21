@@ -489,6 +489,11 @@ class RustModule(ExtensionModule):
         if are_asserts_disabled_for_subproject(state.subproject, state.environment):
             clang_args.append('-DNDEBUG')
 
+        time64 = state.get_option('b_time64', state.subproject)
+        assert isinstance(time64, bool), 'for mypy'
+        if time64:
+            clang_args.append('-D_TIME_BITS=64')
+
         for de in kwargs['dependencies']:
             for i in de.get_include_dirs():
                 clang_args.extend([f'-I{x}' for x in i.abs_string_list(

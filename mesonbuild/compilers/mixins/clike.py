@@ -1326,6 +1326,9 @@ class CLikeCompiler(Compiler):
             return ['-DNDEBUG']
         return []
 
+    def get_time64_args(self) -> T.List[str]:
+        return ['-D_TIME_BITS=64']
+
     @functools.lru_cache(maxsize=None)
     def can_compile(self, src: 'mesonlib.FileOrString') -> bool:
         # Files we preprocess can be anything, e.g. .in
