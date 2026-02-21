@@ -1,4 +1,4 @@
-project('my project', 'cython', 'cpp',
+project('my project', 'cython',
   default_options : ['buildtype=release'])
 
 py = import('python').find_installation(pure: false)
