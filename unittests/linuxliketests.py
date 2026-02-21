@@ -9,6 +9,7 @@ import textwrap
 import os
 import shutil
 import hashlib
+import zipfile
 from unittest import mock, skipUnless, SkipTest
 from glob import glob
 from pathlib import Path
@@ -2012,6 +2013,20 @@ class LinuxlikeTests(BasePlatformTests):
         linker = next(src for src in executable['target_sources'] if 'linker' in src)
         for param in linker['parameters']:
             self.assertNotIn('liblib.rlib', param)
+
+    def test_jar_manifest_mtime(self):
+        '''
+        Test that jar creation can use SOURCE_DATE_EPOCH for mtime
+        '''
+        testdir = os.path.join(self.java_test_dir, '1 basic')
+        self.init(testdir)
+        self.build()
+        self.install(override_envvars={'SOURCE_DATE_EPOCH': '1770700000'})
+        jarfile = f'{self.installdir}/usr/bin/myprog.jar'
+        # check mtime in created .jar file
+        with zipfile.ZipFile(jarfile) as zip:
+            dt = zip.getinfo('META-INF/MANIFEST.MF').date_time
+            self.assertEqual(dt, (2026, 2, 10, 5, 6, 40))
 
     def test_sanitizers(self):
         testdir = os.path.join(self.unit_test_dir, '129 sanitizers')
