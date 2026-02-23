@@ -19,6 +19,17 @@ description: |
   Each directory given is converted to two include paths: one that is
   relative to the source root and one relative to the build root.
 
+warnings:
+  - |
+    When `is_system : true` is used, the include directory order on the
+    command line is **reversed** compared to the order given in the
+    arguments: the *last* directory listed has the highest priority
+    (it appears first among the `-isystem` flags and is searched first
+    by the compiler).  This is the opposite of the default (`is_system :
+    false`), where the *first* directory listed has the highest priority.
+    This may be changed in future releases, but behavior will not change
+    as long as `meson_version` is not changed in `project()`.
+
 example: |
   For example, with the following source tree layout in
   `/home/user/project.git`:

@@ -3041,15 +3041,22 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return (rel_obj, rel_src)
 
     @lru_cache(maxsize=None)
-    def generate_inc_dir(self, compiler: 'Compiler', inc: build.IncludeDirs
-                         ) -> ImmutableListProtocol[str]:
-        # We should iterate include dirs in reversed orders because
-        # -Ipath will add to begin of array. And without reverse
-        # flags will be added in reversed order.
-        args: T.List[str] = []
-        for p in inc.rel_string_list(self.build_to_src, self.build_dir):
-            args.extend(compiler.get_include_args(p, inc.is_system))
-        return args
+    def generate_inc_dir(self, compiler: 'Compiler', d: str, basedir: str, is_system: bool
+                         ) -> T.Tuple[ImmutableListProtocol[str], ImmutableListProtocol[str]]:
+        expdir = os.path.normpath(os.path.join(basedir, d))
+        srctreedir = os.path.normpath(os.path.join(self.build_to_src, expdir))
+        sargs = compiler.get_include_args(srctreedir, is_system)
+        # There may be include dirs where a build directory has not been
+        # created for some source dir. For example if someone does this:
+        #
+        # inc = include_directories('foo/bar/baz')
+        #
+        # But never subdir()s into the actual dir.
+        if os.path.isdir(os.path.join(self.environment.get_build_dir(), expdir)):
+            bargs = compiler.get_include_args(expdir, is_system)
+        else:
+            bargs = []
+        return (sargs, bargs)
 
     def _generate_single_compile(self, target: build.BuildTarget, compiler: Compiler) -> CompilerArgs:
         commands = self._generate_single_compile_base_args(target, compiler)
@@ -3088,10 +3095,36 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # external deps and must maintain the order in which they are specified.
         # Hence, we must reverse the list so that the order is preserved.
         for i in reversed(target.get_include_dirs()):
-            # We should iterate include dirs in reversed orders because
-            # -Ipath will add to begin of array. And without reverse
-            # flags will be added in reversed order.
-            commands += self.generate_inc_dir(compiler, i)
+            basedir = i.curdir
+            # Each directory must be added to CompilerArgs individually
+            # via a separate ``commands +=`` call, in reversed order.
+            #
+            # CompilerArgs.__iadd__ prepends ``-I`` args (which are in
+            # CLikeCompilerArgs.prepend_prefixes) but appends ``-isystem``
+            # args (which are not).  When adding one directory at a time
+            # in reversed order, this produces the correct result for
+            # both flag types:
+            #
+            # - For ``-I`` (prepended): each flag is inserted at the
+            #   front, so reversed iteration produces the original
+            #   order — first-listed directory appears first on the
+            #   command line and is searched first.
+            #
+            # - For ``-isystem`` (appended): each flag is added at the
+            #   back, so reversed iteration produces a reversed sequence
+            #   on the command line — *last*-listed directory appears
+            #   first and is searched first.
+            #
+            # Adding all directories in a single ``commands +=`` call
+            # would break ``-isystem`` ordering: the whole list would be
+            # appended at once in the original (unreversed) order, making
+            # the *first*-listed directory appear first instead of last.
+            for d in reversed(i.incdirs):
+                sargs, bargs = self.generate_inc_dir(compiler, d, basedir, i.is_system)
+                commands += sargs
+                commands += bargs
+            for d in i.extra_build_dirs:
+                commands += compiler.get_include_args(d, i.is_system)
         # Add per-target compile args, f.ex, `c_args : ['-DFOO']`. We set these
         # near the end since these are supposed to override everything else.
         commands += self.escape_extra_args(target.get_extra_args(compiler.get_language()))

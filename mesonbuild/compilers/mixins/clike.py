@@ -48,6 +48,16 @@ GROUP_FLAGS = re.compile(r'''^(?!-Wl,) .*\.so (?:\.[0-9]+)? (?:\.[0-9]+)? (?:\.[
                              \.a$''', re.X)
 
 class CLikeCompilerArgs(arglist.CompilerArgs):
+    # Note: ``-isystem`` is deliberately absent from prepend_prefixes.
+    # Because ``-isystem`` is appended by __iadd__ rather than
+    # prepended, the reversed iteration in the ninja backend causes
+    # directories listed *last* in include_directories() to appear
+    # *first* on the command line (and thus be searched first).  This
+    # is the opposite convention from ``-I``, where first-listed means
+    # first-searched.  Existing projects (e.g. systemd) rely on this
+    # ``-isystem`` ordering, so adding ``-isystem`` to prepend_prefixes
+    # would silently break them by reversing their include priority.
+    # See NinjaBackend._generate_single_compile_target_args().
     prepend_prefixes = ('-I', '-L')
     dedup2_prefixes = ('-I', '-isystem', '-L', '-D', '-U')
 
