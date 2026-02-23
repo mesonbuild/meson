@@ -566,6 +566,18 @@ class PlatformAgnosticTests(BasePlatformTests):
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '1 trivial'))
         self.init(testdir, extra_args=['-Dunity=on', '--unity-size=123'])
 
+    def test_minit_executable_with_matching_source(self) -> None:
+        """meson init --executable bar with bar.c present must not create a spurious project-name.c"""
+        with tempfile.TemporaryDirectory() as d:
+            Path(d, 'bar.c').write_text('int main() {}', encoding='utf-8')
+            self._run(self.meson_command + ['init', '--name', 'foo', '--executable', 'bar', '--language', 'c'], workdir=d)
+            files = {p.name for p in Path(d).iterdir()}
+            self.assertIn('meson.build', files)
+            self.assertNotIn('foo.c', files, 'spurious foo.c was created')
+            meson_build = Path(d, 'meson.build').read_text(encoding='utf-8')
+            self.assertNotIn("'foo.c'", meson_build, 'spurious foo.c listed in meson.build')
+            self.assertIn("'bar.c'", meson_build, 'existing bar.c not listed in meson.build')
+
     def test_minit_multi_file_keeps_existing_sources(self) -> None:
         """meson init without --executable must create a new source file alongside existing ones"""
         with tempfile.TemporaryDirectory() as d:
@@ -577,6 +589,18 @@ class PlatformAgnosticTests(BasePlatformTests):
             meson_build = Path(d, 'meson.build').read_text(encoding='utf-8')
             self.assertIn("'foo.c'", meson_build, 'existing foo.c not listed in meson.build')
             self.assertIn("'bar.c'", meson_build, 'existing bar.c not listed in meson.build')
+
+    def test_minit_wrong_name_creates_sample(self) -> None:
+        """meson init in an empty directory must create a sample source file"""
+        with tempfile.TemporaryDirectory() as d:
+            Path(d, 'bar.c').write_text('int main() {}', encoding='utf-8')
+            self._run(self.meson_command + ['init', '--name', 'foo', '--language', 'c'], workdir=d)
+            files = {p.name for p in Path(d).iterdir()}
+            self.assertIn('meson.build', files)
+            self.assertIn('foo.c', files)
+            meson_build = Path(d, 'meson.build').read_text(encoding='utf-8')
+            self.assertIn("'foo.c'", meson_build, 'created foo.c not listed in meson.build')
+            self.assertNotIn("'bar.c'", meson_build, 'existing bar.c listed in meson.build')
 
     def test_minit_empty_dir_creates_sample(self) -> None:
         """meson init in an empty directory must create a sample source file"""

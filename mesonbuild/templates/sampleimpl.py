@@ -72,6 +72,16 @@ class SampleImpl(metaclass=abc.ABCMeta):
     def _format_sources(self) -> str:
         return ''.join(f"\n  '{x}'," for x in self.sources)
 
+    def _detect_sources(self, srcfiles: T.List[Path], transform: T.Callable[[str], str]) -> T.Tuple[str, T.List[Path]]:
+        # Try a source based on the executable name, fallback to one based
+        # on the project name if none is found.
+        expected_name = f'{transform(self.executable_name)}.{self.source_ext}'
+        if any(str(x) == expected_name for x in srcfiles):
+            return expected_name, srcfiles
+        expected_name = f'{transform(self.lowercase_token)}.{self.source_ext}'
+        if any(str(x) == expected_name for x in srcfiles):
+            return expected_name, srcfiles
+        return expected_name, [Path(expected_name)]
 
 class ClassImpl(SampleImpl):
 
@@ -79,33 +89,31 @@ class ClassImpl(SampleImpl):
 
     def __init__(self, args: Arguments):
         super().__init__(args)
-        self.sources = args.srcfiles if args.srcfiles else [Path(f'{self.capitalized_token}.{self.source_ext}')]
+        self.source_name, self.sources = self._detect_sources(args.srcfiles, str.capitalize)
 
     def create_executable(self) -> None:
-        source_name = f'{self.capitalized_token}.{self.source_ext}'
-        if not os.path.exists(source_name):
-            with open(source_name, 'w', encoding='utf-8') as f:
+        if not os.path.exists(self.source_name):
+            with open(self.source_name, 'w', encoding='utf-8') as f:
                 f.write(self.exe_template.format(project_name=self.name,
                                                  class_name=self.capitalized_token))
         if self.force or not os.path.exists('meson.build'):
             with open('meson.build', 'w', encoding='utf-8') as f:
                 f.write(self.exe_meson_template.format(project_name=self.name,
                                                        exe_name=self.executable_name,
-                                                       source_name=source_name,
+                                                       source_name=self.source_name,
                                                        version=self.version,
                                                        meson_version=self.meson_version,
                                                        dependencies=self._format_dependencies(),
                                                        source_files=self._format_sources()))
 
     def create_library(self) -> None:
-        lib_name = f'{self.capitalized_token}.{self.source_ext}'
         test_name = f'{self.capitalized_token}_test.{self.source_ext}'
         kwargs = {
             'utoken': self.uppercase_token,
             'ltoken': self.lowercase_token,
             'class_test': f'{self.capitalized_token}_test',
             'class_name': self.capitalized_token,
-            'source_file': lib_name,
+            'source_file': self.source_name,
             'test_source_file': test_name,
             'test_exe_name': f'{self.lowercase_token}_test',
             'project_name': self.name,
@@ -116,8 +124,8 @@ class ClassImpl(SampleImpl):
             'dependencies': self._format_dependencies(),
             'source_files': self._format_sources(),
         }
-        if not os.path.exists(lib_name):
-            with open(lib_name, 'w', encoding='utf-8') as f:
+        if not os.path.exists(self.source_name):
+            with open(self.source_name, 'w', encoding='utf-8') as f:
                 f.write(self.lib_template.format(**kwargs))
         if self.lib_test_template and not os.path.exists(test_name):
             with open(test_name, 'w', encoding='utf-8') as f:
@@ -133,18 +141,17 @@ class FileImpl(SampleImpl):
 
     def __init__(self, args: Arguments):
         super().__init__(args)
-        self.sources = args.srcfiles if args.srcfiles else [Path(f'{self.lowercase_token}.{self.source_ext}')]
+        self.source_name, self.sources = self._detect_sources(args.srcfiles, str.lower)
 
     def create_executable(self) -> None:
-        source_name = f'{self.lowercase_token}.{self.source_ext}'
-        if not os.path.exists(source_name):
-            with open(source_name, 'w', encoding='utf-8') as f:
+        if not os.path.exists(self.source_name):
+            with open(self.source_name, 'w', encoding='utf-8') as f:
                 f.write(self.exe_template.format(project_name=self.name))
         if self.force or not os.path.exists('meson.build'):
             with open('meson.build', 'w', encoding='utf-8') as f:
                 f.write(self.exe_meson_template.format(project_name=self.name,
                                                        exe_name=self.executable_name,
-                                                       source_name=source_name,
+                                                       source_name=self.source_name,
                                                        version=self.version,
                                                        meson_version=self.meson_version,
                                                        dependencies=self._format_dependencies(),
@@ -175,11 +182,10 @@ class FileImpl(SampleImpl):
         }
 
     def create_library(self) -> None:
-        lib_name = f'{self.lowercase_token}.{self.source_ext}'
         test_name = f'{self.lowercase_token}_test.{self.source_ext}'
         kwargs = self.lib_kwargs()
-        if not os.path.exists(lib_name):
-            with open(lib_name, 'w', encoding='utf-8') as f:
+        if not os.path.exists(self.source_name):
+            with open(self.source_name, 'w', encoding='utf-8') as f:
                 f.write(self.lib_template.format(**kwargs))
         if self.lib_test_template and not os.path.exists(test_name):
             with open(test_name, 'w', encoding='utf-8') as f:
