@@ -821,6 +821,39 @@ class FeatureBroken(FeatureCheckBase):
         mlog.deprecation(*args, location=location)
 
 
+class FeatureFixed(FeatureCheckBase):
+    """Checks for features that were always broken but have been fixed."""
+
+    # Class variable, shared across all instances
+    #
+    # Format: {subproject: {feature_version: set(feature_names)}}
+    feature_registry = {}
+    unconditional = True
+
+    @staticmethod
+    def check_version(target_version: T.Union[str, mesonlib.NoProjectVersion], feature_version: str) -> bool:
+        return FeatureNew.check_version(target_version, feature_version)
+
+    @staticmethod
+    def get_warning_str_prefix(tv: T.Union[str, mesonlib.NoProjectVersion]) -> str:
+        return 'Fixed features used:'
+
+    @staticmethod
+    def get_notice_str_prefix(tv: T.Union[str, mesonlib.NoProjectVersion]) -> str:
+        return ''
+
+    def log_usage_warning(self, tv: T.Union[str, mesonlib.NoProjectVersion], location: T.Optional['mparser.BaseNode']) -> None:
+        args = [
+            'Project uses feature that was always broken,',
+            'though it has been fixed since',
+            f"'{self.feature_version}':",
+            f'{self.feature_name}.',
+        ]
+        if self.extra_message:
+            args.append(self.extra_message)
+        mlog.warning(*args, location=location)
+
+
 # This cannot be a dataclass due to https://github.com/python/mypy/issues/5374
 class FeatureCheckKwargsBase(metaclass=abc.ABCMeta):
 

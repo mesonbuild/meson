@@ -28,7 +28,7 @@ from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typ
 from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
-from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
+from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureFixed, FeatureNewKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
 from ..interpreterbase import stringifyUserArguments
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
@@ -2851,13 +2851,13 @@ class Interpreter(InterpreterBase, HoldableObject):
                                  kwargs: 'kwtypes.FuncIncludeDirectories') -> build.IncludeDirs:
         dirs = args[0]
         if kwargs['is_system'] and len(dirs) > 1:
-            FeatureBroken.single_use(
+            FeatureFixed.single_use(
                 'include_directories with is_system:true and more than one path', '1.11.0',
                 self.subproject,
                 'The search order of system include directories was previously reversed '
                 'compared to non-system includes (last listed directory was searched first). '
                 'Starting from 1.11.0, the order is the same as for non-system includes. '
-                'Use separate include_directories() calls if the order matters.',
+                'Use separate include_directories() calls or require Meson version >= 1.11.0.',
                 node)
             # For backwards compatibility, reverse the directory list so
             # that projects written for the old behaviour (last-listed =
@@ -3115,6 +3115,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         FeatureNew.report(self.subproject)
         FeatureDeprecated.report(self.subproject)
         FeatureBroken.report(self.subproject)
+        FeatureFixed.report(self.subproject)
         if not self.is_subproject():
             self.print_extra_warnings()
             self._print_summary()
