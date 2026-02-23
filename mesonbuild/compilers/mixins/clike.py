@@ -48,7 +48,13 @@ GROUP_FLAGS = re.compile(r'''^(?!-Wl,) .*\.so (?:\.[0-9]+)? (?:\.[0-9]+)? (?:\.[
                              \.a$''', re.X)
 
 class CLikeCompilerArgs(arglist.CompilerArgs):
-    prepend_prefixes = ('-I', '-L')
+    # ``-isystem`` was added to prepend_prefixes in 1.11.0.  Before that,
+    # it was only in dedup2_prefixes, which caused the ninja backend's
+    # reversed include-directory loop to produce a reversed command-line
+    # order for ``-isystem`` flags.  func_include_directories() in the
+    # interpreter has a backwards-compatibility shim that reverses the
+    # directory list for projects with meson_version < 1.11.0.
+    prepend_prefixes = ('-I', '-isystem', '-L')
     dedup2_prefixes = ('-I', '-isystem', '-L', '-D', '-U')
 
     # NOTE: not thorough. A list of potential corner cases can be found in

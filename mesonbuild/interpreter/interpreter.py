@@ -2849,7 +2849,25 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs('include_directories', KwargInfo('is_system', bool, default=False))
     def func_include_directories(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]],
                                  kwargs: 'kwtypes.FuncIncludeDirectories') -> build.IncludeDirs:
-        return self.build_incdir_object(args[0], kwargs['is_system'])
+        dirs = args[0]
+        if kwargs['is_system'] and len(dirs) > 1:
+            FeatureBroken.single_use(
+                'include_directories with is_system:true and more than one path', '1.11.0',
+                self.subproject,
+                'The search order of system include directories was previously reversed '
+                'compared to non-system includes (last listed directory was searched first). '
+                'Starting from 1.11.0, the order is the same as for non-system includes. '
+                'Use separate include_directories() calls if the order matters.',
+                node)
+            # For backwards compatibility, reverse the directory list so
+            # that projects written for the old behaviour (last-listed =
+            # highest priority) continue to work.  Projects that set
+            # meson_version >= 1.11.0 get the corrected order (first-listed =
+            # highest priority), matching non-system includes.
+            pv = mesonlib.project_meson_versions.get(self.subproject, '')
+            if not isinstance(pv, str) or not mesonlib.version_compare(pv, '>=1.11.0'):
+                dirs = list(reversed(dirs))
+        return self.build_incdir_object(dirs, kwargs['is_system'])
 
     def build_incdir_object(self, incdir_strings: T.List[str], is_system: bool = False) -> build.IncludeDirs:
         if not isinstance(is_system, bool):
