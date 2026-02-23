@@ -1,0 +1,8 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/common/290 systemd regression/meson.build:14: WARNING: Project uses feature that was always broken, though it has been fixed since '1.11.0': include_directories with is_system:true and more than one path. The search order of system include directories was previously reversed compared to non-system includes (last listed directory was searched first). Starting from 1.11.0, the order is the same as for non-system includes. Use separate include_directories() calls or require Meson version >= 1.11.0."
+    }
+  ],
+  "expect_skip_on_jobname": ["azure", "cygwin", "macos", "msys2", "windows"]
+}
