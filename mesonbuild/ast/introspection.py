@@ -172,11 +172,9 @@ class IntrospectionInterpreter(AstInterpreter):
                 try:
                     comp = detect_compiler_for(self.environment, lang, for_machine, True, self.subproject)
                 except mesonlib.MesonException:
-                    # do we even care about introspecting this language?
-                    if isinstance(required, UnknownValue) or required:
-                        raise
-                    else:
-                        continue
+                    # All code paths are evaluated regardless of conditionals,
+                    # so always ignore compiler detection failures.
+                    continue
                 if comp:
                     self.coredata.process_compiler_options(lang, comp, self.subproject)
 
