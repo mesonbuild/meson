@@ -70,6 +70,18 @@ def get_env(b: build.Build, dump_fmt: T.Optional[str]) -> T.Tuple[T.Dict[str, st
         extra_env.set('QEMU_LD_PREFIX', [sysroot])
 
     env = {} if dump_fmt else os.environ.copy()
+    if not is_windows():
+        # From XDG spec:
+        # > If $XDG_DATA_DIRS is either not set or empty, a value equal to /usr/local/share/:/usr/share/ should be used.
+        # We need that default value, otherwise adding directories with devenv.prepend()
+        # would override system directories instead of adding to them. Note that
+        # devenv.set() still overrides this default. Distros set their default
+        # XDG_DATA_DIRS, but CI containers often do not.
+        if not env.get('XDG_DATA_DIRS'):
+            env['XDG_DATA_DIRS'] = '/usr/local/share:/usr/share'
+        if not env.get('XDG_CONFIG_DIRS'):
+            env['XDG_CONFIG_DIRS'] = '/etc/xdg'
+
     default_fmt = '${0}' if dump_fmt in {'sh', 'export'} else None
     varnames = set()
     for i in itertools.chain(b.devenv, {extra_env}):

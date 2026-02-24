@@ -395,6 +395,10 @@ These variables are set in environment in addition to those set using [[meson.ad
   more than one directory.
 - `QEMU_LD_PREFIX` *Since 1.0.0* is set to the `sys_root` value from cross file
   when cross compiling and that property is defined.
+- `XDG_DATA_DIRS` *Since 1.11.0* if not set in user's environment, the default value
+  `/usr/local/share:/usr/share` is set before adding project paths.
+- `XDG_CONFIG_DIRS` *Since 1.11.0* if not set in user's environment, the default value
+  `/etc/xdg` is set before adding project paths.
 
 *Since 0.62.0* if bash-completion scripts are being installed and the
 shell is bash, they will be automatically sourced.
