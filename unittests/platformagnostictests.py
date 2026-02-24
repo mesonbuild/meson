@@ -15,7 +15,7 @@ from unittest import skipIf, SkipTest
 from pathlib import Path
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import IS_CI
+from .helpers import *
 from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command, windows_proof_rmtree
 from mesonbuild.mformat import Formatter, match_path
 from mesonbuild.optinterpreter import OptionInterpreter, OptionException
@@ -626,3 +626,11 @@ class PlatformAgnosticTests(BasePlatformTests):
 
         self.init(testdir)
         self.build()
+
+    @skip_if_not_language('java')
+    def test_java_build_subdir_correct_deps(self):
+        """Test that jar() with build_subdir sources does not rebuild unnecessarily."""
+        testdir = os.path.join(self.src_root, 'test cases', 'java', '11 build subdir')
+        self.init(testdir)
+        self.build()
+        self.assertBuildIsNoop()
