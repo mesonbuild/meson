@@ -1614,7 +1614,9 @@ class NinjaBackend(backends.Backend):
             rel_src = src.rel_to_builddir(self.build_to_src)
             rel_srcs.append(rel_src)
 
-            plain_class_path = src.fname[:-4] + 'class'
+            # Preserve any additional path components on top of the target's subdir
+            plain_class_path = os.path.relpath(src.relative_name(), target.get_subdir())
+            plain_class_path = plain_class_path[:-4] + 'class'
             plain_class_paths.append(plain_class_path)
             rel_obj = os.path.join(self.get_target_private_dir(target), plain_class_path)
             rel_objs.append(rel_obj)
