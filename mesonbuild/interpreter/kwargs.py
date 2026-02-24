@@ -372,6 +372,9 @@ class _BuildTarget(_BaseBuildTarget):
     d_module_versions: T.List[T.Union[str, int]]
     d_unittest: bool
     install_dir: T.List[T.Union[str, bool]]
+    install_vala_header: T.Union[str, bool, None]
+    install_vala_vapi: T.Union[str, bool, None]
+    install_vala_gir: T.Union[str, bool, None]
     rust_crate_type: T.Optional[Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']]
     rust_dependency_map: T.Dict[str, str]
     swift_interoperability_mode: Literal['c', 'cpp']
