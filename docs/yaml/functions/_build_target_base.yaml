@@ -43,15 +43,9 @@ kwargs:
     description: precompiled header file to use for the given language
 
   <lang>_args:
-    type: array[str]
-    description: |
-      compiler flags to use for the given language;
-      eg: `cpp_args` for C++
-
-  vala_args:
     type: array[str | file]
     description: |
-      Compiler flags for Vala. Unlike other languages this may contain Files
+      compiler flags to use for the given language; eg: `cpp_args` for C++
 
   sources:
     type: str | file | custom_tgt | custom_idx | generated_list | structured_src
