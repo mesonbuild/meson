@@ -171,7 +171,6 @@ buildtarget_kwargs = {
     'build_subdir',
     'dependencies',
     'extra_files',
-    'gui_app',
     'link_with',
     'link_whole',
     'link_args',
@@ -192,7 +191,6 @@ buildtarget_kwargs = {
     'sources',
     'gnu_symbol_visibility',
     'link_language',
-    'win_subsystem',
 }
 
 known_build_target_kwargs = (
@@ -204,7 +202,7 @@ known_build_target_kwargs = (
     cs_kwargs |
     swift_kwargs)
 
-known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie', 'vs_module_defs', 'android_exe_type'}
+known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie', 'vs_module_defs', 'win_subsystem', 'android_exe_type'}
 known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions', 'rust_abi', 'shortname'}
 known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs', 'rust_abi'}
 known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink', 'rust_abi'}

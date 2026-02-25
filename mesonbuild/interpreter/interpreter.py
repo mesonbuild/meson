@@ -221,9 +221,11 @@ known_library_kwargs = (
     {f'{l}_static_args' for l in compilers.all_languages - {'java'}}
 )
 
+known_exe_kwargs = build.known_exe_kwargs | {'gui_app'}
+
 known_build_target_kwargs = (
     known_library_kwargs |
-    build.known_exe_kwargs |
+    known_exe_kwargs |
     build.known_jar_kwargs |
     {'target_type'}
 )
@@ -1851,7 +1853,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         nkwargs['rust_crate_type'] = 'cdylib'
         return nkwargs
 
-    @permittedKwargs(build.known_exe_kwargs)
+    @permittedKwargs(known_exe_kwargs)
     @typed_pos_args('executable', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('executable', *EXECUTABLE_KWS)
     def func_executable(self, node: mparser.BaseNode,
@@ -3523,10 +3525,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             if missing:
                 raise InvalidArguments('The following PCH files do not exist: {}'.format(', '.join(missing)))
 
-        # Filter out kwargs from other target types. For example 'soversion'
-        # passed to library() when default_library == 'static'.
-        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs | {'language_args'}}
-
         srcs: T.List['SourceInputs'] = []
         struct: T.Optional[build.StructuredSources] = build.StructuredSources()
         for s in sources:
@@ -3585,6 +3583,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                 kwargs['implib'] = None
 
         kwargs['install_tag'] = [kwargs['install_tag']]
+
+        # Filter out kwargs from other target types. For example 'soversion'
+        # passed to library() when default_library == 'static'.
+        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs | {'language_args'}}
 
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
                              self.environment, self.compilers[for_machine], kwargs)
