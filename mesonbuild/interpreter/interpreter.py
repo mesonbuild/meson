@@ -221,9 +221,11 @@ known_library_kwargs = (
     {f'{l}_static_args' for l in compilers.all_languages - {'java'}}
 )
 
+known_exe_kwargs = build.known_exe_kwargs | {'gui_app'}
+
 known_build_target_kwargs = (
     known_library_kwargs |
-    build.known_exe_kwargs |
+    known_exe_kwargs |
     build.known_jar_kwargs |
     {'target_type'}
 )
@@ -1879,7 +1881,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         nkwargs['rust_crate_type'] = 'cdylib'
         return nkwargs
 
-    @permittedKwargs(build.known_exe_kwargs)
+    @permittedKwargs(known_exe_kwargs)
     @typed_pos_args('executable', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('executable', *EXECUTABLE_KWS)
     def func_executable(self, node: mparser.BaseNode,
@@ -3568,11 +3570,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             if missing:
                 raise InvalidArguments('The following PCH files do not exist: {}'.format(', '.join(missing)))
 
-        # Filter out kwargs from other target types. For example 'soversion'
-        # passed to library() when default_library == 'static'.
-        extra_excludes = {'language_args', 'install_vala_header', 'install_vala_vapi', 'install_vala_gir'}
-        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs | extra_excludes}
-
         srcs: T.List['SourceInputs'] = []
         struct: T.Optional[build.StructuredSources] = build.StructuredSources()
         for s in sources:
@@ -3674,6 +3671,13 @@ class Interpreter(InterpreterBase, HoldableObject):
 
             if kwargs['vala_gir'] is None and kwargs['install_vala_gir']:
                 raise InvalidArguments('Cannot set `install_vala_gir` without `vala_gir`')
+
+        # Filter out kwargs from other target types. For example 'soversion'
+        # passed to library() when default_library == 'static'.
+        extra_excludes = {'language_args', 'install_vala_header', 'install_vala_vapi', 'install_vala_gir',
+                          'install_vala_header_dir', 'install_vala_vapi_dir', 'install_vala_gir_dir'}
+        print({k: v for k, v in kwargs.items() if k not in targetclass.known_kwargs and k not in extra_excludes})
+        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs | extra_excludes}
 
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
                              self.environment, self.compilers[for_machine], kwargs)
