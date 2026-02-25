@@ -447,6 +447,10 @@ class RustCompiler(Compiler):
         return rustc_link_args(super().headerpad_args())
 
     @functools.lru_cache(maxsize=None)
+    def get_linker_fatal_warnings(self) -> T.List[str]:
+        return rustc_link_args(super().get_linker_fatal_warnings())
+
+    @functools.lru_cache(maxsize=None)
     def get_allow_undefined_link_args(self) -> T.List[str]:
         return rustc_link_args(super().get_allow_undefined_link_args())
 

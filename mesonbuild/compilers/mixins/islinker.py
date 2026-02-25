@@ -111,6 +111,9 @@ class BasicLinkerIsCompilerMixin(Compiler):
     def get_optimization_link_args(self, optimization_level: str) -> T.List[str]:
         return []
 
+    def get_linker_fatal_warnings(self) -> T.List[str]:
+        return []
+
     def get_link_debugfile_name(self, targetfile: str) -> T.Optional[str]:
         return None
 
