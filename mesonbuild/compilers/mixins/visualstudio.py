@@ -129,6 +129,12 @@ class VisualStudioLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
         # TODO: use ImmutableListProtocol[str] here instead
         return self.always_args.copy()
 
+    def get_no_stdinc_args(self) -> T.List[str]:
+        return ['/X']
+
+    def get_no_stdlib_link_args(self) -> T.List[str]:
+        return ['/NODEFAULTLIB']
+
     def get_pch_suffix(self) -> str:
         return 'pch'
 
