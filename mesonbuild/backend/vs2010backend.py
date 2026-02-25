@@ -1449,6 +1449,8 @@ class Vs2010Backend(backends.Backend):
         link = ET.SubElement(compiles, 'Link')
         extra_link_args = compiler.compiler_args()
         extra_link_args += compiler.get_optimization_link_args(self.optimization)
+        if self.get_target_option(target, 'werror'):
+            extra_link_args += compiler.get_linker_fatal_warnings()
         # Generate Debug info
         if self.debug:
             self.generate_debug_information(link)

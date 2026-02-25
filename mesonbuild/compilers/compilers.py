@@ -356,6 +356,8 @@ def get_base_link_args(target: 'BuildTarget',
                        env: 'Environment') -> T.List[str]:
     args: T.List[str] = []
     build_dir = env.get_build_dir()
+    if env.coredata.get_option_for_target(target, 'werror'):
+        args.extend(linker.get_linker_fatal_warnings())
     try:
         if env.coredata.get_option_for_target(target, 'b_lto'):
             if env.coredata.get_option_for_target(target, 'werror'):
@@ -1179,6 +1181,9 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
 
     def get_optimization_link_args(self, optimization_level: str) -> T.List[str]:
         return self.linker.get_optimization_link_args(optimization_level)
+
+    def get_linker_fatal_warnings(self) -> T.List[str]:
+        return self.linker.fatal_warnings()
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str, soversion: str,
                         darwin_versions: T.Tuple[str, str]) -> T.List[str]:
