@@ -5,8 +5,10 @@ from __future__ import annotations
 
 from ..mesonlib import MesonException
 from ..options import OptionKey
+from ..tooldetect import detect_ninja
 from .. import mlog
 from pathlib import Path
+import functools
 import typing as T
 
 if T.TYPE_CHECKING:
@@ -107,11 +109,21 @@ def _flags_to_list(raw: str) -> T.List[str]:
     res = [r for r in res if len(r) > 0]
     return res
 
+@functools.lru_cache(maxsize=None)
+def _cmake_get_generator_args(backend_name: str) -> T.List[str]:
+    assert backend_name in backend_generator_map
+    args = ['-G', backend_generator_map[backend_name]]
+    if backend_name == 'ninja':
+        ninja = detect_ninja()
+        if ninja:
+            assert len(ninja) == 1
+            args += [f'-DCMAKE_MAKE_PROGRAM={ninja[0]}']
+    return args
+
 def cmake_get_generator_args(env: 'Environment') -> T.List[str]:
     backend_name = env.coredata.optstore.get_value_for(OptionKey('backend'))
     assert isinstance(backend_name, str)
-    assert backend_name in backend_generator_map
-    return ['-G', backend_generator_map[backend_name]]
+    return list(_cmake_get_generator_args(backend_name))
 
 def cmake_defines_to_args(raw: T.List[T.Dict[str, TYPE_var]], permissive: bool = False) -> T.List[str]:
     res: T.List[str] = []
