@@ -783,7 +783,7 @@ class Backend:
                     rel_src = rel_src[len(build_dir) + 1:]
                 rel_src = os.path.relpath(rel_src, self.get_target_private_dir(target))
             else:
-                rel_src = os.path.basename(rel_src)
+                rel_src = os.path.relpath(rel_src, os.path.join(self.build_to_src, target.get_subdir()))
             # A meson- prefixed directory is reserved; hopefully no-one creates a file name with such a weird prefix.
             gen_source = 'meson-generated_' + rel_src[:-5] + '.c'
         elif source.is_built:
