@@ -200,9 +200,9 @@ def detect_scanbuild() -> T.List[str]:
                 break
 
     if exelist:
-        tool = exelist[0]
-        if os.path.isfile(tool) and os.access(tool, os.X_OK):
-            return [tool]
+        tool = shutil.which(exelist[0])
+        if tool is not None:
+            return [tool] + exelist[1:]
     return []
 
 def detect_clangformat() -> T.List[str]:
