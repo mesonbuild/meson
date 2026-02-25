@@ -553,9 +553,9 @@ _VS_MODULE_DEFS_KW: KwargInfo[T.Optional[T.Union[str, File, CustomTarget, Custom
     since_values={CustomTargetIndex: '1.3.0'}
 )
 
-_BASE_LANG_KW: KwargInfo[T.List[str]] = KwargInfo(
+_BASE_LANG_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
     'UNKNOWN',
-    ContainerTypeInfo(list, (str)),
+    ContainerTypeInfo(list, (str, File)),
     listify=True,
     default=[],
 )
