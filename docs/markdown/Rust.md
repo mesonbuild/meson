@@ -126,7 +126,7 @@ wrap the arguments being tested with `-Clink-arg=`.
 
 In most cases, a Rust program will use Cargo to download crates.  Meson is able
 to build Rust library crates based on a `Cargo.toml` file; each external crate
-corresponds to a subproject.  Rust module's ` that do not need a `build.rs` file
+corresponds to a subproject.  Rust module's that do not need a `build.rs` file
 need no intervention, whereas if a `build.rs` file is present it needs to be
 converted manually to Meson code.
 
