@@ -42,7 +42,9 @@ class BaseTest(TypedDict):
 
     """Shared base for the Rust module."""
 
-    should_fail: bool
+    should_fail: T.Optional[bool]
+    expected_fail: T.Optional[bool]
+    expected_exitcode: T.Optional[int]
     timeout: int
     workdir: T.Optional[str]
     depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]]
