@@ -201,7 +201,8 @@ class TestSerialisation:
     is_parallel: bool
     cmd_args: T.List[str]
     env: mesonlib.EnvironmentVariables
-    should_fail: bool
+    expected_fail: bool
+    expected_exitcode: T.Optional[int]
     timeout: T.Optional[int]
     workdir: T.Optional[str]
     extra_paths: T.List[str]
@@ -1262,7 +1263,7 @@ class Backend:
             ts = TestSerialisation(t.get_name(), t.project_name, t.suite, cmd, is_cross,
                                    exe_wrapper, self.environment.need_exe_wrapper(),
                                    t.is_parallel, cmd_args, t_env,
-                                   t.should_fail, t.timeout, t.workdir,
+                                   t.expected_fail, t.expected_exitcode, t.timeout, t.workdir,
                                    extra_paths, t.protocol, t.priority,
                                    isinstance(exe, (build.Target, build.CustomTargetIndex)),
                                    isinstance(exe, build.Executable),
