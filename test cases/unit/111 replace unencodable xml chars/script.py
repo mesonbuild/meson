@@ -18,7 +18,7 @@ try:
         '\ufdd9\ufdda\ufddb\ufddc\ufddd\ufdde\ufddf\ufde0\ufde1'
         '\ufde2\ufde3\ufde4\ufde5\ufde6\ufde7\ufde8\ufde9\ufdea'
         '\ufdeb\ufdec\ufded\ufdee\ufdef\ufffe\uffff')
-except:
+except Exception:
     pass
 
 # Cover for potential encoding issues
@@ -33,5 +33,5 @@ try:
             '\U000bfffe\U000bffff\U000cfffe\U000cffff'
             '\U000dfffe\U000dffff\U000efffe\U000effff'
             '\U000ffffe\U000fffff\U0010fffe\U0010ffff')
-except:
+except Exception:
     pass
