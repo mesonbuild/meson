@@ -257,7 +257,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             compiler, env, for_machine, comp_class.LINKER_PREFIX, override,
             system=system, version=v
         )
-    elif 'ld.exe: unrecognized option' in e:
+    elif 'ld.exe: unrecognized option' in e or 'ld: unrecognized option' in e:
         linker = linkers.OS2AoutDynamicLinker(
             compiler, env, for_machine, comp_class.LINKER_PREFIX, override,
             version='none')
