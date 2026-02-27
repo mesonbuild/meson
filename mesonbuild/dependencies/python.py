@@ -361,7 +361,7 @@ class _PythonDependencyBase(_Base):
             path = self.build_config['libpython'][key]
             if sysroot and not path_is_in_root(Path(path), Path(sysroot)):
                 path = sysroot + path
-            return path
+            return [path]
 
         if self.platform.startswith('win'):
             vernum = self.variables.get('py_version_nodot')
