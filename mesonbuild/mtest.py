@@ -1149,7 +1149,7 @@ class TestRunTAP(TestRun):
         return True
 
     def complete(self) -> None:
-        if self.returncode != 0 and not self.res.was_killed():
+        if self.returncode != 0 and self.res.is_ok():
             self.res = TestResult.ERROR
             self.stde = self.stde or ''
             self.stde += f'\n(test program exited with status code {self.returncode})'
