@@ -3515,6 +3515,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             pch = target.pch[lang]
             if not pch:
                 continue
+            if lang not in target.compilers:
+                continue
             compiler: Compiler = target.compilers[lang]
             if compiler.get_argument_syntax() == 'msvc':
                 (commands, dep, dst, objs, src) = self.generate_msvc_pch_command(target, compiler, pch)

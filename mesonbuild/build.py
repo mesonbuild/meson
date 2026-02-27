@@ -1100,6 +1100,8 @@ class BuildTarget(Target):
             if self.link_language not in self.all_compilers:
                 m = f'Target {self.name} requires {self.link_language} compiler not part of the project'
                 raise MesonException(m)
+            if self.link_language not in self.compilers and self.pch.get(self.link_language, None):
+                self.compilers[self.link_language] = self.all_compilers[self.link_language]
 
         # If this library is linked against another library we need to consider
         # the languages of those libraries as well.
