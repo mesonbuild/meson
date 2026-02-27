@@ -729,7 +729,7 @@ class ConsoleLogger(TestLogger):
             else:
                 print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width),
                       flush=True)
-                if result.verbose or result.res.is_bad():
+                if result.verbose or harness.is_bad_result(result):
                     self.print_log(harness, result)
             if result.warnings:
                 print(flush=True)
@@ -1661,6 +1661,7 @@ class TestHarness:
     def __init__(self, options: argparse.Namespace):
         self.options = options
         self.collected_failures: T.List[TestRun] = []
+        self.maxfail_reached = False
         self.fail_count = 0
         self.expectedfail_count = 0
         self.unexpectedpass_count = 0
@@ -1823,10 +1824,13 @@ class TestHarness:
         else:
             sys.exit(f'Unknown test result encountered: {result.res}')
 
-        if result.res.is_bad():
+        if self.is_bad_result(result):
             self.collected_failures.append(result)
         for l in self.loggers:
             l.log(self, result)
+
+    def is_bad_result(self, result: TestRun) -> bool:
+        return result.res.is_bad() and not (result.res is TestResult.INTERRUPT and self.maxfail_reached)
 
     @property
     def numlen(self) -> int:
@@ -2132,6 +2136,7 @@ class TestHarness:
                 self.process_test_result(res)
                 maxfail = self.options.maxfail
                 if maxfail and self.fail_count >= maxfail and res.res.is_bad():
+                    self.maxfail_reached = True
                     cancel_all_tests()
 
         def test_done(f: asyncio.Future) -> None:
