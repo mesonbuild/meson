@@ -2756,7 +2756,12 @@ class Interpreter(InterpreterBase, HoldableObject):
             output = outputs[0]
             if depfile:
                 depfile = mesonlib.substitute_values([depfile], values)[0]
-        ofile_rpath = os.path.join(self.subdir, output)
+
+        # Validate build_subdir
+        build_subdir = kwargs['build_subdir']
+        self.validate_build_subdir(build_subdir, output)
+
+        ofile_rpath = os.path.join(self.subdir, build_subdir, output)
         if ofile_rpath in self.configure_file_outputs:
             mesonbuildfile = os.path.join(self.subdir, 'meson.build')
             current_call = f"{mesonbuildfile}:{self.current_node.lineno}"
@@ -2765,12 +2770,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             self.configure_file_outputs[ofile_rpath] = self.current_node.lineno
 
-        # Validate build_subdir
-        build_subdir = kwargs['build_subdir']
-        self.validate_build_subdir(build_subdir, output)
-
-        (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, build_subdir, output))
-        ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
+        ofile_path, ofile_fname = os.path.split(ofile_rpath)
+        ofile_abs = os.path.join(self.environment.build_dir, ofile_rpath)
         os.makedirs(os.path.split(ofile_abs)[0], exist_ok=True)
 
         # Perform the appropriate action
@@ -2783,7 +2784,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                         raise InvalidArguments(
                             f'"configuration_data": initial value dictionary key "{k!r}"" must be "str | int | bool", not "{v!r}"')
                 conf = build.ConfigurationData(conf)
-            mlog.log('Configuring', mlog.bold(output), 'using configuration')
+            mlog.log('Configuring', mlog.bold(os.path.join(build_subdir, output)), 'using configuration')
             if len(inputs) > 1:
                 raise InterpreterException('At most one input file can given in configuration mode')
             if inputs:
