@@ -3459,7 +3459,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             pch = target.pch[lang]
             if not pch:
                 continue
-            compiler: Compiler = target.compilers[lang]
+            compiler: Compiler = target.all_compilers[lang]
             if compiler.get_argument_syntax() == 'msvc':
                 (commands, dep, dst, objs, src) = self.generate_msvc_pch_command(target, compiler, pch)
                 extradep = os.path.join(self.build_to_src, target.get_subdir(), pch[0])
