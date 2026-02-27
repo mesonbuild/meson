@@ -3101,7 +3101,7 @@ class AllPlatformTests(BasePlatformTests):
         python_build_config = {
             'schema_version': '1.0',
             'base_interpreter': sys.executable,
-            'base_prefix': '/usr',
+            'base_prefix': sys.base_prefix,
             'platform': sysconfig.get_platform(),
             'language': {
                 'version': sysconfig.get_python_version(),
@@ -3176,29 +3176,42 @@ class AllPlatformTests(BasePlatformTests):
 
                 with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as python_build_config_file:
                     json.dump(python_build_config, fp=python_build_config_file)
-                with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as cross_file:
-                    cross_file.write(
-                        textwrap.dedent(f'''
-                            [binaries]
-                            pkg-config = 'pkg-config'
+                for build_config_via_cross in (False, True):
+                    for sys_root in (None, sys.base_prefix):
+                        with self.subTest(build_config_via_cross=build_config_via_cross, sys_root=sys_root):
+                            with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as cross_file:
+                                cross_file.write(
+                                    textwrap.dedent(f'''
+                                        [binaries]
+                                        pkg-config = 'pkg-config'
+                                    ''')
+                                )
+                                if build_config_via_cross:
+                                    cross_file.write(
+                                        textwrap.dedent(f'''
+                                            [built-in options]
+                                            python.build_config = '{python_build_config_file.name}'
+                                        ''')
+                                    )
+                                if sys_root is not None:
+                                    cross_file.write(
+                                        textwrap.dedent(f'''
+                                            [properties]
+                                            sys_root = '{sys_root}'
+                                        ''')
+                                    )
+                                cross_file.flush()
 
-                            [built-in options]
-                            python.build_config = '{python_build_config_file.name}'
-                        '''.strip())
-                    )
-                    cross_file.flush()
+                            extra_args = ['--cross-file', cross_file.name]
+                            if not build_config_via_cross:
+                                extra_args += ['--python.build-config', python_build_config_file.name]
 
-                for extra_args in (
-                    ['--python.build-config', python_build_config_file.name],
-                    ['--cross-file', cross_file.name],
-                ):
-                    with self.subTest(extra_args=extra_args):
-                        self.init(testdir, extra_args=extra_args)
-                        self.build()
-                        with open(intro_installed_file) as f:
-                            intro_installed = json.load(f)
-                        self.assertEqual(sorted(expected_files), sorted(intro_installed))
-                        self.wipe()
+                            self.init(testdir, extra_args=extra_args)
+                            self.build()
+                            with open(intro_installed_file) as f:
+                                intro_installed = json.load(f)
+                            self.assertEqual(sorted(expected_files), sorted(intro_installed))
+                            self.wipe()
 
     def __reconfigure(self):
         # Set an older version to force a reconfigure from scratch
