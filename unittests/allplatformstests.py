@@ -3194,6 +3194,10 @@ class AllPlatformTests(BasePlatformTests):
                     json.dump(python_build_config, fp=python_build_config_file)
                 for build_config_via_cross in (False, True):
                     for sys_root in (None, sys.base_prefix):
+                        # fd.o pkg-config does not handle sys_root correctly
+                        if sys_root is not None and with_pkgconfig and shutil.which('pkgconf') is None:
+                            continue
+
                         with self.subTest(build_config_via_cross=build_config_via_cross, sys_root=sys_root):
                             with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as cross_file:
                                 cross_file.write(
