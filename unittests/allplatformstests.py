@@ -3179,6 +3179,10 @@ class AllPlatformTests(BasePlatformTests):
                 for build_config_via_cross in (False, True):
                     for sys_root in (None, sys.base_prefix):
                         with self.subTest(build_config_via_cross=build_config_via_cross, sys_root=sys_root):
+                            # fd.o pkg-config does not handle sys_root correctly
+                            if sys_root is not None and with_pkgconfig and shutil.which('pkgconf') is None:
+                                raise SkipTest('sys_root subtest skipped because of fd.o pkg-config')
+
                             with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as cross_file:
                                 cross_file.write(
                                     textwrap.dedent(f'''
