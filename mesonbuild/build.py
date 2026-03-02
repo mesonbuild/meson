@@ -50,6 +50,7 @@ if T.TYPE_CHECKING:
 
     GeneratedTypes: TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
+    WholeLibTypes = T.Union['StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
     BuildTargetTypes: TypeAlias = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
     StaticTargetTypes: TypeAlias = T.Union['StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
     ObjectTypes: TypeAlias = T.Union[str, 'File', 'ExtractedObjects', 'GeneratedTypes']

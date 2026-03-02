@@ -23,14 +23,14 @@ import mesonbuild.environment
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
-    MachineChoice, is_windows, is_osx, is_cygwin, is_openbsd, is_haiku,
-    is_sunos, windows_proof_rmtree, version_compare, is_linux,
-    EnvironmentException
-)
+        MachineChoice, is_windows, is_osx, is_cygwin, is_openbsd, is_haiku,
+        is_sunos, windows_proof_rmtree, version_compare, is_linux,
+        EnvironmentException
+        )
 from mesonbuild.options import OptionKey
 from mesonbuild.compilers import (
-    detect_c_compiler, detect_cpp_compiler, compiler_from_language,
-)
+        detect_c_compiler, detect_cpp_compiler, compiler_from_language,
+        )
 from mesonbuild.compilers.c import AppleClangCCompiler
 from mesonbuild.compilers.cpp import AppleClangCPPCompiler
 from mesonbuild.compilers.objc import AppleClangObjCCompiler
@@ -43,8 +43,8 @@ PKG_CONFIG = os.environ.get('PKG_CONFIG', 'pkg-config')
 
 
 from run_tests import (
-    get_fake_env, Backend,
-)
+        get_fake_env, Backend,
+        )
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
@@ -205,20 +205,20 @@ class LinuxlikeTests(BasePlatformTests):
         privatedir2 = self.privatedir
 
         env = {
-            'PKG_CONFIG_LIBDIR': os.pathsep.join([privatedir1, privatedir2]),
-            'PKG_CONFIG_SYSTEM_LIBRARY_PATH': '/usr/lib',
-        }
+                'PKG_CONFIG_LIBDIR': os.pathsep.join([privatedir1, privatedir2]),
+                'PKG_CONFIG_SYSTEM_LIBRARY_PATH': '/usr/lib',
+                }
         self._run([PKG_CONFIG, 'dependency-test', '--validate'], override_envvars=env)
 
         # pkg-config strips some duplicated flags so we have to parse the
         # generated file ourself.
         expected = {
-            'Requires': 'libexposed',
-            'Requires.private': 'libfoo >= 1.0',
-            'Libs': '-L${libdir} -llibmain -pthread -lcustom',
-            'Libs.private': '-lcustom2 -L${libdir} -llibinternal',
-            'Cflags': '-I${includedir} -pthread -DCUSTOM',
-        }
+                'Requires': 'libexposed',
+                'Requires.private': 'libfoo >= 1.0',
+                'Libs': '-L${libdir} -llibmain -pthread -lcustom',
+                'Libs.private': '-lcustom2 -L${libdir} -llibinternal',
+                'Cflags': '-I${includedir} -pthread -DCUSTOM',
+                }
         if is_osx() or is_haiku():
             expected['Cflags'] = expected['Cflags'].replace('-pthread ', '')
         with open(os.path.join(privatedir2, 'dependency-test.pc'), encoding='utf-8') as f:
@@ -2034,3 +2034,13 @@ class LinuxlikeTests(BasePlatformTests):
                     self.assertRegex(out, 'value *: *' + expected)
                 finally:
                     self.wipe()
+
+    @skipUnless(is_linux(), "Ninja file differs on different platforms")
+    def test_recursive_link_whole(self):
+        testdir = os.path.join(self.unit_test_dir, '123 recursive link whole')
+        self.init(testdir)
+        self.build()
+        with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as f:
+            content = f.read()
+        self.assertIn('build lib3.a: STATIC_LINKER libwhole.a.p/libwhole.c.o lib2.a.p/lib2.c.o lib1.a.p/lib1.c.o subprojects/sub/libsub.a.p/libsub.c.o lib3.a.p/lib3.c.o\n', content)
+        self.assertIn('build testmeson: c_LINKER testmeson.p/main.c.o | lib3.a libshared.so.p/libshared.so.symbols\n', content)
