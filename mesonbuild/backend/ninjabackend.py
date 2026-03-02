@@ -2338,6 +2338,12 @@ class NinjaBackend(backends.Backend):
         return os.path.join(self.get_target_private_dir(target),
                             target.swift_module_name + '.swiftmodule')
 
+    def swift_module_extra_output_files(self, target: build.BuildTarget) -> T.List[str]:
+        # -emit-module outputs these as well.
+        pd = self.get_target_private_dir(target)
+        return [os.path.join(pd, f'{target.swift_module_name}.{suffix}')
+                for suffix in ['swiftdoc', 'swiftsourceinfo']]
+
     def swift_generated_header_file_name(self, target: build.BuildTarget) -> str:
         return target.swift_module_name + '-Swift.h'
 
@@ -2457,7 +2463,7 @@ class NinjaBackend(backends.Backend):
         # Generate the module interface (for now: .swiftmodule and Obj-C header)
         out_header_name = self.swift_generated_header_file_name(target)
         out_header_rel_path = os.path.join(self.get_target_private_dir(target), out_header_name)
-        elem = NinjaBuildElement(self.all_outputs, [out_module_name, out_header_rel_path], interface_rule, abssrc)
+        elem = NinjaBuildElement(self.all_outputs, [out_module_name, out_header_rel_path, *self.swift_module_extra_output_files(target)], interface_rule, abssrc)
         elem.add_dep(in_module_files + rel_generated)
         elem.add_item('TARGET', target.name)
         elem.add_item('MODULE', target.swift_module_name)
@@ -3889,6 +3895,17 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # For 'automagic' deps: Boost and GTest. Also dependency('threads').
             # pkg-config puts the thread flags itself via `Cflags:`
             commands += linker.get_target_link_args(target)
+
+            # Swiftc as a linker produces a  {module_name}.autolink file in the target private dir (presumably actually
+            # the base dir of all the object files). We can't handle this in the compiler class since that isn't aware
+            # of the files locations, so do it here... I'm not happy about this but don't have a better
+            # non-overengineered idea right now.
+            if linker.language == 'swift':
+                from ..compilers.swift import SwiftCompiler
+
+                if isinstance(linker, SwiftCompiler):
+                    implicit_outs.append(os.path.join(self.get_target_private_dir(target), f'{target.swift_module_name}.autolink'))
+
             # External deps must be last because target link libraries may depend on them.
             for dep in target.get_external_deps():
                 # Extend without reordering or de-dup to preserve `-L -l` sets

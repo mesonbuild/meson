@@ -14,6 +14,7 @@ from .compilers import Compiler, clike_debug_args, PrefixArgumentLinkerOptionSty
 
 if T.TYPE_CHECKING:
     from .. import build
+    from ..build import BuildTarget
     from ..compilers.compilers import Language
     from ..envconfig import MachineInfo
     from ..options import MutableKeyedOptionDictType
@@ -116,6 +117,11 @@ class SwiftCompiler(Compiler):
 
     def get_std_shared_lib_link_args(self) -> T.List[str]:
         return ['-emit-library']
+
+    def get_target_link_args(self, target: BuildTarget) -> T.List[str]:
+        # Add module name here because swiftc as a linker produces a {module_name}.autolink file which will be
+        # otherwise auto-inferred and not always predictable.
+        return [*self.get_module_args(target.swift_module_name), *super().get_target_link_args(target)]
 
     def get_module_args(self, modname: str) -> T.List[str]:
         return ['-module-name', modname]
