@@ -178,5 +178,6 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     accept_versions = ['>=@0@'.format(qtdep.version()), '<@0@'.format(qtdep.version()[0].to_int() + 1)]
     dependency(qt, modules: qt_modules, version: accept_versions, method : get_option('method'))
 
+    qtmodule.generate_qrc(files: ['test.json'], output: 'test.qrc')
   endif
 endforeach
