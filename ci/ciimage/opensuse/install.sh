@@ -19,6 +19,7 @@ pkgs=(
   boost-devel libboost_date_time-devel libboost_filesystem-devel libboost_locale-devel
   libboost_headers-devel libboost_test-devel libboost_log-devel libboost_regex-devel
   libboost_python3-devel libboost_regex-devel
+  blas-devel cblas-devel lapack-devel lapacke-devel openblas-devel intel-oneapi-mkl-devel
   # HACK: remove npm once we switch back to hotdoc sdist
   npm
 )
@@ -27,8 +28,21 @@ pkgs=(
 zypper --non-interactive patch --with-update --with-optional
 zypper --non-interactive update
 
+# Add Intel oneAPI repository for mkl
+cat > /etc/zypp/repos.d/oneAPI.repo <<-EOF
+[oneAPI]
+name=Intel® oneAPI repository
+baseurl=https://yum.repos.intel.com/oneapi
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+# use low priority or it will replace openmpi-devel
+priority=10000
+EOF
+
 # Install deps
-zypper install -y "${pkgs[@]}"
+zypper --gpg-auto-import-keys install -y "${pkgs[@]}"
 # HACK: build hotdoc from git repo since current sdist is broken on modern compilers
 # change back to 'hotdoc' once it's fixed
 install_python_packages git+https://github.com/hotdoc/hotdoc
