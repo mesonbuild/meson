@@ -1582,11 +1582,15 @@ class Interpreter(InterpreterBase, HoldableObject):
         return None
 
     def program_from_system(self, args: T.List[mesonlib.FileOrString], search_dirs: T.Optional[T.List[str]],
-                            extra_info: T.List[mlog.TV_Loggable]) -> T.Optional[ExternalProgram]:
+                            skip_source_dir: bool, extra_info: T.List[mlog.TV_Loggable],
+                            ) -> T.Optional[ExternalProgram]:
         # Search for scripts relative to current subdir.
         # Do not cache found programs because find_program('foobar')
         # might give different results when run from different source dirs.
-        source_dir = os.path.join(self.environment.get_source_dir(), self.subdir)
+        if skip_source_dir:
+            source_dir = []
+        else:
+            source_dir = [os.path.join(self.environment.get_source_dir(), self.subdir)]
         for exename in args:
             if isinstance(exename, mesonlib.File):
                 if exename.is_built:
@@ -1599,9 +1603,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                 search_dirs = [search_dir]
             elif isinstance(exename, str):
                 if search_dirs:
-                    search_dirs = [source_dir] + search_dirs
+                    search_dirs = source_dir + search_dirs
                 else:
-                    search_dirs = [source_dir]
+                    search_dirs = source_dir
             else:
                 raise InvalidArguments(f'find_program only accepts strings and files, not {exename!r}')
             extprog = ExternalProgram(exename, search_dirs=search_dirs, silent=True)
@@ -1650,13 +1654,14 @@ class Interpreter(InterpreterBase, HoldableObject):
                           required: bool = True, silent: bool = True,
                           wanted: T.Union[str, T.List[str]] = '',
                           search_dirs: T.Optional[T.List[str]] = None,
+                          skip_source_dir: bool = False,
                           version_arg: T.Optional[str] = '',
                           version_func: T.Optional[ProgramVersionFunc] = None
                           ) -> Program:
         args = mesonlib.listify(args)
 
         extra_info: T.List[mlog.TV_Loggable] = []
-        progobj = self.program_lookup(args, for_machine, default_options, required, search_dirs, wanted, version_arg, version_func, extra_info)
+        progobj = self.program_lookup(args, for_machine, default_options, required, search_dirs, skip_source_dir, wanted, version_arg, version_func, extra_info)
         if progobj is None or not self.check_program_version(progobj, wanted, version_func, extra_info):
             progobj = self.notfound_program(args)
 
@@ -1678,6 +1683,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                        default_options: T.Optional[OptionDict],
                        required: bool,
                        search_dirs: T.Optional[T.List[str]],
+                       skip_source_dir: bool,
                        wanted: T.Union[str, T.List[str]],
                        version_arg: T.Optional[str],
                        version_func: T.Optional[ProgramVersionFunc],
@@ -1700,7 +1706,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         progobj = self.program_from_file_for(for_machine, args)
         if progobj is None:
-            progobj = self.program_from_system(args, search_dirs, extra_info)
+            progobj = self.program_from_system(args, search_dirs, skip_source_dir, extra_info)
         if progobj is None and args[0].endswith('python3'):
             prog = ExternalProgram('python3', mesonlib.python_command, silent=True)
             progobj = prog if prog.found() else None
@@ -1765,6 +1771,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         NATIVE_KW,
         REQUIRED_KW,
         KwargInfo('dirs', ContainerTypeInfo(list, str), default=[], listify=True, since='0.53.0'),
+        KwargInfo('skip_source_dir', bool, default=False, since='1.7.0'),
         KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True, since='0.52.0'),
         KwargInfo('version_argument', str, default='', since='1.5.0'),
         DEFAULT_OPTIONS.evolve(since='1.3.0')
@@ -1780,9 +1787,10 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         search_dirs = extract_search_dirs(kwargs)
         default_options = kwargs['default_options']
+        skip_source_dir = kwargs['skip_source_dir']
         return self.find_program_impl(args[0], kwargs['native'], default_options=default_options, required=required,
                                       silent=False, wanted=kwargs['version'], version_arg=kwargs['version_argument'],
-                                      search_dirs=search_dirs)
+                                      search_dirs=search_dirs, skip_source_dir=skip_source_dir)
 
     # When adding kwargs, please check if they make sense in dependencies.get_dep_identifier()
     @typed_pos_args('dependency', varargs=str, min_varargs=1)
