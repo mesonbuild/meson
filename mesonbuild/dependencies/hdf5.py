@@ -165,7 +165,7 @@ def hdf5_factory(env: 'Environment', kwargs: DependencyObjectKWs,
 
     if DependencyMethods.CONFIG_TOOL in methods:
         candidates.append(DependencyCandidate.from_dependency(
-            'hd5f', HDF5ConfigToolDependency, (env, kwargs)))
+            'hdf5', HDF5ConfigToolDependency, (env, kwargs)))
 
     return candidates
 
