@@ -1,5 +1,8 @@
-## `meson format` sorts `files()` arguments naturally
+## `meson format` file sorting is now disabled by default and uses natural sorting
 
-If the `sort_files` option is enabled, as it is by default, `meson format`
-now sorts `files()` arguments [naturally](Style-guide.md#sorting-source-paths)
-rather than alphabetically.
+The `sort_files` option to `meson format`, which sorts the arguments of
+`files()` invocations, is now disabled by default.
+
+If the `sort_files` option is enabled, `meson format` now sorts `files()`
+arguments [naturally](Style-guide.md#sorting-source-paths) rather than
+alphabetically.
