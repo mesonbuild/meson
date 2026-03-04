@@ -195,7 +195,7 @@ workspace.
 
 Keyword arguments:
 - `default_features`: (`bool`, optional) Whether to enable default features.
-- `features`: (`list[str]`, optional) List of additional features to enable globally.
+- `features`: (`array[str]`, optional) List of additional features to enable globally.
 
 A project that wishes to use Cargo subprojects should have `Cargo.lock` and `Cargo.toml`
 files in the root source directory, and should call this function before using
