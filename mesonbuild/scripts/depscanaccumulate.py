@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from dataclasses import dataclass
 import json
@@ -7,8 +9,12 @@ import sys
 import typing as T
 import shutil
 
-ModuleName: T.TypeAlias = str
-ObjectFile: T.TypeAlias = str
+if sys.version_info >= (3, 10):
+    ModuleName: T.TypeAlias = str
+    ObjectFile: T.TypeAlias = str
+else:
+    ModuleName = str
+    ObjectFile = str
 
 @dataclass(frozen=True)
 class ModuleProviderInfo:
@@ -19,11 +25,11 @@ class ModuleProviderInfo:
 class CppDependenciesScanner:
     pass
 
-def normalize_filename(fname):
+def normalize_filename(fname: str) -> str:
     return fname.replace(':', '-')
 
 class DynDepRule:
-    def __init__(self, out: str, imp_outs: T.Optional[T.List[str]], imp_ins: T.List[str]):
+    def __init__(self, out: str, imp_outs: T.Optional[T.List[str]], imp_ins: T.List[str]) -> None:
         self.output = [f'build {out}']
         if imp_outs:
             imp_out_str = " ".join([normalize_filename(o) for o in imp_outs])
@@ -34,15 +40,17 @@ class DynDepRule:
             self.output.append(" | " + imp_ins_str)
         self.output_str = "".join(self.output) + "\n"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.output_str
 
 class ClangDependencyScanner(CppDependenciesScanner):
-    def __init__(self, compilation_db_file: str, json_output_file: str, dd_output_file: str = 'deps.dd', cpp_compiler: str = 'clang++'):
+    def __init__(self, compilation_db_file: str, json_output_file: str, dd_output_file: str = 'deps.dd', cpp_compiler: str = 'clang++') -> None:
         self.compilation_db_file = compilation_db_file
         self.json_output_file = json_output_file
         self.dd_output_file = dd_output_file
-        self.clang_scan_deps = os.path.join(os.path.dirname(shutil.which(cpp_compiler)), 'clang-scan-deps')
+        which_result = shutil.which(cpp_compiler)
+        assert which_result is not None, f'Could not find {cpp_compiler} in PATH'
+        self.clang_scan_deps = os.path.join(os.path.dirname(which_result), 'clang-scan-deps')
 
     def scan(self) -> int:
         try:
@@ -70,8 +78,8 @@ class ClangDependencyScanner(CppDependenciesScanner):
             if r.returncode != 0:
                 print(r.stderr)
                 raise sp.SubprocessError("Failed to run command")
-            with open(self.json_output_file, 'wb', encoding='utf-8') as f:
-                f.write(r.stdout)
+            with open(self.json_output_file, 'w', encoding='utf-8') as f:
+                f.write(r.stdout.decode('utf-8'))
             dependencies_info = json.loads(r.stdout)
             all_deps_per_objfile = self.generate_dependencies(dependencies_info["rules"])
             self.generate_dd_file(all_deps_per_objfile)
@@ -79,7 +87,7 @@ class ClangDependencyScanner(CppDependenciesScanner):
         except sp.SubprocessError:
             return 1
 
-    def generate_dd_file(self, deps_per_object_file):
+    def generate_dd_file(self, deps_per_object_file: T.Dict[str, T.Tuple[T.Set[str], T.Set[ModuleProviderInfo]]]) -> None:
         with open(self.dd_output_file, "w", encoding='utf-8') as f:
             f.write('ninja_dyndep_version = 1\n')
             for obj, reqprov in deps_per_object_file.items():
@@ -88,8 +96,8 @@ class ClangDependencyScanner(CppDependenciesScanner):
                                 [r + '.pcm' for r in requires])
                 f.write(str(dd))
 
-    def generate_dependencies(self, rules: T.List):
-        all_entries: T.Mapping[ObjectFile, T.Tuple[T.Set[ModuleName], T.Set[ModuleProviderInfo]]] = defaultdict(lambda: (set(), set()))
+    def generate_dependencies(self, rules: T.List[T.Any]) -> T.Dict[str, T.Tuple[T.Set[str], T.Set[ModuleProviderInfo]]]:
+        all_entries: T.Dict[str, T.Tuple[T.Set[str], T.Set[ModuleProviderInfo]]] = defaultdict(lambda: (set(), set()))
         for r in rules:
             obj_processed = r["primary-output"]
             all_entries[obj_processed] = (set(), set())
