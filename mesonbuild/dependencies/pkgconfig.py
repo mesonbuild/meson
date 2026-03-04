@@ -488,8 +488,12 @@ class PkgConfigDependency(ExternalDependency):
                 if lib in libs_found:
                     continue
                 if self.clib_compiler:
+                    # Libraries from pkg-config are trusted to be linkable, so
+                    # we skip the potentially expensive link check for
+                    # performance reasons.
                     args = self.clib_compiler.find_library(
-                        lib[2:], libpaths, self.libtype, lib_prefix_warning=False)
+                        lib[2:], libpaths, self.libtype, lib_prefix_warning=False,
+                        skip_link_check=True)
                 # If the project only uses a non-clib language such as D, Rust,
                 # C#, Python, etc, all we can do is limp along by adding the
                 # arguments as-is and then adding the libpaths at the end.
