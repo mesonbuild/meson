@@ -27,6 +27,7 @@ if T.TYPE_CHECKING:
     from ..dependencies.base import DependencyObjectKWs
     from ..interpreter import Interpreter
     from ..interpreter import kwargs
+    from ..interpreter.interpreter import CustomTargetSources
     from ..mesonlib import FileOrString
     from ..programs import CommandList, Program
     from typing_extensions import Literal
@@ -433,12 +434,14 @@ class QtBaseModule(ExtensionModule):
         DEPFILE_ARGS: T.List[str] = ['--depfile', '@DEPFILE@'] if self._rcc_supports_depfiles else []
 
         name = kwargs['name']
-        sources: T.List['FileOrString'] = []
+        sources: T.List[File] = []
         for s in kwargs['sources']:
-            if isinstance(s, (str, File)):
+            if isinstance(s, str):
+                sources.append(File.from_source_file(state.environment.source_dir, state.subdir, s))
+            elif isinstance(s, File):
                 sources.append(s)
             else:
-                sources.extend(s.get_outputs())
+                sources.extend(File.from_built_file(s.get_subdir(), o) for o in s.get_outputs())
         extra_args = kwargs['extra_args']
 
         # If a name was set generate a single .cpp file from all of the qrc
@@ -465,10 +468,7 @@ class QtBaseModule(ExtensionModule):
         else:
             for rcc_file in sources:
                 qrc_deps = self._parse_qrc_deps(state, rcc_file)
-                if isinstance(rcc_file, str):
-                    basename = os.path.basename(rcc_file)
-                else:
-                    basename = os.path.basename(rcc_file.fname)
+                basename = os.path.basename(rcc_file.fname)
                 name = f'qt{self.qt_version}-{basename.replace(".", "_")}'
                 cmd = [self.tools['rcc'], '-name', '@BASENAME@', '-o', '@OUTPUT@', *extra_args, '@INPUT@', *DEPFILE_ARGS]
                 res_target = build.CustomTarget(
@@ -726,6 +726,7 @@ class QtBaseModule(ExtensionModule):
             if not self.tools['lrelease'].found():
                 raise MesonException('qt.compile_translations: ' +
                                      self.tools['lrelease'].name + ' not found')
+            ts_file: CustomTargetSources
             if qresource:
                 # In this case we know that ts_files is always a List[str], as
                 # it's generated above and no ts_files are passed in. However,
@@ -733,9 +734,13 @@ class QtBaseModule(ExtensionModule):
                 # what we're doing is safe
                 assert isinstance(ts, str), 'for mypy'
                 outdir = os.path.dirname(os.path.normpath(os.path.join(state.subdir, ts)))
-                ts = os.path.basename(ts)
+                ts_file = File.from_source_file(state.environment.source_dir, outdir, os.path.basename(ts))
+            elif isinstance(ts, str):
+                outdir = state.subdir
+                ts_file = File.from_source_file(state.environment.source_dir, state.subdir, ts)
             else:
                 outdir = state.subdir
+                ts_file = ts
             cmd: CommandList = [self.tools['lrelease'], '@INPUT@', '-qm', '@OUTPUT@']
             lrelease_target = build.CustomTarget(
                 f'qt{self.qt_version}-compile-{ts}',
@@ -743,7 +748,7 @@ class QtBaseModule(ExtensionModule):
                 state.subproject,
                 state.environment,
                 cmd,
-                [ts],
+                [ts_file],
                 ['@BASENAME@.qm'],
                 install=kwargs['install'],
                 install_dir=[kwargs['install_dir']],
