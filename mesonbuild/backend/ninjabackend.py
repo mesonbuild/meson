@@ -560,10 +560,16 @@ class NinjaBackend(backends.Backend):
         # and locale dependent. Any attempt at converting it to
         # Python strings leads to failure. We _must_ do this detection
         # in raw byte mode and write the result in raw bytes.
-        pc = sp.Popen(compiler.get_exelist() +
-                              ['/showIncludes', '/c', filebase],
-                              cwd=self.environment.get_scratch_dir(),
-                              stdout=sp.PIPE, stderr=sp.PIPE)
+        pc = sp.Popen(
+            compiler.get_exelist() + [
+                '/showIncludes',
+                '/c',
+                filebase,
+            ],
+            cwd=self.environment.get_scratch_dir(),
+            stdout=sp.PIPE,
+            stderr=sp.PIPE,
+        )
         (stdout, stderr) = pc.communicate()
 
         # We want to match 'Note: including file: ' in the line
