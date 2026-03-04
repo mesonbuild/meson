@@ -75,9 +75,10 @@ class EmscriptenMixin(Compiler):
         return wrap_js_includes(super().get_dependency_link_args(dep))
 
     def find_library(self, libname: str, extra_dirs: T.List[str], libtype: LibType = LibType.PREFER_SHARED,
-                     lib_prefix_warning: bool = True, ignore_system_dirs: bool = False) -> T.Optional[T.List[str]]:
+                     lib_prefix_warning: bool = True, ignore_system_dirs: bool = False,
+                     skip_link_check: bool = False) -> T.Optional[T.List[str]]:
         if not libname.endswith('.js'):
-            return super().find_library(libname, extra_dirs, libtype, lib_prefix_warning)
+            return super().find_library(libname, extra_dirs, libtype, lib_prefix_warning, ignore_system_dirs, skip_link_check)
         if os.path.isabs(libname):
             if os.path.exists(libname):
                 return [libname]
