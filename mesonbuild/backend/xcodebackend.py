@@ -1157,21 +1157,22 @@ class XCodeBackend(backends.Backend):
         target_dict.add_item('sourceTree', '<group>')
         source_files_dict = PbxDict()
         for s in t.sources:
-            if isinstance(s, mesonlib.File):
-                # If the file is in a folder, add it to the group representing that folder.
-                if '/' in s.fname:
-                    folder = '/'.join(s.fname.split('/')[:-1])
-                    folder_dict = objects_dict.get_item(self.foldermap[(folder, t)]).value.get_item('children').value
-                    temp = os.path.join(s.subdir, s.fname)
-                    folder_dict.add_item(self.fileref_ids[(tid, temp)], temp)
-                    if self.foldermap[(folder, t)] in folder_ids:
-                        continue
-                    if len(folder.split('/')) == 1:
-                        target_children.add_item(self.foldermap[(folder, t)], folder)
-                        folder_ids.add(self.foldermap[(folder, t)])
+            if not isinstance(s, mesonlib.File):
+                continue
+            # If the file is in a folder, add it to the group representing that folder.
+            if '/' in s.fname:
+                folder = '/'.join(s.fname.split('/')[:-1])
+                folder_dict = objects_dict.get_item(self.foldermap[(folder, t)]).value.get_item('children').value
+                temp = os.path.join(s.subdir, s.fname)
+                folder_dict.add_item(self.fileref_ids[(tid, temp)], temp)
+                if self.foldermap[(folder, t)] in folder_ids:
                     continue
-                s = os.path.join(s.subdir, s.fname)
-                target_children.add_item(self.fileref_ids[(tid, s)], s)
+                if len(folder.split('/')) == 1:
+                    target_children.add_item(self.foldermap[(folder, t)], folder)
+                    folder_ids.add(self.foldermap[(folder, t)])
+                continue
+            s = os.path.join(s.subdir, s.fname)
+            target_children.add_item(self.fileref_ids[(tid, s)], s)
         for o in t.objects:
             if isinstance(o, build.ExtractedObjects):
                 # Do not show built object files in the project tree.
