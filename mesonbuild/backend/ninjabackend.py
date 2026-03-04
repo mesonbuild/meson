@@ -15,10 +15,8 @@ import json
 import os
 import pickle
 import re
-import subprocess
 import subprocess as sp
 import typing as T
-from pathlib import Path as _Path
 from . import backends
 from .. import modules
 from .. import mesonlib
@@ -562,10 +560,10 @@ class NinjaBackend(backends.Backend):
         # and locale dependent. Any attempt at converting it to
         # Python strings leads to failure. We _must_ do this detection
         # in raw byte mode and write the result in raw bytes.
-        pc = subprocess.Popen(compiler.get_exelist() +
+        pc = sp.Popen(compiler.get_exelist() +
                               ['/showIncludes', '/c', filebase],
                               cwd=self.environment.get_scratch_dir(),
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                              stdout=sp.PIPE, stderr=sp.PIPE)
         (stdout, stderr) = pc.communicate()
 
         # We want to match 'Note: including file: ' in the line
@@ -700,8 +698,8 @@ class NinjaBackend(backends.Backend):
         if ((mesonlib.version_compare(self.ninja_version, '>= 1.12.0') or
                 (mesonlib.version_compare(self.ninja_version, '>=1.10.0') and not self._uses_dyndeps))
                 and os.path.exists(os.path.join(self.environment.build_dir, '.ninja_log'))):
-            subprocess.call(self.ninja_command + ['-t', 'restat'], cwd=self.environment.build_dir)
-            subprocess.call(self.ninja_command + ['-t', 'cleandead'], cwd=self.environment.build_dir)
+            sp.call(self.ninja_command + ['-t', 'restat'], cwd=self.environment.build_dir)
+            sp.call(self.ninja_command + ['-t', 'cleandead'], cwd=self.environment.build_dir)
         self.generate_compdb()
         self.generate_rust_project_json()
 
@@ -743,7 +741,7 @@ class NinjaBackend(backends.Backend):
         ninja_compdb = self.ninja_command + ['-t', 'compdb'] + compdb_options + rules
         builddir = self.environment.get_build_dir()
         try:
-            jsondb = subprocess.check_output(ninja_compdb, cwd=builddir)
+            jsondb = sp.check_output(ninja_compdb, cwd=builddir)
             with open(os.path.join(builddir, 'compile_commands.json'), 'wb') as f:
                 f.write(jsondb)
         except Exception:
@@ -3436,7 +3434,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 in_file_str = None
                 for arg in lib_dirs:
                     if arg.startswith('-L'):
-                        lib_dir = _Path(arg[2:])
+                        lib_dir = Path(arg[2:])
                         modules_json = lib_dir / 'libc++.modules.json'
                         if modules_json.is_file():
                             data = json.loads(modules_json.read_text())

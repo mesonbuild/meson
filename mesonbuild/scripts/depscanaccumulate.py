@@ -46,7 +46,7 @@ class ClangDependencyScanner(CppDependenciesScanner):
 
     def scan(self) -> int:
         try:
-            with open(self.compilation_db_file, 'r') as f:
+            with open(self.compilation_db_file, 'r', encoding='utf-8') as f:
                 compile_commands = json.load(f)
 
             cpp_extensions = {'.cpp', '.cc', '.cxx', '.c++', '.cppm'}
@@ -54,7 +54,7 @@ class ClangDependencyScanner(CppDependenciesScanner):
                             if os.path.splitext(cmd['file'])[1] in cpp_extensions]
 
             filtered_db = self.compilation_db_file + '.filtered.json'
-            with open(filtered_db, 'w') as f:
+            with open(filtered_db, 'w', encoding='utf-8') as f:
                 json.dump(cpp_commands, f)
 
             r = sp.run(
@@ -70,7 +70,7 @@ class ClangDependencyScanner(CppDependenciesScanner):
             if r.returncode != 0:
                 print(r.stderr)
                 raise sp.SubprocessError("Failed to run command")
-            with open(self.json_output_file, 'wb') as f:
+            with open(self.json_output_file, 'wb', encoding='utf-8') as f:
                 f.write(r.stdout)
             dependencies_info = json.loads(r.stdout)
             all_deps_per_objfile = self.generate_dependencies(dependencies_info["rules"])
@@ -80,7 +80,7 @@ class ClangDependencyScanner(CppDependenciesScanner):
             return 1
 
     def generate_dd_file(self, deps_per_object_file):
-        with open(self.dd_output_file, "w") as f:
+        with open(self.dd_output_file, "w", encoding='utf-8') as f:
             f.write('ninja_dyndep_version = 1\n')
             for obj, reqprov in deps_per_object_file.items():
                 requires, provides = reqprov
