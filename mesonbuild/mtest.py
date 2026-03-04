@@ -1105,7 +1105,7 @@ class TestRunExitCode(TestRun):
         elif self.returncode == GNU_ERROR_RETURNCODE:
             self.res = TestResult.ERROR
         else:
-            self.res = TestResult.FAIL if bool(self.returncode) else TestResult.OK
+            self.res = TestResult.FAIL
         super().complete()
 
 TestRun.PROTOCOL_TO_CLASS[TestProtocol.EXITCODE] = TestRunExitCode
