@@ -129,6 +129,9 @@ if T.TYPE_CHECKING:
     # Input source types passed to the build.Target classes
     SourceOutputs = T.Union[mesonlib.File, build.GeneratedTypes, build.BuildTarget,
                             build.ExtractedObjects, build.StructuredSources]
+    # Sources for custom targets, which can also include ExternalProgram
+    CustomTargetSources = T.Union[mesonlib.File, build.GeneratedTypes, build.BuildTarget,
+                                  build.ExtractedObjects, programs.ExternalProgram]
 
     BuildTargetSource = T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.StructuredSources]
 
@@ -3196,6 +3199,9 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @T.overload
     def source_strings_to_files(self, sources: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]) -> T.List[T.Union[mesonlib.File, build.GeneratedTypes]]: ... # noqa: F811
+
+    @T.overload
+    def source_strings_to_files(self, sources: T.List[kwtypes.CustomTargetInputs]) -> T.List['CustomTargetSources']: ... # noqa: F811
 
     @T.overload
     def source_strings_to_files(self, sources: T.List['SourceInputs'], strict: bool = True) -> T.List['SourceOutputs']: ... # noqa: F811
