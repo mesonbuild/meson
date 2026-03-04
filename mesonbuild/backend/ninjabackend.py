@@ -1138,7 +1138,7 @@ class NinjaBackend(backends.Backend):
                 return True
         # Currently only the preview version of Visual Studio is supported.
         cpp = target.compilers['cpp']
-        if cpp.get_id() == 'clang':
+        if cpp.get_id() == 'clang' and mesonlib.version_compare(cpp.version, '>=20.0.0'):
             return True
         if cpp.get_id() != 'msvc':
             return False
@@ -1190,7 +1190,7 @@ class NinjaBackend(backends.Backend):
         if not self.should_use_dyndeps_for_target(target):
             return
         self._uses_dyndeps = True
-        if 'cpp' in target.compilers and target.compilers['cpp'].get_id() == 'clang':
+        if 'cpp' in target.compilers and target.compilers['cpp'].get_id() == 'clang' and mesonlib.version_compare(target.compilers['cpp'].version, '>=20.0.0'):
             self._all_scan_sources.extend(compiled_sources)
             return
         # Fortran per-target path
@@ -3432,7 +3432,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 self.import_std = ImportStdInfo(elem, mod_file, [mod_obj_file])
             istd_dep = [File(True, '', self.import_std.gen_module_file)]
             return istd_args, istd_dep
-        elif compiler.id == 'clang':
+        elif compiler.id == 'clang' and mesonlib.version_compare(compiler.version, '>=20.0.0'):
             if self.import_std is None:
                 mod_file = 'std.pcm'
                 # Find libc++.modules.json in lib search dirs and resolve std.cppm path
@@ -3475,7 +3475,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             extension = extension.lower()
         if not (extension in compilers.lang_suffixes['fortran'] or extension in compilers.lang_suffixes['cpp']):
             return
-        if extension in compilers.lang_suffixes['cpp'] and compiler.get_id() == 'clang':
+        if extension in compilers.lang_suffixes['cpp'] and compiler.get_id() == 'clang' and mesonlib.version_compare(compiler.version, '>=20.0.0'):
             dep_scan_file = 'deps.dd'
         else:
             dep_scan_file = self.get_dep_scan_file_for(target)[1]
