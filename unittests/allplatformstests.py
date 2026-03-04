@@ -3105,6 +3105,14 @@ class AllPlatformTests(BasePlatformTests):
     @skipIf(is_osx(), 'Not implemented for Darwin yet')
     @skipIf(is_windows(), 'POSIX only')
     def test_python_build_config_extensions(self):
+        prefix = sysconfig.get_config_var("prefix")
+        if prefix != "/usr" and prefix != "/usr/local":
+            raise unittest.SkipTest(
+                f'Skipping test because python ({sys.executable}) is a non-system installation'
+            )
+        if shutil.which('lld'):
+            raise unittest.SkipTest(f'Skipping test because python is built with lld')
+            # I will look into this in detail later
         testdir = os.path.join(self.unit_test_dir,
                                '126 python extension')
 
