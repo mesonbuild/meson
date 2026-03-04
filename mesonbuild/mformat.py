@@ -163,7 +163,7 @@ class FormatterConfig:
     sort_files: T.Optional[bool] = field(
         default=None,
         metadata={'getter': DefaultConfigParser.getboolean,
-                  'default': True,
+                  'default': False,
                   })
     group_arg_value: T.Optional[bool] = field(
         default=None,

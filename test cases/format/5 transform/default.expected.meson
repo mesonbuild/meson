@@ -3,7 +3,7 @@ project('a')  # should be on one line
 
 # List should be removed, and should be on one line
 options_ini = 'options.ini'
-f = files(options_ini, 'expected.meson', 'source.meson')
+f = files('expected.meson', 'source.meson', options_ini)
 
 # This array should fit on one line
 a1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
@@ -97,11 +97,11 @@ endif
 # issue #15019
 if get_option('client')
     sources += files(
-        'pypaste/client/plugins/pgz/__init__.py',
-        'pypaste/client/plugins/zen/__init__.py',
-        'pypaste/client/plugins/__init__.py',
         'pypaste/client/__init__.py',
         'pypaste/client/__main__.py',
+        'pypaste/client/plugins/__init__.py',
+        'pypaste/client/plugins/zen/__init__.py',
+        'pypaste/client/plugins/pgz/__init__.py',
     )
 
     dependencies += ['requests']
