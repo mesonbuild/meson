@@ -124,7 +124,7 @@ if T.TYPE_CHECKING:
 
         target_name: str
         qml_sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
-        qml_qrc: T.Union[FileOrString, build.GeneratedTypes]
+        qml_qrc: File
         extra_args: T.List[str]
         module_prefix: str
         method: DependencyMethods
@@ -138,7 +138,7 @@ if T.TYPE_CHECKING:
         namespace: str
         typeinfo: str
         generate_qmltype: bool
-        collected_json: T.Optional[T.Union[FileOrString, build.CustomTarget]]
+        collected_json: T.Optional[T.Union[File, build.CustomTarget]]
         extra_args: T.List[str]
         method: DependencyMethods
         install: bool
@@ -951,9 +951,9 @@ class QtBaseModule(ExtensionModule):
         namespace: str = kwargs['namespace']
         typeinfo: str = kwargs['typeinfo']
         target_name: str = kwargs['target_name']
-        collected_json: T.Optional[T.Union[FileOrString, build.CustomTarget]] = kwargs['collected_json']
+        collected_json: T.Optional[T.Union[File, build.CustomTarget]] = kwargs['collected_json']
 
-        inputs: T.Sequence[T.Union[FileOrString, build.CustomTarget]] = [collected_json] if collected_json else []
+        inputs: T.Sequence[T.Union[File, build.CustomTarget]] = [collected_json] if collected_json else []
         outputs: T.List[str] = [f'{target_name}_qmltyperegistrations.cpp']
         install_dir: T.List[T.Union[str, Literal[False]]] = [False]
         install_tag: T.List[T.Union[str, None]] = [None]
@@ -1102,7 +1102,7 @@ class QtBaseModule(ExtensionModule):
             self.interpreter.install_data_impl(all_qml_files, module_install_dir,
                                                FileMode(), all_qml_basename, 'devel')
 
-        collected_json: T.Optional[T.Union[FileOrString, build.CustomTarget]] = None
+        collected_json: T.Optional[T.Union[File, build.CustomTarget]] = None
         if kwargs['moc_headers']:
             compile_moc_kwargs: MocCompilerKwArgs = {
                 'sources': [],
