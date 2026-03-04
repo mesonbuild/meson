@@ -33,6 +33,7 @@ class DynDepRule:
             imp_ins_str = " ".join([normalize_filename(inf) for inf in imp_ins])
             self.output.append(" | " + imp_ins_str)
         self.output_str = "".join(self.output) + "\n"
+
     def __str__(self):
         return self.output_str
 
@@ -56,10 +57,16 @@ class ClangDependencyScanner(CppDependenciesScanner):
             with open(filtered_db, 'w') as f:
                 json.dump(cpp_commands, f)
 
-            r = sp.run([self.clang_scan_deps,
-                        "-format=p1689",
-                        "-compilation-database", filtered_db],
-                    capture_output=True)
+            r = sp.run(
+                [
+                    self.clang_scan_deps,
+                    "-format=p1689",
+                    "-compilation-database",
+                    filtered_db,
+                ],
+                capture_output=True,
+            )
+
             if r.returncode != 0:
                 print(r.stderr)
                 raise sp.SubprocessError("Failed to run command")

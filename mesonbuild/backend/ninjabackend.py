@@ -37,7 +37,6 @@ from ..mesonlib import get_compiler_for_source, has_path_sep, is_parent_path, lo
 from ..options import OptionKey
 from .backends import CleanTrees
 from ..build import GeneratedList, InvalidArguments
-from mesonbuild.mesonlib import MachineChoice
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
@@ -1104,7 +1103,7 @@ class NinjaBackend(backends.Backend):
         else:
             final_obj_list = obj_list
         if self.should_use_dyndeps_for_target(target):
-                    self._all_scan_sources.extend(compiled_sources)
+            self._all_scan_sources.extend(compiled_sources)
         self.generate_dependency_scan_target(target, compiled_sources, source2object, fortran_order_deps)
 
         if isinstance(target, build.SharedLibrary):
@@ -1173,12 +1172,12 @@ class NinjaBackend(backends.Backend):
         self.add_rule(rule)
 
     def generate_global_dependency_scan_target(self) -> None:
-            self._uses_dyndeps = True
-            self.generate_project_wide_cpp_scanner_rules()
-            rule_name = 'depscanaccumulate'
-            elem = NinjaBuildElement(self.all_outputs, "deps.dd", rule_name, "compile_commands.json")
-            elem.add_dep(self._all_scan_sources)
-            self.add_build(elem)
+        self._uses_dyndeps = True
+        self.generate_project_wide_cpp_scanner_rules()
+        rule_name = 'depscanaccumulate'
+        elem = NinjaBuildElement(self.all_outputs, "deps.dd", rule_name, "compile_commands.json")
+        elem.add_dep(self._all_scan_sources)
+        self.add_build(elem)
 
     def generate_dependency_scan_target(self, target: build.BuildTarget,
                                         compiled_sources: T.List[str],
@@ -2819,8 +2818,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 include_dirs.append(f'-I{os.path.join(inc.get_curdir(), inc_dir)}')
         flags = extra_args + include_dirs
         abs_src = src.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
-        cmd = ["clang-scan-deps", "-format=p1689", "--",
-            compiler.get_exelist()[0], "-std=c++26", abs_src] + flags
+        cmd = [
+            "clang-scan-deps",
+            "-format=p1689",
+            "--",
+            compiler.get_exelist()[0],
+            "-std=c++26",
+            abs_src,
+        ] + flags
         result = sp.run(cmd, capture_output=True)
         if result.returncode != 0:
             return os.path.splitext(os.path.basename(src.fname))[0] + ".pcm", []
