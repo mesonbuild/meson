@@ -106,7 +106,7 @@ kwargs:
       flags here for all platforms.
 
   link_early_args:
-    type: list[str]
+    type: array[str]
     description: |
       Flags to use during linking. These are just like link_args,
       except that they are inserted into the linker command line
