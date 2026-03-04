@@ -591,10 +591,9 @@ class XCodeBackend(backends.Backend):
     def generate_target_file_maps_impl(self, targets) -> None:
         for tname, t in targets.items():
             for s in t.sources:
-                if isinstance(s, mesonlib.File):
-                    s = os.path.join(s.subdir, s.fname)
-                if not isinstance(s, str):
+                if not isinstance(s, mesonlib.File):
                     continue
+                s = os.path.join(s.subdir, s.fname)
                 k = (tname, s)
                 assert k not in self.buildfile_ids
                 self.buildfile_ids[k] = self.gen_id()
@@ -724,14 +723,10 @@ class XCodeBackend(backends.Backend):
                         fw_dict.add_item('fileRef', self.native_frameworks_fileref[f], f)
 
             for s in t.sources:
-                in_build_dir = False
-                if isinstance(s, mesonlib.File):
-                    if s.is_built:
-                        in_build_dir = True
-                    s = os.path.join(s.subdir, s.fname)
-
-                if not isinstance(s, str):
+                if not isinstance(s, mesonlib.File):
                     continue
+                in_build_dir = s.is_built
+                s = os.path.join(s.subdir, s.fname)
                 sdict = PbxDict()
                 k = (tname, s)
                 idval = self.buildfile_ids[k]
@@ -884,13 +879,10 @@ class XCodeBackend(backends.Backend):
                         fw_dict.add_item('path', f'System/Library/Frameworks/{f}.framework')
                         fw_dict.add_item('sourceTree', 'SDKROOT')
             for s in t.sources:
-                in_build_dir = False
-                if isinstance(s, mesonlib.File):
-                    if s.is_built:
-                        in_build_dir = True
-                    s = os.path.join(s.subdir, s.fname)
-                if not isinstance(s, str):
+                if not isinstance(s, mesonlib.File):
                     continue
+                in_build_dir = s.is_built
+                s = os.path.join(s.subdir, s.fname)
                 idval = self.fileref_ids[(tname, s)]
                 fullpath = os.path.join(self.environment.get_source_dir(), s)
                 src_dict = PbxDict()
@@ -999,12 +991,9 @@ class XCodeBackend(backends.Backend):
                 continue
             (srcs, ofilenames, cmd) = self.eval_custom_target_command(t)
             for s in t.sources:
-                if isinstance(s, mesonlib.File):
-                    s = os.path.join(s.subdir, s.fname)
-                elif isinstance(s, str):
-                    s = os.path.join(t.subdir, s)
-                else:
+                if not isinstance(s, mesonlib.File):
                     continue
+                s = os.path.join(s.subdir, s.fname)
                 custom_dict = PbxDict()
                 typestr = self.get_xcodetype(s)
                 custom_dict.add_item('isa', 'PBXFileReference')
@@ -1137,12 +1126,9 @@ class XCodeBackend(backends.Backend):
             source_file_children = PbxArray()
             source_files_dict.add_item('children', source_file_children)
             for s in t.sources:
-                if isinstance(s, mesonlib.File):
-                    s = os.path.join(s.subdir, s.fname)
-                elif isinstance(s, str):
-                    s = os.path.join(t.subdir, s)
-                else:
+                if not isinstance(s, mesonlib.File):
                     continue
+                s = os.path.join(s.subdir, s.fname)
                 source_file_children.add_item(self.fileref_ids[(tname, s)], s)
             source_files_dict.add_item('name', 'Source files')
             source_files_dict.add_item('sourceTree', '<group>')
@@ -1185,11 +1171,7 @@ class XCodeBackend(backends.Backend):
                         folder_ids.add(self.foldermap[(folder, t)])
                     continue
                 s = os.path.join(s.subdir, s.fname)
-            elif isinstance(s, str):
-                s = os.path.join(t.subdir, s)
-            else:
-                continue
-            target_children.add_item(self.fileref_ids[(tid, s)], s)
+                target_children.add_item(self.fileref_ids[(tid, s)], s)
         for o in t.objects:
             if isinstance(o, build.ExtractedObjects):
                 # Do not show built object files in the project tree.
