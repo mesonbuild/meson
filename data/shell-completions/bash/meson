@@ -891,12 +891,14 @@ _meson-wrap-status() {
 _meson-wrap-update() {
   shortopts=(
     h
+    j
   )
 
   longopts=(
     allow-insecure
     force
     help
+    num-processes
     sourcedir
     types
   )
