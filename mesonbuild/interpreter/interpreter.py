@@ -1510,6 +1510,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def add_languages_for(self, args: T.List[Language], required: bool, for_machine: MachineChoice) -> bool:
         langs = set(self.compilers[for_machine])
         langs.update(args)
+        new_langs = set()
         # We'd really like to add cython's default language here, but it can't
         # actually be done because the cython compiler hasn't been initialized,
         # so we can't actually get the option yet. Because we can't know what
@@ -1564,8 +1565,56 @@ class Interpreter(InterpreterBase, HoldableObject):
                            mlog.bold(' '.join(comp.linker.get_exelist())), comp.linker.id, comp.linker.version)
             self.build.ensure_static_linker(comp)
             self.compilers[for_machine][lang] = comp
+            new_langs.add(lang)
+
+        if new_langs:
+            self.did_add_languages_for(for_machine, new_langs)
 
         return success
+
+    def did_add_languages_for(self, for_machine: MachineChoice, new_languages: T.Set[str]):
+        swift_and_cpp = {'swift', 'cpp'}
+        # call this once, after both have been added
+        if all(name in self.compilers[for_machine] for name in swift_and_cpp) and \
+                new_languages.intersection(swift_and_cpp):
+            self.check_cpp_can_import_swift_header(for_machine)
+
+    def check_cpp_can_import_swift_header(self, for_machine: MachineChoice):
+        from mesonbuild.compilers.cpp import CPPCompiler
+        from mesonbuild.compilers.swift import SwiftCompiler
+        from mesonbuild.mesonlib import Popen_safe_logged
+
+        compilers = self.compilers[for_machine]
+
+        swiftc = compilers['swift']
+        cpp = compilers['cpp']
+        assert isinstance(swiftc, SwiftCompiler)
+        assert isinstance(cpp, CPPCompiler)
+
+        if not swiftc.supports_cxx_interoperability():
+            cpp._works_with_swift = False
+            return
+
+        header_name = 'swift-export.h'
+
+        swift_command = [*swiftc.get_exelist(), *swiftc.get_header_gen_args(header_name), *swiftc.get_library_args(),
+                         *swiftc.get_module_args('Check'), *swiftc.get_cxx_interoperability_args(), '-']
+        p, _, _ = Popen_safe_logged(swift_command, cwd=self.environment.get_scratch_dir())
+
+        works, _ = cpp.compiles(f'#include "{header_name}"\nclass breakCCompiler;int main(void) {{ return 0; }}\n',
+                                extra_args=[
+                                    # On macOS, the Swift header seems to need at least C++11 standard level. Just use
+                                    # whatever the project has defined as the default.
+                                    *cpp.get_option_compile_args(None, None),
+                                    f'-I{self.environment.get_scratch_dir()}'],
+                                disable_cache=True)
+
+        msg = ['C++ compiler', *[mlog.bold(el) for el in cpp.get_exelist()], 'compiles Swift-exported headers:']
+        verbose = for_machine == MachineChoice.HOST or self.environment.is_cross_build()
+        logger_fun = mlog.log if verbose else mlog.debug
+        logger_fun(*msg, mlog.green('YES') if works else mlog.red('NO'))
+
+        cpp._works_with_swift = works
 
     def program_from_file_for(self, for_machine: MachineChoice, prognames: T.List[mesonlib.FileOrString]
                               ) -> T.Optional[ExternalProgram]:
