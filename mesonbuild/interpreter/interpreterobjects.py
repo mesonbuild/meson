@@ -24,7 +24,7 @@ from ..interpreterbase import (
 from ..interpreter.type_checking import NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram, Program
-from ..mesonlib import HoldableObject, listify, Popen_safe
+from ..mesonlib import HoldableObject, listify, MachineChoice, Popen_safe
 
 import typing as T
 
@@ -862,7 +862,7 @@ class SubprojectHolder(MesonInterpreterObject):
                  warnings: int = 0,
                  disabled_feature: T.Optional[str] = None,
                  exception: T.Optional[Exception] = None,
-                 callstack: T.Optional[T.List[str]] = None) -> None:
+                 callstack: T.Optional[T.List[T.Tuple[str, MachineChoice]]] = None) -> None:
         super().__init__()
         self.held_object = subinterpreter
         self.warnings = warnings
@@ -967,7 +967,8 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @noKwargs
     @InterpreterObject.method('private_dir_include')
     def private_dir_include_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.IncludeDirs:
-        return build.IncludeDirs('', [], False, [self.interpreter.backend.get_target_private_dir(self._target_object)])
+        return build.IncludeDirs('', [], False, [self.interpreter.backend.get_target_private_dir(self._target_object)],
+                                 self.interpreter.build.is_build_only)
 
     @noPosargs
     @noKwargs

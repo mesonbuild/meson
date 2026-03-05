@@ -15,6 +15,7 @@ from ..dependencies import NotFoundDependency
 from ..dependencies.detect import get_dep_identifier, find_external_dependency
 from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase
 from ..interpreter import extract_required_kwarg, primitives as P_OBJ
+from ..interpreter.decorators import build_only_constraints
 from ..interpreter.interpreterobjects import ProgramHolder
 from ..interpreter.type_checking import NoneType, DEPENDENCY_KWS, PRESERVE_PATH_KW, SHARED_MOD_KWS
 from ..interpreterbase import (
@@ -149,6 +150,7 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         _LIMITED_API_KW,
         KwargInfo('install_dir', (str, bool, NoneType)),
     )
+    @build_only_constraints
     @InterpreterObject.method('extension_module')
     def extension_module_method(self, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: ExtensionModuleKw) -> 'SharedModule':
         if kwargs['install_dir'] is not None:
