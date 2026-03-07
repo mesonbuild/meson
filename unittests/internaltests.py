@@ -28,6 +28,7 @@ import mesonbuild.modules.gnome
 import mesonbuild.scripts.env2mfile
 from mesonbuild import coredata
 from mesonbuild.compilers.c import ClangCCompiler, GnuCCompiler
+from mesonbuild.compilers.compilers import ManyInOneLinkerOptionWrapperStyle
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
@@ -240,7 +241,7 @@ class InternalTests(unittest.TestCase):
     def test_compiler_args_class_gnuld(self):
         ## Test --start/end-group
         env = get_fake_env()
-        linker = linkers.GnuBFDDynamicLinker([], env, MachineChoice.HOST, '-Wl,', [])
+        linker = linkers.GnuBFDDynamicLinker([], env, MachineChoice.HOST, ManyInOneLinkerOptionWrapperStyle('-Wl,', ','), [])
         gcc = GnuCCompiler([], [], 'fake', MachineChoice.HOST, env, linker=linker)
         ## Ensure that the fake compiler is never called by overriding the relevant function
         gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
@@ -270,7 +271,7 @@ class InternalTests(unittest.TestCase):
     def test_compiler_args_remove_system(self):
         ## Test --start/end-group
         env = get_fake_env()
-        linker = linkers.GnuBFDDynamicLinker([], env, MachineChoice.HOST, '-Wl,', [])
+        linker = linkers.GnuBFDDynamicLinker([], env, MachineChoice.HOST, ManyInOneLinkerOptionWrapperStyle('-Wl,', ','), [])
         gcc = GnuCCompiler([], [], 'fake', MachineChoice.HOST, env, linker=linker)
         ## Ensure that the fake compiler is never called by overriding the relevant function
         gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
