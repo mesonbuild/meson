@@ -1332,29 +1332,22 @@ class NinjaBackend(backends.Backend):
         self.generate_coverage_command(e, [], gcovr_exe, llvm_cov_exe)
         e.add_item('description', 'Generating coverage reports')
         self.add_build(e)
-        self.generate_coverage_legacy_rules(gcovr_exe, gcovr_version, llvm_cov_exe)
+        self.generate_coverage_targeted_rules(gcovr_exe, gcovr_version, llvm_cov_exe)
 
-    def generate_coverage_legacy_rules(self, gcovr_exe: T.Optional[str], gcovr_version: T.Optional[str], llvm_cov_exe: T.Optional[str]) -> None:
+    def generate_coverage_targeted_rules(self, gcovr_exe: T.Optional[str], gcovr_version: T.Optional[str], llvm_cov_exe: T.Optional[str]) -> None:
         e = self.create_phony_target('coverage-html', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, ['--html'], gcovr_exe, llvm_cov_exe)
         e.add_item('description', 'Generating HTML coverage report')
         self.add_build(e)
 
         if gcovr_exe:
-            e = self.create_phony_target('coverage-xml', 'CUSTOM_COMMAND', 'PHONY')
-            self.generate_coverage_command(e, ['--xml'], gcovr_exe, llvm_cov_exe)
-            e.add_item('description', 'Generating XML coverage report')
-            self.add_build(e)
-
-            e = self.create_phony_target('coverage-text', 'CUSTOM_COMMAND', 'PHONY')
-            self.generate_coverage_command(e, ['--text'], gcovr_exe, llvm_cov_exe)
-            e.add_item('description', 'Generating text coverage report')
-            self.add_build(e)
-
-            if mesonlib.version_compare(gcovr_version, '>=4.2'):
-                e = self.create_phony_target('coverage-sonarqube', 'CUSTOM_COMMAND', 'PHONY')
-                self.generate_coverage_command(e, ['--sonarqube'], gcovr_exe, llvm_cov_exe)
-                e.add_item('description', 'Generating Sonarqube XML coverage report')
+            for target in mesonlib.GCOVR_COVERAGE_TARGETS:
+                if not mesonlib.version_compare(gcovr_version, target.version_requirement):
+                    continue
+                e = self.create_phony_target(f'coverage-{target.pretty_name}', 'CUSTOM_COMMAND', 'PHONY')
+                self.generate_coverage_command(e, [target.gcovr_argument], gcovr_exe, llvm_cov_exe)
+                my_pretty_name = target.pretty_name if target.pretty_name != 'xml' else 'XML'
+                e.add_item('description', f'Generating {my_pretty_name} coverage report')
                 self.add_build(e)
 
     def generate_install(self) -> None:
