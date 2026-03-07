@@ -8,6 +8,7 @@ import subprocess as sp
 import sys
 import typing as T
 import shutil
+from ..mesonlib import MesonException
 
 if sys.version_info >= (3, 10):
     ModuleName: T.TypeAlias = str
@@ -50,24 +51,47 @@ class ClangDependencyScanner(CppDependenciesScanner):
         self.dd_output_file = dd_output_file
         which_result = shutil.which(cpp_compiler)
         assert which_result is not None, f'Could not find {cpp_compiler} in PATH'
-        self.clang_scan_deps = os.path.join(os.path.dirname(which_result), 'clang-scan-deps')
+        self.scan_deps = shutil.which('clang-scan-deps')
+        if not self.scan_deps:
+            for ver in range(25, 14, -1):
+                found = shutil.which(f'clang-scan-deps-{ver}')
+                if found:
+                    self.scan_deps = found
+                    break
+        if not self.scan_deps:
+            raise MesonException('Could not find clang-scan-deps')
 
     def scan(self) -> int:
         try:
             with open(self.compilation_db_file, 'r', encoding='utf-8') as f:
                 compile_commands = json.load(f)
 
-            cpp_extensions = {'.cpp', '.cc', '.cxx', '.c++', '.cppm'}
+            cpp_extensions = {'.cpp', '.cc', '.cxx', '.c++', '.cppm', '.C'}
             cpp_commands = [cmd for cmd in compile_commands
                             if os.path.splitext(cmd['file'])[1] in cpp_extensions]
 
+            for cmd in cpp_commands:
+                args = cmd['command'].split()
+                filtered_args = []
+                skip_next = False
+                for arg in args:
+                    if skip_next:
+                        skip_next = False
+                        continue
+                    if arg.startswith('-fprebuilt-module-path') or arg.startswith('-include-pch'):
+                        continue
+                    if arg == '-include-pch':
+                        skip_next = True
+                        continue
+                    filtered_args.append(arg)
+                cmd['command'] = ' '.join(filtered_args)
             filtered_db = self.compilation_db_file + '.filtered.json'
             with open(filtered_db, 'w', encoding='utf-8') as f:
                 json.dump(cpp_commands, f)
 
             r = sp.run(
                 [
-                    self.clang_scan_deps,
+                    str(self.scan_deps),
                     "-format=p1689",
                     "-compilation-database",
                     filtered_db,
@@ -92,8 +116,7 @@ class ClangDependencyScanner(CppDependenciesScanner):
             f.write('ninja_dyndep_version = 1\n')
             for obj, reqprov in deps_per_object_file.items():
                 requires, provides = reqprov
-                dd = DynDepRule(obj, None,
-                                [r + '.pcm' for r in requires])
+                dd = DynDepRule(obj, None, [r + '.pcm' for r in requires])
                 f.write(str(dd))
 
     def generate_dependencies(self, rules: T.List[T.Any]) -> T.Dict[str, T.Tuple[T.Set[str], T.Set[ModuleProviderInfo]]]:

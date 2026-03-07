@@ -35,6 +35,7 @@ from ..mesonlib import get_compiler_for_source, has_path_sep, is_parent_path, lo
 from ..options import OptionKey
 from .backends import CleanTrees
 from ..build import GeneratedList, InvalidArguments
+import shutil
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
@@ -748,8 +749,16 @@ class NinjaBackend(backends.Backend):
         builddir = self.environment.get_build_dir()
         try:
             jsondb = sp.check_output(ninja_compdb, cwd=builddir)
-            with open(os.path.join(builddir, 'compile_commands.json'), 'wb') as f:
-                f.write(jsondb)
+            jsondb_path = os.path.join(builddir, 'compile_commands.json')
+            existing = None
+            try:
+                with open(jsondb_path, 'rb') as f:
+                    existing = f.read()
+            except FileNotFoundError:
+                pass
+            if existing != jsondb:
+                with open(jsondb_path, 'wb') as f:
+                    f.write(jsondb)
         except Exception:
             mlog.warning('Could not create compilation database.', fatal=False)
 
@@ -1129,6 +1138,8 @@ class NinjaBackend(backends.Backend):
     def should_use_dyndeps_for_target(self, target: 'build.BuildTarget') -> bool:
         if not self.ninja_has_dyndeps:
             return False
+        if target.has_pch():
+            return False
         if 'fortran' in target.compilers:
             return True
         if 'cpp' not in target.compilers:
@@ -1181,6 +1192,7 @@ class NinjaBackend(backends.Backend):
         rule_name = 'depscanaccumulate'
         elem = NinjaBuildElement(self.all_outputs, "deps.dd", rule_name, "compile_commands.json")
         elem.add_dep(self._all_scan_sources)
+        elem.add_item('restat', '1')
         self.add_build(elem)
 
     def generate_dependency_scan_target(self, target: build.BuildTarget,
@@ -2818,12 +2830,20 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         extra_args = target.extra_args.get('cpp', [])
         include_dirs = []
         for inc in target.include_dirs:
-            for inc_dir in inc.get_incdirs():
-                include_dirs.append(f'-I{os.path.join(inc.get_curdir(), inc_dir)}')
+            for inc_dir in inc.incdirs:
+                include_dirs.append(f'-I{os.path.join(inc.curdir, inc_dir)}')
         flags = extra_args + include_dirs
         abs_src = src.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
+        scan_deps = shutil.which('clang-scan-deps')
+        if not scan_deps:
+            for ver in range(25, 14, -1):
+                scan_deps = shutil.which(f'clang-scan-deps-{ver}')
+                if scan_deps:
+                    break
+        if not scan_deps:
+            raise MesonException('Could not find clang-scan-deps')
         cmd = [
-            "clang-scan-deps",
+            scan_deps,
             "-format=p1689",
             "--",
             compiler.get_exelist()[0],
@@ -2832,7 +2852,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         ] + flags
         result = sp.run(cmd, capture_output=True)
         if result.returncode != 0:
-            return os.path.splitext(os.path.basename(src.fname))[0] + ".pcm", []
+            return 'dummy', []
         info = json.loads(result.stdout)
         required_pcms = []
         for rule in info.get("rules", []):
