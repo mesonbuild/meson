@@ -1348,11 +1348,27 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         if is_skipped:
             skipped_tests += 1
 
+        if result:
+            testcase_time = result.conftime + result.buildtime + result.testtime
+        else:
+            testcase_time = 0
+        current_test = ET.SubElement(
+            current_suite,
+            'testcase',
+            {'name': testname, 'classname': t.category, 'time': '%.3f' % testcase_time}
+        )
+
+        # attach stdout, stderr and meson-log to 'testcase' node
+        if result:
+            ET.SubElement(current_test, 'system-out').text = result.stdo
+            ET.SubElement(current_test, 'system-err').text = result.stde
+            properties = ET.SubElement(current_test, 'properties')
+            ET.SubElement(properties, 'property', {'name': 'meson-log'}).text = result.mlog.replace('\0', '\\0')
+
         if is_skipped and skip_as_expected:
             f.update_log(TestStatus.SKIP)
             if not t.skip_category:
                 safe_print(bold('Reason:'), skip_reason)
-            current_test = ET.SubElement(current_suite, 'testcase', {'name': testname, 'classname': t.category})
             ET.SubElement(current_test, 'skipped', {})
             continue
 
@@ -1368,7 +1384,6 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 
             f.update_log(status)
             safe_print(bold('Reason:'), result.msg)
-            current_test = ET.SubElement(current_suite, 'testcase', {'name': testname, 'classname': t.category})
             ET.SubElement(current_test, 'failure', {'message': result.msg})
             continue
 
@@ -1424,19 +1439,9 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         conf_time += result.conftime
         build_time += result.buildtime
         test_time += result.testtime
-        total_time = conf_time + build_time + test_time
         log_text_file(logfile, t.path, result)
-        current_test = ET.SubElement(
-            current_suite,
-            'testcase',
-            {'name': testname, 'classname': t.category, 'time': '%.3f' % total_time}
-        )
         if result.msg != '':
             ET.SubElement(current_test, 'failure', {'message': result.msg})
-        stdoel = ET.SubElement(current_test, 'system-out')
-        stdoel.text = result.stdo
-        stdeel = ET.SubElement(current_test, 'system-err')
-        stdeel.text = result.stde
 
     # Reset, just in case
     safe_print = default_print
