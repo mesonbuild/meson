@@ -4143,7 +4143,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.generate_clangtool('tidy', 'fix', need_pch=True)
 
     def generate_tags(self, tool: str, target_name: str) -> None:
-        import shutil
         if not shutil.which(tool):
             return
         if target_name in self.all_outputs:
