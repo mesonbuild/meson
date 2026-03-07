@@ -1,0 +1,144 @@
+from __future__ import annotations
+
+from collections import defaultdict
+from dataclasses import dataclass
+import json
+import os
+import subprocess as sp
+import sys
+import typing as T
+import shutil
+from ..mesonlib import MesonException
+
+if sys.version_info >= (3, 10):
+    ModuleName: T.TypeAlias = str
+    ObjectFile: T.TypeAlias = str
+else:
+    ModuleName = str
+    ObjectFile = str
+
+@dataclass(frozen=True)
+class ModuleProviderInfo:
+    logical_name: ModuleName
+    source_path: str
+    is_interface: bool = False
+
+class CppDependenciesScanner:
+    pass
+
+def normalize_filename(fname: str) -> str:
+    return fname.replace(':', '-')
+
+class DynDepRule:
+    def __init__(self, out: str, imp_outs: T.Optional[T.List[str]], imp_ins: T.List[str]) -> None:
+        self.output = [f'build {out}']
+        if imp_outs:
+            imp_out_str = " ".join([normalize_filename(o) for o in imp_outs])
+            self.output.append(f" | {imp_out_str}")
+        self.output.append(": dyndep")
+        if imp_ins:
+            imp_ins_str = " ".join([normalize_filename(inf) for inf in imp_ins])
+            self.output.append(" | " + imp_ins_str)
+        self.output_str = "".join(self.output) + "\n"
+
+    def __str__(self) -> str:
+        return self.output_str
+
+class ClangDependencyScanner(CppDependenciesScanner):
+    def __init__(self, compilation_db_file: str, json_output_file: str, dd_output_file: str = 'deps.dd', cpp_compiler: str = 'clang++') -> None:
+        self.compilation_db_file = compilation_db_file
+        self.json_output_file = json_output_file
+        self.dd_output_file = dd_output_file
+        which_result = shutil.which(cpp_compiler)
+        assert which_result is not None, f'Could not find {cpp_compiler} in PATH'
+        self.scan_deps = shutil.which('clang-scan-deps')
+        if not self.scan_deps:
+            for ver in range(25, 14, -1):
+                found = shutil.which(f'clang-scan-deps-{ver}')
+                if found:
+                    self.scan_deps = found
+                    break
+        if not self.scan_deps:
+            raise MesonException('Could not find clang-scan-deps')
+
+    def scan(self) -> int:
+        try:
+            with open(self.compilation_db_file, 'r', encoding='utf-8') as f:
+                compile_commands = json.load(f)
+
+            cpp_extensions = {'.cpp', '.cc', '.cxx', '.c++', '.cppm', '.C'}
+            cpp_commands = [cmd for cmd in compile_commands
+                            if os.path.splitext(cmd['file'])[1] in cpp_extensions]
+
+            for cmd in cpp_commands:
+                args = cmd['command'].split()
+                filtered_args = []
+                skip_next = False
+                for arg in args:
+                    if skip_next:
+                        skip_next = False
+                        continue
+                    if arg.startswith('-fprebuilt-module-path') or arg.startswith('-include-pch'):
+                        continue
+                    if arg == '-include-pch':
+                        skip_next = True
+                        continue
+                    filtered_args.append(arg)
+                cmd['command'] = ' '.join(filtered_args)
+            filtered_db = self.compilation_db_file + '.filtered.json'
+            with open(filtered_db, 'w', encoding='utf-8') as f:
+                json.dump(cpp_commands, f)
+
+            r = sp.run(
+                [
+                    str(self.scan_deps),
+                    "-format=p1689",
+                    "-compilation-database",
+                    filtered_db,
+                ],
+                capture_output=True,
+            )
+
+            if r.returncode != 0:
+                print(r.stderr)
+                raise sp.SubprocessError("Failed to run command")
+            with open(self.json_output_file, 'w', encoding='utf-8') as f:
+                f.write(r.stdout.decode('utf-8'))
+            dependencies_info = json.loads(r.stdout)
+            all_deps_per_objfile = self.generate_dependencies(dependencies_info["rules"])
+            self.generate_dd_file(all_deps_per_objfile)
+            return 0
+        except sp.SubprocessError:
+            return 1
+
+    def generate_dd_file(self, deps_per_object_file: T.Dict[str, T.Tuple[T.Set[str], T.Set[ModuleProviderInfo]]]) -> None:
+        with open(self.dd_output_file, "w", encoding='utf-8') as f:
+            f.write('ninja_dyndep_version = 1\n')
+            for obj, reqprov in deps_per_object_file.items():
+                requires, provides = reqprov
+                dd = DynDepRule(obj, None, [r + '.pcm' for r in requires])
+                f.write(str(dd))
+
+    def generate_dependencies(self, rules: T.List[T.Any]) -> T.Dict[str, T.Tuple[T.Set[str], T.Set[ModuleProviderInfo]]]:
+        all_entries: T.Dict[str, T.Tuple[T.Set[str], T.Set[ModuleProviderInfo]]] = defaultdict(lambda: (set(), set()))
+        for r in rules:
+            obj_processed = r["primary-output"]
+            all_entries[obj_processed] = (set(), set())
+            for req in r.get("requires", []):
+                all_entries[obj_processed][0].add(req["logical-name"])
+            for prov in r.get("provides", []):
+                all_entries[obj_processed][1].add(ModuleProviderInfo(
+                    logical_name=prov["logical-name"],
+                    source_path=prov["source-path"],
+                    is_interface=prov.get('is-interface', False)))
+        return all_entries
+
+def run(args: T.List[str]) -> int:
+    assert len(args) >= 3, 'Expected <compilation_db> <json_output> <dd_output> [cpp_compiler] arguments'
+    comp_db_path, json_output_path, dd_output = args[:3]
+    cpp = args[3] if len(args) > 3 else 'clang++'
+    scanner = ClangDependencyScanner(comp_db_path, json_output_path, dd_output, cpp)
+    return scanner.scan()
+
+if __name__ == '__main__':
+    run(sys.argv[1:])
