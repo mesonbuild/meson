@@ -1247,6 +1247,7 @@ class GnomeModule(ExtensionModule):
         typelib_cmd: T.List[T.Union[str, Program, CustomTarget]]
         typelib_cmd = [gicompiler, scan_target, '--output', '@OUTPUT@']
         typelib_cmd += state.get_include_args(gir_inc_dirs, prefix='--includedir=')
+        typelib_cmd += state.get_include_args(inc_dirs, prefix='--includedir=')
 
         for incdir in typelib_includes:
             typelib_cmd += ["--includedir=" + incdir]
