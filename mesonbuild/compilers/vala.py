@@ -144,7 +144,8 @@ class ValaCompiler(Compiler):
         return sourcename, f'{os.path.splitext(sourcename)[0]}.c', binname
 
     def find_library(self, libname: str, extra_dirs: T.List[str], libtype: LibType = LibType.PREFER_SHARED,
-                     lib_prefix_warning: bool = True, ignore_system_dirs: bool = False) -> T.Optional[T.List[str]]:
+                     lib_prefix_warning: bool = True, ignore_system_dirs: bool = False,
+                     skip_link_check: bool = False) -> T.Optional[T.List[str]]:
         if extra_dirs and isinstance(extra_dirs, str):
             extra_dirs = [extra_dirs]
         # Valac always looks in the default vapi dir, so only search there if
