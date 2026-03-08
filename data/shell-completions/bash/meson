@@ -363,6 +363,7 @@ _meson-dist() {
   shortopts=(
     h
     C
+    j
   )
 
   longopts=(
@@ -371,6 +372,7 @@ _meson-dist() {
     formats
     include-subprojects
     no-tests
+    num-processes
   )
 
   local cur prev
@@ -378,6 +380,11 @@ _meson-dist() {
     case $prev in
       -C)
         _filedir -d
+        return
+        ;;
+
+      -j | --num-processes)
+        # number, can't be completed
         return
         ;;
 
@@ -891,12 +898,14 @@ _meson-wrap-status() {
 _meson-wrap-update() {
   shortopts=(
     h
+    j
   )
 
   longopts=(
     allow-insecure
     force
     help
+    num-processes
     sourcedir
     types
   )

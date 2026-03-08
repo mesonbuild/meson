@@ -188,7 +188,7 @@ local -a meson_commands=(
   '--gdb-path=[program to run for gdb (can be wrapper or compatible program)]:program:_path_commands'
   '(--interactive -i)'{'--interactive','-i'}'[run tests with interactive input/output]'
   '--list[list available tests]'
-  '(--wrapper --wrap)'{'--wrapper=','--wrap='}'[wrapper to run tests with]:wrapper program:_path_commands'
+  '(--wrapper --wrap)'{'--wrapper','--wrap'}='[wrapper to run tests with]:wrapper program:_path_commands'
   "$__meson_cd"
   '(--suite)--no-suite[do not run tests from this suite]:test suite: '
   '(--no-suite)--suite[only run tests from this suite]:test suite: '
@@ -196,10 +196,10 @@ local -a meson_commands=(
   '--print-errorlogs[print logs for failing tests]'
   '--benchmark[run benchmarks instead of tests]'
   '--logbase[base name for log file]:filename: '
-  '--num-processes[how many threads to use]:number of processes: '
+  '(--num-processes -j)'{'--num-processes','-j'}'=[how many threads to use]:number of processes: '
   '(--verbose -v)'{'--verbose','-v'}'[do not redirect stdout and stderr]'
   '(--quiet -q)'{'--quiet','-q'}'[produce less output to the terminal]'
-  '(--timeout-multiplier -t)'{'--timeout-multiplier','-t'}'[a multiplier for test timeouts]:Python floating-point number: '
+  '(--timeout-multiplier -t)'{'--timeout-multiplier','-t'}='[a multiplier for test timeouts]:Python floating-point number: '
   '--setup[which test setup to use]:test setup: '
   '--max-lines[Maximum number of lines to show from a long test log]:Python integer number: '
   '--test-args[arguments to pass to the tests]: : '
@@ -317,6 +317,7 @@ _arguments \
   '--formats=[comma separated list of archive types to create]:archive formats:_values -s , format '"$__meson_dist_formats"
   '--include-subprojects[Include source code of subprojects that have been used for the build]'
   '--no-tests[Do not build and test generated packages]'
+  '(--num-processes -j)'{'--num-processes','-j'}'=[how many threads to use]:number of processes: '
   "$__meson_cd"
   )
 _arguments \

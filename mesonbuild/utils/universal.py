@@ -1129,7 +1129,7 @@ def determine_worker_count(varnames: T.Optional[T.List[str]] = None) -> int:
                 print(f'Invalid value in {varname}, using 1 thread.')
                 num_workers = 1
 
-    if num_workers == 0:
+    if num_workers <= 0:
         try:
             # Fails in some weird environments such as Debian
             # reproducible build.
