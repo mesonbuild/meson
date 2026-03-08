@@ -21,6 +21,10 @@ from ..programs import Program, ExternalProgram
 from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
 TestArgs = T.Union[str, File, build.Target, ExternalProgram]
+CustomTargetInputs = T.Union[str, build.BuildTarget, build.GeneratedTypes,
+                              build.ExtractedObjects, ExternalProgram, File]
+CustomTargetOutputs = T.Union[build.BuildTarget, build.GeneratedTypes,
+                              build.ExtractedObjects, ExternalProgram, File]
 RustAbi = Literal['rust', 'c']
 
 class FuncAddProjectArgs(TypedDict):
@@ -194,8 +198,7 @@ class CustomTarget(TypedDict):
     depfile: T.Optional[str]
     env: EnvironmentVariables
     feed: bool
-    input: T.List[T.Union[str, build.BuildTarget, build.GeneratedTypes,
-                          build.ExtractedObjects, ExternalProgram, File]]
+    input: T.List[CustomTargetInputs]
     install: bool
     install_dir: T.List[T.Union[str, T.Literal[False]]]
     install_mode: FileMode
