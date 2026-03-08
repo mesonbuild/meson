@@ -370,7 +370,6 @@ class Interpreter:
                 build.identifier('features'),
             ]),
         ]
-        ast += self._create_feature_checks(pkg, build)
         ast += self._create_meson_subdir(build)
 
         if pkg.manifest.lib:
@@ -719,87 +718,6 @@ class Interpreter:
                          'rust'),
             build.assign(build.method('workspace', build.identifier('rust'), []),
                          'cargo_ws')
-        ]
-
-    def _create_feature_checks(self, pkg: PackageState, build: builder.Builder) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg[MachineChoice.HOST]
-        ast: T.List[mparser.BaseNode] = []
-        for depname in cfg.required_deps:
-            dep = pkg.manifest.dependencies[depname]
-            dep_pkg = self._dep_package(pkg, dep, cfg)
-            if dep_pkg.manifest.lib:
-                ast += self._create_feature_check(dep_pkg, dep, build)
-        return ast
-
-    def _create_feature_check(self, pkg: PackageState, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg[MachineChoice.HOST]
-        feat_obj: mparser.BaseNode
-        feat_pkg = self.cargolock and self.resolve_package(dep.package, dep.api)
-        if feat_pkg:
-            if feat_pkg.ws_subdir == pkg.ws_subdir:
-                return []
-
-            feat_obj = build.method(
-                'features',
-                build.method(
-                    'subproject',
-                    build.identifier('cargo_ws'),
-                    [build.string(dep.package), build.string(dep.api)]))
-        else:
-            version_ = dep.meson_version or [pkg.manifest.package.version]
-            kw = {
-                'version': build.array([build.string(s) for s in version_]),
-            }
-            # actual_features = dependency(...).get_variable('features', default_value : '').split(',')
-            dep_obj = build.function(
-                 'dependency',
-                 [build.string(_dependency_name(dep.package, dep.api))],
-                 kw)
-            feat_obj = build.method(
-                'split',
-                build.method(
-                    'get_variable',
-                    dep_obj,
-                    [build.string('features')],
-                    {'default_value': build.string('')}
-                ),
-                [build.string(',')],
-            )
-
-        # However, this subproject could have been previously configured with a
-        # different set of features. Cargo collects the set of features globally
-        # but Meson can only use features enabled by the first call that triggered
-        # the configuration of that subproject.
-        #
-        # Verify all features that we need are actually enabled for that dependency,
-        # otherwise abort with an error message. The user has to set the corresponding
-        # option manually with -Dxxx-rs:feature-yyy=true, or the main project can do
-        # that in its project(..., default_options: ['xxx-rs:feature-yyy=true']).
-        return [
-            # actual_features = dependency(...).get_variable('features', default_value : '').split(',')
-            build.assign(
-                feat_obj,
-                'actual_features'
-            ),
-            # needed_features = [f1, f2, ...]
-            # foreach f : needed_features
-            #   if f not in actual_features
-            #     error()
-            #   endif
-            # endforeach
-            build.assign(build.array([build.string(f) for f in cfg.features]), 'needed_features'),
-            build.foreach(['f'], build.identifier('needed_features'), build.block([
-                build.if_(build.not_in(build.identifier('f'), build.identifier('actual_features')), build.block([
-                    build.function('error', [
-                        build.string('Dependency'),
-                        build.string(_dependency_name(dep.package, dep.api)),
-                        build.string('previously configured with features'),
-                        build.identifier('actual_features'),
-                        build.string('but need'),
-                        build.identifier('needed_features'),
-                    ])
-                ]))
-            ])),
         ]
 
     def _create_meson_subdir(self, build: builder.Builder) -> T.List[mparser.BaseNode]:
