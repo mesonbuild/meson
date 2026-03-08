@@ -34,6 +34,12 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
                           full_version=full_version, linker=linker)
         CLikeCompiler.__init__(self)
 
+    def get_no_stdinc_args(self) -> T.List[str]:
+        return ['-nostdinc++']
+
+    def get_no_stdlib_link_args(self) -> T.List[str]:
+        return ['-nostdlib++']
+
     def form_compileropt_key(self, basename: str) -> OptionKey:
         if basename == 'std':
             return OptionKey('cpp_std', machine=self.for_machine)
