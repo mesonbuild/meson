@@ -1,0 +1,27 @@
+# Copyright 2026 The Meson Development Team
+# SPDX-License-Identifier: Apache-2.0
+[project]
+project_name = 'fuchsia_mesa3d'
+build_system = 'bazel'
+
+[copyright]
+license_name = "fuchsia_license"
+licenses = ["BSD-2-Clause"]
+license_texts = ["LICENSE"]
+
+[[config]]
+config_name = 'fuchsia_mesa3d_drivers'
+
+[config.toolchains]
+host_toolchains = ["linux_fuchsia_arm64"]
+build_toolchains = ["linux_fuchsia_arm64"]
+
+[config.static_options]
+glx = "disabled"
+platforms = ""
+gallium-drivers = ""
+vulkan-drivers = 'freedreno'
+freedreno-kmds = 'kgsl'
+shader-cache = 'disabled'
+opengl = false
+egl = "disabled"
