@@ -1053,6 +1053,38 @@ class AllPlatformTests(BasePlatformTests):
         self.assertBuildRelinkedOnlyTarget(name)
 
 
+    def test_cython_avoid_nested_generated_paths(self):
+        # Ensure that cython transpiled outputs are not in a too deeply nested folder
+        testdir = os.path.join("test cases/cython", "5 nested folders")
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        try:
+            detect_compiler_for(env, "cython", MachineChoice.HOST, True, "")
+        except EnvironmentException:
+            raise SkipTest("Cython is not installed")
+        self.init(testdir)
+
+        targets = self.introspect("--targets")
+
+        found = False
+        for target in targets:
+            for target_sources in target["target_sources"]:
+                for generated_source in target_sources.get("generated_sources", []):
+                    if generated_source.endswith(".pyx.c") or generated_source.endswith("pyx.cpp"):
+                        found = True
+                        parts = os.path.normpath(generated_source).split(os.sep)
+                        parent = parts[-2]
+                        # We want the pyx.c files to be directly under the .p folder,
+                        # for example:
+                        # libdir/foo.cpython-313-x86_64-linux-gnu.so.p/foo.pyx.c
+                        # rather than (additional libdir folder):
+                        # libdir/foo.cpython-313-x86_64-linux-gnu.so.p/libdir/foo.pyx.c
+                        self.assertTrue(
+                            parent.endswith(".p"),
+                            "pyx.c file should be directly under the .p folder,"
+                            f" got {generated_source!r}"
+                        )
+        self.assertTrue(found, "No cython transpiled outputs found")
+
     def test_internal_include_order(self):
         if mesonbuild.envconfig.detect_msys2_arch() and ('MESON_RSP_THRESHOLD' in os.environ):
             raise SkipTest('Test does not yet support gcc rsp files on msys2')
