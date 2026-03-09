@@ -1707,7 +1707,7 @@ class Backend:
         for t in self.build.get_targets().values():
             if not t.should_install():
                 continue
-            outdirs, install_dir_names, custom_install_dir = t.get_install_dir()
+            outdirs, install_dir_names = t.get_install_dir()
             # Sanity-check the outputs and install_dirs
             num_outdirs, num_out = len(outdirs), len(t.get_outputs())
             if num_outdirs not in {1, num_out}:
@@ -1761,7 +1761,7 @@ class Backend:
                         # linking (separate from the shared library with all the
                         # code), we need to install that too (dll.a/.lib).
                         if t.get_import_filename():
-                            if custom_install_dir:
+                            if t.has_custom_install_dir:
                                 # If the DLL is installed into a custom directory,
                                 # install the import library into the same place so
                                 # it doesn't go into a surprising place
