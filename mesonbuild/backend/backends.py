@@ -1707,7 +1707,8 @@ class Backend:
         for t in self.build.get_targets().values():
             if not t.should_install():
                 continue
-            outdirs, install_dir_names = t.get_install_dir()
+            outdirs = t.install_dir
+            install_dir_names = t.get_install_dir()
             # Sanity-check the outputs and install_dirs
             num_outdirs, num_out = len(outdirs), len(t.get_outputs())
             if num_outdirs not in {1, num_out}:
