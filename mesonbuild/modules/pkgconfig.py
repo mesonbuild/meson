@@ -594,7 +594,7 @@ class PkgConfigModule(NewExtensionModule):
                             install_dir = os.path.dirname(state.backend.get_target_filename_abs(l))
                             custom_install_dir = True
                         else:
-                            _i, _ = l.get_install_dir()
+                            _i = l.install_dir
                             custom_install_dir = l.has_custom_install_dir
                             if isinstance(l, build.BuildTarget):
                                 install_dir = _i[0] if _i else l.get_default_install_dir()[0]
