@@ -19,7 +19,7 @@ from ..compilers.rust import parse_target
 from ..dependencies import Dependency
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
-    OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator
+    OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NATIVE_KW, NoneType, in_set_validator,
 )
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs, permittedKwargs
 from ..interpreter.interpreterobjects import Doctest
@@ -217,6 +217,7 @@ class RustModule(ExtensionModule):
             'test': self.test,
             'doctest': self.doctest,
             'bindgen': self.bindgen,
+            'compiler_target': self.compiler_target,
             'proc_macro': self.proc_macro,
             'workspace': self.workspace,
         })
@@ -611,6 +612,19 @@ class RustModule(ExtensionModule):
         )
 
         return ModuleReturnValue(target, [target])
+
+    @FeatureNew('rust.compiler_target', '1.11.0')
+    @noPosargs
+    @typed_kwargs('rust.compiler_target', NATIVE_KW)
+    def compiler_target(self, state: ModuleState, args: T.List, kwargs: '_kwargs.NativeKW') -> str:
+        """Returns the Rust target triple for the specified machine's Rust compiler."""
+        for_machine = kwargs['native']
+        compilers = state._interpreter.coredata.compilers[for_machine]
+        if 'rust' in compilers:
+            rustc = T.cast('RustCompiler', compilers['rust'])
+            return rustc.get_target_triple()
+        else:
+            raise MesonException(f'No Rust compiler was requested for the {for_machine} machine')
 
     # Allow a limited set of kwargs, but still use the full set of typed_kwargs()
     # because it could be setting required default values.
