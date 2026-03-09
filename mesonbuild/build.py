@@ -1444,7 +1444,7 @@ class BuildTarget(Target):
             return val
         return False
 
-    def get_install_dir(self) -> T.Tuple[T.List[T.Union[str, Literal[False]]], T.List[T.Optional[str]], bool]:
+    def get_install_dir(self) -> T.Tuple[T.List[T.Union[str, Literal[False]]], T.List[T.Optional[str]]]:
         install_dir_names: T.List[T.Optional[str]]
         if self.has_custom_install_dir:
             install_dir_names = [getattr(i, 'optname', None) for i in self.install_dir]
@@ -1452,7 +1452,7 @@ class BuildTarget(Target):
             default = self.get_default_install_dir()[1]
             install_dir_names = T.cast('T.List[T.Optional[str]]', [default]) * len(self.install_dir)
 
-        return self.install_dir, install_dir_names, self.has_custom_install_dir
+        return self.install_dir, install_dir_names
 
     def get_filename(self) -> str:
         return self.filename
@@ -3005,12 +3005,12 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
         # Whether to enable using response files for the underlying tool
         self.rspable = rspable
 
-    def get_install_dir(self) -> T.Tuple[T.List[T.Union[str, Literal[False]]], T.List[T.Optional[str]], bool]:
+    def get_install_dir(self) -> T.Tuple[T.List[T.Union[str, Literal[False]]], T.List[T.Optional[str]]]:
         install_dir_names: T.List[T.Optional[str]] = []
         if self.has_custom_install_dir:
             install_dir_names = [getattr(i, 'optname', None) for i in self.install_dir]
 
-        return self.install_dir, install_dir_names, self.has_custom_install_dir
+        return self.install_dir, install_dir_names
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
@@ -3356,6 +3356,10 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     def subdir(self) -> str:
         return self.target.subdir
 
+    @property
+    def has_custom_install_dir(self) -> bool:
+        return self.target.has_custom_install_dir
+
     def __repr__(self):
         return '<CustomTargetIndex: {!r}[{}]>'.format(self.target, self.output)
 
@@ -3418,11 +3422,11 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     def get_basename(self) -> str:
         return self.target.get_basename()
 
-    def get_install_dir(self) -> T.Tuple[T.List[T.Union[str, Literal[False]]], T.List[T.Optional[str]], bool]:
+    def get_install_dir(self) -> T.Tuple[T.List[T.Union[str, Literal[False]]], T.List[T.Optional[str]]]:
         # This is the same index for all of these
         index = self.target.outputs.index(self.output)
-        install_dirs, install_dir_names, is_custom = self.target.get_install_dir()
-        return [install_dirs[index]], [install_dir_names[index]], is_custom
+        install_dirs, install_dir_names = self.target.get_install_dir()
+        return [install_dirs[index]], [install_dir_names[index]]
 
 
 class ConfigurationData(HoldableObject):
