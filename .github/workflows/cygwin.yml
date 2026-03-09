@@ -68,7 +68,6 @@ jobs:
             ninja
             python312-devel
             python312-fastjsonschema
-            python312-gi
             python312-pefile
             python312-pip
             python312-wheel
