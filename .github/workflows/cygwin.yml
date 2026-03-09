@@ -89,7 +89,7 @@ jobs:
         run: |
           export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
           python3 -m pip --disable-pip-version-check install gcovr fastjsonschema pefile pytest pytest-subtests pytest-xdist
-        shell: D:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
+        shell: bash --noprofile --norc -o igncr -eo pipefail '{0}'
 
       - uses: actions/cache/save@v4
         with:
@@ -105,7 +105,7 @@ jobs:
           # Cygwin's static boost installation is broken (some static library
           # variants such as boost_thread are not present)
           SKIP_STATIC_BOOST: 1
-        shell: D:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
+        shell: bash --noprofile --norc -o igncr -eo pipefail '{0}'
 
       - uses: actions/upload-artifact@v4
         with:
