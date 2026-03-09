@@ -57,20 +57,19 @@ jobs:
             gcc-fortran
             gcc-objc++
             gcc-objc
+            gcovr
             git
             gobject-introspection
             gtk-doc
             libboost-devel
             libglib2.0-devel
             libgtk3-devel
-            libxml2-devel
-            libxslt-devel
             make
             ninja
             python312-devel
-            python312-libxml2
-            python312-libxslt
+            python312-fastjsonschema
             python312-gi
+            python312-pefile
             python312-pip
             python312-wheel
             vala
@@ -93,7 +92,7 @@ jobs:
       - name: Run pip
         run: |
           export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
-          python3 -m pip --disable-pip-version-check install gcovr fastjsonschema pefile pytest pytest-subtests pytest-xdist
+          python3 -m pip --disable-pip-version-check install pytest pytest-subtests pytest-xdist
         shell: bash --noprofile --norc -o igncr -eo pipefail '{0}'
 
       - uses: actions/cache/save@v4
