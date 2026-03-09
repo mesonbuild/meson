@@ -1708,7 +1708,7 @@ class Backend:
             if not t.should_install():
                 continue
             outdirs = t.install_dir
-            install_dir_names = t.get_install_dir()
+            install_dir_names = t.install_dir_names()
             # Sanity-check the outputs and install_dirs
             num_outdirs, num_out = len(outdirs), len(t.get_outputs())
             if num_outdirs not in {1, num_out}:

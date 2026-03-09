@@ -1429,7 +1429,7 @@ class BuildTarget(Target):
             return val
         return False
 
-    def get_install_dir(self) -> T.List[T.Optional[str]]:
+    def install_dir_names(self) -> T.List[T.Optional[str]]:
         install_dir_names: T.List[T.Optional[str]]
         if self.has_custom_install_dir:
             install_dir_names = [getattr(i, 'optname', None) for i in self.install_dir]
@@ -2987,7 +2987,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
         # Whether to enable using response files for the underlying tool
         self.rspable = rspable
 
-    def get_install_dir(self) -> T.List[T.Optional[str]]:
+    def install_dir_names(self) -> T.List[T.Optional[str]]:
         install_dir_names: T.List[T.Optional[str]] = []
         if self.has_custom_install_dir:
             install_dir_names = [getattr(i, 'optname', None) for i in self.install_dir]
@@ -3414,8 +3414,8 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     def get_basename(self) -> str:
         return self.target.get_basename()
 
-    def get_install_dir(self) -> T.List[T.Optional[str]]:
-        install_dir_names = self.target.get_install_dir()
+    def install_dir_names(self) -> T.List[T.Optional[str]]:
+        install_dir_names = self.target.install_dir_names()
         return [install_dir_names[self.__index]]
 
 
