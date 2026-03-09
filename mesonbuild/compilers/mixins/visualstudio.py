@@ -438,6 +438,14 @@ class ClangClCompiler(VisualStudioLikeCompiler):
         self.can_compile_suffixes.add('s')
         self.can_compile_suffixes.add('sx')
 
+    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], value: T.List[str]) -> T.List[str]:
+        if not value:
+            return value
+        args = ['/clang:-fsanitize=' + ','.join(value)]
+        if 'address' in value:
+            args.append('/clang:-fno-omit-frame-pointer')
+        return args
+
     def has_arguments(self, args: T.List[str], code: str, mode: CompileCheckMode) -> T.Tuple[bool, bool]:
         if mode != CompileCheckMode.LINK:
             args = args + [
