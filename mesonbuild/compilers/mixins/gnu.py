@@ -356,8 +356,8 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     that the actual concrete subclass define their own implementation.
     """
 
-    LINKER_PREFIX = ManyInOneLinkerOptionStyle('-Wl,', ',',
-                                               fallback=PrefixArgumentLinkerOptionStyle('-Xlinker'))
+    LINKER_OPTION_STYLE = ManyInOneLinkerOptionStyle('-Wl,', ',',
+                                                     fallback=PrefixArgumentLinkerOptionStyle('-Xlinker'))
 
     def __init__(self) -> None:
         self.base_options = {

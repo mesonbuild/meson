@@ -32,7 +32,7 @@ swift_optimization_args: T.Dict[str, T.List[str]] = {
 
 class SwiftCompiler(Compiler):
 
-    LINKER_PREFIX = PrefixArgumentLinkerOptionStyle('-Xlinker')
+    LINKER_OPTION_STYLE = PrefixArgumentLinkerOptionStyle('-Xlinker')
     language = 'swift'
     id = 'llvm'
 

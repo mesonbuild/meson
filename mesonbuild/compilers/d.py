@@ -109,7 +109,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
         def _get_target_arch_args(self) -> T.List[str]: ...
 
-    LINKER_PREFIX = SimplePrefixLinkerOptionStyle('-L=')
+    LINKER_OPTION_STYLE = SimplePrefixLinkerOptionStyle('-L=')
 
     def get_output_args(self, outputname: str) -> T.List[str]:
         return ['-of=' + outputname]
@@ -355,8 +355,8 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
                         darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         sargs = super().get_soname_args(prefix, shlib_name, suffix, soversion, darwin_versions)
 
-        if not all(arg.startswith(self.LINKER_PREFIX.prefix) for arg in sargs):
-            raise MesonBugException(f'Not all soname arguments for the D compiler start with {repr(self.LINKER_PREFIX.prefix)}: {sargs}')
+        if not all(arg.startswith(self.LINKER_OPTION_STYLE.prefix) for arg in sargs):
+            raise MesonBugException(f'Not all soname arguments for the D compiler start with {repr(self.LINKER_OPTION_STYLE.prefix)}: {sargs}')
 
         return sargs
 
@@ -569,8 +569,8 @@ class DCompiler(Compiler):
 
 class GnuDCompiler(GnuCompiler, DCompiler):
 
-    # we mostly want DCompiler, but that gives us the Compiler.LINKER_PREFIX instead
-    LINKER_PREFIX = GnuCompiler.LINKER_PREFIX
+    # we mostly want DCompiler, but that gives us the Compiler.LINKER_OPTION_STYLE instead
+    LINKER_OPTION_STYLE = GnuCompiler.LINKER_OPTION_STYLE
     id = 'gcc'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,

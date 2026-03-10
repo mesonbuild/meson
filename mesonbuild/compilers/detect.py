@@ -385,11 +385,11 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             # linker. It'll exit with an error code, but still print the
             # linker version.
             with tempfile.NamedTemporaryFile(suffix='.c') as f:
-                cmd = [*compiler, *cls.LINKER_PREFIX.wrap(['--version']), f.name]
+                cmd = [*compiler, *cls.LINKER_OPTION_STYLE.wrap(['--version']), f.name]
                 _, o, _ = Popen_safe(cmd)
 
             linker = linkers.WASMDynamicLinker(
-                compiler, env, for_machine, cls.LINKER_PREFIX,
+                compiler, env, for_machine, cls.LINKER_OPTION_STYLE,
                 [], version=search_version(o))
             return cls(
                 ccache, compiler, version, for_machine, env,
@@ -541,14 +541,14 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
         if 'PGI Compilers' in out:
             cls = c.PGICCompiler if lang == 'c' else cpp.PGICPPCompiler
             env.add_lang_args(cls.language, cls, for_machine)
-            linker = linkers.PGIDynamicLinker(compiler, env, for_machine, cls.LINKER_PREFIX, [], version=version)
+            linker = linkers.PGIDynamicLinker(compiler, env, for_machine, cls.LINKER_OPTION_STYLE, [], version=version)
             return cls(
                 ccache, compiler, version, for_machine,
                 env, linker=linker)
         if 'NVIDIA Compilers and Tools' in out:
             cls = c.NvidiaHPC_CCompiler if lang == 'c' else cpp.NvidiaHPC_CPPCompiler
             env.add_lang_args(cls.language, cls, for_machine)
-            linker = linkers.NvidiaHPC_DynamicLinker(compiler, env, for_machine, cls.LINKER_PREFIX, [], version=version)
+            linker = linkers.NvidiaHPC_DynamicLinker(compiler, env, for_machine, cls.LINKER_OPTION_STYLE, [], version=version)
             return cls(
                 ccache, compiler, version, for_machine,
                 env, linker=linker)
@@ -593,7 +593,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 cls.gcc_version = _get_gnu_version_from_defines(defines)
 
                 env.add_lang_args(cls.language, cls, for_machine)
-                linker = linkers.Xc32DynamicLinker(compiler, env, for_machine, cls.LINKER_PREFIX, [], version=version)
+                linker = linkers.Xc32DynamicLinker(compiler, env, for_machine, cls.LINKER_OPTION_STYLE, [], version=version)
 
                 return cls(
                     ccache, compiler, version, for_machine,
@@ -718,7 +718,7 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
             val = env.options[key]
             assert isinstance(val, list)
             env.coredata.optstore.set_option(key, cls.to_host_flags_base(val, Phase.LINKER))
-        linker = CudaLinker(compiler, env, for_machine, CudaCompiler.LINKER_PREFIX, [], version=CudaLinker.parse_version())
+        linker = CudaLinker(compiler, env, for_machine, CudaCompiler.LINKER_OPTION_STYLE, [], version=CudaLinker.parse_version())
         return cls(ccache, compiler, version, for_machine, cpp_compiler, env, linker=linker)
 
     _handle_exceptions(popen_exceptions, compilers)
@@ -843,7 +843,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                 cls = fortran.PGIFortranCompiler
                 env.add_lang_args(cls.language, cls, for_machine)
                 linker = linkers.PGIDynamicLinker(compiler, env, for_machine,
-                                                  cls.LINKER_PREFIX, [], version=version)
+                                                  cls.LINKER_OPTION_STYLE, [], version=version)
                 return cls(
                     compiler, version, for_machine, env,
                     full_version=full_version, linker=linker)
@@ -852,7 +852,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                 cls = fortran.NvidiaHPC_FortranCompiler
                 env.add_lang_args(cls.language, cls, for_machine)
                 linker = linkers.PGIDynamicLinker(compiler, env, for_machine,
-                                                  cls.LINKER_PREFIX, [], version=version)
+                                                  cls.LINKER_OPTION_STYLE, [], version=version)
                 return cls(
                     compiler, version, for_machine, env,
                     full_version=full_version, linker=linker)
@@ -903,7 +903,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                 cls = fortran.NAGFortranCompiler
                 env.add_lang_args(cls.language, cls, for_machine)
                 linker = linkers.NAGDynamicLinker(
-                    compiler, env, for_machine, cls.LINKER_PREFIX, [],
+                    compiler, env, for_machine, cls.LINKER_OPTION_STYLE, [],
                     version=version)
                 return cls(
                     compiler, version, for_machine, env,
@@ -1163,13 +1163,13 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
                         exelist=exelist, version=cc.linker.version,
                         direct=True, machine=cc.linker.machine)
                 else:
-                    linker = type(cc.linker)(exelist, env, for_machine, cc.LINKER_PREFIX,
+                    linker = type(cc.linker)(exelist, env, for_machine, cc.LINKER_OPTION_STYLE,
                                              always_args=[], system=cc.linker.system,
                                              version=cc.linker.version)
                     exelist += cc.linker.get_always_args()
             elif 'link' in override[0]:
                 linker = guess_win_linker(env,
-                                          override, cls, version, for_machine, use_linker_prefix=False)
+                                          override, cls, version, for_machine, wrap_linker_args=False)
                 # rustc takes linker arguments without a prefix, and
                 # inserts the correct prefix itself.
                 assert isinstance(linker, linkers.VisualStudioLikeLinkerMixin)
@@ -1254,7 +1254,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
                     linker = guess_win_linker(env,
                                               exelist,
                                               cls, full_version, for_machine,
-                                              use_linker_prefix=True, invoked_directly=False,
+                                              wrap_linker_args=True, invoked_directly=False,
                                               extra_args=extra_args)
                 else:
                     # LDC writes an object file to the current working directory.
