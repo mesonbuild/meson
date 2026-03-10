@@ -89,12 +89,14 @@ class JavaModule(NewExtensionModule):
 
         prefix = classes[0] if not package else package
 
+        sources = [mesonlib.File.from_source_file(state.environment.source_dir, state.subdir, s)
+                   if isinstance(s, str) else s for s in args[0]]
         target = CustomTarget(f'{prefix}-native-headers',
                               state.subdir,
                               state.subproject,
                               state.environment,
                               command,
-                              sources=args[0], outputs=headers, backend=state.backend)
+                              sources=sources, outputs=headers, backend=state.backend)
 
         # It is only known that 1.8.0 won't pre-create the directory. 11 and 16
         # do not exhibit this behavior.
