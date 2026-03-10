@@ -45,7 +45,7 @@ class Phase(enum.Enum):
 
 class CudaCompiler(Compiler):
 
-    LINKER_PREFIX = SimplePrefixLinkerOptionStyle('-Xlinker=')
+    LINKER_OPTION_STYLE = SimplePrefixLinkerOptionStyle('-Xlinker=')
     language = 'cuda'
 
     # NVCC flags taking no arguments.

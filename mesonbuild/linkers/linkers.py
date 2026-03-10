@@ -1763,7 +1763,7 @@ class CudaLinker(PosixDynamicLinkerMixin, DynamicLinker):
         #   nvcc fatal : Don't know what to do with 'subprojects/foo/libbar.so.0.1.2'
         #
         from ..compilers.cuda import CudaCompiler
-        return CudaCompiler.LINKER_PREFIX.prefix
+        return CudaCompiler.LINKER_OPTION_STYLE.prefix
 
     def fatal_warnings(self) -> T.List[str]:
         return ['--warning-as-error']

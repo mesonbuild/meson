@@ -49,7 +49,7 @@ class TaskingCompiler(Compiler):
     Functionality that is common to all TASKING family compilers.
     '''
 
-    LINKER_PREFIX = SimplePrefixLinkerOptionStyle('-Wl')
+    LINKER_OPTION_STYLE = SimplePrefixLinkerOptionStyle('-Wl')
 
     def __init__(self) -> None:
         if not self.is_cross:
