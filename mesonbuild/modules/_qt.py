@@ -326,14 +326,9 @@ class QtBaseModule(ExtensionModule):
         except Exception:
             raise MesonException(f'Unable to parse resource file {abspath}')
 
-    def _parse_qrc_deps(self, state: ModuleState,
-                        rcc_file_: T.Union[FileOrString, build.GeneratedTypes]) -> T.List[File]:
+    def _parse_qrc_deps(self, state: ModuleState, rcc_file_: FileOrString) -> T.List[File]:
         result: T.List[File] = []
-        inputs: T.Sequence['FileOrString'] = []
-        if isinstance(rcc_file_, (str, File)):
-            inputs = [rcc_file_]
-        else:
-            inputs = rcc_file_.get_outputs()
+        inputs: T.Sequence['FileOrString'] = [rcc_file_]
 
         for rcc_file in inputs:
             rcc_dirname, nodes = self._qrc_nodes(state, rcc_file)
@@ -438,7 +433,11 @@ class QtBaseModule(ExtensionModule):
             if isinstance(s, (str, File)):
                 sources.append(s)
             else:
-                sources.extend(s.get_outputs())
+                # TODO: this could be fixed with dyndeps
+                raise MesonException('Resource xml files generated at build-time cannot be used with '
+                                     'qt.compile_resources() because we need to scan the xml for '
+                                     'dependencies.\nUse configure_file() instead to generate it at '
+                                     'configure-time.')
         extra_args = kwargs['extra_args']
 
         # If a name was set generate a single .cpp file from all of the qrc

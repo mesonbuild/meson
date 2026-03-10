@@ -436,6 +436,7 @@ class GnomeModule(ExtensionModule):
                     ifile = os.path.join(input_file.subdir, input_file.fname)
 
             elif isinstance(input_file, (CustomTarget, CustomTargetIndex, GeneratedList)):
+                # TODO: this could be fixed with dyndeps
                 raise MesonException('Resource xml files generated at build-time cannot be used with '
                                      'gnome.compile_resources() in the current version of glib-compile-resources '
                                      'because we need to scan the xml for dependencies due to '
