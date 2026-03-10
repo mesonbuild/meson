@@ -3859,6 +3859,30 @@ class AllPlatformTests(BasePlatformTests):
         self.maxDiff = None
         self.assertListEqual(res_nb, res_wb)
 
+    @skipIfNoExecutable('gettext')
+    @skipIfNoExecutable('xgettext')
+    def test_introspect_custom_target_subdir_source_path(self):
+        '''
+        Test that introspection data for custom targets in subdirectories
+        correctly resolves relative string source paths. Regression test for
+        https://github.com/mesonbuild/meson/pull/14885
+        '''
+        testdir = os.path.join(self.framework_test_dir, '6 gettext')
+        self.init(testdir)
+        intro = self.introspect('--targets')
+        # i18n.merge_file in data/data3/meson.build passes a raw string
+        # 'test.desktop.in' as input, which should be resolved relative
+        # to data/data3, not to the project root.
+        for target in intro:
+            if target['type'] == 'custom' and 'test4.desktop' in target['filename'][0]:
+                sources = target['target_sources'][0]['sources']
+                expected = os.path.join(testdir, 'data/data3/test.desktop.in')
+                self.assertEqual(len(sources), 1)
+                self.assertPathEqual(sources[0], expected)
+                break
+        else:
+            self.fail('Could not find test4.desktop custom target')
+
     def test_introspect_ast_source(self):
         testdir = os.path.join(self.unit_test_dir, '56 introspection')
         testfile = os.path.join(testdir, 'meson.build')
