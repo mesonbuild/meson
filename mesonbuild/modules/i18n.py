@@ -27,15 +27,14 @@ if T.TYPE_CHECKING:
     from . import ModuleState
     from ..build import Target
     from ..interpreter import Interpreter
+    from ..interpreter.interpreter import CustomTargetSources
+    from ..interpreter.kwargs import CustomTargetInputs
     from ..interpreterbase import TYPE_var
     from ..programs import Program
 
     class MergeFile(TypedDict):
 
-        input: T.List[T.Union[
-            str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
-            build.ExtractedObjects, build.GeneratedList, Program,
-            mesonlib.File]]
+        input: T.List[CustomTargetInputs]
         output: str
         build_by_default: bool
         install: bool
@@ -57,9 +56,7 @@ if T.TYPE_CHECKING:
 
     class ItsJoinFile(TypedDict):
 
-        input: T.List[T.Union[
-            str, build.BuildTarget, build.GeneratedTypes,
-            build.ExtractedObjects, Program, mesonlib.File]]
+        input: T.List[CustomTargetInputs]
         output: str
         build_by_default: bool
         install: bool
@@ -329,13 +326,14 @@ class I18nModule(ExtensionModule):
 
         install_tag = [kwargs['install_tag']] if kwargs['install_tag'] is not None else None
 
+        inputs: T.List[CustomTargetSources] = self.interpreter.source_strings_to_files(kwargs['input'])
         ct = build.CustomTarget(
             '',
             state.subdir,
             state.subproject,
             state.environment,
             command,
-            kwargs['input'],
+            inputs,
             [kwargs['output']],
             build_by_default=build_by_default,
             install=kwargs['install'],
@@ -516,13 +514,14 @@ class I18nModule(ExtensionModule):
 
         install_tag = [kwargs['install_tag']] if kwargs['install_tag'] is not None else None
 
+        inputs: T.List[CustomTargetSources] = self.interpreter.source_strings_to_files(kwargs['input'])
         ct = build.CustomTarget(
             '',
             state.subdir,
             state.subproject,
             state.environment,
             command,
-            kwargs['input'],
+            inputs,
             [kwargs['output']],
             build_by_default=build_by_default,
             extra_depends=mo_targets,
