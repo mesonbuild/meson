@@ -97,6 +97,11 @@ def update_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
     config.read(filename)
+    if 'options' not in config:
+        # file missing or corrupted, write it from scratch including
+        # the [properties] section
+        write_cmd_line_file(build_dir, options)
+        return
     for k, v in options.cmd_line_options.items():
         keystr = str(k)
         if v is not None:
