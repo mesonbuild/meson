@@ -16,12 +16,13 @@ if T.TYPE_CHECKING:
 
     from . import ModuleState
     from ..interpreter import Interpreter
+    from ..interpreter.kwargs import CustomTargetInputs
     from ..programs import Program
 
     class ProjectKwargs(TypedDict):
 
-        sources: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]
-        constraint_file: T.Union[mesonlib.FileOrString, build.GeneratedTypes]
+        sources: T.List[CustomTargetInputs]
+        constraint_file: CustomTargetInputs
 
 class IceStormModule(ExtensionModule):
 
@@ -61,6 +62,7 @@ class IceStormModule(ExtensionModule):
         proj_name, arg_sources = args
         all_sources = self.interpreter.source_strings_to_files(
             list(itertools.chain(arg_sources, kwargs['sources'])))
+        constraint_file = self.interpreter.source_strings_to_files([kwargs['constraint_file']])[0]
 
         blif_target = build.CustomTarget(
             f'{proj_name}_blif',
@@ -78,7 +80,7 @@ class IceStormModule(ExtensionModule):
             state.subproject,
             state.environment,
             [self.tools['arachne'], '-q', '-d', '1k', '-p', '@INPUT@', '-o', '@OUTPUT@'],
-            [kwargs['constraint_file'], blif_target],
+            [constraint_file, blif_target],
             [f'{proj_name}.asc'],
         )
 
