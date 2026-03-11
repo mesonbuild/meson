@@ -44,7 +44,7 @@ if T.TYPE_CHECKING:
     from ._typing import ImmutableListProtocol
     from .backend.backends import Backend
     from .compilers.compilers import Compiler, CompilerDict, Language
-    from .interpreter.interpreter import SourceOutputs, Interpreter
+    from .interpreter.interpreter import CustomTargetSources, SourceOutputs, Interpreter
     from .interpreter.interpreterobjects import Test, Doctest
     from .linkers.linkers import StaticLinker
     from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
@@ -2993,9 +2993,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  command: T.Sequence[T.Union[
                      str, BuildTargetTypes, GeneratedList,
                      programs.Program, File]],
-                 sources: T.Sequence[T.Union[
-                     str, File, BuildTargetTypes, ExtractedObjects,
-                     GeneratedList, programs.Program]],
+                 sources: T.Sequence[CustomTargetSources],
                  outputs: T.List[str],
                  *,
                  build_always_stale: bool = False,
@@ -3593,9 +3591,7 @@ def get_sources_string_names(sources, backend):
     '''
     names = []
     for s in sources:
-        if isinstance(s, str):
-            names.append(s)
-        elif isinstance(s, (BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList)):
+        if isinstance(s, (BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList)):
             names += s.get_outputs()
         elif isinstance(s, ExtractedObjects):
             names += backend.determine_ext_objs(s)
