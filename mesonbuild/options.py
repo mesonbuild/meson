@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 from collections import OrderedDict
+from functools import lru_cache
 from itertools import chain
 import copy
 import dataclasses
@@ -896,6 +897,17 @@ class OptionStore:
             except MesonException as e:
                 raise MesonException(f'In override_options for {target}: {e!s}')
         return value
+
+    def get_external_args(self, for_machine: MachineChoice, lang: Language) -> T.List[str]:
+        # mypy cannot analyze type of OptionKey
+        key = OptionKey(f'{lang}_args', machine=for_machine)
+        return T.cast('T.List[str]', self.get_value_for(key))
+
+    @lru_cache(maxsize=None)
+    def get_external_link_args(self, for_machine: MachineChoice, lang: Language) -> T.List[str]:
+        # mypy cannot analyze type of OptionKey
+        linkkey = OptionKey(f'{lang}_link_args', machine=for_machine)
+        return T.cast('T.List[str]', self.get_value_for(linkkey))
 
     def add_system_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
