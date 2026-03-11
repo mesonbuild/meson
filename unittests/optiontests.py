@@ -6,8 +6,10 @@ from mesonbuild.options import (
     UserComboOption, UserBooleanOption,
 )
 from mesonbuild.envconfig import MachineInfo
+from mesonbuild.build import BuildTarget
 from mesonbuild.utils.universal import MesonException, MachineChoice
 
+from unittest import mock
 import os
 import unittest
 
@@ -642,3 +644,9 @@ class OptionTests(unittest.TestCase):
         optstore = OptionStore(False)
         self.assertTrue(optstore._is_host_absolute(os.sep + 'myprog'))
         self.assertTrue(optstore._is_host_absolute('/myprog'))
+
+    def test_get_value_default(self) -> None:
+        optstore = OptionStore(False)
+        self.assertTrue(optstore.get_value_for(OptionKey('nonexistent'), bool, default=True))
+        target = mock.Mock(spec=BuildTarget, subproject='')
+        self.assertTrue(optstore.get_option_for_target(target, OptionKey('nonexistent'), bool, default=True))
