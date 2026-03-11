@@ -58,7 +58,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
 
     def _get_basic_compiler_args(self, mode: CompileCheckMode) -> T.Tuple[T.List[str], T.List[str]]:
         cargs = self.environment.coredata.optstore.get_external_args(self.for_machine, self.language)
-        largs = self.environment.coredata.get_external_link_args(self.for_machine, self.language)
+        largs = self.environment.coredata.optstore.get_external_link_args(self.for_machine, self.language)
         return cargs, largs
 
     def _sanity_check_source_code(self) -> str:

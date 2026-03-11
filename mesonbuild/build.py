@@ -1917,7 +1917,7 @@ class BuildTarget(Target):
         args: T.List[str] = []
         for lang in LANGUAGES_USING_LDFLAGS:
             try:
-                args += self.environment.coredata.get_external_link_args(self.for_machine, lang)
+                args += self.environment.coredata.optstore.get_external_link_args(self.for_machine, lang)
             except KeyError:
                 pass
         return self.get_rpath_dirs_from_link_args(args)
