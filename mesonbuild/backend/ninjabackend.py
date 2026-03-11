@@ -3413,12 +3413,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def target_uses_import_std(self, target: build.BuildTarget) -> bool:
         if 'cpp' not in target.compilers:
             return False
-        try:
-            if self.environment.coredata.optstore.get_option_for_target_untyped(target, 'cpp_importstd') == 'true':
-                return True
-        except KeyError:
-            pass
-        return False
+        return self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey('cpp_importstd'), str, default='false') == 'true'
 
     def handle_cpp_import_std(self, target: build.BuildTarget, compiler: Compiler) -> T.Tuple[T.List[str], T.List[File]]:
         istd_args: T.List[str] = []
