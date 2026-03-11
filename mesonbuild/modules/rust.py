@@ -930,8 +930,7 @@ class RustModule(ExtensionModule):
         language = T.cast('Language', language)
 
         # We only want include directories and defines, other things may not be valid
-        cargs = state.get_option(f'{language}_args', state.subproject)
-        assert isinstance(cargs, list), 'for mypy'
+        cargs = state.environment.coredata.optstore.get_value_for(OptionKey(f'{language}_args', state.subproject), list)
         for a in itertools.chain(state.global_args.get(language, []), state.project_args.get(language, []), cargs):
             if a.startswith(('-I', '/I', '-D', '/D', '-U', '/U')):
                 clang_args.append(a)
@@ -941,8 +940,7 @@ class RustModule(ExtensionModule):
 
         # Add the C++ standard to the clang arguments. Attempt to translate VS
         # extension versions into the nearest standard version
-        std = state.get_option(f'{language}_std')
-        assert isinstance(std, str), 'for mypy'
+        std = state.environment.coredata.optstore.get_value_for(OptionKey(f'{language}_std'), str)
         if std.startswith('vc++'):
             if std.endswith('latest'):
                 mlog.warning('Attempting to translate vc++latest into a clang compatible version.',

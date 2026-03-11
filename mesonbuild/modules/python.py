@@ -87,13 +87,13 @@ class PythonExternalProgram(BasicPythonExternalProgram):
         if not state:
             # This happens only from run_project_tests.py
             return rel_path
-        value = T.cast('str', state.get_option(f'python.{key}dir'))
+        value = state.environment.coredata.optstore.get_value_for(OptionKey(f'python.{key}dir'), str)
         if value:
             if state.is_user_defined_option('python.install_env'):
                 raise mesonlib.MesonException(f'python.{key}dir and python.install_env are mutually exclusive')
             return value
 
-        install_env = state.get_option('python.install_env')
+        install_env = state.environment.coredata.optstore.get_value_for(OptionKey('python.install_env'), str)
         if install_env == 'auto':
             install_env = 'venv' if self.info['is_venv'] else 'system'
 

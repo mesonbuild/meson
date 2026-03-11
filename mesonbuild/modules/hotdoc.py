@@ -343,11 +343,9 @@ class HotdocTargetBuilder:
 
         install_script = None
         if install:
-            prefix = self.state.get_option('prefix')
-            assert isinstance(prefix, str), 'for mypy'
-            datadir = self.state.get_option('datadir')
-            assert isinstance(datadir, str), 'for mypy'
-            datadir = os.path.join(prefix, datadir)
+            datadir = os.path.join(
+                self.state.environment.coredata.optstore.get_value_for(OptionKey('prefix'), str),
+                self.state.environment.coredata.optstore.get_value_for(OptionKey('datadir'), str))
             devhelp = self.kwargs.get('devhelp_activate', False)
             if not isinstance(devhelp, bool):
                 FeatureDeprecated.single_use('hotdoc.generate_doc() devhelp_activate must be boolean', '1.1.0', self.state.subproject)
