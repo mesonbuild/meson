@@ -924,6 +924,13 @@ class OptionStore:
             raise MesonBugException(f'Expected {key!s} to have type {type_!s}, but had type {type(val)!s}')
         return val
 
+    def get_option_for_maybe_target(self, target: T.Optional[BuildTarget], key: OptionKey,
+                                    type_: T.Type[ElementaryOptionType],
+                                    *, default: T.Optional[ElementaryOptionType] = None) -> ElementaryOptionType:
+        if target is not None:
+            return self.get_option_for_target(target, key, type_, default=default)
+        return self.get_value_for(key, type_, default=default)
+
     def get_external_args(self, for_machine: MachineChoice, lang: Language) -> T.List[str]:
         key = OptionKey(f'{lang}_args', machine=for_machine)
         return self.get_value_for(key, list)
