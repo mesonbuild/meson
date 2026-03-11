@@ -117,8 +117,7 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
     def __init__(self, python: 'PythonExternalProgram', interpreter: 'Interpreter'):
         ProgramHolder.__init__(self, python, interpreter)
         info = python.info
-        prefix = self.interpreter.environment.coredata.optstore.get_value_for_untyped(OptionKey('prefix'))
-        assert isinstance(prefix, str), 'for mypy'
+        prefix = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('prefix'), str)
 
         if python.build_config:
             def as_(obj: object, type_: T.Type[_T]) -> _T:
@@ -185,7 +184,7 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
                                   self.current_node)
 
         limited_api_version = kwargs.get('limited_api')
-        allow_limited_api = self.interpreter.environment.coredata.optstore.get_value_for_untyped(OptionKey('python.allow_limited_api'))
+        allow_limited_api = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.allow_limited_api'), bool)
         if limited_api_version != '' and allow_limited_api:
 
             target_suffix = self.limited_api_suffix
@@ -225,7 +224,7 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
 
                 new_link_args = kwargs['link_args'].copy()
 
-                is_debug = self.interpreter.environment.coredata.optstore.get_value_for_untyped('debug')
+                is_debug = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('debug'), bool)
                 if is_debug:
                     new_link_args.append(python_windows_debug_link_exception)
                 else:
@@ -276,8 +275,7 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         if dep is not None:
             return dep
 
-        build_config = self.interpreter.environment.coredata.optstore.get_value_for_untyped(OptionKey('python.build_config'))
-        assert isinstance(build_config, str), 'for mypy'
+        build_config = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.build_config'), str)
 
         new_kwargs = kwargs.copy()
         new_kwargs['required'] = False
@@ -413,7 +411,7 @@ class PythonModule(ExtensionModule):
     def _get_install_scripts(self) -> T.List[mesonlib.ExecutableSerialisation]:
         backend = self.interpreter.backend
         ret: T.List[mesonlib.ExecutableSerialisation] = []
-        optlevel = self.interpreter.environment.coredata.optstore.get_value_for_untyped(OptionKey('python.bytecompile'))
+        optlevel = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.bytecompile'), int)
         if optlevel == -1:
             return ret
         if not any(PythonExternalProgram.run_bytecompile.values()):
@@ -479,8 +477,7 @@ class PythonModule(ExtensionModule):
             return None
 
     def _find_installation_impl(self, state: 'ModuleState', display_name: str, name_or_path: str, required: bool) -> MaybePythonProg:
-        build_config = self.interpreter.environment.coredata.optstore.get_value_for_untyped(OptionKey('python.build_config'))
-        assert isinstance(build_config, str), 'for mypy'
+        build_config = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.build_config'), str)
 
         if not name_or_path:
             python = PythonExternalProgram('python3', mesonlib.python_command, build_config_path=build_config)

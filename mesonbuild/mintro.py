@@ -113,7 +113,7 @@ def list_install_plan(coredata: cdata.CoreData, builddata: build.Build, backend:
     return plan
 
 def get_target_dir(coredata: cdata.CoreData, subdir: str) -> str:
-    if coredata.optstore.get_value_for_untyped(OptionKey('layout')) == 'flat':
+    if coredata.optstore.get_value_for(OptionKey('layout'), str) == 'flat':
         return 'meson-out'
     else:
         return subdir

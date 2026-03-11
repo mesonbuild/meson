@@ -281,9 +281,9 @@ def are_asserts_disabled(target: 'BuildTarget', env: 'Environment') -> bool:
 
 def are_asserts_disabled_for_subproject(subproject: str, env: 'Environment') -> bool:
     key = OptionKey('b_ndebug', subproject)
-    return (env.coredata.optstore.get_value_for_untyped(key) == 'true' or
-            (env.coredata.optstore.get_value_for_untyped(key) == 'if-release' and
-             env.coredata.optstore.get_value_for_untyped(key.evolve(name='buildtype')) in {'release', 'plain'}))
+    return (env.coredata.optstore.get_value_for(key, str) == 'true' or
+            (env.coredata.optstore.get_value_for(key, str) == 'if-release' and
+             env.coredata.optstore.get_value_for(key.evolve(name='buildtype'), str) in {'release', 'plain'}))
 
 
 def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Environment') -> T.List[str]:
@@ -1246,8 +1246,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
             rel = 'mt'
 
         # Match what build type flags used to do.
-        buildtype = self.environment.coredata.optstore.get_value_for_untyped('buildtype')
-        assert isinstance(buildtype, str), 'for mypy'
+        buildtype = self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'), str)
         if buildtype == 'plain':
             return 'none'
         elif buildtype == 'debug':

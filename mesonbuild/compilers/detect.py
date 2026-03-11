@@ -173,7 +173,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             trials = [defaults['cuda_static_linker']] + default_linkers
         elif compiler.get_argument_syntax() == 'msvc':
             trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker']]
-        elif env.machines[compiler.for_machine].is_os2() and env.coredata.optstore.get_value_for_untyped(OptionKey('os2_emxomf')):
+        elif env.machines[compiler.for_machine].is_os2() and env.coredata.optstore.get_value_for(OptionKey('os2_emxomf'), bool):
             trials = [defaults['emxomf_static_linker']] + default_linkers
         elif compiler.id == 'gcc':
             # Use gcc-ar if available; needed for LTO

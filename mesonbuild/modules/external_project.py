@@ -76,18 +76,10 @@ class ExternalProject(NewExtensionModule):
         self.src_dir = Path(self.env.get_source_dir(), self.subdir)
         self.build_dir = Path(self.env.get_build_dir(), self.subdir, 'build')
         self.install_dir = Path(self.env.get_build_dir(), self.subdir, 'dist')
-        _p = self.env.coredata.optstore.get_value_for_untyped(OptionKey('prefix'))
-        assert isinstance(_p, str), 'for mypy'
-        self.prefix = Path(_p)
-        _l = self.env.coredata.optstore.get_value_for_untyped(OptionKey('libdir'))
-        assert isinstance(_l, str), 'for mypy'
-        self.libdir = Path(_l)
-        _l = self.env.coredata.optstore.get_value_for_untyped(OptionKey('bindir'))
-        assert isinstance(_l, str), 'for mypy'
-        self.bindir = Path(_l)
-        _i = self.env.coredata.optstore.get_value_for_untyped(OptionKey('includedir'))
-        assert isinstance(_i, str), 'for mypy'
-        self.includedir = Path(_i)
+        self.prefix = Path(self.env.coredata.optstore.get_value_for(OptionKey('prefix'), str))
+        self.libdir = Path(self.env.coredata.optstore.get_value_for(OptionKey('libdir'), str))
+        self.bindir = Path(self.env.coredata.optstore.get_value_for(OptionKey('bindir'), str))
+        self.includedir = Path(self.env.coredata.optstore.get_value_for(OptionKey('includedir'), str))
         self.name = self.src_dir.name
 
         self.prefix = self._cygpath_convert(self.prefix)

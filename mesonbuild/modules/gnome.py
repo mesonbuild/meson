@@ -532,8 +532,7 @@ class GnomeModule(ExtensionModule):
         if gresource: # Only one target for .gresource files
             return ModuleReturnValue(target_c, [target_c])
 
-        install_dir = kwargs['install_dir'] or state.environment.coredata.optstore.get_value_for_untyped(OptionKey('includedir'))
-        assert isinstance(install_dir, str), 'for mypy'
+        install_dir = kwargs['install_dir'] or state.environment.coredata.optstore.get_value_for(OptionKey('includedir'), str)
         target_h = GResourceHeaderTarget(
             f'{target_name}_h',
             state.subdir,
@@ -929,8 +928,7 @@ class GnomeModule(ExtensionModule):
             if state.project_args.get(lang):
                 cflags += state.project_args[lang]
             if OptionKey('b_sanitize') in compiler.base_options:
-                sanitize = state.environment.coredata.optstore.get_value_for_untyped('b_sanitize')
-                assert isinstance(sanitize, list)
+                sanitize = state.environment.coredata.optstore.get_value_for(OptionKey('b_sanitize'), list)
                 cflags += compiler.sanitizer_compile_args(None, sanitize)
                 # These must be first in ldflags
                 if 'address' in sanitize:
@@ -1694,8 +1692,7 @@ class GnomeModule(ExtensionModule):
 
         targets = []
         install_header = kwargs['install_header']
-        install_dir = kwargs['install_dir'] or state.environment.coredata.optstore.get_value_for_untyped(OptionKey('includedir'))
-        assert isinstance(install_dir, str), 'for mypy'
+        install_dir = kwargs['install_dir'] or state.environment.coredata.optstore.get_value_for(OptionKey('includedir'), str)
 
         output = namebase + '.c'
         # Added in https://gitlab.gnome.org/GNOME/glib/commit/e4d68c7b3e8b01ab1a4231bf6da21d045cb5a816 (2.55.2)
@@ -2063,13 +2060,12 @@ class GnomeModule(ExtensionModule):
             cmd: T.List[str],
             *,
             install: bool = False,
-            install_dir: T.Optional[T.Sequence[T.Union[str, bool]]] = None,
+            install_dir: T.Optional[str] = None,
             depends: T.Optional[T.Sequence[build.BuildTargetTypes]] = None
             ) -> build.CustomTarget:
         real_cmd: CommandList = [self._find_tool(state, 'glib-mkenums')]
         real_cmd.extend(cmd)
-        _install_dir = install_dir or state.environment.coredata.optstore.get_value_for_untyped(OptionKey('includedir'))
-        assert isinstance(_install_dir, str), 'for mypy'
+        _install_dir = install_dir or state.environment.coredata.optstore.get_value_for(OptionKey('includedir'), str)
 
         return CustomTarget(
             output,
@@ -2286,8 +2282,7 @@ class GnomeModule(ExtensionModule):
             inputs.append(i)
 
         vapi_output = library + '.vapi'
-        datadir = state.environment.coredata.optstore.get_value_for_untyped(OptionKey('datadir'))
-        assert isinstance(datadir, str), 'for mypy'
+        datadir = state.environment.coredata.optstore.get_value_for(OptionKey('datadir'), str)
         install_dir = kwargs['install_dir'] or os.path.join(datadir, 'vala', 'vapi')
 
         if kwargs['install']:

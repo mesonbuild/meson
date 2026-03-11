@@ -1072,8 +1072,7 @@ class OptionStore:
             assert isinstance(new_value, str), 'for mypy'
             new_value = self.sanitize_prefix(new_value)
         elif self.is_builtin_option(key):
-            prefix = self.get_value_for_untyped('prefix')
-            assert isinstance(prefix, str), 'for mypy'
+            prefix = self.get_value_for(OptionKey('prefix'), str)
             new_value = self.sanitize_dir_option_value(prefix, key, new_value)
 
         try:
