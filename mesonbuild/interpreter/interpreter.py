@@ -1171,7 +1171,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         try:
             optkey = options.OptionKey.from_string(optname).evolve(subproject=self.subproject)
-            option_object, value = self.coredata.optstore.get_option_and_value_for(optkey)
+            option_object, value = self.coredata.optstore.get_option_and_value_for_untyped(optkey)
         except KeyError:
             if self.coredata.optstore.is_base_option(optkey):
                 # Due to backwards compatibility return the default
@@ -1220,11 +1220,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         if OptionKey('genvslite') in self.user_defined_options.cmd_line_options:
             # Use of the '--genvslite vsxxxx' option ultimately overrides any '--backend xxx'
             # option the user may specify.
-            backend_name = self.coredata.optstore.get_value_for(OptionKey('genvslite'))
+            backend_name = self.coredata.optstore.get_value_for_untyped(OptionKey('genvslite'))
             assert isinstance(backend_name, str), 'for mypy'
             self.backend = backends.get_genvslite_backend(backend_name, self.build)
         else:
-            backend_name = self.coredata.optstore.get_value_for(OptionKey('backend'))
+            backend_name = self.coredata.optstore.get_value_for_untyped(OptionKey('backend'))
             assert isinstance(backend_name, str), 'for mypy'
             self.backend = backends.get_backend_from_name(backend_name, self.build)
 
@@ -1309,9 +1309,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             # self.set_backend() otherwise it wouldn't be able to detect which
             # vs backend version we need. But after setting default_options in case
             # the project sets vs backend by default.
-            backend = self.coredata.optstore.get_value_for(OptionKey('backend'))
+            backend = self.coredata.optstore.get_value_for_untyped(OptionKey('backend'))
             assert backend is None or isinstance(backend, str), 'for mypy'
-            vsenv = self.coredata.optstore.get_value_for(OptionKey('vsenv'))
+            vsenv = self.coredata.optstore.get_value_for_untyped(OptionKey('vsenv'))
             assert isinstance(vsenv, bool), 'for mypy'
             force_vsenv = vsenv or backend.startswith('vs')
             mesonlib.setup_vsenv(force_vsenv)
@@ -1378,7 +1378,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # Load wrap files from this (sub)project.
         subprojects_dir = os.path.join(self.subdir, spdirname)
         if not self.is_subproject():
-            wrap_mode_s = self.coredata.optstore.get_value_for(OptionKey('wrap_mode'))
+            wrap_mode_s = self.coredata.optstore.get_value_for_untyped(OptionKey('wrap_mode'))
             assert isinstance(wrap_mode_s, str), 'for mypy'
             wrap_mode = WrapMode.from_string(wrap_mode_s)
             self.environment.wrap_resolver = wrap.Resolver(self.environment.get_source_dir(), subprojects_dir, self.subproject, wrap_mode)
@@ -1817,8 +1817,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             # Override find_program('meson') to return what we were invoked with
             return ExternalProgram('meson', self.environment.get_build_command(), silent=True)
 
-        wrap_mode_s = self.coredata.optstore.get_value_for(OptionKey('wrap_mode'))
-        force_fallback_for = self.coredata.optstore.get_value_for(OptionKey('force_fallback_for'))
+        wrap_mode_s = self.coredata.optstore.get_value_for_untyped(OptionKey('wrap_mode'))
+        force_fallback_for = self.coredata.optstore.get_value_for_untyped(OptionKey('force_fallback_for'))
         assert isinstance(wrap_mode_s, str), 'for mypy'
         assert isinstance(force_fallback_for, list), 'for mypy'
         wrap_mode = WrapMode.from_string(wrap_mode_s)
@@ -3254,9 +3254,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             return
         if OptionKey('b_sanitize') not in self.coredata.optstore:
             return
-        if (self.coredata.optstore.get_value_for('b_lundef') and
-                self.coredata.optstore.get_value_for('b_sanitize')):
-            value = self.coredata.optstore.get_value_for('b_sanitize')
+        if (self.coredata.optstore.get_value_for_untyped('b_lundef') and
+                self.coredata.optstore.get_value_for_untyped('b_sanitize')):
+            value = self.coredata.optstore.get_value_for_untyped('b_sanitize')
             assert isinstance(value, list), 'for mypy'
             mlog.warning(textwrap.dedent(f'''\
                     Trying to use {value} sanitizer on Clang with b_lundef.
@@ -3505,10 +3505,10 @@ class Interpreter(InterpreterBase, HoldableObject):
     def build_both_libraries(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library) -> build.BothLibraries:
         shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary, shared_library_only=False)
         static_lib = self.build_target(node, args, kwargs, build.StaticLibrary)
-        preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_both_libraries', subproject=self.subproject))
+        preferred_library = self.coredata.optstore.get_value_for_untyped(OptionKey('default_both_libraries', subproject=self.subproject))
         assert isinstance(preferred_library, str), 'for mypy'
         if preferred_library == 'auto':
-            preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_library', subproject=self.subproject))
+            preferred_library = self.coredata.optstore.get_value_for_untyped(OptionKey('default_library', subproject=self.subproject))
             assert isinstance(preferred_library, str), 'for mypy'
             if preferred_library == 'both':
                 preferred_library = 'shared'
@@ -3552,7 +3552,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return build.BothLibraries(shared_lib, static_lib, preferred_library)
 
     def build_library(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library) -> build.SharedLibrary | build.BothLibraries | build.StaticLibrary:
-        default_library = self.coredata.optstore.get_value_for(OptionKey('default_library', subproject=self.subproject))
+        default_library = self.coredata.optstore.get_value_for_untyped(OptionKey('default_library', subproject=self.subproject))
         assert isinstance(default_library, str), 'for mypy'
         if default_library == 'shared':
             # Intentionally pass shared_library_only=False so that dependencies

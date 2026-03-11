@@ -698,7 +698,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
         search_dirs = extract_search_dirs(kwargs)
 
-        prefer_static = self.environment.coredata.optstore.get_value_for(OptionKey('prefer_static'))
+        prefer_static = self.environment.coredata.optstore.get_value_for_untyped(OptionKey('prefer_static'))
         if kwargs['static'] is True:
             libtype = mesonlib.LibType.STATIC
         elif kwargs['static'] is False:

@@ -381,7 +381,7 @@ class Backend:
         if isinstance(target, build.RunTarget):
             # this produces no output, only a dummy top-level name
             dirname = ''
-        elif self.environment.coredata.optstore.get_value_for(OptionKey('layout')) == 'mirror':
+        elif self.environment.coredata.optstore.get_value_for_untyped(OptionKey('layout')) == 'mirror':
             dirname = target.get_builddir()
         else:
             dirname = 'meson-out'
@@ -1302,7 +1302,7 @@ class Backend:
     def generate_depmf_install(self, d: InstallData) -> None:
         depmf_path = self.build.dep_manifest_name
         if depmf_path is None:
-            option_dir = self.environment.coredata.optstore.get_value_for(OptionKey('licensedir'))
+            option_dir = self.environment.coredata.optstore.get_value_for_untyped(OptionKey('licensedir'))
             assert isinstance(option_dir, str), 'for mypy'
             if option_dir:
                 depmf_path = os.path.join(option_dir, 'depmf.json')
@@ -1661,7 +1661,7 @@ class Backend:
                 # TODO go through all candidates, like others
                 strip_bin = [detect.defaults['strip'][0]]
 
-        umask = self.environment.coredata.optstore.get_value_for(OptionKey('install_umask'))
+        umask = self.environment.coredata.optstore.get_value_for_untyped(OptionKey('install_umask'))
         assert isinstance(umask, (str, int)), 'for mypy'
 
         d = InstallData(self.environment.get_source_dir(),
@@ -1694,7 +1694,7 @@ class Backend:
         bindir = Path(prefix, self.environment.get_bindir())
         libdir = Path(prefix, self.environment.get_libdir())
         incdir = Path(prefix, self.environment.get_includedir())
-        _ldir = self.environment.coredata.optstore.get_value_for(OptionKey('localedir'))
+        _ldir = self.environment.coredata.optstore.get_value_for_untyped(OptionKey('localedir'))
         assert isinstance(_ldir, str), 'for mypy'
         localedir = Path(prefix, _ldir)
         dest_path = Path(prefix, outdir, Path(fname).name) if outdir else Path(prefix, fname)
@@ -2120,4 +2120,4 @@ class Backend:
             key = name
         else:
             raise MesonBugException('Internal error: invalid option type.')
-        return self.environment.coredata.optstore.get_option_for_target(target, key)
+        return self.environment.coredata.optstore.get_option_for_target_untyped(target, key)

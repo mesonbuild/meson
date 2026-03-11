@@ -283,7 +283,7 @@ class IMPIDependency(SystemDependency):
         incdir = os.path.join(rootdir, 'include')
         libdir = os.path.join(rootdir, 'lib')
 
-        debug = env.coredata.optstore.get_value_for('debug')
+        debug = env.coredata.optstore.get_value_for_untyped('debug')
         assert isinstance(debug, bool)
         libdir_post = 'debug' if debug else 'release'
         for subdirs in (['mpi', libdir_post], [libdir_post]):

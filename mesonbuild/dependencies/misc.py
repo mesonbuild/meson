@@ -592,7 +592,7 @@ def shaderc_factory(env: 'Environment',
 
         static = kwargs.get('static')
         if static is None:
-            static = T.cast('bool', env.coredata.optstore.get_value_for(OptionKey('prefer_static')))
+            static = T.cast('bool', env.coredata.optstore.get_value_for_untyped(OptionKey('prefer_static')))
         if static:
             c = [DependencyCandidate.from_dependency(name, PkgConfigDependency, (env, kwargs))
                  for name in static_libs + shared_libs]

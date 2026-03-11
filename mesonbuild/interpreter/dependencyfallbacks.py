@@ -322,10 +322,10 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         required = kwargs.get('required', True)
 
         # Check if usage of the subproject fallback is forced
-        _wm = self.coredata.optstore.get_value_for(OptionKey('wrap_mode'))
+        _wm = self.coredata.optstore.get_value_for_untyped(OptionKey('wrap_mode'))
         assert isinstance(_wm, str), 'for mypy'
         wrap_mode = WrapMode.from_string(_wm)
-        force_fallback_for = self.coredata.optstore.get_value_for(OptionKey('force_fallback_for'))
+        force_fallback_for = self.coredata.optstore.get_value_for_untyped(OptionKey('force_fallback_for'))
         assert isinstance(force_fallback_for, list), 'for mypy'
         self.nofallback = wrap_mode == WrapMode.nofallback
         self.forcefallback = (force_fallback or

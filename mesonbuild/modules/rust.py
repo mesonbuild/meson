@@ -979,7 +979,7 @@ class RustModule(ExtensionModule):
             cmd.extend(['--rust-target', self._bindgen_rust_target])
         if self._bindgen_set_std and '--rust-edition' not in cmd:
             try:
-                rust_std = state.environment.coredata.optstore.get_value_for('rust_std')
+                rust_std = state.environment.coredata.optstore.get_value_for_untyped('rust_std')
             except KeyError:
                 rust_std = 'none'
             assert isinstance(rust_std, str), 'for mypy'
