@@ -377,9 +377,6 @@ class CoreData:
             result.append(('debug', actual_debug, debug))
         return result
 
-    def get_external_link_args(self, for_machine: MachineChoice, lang: Language) -> T.List[str]:
-        return self.optstore.get_external_link_args(for_machine, lang)
-
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         if when_building_for == MachineChoice.BUILD:
             return False

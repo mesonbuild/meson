@@ -847,7 +847,7 @@ class GnomeModule(ExtensionModule):
         ret: T.List[str] = []
 
         for lang in langs:
-            link_args = state.environment.coredata.get_external_link_args(MachineChoice.HOST, lang)
+            link_args = state.environment.coredata.optstore.get_external_link_args(MachineChoice.HOST, lang)
             for link_arg in link_args:
                 if link_arg.startswith('-L'):
                     ret.append(link_arg)
@@ -1195,7 +1195,7 @@ class GnomeModule(ExtensionModule):
         scan_cflags += list(self._get_scanner_cflags(self._get_external_args_for_langs(state, [lc[0] for lc in langs_compilers])))
         scan_internal_ldflags = []
         scan_external_ldflags = []
-        scan_env_ldflags = state.environment.coredata.get_external_link_args(MachineChoice.HOST, 'c')
+        scan_env_ldflags = state.environment.coredata.optstore.get_external_link_args(MachineChoice.HOST, 'c')
         for cli_flags, env_flags in (self._get_scanner_ldflags(internal_ldflags), self._get_scanner_ldflags(dep_internal_ldflags)):
             scan_internal_ldflags += cli_flags
             scan_env_ldflags += env_flags
@@ -1609,7 +1609,7 @@ class GnomeModule(ExtensionModule):
         ldflags.extend(external_ldflags)
 
         cflags.extend(state.environment.coredata.optstore.get_external_args(MachineChoice.HOST, 'c'))
-        ldflags.extend(state.environment.coredata.get_external_link_args(MachineChoice.HOST, 'c'))
+        ldflags.extend(state.environment.coredata.optstore.get_external_link_args(MachineChoice.HOST, 'c'))
         compiler = state.environment.coredata.compilers[MachineChoice.HOST]['c']
 
         compiler_flags = self._get_langs_compilers_flags(state, [('c', compiler)])

@@ -215,7 +215,7 @@ class ValaCompiler(Compiler):
             args += self.environment.coredata.optstore.get_external_args(self.for_machine, self.language)
         elif mode is CompileCheckMode.LINK:
             # Add LDFLAGS from the env
-            args += self.environment.coredata.get_external_link_args(self.for_machine, self.language)
+            args += self.environment.coredata.optstore.get_external_link_args(self.for_machine, self.language)
         # extra_args must override all other arguments, so we add them last
         args += extra_args
         return args

@@ -1197,7 +1197,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         # override all the defaults but not the per-target link args.
         return build.get_project_link_args(self, target) \
             + build.get_global_link_args(self, self.for_machine) \
-            + self.environment.coredata.get_external_link_args(self.for_machine, self.get_language())
+            + self.environment.coredata.optstore.get_external_link_args(self.for_machine, self.get_language())
 
     def get_target_link_args(self, target: 'BuildTarget') -> T.List[str]:
         return target.link_args
@@ -1591,7 +1591,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
             args += self.environment.coredata.optstore.get_external_args(self.for_machine, self.language)
         elif mode is CompileCheckMode.LINK:
             # Add LDFLAGS from the env
-            args += self.environment.coredata.get_external_link_args(self.for_machine, self.language)
+            args += self.environment.coredata.optstore.get_external_link_args(self.for_machine, self.language)
         # extra_args must override all other arguments, so we add them last
         args += extra_args
         return args

@@ -162,7 +162,7 @@ class ExternalProject(NewExtensionModule):
             self.run_env[CFLAGS_MAPPING[lang]] = self._quote_and_join(cargs)
             if not link_exelist:
                 link_exelist = compiler.get_linker_exelist()
-                _l = self.env.coredata.get_external_link_args(MachineChoice.HOST, lang)
+                _l = self.env.coredata.optstore.get_external_link_args(MachineChoice.HOST, lang)
                 assert isinstance(_l, list), 'for mypy'
                 link_args = _l
         if link_exelist:
