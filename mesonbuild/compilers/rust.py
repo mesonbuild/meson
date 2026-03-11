@@ -157,8 +157,7 @@ class RustCompiler(Compiler):
         self.has_check_cfg = version_compare(version, '>=1.80.0')
 
     def init_from_options(self) -> None:
-        freestanding = self.environment.coredata.optstore.get_value_for_untyped(OptionKey('b_freestanding'))
-        assert isinstance(freestanding, bool)
+        freestanding = self.environment.coredata.optstore.get_value_for(OptionKey('b_freestanding'), bool)
         self.freestanding = freestanding
         nightly_opt = self.get_compileropt_value('nightly', None)
         if nightly_opt == 'enabled' and not self.is_nightly:

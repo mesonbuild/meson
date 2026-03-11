@@ -1982,8 +1982,7 @@ class BuildTarget(Target, BuildTargetProto):
             self.vs_module_defs = File.from_built_file(path.get_builddir(), path.get_filename())
 
     def _default_library_type(self) -> _LibraryType:
-        bl_type = self.environment.coredata.optstore.get_value_for_untyped(OptionKey('default_both_libraries'))
-        assert isinstance(bl_type, str), 'for mypy'
+        bl_type = self.environment.coredata.optstore.get_value_for(OptionKey('default_both_libraries'), str)
         return T.cast('_LibraryType', bl_type)
 
     def _extract_link_with(self, link_with: T.Sequence[LinkableTypes]) -> list[LinkableTargetProto]:
@@ -2016,7 +2015,7 @@ class BuildTarget(Target, BuildTargetProto):
 
     def determine_rpath_dirs(self) -> T.Tuple[str, ...]:
         result: OrderedSet[str]
-        if self.environment.coredata.optstore.get_value_for_untyped(OptionKey('layout')) == 'mirror':
+        if self.environment.coredata.optstore.get_value_for(OptionKey('layout'), str) == 'mirror':
             # Need a copy here
             result = OrderedSet(self.get_link_dep_subdirs())
         else:
@@ -2441,7 +2440,7 @@ class Executable(BuildTarget, LinkableTargetProto):
             machine.is_windows()
             and ('cs' in self.compilers or self.uses_rust() or self.get_using_msvc())
             # .pdb file is created only when debug symbols are enabled
-            and self.environment.coredata.optstore.get_value_for_untyped(OptionKey("debug"))
+            and self.environment.coredata.optstore.get_value_for(OptionKey("debug"), bool)
         )
         if create_debug_file:
             # If the target is has a standard exe extension (i.e. 'foo.exe'),
@@ -2573,7 +2572,8 @@ class StaticLibrary(BuildTarget, StaticTargetProto):
                     suffix = 'rlib'
                 elif self.rust_crate_type == 'staticlib':
                     suffix = 'a'
-            elif self.environment.machines[self.for_machine].is_os2() and self.environment.coredata.optstore.get_value_for_untyped(OptionKey('os2_emxomf')):
+            elif (self.environment.machines[self.for_machine].is_os2() and
+                  self.environment.coredata.optstore.get_value_for(OptionKey('os2_emxomf'), bool)):
                 suffix = 'lib'
             elif 'c' in self.compilers and self.compilers['c'].get_id() == 'sdcc':
                 suffix = 'lib'
@@ -2796,8 +2796,7 @@ class SharedLibrary(BuildTarget, LibTargetProto):
                 # Import library is called foo.dll.lib
                 import_filename_tpl = '{0.prefix}{0.name}.dll.lib'
                 # .pdb file is only created when debug symbols are enabled
-                create_debug_file = self.environment.coredata.optstore.get_value_for_untyped(OptionKey("debug"))
-                assert isinstance(create_debug_file, bool), 'for mypy'
+                create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"), bool)
             elif self.get_using_msvc():
                 # Shared library is of the form foo.dll
                 prefix = prefix if prefix is not None else ''
@@ -2805,8 +2804,7 @@ class SharedLibrary(BuildTarget, LibTargetProto):
                 import_suffix = import_suffix if import_suffix is not None else 'lib'
                 import_filename_tpl = '{0.prefix}{0.name}.' + import_suffix
                 # .pdb file is only created when debug symbols are enabled
-                create_debug_file = self.environment.coredata.optstore.get_value_for_untyped(OptionKey("debug"))
-                assert isinstance(create_debug_file, bool), 'for mypy'
+                create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"), bool)
             # Assume GCC-compatible naming
             else:
                 # Shared library is of the form libfoo.dll
@@ -2853,7 +2851,7 @@ class SharedLibrary(BuildTarget, LibTargetProto):
             suffix = suffix if suffix is not None else 'dll'
             # Import library is called foo_dll.a or foo_dll.lib
             if import_suffix is None:
-                import_suffix = '_dll.lib' if self.environment.coredata.optstore.get_value_for_untyped(OptionKey('os2_emxomf')) else '_dll.a'
+                import_suffix = '_dll.lib' if self.environment.coredata.optstore.get_value_for(OptionKey('os2_emxomf'), bool) else '_dll.a'
             import_filename_tpl = '{0.prefix}{0.name}' + import_suffix
             filename_tpl = '{0.shortname}' if self.shortname else '{0.prefix}{0.name}'
             if self.soversion:

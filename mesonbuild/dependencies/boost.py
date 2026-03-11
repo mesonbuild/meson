@@ -343,8 +343,7 @@ class BoostDependency(SystemDependency):
     def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs) -> None:
         kwargs['language'] = 'cpp'
         super().__init__(name, environment, kwargs)
-        buildtype = environment.coredata.optstore.get_value_for_untyped(OptionKey('buildtype'))
-        assert isinstance(buildtype, str)
+        buildtype = environment.coredata.optstore.get_value_for(OptionKey('buildtype'), str)
         self.debug = buildtype.startswith('debug')
         self.multithreading = kwargs.get('threading', 'multi') == 'multi'
 
@@ -604,8 +603,7 @@ class BoostDependency(SystemDependency):
         # MSVC is very picky with the library tags
         vscrt = ''
         try:
-            crt_val = self.env.coredata.optstore.get_value_for_untyped('b_vscrt')
-            assert isinstance(crt_val, str)
+            crt_val = self.env.coredata.optstore.get_value_for(OptionKey('b_vscrt'), str)
             vscrt = self.clib_compiler.get_crt_compile_args(crt_val)[0]
         except (KeyError, IndexError, AttributeError):
             pass

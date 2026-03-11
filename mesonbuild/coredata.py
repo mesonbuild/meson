@@ -121,8 +121,8 @@ class DependencyCache:
 
     def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[str, ...]:
         data: T.Dict[DependencyCacheType, T.List[str]] = {
-            DependencyCacheType.PKG_CONFIG: T.cast('T.List[str]', self.__builtins.get_value_for_untyped(self.__pkg_conf_key)),
-            DependencyCacheType.CMAKE: T.cast('T.List[str]', self.__builtins.get_value_for_untyped(self.__cmake_key)),
+            DependencyCacheType.PKG_CONFIG: self.__builtins.get_value_for(self.__pkg_conf_key, list),
+            DependencyCacheType.CMAKE: self.__builtins.get_value_for(self.__cmake_key, list),
             DependencyCacheType.OTHER: [],
         }
         assert type_ in data, 'Someone forgot to update subkey calculations for a new type'
@@ -348,7 +348,7 @@ class CoreData:
 
     def get_nondefault_buildtype_args(self) -> T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]]:
         result: T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]] = []
-        value = self.optstore.get_value_for_untyped('buildtype')
+        value = self.optstore.get_value_for(OptionKey('buildtype'), str)
         if value == 'plain':
             opt = 'plain'
             debug = False
@@ -367,10 +367,8 @@ class CoreData:
         else:
             assert value == 'custom'
             return []
-        actual_opt = self.optstore.get_value_for_untyped('optimization')
-        actual_debug = self.optstore.get_value_for_untyped('debug')
-        assert isinstance(actual_opt, str) # for mypy
-        assert isinstance(actual_debug, bool) # for mypy
+        actual_opt = self.optstore.get_value_for(OptionKey('optimization'), str)
+        actual_debug = self.optstore.get_value_for(OptionKey('debug'), bool)
         if actual_opt != opt:
             result.append(('optimization', actual_opt, opt))
         if actual_debug != debug:
@@ -423,7 +421,7 @@ class CoreData:
 
     def emit_base_options_warnings(self) -> None:
         bcodekey = OptionKey('b_bitcode')
-        if bcodekey in self.optstore and self.optstore.get_value_for_untyped(bcodekey):
+        if self.optstore.get_value_for(bcodekey, bool, default=False):
             msg = textwrap.dedent('''Base option 'b_bitcode' is enabled, which is incompatible with many linker options.
                                      Incompatible options such as \'b_asneeded\' have been disabled.'
                                      Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.''')

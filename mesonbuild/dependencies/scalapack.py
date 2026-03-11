@@ -27,7 +27,7 @@ def scalapack_factory(env: 'Environment',
     candidates: T.List['DependencyGenerator'] = []
 
     if DependencyMethods.PKGCONFIG in methods:
-        static_opt = kwargs['static'] if kwargs.get('static') is not None else env.coredata.optstore.get_value_for_untyped(OptionKey('prefer_static'))
+        static_opt = s if (s := kwargs.get('static') is not None) else env.coredata.optstore.get_value_for(OptionKey('prefer_static'), bool)
         mkl = 'mkl-static-lp64-iomp' if static_opt else 'mkl-dynamic-lp64-iomp'
         candidates.append(DependencyCandidate.from_dependency(
             mkl, MKLPkgConfigDependency, (env, kwargs)))
