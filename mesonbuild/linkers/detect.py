@@ -138,7 +138,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         override = comp_class.use_linker_args(value[0], comp_version)
         check_args += override
 
-    if env.machines[for_machine].is_os2() and env.coredata.optstore.get_value_for_untyped(OptionKey('os2_emxomf')):
+    if env.machines[for_machine].is_os2() and env.coredata.optstore.get_value_for(OptionKey('os2_emxomf'), bool):
         check_args += ['-Zomf']
 
     mlog.debug('-----')
