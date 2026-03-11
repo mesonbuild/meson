@@ -184,7 +184,7 @@ class Vs2010Backend(backends.Backend):
                     sole_output = os.path.join(target_private_dir, outfilelist[i])
                 else:
                     sole_output = ''
-                infilename = os.path.join(down, curfile.rel_to_builddir(self.build_to_src, target_private_dir))
+                infilename = os.path.join(down, curfile.rel_to_builddir(self.build_to_src, self.get_target_private_dir(target)))
                 deps = self.get_target_depend_files(genlist, True)
                 base_args = generator.get_arglist(infilename)
                 outfiles_rel = genlist.get_outputs_for(curfile)
