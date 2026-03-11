@@ -339,7 +339,7 @@ class CLikeCompiler(Compiler):
                 pass
 
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS and CPPFLAGS from the env
-        sys_args = self.environment.coredata.get_external_args(self.for_machine, self.language)
+        sys_args = self.environment.coredata.optstore.get_external_args(self.for_machine, self.language)
         if isinstance(sys_args, str):
             sys_args = [sys_args]
         # Apparently it is a thing to inject linker flags both
@@ -1202,7 +1202,7 @@ class CLikeCompiler(Compiler):
         commands = self.get_exelist(ccache=False) + ['-v', '-E', '-']
         commands += self.get_always_args()
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
-        commands += self.environment.coredata.get_external_args(self.for_machine, self.language)
+        commands += self.environment.coredata.optstore.get_external_args(self.for_machine, self.language)
         mlog.debug('Finding framework path by running: ', ' '.join(commands), '\n')
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
