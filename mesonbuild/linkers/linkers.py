@@ -16,7 +16,7 @@ from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, SubProject
     from ..build import BuildTarget
     from ..compilers.compilers import LinkerOptionStyle
 
@@ -88,7 +88,7 @@ class StaticLinker:
     def openmp_flags(self) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         return []
 
     @classmethod
@@ -200,7 +200,7 @@ class DynamicLinker(metaclass=mesonlib.SimpleABC):
     def get_option_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         return []
 
     def has_multi_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
