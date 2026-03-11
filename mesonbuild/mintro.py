@@ -113,7 +113,7 @@ def list_install_plan(coredata: cdata.CoreData, builddata: build.Build, backend:
     return plan
 
 def get_target_dir(coredata: cdata.CoreData, subdir: str) -> str:
-    if coredata.optstore.get_value_for(OptionKey('layout')) == 'flat':
+    if coredata.optstore.get_value_for_untyped(OptionKey('layout')) == 'flat':
         return 'meson-out'
     else:
         return subdir
@@ -253,7 +253,7 @@ def _list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[
             # yielding to report the value in effect for that subproject.
             # Project options keep their stored value as before.
             if key.subproject and not coredata.optstore.is_project_option(key):
-                value = coredata.optstore.get_value_for(key)
+                value = coredata.optstore.get_value_for_untyped(key)
             else:
                 value = opt.value
             optdict = {'name': str(key), 'value': value, 'section': section,

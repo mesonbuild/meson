@@ -319,7 +319,7 @@ class CmakeModule(ExtensionModule):
 
         pkgroot = pkgroot_name = kwargs['install_dir']
         if pkgroot is None:
-            libdir = state.environment.coredata.optstore.get_value_for(OptionKey('libdir'))
+            libdir = state.environment.coredata.optstore.get_value_for_untyped(OptionKey('libdir'))
             assert isinstance(libdir, str), 'for mypy'
             pkgroot = os.path.join(libdir, 'cmake', name)
             pkgroot_name = os.path.join('{libdir}', 'cmake', name)
@@ -400,7 +400,7 @@ class CmakeModule(ExtensionModule):
 
         install_dir = kwargs['install_dir']
         if install_dir is None:
-            libdir = state.environment.coredata.optstore.get_value_for(OptionKey('libdir'))
+            libdir = state.environment.coredata.optstore.get_value_for_untyped(OptionKey('libdir'))
             assert isinstance(libdir, str), 'for mypy'
             install_dir = os.path.join(libdir, 'cmake', name)
 
@@ -408,7 +408,7 @@ class CmakeModule(ExtensionModule):
         if isinstance(conf, dict):
             conf = build.ConfigurationData(conf)
 
-        prefix = state.environment.coredata.optstore.get_value_for(OptionKey('prefix'))
+        prefix = state.environment.coredata.optstore.get_value_for_untyped(OptionKey('prefix'))
         assert isinstance(prefix, str), 'for mypy'
         abs_install_dir = install_dir
         if not os.path.isabs(abs_install_dir):
