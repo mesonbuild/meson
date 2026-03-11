@@ -635,7 +635,7 @@ class NinjaBackend(backends.Backend):
                     self.allow_thin_archives[for_machine] = False
 
         ninja = tooldetect.detect_ninja_command_and_version(log=True)
-        if self.environment.coredata.optstore.get_value_for(OptionKey('vsenv')):
+        if self.environment.coredata.optstore.get_value_for_untyped(OptionKey('vsenv')):
             builddir = Path(self.environment.get_build_dir())
             try:
                 # For prettier printing, reduce to a relative path. If
@@ -660,7 +660,7 @@ class NinjaBackend(backends.Backend):
             outfile.write('# Do not edit by hand.\n\n')
             outfile.write('ninja_required_version = 1.8.2\n\n')
 
-            num_pools = self.environment.coredata.optstore.get_value_for('backend_max_links')
+            num_pools = self.environment.coredata.optstore.get_value_for_untyped('backend_max_links')
             assert isinstance(num_pools, int)
             if num_pools > 0:
                 outfile.write(f'''pool link_pool
@@ -694,7 +694,7 @@ class NinjaBackend(backends.Backend):
             mlog.log_timestamp("Dist generated")
             key = OptionKey('b_coverage')
             if key in self.environment.coredata.optstore and\
-                    self.environment.coredata.optstore.get_value_for('b_coverage'):
+                    self.environment.coredata.optstore.get_value_for_untyped('b_coverage'):
                 gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe = tooldetect.find_coverage_tools(self.environment.coredata)
                 mlog.debug(f'Using {gcovr_exe} ({gcovr_version}), {lcov_exe} and {llvm_cov_exe} for code coverage')
                 if gcovr_exe or (lcov_exe and genhtml_exe):
@@ -1392,9 +1392,9 @@ class NinjaBackend(backends.Backend):
     def generate_tests(self) -> None:
         self.serialize_tests()
         cmd = self.environment.get_build_command(True) + ['test', '--no-rebuild']
-        if not self.environment.coredata.optstore.get_value_for(OptionKey('stdsplit')):
+        if not self.environment.coredata.optstore.get_value_for_untyped(OptionKey('stdsplit')):
             cmd += ['--no-stdsplit']
-        if self.environment.coredata.optstore.get_value_for(OptionKey('errorlogs')):
+        if self.environment.coredata.optstore.get_value_for_untyped(OptionKey('errorlogs')):
             cmd += ['--print-errorlogs']
         elem = self.create_phony_target('test', 'CUSTOM_COMMAND', ['all', 'meson-test-prereq', 'PHONY'])
         elem.add_item('COMMAND', cmd)
@@ -2463,7 +2463,7 @@ class NinjaBackend(backends.Backend):
         return options
 
     def generate_static_link_rules(self) -> None:
-        num_pools = self.environment.coredata.optstore.get_value_for('backend_max_links')
+        num_pools = self.environment.coredata.optstore.get_value_for_untyped('backend_max_links')
         assert isinstance(num_pools, int)
         if 'java' in self.environment.coredata.compilers.host:
             self.generate_java_link()
@@ -2512,7 +2512,7 @@ class NinjaBackend(backends.Backend):
             self.add_rule(NinjaRule(rule, cmdlist, args, description, **options, extra=pool))
 
     def generate_dynamic_link_rules(self) -> None:
-        num_pools = self.environment.coredata.optstore.get_value_for('backend_max_links')
+        num_pools = self.environment.coredata.optstore.get_value_for_untyped('backend_max_links')
         assert isinstance(num_pools, int)
         for for_machine in MachineChoice:
             complist = self.environment.coredata.compilers[for_machine]
@@ -3359,7 +3359,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if 'cpp' not in target.compilers:
             return False
         try:
-            if self.environment.coredata.optstore.get_option_for_target(target, 'cpp_importstd') == 'true':
+            if self.environment.coredata.optstore.get_option_for_target_untyped(target, 'cpp_importstd') == 'true':
                 return True
         except KeyError:
             pass
@@ -4076,7 +4076,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if extra_arg:
             target_name += f'-{extra_arg}'
             extra_args.append(f'--{extra_arg}')
-        colorout = self.environment.coredata.optstore.get_value_for('b_colorout') \
+        colorout = self.environment.coredata.optstore.get_value_for_untyped('b_colorout') \
             if OptionKey('b_colorout') in self.environment.coredata.optstore else 'always'
         assert isinstance(colorout, str), 'for mypy'
         extra_args.extend(['--color', colorout])
@@ -4187,7 +4187,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             elem.add_dep(self.generate_custom_target_clean(ctlist))
 
         if OptionKey('b_coverage') in self.environment.coredata.optstore and \
-           self.environment.coredata.optstore.get_value_for('b_coverage'):
+           self.environment.coredata.optstore.get_value_for_untyped('b_coverage'):
             self.generate_gcov_clean()
             elem.add_dep('clean-gcda')
             elem.add_dep('clean-gcno')

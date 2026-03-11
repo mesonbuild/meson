@@ -168,7 +168,7 @@ class _QtBase:
         return f'modules: {", ".join(sorted(self.requested_modules))}'
 
     def _get_common_defines(self) -> T.List[str]:
-        is_debug = self.env.coredata.optstore.get_value_for('debug')
+        is_debug = self.env.coredata.optstore.get_value_for_untyped('debug')
         return ['-DQT_DEBUG' if is_debug else '-DQT_NO_DEBUG']
 
 class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=mesonlib.SimpleABC):
@@ -316,9 +316,9 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=mesonlib.Simple
 
         # Use the buildtype by default, but look at the b_vscrt option if the
         # compiler supports it.
-        is_debug = self.env.coredata.optstore.get_value_for('buildtype') == 'debug'
+        is_debug = self.env.coredata.optstore.get_value_for_untyped('buildtype') == 'debug'
         if 'b_vscrt' in self.env.coredata.optstore:
-            if self.env.coredata.optstore.get_value_for('b_vscrt') in {'mdd', 'mtd'}:
+            if self.env.coredata.optstore.get_value_for_untyped('b_vscrt') in {'mdd', 'mtd'}:
                 is_debug = True
         modules_lib_suffix = _get_modules_lib_suffix(self.version, self.env.machines[self.for_machine], is_debug)
 

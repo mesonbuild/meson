@@ -432,7 +432,7 @@ class ExternalDependency(Dependency):
         self.silent = kwargs.get('silent', False)
         static = kwargs.get('static')
         if static is None:
-            static = T.cast('bool', self.env.coredata.optstore.get_value_for(OptionKey('prefer_static')))
+            static = T.cast('bool', self.env.coredata.optstore.get_value_for_untyped(OptionKey('prefer_static')))
         self.static = static
         self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
         # Is this dependency to be run on the build platform?

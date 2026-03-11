@@ -59,13 +59,13 @@ blacklist_cmake_defs = [
 
 def cmake_is_debug(env: 'Environment') -> bool:
     if 'b_vscrt' in env.coredata.optstore:
-        is_debug = env.coredata.optstore.get_value_for('buildtype') == 'debug'
-        if env.coredata.optstore.get_value_for('b_vscrt') in {'mdd', 'mtd'}:
+        is_debug = env.coredata.optstore.get_value_for_untyped('buildtype') == 'debug'
+        if env.coredata.optstore.get_value_for_untyped('b_vscrt') in {'mdd', 'mtd'}:
             is_debug = True
         return is_debug
     else:
         # Don't directly assign to is_debug to make mypy happy
-        debug_opt = env.coredata.optstore.get_value_for('debug')
+        debug_opt = env.coredata.optstore.get_value_for_untyped('debug')
         assert isinstance(debug_opt, bool)
         return debug_opt
 
@@ -122,7 +122,7 @@ def _cmake_get_generator_args(backend_name: str) -> ImmutableListProtocol[str]:
     return args
 
 def cmake_get_generator_args(env: 'Environment') -> T.List[str]:
-    backend_name = env.coredata.optstore.get_value_for(OptionKey('backend'))
+    backend_name = env.coredata.optstore.get_value_for_untyped(OptionKey('backend'))
     assert isinstance(backend_name, str)
     return list(_cmake_get_generator_args(backend_name))
 

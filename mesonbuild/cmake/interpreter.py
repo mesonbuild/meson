@@ -801,7 +801,7 @@ class CMakeInterpreter:
         self.src_dir = Path(env.get_source_dir(), subdir)
         self.build_dir_rel = subdir / '__CMake_build'
         self.build_dir = Path(env.get_build_dir()) / self.build_dir_rel
-        self.install_prefix = Path(T.cast('str', env.coredata.optstore.get_value_for(OptionKey('prefix'))))
+        self.install_prefix = Path(T.cast('str', env.coredata.optstore.get_value_for_untyped(OptionKey('prefix'))))
         self.env = env
         self.for_machine = MachineChoice.HOST # TODO make parameter
         self.backend_name = backend.name
@@ -851,12 +851,12 @@ class CMakeInterpreter:
         cmake_args = []
         cmake_args += cmake_get_generator_args(self.env)
         cmake_args += [f'-DCMAKE_INSTALL_PREFIX={self.install_prefix}']
-        libdir = self.env.coredata.optstore.get_value_for(OptionKey('libdir'))
+        libdir = self.env.coredata.optstore.get_value_for_untyped(OptionKey('libdir'))
         cmake_args += [f'-DCMAKE_INSTALL_LIBDIR={libdir}']
         cmake_args += extra_cmake_options
         if not any(arg.startswith('-DCMAKE_BUILD_TYPE=') for arg in cmake_args):
             # Our build type is favored over any CMAKE_BUILD_TYPE environment variable
-            buildtype = T.cast('str', self.env.coredata.optstore.get_value_for(OptionKey('buildtype')))
+            buildtype = T.cast('str', self.env.coredata.optstore.get_value_for_untyped(OptionKey('buildtype')))
             if buildtype in BUILDTYPE_MAP:
                 cmake_args += [f'-DCMAKE_BUILD_TYPE={BUILDTYPE_MAP[buildtype]}']
         trace_args = self.trace.trace_args()

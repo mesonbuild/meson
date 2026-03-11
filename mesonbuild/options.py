@@ -851,7 +851,7 @@ class OptionStore:
                 return self.options[parent_key]
         return potential
 
-    def get_option_and_value_for(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
+    def get_option_and_value_for_untyped(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
         assert isinstance(key, OptionKey)
         key = self.ensure_and_validate_key(key)
         option_object = self.resolve_option(key)
@@ -864,19 +864,19 @@ class OptionStore:
         return (option_object, computed_value)
 
     def option_has_value(self, key: OptionKey, value: ElementaryOptionValues) -> bool:
-        option_object, current_value = self.get_option_and_value_for(key)
+        option_object, current_value = self.get_option_and_value_for_untyped(key)
         return option_object.validate_value(value) == current_value
 
-    def get_value_for(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
+    def get_value_for_untyped(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
         if isinstance(name, str):
             key = OptionKey(name, subproject)
         else:
             assert subproject is None
             key = name
-        _, resolved_value = self.get_option_and_value_for(key)
+        _, resolved_value = self.get_option_and_value_for_untyped(key)
         return resolved_value
 
-    def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
+    def get_option_for_target_untyped(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(key, str):
             assert ':' not in key
             newkey = OptionKey(key, target.subproject)
@@ -889,7 +889,7 @@ class OptionStore:
             newkey = newkey.evolve(subproject=target.subproject)
         if self.is_cross:
             newkey = newkey.evolve(machine=target.for_machine)
-        option_object, value = self.get_option_and_value_for(newkey)
+        option_object, value = self.get_option_and_value_for_untyped(newkey)
         override = target.get_override(newkey.name)
         if override is not None:
             try:
@@ -901,13 +901,13 @@ class OptionStore:
     def get_external_args(self, for_machine: MachineChoice, lang: Language) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         key = OptionKey(f'{lang}_args', machine=for_machine)
-        return T.cast('T.List[str]', self.get_value_for(key))
+        return T.cast('T.List[str]', self.get_value_for_untyped(key))
 
     @lru_cache(maxsize=None)
     def get_external_link_args(self, for_machine: MachineChoice, lang: Language) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         linkkey = OptionKey(f'{lang}_link_args', machine=for_machine)
-        return T.cast('T.List[str]', self.get_value_for(linkkey))
+        return T.cast('T.List[str]', self.get_value_for_untyped(linkkey))
 
     def add_system_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
@@ -1049,7 +1049,7 @@ class OptionStore:
             assert isinstance(new_value, str), 'for mypy'
             new_value = self.sanitize_prefix(new_value)
         elif self.is_builtin_option(key):
-            prefix = self.get_value_for('prefix')
+            prefix = self.get_value_for_untyped('prefix')
             assert isinstance(prefix, str), 'for mypy'
             new_value = self.sanitize_dir_option_value(prefix, key, new_value)
 

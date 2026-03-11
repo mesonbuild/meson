@@ -115,7 +115,7 @@ def extract_search_dirs(kwargs: 'kwargs.ExtractSearchDirs') -> T.List[str]:
 class FeatureOptionHolder(ObjectHolder[Feature]):
     def __init__(self, option: Feature, interpreter: 'Interpreter'):
         if option.is_auto():
-            auto_value = T.cast('str', interpreter.environment.coredata.optstore.get_value_for('auto_features'))
+            auto_value = T.cast('str', interpreter.environment.coredata.optstore.get_value_for_untyped('auto_features'))
             option = option.with_value(FeatureValue(auto_value))
         super().__init__(option, interpreter)
 
@@ -1031,7 +1031,7 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
         if self.subproject != self.held_object.subproject:
             raise InterpreterException('Tried to extract objects from a different subproject.')
         tobj = self._target_object
-        unity_value = self.interpreter.coredata.optstore.get_option_for_target(tobj, "unity")
+        unity_value = self.interpreter.coredata.optstore.get_option_for_target_untyped(tobj, "unity")
         is_unity = (unity_value == 'on' or (unity_value == 'subprojects' and tobj.subproject != ''))
         return tobj.extract_objects(args[0], is_unity)
 

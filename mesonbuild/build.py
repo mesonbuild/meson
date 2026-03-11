@@ -1036,7 +1036,7 @@ class BuildTarget(Target):
 
                 # In the case of cython it's possible that we have an
                 # implementation detail language
-                if self.uses_cython() and lang == self.environment.coredata.optstore.get_option_for_target(self, 'cython_language'):
+                if self.uses_cython() and lang == self.environment.coredata.optstore.get_option_for_target_untyped(self, 'cython_language'):
                     self.compilers[lang] = self.environment.coredata.compilers[self.for_machine][lang]
                     is_error = False
 
@@ -1173,7 +1173,7 @@ class BuildTarget(Target):
         if 'vala' in self.compilers and 'c' not in self.compilers:
             self.compilers['c'] = self.all_compilers['c']
         if 'cython' in self.compilers:
-            _value = self.environment.coredata.optstore.get_option_for_target(self, 'cython_language')
+            _value = self.environment.coredata.optstore.get_option_for_target_untyped(self, 'cython_language')
             assert isinstance(_value, str), 'for mypy'
             value = T.cast('Language', _value)
             try:
@@ -1393,7 +1393,7 @@ class BuildTarget(Target):
 
         k = OptionKey(option)
         if k in self.environment.coredata.optstore:
-            val = self.environment.coredata.optstore.get_option_for_target(self, k)
+            val = self.environment.coredata.optstore.get_option_for_target_untyped(self, k)
             assert isinstance(val, bool), 'for mypy'
             return val
 
@@ -1797,7 +1797,7 @@ class BuildTarget(Target):
         self.process_link_depends([path])
 
     def _default_library_type(self) -> _LibraryType:
-        bl_type = self.environment.coredata.optstore.get_value_for(OptionKey('default_both_libraries'))
+        bl_type = self.environment.coredata.optstore.get_value_for_untyped(OptionKey('default_both_libraries'))
         assert isinstance(bl_type, str), 'for mypy'
         return T.cast('_LibraryType', bl_type)
 
@@ -1826,7 +1826,7 @@ class BuildTarget(Target):
 
     def determine_rpath_dirs(self) -> T.Tuple[str, ...]:
         result: OrderedSet[str]
-        if self.environment.coredata.optstore.get_value_for(OptionKey('layout')) == 'mirror':
+        if self.environment.coredata.optstore.get_value_for_untyped(OptionKey('layout')) == 'mirror':
             # Need a copy here
             result = OrderedSet(self.get_link_dep_subdirs())
         else:
@@ -2253,7 +2253,7 @@ class Executable(BuildTarget, LinkableTarget):
             machine.is_windows()
             and ('cs' in self.compilers or self.uses_rust() or self.get_using_msvc())
             # .pdb file is created only when debug symbols are enabled
-            and self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
+            and self.environment.coredata.optstore.get_value_for_untyped(OptionKey("debug"))
         )
         if create_debug_file:
             # If the target is has a standard exe extension (i.e. 'foo.exe'),
@@ -2362,7 +2362,7 @@ class StaticLibrary(BuildTarget, LinkableTarget):
         return 'static' if bl == 'auto' else bl
 
     def determine_default_prefix_and_suffix(self) -> T.Tuple[str, str]:
-        scheme = self.environment.coredata.optstore.get_option_for_target(self, 'namingscheme')
+        scheme = self.environment.coredata.optstore.get_option_for_target_untyped(self, 'namingscheme')
         assert isinstance(scheme, str), 'for mypy'
         if scheme == 'platform':
             schemename = self.get_platform_scheme_name()
@@ -2389,13 +2389,13 @@ class StaticLibrary(BuildTarget, LinkableTarget):
                     suffix = 'rlib'
                 elif self.rust_crate_type == 'staticlib':
                     suffix = 'a'
-            elif self.environment.machines[self.for_machine].is_os2() and self.environment.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
+            elif self.environment.machines[self.for_machine].is_os2() and self.environment.coredata.optstore.get_value_for_untyped(OptionKey('os2_emxomf')):
                 suffix = 'lib'
             else:
                 suffix = 'a'
                 if 'c' in self.compilers and self.compilers['c'].get_id() == 'tasking' and not self.prelink:
                     key = OptionKey('b_lto', self.subproject, self.for_machine)
-                    v = self.environment.coredata.optstore.get_option_for_target(self, key)
+                    v = self.environment.coredata.optstore.get_option_for_target_untyped(self, key)
                     assert isinstance(v, bool), 'for mypy'
                     if v:
                         suffix = 'ma'
@@ -2568,7 +2568,7 @@ class SharedLibrary(BuildTarget, LinkableTarget):
         return self.environment.get_shared_lib_dir(), '{libdir_shared}'
 
     def determine_naming_info(self) -> T.Tuple[str, str, str, str, bool]:
-        scheme = self.environment.coredata.optstore.get_option_for_target(self, 'namingscheme')
+        scheme = self.environment.coredata.optstore.get_option_for_target_untyped(self, 'namingscheme')
         assert isinstance(scheme, str), 'for mypy'
 
         prefix: str | None
@@ -2605,7 +2605,7 @@ class SharedLibrary(BuildTarget, LinkableTarget):
                 # Import library is called foo.dll.lib
                 import_filename_tpl = '{0.prefix}{0.name}.dll.lib'
                 # .pdb file is only created when debug symbols are enabled
-                create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
+                create_debug_file = self.environment.coredata.optstore.get_value_for_untyped(OptionKey("debug"))
                 assert isinstance(create_debug_file, bool), 'for mypy'
             elif self.get_using_msvc():
                 # Shared library is of the form foo.dll
@@ -2614,7 +2614,7 @@ class SharedLibrary(BuildTarget, LinkableTarget):
                 import_suffix = import_suffix if import_suffix is not None else 'lib'
                 import_filename_tpl = '{0.prefix}{0.name}.' + import_suffix
                 # .pdb file is only created when debug symbols are enabled
-                create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
+                create_debug_file = self.environment.coredata.optstore.get_value_for_untyped(OptionKey("debug"))
                 assert isinstance(create_debug_file, bool), 'for mypy'
             # Assume GCC-compatible naming
             else:
@@ -2662,7 +2662,7 @@ class SharedLibrary(BuildTarget, LinkableTarget):
             suffix = suffix if suffix is not None else 'dll'
             # Import library is called foo_dll.a or foo_dll.lib
             if import_suffix is None:
-                import_suffix = '_dll.lib' if self.environment.coredata.optstore.get_value_for(OptionKey('os2_emxomf')) else '_dll.a'
+                import_suffix = '_dll.lib' if self.environment.coredata.optstore.get_value_for_untyped(OptionKey('os2_emxomf')) else '_dll.a'
             import_filename_tpl = '{0.prefix}{0.name}' + import_suffix
             filename_tpl = '{0.shortname}' if self.shortname else '{0.prefix}{0.name}'
             if self.soversion:
