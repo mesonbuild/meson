@@ -15,6 +15,7 @@ from .compilers import CompileCheckMode, Compiler
 if T.TYPE_CHECKING:
     from ..options import MutableKeyedOptionDictType
     from ..build import BuildTarget
+    from ..mesonlib import SubProject
 
 
 class CythonCompiler(Compiler):
@@ -136,8 +137,10 @@ class CythonCompiler(Compiler):
 
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_compile_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
+
         version = self.get_compileropt_value('version', target, subproject)
         assert isinstance(version, str)
         args.append(f'-{version}')
