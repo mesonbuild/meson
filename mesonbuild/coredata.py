@@ -340,26 +340,7 @@ class CoreData:
                 ''))
 
     def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
-        if isinstance(key, str):
-            assert ':' not in key
-            newkey = OptionKey(key, target.subproject)
-        else:
-            newkey = key
-        if newkey.subproject != target.subproject:
-            # FIXME: this should be an error. The caller needs to ensure that
-            # key and target have the same subproject for consistency.
-            # Now just do this to get things going.
-            newkey = newkey.evolve(subproject=target.subproject)
-        if self.is_cross_build():
-            newkey = newkey.evolve(machine=target.for_machine)
-        option_object, value = self.optstore.get_option_and_value_for(newkey)
-        override = target.get_override(newkey.name)
-        if override is not None:
-            try:
-                return option_object.validate_value(override)
-            except MesonException as e:
-                raise MesonException(f'In override_options for {target}: {e!s}')
-        return value
+        return self.optstore.get_option_for_target(target, key)
 
     def set_from_configure_command(self, options: SharedCMDOptions) -> bool:
         return self.optstore.set_from_configure_command(options.cmd_line_options)

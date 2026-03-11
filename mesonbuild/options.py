@@ -35,6 +35,7 @@ from . import mlog
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Final, TypeAlias
 
+    from .build import BuildTarget
     from .envconfig import MachineInfo
     from .mesonlib import SubProject
     from .compilers.compilers import Language
@@ -873,6 +874,28 @@ class OptionStore:
             key = name
         _, resolved_value = self.get_option_and_value_for(key)
         return resolved_value
+
+    def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
+        if isinstance(key, str):
+            assert ':' not in key
+            newkey = OptionKey(key, target.subproject)
+        else:
+            newkey = key
+        if newkey.subproject != target.subproject:
+            # FIXME: this should be an error. The caller needs to ensure that
+            # key and target have the same subproject for consistency.
+            # Now just do this to get things going.
+            newkey = newkey.evolve(subproject=target.subproject)
+        if self.is_cross:
+            newkey = newkey.evolve(machine=target.for_machine)
+        option_object, value = self.get_option_and_value_for(newkey)
+        override = target.get_override(newkey.name)
+        if override is not None:
+            try:
+                return option_object.validate_value(override)
+            except MesonException as e:
+                raise MesonException(f'In override_options for {target}: {e!s}')
+        return value
 
     def add_system_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
