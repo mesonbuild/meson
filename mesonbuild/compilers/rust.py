@@ -268,7 +268,7 @@ class RustCompiler(Compiler):
         if not target:
             return self.allow_nightly
         key = self.form_compileropt_key('nightly')
-        nightly_opt = self.environment.coredata.get_option_for_target(target, key)
+        nightly_opt = self.environment.coredata.optstore.get_option_for_target(target, key)
         if nightly_opt == 'enabled' and not self.is_nightly:
             raise EnvironmentException(f'Rust compiler {self.name_string()} is not a nightly compiler as required by the "nightly" option.')
         return nightly_opt != 'disabled' and self.is_nightly

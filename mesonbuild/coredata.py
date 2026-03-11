@@ -30,8 +30,7 @@ if T.TYPE_CHECKING:
     from .dependencies.detect import TV_DepID
     from .mesonlib import FileOrString, SubProject
     from .cmake.traceparser import CMakeCacheEntry
-    from .options import ElementaryOptionValues, MutableKeyedOptionDictType
-    from .build import BuildTarget
+    from .options import MutableKeyedOptionDictType
     from .cmdline import SharedCMDOptions
 
     OptionDictType = T.Dict[str, options.AnyOptionType]
@@ -338,9 +337,6 @@ class CoreData:
                 'backend_startup_project',
                 'Default project to execute in Visual Studio',
                 ''))
-
-    def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
-        return self.optstore.get_option_for_target(target, key)
 
     def set_from_configure_command(self, options: SharedCMDOptions) -> bool:
         return self.optstore.set_from_configure_command(options.cmd_line_options)

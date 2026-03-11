@@ -1085,7 +1085,7 @@ class BuildTarget(Target):
 
                 # In the case of cython it's possible that we have an
                 # implementation detail language
-                if self.uses_cython() and lang == self.environment.coredata.get_option_for_target(self, 'cython_language'):
+                if self.uses_cython() and lang == self.environment.coredata.optstore.get_option_for_target(self, 'cython_language'):
                     self.compilers[lang] = self.environment.coredata.compilers[self.for_machine][lang]
                     is_error = False
 
@@ -1223,7 +1223,7 @@ class BuildTarget(Target):
         if 'vala' in self.compilers and 'c' not in self.compilers:
             self.compilers['c'] = self.all_compilers['c']
         if 'cython' in self.compilers:
-            _value = self.environment.coredata.get_option_for_target(self, 'cython_language')
+            _value = self.environment.coredata.optstore.get_option_for_target(self, 'cython_language')
             assert isinstance(_value, str), 'for mypy'
             value = T.cast('Language', _value)
             try:
@@ -1420,7 +1420,7 @@ class BuildTarget(Target):
 
         k = OptionKey(option)
         if k in self.environment.coredata.optstore:
-            val = self.environment.coredata.get_option_for_target(self, k)
+            val = self.environment.coredata.optstore.get_option_for_target(self, k)
             assert isinstance(val, bool), 'for mypy'
             return val
 
@@ -2385,7 +2385,7 @@ class StaticLibrary(BuildTarget, LinkableTarget):
         return 'static' if bl == 'auto' else bl
 
     def determine_default_prefix_and_suffix(self) -> T.Tuple[str, str]:
-        scheme = self.environment.coredata.get_option_for_target(self, 'namingscheme')
+        scheme = self.environment.coredata.optstore.get_option_for_target(self, 'namingscheme')
         assert isinstance(scheme, str), 'for mypy'
         if scheme == 'platform':
             schemename = self.get_platform_scheme_name()
@@ -2418,7 +2418,7 @@ class StaticLibrary(BuildTarget, LinkableTarget):
                 suffix = 'a'
                 if 'c' in self.compilers and self.compilers['c'].get_id() == 'tasking' and not self.prelink:
                     key = OptionKey('b_lto', self.subproject, self.for_machine)
-                    v = self.environment.coredata.get_option_for_target(self, key)
+                    v = self.environment.coredata.optstore.get_option_for_target(self, key)
                     assert isinstance(v, bool), 'for mypy'
                     if v:
                         suffix = 'ma'
@@ -2593,7 +2593,7 @@ class SharedLibrary(BuildTarget, LinkableTarget):
         return self.environment.get_shared_lib_dir(), '{libdir_shared}'
 
     def determine_naming_info(self) -> T.Tuple[str, str, str, str, bool]:
-        scheme = self.environment.coredata.get_option_for_target(self, 'namingscheme')
+        scheme = self.environment.coredata.optstore.get_option_for_target(self, 'namingscheme')
         assert isinstance(scheme, str), 'for mypy'
 
         prefix: str | None
