@@ -12,6 +12,8 @@
     {"type": "file", "file": "usr/include/subdir-3/marshaller-3.h"},
     {"type": "file", "file": "usr/include/subdir-4/marshaller-4.h"},
     {"type": "file", "file": "usr/include/subdir-5/marshaller-5.h"},
+    {"type": "file", "file": "usr/include/subdir-6/marshaller-6.h"},
+    {"type": "file", "file": "usr/include/subdir-7/marshaller-7.h"},
     {"type": "expr", "file": "usr/lib/?libpython_gir_lib.so"},
     {"type": "file", "platform": "cygwin", "file": "usr/lib/libpython_gir_lib.dll.a"},
     {"type": "expr", "file": "usr/lib/?libgir_lib.so"},

@@ -155,7 +155,7 @@ if T.TYPE_CHECKING:
         nostdinc: bool
         prefix: T.Optional[str]
         skip_source: bool
-        sources: T.List[FileOrString]
+        sources: T.List[CustomTargetInputs]
         stdinc: bool
         valist_marshallers: bool
 
@@ -2088,11 +2088,16 @@ class GnomeModule(ExtensionModule):
         KwargInfo('nostdinc', bool, default=False),
         KwargInfo('prefix', (str, NoneType)),
         KwargInfo('skip_source', bool, default=False),
-        KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File), allow_empty=False), listify=True, required=True),
+        KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList), allow_empty=False), listify=True, required=True),
         KwargInfo('stdinc', bool, default=False),
         KwargInfo('valist_marshallers', bool, default=False),
     )
     def genmarshal(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'GenMarshal') -> ModuleReturnValue:
+        for src in kwargs['sources']:
+            if not isinstance(src, (mesonlib.File, str)):
+                FeatureNew.single_use('gnome.genmarshal sources generated at build time', '1.12.0',
+                                      state.subproject, location=state.current_node)
+
         output = args[0]
         sources = self.interpreter.source_strings_to_files(kwargs['sources'])
 
