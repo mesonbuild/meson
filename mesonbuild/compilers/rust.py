@@ -157,7 +157,7 @@ class RustCompiler(Compiler):
         self.has_check_cfg = version_compare(version, '>=1.80.0')
 
     def init_from_options(self) -> None:
-        freestanding = self.environment.coredata.optstore.get_value_for(OptionKey('b_freestanding'))
+        freestanding = self.environment.coredata.optstore.get_value_for_untyped(OptionKey('b_freestanding'))
         assert isinstance(freestanding, bool)
         self.freestanding = freestanding
         nightly_opt = self.get_compileropt_value('nightly', None)
@@ -294,7 +294,7 @@ class RustCompiler(Compiler):
         if not target:
             return self.allow_nightly
         key = self.form_compileropt_key('nightly')
-        nightly_opt = self.environment.coredata.optstore.get_option_for_target(target, key)
+        nightly_opt = self.environment.coredata.optstore.get_option_for_target_untyped(target, key)
         if nightly_opt == 'enabled' and not self.is_nightly:
             raise EnvironmentException(f'Rust compiler {self.name_string()} is not a nightly compiler as required by the "nightly" option.')
         return nightly_opt != 'disabled' and self.is_nightly

@@ -186,7 +186,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             trials = [defaults['clang_cl_static_linker']]
             if 'vs_static_linker' in defaults:
                 trials = [defaults['vs_static_linker']] + trials
-        elif m.is_os2() and env.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
+        elif m.is_os2() and env.coredata.optstore.get_value_for_untyped(OptionKey('os2_emxomf')):
             trials = [defaults['emxomf_static_linker']] + trials
         elif compiler.id == 'gcc':
             # Use gcc-ar if available; needed for LTO

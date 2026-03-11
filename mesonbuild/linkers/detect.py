@@ -54,7 +54,7 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     else:
         check_args = comp_class.LINKER_OPTION_STYLE.wrap(['/logo', '--version'])
 
-    check_args += T.cast('T.List[str]', env.coredata.optstore.get_value_for(
+    check_args += T.cast('T.List[str]', env.coredata.optstore.get_value_for_untyped(
         OptionKey(f'{comp_class.language}_link_args', machine=for_machine)))
 
     override: T.List[str] = []
@@ -129,7 +129,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     extra_args = extra_args or []
 
     system = env.machines[for_machine].system
-    ldflags = T.cast('T.List[str]', env.coredata.optstore.get_value_for(
+    ldflags = T.cast('T.List[str]', env.coredata.optstore.get_value_for_untyped(
         OptionKey(f'{comp_class.language}_link_args', machine=for_machine)))
     extra_args += comp_class._unix_args_to_native(ldflags, env.machines[for_machine])
     check_args = comp_class.LINKER_OPTION_STYLE.wrap(['--version']) + extra_args
@@ -140,7 +140,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         override = comp_class.use_linker_args(value[0], comp_version)
         check_args += override
 
-    if env.machines[for_machine].is_os2() and env.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
+    if env.machines[for_machine].is_os2() and env.coredata.optstore.get_value_for_untyped(OptionKey('os2_emxomf')):
         check_args += ['-Zomf']
 
     mlog.debug('-----')

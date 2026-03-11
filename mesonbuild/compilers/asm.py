@@ -92,7 +92,7 @@ class NasmCompiler(ASMCompiler):
             define = 'MACHO'
         elif self.info.is_os2():
             cpu = ''
-            if self.environment.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
+            if self.environment.coredata.optstore.get_value_for_untyped(OptionKey('os2_emxomf')):
                 plat = 'obj2'
                 define = 'OBJ2'
             else:

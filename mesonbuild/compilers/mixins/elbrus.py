@@ -86,9 +86,9 @@ class ElbrusCompiler(GnuLikeCompiler):
         args: T.List[str] = []
         key = OptionKey(f'{self.language}_std', subproject=subproject, machine=self.for_machine)
         if target:
-            std = self.environment.coredata.optstore.get_option_for_target(target, key)
+            std = self.environment.coredata.optstore.get_option_for_target_untyped(target, key)
         else:
-            std = self.environment.coredata.optstore.get_value_for(key)
+            std = self.environment.coredata.optstore.get_value_for_untyped(key)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)

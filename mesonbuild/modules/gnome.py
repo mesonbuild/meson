@@ -549,7 +549,7 @@ class GnomeModule(ExtensionModule):
         if gresource: # Only one target for .gresource files
             return ModuleReturnValue(target_c, [target_c])
 
-        install_dir = kwargs['install_dir'] or state.environment.coredata.optstore.get_value_for(OptionKey('includedir'))
+        install_dir = kwargs['install_dir'] or state.environment.coredata.optstore.get_value_for_untyped(OptionKey('includedir'))
         assert isinstance(install_dir, str), 'for mypy'
         target_h = GResourceHeaderTarget(
             f'{target_name}_h',
@@ -946,7 +946,7 @@ class GnomeModule(ExtensionModule):
             if state.project_args.get(lang):
                 cflags += state.project_args[lang]
             if OptionKey('b_sanitize') in compiler.base_options:
-                sanitize = state.environment.coredata.optstore.get_value_for('b_sanitize')
+                sanitize = state.environment.coredata.optstore.get_value_for_untyped('b_sanitize')
                 assert isinstance(sanitize, list)
                 cflags += compiler.sanitizer_compile_args(None, sanitize)
                 # These must be first in ldflags
@@ -1277,7 +1277,7 @@ class GnomeModule(ExtensionModule):
                                          state.subproject, 'Use "fatal_warnings" keyword argument', state.current_node)
         fatal_warnings = kwargs['fatal_warnings']
         if fatal_warnings is None:
-            fatal_warnings = state.environment.coredata.optstore.get_value_for(
+            fatal_warnings = state.environment.coredata.optstore.get_value_for_untyped(
                 OptionKey('werror', machine=MachineChoice.BUILD, subproject=state.subproject))
         if fatal_warnings:
             scan_command.append('--warn-error')
@@ -1732,7 +1732,7 @@ class GnomeModule(ExtensionModule):
 
         targets = []
         install_header = kwargs['install_header']
-        install_dir = kwargs['install_dir'] or state.environment.coredata.optstore.get_value_for(OptionKey('includedir'))
+        install_dir = kwargs['install_dir'] or state.environment.coredata.optstore.get_value_for_untyped(OptionKey('includedir'))
         assert isinstance(install_dir, str), 'for mypy'
 
         output = namebase + '.c'
@@ -2110,7 +2110,7 @@ class GnomeModule(ExtensionModule):
             ) -> build.CustomTarget:
         real_cmd: CommandList = [self._find_tool(state, 'glib-mkenums')]
         real_cmd.extend(cmd)
-        _install_dir = install_dir or state.environment.coredata.optstore.get_value_for(OptionKey('includedir'))
+        _install_dir = install_dir or state.environment.coredata.optstore.get_value_for_untyped(OptionKey('includedir'))
         assert isinstance(_install_dir, str), 'for mypy'
 
         return CustomTarget(
@@ -2330,7 +2330,7 @@ class GnomeModule(ExtensionModule):
             inputs.append(i)
 
         vapi_output = library + '.vapi'
-        datadir = state.environment.coredata.optstore.get_value_for(OptionKey('datadir'))
+        datadir = state.environment.coredata.optstore.get_value_for_untyped(OptionKey('datadir'))
         assert isinstance(datadir, str), 'for mypy'
         install_dir = kwargs['install_dir'] or os.path.join(datadir, 'vala', 'vapi')
 
