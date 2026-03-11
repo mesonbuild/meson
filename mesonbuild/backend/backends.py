@@ -1093,9 +1093,8 @@ class Backend:
         # file. We want these to override all the defaults, but not the
         # per-target compile args. Resolved per target so that per-subproject
         # values (-Dsub:c_args=...) are honoured.
-        ext_args = self.environment.coredata.optstore.get_option_for_target_untyped(
-            target, f'{compiler.get_language()}_args')
-        assert isinstance(ext_args, list), 'for mypy'
+        ext_args = self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey(f'{compiler.get_language()}_args'), list)
         commands += ext_args
         # Using both /Z7 or /ZI and /Zi at the same times produces a compiler warning.
         # We do not add /Z7 or /ZI by default. If it is being used it is because the user has explicitly enabled it.
@@ -2244,6 +2243,7 @@ class Backend:
             return target.subproject != ''
         raise MesonException(f'Internal error: invalid option type for "unity": {val}')
 
+    # TODO: get rid of this
     def get_target_option(self, target: build.BuildTarget, name: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(name, str):
             key = OptionKey(name, subproject=target.subproject)

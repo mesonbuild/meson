@@ -745,10 +745,10 @@ class CudaCompiler(Compiler):
                         subproject: T.Optional[str] = None) -> T.List[str]:
         key = self.form_compileropt_key('ccbindir').evolve(subproject=subproject)
         if target:
-            ccbindir = self.environment.coredata.optstore.get_option_for_target_untyped(target, key)
+            ccbindir = self.environment.coredata.optstore.get_option_for_target(target, key, str)
         else:
             ccbindir = self.environment.coredata.optstore.get_value_for(key, str)
-        if isinstance(ccbindir, str) and ccbindir != '':
+        if ccbindir != '':
             return [self._shield_nvcc_list_arg('-ccbin='+ccbindir, False)]
         else:
             return []

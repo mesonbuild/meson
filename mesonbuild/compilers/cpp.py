@@ -882,8 +882,7 @@ class CPP11AsCPP14Mixin(CompilerMixinBase):
         # if one is using anything before that point, one cannot set the standard.
         stdkey = self.form_compileropt_key('std').evolve(subproject=subproject)
         if target is not None:
-            std = self.environment.coredata.optstore.get_option_for_target_untyped(target, stdkey)
-            assert isinstance(std, str)
+            std = self.environment.coredata.optstore.get_option_for_target(target, stdkey, str)
         else:
             std = self.environment.coredata.optstore.get_value_for(stdkey, str)
         if std in {'vc++11', 'c++11'}:
