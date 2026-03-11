@@ -23,7 +23,7 @@ if T.TYPE_CHECKING:
     from ..options import MutableKeyedOptionDictType
     from ..environment import Environment  # noqa: F401
     from ..linkers.linkers import DynamicLinker
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, SubProject
     from ..dependencies import Dependency
     from ..build import BuildTarget
 
@@ -385,8 +385,9 @@ class RustCompiler(Compiler):
         # provided by the linker flags.
         return []
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        args: T.List[str] = []
+        target, subproject = self._get_subproject_and_target(target)
         std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':

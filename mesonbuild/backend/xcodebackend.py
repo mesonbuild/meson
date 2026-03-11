@@ -1762,11 +1762,11 @@ class XCodeBackend(backends.Backend):
                 if compiler is None:
                     continue
                 # Start with warning args
-                _warn_level = self.get_target_option(target, 'warning_level')
-                assert isinstance(_warn_level, str), 'for mypy'
-                warn_args = compiler.get_warn_args(_warn_level)
-                std_args = compiler.get_option_compile_args(target, target.subproject)
-                std_args += compiler.get_option_std_args(target, target.subproject)
+                warn_level = self.get_target_option(target, 'warning_level')
+                assert isinstance(warn_level, str), 'for mypy'
+                warn_args = compiler.get_warn_args(warn_level)
+                std_args = compiler.get_option_compile_args(target)
+                std_args += compiler.get_option_std_args(target)
                 # Add compile args added using add_project_arguments()
                 pargs = self.build.get_project_args(compiler, target)
                 # Add compile args added using add_global_arguments()

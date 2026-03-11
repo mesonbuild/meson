@@ -34,7 +34,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..linkers import RSPFileSyntax
     from ..linkers.linkers import DynamicLinker
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, SubProject
     from ..dependencies import Dependency
 
     # See the comment on `lang_suffixes` if modifying this list.
@@ -715,14 +715,21 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         return {}
 
-    def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    @staticmethod
+    def _get_subproject_and_target(target: BuildTarget | SubProject | None) -> tuple[BuildTarget | None, SubProject | None]:
+        # Avoid circular imports by not checking for BuildTarget
+        if target is None or isinstance(target, str):
+            return None, target
+        return target, target.subproject
+
+    def get_option_compile_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         return []
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         return []
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
-        return self.linker.get_option_link_args(target, subproject)
+    def get_option_link_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        return self.linker.get_option_link_args(target)
 
     def check_header(self, hname: str, prefix: str, *,
                      extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
