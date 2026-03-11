@@ -883,8 +883,9 @@ class CPP11AsCPP14Mixin(CompilerMixinBase):
         stdkey = self.form_compileropt_key('std').evolve(subproject=subproject)
         if target is not None:
             std = self.environment.coredata.optstore.get_option_for_target_untyped(target, stdkey)
+            assert isinstance(std, str)
         else:
-            std = self.environment.coredata.optstore.get_value_for_untyped(stdkey)
+            std = self.environment.coredata.optstore.get_value_for(stdkey, str)
         if std in {'vc++11', 'c++11'}:
             mlog.warning(self.id, 'does not support C++11;',
                          'attempting best effort; setting the standard to C++14',

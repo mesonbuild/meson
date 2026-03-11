@@ -79,9 +79,9 @@ class GnuObjCCompiler(GnuCStds, GnuCompiler, ObjCCompiler):
         key = OptionKey('c_std', subproject=subproject, machine=self.for_machine)
         if target:
             std = self.environment.coredata.optstore.get_option_for_target_untyped(target, key)
+            assert isinstance(std, str)
         else:
-            std = self.environment.coredata.optstore.get_value_for_untyped(key)
-        assert isinstance(std, str)
+            std = self.environment.coredata.optstore.get_value_for(key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args

@@ -28,6 +28,7 @@ from ..interpreter.type_checking import (
     OBJ_OARG, STR_OARG, INCLUDE_TYPE_VALIDATOR, STR_VARG_1, BOOL_PARG,
 )
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
+from ..options import OptionKey
 from ..programs import Program
 from ..mesonlib import File, HoldableObject, listify, MachineChoice, MesonException
 
@@ -120,7 +121,7 @@ def extract_search_dirs(kwargs: 'kwargs.ExtractSearchDirs') -> T.List[str]:
 class FeatureOptionHolder(ObjectHolder[Feature]):
     def __init__(self, option: Feature, interpreter: 'Interpreter'):
         if option.is_auto():
-            auto_value = T.cast('str', interpreter.environment.coredata.optstore.get_value_for_untyped('auto_features'))
+            auto_value = interpreter.environment.coredata.optstore.get_value_for(OptionKey('auto_features'), str)
             option = option.with_value(FeatureValue(auto_value))
         super().__init__(option, interpreter)
 
