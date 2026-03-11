@@ -1088,9 +1088,8 @@ class Backend:
         # file. We want these to override all the defaults, but not the
         # per-target compile args. Resolved per target so that per-subproject
         # values (-Dsub:c_args=...) are honoured.
-        ext_args = self.environment.coredata.optstore.get_option_for_target_untyped(
-            target, f'{compiler.get_language()}_args')
-        assert isinstance(ext_args, list), 'for mypy'
+        ext_args = self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey(f'{compiler.get_language()}_args'), list)
         commands += ext_args
         if compiler.mode == 'PREPROCESSOR':
             commands += compiler.get_preprocess_override_args()
@@ -2240,6 +2239,7 @@ class Backend:
             return target.subproject != ''
         raise MesonException(f'Internal error: invalid option type for "unity": {val}')
 
+    # TODO: get rid of this
     def get_target_option(self, target: build.BuildTarget, name: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(name, str):
             key = OptionKey(name, subproject=target.subproject)
