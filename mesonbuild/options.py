@@ -47,6 +47,7 @@ if T.TYPE_CHECKING:
         'UserIntegerOption', 'UserStdOption', 'UserStringArrayOption',
         'UserStringOption', 'UserUmaskOption']
     ElementaryOptionValues: TypeAlias = T.Union[str, int, bool, T.List[str]]
+    ElementaryOptionType = T.TypeVar('ElementaryOptionType', str, int, bool, T.List[str])
     MutableKeyedOptionDictType: TypeAlias = T.Dict['OptionKey', AnyOptionType]
 
     _OptionKeyTuple: TypeAlias = T.Tuple[T.Optional[str], MachineChoice, str]
@@ -875,6 +876,12 @@ class OptionStore:
         _, resolved_value = self.get_option_and_value_for_untyped(key)
         return resolved_value
 
+    def get_value_for(self, key: OptionKey, type_: T.Type[ElementaryOptionType]) -> ElementaryOptionType:
+        val = self.get_value_for_untyped(key)
+        if not isinstance(val, type_):
+            raise MesonBugException(f'Expected {key!s} to have type {type_!s}, but had type {type(val)!s}')
+        return val
+
     def get_option_for_target_untyped(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(key, str):
             assert ':' not in key
@@ -897,16 +904,20 @@ class OptionStore:
                 raise MesonException(f'In override_options for {target}: {e!s}')
         return value
 
+    def get_option_for_target(self, target: 'BuildTarget', key: OptionKey, type_: T.Type[ElementaryOptionType]) -> ElementaryOptionType:
+        val = self.get_option_for_target_untyped(target, key)
+        if not isinstance(val, type_):
+            raise MesonBugException(f'Expected {key!s} to have type {type_!s}, but had type {type(val)!s}')
+        return val
+
     def get_external_args(self, for_machine: MachineChoice, lang: Language) -> T.List[str]:
-        # mypy cannot analyze type of OptionKey
         key = OptionKey(f'{lang}_args', machine=for_machine)
-        return T.cast('T.List[str]', self.get_value_for_untyped(key))
+        return self.get_value_for(key, list)
 
     @lru_cache(maxsize=None)
     def get_external_link_args(self, for_machine: MachineChoice, lang: Language) -> T.List[str]:
-        # mypy cannot analyze type of OptionKey
         linkkey = OptionKey(f'{lang}_link_args', machine=for_machine)
-        return T.cast('T.List[str]', self.get_value_for_untyped(linkkey))
+        return self.get_value_for(linkkey, list)
 
     def add_system_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
