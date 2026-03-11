@@ -401,13 +401,13 @@ class CoreData:
             result.append(('debug', actual_debug, debug))
         return result
 
-    def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
+    def get_external_args(self, for_machine: MachineChoice, lang: Language) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         key = OptionKey(f'{lang}_args', machine=for_machine)
         return T.cast('T.List[str]', self.optstore.get_value_for(key))
 
     @lru_cache(maxsize=None)
-    def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
+    def get_external_link_args(self, for_machine: MachineChoice, lang: Language) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         linkkey = OptionKey(f'{lang}_link_args', machine=for_machine)
         return T.cast('T.List[str]', self.optstore.get_value_for(linkkey))
