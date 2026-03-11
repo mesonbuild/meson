@@ -117,7 +117,7 @@ class TaskingCompiler(Compiler):
 
     def get_object_suffix(self, target: BuildTarget, source: str) -> str:
         # In case of LTO or prelinking the object suffix has to be .mil
-        use_lto = self.environment.coredata.get_option_for_target(target, 'b_lto')
+        use_lto = self.environment.coredata.optstore.get_option_for_target(target, 'b_lto')
         if use_lto or (isinstance(target, StaticLibrary) and target.prelink):
             if not source.rsplit('.', 1)[1] in lang_suffixes['c']:
                 if isinstance(target, StaticLibrary) and not target.prelink:

@@ -1088,7 +1088,8 @@ class Backend:
         # file. We want these to override all the defaults, but not the
         # per-target compile args. Resolved per target so that per-subproject
         # values (-Dsub:c_args=...) are honoured.
-        ext_args = self.environment.coredata.get_option_for_target(target, f'{compiler.get_language()}_args')
+        ext_args = self.environment.coredata.optstore.get_option_for_target(
+            target, f'{compiler.get_language()}_args')
         assert isinstance(ext_args, list), 'for mypy'
         commands += ext_args
         if compiler.mode == 'PREPROCESSOR':
@@ -2248,4 +2249,4 @@ class Backend:
             key = name
         else:
             raise MesonBugException('Internal error: invalid option type.')
-        return self.environment.coredata.get_option_for_target(target, key)
+        return self.environment.coredata.optstore.get_option_for_target(target, key)
