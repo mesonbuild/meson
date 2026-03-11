@@ -976,7 +976,7 @@ class Backend:
         # Compile args added from the env: CFLAGS/CXXFLAGS, etc, or the cross
         # file. We want these to override all the defaults, but not the
         # per-target compile args.
-        commands += self.environment.coredata.get_external_args(target.for_machine, compiler.get_language())
+        commands += self.environment.coredata.optstore.get_external_args(target.for_machine, compiler.get_language())
         # Using both /Z7 or /ZI and /Zi at the same times produces a compiler warning.
         # We do not add /Z7 or /ZI by default. If it is being used it is because the user has explicitly enabled it.
         # /Zi needs to be removed in that case to avoid cl's warning to that effect (D9025 : overriding '/Zi' with '/ZI')

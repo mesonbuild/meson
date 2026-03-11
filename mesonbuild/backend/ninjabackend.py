@@ -584,7 +584,7 @@ class NinjaBackend(backends.Backend):
         # cpp_args in a native file) so that cl.exe can locate system headers
         # even when the INCLUDE environment variable is not set — for example,
         # when using a bundled MSVC toolchain outside a VS Developer Shell.
-        extra_args = self.environment.coredata.get_external_args(
+        extra_args = self.environment.coredata.optstore.get_external_args(
             MachineChoice.HOST, compiler.language)
         pc = subprocess.Popen(compiler.get_exelist() +
                               ['/showIncludes', '/c', filebase] + extra_args,

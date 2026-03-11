@@ -1104,7 +1104,7 @@ class GnomeModule(ExtensionModule):
     def _get_external_args_for_langs(state: 'ModuleState', langs: T.List[Language]) -> T.List[str]:
         ret: T.List[str] = []
         for lang in langs:
-            ret += mesonlib.listify(state.environment.coredata.get_external_args(MachineChoice.HOST, lang))
+            ret += mesonlib.listify(state.environment.coredata.optstore.get_external_args(MachineChoice.HOST, lang))
         return ret
 
     @staticmethod
@@ -1608,7 +1608,7 @@ class GnomeModule(ExtensionModule):
         ldflags.extend(internal_ldflags)
         ldflags.extend(external_ldflags)
 
-        cflags.extend(state.environment.coredata.get_external_args(MachineChoice.HOST, 'c'))
+        cflags.extend(state.environment.coredata.optstore.get_external_args(MachineChoice.HOST, 'c'))
         ldflags.extend(state.environment.coredata.get_external_link_args(MachineChoice.HOST, 'c'))
         compiler = state.environment.coredata.compilers[MachineChoice.HOST]['c']
 

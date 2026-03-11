@@ -676,7 +676,7 @@ class Interpreter:
             machine = MachineChoice.HOST
         rustc = T.cast('RustCompiler', self.environment.coredata.compilers[machine]['rust'])
         cfgs = rustc.get_cfgs().copy()
-        rustflags = self.environment.coredata.get_external_args(machine, 'rust')
+        rustflags = self.environment.coredata.optstore.get_external_args(machine, 'rust')
         rustflags_i = iter(rustflags)
         for i in rustflags_i:
             if i == '--cfg':

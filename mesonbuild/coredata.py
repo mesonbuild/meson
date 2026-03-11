@@ -377,9 +377,6 @@ class CoreData:
             result.append(('debug', actual_debug, debug))
         return result
 
-    def get_external_args(self, for_machine: MachineChoice, lang: Language) -> T.List[str]:
-        return self.optstore.get_external_args(for_machine, lang)
-
     def get_external_link_args(self, for_machine: MachineChoice, lang: Language) -> T.List[str]:
         return self.optstore.get_external_link_args(for_machine, lang)
 
