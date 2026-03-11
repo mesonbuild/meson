@@ -17,7 +17,7 @@ from .mixins.clike import CLikeCompiler
 if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, SubProject
     from ..build import BuildTarget
     from ..options import MutableKeyedOptionDictType
 
@@ -46,8 +46,8 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
         return super().form_compileropt_key(basename)
 
     def make_option_name(self, key: OptionKey) -> str:
-        if key.name == 'std':
-            return 'cpp_std'
+        if key.name in {'std', 'rtti'}:
+            return f'cpp_{key.name}'
         return super().make_option_name(key)
 
     @staticmethod
@@ -70,7 +70,8 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
             True)
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
         rtti = self.get_compileropt_value('rtti', target, subproject)
         assert isinstance(rtti, bool)
@@ -97,8 +98,9 @@ class GnuObjCPPCompiler(GnuCPPStds, GnuCompiler, ObjCPPCompiler):
                                          self.supported_warn_args(gnu_common_warning_args) +
                                          self.supported_warn_args(gnu_objc_warning_args))}
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         args: T.List[str] = []
+        target, subproject = self._get_subproject_and_target(target)
         key = OptionKey('cpp_std', subproject=subproject, machine=self.for_machine)
         if target:
             std = self.environment.coredata.optstore.get_option_for_target(target, key, str)
@@ -125,8 +127,9 @@ class ClangObjCPPCompiler(ClangCPPStds, ClangCompiler, ObjCPPCompiler):
                           '3': default_warn_args + ['-Wextra', '-Wpedantic'],
                           'everything': ['-Weverything']}
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        args: T.List[str] = []
+        target, subproject = self._get_subproject_and_target(target)
         key = OptionKey('cpp_std', machine=self.for_machine)
         std = self.get_compileropt_value(key, target, subproject)
         assert isinstance(std, str)

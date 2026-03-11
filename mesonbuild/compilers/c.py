@@ -43,7 +43,7 @@ if T.TYPE_CHECKING:
     from ..dependencies import Dependency
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, SubProject
     from .compilers import CompileCheckMode
     from ..build import BuildTarget
 
@@ -130,15 +130,17 @@ class ClangCCompiler(ClangCStds, ClangCompiler, CCompiler):
                 gnu_winlibs)
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
         std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         if self.info.is_windows() or self.info.is_cygwin():
             retval = self.get_compileropt_value('winlibs', target, subproject)
             assert isinstance(retval, list)
@@ -215,15 +217,16 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
         std_opt.set_versions(['c90', 'c99', 'c11'], gnu=True)
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
         std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         return []
 
 
@@ -258,8 +261,9 @@ class GnuCCompiler(GnuCStds, GnuCompiler, CCompiler):
                 gnu_winlibs)
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
         key = OptionKey('c_std', machine=self.for_machine)
         std = self.get_compileropt_value(key, target, subproject)
         assert isinstance(std, str)
@@ -267,8 +271,9 @@ class GnuCCompiler(GnuCStds, GnuCompiler, CCompiler):
             args.append('-std=' + std)
         return args
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         if self.info.is_windows() or self.info.is_cygwin():
+            target, subproject = self._get_subproject_and_target(target)
             # without a typeddict mypy can't figure this out
             retval = self.get_compileropt_value('winlibs', target, subproject)
 
@@ -320,7 +325,8 @@ class NvidiaHPC_CCompiler(PGICompiler, CCompiler):
         std_opt.set_versions(cppstd_choices, gnu=True)
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
         std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
@@ -390,7 +396,8 @@ class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
         std_opt.set_versions(stds, gnu=True)
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
         std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
@@ -417,7 +424,8 @@ class VisualStudioLikeCCompilerMixin(CompilerMixinBase):
             msvc_winlibs)
         return opts
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         retval = self.get_compileropt_value('winlibs', target, subproject)
         assert isinstance(retval, list)
         libs: T.List[str] = retval.copy()
@@ -455,8 +463,9 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
         std_opt.set_versions(stds, gnu=True, gnu_deprecated=True)
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
         std = self.get_compileropt_value('std', target, subproject)
 
         # MSVC is not strictily conformant to c89 and c99 because the use of microsoft extensions.
@@ -478,7 +487,8 @@ class ClangClCCompiler(ClangCStds, ClangClCompiler, VisualStudioLikeCCompilerMix
                            env, linker=linker, full_version=full_version)
         ClangClCompiler.__init__(self, target)
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != "none":
@@ -506,7 +516,8 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
         std_opt.set_versions(['c89', 'c99', 'c11'])
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
         std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
@@ -539,8 +550,9 @@ class ArmCCompiler(ArmCompiler, CCompiler):
         std_opt.set_versions(['c89', 'c99', 'c11'])
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
         std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
@@ -572,8 +584,9 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
     def get_no_stdinc_args(self) -> T.List[str]:
         return []
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
         std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std == 'c89':
@@ -620,8 +633,9 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
     def get_no_stdinc_args(self) -> T.List[str]:
         return []
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
         std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
@@ -709,7 +723,8 @@ class SdccCCompiler(SdccCompiler, CCompiler):
         std_opt.set_versions(['c89', 'c90', 'c99', 'c11', 'c17', 'c23', 'c2y'])
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_compile_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         args = []
         std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
@@ -742,8 +757,9 @@ class TICCompiler(TICompiler, CCompiler):
     def get_no_stdinc_args(self) -> T.List[str]:
         return []
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
         std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
@@ -776,8 +792,9 @@ class MetrowerksCCompilerARM(MetrowerksCompiler, CCompiler):
         self._update_language_stds(opts, ['c99'])
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
         std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
@@ -804,8 +821,9 @@ class MetrowerksCCompilerEmbeddedPowerPC(MetrowerksCompiler, CCompiler):
         self._update_language_stds(opts, ['c99'])
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
         std = self.get_compileropt_value('std', target, subproject)
         assert isinstance(std, str)
         if std != 'none':
