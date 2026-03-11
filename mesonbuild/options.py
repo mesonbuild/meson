@@ -877,8 +877,14 @@ class OptionStore:
         _, resolved_value = self.get_option_and_value_for_untyped(key)
         return resolved_value
 
-    def get_value_for(self, key: OptionKey, type_: T.Type[ElementaryOptionType]) -> ElementaryOptionType:
-        val = self.get_value_for_untyped(key)
+    def get_value_for(self, key: OptionKey, type_: T.Type[ElementaryOptionType],
+                      *, default: T.Optional[ElementaryOptionType] = None) -> ElementaryOptionType:
+        try:
+            val = self.get_value_for_untyped(key)
+        except KeyError:
+            if default is not None:
+                return default
+            raise
         if not isinstance(val, type_):
             raise MesonBugException(f'Expected {key!s} to have type {type_!s}, but had type {type(val)!s}')
         return val
@@ -905,8 +911,15 @@ class OptionStore:
                 raise MesonException(f'In override_options for {target}: {e!s}')
         return value
 
-    def get_option_for_target(self, target: 'BuildTarget', key: OptionKey, type_: T.Type[ElementaryOptionType]) -> ElementaryOptionType:
-        val = self.get_option_for_target_untyped(target, key)
+    def get_option_for_target(self, target: 'BuildTarget', key: OptionKey,
+                              type_: T.Type[ElementaryOptionType],
+                              *, default: T.Optional[ElementaryOptionType] = None) -> ElementaryOptionType:
+        try:
+            val = self.get_option_for_target_untyped(target, key)
+        except KeyError:
+            if default is not None:
+                return default
+            raise
         if not isinstance(val, type_):
             raise MesonBugException(f'Expected {key!s} to have type {type_!s}, but had type {type(val)!s}')
         return val
