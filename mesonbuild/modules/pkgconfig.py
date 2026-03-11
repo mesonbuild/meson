@@ -782,7 +782,7 @@ class PkgConfigModule(NewExtensionModule):
             else:
                 pkgroot = os.path.join(state.environment.coredata.optstore.get_value_for(OptionKey('libdir'), str), 'pkgconfig')
                 pkgroot_name = os.path.join('{libdir}', 'pkgconfig')
-        relocatable = state.get_option('pkgconfig.relocatable')
+        relocatable = state.environment.coredata.optstore.get_value_for(OptionKey('pkgconfig.relocatable'), bool)
         self._generate_pkgconfig_file(state, deps, subdirs, name, description, url,
                                       version, license, pcfile, conflicts, variables,
                                       unescaped_variables, False, dataonly,
