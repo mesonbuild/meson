@@ -41,8 +41,7 @@ if T.TYPE_CHECKING:
 
     from . import ModuleState
     from ..build import BuildTarget
-    from ..compilers import Compiler
-    from ..compilers.compilers import Language
+    from ..compilers.compilers import Compiler, Language
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import CustomTargetSources
     from ..interpreter.kwargs import CustomTargetInputs, TargetDepends
@@ -844,7 +843,7 @@ class GnomeModule(ExtensionModule):
         return ret, gir_inc_dirs, depends
 
     @staticmethod
-    def _scan_langs(state: 'ModuleState', langs: T.Iterable[str]) -> T.List[str]:
+    def _scan_langs(state: 'ModuleState', langs: T.Iterable[Language]) -> T.List[str]:
         ret: T.List[str] = []
 
         for lang in langs:
@@ -1102,7 +1101,7 @@ class GnomeModule(ExtensionModule):
         return typelib_includes, new_depends
 
     @staticmethod
-    def _get_external_args_for_langs(state: 'ModuleState', langs: T.List[str]) -> T.List[str]:
+    def _get_external_args_for_langs(state: 'ModuleState', langs: T.List[Language]) -> T.List[str]:
         ret: T.List[str] = []
         for lang in langs:
             ret += mesonlib.listify(state.environment.coredata.get_external_args(MachineChoice.HOST, lang))
