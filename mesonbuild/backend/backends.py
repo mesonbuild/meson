@@ -2116,6 +2116,7 @@ class Backend:
             return target.subproject != ''
         raise MesonException(f'Internal error: invalid option type for "unity": {val}')
 
+    # TODO: get rid of this
     def get_target_option(self, target: build.BuildTarget, name: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(name, str):
             key = OptionKey(name, subproject=target.subproject)

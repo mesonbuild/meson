@@ -1036,7 +1036,7 @@ class BuildTarget(Target):
 
                 # In the case of cython it's possible that we have an
                 # implementation detail language
-                if self.uses_cython() and lang == self.environment.coredata.optstore.get_option_for_target_untyped(self, 'cython_language'):
+                if self.uses_cython() and lang == self.environment.coredata.optstore.get_option_for_target(self, OptionKey('cython_language'), str):
                     self.compilers[lang] = self.environment.coredata.compilers[self.for_machine][lang]
                     is_error = False
 
@@ -1173,8 +1173,7 @@ class BuildTarget(Target):
         if 'vala' in self.compilers and 'c' not in self.compilers:
             self.compilers['c'] = self.all_compilers['c']
         if 'cython' in self.compilers:
-            _value = self.environment.coredata.optstore.get_option_for_target_untyped(self, 'cython_language')
-            assert isinstance(_value, str), 'for mypy'
+            _value = self.environment.coredata.optstore.get_option_for_target(self, OptionKey('cython_language'), str)
             value = T.cast('Language', _value)
             try:
                 self.compilers[value] = self.all_compilers[value]
@@ -1391,13 +1390,8 @@ class BuildTarget(Target):
             assert isinstance(a, bool), 'for mypy'
             return a
 
-        k = OptionKey(option)
-        if k in self.environment.coredata.optstore:
-            val = self.environment.coredata.optstore.get_option_for_target_untyped(self, k)
-            assert isinstance(val, bool), 'for mypy'
-            return val
-
-        return False
+        return self.environment.coredata.optstore.get_option_for_target(
+            self, OptionKey(option), bool, default=False)
 
     def install_dir_names(self) -> T.List[T.Optional[str]]:
         install_dir_names: T.List[T.Optional[str]]
@@ -2361,8 +2355,7 @@ class StaticLibrary(BuildTarget, LinkableTarget):
         return 'static' if bl == 'auto' else bl
 
     def determine_default_prefix_and_suffix(self) -> T.Tuple[str, str]:
-        scheme = self.environment.coredata.optstore.get_option_for_target_untyped(self, 'namingscheme')
-        assert isinstance(scheme, str), 'for mypy'
+        scheme = self.environment.coredata.optstore.get_option_for_target(self, OptionKey('namingscheme'), str)
         if scheme == 'platform':
             schemename = self.get_platform_scheme_name()
             prefix, suffix = DEFAULT_STATIC_LIBRARY_NAMES[schemename]
@@ -2394,9 +2387,7 @@ class StaticLibrary(BuildTarget, LinkableTarget):
                 suffix = 'a'
                 if 'c' in self.compilers and self.compilers['c'].get_id() == 'tasking' and not self.prelink:
                     key = OptionKey('b_lto', self.subproject, self.for_machine)
-                    v = self.environment.coredata.optstore.get_option_for_target_untyped(self, key)
-                    assert isinstance(v, bool), 'for mypy'
-                    if v:
+                    if self.environment.coredata.optstore.get_option_for_target(self, key, bool):
                         suffix = 'ma'
         return (prefix, suffix)
 
@@ -2567,8 +2558,7 @@ class SharedLibrary(BuildTarget, LinkableTarget):
         return self.environment.get_shared_lib_dir(), '{libdir_shared}'
 
     def determine_naming_info(self) -> T.Tuple[str, str, str, str, bool]:
-        scheme = self.environment.coredata.optstore.get_option_for_target_untyped(self, 'namingscheme')
-        assert isinstance(scheme, str), 'for mypy'
+        scheme = self.environment.coredata.optstore.get_option_for_target(self, OptionKey('namingscheme'), str)
 
         prefix: str | None
         suffix: str | None
