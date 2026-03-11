@@ -926,6 +926,13 @@ class OptionStore:
             raise MesonBugException(f'Expected {key!s} to have type {type_!s}, but had type {type(val)!s}')
         return val
 
+    def get_option_for_maybe_target(self, target: BuildTarget | None, key: OptionKey,
+                                    type_: type[ElementaryOptionType],
+                                    *, default: ElementaryOptionType | None = None) -> ElementaryOptionType:
+        if target is not None:
+            return self.get_option_for_target(target, key, type_, default=default)
+        return self.get_value_for(key, type_, default=default)
+
     def add_system_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
         if '.' in key.name:
