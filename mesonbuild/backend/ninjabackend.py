@@ -3359,7 +3359,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if 'cpp' not in target.compilers:
             return False
         try:
-            if self.environment.coredata.get_option_for_target(target, 'cpp_importstd') == 'true':
+            if self.environment.coredata.optstore.get_option_for_target(target, 'cpp_importstd') == 'true':
                 return True
         except KeyError:
             pass

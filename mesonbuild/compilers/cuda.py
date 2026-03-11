@@ -753,7 +753,7 @@ class CudaCompiler(Compiler):
                         subproject: T.Optional[str] = None) -> T.List[str]:
         key = self.form_compileropt_key('ccbindir').evolve(subproject=subproject)
         if target:
-            ccbindir = self.environment.coredata.get_option_for_target(target, key)
+            ccbindir = self.environment.coredata.optstore.get_option_for_target(target, key)
         else:
             ccbindir = self.environment.coredata.optstore.get_value_for(key)
         if isinstance(ccbindir, str) and ccbindir != '':

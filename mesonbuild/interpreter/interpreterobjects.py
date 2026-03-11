@@ -1031,7 +1031,7 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
         if self.subproject != self.held_object.subproject:
             raise InterpreterException('Tried to extract objects from a different subproject.')
         tobj = self._target_object
-        unity_value = self.interpreter.coredata.get_option_for_target(tobj, "unity")
+        unity_value = self.interpreter.coredata.optstore.get_option_for_target(tobj, "unity")
         is_unity = (unity_value == 'on' or (unity_value == 'subprojects' and tobj.subproject != ''))
         return tobj.extract_objects(args[0], is_unity)
 
