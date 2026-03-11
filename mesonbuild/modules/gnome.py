@@ -159,7 +159,7 @@ if T.TYPE_CHECKING:
         nostdinc: bool
         prefix: T.Optional[str]
         skip_source: bool
-        sources: T.List[FileOrString]
+        sources: T.List[CustomTargetInputs]
         stdinc: bool
         valist_marshallers: bool
 
@@ -2100,7 +2100,10 @@ class GnomeModule(ExtensionModule):
         KwargInfo('nostdinc', bool, default=False),
         KwargInfo('prefix', (str, NoneType)),
         KwargInfo('skip_source', bool, default=False),
-        KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File), allow_empty=False), listify=True, required=True),
+        KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList), allow_empty=False), listify=True, required=True,
+                  since_values={ContainerTypeInfo(list, (CustomTarget, CustomTargetIndex, GeneratedList), allow_empty=False): '1.12.0'},
+
+                  ),
         KwargInfo('stdinc', bool, default=False),
         KwargInfo('valist_marshallers', bool, default=False),
     )

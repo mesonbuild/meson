@@ -144,7 +144,7 @@ argument is the basename of the output files.
 * `nostdinc`: if true, don't include the standard marshallers from glib
 * `prefix`: the prefix to use for symbols
 * `skip_source`: if true, skip source location comments
-* `sources` [](str | File) *required*: the list of sources to use as inputs
+* `sources` [](str | File | CustomTarget | CustomTargetIndex | generator_output) *required*: the list of sources to use as inputs (build-time generated files only allowed *since 1.12.0*)
 * `stdinc`: if true, include the standard marshallers from glib
 * `valist_marshallers`: if true, generate va_list marshallers
 

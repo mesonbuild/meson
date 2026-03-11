@@ -2,8 +2,10 @@ m_list = configure_file(input: 'marshaller.list',
   output: 'm.list',
   copy: true)
 
+ct_list = fs.copyfile('marshaller.list', 'ct.list')
+
 idx = 0
-mlists = ['marshaller.list', files('marshaller.list'), m_list]
+mlists = ['marshaller.list', files('marshaller.list'), m_list, ct_list]
 
 foreach mlist : mlists
   marshallers = gnome.genmarshal('marshaller-@0@'.format(idx),
