@@ -46,6 +46,7 @@ if T.TYPE_CHECKING:
         'UserIntegerOption', 'UserStdOption', 'UserStringArrayOption',
         'UserStringOption', 'UserUmaskOption']
     ElementaryOptionValues: TypeAlias = T.Union[str, int, bool, T.List[str]]
+    ElementaryOptionType = T.TypeVar('ElementaryOptionType', str, int, bool, list[str])
     MutableKeyedOptionDictType: TypeAlias = T.Dict['OptionKey', AnyOptionType]
 
     _OptionKeyTuple: TypeAlias = T.Tuple[T.Optional[str], MachineChoice, str]
@@ -878,6 +879,12 @@ class OptionStore:
         _, resolved_value = self.get_option_and_value_for_untyped(key)
         return resolved_value
 
+    def get_value_for(self, key: OptionKey, type_: type[ElementaryOptionType]) -> ElementaryOptionType:
+        val = self.get_value_for_untyped(key)
+        if not isinstance(val, type_):
+            raise MesonBugException(f'Expected {key!s} to have type {type_!s}, but had type {type(val)!s}')
+        return val
+
     def get_option_for_target_untyped(self, target: BuildTarget, key: str | OptionKey) -> ElementaryOptionValues:
         if isinstance(key, str):
             assert ':' not in key
@@ -899,6 +906,12 @@ class OptionStore:
             except MesonException as e:
                 raise MesonException(f'In override_options for {target}: {e!s}')
         return value
+
+    def get_option_for_target(self, target: BuildTarget, key: OptionKey, type_: type[ElementaryOptionType]) -> ElementaryOptionType:
+        val = self.get_option_for_target_untyped(target, key)
+        if not isinstance(val, type_):
+            raise MesonBugException(f'Expected {key!s} to have type {type_!s}, but had type {type(val)!s}')
+        return val
 
     def add_system_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
