@@ -1178,7 +1178,8 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 
     # First, collect and start all tests and also queue log messages
     for name, test_cases, skipped in all_tests:
-        current_suite = ET.SubElement(junit_root, 'testsuite', {'name': name, 'tests': str(len(test_cases))})
+        ET.SubElement(junit_root, 'testsuite', {'name': name, 'tests': str(len(test_cases))})
+
         if skipped:
             futures += [LogRunFuture(['\n', bold(f'Not running {name} tests.'), '\n'])]
             continue
@@ -1272,6 +1273,8 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 
         if is_skipped:
             skipped_tests += 1
+
+        current_suite = junit_root.find(f"./testsuite[@name='{t.category}']")
 
         if is_skipped and skip_as_expected:
             f.update_log(TestStatus.SKIP)
