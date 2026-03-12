@@ -251,19 +251,6 @@ def option_enabled(boptions: T.Set[OptionKey],
     return env.coredata.optstore.get_option_for_target(target, option, bool, default=False)
 
 
-# TODO: delete this
-def get_option_value_for_target(env: 'Environment', target: 'BuildTarget', opt: OptionKey, fallback: '_T') -> '_T':
-    """Get the value of an option, or the fallback value."""
-    try:
-        v = env.coredata.optstore.get_option_for_target_untyped(target, opt)
-    except (KeyError, AttributeError):
-        return fallback
-
-    assert isinstance(v, type(fallback)), f'Should have {type(fallback)!r} but was {type(v)!r}'
-    # Mypy doesn't understand that the above assert ensures that v is type _T
-    return v
-
-
 def are_asserts_disabled(target: 'BuildTarget', env: 'Environment') -> bool:
     """Should debug assertions be disabled
 
@@ -290,8 +277,8 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
     lto = False
     try:
         if env.coredata.optstore.get_option_for_target(target, OptionKey('b_lto'), bool):
-            num_threads = get_option_value_for_target(env, target, OptionKey('b_lto_threads'), 0)
-            ltomode = get_option_value_for_target(env, target, OptionKey('b_lto_mode'), 'default')
+            num_threads = env.coredata.optstore.get_option_for_target(target, OptionKey('b_lto_threads'), int, default=0)
+            ltomode = env.coredata.optstore.get_option_for_target(target, OptionKey('b_lto_mode'), str, default='default')
             args.extend(compiler.get_lto_compile_args(
                 target=target,
                 threads=num_threads,
@@ -353,22 +340,19 @@ def get_base_link_args(target: 'BuildTarget',
                        env: 'Environment') -> T.List[str]:
     args: T.List[str] = []
     build_dir = env.get_build_dir()
-    if env.coredata.optstore.get_option_for_target_untyped(target, 'werror'):
+    if env.coredata.optstore.get_option_for_target(target, OptionKey('werror'), bool):
         args.extend(linker.get_linker_fatal_warnings())
     try:
-        if env.coredata.optstore.get_option_for_target(target, OptionKey('b_lto'), bool):
-            if env.coredata.optstore.get_option_for_target(target, OptionKey('werror'), bool):
-                args.extend(linker.get_werror_args())
-
+        if env.coredata.optstore.get_option_for_target(target, OptionKey('b_lto'), bool, default=False):
             thinlto_cache_dir = None
             cachedir_key = OptionKey('b_thinlto_cache')
-            if get_option_value_for_target(env, target, cachedir_key, False):
-                thinlto_cache_dir = get_option_value_for_target(env, target, OptionKey('b_thinlto_cache_dir'), '')
+            if env.coredata.optstore.get_option_for_target(target, cachedir_key, bool, default=False):
+                thinlto_cache_dir = env.coredata.optstore.get_option_for_target(target, OptionKey('b_thinlto_cache_dir'), str, default='')
                 if thinlto_cache_dir == '':
                     thinlto_cache_dir = os.path.join(build_dir, 'meson-private', 'thinlto-cache')
-                    os.makedirs(thinlto_cache_dir, exist_ok=True)
-            num_threads = get_option_value_for_target(env, target, OptionKey('b_lto_threads'), 0)
-            lto_mode = get_option_value_for_target(env, target, OptionKey('b_lto_mode'), 'default')
+                    os.mkdir(thinlto_cache_dir)
+            num_threads = env.coredata.optstore.get_option_for_target(target, OptionKey('b_lto_threads'), int, default=0)
+            lto_mode = env.coredata.optstore.get_option_for_target(target, OptionKey('b_lto_mode'), str, default='default')
             args.extend(linker.get_lto_link_args(
                 target=target,
                 threads=num_threads,
