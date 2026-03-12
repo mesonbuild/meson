@@ -9,7 +9,7 @@ import string
 import typing as T
 
 from .. import options
-from ..mesonlib import LibType, version_compare
+from ..mesonlib import LibType, version_compare, ROOT_SUBPROJECT
 from .compilers import Compiler, CompileCheckMode, CrossNoRunException, SimplePrefixLinkerOptionStyle
 
 if T.TYPE_CHECKING:
@@ -539,7 +539,7 @@ class CudaCompiler(Compiler):
         # Use the -ccbin option, if available, even during sanity checking.
         # Otherwise, on systems where CUDA does not support the default compiler,
         # NVCC becomes unusable.
-        args += self._get_ccbin_args(None, '')
+        args += self._get_ccbin_args(None, ROOT_SUBPROJECT)
 
         return args, largs
 
@@ -747,8 +747,9 @@ class CudaCompiler(Compiler):
         return self._to_host_flags(super().get_dependency_link_args(dep), Phase.LINKER)
 
     def _get_ccbin_args(self, target: 'T.Optional[BuildTarget]',
-                        subproject: T.Optional[str] = None) -> T.List[str]:
-        key = self.form_compileropt_key('ccbindir').evolve(subproject=subproject)
+                        subproject: T.Optional[SubProject] = None) -> T.List[str]:
+        subproject = target.subproject if subproject is None else subproject
+        key = self.form_compileropt_key('ccbindir', subproject)
         if target:
             ccbindir = self.environment.coredata.optstore.get_option_for_target(target, key, str)
         else:
