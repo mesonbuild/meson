@@ -804,7 +804,7 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
     def get_option_link_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         target, subproject = self._get_subproject_and_target(target)
         # need a typeddict for this
-        key = self.form_compileropt_key('winlibs').evolve(subproject=subproject)
+        key = self.form_compileropt_key('winlibs', subproject)
         if target:
             value = self.environment.coredata.optstore.get_option_for_target_untyped(target, key)
         else:
@@ -897,7 +897,7 @@ class CPP11AsCPP14Mixin(CompilerMixinBase):
         # which means setting the C++ standard version to C++14, in compilers that support it
         # (i.e., after VS2015U3)
         # if one is using anything before that point, one cannot set the standard.
-        stdkey = self.form_compileropt_key('std').evolve(subproject=subproject)
+        stdkey = self.form_compileropt_key('std', subproject)
         if target is not None:
             std = self.environment.coredata.optstore.get_option_for_target_untyped(target, stdkey)
         else:

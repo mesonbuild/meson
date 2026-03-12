@@ -40,10 +40,10 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
     def get_no_stdlib_link_args(self) -> T.List[str]:
         return ['-nostdlib++']
 
-    def form_compileropt_key(self, basename: str) -> OptionKey:
+    def form_compileropt_key(self, basename: str, subproject: T.Optional[SubProject] = None) -> OptionKey:
         if basename == 'std':
-            return OptionKey('cpp_std', machine=self.for_machine)
-        return super().form_compileropt_key(basename)
+            return OptionKey('cpp_std', subproject=subproject, machine=self.for_machine)
+        return super().form_compileropt_key(basename, subproject)
 
     def make_option_name(self, key: OptionKey) -> str:
         if key.name == 'std':

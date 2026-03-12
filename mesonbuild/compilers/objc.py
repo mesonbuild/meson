@@ -50,10 +50,10 @@ class ObjCCompiler(CLikeCompiler, Compiler):
     def _sanity_check_source_code(self) -> str:
         return '#import<stddef.h>\nint main(void) { return 0; }\n'
 
-    def form_compileropt_key(self, basename: str) -> OptionKey:
+    def form_compileropt_key(self, basename: str, subproject: T.Optional[SubProject] = None) -> OptionKey:
         if basename == 'std':
-            return OptionKey(f'c_{basename}', machine=self.for_machine)
-        return super().form_compileropt_key(basename)
+            return OptionKey('c_std', subproject=subproject, machine=self.for_machine)
+        return super().form_compileropt_key(basename, subproject)
 
 
 class GnuObjCCompiler(GnuCStds, GnuCompiler, ObjCCompiler):
@@ -104,10 +104,10 @@ class ClangObjCCompiler(ClangCStds, ClangCompiler, ObjCCompiler):
                           '3': default_warn_args + ['-Wextra', '-Wpedantic'],
                           'everything': ['-Weverything']}
 
-    def form_compileropt_key(self, basename: str) -> OptionKey:
+    def form_compileropt_key(self, basename: str, subproject: T.Optional[SubProject] = None) -> OptionKey:
         if basename == 'std':
-            return OptionKey('c_std', machine=self.for_machine)
-        return super().form_compileropt_key(basename)
+            return OptionKey('c_std', subproject=subproject, machine=self.for_machine)
+        return super().form_compileropt_key(basename, subproject)
 
     def make_option_name(self, key: OptionKey) -> str:
         if key.name == 'std':
