@@ -1071,9 +1071,8 @@ class Vs2010Backend(backends.Backend):
         # Compile args added from the env or cross file: CFLAGS/CXXFLAGS, etc. We want these
         # to override all the defaults, but not the per-target compile args.
         for lang in file_args.keys():
-            l_args = self.get_target_option(target, OptionKey(f'{lang}_args', machine=target.for_machine))
-            assert isinstance(l_args, list), 'for mypy'
-            file_args[lang] += l_args
+            file_args[lang] += self.environment.coredata.optstore.get_option_for_target(
+                target, OptionKey(f'{lang}_args', target.subproject, target.for_machine), list)
         for args in file_args.values():
             # This is where Visual Studio will insert target_args, target_defines,
             # etc, which are added later from external deps (see below).
@@ -1261,13 +1260,8 @@ class Vs2010Backend(backends.Backend):
         return (nmake_base_meson_command, exe_search_paths)
 
     def get_target_whole_program_opt(self, target: build.BuildTarget) -> str:
-        lto = False
-        pgo = 'off'
-        try:
-            lto = self.get_target_option(target, 'b_lto')
-            pgo = self.get_target_option(target, 'b_pgo')
-        except KeyError:
-            pass
+        lto = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('b_lto'), bool, default=False)
+        pgo = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('b_pgo'), str, default='off')
 
         if pgo == 'off':
             return 'true' if lto else 'false'
@@ -1378,8 +1372,8 @@ class Vs2010Backend(backends.Backend):
         if True in ((dep.name == 'openmp') for dep in target.get_external_deps()):
             ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
         # CRT type; debug or release
-        vscrt_type = self.get_target_option(target, 'b_vscrt')
-        assert isinstance(vscrt_type, str), 'for mypy'
+        vscrt_type = self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey('b_vscrt'), str)
         vscrt_val = compiler.get_crt_val(vscrt_type)
         if vscrt_val == 'mdd':
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
@@ -1435,10 +1429,11 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(target_defines)
         ET.SubElement(clconf, 'FunctionLevelLinking').text = 'true'
         # Warning level
-        warning_level = T.cast('str', self.get_target_option(target, 'warning_level'))
+        warning_level = self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey('warning_level'), str)
         warning_level = 'EnableAllWarnings' if warning_level == 'everything' else 'Level' + str(1 + int(warning_level))
         ET.SubElement(clconf, 'WarningLevel').text = warning_level
-        if self.get_target_option(target, 'werror'):
+        if self.environment.coredata.optstore.get_option_for_target(target, OptionKey('werror'), bool):
             ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
         # Optimization flags
         o_flags = split_o_flags_args(build_args)
@@ -1472,7 +1467,7 @@ class Vs2010Backend(backends.Backend):
         link = ET.SubElement(compiles, 'Link')
         extra_link_args = compiler.compiler_args()
         extra_link_args += compiler.get_optimization_link_args(self.optimization)
-        if self.get_target_option(target, 'werror'):
+        if self.environment.coredata.optstore.get_option_for_target(target, OptionKey('werror'), bool):
             extra_link_args += compiler.get_linker_fatal_warnings()
         # Generate Debug info
         if self.debug:
@@ -1613,8 +1608,8 @@ class Vs2010Backend(backends.Backend):
         # /nologo
         ET.SubElement(link, 'SuppressStartupBanner').text = 'true'
         # /release
-        addchecksum = self.get_target_option(target, 'buildtype') != 'debug'
-        if addchecksum:
+        buildtype = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('buildtype'), str)
+        if buildtype != 'debug':
             ET.SubElement(link, 'SetChecksum').text = 'true'
 
     # Visual studio doesn't simply allow the src files of a project to be added with the 'Condition=...' attribute,
