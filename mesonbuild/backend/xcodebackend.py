@@ -1762,9 +1762,9 @@ class XCodeBackend(backends.Backend):
                 if compiler is None:
                     continue
                 # Start with warning args
-                warn_level = self.get_target_option(target, 'warning_level')
-                assert isinstance(warn_level, str), 'for mypy'
-                warn_args = compiler.get_warn_args(warn_level)
+                warn_args = compiler.get_warn_args(
+                    self.environment.coredata.optstore.get_option_for_target(
+                        target, OptionKey('warning_level'), str))
                 std_args = compiler.get_option_compile_args(target)
                 std_args += compiler.get_option_std_args(target)
                 # Add compile args added using add_project_arguments()
@@ -1815,13 +1815,11 @@ class XCodeBackend(backends.Backend):
             if target.suffix:
                 suffix = '.' + target.suffix
                 settings_dict.add_item('EXECUTABLE_SUFFIX', suffix)
-            debug = self.get_target_option(target, 'debug')
-            assert isinstance(debug, bool), 'for mypy'
-            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', BOOL2XCODEBOOL[debug])
+            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', BOOL2XCODEBOOL[
+                self.environment.coredata.optstore.get_option_for_target(target, OptionKey('debug'), bool)])
             settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
-            opt = self.get_target_option(target, 'optimization')
-            assert isinstance(opt, str), 'for mypy'
-            opt_flag = OPT2XCODEOPT[opt]
+            opt_flag = OPT2XCODEOPT[
+                self.environment.coredata.optstore.get_option_for_target(target, OptionKey('optimization'), str)]
             if opt_flag is not None:
                 settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', opt_flag)
             if target.has_pch:
