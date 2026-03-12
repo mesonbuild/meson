@@ -1674,8 +1674,8 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         """
         raise EnvironmentException(f'{self.get_id()} does not support preprocessor')
 
-    def form_compileropt_key(self, basename: str) -> OptionKey:
-        return OptionKey(f'{self.language}_{basename}', machine=self.for_machine)
+    def form_compileropt_key(self, basename: str, subproject: T.Optional[SubProject] = None) -> OptionKey:
+        return OptionKey(f'{self.language}_{basename}', subproject=subproject, machine=self.for_machine)
 
     def get_compileropt_value(self,
                               key: T.Union[str, OptionKey],

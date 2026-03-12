@@ -537,7 +537,7 @@ class CudaCompiler(Compiler):
         # Use the -ccbin option, if available, even during sanity checking.
         # Otherwise, on systems where CUDA does not support the default compiler,
         # NVCC becomes unusable.
-        flags += self._get_ccbin_args(None, '')
+        flags += self._get_ccbin_args(None, T.cast('SubProject', ''))
 
         # If cross-compiling, we can't run the sanity check, only compile it.
         if self.is_cross and not self.environment.has_exe_wrapper():
@@ -754,8 +754,9 @@ class CudaCompiler(Compiler):
         return self._to_host_flags(super().get_dependency_link_args(dep), Phase.LINKER)
 
     def _get_ccbin_args(self, target: 'T.Optional[BuildTarget]',
-                        subproject: T.Optional[str] = None) -> T.List[str]:
-        key = self.form_compileropt_key('ccbindir').evolve(subproject=subproject)
+                        subproject: T.Optional[SubProject] = None) -> T.List[str]:
+        subproject = target.subproject if subproject is None else subproject
+        key = self.form_compileropt_key('ccbindir', subproject)
         if target:
             ccbindir = self.environment.coredata.optstore.get_option_for_target_untyped(target, key)
         else:
