@@ -58,7 +58,8 @@ class CythonCompiler(Compiler):
     def _sanity_check_filenames(self) -> T.Tuple[str, T.Optional[str], str]:
         sourcename, _, binname = super()._sanity_check_filenames()
 
-        lang = self.get_compileropt_value('language', None)
+        key = self.form_compileropt_key('language', None)
+        lang = self.environment.coredata.optstore.get_value_for(key, str)
         assert isinstance(lang, str)
 
         # This is almost certainly not good enough
@@ -70,8 +71,8 @@ class CythonCompiler(Compiler):
     def _transpiled_sanity_check_compile_args(
             self, compiler: Compiler, sourcename: str, binname: str
             ) -> T.Tuple[T.List[str], T.List[str]]:
-        version = self.get_compileropt_value('version', None)
-        assert isinstance(version, str)
+        key = self.form_compileropt_key('version', None)
+        version = self.environment.coredata.optstore.get_value_for(key, str)
 
         from ..dependencies import find_external_dependency
         with mlog.no_logging():
@@ -136,12 +137,12 @@ class CythonCompiler(Compiler):
         target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
 
-        version = self.get_compileropt_value('version', target, subproject)
-        assert isinstance(version, str)
+        key = self.form_compileropt_key('version', None)
+        version = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         args.append(f'-{version}')
 
-        lang = self.get_compileropt_value('language', target, subproject)
-        assert isinstance(lang, str)
+        key = self.form_compileropt_key('language', None)
+        lang = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if lang == 'cpp':
             args.append('--cplus')
         return args

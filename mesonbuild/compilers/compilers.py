@@ -1676,18 +1676,6 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def form_compileropt_key(self, basename: str, subproject: T.Optional[SubProject] = None) -> OptionKey:
         return OptionKey(f'{self.language}_{basename}', subproject=subproject, machine=self.for_machine)
 
-    def get_compileropt_value(self,
-                              key: T.Union[str, OptionKey],
-                              target: T.Optional[BuildTarget],
-                              subproject: T.Optional[str] = None
-                              ) -> options.ElementaryOptionValues:
-        if isinstance(key, str):
-            key = self.form_compileropt_key(key)
-        if target:
-            return self.environment.coredata.optstore.get_option_for_target_untyped(target, key)
-        else:
-            return self.environment.coredata.optstore.get_value_for_untyped(key.evolve(subproject=subproject))
-
     def _update_language_stds(self, opts: MutableKeyedOptionDictType, value: T.List[str]) -> None:
         key = self.form_compileropt_key('std')
         std = opts[key]

@@ -155,7 +155,8 @@ class RustCompiler(Compiler):
         self.has_check_cfg = version_compare(version, '>=1.80.0')
 
     def init_from_options(self) -> None:
-        nightly_opt = self.get_compileropt_value('nightly', None)
+        key = self.form_compileropt_key('nightly', None)
+        nightly_opt = self.environment.coredata.optstore.get_value_for(key, str)
         if nightly_opt == 'enabled' and not self.is_nightly:
             raise EnvironmentException(f'Rust compiler {self.name_string()} is not a nightly compiler as required by the "nightly" option.')
         self.allow_nightly = nightly_opt != 'disabled' and self.is_nightly
@@ -388,8 +389,8 @@ class RustCompiler(Compiler):
     def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         args: T.List[str] = []
         target, subproject = self._get_subproject_and_target(target)
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('--edition=' + std)
         return args

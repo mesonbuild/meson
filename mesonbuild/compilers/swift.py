@@ -132,8 +132,8 @@ class SwiftCompiler(Compiler):
         target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
 
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
 
         if std != 'none':
             args += ['-swift-version', std]
