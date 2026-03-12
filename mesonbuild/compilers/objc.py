@@ -55,6 +55,11 @@ class ObjCCompiler(CLikeCompiler, Compiler):
             return OptionKey('c_std', subproject=subproject, machine=self.for_machine)
         return super().form_compileropt_key(basename, subproject)
 
+    def make_option_name(self, key: OptionKey) -> str:
+        if key.name == 'std':
+            return 'c_std'
+        return super().make_option_name(key)
+
 
 class GnuObjCCompiler(GnuCStds, GnuCompiler, ObjCCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
@@ -76,7 +81,7 @@ class GnuObjCCompiler(GnuCStds, GnuCompiler, ObjCCompiler):
 
     def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         target, subproject = self._get_subproject_and_target(target)
-        key = OptionKey('c_std', subproject=subproject, machine=self.for_machine)
+        key = self.form_compileropt_key('std', subproject)
         if target:
             std = self.environment.coredata.optstore.get_option_for_target_untyped(target, key)
         else:
@@ -104,22 +109,11 @@ class ClangObjCCompiler(ClangCStds, ClangCompiler, ObjCCompiler):
                           '3': default_warn_args + ['-Wextra', '-Wpedantic'],
                           'everything': ['-Weverything']}
 
-    def form_compileropt_key(self, basename: str, subproject: T.Optional[SubProject] = None) -> OptionKey:
-        if basename == 'std':
-            return OptionKey('c_std', subproject=subproject, machine=self.for_machine)
-        return super().form_compileropt_key(basename, subproject)
-
-    def make_option_name(self, key: OptionKey) -> str:
-        if key.name == 'std':
-            return 'c_std'
-        return super().make_option_name(key)
-
     def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         args: T.List[str] = []
         target, subproject = self._get_subproject_and_target(target)
-        key = OptionKey('c_std', machine=self.for_machine)
-        std = self.get_compileropt_value(key, target, subproject)
-        assert isinstance(std, str)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args

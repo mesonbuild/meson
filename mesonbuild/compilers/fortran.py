@@ -288,8 +288,8 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
     def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
@@ -424,9 +424,10 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
     def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', target, subproject)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
+
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
-        assert isinstance(std, str)
         if std != 'none':
             args.append('-stand=' + stds[std])
         return args
@@ -483,9 +484,10 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
     def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', target, subproject)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
+
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
-        assert isinstance(std, str)
         if std != 'none':
             args.append('/stand:' + stds[std])
         return args

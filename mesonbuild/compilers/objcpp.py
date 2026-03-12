@@ -117,9 +117,8 @@ class ClangObjCPPCompiler(ClangCPPStds, ClangCompiler, ObjCPPCompiler):
     def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         args: T.List[str] = []
         target, subproject = self._get_subproject_and_target(target)
-        key = OptionKey('cpp_std', machine=self.for_machine)
-        std = self.get_compileropt_value(key, target, subproject)
-        assert isinstance(std, str)
+        key = OptionKey('cpp_std', subproject, self.for_machine)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args

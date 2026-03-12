@@ -625,8 +625,8 @@ class CudaCompiler(Compiler):
         # the combination of CUDA version and MSVC version; the --std= is thus ignored
         # and attempting to use it will result in a warning: https://stackoverflow.com/a/51272091/741027
         if not is_windows():
-            std = self.get_compileropt_value('std', target, subproject)
-            assert isinstance(std, str)
+            key = self.form_compileropt_key('std', subproject)
+            std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
             if std != 'none':
                 return ['--std=' + std]
 
