@@ -159,7 +159,9 @@ class RustCompiler(Compiler):
     def init_from_options(self) -> None:
         freestanding = self.environment.coredata.optstore.get_value_for(OptionKey('b_freestanding'), bool)
         self.freestanding = freestanding
-        nightly_opt = self.get_compileropt_value('nightly', None)
+
+        key = self.form_compileropt_key('nightly', None)
+        nightly_opt = self.environment.coredata.optstore.get_value_for(key, str)
         if nightly_opt == 'enabled' and not self.is_nightly:
             raise EnvironmentException(f'Rust compiler {self.name_string()} is not a nightly compiler as required by the "nightly" option.')
         self.allow_nightly = nightly_opt != 'disabled' and self.is_nightly
@@ -452,8 +454,8 @@ class RustCompiler(Compiler):
     def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         args: T.List[str] = []
         target, subproject = self._get_subproject_and_target(target)
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('--edition=' + std)
         return args
@@ -462,25 +464,25 @@ class RustCompiler(Compiler):
         target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
 
-        panic = self.get_compileropt_value('panic', target, subproject)
-        assert isinstance(panic, str)
+        key = self.form_compileropt_key('panic', subproject)
+        panic = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if panic != 'none':
             args += ['-C', f'panic={panic}']
 
-        overflow_checks = self.get_compileropt_value('overflow_checks', target, subproject)
-        assert isinstance(overflow_checks, bool)
+        key = self.form_compileropt_key('overflow_checks', subproject)
+        overflow_checks = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, bool)
         args += ['-C', 'overflow-checks=' + ('yes' if overflow_checks else 'no')]
 
-        codegen_units = self.get_compileropt_value('codegen_units', target, subproject)
-        assert isinstance(codegen_units, int)
+        key = self.form_compileropt_key('codegen_units', subproject)
+        codegen_units = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, int)
         if codegen_units > 0:
             args += ['-C', f'codegen-units={codegen_units}']
 
-        incremental = self.get_compileropt_value('incremental', target, subproject)
-        assert isinstance(incremental, bool)
+        key = self.form_compileropt_key('incremental', subproject)
+        incremental = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, bool)
         if incremental and target:
-            path = self.get_compileropt_value('incremental_cache_dir', target, subproject)
-            assert isinstance(path, str)
+            key = self.form_compileropt_key('incremental_cache_dir', subproject)
+            path = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
             if not path:
                 # rustc locks the incremental directory while it runs, so give
                 # each target its own to avoid clashes between parallel builds.
