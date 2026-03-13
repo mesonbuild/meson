@@ -1856,7 +1856,10 @@ class NinjaBackend(backends.Backend):
 
         for src in target.get_sources():
             if src.endswith('.pyx'):
-                output = os.path.join(self.get_target_private_dir(target), f'{src}.{ext}')
+                # Use basename to avoid too nested targets which can cause a
+                # problem with MAX_PATH on Windows
+                basename = os.path.basename(src.fname)
+                output = os.path.join(self.get_target_private_dir(target), f'{basename}.{ext}')
                 element = NinjaBuildElement(
                     self.all_outputs, [output],
                     self.compiler_to_rule_name(cython),
@@ -1877,7 +1880,10 @@ class NinjaBackend(backends.Backend):
                 else:
                     ssrc = os.path.join(gen.get_builddir(), ssrc)
                 if ssrc.endswith('.pyx'):
-                    output = os.path.join(self.get_target_private_dir(target), f'{ssrc}.{ext}')
+                    # Use basename to avoid too nested targets which can cause
+                    # a problem with MAX_PATH on Windows
+                    basename = os.path.basename(ssrc)
+                    output = os.path.join(self.get_target_private_dir(target), f'{basename}.{ext}')
                     element = NinjaBuildElement(
                         self.all_outputs, [output],
                         self.compiler_to_rule_name(cython),
