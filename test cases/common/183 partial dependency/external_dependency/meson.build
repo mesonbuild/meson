@@ -1,8 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright © 2024 Intel Corporation
 
-# TODO: don't use compile whenever we get includes and compile args separated
-dep_zlib_sub = dep_zlib.partial_dependency(compile_args : true, includes : true)
+dep_zlib_sub = dep_zlib.partial_dependency(includes : true)
 
 executable(
   'zlib header only test',
