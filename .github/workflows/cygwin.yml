@@ -48,7 +48,7 @@ jobs:
       MESON_CI_JOBNAME: cygwin-${{ matrix.NAME }}
       GIST_ID: 3540b45017d28254b9b3805472340adf
       # GitHub PAT with gist write permission
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GIST_TOKEN }}
 
     steps:
       # remove inheritable permissions since they break assumptions testsuite
