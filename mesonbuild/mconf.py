@@ -338,10 +338,19 @@ class Conf:
         mismatching = self.coredata.get_nondefault_buildtype_args()
         if not mismatching:
             return
-        mlog.log("\nThe following option(s) have a different value than the build type default\n")
-        mlog.log('               current   default')
-        for m in mismatching:
-            mlog.log(f'{m[0]:21}{m[1]:10}{m[2]:10}')
+        items = [(stringify(m[0]), stringify(m[1]), stringify(m[2])) for m in mismatching]
+        max_name_len = max(len(item[0]) for item in items)
+        max_current_len = max(len(item[1]) for item in items)
+        padding1 = ' ' * (max_name_len + 1)
+        padding2 = ' ' * (max_current_len - len('Current'))
+        mlog.log("\nThe following option(s) have a different value than the build type default:\n")
+        mlog.log(' ', padding1, mlog.cyan('Current'), padding2, mlog.cyan('Default'))
+        mlog.log(' ', padding1, '-' * len('Current'), padding2, '-' * len('Default'))
+        for item in items:
+            name, current, default = item
+            padding1 = ' ' * (max_name_len - len(name))
+            padding2 = ' ' * (max(max_current_len, len('Current')) - len(current))
+            mlog.log(' ', mlog.green(name), padding1, mlog.yellow(current), padding2, mlog.blue(default))
 
     def print_augments(self) -> None:
         if self.coredata.optstore.augments:
