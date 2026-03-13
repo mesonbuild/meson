@@ -112,6 +112,11 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         return ['-diag-error', '1292']
 
 
+class IntelLLVMLikeCompiler:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
+        return ['-qopenmp']
+
+
 class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     """Abstractions for ICL, the Intel compiler on Windows."""
