@@ -51,6 +51,7 @@ if T.TYPE_CHECKING:
         destdir: str
         dry_run: bool
         skip_subprojects: str
+        skip_if_not_found: bool
         tags: str
         strip: bool
 
@@ -82,6 +83,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Doesn\'t actually install, but print logs. (Since 0.57.0)')
     parser.add_argument('--skip-subprojects', nargs='?', const='*', default='',
                         help='Do not install files from given subprojects. (Since 0.58.0)')
+    parser.add_argument('--skip-if-not-found', action='store_true',
+                        help='Skip installing target if it was not built. (Since 1.9.0)')
     parser.add_argument('--tags', default=None,
                         help='Install only targets having one of the given tags. (Since 0.60.0)')
     parser.add_argument('--strip', action='store_true',
@@ -313,6 +316,7 @@ class Installer:
         # ['*'] means skip all,
         # ['sub1', ...] means skip only those.
         self.skip_subprojects = [i.strip() for i in options.skip_subprojects.split(',')]
+        self.skip_if_not_found = options.skip_if_not_found
         self.tags = [i.strip() for i in options.tags.split(',')] if options.tags else None
 
     def remove(self, *args: T.Any, **kwargs: T.Any) -> None:
@@ -745,7 +749,7 @@ class Installer:
                 continue
             if not os.path.exists(t.fname):
                 # For example, import libraries of shared modules are optional
-                if t.optional:
+                if t.optional or self.skip_if_not_found:
                     self.log(f'File {t.fname!r} not found, skipping')
                     continue
                 else:
