@@ -221,9 +221,11 @@ known_library_kwargs = (
     {f'{l}_static_args' for l in compilers.all_languages - {'java'}}
 )
 
+known_exe_kwargs = build.known_exe_kwargs | {'gui_app'}
+
 known_build_target_kwargs = (
     known_library_kwargs |
-    build.known_exe_kwargs |
+    known_exe_kwargs |
     build.known_jar_kwargs |
     {'target_type'}
 )
@@ -1879,7 +1881,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         nkwargs['rust_crate_type'] = 'cdylib'
         return nkwargs
 
-    @permittedKwargs(build.known_exe_kwargs)
+    @permittedKwargs(known_exe_kwargs)
     @typed_pos_args('executable', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('executable', *EXECUTABLE_KWS)
     def func_executable(self, node: mparser.BaseNode,
@@ -2754,7 +2756,12 @@ class Interpreter(InterpreterBase, HoldableObject):
             output = outputs[0]
             if depfile:
                 depfile = mesonlib.substitute_values([depfile], values)[0]
-        ofile_rpath = os.path.join(self.subdir, output)
+
+        # Validate build_subdir
+        build_subdir = kwargs['build_subdir']
+        self.validate_build_subdir(build_subdir, output)
+
+        ofile_rpath = os.path.join(self.subdir, build_subdir, output)
         if ofile_rpath in self.configure_file_outputs:
             mesonbuildfile = os.path.join(self.subdir, 'meson.build')
             current_call = f"{mesonbuildfile}:{self.current_node.lineno}"
@@ -2763,12 +2770,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             self.configure_file_outputs[ofile_rpath] = self.current_node.lineno
 
-        # Validate build_subdir
-        build_subdir = kwargs['build_subdir']
-        self.validate_build_subdir(build_subdir, output)
-
-        (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, build_subdir, output))
-        ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
+        ofile_path, ofile_fname = os.path.split(ofile_rpath)
+        ofile_abs = os.path.join(self.environment.build_dir, ofile_rpath)
         os.makedirs(os.path.split(ofile_abs)[0], exist_ok=True)
 
         # Perform the appropriate action
@@ -2781,7 +2784,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                         raise InvalidArguments(
                             f'"configuration_data": initial value dictionary key "{k!r}"" must be "str | int | bool", not "{v!r}"')
                 conf = build.ConfigurationData(conf)
-            mlog.log('Configuring', mlog.bold(output), 'using configuration')
+            mlog.log('Configuring', mlog.bold(os.path.join(build_subdir, output)), 'using configuration')
             if len(inputs) > 1:
                 raise InterpreterException('At most one input file can given in configuration mode')
             if inputs:
@@ -3312,11 +3315,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         build_subdir = tobj.get_build_subdir()
         self.validate_build_subdir(build_subdir, name)
 
-        self.validate_forbidden_targets(name)
+        subdir = tobj.get_builddir()
+        if not subdir:
+            self.validate_forbidden_targets(name)
+
         # To permit an executable and a shared library to have the
         # same name, such as "foo.exe" and "libfoo.a".
         idname = tobj.get_id()
-        subdir = tobj.get_builddir()
         namedir = (name, subdir)
 
         if idname in self.build.targets:
@@ -3566,11 +3571,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             if missing:
                 raise InvalidArguments('The following PCH files do not exist: {}'.format(', '.join(missing)))
 
-        # Filter out kwargs from other target types. For example 'soversion'
-        # passed to library() when default_library == 'static'.
-        extra_excludes = {'language_args', 'install_vala_header', 'install_vala_vapi', 'install_vala_gir'}
-        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs | extra_excludes}
-
         srcs: T.List['SourceInputs'] = []
         struct: T.Optional[build.StructuredSources] = build.StructuredSources()
         for s in sources:
@@ -3672,6 +3672,13 @@ class Interpreter(InterpreterBase, HoldableObject):
 
             if kwargs['vala_gir'] is None and kwargs['install_vala_gir']:
                 raise InvalidArguments('Cannot set `install_vala_gir` without `vala_gir`')
+
+        # Filter out kwargs from other target types. For example 'soversion'
+        # passed to library() when default_library == 'static'.
+        extra_excludes = {'language_args', 'install_vala_header', 'install_vala_vapi', 'install_vala_gir',
+                          'install_vala_header_dir', 'install_vala_vapi_dir', 'install_vala_gir_dir'}
+        print({k: v for k, v in kwargs.items() if k not in targetclass.known_kwargs and k not in extra_excludes})
+        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs | extra_excludes}
 
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
                              self.environment, self.compilers[for_machine], kwargs)

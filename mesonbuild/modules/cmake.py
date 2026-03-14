@@ -12,6 +12,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleObject, ModuleInfo
 from .. import build, mesonlib, mlog, dependencies
 from ..options import OptionKey
 from ..cmake import TargetOptions, cmake_defines_to_args
+from ..dependencies.cmake import CMakeDependency
 from ..interpreter import SubprojectHolder
 from ..interpreter.type_checking import REQUIRED_KW, INSTALL_DIR_KW, INCLUDE_TYPE, NoneType, in_set_validator
 from ..interpreterbase import (
@@ -272,8 +273,16 @@ class CmakeModule(ExtensionModule):
         if not cmakebin.found():
             return False
 
-        p, stdout, stderr = mesonlib.Popen_safe(cmakebin.get_command() + ['--system-information', '-G', 'Ninja'])[0:3]
-        if p.returncode != 0:
+        # Try different CMake generators since specifying no generator may fail
+        # in cygwin for some reason
+        for gen in CMakeDependency.class_cmake_generators:
+            cmd = cmakebin.get_command() + ['--system-information']
+            if gen:
+                cmd += ['-G', gen]
+            p, stdout, stderr = mesonlib.Popen_safe(cmd)[0:3]
+            if p.returncode == 0:
+                break
+        else:
             mlog.log(f'error retrieving cmake information: returnCode={p.returncode} stdout={stdout} stderr={stderr}')
             return False
 
