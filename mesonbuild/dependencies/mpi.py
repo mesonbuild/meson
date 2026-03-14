@@ -109,8 +109,12 @@ class MPIConfigToolDependency(ConfigToolDependency):
         if not self.is_found:
             return
 
-        # --showme for OpenMPI, -compile_info/-link_info for MPICH and IntelMPI
-        for comp, link in [('--showme:compile', '--showme:link'), ('-compile_info', '-link_info'), ('-show', None)]:
+        for comp, link in [
+            ('--showme:compile', '--showme:link'),  # for OpenMPI
+            ('-show-compile-info', '-show-link-info'),  # for MPICH and Intel MPI
+            ('-compile_info', '-link_info'),  # for older MPICH and Intel MPI
+            ('-show', None),
+        ]:
             try:
                 c_args = self.get_config_value([comp], 'compile_args')
                 l_args = self.get_config_value([link], 'link_args') if link is not None else c_args
