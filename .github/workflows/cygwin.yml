@@ -27,6 +27,7 @@ on:
   # Try to ratchet circa forward weekly (every Sunday)
   schedule:
     - cron: '0 0 * * 0'
+    - cron: '0 0 * * *'
 
 permissions:
   contents: read
@@ -34,7 +35,7 @@ permissions:
 jobs:
   test:
     # do not run the weekly scheduled job in a fork
-    if: github.event_name != 'schedule' || github.repository == 'mesonbuild/meson'
+    #if: github.event_name != 'schedule' || github.repository == 'mesonbuild/meson'
 
     runs-on: windows-latest
     name: ${{ matrix.NAME }}
