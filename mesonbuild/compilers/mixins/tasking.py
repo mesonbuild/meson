@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import typing as T
 
+from ...compilers.compilers import SimplePrefixLinkerOptionStyle
 from ...mesonlib import EnvironmentException
 from ...options import OptionKey
 
@@ -48,7 +49,7 @@ class TaskingCompiler(Compiler):
     Functionality that is common to all TASKING family compilers.
     '''
 
-    LINKER_PREFIX = '-Wl'
+    LINKER_OPTION_STYLE = SimplePrefixLinkerOptionStyle('-Wl')
 
     def __init__(self) -> None:
         if not self.is_cross:
