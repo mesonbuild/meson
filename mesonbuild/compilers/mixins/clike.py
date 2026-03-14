@@ -1145,8 +1145,9 @@ class CLikeCompiler(Compiler):
                     # libraries which are trusted to be linkable), skip the
                     # potentially expensive link check and just verify that the
                     # file exists.
-                    extra_args = [trial] + lcargs
-                    if skip_link_check or self.links(code, extra_args=extra_args, disable_cache=True)[0]:
+                    shared_link_args = self.get_std_shared_lib_link_args()
+                    extra_args = [trial] + lcargs + shared_link_args + self.get_pic_args()
+                    if skip_link_check or not shared_link_args or libtype == LibType.STATIC or self.links(code, extra_args=extra_args, disable_cache=True)[0]:
                         trial_result = trial
                         break
 
