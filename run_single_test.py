@@ -15,7 +15,7 @@ import typing as T
 from mesonbuild import mlog
 from mesonbuild.mesonlib import is_windows
 from run_tests import handle_meson_skip_test
-from run_project_tests import TestDef, load_test_json, run_test, BuildStep
+from run_project_tests import TestDef, TestCategory, load_test_json, run_test, BuildStep
 from run_project_tests import setup_commands, detect_system_compiler, detect_tools
 from run_project_tests import scan_test_data_symlinks, setup_symlinks, clear_transitive_files
 
@@ -54,8 +54,9 @@ def main() -> None:
         detect_system_compiler(args)
     detect_tools(not args.quick)
 
-    test = TestDef(args.case, args.case.stem, [])
-    tests = load_test_json(test, False)
+    cat = TestCategory(args.case.stem, args.case.stem, False, False)
+    test = TestDef(args.case, None, [], False, cat)
+    tests = load_test_json(test, cat)
     if args.subtests:
         tests = [t for i, t in enumerate(tests) if i in args.subtests]
 

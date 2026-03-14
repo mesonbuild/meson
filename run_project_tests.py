@@ -269,17 +269,17 @@ class InstalledFile:
 
 @functools.total_ordering
 class TestDef:
-    def __init__(self, path: Path, name: T.Optional[str], args: T.List[str], skip: bool = False, skip_category: bool = False):
-        self.category = path.parts[1]
-        self.path = path
-        self.name = name
+    def __init__(self, path: Path, name: T.Optional[str], args: T.List[str], skip: bool, category: TestCategory):
+        self.category = category.category
+        self.path: Path = path
+        self.name = name  # matrix instance name or None
         self.args = args
         self.skip = skip
         self.env = os.environ.copy()
         self.installed_files: T.List[InstalledFile] = []
         self.do_not_set_opts: T.List[str] = []
         self.stdout: T.List[T.Dict[str, str]] = []
-        self.skip_category = skip_category
+        self.skip_category = category.skip
         self.skip_expected = False
         self.cleanup: T.List[str] = []
 
@@ -829,7 +829,7 @@ def _skip_keys(test_def: T.Dict) -> T.Tuple[bool, bool]:
     return (skip, skip_expected)
 
 
-def load_test_json(t: TestDef, stdout_mandatory: bool, skip_category: bool = False) -> T.List[TestDef]:
+def load_test_json(t: TestDef, c: TestCategory) -> T.List[TestDef]:
     all_tests: T.List[TestDef] = []
     test_def = {}
     test_def_file = t.path / 'test.json'
@@ -853,7 +853,7 @@ def load_test_json(t: TestDef, stdout_mandatory: bool, skip_category: bool = Fal
 
     # Handle expected output
     stdout = test_def.get('stdout', [])
-    if stdout_mandatory and not stdout:
+    if c.stdout_mandatory and not stdout:
         raise RuntimeError(f"{test_def_file} must contain a non-empty stdout key")
 
     # Handle the do_not_set_opts list
@@ -942,7 +942,7 @@ def load_test_json(t: TestDef, stdout_mandatory: bool, skip_category: bool = Fal
         opts = [f'-D{x[0]}={x[1]}' for x in i if x[1] is not None]
         skip = any([x[2] for x in i])
         skip_expected = any([x[3] for x in i])
-        test = TestDef(t.path, name, opts, skip or t.skip, skip_category)
+        test = TestDef(t.path, name, opts, skip or t.skip, c)
         test.env.update(env)
         test.installed_files = installed
         test.do_not_set_opts = do_not_set_opts
@@ -955,7 +955,7 @@ def load_test_json(t: TestDef, stdout_mandatory: bool, skip_category: bool = Fal
     return all_tests
 
 
-def gather_tests(testdir: Path, stdout_mandatory: bool, only: T.List[str], skip_category: bool) -> T.List[TestDef]:
+def gather_tests(testdir: Path, category: TestCategory, only: T.List[str]) -> T.List[TestDef]:
     all_tests: T.List[TestDef] = []
     for t in testdir.iterdir():
         # Filter non-tests files (dot files, etc)
@@ -965,8 +965,8 @@ def gather_tests(testdir: Path, stdout_mandatory: bool, only: T.List[str], skip_
             continue
         if only and not any(t.name.startswith(prefix) for prefix in only):
             continue
-        test_def = TestDef(t, None, [], skip_category=skip_category)
-        all_tests.extend(load_test_json(test_def, stdout_mandatory, skip_category))
+        test_def = TestDef(t, None, [], False, category)
+        all_tests.extend(load_test_json(test_def, category))
     return sorted(all_tests)
 
 
@@ -1019,6 +1019,13 @@ def should_skip_wayland() -> bool:
         return True
     return False
 
+class TestCategory:
+    def __init__(self, category: str, subdir: str, skip: bool = False, stdout_mandatory: bool = False):
+        self.category = category                  # category name
+        self.subdir = subdir                      # subdirectory
+        self.skip = skip                          # skip condition
+        self.stdout_mandatory = stdout_mandatory  # expected stdout is mandatory for tests in this category
+
 def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List[T.Tuple[str, T.List[TestDef], bool]]:
     """
     Parameters
@@ -1035,13 +1042,6 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
     skip_cmake = ((os.environ.get('compiler') == 'msvc2015' and under_ci) or
                   'cmake' not in tool_vers_map or
                   not mesonlib.version_compare(tool_vers_map['cmake'], '>=3.14'))
-
-    class TestCategory:
-        def __init__(self, category: str, subdir: str, skip: bool = False, stdout_mandatory: bool = False):
-            self.category = category                  # category name
-            self.subdir = subdir                      # subdirectory
-            self.skip = skip                          # skip condition
-            self.stdout_mandatory = stdout_mandatory  # expected stdout is mandatory for tests in this category
 
     all_tests = [
         TestCategory('cmake', 'cmake', skip_cmake),
@@ -1086,7 +1086,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
     if only:
         all_tests = [t for t in all_tests if t.category in only]
 
-    gathered_tests = [(t.category, gather_tests(Path('test cases', t.subdir), t.stdout_mandatory, only[t.category], t.skip), t.skip) for t in all_tests]
+    gathered_tests = [(t.category, gather_tests(Path('test cases', t.subdir), t, only[t.category]), t.skip) for t in all_tests]
     return gathered_tests
 
 def run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
@@ -1178,7 +1178,8 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 
     # First, collect and start all tests and also queue log messages
     for name, test_cases, skipped in all_tests:
-        current_suite = ET.SubElement(junit_root, 'testsuite', {'name': name, 'tests': str(len(test_cases))})
+        ET.SubElement(junit_root, 'testsuite', {'name': name, 'tests': str(len(test_cases))})
+
         if skipped:
             futures += [LogRunFuture(['\n', bold(f'Not running {name} tests.'), '\n'])]
             continue
@@ -1273,6 +1274,8 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         if is_skipped:
             skipped_tests += 1
 
+        current_suite = junit_root.find(f"./testsuite[@name='{t.category}']")
+
         if is_skipped and skip_as_expected:
             f.update_log(TestStatus.SKIP)
             if not t.skip_category:
@@ -1349,12 +1352,12 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         conf_time += result.conftime
         build_time += result.buildtime
         test_time += result.testtime
-        total_time = conf_time + build_time + test_time
+        testcase_time = result.conftime + result.buildtime + result.testtime
         log_text_file(logfile, t.path, result)
         current_test = ET.SubElement(
             current_suite,
             'testcase',
-            {'name': testname, 'classname': t.category, 'time': '%.3f' % total_time}
+            {'name': testname, 'classname': t.category, 'time': '%.3f' % testcase_time}
         )
         if result.msg != '':
             ET.SubElement(current_test, 'failure', {'message': result.msg})
