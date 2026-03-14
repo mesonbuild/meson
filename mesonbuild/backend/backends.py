@@ -1958,8 +1958,6 @@ class Backend:
             for j in source_list_raw:
                 if isinstance(j, mesonlib.File):
                     source_list += [j.absolute_path(self.source_dir, self.build_dir)]
-                elif isinstance(j, str):
-                    source_list += [os.path.join(self.source_dir, target.subdir, j)]
                 elif isinstance(j, (build.CustomTarget, build.BuildTarget)):
                     source_list += [os.path.join(self.build_dir, j.get_builddir(), o) for o in j.get_outputs()]
             source_list = [os.path.normpath(s) for s in source_list]
@@ -1967,17 +1965,17 @@ class Backend:
             compiler: T.List[str] = []
             if isinstance(target, build.CustomTarget):
                 tmp_compiler = target.command
-                for j in tmp_compiler:
-                    if isinstance(j, mesonlib.File):
-                        compiler += [j.absolute_path(self.source_dir, self.build_dir)]
-                    elif isinstance(j, str):
-                        compiler += [j]
-                    elif isinstance(j, (build.BuildTarget, build.CustomTarget)):
-                        compiler += j.get_outputs()
-                    elif isinstance(j, programs.Program):
-                        compiler += j.get_command()
+                for k in tmp_compiler:
+                    if isinstance(k, mesonlib.File):
+                        compiler += [k.absolute_path(self.source_dir, self.build_dir)]
+                    elif isinstance(k, str):
+                        compiler += [k]
+                    elif isinstance(k, (build.BuildTarget, build.CustomTarget)):
+                        compiler += k.get_outputs()
+                    elif isinstance(k, programs.Program):
+                        compiler += k.get_command()
                     else:
-                        raise RuntimeError(f'Type "{type(j).__name__}" is not supported in get_introspection_data. This is a bug')
+                        raise RuntimeError(f'Type "{type(k).__name__}" is not supported in get_introspection_data. This is a bug')
 
             return [{
                 'language': 'unknown',

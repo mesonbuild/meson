@@ -152,10 +152,10 @@ class WindowsModule(ExtensionModule):
 
         res_targets: T.List[build.CustomTarget] = []
 
-        def get_names() -> T.Iterable[T.Tuple[str, str, T.Union[str, mesonlib.File, build.CustomTargetIndex]]]:
+        def get_names() -> T.Iterable[T.Tuple[str, str, T.Union[mesonlib.File, build.CustomTargetIndex]]]:
             for src in args[0]:
                 if isinstance(src, str):
-                    yield os.path.join(state.subdir, src), src, src
+                    yield os.path.join(state.subdir, src), src, mesonlib.File.from_source_file(state.environment.source_dir, state.subdir, src)
                 elif isinstance(src, mesonlib.File):
                     yield src.relative_name(), src.fname, src
                 elif isinstance(src, build.CustomTargetIndex):
