@@ -54,6 +54,7 @@ modules = [
     'mesonbuild/mlog.py',
     'mesonbuild/msubprojects.py',
     'mesonbuild/modules/__init__.py',
+    'mesonbuild/modules/android.py',
     'mesonbuild/modules/cmake.py',
     'mesonbuild/modules/codegen.py',
     'mesonbuild/modules/cuda.py',

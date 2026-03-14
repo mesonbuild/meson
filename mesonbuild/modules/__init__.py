@@ -79,11 +79,13 @@ class ModuleState:
                      required: bool = True,
                      version_func: T.Optional[ProgramVersionFunc] = None,
                      wanted: T.Union[str, T.List[str]] = '', silent: bool = False,
+                     search_dirs: T.Optional[T.List[str]] = None,
                      for_machine: MachineChoice = MachineChoice.HOST) -> Program:
         if not isinstance(prog, list):
             prog = [prog]
         return self._interpreter.find_program_impl(prog, required=required, version_func=version_func,
-                                                   wanted=wanted, silent=silent, for_machine=for_machine)
+                                                   wanted=wanted, silent=silent, search_dirs=search_dirs,
+                                                   for_machine=for_machine)
 
     def find_tool(self, name: str, depname: str, varname: str, required: bool = True,
                   wanted: T.Optional[str] = None, native: bool = True) -> Program:
