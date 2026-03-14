@@ -1,0 +1,5 @@
+#include "main.config.h"
+
+int main(void) {
+    return CONFIG_VALUE;
+}
