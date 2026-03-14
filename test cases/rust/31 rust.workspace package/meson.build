@@ -6,12 +6,26 @@ cargo_ws = rust.workspace()
 # Test workspace.packages() method
 assert(cargo_ws.packages() == ['answer', 'hello', 'package_test'])
 
+main_pkg = cargo_ws.package()
+assert(main_pkg.name() == 'package_test')
+assert(main_pkg.version() == '0.1.0')
+assert(main_pkg.api() == '0.1')
+assert(main_pkg.all_features() == ['answer', 'default', 'feature1', 'feature2'])
+assert(main_pkg.features() == ['default', 'feature1'])
+
 hello_rs = cargo_ws.subproject('hello')
 assert(hello_rs.name() == 'hello')
 assert(hello_rs.version() == '1.0.0')
 assert(hello_rs.api() == '1')
 assert(hello_rs.all_features() == ['default', 'goodbye'])
 assert(hello_rs.features() == ['default', 'goodbye'])
+
+e = executable('package-test', 'src/main.rs',
+  dependencies: main_pkg.dependencies(),
+  rust_args: main_pkg.rust_args(),
+  rust_dependency_map: main_pkg.rust_dependency_map(),
+)
+test('package-test', e)
 
 answer_rs = cargo_ws.subproject('answer', '2')
 assert(answer_rs.name() == 'answer')
@@ -20,10 +34,13 @@ assert(answer_rs.api() == '2')
 assert(answer_rs.all_features() == ['default', 'large'])
 assert(answer_rs.features() == ['default', 'large'])
 
-e = executable('package-test', 'src/main.rs',
-  dependencies: [hello_rs.dependency(), answer_rs.dependency()],
-)
-test('package-test', e)
+# failure test cases for package()
+testcase expect_error('argument to package() cannot be a subproject')
+  cargo_ws.package('hello')
+endtestcase
+testcase expect_error('workspace member "nonexistent" not found')
+  cargo_ws.package('nonexistent')
+endtestcase
 
 # failure test cases for dependency()
 testcase expect_error('package.dependency.*must be one of c, proc-macro, rust.*', how: 're')
