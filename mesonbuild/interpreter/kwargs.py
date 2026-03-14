@@ -23,6 +23,11 @@ from .type_checking import PkgConfigDefineType, SourcesVarargsType
 TestArgs = T.Union[str, File, build.Target, ExternalProgram]
 RustAbi = Literal['rust', 'c']
 
+class NativeKW(TypedDict):
+
+    native: MachineChoice
+
+
 class FuncAddProjectArgs(TypedDict):
 
     """Keyword Arguments for the add_*_arguments family of arguments.
