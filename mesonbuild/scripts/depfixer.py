@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 
+import datetime
 import sys
 import os
 import stat
@@ -532,7 +533,20 @@ def fix_jar(fname: str) -> None:
     # special-casing for the manifest file, so we can re-add it as a normal
     # archive member.  This puts the manifest at the end of the jar rather
     # than the beginning, but the spec doesn't forbid that.
-    subprocess.check_call(['jar', 'ufM', fname, 'META-INF/MANIFEST.MF'])
+    source_date_epoch = os.environ.get('SOURCE_DATE_EPOCH')
+    if source_date_epoch:
+        # We want to adjust mtime for deterministic .jar file results:
+        source_date_epoch = max(int(source_date_epoch), 315529202) # zip cannot represent earlier timestamps
+        formatted_date = datetime.datetime.fromtimestamp(source_date_epoch, datetime.timezone.utc).isoformat()
+        # One cannot mix --date with old style bunched options and other jar
+        # variants seem to not understand new-style options,
+        # so we need some duplication here for maximum compatibility
+        cmd = ['jar', f'--date={formatted_date}', '-u', '-M', '-f']
+    else:
+        cmd = ['jar', 'ufM']
+
+    cmd.extend([fname, 'META-INF/MANIFEST.MF'])
+    subprocess.check_call(cmd)
 
 def fix_rpath(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Union[str, bytes], final_path: str, install_name_mappings: T.Dict[str, str], verbose: bool = True) -> None:
     global INSTALL_NAME_TOOL  # pylint: disable=global-statement
