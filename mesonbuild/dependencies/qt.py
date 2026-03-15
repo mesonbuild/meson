@@ -289,13 +289,11 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
         xspec = qvars.get('QMAKE_XSPEC', '')
         if self.env.machines.host.is_darwin() and not any(s in xspec for s in ['ios', 'tvos']):
             mlog.debug("Building for macOS, looking for framework")
-            self._framework_detect(qvars, self.requested_modules, kwargs)
+            if self._framework_detect(qvars, self.requested_modules, kwargs):
+                return
             # Sometimes Qt is built not as a framework (for instance, when using conan pkg manager)
             # skip and fall back to normal procedure then
-            if self.is_found:
-                return
-            else:
-                mlog.debug("Building for macOS, couldn't find framework, falling back to library search")
+            mlog.debug("Building for macOS, couldn't find framework, falling back to library search")
         incdir = qvars['QT_INSTALL_HEADERS']
         self.compile_args.append('-I' + incdir)
         libdir = qvars['QT_INSTALL_LIBS']
@@ -357,7 +355,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
     def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
         pass
 
-    def _framework_detect(self, qvars: T.Dict[str, str], modules: T.List[str], kwargs: DependencyObjectKWs) -> None:
+    def _framework_detect(self, qvars: T.Dict[str, str], modules: T.List[str], kwargs: DependencyObjectKWs) -> bool:
         libdir = qvars['QT_INSTALL_LIBS']
 
         # ExtraFrameworkDependency doesn't support any methods
@@ -376,13 +374,11 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
                                                             qt_version=self.version)
                 self.link_args += fwdep.get_link_args()
             else:
-                self.is_found = False
-                break
-        else:
-            self.is_found = True
-            # Used by self.compilers_detect()
-            self.bindir = get_qmake_host_bins(qvars)
-            self.libexecdir = get_qmake_host_libexecs(qvars)
+                return False
+        # Used by self.compilers_detect()
+        self.bindir = get_qmake_host_bins(qvars)
+        self.libexecdir = get_qmake_host_libexecs(qvars)
+        return True
 
     def log_info(self) -> str:
         return 'qmake'
