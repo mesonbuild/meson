@@ -1,0 +1,13 @@
+{
+  "env": {
+    "RUSTFLAGS": "-C force-frame-pointers=yes"
+  },
+  "installed": [
+    {"type": "exe", "file": "usr/bin/rust-program"},
+    {"type": "pdb", "file": "usr/bin/rust-program"},
+    {"type": "exe", "file": "usr/bin/rust-program2"},
+    {"type": "pdb", "file": "usr/bin/rust-program2"},
+    {"type": "exe", "file": "usr/bin/rust-dynamic"},
+    {"type": "pdb", "file": "usr/bin/rust-dynamic"}
+  ]
+}
