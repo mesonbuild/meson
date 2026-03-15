@@ -451,7 +451,9 @@ class RustCompiler(Compiler):
         return rustc_link_args(super().get_allow_undefined_link_args())
 
     def get_build_link_args(self, target: BuildTarget, build: build.Build) -> T.List[str]:
-        return rustc_link_args(super().get_build_link_args(target, build))
+        return rustc_link_args(build.get_project_link_args(self, target)
+                               + build.get_global_link_args(self, self.for_machine)) \
+            + self.environment.coredata.get_external_link_args(self.for_machine, self.get_language())
 
     def get_target_link_args(self, target: 'BuildTarget') -> T.List[str]:
         return rustc_link_args(super().get_target_link_args(target))
