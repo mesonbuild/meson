@@ -4777,10 +4777,7 @@ class AllPlatformTests(BasePlatformTests):
                 matches += 1
         self.assertEqual(matches, 1)
 
-    # This test no longer really makes sense. Linker flags are set in options
-    # when it is set up. Changing the compiler after the fact does not really
-    # make sense and is not supported.
-    def DISABLED_test_env_flags_to_linker(self) -> None:
+    def test_env_flags_to_linker(self) -> None:
         # Compilers that act as drivers should add their compiler flags to the
         # linker, those that do not shouldn't
         with mock.patch.dict(os.environ, {'CFLAGS': '-DCFLAG', 'LDFLAGS': '-flto'}):
@@ -4788,22 +4785,14 @@ class AllPlatformTests(BasePlatformTests):
 
             # Get the compiler so we know which compiler class to mock.
             cc =  detect_compiler_for(env, 'c', MachineChoice.HOST, True, '')
-            cc_type = type(cc)
 
             # The compiler either invokes the linker or doesn't. Act accordingly.
-            with mock.patch.object(cc_type, 'INVOKES_LINKER', True):
-                env.coredata.get_external_link_args.cache_clear()
-                cc =  detect_compiler_for(env, 'c', MachineChoice.HOST, True, '')
+            if cc.INVOKES_LINKER:
                 link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
                 self.assertEqual(sorted(link_args), sorted(['-DCFLAG', '-flto']))
-
-
-            ## And one that doesn't
-            #with mock.patch.object(cc_type, 'INVOKES_LINKER', False):
-            #    env.coredata.get_external_link_args.cache_clear()
-            #    cc =  detect_compiler_for(env, 'c', MachineChoice.HOST, True, '')
-            #    link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
-            #    self.assertEqual(sorted(link_args), sorted(['-flto']))
+            else:
+                link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
+                self.assertEqual(sorted(link_args), sorted(['-flto']))
 
     def test_install_tag(self) -> None:
         testdir = os.path.join(self.unit_test_dir, '98 install all targets')
