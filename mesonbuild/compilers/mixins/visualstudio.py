@@ -235,12 +235,14 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
                     continue
                 else:
                     i = name + '.lib'
-            elif i.startswith(('-isystem=', '-idirafter=')):
+            elif i.startswith(('-iquote=', '-isystem=', '-idirafter=')):
                 opt, i = i.split('=',  1)
                 i = cls.include_arg_to_native(opt, i)
-            elif i in {'-isystem', '-idirafter'}:
+            elif i in {'-iquote', '-isystem', '-idirafter'}:
                 prev = i
                 continue
+            elif i.startswith('-iquote'):
+                i = cls.include_arg_to_native('-iquote', i[7:])
             elif i.startswith('-isystem'):
                 i = cls.include_arg_to_native('-isystem', i[8:])
             elif i.startswith('-idirafter'):
