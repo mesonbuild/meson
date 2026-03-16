@@ -30,7 +30,7 @@ from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCod
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
-from ..interpreterbase import stringifyUserArguments
+from ..interpreterbase import stringifyUserArguments, Feature
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..optinterpreter import optname_regex
 
@@ -109,7 +109,6 @@ import collections
 import typing as T
 import textwrap
 import importlib
-import copy
 import itertools
 
 if T.TYPE_CHECKING:
@@ -171,9 +170,9 @@ class Summary:
                 elif isinstance(i, Disabler):
                     FeatureNew.single_use('disabler in summary', '0.64.0', subproject)
                     formatted_values.append(mlog.red('NO'))
-                elif isinstance(i, options.UserOption):
+                elif isinstance(i, Feature):
                     FeatureNew.single_use('feature option in summary', '0.58.0', subproject)
-                    formatted_values.append(i.printable_value())
+                    formatted_values.append(str(i))
                 else:
                     m = 'Summary value in section {!r}, key {!r}, must be string, integer, boolean, dependency, disabler, or external program'
                     raise InterpreterException(m.format(section, k))
@@ -430,7 +429,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.StructuredSources: OBJ.StructuredSourcesHolder,
             compilers.RunResult: compilerOBJ.TryRunResultHolder,
             dependencies.ExternalLibrary: OBJ.ExternalLibraryHolder,
-            options.UserFeatureOption: OBJ.FeatureOptionHolder,
+            Feature: OBJ.FeatureOptionHolder,
             envconfig.MachineInfo: OBJ.MachineHolder,
             build.ConfigurationData: OBJ.ConfigurationDataHolder,
         })
@@ -1097,11 +1096,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if self.subproject:
                     raise MesonException(f'Option {optname} does not exist for subproject {self.subproject}.')
                 raise MesonException(f'Option {optname} does not exist.')
+
         if isinstance(option_object, options.UserFeatureOption):
-            ocopy = copy.copy(option_object)
-            ocopy.name = optname
-            ocopy.value = value
-            return ocopy
+            return Feature(optname, value)
         elif optname == 'b_sanitize':
             assert isinstance(option_object, options.UserStringArrayOption)
             # To ensure backwards compatibility this always returns a string.
@@ -1838,7 +1835,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             return dependencies.NotFoundDependency(names[0], self.environment)
 
         nkwargs = T.cast('dependencies.base.DependencyObjectKWs', kwargs.copy())
-        nkwargs['required'] = required  # to replace a possible UserFeatureOption with a bool
+        nkwargs['required'] = required  # to replace a possible Feature with a bool
 
         try:
             d = df.lookup(nkwargs)

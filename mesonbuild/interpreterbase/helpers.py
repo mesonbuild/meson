@@ -2,10 +2,11 @@
 # Copyright 2013-2021 The Meson development team
 
 from __future__ import annotations
+from dataclasses import dataclass
 
 from .. import mesonlib, mparser
 from .exceptions import InterpreterException, InvalidArguments
-from ..options import UserOption
+from ..mesonlib import HoldableObject
 
 
 import collections.abc
@@ -60,8 +61,26 @@ def stringifyUserArguments(args: TYPE_var, subproject: SubProject, quote: bool =
         l = ['{} : {}'.format(stringifyUserArguments(k, subproject, True),
                               stringifyUserArguments(v, subproject, True)) for k, v in args.items()]
         return '{%s}' % ', '.join(l)
-    elif isinstance(args, UserOption):
+    elif isinstance(args, Feature):
         from .decorators import FeatureNew
         FeatureNew.single_use('User option in string format', '1.3.0', subproject)
-        return stringifyUserArguments(args.printable_value(), subproject)
+        return str(args)
     raise InvalidArguments('Value other than strings, integers, bools, options, dictionaries and lists thereof.')
+
+
+@dataclass
+class Feature(HoldableObject):
+    name: str
+    value: str
+
+    def is_enabled(self) -> bool:
+        return self.value == 'enabled'
+
+    def is_disabled(self) -> bool:
+        return self.value == 'disabled'
+
+    def is_auto(self) -> bool:
+        return self.value == 'auto'
+
+    def __str__(self) -> str:
+        return str(self.value)

@@ -11,8 +11,9 @@ from .. import compilers
 from ..build import (CustomTarget, BuildTarget,
                      CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs,
                      BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources)
-from ..options import OptionKey, UserFeatureOption
+from ..options import OptionKey
 from ..dependencies import Dependency, DependencyMethods, InternalDependency
+from ..interpreterbase import Feature
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken, FeatureDeprecated
 from ..mesonlib import (File, FileMode, MachineChoice, has_path_sep, listify, stringlistify,
                         EnvironmentVariables)
@@ -184,9 +185,9 @@ INSTALL_MODE_KW: KwargInfo[T.List[T.Union[str, bool, int]]] = KwargInfo(
     convertor=_install_mode_convertor,
 )
 
-REQUIRED_KW: KwargInfo[T.Union[bool, UserFeatureOption]] = KwargInfo(
+REQUIRED_KW: KwargInfo[T.Union[bool, Feature]] = KwargInfo(
     'required',
-    (bool, UserFeatureOption),
+    (bool, Feature),
     default=True,
     # TODO: extract_required_kwarg could be converted to a convertor
 )

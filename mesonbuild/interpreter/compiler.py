@@ -25,10 +25,9 @@ from .interpreterobjects import (extract_required_kwarg, extract_search_dirs)
 from .type_checking import INCLUDE_DIRECTORIES, REQUIRED_KW, in_set_validator, NoneType
 
 if T.TYPE_CHECKING:
-    from .. import options
     from ..interpreter import Interpreter
     from ..compilers import Compiler
-    from ..interpreterbase import TYPE_var, TYPE_kwargs
+    from ..interpreterbase import Feature, TYPE_var, TYPE_kwargs
     from .kwargs import ExtractRequired, ExtractSearchDirs
     from .interpreter import SourceOutputs
     from ..mlog import TV_LoggableList
@@ -89,7 +88,7 @@ if T.TYPE_CHECKING:
         header_include_directories: T.List[T.Union[build.IncludeDirs, str]]
         header_no_builtin_args: bool
         header_prefix: str
-        header_required: T.Union[bool, options.UserFeatureOption]
+        header_required: T.Union[bool, Feature]
 
     class PreprocessKW(TypedDict):
         output: str
