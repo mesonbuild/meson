@@ -9,14 +9,13 @@ import typing as T
 from . import ExtensionModule, ModuleInfo
 from .. import mesonlib
 from .. import mlog
-from ..options import UserFeatureOption
 from ..build import known_shmod_kwargs, CustomTarget, CustomTargetIndex, BuildTarget, GeneratedList, StructuredSources, ExtractedObjects, SharedModule
 from ..dependencies import NotFoundDependency
 from ..dependencies.detect import get_dep_identifier, find_external_dependency
 from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase
 from ..interpreter import extract_required_kwarg, primitives as P_OBJ
 from ..interpreter.interpreterobjects import ProgramHolder
-from ..interpreter.type_checking import NoneType, DEPENDENCY_KWS, PRESERVE_PATH_KW, SHARED_MOD_KWS
+from ..interpreter.type_checking import NoneType, DEPENDENCY_KWS, PRESERVE_PATH_KW, REQUIRED_KW, SHARED_MOD_KWS
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs, ContainerTypeInfo,
     InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
@@ -507,7 +506,7 @@ class PythonModule(ExtensionModule):
     @typed_pos_args('python.find_installation', optargs=[str])
     @typed_kwargs(
         'python.find_installation',
-        KwargInfo('required', (bool, UserFeatureOption), default=True),
+        REQUIRED_KW,
         KwargInfo('disabler', bool, default=False, since='0.49.0'),
         KwargInfo('modules', ContainerTypeInfo(list, str), listify=True, default=[], since='0.51.0'),
         _PURE_KW.evolve(default=True, since='0.64.0'),
