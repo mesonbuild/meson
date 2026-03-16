@@ -112,6 +112,8 @@ class RustCompiler(Compiler):
     language = 'rust'
     id = 'rustc'
 
+    USED_FOR_SEPARATE_LINKING_STEP = False
+
     _WARNING_LEVELS: T.Dict[str, T.List[str]] = {
         '0': ['--cap-lints', 'allow'],
         '1': [],
