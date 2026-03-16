@@ -9,10 +9,10 @@ from __future__ import annotations
 import os
 import typing as T
 
-from .. import compilers, environment, mesonlib, options
+from .. import compilers, environment, mesonlib
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
-from ..interpreterbase import InvalidArguments, SubProject, UnknownValue
+from ..interpreterbase import InvalidArguments, SubProject, UnknownValue, FeatureObject
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
 from ..mparser import BaseNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
@@ -149,8 +149,8 @@ class IntrospectionInterpreter(AstInterpreter):
     def func_add_languages(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> UnknownValue:
         kwargs = self.flatten_kwargs(kwargs)
         required = kwargs.get('required', True)
-        assert isinstance(required, (bool, options.UserFeatureOption, UnknownValue)), 'for mypy'
-        if isinstance(required, options.UserFeatureOption):
+        assert isinstance(required, (bool, FeatureObject, UnknownValue)), 'for mypy'
+        if isinstance(required, FeatureObject):
             required = required.is_enabled()
         if 'native' in kwargs:
             native = kwargs.get('native', False)

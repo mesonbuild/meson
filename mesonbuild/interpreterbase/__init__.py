@@ -25,6 +25,7 @@ __all__ = [
     'flatten',
     'resolve_second_level_holders',
     'stringifyUserArguments',
+    'FeatureObject',
 
     'noPosargs',
     'noKwargs',
@@ -125,6 +126,7 @@ from .helpers import (
     flatten,
     resolve_second_level_holders,
     stringifyUserArguments,
+    FeatureObject,
 )
 from .interpreterbase import InterpreterBase
 from .operator import MesonOperator

@@ -22,7 +22,7 @@ if meson.can_run_host_binaries()
   assert(res.stderr() == '')
 endif
 
-testcase expect_error('''compiler.compiles keyword argument 'required' was of type str but should have been one of: bool, UserFeatureOption''')
+testcase expect_error('''compiler.compiles keyword argument 'required' was of type str but should have been one of: bool, FeatureObject''')
   cc.compiles(valid, name: 'valid', required : 'not a bool')
 endtestcase
 
