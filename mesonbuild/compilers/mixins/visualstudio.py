@@ -209,12 +209,16 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     @classmethod
     def unix_args_to_native(cls, args: T.List[str]) -> T.List[str]:
         result: T.List[str] = []
+        prev = None
         for i in args:
+            if prev:
+                i = '/I' + i
+                prev = None
             # -mms-bitfields is specific to MinGW-GCC
             # -pthread is only valid for GCC
-            if i in {'-mms-bitfields', '-pthread'}:
+            elif i in {'-mms-bitfields', '-pthread'}:
                 continue
-            if i.startswith('-LIBPATH:'):
+            elif i.startswith('-LIBPATH:'):
                 i = '/LIBPATH:' + i[9:]
             elif i.startswith('-L'):
                 i = '/LIBPATH:' + i[2:]
@@ -227,6 +231,9 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
                     continue
                 else:
                     i = name + '.lib'
+            elif i in {'-isystem', '-idirafter'}:
+                prev = i
+                continue
             elif i.startswith('-isystem'):
                 # just use /I for -isystem system include path s
                 if i.startswith('-isystem='):
