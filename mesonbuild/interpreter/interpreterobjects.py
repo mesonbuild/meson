@@ -119,17 +119,13 @@ class FeatureOptionHolder(ObjectHolder[FeatureObject]):
 
     @property
     def value(self) -> str:
-        return 'disabled' if not self.held_object else self.held_object.value
+        return self.held_object.value
 
     def as_disabled(self) -> FeatureObject:
-        disabled = copy.deepcopy(self.held_object)
-        disabled.value = 'disabled'
-        return disabled
+        return FeatureObject(self.held_object.name, 'disabled')
 
     def as_enabled(self) -> FeatureObject:
-        enabled = copy.deepcopy(self.held_object)
-        enabled.value = 'enabled'
-        return enabled
+        return FeatureObject(self.held_object.name, 'enabled')
 
     @noPosargs
     @noKwargs
@@ -158,7 +154,7 @@ class FeatureOptionHolder(ObjectHolder[FeatureObject]):
 
     def _disable_if(self, condition: bool, message: T.Optional[str]) -> FeatureObject:
         if not condition:
-            return copy.deepcopy(self.held_object)
+            return self.held_object
 
         if self.value == 'enabled':
             err_msg = f'Feature {self.held_object.name} cannot be enabled'
@@ -196,7 +192,7 @@ class FeatureOptionHolder(ObjectHolder[FeatureObject]):
     @InterpreterObject.method('enable_if')
     def enable_if_method(self, args: T.Tuple[bool], kwargs: 'kwargs.FeatureOptionRequire') -> FeatureObject:
         if not args[0]:
-            return copy.deepcopy(self.held_object)
+            return self.held_object
 
         if self.value == 'disabled':
             err_msg = f'Feature {self.held_object.name} cannot be disabled'
@@ -210,14 +206,14 @@ class FeatureOptionHolder(ObjectHolder[FeatureObject]):
     @typed_pos_args('feature_option.disable_auto_if', bool)
     @InterpreterObject.method('disable_auto_if')
     def disable_auto_if_method(self, args: T.Tuple[bool], kwargs: TYPE_kwargs) -> FeatureObject:
-        return copy.deepcopy(self.held_object) if self.value != 'auto' or not args[0] else self.as_disabled()
+        return self.held_object if self.value != 'auto' or not args[0] else self.as_disabled()
 
     @FeatureNew('feature_option.enable_auto_if()', '1.1.0')
     @noKwargs
     @typed_pos_args('feature_option.enable_auto_if', bool)
     @InterpreterObject.method('enable_auto_if')
     def enable_auto_if_method(self, args: T.Tuple[bool], kwargs: TYPE_kwargs) -> FeatureObject:
-        return self.as_enabled() if self.value == 'auto' and args[0] else copy.deepcopy(self.held_object)
+        return self.as_enabled() if self.value == 'auto' and args[0] else self.held_object
 
 
 class RunProcess(MesonInterpreterObject):
