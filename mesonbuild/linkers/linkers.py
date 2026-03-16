@@ -1489,7 +1489,7 @@ class VisualStudioLikeLinkerMixin(DynamicLinkerBase):
     def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
         # With MSVC, DLLs only export symbols that are explicitly exported,
         # so if a module defs file is specified, we use that to export symbols
-        return ['/DEF:' + defsfile]
+        return self._apply_prefix(['/DEF:' + defsfile])
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
                         soversion: str, darwin_versions: T.Tuple[str, str]
