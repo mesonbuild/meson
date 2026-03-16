@@ -12,7 +12,6 @@ import typing as T
 
 from .. import build
 from .. import dependencies
-from .. import options
 from .. import mesonlib
 from .. import mlog
 from ..compilers import SUFFIX_TO_LANG, RunResult
@@ -26,6 +25,7 @@ from .interpreterobjects import (extract_required_kwarg, extract_search_dirs)
 from .type_checking import INCLUDE_DIRECTORIES, REQUIRED_KW, in_set_validator, NoneType
 
 if T.TYPE_CHECKING:
+    from .. import options
     from ..interpreter import Interpreter
     from ..compilers import Compiler
     from ..interpreterbase import TYPE_var, TYPE_kwargs
@@ -666,7 +666,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @typed_pos_args('compiler.find_library', str)
     @typed_kwargs(
         'compiler.find_library',
-        KwargInfo('required', (bool, options.UserFeatureOption), default=True),
+        REQUIRED_KW,
         KwargInfo('has_headers', ContainerTypeInfo(list, str), listify=True, default=[], since='0.50.0'),
         KwargInfo('static', (bool, NoneType), since='0.51.0'),
         KwargInfo('disabler', bool, default=False, since='0.49.0'),
