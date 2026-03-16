@@ -239,9 +239,6 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
                     i = '/I' + i[11:]
                 else:
                     i = '/I' + i[10:]
-            # -pthread in link flags is only used on Linux
-            elif i == '-pthread':
-                continue
             # cl.exe does not allow specifying both, so remove /utf-8 that we
             # added automatically in the case the user overrides it manually.
             elif (i.startswith('/source-charset:')
