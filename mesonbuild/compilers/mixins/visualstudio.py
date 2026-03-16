@@ -104,7 +104,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         'everything': ['/Wall'],
     }
 
-    INVOKES_LINKER = False
+    USED_FOR_SEPARATE_LINKING_STEP = False
 
     def __init__(self, target: str):
         self.base_options = {OptionKey(o) for o in ['b_pch', 'b_ndebug', 'b_vscrt']} # FIXME add lto, pgo and the like

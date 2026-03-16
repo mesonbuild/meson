@@ -611,7 +611,7 @@ class Environment:
         self.coredata.optstore.add_compiler_option(lang, argkey, cargs)
         self.coredata.optstore.add_compiler_option(lang, largkey, largs)
 
-        if comp.INVOKES_LINKER and comp_args_from_envvar:
+        if comp.USED_FOR_SEPARATE_LINKING_STEP and comp_args_from_envvar:
             # If the compiler acts as a linker driver, and we're using the
             # environment variable flags for both the compiler and linker
             # arguments, then put the compiler flags in the linker flags as well.

@@ -4786,8 +4786,9 @@ class AllPlatformTests(BasePlatformTests):
             # Get the compiler so we know which compiler class to mock.
             cc =  detect_compiler_for(env, 'c', MachineChoice.HOST, True, '')
 
-            # The compiler either invokes the linker or doesn't. Act accordingly.
-            if cc.INVOKES_LINKER:
+            # C does have a separate linking step. It can be done through the compiler
+            # driver or not; act accordingly.
+            if cc.USED_FOR_SEPARATE_LINKING_STEP:
                 link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
                 self.assertEqual(sorted(link_args), sorted(['-DCFLAG', '-flto']))
             else:
