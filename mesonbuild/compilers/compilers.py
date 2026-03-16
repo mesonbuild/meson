@@ -477,7 +477,13 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     internal_libs: T.List[str] = []
 
     LINKER_PREFIX: T.Union[None, str, T.List[str]] = None
-    INVOKES_LINKER = True
+
+    # If the compiler is used to fire a separate linking step, environment
+    # variables like CFLAGS have to be passed to the linking step as well.
+    # They do not have to be passed if the linker is invoked directly (such
+    # as for Visual Studio's LINK.EXE) or if the compilation and linking
+    # steps are one and the same (such as for Rust).
+    USED_FOR_SEPARATE_LINKING_STEP = True
 
     language: Language
     id: str

@@ -170,7 +170,7 @@ class MetrowerksCompiler(Compiler):
 
     # These compilers can actually invoke the linker, but they choke on
     # linker-specific flags. So it's best to invoke the linker directly
-    INVOKES_LINKER = False
+    USED_FOR_SEPARATE_LINKING_STEP = False
 
     def __init__(self) -> None:
         if not self.is_cross:
