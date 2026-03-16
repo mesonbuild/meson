@@ -31,6 +31,7 @@ from mesonbuild.compilers.c import ClangCCompiler, GnuCCompiler
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
+from mesonbuild.compilers.mixins.visualstudio import MSVCCompiler, ClangClCompiler
 from mesonbuild.linkers import linkers
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectHolder
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_kwargs, ContainerTypeInfo, KwargInfo
@@ -236,6 +237,38 @@ class InternalTests(unittest.TestCase):
         a = cc.compiler_args(cc.get_always_args() + ['/validate-charset-'])
         self.assertEqual(a.to_native(copy=True), ['/nologo', '/showIncludes', '/Zc:__cplusplus', '/validate-charset-'])
 
+
+    def test_msvc_unix_args_to_native(self):
+        # joined
+        self.assertEqual(MSVCCompiler.unix_args_to_native(['-isystemfoo']), ['/Ifoo'])
+        self.assertEqual(MSVCCompiler.unix_args_to_native(['-idirafterfoo']), ['/Ifoo'])
+        self.assertEqual(MSVCCompiler.unix_args_to_native(['-iquotefoo']), ['/Ifoo'])
+
+        # with = separator
+        self.assertEqual(MSVCCompiler.unix_args_to_native(['-isystem=foo']), ['/Ifoo'])
+        self.assertEqual(MSVCCompiler.unix_args_to_native(['-idirafter=foo']), ['/Ifoo'])
+        self.assertEqual(MSVCCompiler.unix_args_to_native(['-iquote=foo']), ['/Ifoo'])
+
+        # as separate argument
+        self.assertEqual(MSVCCompiler.unix_args_to_native(['-isystem', 'foo']), ['/Ifoo'])
+        self.assertEqual(MSVCCompiler.unix_args_to_native(['-idirafter', 'foo']), ['/Ifoo'])
+        self.assertEqual(MSVCCompiler.unix_args_to_native(['-iquote', 'foo']), ['/Ifoo'])
+
+    def test_clangcl_unix_args_to_native(self):
+        # joined
+        self.assertEqual(ClangClCompiler.unix_args_to_native(['-isystemfoo']), ['/clang:-isystemfoo'])
+        self.assertEqual(ClangClCompiler.unix_args_to_native(['-idirafterfoo']), ['/clang:-idirafterfoo'])
+        self.assertEqual(ClangClCompiler.unix_args_to_native(['-iquotefoo']), ['/clang:-iquotefoo'])
+
+        # with = separator
+        self.assertEqual(ClangClCompiler.unix_args_to_native(['-isystem=foo']), ['/clang:-isystemfoo'])
+        self.assertEqual(ClangClCompiler.unix_args_to_native(['-idirafter=foo']), ['/clang:-idirafterfoo'])
+        self.assertEqual(ClangClCompiler.unix_args_to_native(['-iquote=foo']), ['/clang:-iquotefoo'])
+
+        # as separate argument
+        self.assertEqual(ClangClCompiler.unix_args_to_native(['-isystem', 'foo']), ['/clang:-isystemfoo'])
+        self.assertEqual(ClangClCompiler.unix_args_to_native(['-idirafter', 'foo']), ['/clang:-idirafterfoo'])
+        self.assertEqual(ClangClCompiler.unix_args_to_native(['-iquote', 'foo']), ['/clang:-iquotefoo'])
 
     def test_compiler_args_class_gnuld(self):
         ## Test --start/end-group
