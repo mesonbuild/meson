@@ -1489,7 +1489,7 @@ class BuildTarget(Target):
         # get_internal_static_libraries(): Installed static libraries include
         # objects from all their dependencies already.
         result: OrderedSet[BuildTargetTypes] = OrderedSet()
-        visited: T.Set[BuildTargetTypes] = set()
+        visited: T.Set[T.Tuple[BuildTargetTypes, bool, bool]] = set()
         for t in itertools.chain(self.link_targets, self.link_whole_targets):
             if t not in result:
                 result.add(t)
@@ -1497,17 +1497,20 @@ class BuildTarget(Target):
                     t.get_dependencies_recurse(result, visited, handled_by_rustc=self.uses_rust())
         return result
 
-    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes], visited: T.Set[BuildTargetTypes],
+    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes],
+                                 visited: T.Set[T.Tuple[BuildTargetTypes, bool, bool]],
                                  include_internals: bool = True, handled_by_rustc: bool = False) -> None:
         # self is always a static library because we don't need to pull dependencies
         # of shared libraries. If self is installed (not internal) it already
         # include objects extracted from all its internal dependencies so we can
         # skip them.
         include_internals = include_internals and self.is_internal()
+        key = (self, include_internals, handled_by_rustc)
+        if key in visited:
+            return
+        visited.add(key)
+
         for t in self.link_targets:
-            if t in visited:
-                continue
-            visited.add(t)
             uses_rust_abi = isinstance(t, BuildTarget) and t.uses_rust_abi()
             if not handled_by_rustc and uses_rust_abi:
                 # Rules for including libraries via Rust rlibs and staticlibs are complex:
