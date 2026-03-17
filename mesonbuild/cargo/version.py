@@ -34,9 +34,20 @@ def convert(cargo_ver: str) -> T.List[str]:
     out: T.List[str] = []
 
     for ver in cargo_vers:
-        # This covers >= and =< as well
         # https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#comparison-requirements
-        if ver.startswith(('>', '<', '=')):
+        # <= 3 allows 3.0.0 where meson version compare does not
+        # So change <= into < with a bumped version
+        if ver.startswith('<='):
+            v = ver[2:].strip().split('.')
+            if len(v) == 1:
+                out.append(f'< {int(v[0]) + 1}')
+            elif len(v) == 2:
+                out.append(f'< {v[0]}.{int(v[1]) + 1}')
+            else:
+                out.append(ver)
+
+        # This covers >= as well
+        elif ver.startswith(('>', '<', '=')):
             out.append(ver)
 
         elif ver.startswith('~'):
