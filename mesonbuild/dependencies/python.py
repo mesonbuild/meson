@@ -18,6 +18,7 @@ from ..envconfig import detect_cpu_family
 from ..mesonlib import MachineChoice, path_is_in_root
 from ..programs import ExternalProgram
 from ..options import OptionKey
+from ..scripts import destdir_join
 
 if T.TYPE_CHECKING:
     from typing_extensions import Final, TypedDict
@@ -304,7 +305,7 @@ class _PythonDependencyBase(_Base):
                 raise DependencyException('Python does not provide a dynamic libpython library')
             sysroot = environment.properties[self.for_machine].get_sys_root()
             if sysroot and not path_is_in_root(Path(path), Path(sysroot)):
-                path = sysroot + path
+                path = destdir_join(sysroot, path)
             if not os.path.isfile(path):
                 raise DependencyException('Python dynamic library does not exist or is not a file')
             self.link_args = [path]
@@ -360,7 +361,7 @@ class _PythonDependencyBase(_Base):
             sysroot = environment.properties[self.for_machine].get_sys_root()
             path = self.build_config['libpython'][key]
             if sysroot and not path_is_in_root(Path(path), Path(sysroot)):
-                path = sysroot + path
+                path = destdir_join(sysroot, path)
             return [path]
 
         if self.platform.startswith('win'):
@@ -485,7 +486,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
         for_machine = kwargs['native']
         sysroot = environment.properties[for_machine].get_sys_root()
         if sysroot and not path_is_in_root(Path(pkg_libdir), Path(sysroot)):
-            pkg_libdir = sysroot + pkg_libdir
+            pkg_libdir = destdir_join(sysroot, pkg_libdir)
 
         mlog.debug(f'Searching for {pkg_libdir!r} via pkgconfig lookup in {pkg_libdir_origin}')
         pkgconfig_paths = [pkg_libdir] if pkg_libdir else []
@@ -549,7 +550,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             sysroot = environment.properties[self.for_machine].get_sys_root()
             path = self.build_config['c_api']['headers']
             if sysroot and not path_is_in_root(Path(path), Path(sysroot)):
-                path = sysroot + path
+                path = destdir_join(sysroot, path)
             inc_paths = mesonlib.OrderedSet([path])
         else:
             inc_paths = mesonlib.OrderedSet([
