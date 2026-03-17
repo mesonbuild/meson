@@ -1574,6 +1574,13 @@ def setup_symlinks() -> None:
     except OSError:
         print('symlinks are not supported on this system')
 
+def validate_only(s: str) -> str:
+    split = s.split('/', 1)
+    if split[0] not in ALL_TESTS:
+        raise argparse.ArgumentTypeError(f'invalid category {split[0]!r}; must be one of {", ".join(ALL_TESTS)}')
+    return s
+
+
 if __name__ == '__main__':
     if under_ci and not raw_ci_jobname:
         raise SystemExit('Running under CI but $MESON_CI_JOBNAME is not set (set to "thirdparty" if you are running outside of the github org)')
@@ -1602,7 +1609,7 @@ if __name__ == '__main__':
                         help='Stop running if test case fails')
     parser.add_argument('--no-unittests', action='store_true',
                         help='Not used, only here to simplify run_tests.py')
-    parser.add_argument('--only', default=[], choices=ALL_TESTS,
+    parser.add_argument('--only', default=[], type=validate_only,
                         help='name of test(s) to run, in format "category[/name]" where category is one of: ' + ', '.join(ALL_TESTS), nargs='+')
     parser.add_argument('-v', default=False, action='store_true',
                         help='Verbose mode')
