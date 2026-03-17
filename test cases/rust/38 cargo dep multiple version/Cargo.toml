@@ -1,0 +1,8 @@
+[package]
+name = "package_test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hello = { version = "3.0", path = "subprojects/hello-3.0" }
+answer = { version = "2.1", path = "subprojects/answer-2.1" }
