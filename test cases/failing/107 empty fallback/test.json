@@ -2,7 +2,7 @@
     "stdout": [
         {
             "match": "re",
-            "line": "test cases/failing/107 empty fallback/meson.build:6:0: ERROR: Dependency \"foo\" not found.*"
+            "line": "test cases/failing/107 empty fallback/meson.build:6:0: ERROR: (Dependency lookup for foo with method '.*' failed: .*|Dependency \"foo\" not found.*)"
         }
     ]
 }
