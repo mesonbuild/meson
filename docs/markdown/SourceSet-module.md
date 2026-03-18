@@ -82,7 +82,7 @@ and to query it. The source set becomes immutable after any method but
 ```meson
 source_set.add([when: varnames_and_deps],
                [if_true: sources_and_deps],
-               [if_false: list_of_alt_sources])
+               [if_false: list_of_alt_sources_and_deps])
 source_set.add(sources_and_deps)
 ```
 
@@ -100,7 +100,7 @@ and all dependencies are found, the rule will evaluate to true;
 argument in its result. Otherwise, that is if any of the strings in
 the positional arguments evaluate to false or any dependency is not
 found, `apply()` will instead use the contents of the `if_false`
-keyword argument.
+keyword argument. *Since 1.11.0* Dependencies in `if_false` are supported.
 
 Dependencies can also appear in `sources_and_deps`. In this case, a
 missing dependency will simply be ignored and will *not* disable the
@@ -109,7 +109,7 @@ build targets.
 
 **Note**: It is generally better to avoid mixing source sets and
 disablers. This is because disablers will cause the rule to be dropped
-altogether, and the `list_of_alt_sources` would not be taken into
+altogether, and the `list_of_alt_sources_and_deps` would not be taken into
 account anymore.
 
 #### `add_all()`
