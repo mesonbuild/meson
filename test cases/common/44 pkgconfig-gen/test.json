@@ -24,14 +24,14 @@
   ],
   "stdout": [
     {
-      "line": "test cases/common/44 pkgconfig-gen/meson.build:160: WARNING: Project targets '>=0.60.0' but uses feature introduced in '0.62.0': pkgconfig.generate implicit variable for builtin directories."
+      "line": "test cases/common/44 pkgconfig-gen/meson.build:161: WARNING: Project targets '>=0.60.0' but uses feature introduced in '0.62.0': pkgconfig.generate implicit variable for builtin directories."
     },
     {
-      "line": "test cases/common/44 pkgconfig-gen/meson.build:170: WARNING: Project targets '>=0.60.0' but uses feature introduced in '0.62.0': pkgconfig.generate implicit variable for builtin directories.",
+      "line": "test cases/common/44 pkgconfig-gen/meson.build:171: WARNING: Project targets '>=0.60.0' but uses feature introduced in '0.62.0': pkgconfig.generate implicit variable for builtin directories.",
       "count": 0
     },
     {
-      "line": "test cases/common/44 pkgconfig-gen/meson.build:190: DEPRECATION: Project uses feature that was always broken, and is now deprecated since '1.10.2': subdirs cannot be absolute. This never worked; absolute paths ended up in Cflags without the -I option."
+      "line": "test cases/common/44 pkgconfig-gen/meson.build:191: DEPRECATION: Project uses feature that was always broken, and is now deprecated since '1.10.2': subdirs cannot be absolute. This never worked; absolute paths ended up in Cflags without the -I option."
     },
     {
       "comment": "This will either match in the future-deprecated notice summary, or match the warning summary",
