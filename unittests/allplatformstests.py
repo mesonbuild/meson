@@ -3168,11 +3168,11 @@ class AllPlatformTests(BasePlatformTests):
                 if with_pkgconfig:
                     libpc = sysconfig.get_config_var('LIBPC')
                     if libpc is None:
-                        continue
+                        raise SkipTest('pkg-config subtest skipped because of no LIBPC')
                     python_build_config['c_api']['pkgconfig_path'] = libpc
                 # Old Ubuntu versions have incorrect LIBDIR, skip testing non-pkgconfig variant there.
                 elif not os.path.exists(python_build_config['libpython']['dynamic']):
-                    continue
+                    raise SkipTest('non-pkgconfig subtest skipped because of wrong LIBDIR')
 
                 with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as python_build_config_file:
                     json.dump(python_build_config, fp=python_build_config_file)
