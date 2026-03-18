@@ -21,6 +21,7 @@ if T.TYPE_CHECKING:
     from ...options import MutableKeyedOptionDictType
     from ...dependencies import Dependency  # noqa: F401
     from ...build import BuildTarget
+    from ...environment import Environment
     from ..compilers import Compiler
 
     CompilerMixinBase = Compiler
@@ -90,16 +91,16 @@ class ClangCompiler(GnuLikeCompiler):
         # All Clang backends can also do LLVM IR
         self.can_compile_suffixes.add('ll')
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str, env: Environment) -> T.List[str]:
         if not isinstance(self.linker, VisualStudioLikeLinkerMixin):
             return []
-        crt_val = self.get_crt_val(crt_val, buildtype)
+        crt_val = self.get_crt_val(crt_val, env)
         return self.CRT_D_ARGS[crt_val]
 
-    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_link_args(self, crt_val: str, env: Environment) -> T.List[str]:
         if not isinstance(self.linker, VisualStudioLikeLinkerMixin):
             return []
-        crt_val = self.get_crt_val(crt_val, buildtype)
+        crt_val = self.get_crt_val(crt_val, env)
         return self.CRT_ARGS[crt_val]
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:

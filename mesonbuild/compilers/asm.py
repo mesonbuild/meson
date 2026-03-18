@@ -148,16 +148,16 @@ class NasmCompiler(ASMCompiler):
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
         return parameter_list
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str, env: Environment) -> T.List[str]:
         return []
 
     # Linking ASM-only objects into an executable or DLL
     # require this, otherwise it'll fail to find
     # _WinMain or _DllMainCRTStartup.
-    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_link_args(self, crt_val: str, env: Environment) -> T.List[str]:
         if not isinstance(self.linker, VisualStudioLikeLinkerMixin):
             return []
-        return self.crt_args[self.get_crt_val(crt_val, buildtype)]
+        return self.crt_args[self.get_crt_val(crt_val, env)]
 
 class YasmCompiler(NasmCompiler):
     id = 'yasm'
@@ -233,7 +233,7 @@ class MasmCompiler(ASMCompiler):
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
         return parameter_list
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str, env: Environment) -> T.List[str]:
         return []
 
     def depfile_for_object(self, objfile: str) -> T.Optional[str]:
@@ -281,7 +281,7 @@ class MasmARMCompiler(ASMCompiler):
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
         return parameter_list
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str, env: Environment) -> T.List[str]:
         return []
 
     def get_depfile_format(self) -> str:
@@ -309,7 +309,7 @@ class TILinearAsmCompiler(TICompiler, ASMCompiler):
     def get_always_args(self) -> T.List[str]:
         return []
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str, env: Environment) -> T.List[str]:
         return []
 
     def get_depfile_suffix(self) -> str:
@@ -334,7 +334,7 @@ class MetrowerksAsmCompiler(MetrowerksCompiler, ASMCompiler):
             'everything': []}
         self.can_compile_suffixes.add('s')
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str, env: Environment) -> T.List[str]:
         return []
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
