@@ -3689,6 +3689,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             kwargs['rust_abi'], kwargs['rust_crate_type'], 'dylib', 'cdylib',
             build.SharedLibrary.typename, extra_valid_types={'proc-macro'})
 
+        final['win_subsystem'] = kwargs['win_subsystem'] or 'console'
+
         return final
 
     def __convert_shared_module_kwargs(self, node: mparser.BaseNode, kwargs: kwtypes.SharedModule) -> build.SharedModuleKeywordArguments:
@@ -3711,6 +3713,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         final['rust_crate_type'] = self._handle_rust_abi(
             kwargs['rust_abi'], kwargs['rust_crate_type'], 'dylib', 'cdylib',
             build.SharedModule.typename, extra_valid_types={'proc-macro'})
+
+        final['win_subsystem'] = kwargs['win_subsystem'] or 'console'
 
         return final
 
