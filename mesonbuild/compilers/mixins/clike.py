@@ -332,11 +332,9 @@ class CLikeCompiler(Compiler):
             # us in that case and will error out asking us to pick one.
             try:
                 crt_val = self.environment.coredata.optstore.get_value_for('b_vscrt')
-                buildtype = self.environment.coredata.optstore.get_value_for('buildtype')
                 assert isinstance(crt_val, str), 'for mypy'
-                assert isinstance(buildtype, str), 'for mypy'
-                cargs += self.get_crt_compile_args(crt_val, buildtype)
-                largs += self.get_crt_link_args(crt_val, buildtype)
+                cargs += self.get_crt_compile_args(crt_val, self.environment)
+                largs += self.get_crt_link_args(crt_val, self.environment)
             except (KeyError, AttributeError):
                 pass
 
@@ -1244,11 +1242,11 @@ class CLikeCompiler(Compiler):
         # TODO: should probably check for macOS?
         return self._find_framework_impl(name, extra_dirs, allow_system)
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str, env: Environment) -> T.List[str]:
         # TODO: does this belong here or in GnuLike or maybe PosixLike?
         return []
 
-    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_link_args(self, crt_val: str, env: Environment) -> T.List[str]:
         # TODO: does this belong here or in GnuLike or maybe PosixLike?
         return []
 
