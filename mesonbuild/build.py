@@ -137,6 +137,7 @@ if T.TYPE_CHECKING:
     class SharedModuleKeywordArguments(BuildTargetKeywordArguments, total=False):
 
         vs_module_defs: T.Union[File, CustomTarget, CustomTargetIndex]
+        win_subsystem: str
 
     class SharedLibraryKeywordArguments(SharedModuleKeywordArguments, total=False):
 
@@ -2481,6 +2482,8 @@ class SharedLibrary(BuildTarget, LinkableTarget):
             if self.darwin_versions is None and self.soversion is not None:
                 # If unspecified, pick the soversion
                 self.darwin_versions = (self.soversion, self.soversion)
+
+        self.win_subsystem = kwargs.get('win_subsystem') or 'console'
 
         self.vs_module_defs: File | None = None
         # Visual Studio module-definitions file

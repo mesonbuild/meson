@@ -849,6 +849,13 @@ def _validate_win_subsystem(value: T.Optional[str]) -> T.Optional[str]:
             return f'Invalid value for win_subsystem: {value}.'
     return None
 
+_WIN_SUBSYSTEM_KW: KwargInfo[T.Optional[str]] = KwargInfo(
+        'win_subsystem',
+        (str, NoneType),
+        convertor=lambda x: x.lower() if isinstance(x, str) else None,
+        validator=_validate_win_subsystem,
+)
+
 
 def _validate_darwin_versions(darwin_versions: T.List[T.Union[str, int]]) -> T.Optional[str]:
     if len(darwin_versions) > 2:
@@ -907,12 +914,6 @@ EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
     ),
     KwargInfo('pie', (bool, NoneType)),
     KwargInfo(
-        'win_subsystem',
-        (str, NoneType),
-        convertor=lambda x: x.lower() if isinstance(x, str) else None,
-        validator=_validate_win_subsystem,
-    ),
-    KwargInfo(
         'android_exe_type',
         (str, NoneType),
         validator=in_set_validator({'application', 'executable'}),
@@ -925,6 +926,7 @@ EXECUTABLE_KWS = [
     *_BUILD_TARGET_KWS,
     *EXCLUSIVE_EXECUTABLE_KWS,
     _VS_MODULE_DEFS_KW.evolve(since='1.3.0', since_values=None),
+    _WIN_SUBSYSTEM_KW,
     _JAVA_LANG_KW,
 ]
 
@@ -968,6 +970,7 @@ SHARED_LIB_KWS: T.List[KwargInfo] = [
     *_EXCLUSIVE_SHARED_LIB_KWS,
     *_EXCLUSIVE_LIB_KWS,
     _VS_MODULE_DEFS_KW,
+    _WIN_SUBSYSTEM_KW.evolve(since='1.12.0'),
     _JAVA_LANG_KW,
 ]
 
@@ -981,6 +984,7 @@ SHARED_MOD_KWS = [
     *_EXCLUSIVE_SHARED_MOD_KWS,
     *_EXCLUSIVE_LIB_KWS,
     _VS_MODULE_DEFS_KW,
+    _WIN_SUBSYSTEM_KW.evolve(since='1.12.0'),
     _JAVA_LANG_KW,
 ]
 
@@ -1022,10 +1026,11 @@ LIBRARY_KWS = [
     *_EXCLUSIVE_STATIC_LIB_KWS,
     *_SHARED_STATIC_ARGS,
     _VS_MODULE_DEFS_KW,
+    _WIN_SUBSYSTEM_KW,
     _JAVA_LANG_KW,
 ]
 
-# Arguments used by build_Target
+# Arguments used by build_target
 BUILD_TARGET_KWS = [
     *_BUILD_TARGET_KWS,
     *_EXCLUSIVE_SHARED_LIB_KWS,
@@ -1034,6 +1039,7 @@ BUILD_TARGET_KWS = [
     *EXCLUSIVE_EXECUTABLE_KWS,
     *_SHARED_STATIC_ARGS,
     _VS_MODULE_DEFS_KW,
+    _WIN_SUBSYSTEM_KW.evolve(since='1.12.0'),
     RUST_ABI_KW.evolve(since='1.10.0'),
     *[a.evolve(deprecated='1.3.0', deprecated_message='The use of "jar" in "build_target()" is deprecated, and this argument is only used by jar()')
       for a in _EXCLUSIVE_JAR_KWS],
