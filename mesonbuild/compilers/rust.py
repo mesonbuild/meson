@@ -108,7 +108,7 @@ def rustc_link_args(args: T.List[str]) -> T.List[str]:
 
 class RustCompiler(Compiler):
 
-    # rustc doesn't invoke the compiler itself, it doesn't need a LINKER_PREFIX
+    # rustc doesn't invoke the compiler itself, it doesn't need a LINKER_OPTION_STYLE
     language = 'rust'
     id = 'rustc'
 
