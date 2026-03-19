@@ -9,7 +9,7 @@ description: |
   It has the same methods as [[@build_machine]].
 
   When not cross-compiling, all the methods return the same values as
-  [[@build_machine]] (because the build machine is the host machine)
+  [[@build_machine]] (because the build machine is the host machine).
 
   Note that while cross-compiling, it simply returns the values defined
   in the cross-info file.
