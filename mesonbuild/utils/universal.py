@@ -1018,25 +1018,19 @@ def version_compare_many(vstr1: str, conditions: T.Union[str, T.Iterable[str]]) 
 # the minimum version for a feature |minimum|
 def version_compare_condition_with_min(condition: str, minimum: str) -> bool:
     if condition.startswith('>='):
-        cmpop = operator.le
         condition = condition[2:]
     elif condition.startswith('<='):
         return False
     elif condition.startswith('!='):
         return False
     elif condition.startswith('=='):
-        cmpop = operator.le
         condition = condition[2:]
     elif condition.startswith('='):
-        cmpop = operator.le
         condition = condition[1:]
     elif condition.startswith('>'):
-        cmpop = operator.lt
         condition = condition[1:]
     elif condition.startswith('<'):
         return False
-    else:
-        cmpop = operator.le
 
     # Declaring a project(meson_version: '>=0.46') and then using features in
     # 0.46.0 is valid, because (knowing the meson versioning scheme) '0.46.0' is
@@ -1052,7 +1046,7 @@ def version_compare_condition_with_min(condition: str, minimum: str) -> bool:
     if re.match(r'^\d+.\d+$', condition):
         condition += '.0'
 
-    return T.cast('bool', cmpop(Version(minimum), Version(condition)))
+    return Version(minimum) <= Version(condition)
 
 def search_version(text: str) -> str:
     # Usually of the type 4.1.4 but compiler output may contain

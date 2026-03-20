@@ -125,8 +125,8 @@ class VersionComparisonTests(unittest.TestCase):
         self.assertTrue(version_compare_condition_with_min('>=0.50.0', '0.46.0'))
         self.assertFalse(version_compare_condition_with_min('>=0.40.0', '0.46.0'))
 
-        # > condition: minimum must be strictly < condition version
-        self.assertFalse(version_compare_condition_with_min('>0.46.0', '0.46.0'))
+        # > condition: minimum must be <= condition version
+        self.assertTrue(version_compare_condition_with_min('>0.46.0', '0.46.0'))
         self.assertTrue(version_compare_condition_with_min('>0.50.0', '0.46.0'))
         self.assertFalse(version_compare_condition_with_min('>0.45.0', '0.46.0'))
 
