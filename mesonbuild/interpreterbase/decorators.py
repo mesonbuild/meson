@@ -35,6 +35,8 @@ if T.TYPE_CHECKING:
 
     CalleeArgs: TypeAlias = T.Tuple[mparser.BaseNode, T.Optional[T.List[TYPE_var]], T.Optional[TYPE_kwargs], SubProject]
 
+    MesonVersionTarget = str | mesonlib.NoProjectVersion | None
+
 
 def is_module(obj: object) -> TypeIs[ModuleObject]:
     return not hasattr(obj, 'current_node')
@@ -648,21 +650,21 @@ class FeatureCheckBase(metaclass=mesonlib.SimpleABC):
             self.feature_version = self.feature_version[:-2]
 
     @staticmethod
-    def get_target_version(subproject: str) -> T.Union[str, mesonlib.NoProjectVersion]:
+    def get_target_version(subproject: str) -> MesonVersionTarget:
         # Don't do any checks if project() has not been parsed yet
         if subproject not in mesonlib.project_meson_versions:
-            return ''
+            return None
         return mesonlib.project_meson_versions[subproject]
 
     @staticmethod
     @abc.abstractmethod
-    def check_version(target_version: T.Union[str, mesonlib.NoProjectVersion], feature_version: str) -> bool:
+    def check_version(target_version: MesonVersionTarget, feature_version: str) -> bool:
         pass
 
     def use(self, subproject: 'SubProject', location: T.Optional['mparser.BaseNode'] = None) -> None:
         tv = self.get_target_version(subproject)
         # No target version
-        if tv == '' and not self.unconditional:
+        if tv is None and not self.unconditional:
             return
         # Target version is new enough, don't warn
         if self.check_version(tv, self.feature_version) and not self.emit_notice:
@@ -705,15 +707,15 @@ class FeatureCheckBase(metaclass=mesonlib.SimpleABC):
         if '\n' in warning_str:
             mlog.warning(warning_str)
 
-    def log_usage_warning(self, tv: T.Union[str, mesonlib.NoProjectVersion], location: T.Optional['mparser.BaseNode']) -> None:
+    def log_usage_warning(self, tv: MesonVersionTarget, location: T.Optional['mparser.BaseNode']) -> None:
         raise InterpreterException('log_usage_warning not implemented')
 
     @staticmethod
-    def get_warning_str_prefix(tv: T.Union[str, mesonlib.NoProjectVersion]) -> str:
+    def get_warning_str_prefix(tv: MesonVersionTarget) -> str:
         raise InterpreterException('get_warning_str_prefix not implemented')
 
     @staticmethod
-    def get_notice_str_prefix(tv: T.Union[str, mesonlib.NoProjectVersion]) -> str:
+    def get_notice_str_prefix(tv: MesonVersionTarget) -> str:
         raise InterpreterException('get_notice_str_prefix not implemented')
 
     def __call__(self, f: TV_func) -> TV_func:
@@ -742,7 +744,7 @@ class FeatureNew(FeatureCheckBase):
     feature_registry = {}
 
     @staticmethod
-    def check_version(target_version: T.Union[str, mesonlib.NoProjectVersion], feature_version: str) -> bool:
+    def check_version(target_version: MesonVersionTarget, feature_version: str) -> bool:
         if isinstance(target_version, str):
             return mesonlib.version_compare_condition_with_min(target_version, feature_version)
         else:
@@ -751,17 +753,17 @@ class FeatureNew(FeatureCheckBase):
             return mesonlib.version_compare(feature_version, f'<{major}.0')
 
     @staticmethod
-    def get_warning_str_prefix(tv: T.Union[str, mesonlib.NoProjectVersion]) -> str:
+    def get_warning_str_prefix(tv: MesonVersionTarget) -> str:
         if isinstance(tv, str):
             return f'Project specifies a minimum meson_version \'{tv}\' but uses features which were added in newer versions:'
         else:
             return 'Project specifies no minimum version but uses features which were added in versions:'
 
     @staticmethod
-    def get_notice_str_prefix(tv: T.Union[str, mesonlib.NoProjectVersion]) -> str:
+    def get_notice_str_prefix(tv: MesonVersionTarget) -> str:
         return ''
 
-    def log_usage_warning(self, tv: T.Union[str, mesonlib.NoProjectVersion], location: T.Optional['mparser.BaseNode']) -> None:
+    def log_usage_warning(self, tv: MesonVersionTarget, location: T.Optional['mparser.BaseNode']) -> None:
         if isinstance(tv, str):
             prefix = f'Project targets {tv!r}'
         else:
@@ -786,7 +788,7 @@ class FeatureDeprecated(FeatureCheckBase):
     emit_notice = True
 
     @staticmethod
-    def check_version(target_version: T.Union[str, mesonlib.NoProjectVersion], feature_version: str) -> bool:
+    def check_version(target_version: MesonVersionTarget, feature_version: str) -> bool:
         if isinstance(target_version, str):
             # For deprecation checks we need to return the inverse of FeatureNew checks
             return not mesonlib.version_compare_condition_with_min(target_version, feature_version)
@@ -795,14 +797,14 @@ class FeatureDeprecated(FeatureCheckBase):
             return False
 
     @staticmethod
-    def get_warning_str_prefix(tv: T.Union[str, mesonlib.NoProjectVersion]) -> str:
+    def get_warning_str_prefix(tv: MesonVersionTarget) -> str:
         return 'Deprecated features used:'
 
     @staticmethod
-    def get_notice_str_prefix(tv: T.Union[str, mesonlib.NoProjectVersion]) -> str:
+    def get_notice_str_prefix(tv: MesonVersionTarget) -> str:
         return 'Future-deprecated features used:'
 
-    def log_usage_warning(self, tv: T.Union[str, mesonlib.NoProjectVersion], location: T.Optional['mparser.BaseNode']) -> None:
+    def log_usage_warning(self, tv: MesonVersionTarget, location: T.Optional['mparser.BaseNode']) -> None:
         if isinstance(tv, str):
             prefix = f'Project targets {tv!r}'
         else:
@@ -828,19 +830,19 @@ class FeatureBroken(FeatureCheckBase):
     unconditional = True
 
     @staticmethod
-    def check_version(target_version: T.Union[str, mesonlib.NoProjectVersion], feature_version: str) -> bool:
+    def check_version(target_version: MesonVersionTarget, feature_version: str) -> bool:
         # always warn for broken stuff
         return False
 
     @staticmethod
-    def get_warning_str_prefix(tv: T.Union[str, mesonlib.NoProjectVersion]) -> str:
+    def get_warning_str_prefix(tv: MesonVersionTarget) -> str:
         return 'Broken features used:'
 
     @staticmethod
-    def get_notice_str_prefix(tv: T.Union[str, mesonlib.NoProjectVersion]) -> str:
+    def get_notice_str_prefix(tv: MesonVersionTarget) -> str:
         return ''
 
-    def log_usage_warning(self, tv: T.Union[str, mesonlib.NoProjectVersion], location: T.Optional['mparser.BaseNode']) -> None:
+    def log_usage_warning(self, tv: MesonVersionTarget, location: T.Optional['mparser.BaseNode']) -> None:
         args = [
             'Project uses feature that was always broken,',
             'and is now deprecated since',
