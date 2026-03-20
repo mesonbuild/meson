@@ -1,0 +1,19 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/common/295 redundant version check/meson.build:3: WARNING: Conditional on version '>= 0.55.0' always evaluates to true"
+    },
+    {
+      "line": "test cases/common/295 redundant version check/meson.build:6: WARNING: Conditional on version '< 0.60.0' always evaluates to false"
+    },
+    {
+      "line": "test cases/common/295 redundant version check/meson.build:11: WARNING: Conditional on version '>= 0.40' always evaluates to true"
+    },
+    {
+      "line": "test cases/common/295 redundant version check/meson.build:26: WARNING: Conditional on version '>= 0.40, < 99.0' always evaluates to true"
+    },
+    {
+      "line": "test cases/common/295 redundant version check/meson.build:29: WARNING: Conditional on version '>= 0.40, < 99.0' always evaluates to true"
+    }
+  ]
+}

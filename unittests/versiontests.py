@@ -292,6 +292,42 @@ class VersionComparisonTests(unittest.TestCase):
         r = a.intersect(b)
         self.assertTrue(r.is_empty)
 
+    def test_range_always(self):
+        """Range.always checks if inner is always true/false given outer."""
+        outer = Range(min=5, min_eq=True, max=10, max_eq=True)
+        unbounded = Range()
+        empty = Range(min=7, max=3, min_eq=True, max_eq=True)
+
+        # inner fully contains outer => true
+        self.assertTrue(outer.always(Range(min=3, min_eq=True)))
+        self.assertTrue(outer.always(Range(max=12, max_eq=True)))
+        self.assertTrue(outer.always(unbounded))
+
+        # inner same as outer => true
+        self.assertTrue(outer.always(Range(min=5, min_eq=True, max=10, max_eq=True)))
+
+        # inner doesn't overlap outer => false
+        self.assertFalse(outer.always(Range(min=11, min_eq=True)))
+        self.assertFalse(outer.always(Range(max=4, max_eq=True)))
+
+        # inner partially overlaps => indeterminate
+        self.assertIsNone(outer.always(Range(min=7, min_eq=True)))
+        self.assertIsNone(outer.always(Range(max=8, max_eq=True)))
+
+        # exclusive boundaries count as a partial overlap
+        self.assertIsNone(outer.always(Range(min=5, min_eq=False)))
+        self.assertIsNone(outer.always(Range(max=10, max_eq=False)))
+
+        # outer is unbounded
+        self.assertIsNone(unbounded.always(Range(min=5, min_eq=True)))
+        self.assertTrue(unbounded.always(unbounded))
+        self.assertFalse(unbounded.always(empty))
+
+        # outer is empty => always false (intersection is empty)
+        self.assertFalse(empty.always(Range(min=5, min_eq=True)))
+        self.assertFalse(empty.always(unbounded))
+        self.assertFalse(empty.always(empty))
+
     def test_range_str(self):
         """Test Range.__str__."""
         self.assertEqual(str(Range()), '(any)')

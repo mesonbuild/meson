@@ -1095,6 +1095,18 @@ class Range(T.Generic[_V]):
         result.__post_init__()
         return result
 
+    def always(self, inner: Range[_V]) -> T.Optional[bool]:
+        """Check if inner is always true or always false given self.
+
+        Returns True if inner is always satisfied by any value in self,
+        False if no value in self satisfies inner, None if indeterminate."""
+        narrowed = self.intersect(inner)
+        if narrowed.is_empty:
+            return False
+        if narrowed == self:
+            return True
+        return None
+
 
 # note that Range is immutable, so no need to have Range() | None
 def version_check_to_range(checks: T.List[str], start: Range[Version] = Range()) -> Range[Version]:
