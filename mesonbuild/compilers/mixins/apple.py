@@ -1,22 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2024-2025 Intel Corporation
+# Copyright 2012-2022 The Meson development team
 
 """Provides mixins for Apple compilers."""
 
 from __future__ import annotations
+
+import os
 import typing as T
 
 from ...mesonlib import MesonException
 
 if T.TYPE_CHECKING:
-    from ..._typing import ImmutableListProtocol
-    from ...envconfig import MachineInfo
-    from ..compilers import Compiler
+    from ...environment import Environment
+    from ...programs import ExternalProgram
+    from ...dependencies import Dependency
+    from ...mesonlib import MachineInfo
+    Compiler = T.TypeVar('Compiler', bound='Compiler')
 else:
-    # This is a bit clever, for mypy we pretend that these mixins descend from
-    # Compiler, so we get all of the methods and attributes defined for us, but
-    # for runtime we make them descend from object (which all classes normally
-    # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
 
@@ -24,52 +24,40 @@ class AppleCompilerMixin(Compiler):
 
     """Handle differences between Vanilla Clang and the Clang shipped with XCode."""
 
-    __BASE_OMP_FLAGS: ImmutableListProtocol[str] = ['-Xpreprocessor', '-fopenmp']
-
     if T.TYPE_CHECKING:
         # Older versions of mypy can't figure this out
         info: MachineInfo
 
+    def _get_brew_prefix(self) -> str:
+        """Get the Homebrew prefix based on environment and architecture."""
+        # Meson preferred way: check environment first
+        brew_prefix = os.environ.get('HOMEBREW_PREFIX')
+        if brew_prefix:
+            return brew_prefix
+        # Fallback to standard locations based on architecture
+        if self.info.cpu_family.startswith('x86'):
+            return '/usr/local'
+        return '/opt/homebrew'
+
     def openmp_flags(self) -> T.List[str]:
         """Flags required to compile with OpenMP on Apple.
 
-        The Apple Clang Compiler doesn't have builtin support for OpenMP, it
-        must be provided separately. As such, we need to add the -Xpreprocessor
-        argument so that an external OpenMP can be found.
+        Apple Clang does not support OpenMP directly.
+        Instead, we use the OpenMP implementation from Homebrew.
 
         :return: A list of arguments
         """
-        if self.info.cpu_family.startswith('x86'):
-            root = '/usr/local'
-        else:
-            root = '/opt/homebrew'
+        root = self._get_brew_prefix()
         return self.__BASE_OMP_FLAGS + [f'-I{root}/opt/libomp/include']
 
     def openmp_link_flags(self) -> T.List[str]:
-        if self.info.cpu_family.startswith('x86'):
-            root = '/usr/local'
-        else:
-            root = '/opt/homebrew'
-
+        root = self._get_brew_prefix()
         link = self.find_library('omp', [f'{root}/opt/libomp/lib'])
         if not link:
             raise MesonException("Couldn't find libomp")
-        return self.__BASE_OMP_FLAGS + link
+        return link + [f'-L{root}/opt/libomp/lib', '-lomp']
 
-    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
-        # The objects are prelinked through the compiler, which injects -lSystem
-        return [prelink_name], ['-nostdlib', '-r', '-o', prelink_name] + obj_list
-
-
-class AppleCStdsMixin(Compiler):
-
-    """Provide version overrides for the Apple Compilers."""
-
-    _C17_VERSION = '>=10.0.0'
-    _C18_VERSION = '>=11.0.0'
-    _C2X_VERSION = '>=11.0.3'
-    _C23_VERSION = '>=17.0.0'
-    _C2Y_VERSION = '>=17.0.0'
+    __BASE_OMP_FLAGS = ['-Xpreprocessor', '-fopenmp']
 
 
 class AppleCPPStdsMixin(Compiler):
