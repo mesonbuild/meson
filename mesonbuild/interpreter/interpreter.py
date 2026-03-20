@@ -521,7 +521,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def handle_meson_version(self, pv: str, location: mparser.BaseNode) -> None:
         if not mesonlib.version_compare(coredata.stable_version, pv):
             raise InterpreterException.from_node(f'Meson version is {coredata.version} but project requires {pv}', node=location)
-        mesonlib.project_meson_versions[self.subproject] = pv
+        mesonlib.project_meson_versions[self.subproject] = mesonlib.version_check_to_range([pv])
 
     def handle_meson_version_from_ast(self) -> None:
         if not self.ast.lines:

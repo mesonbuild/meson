@@ -8,7 +8,7 @@ import os
 import typing as T
 
 from ... import mlog
-from ...mesonlib import version_compare_many, underscorify
+from ...mesonlib import version_check_to_range, version_compare_many, underscorify
 from ...interpreterbase import (
     InterpreterObject,
     MesonOperator,
@@ -211,20 +211,20 @@ class MesonVersionStringHolder(StringHolder):
     @InterpreterObject.method('version_compare')
     @typed_pos_args('str.version_compare', varargs=str, min_varargs=1)
     def version_compare_method(self, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> bool:
-        unsupported = []
+        unsupported = False
         for constraint in args[0]:
-            if not constraint.strip().startswith('>'):
-                unsupported.append('non-upper-bounds (> or >=) constraints')
+            if constraint.strip().startswith('!'):
+                unsupported = True
+                break
         if len(args[0]) > 1:
             FeatureNew.single_use('meson.version().version_compare() with multiple arguments', '1.10.0',
                                   self.subproject, 'From 1.8.0 - 1.9.* it failed to match str.version_compare',
                                   location=self.current_node)
-            unsupported.append('multiple arguments')
-        else:
-            self.interpreter.tmp_meson_version = args[0][0]
         if unsupported:
-            mlog.debug('meson.version().version_compare() with', ' or '.join(unsupported),
+            mlog.debug('meson.version().version_compare() with != constraints',
                        'does not support overriding minimum meson_version checks.')
+        else:
+            self.interpreter.tmp_meson_version = version_check_to_range(args[0])
 
         return version_compare_many(self.held_object, args[0])[0]
 

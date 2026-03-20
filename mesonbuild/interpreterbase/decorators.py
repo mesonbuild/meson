@@ -35,7 +35,7 @@ if T.TYPE_CHECKING:
 
     CalleeArgs: TypeAlias = T.Tuple[mparser.BaseNode, T.Optional[T.List[TYPE_var]], T.Optional[TYPE_kwargs], SubProject]
 
-    MesonVersionTarget = str | mesonlib.NoProjectVersion | None
+    MesonVersionTarget = mesonlib.Range[mesonlib.Version] | mesonlib.NoProjectVersion | None
 
 
 def is_module(obj: object) -> TypeIs[ModuleObject]:
@@ -745,7 +745,7 @@ class FeatureNew(FeatureCheckBase):
 
     @staticmethod
     def check_version(target_version: MesonVersionTarget, feature_version: str) -> bool:
-        if isinstance(target_version, str):
+        if isinstance(target_version, mesonlib.Range):
             return mesonlib.version_compare_condition_with_min(target_version, feature_version)
         else:
             # Warn for anything newer than the current semver base slot.
@@ -754,7 +754,7 @@ class FeatureNew(FeatureCheckBase):
 
     @staticmethod
     def get_warning_str_prefix(tv: MesonVersionTarget) -> str:
-        if isinstance(tv, str):
+        if isinstance(tv, mesonlib.Range) and tv.min is not None:
             return f'Project specifies a minimum meson_version \'{tv}\' but uses features which were added in newer versions:'
         else:
             return 'Project specifies no minimum version but uses features which were added in versions:'
@@ -764,8 +764,8 @@ class FeatureNew(FeatureCheckBase):
         return ''
 
     def log_usage_warning(self, tv: MesonVersionTarget, location: T.Optional['mparser.BaseNode']) -> None:
-        if isinstance(tv, str):
-            prefix = f'Project targets {tv!r}'
+        if isinstance(tv, mesonlib.Range) and tv.min is not None:
+            prefix = f"Project targets '{tv}'"
         else:
             prefix = 'Project does not target a minimum version'
         args = [
@@ -789,7 +789,7 @@ class FeatureDeprecated(FeatureCheckBase):
 
     @staticmethod
     def check_version(target_version: MesonVersionTarget, feature_version: str) -> bool:
-        if isinstance(target_version, str):
+        if isinstance(target_version, mesonlib.Range):
             # For deprecation checks we need to return the inverse of FeatureNew checks
             return not mesonlib.version_compare_condition_with_min(target_version, feature_version)
         else:
@@ -805,8 +805,8 @@ class FeatureDeprecated(FeatureCheckBase):
         return 'Future-deprecated features used:'
 
     def log_usage_warning(self, tv: MesonVersionTarget, location: T.Optional['mparser.BaseNode']) -> None:
-        if isinstance(tv, str):
-            prefix = f'Project targets {tv!r}'
+        if isinstance(tv, mesonlib.Range):
+            prefix = f"Project targets '{tv}'"
         else:
             prefix = 'Project does not target a minimum version'
         args = [

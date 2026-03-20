@@ -176,6 +176,7 @@ __all__ = [
     'typeslistify',
     'unique_list',
     'verbose_git',
+    'version_check_to_range',
     'version_compare',
     'version_compare_condition_with_min',
     'version_compare_many',
@@ -195,7 +196,7 @@ class NoProjectVersion:
 # TODO: this is such a hack, this really should be either in coredata or in the
 # interpreter
 # {subproject: project_meson_version}
-project_meson_versions: T.Dict[str, T.Union[str, NoProjectVersion]] = {}
+project_meson_versions: T.Dict[str, T.Union[Range[Version], NoProjectVersion]] = {}
 
 
 from glob import glob
@@ -1110,7 +1111,13 @@ def version_check_to_range(checks: T.List[str], start: Range[Version] = Range())
         elif op is operator.eq:
             r = Range(min=Version(v), max=Version(v), min_eq=True, max_eq=True)
         elif op is operator.ne:
-            continue  # cop out
+            v_ = Version(v)
+            # Do the best that we can, remove the extrema
+            r = Range()
+            if v_ == start.min:
+                r = Range(min=v_, min_eq=False)
+            if v_ == start.max:
+                r = r.intersect(Range(max=v_, max_eq=False))
         start = start.intersect(r)
     return start
 
