@@ -31,7 +31,7 @@ from mesonbuild import mlog
 from .core import MesonException, HoldableObject
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, Protocol
+    from typing_extensions import Literal, Protocol, Self
 
     from .._typing import ImmutableListProtocol
     from ..build import ConfigurationData
@@ -46,6 +46,15 @@ if T.TYPE_CHECKING:
     class _VerPickleLoadable(Protocol):
 
         version: str
+
+    class Comparable(Protocol):
+        """Protocol for annotating comparable types."""
+        def __eq__(self, other: object) -> bool: ...
+        def __ne__(self, other: object) -> bool: ...
+        def __lt__(self, other: Self) -> bool: ...
+        def __le__(self, other: Self) -> bool: ...
+        def __ge__(self, other: Self) -> bool: ...
+        def __gt__(self, other: Self) -> bool: ...
 
     # A generic type for pickle_load. This allows any type that has either a
     # .version or a .environment to be passed.
@@ -80,6 +89,7 @@ __all__ = [
     'PerThreeMachine',
     'PerThreeMachineDefaultable',
     'ProgressBar',
+    'Range',
     'RealPathAction',
     'TemporaryDirectoryWinProof',
     'Version',
@@ -916,10 +926,10 @@ class Version:
                 for m in _VERSION_TOK_RE.finditer(s)]
 
     def __str__(self) -> str:
-        return '{} (V={})'.format(self._s, str(self._v))
+        return self._s
 
     def __repr__(self) -> str:
-        return f'<Version: {self._s}>'
+        return f'<Version: {self._s!r} V={self._v!r}>'
 
     def __lt__(self, other: object) -> bool:
         if isinstance(other, Version):
@@ -1012,6 +1022,75 @@ def version_compare_many(vstr1: str, conditions: T.Union[str, T.Iterable[str]]) 
         else:
             found.append(req)
     return not not_found, not_found, found
+
+
+_V = T.TypeVar('_V', bound='Comparable')
+
+@dataclasses.dataclass(order=False)
+class Range(T.Generic[_V]):
+    min: T.Optional[_V] = None
+    min_eq: bool = False
+    max: T.Optional[_V] = None
+    max_eq: bool = False
+    is_empty: bool = False
+
+    def __str__(self) -> str:
+        if self.is_empty:
+            return '(empty)'
+        if self.min is not None and self.max is not None and self.min == self.max:
+            return f'== {self.min}'
+        parts = []
+        if self.min is not None:
+            parts.append(f'>{"=" if self.min_eq else ""} {self.min}')
+        if self.max is not None:
+            parts.append(f'<{"=" if self.max_eq else ""} {self.max}')
+        return ', '.join(parts) if parts else '(any)'
+
+    def __contains__(self, x: _V) -> bool:
+        if self.is_empty:
+            return False
+        if self.min is not None and (x < self.min if self.min_eq else x <= self.min):
+            return False
+        if self.max is not None and (x > self.max if self.max_eq else x >= self.max):
+            return False
+        return True
+
+    def __post_init__(self) -> None:
+        if self.min is None or self.max is None:
+            return
+        self.is_empty = False
+        if self.min < self.max:
+            return
+        if self.min == self.max and self.min_eq and self.max_eq:
+            return
+        self.min = None
+        self.max = None
+        self.is_empty = True
+
+    def _intersect_min(self, v: _V, eq: bool) -> None:
+        if self.min is None or v > self.min:
+            self.min, self.min_eq = v, eq
+        elif v == self.min:
+            self.min_eq = eq and self.min_eq
+
+    def _intersect_max(self, v: _V, eq: bool) -> None:
+        if self.max is None or v < self.max:
+            self.max, self.max_eq = v, eq
+        elif v == self.max:
+            self.max_eq = eq and self.max_eq
+
+    def intersect(self, x: Range[_V]) -> Range[_V]:
+        if x.is_empty:
+            return copy.copy(x)
+        result = copy.copy(self)
+        if self.is_empty:
+            return result
+        if x.min is not None:
+            result._intersect_min(x.min, x.min_eq)
+        if x.max is not None:
+            result._intersect_max(x.max, x.max_eq)
+        result.__post_init__()
+        return result
 
 
 # determine if the minimum version satisfying the condition |condition| exceeds
