@@ -1003,7 +1003,7 @@ def _version_extract_cmpop(vstr2: str) -> T.Tuple[T.Callable[[T.Any, T.Any], boo
     else:
         cmpop = operator.eq
 
-    return (cmpop, vstr2)
+    return (cmpop, vstr2.strip())
 
 
 def version_compare(vstr1: str, vstr2: str) -> bool:
@@ -1093,25 +1093,39 @@ class Range(T.Generic[_V]):
         return result
 
 
+# note that Range is immutable, so no need to have Range() | None
+def version_check_to_range(checks: T.List[str], start: Range[Version] = Range()) -> Range[Version]:
+    for x in checks:
+        op, v = _version_extract_cmpop(x)
+        if op is operator.ge:
+            r = Range(min=Version(v), min_eq=True)
+        elif op is operator.gt:
+            r = Range(min=Version(v), min_eq=False)
+        elif op is operator.le:
+            r = Range(max=Version(v), max_eq=True)
+        elif op is operator.lt:
+            r = Range(max=Version(v), max_eq=False)
+        elif op is operator.eq:
+            r = Range(min=Version(v), max=Version(v), min_eq=True, max_eq=True)
+        elif op is operator.ne:
+            continue  # cop out
+        start = start.intersect(r)
+    return start
+
+
 # determine if the minimum version satisfying the condition |condition| exceeds
 # the minimum version for a feature |minimum|
-def version_compare_condition_with_min(condition: str, minimum: str) -> bool:
-    if condition.startswith('>='):
-        condition = condition[2:]
-    elif condition.startswith('<='):
-        return False
-    elif condition.startswith('!='):
-        return False
-    elif condition.startswith('=='):
-        condition = condition[2:]
-    elif condition.startswith('='):
-        condition = condition[1:]
-    elif condition.startswith('>'):
-        condition = condition[1:]
-    elif condition.startswith('<'):
-        return False
+def version_compare_condition_with_min(condition: T.Union[str, Range[Version]], minimum: str) -> bool:
+    if isinstance(condition, str):
+        condition = version_check_to_range([condition])
 
-    return Version(minimum) <= Version(condition)
+    if condition.min is None:
+        # A < constraint on the project version (max is not None) or a full
+        # range should always include versions older than minimum, return False.
+        # is_empty=True instead behaves like an absurdly high min and returns True.
+        return condition.is_empty
+    else:
+        return Version(minimum) <= condition.min
 
 def search_version(text: str) -> str:
     # Usually of the type 4.1.4 but compiler output may contain
