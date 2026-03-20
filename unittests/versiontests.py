@@ -3,8 +3,9 @@
 import unittest
 
 from mesonbuild.mesonlib import (
-    Version, version_compare, version_compare_many,
-    version_compare_condition_with_min, search_version,
+    Range, Version, version_compare,
+    version_compare_many, version_compare_condition_with_min,
+    search_version,
 )
 
 
@@ -156,6 +157,160 @@ class VersionComparisonTests(unittest.TestCase):
         self.assertFalse(version_compare_condition_with_min('>=0.46', '0.46.1'))
         self.assertTrue(version_compare_condition_with_min('>=0.46.0', '0.46'))
         self.assertTrue(version_compare_condition_with_min('>=0.46.1', '0.46'))
+
+    def test_range_contains(self):
+        """Test Range.__contains__."""
+        # unbounded range contains everything
+        r = Range()
+        self.assertIn(5, r)
+        self.assertIn(0, r)
+
+        # min only, inclusive
+        r = Range(min=3, min_eq=True)
+        self.assertIn(3, r)
+        self.assertIn(5, r)
+        self.assertNotIn(2, r)
+
+        # min only, exclusive
+        r = Range(min=3, min_eq=False)
+        self.assertNotIn(3, r)
+        self.assertIn(4, r)
+        self.assertNotIn(2, r)
+
+        # max only, inclusive
+        r = Range(max=7, max_eq=True)
+        self.assertIn(7, r)
+        self.assertIn(5, r)
+        self.assertNotIn(8, r)
+
+        # max only, exclusive
+        r = Range(max=7, max_eq=False)
+        self.assertNotIn(7, r)
+        self.assertIn(6, r)
+        self.assertNotIn(8, r)
+
+        # both bounds, inclusive
+        r = Range(min=3, min_eq=True, max=7, max_eq=True)
+        self.assertIn(3, r)
+        self.assertIn(5, r)
+        self.assertIn(7, r)
+        self.assertNotIn(2, r)
+        self.assertNotIn(8, r)
+
+        # both bounds, exclusive
+        r = Range(min=3, min_eq=False, max=7, max_eq=False)
+        self.assertNotIn(3, r)
+        self.assertIn(5, r)
+        self.assertNotIn(7, r)
+
+        # empty range contains nothing
+        r = Range(min=5, min_eq=False, max=5, max_eq=False)
+        self.assertNotIn(5, r)
+
+        # min == max, both inclusive -> single point, not empty
+        r = Range(min=5, max=5, min_eq=True, max_eq=True)
+        self.assertIn(5, r)
+
+    def test_range_init_trivial(self):
+        """Test that __post_init__ detects trivial ranges."""
+        r = Range()
+        self.assertFalse(r.is_empty)
+
+        # min > max
+        r = Range(min=7, max=3, min_eq=True, max_eq=True)
+        self.assertTrue(r.is_empty)
+
+        # min == max, not both inclusive -> empty
+        r = Range(min=5, max=5, min_eq=True, max_eq=False)
+        self.assertTrue(r.is_empty)
+
+        r = Range(min=5, max=5, min_eq=False, max_eq=True)
+        self.assertTrue(r.is_empty)
+
+        r = Range(min=5, max=5, min_eq=False, max_eq=False)
+        self.assertTrue(r.is_empty)
+
+        # min == max, both inclusive -> single point, not empty
+        r = Range(min=5, max=5, min_eq=True, max_eq=True)
+        self.assertFalse(r.is_empty)
+
+    def test_range_intersect(self):
+        """Test Range.intersect."""
+        # intersect two overlapping ranges
+        a = Range(min=1, min_eq=True, max=10, max_eq=True)
+        b = Range(min=5, min_eq=True, max=15, max_eq=True)
+        r = a.intersect(b)
+        self.assertIn(5, r)
+        self.assertIn(10, r)
+        self.assertNotIn(4, r)
+        self.assertNotIn(11, r)
+
+        # intersect does not mutate original
+        self.assertIn(4, a)
+
+        # intersect narrows unbounded range
+        a = Range()
+        b = Range(min=3, min_eq=True, max=7, max_eq=False)
+        r = a.intersect(b)
+        self.assertIn(3, r)
+        self.assertIn(6, r)
+        self.assertNotIn(2, r)
+        self.assertNotIn(7, r)
+
+        # intersect non-overlapping ranges produces empty
+        a = Range(min=1, min_eq=True, max=3, max_eq=True)
+        b = Range(min=5, min_eq=True, max=7, max_eq=True)
+        r = a.intersect(b)
+        self.assertTrue(r.is_empty)
+
+        # intersect with matching boundary tightens eq
+        a = Range(min=5, min_eq=True)
+        b = Range(min=5, min_eq=False)
+        r = a.intersect(b)
+        self.assertEqual(5, r.min)
+        self.assertNotIn(5, r)
+
+        a = Range(max=5, max_eq=True)
+        b = Range(max=5, max_eq=False)
+        r = a.intersect(b)
+        self.assertEqual(5, r.max)
+        self.assertIn(4, r)
+
+        # intersecting empty range stays empty
+        a = Range(min=7, max=3, min_eq=True, max_eq=True)
+        self.assertTrue(a.is_empty)
+        b = Range(min=1, min_eq=True, max=10, max_eq=True)
+        r = a.intersect(b)
+        self.assertTrue(r.is_empty)
+
+        b = Range()
+        r = a.intersect(b)
+        self.assertTrue(r.is_empty)
+
+        a = Range()
+        b = Range(min=7, max=3, min_eq=True, max_eq=True)
+        r = a.intersect(b)
+        self.assertTrue(r.is_empty)
+
+    def test_range_str(self):
+        """Test Range.__str__."""
+        self.assertEqual(str(Range()), '(any)')
+        self.assertEqual(str(Range(min=3, min_eq=True)), '>= 3')
+        self.assertEqual(str(Range(min=3, min_eq=False)), '> 3')
+        self.assertEqual(str(Range(max=7, max_eq=True)), '<= 7')
+        self.assertEqual(str(Range(max=7, max_eq=False)), '< 7')
+        self.assertEqual(str(Range(min=3, min_eq=True, max=7, max_eq=False)), '>= 3, < 7')
+        self.assertEqual(str(Range(min=5, max=5, min_eq=True, max_eq=True)), '== 5')
+        # empty range
+        r = Range(min=7, max=3, min_eq=True, max_eq=True)
+        self.assertEqual(str(r), '(empty)')
+
+    def test_range_str_version(self):
+        """Test Range.__str__ with Version objects."""
+        r = Range(min=Version('0.46.0'), min_eq=True)
+        self.assertEqual(str(r), '>= 0.46.0')
+        r = Range(min=Version('1.0'), min_eq=True, max=Version('2.0'), max_eq=False)
+        self.assertEqual(str(r), '>= 1.0, < 2.0')
 
     def test_search_version(self):
         self.assertEqual(search_version('foo 1.2.3'), '1.2.3')
