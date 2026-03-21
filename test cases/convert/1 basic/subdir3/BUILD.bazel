@@ -1,0 +1,46 @@
+# Copyright (C) 2025-2026 The Magma GPU Project
+# SPDX-License-Identifier: Apache-2.0
+#
+# Generated via:
+#   https://github.com/mesonbuild/meson/tree/master/mesonbuild/convert
+#
+# Submit patches, do not hand-edit.
+
+load("//bazel:meson_rules.bzl", "meson_genrule")
+load("@rules_python//python:py_binary.bzl", "py_binary")
+
+package(
+    default_applicable_licenses = ["//:test_license"],
+    default_visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "script_py_binary",
+    main = "//subdir3:script.py",
+    srcs =[
+        "script.py",
+    ],
+)
+
+meson_genrule(
+    name = "copy-script",
+    outs =[
+        "script_copy.py",
+    ],
+    tools =[
+        "//:cp",
+        "//subdir3:script_py_binary",
+    ],
+    cmd = "$(location //:cp) $(location //subdir3:script_py_binary) $(location script_copy.py)",
+)
+
+meson_genrule(
+    name = "gen-hdr",
+    outs =[
+        "generated.h",
+    ],
+    tools =[
+        "//subdir3:script_py_binary",
+    ],
+    cmd = "$(location //subdir3:script_py_binary) $(location generated.h)",
+)

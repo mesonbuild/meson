@@ -1,0 +1,184 @@
+/*
+ * This is a special handwritten template for gfxstream compatibility.
+ * Parts of the Android tree, notably:
+ *
+ *    - hardware/google/gfxstream
+ *    - device/generic/goldfish
+ *
+ * have a dependency on this code.  They **shouldn't**, but they do.
+ * This dependency may be removed when:
+ *
+ *    - gfxstream does testing Github, rather than Android
+ *    - gfxstream GLES is deleted
+ *    - out-of-tree goldfish drivers are remove in favor of virtio
+ *
+ */
+
+cc_library_headers {
+    name: "mesa_common_headers",
+    vendor_available: true,
+    host_supported: true,
+    export_include_dirs: [
+        "src",
+        "include",
+    ],
+}
+
+cc_library_headers {
+    name: "mesa_src_headers",
+    vendor_available: true,
+    host_supported: true,
+    export_include_dirs: [
+        "src",
+    ],
+}
+
+cc_library_headers {
+    name: "mesa_gfxstream_virtgpu",
+    vendor: true,
+    host_supported: true,
+    export_include_dirs: [
+        "src/gfxstream/guest/platform/include",
+    ],
+}
+
+cc_library_headers {
+    name: "virtgpu_kumquat_ffi_headers_mesa3d",
+    vendor: true,
+    host_supported: true,
+    export_include_dirs: [
+        "src/virtio/virtgpu_kumquat_ffi/include",
+    ],
+}
+
+cc_library_headers {
+    name: "mesa_gfxstream_guest_android_headers",
+    vendor: true,
+    host_supported: true,
+    export_include_dirs: [
+        "src/gfxstream/guest/android",
+    ],
+}
+
+/*
+ * This is such a hack, when you consider hardware/google/aemu.
+ */
+cc_library_headers {
+    name: "mesa_gfxstream_aemu_headers",
+    vendor: true,
+    host_supported: true,
+    export_include_dirs: [
+        "src/gfxstream/aemu/include",
+    ],
+}
+
+cc_defaults {
+    name: "mesa_platform_virtgpu_defaults",
+    vendor: true,
+    header_libs: [
+        "inc_platform_virtgpu",
+        "inc_src",
+        "mesa_gfxstream_virtgpu",
+        "mesa_src_headers",
+    ],
+    whole_static_libs: [
+        "mesa_platform_virtgpu",
+        "platform_virtgpu_drm",
+        "libvirtgpu_kumquat_ffi",
+        "gfxstream_vulkan_mapper",
+    ],
+    shared_libs: [
+        "libdrm",
+    ],
+    export_shared_lib_headers: [
+        "libdrm",
+    ],
+    target: {
+        android: {
+            shared_libs: [
+                "libsync",
+            ],
+        },
+    },
+}
+
+cc_library_headers {
+    name: "mesa_gfxstream_guest_iostream",
+    vendor: true,
+    host_supported: true,
+    shared_libs: [
+        "liblog",
+    ],
+    export_shared_lib_headers: [
+        "liblog",
+    ],
+    export_include_dirs: [
+        "src/gfxstream/guest/iostream/include",
+    ],
+}
+
+cc_library_static {
+    name: "mesa_platform_virtgpu",
+    vendor: true,
+    host_supported: true,
+    whole_static_libs: [
+        "platform_virtgpu",
+        "vulkan_util",
+        "platform_virtgpu_kumquat",
+    ],
+    shared_libs: [
+        "libdrm",
+    ],
+    export_shared_lib_headers: [
+        "libdrm",
+    ],
+    target: {
+        host: {
+            compile_multilib: "64",
+        },
+        android: {
+            shared_libs: [
+                "libsync",
+            ],
+        },
+    },
+}
+
+cc_library_static {
+    name: "mesa_gfxstream_connection_manager",
+    vendor: true,
+    host_supported: true,
+    whole_static_libs: ["connection_manager"],
+    export_include_dirs: ["src/gfxstream/guest/connection-manager"],
+    target: {
+        host: {
+            compile_multilib: "64",
+        },
+    },
+}
+
+cc_library_static {
+    name: "mesa_goldfish_address_space",
+    vendor: true,
+    host_supported: true,
+    whole_static_libs: ["goldfish_address_space"],
+    export_include_dirs: ["src/gfxstream/guest/GoldfishAddressSpace/include"],
+    target: {
+        host: {
+            compile_multilib: "64",
+        },
+    },
+}
+
+cc_library_static {
+    name: "mesa_gfxstream_guest_android",
+    vendor: true,
+    host_supported: true,
+    whole_static_libs: ["gfxstream_android"],
+    export_include_dirs: ["src/gfxstream/guest/android/include"],
+    target: {
+        host: {
+            compile_multilib: "64",
+        },
+    },
+}

@@ -1,0 +1,49 @@
+# Copyright 2026 The Meson Development Team
+# SPDX-License-Identifier: Apache-2.0
+[project]
+project_name = 'fuchsia_mesa3d'
+build_system = 'bazel'
+
+[copyright]
+license_name = "fuchsia_license"
+licenses = ["BSD-2-Clause"]
+license_texts = ["LICENSE"]
+
+[custom_target]
+[custom_target.workarounds]
+# Maybe we should always do this.
+export_include_dirs = [
+    "u_format_gen.h",
+    "spirv_info",
+    "leaf.spv.h",
+    "morton.spv.h",
+    "lbvh_main.spv.h",
+    "lbvh_generate_ir.spv.h",
+    "ploc_internal.spv.h",
+    "init.comp.spv.h",
+    "fill.comp.spv.h",
+    "histogram.comp.spv.h",
+    "prefix.comp.spv.h",
+    "scatter_0_even.comp.spv.h",
+    "scatter_0_odd.comp.spv.h",
+    "scatter_1_even.comp.spv.h",
+    "scatter_1_odd.comp.spv.h",
+    "hploc_internal.spv.h",
+]
+
+[[config]]
+config_name = 'fuchsia_mesa3d_drivers'
+
+[config.toolchains]
+host_toolchains = ["fuchsia_x86_64"]
+build_toolchains = ["fuchsia_x86_64"]
+
+[config.static_options]
+glx = "disabled"
+platforms = ""
+gallium-drivers = ""
+vulkan-drivers = 'gfxstream'
+shader-cache = 'disabled'
+opengl = false
+egl = "disabled"
+zlib = "disabled"

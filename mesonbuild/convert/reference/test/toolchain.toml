@@ -1,0 +1,21 @@
+# Copyright 2026 The Meson Development Team
+# SPDX-License-Identifier-Apache-2.0
+
+[[toolchain]]
+name = "test_toolchain"
+
+[toolchain.host_machine]
+cpu_family = "x86_64"
+cpu = "x86_64"
+system = "linux"
+endian = "little"
+
+[toolchain.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[toolchain.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
