@@ -350,7 +350,7 @@ class Interpreter:
         return ast
 
     def interpret_workspace(self, ws: WorkspaceState, build: builder.Builder, subdir: str) -> mparser.CodeBlockNode:
-        name = os.path.dirname(subdir)
+        name = os.path.basename(subdir)
         subprojects_dir = os.path.join(subdir, 'subprojects')
         self.environment.wrap_resolver.load_and_merge(subprojects_dir, SubProject(name))
         ast: T.List[mparser.BaseNode] = []
