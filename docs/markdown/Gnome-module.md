@@ -144,7 +144,7 @@ argument is the basename of the output files.
 * `nostdinc`: if true, don't include the standard marshallers from glib
 * `prefix`: the prefix to use for symbols
 * `skip_source`: if true, skip source location comments
-* `sources` [](str | File) *required*: the list of sources to use as inputs
+* `sources` [](str | File | CustomTarget | CustomTargetIndex | generator_output) *required*: the list of sources to use as inputs (build-time generated files only allowed *since 1.12.0*)
 * `stdinc`: if true, include the standard marshallers from glib
 * `valist_marshallers`: if true, generate va_list marshallers
 
@@ -326,7 +326,8 @@ library.
 * `install_dir`: location to install the VAPI file (defaults to datadir/vala/vapi)
 * `metadata_dirs`: extra directories to include for metadata files
 * `packages`: VAPI packages that are depended upon
-* `sources`: the gir source to generate the VAPI from
+* `sources`: the gir source to generate the VAPI from (File objects
+  only supported *since 1.12.0*)
 * `vapi_dirs`: extra directories to include for VAPI files
 
 Returns a custom dependency that can be included when building other

@@ -27,6 +27,7 @@ if T.TYPE_CHECKING:
     from ..dependencies.base import DependencyObjectKWs
     from ..interpreter import Interpreter
     from ..interpreter import kwargs
+    from ..interpreter.interpreter import CustomTargetSources
     from ..mesonlib import FileOrString
     from ..programs import CommandList, Program
     from typing_extensions import Literal
@@ -125,7 +126,7 @@ if T.TYPE_CHECKING:
 
         target_name: str
         qml_sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
-        qml_qrc: T.Union[FileOrString, build.GeneratedTypes]
+        qml_qrc: File
         extra_args: T.List[str]
         module_prefix: str
         method: DependencyMethods
@@ -139,7 +140,7 @@ if T.TYPE_CHECKING:
         namespace: str
         typeinfo: str
         generate_qmltype: bool
-        collected_json: T.Optional[T.Union[FileOrString, build.CustomTarget]]
+        collected_json: T.Optional[T.Union[File, build.CustomTarget]]
         extra_args: T.List[str]
         method: DependencyMethods
         install: bool
@@ -326,14 +327,9 @@ class QtBaseModule(ExtensionModule):
         except Exception:
             raise MesonException(f'Unable to parse resource file {abspath}')
 
-    def _parse_qrc_deps(self, state: ModuleState,
-                        rcc_file_: T.Union[FileOrString, build.GeneratedTypes]) -> T.List[File]:
+    def _parse_qrc_deps(self, state: ModuleState, rcc_file_: FileOrString) -> T.List[File]:
         result: T.List[File] = []
-        inputs: T.Sequence['FileOrString'] = []
-        if isinstance(rcc_file_, (str, File)):
-            inputs = [rcc_file_]
-        else:
-            inputs = rcc_file_.get_outputs()
+        inputs: T.Sequence['FileOrString'] = [rcc_file_]
 
         for rcc_file in inputs:
             rcc_dirname, nodes = self._qrc_nodes(state, rcc_file)
@@ -433,12 +429,17 @@ class QtBaseModule(ExtensionModule):
         DEPFILE_ARGS: T.List[str] = ['--depfile', '@DEPFILE@'] if self._rcc_supports_depfiles else []
 
         name = kwargs['name']
-        sources: T.List['FileOrString'] = []
+        sources: T.List[File] = []
         for s in kwargs['sources']:
-            if isinstance(s, (str, File)):
+            if isinstance(s, str):
+                sources.append(File.from_source_file(state.environment.source_dir, state.subdir, s))
+            elif isinstance(s, File):
                 sources.append(s)
             else:
-                sources.extend(s.get_outputs())
+                raise MesonException('Resource xml files generated at build-time cannot be used with '
+                                     'qt.compile_resources() because we need to scan the xml for '
+                                     'dependencies.\nUse configure_file() instead to generate it at '
+                                     'configure-time.')
         extra_args = kwargs['extra_args']
 
         # If a name was set generate a single .cpp file from all of the qrc
@@ -465,10 +466,7 @@ class QtBaseModule(ExtensionModule):
         else:
             for rcc_file in sources:
                 qrc_deps = self._parse_qrc_deps(state, rcc_file)
-                if isinstance(rcc_file, str):
-                    basename = os.path.basename(rcc_file)
-                else:
-                    basename = os.path.basename(rcc_file.fname)
+                basename = os.path.basename(rcc_file.fname)
                 name = f'qt{self.qt_version}-{basename.replace(".", "_")}'
                 cmd = [self.tools['rcc'], '-name', '@BASENAME@', '-o', '@OUTPUT@', *extra_args, '@INPUT@', *DEPFILE_ARGS]
                 res_target = build.CustomTarget(
@@ -726,6 +724,7 @@ class QtBaseModule(ExtensionModule):
             if not self.tools['lrelease'].found():
                 raise MesonException('qt.compile_translations: ' +
                                      self.tools['lrelease'].name + ' not found')
+            ts_file: CustomTargetSources
             if qresource:
                 # In this case we know that ts_files is always a List[str], as
                 # it's generated above and no ts_files are passed in. However,
@@ -733,9 +732,13 @@ class QtBaseModule(ExtensionModule):
                 # what we're doing is safe
                 assert isinstance(ts, str), 'for mypy'
                 outdir = os.path.dirname(os.path.normpath(os.path.join(state.subdir, ts)))
-                ts = os.path.basename(ts)
+                ts_file = File.from_source_file(state.environment.source_dir, outdir, os.path.basename(ts))
+            elif isinstance(ts, str):
+                outdir = state.subdir
+                ts_file = File.from_source_file(state.environment.source_dir, state.subdir, ts)
             else:
                 outdir = state.subdir
+                ts_file = ts
             cmd: CommandList = [self.tools['lrelease'], '@INPUT@', '-qm', '@OUTPUT@']
             lrelease_target = build.CustomTarget(
                 f'qt{self.qt_version}-compile-{ts}',
@@ -743,7 +746,7 @@ class QtBaseModule(ExtensionModule):
                 state.subproject,
                 state.environment,
                 cmd,
-                [ts],
+                [ts_file],
                 ['@BASENAME@.qm'],
                 install=kwargs['install'],
                 install_dir=[kwargs['install_dir']],
@@ -951,9 +954,9 @@ class QtBaseModule(ExtensionModule):
         namespace: str = kwargs['namespace']
         typeinfo: str = kwargs['typeinfo']
         target_name: str = kwargs['target_name']
-        collected_json: T.Optional[T.Union[FileOrString, build.CustomTarget]] = kwargs['collected_json']
+        collected_json: T.Optional[T.Union[File, build.CustomTarget]] = kwargs['collected_json']
 
-        inputs: T.Sequence[T.Union[FileOrString, build.CustomTarget]] = [collected_json] if collected_json else []
+        inputs: T.Sequence[T.Union[File, build.CustomTarget]] = [collected_json] if collected_json else []
         outputs: T.List[str] = [f'{target_name}_qmltyperegistrations.cpp']
         install_dir: T.List[T.Union[str, Literal[False]]] = [False]
         install_tag: T.List[T.Union[str, None]] = [None]
@@ -1102,7 +1105,7 @@ class QtBaseModule(ExtensionModule):
             self.interpreter.install_data_impl(all_qml_files, module_install_dir,
                                                FileMode(), all_qml_basename, 'devel')
 
-        collected_json: T.Optional[T.Union[FileOrString, build.CustomTarget]] = None
+        collected_json: T.Optional[T.Union[File, build.CustomTarget]] = None
         if kwargs['moc_headers']:
             compile_moc_kwargs: MocCompilerKwArgs = {
                 'sources': [],
