@@ -688,6 +688,9 @@ class CudaCompiler(Compiler):
     def get_optimization_link_args(self, optimization_level: str) -> T.List[str]:
         return self._to_host_flags(self.host_compiler.get_optimization_link_args(optimization_level), Phase.LINKER)
 
+    def get_linker_fatal_warnings(self) -> T.List[str]:
+        return self._to_host_flags(self.host_compiler.get_linker_fatal_warnings(), Phase.LINKER)
+
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
                          extra_paths: T.Optional[T.List[str]] = None
                          ) -> T.Tuple[T.List[str], T.Set[bytes]]:

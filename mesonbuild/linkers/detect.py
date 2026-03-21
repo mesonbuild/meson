@@ -62,6 +62,8 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     if value is not None:
         override = comp_class.use_linker_args(value[0], comp_version)
         check_args += override
+        if invoked_directly:
+            compiler = value
     elif 'lld-link' in compiler:
         override = comp_class.use_linker_args('lld-link', comp_version)
         check_args += override
@@ -69,29 +71,19 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     if extra_args is not None:
         check_args.extend(extra_args)
 
-    p, o, _ = Popen_safe(compiler + check_args)
+    p, o, e = Popen_safe(compiler + check_args)
     if 'LLD' in o.split('\n', maxsplit=1)[0]:
         if 'compatible with GNU linkers' in o:
             return linkers.LLVMDynamicLinker(
                 compiler, env, for_machine, comp_class.LINKER_PREFIX,
                 override, version=search_version(o))
-        elif not invoked_directly:
+        else:
             return linkers.ClangClDynamicLinker(
-                env, for_machine, override, exelist=compiler, prefix=comp_class.LINKER_PREFIX,
-                version=search_version(o), direct=False, machine=None,
+                env, for_machine, [] if invoked_directly else override,
+                exelist=compiler if invoked_directly else None,
+                prefix=comp_class.LINKER_PREFIX if use_linker_prefix else [],
+                version=search_version(o), direct=invoked_directly, machine=None,
                 rsp_syntax=rsp_syntax)
-
-    if value is not None and invoked_directly:
-        compiler = value
-        # We've already handled the non-direct case above
-
-    p, o, e = Popen_safe(compiler + check_args)
-    if 'LLD' in o.split('\n', maxsplit=1)[0]:
-        return linkers.ClangClDynamicLinker(
-            env, for_machine, [],
-            prefix=comp_class.LINKER_PREFIX if use_linker_prefix else [],
-            exelist=compiler, version=search_version(o), direct=invoked_directly,
-            rsp_syntax=rsp_syntax)
     elif 'OPTLINK' in o:
         # Optlink's stdout *may* begin with a \r character.
         return linkers.OptlinkDynamicLinker(compiler, env, for_machine, version=search_version(o))
