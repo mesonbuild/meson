@@ -615,6 +615,43 @@ class InternalTests(unittest.TestCase):
             env.machines.host.system = 'windows'
             self._test_all_naming(cc, patterns, 'windows-mingw')
 
+        self._test_find_library_undefined(cc)
+
+    def _test_find_library_undefined(self, cc):
+        '''
+        find_library checks if its argument both exists and can be
+        linked against, but it must tolerate underlinked static
+        libraries.
+
+        https://github.com/mesonbuild/meson/issues/15601
+        '''
+        def create_static_lib_with_undefined(name):
+            src = name.with_suffix('.c')
+            out = name.with_suffix('.o')
+            with src.open('w', encoding='utf-8') as f:
+                f.write('extern int get_cookie();')
+                f.write('int meson_foobar (void) { return get_cookie(); }')
+            # use of x86_64 is hardcoded in run_tests.py:get_fake_env()
+            if is_osx():
+                subprocess.check_call(['clang', '-c', str(src), '-o', str(out), '-arch', 'x86_64'])
+            else:
+                subprocess.check_call(['gcc', '-c', str(src), '-o', str(out)])
+            subprocess.check_call(['ar', 'csr', str(name), str(out)])
+
+        # The test relies on some open-coded toolchain invocations for
+        # library creation in create_static_lib_with_undefined.
+        if is_windows() or is_cygwin():
+            return
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            p1 = Path(tmpdir)
+            create_static_lib_with_undefined(p1 / 'libfoo.a')
+
+            found = cc._find_library_real('foo', [tmpdir],
+                                          'int meson_foobar (void); int main(void) { return meson_foobar(); }',
+                                          LibType.PREFER_STATIC, lib_prefix_warning=True, ignore_system_dirs=False)
+            self.assertEqual(os.path.basename(found[0]), 'libfoo.a')
+
     @skipIfNoPkgconfig
     def test_pkgconfig_parse_libs(self):
         '''
