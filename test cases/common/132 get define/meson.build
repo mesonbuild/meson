@@ -19,6 +19,7 @@ system_define_map = {
   # being run on various versions of FreeBSD, just test that the define is
   # set.
   'freebsd'   : ['__FreeBSD__'],
+  'android'   : ['__ANDROID__'],
 }
 
 foreach lang : ['c', 'cpp']
