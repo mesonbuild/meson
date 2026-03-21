@@ -2365,7 +2365,13 @@ class StaticLibrary(BuildTarget):
                 #  and thus, machine_info kernel should be set to 'none'.
                 #  In that case, native_static_libs list is empty.
                 rustc = self.compilers['rust']
-                link_args = ['-L' + rustc.get_target_libdir() + '/self-contained']
+                if rustc.get_crt_static():
+                    # musl targets need self-contained for libc.a, libunwind.a etc.
+                    link_args = ['-L' + rustc.get_target_libdir() + '/self-contained']
+                else:
+                    # Avoid embedding self-contained libc.a into shared libraries —
+                    # creates a second musl instance with uninitialized __libc state.
+                    link_args = []
                 link_args += rustc.native_static_libs
                 d = dependencies.InternalDependency('undefined', [], [], link_args,
                                                     [], [], [], [], [], {}, [], [], [],
