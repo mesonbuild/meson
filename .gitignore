@@ -6,7 +6,7 @@
 /.cproject
 /.idea
 /.vscode
-
+./pyrightconfig.json
 __pycache__
 /.coverage/
 /.coveragerc
