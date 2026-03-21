@@ -862,11 +862,16 @@ class Interpreter:
         if lib_type == 'proc-macro':
             lib = build.method('proc_macro', build.identifier('rust'), posargs, kwargs)
         else:
-            if static and shared:
+            if lib_type == 'c':
+                # Let Meson's default_library option decide for C ABI, regardless
+                # whether Cargo.toml requests static and/or shared.
+                target_type = 'library'
+            elif static and shared:
                 target_type = 'both_libraries'
+            elif shared:
+                target_type = 'shared_library'
             else:
-                target_type = 'shared_library' if shared else 'static_library'
-
+                target_type = 'static_library'
             kwargs['rust_abi'] = build.string(lib_type)
             lib = build.function(target_type, posargs, kwargs)
 
