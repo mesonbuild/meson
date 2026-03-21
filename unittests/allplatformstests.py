@@ -3101,7 +3101,7 @@ class AllPlatformTests(BasePlatformTests):
         python_build_config = {
             'schema_version': '1.0',
             'base_interpreter': sys.executable,
-            'base_prefix': '/usr',
+            'base_prefix': sys.base_prefix,
             'platform': sysconfig.get_platform(),
             'language': {
                 'version': sysconfig.get_python_version(),
@@ -3168,37 +3168,54 @@ class AllPlatformTests(BasePlatformTests):
                 if with_pkgconfig:
                     libpc = sysconfig.get_config_var('LIBPC')
                     if libpc is None:
-                        continue
+                        raise SkipTest('pkg-config subtest skipped because of no LIBPC')
                     python_build_config['c_api']['pkgconfig_path'] = libpc
                 # Old Ubuntu versions have incorrect LIBDIR, skip testing non-pkgconfig variant there.
                 elif not os.path.exists(python_build_config['libpython']['dynamic']):
-                    continue
+                    raise SkipTest('non-pkgconfig subtest skipped because of wrong LIBDIR')
 
                 with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as python_build_config_file:
                     json.dump(python_build_config, fp=python_build_config_file)
-                with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as cross_file:
-                    cross_file.write(
-                        textwrap.dedent(f'''
-                            [binaries]
-                            pkg-config = 'pkg-config'
+                for build_config_via_cross in (False, True):
+                    for sys_root in (None, sys.base_prefix):
+                        with self.subTest(build_config_via_cross=build_config_via_cross, sys_root=sys_root):
+                            # fd.o pkg-config does not handle sys_root correctly
+                            if sys_root is not None and with_pkgconfig and shutil.which('pkgconf') is None:
+                                raise SkipTest('sys_root subtest skipped because of fd.o pkg-config')
 
-                            [built-in options]
-                            python.build_config = '{python_build_config_file.name}'
-                        '''.strip())
-                    )
-                    cross_file.flush()
+                            with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as cross_file:
+                                cross_file.write(
+                                    textwrap.dedent(f'''
+                                        [binaries]
+                                        pkg-config = 'pkg-config'
+                                    ''')
+                                )
+                                if build_config_via_cross:
+                                    cross_file.write(
+                                        textwrap.dedent(f'''
+                                            [built-in options]
+                                            python.build_config = '{python_build_config_file.name}'
+                                        ''')
+                                    )
+                                if sys_root is not None:
+                                    cross_file.write(
+                                        textwrap.dedent(f'''
+                                            [properties]
+                                            sys_root = '{sys_root}'
+                                        ''')
+                                    )
+                                cross_file.flush()
 
-                for extra_args in (
-                    ['--python.build-config', python_build_config_file.name],
-                    ['--cross-file', cross_file.name],
-                ):
-                    with self.subTest(extra_args=extra_args):
-                        self.init(testdir, extra_args=extra_args)
-                        self.build()
-                        with open(intro_installed_file) as f:
-                            intro_installed = json.load(f)
-                        self.assertEqual(sorted(expected_files), sorted(intro_installed))
-                        self.wipe()
+                            extra_args = ['--cross-file', cross_file.name]
+                            if not build_config_via_cross:
+                                extra_args += ['--python.build-config', python_build_config_file.name]
+
+                            self.init(testdir, extra_args=extra_args)
+                            self.build()
+                            with open(intro_installed_file) as f:
+                                intro_installed = json.load(f)
+                            self.assertEqual(sorted(expected_files), sorted(intro_installed))
+                            self.wipe()
 
     def __reconfigure(self):
         # Set an older version to force a reconfigure from scratch

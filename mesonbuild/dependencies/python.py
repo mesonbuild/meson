@@ -15,9 +15,10 @@ from .factory import DependencyFactory
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
 from ..envconfig import detect_cpu_family
-from ..mesonlib import MachineChoice
+from ..mesonlib import MachineChoice, path_is_in_root
 from ..programs import ExternalProgram
 from ..options import OptionKey
+from ..scripts import destdir_join
 
 if T.TYPE_CHECKING:
     from typing_extensions import Final, TypedDict
@@ -302,8 +303,9 @@ class _PythonDependencyBase(_Base):
             path = self.build_config['libpython'].get('dynamic')
             if not path:
                 raise DependencyException('Python does not provide a dynamic libpython library')
-            sysroot = environment.properties[self.for_machine].get_sys_root() or ''
-            path = sysroot + path
+            sysroot = environment.properties[self.for_machine].get_sys_root()
+            if sysroot and not path_is_in_root(Path(path), Path(sysroot)):
+                path = destdir_join(sysroot, path)
             if not os.path.isfile(path):
                 raise DependencyException('Python dynamic library does not exist or is not a file')
             self.link_args = [path]
@@ -356,8 +358,11 @@ class _PythonDependencyBase(_Base):
                 key = 'dynamic-stableabi'
             else:
                 key = 'dynamic'
-            sysroot = environment.properties[self.for_machine].get_sys_root() or ''
-            return [sysroot + self.build_config['libpython'][key]]
+            sysroot = environment.properties[self.for_machine].get_sys_root()
+            path = self.build_config['libpython'][key]
+            if sysroot and not path_is_in_root(Path(path), Path(sysroot)):
+                path = destdir_join(sysroot, path)
+            return [path]
 
         if self.platform.startswith('win'):
             vernum = self.variables.get('py_version_nodot')
@@ -479,8 +484,9 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
             return
 
         for_machine = kwargs['native']
-        sysroot = environment.properties[for_machine].get_sys_root() or ''
-        pkg_libdir = sysroot + pkg_libdir
+        sysroot = environment.properties[for_machine].get_sys_root()
+        if sysroot and not path_is_in_root(Path(pkg_libdir), Path(sysroot)):
+            pkg_libdir = destdir_join(sysroot, pkg_libdir)
 
         mlog.debug(f'Searching for {pkg_libdir!r} via pkgconfig lookup in {pkg_libdir_origin}')
         pkgconfig_paths = [pkg_libdir] if pkg_libdir else []
@@ -541,8 +547,11 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
         # compile args
         if self.build_config:
-            sysroot = environment.properties[self.for_machine].get_sys_root() or ''
-            inc_paths = mesonlib.OrderedSet([sysroot + self.build_config['c_api']['headers']])
+            sysroot = environment.properties[self.for_machine].get_sys_root()
+            path = self.build_config['c_api']['headers']
+            if sysroot and not path_is_in_root(Path(path), Path(sysroot)):
+                path = destdir_join(sysroot, path)
+            inc_paths = mesonlib.OrderedSet([path])
         else:
             inc_paths = mesonlib.OrderedSet([
                 self.variables.get('INCLUDEPY'),
