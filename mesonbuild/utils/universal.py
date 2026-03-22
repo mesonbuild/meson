@@ -1493,7 +1493,7 @@ def do_conf_str_meson(src: str, data: T.List[str], confdata: 'ConfigurationData'
             confdata_useless = False
             line = do_define_meson(regex, line, confdata, subproject)
         else:
-            if '#cmakedefine' in line:
+            if re.search(r'#\s*cmakedefine', line):
                 raise MesonException(f'Format error in {src}: saw "{line.strip()}" when format set to "meson"')
             line, missing = do_replacement_meson(regex, line, confdata)
             missing_variables.update(missing)
