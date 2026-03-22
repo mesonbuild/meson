@@ -1360,6 +1360,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                     mesonlib.windows_proof_rm(abspath)
                 else:
                     mesonlib.windows_proof_rmtree(abspath)
+
         conf_time += result.conftime
         build_time += result.buildtime
         test_time += result.testtime
@@ -1373,9 +1374,9 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         if result.msg != '':
             ET.SubElement(current_test, 'failure', {'message': result.msg})
         stdoel = ET.SubElement(current_test, 'system-out')
-        stdoel.text = result.stdo
+        stdoel.text = mtest.replace_unencodable_xml_chars(result.stdo)
         stdeel = ET.SubElement(current_test, 'system-err')
-        stdeel.text = result.stde
+        stdeel.text = mtest.replace_unencodable_xml_chars(result.stde)
 
     # Reset, just in case
     safe_print = default_print
