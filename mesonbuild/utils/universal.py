@@ -1520,8 +1520,10 @@ def do_conf_str_cmake(src: str, data: T.List[str], confdata: 'ConfigurationData'
     for line in data:
         stripped_line = line.lstrip()
         if len(stripped_line) >= 2 and stripped_line[0] == '#' and stripped_line[1:].lstrip().startswith(search_token):
+            if not stripped_line[1:].startswith(search_token):
+                from ..interpreterbase.decorators import FeatureNew
+                FeatureNew.single_use('whitespace between `#` and `cmakedefine`', '1.9.0', subproject)
             confdata_useless = False
-
             line = do_define_cmake(line, confdata, at_only, subproject)
         else:
             if '#mesondefine' in line:
