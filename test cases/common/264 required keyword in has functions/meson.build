@@ -50,7 +50,7 @@ if not ['pgi', 'msvc', 'clang-cl', 'intel-cl'].contains(cc.get_id())
   assert(not cc.has_function_attribute(a, required: opt))
 endif
 
-testcase expect_error('''compiler.has_function keyword argument 'required' was of type str but should have been one of: bool, UserFeatureOption''')
+testcase expect_error('''compiler.has_function keyword argument 'required' was of type str but should have been one of: bool, FeatureObject''')
   cc.has_function('printf', required : 'not a bool')
 endtestcase
 

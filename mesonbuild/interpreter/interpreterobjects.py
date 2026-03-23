@@ -10,7 +10,6 @@ import sys
 from pathlib import Path, PurePath
 
 from .. import mesonlib
-from .. import options
 from .. import build
 from .. import mlog
 
@@ -22,7 +21,8 @@ from ..interpreterbase import (
                                FeatureNew, FeatureDeprecated,
                                typed_pos_args, typed_kwargs, typed_operator,
                                noArgsFlattening, noPosargs, noKwargs, unholder_return,
-                               flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
+                               flatten, resolve_second_level_holders, FeatureObject,
+                               InterpreterException, InvalidArguments, InvalidCode)
 from ..interpreter.type_checking import NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram, Program
@@ -66,7 +66,7 @@ def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired',
     :param subproject: The subproject this is
     :param feature_check:
         A custom feature check for this use of `required` with a
-        `UserFeatureOption`, defaults to None.
+        `FeatureObject`, defaults to None.
     :param default:
         The default value is `required` is not set in  `kwargs`, defaults to
         True
@@ -77,7 +77,8 @@ def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired',
     """
     val = kwargs.get('required', default)
     required = False
-    if isinstance(val, options.UserFeatureOption):
+    feature: T.Optional[str] = None
+    if isinstance(val, FeatureObject):
         if not feature_check:
             feature_check = FeatureNew('User option "feature"', '0.47.0')
         feature_check.use(subproject)
@@ -110,28 +111,21 @@ def extract_search_dirs(kwargs: 'kwargs.ExtractSearchDirs') -> T.List[str]:
             raise InvalidCode(f'Search directory {d} is not an absolute path.')
     return [str(s) for s in search_dirs]
 
-class FeatureOptionHolder(ObjectHolder[options.UserFeatureOption]):
-    def __init__(self, option: options.UserFeatureOption, interpreter: 'Interpreter'):
+class FeatureOptionHolder(ObjectHolder[FeatureObject]):
+    def __init__(self, option: FeatureObject, interpreter: 'Interpreter'):
         super().__init__(option, interpreter)
         if option and option.is_auto():
-            # TODO: we need to cast here because options is not a TypedDict
-            auto = T.cast('options.UserFeatureOption', self.env.coredata.optstore.resolve_option('auto_features'))
-            self.held_object = copy.copy(auto)
-            self.held_object.name = option.name
+            option.value = T.cast('str', self.env.coredata.optstore.get_value_for('auto_features'))
 
     @property
     def value(self) -> str:
-        return 'disabled' if not self.held_object else self.held_object.value
+        return self.held_object.value
 
-    def as_disabled(self) -> options.UserFeatureOption:
-        disabled = copy.deepcopy(self.held_object)
-        disabled.value = 'disabled'
-        return disabled
+    def as_disabled(self) -> FeatureObject:
+        return FeatureObject(self.held_object.name, 'disabled')
 
-    def as_enabled(self) -> options.UserFeatureOption:
-        enabled = copy.deepcopy(self.held_object)
-        enabled.value = 'enabled'
-        return enabled
+    def as_enabled(self) -> FeatureObject:
+        return FeatureObject(self.held_object.name, 'enabled')
 
     @noPosargs
     @noKwargs
@@ -158,9 +152,9 @@ class FeatureOptionHolder(ObjectHolder[options.UserFeatureOption]):
     def auto_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.value == 'auto'
 
-    def _disable_if(self, condition: bool, message: T.Optional[str]) -> options.UserFeatureOption:
+    def _disable_if(self, condition: bool, message: T.Optional[str]) -> FeatureObject:
         if not condition:
-            return copy.deepcopy(self.held_object)
+            return self.held_object
 
         if self.value == 'enabled':
             err_msg = f'Feature {self.held_object.name} cannot be enabled'
@@ -176,7 +170,7 @@ class FeatureOptionHolder(ObjectHolder[options.UserFeatureOption]):
         _ERROR_MSG_KW,
     )
     @InterpreterObject.method('require')
-    def require_method(self, args: T.Tuple[bool], kwargs: 'kwargs.FeatureOptionRequire') -> options.UserFeatureOption:
+    def require_method(self, args: T.Tuple[bool], kwargs: 'kwargs.FeatureOptionRequire') -> FeatureObject:
         return self._disable_if(not args[0], kwargs['error_message'])
 
     @FeatureNew('feature_option.disable_if()', '1.1.0')
@@ -186,7 +180,7 @@ class FeatureOptionHolder(ObjectHolder[options.UserFeatureOption]):
         _ERROR_MSG_KW,
     )
     @InterpreterObject.method('disable_if')
-    def disable_if_method(self, args: T.Tuple[bool], kwargs: 'kwargs.FeatureOptionRequire') -> options.UserFeatureOption:
+    def disable_if_method(self, args: T.Tuple[bool], kwargs: 'kwargs.FeatureOptionRequire') -> FeatureObject:
         return self._disable_if(args[0], kwargs['error_message'])
 
     @FeatureNew('feature_option.enable_if()', '1.1.0')
@@ -196,9 +190,9 @@ class FeatureOptionHolder(ObjectHolder[options.UserFeatureOption]):
         _ERROR_MSG_KW,
     )
     @InterpreterObject.method('enable_if')
-    def enable_if_method(self, args: T.Tuple[bool], kwargs: 'kwargs.FeatureOptionRequire') -> options.UserFeatureOption:
+    def enable_if_method(self, args: T.Tuple[bool], kwargs: 'kwargs.FeatureOptionRequire') -> FeatureObject:
         if not args[0]:
-            return copy.deepcopy(self.held_object)
+            return self.held_object
 
         if self.value == 'disabled':
             err_msg = f'Feature {self.held_object.name} cannot be disabled'
@@ -211,15 +205,15 @@ class FeatureOptionHolder(ObjectHolder[options.UserFeatureOption]):
     @noKwargs
     @typed_pos_args('feature_option.disable_auto_if', bool)
     @InterpreterObject.method('disable_auto_if')
-    def disable_auto_if_method(self, args: T.Tuple[bool], kwargs: TYPE_kwargs) -> options.UserFeatureOption:
-        return copy.deepcopy(self.held_object) if self.value != 'auto' or not args[0] else self.as_disabled()
+    def disable_auto_if_method(self, args: T.Tuple[bool], kwargs: TYPE_kwargs) -> FeatureObject:
+        return self.held_object if self.value != 'auto' or not args[0] else self.as_disabled()
 
     @FeatureNew('feature_option.enable_auto_if()', '1.1.0')
     @noKwargs
     @typed_pos_args('feature_option.enable_auto_if', bool)
     @InterpreterObject.method('enable_auto_if')
-    def enable_auto_if_method(self, args: T.Tuple[bool], kwargs: TYPE_kwargs) -> options.UserFeatureOption:
-        return self.as_enabled() if self.value == 'auto' and args[0] else copy.deepcopy(self.held_object)
+    def enable_auto_if_method(self, args: T.Tuple[bool], kwargs: TYPE_kwargs) -> FeatureObject:
+        return self.as_enabled() if self.value == 'auto' and args[0] else self.held_object
 
 
 class RunProcess(MesonInterpreterObject):
