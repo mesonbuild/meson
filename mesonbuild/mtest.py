@@ -555,7 +555,7 @@ class ConsoleLogger(TestLogger):
         self.test_count = 0
         self.started_tests = 0
         self.spinner_index = 0
-        self.is_tty = os.isatty(1)
+        self.is_tty = sys.stdout.isatty()
         self.cols = 80
         if self.is_tty:
             try:
@@ -582,7 +582,10 @@ class ConsoleLogger(TestLogger):
 
     def print_progress(self, line: str) -> None:
         print(self.should_erase_line, line, sep='', end='\r')
-        self.should_erase_line = '\x1b[K'
+        if self.is_tty:
+            self.should_erase_line = '\x1b[K'
+        else:
+            self.should_erase_line = '\n'
 
     def request_update(self) -> None:
         self.update.set()

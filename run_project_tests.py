@@ -27,9 +27,20 @@ import subprocess
 import tempfile
 import time
 import typing as T
-import xml.etree.ElementTree as ET
 import collections
 import importlib.util
+
+# use lxml, if available, otherwise fallback to xml.etree
+try:
+    import lxml.etree as ET
+except ImportError:
+    # assert that happens somewhere in our CI (although not everywhere, as we
+    # don't want to have to always install lxml), so that the validation which
+    # requires it, gets run.
+    if os.environ.get('MESON_CI_JOBNAME', 'thirdparty') == 'linux-fedora-gcc':
+        raise
+
+    import xml.etree.ElementTree as ET  # type: ignore
 
 from mesonbuild import build
 from mesonbuild import environment
@@ -1349,6 +1360,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                     mesonlib.windows_proof_rm(abspath)
                 else:
                     mesonlib.windows_proof_rmtree(abspath)
+
         conf_time += result.conftime
         build_time += result.buildtime
         test_time += result.testtime
@@ -1362,9 +1374,9 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         if result.msg != '':
             ET.SubElement(current_test, 'failure', {'message': result.msg})
         stdoel = ET.SubElement(current_test, 'system-out')
-        stdoel.text = result.stdo
+        stdoel.text = mtest.replace_unencodable_xml_chars(result.stdo)
         stdeel = ET.SubElement(current_test, 'system-err')
-        stdeel.text = result.stde
+        stdeel.text = mtest.replace_unencodable_xml_chars(result.stde)
 
     # Reset, just in case
     safe_print = default_print
@@ -1374,6 +1386,12 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     print("Total build time:         %.2fs" % build_time)
     print("Total test time:          %.2fs" % test_time)
     ET.ElementTree(element=junit_root).write(xmlname, xml_declaration=True, encoding='UTF-8')
+
+    # validate the JUnit XML output against the JUnit schema, if possible
+    if hasattr(ET, 'XMLSchema'):
+        junit_schema = ET.XMLSchema(file='./data/schema.xsd')
+        junit_schema.assertValid(junit_root)
+
     return passing_tests, failing_tests, skipped_tests
 
 def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None:
