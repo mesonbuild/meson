@@ -13,7 +13,7 @@ import typing as T
 
 from .. import options
 from ..dependencies import InternalDependency
-from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged, version_compare
+from ..mesonlib import EnvironmentException, MesonException, Popen_safe, Popen_safe_logged, version_compare
 from ..linkers.linkers import VisualStudioLikeLinkerMixin
 from ..options import OptionKey
 from .compilers import Compiler, CompileCheckMode, clike_debug_args, is_library
@@ -246,6 +246,20 @@ class RustCompiler(Compiler):
         cmd = self.get_exelist(ccache=False) + ['--print', 'cfg']
         p, stdo, stde = Popen_safe_logged(cmd)
         return stdo.splitlines()
+
+    @functools.lru_cache(maxsize=None)
+    def get_target_triple(self) -> str:
+        # First check if --target is explicitly set in the compiler command
+        target = parse_target(self.get_exe_args())
+        if target:
+            return target
+        # Fall back to parsing the host triple from `rustc -vV`
+        cmd = self.get_exelist(ccache=False) + ['-vV']
+        p, stdo, stde = Popen_safe(cmd)
+        for line in stdo.splitlines():
+            if line.startswith('host:'):
+                return line.split(':', 1)[1].strip()
+        raise EnvironmentException('Could not determine Rust target triple')
 
     @functools.lru_cache(maxsize=None)
     def get_crt_static(self) -> bool:
