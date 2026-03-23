@@ -124,7 +124,8 @@ class WindowsModule(ExtensionModule):
         for d in wrc_depends:
             if isinstance(d, build.CustomTarget):
                 extra_args += state.get_include_args([
-                    build.IncludeDirs('', [], False, [self.interpreter.backend.get_target_dir(d)])
+                    build.IncludeDirs('', [], False, [self.interpreter.backend.get_target_dir(d)],
+                                      state.is_build_only_subproject)
                 ])
         extra_args += state.get_include_args(kwargs['include_directories'], kwargs['implicit_include_directories'])
 
@@ -211,11 +212,12 @@ class WindowsModule(ExtensionModule):
                 command,
                 [src],
                 [output],
+                state.is_build_only_subproject,
                 depfile=depfile,
                 depfile_type=depfile_type,
                 depend_files=wrc_depend_files,
                 extra_depends=wrc_depends,
-                description='Compiling Windows resource {}',
+                description='Compiling Windows resource {}'
             ))
 
         return ModuleReturnValue(res_targets, [res_targets])

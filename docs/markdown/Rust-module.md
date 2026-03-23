@@ -259,7 +259,7 @@ Returns a list of package names in the workspace.
 ### workspace.package()
 
 ```meson
-pkg = ws.package([package_name])
+pkg = ws.package([package_name], ...)
 ```
 
 Returns a package object for the given package member.  If empty, returns
@@ -268,6 +268,11 @@ the object for the root package.
 Arguments:
 - `package_name`: (str, optional) Name of the package; not needed for the
   root package of a workspace
+
+Keyword arguments:
+- `native`: (`bool`) Whether the package is compiled for the
+host machine (false) or the build machine (true).  The argument is
+forwarded to Meson by methods such as `executable`, `library`, etc.
 
 Example usage:
 ```meson
@@ -280,7 +285,7 @@ pkg.executable(install: true)
 ### workspace.subproject()
 
 ```meson
-package = ws.subproject(package_name, api)
+package = ws.subproject(package_name, api, ...)
 ```
 
 Returns a `package` object for managing a specific package within the workspace.
@@ -288,6 +293,11 @@ Returns a `package` object for managing a specific package within the workspace.
 Positional arguments:
 - `package_name`: (`str`) The name of the package to retrieve
 - `api`: (`str`, optional) The version constraints for the package in Cargo format
+
+Keyword arguments:
+- `native`: (`bool`) Whether the subproject is compiled for the
+host machine (false) or the build machine (true).  Default is false
+(proc-macro crates are only built once).
 
 ## Package object
 
