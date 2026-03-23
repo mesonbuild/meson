@@ -143,6 +143,23 @@ were never turned on by Meson.
 bindgen_clang_arguments = ['--target', 'x86_64-linux-gnu']
 ```
 
+### compiler_target()
+
+*Since 1.11.0*
+
+```meson
+rustmod.compiler_target()
+rustmod.compiler_target(native: true)
+```
+
+Returns the Rust target triple (e.g. `x86_64-unknown-linux-gnu`) for the
+Rust compiler.  By default, or with `native: false`, this returns the
+target for the host machine.  If `native: true` is passed, it returns
+the target for the build machine instead.
+
+This is useful when converting build scripts to Meson, because it
+matches the value of Cargo's `TARGET` and `HOST` environment variables.
+
 ### proc_macro()
 
 ```meson

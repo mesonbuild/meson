@@ -30,6 +30,7 @@ if T.TYPE_CHECKING:
     from ..interpreterbase import TYPE_kwargs, TYPE_var
     from ..mesonlib import ExecutableSerialisation
     from .interpreter import Interpreter
+    from .kwargs import NativeKW
 
     class FuncOverrideDependency(TypedDict):
 
@@ -41,10 +42,6 @@ if T.TYPE_CHECKING:
         skip_if_destdir: bool
         install_tag: str
         dry_run: bool
-
-    class NativeKW(TypedDict):
-
-        native: mesonlib.MachineChoice
 
     class AddDevenvKW(TypedDict):
         method: Literal['set', 'prepend', 'append']
