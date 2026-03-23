@@ -249,6 +249,13 @@ class PackageState:
         else:
             raise MesonException(f'Unknown rust_abi: {rust_abi}')
 
+    def get_rust_dependency_name(self) -> str:
+        """Get the dependency name for a package with the rust or proc-macro ABI."""
+        supported_abis = self.supported_abis()
+        package_name = self.manifest.package.name
+        if 'rust' in supported_abis or 'proc-macro' in supported_abis:
+            return _dependency_name(package_name, self.manifest.package.api)
+        raise MesonException(f'Package {package_name} does not support rust or proc-macro ABI')
 
 @dataclasses.dataclass(frozen=True)
 class PackageKey:

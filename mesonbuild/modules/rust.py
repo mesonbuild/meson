@@ -274,8 +274,8 @@ class RustPackage(RustCrate):
                         is_parent_path(os.path.join(self.rust_ws.subdir, state.subproject_dir),
                                        dep_pkg.path):
                         self.rust_ws._do_subproject(dep_pkg)
-                    # Get the dependency name for this package
-                    depname = dep_pkg.get_dependency_name(None)
+                    # Get the dependency name for this package (rust or proc-macro ABI)
+                    depname = dep_pkg.get_rust_dependency_name()
                     dependency = state.overridden_dependency(depname, for_machine)
                     dependencies.append(dependency)
 
