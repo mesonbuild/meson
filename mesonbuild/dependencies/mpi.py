@@ -120,16 +120,12 @@ class MPIConfigToolDependency(ConfigToolDependency):
         if not self.is_found:
             return
 
-        # --showme for OpenMPI
-        # -compile_info/-link_info for MPICH and IntelMPI
-        # -show for Intel
-        commands: T.List[T.Tuple[str, T.Optional[str]]] = [
-            ('--showme:compile', '--showme:link'),
-            ('-compile_info', '-link_info'),
-            ('-show', None)
-        ]
-
-        for comp, link in commands:
+        for comp, link in [
+            ('--showme:compile', '--showme:link'),  # for OpenMPI
+            ('-show-compile-info', '-show-link-info'),  # for MPICH and Intel MPI
+            ('-compile_info', '-link_info'),  # for older MPICH and Intel MPI
+            ('-show', None),
+        ]:
             try:
                 # Set required=True to ensure that the next set of options is
                 # tried when the current ones fail, even if the dependency is
