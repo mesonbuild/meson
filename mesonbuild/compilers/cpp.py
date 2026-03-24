@@ -9,7 +9,7 @@ import typing as T
 
 from .. import options
 from .. import mlog
-from ..mesonlib import MesonException, version_compare
+from ..mesonlib import MesonException, version_compare, lazy_property
 
 from .compilers import (
     gnu_winlibs,
@@ -184,6 +184,7 @@ class _StdCPPLibMixin(CompilerMixinBase):
 
     """Detect whether to use libc++ or libstdc++."""
 
+    @lazy_property
     def language_stdlib_provider(self) -> str:
         # https://stackoverflow.com/a/31658120
         header = 'version' if self.has_header('version', '')[0] else 'ciso646'
@@ -206,7 +207,7 @@ class _StdCPPLibMixin(CompilerMixinBase):
         # fortran.
         search_dirs = [f'-L{d}' for d in self.get_compiler_dirs('libraries')]
 
-        lib = self.language_stdlib_provider()
+        lib = self.language_stdlib_provider
         if self.find_library(lib, []) is not None:
             return search_dirs + [f'-l{lib}']
 
@@ -316,7 +317,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
             if self.defines.get(macro) is not None:
                 return []
 
-        if self.language_stdlib_provider() == 'stdc++':
+        if self.language_stdlib_provider == 'stdc++':
             return ['-D_GLIBCXX_ASSERTIONS=1']
 
         return ['-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST']
@@ -531,7 +532,7 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
 
         # For GCC, we can assume that the libstdc++ version is the same as
         # the compiler itself. Anything else isn't supported.
-        if self.language_stdlib_provider() == 'stdc++':
+        if self.language_stdlib_provider == 'stdc++':
             return ['-D_GLIBCXX_ASSERTIONS=1']
         else:
             # One can use -stdlib=libc++ with GCC, it just (as of 2025) requires

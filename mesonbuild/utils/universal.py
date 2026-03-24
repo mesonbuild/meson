@@ -626,36 +626,38 @@ class PerThreeMachineDefaultable(PerMachineDefaultable[T.Optional[_T]], PerThree
         return PerThreeMachine(self.build, host, target)
 
 
+_PLATFORM_SYSTEM_LOWER = platform.system().lower()
+_PLATFORM_RELEASE_LOWER = platform.release().lower()
+
 def is_sunos() -> bool:
-    return platform.system().lower() == 'sunos'
+    return _PLATFORM_SYSTEM_LOWER == 'sunos'
 
 
 def is_osx() -> bool:
-    return platform.system().lower() == 'darwin'
+    return _PLATFORM_SYSTEM_LOWER == 'darwin'
 
 
 def is_linux() -> bool:
-    return platform.system().lower() == 'linux'
+    return _PLATFORM_SYSTEM_LOWER == 'linux'
 
 
 def is_android() -> bool:
-    return platform.system().lower() == 'android'
+    return _PLATFORM_SYSTEM_LOWER == 'android'
 
 
 def is_haiku() -> bool:
-    return platform.system().lower() == 'haiku'
+    return _PLATFORM_SYSTEM_LOWER == 'haiku'
 
 
 def is_openbsd() -> bool:
-    return platform.system().lower() == 'openbsd'
+    return _PLATFORM_SYSTEM_LOWER == 'openbsd'
 
 
 def is_windows() -> bool:
-    platname = platform.system().lower()
-    return platname == 'windows'
+    return _PLATFORM_SYSTEM_LOWER == 'windows'
 
 def is_wsl() -> bool:
-    return is_linux() and 'microsoft' in platform.release().lower()
+    return is_linux() and 'microsoft' in _PLATFORM_RELEASE_LOWER
 
 def is_cygwin() -> bool:
     return sys.platform == 'cygwin'
@@ -666,18 +668,18 @@ def is_debianlike() -> bool:
 
 
 def is_dragonflybsd() -> bool:
-    return platform.system().lower() == 'dragonfly'
+    return _PLATFORM_SYSTEM_LOWER == 'dragonfly'
 
 
 def is_netbsd() -> bool:
-    return platform.system().lower() == 'netbsd'
+    return _PLATFORM_SYSTEM_LOWER == 'netbsd'
 
 
 def is_freebsd() -> bool:
-    return platform.system().lower() == 'freebsd'
+    return _PLATFORM_SYSTEM_LOWER == 'freebsd'
 
 def is_irix() -> bool:
-    return platform.system().startswith('irix')
+    return _PLATFORM_SYSTEM_LOWER == 'irix'
 
 def is_hurd() -> bool:
     return platform.system().lower() == 'gnu'
@@ -1176,6 +1178,7 @@ if is_windows():
     _whitespace = ' \t\n\r'
     _find_unsafe_char = re.compile(fr'[{_whitespace}"]').search
 
+    @lru_cache(maxsize=4096)
     def quote_arg(arg: str) -> str:
         if arg and not _find_unsafe_char(arg):
             return arg
@@ -1233,6 +1236,7 @@ if is_windows():
 
         return result
 else:
+    @lru_cache(maxsize=4096)
     def quote_arg(arg: str) -> str:
         return shlex.quote(arg)
 

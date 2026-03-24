@@ -3062,6 +3062,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return commands
 
     def _generate_single_compile_base_args(self, target: build.BuildTarget, compiler: 'Compiler') -> 'CompilerArgs':
+        # Return a mutable CompilerArgs populated from the cached immutable
+        # CompilerArgs so that callers can safely modify it.
+        cached_args = self._generate_single_compile_base_args_cached(target, compiler)
+        return compiler.compiler_args(cached_args)
+
+    @lru_cache(maxsize=None)
+    def _generate_single_compile_base_args_cached(self, target: build.BuildTarget, compiler: 'Compiler') -> 'CompilerArgs':
         # Create an empty commands list, and start adding arguments from
         # various sources in the order in which they must override each other
         commands = compiler.compiler_args()
