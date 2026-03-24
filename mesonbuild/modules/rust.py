@@ -354,7 +354,8 @@ class RustPackage(RustCrate):
                 rust_abi = kwargs['rust_abi']
             tgt_name = self.package.library_name(rust_abi)
         if not sources:
-            sources = self.package.manifest.lib.path
+            sources = os.path.relpath(os.path.join(self.package.path, self.package.manifest.lib.path),
+                                      state.subdir)
 
         lib_args: T.Tuple[str, SourcesVarargsType] = (tgt_name, [sources])
         self.merge_kw_args(state, kwargs)
@@ -506,7 +507,8 @@ class RustPackage(RustCrate):
                 raise MesonException(f"Binary '{tgt_name}' not found.")
 
         if not sources:
-            sources = self.package.manifest.bin[tgt_name].path
+            sources = os.path.relpath(os.path.join(self.package.path, self.package.manifest.bin[tgt_name].path),
+                                      state.subdir)
 
         exe_args: T.Tuple[str, SourcesVarargsType] = (tgt_name, [sources])
         self.merge_kw_args(state, kwargs)

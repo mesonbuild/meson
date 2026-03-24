@@ -21,13 +21,7 @@ assert(hello_rs.all_features() == ['default', 'goodbye'])
 assert(hello_rs.features() == ['default', 'goodbye'])
 
 subdir('more')
-
-e = executable('workspace-test', 'src/main.rs',
-  dependencies: main_pkg.dependencies(),
-  rust_args: main_pkg.rust_args(),
-  rust_dependency_map: main_pkg.rust_dependency_map(),
-)
-test('workspace-test', e)
+subdir('src')
 
 answer_rs = cargo_ws.subproject('answer', '2')
 assert(answer_rs.name() == 'answer')
