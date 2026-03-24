@@ -184,7 +184,7 @@ class _StdCPPLibMixin(CompilerMixinBase):
 
     """Detect whether to use libc++ or libstdc++."""
 
-    def language_stdlib_provider(self, env: Environment) -> str:
+    def language_stdlib_provider(self) -> str:
         # https://stackoverflow.com/a/31658120
         header = 'version' if self.has_header('version', '')[0] else 'ciso646'
         is_libcxx = self.has_header_symbol(header, '_LIBCPP_VERSION', '')[0]
@@ -197,7 +197,6 @@ class _StdCPPLibMixin(CompilerMixinBase):
 
         As an optimization, this method will cache the value, to avoid building the same values over and over
 
-        :param env: An Environment object
         :raises MesonException: If a stdlib cannot be determined
         """
 
@@ -207,7 +206,7 @@ class _StdCPPLibMixin(CompilerMixinBase):
         # fortran.
         search_dirs = [f'-L{d}' for d in self.get_compiler_dirs('libraries')]
 
-        lib = self.language_stdlib_provider(self.environment)
+        lib = self.language_stdlib_provider()
         if self.find_library(lib, []) is not None:
             return search_dirs + [f'-l{lib}']
 
@@ -317,7 +316,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
             if self.defines.get(macro) is not None:
                 return []
 
-        if self.language_stdlib_provider(self.environment) == 'stdc++':
+        if self.language_stdlib_provider() == 'stdc++':
             return ['-D_GLIBCXX_ASSERTIONS=1']
 
         return ['-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST']
@@ -532,7 +531,7 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
 
         # For GCC, we can assume that the libstdc++ version is the same as
         # the compiler itself. Anything else isn't supported.
-        if self.language_stdlib_provider(self.environment) == 'stdc++':
+        if self.language_stdlib_provider() == 'stdc++':
             return ['-D_GLIBCXX_ASSERTIONS=1']
         else:
             # One can use -stdlib=libc++ with GCC, it just (as of 2025) requires
