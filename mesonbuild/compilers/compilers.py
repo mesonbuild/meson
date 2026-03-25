@@ -345,7 +345,7 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
         assert isinstance(crt_val, str)
         try:
             args += compiler.get_crt_compile_args(crt_val)
-        except AttributeError:
+        except EnvironmentException:
             pass
     except KeyError:
         pass
@@ -435,7 +435,7 @@ def get_base_link_args(target: 'BuildTarget',
             crtargs = linker.get_crt_link_args(crt_val)
             assert isinstance(crtargs, list)
             args += crtargs
-        except AttributeError:
+        except EnvironmentException:
             pass
     except KeyError:
         pass

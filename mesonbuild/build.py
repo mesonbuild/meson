@@ -31,13 +31,15 @@ from .options import OptionKey
 
 from .compilers import (
     is_header, is_object, is_source, clink_langs, sort_clink, all_languages,
-    is_known_suffix, detect_static_linker, LANGUAGES_USING_LDFLAGS
+    is_known_suffix, detect_static_linker, LANGUAGES_USING_LDFLAGS,
+    get_base_compile_args
 )
 from .interpreterbase import FeatureNew, FeatureDeprecated, SubProject
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypeAlias, TypedDict
 
+    from .arglist import CompilerArgs
     from .environment import Environment
     from ._typing import ImmutableListProtocol
     from .backend.backends import Backend
@@ -865,6 +867,7 @@ class BuildTarget(Target):
         self.process_objectlist(objects)
         self.process_kwargs(kwargs)
         self.missing_languages = self.process_compilers()
+        self.single_compile_base_args: T.Dict[Compiler, CompilerArgs] = {}
 
         # self.link_targets and self.link_whole_targets contains libraries from
         # dependencies (see add_deps()). They have not been processed yet because
@@ -955,6 +958,9 @@ class BuildTarget(Target):
             if self.vala_gir is not None:
                 self.outputs.append(self.vala_gir)
                 self.install_tag.append('devel')
+
+        for compiler in self.compilers.values():
+            self.single_compile_base_args[compiler] = self._generate_single_compile_base_args(compiler)
 
     def __repr__(self) -> str:
         repr_str = "<{0} {1}: {2}>"
@@ -1341,6 +1347,23 @@ class BuildTarget(Target):
                 result.add(i.get_builddir())
             result.update(i.get_link_dep_subdirs())
         return result
+
+    def get_single_compile_base_args(self, compiler: Compiler) -> CompilerArgs:
+        # Return a mutable CompilerArgs populated from the cached immutable
+        # arguments so that callers can safely modify it.
+        return compiler.compiler_args(self.single_compile_base_args[compiler])
+
+    def _generate_single_compile_base_args(self, compiler: Compiler) -> ImmutableListProtocol[str]:
+        # Create an empty commands list, and start adding arguments from
+        # various sources in the order in which they must override each other
+        commands = compiler.compiler_args()
+        # Start with symbol visibility.
+        commands += compiler.gnu_symbol_visibility_args(self.gnu_symbol_visibility)
+        # Add compiler args for compiling this target derived from 'base' build
+        # options passed on the command-line, in default_options, etc.
+        # These have the lowest priority.
+        commands += get_base_compile_args(self, compiler, self.environment)
+        return list(commands)  # Avoid call to iterable.flush_pre_post in CompilerArgs.__init__
 
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_libdir(), '{libdir}'
