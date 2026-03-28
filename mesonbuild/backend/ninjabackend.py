@@ -2111,7 +2111,7 @@ class NinjaBackend(backends.Backend):
             # information on whether this is a direct dependency (which
             # might use -Clink-arg= below) or an indirect one, so always
             # add to linkdirs.
-            linkdirs.add(d.subdir)
+            linkdirs.add(self.get_target_dir(d))
             deps.append(self.get_dependency_filename(d))
             if isinstance(d, build.StaticLibrary):
                 external_deps.extend(d.external_deps)
