@@ -1,0 +1,5 @@
+project('build_subdir', 'c', 'rust', default_options : ['rust_std=2018'])
+myclib = static_library('mylib', 'mylib.c', build_subdir: 'sub')
+myrslib = static_library('mylib', 'mylib.rs', link_with: myclib, rust_abi: 'rust')
+exe = executable('main', 'main.rs', link_with: myrslib)
+test('test', exe)
