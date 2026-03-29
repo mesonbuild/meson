@@ -19,7 +19,7 @@ from ...options import OptionKey
 from mesonbuild.linkers.linkers import ClangClDynamicLinker, MSVCDynamicLinker
 
 if T.TYPE_CHECKING:
-    from ...build import BuildTarget
+    from ...build import BuildTarget, Build
     from ...environment import Environment
     from .clike import CLikeCompiler as Compiler
 else:
@@ -480,10 +480,13 @@ class ClangClCompiler(VisualStudioLikeCompiler):
             return ['-fuse-ld=lld-link']
         return super().use_linker_args(linker, version)
 
+    def _sanitize_linker_args(self, args: T.List[str]) -> T.List[str]:
+        return [flag[4:] if flag.startswith('-Wl,') else flag for flag in args]
+
     def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:
         # clang-cl forwards arguments span-wise with the /LINK flag
         # therefore -Wl will be received by lld-link or LINK and rejected
-        return super().use_linker_args(self.linker.id, '') + super().linker_to_compiler_args([flag[4:] if flag.startswith('-Wl,') else flag for flag in args])
+        return super().use_linker_args(self.linker.id, '') + super().linker_to_compiler_args(self._sanitize_linker_args(args))
 
     def openmp_link_flags(self) -> T.List[str]:
         # see https://github.com/mesonbuild/meson/issues/5298
@@ -516,3 +519,6 @@ class ClangClCompiler(VisualStudioLikeCompiler):
             # is safe to assume that all versions of clang-cl support LTO
             args.append(f'/threads:{threads}')
         return args
+
+    def get_build_link_args(self, target: BuildTarget, build: Build) -> T.List[str]:
+        return self._sanitize_linker_args(super().get_build_link_args(target, build))
