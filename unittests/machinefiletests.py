@@ -1029,7 +1029,7 @@ class CrossFileTests(BasePlatformTests):
     @skip_if_not_language('rust')
     @skipIfNoExecutable('bindgen')
     def test_bindgen_finds_target_in_clang_options(self) -> None:
-        testcase = os.path.join(self.unit_test_dir, '134 minimal bindgen')
+        testcase = os.path.join(self.unit_test_dir, '135 minimal bindgen')
 
         def check_target(include: T.Optional[str], exclude: T.Optional[str] = None) -> None:
             configuration = self.introspect('--targets')

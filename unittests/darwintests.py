@@ -182,7 +182,7 @@ class DarwinTests(BasePlatformTests):
         so that external tools (like cargo) can link against them without
         meson's help.
         '''
-        testdir = os.path.join(self.rust_test_dir, '35 apple framework')
+        testdir = os.path.join(self.rust_test_dir, '37 apple framework')
         self.init(testdir)
         # Build only the library, not the executable
         self.build(target='timelib')

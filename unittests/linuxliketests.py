@@ -2005,7 +2005,7 @@ class LinuxlikeTests(BasePlatformTests):
         dependencies of the staticlib are not passed to the C linker.
         See: https://github.com/mesonbuild/meson/issues/11721
         '''
-        testdir = os.path.join(self.rust_test_dir, '34 staticlib rlib deps')
+        testdir = os.path.join(self.rust_test_dir, '36 staticlib rlib deps')
         self.init(testdir)
         targets = self.introspect('--targets')
         executable = next(t for t in targets if t['type'] == 'executable')

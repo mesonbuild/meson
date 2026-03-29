@@ -5430,7 +5430,7 @@ class AllPlatformTests(BasePlatformTests):
     def test_link_language_promotion(self):
         if self.backend is Backend.vs:
             raise SkipTest('target introspection is lacking linker details')
-        testdir = os.path.join(self.unit_test_dir, '133 promote link_language')
+        testdir = os.path.join(self.unit_test_dir, '134 promote link_language')
         self.init(testdir)
         cintrospection = self.introspect('--compilers')
         clinker = cintrospection['host']['c']['linker_exelist']
