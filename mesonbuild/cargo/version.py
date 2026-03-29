@@ -4,7 +4,20 @@
 """Convert Cargo versions into Meson compatible ones."""
 
 from __future__ import annotations
+import re
 import typing as T
+
+
+def _strip_prerelease(version: str) -> str:
+    """Strip pre-release suffix from a version string.
+
+    Cargo/semver pre-release versions like 0.8.0-rc.7 are not understood
+    by meson's version comparison, which treats the suffix as making the
+    version greater than the stable release. Per semver, pre-release
+    versions have lower precedence than the associated normal version,
+    so we strip them to avoid incorrect comparisons.
+    """
+    return re.sub(r'-[A-Za-z0-9]+(\.[A-Za-z0-9]+)*$', '', version)
 
 
 def api(version: str) -> str:
@@ -38,24 +51,34 @@ def convert(cargo_ver: str) -> T.List[str]:
         # <= 3 allows 3.0.0 where meson version compare does not
         # So change <= into < with a bumped version
         if ver.startswith('<='):
-            v = ver[2:].strip().split('.')
+            v = _strip_prerelease(ver[2:].strip()).split('.')
             if len(v) == 1:
                 out.append(f'< {int(v[0]) + 1}')
             elif len(v) == 2:
                 out.append(f'< {v[0]}.{int(v[1]) + 1}')
             else:
-                out.append(ver)
+                out.append(f'<= {".".join(v)}')
 
         # This covers >= as well
         elif ver.startswith(('>', '<', '=')):
-            out.append(ver)
+            # Strip pre-release suffixes since meson's version comparison
+            # does not handle them correctly (it treats 0.8.0-rc.7 as
+            # greater than 0.8.0, but semver says the opposite).
+            if ver.startswith('>='):
+                out.append(f'>= {_strip_prerelease(ver[2:].strip())}')
+            elif ver.startswith('>'):
+                out.append(f'> {_strip_prerelease(ver[1:].strip())}')
+            elif ver.startswith('='):
+                out.append(f'= {_strip_prerelease(ver[1:].strip())}')
+            else:
+                out.append(f'< {_strip_prerelease(ver[1:].strip())}')
 
         elif ver.startswith('~'):
             # Rust has these tilde requirements, which means that it is >= to
             # the version, but less than the next version
             # https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#tilde-requirements
             # we convert those into a pair of constraints
-            v = ver[1:].split('.')
+            v = _strip_prerelease(ver[1:]).split('.')
             out.append(f'>= {".".join(v)}')
             if len(v) == 3:
                 out.append(f'< {v[0]}.{int(v[1]) + 1}.0')
@@ -80,6 +103,7 @@ def convert(cargo_ver: str) -> T.List[str]:
             # https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#caret-requirements
             if ver.startswith('^'):
                 ver = ver[1:]
+            ver = _strip_prerelease(ver)
 
             # If there is no qualifier, then it means this or the next non-zero version
             # That means that if this is `1.1.0``, then we need `>= 1.1.0` && `< 2.0.0`

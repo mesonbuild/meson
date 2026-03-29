@@ -64,6 +64,14 @@ class CargoVersionTest(unittest.TestCase):
 
             # Multiple requirements
             ('>= 1.2.3, < 1.4.7', ['>= 1.2.3', '< 1.4.7']),
+
+            # Pre-release versions (semver pre-release < stable)
+            ('>= 0.8.0-rc.7', ['>= 0.8.0']),
+            ('>= 0.8.0-rc.7, < 0.9', ['>= 0.8.0', '< 0.9']),
+            ('0.8.0-rc.7', ['>= 0.8.0', '< 0.9']),
+            ('^0.8.0-rc.7', ['>= 0.8.0', '< 0.9']),
+            ('~0.8.0-rc.7', ['>= 0.8.0', '< 0.9.0']),
+            ('0.14.0-alpha.1', ['>= 0.14.0', '< 0.15']),
         ]
 
         for (data, expected) in cases:
