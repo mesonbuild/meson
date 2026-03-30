@@ -69,24 +69,20 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     if extra_args is not None:
         check_args.extend(extra_args)
 
-    p, o, _ = Popen_safe(compiler + check_args)
+    if value is not None and invoked_directly:
+        compiler = value
+
+    p, o, e = Popen_safe(compiler + check_args)
     if 'LLD' in o.split('\n', maxsplit=1)[0]:
         if 'compatible with GNU linkers' in o:
             return linkers.LLVMDynamicLinker(
                 compiler, env, for_machine, comp_class.LINKER_PREFIX,
                 override, version=search_version(o))
-        elif not invoked_directly:
+        if not invoked_directly:
             return linkers.ClangClDynamicLinker(
                 env, for_machine, override, exelist=compiler, prefix=comp_class.LINKER_PREFIX,
                 version=search_version(o), direct=False, machine=None,
                 rsp_syntax=rsp_syntax)
-
-    if value is not None and invoked_directly:
-        compiler = value
-        # We've already handled the non-direct case above
-
-    p, o, e = Popen_safe(compiler + check_args)
-    if 'LLD' in o.split('\n', maxsplit=1)[0]:
         return linkers.ClangClDynamicLinker(
             env, for_machine, [],
             prefix=comp_class.LINKER_PREFIX if use_linker_prefix else [],
