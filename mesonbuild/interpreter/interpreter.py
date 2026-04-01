@@ -1869,16 +1869,6 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_disabler(self, node, args, kwargs):
         return Disabler()
 
-    def _exe_to_shlib_kwargs(self, kwargs: kwtypes.Executable) -> kwtypes.SharedLibrary:
-        nkwargs = T.cast('kwtypes.SharedLibrary', kwargs.copy())
-        for exe_kwarg in EXCLUSIVE_EXECUTABLE_KWS:
-            del nkwargs[exe_kwarg.name]  # type: ignore[misc]
-        for sh_kwarg in SHARED_LIB_KWS:
-            nkwargs.setdefault(sh_kwarg.name, sh_kwarg.default)  # type: ignore[misc]
-        nkwargs['rust_abi'] = None
-        nkwargs['rust_crate_type'] = 'cdylib'
-        return nkwargs
-
     @permittedKwargs(build.known_exe_kwargs)
     @typed_pos_args('executable', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('executable', *EXECUTABLE_KWS)
@@ -3462,6 +3452,16 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             crate_type = default_rust_type
         return crate_type
+
+    def _exe_to_shlib_kwargs(self, kwargs: kwtypes.Executable) -> kwtypes.SharedLibrary:
+        nkwargs = T.cast('kwtypes.SharedLibrary', kwargs.copy())
+        for exe_kwarg in EXCLUSIVE_EXECUTABLE_KWS:
+            del nkwargs[exe_kwarg.name]  # type: ignore[misc]
+        for sh_kwarg in SHARED_LIB_KWS:
+            nkwargs.setdefault(sh_kwarg.name, sh_kwarg.default)  # type: ignore[misc]
+        nkwargs['rust_abi'] = None
+        nkwargs['rust_crate_type'] = 'cdylib'
+        return nkwargs
 
     @T.overload
     def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
