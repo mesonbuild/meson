@@ -1885,11 +1885,6 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_executable(self, node: mparser.BaseNode,
                         args: T.Tuple[str, SourcesVarargsType],
                         kwargs: kwtypes.Executable) -> T.Union[build.Executable, build.SharedLibrary]:
-        for_machine = kwargs['native']
-        m = self.environment.machines[for_machine]
-        if m.is_android() and kwargs.get('android_exe_type') == 'application':
-            holder = self.build_target(node, args, self._exe_to_shlib_kwargs(kwargs), build.SharedLibrary)
-            return holder
         return self.build_target(node, args, kwargs, build.Executable)
 
     @permittedKwargs(build.known_stlib_kwargs)
@@ -3498,15 +3493,20 @@ class Interpreter(InterpreterBase, HoldableObject):
             mlog.debug('Unknown target type:', str(targetclass))
             raise RuntimeError('Unreachable code')
 
-        # Because who owns this isn't clear
-        kwargs = kwargs.copy()
-
-        name, sources = args
         for_machine = kwargs['native']
         if kwargs.get('rust_crate_type') == 'proc-macro':
             # Silently force to native because that's the only sensible value
             # and rust_crate_type is deprecated any way.
             for_machine = MachineChoice.BUILD
+
+        if targetclass is build.Executable and kwargs.get('android_exe_type') == 'application':
+            m = self.environment.machines[for_machine]
+            if m.is_android():
+                return self.build_target(node, args, self._exe_to_shlib_kwargs(kwargs), build.SharedLibrary)
+
+        # Because who owns this isn't clear
+        kwargs = kwargs.copy()
+        name, sources = args
         # Avoid mutating, since there could be other references to sources
         sources = sources + kwargs['sources']
         if any(isinstance(s, build.BuildTarget) for s in sources):
