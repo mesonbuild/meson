@@ -1,4 +1,4 @@
-project('as-link-whole', 'c')
+project('as-link-whole', 'c', default_options: ['default_library=both'])
 
 foo = static_library('foo', 'foo.c', install: true)
 dep = declare_dependency(link_with: foo)

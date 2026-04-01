@@ -1889,7 +1889,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         m = self.environment.machines[for_machine]
         if m.is_android() and kwargs.get('android_exe_type') == 'application':
             holder = self.build_target(node, args, self._exe_to_shlib_kwargs(kwargs), build.SharedLibrary)
-            holder.shared_library_only = True
             return holder
         return self.build_target(node, args, kwargs, build.Executable)
 
@@ -1907,9 +1906,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_shared_lib(self, node: mparser.BaseNode,
                         args: T.Tuple[str, SourcesVarargsType],
                         kwargs: kwtypes.SharedLibrary) -> build.SharedLibrary:
-        holder = self.build_target(node, args, kwargs, build.SharedLibrary)
-        holder.shared_library_only = True
-        return holder
+        return self.build_target(node, args, kwargs, build.SharedLibrary)
 
     @permittedKwargs(known_library_kwargs)
     @typed_pos_args('both_libraries', str, varargs=SOURCES_VARARGS)
@@ -3341,7 +3338,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @FeatureNew('both_libraries', '0.46.0')
     def build_both_libraries(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library) -> build.BothLibraries:
-        shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary)
+        shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary, shared_library_only=False)
         static_lib = self.build_target(node, args, kwargs, build.StaticLibrary)
         preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_both_libraries', subproject=self.subproject))
         if preferred_library == 'auto':
@@ -3485,7 +3482,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @T.overload
     def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
-                     kwargs: kwtypes.SharedLibrary, targetclass: T.Type[build.SharedLibrary]) -> build.SharedLibrary: ...
+                     kwargs: kwtypes.SharedLibrary, targetclass: T.Type[build.SharedLibrary],
+                     shared_library_only: bool = True) -> build.SharedLibrary: ...
 
     @T.overload
     def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
@@ -3493,7 +3491,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
                      kwargs: T.Union[kwtypes.Executable, kwtypes.StaticLibrary, kwtypes.SharedLibrary, kwtypes.SharedModule, kwtypes.Jar],
-                     targetclass: T.Type[T.Union[build.Executable, build.StaticLibrary, build.SharedModule, build.SharedLibrary, build.Jar]]
+                     targetclass: T.Type[T.Union[build.Executable, build.StaticLibrary, build.SharedModule, build.SharedLibrary, build.Jar]],
+                     shared_library_only: bool = True
                      ) -> T.Union[build.Executable, build.StaticLibrary, build.SharedModule, build.SharedLibrary, build.Jar]:
         if targetclass not in {build.Executable, build.SharedLibrary, build.SharedModule, build.StaticLibrary, build.Jar}:
             mlog.debug('Unknown target type:', str(targetclass))
@@ -3677,6 +3676,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                              self.environment, self.compilers[for_machine], kwargs)
         if objs and target.uses_rust():
             FeatureNew.single_use('objects in Rust targets', '1.8.0', self.subproject)
+        if targetclass is build.SharedLibrary:
+            target.shared_library_only = shared_library_only
 
         self.add_target(name, target)
         self.project_args_frozen = True
