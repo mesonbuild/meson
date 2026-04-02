@@ -188,6 +188,7 @@ kwargs:
       This can be set to an array of values to control the the installation path
       of build targets with multiple outputs. Currently, that means Vala. Setting
       them to `true` means "use the default", and `false` means, don't install.
+      By default the first element is true, and all other elements are false.
 
       *Since 1.11.0* Passing an array is deprecated, and install_vala_header,
       install_vala_vapi, and install_vala_gir keyword arguments should be used
@@ -400,7 +401,7 @@ kwargs:
       that path, if set to `true`, the default include path will be used, if
       `false` the header will not be installed.
 
-      If it is unset then the value of `install_dir` will be used.
+      The default value is `false`.
 
   install_vala_vapi:
     type: str | bool
@@ -410,7 +411,7 @@ kwargs:
       installed to that path, if set to `true`, the default vapi path will be
       used, if `false` the vapi library will not be installed.
 
-      If it is unset then the value of `install_dir` will be used.
+      The default value is `false`.
 
   install_vala_gir:
     type: str | bool
@@ -420,8 +421,7 @@ kwargs:
       installed to that path, if set to `true`, the default gir path will be
       used, if `false` the gir library will not be installed.
 
-      If it is unset then the value of `install_dir` will be used if `vala_gir`
-      is set to a value.
-
       It is an error for this to be either `true` or a string and `vala_gir` to
       be unset.
+
+      The default value is `false`.

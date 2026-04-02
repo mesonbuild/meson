@@ -3643,7 +3643,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 install_dir = kwargs['install_dir'].pop(0)
 
                 for key in vala_keys:
-                    action = kwargs['install_dir'].pop(0) if kwargs['install_dir'] else install_dir
+                    action = kwargs['install_dir'].pop(0) if kwargs['install_dir'] else False
                     if isinstance(action, bool):
                         kwargs[key] = action
                     else:
@@ -3658,9 +3658,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 for key in vala_keys:
                     action = kwargs[key]
                     if action is None:
-                        if key == 'install_vala_gir' and not kwargs['vala_gir']:
-                            continue
-                        action = kwargs['install_dir'][0]
+                        action = False
                     if isinstance(action, bool):
                         kwargs[key] = action
                     else:

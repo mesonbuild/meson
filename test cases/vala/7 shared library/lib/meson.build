@@ -17,6 +17,12 @@ shared_library('installed_vala_all', 'mylib.vala',
   install : true,
   install_dir : [true, true, true])
 
+shared_library('installed_vala_custom', 'mylib.vala',
+  dependencies : valadeps,
+  install : true,
+  install_dir : get_option('prefix') / 'custom',
+)
+
 shared_library('installed_vala_all_nolib', 'mylib.vala',
   dependencies : valadeps,
   install : true,
