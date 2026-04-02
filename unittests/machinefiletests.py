@@ -1067,6 +1067,9 @@ class CrossFileTests(BasePlatformTests):
             check_target(build_tuple)
 
         with self.subTest('properties and compiler'):
+            # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1132495
+            if build_tuple == host_tuple:
+                raise SkipTest('Do not run aarch64 cross compilation test on aarch64 itself.')
             self.new_builddir()
             config = self.helper_create_cross_file({
                 'binaries': {'rust': [rustc, f'--target={build_tuple}']},
