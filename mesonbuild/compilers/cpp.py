@@ -795,11 +795,8 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
         target, subproject = self._get_subproject_and_target(target)
         # need a typeddict for this
         key = self.form_compileropt_key('winlibs', subproject)
-        if target:
-            value = self.environment.coredata.optstore.get_option_for_target_untyped(target, key)
-        else:
-            value = self.environment.coredata.optstore.get_value_for_untyped(key)
-        return T.cast('T.List[str]', value)[:]
+        value = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, list)
+        return value.copy()
 
     def _get_options_impl(self, opts: 'MutableKeyedOptionDictType', cpp_stds: T.List[str]) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
@@ -887,10 +884,7 @@ class CPP11AsCPP14Mixin(CompilerMixinBase):
         # (i.e., after VS2015U3)
         # if one is using anything before that point, one cannot set the standard.
         stdkey = self.form_compileropt_key('std', subproject)
-        if target is not None:
-            std = self.environment.coredata.optstore.get_option_for_target_untyped(target, stdkey)
-        else:
-            std = self.environment.coredata.optstore.get_value_for_untyped(stdkey)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, stdkey, str)
         if std in {'vc++11', 'c++11'}:
             mlog.warning(self.id, 'does not support C++11;',
                          'attempting best effort; setting the standard to C++14',

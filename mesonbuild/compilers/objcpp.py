@@ -88,11 +88,7 @@ class GnuObjCPPCompiler(GnuCPPStds, GnuCompiler, ObjCPPCompiler):
         args: T.List[str] = []
         target, subproject = self._get_subproject_and_target(target)
         key = OptionKey('cpp_std', subproject=subproject, machine=self.for_machine)
-        if target:
-            std = self.environment.coredata.optstore.get_option_for_target_untyped(target, key)
-        else:
-            std = self.environment.coredata.optstore.get_value_for_untyped(key)
-        assert isinstance(std, str)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args

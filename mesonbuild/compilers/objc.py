@@ -82,12 +82,7 @@ class GnuObjCCompiler(GnuCStds, GnuCompiler, ObjCCompiler):
     def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         target, subproject = self._get_subproject_and_target(target)
         key = self.form_compileropt_key('std', subproject)
-        if target:
-            std = self.environment.coredata.optstore.get_option_for_target_untyped(target, key)
-        else:
-            std = self.environment.coredata.optstore.get_value_for_untyped(key)
-        assert isinstance(std, str)
-
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         args: list[str] = []
         if std != 'none':
             args.append('-std=' + std)
