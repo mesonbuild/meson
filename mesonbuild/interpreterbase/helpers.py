@@ -82,5 +82,16 @@ class Feature(HoldableObject):
     def is_auto(self) -> bool:
         return self.value == 'auto'
 
+    def with_value(self, value: FeatureValue) -> Feature:
+        if value == self.value:
+            return self
+        return Feature(self.name, value)
+
+    def as_enabled(self) -> Feature:
+        return self.with_value('enabled')
+
+    def as_disabled(self) -> Feature:
+        return self.with_value('disabled')
+
     def __str__(self) -> str:
         return str(self.value)
