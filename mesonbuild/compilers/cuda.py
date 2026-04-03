@@ -750,14 +750,11 @@ class CudaCompiler(Compiler):
                         subproject: T.Optional[SubProject] = None) -> T.List[str]:
         subproject = target.subproject if subproject is None else subproject
         key = self.form_compileropt_key('ccbindir', subproject)
-        if target:
-            ccbindir = self.environment.coredata.optstore.get_option_for_target(target, key, str)
-        else:
-            ccbindir = self.environment.coredata.optstore.get_value_for(key, str)
+        ccbindir = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
+
         if ccbindir != '':
             return [self._shield_nvcc_list_arg('-ccbin='+ccbindir, False)]
-        else:
-            return []
+        return []
 
     def get_profile_generate_args(self) -> T.List[str]:
         return ['-Xcompiler=' + x for x in self.host_compiler.get_profile_generate_args()]
