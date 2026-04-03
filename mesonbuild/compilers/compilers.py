@@ -239,18 +239,6 @@ clike_debug_args: T.Dict[bool, T.List[str]] = {
 }
 
 
-# TODO: Can we delete this?
-def option_enabled(boptions: T.Set[OptionKey],
-                   target: 'BuildTarget',
-                   env: 'Environment',
-                   option: T.Union[str, OptionKey]) -> bool:
-    if isinstance(option, str):
-        option = OptionKey(option)
-    if option not in boptions:
-        return False
-    return env.coredata.optstore.get_option_for_target(target, option, bool, default=False)
-
-
 def are_asserts_disabled(target: 'BuildTarget', env: 'Environment') -> bool:
     """Should debug assertions be disabled
 
@@ -322,7 +310,7 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
     except KeyError:
         pass
     # This does not need a try...except
-    bitcode = option_enabled(compiler.base_options, target, env, 'b_bitcode')
+    bitcode = env.coredata.optstore.get_option_for_target(target, OptionKey('b_bitcode'), bool, default=False)
     args.extend(compiler.get_embed_bitcode_args(bitcode, lto))
     try:
         crt_val = env.coredata.optstore.get_option_for_target(target, OptionKey('b_vscrt'), str)
@@ -389,8 +377,8 @@ def get_base_link_args(target: 'BuildTarget',
     except (KeyError, AttributeError):
         pass
 
-    as_needed = option_enabled(linker.base_options, target, env, 'b_asneeded')
-    bitcode = option_enabled(linker.base_options, target, env, 'b_bitcode')
+    as_needed = env.coredata.optstore.get_option_for_target(target, OptionKey('b_asneeded'), bool, default=False)
+    bitcode = env.coredata.optstore.get_option_for_target(target, OptionKey('b_bitcode'), bool, default=False)
     # Shared modules cannot be built with bitcode_bundle because
     # -bitcode_bundle is incompatible with -undefined and -bundle
     if bitcode and not target.typename == 'shared module':
@@ -405,7 +393,7 @@ def get_base_link_args(target: 'BuildTarget',
         from ..build import SharedModule
         args.extend(linker.headerpad_args())
         if (not isinstance(target, SharedModule) and
-                option_enabled(linker.base_options, target, env, 'b_lundef')):
+                env.coredata.optstore.get_option_for_target(target, OptionKey('b_lundef'), bool, default=False)):
             args.extend(linker.no_undefined_link_args())
         else:
             args.extend(linker.get_allow_undefined_link_args())
