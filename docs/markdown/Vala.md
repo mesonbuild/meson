@@ -297,11 +297,31 @@ foo_lib = shared_library('foo', 'foo.vala',
                   vala_vapi: 'foo-1.0.vapi',
                   dependencies: [glib_dep, gobject_dep],
                   install: true,
-                  install_dir: [true, true, true])
+                  install_vala_header : true,
+                  install_vala_vapi : true,
+)
+```
+
+*(Before Meson 1.11)* the `install_vala_*` keyword arguments did not exist,
+and setting additional outputs to install was done via passing an array to
+`install_dirs`. This array was in the form `[build_target, vala_header,
+vala_vapi, vala_gir]`. Any elements not specified are treated as `false`.
+Whether using the array format or the keywords, the accepted values are: `true`,
+which means "install in default location"; `false`, which means "do not
+install"; and a string value, which means "install to this location".
+
+```meson
+foo_lib = shared_library('foo', 'foo.vala',
+                  vala_header: 'foo.h',
+                  vala_vapi: 'foo-1.0.vapi',
+                  dependencies: [glib_dep, gobject_dep],
+                  install: true,
+                  install_dirs : [true, true, true],
+)
 ```
 
 In this example, the second and third elements of the `install_dir`
-array indicate the destination with `true` to use default directories
+array indicate the destination with `true` to use default directories.
 (i.e. `include` and `share/vala/vapi`).
 
 ### Depending on C header
@@ -363,12 +383,13 @@ foo_lib = shared_library('foo', 'foo.vala',
                   vala_gir: 'Foo-1.0.gir',
                   dependencies: [glib_dep, gobject_dep],
                   install: true,
-                  install_dir: [true, true, true, true])
+                  install_vala_header : true,
+                  install_vala_gir : true,
+                  install_vala_vapi : true,
+)
 ```
 
-The `true` value in `install_dir` tells Meson to use the default
-directory (i.e. `share/gir-1.0` for GIRs). The fourth element in the
-`install_dir` array indicates where the GIR file will be installed.
+The default install location for gir files is `share/gir-1.0`.
 
 To then generate a typelib file use a custom target with the
 `g-ir-compiler` program and a dependency on the library:
