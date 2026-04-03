@@ -108,6 +108,7 @@ ENV_VAR_COMPILER_MAP: T.Mapping[str, ImmutableListProtocol[str]] = {
     'rust': ['RUSTC'],
     'vala': ['VALAC'],
     'nasm': ['NASM'],
+    'rc': ['RC', 'WINDRES'],
 
     # Linkers
     'c_ld': ['CC_LD'],
@@ -133,7 +134,6 @@ ENV_VAR_TOOL_MAP: T.Mapping[str, ImmutableListProtocol[str]] = {
     'size': ['SIZE'],
     'strings': ['STRINGS'],
     'strip': ['STRIP'],
-    'windres': ['RC', 'WINDRES'],
 
     # Other tools
     'cmake': ['CMAKE'],

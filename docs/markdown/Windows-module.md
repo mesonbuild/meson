@@ -7,22 +7,25 @@ Windows.
 
 ### compile_resources
 
+*Deprecated since 1.11.0*: Use the [`rc` language](RC.md) instead.
+The function continues to work as a thin compatibility shim, but new
+projects should use the `rc` language directly.
+
 ```
   windows = import('windows')
   windows.compile_resources(...(string | File | CustomTarget | CustomTargetIndex),
                             args: []string,
                             depend_files: [](string | File),
                             depends: [](BuildTarget | CustomTarget | CustomTargetIndex)
-                            include_directories: [](IncludeDirectories | string)): []CustomTarget
+                            include_directories: [](IncludeDirectories | string)): [](File | CustomTarget | CustomTargetIndex)
                             implicit_include_directories: bool
 ```
 
 Compiles Windows `rc` files specified in the positional arguments.
-Returns a list of `CustomTarget` objects that you put in the list of sources for
-the target you want to have the resources in.
+Returns the sources for inclusion in a build target.
 
-*Since 0.61.0* CustomTargetIndexes and CustomTargets with more than out output
-*may be used as positional arguments.
+*Since 0.61.0* CustomTargetIndexes and CustomTargets with more than one output
+may be used as positional arguments.
 
 This method has the following keyword arguments:
 
@@ -38,10 +41,37 @@ This method has the following keyword arguments:
 - `implicit_include_directories` Controls whether Meson adds
   the current source and build directories to the include path (*since 1.11.0*)
 
-The resource compiler executable used is the first which exists from the
-following list:
+#### Migrating to the `rc` language
 
-1. The `windres` executable given in the `[binaries]` section of the cross-file
-2. The `RC` environment variable
-3. The `WINDRES` environment variable
-4. The resource compiler which is part of the same toolset as the C or C++ compiler in use.
+Replace:
+
+```meson
+windows = import('windows')
+resources = windows.compile_resources('resource.rc',
+  args: ['-DSOME_DEF'],
+  depend_files: ['icon.ico', 'manifest.xml'],
+  depends: [my_icon_generator],
+  include_directories: include_directories('inc'))
+executable('myapp', 'main.c', resources)
+```
+
+with:
+
+```meson
+project('myapp', 'c', 'rc')
+add_project_arguments('-DSOME_DEF', language: 'rc')
+executable('myapp', 'main.c', 'resource.rc',
+           depend_files: ['icon.ico', 'manifest.xml'],
+           depends: [my_icon_generator],
+           include_directories: include_directories('inc'))
+```
+
+The `depend_files` and `depends` keyword arguments can be passed to
+the build target instead. However, note that on a build target these
+only affect link-step ordering, not individual compile steps. In
+practice this is rarely a problem because most `rc` compilers (GNU
+`windres`, LLVM `llvm-windres`, and Microsoft `rc.exe` via Meson's
+internal wrapper) generate depfiles that let ninja discover included
+files automatically at compile time. For `depends`, if the dependency
+is a generated `.rc` source, pass it directly as a source to the build
+target and the ordering will be handled naturally.

@@ -35,6 +35,11 @@ These are return values of the `get_id` (Compiler family) and
 | open64    | The Open64 Fortran Compiler      |                 |
 | pathscale | The Pathscale Fortran compiler   |                 |
 | pgi       | Portland PGI C/C++/Fortran compilers |             |
+| rc        | Microsoft rc.exe (Since 1.11.0)  | msvc            |
+| llvm-rc   | LLVM llvm-rc (Since 1.11.0)      | msvc            |
+| windres   | GNU windres (Since 1.11.0)       | gcc             |
+| llvm-windres | LLVM llvm-windres (Since 1.11.0) | gcc          |
+| wrc       | Wine Resource Compiler (Since 1.11.0) |            |
 | rustc     | Rust compiler                    |                 |
 | sun       | Sun Fortran compiler             |                 |
 | c2000     | Texas Instruments C/C++ Compiler (C2000) |                 |
@@ -239,6 +244,7 @@ to your build target.
 | Cython        | cython_args    | cython_link_args  |
 | NASM          | nasm_args      | N/A               |
 | MASM          | masm_args      | N/A               |
+| RC            | rc_args        | N/A               |
 | Linear ASM    | linearasm_args | N/A               |
 
 All these `<lang>_*` options are specified per machine. See in
@@ -268,6 +274,7 @@ arguments](#language-arguments-parameter-names) instead.
 | VALAFLAGS   | Flags for the Vala compiler              |
 | RUSTFLAGS   | Flags for the Rust compiler              |
 | CYTHONFLAGS | Flags for the Cython compiler            |
+| RCFLAGS     | Flags for the RC (resource) compiler     |
 | LDFLAGS     | The linker flags, used for all languages |
 
 N.B. these settings are specified per machine, and so the environment
@@ -399,6 +406,7 @@ machine](#Environment-variables-per-machine) section for details.
 | Vala          | VALAC    |           | Use CC_LD. Vala transpiles to C             |
 | C#            | CSC      | CSC       | The linker is the compiler                  |
 | Cython        | CYTHON   |           |                                             |
+| RC            | RC, WINDRES |        | Since 1.11.0                                |
 | nasm          | NASM     |           | Uses the C linker                           |
 | archiver      |          | AR        |                                             |
 

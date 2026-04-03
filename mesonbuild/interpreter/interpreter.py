@@ -488,7 +488,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             elif isinstance(v, Test):
                 self.build.tests.append(v)
             elif isinstance(v, (int, str, bool, Disabler, ObjectHolder, build.GeneratedList,
-                                ExternalProgram, build.ConfigurationData)):
+                                ExternalProgram, build.ConfigurationData, mesonlib.File)):
                 pass
             else:
                 raise InterpreterException(f'Module returned a value of unknown type {v!r}.')

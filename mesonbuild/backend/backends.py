@@ -798,7 +798,8 @@ class Backend:
                 gen_source = os.path.relpath(os.path.join(build_dir, rel_src),
                                              os.path.join(self.environment.get_source_dir(), target.get_subdir()))
         machine = self.environment.machines[target.for_machine]
-        object_suffix = machine.get_object_suffix()
+        compiler_suffix = compiler.get_object_suffix()
+        object_suffix = compiler_suffix if compiler_suffix is not None else machine.get_object_suffix()
         # For the TASKING compiler, in case of LTO or prelinking the object suffix has to be .mil
         if compiler.get_id() == 'tasking':
             use_lto = self.get_target_option(target, 'b_lto')

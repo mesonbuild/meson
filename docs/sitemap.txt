@@ -62,6 +62,7 @@ index.md
 			i18n-module.md
 			Wayland-module.md
 		Java.md
+		RC.md
 		Vala.md
 		D.md
 		Cython.md

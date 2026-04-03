@@ -40,7 +40,7 @@ if T.TYPE_CHECKING:
     # See the comment on `lang_suffixes` if modifying this list.
     Language = Literal[
         'c', 'cpp', 'cuda', 'fortran', 'd', 'objc', 'objcpp', 'rust', 'vala',
-        'cs', 'swift', 'java', 'cython', 'nasm', 'masm', 'linearasm'
+        'cs', 'swift', 'java', 'cython', 'nasm', 'masm', 'linearasm', 'rc'
     ]
     CompilerDict: TypeAlias = T.Dict[Language, 'Compiler']
 
@@ -79,6 +79,7 @@ lang_suffixes: T.Mapping[Language, T.Tuple[str, ...]] = {
     'nasm': ('asm', 'nasm',),
     'masm': ('masm',),
     'linearasm': ('sa',),
+    'rc': ('rc',),
 }
 # Some compilers only recognize files with specific suffixes.
 compiler_suffixes: T.Mapping[str, T.Tuple[str, ...]] = {
@@ -123,6 +124,7 @@ CFLAGS_MAPPING: T.Mapping[str, str] = {
     'rust': 'RUSTFLAGS',
     'cython': 'CYTHONFLAGS',
     'cs': 'CSFLAGS', # This one might not be standard.
+    'rc': 'RCFLAGS',
 }
 
 # All these are only for C-linkable languages; see `clink_langs` above.
@@ -568,6 +570,13 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def get_default_suffix(self) -> str:
         return self.default_suffix
+
+    def get_object_suffix(self) -> T.Optional[str]:
+        """Override the default object suffix for this compiler.
+
+        Returns None to use the machine default (.o or .obj).
+        """
+        return None
 
     def get_define(self, dname: str, prefix: str,
                    extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],

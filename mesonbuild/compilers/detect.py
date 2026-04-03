@@ -82,6 +82,7 @@ defaults['gcc_static_linker'] = ['gcc-ar']
 defaults['clang_static_linker'] = ['llvm-ar']
 defaults['emxomf_static_linker'] = ['emxomfar']
 defaults['nasm'] = ['nasm', 'yasm']
+defaults['rc'] = ['rc', 'windres', 'llvm-rc', 'llvm-windres']
 
 
 def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineChoice) -> T.Optional[Compiler]:
@@ -102,6 +103,7 @@ def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineCh
         'nasm': detect_nasm_compiler,
         'masm': detect_masm_compiler,
         'linearasm': detect_linearasm_compiler,
+        'rc': detect_rc_compiler,
     }
     return lang_map[lang](env, for_machine) if lang in lang_map else None
 
@@ -1443,6 +1445,71 @@ def detect_linearasm_compiler(env: Environment, for_machine: MachineChoice) -> C
     except OSError as e:
         popen_exceptions[' '.join(comp + [arg])] = e
     _handle_exceptions(popen_exceptions, [comp])
+    raise EnvironmentException('Unreachable code (exception to make mypy happy)')
+
+def detect_rc_compiler(env: 'Environment', for_machine: MachineChoice) -> 'Compiler':
+    from .rc import (RCCompiler, WindowsResourceCompiler, LlvmRcCompiler,
+                     WindresCompiler, LlvmWindresCompiler, WineResourceCompiler)
+
+    # Try to find the RC compiler from the cross/native file or environment.
+    # Support both 'rc' and legacy 'windres' keys in the binaries section.
+    value = env.lookup_binary_entry(for_machine, 'rc')
+    if value is None:
+        value = env.lookup_binary_entry(for_machine, 'windres')
+
+    if value is not None:
+        compilers = [value]
+    else:
+        if not env.machines.matches_build_machine(for_machine):
+            raise EnvironmentException("'rc' compiler binary not defined in cross file [binaries] section")
+        # Determine defaults based on the C/C++ compiler
+        c_comps = env.coredata.compilers[for_machine]
+        cc = None
+        l: 'Language'
+        for l in ('c', 'cpp'):
+            if l in c_comps:
+                cc = c_comps[l]
+                break
+        if cc is not None and (cc.id in {'msvc', 'clang-cl', 'intel-cl'} or
+                               (cc.linker and cc.linker.id in {'link', 'lld-link'})):
+            compilers = [['rc'], ['llvm-rc']]
+        else:
+            compilers = [['windres'], ['llvm-windres']]
+
+    popen_exceptions: T.Dict[str, T.Union[Exception, str]] = {}
+    rc_probes: T.List[T.Tuple[str, str, T.Type[RCCompiler]]] = [
+        ('/?', r'^.*Microsoft.*Resource Compiler.*$', WindowsResourceCompiler),
+        ('/?', r'LLVM Resource Converter.*$', LlvmRcCompiler),
+        ('--version', r'^.*GNU windres.*$', WindresCompiler),
+        ('--version', r'^.*llvm-windres.*$', LlvmWindresCompiler),
+        ('--version', r'^.*Wine Resource Compiler.*$', WineResourceCompiler),
+    ]
+    for comp in compilers:
+        for arg, match, rc_class in rc_probes:
+            try:
+                p, o, e = Popen_safe(comp + [arg])
+            except OSError as e_exc:
+                popen_exceptions[' '.join(comp + [arg])] = e_exc
+                continue
+            m = re.search(match, o, re.MULTILINE)
+            if m:
+                version = search_version(o)
+                # For MSVC rc.exe, find cl.exe for dependency tracking
+                if rc_class is WindowsResourceCompiler:
+                    cl_path: T.Optional[str] = None
+                    c_comps = env.coredata.compilers[for_machine]
+                    l2: 'Language'
+                    for l2 in ('c', 'cpp'):
+                        if l2 in c_comps:
+                            cl_path = c_comps[l2].get_exelist(False)[0]
+                            break
+                    env.add_lang_args(rc_class.language, rc_class, for_machine)
+                    return WindowsResourceCompiler(comp, version, for_machine, env, cl_path=cl_path)
+                else:
+                    env.add_lang_args(rc_class.language, rc_class, for_machine)
+                    return rc_class(comp, version, for_machine, env)
+
+    _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
 
 # GNU/Clang defines and version

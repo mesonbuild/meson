@@ -2492,6 +2492,9 @@ class NinjaBackend(backends.Backend):
             for langname, compiler in complist.items():
                 if langname in {'java', 'vala', 'rust', 'cs', 'cython'}:
                     continue
+                # RC compilers produce object files but don't drive linking
+                if compiler.linker is None and langname == 'rc':
+                    continue
                 rule = '{}_LINKER{}'.format(langname, self.get_rule_suffix(for_machine))
                 command = compiler.get_linker_exelist()
                 args = ['$ARGS'] + NinjaCommandArg.list(compiler.get_linker_output_args('$out'), Quoting.none) + ['$in', '$LINK_ARGS']

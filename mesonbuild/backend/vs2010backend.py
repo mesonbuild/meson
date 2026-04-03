@@ -820,6 +820,8 @@ class Vs2010Backend(backends.Backend):
             return 'cpp'
         if ext in compilers.lang_suffixes['masm']:
             return 'masm'
+        if ext in compilers.lang_suffixes['rc']:
+            return 'rc'
         raise MesonException(f'Could not guess language from source file {src}.')
 
     def add_pch(self, pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
@@ -1762,7 +1764,9 @@ class Vs2010Backend(backends.Backend):
                 relpath = os.path.join(proj_to_build_root, s.rel_to_builddir(self.build_to_src))
                 if path_normalize_add(relpath, previous_sources):
                     lang = Vs2010Backend.lang_from_source_file(s)
-                    if lang == 'masm' and masm:
+                    if lang == 'rc':
+                        inc_cl = ET.SubElement(inc_src, 'ResourceCompile', Include=relpath)
+                    elif lang == 'masm' and masm:
                         inc_cl = ET.SubElement(inc_src, masm.upper(), Include=relpath)
                     else:
                         inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
@@ -1770,17 +1774,20 @@ class Vs2010Backend(backends.Backend):
                     if self.gen_lite:
                         self.add_project_nmake_defs_incs_and_opts(inc_cl, relpath, defs_paths_opts_per_lang_and_buildtype, platform)
                     else:
-                        if lang != 'masm':
+                        if lang not in {'masm', 'rc'}:
                             self.add_pch(pch_sources, lang, inc_cl)
                         self.add_additional_options(lang, inc_cl, file_args)
                         self.add_preprocessor_defines(lang, inc_cl, file_defines)
                         self.add_include_dirs(lang, inc_cl, file_inc_dirs)
-                        ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + \
-                            self.object_filename_from_source(target, compiler, s)
+                        if lang != 'rc':
+                            ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + \
+                                self.object_filename_from_source(target, compiler, s)
             for s in gen_src:
                 if path_normalize_add(s, previous_sources):
                     lang = Vs2010Backend.lang_from_source_file(s)
-                    if lang == 'masm' and masm:
+                    if lang == 'rc':
+                        inc_cl = ET.SubElement(inc_src, 'ResourceCompile', Include=s)
+                    elif lang == 'masm' and masm:
                         inc_cl = ET.SubElement(inc_src, masm.upper(), Include=s)
                     else:
                         inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)
@@ -1788,7 +1795,7 @@ class Vs2010Backend(backends.Backend):
                     if self.gen_lite:
                         self.add_project_nmake_defs_incs_and_opts(inc_cl, s, defs_paths_opts_per_lang_and_buildtype, platform)
                     else:
-                        if lang != 'masm':
+                        if lang not in {'masm', 'rc'}:
                             self.add_pch(pch_sources, lang, inc_cl)
                         self.add_additional_options(lang, inc_cl, file_args)
                         self.add_preprocessor_defines(lang, inc_cl, file_defines)
