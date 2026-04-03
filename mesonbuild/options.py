@@ -547,15 +547,6 @@ class UserFeatureOption(UserComboOption):
         # Ensure we get a copy with the lambda
         default_factory=lambda: ['enabled', 'disabled', 'auto'], init=False)
 
-    def is_enabled(self) -> bool:
-        return self.value == 'enabled'
-
-    def is_disabled(self) -> bool:
-        return self.value == 'disabled'
-
-    def is_auto(self) -> bool:
-        return self.value == 'auto'
-
 
 _U = T.TypeVar('_U', bound=UserOption)
 
