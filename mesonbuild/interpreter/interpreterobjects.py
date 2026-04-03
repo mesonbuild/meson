@@ -21,7 +21,7 @@ from ..interpreterbase import (
                                FeatureNew, FeatureDeprecated,
                                typed_pos_args, typed_kwargs, typed_operator,
                                noArgsFlattening, noPosargs, noKwargs, unholder_return,
-                               flatten, resolve_second_level_holders, Feature,
+                               flatten, resolve_second_level_holders, Feature, FeatureValue,
                                InterpreterException, InvalidArguments, InvalidCode)
 from ..interpreter.type_checking import NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
@@ -115,7 +115,7 @@ class FeatureOptionHolder(ObjectHolder[Feature]):
     def __init__(self, option: Feature, interpreter: 'Interpreter'):
         if option.is_auto():
             auto_value = T.cast('str', interpreter.environment.coredata.optstore.get_value_for('auto_features'))
-            option = option.with_value(auto_value)
+            option = option.with_value(FeatureValue(auto_value))
         super().__init__(option, interpreter)
 
     @noPosargs

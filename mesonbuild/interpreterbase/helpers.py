@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 from dataclasses import dataclass
+from enum import Enum
 
 from .. import mesonlib, mparser
 from .exceptions import InterpreterException, InvalidArguments
@@ -68,30 +69,39 @@ def stringifyUserArguments(args: TYPE_var, subproject: SubProject, quote: bool =
     raise InvalidArguments('Value other than strings, integers, bools, options, dictionaries and lists thereof.')
 
 
+class FeatureValue(Enum):
+    ENABLED = 'enabled'
+    DISABLED = 'disabled'
+    AUTO = 'auto'
+
+    def __str__(self) -> str:
+        return self.value
+
+
 @dataclass
 class Feature(HoldableObject):
     name: str
-    value: str
+    value: FeatureValue
 
     def is_enabled(self) -> bool:
-        return self.value == 'enabled'
+        return self.value is FeatureValue.ENABLED
 
     def is_disabled(self) -> bool:
-        return self.value == 'disabled'
+        return self.value is FeatureValue.DISABLED
 
     def is_auto(self) -> bool:
-        return self.value == 'auto'
+        return self.value is FeatureValue.AUTO
 
     def with_value(self, value: FeatureValue) -> Feature:
-        if value == self.value:
+        if value is self.value:
             return self
         return Feature(self.name, value)
 
     def as_enabled(self) -> Feature:
-        return self.with_value('enabled')
+        return self.with_value(FeatureValue.ENABLED)
 
     def as_disabled(self) -> Feature:
-        return self.with_value('disabled')
+        return self.with_value(FeatureValue.DISABLED)
 
     def __str__(self) -> str:
         return str(self.value)

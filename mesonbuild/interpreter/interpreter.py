@@ -30,7 +30,7 @@ from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCod
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
-from ..interpreterbase import stringifyUserArguments, Feature
+from ..interpreterbase import stringifyUserArguments, Feature, FeatureValue
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..optinterpreter import optname_regex
 
@@ -1098,7 +1098,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise MesonException(f'Option {optname} does not exist.')
 
         if isinstance(option_object, options.UserFeatureOption):
-            return Feature(optname, value)
+            return Feature(optname, FeatureValue(value))
         elif optname == 'b_sanitize':
             assert isinstance(option_object, options.UserStringArrayOption)
             # To ensure backwards compatibility this always returns a string.
