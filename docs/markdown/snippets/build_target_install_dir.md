@@ -1,8 +1,10 @@
 ## BuildTarget(install_dir) length > 1 replaced with keywords
 
-Build Targets currently support (with limited documentation), passing an array
-of more than one element to `install_dir:` (except for in some wrappers), and
-will map these additional install_dir's to extra outputs. This is only used by vala, and has been replaced by explicit keyword arguments.
+Build targets previously supported (with limited documentation) passing an array
+of more than one element to `install_dir:` (except in some wrappers), and
+would map these additional `install_dir`s to extra outputs. This was only used by
+Vala, and separate explicit keyword arguments are now available that provide
+the same functionality.
 
 Code like this:
 ```meson
@@ -21,8 +23,9 @@ library(
   'foo',
   'foo.vala',
   install : true,
-  install_vala_header_dir : get_option('includedir') / 'foo
+  install_vala_header : get_option('includedir') / 'foo',
+  install_vala_vapi : true,
 )
 ```
 
-Note that now you only need to specify values you want to deviate from the default.
+Note that the default is `false` for the Vala extra outputs.

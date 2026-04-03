@@ -7,7 +7,7 @@ before objects and libraries as they control how the linker
 manipulates those.
 
 The new `link_early_args` keyword argument passes linker options which
-are inserted into the command line before any objects and libraries
-allowing applications to use these kinds of linker options with meson.
+are inserted into the command line before any objects and libraries,
+allowing applications to use these kinds of linker options with Meson.
 
 This is currently only supported when using the `ninja` backend.
