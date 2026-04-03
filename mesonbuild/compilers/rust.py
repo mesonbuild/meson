@@ -394,17 +394,17 @@ class RustCompiler(Compiler):
             args.append('--edition=' + std)
         return args
 
-    def get_crt_compile_args(self, crt_val: str, env: Environment) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str) -> T.List[str]:
         # Rust handles this for us, we don't need to do anything
         return []
 
-    def get_crt_link_args(self, crt_val: str, env: Environment) -> T.List[str]:
+    def get_crt_link_args(self, crt_val: str) -> T.List[str]:
         if not isinstance(self.linker, VisualStudioLikeLinkerMixin):
             return []
         # Rustc always use non-debug Windows runtime. Inject the one selected
         # by Meson options instead.
         # https://github.com/rust-lang/rust/issues/39016
-        return self.MSVCRT_ARGS[self.get_crt_val(crt_val, env)]
+        return self.MSVCRT_ARGS[self.get_crt_val(crt_val)]
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         if colortype in {'always', 'never', 'auto'}:

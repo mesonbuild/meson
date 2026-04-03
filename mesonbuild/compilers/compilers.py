@@ -344,7 +344,7 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
         crt_val = env.coredata.get_option_for_target(target, 'b_vscrt')
         assert isinstance(crt_val, str)
         try:
-            args += compiler.get_crt_compile_args(crt_val, env)
+            args += compiler.get_crt_compile_args(crt_val)
         except AttributeError:
             pass
     except KeyError:
@@ -432,7 +432,7 @@ def get_base_link_args(target: 'BuildTarget',
         crt_val = env.coredata.get_option_for_target(target, 'b_vscrt')
         assert isinstance(crt_val, str)
         try:
-            crtargs = linker.get_crt_link_args(crt_val, env)
+            crtargs = linker.get_crt_link_args(crt_val)
             assert isinstance(crtargs, list)
             args += crtargs
         except AttributeError:
@@ -1160,7 +1160,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """
         return []
 
-    def get_crt_val(self, crt_val: str, env: Environment) -> str:
+    def get_crt_val(self, crt_val: str) -> str:
         if crt_val in options.MSCRT_VALS:
             return crt_val
         assert crt_val in {'from_buildtype', 'static_from_buildtype'}
@@ -1172,7 +1172,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             rel = 'mt'
 
         # Match what build type flags used to do.
-        buildtype = env.coredata.optstore.get_value_for('buildtype')
+        buildtype = self.environment.coredata.optstore.get_value_for('buildtype')
+        assert isinstance(buildtype, str), 'for mypy'
         if buildtype == 'plain':
             return 'none'
         elif buildtype == 'debug':
@@ -1183,10 +1184,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             assert buildtype == 'custom'
             raise EnvironmentException('Requested C runtime based on buildtype, but buildtype is "custom".')
 
-    def get_crt_compile_args(self, crt_val: str, env: Environment) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str) -> T.List[str]:
         raise EnvironmentException('This compiler does not support Windows CRT selection')
 
-    def get_crt_link_args(self, crt_val: str, env: Environment) -> T.List[str]:
+    def get_crt_link_args(self, crt_val: str) -> T.List[str]:
         raise EnvironmentException('This compiler does not support Windows CRT selection')
 
     def get_compile_only_args(self) -> T.List[str]:

@@ -20,7 +20,6 @@ from mesonbuild.linkers.linkers import ClangClDynamicLinker, MSVCDynamicLinker
 
 if T.TYPE_CHECKING:
     from ...build import BuildTarget
-    from ...environment import Environment
     from .clike import CLikeCompiler as Compiler
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
@@ -317,8 +316,8 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             return []
         return os.environ['INCLUDE'].split(os.pathsep)
 
-    def get_crt_compile_args(self, crt_val: str, env: Environment) -> T.List[str]:
-        crt_val = self.get_crt_val(crt_val, env)
+    def get_crt_compile_args(self, crt_val: str) -> T.List[str]:
+        crt_val = self.get_crt_val(crt_val)
         return self.crt_args[crt_val]
 
     def has_func_attribute(self, name: str) -> T.Tuple[bool, bool]:
