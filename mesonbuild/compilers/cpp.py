@@ -89,7 +89,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
         return []
 
     def _sanity_check_source_code(self) -> str:
-        return 'class breakCCompiler;int main(void) { return 0; }\n'
+        return '#include <stddef.h>\nclass breakCCompiler;int main(void) { return 0; }\n'
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         # -fpermissive allows non-conforming code to compile which is necessary

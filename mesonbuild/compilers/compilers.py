@@ -1365,7 +1365,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         :return: a tuple of arguments, the first is the executable and compiler
             arguments, the second is linker arguments
         """
-        return self.exelist_no_ccache + self.get_always_args() + self.get_output_args(binname) + [sourcename], []
+        cargs = list(self.environment.coredata.get_external_args(self.for_machine, self.language))
+        largs = list(self.environment.coredata.get_external_link_args(self.for_machine, self.language))
+        return self.exelist_no_ccache + self.get_always_args() + self.get_output_args(binname) + [sourcename] + cargs, largs
 
     @abc.abstractmethod
     def _sanity_check_source_code(self) -> str:

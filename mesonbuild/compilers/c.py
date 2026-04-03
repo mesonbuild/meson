@@ -75,7 +75,7 @@ class CCompiler(CLikeCompiler, Compiler):
         return ['-nostdinc']
 
     def _sanity_check_source_code(self) -> str:
-        return 'int main(void) { int class=0; return class; }\n'
+        return '#include <stddef.h>\nint main(void) { int class=0; return class; }\n'
 
     def has_header_symbol(self, hname: str, symbol: str, prefix: str, *,
                           extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
