@@ -182,6 +182,7 @@ local -a meson_commands=(
 
   # TODO: complete test suites
   local -a specs=(
+  '(--maxfail -k)'{'--maxfail','-k'}'=[number of failing tests before aborting]:number of failing tests: '
   '--repeat[number of times to run the tests]:number of times to repeat: '
   '--no-rebuild[do not rebuild before running tests]'
   '--gdb[run tests under gdb]'

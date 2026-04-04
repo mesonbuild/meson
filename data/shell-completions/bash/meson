@@ -561,6 +561,7 @@ _meson-test() {
   shortopts=(
     h
     j
+    k
     q
     v
     t
@@ -595,7 +596,7 @@ _meson-test() {
   local cur prev
   if _get_comp_words_by_ref -n ':' cur prev &>/dev/null; then
     case $prev in
-      --maxfail | --repeat)
+      -k | --maxfail | --repeat)
         # number, can't be completed
         return
         ;;

@@ -127,7 +127,7 @@ def test_slice(arg: str) -> T.Tuple[int, int]:
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument('--maxfail', default=0, type=int,
+    parser.add_argument('-k', '--maxfail', default=0, type=int,
                         help='Number of failing tests before aborting the '
                         'test run. (default: 0, to disable aborting on failure)')
     parser.add_argument('--repeat', default=1, dest='repeat', type=int,
