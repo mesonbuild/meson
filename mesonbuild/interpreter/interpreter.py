@@ -3695,12 +3695,15 @@ class Interpreter(InterpreterBase, HoldableObject):
             if dep:
                 target.add_deps([dep])
 
-    def check_for_jar_sources(self, sources, targetclass):
+    def check_for_jar_sources(self, sources: T.Union[T.List[str], T.Sequence[T.Union[mesonlib.File, build.BuildTargetTypes, build.GeneratedList, build.StructuredSources]]],
+                              targetclass: T.Type[build.BuildTarget]) -> None:
         for s in sources:
             if isinstance(s, (str, mesonlib.File)) and compilers.is_java(s):
                 raise InvalidArguments(f'Build target of type "{targetclass.typename}" cannot build java source: "{s}". Use "{build.Jar.typename}" instead.')
             elif isinstance(s, build.StructuredSources):
                 self.check_for_jar_sources(s.as_list(), targetclass)
+            elif isinstance(s, (build.GeneratedList, build.CustomTarget, build.CustomTargetIndex)):
+                self.check_for_jar_sources(s.get_outputs(), targetclass)
 
     def is_subproject(self) -> bool:
         return self.subproject != ''
