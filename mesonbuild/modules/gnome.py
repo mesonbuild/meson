@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2015-2016 The Meson development team
-# Copyright © 2023-2025 Intel Corporation
+# Copyright © 2023-2026 Intel Corporation
 
 '''This module provides helper functions for Gnome/GLib related
 functionality such as gobject-introspection, gresources and gtk-doc'''
@@ -44,7 +44,7 @@ if T.TYPE_CHECKING:
     from ..compilers import Compiler
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var, TYPE_kwargs
-    from ..mesonlib import FileOrString
+    from ..mesonlib import EnvironmentVariables, FileOrString
     from ..programs import Program, CommandList, CommandListEntry
 
     class PostInstall(TypedDict):
@@ -84,6 +84,7 @@ if T.TYPE_CHECKING:
         build_by_default: bool
         dependencies: T.List[Dependency]
         doc_format: T.Optional[str]
+        env: EnvironmentVariables
         export_packages: T.List[str]
         extra_args: T.List[str]
         fatal_warnings: bool
@@ -92,8 +93,10 @@ if T.TYPE_CHECKING:
         include_directories: T.List[T.Union[build.IncludeDirs, str]]
         includes: T.List[T.Union[str, GirTarget]]
         install: bool
-        install_dir_gir: T.Optional[str]
-        install_dir_typelib: T.Optional[str]
+        install_gir: T.Optional[bool]
+        install_dir_gir: T.Union[str, None, Literal[False]]
+        install_typelib: T.Optional[bool]
+        install_dir_typelib: T.Union[str, None, Literal[False]]
         link_with: T.List[T.Union[build.SharedLibrary, build.StaticLibrary]]
         namespace: str
         nsversion: str
@@ -972,7 +975,7 @@ class GnomeModule(ExtensionModule):
             generated_files: T.Sequence[T.Union[str, mesonlib.File, build.GeneratedTypes]],
             depends: T.Sequence[T.Union['FileOrString', build.BuildTarget, 'build.GeneratedTypes', build.StructuredSources]],
             env_flags: T.Sequence[str],
-            kwargs: T.Dict[str, T.Any]) -> GirTarget:
+            kwargs: GenerateGir) -> GirTarget:
         install = kwargs['install_gir']
         if install is None:
             install = kwargs['install']
@@ -1023,7 +1026,7 @@ class GnomeModule(ExtensionModule):
     def _make_typelib_target(state: 'ModuleState', typelib_output: str,
                              typelib_cmd: T.Sequence[T.Union[str, CustomTarget, Program]],
                              generated_files: T.Sequence[T.Union[str, mesonlib.File, build.GeneratedTypes]],
-                             kwargs: T.Dict[str, T.Any]) -> TypelibTarget:
+                             kwargs: GenerateGir) -> TypelibTarget:
         install = kwargs['install_typelib']
         if install is None:
             install = kwargs['install']
@@ -1244,9 +1247,8 @@ class GnomeModule(ExtensionModule):
         generated_files = [f for f in libsources if isinstance(f, (GeneratedList, CustomTarget, CustomTargetIndex))]
 
         scan_target = self._make_gir_target(
-            state, girfile, scan_command, generated_files, depends, scan_env_ldflags,
-            # We have to cast here because mypy can't figure this out
-            T.cast('T.Dict[str, T.Any]', kwargs))
+            state, girfile, scan_command, generated_files, depends,
+            scan_env_ldflags, kwargs)
 
         typelib_output = f'{ns}-{nsversion}.typelib'
         typelib_cmd: T.List[T.Union[str, Program, CustomTarget]]
@@ -1256,7 +1258,8 @@ class GnomeModule(ExtensionModule):
         for incdir in typelib_includes:
             typelib_cmd += ["--includedir=" + incdir]
 
-        typelib_target = self._make_typelib_target(state, typelib_output, typelib_cmd, generated_files, T.cast('T.Dict[str, T.Any]', kwargs))
+        typelib_target = self._make_typelib_target(
+            state, typelib_output, typelib_cmd, generated_files, kwargs)
 
         self._devenv_prepend('GI_TYPELIB_PATH', os.path.join(state.environment.get_build_dir(), state.subdir))
 
