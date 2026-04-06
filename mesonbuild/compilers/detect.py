@@ -1128,7 +1128,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
             if rust_target and rust_target.endswith('-msvc'):
                 try:
                     cc = _detect_c_or_cpp_compiler(env, 'c', for_machine,
-                                                   override_compiler=['clang-cl', 'cl'])
+                                                   override_compiler=['cl', 'clang-cl'])
                 except EnvironmentException:
                     popen_exceptions[join_args(compiler)] = \
                         EnvironmentException('No MSVC-compatible C compiler found for MSVC Rust target')
