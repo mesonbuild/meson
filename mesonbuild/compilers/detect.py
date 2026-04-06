@@ -275,7 +275,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
 # =========
 
 
-def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: MachineChoice, *, override_compiler: T.Optional[T.List[str]] = None) -> Compiler:
+def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: MachineChoice, *, override_compilers: T.Optional[T.List[T.List[str]]] = None) -> Compiler:
     """Shared implementation for finding the C or C++ compiler to use.
 
     the override_compiler option is provided to allow compilers which use
@@ -287,14 +287,12 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
     popen_exceptions: T.Dict[str, T.Union[Exception, str]] = {}
     compilers, ccache_exe = _get_compilers(env, lang, for_machine)
     ccache = ccache_exe.get_command() if (ccache_exe and ccache_exe.found()) else []
-    if override_compiler is not None:
-        compilers = [override_compiler]
+    if override_compilers is not None:
+        compilers = override_compilers
     cls: T.Union[T.Type[CCompiler], T.Type[CPPCompiler]]
     lnk: T.Union[T.Type[StaticLinker], T.Type[DynamicLinker]]
 
     for compiler in compilers:
-        if isinstance(compiler, str):
-            compiler = [compiler]
         compiler_name = os.path.basename(compiler[0])
 
         if any(os.path.basename(x) in {'cl', 'cl.exe', 'clang-cl', 'clang-cl.exe'} for x in compiler):
@@ -1128,7 +1126,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
             if rust_target and rust_target.endswith('-msvc'):
                 try:
                     cc = _detect_c_or_cpp_compiler(env, 'c', for_machine,
-                                                   override_compiler=['cl', 'clang-cl'])
+                                                   override_compilers=[['cl'], ['clang-cl']])
                 except EnvironmentException:
                     popen_exceptions[join_args(compiler)] = \
                         EnvironmentException('No MSVC-compatible C compiler found for MSVC Rust target')
@@ -1182,7 +1180,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
                 # linking, on windows it will use lld-link or link.exe.
                 # we will simply ask for the C compiler that corresponds to
                 # it, and use that.
-                cc = _detect_c_or_cpp_compiler(env, 'c', for_machine, override_compiler=override)
+                cc = _detect_c_or_cpp_compiler(env, 'c', for_machine, override_compilers=[override])
                 linker = cc.linker
                 exelist = cc.get_linker_exelist()
 
