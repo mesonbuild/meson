@@ -252,26 +252,25 @@ class DependenciesHelper:
                 if obj.found():
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
-            elif isinstance(obj, build.SharedLibrary) and obj.shared_library_only:
-                # Do not pull dependencies for shared libraries because they are
-                # only required for static linking.  Requires.private
-                # are needed on the assumption that the headers need them,
-                # which is the intended behaviour of pkg-config though it
-                # forced Debian to add more than needed build deps.
-                # See https://bugs.freedesktop.org/show_bug.cgi?id=105572
-                processed_libs.append(obj)
-                self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_subdir())
-                self.add_shlib_deps(obj.external_deps)
             elif isinstance(obj, (build.SharedLibrary, build.StaticLibrary)):
                 processed_libs.append(obj)
                 self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_subdir())
-                # If there is a static library in `Libs:` all its deps must be
-                # public too, otherwise the generated pc file will never be
-                # usable without --static.
-                self._add_lib_dependencies(obj.link_targets,
-                                           obj.link_whole_targets,
-                                           obj.external_deps,
-                                           isinstance(obj, build.StaticLibrary) and public)
+                if isinstance(obj, build.SharedLibrary) and obj.shared_library_only:
+                    # Do not pull dependencies for shared libraries because they are
+                    # only required for static linking.  Requires.private
+                    # are needed on the assumption that the headers need them,
+                    # which is the intended behaviour of pkg-config though it
+                    # forced Debian to add more than needed build deps.
+                    # See https://bugs.freedesktop.org/show_bug.cgi?id=105572
+                    self.add_shlib_deps(obj.external_deps)
+                else:
+                    # If there is a static library in `Libs:` all its deps must be
+                    # public too, otherwise the generated pc file will never be
+                    # usable without --static.
+                    self._add_lib_dependencies(obj.link_targets,
+                                               obj.link_whole_targets,
+                                               obj.external_deps,
+                                               isinstance(obj, build.StaticLibrary) and public)
             elif isinstance(obj, (build.CustomTarget, build.CustomTargetIndex)):
                 if not obj.is_linkable_target():
                     raise mesonlib.MesonException('library argument contains a not linkable custom_target.')
