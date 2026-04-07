@@ -111,6 +111,12 @@ class DependenciesHelper:
         self.cflags += cflags
 
     def add_priv_libs(self, libs: T.List[ANY_DEP]) -> None:
+        # FIXME: cflags from non-pkg-config ExternalDependency objects are
+        # discarded here.  They should be added to self.cflags so that
+        # consumers get the right compile flags when headers require those
+        # non-pkg-config external dependencies.  PkgConfigDependency is
+        # fine because its cflags come transitively via Requires.private.
+        # The same applies to add_shlib_deps below.
         p_libs, reqs, _ = self._process_libs(libs, False)
         self.priv_libs = p_libs + self.priv_libs
         self.priv_reqs += reqs
@@ -120,6 +126,20 @@ class DependenciesHelper:
 
     def add_priv_reqs(self, reqs: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]) -> None:
         self.priv_reqs += self._process_reqs(reqs)
+
+    def add_shlib_deps(self, external_deps: T.List[dependencies.Dependency]) -> None:
+        # A mix of add_priv_libs and add_priv_reqs.  Like the
+        # shared_library_only=False case, Libs.private is not needed
+        # (consumers link to the .so, not its deps); but unlike
+        # add_priv_reqs, _process_libs does not raise an error for
+        # non-pkg-config ExternalDependency objects.  This ensures that
+        # shared_library() and library() with default_library=shared
+        # produce the same Requires.private in the generated .pc file,
+        # but it is not entirely correct.  See the comment above for
+        # add_priv_libs().
+        libs = T.cast('T.List[ANY_DEP]', external_deps)
+        _, reqs, _ = self._process_libs(libs, False)
+        self.priv_reqs += reqs
 
     def _check_generated_pc_deprecation(self, obj: T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary, build.SharedLibrary]) -> None:
         if obj.get_id() in self.metadata:
@@ -234,13 +254,14 @@ class DependenciesHelper:
                     processed_cflags += obj.get_compile_args()
             elif isinstance(obj, build.SharedLibrary) and obj.shared_library_only:
                 # Do not pull dependencies for shared libraries because they are
-                # only required for static linking. Adding private requires has
-                # the side effect of exposing their cflags, which is the
-                # intended behaviour of pkg-config but force Debian to add more
-                # than needed build deps.
+                # only required for static linking.  Requires.private
+                # are needed on the assumption that the headers need them,
+                # which is the intended behaviour of pkg-config though it
+                # forced Debian to add more than needed build deps.
                 # See https://bugs.freedesktop.org/show_bug.cgi?id=105572
                 processed_libs.append(obj)
                 self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_subdir())
+                self.add_shlib_deps(obj.external_deps)
             elif isinstance(obj, (build.SharedLibrary, build.StaticLibrary)):
                 processed_libs.append(obj)
                 self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_subdir())

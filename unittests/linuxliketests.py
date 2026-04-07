@@ -1114,6 +1114,23 @@ class LinuxlikeTests(BasePlatformTests):
             self.build(override_envvars=env)
 
     @skipIfNoPkgconfig
+    def test_pkgconfig_shlib_requires_private(self):
+        '''
+        Test that a shared library's external dependencies appear in
+        Requires.private of the generated .pc file, so that --cflags
+        exposes their compile args.
+        '''
+        testdir = os.path.join(self.unit_test_dir, '27 pkgconfig usage/dependency')
+        if subprocess.call([PKG_CONFIG, '--cflags', 'glib-2.0'],
+                           stdout=subprocess.DEVNULL,
+                           stderr=subprocess.DEVNULL) != 0:
+            raise SkipTest('Glib 2.0 dependency not available.')
+        self.init(testdir)
+        with open(os.path.join(self.privatedir, 'libpkgdep.pc'), encoding='utf-8') as f:
+            content = f.read()
+        self.assertIn('Requires.private: glib-2.0', content)
+
+    @skipIfNoPkgconfig
     def test_pkgconfig_usage(self):
         testdir1 = os.path.join(self.unit_test_dir, '27 pkgconfig usage/dependency')
         testdir2 = os.path.join(self.unit_test_dir, '27 pkgconfig usage/dependee')
@@ -1134,9 +1151,10 @@ class LinuxlikeTests(BasePlatformTests):
             # Private internal libraries must not leak out.
             pkg_out = subprocess.check_output([PKG_CONFIG, '--static', '--libs', 'libpkgdep'], env=myenv)
             self.assertNotIn(b'libpkgdep-int', pkg_out, 'Internal library leaked out.')
-            # Dependencies must not leak to cflags when building only a shared library.
+            # Dependencies of a shared library should appear via Requires.private
+            # so that --cflags exposes their compile args (headers may need them).
             pkg_out = subprocess.check_output([PKG_CONFIG, '--cflags', 'libpkgdep'], env=myenv)
-            self.assertNotIn(b'glib', pkg_out, 'Internal dependency leaked to headers.')
+            self.assertIn(b'glib', pkg_out, 'Shared library dependency not exposed via cflags.')
             # Test that the result is usable.
             self.init(testdir2, override_envvars=myenv)
             self.build(override_envvars=myenv)
