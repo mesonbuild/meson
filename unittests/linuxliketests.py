@@ -1476,9 +1476,13 @@ class LinuxlikeTests(BasePlatformTests):
         self.install(use_destdir=False)
         self.new_builddir()
 
-        # Build, install, and run the client program
+        # Build, install, and run the client program.  Preserve the
+        # PKG_CONFIG_PATH used for val2 because it has a Requires.private
+        # for val1.
         env2 = {}
-        env2['PKG_CONFIG_PATH'] = os.path.join(val2prefix, self.libdir, 'pkgconfig')
+        env2['PKG_CONFIG_PATH'] = ':'.join([
+            os.path.join(val2prefix, self.libdir, 'pkgconfig'),
+            env1['PKG_CONFIG_PATH']])
         testdir = os.path.join(self.unit_test_dir, '74 pkgconfig prefixes', 'client')
         testprefix = os.path.join(oldinstalldir, 'client')
         self.prefix = testprefix
