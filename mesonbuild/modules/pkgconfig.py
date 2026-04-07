@@ -47,6 +47,7 @@ if T.TYPE_CHECKING:
         libraries: T.List[ANY_DEP]
         libraries_private: T.List[ANY_DEP]
         requires: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]
+        requires_shared: T.Optional[T.List[T.Union[str, dependencies.Dependency]]]
         requires_private: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]
         install_dir: T.Optional[str]
         d_module_versions: T.List[T.Union[str, int]]
@@ -103,6 +104,7 @@ class DependenciesHelper:
         self.version_reqs: T.DefaultDict[str, T.Set[str]] = defaultdict(set)
         self.link_whole_targets: T.List[T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary]] = []
         self.uninstalled_incdirs: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
+        self.shlib_needs_requires_private: bool = True
 
     def add_pub_libs(self, libs: T.List[ANY_DEP]) -> None:
         p_libs, reqs, cflags = self._process_libs(libs, True)
@@ -128,6 +130,8 @@ class DependenciesHelper:
         self.priv_reqs += self._process_reqs(reqs)
 
     def add_shlib_deps(self, external_deps: T.List[dependencies.Dependency]) -> None:
+        if not self.shlib_needs_requires_private:
+            return
         # A mix of add_priv_libs and add_priv_reqs.  Like the
         # shared_library_only=False case, Libs.private is not needed
         # (consumers link to the .so, not its deps); but unlike
@@ -699,6 +703,11 @@ class PkgConfigModule(NewExtensionModule):
         _PKG_LIBRARIES.evolve(name='libraries_private'),
         _PKG_REQUIRES,
         _PKG_REQUIRES.evolve(name='requires_private'),
+        KwargInfo('requires_shared',
+                  (ContainerTypeInfo(list, (str, dependencies.Dependency)), NoneType),
+                  default=None,
+                  listify=True,
+                  since='1.11.0')
     )
     def generate(self, state: ModuleState,
                  args: T.Tuple[T.Optional[T.Union[build.SharedLibrary, build.StaticLibrary]]],
@@ -762,10 +771,14 @@ class PkgConfigModule(NewExtensionModule):
             libraries.insert(0, mainlib)
 
         deps = DependenciesHelper(state, filebase, self._metadata)
+        if kwargs['requires_shared'] is not None:
+            deps.shlib_needs_requires_private = False
         deps.add_pub_libs(libraries)
         deps.add_priv_libs(kwargs['libraries_private'])
         deps.add_pub_reqs(kwargs['requires'])
         deps.add_priv_reqs(kwargs['requires_private'])
+        if kwargs['requires_shared'] is not None:
+            deps.add_priv_reqs(kwargs['requires_shared'])
         deps.add_cflags(kwargs['extra_cflags'])
         deps.add_cflags_private(kwargs['cflags_private'])
 

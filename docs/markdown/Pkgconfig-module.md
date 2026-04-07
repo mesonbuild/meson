@@ -48,6 +48,12 @@ keyword arguments.
   *Since 1.9.0* internal dependencies are supported if `pkgconfig.generate()`
   was used on the underlying library.
 - `requires_private` the same as `requires` but for the `Requires.private` field
+- `requires_shared` (*Since 1.11.0*) a list of strings or dependency objects
+  to add to the `Requires.private` field for shared libraries. When specified,
+  overrides the automatic `Requires.private` entries that would normally be
+  generated from the shared library's dependencies; this can be used to
+  reduce unnecessary build dependencies when the library's headers do not
+  expose its dependency's headers. Has no effect on static libraries.
 - `cflags_private` (*Since 1.11.0*) compiler flags added when linking with a static
   library. Note: currently, the FreeDesktop.org pkg-config implementation does
   [not support Cflags.private](https://gitlab.freedesktop.org/pkg-config/pkg-config/-/issues/38)
