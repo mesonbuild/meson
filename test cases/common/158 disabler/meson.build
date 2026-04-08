@@ -151,3 +151,12 @@ foreach k, i : {'a': true, 'b': disabler(), 'c': true}
 endforeach
 assert(loops == 3, 'Disabler in foreach dict')
 assert(disablers == 1, 'Disabler in foreach dict')
+
+assert(not is_disabler([1, 2, 3]))
+assert(is_disabler([1, disabler(), 3]))
+assert(is_disabler([1, [disabler()], 3]))
+assert(is_disabler({'a': 1, 'b': disabler(), 'c': 3}))
+assert(is_disabler({'a': 1, 'b': [disabler()], 'c': 3}))
+# Disctionaries are not looked into recursively, unlike lists.
+# This reflects the behavior kwargs handling.
+assert(not is_disabler({'a': 1, 'b': {'x': disabler()}, 'c': 3}))
