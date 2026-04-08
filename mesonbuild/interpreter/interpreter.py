@@ -3371,7 +3371,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         default_library = self.coredata.optstore.get_value_for(OptionKey('default_library', subproject=self.subproject))
         assert isinstance(default_library, str), 'for mypy'
         if default_library == 'shared':
-            return self.build_target(node, args, T.cast('kwtypes.SharedLibrary', kwargs), build.SharedLibrary)
+            # Intentionally pass shared_library_only=False so that dependencies
+            # end up in Requires.private.  Many libraries that refer to their
+            # dependencies' in their headers expect this so that those dependencies
+            # are added to the output of 'pkgconfig --cflags'.
+            return self.build_target(node, args, T.cast('kwtypes.SharedLibrary', kwargs), build.SharedLibrary, shared_library_only=False)
         elif default_library == 'static':
             return self.build_target(node, args, T.cast('kwtypes.StaticLibrary', kwargs), build.StaticLibrary)
         elif default_library == 'both':
