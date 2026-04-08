@@ -29,6 +29,7 @@ pkgs=(
   itstool
   openjdk-11-jre
   jq
+  npm
 )
 
 sed -i '/^Types: deb/s/deb/deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources
