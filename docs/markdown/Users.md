@@ -54,4 +54,5 @@ topic](https://github.com/topics/meson).
  - [QEMU](https://qemu.org), a processor emulator and virtualizer
  - [SciPy](https://scipy.org/), an open-source software for mathematics, science, and engineering
  - [systemd](https://github.com/systemd/systemd), the init system
+ - [ThorVG](https://www.thorvg.org), a lightweight C++ vector graphics engine for SVG and Lottie, supporting CPU and GPU backends
  - [Wayland](https://gitlab.freedesktop.org/wayland/wayland), common display protocol
