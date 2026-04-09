@@ -103,14 +103,12 @@ class TICompiler(Compiler):
     def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
         if path == '':
             path = '.'
-        return ['-I=' + path]
+        return ['-I' + path]
 
     @classmethod
     def _unix_args_to_native(cls, args: T.List[str], info: MachineInfo) -> T.List[str]:
         result: T.List[str] = []
         for i in args:
-            if i.startswith('-D'):
-                i = '--define=' + i[2:]
             if i.startswith('-Wl,-rpath='):
                 continue
             elif i == '--print-search-dirs':
