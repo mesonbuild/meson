@@ -13,14 +13,8 @@ and tool names being suffixed with only the Qt major version number e.g. qmake6.
 
 ## Dependencies
 
-See [Qt dependencies](Dependencies.md#qt)
-
-The 'modules' argument is used to include Qt modules in the project.
-See the Qt documentation for the [list of
-modules](https://doc.qt.io/qt-6/qtmodules.html).
-
-The 'private_headers' argument allows usage of Qt's modules private
-headers.
+Qt is a framework with many sub-modules, meson can selectively look for and link with any combination,
+see [Qt dependencies](Dependencies.md#qt).
 
 ## Example
 A simple example would look like this:
