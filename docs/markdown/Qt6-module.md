@@ -11,7 +11,50 @@ Qt 6.1 or later due to the Qt tools having moved to the libexec subdirectory,
 and tool names being suffixed with only the Qt major version number e.g. qmake6.
 </div>
 
-## compile_resources
+## Dependencies
+
+See [Qt dependencies](Dependencies.md#qt)
+
+The 'modules' argument is used to include Qt modules in the project.
+See the Qt documentation for the [list of
+modules](https://doc.qt.io/qt-6/qtmodules.html).
+
+The 'private_headers' argument allows usage of Qt's modules private
+headers.
+
+## Example
+A simple example would look like this:
+
+```meson
+qt6 = import('qt6')
+qt6_dep = dependency('qt6', modules: ['Core', 'Gui'])
+inc = include_directories('includes')
+moc_files = qt6.compile_moc(headers : 'myclass.h',
+                            extra_arguments: ['-DMAKES_MY_MOC_HEADER_COMPILE'],
+                            include_directories: inc,
+                            dependencies: qt6_dep)
+translations = qt6.compile_translations(ts_files : 'myTranslation_fr.ts', build_by_default : true)
+executable('myprog', 'main.cpp', 'myclass.cpp', moc_files,
+           include_directories: inc,
+           dependencies : qt6_dep)
+```
+
+Sometimes, translations are embedded inside the binary using qresource
+files. In this case the ts files do not need to be explicitly listed,
+but will be inferred from the built qm files listed in the qresource
+file. For example:
+
+```meson
+qt6 = import('qt6')
+qt6_dep = dependency('qt6', modules: ['Core', 'Gui'])
+lang_cpp = qt6.compile_translations(qresource: 'lang.qrc')
+executable('myprog', 'main.cpp', lang_cpp,
+           dependencies: qt6_dep)
+```
+
+## Functions
+
+### compile_resources
 
 *New in 0.59.0*
 
@@ -27,7 +70,7 @@ It takes no positional arguments, and the following keyword arguments:
   - `extra_args` string[]: Extra arguments to pass directly to `qt-rcc`
   - `method` string: The method to use to detect Qt, see [[dependency]]
 
-## compile_ui
+### compile_ui
 
 *New in 0.59.0*
 
@@ -45,7 +88,7 @@ It takes no positional arguments, and the following keyword arguments:
     it generates a file `{target private directory}/subdir/one.out` when `true`,
     and `{target private directory}/one.out` when `false` (default).
 
-## compile_moc
+### compile_moc
 
 *New in 0.59.0*
 
@@ -72,7 +115,7 @@ It takes no positional arguments, and the following keyword arguments:
   - `output_json` bool: *New in 1.7.0*. If `true`, generates additionally a
     JSON representation which may be used by external tools such as qmltyperegistrar
 
-## preprocess
+### preprocess
 
 Consider using `compile_resources`, `compile_ui`, and `compile_moc` instead.
 
@@ -118,7 +161,7 @@ This method takes the following keyword arguments:
 
 It returns an array of targets and sources to pass to a compilation target.
 
-## compile_translations
+### compile_translations
 
 This method generates the necessary targets to build translation files with
 lrelease, it takes no positional arguments, and the following keyword arguments:
@@ -141,7 +184,7 @@ translations, or, if using a `qresource` file, a single custom target
 containing the processed source file, which should be passed to a main
 build target.
 
-## has_tools
+### has_tools
 
 This method returns `true` if all tools used by this module are found,
 `false` otherwise.
@@ -166,7 +209,7 @@ This method takes the following keyword arguments:
 - `version` str | array[str]: *Since 1.11.0*. Specifies the required version,
   a string containing a comparison operator followed by the version string.
 
-## qml_module
+### qml_module
 
 *New in 1.7.0*
 
@@ -239,45 +282,3 @@ replaced with `_`. Type registration may be invoked explicitly using
 
 See [Qt documentation](https://doc.qt.io/qt-6/resources.html#explicit-loading-and-unloading-of-embedded-resources)
 for more information
-
-
-## Dependencies
-
-See [Qt dependencies](Dependencies.md#qt)
-
-The 'modules' argument is used to include Qt modules in the project.
-See the Qt documentation for the [list of
-modules](https://doc.qt.io/qt-6/qtmodules.html).
-
-The 'private_headers' argument allows usage of Qt's modules private
-headers.
-
-## Example
-A simple example would look like this:
-
-```meson
-qt6 = import('qt6')
-qt6_dep = dependency('qt6', modules: ['Core', 'Gui'])
-inc = include_directories('includes')
-moc_files = qt6.compile_moc(headers : 'myclass.h',
-                            extra_arguments: ['-DMAKES_MY_MOC_HEADER_COMPILE'],
-                            include_directories: inc,
-                            dependencies: qt6_dep)
-translations = qt6.compile_translations(ts_files : 'myTranslation_fr.ts', build_by_default : true)
-executable('myprog', 'main.cpp', 'myclass.cpp', moc_files,
-           include_directories: inc,
-           dependencies : qt6_dep)
-```
-
-Sometimes, translations are embedded inside the binary using qresource
-files. In this case the ts files do not need to be explicitly listed,
-but will be inferred from the built qm files listed in the qresource
-file. For example:
-
-```meson
-qt6 = import('qt6')
-qt6_dep = dependency('qt6', modules: ['Core', 'Gui'])
-lang_cpp = qt6.compile_translations(qresource: 'lang.qrc')
-executable('myprog', 'main.cpp', lang_cpp,
-           dependencies: qt6_dep)
-```
