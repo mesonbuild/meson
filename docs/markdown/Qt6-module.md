@@ -16,8 +16,11 @@ and tool names being suffixed with only the Qt major version number e.g. qmake6.
 Qt is a framework with many sub-modules, meson can selectively look for and link with any combination,
 see [Qt dependencies](Dependencies.md#qt).
 
-## Example
-A simple example would look like this:
+## Examples
+
+We provide examples to showcase how meson can be used to build Qt applications.
+
+### Simple example
 
 ```meson
 qt6 = import('qt6')
@@ -44,6 +47,103 @@ qt6_dep = dependency('qt6', modules: ['Core', 'Gui'])
 lang_cpp = qt6.compile_translations(qresource: 'lang.qrc')
 executable('myprog', 'main.cpp', lang_cpp,
            dependencies: qt6_dep)
+```
+
+### QML-C++ integration
+
+A complex Qt app that uses
+
+- A Qt resource collection file
+  ([documentation here](https://doc.qt.io/qt-6/resources.html))
+- `QObject` (C++ only) derived C++ classes
+- `QML_ELEMENT` and `Q_GADGET` annotated classes that are exposed to QML
+  ([documentation here](https://doc.qt.io/qt-6/qtqml-cppintegration-definetypes.html))
+
+can also be build with meson using the following methods of the qt module object:
+
+- [compile_resources](#compile_resources)
+- [compile_moc](#compile_moc)
+- [qml_module](#qml_module)
+
+**Note:** when using [qml_module](#qml_module) with C++ `QML_ELEMENT` or `Q_GADGET` annotated headers in sub-folders,
+their direct parent folder needs to be added to "include directories". This will cause problems is the header names are not unique.
+
+Here's an example meson code
+
+```meson
+
+# these sources do not contain any QObject derived classes
+source_files = [
+  'main.cpp',
+  'non-qt-sources/foo.cpp',
+  'non-qt-sources/foo.h',
+]
+
+# these sources contain QObject derived classes but are not exposed to QML
+moc_header_files = [
+  'qt-cpp-only-sources/bar.cpp',
+  'qt-cpp-only-sources/bar.h',
+]
+
+# classes that are Q_GADGET or QML_ELEMENT + QObject "tainted"
+# that are exposed to QML and can be used in QML code
+qmlcpp_files = [
+  'qt-cpp-qml-integration/quux.cpp',
+  'qt-cpp-qml-integration/quux.h',
+]
+
+# actual QML files that will be able to use
+# C++ classes defined in 'qmlcpp_files'
+qml_files = [
+  'QML/Baz.qml',
+]
+
+fs = import('fs')
+
+# workaround a Qt bug / design limitation:
+#   we add the parent folder of every C++ header involved with QML to the include dirs
+# see https://bugreports.qt.io/browse/QTBUG-93443
+# see https://bugreports.qt.io/browse/QTBUG-87221
+# Note: qmlcpp_file needs to be a list of str and not files() otherwise the logic bellow gets tripped
+qmlcpp_inc_dirs = []
+foreach qmlcpp_file: qmlcpp_files
+  qmlcpp_inc_dirs += [include_directories(fs.parent(qmlcpp_file))]
+endforeach
+
+inc = include_directories('.')
+
+qt6 = import('qt6')
+
+# Qml and QmlIntegration are needed here
+qt6_dep = dependency('qt6', modules: ['Core', 'Gui', 'Network', 'Svg', 'Quick', 'Qml', 'QuickWidgets', 'QmlIntegration'])
+
+compiled_resources = qt6.compile_resources(sources: files('resources.qrc'))
+
+# compile 'moc_header_files' list with moc
+moc_files = qt6.compile_moc(
+  headers : moc_header_files,
+  include_directories: inc,
+  dependencies: qt6_dep
+)
+
+# everything involved in C++-QML interaction goes in here
+# the can be split into many modules, but works with a single one too
+qml_mods = qt6.qml_module(
+  'MyModule',
+  qml_sources: qml_files,
+  moc_headers: qmlcpp_files,
+  include_directories: qmlcpp_inc_dirs,
+  dependencies: [qt6_dep],
+)
+
+# Build the final executable and give it all the resources built above
+executable('MyExecutable',
+  sources: [source_files, compiled_ressources, moc_files, qml_mods],
+  include_directories: [inc] + qmlcpp_inc_dirs,
+  dependencies: [qt6_dep],
+  win_subsystem: 'windows', # useful for Windows: displays the app without spawning
+                            # a console alongside it, no-op on other platforms.
+  install: true)
 ```
 
 ## Functions
