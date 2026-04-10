@@ -57,7 +57,7 @@ description: |
 notes:
   - This function supports additional [library-specific](Dependencies.md#dependencies-with-custom-lookup-functionality)
     keyword arguments that may also be accepted (e.g. `modules` specifies submodules to use for
-    dependencies such as Qt5 or Boost. `components` allows the user to manually
+    dependencies such as Qt or Boost. `components` allows the user to manually
     add CMake `COMPONENTS` for the `find_package` lookup)
 
 varargs:
