@@ -972,7 +972,7 @@ class GnomeModule(ExtensionModule):
             state: 'ModuleState',
             girfile: str,
             scan_command: T.Sequence[T.Union['FileOrString', Executable, Program]],
-            generated_files: T.Sequence[T.Union[str, mesonlib.File, build.GeneratedTypes]],
+            generated_files: T.Sequence[build.GeneratedTypes],
             depends: T.Sequence[T.Union['FileOrString', build.BuildTarget, 'build.GeneratedTypes', build.StructuredSources]],
             env_flags: T.Sequence[str],
             kwargs: GenerateGir) -> GirTarget:
@@ -1025,7 +1025,7 @@ class GnomeModule(ExtensionModule):
     @staticmethod
     def _make_typelib_target(state: 'ModuleState', typelib_output: str,
                              typelib_cmd: T.Sequence[T.Union[str, CustomTarget, Program]],
-                             generated_files: T.Sequence[T.Union[str, mesonlib.File, build.GeneratedTypes]],
+                             generated_files: T.Sequence[build.GeneratedTypes],
                              kwargs: GenerateGir) -> TypelibTarget:
         install = kwargs['install_typelib']
         if install is None:
