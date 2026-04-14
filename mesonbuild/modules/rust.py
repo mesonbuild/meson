@@ -74,6 +74,7 @@ if T.TYPE_CHECKING:
     class FuncWorkspace(TypedDict):
         default_features: T.Optional[bool]
         features: T.List[str]
+        extra_members: T.List[str]
 
     class FuncDependency(TypedDict):
         rust_abi: T.Optional[RUST_ABI]
@@ -996,6 +997,12 @@ class RustModule(ExtensionModule):
             default=None,
             listify=True,
         ),
+        KwargInfo(
+            'extra_members',
+            (ContainerTypeInfo(list, str), NoneType),
+            default=None,
+            listify=True,
+        ),
     )
     def workspace(self, state: ModuleState, args: T.List, kwargs: FuncWorkspace) -> RustWorkspace:
         """Creates a Rust workspace object, controlling the build of
@@ -1018,7 +1025,7 @@ class RustModule(ExtensionModule):
                 cargo_features.extend(features)
             self.interpreter.cargo.features = cargo_features
 
-        ws = self.interpreter.cargo.load_workspace(state.root_subdir)
+        ws = self.interpreter.cargo.load_workspace(state.root_subdir, kwargs['extra_members'])
 
         # Cargo projects may not have a subprojects directory, because
         # dependencies are declared in Cargo.toml rather than .wrap files.

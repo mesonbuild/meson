@@ -618,7 +618,7 @@ class Workspace:
         if 'package' in raw:
             ws.root_package = Manifest.from_raw(raw, path, ws, '.')
         if not ws.default_members:
-            ws.default_members = ['.'] if ws.root_package else ws.members
+            ws.default_members = ['.'] if ws.root_package else None
         return ws
 
 

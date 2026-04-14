@@ -316,11 +316,11 @@ class Interpreter:
     def get_build_def_files(self) -> T.List[str]:
         return self.build_def_files
 
-    def load_workspace(self, subdir: str) -> WorkspaceState:
+    def load_workspace(self, subdir: str, extra_members: T.Optional[T.List[str]]) -> WorkspaceState:
         """Load the root Cargo.toml package and prepare it with features and dependencies."""
         subdir = os.path.normpath(subdir)
         manifest, cached = self._load_manifest(subdir)
-        ws = self._get_workspace(manifest, subdir, False)
+        ws = self._get_workspace(manifest, subdir, extra_members, False)
         if not cached:
             self._prepare_entry_point(ws)
         return ws
@@ -356,7 +356,7 @@ class Interpreter:
             assert isinstance(manifest, Manifest)
             return self.interpret_package(manifest, build, subdir, project_root)
         else:
-            ws = self.load_workspace(subdir)
+            ws = self.load_workspace(subdir, None)
             return self.interpret_workspace(ws, build, subdir)
 
     def interpret_package(self, manifest: Manifest, build: builder.Builder, subdir: str, project_root: str) -> mparser.CodeBlockNode:
@@ -447,7 +447,28 @@ class Interpreter:
         else:
             ws.packages[m] = PackageState(manifest_, ws_subdir=ws.subdir, ws_member=m, downloaded=ws.downloaded)
 
-    def _get_workspace(self, manifest: T.Union[Workspace, Manifest], subdir: str, downloaded: bool) -> WorkspaceState:
+    # Returns the expansion of a glob expression with a single
+    # cannonical result, otherwise (multiple results) returns None.
+    @staticmethod
+    def _unglobify(pat: str) -> T.Optional[str]:
+        ret = ''
+        iterator = iter(pat)
+        for char in iterator:
+            if char in {'?', '*'}:
+                return None
+            elif char == '[':
+                try:
+                    ret += next(iterator)
+                    if next(iterator) != ']':
+                        return None
+                except StopIteration:
+                    mlog.warning(f'Encountered invalid glob pattern "{pat}"')
+                    return None
+            else:
+                ret += char
+        return ret
+
+    def _get_workspace(self, manifest: T.Union[Workspace, Manifest], subdir: str, extra_members: T.Optional[T.List[str]], downloaded: bool) -> WorkspaceState:
         ws = self.workspaces.get(subdir)
         if ws:
             return ws
@@ -456,7 +477,18 @@ class Interpreter:
         ws = WorkspaceState(workspace, subdir, downloaded=downloaded)
         if workspace.root_package:
             self._add_workspace_member(workspace.root_package, ws, '.')
-        for m in workspace.members:
+
+        members = [self._unglobify(entry) for entry in workspace.members]
+        if None in members:
+            if extra_members is None:
+                mlog.warning('Cargo workspace contains glob members. Please specify them manually using the \'extra_members\' kwarg')
+            members = [member for member in members if member is not None]
+        if extra_members is not None:
+            members += extra_members
+        # set ws default members if not set
+        if workspace.default_members is None:
+            workspace.default_members = members
+        for m in members:
             self._load_workspace_member(ws, m)
         self.workspaces[subdir] = ws
         return ws
@@ -530,7 +562,7 @@ class Interpreter:
             subp_name in self.environment.wrap_resolver.wraps and \
             self.environment.wrap_resolver.wraps[subp_name].type is not None
 
-        ws = self._get_workspace(manifest, subdir, downloaded=downloaded)
+        ws = self._get_workspace(manifest, subdir, None, downloaded=downloaded)
         member = ws.packages_to_member[package_name]
         pkg = self._require_workspace_member(ws, member)
         pkg.subproject_name = subp_name
