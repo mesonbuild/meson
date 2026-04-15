@@ -238,6 +238,15 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(a.to_native(copy=True), ['/nologo', '/showIncludes', '/Zc:__cplusplus', '/validate-charset-'])
 
 
+    def test_clang_always_args_contain_werror_unknown_warning(self):
+        env = get_fake_env()
+        linker = linkers.MoldDynamicLinker([], env, MachineChoice.HOST, '-Wl,', [])
+        cc = ClangCCompiler([], [], '14.0.0', MachineChoice.HOST, env, linker=linker)
+
+        always_args = cc.get_always_args()
+        self.assertIn('-Werror=unknown-warning-option', always_args)
+
+
     def test_msvc_unix_args_to_native(self):
         # joined
         self.assertEqual(MSVCCompiler.unix_args_to_native(['-isystemfoo']), ['/Ifoo'])

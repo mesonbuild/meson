@@ -797,8 +797,8 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertNotIn('-std=c++98', plain_comp)
         self.assertNotIn('-std=c++11', plain_comp)
         # Now werror
-        self.assertIn('-Werror', plain_comp)
-        self.assertNotIn('-Werror', c98_comp)
+        self.assertIn('-Werror', plain_comp.split())
+        self.assertNotIn('-Werror', c98_comp.split())
 
     def test_run_installed(self):
         if is_cygwin() or is_osx():
