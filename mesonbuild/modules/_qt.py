@@ -265,11 +265,12 @@ class QtBaseModule(ExtensionModule):
             if p.found():
                 self.tools[name] = p
 
-    def _detect_tools(self, state: ModuleState, method: DependencyMethods, required: bool = True, version: T.List[str] = None) -> None:
+    def _detect_tools(self, state: ModuleState, method: DependencyMethods, required: bool = True, version: T.Optional[T.List[str]] = None) -> None:
         if self._tools_detected:
             return
         self._tools_detected = True
         mlog.log(f'Detecting Qt{self.qt_version} tools')
+        version = version or []
         kwargs: DependencyObjectKWs = {'required': required, 'modules': ['Core'], 'method': method, 'native': MachineChoice.HOST, 'version': version}
         # Just pick one to make mypy happy
         qt = T.cast('QtPkgConfigDependency', find_external_dependency(f'qt{self.qt_version}', state.environment, kwargs))
