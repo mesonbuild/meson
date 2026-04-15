@@ -31,6 +31,11 @@ pkgs=(
   jq
 )
 
+# Packages that are used at build time but should be removed from the image
+transitivepkgs=(
+  npm  # Only needed for hotdoc
+)
+
 sed -i '/^Types: deb/s/deb/deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources
 apt-get -y update
 apt-get -y upgrade
@@ -40,7 +45,7 @@ apt-get -y install eatmydata
 eatmydata apt-get -y build-dep meson
 
 # packages
-eatmydata apt-get -y install "${pkgs[@]}"
+eatmydata apt-get -y install "${pkgs[@]}" "${transitivepkgs[@]}"
 eatmydata apt-get -y install --no-install-recommends wine-stable  # Wine is special
 
 # HACK: build hotdoc from git repo since current sdist is broken on modern compilers
@@ -98,5 +103,6 @@ cd lcov
 make install
 
 # cleanup
+apt-get -y purge "${transitivepkgs[@]}"
 apt-get -y clean
 apt-get -y autoclean
