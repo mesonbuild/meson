@@ -61,4 +61,6 @@ su $AUR_USER -c "yay -S $PACMAN_OPTS ${aur_pkgs[*]}"
 
 # cleanup
 pacman -Rs --noconfirm "${cleanup_pkgs[@]}"
-su $AUR_USER -c "yes | yay -Scc"
+# clear the pacman cache first, since the yay user may not have permission
+pacman -Sc --noconfirm
+su $AUR_USER -c "yes | yay -Sc --aur"
