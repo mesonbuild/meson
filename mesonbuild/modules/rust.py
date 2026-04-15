@@ -181,6 +181,7 @@ class RustWorkspace(ModuleObject):
         # for both the host and the build machine.  In that case, always build the
         # subproject for the build machine to ensure that it is not run twice.
         if pkg.manifest.lib.crate_type == ['proc-macro']:
+            assert not pkg.has_both_machines()
             for_machine = state.machine_map.build
 
         kw: _kwargs.DoSubproject = {
@@ -439,6 +440,7 @@ class RustPackage(RustCrate):
         assert rust_abi in self.package.supported_abis()
 
         if state.environment.is_cross_build() and self.package.manifest.lib.crate_type == ['proc-macro']:
+            assert not self.package.has_both_machines()
             state.override_dependency(depname, dep, for_machine=MachineChoice.HOST)
             state.override_dependency(depname, dep, static=False, for_machine=MachineChoice.HOST)
             state.override_dependency(depname, dep, for_machine=MachineChoice.BUILD)

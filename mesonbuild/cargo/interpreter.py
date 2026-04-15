@@ -115,6 +115,9 @@ class PackageState:
             return name
         return f'{name}+{self.manifest.package.api.replace(".", "_")}'
 
+    def has_both_machines(self) -> bool:
+        return bool(self.cfg.host and self.cfg.build)
+
     def get_env_dict(self, environment: Environment, subdir: str) -> T.Dict[str, str]:
         """Get environment variables for this package."""
         # Common variables for build.rs and crates
