@@ -1449,7 +1449,12 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
             OptionKey(f'{self.language}_args', machine=self.for_machine))))
         largs = list(T.cast('T.List[str]', optstore.get_value_for(
             OptionKey(f'{self.language}_link_args', machine=self.for_machine))))
-        return self.exelist_no_ccache + self.get_always_args() + self.get_output_args(binname) + [sourcename] + cargs, largs
+        return self.exelist_no_ccache \
+            + self.get_always_args() \
+            + self.get_compiler_check_args(CompileCheckMode.COMPILE) \
+            + self.get_output_args(binname) \
+            + [sourcename] \
+            + cargs, largs
 
     @abc.abstractmethod
     def _sanity_check_source_code(self) -> str:

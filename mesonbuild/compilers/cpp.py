@@ -975,6 +975,10 @@ class ClangClCPPCompiler(VisualStudioLikeCPPCompilerMixin, ClangClCompiler, CPPC
         # clang-cl does not support /interface.
         return ['-fmodules', '-fmodules-ts']
 
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
+        # XXX: this is a hack because so much GnuLike stuff is in the base CPPCompiler class.
+        return ClangClCompiler.get_compiler_check_args(self, mode)
+
 
 class IntelClCPPCompiler(VisualStudioLikeCPPCompilerMixin, IntelVisualStudioLikeCompiler, CPPCompiler):
 

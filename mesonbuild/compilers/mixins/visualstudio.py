@@ -469,14 +469,16 @@ class ClangClCompiler(VisualStudioLikeCompiler):
             args.append('/clang:-fno-omit-frame-pointer')
         return args
 
-    def has_arguments(self, args: T.List[str], code: str, mode: CompileCheckMode) -> T.Tuple[bool, bool]:
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
+        myargs: T.List[str] = []
         if mode != CompileCheckMode.LINK:
-            args = args + [
+            myargs.extend((
                 '-Werror=unknown-argument',
                 '-Werror=unknown-warning-option',
                 '-Werror=unused-command-line-argument',
-            ]
-        return super().has_arguments(args, code, mode)
+            ))
+
+        return super().get_compiler_check_args(mode) + myargs
 
     def get_pch_base_name(self, header: str) -> str:
         return header
