@@ -84,7 +84,7 @@ jobs:
     displayName: install Chocolatey Dependencies
   - task: UsePythonVersion@0
     inputs:
-      versionSpec: '3.7'
+      versionSpec: '3.10'
       addToPath: true
       architecture: 'x64'
   - task: BatchScript@1
