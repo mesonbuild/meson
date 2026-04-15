@@ -18,7 +18,7 @@ pkgs=(
   libxml2-devel libxslt-devel libyaml-devel glib2-devel json-glib-devel
   boost-devel libboost_date_time-devel libboost_filesystem-devel libboost_locale-devel
   libboost_headers-devel libboost_test-devel libboost_log-devel libboost_regex-devel
-  libboost_python3-devel libboost_regex-devel
+  libboost_python3-devel libboost_regex-devel libgcrypt-devel
   # HACK: remove npm once we switch back to hotdoc sdist
   npm
 )
