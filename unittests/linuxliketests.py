@@ -845,8 +845,13 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertNotIn('-std=c++98', plain_comp)
         self.assertNotIn('-std=c++11', plain_comp)
         # Now werror
-        self.assertIn('-Werror', plain_comp)
-        self.assertNotIn('-Werror', c98_comp)
+        self.assertIn('-Werror', plain_comp.split())
+        self.assertNotIn('-Werror', c98_comp.split())
+
+    def test_sanity_check_fails_on_bad_c_args(self):
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        with self.assertRaises((subprocess.CalledProcessError, RuntimeError)):
+            self.init(testdir, extra_args=['-Dc_args=-Wbad-flag-does-not-exist'])
 
     def test_run_installed(self):
         if is_cygwin() or is_osx():

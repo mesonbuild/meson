@@ -29,8 +29,9 @@ import mesonbuild.modules.gnome
 import mesonbuild.scripts.depfixer
 import mesonbuild.scripts.env2mfile
 from mesonbuild import coredata
-from mesonbuild.compilers.c import ClangCCompiler, GnuCCompiler
-from mesonbuild.compilers.compilers import Compiler, ManyInOneLinkerOptionStyle
+from mesonbuild.compilers import Compiler
+from mesonbuild.compilers.c import ClangCCompiler, ClangClCCompiler, GnuCCompiler
+from mesonbuild.compilers.compilers import CompileCheckMode, ManyInOneLinkerOptionStyle
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
@@ -433,6 +434,27 @@ Thread model: posix'''), '21.9.0')
             _, largs = cc._sanity_check_compile_args('foo.c', 'foo.exe')
 
         self.assertEqual(largs, [])
+
+
+    def test_clang_family_compiler_check_args_contain_werror_unknown_warning(self):
+        env = get_fake_env()
+        mold = linkers.MoldDynamicLinker([], env, MachineChoice.HOST, '-Wl,', [])
+        lld_link = linkers.ClangClDynamicLinker(env, MachineChoice.HOST, [])
+
+        compilers = {
+            'clang': ClangCCompiler([], [], '14.0.0', MachineChoice.HOST, env, linker=mold),
+            'clang-cl': ClangClCCompiler([], '14.0.0', MachineChoice.HOST, env, 'x64', linker=lld_link),
+        }
+
+        for name, cc in compilers.items():
+            with self.subTest(compiler=name):
+                self.assertIn('-Werror=unknown-warning-option',
+                              cc.get_compiler_check_args(CompileCheckMode.COMPILE))
+                # Both clang and clang-cl only apply this diagnostic when
+                # actually compiling; it's intentionally omitted for LINK to
+                # avoid failing on flags that are unused during linking.
+                self.assertNotIn('-Werror=unknown-warning-option',
+                                 cc.get_compiler_check_args(CompileCheckMode.LINK))
 
 
     def test_msvc_unix_args_to_native(self):
