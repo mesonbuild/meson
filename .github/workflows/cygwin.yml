@@ -67,7 +67,6 @@ jobs:
             libxslt-devel
             make
             ninja
-            python2-devel
             python3-devel
             python3-libxml2
             python3-libxslt
