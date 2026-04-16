@@ -304,7 +304,7 @@ foo_lib = shared_library('foo', 'foo.vala',
 
 *(Before Meson 1.11)* the `install_vala_*` keyword arguments did not exist,
 and setting additional outputs to install was done via passing an array to
-`install_dirs`. This array was in the form `[build_target, vala_header,
+`install_dir`. This array was in the form `[build_target, vala_header,
 vala_vapi, vala_gir]`. Any elements not specified are treated as `false`.
 Whether using the array format or the keywords, the accepted values are: `true`,
 which means "install in default location"; `false`, which means "do not
@@ -316,7 +316,7 @@ foo_lib = shared_library('foo', 'foo.vala',
                   vala_vapi: 'foo-1.0.vapi',
                   dependencies: [glib_dep, gobject_dep],
                   install: true,
-                  install_dirs : [true, true, true],
+                  install_dir: [true, true, true],
 )
 ```
 
