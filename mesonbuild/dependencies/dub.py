@@ -351,6 +351,8 @@ class DubDependency(ExternalDependency):
         ret, res, err = self._call_dubbin(describe_cmd)
         if ret == 0:
             return (json.loads(res), helper_build, source)
+        else:
+            mlog.debug('DUB describe (raw) failed: ' + err)
 
         pack_spec = self.name
         if self.version_reqs is not None:
