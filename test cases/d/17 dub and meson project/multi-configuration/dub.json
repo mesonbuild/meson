@@ -1,14 +1,16 @@
 {
   "name": "multi-configuration",
-  "configurations": {
-    "app": {
+  "configurations": [
+    {
+      "name": "app",
       "targetType": "executable"
     },
-    "lib": {
+    {
+      "name": "lib",
       "targetType": "library",
       "excludedSourceFiles": [
         "source/app.d"
       ]
     }
-  }
+  ]
 }
