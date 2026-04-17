@@ -430,6 +430,7 @@ DEPENDENCIES_KW: KwargInfo[T.List[Dependency]] = KwargInfo(
     extra_types={
         BuildTarget: lambda arg: f'Tried to use a build_target "{T.cast("BuildTarget", arg).name}" as a dependency. This should be in `link_with` or `link_whole` instead.',
     },
+    as_default=[('', ('1.11.1', "Replace an empty string with an empty array: `dependencies : ''` -> `dependencies : []`"))],
 )
 
 D_MODULE_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
