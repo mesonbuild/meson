@@ -1752,7 +1752,7 @@ class AllPlatformTests(BasePlatformTests):
             rpath = get_rpath(os.path.join(self.builddir, each))
             self.assertTrue(rpath, f'Rpath could not be determined for {each}.')
             if is_dragonflybsd():
-                # DragonflyBSD will prepend /usr/lib/gccVERSION to the rpath,
+                # DragonFly BSD will prepend /usr/lib/gccVERSION to the rpath,
                 # so ignore that.
                 self.assertTrue(rpath.startswith('/usr/lib/gcc'))
                 rpaths = rpath.split(':')[1:]
