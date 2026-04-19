@@ -30,6 +30,7 @@ if T.TYPE_CHECKING:
     class Arguments(Protocol):
 
         srcfiles: T.List[Path]
+        provided_srcfiles: bool
         wd: str
         name: str
         executable: str
@@ -170,6 +171,7 @@ def run(options: Arguments) -> int:
     if not Path(options.wd).exists():
         sys.exit('Project source root directory not found. Run this command in source directory root.')
     os.chdir(options.wd)
+    options.provided_srcfiles = bool(options.srcfiles)
 
     if not glob('*'):
         autodetect_options(options, sample=True)

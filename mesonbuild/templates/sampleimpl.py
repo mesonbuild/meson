@@ -19,6 +19,7 @@ class SampleImpl(metaclass=abc.ABCMeta):
     def __init__(self, args: Arguments):
         self.name = args.name
         self.executable_name = args.executable if args.executable else None
+        self.provided_srcfiles = args.provided_srcfiles
         self.version = args.version
         self.lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
         self.uppercase_token = self.lowercase_token.upper()
@@ -73,6 +74,8 @@ class SampleImpl(metaclass=abc.ABCMeta):
         return ''.join(f"\n  '{x}'," for x in self.sources)
 
     def _detect_sources(self, srcfiles: T.List[Path], transform: T.Callable[[str], str]) -> T.Tuple[str, T.List[Path]]:
+        if self.provided_srcfiles:
+            return str(srcfiles[0]), srcfiles
         # Try a source based on the executable name, fallback to one based
         # on the project name if none is found.
         expected_name = f'{transform(self.executable_name)}.{self.source_ext}'

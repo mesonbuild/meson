@@ -618,6 +618,28 @@ class PlatformAgnosticTests(BasePlatformTests):
             self.assertIn("'foo.c'", meson_build, 'existing foo.c not listed in meson.build')
             self.assertIn("'bar.c'", meson_build, 'existing bar.c not listed in meson.build')
 
+    def test_minit_explicit_srcfile_keeps_existing_source(self) -> None:
+        """meson init main.cpp must use the explicitly provided source file"""
+        with tempfile.TemporaryDirectory() as d:
+            Path(d, 'main.cpp').write_text('int main() {}', encoding='utf-8')
+            self._run(self.meson_command + ['init', 'main.cpp'], workdir=d)
+            files = {p.name for p in Path(d).iterdir()}
+            self.assertEqual(files, {'main.cpp', 'meson.build'})
+            meson_build = Path(d, 'meson.build').read_text(encoding='utf-8')
+            self.assertIn("'main.cpp'", meson_build, 'explicit main.cpp not listed in meson.build')
+
+    def test_minit_explicit_srcfiles_keep_existing_sources(self) -> None:
+        """meson init main.cpp helper.cpp must use both explicitly provided source files"""
+        with tempfile.TemporaryDirectory() as d:
+            Path(d, 'main.cpp').write_text('int main() {}', encoding='utf-8')
+            Path(d, 'helper.cpp').write_text('int helper() {}', encoding='utf-8')
+            self._run(self.meson_command + ['init', 'main.cpp', 'helper.cpp'], workdir=d)
+            files = {p.name for p in Path(d).iterdir()}
+            self.assertEqual(files, {'main.cpp', 'helper.cpp', 'meson.build'})
+            meson_build = Path(d, 'meson.build').read_text(encoding='utf-8')
+            self.assertIn("'main.cpp'", meson_build, 'explicit main.cpp not listed in meson.build')
+            self.assertIn("'helper.cpp'", meson_build, 'explicit helper.cpp not listed in meson.build')
+
     def test_minit_wrong_name_creates_sample(self) -> None:
         """meson init in an empty directory must create a sample source file"""
         with tempfile.TemporaryDirectory() as d:
