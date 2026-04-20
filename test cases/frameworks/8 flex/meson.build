@@ -23,7 +23,7 @@ endif
 codegen = import('unstable-codegen')
 lex = codegen.lex(implementations : ['flex', 'reflex', 'lex'])
 message('lex implementation:', lex.implementation())
-lfiles = lex.generate('lexer.l')
+lfiles = lex.generate('lexer.l', header: '@PLAINNAME@.h')
 
 yacc = codegen.yacc(implementations : ['byacc', 'bison', 'yacc'])
 message('yacc implementation:', yacc.implementation())
