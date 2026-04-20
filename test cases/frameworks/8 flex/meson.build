@@ -7,25 +7,22 @@ project('flex and bison', 'c', meson_version : '>= 1.10.0')
 # may output headers that are necessary to build
 # the sources of a different generator.
 
-# TODO: handle win_flex/win_bison
-
-flex = find_program('reflex', 'flex', 'lex', required: false)
-bison = find_program('bison', 'byacc', 'yacc', required: false)
-
+flex = find_program('reflex', 'flex', 'lex', 'win_flex', required: false)
 if not flex.found()
   error('MESON_SKIP_TEST flex not found.')
 endif
 
+bison = find_program('bison', 'byacc', 'yacc', 'win_bison', required: false)
 if not bison.found()
   error('MESON_SKIP_TEST bison not found.')
 endif
 
 codegen = import('unstable-codegen')
-lex = codegen.lex(implementations : ['flex', 'reflex', 'lex'])
+lex = codegen.lex()
 message('lex implementation:', lex.implementation())
 lfiles = lex.generate('lexer.l', header: '@PLAINNAME@.h')
 
-yacc = codegen.yacc(implementations : ['byacc', 'bison', 'yacc'])
+yacc = codegen.yacc()
 message('yacc implementation:', yacc.implementation())
 pfiles = yacc.generate('parser.y', header : '@BASENAME@.tab.h')
 

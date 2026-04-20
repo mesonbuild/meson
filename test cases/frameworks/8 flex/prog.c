@@ -4,6 +4,8 @@
 
 #include <stdio.h>
 
+int yyparse(void);
+
 
 int main(int argc, char **argv) {
     if(argc != 2) {
