@@ -28,7 +28,7 @@ permissions:
 jobs:
   cross-only-armhf:
     runs-on: ubuntu-latest
-    container: mesonbuild/eoan:latest
+    container: mesonbuild/ubuntu-rolling:latest
     env:
       MESON_CI_JOBNAME: ubuntu-${{ github.job }}
 
