@@ -2446,9 +2446,6 @@ class StaticLibrary(BuildTarget):
                         suffix = 'ma'
         return (prefix, suffix)
 
-    def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
-        return {}
-
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_static_lib_dir(), '{libdir_static}'
 

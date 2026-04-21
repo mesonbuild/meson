@@ -108,6 +108,12 @@ class DarwinTests(BasePlatformTests):
         rpaths = pattern.findall(out)
         return rpaths
 
+    def _get_darwin_rpath_libraries(self, fname: str) -> T.List[str]:
+        out = subprocess.check_output(['otool', '-L', fname], universal_newlines=True)
+        pattern = re.compile(r'@rpath/\S+')
+        libs = pattern.findall(out)
+        return libs
+
     @skipIfNoPkgconfig
     def test_library_versioning(self):
         '''
@@ -174,6 +180,8 @@ class DarwinTests(BasePlatformTests):
         # Those RPATHs are no longer valid and should not be present after installation
         rpaths = self._get_darwin_rpaths(os.path.join(self.installdir, 'usr/lib/libbar.dylib'))
         self.assertListEqual(rpaths, [])
+        libs = self._get_darwin_rpath_libraries(os.path.join(self.installdir, 'usr/bin/main'))
+        self.assertListEqual(libs, [])
 
     @skip_if_not_language('rust')
     def test_rust_apple_framework_rlib(self):
