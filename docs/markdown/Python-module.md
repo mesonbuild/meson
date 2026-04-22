@@ -217,6 +217,47 @@ to control the default installation path. See [Python module options](Builtin-op
 
 **Returns**: A string
 
+#### `dist_info_install_dir()`
+
+*Since 1.12.0*
+
+``` meson
+string py_installation.dist_info_install_dir(subdir)
+```
+
+Return an install directory pointing at a subdirectory of the wheel's
+`.dist-info/` metadata directory. Intended for files defined by Python
+packaging PEPs that live in `.dist-info/<subdir>/` — such as PEP 770
+SBOMs (`sboms`) and PEP 639 license files (`licenses`).
+
+The returned value is a placeholder that Python wheel build backends
+(e.g. `meson-python`) recognise and route into the wheel's
+`<distname>-<version>.dist-info/<subdir>/` directory. When the project is
+installed via `meson install` directly, with no wheel backend in the
+loop, the placeholder expands to a PEP-491-compatible filesystem layout:
+`{purelib}/<distname>-<version>.dist-info/<subdir>/`.
+
+The `subdir` argument must be a single path component containing only
+ASCII letters, digits, `_`, and `-`. The project must declare a version
+via `project(..., version: ...)`.
+
+Example:
+
+``` meson
+py = import('python').find_installation()
+
+install_data('sboms/component.cdx.json',
+  install_dir: py.dist_info_install_dir('sboms'))
+
+custom_target('vendored-sbom',
+  output: 'vendored.cdx.json',
+  command: [py, files('scripts/generate_sbom.py'), '@OUTPUT@'],
+  install: true,
+  install_dir: py.dist_info_install_dir('sboms'))
+```
+
+**Returns**: A string
+
 #### `language_version()`
 
 ``` meson

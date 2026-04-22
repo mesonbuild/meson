@@ -337,6 +337,55 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
 
         return P_OBJ.OptionString(os.path.join(base, subdir), os.path.join(name, subdir))
 
+    @typed_pos_args('python_installation.dist_info_install_dir', str)
+    @noKwargs
+    @FeatureNew('python_installation.dist_info_install_dir', '1.12.0')
+    @InterpreterObject.method('dist_info_install_dir')
+    def dist_info_install_dir_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> P_OBJ.OptionString:
+        """Return the install directory for a `.dist-info/<subdir>/` location.
+
+        Used by Python wheel build backends (e.g. meson-python) to route
+        files such as PEP 770 SBOMs and PEP 639 license files into the
+        wheel's `.dist-info/<subdir>/` directory.
+
+        The returned `OptionString` carries two values:
+          - placeholder `{py_distinfo}/<subdir>` — recognized by build
+            backends, which route the file into
+            `<distname>-<version>.dist-info/<subdir>/` inside the wheel.
+          - filesystem path `{purelib}/<distname>-<version>.dist-info/<subdir>`
+            — used during raw `meson install` (no wheel backend in the
+            loop). Matches the layout pip extracts wheels into.
+        """
+        subdir = args[0]
+        if not subdir:
+            raise InvalidArguments(
+                '"dist_info_install_dir" subdir argument must not be empty')
+        if subdir in ('.', '..') or subdir.startswith('.'):
+            raise InvalidArguments(
+                f'"dist_info_install_dir" subdir argument {subdir!r} '
+                'must not start with "."')
+        if '/' in subdir or '\\' in subdir:
+            raise InvalidArguments(
+                f'"dist_info_install_dir" subdir argument {subdir!r} '
+                'must be a single path component, not a path')
+        if not re.fullmatch(r'[a-zA-Z0-9_-]+', subdir):
+            raise InvalidArguments(
+                f'"dist_info_install_dir" subdir argument {subdir!r} '
+                'must contain only letters, digits, "_", and "-"')
+
+        project_name = self.interpreter.build.project_name
+        project_version = self.interpreter.build.project_version
+        if project_version is None:
+            raise InvalidArguments(
+                'python_installation.dist_info_install_dir() requires the '
+                'project to declare a version via project(..., version: ...)')
+
+        distinfo_basename = f'{project_name}-{project_version}.dist-info'
+        real_path = os.path.join(
+            self.purelib_install_path, distinfo_basename, subdir)
+        placeholder = f'{{py_distinfo}}/{subdir}'
+        return P_OBJ.OptionString(real_path, placeholder)
+
     @noPosargs
     @noKwargs
     @InterpreterObject.method('language_version')
