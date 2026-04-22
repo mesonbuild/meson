@@ -352,15 +352,21 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
           - placeholder `{py_distinfo}/<subdir>` — recognized by build
             backends, which route the file into
             `<distname>-<version>.dist-info/<subdir>/` inside the wheel.
-          - filesystem path `{purelib}/<distname>-<version>.dist-info/<subdir>`
-            — used during raw `meson install` (no wheel backend in the
-            loop). Matches the layout pip extracts wheels into.
+          - filesystem path
+            `{purelib}/<distname>-<version>.dist-info/<subdir>` — used
+            during raw `meson install` (no wheel backend in the loop).
+            Matches the layout pip extracts wheels into. Uses the
+            ``project()`` name verbatim; if that name is not already in
+            PEP 503 normalized form (lowercase, ``_-.`` collapsed to
+            ``_``) the resulting directory will not match what pip would
+            create for the same package. Wheel backends compute their
+            own dist-info name from PEP 621 metadata and are unaffected.
         """
         subdir = args[0]
         if not subdir:
             raise InvalidArguments(
                 '"dist_info_install_dir" subdir argument must not be empty')
-        if subdir in ('.', '..') or subdir.startswith('.'):
+        if subdir.startswith('.'):
             raise InvalidArguments(
                 f'"dist_info_install_dir" subdir argument {subdir!r} '
                 'must not start with "."')
@@ -383,7 +389,7 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         distinfo_basename = f'{project_name}-{project_version}.dist-info'
         real_path = os.path.join(
             self.purelib_install_path, distinfo_basename, subdir)
-        placeholder = f'{{py_distinfo}}/{subdir}'
+        placeholder = os.path.join('{py_distinfo}', subdir)
         return P_OBJ.OptionString(real_path, placeholder)
 
     @noPosargs

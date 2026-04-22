@@ -21,7 +21,7 @@ install_data('LICENSE.txt',
 # SBOMs.
 generated = custom_target('generated-sbom',
   output: 'generated.cdx.json',
-  command: [find_program('python3'), '-c',
+  command: [py, '-c',
             'import sys; open(sys.argv[1], "w").write("{}")',
             '@OUTPUT@'],
   install: true,
