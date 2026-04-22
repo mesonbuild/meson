@@ -259,7 +259,9 @@ returns:
 Copy a file from the source directory to the build directory at build time.
 
 Has the following positional arguments:
-   - src `File | str`: the file to copy
+   - src `File | str | build_tgt | custom_tgt | custom_idx`: the file to copy.
+     *Since 1.12.0* build targets, custom targets, and custom target indices are
+     also accepted.
 
 Has the following optional arguments:
    - dest `str`: the name of the output file. If unset will be the basename of

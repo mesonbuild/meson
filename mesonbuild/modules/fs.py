@@ -280,7 +280,7 @@ class FSModule(ExtensionModule):
         return data
 
     @FeatureNew('fs.copyfile', '0.64.0')
-    @typed_pos_args('fs.copyfile', (File, str), optargs=[str])
+    @typed_pos_args('fs.copyfile', (File, str, CustomTarget, CustomTargetIndex, BuildTarget), optargs=[str])
     @typed_kwargs(
         'fs.copyfile',
         INSTALL_KW,
@@ -289,17 +289,28 @@ class FSModule(ExtensionModule):
         KwargInfo('install_dir', (str, NoneType)),
         BUILD_SUBDIR_KW.evolve(since='1.12.0'),
     )
-    def copyfile(self, state: ModuleState, args: T.Tuple[FileOrString, T.Optional[str]],
+    def copyfile(self, state: ModuleState, args: T.Tuple[T.Union[FileOrString, BuildTargetTypes], T.Optional[str]],
                  kwargs: CopyKw) -> ModuleReturnValue:
         """Copy a file into the build directory at build time."""
         if kwargs['install'] and not kwargs['install_dir']:
             raise InvalidArguments('"install_dir" must be specified when "install" is true')
 
-        src = self.interpreter.source_strings_to_files([args[0]])[0]
+        src: T.Union[File, BuildTarget, CustomTarget, CustomTargetIndex]
+        if isinstance(args[0], (CustomTarget, CustomTargetIndex, BuildTarget)):
+            FeatureNew.single_use('fs.copyfile with build_tgt, custom_tgt, and custom_idx', '1.12.0', state.subproject, location=state.current_node)
+            if isinstance(args[0], CustomTarget) and len(args[0].get_outputs()) > 1:
+                raise InvalidArguments(
+                    f'custom_target {args[0].name!r} has more than one output! '
+                    f'Use `{args[0].name}[<n>]` to select the output to copy.')
+            src = args[0]
+            default_name = src.get_filename()
+        else:
+            src = self.interpreter.source_strings_to_files([args[0]])[0]
+            # The input is allowed to have path separators, but the output may not,
+            # so use the basename for the default case
+            default_name = os.path.basename(src.fname)
 
-        # The input is allowed to have path separators, but the output may not,
-        # so use the basename for the default case
-        dest = args[1] if args[1] else os.path.basename(src.fname)
+        dest = args[1] if args[1] else default_name
         if has_path_sep(dest):
             raise InvalidArguments('Destination path may not have path separators')
 

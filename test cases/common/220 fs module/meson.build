@@ -7,6 +7,9 @@ fs = import('fs')
 f = files('meson.build')
 btgt = executable('btgt', 'btgt.c')
 ctgt = fs.copyfile('ctgt.txt')
+ctgt_copy = fs.copyfile(ctgt, 'ctgt_copy.txt')
+ctgt_idx_copy = fs.copyfile(ctgt[0], 'ctgt_idx_copy.txt')
+btgt_copy = fs.copyfile(btgt, 'btgt_copy')
 
 assert(fs.exists('meson.build'), 'Existing file reported as missing.')
 assert(not fs.exists('nonexisting'), 'Nonexisting file was found.')
@@ -198,4 +201,14 @@ subproject('subbie')
 
 testcase expect_error('File notfound does not exist.')
   fs.read('notfound')
+endtestcase
+
+multi_out = custom_target('multi_out',
+  output: ['a.txt', 'b.txt'],
+  command: [find_program('cp'), '@INPUT@', '@OUTPUT@'],
+  input: 'meson.build',
+)
+
+testcase expect_error('custom_target \'multi_out\' has more than one output! Use `multi_out[<n>]` to select the output to copy.')
+  fs.copyfile(multi_out)
 endtestcase
