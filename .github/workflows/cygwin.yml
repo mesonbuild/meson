@@ -67,12 +67,12 @@ jobs:
             libxslt-devel
             make
             ninja
-            python3-devel
-            python3-libxml2
-            python3-libxslt
-            python3-gi
-            python39-pip
-            python39-wheel
+            python312-devel
+            python312-libxml2
+            python312-libxslt
+            python312-gi
+            python312-pip
+            python312-wheel
             vala
             zlib-devel
 
