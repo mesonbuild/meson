@@ -2,7 +2,7 @@
   "installed": [
     {"type": "expr", "file": "usr/lib/?libinstalled_vala_lib.so"},
     {"type": "file", "platform": "cygwin", "file": "usr/lib/libinstalled_vala_lib.dll.a"},
-    {"type": "expr", "file": "usr/custom/?libinstalled_vala_custom.so"},
+    {"type": "expr", "file": "usr/custom/libinstalled_vala_custom?so"},
     {"type": "file", "platform": "cygwin", "file": "usr/custom/libinstalled_vala_custom.dll.a"},
     {"type": "expr", "file": "usr/lib/?libinstalled_vala_all.so"},
     {"type": "file", "platform": "cygwin", "file": "usr/lib/libinstalled_vala_all.dll.a"},
