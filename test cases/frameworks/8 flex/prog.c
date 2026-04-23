@@ -1,22 +1,18 @@
-#include"parser.tab.h"
-#include<unistd.h>
-#include<sys/types.h>
-#include<sys/stat.h>
-#include<fcntl.h>
-#include<stdio.h>
-#include<stdlib.h>
 
-extern int yyparse();
+#include "lexer.l.h"
+#include "parser.tab.h"
+
+#include <stdio.h>
+
+int yyparse(void);
+
 
 int main(int argc, char **argv) {
-    int input;
     if(argc != 2) {
         printf("%s <input file>\n", argv[0]);
         return 1;
     }
-    input = open(argv[1], O_RDONLY);
-    dup2(input, STDIN_FILENO);
-    close(input);
+    yyin = fopen(argv[1], "r");
     return yyparse();
 }
 

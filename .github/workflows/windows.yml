@@ -98,9 +98,9 @@ jobs:
           Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mesonbuild/cidata/refs/heads/master/win32/pkg-config.exe" -OutFile "$pkgconfigDir\pkg-config.exe"
           echo "$pkgconfigDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Install NASM
+      - name: Install Chocolatey Dependencies
         shell: pwsh
-        run: choco install -y nasm
+        run: choco install -y nasm winflexbison3
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
