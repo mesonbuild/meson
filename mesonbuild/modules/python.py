@@ -341,54 +341,31 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
     @noKwargs
     @FeatureNew('python_installation.dist_info_install_dir', '1.12.0')
     @InterpreterObject.method('dist_info_install_dir')
-    def dist_info_install_dir_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> P_OBJ.OptionString:
-        """Return the install directory for a `.dist-info/<subdir>/` location.
-
-        Used by Python wheel build backends (e.g. meson-python) to route
-        files such as PEP 770 SBOMs and PEP 639 license files into the
-        wheel's `.dist-info/<subdir>/` directory.
-
-        The returned `OptionString` carries two values:
-          - placeholder `{py_distinfo}/<subdir>` — recognized by build
-            backends, which route the file into
-            `<distname>-<version>.dist-info/<subdir>/` inside the wheel.
-          - filesystem path
-            `{purelib}/<distname>-<version>.dist-info/<subdir>` — used
-            during raw `meson install` (no wheel backend in the loop).
-            Matches the layout pip extracts wheels into. Uses the
-            ``project()`` name verbatim; if that name is not already in
-            PEP 503 normalized form (lowercase, ``_-.`` collapsed to
-            ``_``) the resulting directory will not match what pip would
-            create for the same package. Wheel backends compute their
-            own dist-info name from PEP 621 metadata and are unaffected.
-        """
+    def dist_info_install_dir_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> str:
         subdir = args[0]
         if not subdir:
-            raise InvalidArguments(
-                '"dist_info_install_dir" subdir argument must not be empty')
-        if subdir.startswith('.'):
-            raise InvalidArguments(
-                f'"dist_info_install_dir" subdir argument {subdir!r} '
-                'must not start with "."')
+            raise InvalidArguments('dist_info_install_dir subdir argument must not be empty')
         if '/' in subdir or '\\' in subdir:
-            raise InvalidArguments(
-                f'"dist_info_install_dir" subdir argument {subdir!r} '
-                'must be a single path component, not a path')
+            raise InvalidArguments(f'dist_info_install_dir subdir argument {subdir!r} must not contain path separators')
+        if subdir.startswith('.'):
+            raise InvalidArguments(f'dist_info_install_dir subdir argument {subdir!r} must not start with "."')
         if not re.fullmatch(r'[a-zA-Z0-9_-]+', subdir):
-            raise InvalidArguments(
-                f'"dist_info_install_dir" subdir argument {subdir!r} '
-                'must contain only letters, digits, "_", and "-"')
+            raise InvalidArguments(f'dist_info_install_dir subdir argument {subdir!r} must only contain letters, digits, "_" and "-"')
 
         project_name = self.interpreter.build.project_name
         project_version = self.interpreter.build.project_version
         if project_version is None:
-            raise InvalidArguments(
-                'python_installation.dist_info_install_dir() requires the '
-                'project to declare a version via project(..., version: ...)')
+            raise InvalidArguments('dist_info_install_dir() requires the project to declare a version')
 
+        # Filesystem fallback used by raw `meson install` (no wheel backend).
+        # Uses the project() name verbatim; the directory won't match what pip
+        # produces if that name isn't already PEP 503 normalized. Wheel
+        # backends compute their own dist-info name from PEP 621 metadata and
+        # are unaffected.
         distinfo_basename = f'{project_name}-{project_version}.dist-info'
-        real_path = os.path.join(
-            self.purelib_install_path, distinfo_basename, subdir)
+        real_path = os.path.join(self.purelib_install_path, distinfo_basename, subdir)
+        # Placeholder recognised by Python wheel build backends (e.g.
+        # meson-python) to route into <distname>-<version>.dist-info/<subdir>/.
         placeholder = os.path.join('{py_distinfo}', subdir)
         return P_OBJ.OptionString(real_path, placeholder)
 
