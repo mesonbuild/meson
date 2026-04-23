@@ -252,8 +252,12 @@ class NativeFileTests(BasePlatformTests):
             raise SkipTest('bat indirection breaks internal sanity checks.')
         elif is_osx():
             binary = 'python'
+            if not shutil.which(binary):
+                raise SkipTest('Not running Python2 tests because it was not found.')
         else:
             binary = 'python2'
+            if not shutil.which(binary):
+                raise SkipTest('Not running Python2 tests because it was not found.')
 
             # We not have python2, check for it
             for v in ['2', '2.7', '-2.7']:
