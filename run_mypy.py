@@ -68,6 +68,7 @@ modules = [
     'mesonbuild/modules/modtest.py',
     'mesonbuild/modules/pkgconfig.py',
     'mesonbuild/modules/python.py',
+    'mesonbuild/modules/python3.py',
     'mesonbuild/modules/_qt.py',
     'mesonbuild/modules/qt4.py',
     'mesonbuild/modules/qt5.py',
