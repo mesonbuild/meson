@@ -12,9 +12,12 @@ py = import('python').find_installation()
 install_data('component.cdx.json',
   install_dir: py.dist_info_install_dir('sboms'))
 
-# Different subdir argument — same helper.
-install_data('LICENSE.txt',
-  install_dir: py.dist_info_install_dir('licenses'))
+# Different subdir argument — proves the helper is parameterised, not
+# hard-coded to 'sboms'. A neutral name avoids suggesting this is a
+# PEP 639 license-files alternative (it isn't; that lives entirely in
+# pyproject_metadata + the wheel backend).
+install_data('extra.txt',
+  install_dir: py.dist_info_install_dir('extras'))
 
 # custom_target with the helper as install_dir — exercises the dynamic
 # code path that pandas / scipy / numpy use for build-time-generated

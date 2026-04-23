@@ -2,6 +2,6 @@
   "installed": [
     {"type": "file", "file": "pure/demo-1.0.0.dist-info/sboms/component.cdx.json"},
     {"type": "file", "file": "pure/demo-1.0.0.dist-info/sboms/generated.cdx.json"},
-    {"type": "file", "file": "pure/demo-1.0.0.dist-info/licenses/LICENSE.txt"}
+    {"type": "file", "file": "pure/demo-1.0.0.dist-info/extras/extra.txt"}
   ]
 }
