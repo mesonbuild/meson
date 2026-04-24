@@ -12,7 +12,7 @@ import typing as T
 from .. import compilers, environment, mesonlib
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
-from ..interpreterbase import InvalidArguments, SubProject, UnknownValue, Feature
+from ..interpreterbase import InvalidArguments, SubProject, UnknownValue, UNKNOWN_VALUE, Feature
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
 from ..mparser import BaseNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
@@ -158,7 +158,7 @@ class IntrospectionInterpreter(AstInterpreter):
         else:
             for for_machine in [MachineChoice.BUILD, MachineChoice.HOST]:
                 self._add_languages(args, required, for_machine)
-        return UnknownValue()
+        return UNKNOWN_VALUE
 
     def _add_languages(self, raw_langs: T.List[TYPE_var], required: T.Union[bool, UnknownValue], for_machine: MachineChoice) -> None:
         langs: T.List[Language] = []
@@ -193,8 +193,8 @@ class IntrospectionInterpreter(AstInterpreter):
         version = kwargs.get('version', [])
         if not isinstance(version, list):
             version = [version]
-        if any(isinstance(el, UnknownValue) for el in version):
-            version = UnknownValue()
+        if any(el is UNKNOWN_VALUE for el in version):
+            version = UNKNOWN_VALUE
         else:
             assert all(isinstance(el, str) for el in version)
             version = T.cast(T.List[str], version)
@@ -213,7 +213,7 @@ class IntrospectionInterpreter(AstInterpreter):
         assert isinstance(node, FunctionNode)
         args = self.flatten_args(args)
         if not args or not isinstance(args[0], str):
-            return UnknownValue()
+            return UNKNOWN_VALUE
         name = args[0]
         srcqueue: T.List[BaseNode] = [node]
         extra_queue = []
@@ -257,12 +257,12 @@ class IntrospectionInterpreter(AstInterpreter):
         target.process_compilers_late()
 
         build_by_default: T.Union[UnknownValue, bool] = target.build_by_default
-        if 'build_by_default' in kwargs and isinstance(kwargs['build_by_default'], UnknownValue):
-            build_by_default = kwargs['build_by_default']
+        if kwargs.get('build_by_default', None) is UNKNOWN_VALUE:
+            build_by_default = UNKNOWN_VALUE
 
         install: T.Union[UnknownValue, bool] = target.should_install()
-        if 'install' in kwargs and isinstance(kwargs['install'], UnknownValue):
-            install = kwargs['install']
+        if kwargs.get('install', None) is UNKNOWN_VALUE:
+            install = UNKNOWN_VALUE
 
         new_target = IntrospectionBuildTarget(
             name=target.get_basename(),

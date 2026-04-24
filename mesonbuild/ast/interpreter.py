@@ -26,6 +26,7 @@ from ..interpreterbase import (
     default_resolve_key,
     is_disabled,
     UnknownValue,
+    UNKNOWN_VALUE,
     UNDEFINED_VARIABLE,
     InterpreterObject,
 )
@@ -189,10 +190,10 @@ class AstInterpreter(InterpreterBase):
         self.funcvals: T.Dict[BaseNode, T.Any] = {}
         self.tainted = False
         self.predefined_vars = {
-            'meson': UnknownValue(),
-            'host_machine': UnknownValue(),
-            'build_machine': UnknownValue(),
-            'target_machine': UnknownValue()
+            'meson': UNKNOWN_VALUE,
+            'host_machine': UNKNOWN_VALUE,
+            'build_machine': UNKNOWN_VALUE,
+            'target_machine': UNKNOWN_VALUE
         }
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
@@ -262,7 +263,7 @@ class AstInterpreter(InterpreterBase):
         return res
 
     def func_do_nothing(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> UnknownValue:
-        return UnknownValue()
+        return UNKNOWN_VALUE
 
     def load_root_meson_file(self) -> None:
         super().load_root_meson_file()
@@ -286,8 +287,8 @@ class AstInterpreter(InterpreterBase):
 
     def inner_method_call(self, obj: BaseNode, method_name: str, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Any:
         for arg in itertools.chain(args, kwargs.values()):
-            if isinstance(arg, UnknownValue):
-                return UnknownValue()
+            if arg is UNKNOWN_VALUE:
+                return UNKNOWN_VALUE
 
         if isinstance(obj, str):
             result = StringHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
@@ -300,7 +301,7 @@ class AstInterpreter(InterpreterBase):
         elif isinstance(obj, dict):
             result = DictHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
         else:
-            return UnknownValue()
+            return UNKNOWN_VALUE
         return result
 
     def method_call(self, node: mparser.MethodNode) -> None:
@@ -447,7 +448,7 @@ class AstInterpreter(InterpreterBase):
     def evaluate_foreach(self, node: ForeachClauseNode) -> None:
         asses = self.find_potential_writes(node)
         for ass in asses:
-            self.cur_assignments[ass].append((self.nesting.copy(), UnknownValue()))
+            self.cur_assignments[ass].append((self.nesting.copy(), UNKNOWN_VALUE))
         try:
             self.evaluate_codeblock(node.block)
         except ContinueRequest:
@@ -455,7 +456,7 @@ class AstInterpreter(InterpreterBase):
         except BreakRequest:
             pass
         for ass in asses:
-            self.cur_assignments[ass].append((self.nesting.copy(), UnknownValue())) # In case the foreach loops 0 times.
+            self.cur_assignments[ass].append((self.nesting.copy(), UNKNOWN_VALUE)) # In case the foreach loops 0 times.
 
     def evaluate_if(self, node: IfClauseNode) -> None:
         self.nesting.append(0)
@@ -475,7 +476,7 @@ class AstInterpreter(InterpreterBase):
                     potential_values.append(value)
             self.cur_assignments[var_name] = [(nesting, v) for (nesting, v) in self.cur_assignments[var_name] if len(nesting) <= len(self.nesting)]
             if len(potential_values) > 1 or (len(potential_values) > 0 and oldval is UNDEFINED_VARIABLE):
-                uv = UnknownValue()
+                uv = UNKNOWN_VALUE
                 for pv in potential_values:
                     self.dataflow_dag.add_edge(pv, uv)
                 self.cur_assignments[var_name].append((self.nesting.copy(), uv))
@@ -485,8 +486,8 @@ class AstInterpreter(InterpreterBase):
         for arg in args:
             if isinstance(arg, str):
                 ret.append(IntrospectionFile(self.subdir, arg))
-            elif isinstance(arg, UnknownValue):
-                ret.append(UnknownValue())
+            elif arg is UNKNOWN_VALUE:
+                ret.append(UNKNOWN_VALUE)
             else:
                 raise TypeError
         return ret
@@ -500,7 +501,7 @@ class AstInterpreter(InterpreterBase):
                 ret = value
                 break
         if ret is UNDEFINED_VARIABLE and self.tainted:
-            return UnknownValue()
+            return UNKNOWN_VALUE
         return ret
 
     def get_cur_value(self, var_name: str) -> T.Union[BaseNode, UnknownValue]:
@@ -512,13 +513,13 @@ class AstInterpreter(InterpreterBase):
             # variables, but it is probably not worth the effort and the
             # complexity. So we do the simplest thing, returning an
             # UnknownValue.
-            return UnknownValue()
+            return UNKNOWN_VALUE
         return ret
 
     # The function `node_to_runtime_value` takes a node of the ast as an
     # argument and tries to return the same thing that would be passed to e.g.
     # `func_message` if you put `message(node)` in your `meson.build` file and
-    # run `meson setup`. If this is not possible, `UnknownValue()` is returned.
+    # run `meson setup`. If this is not possible, `UNKNOWN_VALUE` is returned.
     # There are 3 Reasons why this is sometimes impossible:
     #     1. Because the meson rewriter is imperfect and has not implemented everything yet
     #     2. Because the value is different on different machines, example:
@@ -528,7 +529,7 @@ class AstInterpreter(InterpreterBase):
     #     ```
     #     will print `true` on some machines and `false` on others, so
     #     `node_to_runtime_value` does not know whether to return `true` or
-    #     `false` and will return `UnknownValue()`.
+    #     `false` and will return `UNKNOWN_VALUE`.
     #     3. Here:
     #     ```meson
     #     foreach x : [1, 2]
@@ -537,19 +538,19 @@ class AstInterpreter(InterpreterBase):
     #     endforeach
     #     ```
     #     `node_to_runtime_value` does not know whether to return `1` or `2` and
-    #     will return `UnknownValue()`.
+    #     will return `UNKNOWN_VALUE`.
     #
     # If you have something like
     # ```
     # node = [123, somedep.found()]
     # ```
-    # `node_to_runtime_value` will return `[123, UnknownValue()]`.
+    # `node_to_runtime_value` will return `[123, UNKNOWN_VALUE]`.
     def node_to_runtime_value(self, node: T.Union[UnknownValue, BaseNode, TYPE_var]) -> T.Any:
         if isinstance(node, (mparser.StringNode, mparser.BooleanNode, mparser.NumberNode)):
             return node.value
         elif isinstance(node, mparser.StringNode):
             if node.is_fstring:
-                return UnknownValue()
+                return UNKNOWN_VALUE
             else:
                 return node.value
         elif isinstance(node, list):
@@ -571,12 +572,12 @@ class AstInterpreter(InterpreterBase):
         elif isinstance(node, ArithmeticNode):
             left = self.node_to_runtime_value(node.left)
             right = self.node_to_runtime_value(node.right)
-            if isinstance(left, list) and isinstance(right, UnknownValue):
+            if isinstance(left, list) and right is UNKNOWN_VALUE:
                 return left + [right]
-            if isinstance(right, list) and isinstance(left, UnknownValue):
+            if isinstance(right, list) and left is UNKNOWN_VALUE:
                 return [left] + right
-            if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
-                return UnknownValue()
+            if left is UNKNOWN_VALUE or right is UNKNOWN_VALUE:
+                return UNKNOWN_VALUE
             if node.operation == '+':
                 if isinstance(left, dict) and isinstance(right, dict):
                     ret = left.copy()
@@ -605,14 +606,14 @@ class AstInterpreter(InterpreterBase):
         elif isinstance(node, mparser.IndexNode):
             iobject = self.node_to_runtime_value(node.iobject)
             index = self.node_to_runtime_value(node.index)
-            if isinstance(iobject, UnknownValue) or isinstance(index, UnknownValue):
-                return UnknownValue()
+            if iobject is UNKNOWN_VALUE or index is UNKNOWN_VALUE:
+                return UNKNOWN_VALUE
             return iobject[index]
         elif isinstance(node, mparser.ComparisonNode):
             left = self.node_to_runtime_value(node.left)
             right = self.node_to_runtime_value(node.right)
-            if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
-                return UnknownValue()
+            if left is UNKNOWN_VALUE or right is UNKNOWN_VALUE:
+                return UNKNOWN_VALUE
             if node.ctype == '==':
                 return left == right
             elif node.ctype == '!=':
@@ -623,8 +624,8 @@ class AstInterpreter(InterpreterBase):
                 return left not in right
         elif isinstance(node, mparser.TernaryNode):
             cond = self.node_to_runtime_value(node.condition)
-            if isinstance(cond, UnknownValue):
-                return UnknownValue()
+            if cond is UNKNOWN_VALUE:
+                return UNKNOWN_VALUE
             if cond is True:
                 return self.node_to_runtime_value(node.trueblock)
             if cond is False:
@@ -632,24 +633,24 @@ class AstInterpreter(InterpreterBase):
         elif isinstance(node, mparser.OrNode):
             left = self.node_to_runtime_value(node.left)
             right = self.node_to_runtime_value(node.right)
-            if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
-                return UnknownValue()
+            if left is UNKNOWN_VALUE or right is UNKNOWN_VALUE:
+                return UNKNOWN_VALUE
             return left or right
         elif isinstance(node, mparser.AndNode):
             left = self.node_to_runtime_value(node.left)
             right = self.node_to_runtime_value(node.right)
-            if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
-                return UnknownValue()
+            if left is UNKNOWN_VALUE or right is UNKNOWN_VALUE:
+                return UNKNOWN_VALUE
             return left and right
         elif isinstance(node, mparser.UMinusNode):
             val = self.node_to_runtime_value(node.value)
-            if isinstance(val, UnknownValue):
+            if val is UNKNOWN_VALUE:
                 return val
             if isinstance(val, (int, float)):
                 return -val
         elif isinstance(node, mparser.NotNode):
             val = self.node_to_runtime_value(node.value)
-            if isinstance(val, UnknownValue):
+            if val is UNKNOWN_VALUE:
                 return val
             if isinstance(val, bool):
                 return not val
@@ -668,8 +669,8 @@ class AstInterpreter(InterpreterBase):
         self.evaluate_statement(node.value)
         lhs = self.get_cur_value(node.var_name.value)
         newval: T.Union[UnknownValue, ArithmeticNode]
-        if isinstance(lhs, UnknownValue):
-            newval = UnknownValue()
+        if lhs is UNKNOWN_VALUE:
+            newval = UNKNOWN_VALUE
         else:
             newval = mparser.ArithmeticNode(operation='+', left=lhs, operator=_symbol('+'), right=node.value)
         self.cur_assignments[node.var_name.value].append((self.nesting.copy(), newval))
@@ -686,7 +687,7 @@ class AstInterpreter(InterpreterBase):
             raise InvalidArguments('set_variable requires exactly two positional arguments')
         var_name = args[0]
         value = node.args.arguments[1]
-        if isinstance(var_name, UnknownValue):
+        if var_name is UNKNOWN_VALUE:
             self.evaluate_statement(value)
             self.tainted = True
             return
@@ -698,8 +699,8 @@ class AstInterpreter(InterpreterBase):
     def func_get_variable(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Any:
         assert isinstance(node, FunctionNode)
         var_name = args[0]
-        if isinstance(var_name, UnknownValue):
-            val: T.Union[UnknownValue, BaseNode] = UnknownValue()
+        if var_name is UNKNOWN_VALUE:
+            val: T.Union[UnknownValue, BaseNode] = UNKNOWN_VALUE
         else:
             assert isinstance(var_name, str)
             val = self.get_cur_value(var_name)
@@ -722,7 +723,7 @@ class AstInterpreter(InterpreterBase):
                 return os.path.normpath(os.path.join(root_path, subdir, src))
             elif isinstance(src, IntrospectionFile):
                 return str(src.to_abs_path(root_path))
-            elif isinstance(src, UnknownValue):
+            elif src is UNKNOWN_VALUE:
                 return src
             else:
                 raise TypeError

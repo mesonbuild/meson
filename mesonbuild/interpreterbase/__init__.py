@@ -63,6 +63,7 @@ __all__ = [
     'HoldableTypes',
 
     'UnknownValue',
+    'UNKNOWN_VALUE',
     'UndefinedVariable',
     'UNDEFINED_VARIABLE',
 ]
@@ -89,6 +90,7 @@ from .baseobjects import (
     HoldableTypes,
 
     UnknownValue,
+    UNKNOWN_VALUE,
     UndefinedVariable,
     UNDEFINED_VARIABLE,
 )

@@ -21,17 +21,18 @@ import typing as T
 from . import build, environment, mesonlib, options, coredata as cdata
 from .ast import IntrospectionInterpreter, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
 from .backend import backends
-from .interpreterbase import UnknownValue
+from .interpreterbase import UNKNOWN_VALUE
 from .options import OptionKey
 
 if T.TYPE_CHECKING:
     import argparse
 
     from .dependencies import Dependency
+    from .interpreterbase import UnknownValue
 
 class IntrospectionEncoder(json.JSONEncoder):
     def default(self, obj: T.Any) -> T.Any:
-        if isinstance(obj, UnknownValue):
+        if obj is UNKNOWN_VALUE:
             return 'unknown'
         return json.JSONEncoder.default(self, obj)
 

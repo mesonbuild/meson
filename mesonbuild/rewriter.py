@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
 from .ast.interpreter import IntrospectionBuildTarget, IntrospectionDependency, _symbol
-from .interpreterbase import UnknownValue, TV_func
+from .interpreterbase import UNKNOWN_VALUE, TV_func
 from .interpreterbase.helpers import flatten
 from mesonbuild.mesonlib import MesonException, pathname_sort_key, relpath, setup_vsenv
 from . import mlog, environment
@@ -25,6 +25,7 @@ from pathlib import Path
 if T.TYPE_CHECKING:
     import argparse
     from argparse import ArgumentParser, _FormatterClass
+    from .interpreterbase import UnknownValue
     from .mlog import AnsiDecorator
 
 class RewriterException(MesonException):
@@ -719,7 +720,7 @@ class Rewriter:
             all_paths = self.interpreter.dataflow_dag.find_all_paths(candidate, target.node)
             for path in all_paths:
                 for el in path:
-                    if isinstance(el, UnknownValue):
+                    if el is UNKNOWN_VALUE:
                         return True
             return False
 
@@ -771,7 +772,7 @@ class Rewriter:
         to_append = []
         added = []
 
-        old_src_list = [(target_dir_abs / x).resolve() if isinstance(x, str) else x.to_abs_path(source_root_abs) for x in old_src_list if not isinstance(x, UnknownValue)]
+        old_src_list = [(target_dir_abs / x).resolve() if isinstance(x, str) else x.to_abs_path(source_root_abs) for x in old_src_list if x is not UNKNOWN_VALUE]
         for _newf in sorted(set(newfiles)):
             newf = Path(_newf)
             if os.path.isabs(newf):
@@ -833,7 +834,7 @@ class Rewriter:
             elif op == 'extra_files_rm':
                 nodes = self.interpreter.dataflow_dag.reachable({target.extra_files}, True)
             for i in nodes:
-                if isinstance(i, UnknownValue):
+                if i is UNKNOWN_VALUE:
                     continue
                 relto = self.get_relto(target.node, i)
                 if relto is not None:
@@ -951,8 +952,8 @@ class Rewriter:
             src_list = self.interpreter.nodes_to_pretty_filelist(source_root_abs, target.subdir, target.source_nodes)
             extra_files_list = self.interpreter.nodes_to_pretty_filelist(source_root_abs, target.subdir, [target.extra_files] if target.extra_files else [])
 
-            src_list = ['unknown' if isinstance(x, UnknownValue) else relpath(x, source_root_abs) for x in src_list]
-            extra_files_list = ['unknown' if isinstance(x, UnknownValue) else relpath(x, source_root_abs) for x in extra_files_list]
+            src_list = ['unknown' if x is UNKNOWN_VALUE else relpath(x, source_root_abs) for x in src_list]
+            extra_files_list = ['unknown' if x is UNKNOWN_VALUE else relpath(x, source_root_abs) for x in extra_files_list]
 
             test_data = {
                 'name': target.name,

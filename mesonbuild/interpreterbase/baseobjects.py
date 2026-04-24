@@ -169,11 +169,16 @@ class MesonInterpreterObject(InterpreterObject):
 class MutableInterpreterObject:
     ''' Dummy class to mark the object type as mutable '''
 
-class UnknownValue(MesonInterpreterObject):
+class UnknownValue(MesonInterpreterObject, enum.Enum):
     '''This class is only used for the rewriter/static introspection tool and
     indicates that a value cannot be determined statically, either because of
     limitations in our code or because the value differs from machine to
     machine.'''
+
+    _ = 0
+
+    def __init__(self, zero: int) -> None:
+        pass
 
 class UndefinedVariable(MesonInterpreterObject, enum.Enum):
     '''This class is only used for the rewriter/static introspection tool and
@@ -187,6 +192,7 @@ class UndefinedVariable(MesonInterpreterObject, enum.Enum):
 # Stateless singletons: callers should compare with "is", not isinstance()
 # mypy knows that "is" and "isinstance" is the same for one-item enums
 UNDEFINED_VARIABLE: UndefinedVariable = UndefinedVariable._
+UNKNOWN_VALUE: UnknownValue = UnknownValue._
 
 HoldableTypes = (HoldableObject, int, bool, str, list, dict)
 TYPE_HoldableTypes = T.Union[TYPE_var, HoldableObject]
