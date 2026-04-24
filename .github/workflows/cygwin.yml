@@ -81,7 +81,7 @@ jobs:
           echo "dir=$(cygpath -wa $(python3 -m pip cache dir))" >> "$GITHUB_OUTPUT"
         shell: bash --noprofile --norc -o igncr -eo pipefail '{0}'
 
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v5
         id: restore-cache
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
@@ -94,7 +94,7 @@ jobs:
           python3 -m pip --disable-pip-version-check install pytest pytest-subtests pytest-xdist
         shell: bash --noprofile --norc -o igncr -eo pipefail '{0}'
 
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@v5
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
           key: cygwin-pip-${{ github.run_number }}
