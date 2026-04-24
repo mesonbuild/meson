@@ -36,7 +36,7 @@ from mesonbuild.linkers import linkers
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectHolder
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_kwargs, ContainerTypeInfo, KwargInfo
 from mesonbuild.mesonlib import (
-    LibType, MachineChoice, PerMachine, Version, is_windows, is_osx,
+    LibType, MachineChoice, PerMachine, SimpleABC, Version, is_windows, is_osx,
     is_cygwin, is_openbsd, search_version, MesonException, python_command,
 )
 from mesonbuild.options import OptionKey
@@ -74,6 +74,56 @@ class InternalTests(unittest.TestCase):
             Default locale: en_US, platform encoding: UTF-8
             OS name: "linux", version: "5.12.17", arch: "amd64", family: "unix"'''),
             '3.8.1')
+
+    def test_simple_abc(self):
+        from abc import abstractmethod
+
+        # The whole point is for isinstance() to stay on the C fast path
+        self.assertNotIn('__instancecheck__', vars(SimpleABC))
+        self.assertNotIn('__subclasscheck__', vars(SimpleABC))
+
+        class A(metaclass=SimpleABC):
+            @abstractmethod
+            def foo(self): ...
+
+        class B(A, metaclass=SimpleABC):
+            def foo(self):
+                return 1
+
+            @abstractmethod
+            def bar(self): ...
+
+        class C(B):
+            def foo(self):
+                return 2
+
+        class D(B):
+            def bar(self):
+                return 3
+
+        self.assertEqual(A.__abstractmethods__, frozenset({'foo'}))
+        with self.assertRaises(TypeError):
+            A()
+
+        self.assertEqual(B.__abstractmethods__, frozenset({'bar'}))
+        self.assertTrue(issubclass(B, A))
+        with self.assertRaises(TypeError):
+            B()
+
+        self.assertEqual(C.__abstractmethods__, frozenset({'bar'}))
+        self.assertTrue(issubclass(C, A))
+        self.assertTrue(issubclass(C, B))
+        with self.assertRaises(TypeError):
+            # subclass inheriting SimpleABC
+            C()
+
+        self.assertEqual(D.__abstractmethods__, frozenset())
+        self.assertTrue(issubclass(D, A))
+        self.assertTrue(issubclass(D, B))
+        self.assertTrue(issubclass(D, D))
+        self.assertIsInstance(D(), A)
+        self.assertIsInstance(D(), B)
+        self.assertIsInstance(D(), D)
 
     def test_mode_symbolic_to_bits(self):
         modefunc = mesonbuild.mesonlib.FileMode.perms_s_to_bits

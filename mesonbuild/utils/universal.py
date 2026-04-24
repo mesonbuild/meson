@@ -59,6 +59,7 @@ _U = T.TypeVar('_U')
 
 __all__ = [
     'GIT',
+    'SimpleABC',
     'python_command',
     'NoProjectVersion',
     'project_meson_versions',
@@ -281,6 +282,37 @@ def check_direntry_issues(direntry_array: T.Union[T.Iterable[T.Union[str, bytes]
                 locale but you are trying to access a file system entry called {de!r} which is
                 not pure ASCII. This may cause problems.
                 '''))
+
+class SimpleABC(type):
+    '''Lightweight replacement for ``abc.ABCMeta``.
+
+    Supports ``@abc.abstractmethod`` but omits virtual subclass
+    registration and ``__subclasshook__``. This way, ``isinstance()``
+    goes through the C fast path. '''
+
+    __abstractmethods__: T.FrozenSet[str]
+
+    def __new__(mcs, name: str, bases: T.Tuple[type, ...],
+                namespace: T.Dict[str, T.Any], **kwargs: T.Any) -> SimpleABC:
+        cls = super().__new__(mcs, name, bases, namespace, **kwargs)
+        abstracts = {n for n, v in namespace.items()
+                     if getattr(v, '__isabstractmethod__', False)}
+        for base in bases:
+            for n in getattr(base, '__abstractmethods__', ()):
+                if getattr(getattr(cls, n, None), '__isabstractmethod__', False):
+                    abstracts.add(n)
+        cls.__abstractmethods__ = frozenset(abstracts)
+        return cls
+
+    def __call__(cls, *args: T.Any, **kwargs: T.Any) -> T.Any:
+        if cls.__abstractmethods__:
+            raise TypeError(
+                f"Can't instantiate abstract class {cls.__name__} without an "
+                f"implementation for abstract method"
+                f"{'s' if len(cls.__abstractmethods__) > 1 else ''} "
+                f"{', '.join(repr(m) for m in sorted(cls.__abstractmethods__))}")
+        return super().__call__(*args, **kwargs)
+
 
 class SecondLevelHolder(HoldableObject, metaclass=abc.ABCMeta):
     ''' A second level object holder. The primary purpose
