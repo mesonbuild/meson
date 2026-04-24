@@ -269,7 +269,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.x'
       - name: Install dependencies
