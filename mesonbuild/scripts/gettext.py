@@ -8,6 +8,9 @@ import argparse
 import subprocess
 import typing as T
 
+from .meson_exe import run_exe
+from ..utils.core import ExecutableSerialisation
+
 parser = argparse.ArgumentParser()
 parser.add_argument('command')
 parser.add_argument('--pkgname', default='')
@@ -59,7 +62,9 @@ def update_po(src_sub: str, msgmerge: str, msginit: str, pkgname: str, langs: T.
     for l in langs:
         pofile = os.path.join(src_sub, l + '.po')
         if os.path.exists(pofile):
-            subprocess.check_call([msgmerge, '-q', '-o', pofile, pofile, potfile])
+            exe = ExecutableSerialisation([msgmerge, '-q', pofile, potfile], capture=pofile)
+            if run_exe(exe) != 0:
+                return 1
         else:
             subprocess.check_call([msginit, '--input', potfile, '--output-file', pofile, '--locale', l, '--no-translator'])
     return 0

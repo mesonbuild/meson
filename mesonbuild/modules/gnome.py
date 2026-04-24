@@ -1393,11 +1393,10 @@ class GnomeModule(ExtensionModule):
                                         mesonlib.FileMode(), state.subproject, install_tag='doc')
                 targets.append(l_data)
 
-            po_fname = l + '.po'
-            po_args: CommandList = [
-                msgmerge, '-q', '-o',
-                os.path.join('@SOURCE_ROOT@', l_subdir, po_fname),
-                os.path.join('@SOURCE_ROOT@', l_subdir, po_fname), pot_file]
+            po_path = os.path.join('@SOURCE_ROOT@', l_subdir, l + '.po')
+            po_args: CommandList = [*state.environment.get_build_command(),
+                                    '--internal', 'exe', '--capture', po_path, '--',
+                                    msgmerge, '-q', po_path, pot_file]
             potarget = build.RunTarget(f'help-{project_id}-{l}-update-po',
                                        po_args, [pottarget], l_subdir, state.subproject,
                                        state.environment)
