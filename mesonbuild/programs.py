@@ -13,11 +13,11 @@ import sys
 import re
 import typing as T
 from pathlib import Path
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 
 from . import mesonlib
 from . import mlog
-from .mesonlib import MachineChoice, OrderedSet
+from .mesonlib import MachineChoice, OrderedSet, SimpleABC
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypeAlias
@@ -28,7 +28,7 @@ if T.TYPE_CHECKING:
     CommandList: TypeAlias = T.List[CommandListEntry]
 
 
-class Program(mesonlib.HoldableObject, metaclass=ABCMeta):
+class Program(mesonlib.HoldableObject, metaclass=SimpleABC):
     '''A base class for LocalProgram and ExternalProgram.'''
 
     name: str

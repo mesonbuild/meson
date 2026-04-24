@@ -10,11 +10,13 @@ import os
 import re
 import typing as T
 
+from ..mesonlib import SimpleABC
+
 if T.TYPE_CHECKING:
     from ..minit import Arguments
 
 
-class SampleImpl(metaclass=abc.ABCMeta):
+class SampleImpl(metaclass=SimpleABC):
 
     def __init__(self, args: Arguments):
         self.name = args.name

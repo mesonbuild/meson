@@ -114,7 +114,7 @@ class StaticLinker:
         raise EnvironmentException(f'{self.id} does not implement rsp format, this shouldn\'t be called')
 
 
-class DynamicLinker(metaclass=abc.ABCMeta):
+class DynamicLinker(metaclass=mesonlib.SimpleABC):
 
     """Base class for dynamic linkers."""
 

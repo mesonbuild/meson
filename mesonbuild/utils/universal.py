@@ -314,7 +314,7 @@ class SimpleABC(type):
         return super().__call__(*args, **kwargs)
 
 
-class SecondLevelHolder(HoldableObject, metaclass=abc.ABCMeta):
+class SecondLevelHolder(HoldableObject, metaclass=SimpleABC):
     ''' A second level object holder. The primary purpose
         of such objects is to hold multiple objects with one
         default option. '''

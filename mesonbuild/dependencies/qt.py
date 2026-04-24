@@ -171,7 +171,7 @@ class _QtBase:
         is_debug = self.env.coredata.optstore.get_value_for('debug')
         return ['-DQT_DEBUG' if is_debug else '-DQT_NO_DEBUG']
 
-class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta):
+class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=mesonlib.SimpleABC):
 
     """Specialization of the PkgConfigDependency for Qt."""
 
@@ -249,7 +249,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
         return 'pkg-config'
 
 
-class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
+class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=mesonlib.SimpleABC):
 
     """Find Qt using Qmake as a config-tool."""
 

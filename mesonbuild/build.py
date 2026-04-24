@@ -20,7 +20,7 @@ from . import dependencies
 from . import mlog
 from . import programs
 from .mesonlib import (
-    HoldableObject, SecondLevelHolder,
+    HoldableObject, SecondLevelHolder, SimpleABC,
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
@@ -667,7 +667,7 @@ class StructuredSources(HoldableObject):
 
 
 @dataclass(eq=False)
-class Target(HoldableObject, metaclass=abc.ABCMeta):
+class Target(HoldableObject, metaclass=SimpleABC):
 
     name: str
     subdir: str

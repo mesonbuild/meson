@@ -8,7 +8,6 @@ from __future__ import annotations
 interface.
 """
 
-import abc
 import os
 import typing as T
 
@@ -65,7 +64,7 @@ msvc_optimization_args: T.Dict[str, T.List[str]] = {
 }
 
 
-class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
+class VisualStudioLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
 
     """A common interface for all compilers implementing an MSVC-style
     interface.

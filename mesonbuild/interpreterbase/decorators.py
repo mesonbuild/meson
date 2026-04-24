@@ -641,7 +641,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
 
 
 # This cannot be a dataclass due to https://github.com/python/mypy/issues/5374
-class FeatureCheckBase(metaclass=abc.ABCMeta):
+class FeatureCheckBase(metaclass=mesonlib.SimpleABC):
     "Base class for feature version checks"
 
     feature_registry: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[T.Tuple[str, T.Optional['mparser.BaseNode']]]]]]
@@ -859,7 +859,7 @@ class FeatureBroken(FeatureCheckBase):
 
 
 # This cannot be a dataclass due to https://github.com/python/mypy/issues/5374
-class FeatureCheckKwargsBase(metaclass=abc.ABCMeta):
+class FeatureCheckKwargsBase(metaclass=mesonlib.SimpleABC):
 
     @property
     @abc.abstractmethod

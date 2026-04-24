@@ -348,7 +348,7 @@ def gnulike_default_include_dirs(compiler: T.Tuple[str, ...], lang: str) -> 'Imm
     return paths
 
 
-class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
+class GnuLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
     """
     GnuLikeCompiler is a common interface to all compilers implementing
     the GNU-style commandline interface. This includes GCC, Clang

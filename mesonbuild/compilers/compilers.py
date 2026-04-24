@@ -16,7 +16,7 @@ from .. import mlog
 from .. import mesonlib
 from .. import options
 from ..mesonlib import (
-    HoldableObject,
+    HoldableObject, SimpleABC,
     EnvironmentException, MesonBugException, MesonException,
     Popen_safe_logged, LibType, TemporaryDirectoryWinProof,
 )
@@ -467,7 +467,7 @@ class CompileResult(HoldableObject):
     output_name: T.Optional[str] = field(default=None, init=False)
     cached: bool = field(default=False, init=False)
 
-class Compiler(HoldableObject, metaclass=abc.ABCMeta):
+class Compiler(HoldableObject, metaclass=SimpleABC):
 
     # Libraries to ignore in find_library() since they are provided by the
     # compiler or the C library. Currently only used for MSVC.

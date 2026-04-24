@@ -22,7 +22,7 @@ from glob import glob
 from pathlib import Path
 from mesonbuild.environment import Environment
 from mesonbuild.tooldetect import detect_ninja
-from mesonbuild.mesonlib import (GIT, MesonException, RealPathAction, get_meson_command, quiet_git,
+from mesonbuild.mesonlib import (GIT, MesonException, RealPathAction, SimpleABC, get_meson_command, quiet_git,
                                  windows_proof_rmtree, setup_vsenv, determine_worker_count)
 from .options import OptionKey
 from mesonbuild.msetup import add_arguments as msetup_argparse
@@ -122,7 +122,7 @@ def is_hg(src_root: str) -> bool:
 
 
 @dataclass
-class Dist(metaclass=abc.ABCMeta):
+class Dist(metaclass=SimpleABC):
     dist_name: str
     src_root: str
     bld_root: str
