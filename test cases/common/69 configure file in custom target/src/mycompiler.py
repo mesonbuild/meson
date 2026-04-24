@@ -5,5 +5,5 @@ import sys
 with open(sys.argv[1]) as ifile:
     if ifile.readline().strip() != '42':
         print('Incorrect input')
-with open(sys.argv[2], 'w') as ofile:
+with open(sys.argv[2], 'w', encoding='utf-8') as ofile:
     ofile.write('Success\n')

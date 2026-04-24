@@ -11,5 +11,5 @@ except FileExistsError:
     pass
 
 for name in ('a', 'b', 'c'):
-    with open(os.path.join(out, name + '.html'), 'w') as f:
+    with open(os.path.join(out, name + '.html'), 'w', encoding='utf-8') as f:
         f.write(name)

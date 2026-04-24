@@ -27,7 +27,7 @@ def main() -> None:
             if dry_run:
                 print(f'DRYRUN: Writing file {name}')
             else:
-                with open(os.path.join(dirname, name), 'w') as f:
+                with open(os.path.join(dirname, name), 'w', encoding='utf-8') as f:
                     f.write('')
     else:
         for name in args.files:

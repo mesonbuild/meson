@@ -23,5 +23,5 @@ with open(options.input) as f:
 if options.upper:
     funcname = funcname.upper()
 
-with open(options.output, 'w') as f:
+with open(options.output, 'w', encoding='utf-8') as f:
     f.write(c_templ % funcname)

@@ -19,7 +19,7 @@ def generate(infile, outfile, fallback):
             return
     except OSError:
         pass
-    with open(outfile, 'w') as f:
+    with open(outfile, 'w', encoding='utf-8') as f:
         f.write(newdata)
 
 if __name__ == '__main__':

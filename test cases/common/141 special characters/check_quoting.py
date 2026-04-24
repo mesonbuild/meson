@@ -24,5 +24,5 @@ for arg in sys.argv[1:]:
         raise RuntimeError('{!r} is {!r} but should be {!r}'.format(name, value, expected[name]))
 
 if output is not None:
-    with open(output, 'w') as f:
+    with open(output, 'w', encoding='utf-8') as f:
         f.write('Success!')

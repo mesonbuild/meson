@@ -10,5 +10,5 @@ if __name__ == '__main__':
     if ifile != 'This is a text only input file.\n':
         print('Malformed input')
         sys.exit(1)
-    with open(sys.argv[1], 'w+') as f:
+    with open(sys.argv[1], 'w+', encoding='utf-8') as f:
         f.write('This is a binary output file.')

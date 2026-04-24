@@ -18,5 +18,5 @@ if __name__ == '__main__':
     if ifile != 'This is a text only input file.\n':
         print('Malformed input')
         sys.exit(1)
-    with open(args[2].split('=', 1)[1], 'w') as ofile:
+    with open(args[2].split('=', 1)[1], 'w', encoding='utf-8') as ofile:
         ofile.write('This is a binary output file.\n')

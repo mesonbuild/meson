@@ -3,7 +3,7 @@
 import configparser
 import sys
 
-with open(sys.argv[2], 'w') as outfile:
+with open(sys.argv[2], 'w', encoding='utf-8') as outfile:
     config = configparser.ConfigParser()
     config.read(sys.argv[1])
 

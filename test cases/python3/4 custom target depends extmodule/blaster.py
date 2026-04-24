@@ -23,7 +23,7 @@ options = parser.parse_args(sys.argv[1:])
 result = tachyon.phaserize('shoot')
 
 if options.output:
-    with open(options.output, 'w') as f:
+    with open(options.output, 'w', encoding='utf-8') as f:
         f.write('success')
 
 if not isinstance(result, int):

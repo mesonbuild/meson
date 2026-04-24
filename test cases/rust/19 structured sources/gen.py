@@ -9,7 +9,7 @@ def main() -> None:
     parser.add_argument('output')
     args = parser.parse_args()
 
-    with open(args.output, 'w') as f:
+    with open(args.output, 'w', encoding='utf-8') as f:
         f.write(textwrap.dedent('''\
             pub fn bar() -> () {
                 println!("Hello, World!");

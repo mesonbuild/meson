@@ -10,5 +10,5 @@ dirname = os.path.join(prefix, sys.argv[1])
 if not os.path.exists(dirname):
     os.makedirs(dirname)
 
-with open(os.path.join(dirname, sys.argv[2] + '.in'), 'w') as f:
+with open(os.path.join(dirname, sys.argv[2] + '.in'), 'w', encoding='utf-8') as f:
     f.write('')

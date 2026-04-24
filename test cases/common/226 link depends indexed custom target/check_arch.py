@@ -9,7 +9,7 @@ exepath = sys.argv[1]
 want_arch = sys.argv[2]
 dummy_output = sys.argv[3]
 
-with open(dummy_output, 'w') as f:
+with open(dummy_output, 'w', encoding='utf-8') as f:
     f.write('')
 
 if not shutil.which('dumpbin'):

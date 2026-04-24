@@ -91,7 +91,7 @@ class PkgGenerator:
         # ElementTree cannot do pretty-printing, so do it manually
         import xml.dom.minidom
         doc = xml.dom.minidom.parse(self.distribution_file)
-        with open(self.distribution_file, 'w') as open_file:
+        with open(self.distribution_file, 'w', encoding='utf-8') as open_file:
             open_file.write(doc.toprettyxml())
 
     def remove_tempfiles(self):

@@ -27,10 +27,10 @@ def main():
     parser.add_argument('--code')
     args = parser.parse_args()
 
-    with open(args.header, 'w') as f:
+    with open(args.header, 'w', encoding='utf-8') as f:
         f.write(HEADER)
 
-    with open(args.code, 'w') as f:
+    with open(args.code, 'w', encoding='utf-8') as f:
         f.write(CODE)
 
 

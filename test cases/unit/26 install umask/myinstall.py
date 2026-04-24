@@ -13,5 +13,5 @@ except FileExistsError:
     if not os.path.isdir(dirname):
         raise
 
-with open(os.path.join(dirname, sys.argv[2]), 'w') as f:
+with open(os.path.join(dirname, sys.argv[2]), 'w', encoding='utf-8') as f:
     f.write('')

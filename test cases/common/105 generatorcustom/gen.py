@@ -9,5 +9,5 @@ with open(ifile) as f:
     resname = f.readline().strip()
 
 templ = 'const char %s[] = "%s";\n'
-with open(ofile, 'w') as f:
+with open(ofile, 'w', encoding='utf-8') as f:
     f.write(templ % (resname, resname))

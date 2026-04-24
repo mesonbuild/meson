@@ -42,5 +42,5 @@ for i, ifile_name in enumerate(ifiles):
     h_out = ofile_bases[i] + '.h'
     c_out = ofile_bases[i] + '.c'
     os.makedirs(os.path.split(ofile_bases[i])[0], exist_ok=True)
-    open(h_out, 'w').write(h_templ % (proto_name))
-    open(c_out, 'w').write(c_templ % (proto_name, proto_name))
+    open(h_out, 'w', encoding='utf-8').write(h_templ % (proto_name))
+    open(c_out, 'w', encoding='utf-8').write(c_templ % (proto_name, proto_name))

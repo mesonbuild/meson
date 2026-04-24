@@ -14,4 +14,4 @@ int %s(void) {
 
 funname = open(ifile).readline().strip()
 
-open(ofile, 'w').write(templ % funname)
+open(ofile, 'w', encoding='utf-8').write(templ % funname)

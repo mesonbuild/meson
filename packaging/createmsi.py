@@ -231,13 +231,13 @@ class PackageGenerator:
         # ElementTree cannot do pretty-printing, so do it manually
         import xml.dom.minidom
         doc = xml.dom.minidom.parse(self.main_xml)
-        with open(self.main_xml, 'w') as open_file:
+        with open(self.main_xml, 'w', encoding='utf-8') as open_file:
             open_file.write(doc.toprettyxml())
         # One last fix, add CDATA.
         with open(self.main_xml) as open_file:
             data = open_file.read()
         data = data.replace('X'*len(WINVER_CHECK), WINVER_CHECK)
-        with open(self.main_xml, 'w') as open_file:
+        with open(self.main_xml, 'w', encoding='utf-8') as open_file:
             open_file.write(data)
 
     def build_features(self, top_feature, staging_dir):

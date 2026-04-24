@@ -49,7 +49,7 @@ DOC_FOOTER = '''
 
 if __name__ == '__main__':
     if len(sys.argv) >= 4:
-        with open(sys.argv[1], 'w') as doc_out:
+        with open(sys.argv[1], 'w', encoding='utf-8') as doc_out:
             enum_name = sys.argv[2]
             enum_type = sys.argv[3]
 

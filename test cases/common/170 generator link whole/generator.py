@@ -11,13 +11,13 @@ def main():
     hname = os.path.join(out, name + '.h')
     cname = os.path.join(out, name + '.c')
     print(os.getcwd(), hname)
-    with open(hname, 'w') as hfile:
+    with open(hname, 'w', encoding='utf-8') as hfile:
         hfile.write('''
 #pragma once
 #include "export.h"
 int DLL_PUBLIC {name}(void);
 '''.format(name=name))
-    with open(cname, 'w') as cfile:
+    with open(cname, 'w', encoding='utf-8') as cfile:
         cfile.write('''
 #include "{name}.h"
 int {name}(void) {{

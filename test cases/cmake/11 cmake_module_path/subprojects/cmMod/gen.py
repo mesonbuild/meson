@@ -1,4 +1,4 @@
-with open('main.c', 'w') as fp:
+with open('main.c', 'w', encoding='utf-8') as fp:
   print('''
 #include <stdio.h>
 

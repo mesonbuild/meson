@@ -9,7 +9,7 @@ def main() -> None:
     parser.add_argument('--mode', choices=['main', 'lib'], default='main')
     args = parser.parse_args()
 
-    with open(args.out, 'w') as f:
+    with open(args.out, 'w', encoding='utf-8') as f:
         if args.mode == 'main':
             f.write('fn main() { println!("I prefer tarnish, actually.") }')
         elif args.mode == 'lib':

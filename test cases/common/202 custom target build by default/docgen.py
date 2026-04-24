@@ -8,5 +8,5 @@ out = sys.argv[1]
 os.mkdir(out)
 
 for name in ('a', 'b', 'c'):
-    with open(os.path.join(out, name + '.txt'), 'w') as f:
+    with open(os.path.join(out, name + '.txt'), 'w', encoding='utf-8') as f:
         f.write(name)

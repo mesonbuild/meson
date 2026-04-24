@@ -9,7 +9,7 @@ depfiles = glob(os.path.join(srcdir, '*'))
 
 quoted_depfiles = [x.replace(' ', r'\ ') for x in depfiles]
 
-with open(output, 'w') as f:
+with open(output, 'w', encoding='utf-8') as f:
     f.write('I am the result of globbing.')
-with open(depfile, 'w') as f:
+with open(depfile, 'w', encoding='utf-8') as f:
     f.write('{}: {}\n'.format(output, ' '.join(quoted_depfiles)))

@@ -40,21 +40,21 @@ outc = os.path.join(outdir, funcname + '.c')
 tmpc = 'diibadaaba.c'
 tmpo = 'diibadaaba' + objsuffix
 
-with open(outc, 'w') as f:
+with open(outc, 'w', encoding='utf-8') as f:
     f.write('''#include"{}.h"
 int {}_in_src(void) {{
   return 0;
 }}
 '''.format(funcname, funcname))
 
-with open(outh, 'w') as f:
+with open(outh, 'w', encoding='utf-8') as f:
     f.write('''#pragma once
 int {}_in_lib(void);
 int {}_in_obj(void);
 int {}_in_src(void);
 '''.format(funcname, funcname, funcname))
 
-with open(tmpc, 'w') as f:
+with open(tmpc, 'w', encoding='utf-8') as f:
     f.write('''int %s_in_obj(void) {
   return 0;
 }
@@ -65,7 +65,7 @@ if is_vs:
 else:
     subprocess.check_call(compiler + ['-c', '-o', outo, tmpc])
 
-with open(tmpc, 'w') as f:
+with open(tmpc, 'w', encoding='utf-8') as f:
     f.write('''int %s_in_lib() {
   return 0;
 }

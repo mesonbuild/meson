@@ -13,9 +13,9 @@ outdir = sys.argv[2]
 outhdr = os.path.join(outdir, 'source%s.h' % val)
 outsrc = os.path.join(outdir, 'source%s.cpp' % val)
 
-with open(outhdr, 'w') as f:
+with open(outhdr, 'w', encoding='utf-8') as f:
     f.write('int func%s();\n' % val)
-with open(outsrc, 'w') as f:
+with open(outsrc, 'w', encoding='utf-8') as f:
     f.write('''int func%s() {
     return 0;
 }

@@ -218,7 +218,7 @@ class CommandTests(unittest.TestCase):
         test_command = 'import sys; print(sys.argv[1])'
         env = os.environ.copy()
         del env['MESON_COMMAND_TESTS']
-        with open(script_file, 'w') as f:
+        with open(script_file, 'w', encoding='utf-8') as f:
             f.write('#!/usr/bin/env python3\n\n')
             f.write(f'{test_command}\n')
         self.addCleanup(os.remove, script_file)

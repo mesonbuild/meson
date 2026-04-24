@@ -19,7 +19,7 @@ with open(options.input) as f:
 
 
 output_c = os.path.join(options.target_dir, options.stem + ".tab.c")
-with open(output_c, 'w') as f:
+with open(output_c, 'w', encoding='utf-8') as f:
     f.write(content)
 
 
@@ -28,5 +28,5 @@ h_content = '''#pragma once
 
 int myfun(void);
 '''
-with open(output_h, 'w') as f:
+with open(output_h, 'w', encoding='utf-8') as f:
     f.write(h_content)

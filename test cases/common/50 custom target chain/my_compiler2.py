@@ -11,5 +11,5 @@ if __name__ == '__main__':
     if ifile != 'This is a binary output file.\n':
         print('Malformed input')
         sys.exit(1)
-    with open(sys.argv[2], 'w') as ofile:
+    with open(sys.argv[2], 'w', encoding='utf-8') as ofile:
         ofile.write('This is a different binary output file.\n')

@@ -9,9 +9,9 @@ def main() -> None:
     parser.add_argument('dirname')
     args = parser.parse_args()
 
-    with open(os.path.join(args.dirname, '1.txt'), 'w') as f:
+    with open(os.path.join(args.dirname, '1.txt'), 'w', encoding='utf-8') as f:
         f.write('')
-    with open(os.path.join(args.dirname, '2.txt'), 'w') as f:
+    with open(os.path.join(args.dirname, '2.txt'), 'w', encoding='utf-8') as f:
         f.write('')
 
 

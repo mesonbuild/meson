@@ -8,5 +8,5 @@ import sys
 template = '#define RET_VAL %s\n'
 with open(sys.argv[1]) as f:
     output = template % (f.readline().strip(), )
-with open(sys.argv[2], 'w') as f:
+with open(sys.argv[2], 'w', encoding='utf-8') as f:
     f.write(output)
