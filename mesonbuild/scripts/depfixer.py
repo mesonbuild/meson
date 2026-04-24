@@ -179,7 +179,7 @@ def traverse_xcoff(file: T.BinaryIO, rpath_dirs_to_remove: T.Set[bytes], new_rpa
     def dummy_print(*args: object) -> None:
         pass
     log_msg: T.Callable[..., None]
-    log_msg = print if verbose else dummy_print  # type: ignore[assignment]
+    log_msg = print if verbose else dummy_print
 
     # Detect if this is an archive by checking for magic number
     magic_check = file.read(8)
