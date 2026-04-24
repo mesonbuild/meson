@@ -8,6 +8,7 @@ from .exceptions import InvalidCode, InvalidArguments
 from .helpers import flatten, resolve_second_level_holders
 from .operator import MesonOperator
 from ..mesonlib import HoldableObject, MesonBugException
+import enum
 import textwrap
 
 import typing as T
@@ -174,9 +175,18 @@ class UnknownValue(MesonInterpreterObject):
     limitations in our code or because the value differs from machine to
     machine.'''
 
-class UndefinedVariable(MesonInterpreterObject):
+class UndefinedVariable(MesonInterpreterObject, enum.Enum):
     '''This class is only used for the rewriter/static introspection tool and
     represents the `value` a meson-variable has if it was never written to.'''
+
+    _ = 0
+
+    def __init__(self, zero: int) -> None:
+        pass
+
+# Stateless singletons: callers should compare with "is", not isinstance()
+# mypy knows that "is" and "isinstance" is the same for one-item enums
+UNDEFINED_VARIABLE: UndefinedVariable = UndefinedVariable._
 
 HoldableTypes = (HoldableObject, int, bool, str, list, dict)
 TYPE_HoldableTypes = T.Union[TYPE_var, HoldableObject]

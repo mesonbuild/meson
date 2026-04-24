@@ -64,6 +64,7 @@ __all__ = [
 
     'UnknownValue',
     'UndefinedVariable',
+    'UNDEFINED_VARIABLE',
 ]
 
 from .baseobjects import (
@@ -89,6 +90,7 @@ from .baseobjects import (
 
     UnknownValue,
     UndefinedVariable,
+    UNDEFINED_VARIABLE,
 )
 
 from .decorators import (
