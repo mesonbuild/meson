@@ -109,7 +109,7 @@ jobs:
           SKIP_STATIC_BOOST: 1
         shell: bash --noprofile --norc -o igncr -eo pipefail '{0}'
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.NAME }}
           path: meson-test-run.*

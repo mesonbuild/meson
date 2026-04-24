@@ -281,7 +281,7 @@ jobs:
       - name: Run Tests
         run: meson test -C builddir/ -v
       - name: Upload Test Log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: ${{ matrix.os }}_Meson_Testlog
