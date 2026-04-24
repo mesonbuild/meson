@@ -398,6 +398,13 @@ def run(options: argparse.Namespace) -> int:
         for sub in b.projects:
             if sub:
                 directory = wrap.get_directory(subproject_dir, sub)
+                sub_path = os.path.join(subproject_dir, directory)
+                if not os.path.exists(sub_path):
+                    # Subproject directory not found at the top level. It is likely a
+                    # transitive subproject nested inside another subproject's source
+                    # tree and will be included when that parent subproject is bundled.
+                    mlog.debug(f'Skipping subproject {sub!r} for dist: directory {sub_path!r} not found at top level')
+                    continue
                 subprojects[sub] = os.path.join(b.subproject_dir, directory)
         extra_meson_args.append('-Dwrap_mode=nodownload')
 
