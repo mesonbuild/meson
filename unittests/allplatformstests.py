@@ -1607,6 +1607,44 @@ class AllPlatformTests(BasePlatformTests):
             # fails sometimes.
             pass
 
+    @skipIfNoExecutable('git')
+    def test_dist_git_include_subprojects_transitive(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest('Dist is only supported with Ninja')
+
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                project_dir = os.path.join(tmpdir, 'mainproj')
+                os.makedirs(project_dir)
+
+                with open(os.path.join(project_dir, 'meson.build'), 'w', encoding='utf-8') as f:
+                    f.write(textwrap.dedent('''\
+                        project('mainproj', version: '1.0')
+                        subproject('parentsub')
+                        '''))
+
+                parentsub_dir = os.path.join(project_dir, 'subprojects', 'parentsub')
+                os.makedirs(parentsub_dir)
+                with open(os.path.join(parentsub_dir, 'meson.build'), 'w', encoding='utf-8') as f:
+                    f.write(textwrap.dedent('''\
+                        project('parentsub', version: '1.0')
+                        subproject('transitivesub')
+                        '''))
+
+                # transitivesub lives only inside parentsub's source tree, not at the top level
+                transitivesub_dir = os.path.join(parentsub_dir, 'subprojects', 'transitivesub')
+                os.makedirs(transitivesub_dir)
+                with open(os.path.join(transitivesub_dir, 'meson.build'), 'w', encoding='utf-8') as f:
+                    f.write("project('transitivesub', version: '1.0')\n")
+
+                git_init(project_dir)
+                self.init(project_dir)
+                # Should succeed without FileNotFoundError for the transitive subproject
+                self._run(self.meson_command + ['dist', '--include-subprojects', '--no-tests'],
+                          workdir=self.builddir)
+        except PermissionError:
+            pass
+
     def create_dummy_subproject(self, project_dir, name):
         path = os.path.join(project_dir, 'subprojects', name)
         os.makedirs(path)
