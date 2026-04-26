@@ -15,3 +15,8 @@ main = executable('main', 'main.c',
   link_with: bar_internal,
   install: true,
 )
+
+main_whole = executable('main-whole', 'main.c',
+  link_whole: bar_internal,
+  install: true,
+)
