@@ -182,6 +182,8 @@ class DarwinTests(BasePlatformTests):
         self.assertListEqual(rpaths, [])
         libs = self._get_darwin_rpath_libraries(os.path.join(self.installdir, 'usr/bin/main'))
         self.assertListEqual(libs, [])
+        libs = self._get_darwin_rpath_libraries(os.path.join(self.installdir, 'usr/bin/main-whole'))
+        self.assertListEqual(libs, [])
 
     @skip_if_not_language('rust')
     def test_rust_apple_framework_rlib(self):
