@@ -43,8 +43,8 @@ jobs:
         # productive -- only victim blaming -- however it bites particularly badly because this is a container/VM
         # See commit 5c479d7a13a518c18ccb4dc3b6bdd7bfc2a9bdb5 for a more thorough analysis.
         find /opt/homebrew/Cellar/python* -name EXTERNALLY-MANAGED -print0 | xargs -0 rm -vf
-    - run: |
-        python3 -m pip install --upgrade pip
+    - name: Install Python dependencies
+      run: |
         python3 -m pip install pytest pytest-xdist pytest-subtests fastjsonschema
     - run: brew install pkg-config ninja llvm qt@5
     - env:
