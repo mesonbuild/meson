@@ -2839,6 +2839,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             else:
                 rulename = 'CUSTOM_COMMAND_DEP'
                 depfilename = generator.get_dep_outname(infilename)
+                if genlist.preserve_path_from:
+                    path_segment = genlist.get_preserved_path_segment(curfile)
+                    depfilename = os.path.join(path_segment, depfilename)
                 depfile = os.path.join(self.get_target_private_dir(target), depfilename)
                 args = [x.replace('@DEPFILE@', depfile) for x in base_args]
             args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)
