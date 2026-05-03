@@ -5,8 +5,11 @@ cpp = meson.get_compiler('cpp')
 
 cpp_id = cpp.get_id()
 cpp_version = cpp.version()
+is_windows = host_machine.system() == 'windows'
 
-if cpp_id == 'gcc' and cpp_version.version_compare('>=15.3')
+# gcc 16 on Windows fails with "undefined reference to 'std::__open_terminal(_iobuf*)'"
+# clang 22 + mingw-w64 on Windows fails with "fatal error: module 'std' not found"
+if not is_windows and cpp_id == 'gcc' and cpp_version.version_compare('>=15.3')
   # Versions between 15.0 and 15.2 are too unreliable to test.
   # The same version number of GCC works in some distros
   # but fails in others.
