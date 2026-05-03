@@ -2088,7 +2088,7 @@ class Generator(HoldableObject):
         bases = [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
         return bases
 
-    def get_dep_outname(self, inname: str) -> T.List[str]:
+    def get_dep_outname(self, inname: str) -> str:
         if self.depfile is None:
             raise InvalidArguments('Tried to get dep name for rule that does not have dependency file defined.')
         plainname = os.path.basename(inname)
@@ -2134,7 +2134,7 @@ class Generator(HoldableObject):
                     if not is_parent_path(preserve_path_from, abs_f):
                         raise InvalidArguments('generator.process: When using preserve_path_from, all input files must be in a subdirectory of the given dir.')
                 f = FileMaybeInTargetPrivateDir(f)
-                output.add_file(f, self.environment)
+                output.add_file(f)
         return output
 
 
@@ -2179,21 +2179,18 @@ class GeneratedList(HoldableObject):
                 # know the absolute path of
                 self.depend_files.append(File.from_absolute_file(path))
 
-    def add_preserved_path_segment(self, infile: FileMaybeInTargetPrivateDir, outfiles: T.List[str], environment: Environment) -> T.List[str]:
-        result: T.List[str] = []
-        in_abs = infile.absolute_path(environment.source_dir, environment.build_dir)
+    def get_preserved_path_segment(self, infile: FileMaybeInTargetPrivateDir) -> str:
+        in_abs = infile.absolute_path(self.generator.environment.source_dir, self.generator.environment.build_dir)
         assert os.path.isabs(self.preserve_path_from)
         rel = os.path.relpath(in_abs, self.preserve_path_from)
-        path_segment = os.path.dirname(rel)
-        for of in outfiles:
-            result.append(os.path.join(path_segment, of))
-        return result
+        return os.path.dirname(rel)
 
-    def add_file(self, newfile: FileMaybeInTargetPrivateDir, environment: Environment) -> None:
+    def add_file(self, newfile: FileMaybeInTargetPrivateDir) -> None:
         self.infilelist.append(newfile)
         outfiles = self.generator.get_base_outnames(newfile.fname)
         if self.preserve_path_from:
-            outfiles = self.add_preserved_path_segment(newfile, outfiles, environment)
+            path_segment = self.get_preserved_path_segment(newfile)
+            outfiles = [os.path.join(path_segment, of) for of in outfiles]
         self.outfilelist += outfiles
         self.outmap[newfile] = outfiles
 
