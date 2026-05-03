@@ -1753,6 +1753,13 @@ class BuildTarget(Target):
     def uses_vala(self) -> bool:
         return 'vala' in self.compilers
 
+    def uses_swift_objc_interop(self) -> bool:
+        # At this point, this is only available on Apple platforms, and enabled unconditionally there.
+        # In the -- perhaps futile -- hope of this changing in the future, let's handle this one like Swift/C++.
+        # (I'll just take a commenter on the Swift forums at their word that you can't build a Swift compiler for
+        # Apple platforms with Obj-C disabled, which simplifies the logic quite a bit here for now)
+        return 'swift' in self.compilers and self.environment.machines[self.for_machine].is_darwin()
+
     def uses_swift_cpp_interop(self) -> bool:
         return self.swift_interoperability_mode == 'cpp' and 'swift' in self.compilers
 
