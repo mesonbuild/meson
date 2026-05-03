@@ -3,12 +3,13 @@
 
 from __future__ import annotations
 
+import itertools
 import re
 import subprocess, os.path
 import typing as T
 
 from .. import mlog, options
-from ..mesonlib import first, MesonException, version_compare
+from ..mesonlib import MesonException, version_compare
 from .compilers import Compiler, clike_debug_args, PrefixArgumentLinkerOptionStyle
 
 if T.TYPE_CHECKING:
@@ -138,14 +139,23 @@ class SwiftCompiler(Compiler):
             args += ['-swift-version', std]
 
         # Pass C compiler -std=... arg to swiftc
-        c_langs: T.List[Language] = ['objc', 'c']
-        if target.uses_swift_cpp_interop():
-            c_langs = ['objcpp', 'cpp', *c_langs]
 
-        c_lang = first(c_langs, lambda x: x in target.compilers)
-        if c_lang is not None:
+        objc_interop = target.uses_swift_objc_interop()
+        cpp_interop = target.uses_swift_cpp_interop()
+
+        def consider(compiler: Language, conditions: bool = True) -> T.Iterable[Language]:
+            return [compiler] if conditions and compiler in target.compilers else []
+
+        try:
+            c_lang = next(itertools.chain(consider('objcpp', objc_interop and cpp_interop),
+                                          consider('cpp', cpp_interop),
+                                          consider('objc', objc_interop),
+                                          consider('c')))
+
             cc = target.compilers[c_lang]
             args.extend(arg for c_arg in cc.get_option_std_args(target, subproject) for arg in ['-Xcc', c_arg])
+        except StopIteration:
+            pass
 
         return args
 
