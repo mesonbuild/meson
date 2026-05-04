@@ -786,9 +786,6 @@ class Target(HoldableObject, metaclass=SimpleABC):
     def get_id(self) -> str:
         return self.id
 
-    def get_override(self, name: str) -> T.Optional[ElementaryOptionValues]:
-        return self.raw_overrides.get(name, None)
-
     def is_linkable_target(self) -> bool:
         return False
 
@@ -1365,6 +1362,9 @@ class BuildTarget(Target):
 
     def get_custom_install_mode(self) -> T.Optional['FileMode']:
         return self.install_mode
+
+    def get_override(self, name: str) -> T.Optional[ElementaryOptionValues]:
+        return self.raw_overrides.get(name, None)
 
     def process_kwargs(self, kwargs: BuildTargetKeywordArguments) -> None:
         self.original_kwargs = kwargs
