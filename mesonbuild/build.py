@@ -3199,7 +3199,7 @@ class CustomTarget(Target, CustomTargetBase):
         return CustomTargetIndex(self, self.outputs[0]).is_internal()
 
     def extract_all_objects(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
-        return self.get_outputs()
+        return T.cast('list[str | ExtractedObjects]', self.get_outputs())
 
     def type_suffix(self) -> str:
         return "@cus"
