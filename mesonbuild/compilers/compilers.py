@@ -1688,3 +1688,11 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         if 'none' not in value:
             value = ['none'] + value
         std.choices = value
+
+    def get_crt_static(self) -> bool:
+        """Is this target using static CRT?"""
+        raise EnvironmentException(f'{self.get_id()} does not support static CRT')
+
+    def get_target_libdir(self) -> str:
+        """Where is the libdir for the current machine located"""
+        raise EnvironmentException(f'{self.get_id()} does not support Rust target libdir')
