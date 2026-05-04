@@ -1460,13 +1460,16 @@ class BuildTarget(Target):
             mlog.warning(f"Use the '{arg}' kwarg instead of passing '-f{arg}' manually to {self.name!r}")
             return True
 
+        if (a := kwargs.get(arg)) is not None:
+            assert isinstance(a, bool), 'for mypy'
+            return a
+
         k = OptionKey(option)
-        if kwargs.get(arg) is not None:
-            return kwargs[arg]
-        elif k in self.environment.coredata.optstore:
+        if k in self.environment.coredata.optstore:
             val = self.environment.coredata.get_option_for_target(self, k)
             assert isinstance(val, bool), 'for mypy'
             return val
+
         return False
 
     def install_dir_names(self) -> T.List[T.Optional[str]]:
