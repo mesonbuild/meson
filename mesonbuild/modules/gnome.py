@@ -1006,7 +1006,7 @@ class GnomeModule(ExtensionModule):
         # backslashes, so best avoid them entirely.
         cc_exelist = [pathlib.Path(exe).as_posix() for exe in cc_exelist]
         run_env.set('CC', [quote_arg(x) for x in cc_exelist], ' ')
-        run_env.set('CFLAGS', [quote_arg(x) for x in env_flags], ' ')
+        run_env.set('LDFLAGS', [quote_arg(x) for x in env_flags], ' ')
         run_env.merge(kwargs['env'])
 
         # response file supported?
