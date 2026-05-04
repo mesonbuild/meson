@@ -119,7 +119,7 @@ class WindowsModule(ExtensionModule):
                           args: T.Tuple[T.List[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]]],
                           kwargs: 'CompileResources') -> ModuleReturnValue:
         extra_args = kwargs['args'].copy()
-        wrc_depend_files = kwargs['depend_files']
+        wrc_depend_files = state._interpreter.source_strings_to_files(kwargs['depend_files'])
         wrc_depends = kwargs['depends']
         for d in wrc_depends:
             if isinstance(d, build.CustomTarget):

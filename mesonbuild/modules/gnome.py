@@ -555,7 +555,7 @@ class GnomeModule(ExtensionModule):
     def _get_gresource_dependencies(
             state: 'ModuleState', input_file: str, source_dirs: T.List[str],
             dependencies: T.Sequence[T.Union[mesonlib.File, CustomTarget, CustomTargetIndex]]
-            ) -> T.Tuple[T.List[mesonlib.FileOrString], T.List[T.Union[CustomTarget, CustomTargetIndex]], T.List[str]]:
+            ) -> T.Tuple[T.List[mesonlib.File], T.List[T.Union[CustomTarget, CustomTargetIndex]], T.List[str]]:
 
         cmd = ['glib-compile-resources',
                input_file,
@@ -579,7 +579,7 @@ class GnomeModule(ExtensionModule):
 
         depends: T.List[T.Union[CustomTarget, CustomTargetIndex]] = []
         subdirs: T.List[str] = []
-        dep_files: T.List[mesonlib.FileOrString] = []
+        dep_files: T.List[mesonlib.File] = []
         for resfile in raw_dep_files.copy():
             resbasename = os.path.basename(resfile)
             for dep in dependencies:
@@ -622,7 +622,7 @@ class GnomeModule(ExtensionModule):
                         'keyword argument.')
                 raw_dep_files.remove(resfile)
                 dep_files.append(f)
-        dep_files.extend(raw_dep_files)
+        dep_files.extend(mesonlib.File.from_absolute_file(r) for r in raw_dep_files)
         return dep_files, depends, subdirs
 
     def _get_link_args(self, state: 'ModuleState',
@@ -1296,7 +1296,7 @@ class GnomeModule(ExtensionModule):
             [],
             ['gschemas.compiled'],
             build_by_default=kwargs['build_by_default'],
-            depend_files=kwargs['depend_files'],
+            depend_files=state._interpreter.source_strings_to_files(kwargs['depend_files']),
             description='Compiling gschemas {}',
         )
         self._devenv_prepend('GSETTINGS_SCHEMA_DIR', os.path.join(state.environment.get_build_dir(), state.subdir))

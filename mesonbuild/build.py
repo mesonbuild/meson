@@ -3011,7 +3011,7 @@ class CustomTarget(Target, CustomTargetBase):
                  build_by_default: T.Optional[bool] = None,
                  capture: bool = False,
                  console: bool = False,
-                 depend_files: T.Optional[T.Sequence[FileOrString]] = None,
+                 depend_files: list[File] | None = None,
                  extra_depends: T.Optional[T.Sequence[TargetDepends]] = None,
                  depfile: T.Optional[str] = None,
                  depfile_type: T.Optional[Literal['gcc', 'msvc']] = None,
