@@ -2923,46 +2923,53 @@ class BothLibraries(SecondLevelHolder):
         # For polymorphism with build targets
         return True
 
-class CommandBase:
 
-    depend_files: T.List[File]
-    dependencies: T.List[T.Union[BuildTarget, 'CustomTarget']]
-    subproject: SubProject
+def flatten_command(cmd: T.Sequence[str | File | programs.Program | BuildTargetTypes],
+                    subproject: SubProject) -> tuple[list[str | File | BuildTarget | CustomTarget | programs.Program],
+                                                     list[File], list[BuildTarget | CustomTarget]]:
+    final_cmd: list[str | File | programs.Program | BuildTarget | CustomTarget] = []
+    depend_files: list[File] = []
+    dependencies: list[BuildTarget | CustomTarget] = []
+    for c in cmd:
+        if isinstance(c, LocalProgram):
+            c = c.program
+        if isinstance(c, str):
+            final_cmd.append(c)
+        elif isinstance(c, File):
+            depend_files.append(c)
+            final_cmd.append(c)
+        elif isinstance(c, programs.Program):
+            if not c.found():
+                raise InvalidArguments('Tried to use not-found external program in "command"')
+            path = c.get_path()
+            # We know path is not non if c.found()
+            assert path is not None, 'for mypy'
+            if os.path.isabs(path):
+                # Can only add a dependency on an external program which we
+                # know the absolute path of
+                depend_files.append(File.from_absolute_file(path))
+            # Do NOT flatten -- it is needed for later parsing
+            final_cmd.append(c)
+        elif isinstance(c, (BuildTarget, CustomTarget)):
+            dependencies.append(c)
+            final_cmd.append(c)
+        elif isinstance(c, CustomTargetIndex):
+            FeatureNew.single_use('CustomTargetIndex for command argument', '0.60', subproject)
+            dependencies.append(c.target)
+            c, df, d = flatten_command([File.from_built_file(c.get_subdir(), c.get_filename())], subproject)
+            final_cmd.extend(c)
+            depend_files.extend(df)
+            dependencies.extend(d)
+        elif isinstance(c, list):
+            # TODO: is this case even reachable?
+            c, df, d = flatten_command(c, subproject)
+            final_cmd.extend(c)
+            depend_files.extend(df)
+            dependencies.extend(d)
+        else:
+            raise InvalidArguments(f'Argument {c!r} in "command" is invalid')
+    return final_cmd, depend_files, dependencies
 
-    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.Program, BuildTargetTypes]]) -> \
-            T.List[T.Union[str, File, BuildTarget, CustomTarget, programs.Program]]:
-        cmd = listify(cmd)
-        final_cmd: T.List[T.Union[str, File, BuildTarget, 'CustomTarget']] = []
-        for c in cmd:
-            if isinstance(c, LocalProgram):
-                c = c.program
-            if isinstance(c, str):
-                final_cmd.append(c)
-            elif isinstance(c, File):
-                self.depend_files.append(c)
-                final_cmd.append(c)
-            elif isinstance(c, programs.Program):
-                if not c.found():
-                    raise InvalidArguments('Tried to use not-found external program in "command"')
-                path = c.get_path()
-                if os.path.isabs(path):
-                    # Can only add a dependency on an external program which we
-                    # know the absolute path of
-                    self.depend_files.append(File.from_absolute_file(path))
-                # Do NOT flatten -- it is needed for later parsing
-                final_cmd.append(c)
-            elif isinstance(c, (BuildTarget, CustomTarget)):
-                self.dependencies.append(c)
-                final_cmd.append(c)
-            elif isinstance(c, CustomTargetIndex):
-                FeatureNew.single_use('CustomTargetIndex for command argument', '0.60', self.subproject)
-                self.dependencies.append(c.target)
-                final_cmd += self.flatten_command(File.from_built_file(c.get_subdir(), c.get_filename()))
-            elif isinstance(c, list):
-                final_cmd += self.flatten_command(c)
-            else:
-                raise InvalidArguments(f'Argument {c!r} in "command" is invalid')
-        return final_cmd
 
 class CustomTargetBase:
     ''' Base class for CustomTarget and CustomTargetIndex
@@ -2993,7 +3000,7 @@ class CustomTargetBase:
         """Base case used by BothLibraries"""
         return self
 
-class CustomTarget(Target, CustomTargetBase, CommandBase):
+class CustomTarget(Target, CustomTargetBase):
 
     typename = 'custom'
 
@@ -3042,7 +3049,10 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
         self.depend_files = list(depend_files or [])
         self.dependencies: T.List[T.Union[CustomTarget, BuildTarget]] = []
         # must be after depend_files and dependencies
-        self.command = self.flatten_command(command)
+        c, df, d = flatten_command(command, self.subproject)
+        self.command = c
+        self.depend_files.extend(df)
+        self.dependencies.extend(d)
         self.depfile = depfile
         self.depfile_type = 'gcc' if depfile else depfile_type
         self.env = env or EnvironmentVariables()
@@ -3281,7 +3291,7 @@ class CompileTarget(BuildTarget):
             gen_headers += [File(True, dep.subdir, o) for o in dep.get_outputs()]
         return gen_headers
 
-class RunTarget(Target, CommandBase):
+class RunTarget(Target):
 
     typename = 'run'
 
@@ -3297,8 +3307,8 @@ class RunTarget(Target, CommandBase):
         # These don't produce output artifacts
         super().__init__(name, subdir, subproject, False, MachineChoice.BUILD, environment)
         self.dependencies = list(dependencies)
-        self.depend_files = []
-        self.command = self.flatten_command(command)
+        self.command, self.depend_files, d = flatten_command(command, subproject)
+        self.dependencies.extend(d)
         self.absolute_paths = False
         self.env = env
         self.default_env = default_env
