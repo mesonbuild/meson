@@ -1865,7 +1865,7 @@ def iter_regexin_iter(regexiter: T.Iterable[str], initer: T.Iterable[str | progr
     return None
 
 
-def _substitute_values_check_errors(command: T.List[str | programs.Program], values: T.Dict[str, T.Union[str, T.List[str]]]) -> None:
+def _substitute_values_check_errors(command: T.Sequence[str | programs.Program], values: T.Dict[str, T.Union[str, T.List[str]]]) -> None:
     # Error checking
     inregex: T.List[str] = ['@INPUT([0-9]+)?@', '@PLAINNAME@', '@BASENAME@']
     outregex: T.List[str] = ['@OUTPUT([0-9]+)?@', '@OUTDIR@']
@@ -1905,7 +1905,19 @@ def _substitute_values_check_errors(command: T.List[str | programs.Program], val
                 raise MesonException(m.format(match2.group(), len(values['@OUTPUT@'])))
 
 
-def substitute_values(command: T.List[str | programs.Program], values: T.Dict[str, T.Union[str, T.List[str]]]) -> T.List[str | programs.Program]:
+@T.overload
+def substitute_values(command: T.List[str],
+                      values: T.Dict[str, T.Union[str, T.List[str]]]
+                      ) -> T.List[str]: ...
+
+@T.overload
+def substitute_values(command: T.List[str | programs.Program],
+                      values: T.Dict[str, T.Union[str, T.List[str]]]
+                      ) -> T.List[str | programs.Program]: ...
+
+def substitute_values(command: T.List[str | programs.Program] | T.List[str],
+                      values: T.Dict[str, T.Union[str, T.List[str]]]
+                      ) -> T.List[str | programs.Program] | T.List[str]:
     '''
     Substitute the template strings in the @values dict into the list of
     strings @command and return a new list. For a full list of the templates,
