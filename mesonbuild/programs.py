@@ -309,8 +309,14 @@ class ExternalProgram(Program):
             # sure that it can be run directly if it's not a native executable.
             # For instance, interpreted scripts sometimes need to be run explicitly
             # with an interpreter if the file association is not done properly.
-            name_ext = os.path.splitext(command)[1]
-            if name_ext[1:].lower() in self.windows_exts:
+
+            # Lower case the command extension, as clangd requires lower case
+            # "exe" to unwrap compiler wrappers in CDB, e.g. "ccache.exe cl ..."
+            prefix, ext = os.path.splitext(command)
+            ext = ext.lower()
+            command = prefix + ext
+
+            if ext[1:] in self.windows_exts:
                 # Good, it can be directly executed
                 return [command]
             # Try to extract the interpreter from the shebang
