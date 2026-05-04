@@ -1644,6 +1644,7 @@ class BuildTarget(Target):
     def get_internal_static_libraries_recurse(self, result: OrderedSet[StaticTargetTypes]) -> None:
         for t in self.link_targets:
             if t.is_internal() and t not in result:
+                assert isinstance(t, (StaticLibrary, CustomTarget, CustomTargetIndex)), 'for mypy'
                 result.add(t)
                 t.get_internal_static_libraries_recurse(result)
         for t in self.link_whole_targets:
@@ -2495,6 +2496,7 @@ class StaticLibrary(BuildTarget):
             if self.install and t.is_internal():
                 # When we're a static library and we link_with to an
                 # internal/convenience library, promote to link_whole.
+                assert isinstance(t, (StaticLibrary, CustomTarget, CustomTargetIndex)), 'for mypy'
                 self.link_whole([t], promoted=True)
                 continue
             self.check_can_link_together(t)
