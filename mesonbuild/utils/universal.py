@@ -8,6 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 import argparse
 import ast
+import copy
 import enum
 import sys
 import stat
@@ -573,6 +574,14 @@ class PerMachine(T.Generic[_T]):
         self.build = build
         self.host = host
 
+    def __copy__(self) -> PerMachine[_T]:
+        build = copy.copy(self.build)
+        if self.host is self.build:
+            host = build
+        else:
+            host = copy.copy(self.host)
+        return PerMachine(build, host)
+
 
 @dataclasses.dataclass(eq=False, order=False)
 class PerThreeMachine(PerMachine[_T]):
@@ -604,6 +613,20 @@ class PerThreeMachine(PerMachine[_T]):
 
     def matches_build_machine(self, machine: MachineChoice) -> bool:
         return self.build == self[machine]
+
+    def __copy__(self) -> PerMachine[_T]:
+        build = copy.copy(self.build)
+        if self.host is self.build:
+            host = build
+        else:
+            host = copy.copy(self.host)
+
+        if self.target is self.host:
+            target = host
+        else:
+            target = copy.copy(self.target)
+
+        return PerThreeMachine(build, host, target)
 
 
 @dataclasses.dataclass(eq=False, order=False)
