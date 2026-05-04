@@ -44,6 +44,7 @@ if T.TYPE_CHECKING:
     from ._typing import ImmutableListProtocol
     from .backend.backends import Backend
     from .compilers.compilers import Compiler, CompilerDict, Language
+    from .compilers.rust import RustCompiler
     from .interpreter.interpreter import CustomTargetSources, SourceOutputs, Interpreter
     from .interpreter.interpreterobjects import Test, Doctest
     from .interpreter.kwargs import TargetDepends
@@ -2386,7 +2387,7 @@ class StaticLibrary(BuildTarget):
                 #  In the case of no-std, we are likely in a bare metal case
                 #  and thus, machine_info kernel should be set to 'none'.
                 #  In that case, native_static_libs list is empty.
-                rustc = self.compilers['rust']
+                rustc = T.cast('RustCompiler', self.compilers['rust'])
                 if rustc.get_crt_static():
                     # musl targets need self-contained for libc.a, libunwind.a etc.
                     link_args = ['-L' + rustc.get_target_libdir() + '/self-contained']
