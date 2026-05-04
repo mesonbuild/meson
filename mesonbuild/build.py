@@ -1314,8 +1314,9 @@ class BuildTarget(Target):
         result: T.Dict[str, str] = {}
         for i in itertools.chain(self.link_targets, self.link_whole_targets):
             mapping = i.get_link_deps_mapping(prefix)
-            #we are merging two dictionaries, while keeping the earlier one dominant
-            result_tmp = mapping.copy()
+            # we are merging two dictionaries, while keeping the earlier one dominant
+            # use dict() both to copy and change type
+            result_tmp = dict(mapping)
             result_tmp.update(result)
             result = result_tmp
         return result
