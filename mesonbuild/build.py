@@ -2531,21 +2531,45 @@ class SharedLibrary(BuildTarget):
             environment: Environment,
             compilers: CompilerDict,
             kwargs: SharedLibraryKeywordArguments):
-        self.soversion: T.Optional[str] = None
-        self.ltversion: T.Optional[str] = None
-        # Max length 2, first element is compatibility_version, second is current_version
-        self.darwin_versions: T.Optional[T.Tuple[str, str]] = None
-        self.vs_module_defs = None
-        self.shortname: T.Optional[str] = None
-        # The import library this target will generate
-        self.import_filename: str | None = None
-        # The debugging information file this target will generate
-        self.debug_filename: str | None = None
-        # Use by the pkgconfig module
-        self.shared_library_only = False
-        self.rust_crate_type = kwargs.get('rust_crate_type', 'dylib')
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
+
+        # Max length 2, first element is compatibility_version, second is current_version
+        self.darwin_versions: T.Optional[T.Tuple[str, str]] = None
+        self.soversion: T.Optional[str] = None
+        self.ltversion: T.Optional[str] = None
+        if not self.environment.machines[self.for_machine].is_android():
+            # Shared library version
+            self.ltversion = kwargs.get('version')
+            self.soversion = kwargs.get('soversion')
+            if self.soversion is None and self.ltversion is not None:
+                # library version is defined, get the soversion from that
+                # We replicate what Autotools does here and take the first
+                # number of the version by default.
+                self.soversion = self.ltversion.split('.')[0]
+            # macOS, iOS and tvOS dylib compatibility_version and current_version
+            self.darwin_versions = kwargs.get('darwin_versions')
+            if self.darwin_versions is None and self.soversion is not None:
+                # If unspecified, pick the soversion
+                self.darwin_versions = (self.soversion, self.soversion)
+
+        self.vs_module_defs: File | None = None
+        # Visual Studio module-definitions file
+        self.process_vs_module_defs_kw(kwargs)
+
+        # OS/2 uses a 8.3 name for a DLL
+        self.shortname = kwargs.get('shortname')
+
+        # The import library this target will generate
+        self.import_filename: str | None = None
+
+        # The debugging information file this target will generate
+        self.debug_filename: str | None = None
+
+        # Use by the pkgconfig module
+        self.shared_library_only = False
+
+        self.rust_crate_type = kwargs.get('rust_crate_type', 'dylib')
 
     def post_init(self) -> None:
         super().post_init()
@@ -2732,30 +2756,6 @@ class SharedLibrary(BuildTarget):
         self.outputs[0] = self.filename
         if create_debug_file:
             self.debug_filename = os.path.splitext(self.filename)[0] + '.pdb'
-
-    def process_kwargs(self, kwargs: SharedLibraryKeywordArguments) -> None:
-        super().process_kwargs(kwargs)
-
-        if not self.environment.machines[self.for_machine].is_android():
-            # Shared library version
-            self.ltversion = kwargs.get('version')
-            self.soversion = kwargs.get('soversion')
-            if self.soversion is None and self.ltversion is not None:
-                # library version is defined, get the soversion from that
-                # We replicate what Autotools does here and take the first
-                # number of the version by default.
-                self.soversion = self.ltversion.split('.')[0]
-            # macOS, iOS and tvOS dylib compatibility_version and current_version
-            self.darwin_versions = kwargs.get('darwin_versions')
-            if self.darwin_versions is None and self.soversion is not None:
-                # If unspecified, pick the soversion
-                self.darwin_versions = (self.soversion, self.soversion)
-
-        # Visual Studio module-definitions file
-        self.process_vs_module_defs_kw(kwargs)
-
-        # OS/2 uses a 8.3 name for a DLL
-        self.shortname = kwargs.get('shortname')
 
     def get_import_filename(self) -> T.Optional[str]:
         """
