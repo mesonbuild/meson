@@ -2548,7 +2548,7 @@ class NinjaBackend(backends.Backend):
              '$IMPLIB',
              '$out']
         symrule = 'SHSYM'
-        symcmd = args + ['$CROSS']
+        symcmd = args + ['$CROSS', '$SYMBOL_LIST']
         syndesc = 'Generating symbol file $out'
         synstat = 'restat = 1'
         self.add_rule(NinjaRule(symrule, symcmd, [], syndesc, extra=synstat))
@@ -3536,6 +3536,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_shsym(self, target) -> None:
         # On OS/2, an import library is generated after linking a DLL, so
         # if a DLL is used as a target, import library is not generated.
+        # Check if user provided a symbol list file
+        symbol_list_arg = ''
+        if hasattr(target, 'symbol_list') and target.symbol_list is not None:
+            symbol_list_arg = target.symbol_list.absolute_path(self.environment.source_dir, self.environment.build_dir)
         if self.environment.machines[target.for_machine].is_os2():
             target_file = self.get_target_filename_for_linking(target)
         else:
@@ -3547,6 +3551,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem = NinjaBuildElement(self.all_outputs, symname, 'SHSYM', target_file)
         # The library we will actually link to, which is an import library on Windows (not the DLL)
         elem.add_item('IMPLIB', self.get_target_filename_for_linking(target))
+        if symbol_list_arg:
+            elem.add_item('SYMBOL_LIST', symbol_list_arg)
         if self.environment.is_cross_build():
             elem.add_item('CROSS', '--cross-host=' + self.environment.machines[target.for_machine].system)
         self.add_build(elem)

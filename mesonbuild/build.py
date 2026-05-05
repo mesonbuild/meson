@@ -136,6 +136,7 @@ if T.TYPE_CHECKING:
         soversion: str
         darwin_versions: T.Tuple[str, str]
         shortname: str
+        symbol_list: str
 
     class StaticLibraryKeywordArguments(BuildTargetKeywordArguments, total=False):
 
@@ -213,7 +214,7 @@ known_build_target_kwargs = (
     swift_kwargs)
 
 known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie', 'vs_module_defs', 'android_exe_type'}
-known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions', 'rust_abi', 'shortname'}
+known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions', 'rust_abi', 'shortname', 'symbol_list'}
 known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs', 'rust_abi'}
 known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink', 'rust_abi'}
 known_jar_kwargs = known_exe_kwargs | {'main_class', 'java_resources'}
@@ -1873,6 +1874,15 @@ class BuildTarget(Target):
             self.vs_module_defs = File.from_built_file(path.get_builddir(), path.get_filename())
         self.process_link_depends([path])
 
+    def process_symbol_list_kw(self, kwargs: T.Union[ExecutableKeywordArguments, SharedLibraryKeywordArguments]) -> None:
+        path = kwargs.pop('symbol_list', None)
+        if path is None:
+            return
+        if not isinstance(path, str):
+            raise MesonException('symbol_list must be a string path relative to the source directory')
+        self.symbol_list = File.from_source_file(self.environment.source_dir, self.subdir, path)
+        self.process_link_depends([self.symbol_list])
+
     def extract_targets_as_list(self, kwargs: BuildTargetKeywordArguments, key: T.Literal['link_with', 'link_whole']) -> T.List[LibTypes]:
         bl_type = self.environment.coredata.optstore.get_value_for(OptionKey('default_both_libraries'))
         if bl_type == 'auto':
@@ -2555,6 +2565,7 @@ class SharedLibrary(BuildTarget):
         self.debug_filename = None
         # Use by the pkgconfig module
         self.shared_library_only = False
+        self.symbol_list: T.Optional[File] = None
         self.rust_crate_type = kwargs.get('rust_crate_type', 'dylib')
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
@@ -2758,6 +2769,9 @@ class SharedLibrary(BuildTarget):
 
         # Visual Studio module-definitions file
         self.process_vs_module_defs_kw(kwargs)
+
+        # Process symbol list
+        self.process_symbol_list_kw(kwargs)
 
         # OS/2 uses a 8.3 name for a DLL
         self.shortname = kwargs.get('shortname')
