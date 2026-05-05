@@ -817,6 +817,7 @@ class BuildTarget(Target):
                          for_machine, environment,
                          install=kwargs.get('install', False),
                          build_subdir=kwargs.get('build_subdir', ''))
+        self.original_kwargs = kwargs
         # all_compilers is a reference to Interpreter.compilers, as such we
         # cannot mutate it inside build. Use a Mapping to get help from the
         # static type checker
@@ -867,7 +868,62 @@ class BuildTarget(Target):
         # 1. Preexisting objects provided by the user with the `objects:` kwarg
         # 2. Compiled objects created by and extracted from another target
         self.process_objectlist(objects)
-        self.process_kwargs(kwargs)
+
+        if not self.build_by_default and kwargs.get('install', False):
+            # For backward compatibility, if build_by_default is not explicitly
+            # set, use the value of 'install' if it's enabled.
+            self.build_by_default = True
+
+        self.raw_overrides = kwargs.get('override_options', {})
+
+        self.pch['c'] = kwargs.get('c_pch')
+        self.pch['cpp'] = kwargs.get('cpp_pch')
+
+        self.link_args = kwargs.get('link_args', [])
+        for l in self.link_args:
+            if '-Wl,-rpath' in l or l.startswith('-rpath'):
+                mlog.warning(textwrap.dedent('''\
+                    Please do not define rpath with a linker argument, use install_rpath
+                    or build_rpath properties instead.
+                    This will become a hard error in a future Meson release.
+                '''))
+        self.link_early_args = kwargs.get('link_early_args', [])
+        self.process_link_depends(kwargs.get('link_depends', []))
+        # Target-specific include dirs must be added BEFORE include dirs from
+        # internal deps (added inside self.add_deps()) to override them.
+        self.add_include_dirs(kwargs.get('include_directories', []))
+        # Add dependencies (which also have include_directories)
+        self.add_deps(kwargs.get('dependencies', []))
+
+        self.has_custom_install_dir = False
+        i = kwargs.get('install_dir', [])
+        install_dir = i[0] if i else True
+        default_install_dir = self.get_default_install_dir()[0]
+        if install_dir is True:
+            install_dir = default_install_dir
+        elif install_dir != default_install_dir:
+            self.has_custom_install_dir = True
+        self.install_dir: T.List[T.Union[str, T.Literal[False]]] = [install_dir]
+        self.install_mode = kwargs.get('install_mode', None)
+        self.install_tag: T.List[T.Optional[str]] = kwargs.get('install_tag') or [None]
+        self.extra_files = kwargs.get('extra_files', [])
+        self.install_rpath: str = kwargs.get('install_rpath', '')
+        self.build_rpath = kwargs.get('build_rpath', '')
+        self.resources = kwargs.get('resources', [])
+        name_prefix = kwargs.get('name_prefix')
+        if name_prefix is not None:
+            self.prefix = name_prefix
+            self.name_prefix_set = True
+        name_suffix = kwargs.get('name_suffix')
+        if name_suffix is not None:
+            self.suffix = name_suffix
+            self.name_suffix_set = True
+        self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
+        self.gnu_symbol_visibility = kwargs.get('gnu_symbol_visibility', '')
+        self.rust_dependency_map = kwargs.get('rust_dependency_map', {})
+
+        self.swift_interoperability_mode = kwargs.get('swift_interoperability_mode', 'c')
+        self.swift_module_name = kwargs.get('swift_module_name') or self.name
         self.missing_languages = self.process_compilers()
         self.single_compile_base_args: T.Dict[Compiler, ImmutableListProtocol[str]] = {}
 
@@ -1361,66 +1417,6 @@ class BuildTarget(Target):
 
     def get_override(self, name: str) -> T.Optional[ElementaryOptionValues]:
         return self.raw_overrides.get(name, None)
-
-    def process_kwargs(self, kwargs: BuildTargetKeywordArguments) -> None:
-        self.original_kwargs = kwargs
-
-        if not self.build_by_default and kwargs.get('install', False):
-            # For backward compatibility, if build_by_default is not explicitly
-            # set, use the value of 'install' if it's enabled.
-            self.build_by_default = True
-
-        self.raw_overrides = kwargs.get('override_options', {})
-
-        self.pch['c'] = kwargs.get('c_pch')
-        self.pch['cpp'] = kwargs.get('cpp_pch')
-
-        self.link_args = kwargs.get('link_args', [])
-        for l in self.link_args:
-            if '-Wl,-rpath' in l or l.startswith('-rpath'):
-                mlog.warning(textwrap.dedent('''\
-                    Please do not define rpath with a linker argument, use install_rpath
-                    or build_rpath properties instead.
-                    This will become a hard error in a future Meson release.
-                '''))
-        self.link_early_args = kwargs.get('link_early_args', [])
-        self.process_link_depends(kwargs.get('link_depends', []))
-        # Target-specific include dirs must be added BEFORE include dirs from
-        # internal deps (added inside self.add_deps()) to override them.
-        self.add_include_dirs(kwargs.get('include_directories', []))
-        # Add dependencies (which also have include_directories)
-        self.add_deps(kwargs.get('dependencies', []))
-
-        self.has_custom_install_dir = False
-        i = kwargs.get('install_dir', [])
-        install_dir = i[0] if i else True
-        default_install_dir = self.get_default_install_dir()[0]
-        if install_dir is True:
-            install_dir = default_install_dir
-        elif install_dir != default_install_dir:
-            self.has_custom_install_dir = True
-        self.install_dir: T.List[T.Union[str, T.Literal[False]]] = [install_dir]
-
-        self.install_mode = kwargs.get('install_mode', None)
-        self.install_tag: T.List[T.Optional[str]] = kwargs.get('install_tag') or [None]
-        self.extra_files = kwargs.get('extra_files', [])
-        self.install_rpath: str = kwargs.get('install_rpath', '')
-        self.build_rpath = kwargs.get('build_rpath', '')
-        self.resources = kwargs.get('resources', [])
-        name_prefix = kwargs.get('name_prefix')
-        if name_prefix is not None:
-            self.prefix = name_prefix
-            self.name_prefix_set = True
-        name_suffix = kwargs.get('name_suffix')
-        if name_suffix is not None:
-            self.suffix = name_suffix
-            self.name_suffix_set = True
-        self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
-        self.gnu_symbol_visibility = kwargs.get('gnu_symbol_visibility', '')
-        self.rust_dependency_map = kwargs.get('rust_dependency_map', {})
-
-        self.swift_interoperability_mode = kwargs.get('swift_interoperability_mode', 'c')
-        self.swift_module_name = kwargs.get('swift_module_name') or self.name
 
     @T.overload
     def _extract_pic_pie(self, kwargs: StaticLibraryKeywordArguments, arg: Literal['pic'],
@@ -2533,7 +2529,6 @@ class SharedLibrary(BuildTarget):
             kwargs: SharedLibraryKeywordArguments):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
-
         # Max length 2, first element is compatibility_version, second is current_version
         self.darwin_versions: T.Optional[T.Tuple[str, str]] = None
         self.soversion: T.Optional[str] = None
@@ -3130,7 +3125,7 @@ class CustomTarget(Target, CustomTargetBase):
     def get_filename(self) -> str:
         return self.outputs[0]
 
-    def get_sources(self) -> T.List[T.Union[str, File, BuildTarget, GeneratedTypes, ExtractedObjects, programs.Program]]:
+    def get_sources(self) -> T.List[CustomTargetSources]:
         return self.sources
 
     def get_generated_lists(self) -> T.List[GeneratedList]:
