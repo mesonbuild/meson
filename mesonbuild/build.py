@@ -813,7 +813,10 @@ class BuildTarget(Target):
             environment: Environment,
             compilers: CompilerDict,
             kwargs: BuildTargetKeywordArguments):
-        super().__init__(name, subdir, subproject, True, for_machine, environment, install=kwargs.get('install', False), build_subdir=kwargs.get('build_subdir', ''))
+        super().__init__(name, subdir, subproject, kwargs.get('build_by_default', True),
+                         for_machine, environment,
+                         install=kwargs.get('install', False),
+                         build_subdir=kwargs.get('build_subdir', ''))
         # all_compilers is a reference to Interpreter.compilers, as such we
         # cannot mutate it inside build. Use a Mapping to get help from the
         # static type checker
@@ -1362,9 +1365,6 @@ class BuildTarget(Target):
     def process_kwargs(self, kwargs: BuildTargetKeywordArguments) -> None:
         self.original_kwargs = kwargs
 
-        if 'build_by_default' in kwargs:
-            self.build_by_default = kwargs['build_by_default']
-
         if not self.build_by_default and kwargs.get('install', False):
             # For backward compatibility, if build_by_default is not explicitly
             # set, use the value of 'install' if it's enabled.
@@ -1384,9 +1384,6 @@ class BuildTarget(Target):
                     This will become a hard error in a future Meson release.
                 '''))
         self.link_early_args = kwargs.get('link_early_args', [])
-        for i in self.link_early_args:
-            if not isinstance(i, str):
-                raise InvalidArguments('link_early_args values must be strings.')
         self.process_link_depends(kwargs.get('link_depends', []))
         # Target-specific include dirs must be added BEFORE include dirs from
         # internal deps (added inside self.add_deps()) to override them.
