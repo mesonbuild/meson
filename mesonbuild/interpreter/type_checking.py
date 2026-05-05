@@ -962,6 +962,7 @@ _EXCLUSIVE_SHARED_LIB_KWS: T.List[KwargInfo] = [
     KwargInfo('soversion', (str, int, NoneType), convertor=lambda x: str(x) if x is not None else None),
     KwargInfo('version', (str, NoneType), validator=_validate_shlib_version),
     KwargInfo('shortname', (str, NoneType), since='1.10.0', validator=_shortname_validator),
+    KwargInfo('symbol_list', (str, NoneType)),
 ]
 
 # The total list of arguments used by SharedLibrary

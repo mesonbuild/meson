@@ -470,7 +470,7 @@ class _SharedLibMixin(TypedDict):
     soversion: T.Optional[str]
     version: T.Optional[str]
     shortname: str
-
+    symbol_list: T.Optional[str]
 
 class SharedLibrary(BuildTarget, _SharedLibMixin, _LibraryMixin, _LinkableTargetMixin):
     pass

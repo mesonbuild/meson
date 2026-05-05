@@ -145,6 +145,7 @@ if T.TYPE_CHECKING:
         soversion: str
         darwin_versions: T.Tuple[str, str]
         shortname: str
+        symbol_list: T.Union[str, File, 'CustomTarget', 'CustomTargetIndex']
 
     class StaticLibraryKeywordArguments(BuildTargetKeywordArguments, total=False):
 
@@ -2491,6 +2492,9 @@ class SharedLibrary(BuildTarget, LinkableTarget):
 
         # OS/2 uses a 8.3 name for a DLL
         self.shortname = kwargs.get('shortname')
+
+        # Custom symbol list file for AIX
+        self.symbol_list = kwargs.get('symbol_list')
 
         # The import library this target will generate
         self.import_filename: str | None = None
