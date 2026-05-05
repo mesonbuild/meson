@@ -2869,10 +2869,6 @@ class SharedModule(SharedLibrary):
             environment: Environment,
             compilers: CompilerDict,
             kwargs: SharedModuleKeywordArguments):
-        if 'version' in kwargs:
-            raise MesonException('Shared modules must not specify the version kwarg.')
-        if 'soversion' in kwargs:
-            raise MesonException('Shared modules must not specify the soversion kwarg.')
         super().__init__(name, subdir, subproject, for_machine, sources,
                          structured_sources, objects, environment, compilers,
                          # SharedModuleKeywordArguments is a subclass, it's annoying mypy can't figure this out
