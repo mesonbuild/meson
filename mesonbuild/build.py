@@ -21,7 +21,7 @@ from . import mlog
 from . import programs
 from .mesonlib import (
     HoldableObject, SecondLevelHolder, SimpleABC,
-    File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
+    File, MesonException, MachineChoice, PerMachine, OrderedSet,
     classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
     is_parent_path, relpath, PerMachineDefaultable,
@@ -60,6 +60,7 @@ if T.TYPE_CHECKING:
     ObjectTypes: TypeAlias = T.Union[str, 'File', 'ExtractedObjects', 'GeneratedTypes']
     AnyTargetType: TypeAlias = T.Union['Target', 'CustomTargetIndex']
     RustCrateType: TypeAlias = Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
+    _LibraryType: TypeAlias = Literal['auto', 'shared', 'static']
 
     class DFeatures(TypedDict):
 
@@ -1838,23 +1839,25 @@ class BuildTarget(Target):
 
     def extract_targets_as_list(self, kwargs: BuildTargetKeywordArguments, key: T.Literal['link_with', 'link_whole']) -> T.List[LibTypes]:
         bl_type = self.environment.coredata.optstore.get_value_for(OptionKey('default_both_libraries'))
+        assert isinstance(bl_type, str), 'for mypy'
         if bl_type == 'auto':
             if isinstance(self, StaticLibrary):
                 bl_type = 'static'
             elif isinstance(self, SharedLibrary):
                 bl_type = 'shared'
+        bl_type = T.cast('LibraryType', bl_type)
 
         self_libs: T.List[LibTypes] = self.link_targets if key == 'link_with' else self.link_whole_targets
 
         lib_list = []
-        for lib in listify(kwargs.get(key, [])) + self_libs:
-            if isinstance(lib, (Target, BothLibraries)):
+        for lib in itertools.chain(kwargs.get(key, []), self_libs):
+            if isinstance(lib, (BuildTarget, BothLibraries)):
                 lib_list.append(lib.get(bl_type))
             else:
                 lib_list.append(lib)
         return lib_list
 
-    def get(self, lib_type: T.Literal['static', 'shared'], recursive: bool = False) -> LibTypes:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LibTypes:
         """Base case used by BothLibraries"""
         return self
 
@@ -2436,7 +2439,7 @@ class StaticLibrary(BuildTarget):
         self.both_lib = copy.copy(shared_library)
         self.both_lib.both_lib = None
 
-    def get(self, lib_type: T.Literal['static', 'shared'], recursive: bool = False) -> LibTypes:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LibTypes:
         result = self
         if lib_type == 'shared':
             result = self.both_lib or self
@@ -2794,7 +2797,7 @@ class SharedLibrary(BuildTarget):
         self.both_lib = copy.copy(static_library)
         self.both_lib.both_lib = None
 
-    def get(self, lib_type: T.Literal['static', 'shared'], recursive: bool = False) -> LibTypes:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LibTypes:
         result = self
         if lib_type == 'static':
             result = self.both_lib or self
@@ -2866,7 +2869,7 @@ class BothLibraries(SecondLevelHolder):
     def __repr__(self) -> str:
         return f'<BothLibraries: static={repr(self.static)}; shared={repr(self.shared)}>'
 
-    def get(self, lib_type: T.Literal['static', 'shared']) -> T.Union[StaticLibrary, SharedLibrary]:
+    def get(self, lib_type: _LibraryType) -> T.Union[StaticLibrary, SharedLibrary]:
         if lib_type == 'static':
             return self.static
         if lib_type == 'shared':
@@ -2960,7 +2963,7 @@ class CustomTargetBase:
     def get_all_linked_targets(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return []
 
-    def get(self, lib_type: T.Literal['static', 'shared'], recursive: bool = False) -> LibTypes:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LibTypes:
         """Base case used by BothLibraries"""
         return self
 
