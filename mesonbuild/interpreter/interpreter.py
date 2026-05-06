@@ -2252,7 +2252,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('benchmark', str, (build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex))
     @typed_kwargs('benchmark', *TEST_KWS)
     def func_benchmark(self, node: mparser.BaseNode,
-                       args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File]],
+                       args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
                        kwargs: 'kwtypes.FuncBenchmark') -> None:
         self.add_test(node, args, kwargs, False)
 
@@ -2282,12 +2282,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                              location=node)
             name = name.replace(':', '_')
         exe = args[1]
-        if isinstance(exe, Program):
-            if not exe.found():
-                raise InvalidArguments('Tried to use not-found external program as test exe')
-            if isinstance(exe, build.LocalProgram):
-                # This will add exe to 'depends' below
-                exe = exe.program
+        if isinstance(exe, Program) and not exe.found():
+            raise InvalidArguments('Tried to use not-found external program as test exe')
         elif isinstance(exe, mesonlib.File):
             exe = self.find_program_impl([exe])
         if isinstance(exe, (build.Executable, build.CustomTarget)):

@@ -1181,11 +1181,12 @@ class Backend:
             exe = t.get_exe()
             if isinstance(exe, build.LocalProgram):
                 exe = exe.program
-            if isinstance(exe, programs.Program):
-                cmd = exe.get_command()
-            else:
+            if isinstance(exe, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 cmd = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))]
-            if isinstance(exe, (build.BuildTarget, programs.Program)):
+            else:
+                cmd = exe.get_command()
+
+            if isinstance(exe, (build.BuildTarget, programs.ExternalProgram)):
                 test_for_machine = exe.for_machine
             else:
                 # E.g. an external verifier or simulator program run on a generated executable.
