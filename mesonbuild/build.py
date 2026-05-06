@@ -395,7 +395,7 @@ class Build:
         self.dep_manifest_name: T.Optional[str] = None
         self.dep_manifest: T.Dict[str, DepManifest] = {}
         self.test_setups: T.Dict[str, TestSetup] = {}
-        self.test_setup_default_name = None
+        self.test_setup_default_name: str | None = None
         self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
 
         # If we are doing a cross build we need two caches, if we're doing a
@@ -845,7 +845,7 @@ class BuildTarget(Target):
         self.filename = 'no_name'
         self.doctests: T.Optional[Doctest] = None
         # The debugging information file this target will generate
-        self.debug_filename = None
+        self.debug_filename: str | None = None
         # The list of all files outputted by this target. Useful in cases such
         # as Vala which generates .vapi and .h besides the compiled output.
         self.outputs = [self.filename]
@@ -2285,9 +2285,9 @@ class Executable(BuildTarget):
         self.outputs[0] = self.filename
 
         # The import library this target will generate
-        self.import_filename = None
+        self.import_filename: str | None = None
         # The debugging information file this target will generate
-        self.debug_filename = None
+        self.debug_filename: str | None = None
 
         # If using export_dynamic, set the import library name
         if self.export_dynamic:
@@ -2543,9 +2543,9 @@ class SharedLibrary(BuildTarget):
         self.vs_module_defs = None
         self.shortname: T.Optional[str] = None
         # The import library this target will generate
-        self.import_filename = None
+        self.import_filename: str | None = None
         # The debugging information file this target will generate
-        self.debug_filename = None
+        self.debug_filename: str | None = None
         # Use by the pkgconfig module
         self.shared_library_only = False
         self.rust_crate_type = kwargs.get('rust_crate_type', 'dylib')
@@ -2587,6 +2587,11 @@ class SharedLibrary(BuildTarget):
     def determine_naming_info(self) -> T.Tuple[str, str, str, str, bool]:
         scheme = self.environment.coredata.get_option_for_target(self, 'namingscheme')
         assert isinstance(scheme, str), 'for mypy'
+
+        prefix: str | None
+        suffix: str | None
+        import_suffix: str | None
+
         if scheme == 'platform':
             schemename = self.get_platform_scheme_name()
             prefix, suffix, import_suffix = DEFAULT_SHARED_LIBRARY_NAMES[schemename]
@@ -2598,7 +2603,7 @@ class SharedLibrary(BuildTarget):
         create_debug_file = False
         create_debug_file = False
         self.filename_tpl = self.basic_filename_tpl
-        import_filename_tpl = None
+        import_filename_tpl: str | None = None
         # NOTE: manual prefix/suffix override is currently only tested for C/C++
         # C# and Mono
         if 'cs' in self.compilers:
