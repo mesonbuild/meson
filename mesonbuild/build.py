@@ -264,7 +264,7 @@ class Headers(HoldableObject):
     install_subdir: T.Optional[str]
     custom_install_dir: T.Optional[str]
     custom_install_mode: 'FileMode'
-    subproject: str
+    subproject: SubProject
     follow_symlinks: T.Optional[bool] = None
     install_tag: T.Optional[str] = None
 
@@ -296,7 +296,7 @@ class Man(HoldableObject):
     sources: T.List[File]
     custom_install_dir: T.Optional[str]
     custom_install_mode: 'FileMode'
-    subproject: str
+    subproject: SubProject
     locale: T.Optional[str]
     install_tag: T.Optional[str] = None
 
@@ -314,7 +314,7 @@ class Man(HoldableObject):
 class EmptyDir(HoldableObject):
     path: str
     install_mode: 'FileMode'
-    subproject: str
+    subproject: SubProject
     install_tag: T.Optional[str] = None
 
 
@@ -327,7 +327,7 @@ class InstallDir(HoldableObject):
     install_mode: 'FileMode'
     exclude: T.Tuple[T.Set[str], T.Set[str]]
     strip_directory: bool
-    subproject: str
+    subproject: SubProject
     from_source_dir: bool = True
     install_tag: T.Optional[str] = None
     follow_symlinks: T.Optional[bool] = None
@@ -337,7 +337,7 @@ class DepManifest:
     version: str
     license: T.List[str]
     license_files: T.List[T.Tuple[str, File]]
-    subproject: str
+    subproject: SubProject
 
     def license_mapping(self) -> T.List[T.Tuple[str, str]]:
         ret = []
@@ -2921,7 +2921,7 @@ class CommandBase:
 
     depend_files: T.List[File]
     dependencies: T.List[T.Union[BuildTarget, 'CustomTarget']]
-    subproject: str
+    subproject: SubProject
 
     def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.Program, BuildTargetTypes]]) -> \
             T.List[T.Union[str, File, BuildTarget, CustomTarget, programs.Program]]:
@@ -2992,7 +2992,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
     def __init__(self,
                  name: T.Optional[str],
                  subdir: str,
-                 subproject: str,
+                 subproject: SubProject,
                  environment: Environment,
                  command: T.Sequence[T.Union[
                      str, BuildTargetTypes,
@@ -3225,7 +3225,7 @@ class CompileTarget(BuildTarget):
     def __init__(self,
                  name: str,
                  subdir: str,
-                 subproject: str,
+                 subproject: SubProject,
                  environment: Environment,
                  sources: T.List['SourceOutputs'],
                  output_templ: str,
@@ -3282,7 +3282,7 @@ class RunTarget(Target, CommandBase):
                  # the RunTarget case is used by gnome.yelp()
                  dependencies: T.Sequence[T.Union[RunTarget, TargetDepends]],
                  subdir: str,
-                 subproject: str,
+                 subproject: SubProject,
                  environment: Environment,
                  env: T.Optional[EnvironmentVariables] = None,
                  default_env: bool = True):
@@ -3330,7 +3330,7 @@ class AliasTarget(RunTarget):
     typename = 'alias'
 
     def __init__(self, name: str, dependencies: T.Sequence[Target],
-                 subdir: str, subproject: str, environment: Environment):
+                 subdir: str, subproject: SubProject, environment: Environment):
         super().__init__(name, [], dependencies, subdir, subproject, environment)
 
     def __repr__(self) -> str:
@@ -3343,7 +3343,7 @@ class Jar(BuildTarget):
     typename = 'jar'
     rust_crate_type = ''  # type: ignore[assignment]
 
-    def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
+    def __init__(self, name: str, subdir: str, subproject: SubProject, for_machine: MachineChoice,
                  sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
                  objects: T.List[ObjectTypes], environment: Environment, compilers: CompilerDict,
                  kwargs: JarKeywordArguments):
@@ -3585,7 +3585,7 @@ class Data(HoldableObject):
     install_dir: str
     install_dir_name: str
     install_mode: 'FileMode'
-    subproject: str
+    subproject: SubProject
     rename: T.List[str] = None
     install_tag: T.Optional[str] = None
     data_type: str = None
@@ -3600,7 +3600,7 @@ class SymlinkData(HoldableObject):
     target: str
     name: str
     install_dir: str
-    subproject: str
+    subproject: SubProject
     install_tag: T.Optional[str] = None
 
     def __post_init__(self) -> None:
