@@ -3574,10 +3574,11 @@ class TestSetup:
     env: EnvironmentVariables
     exclude_suites: T.List[str]
 
-def get_sources_string_names(sources, backend):
+
+def get_sources_string_names(sources: T.Sequence[CustomTargetSources], backend: Backend) -> list[str]:
     '''
-    For the specified list of @sources which can be strings, Files, or targets,
-    get all the output basenames.
+    For the specified list of @sources which can be strings, Files,
+    ExternalPrograms, or targets, get all the output basenames.
     '''
     names = []
     for s in sources:
@@ -3587,8 +3588,10 @@ def get_sources_string_names(sources, backend):
             names += backend.determine_ext_objs(s)
         elif isinstance(s, File):
             names.append(s.fname)
+        elif isinstance(s, programs.Program):
+            names.append(s.get_name())
         else:
-            raise AssertionError(f'Unknown source type: {s!r}')
+            raise MesonBugException(f'Unknown source type: {s!r}')
     return names
 
 def load(build_dir: str) -> Build:
