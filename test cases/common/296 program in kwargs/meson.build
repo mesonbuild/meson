@@ -25,13 +25,11 @@ testcase expect_error('.*ExternalProgram.*', how: 're')
     build_by_default: true)
 endtestcase
 
-testcase expect_error('.*ExternalProgram.*', how: 're')
-  custom_target('something4',
-    output: 'something4',
-    input: [find_program('foo.py')],
-    command: [find_program('customtarget.py'), '@INPUT@', '@OUTPUT@'],
-    build_by_default: true)
-endtestcase
+custom_target('something4',
+  output: 'something4',
+  input: [find_program('foo.py')],
+  command: [find_program('customtarget.py'), '@INPUT@', '@OUTPUT@'],
+  build_by_default: true)
 
 test('mytest1',
   find_program('test.py'),

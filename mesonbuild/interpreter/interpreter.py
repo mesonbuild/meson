@@ -3264,9 +3264,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                 else:
                     self.validate_within_subproject(self.subdir, s)
                     results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
-            elif isinstance(s, mesonlib.File):
-                results.append(s)
-            elif isinstance(s, (build.GeneratedList, build.BuildTarget,
+            elif isinstance(s, (mesonlib.File, ExternalProgram,
+                                build.GeneratedList, build.BuildTarget,
                                 build.CustomTargetIndex, build.CustomTarget,
                                 build.ExtractedObjects, build.StructuredSources)):
                 results.append(s)
