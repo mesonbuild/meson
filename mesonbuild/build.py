@@ -914,8 +914,8 @@ class BuildTarget(Target):
         # we have to call process_compilers() first and we need to process libraries
         # from link_with and link_whole first.
         # See https://github.com/mesonbuild/meson/pull/11957#issuecomment-1629243208.
-        link_targets = self.extract_targets_as_list(kwargs, 'link_with')
-        link_whole_targets = self.extract_targets_as_list(kwargs, 'link_whole')
+        link_targets = self._extract_link_with(kwargs)
+        link_whole_targets = self._extract_link_whole(kwargs)
         self.link_targets.clear()
         self.link_whole_targets.clear()
         self.link(link_targets)
@@ -1842,15 +1842,25 @@ class BuildTarget(Target):
         assert isinstance(bl_type, str), 'for mypy'
         return T.cast('_LibraryType', bl_type)
 
-    def extract_targets_as_list(self, kwargs: BuildTargetKeywordArguments, key: T.Literal['link_with', 'link_whole']) -> T.List[LibTypes]:
+    def _extract_link_with(self, kwargs: BuildTargetKeywordArguments) -> list[LibTypes]:
         bl_type = self._default_library_type()
 
-        self_libs: T.List[LibTypes] = self.link_targets if key == 'link_with' else self.link_whole_targets
-
-        lib_list = []
-        for lib in itertools.chain(kwargs.get(key, []), self_libs):
+        lib_list: list[LibTypes] = []
+        for lib in itertools.chain(kwargs.get('link_with', []), self.link_targets):
             if isinstance(lib, (BuildTarget, BothLibraries)):
                 lib_list.append(lib.get(bl_type))
+            else:
+                lib_list.append(lib)
+        return lib_list
+
+    def _extract_link_whole(self, kwargs: BuildTargetKeywordArguments) -> list[StaticTargetTypes]:
+        lib_list: list[StaticTargetTypes] = []
+        for lib in itertools.chain(kwargs.get('link_whole', []), self.link_whole_targets):
+            if isinstance(lib, BothLibraries):
+                lib = lib.get('static')
+                if not isinstance(lib, StaticLibrary):
+                    raise MesonBugException('Tried to statically link a non-static library. How did we get here?')
+                lib_list.append(lib)
             else:
                 lib_list.append(lib)
         return lib_list
@@ -3320,7 +3330,7 @@ class AliasTarget(RunTarget):
 
     typename = 'alias'
 
-    def __init__(self, name: str, dependencies: T.Sequence[Target],
+    def __init__(self, name: str, dependencies: T.Sequence[TargetDepends | RunTarget],
                  subdir: str, subproject: SubProject, environment: Environment):
         super().__init__(name, [], dependencies, subdir, subproject, environment)
 
