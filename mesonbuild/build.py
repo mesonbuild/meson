@@ -1847,7 +1847,7 @@ class BuildTarget(Target):
                                      'use shared_library() with `override_options: [\'b_lundef=false\']` instead.')
                     link_target.force_soname = True
 
-    def process_vs_module_defs_kw(self, kwargs: ExecutableKeywordArguments) -> None:
+    def process_vs_module_defs_kw(self, kwargs: ExecutableKeywordArguments | SharedModuleKeywordArguments) -> None:
         path = kwargs.get('vs_module_defs')
         if path is None:
             return
