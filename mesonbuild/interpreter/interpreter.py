@@ -1068,7 +1068,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
             return self._do_subproject_meson(
                 subp_name, subdir, default_options, kwargs, ast,
-                relaxations={InterpreterRuleRelaxation.CARGO_SUBDIR},
+                relaxations={InterpreterRuleRelaxation.CARGO_SUBDIR} if ast is not None else None,
                 cargo=cargo_int)
 
     @typed_pos_args('get_option', str)
