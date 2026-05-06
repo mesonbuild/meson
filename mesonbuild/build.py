@@ -2204,6 +2204,9 @@ class GeneratedList(HoldableObject):
     def get_subdir(self) -> str:
         return self.subdir
 
+    def get_basename(self) -> str:
+        return self.generator.name
+
 
 class Executable(BuildTarget):
     known_kwargs = known_exe_kwargs
