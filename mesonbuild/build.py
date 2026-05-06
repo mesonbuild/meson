@@ -2104,7 +2104,9 @@ class Generator(HoldableObject):
                 if preserve_path_from:
                     raise InvalidArguments("generator.process: 'preserve_path_from' is not allowed if one input is a 'generated_list'.")
                 output.depends.add(e)
-                fs = [FileInTargetPrivateDir(f) for f in e.get_outputs()]
+                output.add_files(FileMaybeInTargetPrivateDir(FileInTargetPrivateDir(f))
+                                 for f in e.get_outputs())
+                continue
             elif isinstance(e, str):
                 fs = [File.from_source_file(self.environment.source_dir, subdir, e)]
             else:
@@ -2170,6 +2172,10 @@ class GeneratedList(HoldableObject):
         assert os.path.isabs(self.preserve_path_from)
         rel = os.path.relpath(in_abs, self.preserve_path_from)
         return os.path.dirname(rel)
+
+    def add_files(self, newfiles: T.Iterable[FileMaybeInTargetPrivateDir]) -> None:
+        for f in newfiles:
+            self.add_file(f)
 
     def add_file(self, newfile: FileMaybeInTargetPrivateDir) -> None:
         self.infilelist.append(newfile)
