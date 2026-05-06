@@ -2876,7 +2876,9 @@ class SharedModule(SharedLibrary):
         if 'soversion' in kwargs:
             raise MesonException('Shared modules must not specify the soversion kwarg.')
         super().__init__(name, subdir, subproject, for_machine, sources,
-                         structured_sources, objects, environment, compilers, kwargs)
+                         structured_sources, objects, environment, compilers,
+                         # SharedModuleKeywordArguments is a subclass, it's annoying mypy can't figure this out
+                         T.cast('SharedLibraryKeywordArguments', kwargs))
         # We need to set the soname in cases where build files link the module
         # to build targets, see: https://github.com/mesonbuild/meson/issues/9492
         self.force_soname = False
