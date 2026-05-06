@@ -132,16 +132,30 @@ gp_exe = executable(
 
 test('global and project arguments', gp_exe)
 
-cpp_lib = static_library('cpplib', 'src/impl.cpp')
+cpp_lib_sources = files('src/impl.cpp')
+cpp_lib = both_libraries('cpplib', cpp_lib_sources)
+cpp_lib_static = static_library('cpplib-static', cpp_lib_sources)
 
 cpp_bind = rust.bindgen(
   input : 'src/header.hpp',
   output : 'generated-cpp.rs',
 )
 
+# test passing various kinds of objects as dependencies
+
+rust.bindgen(
+  input : ['src/header2.hpp', cpp_lib.get_static_lib()],
+  output : 'generated-cpp-static.rs')
+rust.bindgen(
+  input : ['src/header3.hpp', cpp_lib_static.extract_objects(cpp_lib_sources)],
+  output : 'generated-cpp-objs.rs')
+rust.bindgen(
+  input : ['src/header4.hpp', cpp_lib],
+  output : 'generated-cpp-both.rs')
+
 cpp_exe = executable(
   'cpp_exe',
   structured_sources(['src/cpp.rs', cpp_bind]),
-  link_with : cpp_lib,
+  link_with : cpp_lib_static,
 )
 test('cpp', cpp_exe)
