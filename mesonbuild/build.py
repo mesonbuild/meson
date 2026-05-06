@@ -37,7 +37,7 @@ from .compilers import (
 from .interpreterbase import FeatureNew, FeatureDeprecated, SubProject
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypeAlias, TypedDict
+    from typing_extensions import Literal, Self, TypeAlias, TypedDict
 
     from .arglist import CompilerArgs
     from .environment import Environment
@@ -2954,7 +2954,7 @@ def flatten_command(cmd: T.Sequence[str | File | programs.Program | BuildTargetT
     return final_cmd, depend_files, dependencies
 
 
-class CustomTargetBase:
+class CustomTargetBase(metaclass=SimpleABC):
     ''' Base class for CustomTarget and CustomTargetIndex
 
     This base class can be used to provide a dummy implementation of some
@@ -2979,9 +2979,10 @@ class CustomTargetBase:
     def get_all_linked_targets(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return []
 
-    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LibTypes:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> Self:
         """Base case used by BothLibraries"""
         return self
+
 
 class CustomTarget(Target, CustomTargetBase):
 
