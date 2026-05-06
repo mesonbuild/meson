@@ -22,6 +22,7 @@ from ..programs import Program, ExternalProgram
 from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
 TestArgs = T.Union[str, File, build.Target, ExternalProgram]
+TargetDepends = T.Union[build.CustomTarget, build.CustomTargetIndex, build.BuildTarget, build.GeneratedList]
 CustomTargetInputs = T.Union[str, build.BuildTarget, build.GeneratedTypes,
                              build.ExtractedObjects, ExternalProgram, File]
 RustAbi = Literal['rust', 'c']
@@ -55,7 +56,7 @@ class BaseTest(TypedDict):
     expected_exitcode: T.Optional[int]
     timeout: int
     workdir: T.Optional[str]
-    depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]]
+    depends: T.List[TargetDepends]
     priority: int
     env: EnvironmentVariables
     suite: T.List[str]
@@ -109,7 +110,7 @@ class FuncGenerator(TypedDict):
     output: T.List[str]
     depfile: T.Optional[str]
     capture:  bool
-    depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
+    depends: T.List[TargetDepends]
 
 
 class GeneratorProcess(TypedDict):
@@ -185,7 +186,7 @@ class FuncAddLanguages(ExtractRequired):
 class RunTarget(TypedDict):
 
     command: T.List[T.Union[str, build.BuildTargetTypes, ExternalProgram, File]]
-    depends: T.List[T.Union[build.BuildTargetTypes]]
+    depends: T.List[TargetDepends]
     env: EnvironmentVariables
 
 
@@ -199,7 +200,7 @@ class CustomTarget(TypedDict):
     command: T.List[T.Union[str, build.BuildTargetTypes, Program, File]]
     console: bool
     depend_files: T.List[FileOrString]
-    depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
+    depends: T.List[TargetDepends]
     depfile: T.Optional[str]
     env: EnvironmentVariables
     feed: bool

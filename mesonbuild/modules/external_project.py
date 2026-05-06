@@ -28,8 +28,8 @@ if T.TYPE_CHECKING:
 
     from . import ModuleState
     from .._typing import ImmutableListProtocol
-    from ..build import BuildTarget, CustomTarget
     from ..interpreter import Interpreter
+    from ..interpreter.kwargs import TargetDepends
     from ..interpreterbase import TYPE_var
     from ..mesonlib import EnvironmentVariables
     from ..utils.core import EnvironOrDict
@@ -44,7 +44,7 @@ if T.TYPE_CHECKING:
         cross_configure_options: T.List[str]
         verbose: bool
         env: EnvironmentVariables
-        depends: T.List[T.Union[BuildTarget, CustomTarget]]
+        depends: T.List[TargetDepends]
 
 
 class ExternalProject(NewExtensionModule):
@@ -58,7 +58,7 @@ class ExternalProject(NewExtensionModule):
                  cross_configure_options: T.List[str],
                  env: EnvironmentVariables,
                  verbose: bool,
-                 extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']]):
+                 extra_depends: T.List[TargetDepends]):
         super().__init__()
         self.methods.update({'dependency': self.dependency_method,
                              })
@@ -234,7 +234,7 @@ class ExternalProject(NewExtensionModule):
                 print(contents)
             raise MesonException(m)
 
-    def _create_targets(self, extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']]) -> T.List['TYPE_var']:
+    def _create_targets(self, extra_depends: T.List[TargetDepends]) -> T.List['TYPE_var']:
         cmd = self.env.get_build_command()
         cmd += ['--internal', 'externalproject',
                 '--name', self.name,

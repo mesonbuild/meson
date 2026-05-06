@@ -46,6 +46,7 @@ if T.TYPE_CHECKING:
     from .compilers.compilers import Compiler, CompilerDict, Language
     from .interpreter.interpreter import CustomTargetSources, SourceOutputs, Interpreter
     from .interpreter.interpreterobjects import Test, Doctest
+    from .interpreter.kwargs import TargetDepends
     from .linkers.linkers import StaticLinker
     from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
     from .mparser import BaseNode
@@ -2055,13 +2056,13 @@ class Generator(HoldableObject):
                  *,
                  depfile: T.Optional[str] = None,
                  capture: bool = False,
-                 depends: T.Optional[T.List[BuildTargetTypes]] = None,
+                 depends: T.Optional[T.Sequence[TargetDepends]] = None,
                  name: str = 'Generator'):
         self.environment = env
         self.exe = exe
         self.depfile = depfile
         self.capture = capture
-        self.depends: T.List[BuildTargetTypes] = depends or []
+        self.depends: T.List[TargetDepends] = list(depends or [])
         self.arglist = arguments
         self.outputs = output
         self.name = name
@@ -2096,7 +2097,7 @@ class Generator(HoldableObject):
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None,
                       env: T.Optional[EnvironmentVariables] = None,
-                      extra_depends: T.Optional[T.List[GeneratedTypes]] = None) -> 'GeneratedList':
+                      extra_depends: T.Optional[T.Sequence[TargetDepends]] = None) -> 'GeneratedList':
         output = GeneratedList(
             self,
             subdir,
@@ -2139,7 +2140,7 @@ class GeneratedList(HoldableObject):
     preserve_path_from: T.Optional[str]
     extra_args: T.List[str]
     env: T.Optional[EnvironmentVariables]
-    extra_depends: T.List[GeneratedTypes]
+    extra_depends: T.List[TargetDepends]
 
     def __post_init__(self) -> None:
         self.name = self.generator.exe
@@ -2156,7 +2157,7 @@ class GeneratedList(HoldableObject):
             self.env: EnvironmentVariables = EnvironmentVariables()
 
         if self.extra_depends is None:
-            self.extra_depends: T.List[GeneratedTypes] = []
+            self.extra_depends: T.List[TargetDepends] = []
 
         if isinstance(self.generator.exe, programs.Program):
             if not self.generator.exe.found():
@@ -2991,7 +2992,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  capture: bool = False,
                  console: bool = False,
                  depend_files: T.Optional[T.Sequence[FileOrString]] = None,
-                 extra_depends: T.Optional[T.Sequence[T.Union[str, SourceOutputs]]] = None,
+                 extra_depends: T.Optional[T.Sequence[TargetDepends]] = None,
                  depfile: T.Optional[str] = None,
                  depfile_type: T.Optional[Literal['gcc', 'msvc']] = None,
                  env: T.Optional[EnvironmentVariables] = None,
@@ -3050,8 +3051,8 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
 
-    def get_target_dependencies(self) -> T.List[T.Union[SourceOutputs, str]]:
-        deps: T.List[T.Union[SourceOutputs, str]] = []
+    def get_target_dependencies(self) -> T.List[TargetDepends]:
+        deps: T.List[TargetDepends] = []
         deps.extend(self.dependencies)
         deps.extend(self.extra_depends)
         for c in self.sources:
@@ -3249,7 +3250,8 @@ class RunTarget(Target, CommandBase):
 
     def __init__(self, name: str,
                  command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.Program]],
-                 dependencies: T.Sequence[AnyTargetType],
+                 # the RunTarget case is used by gnome.yelp()
+                 dependencies: T.Sequence[T.Union[RunTarget, TargetDepends]],
                  subdir: str,
                  subproject: str,
                  environment: Environment,
@@ -3257,7 +3259,7 @@ class RunTarget(Target, CommandBase):
                  default_env: bool = True):
         # These don't produce output artifacts
         super().__init__(name, subdir, subproject, False, MachineChoice.BUILD, environment)
-        self.dependencies = dependencies
+        self.dependencies = list(dependencies)
         self.depend_files = []
         self.command = self.flatten_command(command)
         self.absolute_paths = False
@@ -3268,7 +3270,7 @@ class RunTarget(Target, CommandBase):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command[0])
 
-    def get_dependencies(self) -> T.List[BuildTargetTypes]:
+    def get_dependencies(self) -> T.List[T.Union[RunTarget, TargetDepends]]:
         return self.dependencies
 
     def get_generated_sources(self) -> T.List[GeneratedTypes]:

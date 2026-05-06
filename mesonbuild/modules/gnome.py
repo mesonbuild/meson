@@ -44,7 +44,7 @@ if T.TYPE_CHECKING:
     from ..compilers import Compiler
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import CustomTargetSources
-    from ..interpreter.kwargs import CustomTargetInputs
+    from ..interpreter.kwargs import CustomTargetInputs, TargetDepends
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..mesonlib import EnvironmentVariables, FileOrString
     from ..programs import Program, CommandList, CommandListEntry
@@ -627,10 +627,10 @@ class GnomeModule(ExtensionModule):
 
     def _get_link_args(self, state: 'ModuleState',
                        lib: T.Union[build.SharedLibrary, build.StaticLibrary],
-                       depends: T.Sequence[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString', build.StructuredSources]],
+                       depends: T.Sequence[TargetDepends],
                        include_rpath: bool = False,
                        use_gir_args: bool = False
-                       ) -> T.Tuple[T.List[str], T.List[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString', build.StructuredSources]]]:
+                       ) -> T.Tuple[T.List[str], T.List[TargetDepends]]:
         link_command: T.List[str] = []
         new_depends = list(depends)
         # Construct link args
@@ -658,11 +658,11 @@ class GnomeModule(ExtensionModule):
     def _get_dependencies_flags_raw(
             self, deps: T.Sequence[T.Union['Dependency', build.BuildTargetTypes]],
             state: 'ModuleState',
-            depends: T.Sequence[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString', build.StructuredSources]],
+            depends: T.Sequence[TargetDepends],
             include_rpath: bool,
             use_gir_args: bool,
             ) -> T.Tuple[OrderedSet[str], OrderedSet[T.Union[str, T.Tuple[str, str]]], OrderedSet[T.Union[str, T.Tuple[str, str]]], OrderedSet[str],
-                         T.List[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString', build.StructuredSources]]]:
+                         T.List[TargetDepends]]:
         cflags: OrderedSet[str] = OrderedSet()
         # External linker flags that can't be de-duped reliably because they
         # require two args in order, such as -framework AVFoundation will be stored as a tuple.
@@ -751,13 +751,13 @@ class GnomeModule(ExtensionModule):
     def _get_dependencies_flags(
             self, deps: T.Sequence[T.Union['Dependency', build.BuildTargetTypes]],
             state: 'ModuleState',
-            depends: T.Sequence[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString', build.StructuredSources]],
+            depends: T.Sequence[TargetDepends],
             include_rpath: bool = False,
             use_gir_args: bool = False,
             ) -> T.Tuple[OrderedSet[str], T.List[str], T.List[str], OrderedSet[str],
-                         T.List[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString', build.StructuredSources]]]:
+                         T.List[TargetDepends]]:
 
-        cflags, internal_ldflags_raw, external_ldflags_raw, gi_includes, depends = self._get_dependencies_flags_raw(deps, state, depends, include_rpath, use_gir_args)
+        cflags, internal_ldflags_raw, external_ldflags_raw, gi_includes, new_depends = self._get_dependencies_flags_raw(deps, state, depends, include_rpath, use_gir_args)
         internal_ldflags: T.List[str] = []
         external_ldflags: T.List[str] = []
 
@@ -773,7 +773,7 @@ class GnomeModule(ExtensionModule):
             else:
                 external_ldflags.extend(ldflag)
 
-        return cflags, internal_ldflags, external_ldflags, gi_includes, depends
+        return cflags, internal_ldflags, external_ldflags, gi_includes, new_depends
 
     def _unwrap_gir_target(self, girtarget: T.Union[Executable, build.StaticLibrary, build.SharedLibrary], state: 'ModuleState'
                            ) -> T.Union[Executable, build.StaticLibrary, build.SharedLibrary]:
@@ -980,7 +980,7 @@ class GnomeModule(ExtensionModule):
             girfile: str,
             scan_command: T.Sequence[T.Union['FileOrString', Executable, Program]],
             generated_files: T.Sequence[build.GeneratedTypes],
-            depends: T.Sequence[T.Union['FileOrString', build.BuildTarget, 'build.GeneratedTypes', build.StructuredSources]],
+            depends: T.Sequence[TargetDepends],
             env_flags: T.Sequence[str],
             kwargs: GenerateGir) -> GirTarget:
         install = kwargs['install_gir']
@@ -1063,8 +1063,8 @@ class GnomeModule(ExtensionModule):
     def _gather_typelib_includes_and_update_depends(
             state: 'ModuleState',
             deps: T.Sequence[T.Union[Dependency, build.BuildTargetTypes]],
-            depends: T.Sequence[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString', build.StructuredSources]]
-            ) -> T.Tuple[T.List[str], T.List[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString', build.StructuredSources]]]:
+            depends: T.Sequence[TargetDepends]
+            ) -> T.Tuple[T.List[str], T.List[TargetDepends]]:
         # Need to recursively add deps on GirTarget sources from our
         # dependencies and also find the include directories needed for the
         # typelib generation custom target below.
@@ -1172,7 +1172,7 @@ class GnomeModule(ExtensionModule):
         srcdir = os.path.join(state.environment.get_source_dir(), state.subdir)
         builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
 
-        depends: T.List[T.Union['FileOrString', 'build.GeneratedTypes', build.BuildTarget, build.StructuredSources]] = []
+        depends: T.List[TargetDepends] = []
         # hack - this cast represents how sources are defined for the
         # dependency in gobject-introspection's gir/meson.build
         depends.extend(T.cast('T.List[CustomTarget]', gir_dep.sources))
@@ -1597,7 +1597,7 @@ class GnomeModule(ExtensionModule):
                         deps: T.List[T.Union[Dependency, build.SharedLibrary, build.StaticLibrary]],
                         state: 'ModuleState',
                         depends: T.Sequence[T.Union[build.BuildTarget, 'build.GeneratedTypes']]) -> T.Tuple[
-                                T.List[str], T.List[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString', build.StructuredSources]]]:
+                                T.List[str], T.List[TargetDepends]]:
         args: T.List[str] = []
         cflags = c_args.copy()
         deps_cflags, internal_ldflags, external_ldflags, _gi_includes, new_depends = \

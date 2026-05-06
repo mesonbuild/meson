@@ -38,7 +38,8 @@ if T.TYPE_CHECKING:
     from ..dependencies import ExternalLibrary
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
-    from ..interpreter.interpreter import SourceInputs, SourceOutputs
+    from ..interpreter.kwargs import TargetDepends
+    from ..interpreter.interpreter import SourceOutputs
     from ..interpreter.interpreterobjects import Test
     from ..interpreterbase import TYPE_kwargs
     from ..programs import Program
@@ -785,7 +786,7 @@ class RustModule(ExtensionModule):
         header = self.interpreter.source_strings_to_files([_header])[0]
 
         # Split File and Target dependencies to add pass to CustomTarget
-        depends: T.List[SourceOutputs] = []
+        depends: T.List[TargetDepends] = []
         depend_files: T.List[File] = []
         for d in self.interpreter.source_strings_to_files(_deps):
             if isinstance(d, File):
