@@ -1837,15 +1837,13 @@ class BuildTarget(Target):
             self.vs_module_defs = File.from_built_file(path.get_builddir(), path.get_filename())
         self.process_link_depends([path])
 
-    def extract_targets_as_list(self, kwargs: BuildTargetKeywordArguments, key: T.Literal['link_with', 'link_whole']) -> T.List[LibTypes]:
+    def _default_library_type(self) -> _LibraryType:
         bl_type = self.environment.coredata.optstore.get_value_for(OptionKey('default_both_libraries'))
         assert isinstance(bl_type, str), 'for mypy'
-        if bl_type == 'auto':
-            if isinstance(self, StaticLibrary):
-                bl_type = 'static'
-            elif isinstance(self, SharedLibrary):
-                bl_type = 'shared'
-        bl_type = T.cast('LibraryType', bl_type)
+        return T.cast('_LibraryType', bl_type)
+
+    def extract_targets_as_list(self, kwargs: BuildTargetKeywordArguments, key: T.Literal['link_with', 'link_whole']) -> T.List[LibTypes]:
+        bl_type = self._default_library_type()
 
         self_libs: T.List[LibTypes] = self.link_targets if key == 'link_with' else self.link_whole_targets
 
@@ -2383,6 +2381,10 @@ class StaticLibrary(BuildTarget):
         self.filename = self.prefix + self.name + '.' + self.suffix
         self.outputs[0] = self.filename
 
+    def _default_library_type(self) -> _LibraryType:
+        bl = super()._default_library_type()
+        return 'static' if bl == 'auto' else bl
+
     def determine_default_prefix_and_suffix(self) -> T.Tuple[str, str]:
         scheme = self.environment.coredata.get_option_for_target(self, 'namingscheme')
         assert isinstance(scheme, str), 'for mypy'
@@ -2568,6 +2570,10 @@ class SharedLibrary(BuildTarget):
             self.suffix = None
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         self.determine_filenames()
+
+    def _default_library_type(self) -> _LibraryType:
+        bl = super()._default_library_type()
+        return 'shared' if bl == 'auto' else bl
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         result: T.Dict[str, str] = {}
