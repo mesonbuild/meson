@@ -3228,6 +3228,10 @@ class Interpreter(InterpreterBase, HoldableObject):
     def source_strings_to_files(self, sources: T.List[kwtypes.CustomTargetInputs]) -> T.List['CustomTargetSources']: ... # noqa: F811
 
     @T.overload
+    def source_strings_to_files(self, sources: T.List[T.Union[mesonlib.FileOrString, build.BuildTargetTypes, build.BothLibraries, build.ExtractedObjects, build.GeneratedTypes]]
+                                ) -> T.List[T.Union[mesonlib.File, build.BuildTargetTypes, build.BothLibraries, build.ExtractedObjects, build.GeneratedTypes]]: ... # noqa: F811
+
+    @T.overload
     def source_strings_to_files(self, sources: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.StructuredSources]]
                                 ) -> T.List[T.Union[mesonlib.File, build.GeneratedTypes, build.StructuredSources]]: ... # noqa: F811
 
