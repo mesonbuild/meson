@@ -1512,7 +1512,7 @@ class BuildTarget(Target):
         for t in itertools.chain(self.link_targets, self.link_whole_targets):
             if t not in result:
                 result.add(t)
-                if isinstance(t, StaticLibrary):
+                if isinstance(t, (StaticLibrary, CustomTarget, CustomTargetIndex)):
                     t.get_dependencies_recurse(result, visited, handled_by_rustc=self.uses_rust())
         return result
 
@@ -2974,8 +2974,10 @@ class CustomTargetBase:
 
     rust_crate_type = ''
 
-    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes], visited: T.Set[BuildTargetTypes],
-                                 include_internals: bool = True) -> None:
+    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes],
+                                 visited: T.Set[tuple[BuildTargetTypes, bool, bool]],
+                                 include_internals: bool = True,
+                                 handled_by_rustc: bool = False) -> None:
         pass
 
     def get_internal_static_libraries(self) -> OrderedSet[StaticTargetTypes]:
