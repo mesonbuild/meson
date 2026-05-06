@@ -2623,6 +2623,7 @@ class SharedLibrary(BuildTarget):
                 import_filename_tpl = '{0.prefix}{0.name}.dll.lib'
                 # .pdb file is only created when debug symbols are enabled
                 create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
+                assert isinstance(create_debug_file, bool), 'for mypy'
             elif self.get_using_msvc():
                 # Shared library is of the form foo.dll
                 prefix = prefix if prefix is not None else ''
@@ -2631,6 +2632,7 @@ class SharedLibrary(BuildTarget):
                 import_filename_tpl = '{0.prefix}{0.name}.' + import_suffix
                 # .pdb file is only created when debug symbols are enabled
                 create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
+                assert isinstance(create_debug_file, bool), 'for mypy'
             # Assume GCC-compatible naming
             else:
                 # Shared library is of the form libfoo.dll
