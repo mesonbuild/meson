@@ -2163,7 +2163,11 @@ class GeneratedList(HoldableObject):
             if not self.generator.exe.found():
                 raise InvalidArguments('Tried to use not-found external program as generator')
         if isinstance(self.generator.exe, LocalProgram):
-            self.extra_depends.append(self.generator.exe.program)
+            t = self.generator.exe.get_target()
+            if isinstance(t, File):
+                self.depend_files.append(t)
+            else:
+                self.extra_depends.append(t)
         else:
             path = self.generator.exe.get_path()
             if os.path.isabs(path):
@@ -3499,12 +3503,17 @@ class ConfigurationData(HoldableObject):
         return self.values.keys()
 
 class LocalProgram(programs.Program):
-    def __init__(self, program: T.Union[programs.ExternalProgram, Executable, CustomTarget, CustomTargetIndex], version: str) -> None:
+    def __init__(self, program: T.Union[programs.ExternalProgram, Executable, CustomTarget, CustomTargetIndex], version: str,
+                 file: T.Optional[File] = None) -> None:
         super().__init__()
         if isinstance(program, CustomTarget):
             if len(program.outputs) != 1:
                 raise InvalidArguments('CustomTarget used as LocalProgram must have exactly one output.')
+        if isinstance(program, programs.ExternalProgram):
+            if not file:
+                raise MesonBugException('ExternalProgram used as LocalProgram must be a file from the project')
         self.name = program.name
+        self.file = file
         self.for_machine = program.for_machine
         self.program = program
         self.version = version
@@ -3526,6 +3535,12 @@ class LocalProgram(programs.Program):
             return self.program.get_path()
         # Only the backend knows the actual path to the build program.
         raise MesonBugException('Cannot call get_path() on program that is a build target.')
+
+    def get_target(self) -> T.Union[File, Executable, CustomTarget, CustomTargetIndex]:
+        if self.file:
+            return self.file
+        assert not isinstance(self.program, programs.ExternalProgram)
+        return self.program
 
     def description(self) -> str:
         if isinstance(self.program, programs.ExternalProgram):

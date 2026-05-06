@@ -334,7 +334,7 @@ class MesonMain(MesonInterpreterObject):
             if not os.path.exists(abspath):
                 raise InterpreterException(f'Tried to override {name} with a file that does not exist.')
             prog = ExternalProgram(name, command=[abspath], silent=True)
-            exe = build.LocalProgram(prog, self.interpreter.project_version)
+            exe = build.LocalProgram(prog, self.interpreter.project_version, file=exe)
         elif isinstance(exe, build.Executable):
             exe = build.LocalProgram(exe, self.interpreter.project_version)
         self.interpreter.add_find_program_override(name, exe)
