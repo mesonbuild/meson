@@ -22,7 +22,7 @@ from ..programs import Program, ExternalProgram
 from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
 TestArgs = T.Union[str, File, build.Target, Program]
-TargetDepends = T.Union[build.CustomTarget, build.CustomTargetIndex, build.BuildTarget, build.GeneratedList]
+TargetDepends = T.Union[build.CustomTarget, build.CustomTargetIndex, build.BuildTarget, build.GeneratedList, Program]
 CustomTargetInputs = T.Union[str, build.BuildTarget, build.GeneratedTypes,
                              build.ExtractedObjects, ExternalProgram, File]
 RustAbi = Literal['rust', 'c']

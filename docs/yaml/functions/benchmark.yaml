@@ -88,7 +88,7 @@ kwargs:
       for the test
 
   depends:
-    type: array[build_tgt | custom_tgt]
+    type: array[build_tgt | custom_tgt | custom_idx | program]
     since: 0.46.0
     description: |
       specifies that this test depends on the specified
@@ -96,6 +96,7 @@ kwargs:
       line argument. This is meant for cases where test finds those
       targets internally, e.g. plugins or globbing. Those targets are built
       before test is executed even if they have `build_by_default : false`.
+      `program` is supported *since 1.11.2*.
 
   protocol:
     type: str

@@ -5,7 +5,7 @@ import argparse
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument('sometool')
+    parser.add_argument('sometool', nargs='+')
     parser.parse_args()
 
 

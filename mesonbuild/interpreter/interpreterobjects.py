@@ -25,8 +25,8 @@ from ..interpreterbase import (
                                InterpreterException, InvalidArguments, InvalidCode)
 from ..interpreter.type_checking import NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
-from ..programs import ExternalProgram, Program
-from ..mesonlib import HoldableObject, listify, MesonException
+from ..programs import Program
+from ..mesonlib import File, HoldableObject, listify, MesonException
 
 import typing as T
 
@@ -838,7 +838,7 @@ class GeneratedObjectsHolder(ObjectHolder[build.ExtractedObjects]):
 
 class Test(MesonInterpreterObject):
     def __init__(self, name: str, project: str, suite: T.List[str],
-                 exe: T.Union[Program, build.Executable, build.Jar, build.CustomTarget, build.CustomTargetIndex],
+                 exe: T.Union[Program, build.Executable, build.CustomTarget, build.CustomTargetIndex],
                  depends: T.Sequence[kwargs.TargetDepends],
                  is_parallel: bool,
                  cmd_args: T.List[T.Union[str, mesonlib.File, build.Target, Program]],
@@ -865,6 +865,12 @@ class Test(MesonInterpreterObject):
         for d in depends:
             if isinstance(d, build.GeneratedList):
                 raise MesonException('generated_list not allowed as a dependency for test')
+            if isinstance(d, Program):
+                if not isinstance(d, build.LocalProgram):
+                    continue
+                d = d.get_target()
+                if isinstance(d, File):
+                    continue
             self.depends.append(d)
 
     def get_exe(self) -> T.Union[Program, build.Executable, build.Jar, build.CustomTarget, build.CustomTargetIndex]:

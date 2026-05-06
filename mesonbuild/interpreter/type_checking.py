@@ -272,12 +272,12 @@ DEPFILE_KW: KwargInfo[T.Optional[str]] = KwargInfo(
     validator=lambda x: 'Depfile must be a plain filename with a subdirectory' if has_path_sep(x) else None
 )
 
-DEPENDS_KW: KwargInfo[T.List[BuildTargetTypes]] = KwargInfo(
+DEPENDS_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex, Program]]] = KwargInfo(
     'depends',
-    ContainerTypeInfo(list, (BuildTarget, CustomTarget, CustomTargetIndex)),
+    ContainerTypeInfo(list, (BuildTarget, CustomTarget, CustomTargetIndex, Program)),
     listify=True,
     default=[],
-    since_values={CustomTargetIndex: '1.5.0'},
+    since_values={CustomTargetIndex: '1.5.0', ExternalProgram: '1.11.2'},
 )
 
 DEPEND_FILES_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(

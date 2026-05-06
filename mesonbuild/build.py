@@ -3029,7 +3029,6 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
         self.depfile = depfile
         self.depfile_type = 'gcc' if depfile else depfile_type
         self.env = env or EnvironmentVariables()
-        self.extra_depends = list(extra_depends or [])
         self.feed = feed
         self.install_dir = list(install_dir or [])
         self.has_custom_install_dir = bool(self.install_dir)
@@ -3043,6 +3042,23 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
 
         # Whether to enable using response files for the underlying tool
         self.rspable = rspable
+
+        self.extra_depends: T.List[T.Union[GeneratedTypes, BuildTarget]] = []
+        if extra_depends:
+            for d in extra_depends:
+                if isinstance(d, LocalProgram):
+                    d = d.get_target()
+                elif isinstance(d, programs.Program):
+                    path = d.get_path()
+                    # Can only add a dependency on an external program which we
+                    # know the absolute path of
+                    if not os.path.isabs(path):
+                        continue
+                    d = File.from_absolute_file(path)
+                if isinstance(d, File):
+                    self.depend_files.append(d)
+                else:
+                    self.extra_depends.append(d)
 
     def install_dir_names(self) -> T.List[T.Optional[str]]:
         install_dir_names: T.List[T.Optional[str]] = []
