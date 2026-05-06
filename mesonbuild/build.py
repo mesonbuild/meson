@@ -877,7 +877,7 @@ class BuildTarget(Target):
         self.process_objectlist(objects)
         self.process_kwargs(kwargs)
         self.missing_languages = self.process_compilers()
-        self.single_compile_base_args: T.Dict[Compiler, CompilerArgs] = {}
+        self.single_compile_base_args: T.Dict[Compiler, ImmutableListProtocol[str]] = {}
 
         # self.link_targets and self.link_whole_targets contains libraries from
         # dependencies (see add_deps()). They have not been processed yet because
@@ -2535,7 +2535,7 @@ class SharedLibrary(BuildTarget):
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
-            kwargs):
+            kwargs: SharedLibraryKeywordArguments):
         self.soversion: T.Optional[str] = None
         self.ltversion: T.Optional[str] = None
         # Max length 2, first element is compatibility_version, second is current_version
@@ -2868,7 +2868,7 @@ class SharedModule(SharedLibrary):
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
-            kwargs):
+            kwargs: SharedModuleKeywordArguments):
         if 'version' in kwargs:
             raise MesonException('Shared modules must not specify the version kwarg.')
         if 'soversion' in kwargs:
@@ -3072,7 +3072,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
 
         return install_dir_names
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
 
@@ -3105,7 +3105,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                 bdeps.update(d.get_transitive_build_target_deps())
         return bdeps
 
-    def get_dependencies(self) -> T.List[T.Union[CustomTarget, coredata.BuildTarget]]:
+    def get_dependencies(self) -> T.List[T.Union[CustomTarget, BuildTarget]]:
         return self.dependencies
 
     def should_install(self) -> bool:
@@ -3136,7 +3136,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
     def get_generated_sources(self) -> T.List[GeneratedList]:
         return self.get_generated_lists()
 
-    def get_dep_outname(self, infilenames):
+    def get_dep_outname(self, infilenames: list[str]) -> str:
         if self.depfile is None:
             raise InvalidArguments('Tried to get depfile name for custom_target that does not have depfile defined.')
         if infilenames:
@@ -3197,13 +3197,13 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
     def __getitem__(self, index: int) -> 'CustomTargetIndex':
         return CustomTargetIndex(self, self.outputs[index])
 
-    def __setitem__(self, index, value):
+    def __setitem__(self, index: T.Any, value: T.Any) -> T.Any:
         raise NotImplementedError
 
-    def __delitem__(self, index):
+    def __delitem__(self, index: T.Any) -> T.Any:
         raise NotImplementedError
 
-    def __iter__(self):
+    def __iter__(self) -> T.Iterator[CustomTargetIndex]:
         for i in self.outputs:
             yield CustomTargetIndex(self, i)
 
@@ -3341,7 +3341,7 @@ class Jar(BuildTarget):
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
-                 objects, environment: Environment, compilers: CompilerDict,
+                 objects: T.List[ObjectTypes], environment: Environment, compilers: CompilerDict,
                  kwargs: JarKeywordArguments):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
@@ -3431,7 +3431,7 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     def install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
         return [self.target.install_dir[self.__index]]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<CustomTargetIndex: {!r}[{}]>'.format(self.target, self.output)
 
     def get_outputs(self) -> T.List[str]:
@@ -3520,7 +3520,7 @@ class ConfigurationData(HoldableObject):
     def get(self, name: str) -> T.Tuple[T.Union[str, int, bool], T.Optional[str]]:
         return self.values[name] # (val, desc)
 
-    def keys(self) -> T.Iterator[str]:
+    def keys(self) -> T.Iterable[str]:
         return self.values.keys()
 
 class LocalProgram(programs.Program):
@@ -3618,7 +3618,7 @@ def get_sources_string_names(sources: T.Sequence[CustomTargetSources], backend: 
     For the specified list of @sources which can be strings, Files,
     ExternalPrograms, or targets, get all the output basenames.
     '''
-    names = []
+    names: list[str] = []
     for s in sources:
         if isinstance(s, (BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList)):
             names += s.get_outputs()
