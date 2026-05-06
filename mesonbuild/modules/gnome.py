@@ -1173,7 +1173,9 @@ class GnomeModule(ExtensionModule):
         builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
 
         depends: T.List[T.Union['FileOrString', 'build.GeneratedTypes', build.BuildTarget, build.StructuredSources]] = []
-        depends.extend(gir_dep.sources)
+        # hack - this cast represents how sources are defined for the
+        # dependency in gobject-introspection's gir/meson.build
+        depends.extend(T.cast('T.List[CustomTarget]', gir_dep.sources))
         depends.extend(girtargets)
 
         langs_compilers = self._get_girtargets_langs_compilers(girtargets)
