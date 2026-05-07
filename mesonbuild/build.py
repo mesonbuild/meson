@@ -3238,9 +3238,9 @@ class CompileTarget(BuildTarget):
                  dependencies: T.List[dependencies.Dependency],
                  depends: T.List[BuildTargetTypes]):
         compilers = {compiler.get_language(): compiler}
-        kwargs = {
+        kwargs: BuildTargetKeywordArguments = {
             'build_by_default': False,
-            'language_args': {compiler.language: compile_args},
+            'language_args': defaultdict(list, [(compiler.language, compile_args)]),
             'include_directories': include_directories,
             'dependencies': dependencies,
         }
