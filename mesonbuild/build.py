@@ -2094,7 +2094,7 @@ class Generator(HoldableObject):
             preserve_path_from,
             extra_args=extra_args if extra_args is not None else [],
             env=env if env is not None else EnvironmentVariables(),
-            extra_depends=extra_depends if extra_depends is not None else [])
+            extra_depends=list(extra_depends) if extra_depends is not None else [])
 
         for e in files:
             if isinstance(e, (CustomTarget, CustomTargetIndex)):
