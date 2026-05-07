@@ -169,8 +169,9 @@ kwargs:
   include_directories:
     type: array[inc | str]
     description: |
-      one or more objects created with the [[include_directories]] function,
-      or *(since 0.50.0)* strings, which will be transparently expanded to include directory objects
+      one or more objects created with the [[include_directories]] function, or
+      *(since 0.50.0)* strings, which will be implicitly convert to [[@inc]]
+      objects
 
   install:
     type: bool
@@ -282,7 +283,8 @@ kwargs:
     since: 0.62.0
     description: |
       the directories to add to the string search path (i.e. `-J` switch for DMD).
-      Must be [[@inc]] objects or plain strings.
+      Must be objects created with the [[include_directories]] function or plain
+      strings, which will be implicitly converted into [[@inc]] objects.
 
   d_unittest:
     type: bool

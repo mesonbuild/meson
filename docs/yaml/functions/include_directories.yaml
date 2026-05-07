@@ -1,12 +1,11 @@
 name: include_directories
 returns: inc
 description: |
-  Returns an opaque object which contains the directories (relative to
-  the current directory) given in the positional arguments. The result
-  can then be passed to the `include_directories:` keyword argument when
-  building executables or libraries. You can use the returned object in
-  any subdirectory you want, Meson will make the paths work
-  automatically.
+  Returns an opaque object which contains the directories (relative to the
+  current directory) given in the positional arguments. The result can then be
+  passed to the `include_directories:` and `d_import_dirs:` keyword arguments
+  when building executables or libraries. You can use the returned object in any
+  subdirectory you want, Meson will make the paths work automatically.
 
   Note that this function call itself does not add the directories into
   the search path, since there is no global search path. For something
