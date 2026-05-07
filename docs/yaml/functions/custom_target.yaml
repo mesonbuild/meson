@@ -189,8 +189,10 @@ kwargs:
       are also accepted.
 
   input:
-    type: array[str | file]
-    description: Array of source files. *(since 0.41.0)* the array is flattened.
+    type: array[str | file | program]
+    description: |
+      Array of source files. *(since 0.41.0)* the array is flattened.
+      `program` is supported *since 1.11.2*.
 
   install:
     type: bool
