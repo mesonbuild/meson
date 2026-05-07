@@ -1589,14 +1589,14 @@ class BuildTarget(Target):
     def is_internal(self) -> bool:
         return False
 
-    def link(self, targets: T.List[BuildTargetTypes]) -> None:
+    def link(self, targets: T.Iterable[BuildTargetTypes]) -> None:
         for t in targets:
             self.check_can_link_together(t)
             self.link_targets.append(t)
 
     def link_whole(
             self,
-            targets: T.List[StaticTargetTypes],
+            targets: T.Iterable[StaticTargetTypes],
             promoted: bool = False) -> None:
         for t in targets:
             self.check_can_link_together(t)
@@ -2461,7 +2461,7 @@ class StaticLibrary(BuildTarget):
 
     def link_whole(
             self,
-            targets: T.List[StaticTargetTypes],
+            targets: T.Iterable[StaticTargetTypes],
             promoted: bool = False) -> None:
         for t in targets:
             self.check_can_link_together(t)
@@ -2477,7 +2477,7 @@ class StaticLibrary(BuildTarget):
                     self._bundle_static_library(lib, True)
             self.link_whole_targets.append(t)
 
-    def link(self, targets: T.List[BuildTargetTypes]) -> None:
+    def link(self, targets: T.Iterable[BuildTargetTypes]) -> None:
         for t in targets:
             if self.install and t.is_internal():
                 # When we're a static library and we link_with to an
@@ -2823,7 +2823,7 @@ class SharedLibrary(BuildTarget):
 
     def link_whole(
             self,
-            targets: T.List[StaticTargetTypes],
+            targets: T.Iterable[StaticTargetTypes],
             promoted: bool = False) -> None:
         for t in targets:
             self.check_can_link_together(t)
@@ -2833,7 +2833,7 @@ class SharedLibrary(BuildTarget):
                 raise InvalidArguments(msg)
             self.link_whole_targets.append(t)
 
-    def link(self, targets: T.List[BuildTargetTypes]) -> None:
+    def link(self, targets: T.Iterable[BuildTargetTypes]) -> None:
         for t in targets:
             if isinstance(t, StaticLibrary) and not t.pic:
                 msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
