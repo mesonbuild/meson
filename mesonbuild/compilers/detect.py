@@ -188,8 +188,13 @@ def _get_compilers(env: 'Environment', lang: str, for_machine: MachineChoice,
     if value is not None:
         comp, ccache = BinaryTable.parse_entry(value)
         # Descriptor may override ccache even when binary comes from [binaries].
-        if desc is not None and not desc.ccache:
-            ccache = None
+        if desc is not None:
+            if not desc.ccache:
+                ccache = None
+            elif ccache is None:
+                # [binaries] has no ccache prefix; [compilers] ccache=true → auto-detect.
+                detected = BinaryTable.detect_ccache()
+                ccache = detected if detected.found() else None
         # Return value has to be a list of compiler 'choices'
         compilers = [comp]
     else:
@@ -363,9 +368,20 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             from ..linkers import linkers as lnk_mod
             compiler = list(compilers[0])
 
-            # Generate cc1/cc1plus/lto1 wrapper scripts if needed.
-            # Prepend -B<wrapper_dir> right after the binary so the wrapper is
-            # found before any -B<libexec> already present in the compiler args.
+            # Apply structured flags from [compilers] descriptor.
+            if desc.sysroot:
+                compiler.append(f'--sysroot={desc.sysroot}')
+            if desc.no_default_includes:
+                compiler.append('-nostdinc')
+            for d in desc.tool_search_paths:
+                compiler.append(f'-B{d}')
+            for d in desc.system_include_dirs:
+                compiler.append(f'-isystem{d}')
+
+            # Generate subprocess wrappers after structured flags are applied so
+            # --print-prog-name can use tool-search-paths to locate cc1.
+            # Prepend -B<wrapper_dir> right after the binary so it wins over
+            # any -B<libexec> from tool-search-paths.
             if desc.subprocess_interpreter:
                 wrapper_dir = _generate_subprocess_wrappers(env, compiler, desc)
                 if wrapper_dir:
