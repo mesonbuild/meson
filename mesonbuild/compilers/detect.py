@@ -174,20 +174,10 @@ def _get_compilers(env: 'Environment', lang: str, for_machine: MachineChoice,
     '''
     desc = env.lookup_compiler_desc(for_machine, lang)
 
-    # [compilers] binary overrides [binaries]; handle ccache from descriptor.
-    if desc is not None and desc.binary is not None:
-        comp = desc.binary
-        if desc.ccache:
-            ccache_exe = BinaryTable.detect_ccache()
-            ccache: T.Union[None, ExternalProgram] = ccache_exe if ccache_exe.found() else None
-        else:
-            ccache = None
-        return [comp], ccache
-
     value = env.lookup_binary_entry(for_machine, lang)
     if value is not None:
         comp, ccache = BinaryTable.parse_entry(value)
-        # Descriptor may override ccache even when binary comes from [binaries].
+        # [compilers] descriptor may override ccache wrapping.
         if desc is not None:
             if not desc.ccache:
                 ccache = None

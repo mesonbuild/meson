@@ -124,25 +124,6 @@ class CompilerTableTests(TestCase):
         self.assertIsNotNone(desc)
         self.assertEqual(desc.type, 'gcc')
         self.assertEqual(desc.version, '12.2.0')
-        self.assertIsNone(desc.binary)
-
-    def test_binary_string(self):
-        table = self._parse_compilers(textwrap.dedent('''\
-            [compilers]
-            c.binary = '/usr/bin/gcc'
-            '''))
-        desc = table.lookup('c')
-        self.assertIsNotNone(desc)
-        self.assertEqual(desc.binary, ['/usr/bin/gcc'])
-
-    def test_binary_array(self):
-        table = self._parse_compilers(textwrap.dedent('''\
-            [compilers]
-            c.binary = ['/usr/bin/gcc', '-B/opt/tools/bin']
-            '''))
-        desc = table.lookup('c')
-        self.assertIsNotNone(desc)
-        self.assertEqual(desc.binary, ['/usr/bin/gcc', '-B/opt/tools/bin'])
 
     def test_ccache_false(self):
         table = self._parse_compilers(textwrap.dedent('''\

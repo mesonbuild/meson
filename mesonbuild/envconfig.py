@@ -535,7 +535,6 @@ class CompilerDescriptor:
     """Per-language compiler configuration from a [compilers] machine-file section."""
     lang: str
     type: T.Optional[str] = None
-    binary: T.Optional[T.List[str]] = None
     version: T.Optional[str] = None
     ccache: bool = True
     sysroot: T.Optional[str] = None
@@ -549,7 +548,7 @@ class CompilerTable:
     """Parsed [compilers] section from a native or cross file."""
 
     KNOWN_KEYS: T.FrozenSet[str] = frozenset({
-        'type', 'binary', 'version', 'ccache',
+        'type', 'version', 'ccache',
         'sysroot', 'no-default-includes', 'system-include-dirs',
         'tool-search-paths', 'subprocess-interpreter',
     })
@@ -583,13 +582,6 @@ class CompilerTable:
                         f'Unknown compiler type {t!r} for language {lang!r} in [compilers]; '
                         f'valid values: {sorted(COMPILER_TYPES)}')
                 desc.type = str(t)
-
-            if 'binary' in props:
-                b = props['binary']
-                if not isinstance(b, (str, list)):
-                    raise mesonlib.MesonException(
-                        f'[compilers] {lang}.binary must be a string or array, got {b!r}')
-                desc.binary = mesonlib.stringlistify(b)
 
             if 'version' in props:
                 desc.version = str(props['version'])

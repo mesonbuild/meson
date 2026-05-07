@@ -266,7 +266,7 @@ dynamic-loader prefix.
 
 ### compilers
 
-*New in 2.0.0*
+*New in 1.12.0*
 
 The `[compilers]` section allows declaring compiler configuration explicitly,
 rather than relying on Meson to auto-detect it from a binary. This is primarily
@@ -280,18 +280,16 @@ When a language is declared in this section:
   the declared version. When `<lang>.version` is omitted, Meson still runs the
   binary with `--version` to determine the version.
 
-The compiler binary can be specified either via `<lang>.binary` in this section or
-via the language key in the `[binaries]` section; when both are present,
-`[compilers].<lang>.binary` takes precedence.
+The compiler binary itself is always specified via `<lang>` in the `[binaries]`
+section.
 
-Each key is prefixed with the language identifier (`c.`, `cpp.`, `fortran.`, etc.).
+Each key is prefixed with the language identifier (`c.`, `cpp.`, etc.).
 
 #### Keys
 
 | Key | Type | Description |
 |-----|------|-------------|
 | `<lang>.type` | string | Compiler family. Supported values: `'gcc'`, `'clang'`, `'clang-cl'`, `'msvc'`, `'intel'` (Classic icc/icpc), `'intel-llvm'` (oneAPI icx/icpx), `'arm'` (Arm Compiler 5 armcc), `'armclang'` (Arm Compiler 6), `'pgi'` (NVIDIA HPC/PGI nvc/nvc++), `'emscripten'`. |
-| `<lang>.binary` | string or array | Path to the compiler binary (or a command array). Equivalent to setting `<lang>` in the `[binaries]` section; when both are present, `[compilers].<lang>.binary` takes precedence. |
 | `<lang>.version` | string | Version string (e.g. `'10.3.0'`). When specified, used in place of `--version` output. When omitted, Meson runs the binary with `--version` and parses the result as usual. |
 | `<lang>.ccache` | bool | Whether to use ccache when invoking this compiler. Default: `true`. When `true`, ccache is used if found on `PATH`; the build proceeds without caching if ccache is not present. Set to `false` to disable caching unconditionally. |
 | `<lang>.sysroot` | string | Override the root directory for the target system's headers and libraries. Has no effect on compilers that do not support a sysroot concept. |
@@ -331,15 +329,17 @@ _sdk     = '@GLOBAL_SOURCE_ROOT@' / 'sdk'
 _gcc     = _sdk / 'gcc-12.2.0'
 _runtime = _sdk / 'runtime'    # ELF loader and companion shared libraries
 
+[binaries]
+c   = _gcc / 'bin' / 'x86_64-linux-gnu-gcc'
+cpp = _gcc / 'bin' / 'x86_64-linux-gnu-g++'
+
 [compilers]
 c.type    = 'gcc'
-c.binary  = _gcc / 'bin' / 'x86_64-linux-gnu-gcc'
 c.version = '12.2.0'
 c.subprocess-interpreter = [_runtime / 'lib64' / 'ld-linux-x86-64.so.2',
                               '--library-path', _runtime / 'lib64']
 
 cpp.type    = 'gcc'
-cpp.binary  = _gcc / 'bin' / 'x86_64-linux-gnu-g++'
 cpp.version = '12.2.0'
 cpp.subprocess-interpreter = c.subprocess-interpreter
 ```
@@ -359,9 +359,12 @@ can be used to override the discovered values.
 #### Example: Clang with custom sysroot
 
 ```ini
+[binaries]
+c   = '/path/to/clang-17/bin/clang'
+cpp = '/path/to/clang-17/bin/clang++'
+
 [compilers]
 c.type    = 'clang'
-c.binary  = '/path/to/clang-17/bin/clang'
 c.version = '17.0.6'
 c.sysroot             = '/path/to/sdk'
 c.no-default-includes = true
@@ -369,7 +372,6 @@ c.system-include-dirs = ['/path/to/clang-17/lib/clang/17/include',
                           '/path/to/sdk/usr/include']
 
 cpp.type    = 'clang'
-cpp.binary  = '/path/to/clang-17/bin/clang++'
 cpp.version = '17.0.6'
 cpp.sysroot             = c.sysroot
 cpp.no-default-includes = true
