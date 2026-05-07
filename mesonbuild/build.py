@@ -2982,7 +2982,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  subproject: str,
                  environment: Environment,
                  command: T.Sequence[T.Union[
-                     str, BuildTargetTypes, GeneratedList,
+                     str, BuildTargetTypes,
                      programs.Program, File]],
                  sources: T.Sequence[CustomTargetSources],
                  outputs: T.List[str],
