@@ -204,3 +204,14 @@ now has an `implicit_include_directories` keyword argument to automatically
 add current build and source directories to the included paths when compiling
 a resource.
 
+## External programs as inputs and dependencies to custom targets
+
+Custom targets now allow specifying an external program in
+the `input` and `depends` keyword arguments.  This also applies
+to several methods provided by modules, as they are lowered to
+custom targets internally. (*Added in 1.11.2*).
+
+## External programs as dependencies to tests
+
+Tests now allow specifying an external program in
+the `depends` keyword argument. (*Added in 1.11.2*).
