@@ -364,10 +364,12 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             compiler = list(compilers[0])
 
             # Generate cc1/cc1plus/lto1 wrapper scripts if needed.
+            # Prepend -B<wrapper_dir> right after the binary so the wrapper is
+            # found before any -B<libexec> already present in the compiler args.
             if desc.subprocess_interpreter:
                 wrapper_dir = _generate_subprocess_wrappers(env, compiler, desc)
                 if wrapper_dir:
-                    compiler = compiler + [f'-B{wrapper_dir}']
+                    compiler = compiler[:1] + [f'-B{wrapper_dir}'] + compiler[1:]
 
             # Determine version: use declared version or run --version.
             if desc.version is not None:
