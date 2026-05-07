@@ -26,7 +26,7 @@ from ..interpreterbase import (
 from ..interpreter.type_checking import NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram, Program
-from ..mesonlib import HoldableObject, listify
+from ..mesonlib import HoldableObject, listify, MesonException
 
 import typing as T
 
@@ -839,7 +839,7 @@ class GeneratedObjectsHolder(ObjectHolder[build.ExtractedObjects]):
 class Test(MesonInterpreterObject):
     def __init__(self, name: str, project: str, suite: T.List[str],
                  exe: T.Union[Program, build.Executable, build.Jar, build.CustomTarget, build.CustomTargetIndex],
-                 depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]],
+                 depends: T.Sequence[kwargs.TargetDepends],
                  is_parallel: bool,
                  cmd_args: T.List[T.Union[str, mesonlib.File, build.Target, Program]],
                  env: mesonlib.EnvironmentVariables,
@@ -850,7 +850,6 @@ class Test(MesonInterpreterObject):
         self.suite = listify(suite)
         self.project_name = project
         self.exe = exe
-        self.depends = depends
         self.is_parallel = is_parallel
         self.cmd_args = cmd_args
         self.env = env
@@ -861,6 +860,12 @@ class Test(MesonInterpreterObject):
         self.protocol = TestProtocol.from_str(protocol)
         self.priority = priority
         self.verbose = verbose
+
+        self.depends: T.List[build.BuildTargetTypes] = []
+        for d in depends:
+            if isinstance(d, build.GeneratedList):
+                raise MesonException('generated_list not allowed as a dependency for test')
+            self.depends.append(d)
 
     def get_exe(self) -> T.Union[Program, build.Executable, build.Jar, build.CustomTarget, build.CustomTargetIndex]:
         return self.exe

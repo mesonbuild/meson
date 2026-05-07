@@ -1218,16 +1218,14 @@ class Backend:
                 extra_paths = []
 
             cmd_args: T.List[str] = []
-            depends: T.Set[build.Target] = set(t.depends)
-            if isinstance(exe, build.Target):
+            depends: T.Set[build.BuildTargetTypes] = set(t.depends)
+            if isinstance(exe, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 depends.add(exe)
             for a in t.cmd_args:
                 if isinstance(a, build.LocalProgram):
                     a = a.program
-                if isinstance(a, build.Target):
+                if isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                     depends.add(a)
-                elif isinstance(a, build.CustomTargetIndex):
-                    depends.add(a.target)
 
                 if isinstance(a, mesonlib.File):
                     a = os.path.join(self.environment.get_build_dir(), a.rel_to_builddir(self.build_to_src))
