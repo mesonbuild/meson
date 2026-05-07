@@ -3491,8 +3491,8 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
         suf = os.path.splitext(self.output)[-1]
         return suf in {'.a', '.lib'} and not self.should_install()
 
-    def extract_all_objects(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
-        return self.target.extract_all_objects()
+    def extract_all_objects(self) -> T.Union[str, 'ExtractedObjects']:
+        return self.output
 
     def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
         return self.target.get_custom_install_dir()
