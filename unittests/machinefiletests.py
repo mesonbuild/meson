@@ -96,6 +96,177 @@ class MachineFileStoreTests(TestCase):
         finally:
             os.unlink(fname)
 
+class CompilerTableTests(TestCase):
+    """Unit tests for [compilers] section parsing (no build system required)."""
+
+    def _parse_compilers(self, ini_content: str) -> mesonbuild.envconfig.CompilerTable:
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.ini', delete=False,
+                                         encoding='utf-8') as f:
+            f.write(ini_content)
+            fname = f.name
+        try:
+            parser = machinefile.MachineFileParser([fname], '/tmp')
+            return mesonbuild.envconfig.CompilerTable(parser.sections.get('compilers', {}))
+        finally:
+            os.unlink(fname)
+
+    def test_empty_section(self):
+        table = self._parse_compilers('')
+        self.assertEqual(table.compilers, {})
+
+    def test_type_and_version(self):
+        table = self._parse_compilers(textwrap.dedent('''\
+            [compilers]
+            c.type = 'gcc'
+            c.version = '12.2.0'
+            '''))
+        desc = table.lookup('c')
+        self.assertIsNotNone(desc)
+        self.assertEqual(desc.type, 'gcc')
+        self.assertEqual(desc.version, '12.2.0')
+        self.assertIsNone(desc.binary)
+
+    def test_binary_string(self):
+        table = self._parse_compilers(textwrap.dedent('''\
+            [compilers]
+            c.binary = '/usr/bin/gcc'
+            '''))
+        desc = table.lookup('c')
+        self.assertIsNotNone(desc)
+        self.assertEqual(desc.binary, ['/usr/bin/gcc'])
+
+    def test_binary_array(self):
+        table = self._parse_compilers(textwrap.dedent('''\
+            [compilers]
+            c.binary = ['/usr/bin/gcc', '-B/opt/tools/bin']
+            '''))
+        desc = table.lookup('c')
+        self.assertIsNotNone(desc)
+        self.assertEqual(desc.binary, ['/usr/bin/gcc', '-B/opt/tools/bin'])
+
+    def test_ccache_false(self):
+        table = self._parse_compilers(textwrap.dedent('''\
+            [compilers]
+            c.type = 'clang'
+            c.ccache = false
+            '''))
+        desc = table.lookup('c')
+        self.assertIsNotNone(desc)
+        self.assertFalse(desc.ccache)
+
+    def test_ccache_default_is_true(self):
+        table = self._parse_compilers(textwrap.dedent('''\
+            [compilers]
+            c.type = 'gcc'
+            '''))
+        desc = table.lookup('c')
+        self.assertIsNotNone(desc)
+        self.assertTrue(desc.ccache)
+
+    def test_sysroot(self):
+        table = self._parse_compilers(textwrap.dedent('''\
+            [compilers]
+            c.sysroot = '/opt/sysroot'
+            '''))
+        desc = table.lookup('c')
+        self.assertIsNotNone(desc)
+        self.assertEqual(desc.sysroot, '/opt/sysroot')
+
+    def test_no_default_includes(self):
+        table = self._parse_compilers(textwrap.dedent('''\
+            [compilers]
+            c.no-default-includes = true
+            '''))
+        desc = table.lookup('c')
+        self.assertIsNotNone(desc)
+        self.assertTrue(desc.no_default_includes)
+
+    def test_system_include_dirs(self):
+        table = self._parse_compilers(textwrap.dedent('''\
+            [compilers]
+            c.system-include-dirs = ['/opt/sysroot/usr/include', '/opt/gcc/include']
+            '''))
+        desc = table.lookup('c')
+        self.assertIsNotNone(desc)
+        self.assertEqual(desc.system_include_dirs,
+                         ['/opt/sysroot/usr/include', '/opt/gcc/include'])
+
+    def test_tool_search_paths(self):
+        table = self._parse_compilers(textwrap.dedent('''\
+            [compilers]
+            c.tool-search-paths = ['/opt/binutils/bin']
+            '''))
+        desc = table.lookup('c')
+        self.assertIsNotNone(desc)
+        self.assertEqual(desc.tool_search_paths, ['/opt/binutils/bin'])
+
+    def test_subprocess_interpreter(self):
+        table = self._parse_compilers(textwrap.dedent('''\
+            [compilers]
+            c.subprocess-interpreter = ['/lib64/ld-linux-x86-64.so.2',
+                                         '--library-path', '/lib64']
+            '''))
+        desc = table.lookup('c')
+        self.assertIsNotNone(desc)
+        self.assertEqual(desc.subprocess_interpreter,
+                         ['/lib64/ld-linux-x86-64.so.2', '--library-path', '/lib64'])
+
+    def test_multiple_languages(self):
+        table = self._parse_compilers(textwrap.dedent('''\
+            [compilers]
+            c.type = 'gcc'
+            c.version = '12.2.0'
+            cpp.type = 'gcc'
+            cpp.version = '12.2.0'
+            '''))
+        self.assertIsNotNone(table.lookup('c'))
+        self.assertIsNotNone(table.lookup('cpp'))
+        self.assertEqual(table.lookup('c').type, 'gcc')
+        self.assertEqual(table.lookup('cpp').type, 'gcc')
+
+    def test_unknown_key_warning(self):
+        import unittest.mock as mock_module
+        with mock_module.patch.object(mesonbuild.mlog, 'warning') as mock_warn:
+            self._parse_compilers(textwrap.dedent('''\
+                [compilers]
+                c.type = 'gcc'
+                c.unknown-key = 'something'
+                '''))
+            # Should have warned about the unknown key
+            mock_warn.assert_called_once()
+            self.assertIn('unknown-key', mock_warn.call_args[0][0])
+
+    def test_invalid_type_raises(self):
+        with self.assertRaises(Exception) as ctx:
+            self._parse_compilers(textwrap.dedent('''\
+                [compilers]
+                c.type = 'not-a-real-compiler'
+                '''))
+        self.assertIn('not-a-real-compiler', str(ctx.exception))
+
+    def test_invalid_ccache_type_raises(self):
+        with self.assertRaises(Exception):
+            self._parse_compilers(textwrap.dedent('''\
+                [compilers]
+                c.ccache = 'yes'
+                '''))
+
+    def test_missing_dot_raises(self):
+        with self.assertRaises(Exception) as ctx:
+            self._parse_compilers(textwrap.dedent('''\
+                [compilers]
+                ctype = 'gcc'
+                '''))
+        self.assertIn('ctype', str(ctx.exception))
+
+    def test_lookup_missing_returns_none(self):
+        table = self._parse_compilers(textwrap.dedent('''\
+            [compilers]
+            c.type = 'gcc'
+            '''))
+        self.assertIsNone(table.lookup('fortran'))
+
+
 class NativeFileTests(BasePlatformTests):
 
     def setUp(self):

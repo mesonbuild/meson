@@ -8,7 +8,7 @@ from ..mesonlib import (
     search_version, is_windows, Popen_safe, Popen_safe_logged, version_compare, windows_proof_rm,
 )
 from ..programs import ExternalProgram
-from ..envconfig import BinaryTable, detect_cpu_family
+from ..envconfig import BinaryTable, CompilerDescriptor, CompilerTable, detect_cpu_family
 from .. import mlog
 
 from ..linkers import guess_win_linker, guess_nix_linker
@@ -16,7 +16,9 @@ from ..linkers import guess_win_linker, guess_nix_linker
 import subprocess
 import platform
 import re
+import shlex
 import shutil
+import stat
 import tempfile
 import os
 import typing as T
@@ -117,6 +119,50 @@ def detect_compiler_for(env: 'Environment', lang: Language, for_machine: Machine
     return comp
 
 
+# Subprocess wrapper generation
+# ==============================
+
+def _generate_subprocess_wrappers(
+        env: 'Environment',
+        compiler: T.List[str],
+        desc: 'CompilerDescriptor',
+) -> T.Optional[str]:
+    """Generate cc1/cc1plus/lto1 wrapper scripts for hermetic GCC.
+
+    Returns the wrapper directory path (to be passed as -B<dir>), or None if
+    no subprograms could be located.
+    """
+    wrapper_dir = os.path.join(env.scratch_dir, 'compiler-wrappers', desc.lang)
+    os.makedirs(wrapper_dir, exist_ok=True)
+
+    interpreter_parts = desc.subprocess_interpreter
+    interpreter_str = ' '.join(shlex.quote(x) for x in interpreter_parts)
+
+    generated_any = False
+    for prog in ('cc1', 'cc1plus', 'lto1'):
+        try:
+            p, out, _ = Popen_safe(compiler + ['--print-prog-name', prog])
+        except OSError:
+            continue
+        real_path = out.strip()
+        if not real_path or not os.path.isabs(real_path) or not os.path.isfile(real_path):
+            continue
+
+        wrapper_path = os.path.join(wrapper_dir, prog)
+        wrapper_content = (
+            '#!/bin/sh\n'
+            f'exec {interpreter_str} {shlex.quote(real_path)} "$@"\n'
+        )
+        with open(wrapper_path, 'w', encoding='utf-8') as f:
+            f.write(wrapper_content)
+        current_mode = os.stat(wrapper_path).st_mode
+        os.chmod(wrapper_path, current_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        mlog.debug(f'Generated {prog} wrapper: {wrapper_path}')
+        generated_any = True
+
+    return wrapper_dir if generated_any else None
+
+
 # Helpers
 # =======
 
@@ -126,9 +172,24 @@ def _get_compilers(env: 'Environment', lang: str, for_machine: MachineChoice,
     The list of compilers is detected in the exact same way for
     C, C++, ObjC, ObjC++, Fortran, CS so consolidate it here.
     '''
+    desc = env.lookup_compiler_desc(for_machine, lang)
+
+    # [compilers] binary overrides [binaries]; handle ccache from descriptor.
+    if desc is not None and desc.binary is not None:
+        comp = desc.binary
+        if desc.ccache:
+            ccache_exe = BinaryTable.detect_ccache()
+            ccache: T.Union[None, ExternalProgram] = ccache_exe if ccache_exe.found() else None
+        else:
+            ccache = None
+        return [comp], ccache
+
     value = env.lookup_binary_entry(for_machine, lang)
     if value is not None:
         comp, ccache = BinaryTable.parse_entry(value)
+        # Descriptor may override ccache even when binary comes from [binaries].
+        if desc is not None and not desc.ccache:
+            ccache = None
         # Return value has to be a list of compiler 'choices'
         compilers = [comp]
     else:
@@ -291,6 +352,52 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
         compilers = override_compilers
     cls: T.Union[T.Type[CCompiler], T.Type[CPPCompiler]]
     lnk: T.Union[T.Type[StaticLinker], T.Type[DynamicLinker]]
+
+    # Fast path: [compilers] section declared the family (type) explicitly.
+    # Skip pattern-matching on --version output for GCC; generate subprocess
+    # wrappers before running any preprocessing step that invokes cc1.
+    if override_compilers is None:
+        desc = env.lookup_compiler_desc(for_machine, lang)
+        if desc is not None and desc.type == 'gcc' and compilers:
+            from . import c, cpp
+            from ..linkers import linkers as lnk_mod
+            compiler = list(compilers[0])
+
+            # Generate cc1/cc1plus/lto1 wrapper scripts if needed.
+            if desc.subprocess_interpreter:
+                wrapper_dir = _generate_subprocess_wrappers(env, compiler, desc)
+                if wrapper_dir:
+                    compiler = compiler + [f'-B{wrapper_dir}']
+
+            # Determine version: use declared version or run --version.
+            if desc.version is not None:
+                version = desc.version
+                full_version = version
+            else:
+                try:
+                    p, out, _ = Popen_safe_logged(compiler + ['--version'],
+                                                   msg='Detecting compiler via')
+                except OSError as e:
+                    raise EnvironmentException(
+                        f'Failed to run GCC compiler {compiler[0]!r}: {e}')
+                full_version = out.split('\n', 1)[0]
+                version = search_version(out)
+
+            # Still run preprocessor defines detection (requires cc1; wrappers
+            # are now in place so this succeeds even in hermetic builds).
+            defines = _get_gnu_compiler_defines(compiler, lang)
+            if not defines:
+                raise EnvironmentException(
+                    f'GCC compiler at {compiler[0]!r} returned no preprocessor defines; '
+                    'check that the compiler is accessible')
+            if desc.version is None:
+                version = _get_gnu_version_from_defines(defines)
+
+            cls_gcc = c.GnuCCompiler if lang == 'c' else cpp.GnuCPPCompiler
+            linker = guess_nix_linker(env, compiler, cls_gcc, version, for_machine)
+            return cls_gcc(
+                ccache, compiler, version, for_machine,
+                env, defines=defines, full_version=full_version, linker=linker)
 
     for compiler in compilers:
         compiler_name = os.path.basename(compiler[0])

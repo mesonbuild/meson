@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import typing as T
 from enum import Enum
 import os
@@ -521,6 +521,110 @@ class BinaryTable:
         elif not command[0].strip():
             return None
         return command
+
+COMPILER_TYPES: T.FrozenSet[str] = frozenset({
+    'gcc', 'clang', 'clang-cl', 'msvc',
+    'intel', 'intel-llvm',
+    'arm', 'armclang',
+    'pgi', 'emscripten',
+})
+
+
+@dataclass
+class CompilerDescriptor:
+    """Per-language compiler configuration from a [compilers] machine-file section."""
+    lang: str
+    type: T.Optional[str] = None
+    binary: T.Optional[T.List[str]] = None
+    version: T.Optional[str] = None
+    ccache: bool = True
+    sysroot: T.Optional[str] = None
+    no_default_includes: bool = False
+    system_include_dirs: T.List[str] = field(default_factory=list)
+    tool_search_paths: T.List[str] = field(default_factory=list)
+    subprocess_interpreter: T.List[str] = field(default_factory=list)
+
+
+class CompilerTable:
+    """Parsed [compilers] section from a native or cross file."""
+
+    KNOWN_KEYS: T.FrozenSet[str] = frozenset({
+        'type', 'binary', 'version', 'ccache',
+        'sysroot', 'no-default-includes', 'system-include-dirs',
+        'tool-search-paths', 'subprocess-interpreter',
+    })
+
+    def __init__(
+            self,
+            entries: T.Optional[T.Mapping[str, 'ElementaryOptionValues']] = None,
+    ) -> None:
+        self.compilers: T.Dict[str, CompilerDescriptor] = {}
+        if not entries:
+            return
+
+        by_lang: T.Dict[str, T.Dict[str, 'ElementaryOptionValues']] = {}
+        for dotkey, value in entries.items():
+            if '.' not in dotkey:
+                raise mesonlib.MesonException(
+                    f'Invalid [compilers] key {dotkey!r}: expected <lang>.<property>')
+            lang, _, key = dotkey.partition('.')
+            if key not in self.KNOWN_KEYS:
+                mlog.warning(f'Unknown [compilers] key {dotkey!r}, ignoring', once=True)
+                continue
+            by_lang.setdefault(lang, {})[key] = value
+
+        for lang, props in by_lang.items():
+            desc = CompilerDescriptor(lang=lang)
+
+            if 'type' in props:
+                t = props['type']
+                if t not in COMPILER_TYPES:
+                    raise mesonlib.MesonException(
+                        f'Unknown compiler type {t!r} for language {lang!r} in [compilers]; '
+                        f'valid values: {sorted(COMPILER_TYPES)}')
+                desc.type = str(t)
+
+            if 'binary' in props:
+                b = props['binary']
+                if not isinstance(b, (str, list)):
+                    raise mesonlib.MesonException(
+                        f'[compilers] {lang}.binary must be a string or array, got {b!r}')
+                desc.binary = mesonlib.stringlistify(b)
+
+            if 'version' in props:
+                desc.version = str(props['version'])
+
+            if 'ccache' in props:
+                v = props['ccache']
+                if not isinstance(v, bool):
+                    raise mesonlib.MesonException(
+                        f'[compilers] {lang}.ccache must be a bool, got {v!r}')
+                desc.ccache = v
+
+            if 'sysroot' in props:
+                desc.sysroot = str(props['sysroot'])
+
+            if 'no-default-includes' in props:
+                v = props['no-default-includes']
+                if not isinstance(v, bool):
+                    raise mesonlib.MesonException(
+                        f'[compilers] {lang}.no-default-includes must be a bool, got {v!r}')
+                desc.no_default_includes = v
+
+            if 'system-include-dirs' in props:
+                desc.system_include_dirs = mesonlib.stringlistify(props['system-include-dirs'])
+
+            if 'tool-search-paths' in props:
+                desc.tool_search_paths = mesonlib.stringlistify(props['tool-search-paths'])
+
+            if 'subprocess-interpreter' in props:
+                desc.subprocess_interpreter = mesonlib.stringlistify(props['subprocess-interpreter'])
+
+            self.compilers[lang] = desc
+
+    def lookup(self, lang: str) -> T.Optional[CompilerDescriptor]:
+        return self.compilers.get(lang)
+
 
 class CMakeVariables:
     def __init__(self, variables: T.Optional[T.Dict[str, T.Any]] = None) -> None:

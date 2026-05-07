@@ -26,7 +26,7 @@ from . import mlog
 from .programs import ExternalProgram
 
 from .envconfig import (
-    BinaryTable, MachineInfo, Properties, CMakeVariables,
+    BinaryTable, CompilerTable, MachineInfo, Properties, CMakeVariables,
     detect_machine_info, machine_info_can_run
 )
 from . import compilers
@@ -133,6 +133,9 @@ class Environment:
         # meta data, only names/paths.
         binaries: PerMachineDefaultable[BinaryTable] = PerMachineDefaultable()
 
+        # Structured compiler configuration from [compilers] machine-file sections.
+        compiler_descs: PerMachineDefaultable[CompilerTable] = PerMachineDefaultable()
+
         # Misc other properties about each machine.
         properties: PerMachineDefaultable[Properties] = PerMachineDefaultable()
 
@@ -147,6 +150,7 @@ class Environment:
         # Just uses hard-coded defaults and environment variables. Might be
         # overwritten by a native file.
         binaries.build = BinaryTable()
+        compiler_descs.build = CompilerTable()
         properties.build = Properties()
 
         # Options with the key parsed into an OptionKey type.
@@ -167,6 +171,7 @@ class Environment:
         if self.coredata.config_files is not None:
             config = machinefile.parse_machine_files(self.coredata.config_files, self.source_dir)
             binaries.build = BinaryTable(config.get('binaries', {}))
+            compiler_descs.build = CompilerTable(config.get('compilers', {}))
             properties.build = Properties(config.get('properties', {}))
             cmakevars.build = CMakeVariables(config.get('cmake', {}))
             self._load_machine_file_options(
@@ -179,6 +184,7 @@ class Environment:
             config = machinefile.parse_machine_files(self.coredata.cross_files, self.source_dir)
             properties.host = Properties(config.get('properties', {}))
             binaries.host = BinaryTable(config.get('binaries', {}))
+            compiler_descs.host = CompilerTable(config.get('compilers', {}))
             cmakevars.host = CMakeVariables(config.get('cmake', {}))
             if 'host_machine' in config:
                 machines.host = MachineInfo.from_literal(config['host_machine'])
@@ -195,6 +201,7 @@ class Environment:
 
         self.machines = machines.default_missing()
         self.binaries = binaries.default_missing()
+        self.compiler_descs = compiler_descs.default_missing()
         self.properties = properties.default_missing()
         self.cmakevars = cmakevars.default_missing()
 
@@ -476,6 +483,9 @@ class Environment:
         """Directory under the scratch dir where binary-interpreter wrappers
         are materialized.  Flat layout (no per-machine subdir)."""
         return Path(self.scratch_dir) / 'binary-wrappers'
+
+    def lookup_compiler_desc(self, for_machine: MachineChoice, lang: str) -> T.Optional['envconfig.CompilerDescriptor']:
+        return self.compiler_descs[for_machine].lookup(lang)
 
     def get_scratch_dir(self) -> str:
         return self.scratch_dir

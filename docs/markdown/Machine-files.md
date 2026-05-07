@@ -264,6 +264,118 @@ This feature is POSIX-only.  On Windows the property is silently
 ignored with a one-time warning, since DLL resolution does not use a
 dynamic-loader prefix.
 
+### compilers
+
+*New in 2.0.0*
+
+The `[compilers]` section allows declaring compiler configuration explicitly,
+rather than relying on Meson to auto-detect it from a binary. This is primarily
+useful for hermetic toolchains where the compiler and its subprograms require a
+custom execution environment that is not present on the host system.
+
+When a language is declared in this section:
+
+- If `<lang>.type` is set, Meson skips family detection and uses that type directly.
+- If `<lang>.version` is also set, Meson skips version detection entirely and uses
+  the declared version. When `<lang>.version` is omitted, Meson still runs the
+  binary with `--version` to determine the version.
+
+The compiler binary can be specified either via `<lang>.binary` in this section or
+via the language key in the `[binaries]` section; when both are present,
+`[compilers].<lang>.binary` takes precedence.
+
+Each key is prefixed with the language identifier (`c.`, `cpp.`, `fortran.`, etc.).
+
+#### Keys
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `<lang>.type` | string | Compiler family. Supported values: `'gcc'`, `'clang'`, `'clang-cl'`, `'msvc'`, `'intel'` (Classic icc/icpc), `'intel-llvm'` (oneAPI icx/icpx), `'arm'` (Arm Compiler 5 armcc), `'armclang'` (Arm Compiler 6), `'pgi'` (NVIDIA HPC/PGI nvc/nvc++), `'emscripten'`. |
+| `<lang>.binary` | string or array | Path to the compiler binary (or a command array). Equivalent to setting `<lang>` in the `[binaries]` section; when both are present, `[compilers].<lang>.binary` takes precedence. |
+| `<lang>.version` | string | Version string (e.g. `'10.3.0'`). When specified, used in place of `--version` output. When omitted, Meson runs the binary with `--version` and parses the result as usual. |
+| `<lang>.ccache` | bool | Whether to use ccache when invoking this compiler. Default: `true`. When `true`, ccache is used if found on `PATH`; the build proceeds without caching if ccache is not present. Set to `false` to disable caching unconditionally. |
+| `<lang>.sysroot` | string | Override the root directory for the target system's headers and libraries. Has no effect on compilers that do not support a sysroot concept. |
+| `<lang>.no-default-includes` | bool | Suppress the compiler's built-in system include search. Default: `false`. When set, the compiler's default system include directories are not searched; use `system-include-dirs` to specify them explicitly. Has no effect on compilers that have no equivalent flag (a warning is emitted). |
+| `<lang>.system-include-dirs` | array | System include directories. When set alongside `no-default-includes`, these directories are the only system include directories searched. When set without `no-default-includes`, these directories are searched in addition to the compiler's defaults. |
+| `<lang>.tool-search-paths` | array | Directories in which to search for compiler subtools (assembler, linker helpers, etc.). When omitted, the compiler uses its default search. |
+| `<lang>.subprocess-interpreter` | array | Command used to run compiler subprograms (e.g. cc1, cc1plus, lto1 on GCC). Compiler subprograms are found automatically. The resulting compile commands are fully cacheable by ccache and do not require `-wrapper` or `LD_LIBRARY_PATH`. Accepted but ignored (with an informational note) for monolithic compilers. |
+
+#### Flag translation by compiler family
+
+`—` means the key is not applicable for this compiler family.
+`no-op` means the key is accepted but has no effect.
+
+| Key | GCC, Clang | Intel Classic, Intel oneAPI, ARM 6 (armclang), Emscripten | MSVC, Clang-CL |
+|-----|------------|-----------------------------------------------------------|----------------|
+| `sysroot` | `--sysroot=<path>` | `--sysroot=<path>` (NVIDIA HPC/PGI: —) | — |
+| `no-default-includes` | `-nostdinc` | `-nostdinc` | `/X` |
+| `system-include-dirs` | `-isystem <dir>` | `-isystem <dir>` | `/imsvc <dir>` |
+| `tool-search-paths` | `-B <dir>` | warning, ignored | warning, ignored |
+| `subprocess-interpreter` | generates cc1/cc1plus/lto1 wrappers (GCC only); no-op (Clang) | no-op | no-op |
+| `ccache` | wraps invocation with ccache if available | wraps invocation with ccache if available | wraps invocation with ccache if available |
+
+Notes:
+- **NVIDIA HPC/PGI** (`nvc`/`nvc++`): otherwise identical to the Intel/ARM 6/Emscripten column but does not expose a sysroot concept; `sysroot` is silently ignored.
+- **Clang-CL**: the MSVC-compatible Clang frontend. Uses MSVC-style flags (`/X`, `/imsvc`) matching its `cl.exe` compatibility mode; `--sysroot` and `-B` are not meaningful in this mode.
+- **ARM Compiler 5** (`armcc`): a legacy proprietary compiler with its own flag dialect. None of the structured keys translate to equivalent armcc flags. A warning is emitted at setup for each key that is set; all are ignored. Use `[binaries]` and `[built-in options]` to pass armcc-specific flags directly.
+
+#### Example: hermetic GCC toolchain
+
+A self-contained GCC 12.2.0 toolchain bundled with the project under `sdk/`.
+The `cc1` and `cc1plus` subprograms require shared libraries from `sdk/runtime/lib64`
+that are not installed on the build host.
+
+```ini
+[constants]
+_sdk     = '@GLOBAL_SOURCE_ROOT@' / 'sdk'
+_gcc     = _sdk / 'gcc-12.2.0'
+_runtime = _sdk / 'runtime'    # ELF loader and companion shared libraries
+
+[compilers]
+c.type    = 'gcc'
+c.binary  = _gcc / 'bin' / 'x86_64-linux-gnu-gcc'
+c.version = '12.2.0'
+c.subprocess-interpreter = [_runtime / 'lib64' / 'ld-linux-x86-64.so.2',
+                              '--library-path', _runtime / 'lib64']
+
+cpp.type    = 'gcc'
+cpp.binary  = _gcc / 'bin' / 'x86_64-linux-gnu-g++'
+cpp.version = '12.2.0'
+cpp.subprocess-interpreter = c.subprocess-interpreter
+```
+
+With this configuration:
+
+- Compiler subprograms are located and invoked automatically through the bundled ELF
+  loader; no manual wrapper scripts or `LD_LIBRARY_PATH` setup is needed.
+- Include directories and subtool locations are discovered automatically from the
+  compiler.
+- Compilation is fully cacheable by ccache.
+
+When cross-compiling or using a non-standard sysroot, the optional override keys
+(`sysroot`, `no-default-includes`, `system-include-dirs`, `tool-search-paths`)
+can be used to override the discovered values.
+
+#### Example: Clang with custom sysroot
+
+```ini
+[compilers]
+c.type    = 'clang'
+c.binary  = '/path/to/clang-17/bin/clang'
+c.version = '17.0.6'
+c.sysroot             = '/path/to/sdk'
+c.no-default-includes = true
+c.system-include-dirs = ['/path/to/clang-17/lib/clang/17/include',
+                          '/path/to/sdk/usr/include']
+
+cpp.type    = 'clang'
+cpp.binary  = '/path/to/clang-17/bin/clang++'
+cpp.version = '17.0.6'
+cpp.sysroot             = c.sysroot
+cpp.no-default-includes = true
+cpp.system-include-dirs = c.system-include-dirs
+```
+
 ### Paths and Directories
 
 *Deprecated in 0.56.0* use the built-in section instead.
