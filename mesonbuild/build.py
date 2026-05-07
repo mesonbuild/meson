@@ -1052,7 +1052,7 @@ class BuildTarget(Target):
             FeatureDeprecated.single_use(f'Source file {deprecated_non_objects[0]} in the \'objects\' kwarg is not an object.',
                                          '1.3.0', self.subproject)
 
-    def process_sourcelist(self, sources: T.List['SourceOutputs']) -> None:
+    def process_sourcelist(self, sources: T.Iterable['SourceOutputs']) -> None:
         """Split sources into generated and static sources.
 
         Sources can be:
