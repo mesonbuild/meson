@@ -45,7 +45,7 @@ methods:
           sophisticated environment juggling.
 
       depends:
-        type: array[build_tgt | custom_tgt | custom_idx]
+        type: array[build_tgt | custom_tgt | custom_idx | program]
         since: 1.12.0
         description: |
           An array of build targets that must be built before attempting to run this
