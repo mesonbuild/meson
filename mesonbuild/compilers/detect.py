@@ -8,7 +8,7 @@ from ..mesonlib import (
     search_version, is_windows, Popen_safe, Popen_safe_logged, version_compare, windows_proof_rm,
 )
 from ..programs import ExternalProgram
-from ..envconfig import BinaryTable, CompilerDescriptor, CompilerTable, detect_cpu_family
+from ..envconfig import BinaryTable, CompilerDescriptor, detect_cpu_family
 from .. import mlog
 
 from ..linkers import guess_win_linker, guess_nix_linker
@@ -364,8 +364,6 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
     if override_compilers is None:
         desc = env.lookup_compiler_desc(for_machine, lang)
         if desc is not None and desc.type == 'gcc' and compilers:
-            from . import c, cpp
-            from ..linkers import linkers as lnk_mod
             compiler = list(compilers[0])
 
             # Apply structured flags from [compilers] descriptor.
@@ -394,7 +392,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             else:
                 try:
                     p, out, _ = Popen_safe_logged(compiler + ['--version'],
-                                                   msg='Detecting compiler via')
+                                                  msg='Detecting compiler via')
                 except OSError as e:
                     raise EnvironmentException(
                         f'Failed to run GCC compiler {compiler[0]!r}: {e}')
