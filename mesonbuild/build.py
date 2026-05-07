@@ -3082,8 +3082,8 @@ class CustomTarget(Target, CustomTargetBase):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
 
-    def get_target_dependencies(self) -> T.List[TargetDepends]:
-        deps: T.List[TargetDepends] = []
+    def get_target_dependencies(self) -> T.List[TargetDepends | File | ExtractedObjects]:
+        deps: T.List[TargetDepends | File | ExtractedObjects] = []
         deps.extend(self.dependencies)
         deps.extend(self.extra_depends)
         for c in self.sources:
