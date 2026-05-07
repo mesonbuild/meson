@@ -3275,6 +3275,9 @@ class CompileTarget(BuildTarget):
             gen_headers += [File(True, dep.subdir, o) for o in dep.get_outputs()]
         return gen_headers
 
+    def is_linkable_output(self, output: str) -> bool:
+        return False
+
 class RunTarget(Target):
 
     typename = 'run'
