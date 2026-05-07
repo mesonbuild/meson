@@ -2271,7 +2271,7 @@ class GnomeModule(ExtensionModule):
         cmd += ['--metadatadir=' + source_dir]
 
         inputs: T.List[T.Union[mesonlib.File, GirTarget]] = []
-        link_with: T.List[build.LibTypes] = []
+        link_with: T.List[build.LinkableTargetTypes] = []
         i: CustomTargetInputs
         for i in kwargs['sources']:
             if isinstance(i, str):

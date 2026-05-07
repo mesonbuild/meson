@@ -31,7 +31,7 @@ from ..programs import ExternalProgram, NonExistingExternalProgram
 if T.TYPE_CHECKING:
     from . import ModuleState
     from .. import cargo
-    from ..build import BuildTargetTypes, ExecutableKeywordArguments, GeneratedTypes, IncludeDirs, LibTypes
+    from ..build import ExecutableKeywordArguments, GeneratedTypes, IncludeDirs, LinkableTargetTypes
     from ..cargo.interpreter import RUST_ABI
     from ..compilers.compilers import Language
     from ..compilers.rust import RustCompiler
@@ -53,7 +53,7 @@ if T.TYPE_CHECKING:
         args: T.List[ArgsType]
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         is_parallel: bool
-        link_with: T.List[LibTypes]
+        link_with: T.List[LinkableTargetTypes]
         link_whole: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]
         rust_args: T.List[str]
 
@@ -649,7 +649,7 @@ class RustModule(ExtensionModule):
 
         new_target_kwargs['install'] = False
         new_target_kwargs['dependencies'] = new_target_kwargs.get('dependencies', []) + kwargs['dependencies']
-        new_target_kwargs['link_with'] = new_target_kwargs.get('link_with', []) + T.cast('T.List[BuildTargetTypes]', kwargs['link_with'])
+        new_target_kwargs['link_with'] = new_target_kwargs.get('link_with', []) + kwargs['link_with']
         new_target_kwargs['link_whole'] = new_target_kwargs.get('link_whole', []) + kwargs['link_whole']
 
         lang_args = base_target.extra_args.copy()

@@ -516,7 +516,7 @@ class FuncDeclareDependency(TypedDict):
     include_directories: T.List[T.Union[build.IncludeDirs, str]]
     link_args: T.List[str]
     link_whole: T.List[build.StaticTargetTypes]
-    link_with: T.List[build.BuildTargetTypes]
+    link_with: T.List[build.LinkableTargetTypes]
     objects: T.List[build.ExtractedObjects]
     sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
     variables: T.Dict[str, str]
