@@ -27,7 +27,7 @@ from .. import compilers
 from .. import tooldetect
 from ..arglist import CompilerArgs
 from ..compilers import Compiler, is_library
-from ..linkers import ArLikeLinker, RSPFileSyntax
+from ..linkers import ArLikeLinker, RSPFileSyntax, StaticLinker
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg, unique_list
@@ -42,7 +42,6 @@ if T.TYPE_CHECKING:
 
     from .._typing import ImmutableListProtocol
     from ..build import ExtractedObjects, LibTypes
-    from ..linkers.linkers import DynamicLinker, StaticLinker
     from ..compilers.compilers import Language
     from ..compilers.cs import CsCompiler
     from ..compilers.fortran import FortranCompiler
@@ -2438,7 +2437,7 @@ class NinjaBackend(backends.Backend):
         # Introspection information
         self.create_target_source_introspection(target, swiftc, compile_args + header_imports + module_includes, relsrc, rel_generated)
 
-    def _rsp_options(self, tool: T.Union['Compiler', 'StaticLinker', 'DynamicLinker']) -> NinjaRuleArgs:
+    def _rsp_options(self, tool: T.Union['Compiler', 'StaticLinker']) -> NinjaRuleArgs:
         """Helper method to get rsp options.
 
         rsp_file_syntax() is only guaranteed to be implemented if
@@ -3550,7 +3549,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def get_import_filename(self, target) -> str:
         return os.path.join(self.get_target_dir(target), target.import_filename)
 
-    def get_target_type_link_args(self, target: build.BuildTarget, linker: Compiler):
+    def get_target_type_link_args(self, target: build.BuildTarget, linker: T.Union[StaticLinker, Compiler]) -> T.List[str]:
+        if isinstance(target, build.StaticLibrary):
+            produce_thin_archive = self.allow_thin_archives[target.for_machine] and not target.should_install()
+            return linker.get_std_link_args(self.environment, produce_thin_archive)
+
+        assert isinstance(linker, Compiler)
         commands: T.List[str] = []
         if isinstance(target, build.Executable):
             # Currently only used with the Swift compiler to add '-emit-executable'
@@ -3582,9 +3586,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # This is only visited when building for Windows using either GCC or Visual Studio
             if target.import_filename:
                 commands += linker.gen_import_library_args(self.get_import_filename(target))
-        elif isinstance(target, build.StaticLibrary):
-            produce_thin_archive = self.allow_thin_archives[target.for_machine] and not target.should_install()
-            commands += linker.get_std_link_args(self.environment, produce_thin_archive)
         else:
             raise RuntimeError('Unknown build target type.')
         return commands
@@ -3601,7 +3602,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 commands += linker.get_win_subsystem_args(target.win_subsystem)
         return commands
 
-    def get_link_whole_args(self, linker: DynamicLinker, target):
+    def get_link_whole_args(self, linker: Compiler, target):
         use_custom = False
         if linker.id == 'msvc':
             # Expand our object lists manually if we are on pre-Visual Studio 2015 Update 2
@@ -3744,6 +3745,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if isinstance(target, build.StaticLibrary):
             linker_base = 'STATIC'
         else:
+            assert isinstance(linker, Compiler)
             linker_base = linker.get_language() # Fixme.
         if isinstance(target, build.SharedLibrary) and self.environment.machines[target.for_machine].is_os2():
             target_file = self.get_target_filename(target)
@@ -3765,8 +3767,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # options passed on the command-line, in default_options, etc.
         # These have the lowest priority.
         if isinstance(target, build.StaticLibrary):
+            assert isinstance(linker, StaticLinker)
             base_link_args = linker.get_base_link_args(target, linker, self.environment)
         else:
+            assert isinstance(linker, Compiler)
             base_link_args = compilers.get_base_link_args(target,
                                                           linker,
                                                           self.environment)
@@ -3786,12 +3790,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add link args specific to this BuildTarget type, such as soname args,
         # PIC, import library generation, etc.
         commands += self.get_target_type_link_args(target, linker)
-        # Archives that are copied wholesale in the result. Must be before any
-        # other link targets so missing symbols from whole archives are found in those.
         if not isinstance(target, build.StaticLibrary):
+            assert isinstance(linker, Compiler)
+            # Archives that are copied wholesale in the result. Must be before any
+            # other link targets so missing symbols from whole archives are found in those.
             commands += self.get_link_whole_args(linker, target)
-
-        if not isinstance(target, build.StaticLibrary):
             commands += linker.get_build_link_args(target, self.build)
 
         # Now we will add libraries and library paths from various sources
@@ -3802,20 +3805,22 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         # Add link args to link to all internal libraries (link_with:) and
         # internal dependencies needed by this target.
-        if linker_base == 'STATIC':
+        dep_targets = []
+        if isinstance(target, build.StaticLibrary):
             # Link arguments of static libraries are not put in the command
             # line of the library. They are instead appended to the command
             # line where the static library is used.
             dependencies = []
         else:
+            # Only non-static built targets need link args and link dependencies
+            assert isinstance(linker, Compiler)
+
             dependencies = target.get_dependencies()
-        internal = self.build_target_link_arguments(linker, dependencies)
-        commands += internal
-        # Only non-static built targets need link args and link dependencies
-        if not isinstance(target, build.StaticLibrary):
+            internal = self.build_target_link_arguments(linker, dependencies)
+            commands += internal
+
             # For 'automagic' deps: Boost and GTest. Also dependency('threads').
             # pkg-config puts the thread flags itself via `Cflags:`
-
             commands += linker.get_target_link_args(target)
             # External deps must be last because target link libraries may depend on them.
             for dep in target.get_external_deps():
@@ -3835,15 +3840,15 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                             link_args = VisualStudioLikeLinker.native_args_to_unix(link_args)
                         commands.extend_preserving_lflags(link_args)
 
-        # Add link args specific to this BuildTarget type that must not be overridden by dependencies
-        commands += self.get_target_type_link_args_post_dependencies(target, linker)
+            # Add link args specific to this BuildTarget type that must not be overridden by dependencies
+            commands += self.get_target_type_link_args_post_dependencies(target, linker)
 
-        # Add link args for c_* or cpp_* build options. Currently this only
-        # adds c_winlibs and cpp_winlibs when building for Windows. This needs
-        # to be after all internal and external libraries so that unresolved
-        # symbols from those can be found here. This is needed when the
-        # *_winlibs that we want to link to are static mingw64 libraries.
-        if isinstance(linker, Compiler):
+            # Add link args for c_* or cpp_* build options. Currently this only
+            # adds c_winlibs and cpp_winlibs when building for Windows. This needs
+            # to be after all internal and external libraries so that unresolved
+            # symbols from those can be found here. This is needed when the
+            # *_winlibs that we want to link to are static mingw64 libraries.
+            #
             # The static linker doesn't know what language it is building, so we
             # don't know what option. Fortunately, it doesn't care to see the
             # language-specific options either.
@@ -3852,8 +3857,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # in the LTO case we do use a real compiler here.
             commands += linker.get_option_link_args(target)
 
-        dep_targets = []
-        dep_targets.extend(self.guess_external_link_dependencies(linker, target, commands, internal))
+            dep_targets.extend(self.guess_external_link_dependencies(linker, target, commands, internal))
 
         obj_list += self.get_import_std_object(target)
 
@@ -3882,6 +3886,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         # Add early arguments before any object files or libraries
         if not isinstance(target, build.StaticLibrary):
+            assert isinstance(linker, Compiler)
             compile_args += linker.get_target_link_early_args(target)
         if compile_args:
             elem.add_item('ARGS', compile_args)

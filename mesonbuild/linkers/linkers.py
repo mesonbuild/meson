@@ -18,7 +18,6 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..mesonlib import MachineChoice
     from ..build import BuildTarget
-    from ..compilers import Compiler
     from ..compilers.compilers import LinkerOptionStyle
 
 
@@ -47,7 +46,7 @@ class StaticLinker:
 
     def get_base_link_args(self,
                            target: 'BuildTarget',
-                           linker: 'Compiler',
+                           linker: StaticLinker,
                            env: 'Environment') -> T.List[str]:
         """Like compilers.get_base_link_args, but for the static linker."""
         return []
