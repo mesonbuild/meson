@@ -52,6 +52,7 @@ if T.TYPE_CHECKING:
 
     CommandArgTypes = T.TypeVar('CommandArgTypes', 'NinjaCommandArg', str, 'NinjaCommandArg | str')
     CommandArgs = T.List[CommandArgTypes]
+    ListifiedStr = str | T.List[str]
     RUST_EDITIONS = Literal['2015', '2018', '2021']
 
     class NinjaRuleArgs(TypedDict, total=False):
@@ -302,7 +303,7 @@ class NinjaBuildElement:
 
     rule: NinjaRule
 
-    def __init__(self, all_outputs: T.Set[str], outfilenames, rulename, infilenames, implicit_outs=None):
+    def __init__(self, all_outputs: T.Set[str], outfilenames: ListifiedStr, rulename: str, infilenames: ListifiedStr, implicit_outs: T.Optional[T.List[str]] = None):
         self.implicit_outfilenames = implicit_outs or []
         if isinstance(outfilenames, str):
             self.outfilenames = [outfilenames]
@@ -314,25 +315,25 @@ class NinjaBuildElement:
             self.infilenames = [infilenames]
         else:
             self.infilenames = infilenames
-        self.deps = set()
-        self.orderdeps = set()
-        self.elems = []
+        self.deps: T.Set[str] = set()
+        self.orderdeps: T.Set[str] = set()
+        self.elems: T.List[T.Tuple[str, T.List[str]]] = []
         self.all_outputs = all_outputs
         self.output_errors = ''
 
-    def add_dep(self, dep: T.Union[str, T.List[str]]) -> None:
+    def add_dep(self, dep: ListifiedStr) -> None:
         if isinstance(dep, list):
             self.deps.update(dep)
         else:
             self.deps.add(dep)
 
-    def add_orderdep(self, dep) -> None:
+    def add_orderdep(self, dep: ListifiedStr) -> None:
         if isinstance(dep, list):
             self.orderdeps.update(dep)
         else:
             self.orderdeps.add(dep)
 
-    def add_item(self, name: str, elems: T.Union[str, T.List[str], CompilerArgs]) -> None:
+    def add_item(self, name: str, elems: T.Union[ListifiedStr, CompilerArgs]) -> None:
         # Always convert from GCC-style argument naming to the naming used by the
         # current compiler. Also filter system include paths, deduplicate, etc.
         if isinstance(elems, CompilerArgs):
@@ -521,7 +522,7 @@ class NinjaBackend(backends.Backend):
         self.allow_thin_archives = PerMachine[bool](True, True)
         self.import_std: T.Optional[ImportStdInfo] = None
 
-    def create_phony_target(self, dummy_outfile: str, rulename: str, phony_infilename: str) -> NinjaBuildElement:
+    def create_phony_target(self, dummy_outfile: str, rulename: str, phony_infilenames: ListifiedStr) -> NinjaBuildElement:
         '''
         We need to use aliases for targets that might be used as directory
         names to workaround a Ninja bug that breaks `ninja -t clean`.
@@ -536,7 +537,7 @@ class NinjaBackend(backends.Backend):
         elem = NinjaBuildElement(self.all_outputs, dummy_outfile, 'phony', to_name)
         self.add_build(elem)
 
-        return NinjaBuildElement(self.all_outputs, to_name, rulename, phony_infilename)
+        return NinjaBuildElement(self.all_outputs, to_name, rulename, phony_infilenames)
 
     def detect_vs_dep_prefix(self, tempfilename: str) -> T.TextIO:
         '''VS writes its dependency in a locale dependent format.
