@@ -28,6 +28,7 @@ if T.TYPE_CHECKING:
     from . import ModuleState
     from ..environment import Environment
     from ..interpreter import Interpreter
+    from ..interpreter.kwargs import TargetDepends
     from ..interpreterbase import TYPE_kwargs, TYPE_var, SubProject
 
     _T = T.TypeVar('_T')
@@ -64,7 +65,7 @@ class HotdocExternalProgram(ExternalProgram):
 
 class HotdocTargetBuilder:
 
-    def __init__(self, name: str, state: ModuleState, hotdoc: HotdocExternalProgram, interpreter: Interpreter, kwargs):
+    def __init__(self, name: str, state: ModuleState, hotdoc: HotdocExternalProgram, interpreter: Interpreter, kwargs: GenerateDocKwargs):
         self.hotdoc = hotdoc
         self.build_by_default = kwargs.pop('build_by_default', False)
         self.kwargs = kwargs
@@ -81,10 +82,9 @@ class HotdocTargetBuilder:
         self.cmd: T.List[TYPE_var] = ['conf', '--project-name', name, "--disable-incremental-build",
                                       '--output', os.path.join(self.builddir, self.subdir, self.name + '-doc')]
 
-        self._extra_extension_paths = set()
-        self.extra_assets = set()
-        self.extra_depends = []
-        self._subprojects = []
+        self._extra_extension_paths: set[str] = set()
+        self.extra_depends: list[build.BuildTargetTypes] = []
+        self._subprojects: list[HotdocTarget] = []
 
     def process_known_arg(self, option: str, argname: T.Optional[str] = None, value_processor: T.Optional[T.Callable] = None) -> None:
         if not argname:
@@ -169,7 +169,9 @@ class HotdocTargetBuilder:
 
         self.cmd += ['--gi-c-source-roots'] + value
 
-    def process_dependencies(self, deps: T.List[T.Union[Dependency, build.StaticLibrary, build.SharedLibrary, CustomTarget, CustomTargetIndex]]) -> T.List[str]:
+    def process_dependencies(self, deps: T.Sequence[TargetDepends | Dependency | File | build.ExtractedObjects | build.StructuredSources]) -> T.List[str]:
+        # build.StructuredSources and build.ExtractedObjects shouldn't actually
+        # happen here, but we get them from Dependency.
         cflags = set()
         for dep in mesonlib.listify(ensure_list(deps)):
             if isinstance(dep, InternalDependency):
@@ -241,9 +243,18 @@ class HotdocTargetBuilder:
             raise MesonException('hotdoc failed to configure')
         os.chdir(cwd)
 
-    def ensure_file(self, value: T.Union[str, File, CustomTarget, CustomTargetIndex]) -> T.Union[File, CustomTarget, CustomTargetIndex]:
+    @T.overload
+    def ensure_file(self, value: list[str | File | CustomTarget | CustomTargetIndex]
+                    ) -> list[File | CustomTarget | CustomTargetIndex]: ...
+
+    @T.overload
+    def ensure_file(self, value: str | File | CustomTarget | CustomTargetIndex
+                    ) -> File | CustomTarget | CustomTargetIndex: ...
+
+    def ensure_file(self, value: str | File | CustomTarget | CustomTargetIndex | list[str | File | CustomTarget | CustomTargetIndex]
+                    ) -> File | CustomTarget | CustomTargetIndex | list[File | CustomTarget | CustomTargetIndex]:
         if isinstance(value, list):
-            res = []
+            res: list[File | CustomTarget | CustomTargetIndex] = []
             for val in value:
                 res.append(self.ensure_file(val))
             return res
