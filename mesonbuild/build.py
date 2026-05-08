@@ -680,6 +680,8 @@ class StructuredSources(HoldableObject):
 @dataclass(eq=False)
 class Target(HoldableObject, metaclass=SimpleABC):
 
+    typename: T.ClassVar[str]
+
     name: str
     subdir: str
     subproject: 'SubProject'
@@ -690,10 +692,6 @@ class Target(HoldableObject, metaclass=SimpleABC):
     build_always_stale: bool = False
     extra_files: T.List[File] = field(default_factory=list)
     build_subdir: str = ''
-
-    @abc.abstractproperty
-    def typename(self) -> str:
-        pass
 
     @abc.abstractmethod
     def type_suffix(self) -> str:
@@ -2893,6 +2891,8 @@ class SharedModule(SharedLibrary):
         return self.environment.get_shared_module_dir(), '{moduledir_shared}'
 
 class BothLibraries(SecondLevelHolder):
+    typename: T.ClassVar[str] = 'both libraries'
+
     def __init__(self, shared: SharedLibrary, static: StaticLibrary, preferred_library: Literal['shared', 'static']) -> None:
         self._preferred_library = preferred_library
         self.shared = shared

@@ -13,6 +13,7 @@ from .. import compilers, environment, mesonlib
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
 from ..interpreterbase import InvalidArguments, SubProject, UnknownValue, Feature
+from ..interpreter import type_checking
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
 from ..mparser import BaseNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
@@ -24,6 +25,16 @@ if T.TYPE_CHECKING:
     from ..interpreterbase import TYPE_var
     from .visitor import AstVisitor
 
+
+_TARGET_KWARGS: T.Mapping[str, set[str]] = {
+    'executable': {s.name for s in type_checking.EXECUTABLE_KWS},
+    'jar': {s.name for s in type_checking.JAR_KWS},
+    'library': {s.name for s in type_checking.LIBRARY_KWS},
+    'shared library': {s.name for s in type_checking.SHARED_LIB_KWS},
+    'shared module': {s.name for s in type_checking.SHARED_MOD_KWS},
+    'static library': {s.name for s in type_checking.STATIC_LIB_KWS},
+    'both libraries': {s.name for s in type_checking.LIBRARY_KWS},
+}
 
 # TODO: it would be nice to not have to duplicate this
 BUILD_TARGET_FUNCTIONS = [
@@ -243,7 +254,7 @@ class IntrospectionInterpreter(AstInterpreter):
                 extraf_nodes = v
 
         # Make sure nothing can crash when creating the build class
-        _kwargs_reduced = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs and k in {'install', 'build_by_default', 'build_always', 'name_prefix'}}
+        _kwargs_reduced = {k: v for k, v in kwargs.items() if k in _TARGET_KWARGS[targetclass.typename] and k in {'install', 'build_by_default', 'build_always', 'name_prefix'}}
         _kwargs_reduced = {k: v.value if isinstance(v, ElementaryNode) else v for k, v in _kwargs_reduced.items()}
         _kwargs_reduced = {k: v for k, v in _kwargs_reduced.items() if not isinstance(v, (BaseNode, UnknownValue))}
         kwargs_reduced = T.cast('BuildTargetKeywordArguments', _kwargs_reduced)
