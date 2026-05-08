@@ -41,7 +41,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
     from .._typing import ImmutableListProtocol
-    from ..build import ExtractedObjects, LibTypes
+    from ..build import ExtractedObjects
     from ..compilers.compilers import Language
     from ..compilers.cs import CsCompiler
     from ..compilers.fortran import FortranCompiler
@@ -730,7 +730,8 @@ class NinjaBackend(backends.Backend):
             return
         with open(os.path.join(self.environment.get_build_dir(), 'rust-project.json'),
                   'w', encoding='utf-8') as f:
-            sysroot = self.environment.coredata.compilers.host['rust'].get_sysroot()
+            compiler = T.cast('RustCompiler', self.environment.coredata.compilers.host['rust'])
+            sysroot = compiler.get_sysroot()
             json.dump(
                 {
                     "sysroot": sysroot,
@@ -1989,7 +1990,7 @@ class NinjaBackend(backends.Backend):
         return crate_name.split('+', 1)[0]
 
     @staticmethod
-    def _get_rust_dependency_name(target: build.BuildTarget, dependency: LibTypes) -> str:
+    def _get_rust_dependency_name(target: build.BuildTarget, dependency: build.BuildTarget) -> str:
         crate_name_raw = target.rust_dependency_map.get(dependency.name, None)
         if crate_name_raw is None:
             dependency_crate_name = NinjaBackend._get_rust_crate_name(dependency.name)
@@ -2134,6 +2135,7 @@ class NinjaBackend(backends.Backend):
                 if d not in itertools.chain(target.link_targets, target.link_whole_targets):
                     # Indirect Rust ABI dependency, we only need its path in linkdirs.
                     continue
+                assert isinstance(d, build.BuildTarget)
                 # specify `extern CRATE_NAME=OUTPUT_FILE` for each Rust
                 # dependency, so that collisions with libraries in rustc's
                 # sysroot don't cause ambiguity
@@ -2201,7 +2203,7 @@ class NinjaBackend(backends.Backend):
         args.extend(f'-Clink-arg={a}' for a in target.get_used_stdlib_args('rust'))
 
         has_shared_deps = any(isinstance(dep, build.SharedLibrary) for dep in target_deps)
-        has_rust_shared_deps = any(dep.uses_rust()
+        has_rust_shared_deps = any(isinstance(dep, build.SharedLibrary) and dep.uses_rust()
                                    and dep.rust_crate_type == 'dylib'
                                    for dep in target_deps)
 
