@@ -38,7 +38,7 @@ from .backends import CleanTrees
 from ..build import GeneratedList, InvalidArguments
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing_extensions import Literal, TypedDict
 
     from .._typing import ImmutableListProtocol
     from ..build import ExtractedObjects, LibTypes
@@ -53,6 +53,11 @@ if T.TYPE_CHECKING:
 
     CommandArgOrStr = T.List[T.Union['NinjaCommandArg', str]]
     RUST_EDITIONS = Literal['2015', '2018', '2021']
+
+    class NinjaRuleArgs(TypedDict, total=False):
+        rspable: bool
+        rspfile_quote_style: RSPFileSyntax
+        extra: T.Optional[str]
 
 
 FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
@@ -2433,13 +2438,13 @@ class NinjaBackend(backends.Backend):
         # Introspection information
         self.create_target_source_introspection(target, swiftc, compile_args + header_imports + module_includes, relsrc, rel_generated)
 
-    def _rsp_options(self, tool: T.Union['Compiler', 'StaticLinker', 'DynamicLinker']) -> T.Dict[str, T.Union[bool, RSPFileSyntax]]:
+    def _rsp_options(self, tool: T.Union['Compiler', 'StaticLinker', 'DynamicLinker']) -> NinjaRuleArgs:
         """Helper method to get rsp options.
 
         rsp_file_syntax() is only guaranteed to be implemented if
         can_linker_accept_rsp() returns True.
         """
-        options = {'rspable': tool.can_linker_accept_rsp()}
+        options: NinjaRuleArgs = {'rspable': tool.can_linker_accept_rsp()}
         if options['rspable']:
             options['rspfile_quote_style'] = tool.rsp_file_syntax()
         return options
