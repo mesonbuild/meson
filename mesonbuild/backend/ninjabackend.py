@@ -1569,7 +1569,7 @@ class NinjaBackend(backends.Backend):
         fname = target.get_filename()
         outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
-        compiler = target.compilers['cs']
+        compiler = T.cast('CsCompiler', target.compilers['cs'])
         rel_srcs = [os.path.normpath(s.rel_to_builddir(self.build_to_src)) for s in src_list]
         deps = []
         commands = self.generate_basic_compiler_args(target, compiler)
@@ -2547,7 +2547,7 @@ class NinjaBackend(backends.Backend):
         syndesc = 'Generating symbol file $out'
         self.add_rule(NinjaRule(symrule, symcmd, [], syndesc, restat=True))
 
-    def generate_java_compile_rule(self, compiler) -> None:
+    def generate_java_compile_rule(self, compiler: Compiler) -> None:
         rule = self.compiler_to_rule_name(compiler)
         command = compiler.get_exelist() + ['$ARGS', '$in']
         description = 'Compiling Java sources for $FOR_JAR'
@@ -2562,7 +2562,7 @@ class NinjaBackend(backends.Backend):
                                 rspable=mesonlib.is_windows(),
                                 rspfile_quote_style=compiler.rsp_file_syntax()))
 
-    def generate_vala_compile_rules(self, compiler) -> None:
+    def generate_vala_compile_rules(self, compiler: Compiler) -> None:
         rule = self.compiler_to_rule_name(compiler)
         command = compiler.get_exelist()
         description = 'Compiling Vala source $in'
@@ -2593,7 +2593,7 @@ class NinjaBackend(backends.Backend):
                                 depfile=depfile,
                                 restat=True))
 
-    def generate_rust_compile_rules(self, compiler) -> None:
+    def generate_rust_compile_rules(self, compiler: RustCompiler) -> None:
         rule = self.compiler_to_rule_name(compiler)
         command = compiler.get_exelist() + ['$ARGS', '$in']
         description = 'Compiling Rust source $in'
@@ -2602,7 +2602,7 @@ class NinjaBackend(backends.Backend):
         self.add_rule(NinjaRule(rule, command, [], description, deps=depstyle,
                                 depfile=depfile))
 
-    def generate_swift_compile_rules(self, compiler) -> None:
+    def generate_swift_compile_rules(self, compiler: SwiftCompiler) -> None:
         rule = self.compiler_to_rule_name(compiler)
         wd_args = compiler.get_working_directory_args('$RUNDIR')
 
@@ -2649,7 +2649,7 @@ https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_rule(NinjaRule(rule, cmd, [], 'Dep hack', restat=True))
 
-    def generate_llvm_ir_compile_rule(self, compiler) -> None:
+    def generate_llvm_ir_compile_rule(self, compiler: Compiler) -> None:
         if self.created_llvm_ir_rule[compiler.for_machine]:
             return
         rule = self.get_compiler_rule_name('llvm_ir', compiler.for_machine)
@@ -2701,11 +2701,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             self.generate_vala_compile_rules(compiler)
             return
         if langname == 'rust':
-            self.generate_rust_compile_rules(compiler)
+            self.generate_rust_compile_rules(T.cast('RustCompiler', compiler))
             return
         if langname == 'swift':
             if self.environment.machines.matches_build_machine(compiler.for_machine):
-                self.generate_swift_compile_rules(compiler)
+                self.generate_swift_compile_rules(T.cast('SwiftCompiler', compiler))
             return
         if langname == 'cython':
             self.generate_cython_compile_rules(compiler)
