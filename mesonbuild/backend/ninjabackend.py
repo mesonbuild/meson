@@ -1622,7 +1622,7 @@ class NinjaBackend(backends.Backend):
         args += ['-sourcepath', os.pathsep.join(sourcepaths)]
         return list(args)
 
-    def generate_java_compile(self, srcs, target, compiler, args) -> str:
+    def generate_java_compile(self, srcs, target, compiler, args) -> T.List[str]:
         deps = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
         generated_sources = self.get_target_generated_sources(target)
         for rel_src in generated_sources.keys():
