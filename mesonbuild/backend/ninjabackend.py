@@ -3154,7 +3154,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Finally add the private dir for the target to the include path. This
         # must override everything else and must be the final path added.
         commands += compiler.get_include_args(self.get_target_private_dir(target), False)
-        return commands
+        return list(commands)
 
     # Returns a dictionary, mapping from each compiler src type (e.g. 'c', 'cpp', etc.) to a list of compiler arg strings
     # used for that respective src type.
@@ -3476,7 +3476,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         return commands, dep, dst, link_objects, source
 
-    def generate_gcc_pch_command(self, target, compiler, pch: str):
+    def generate_gcc_pch_command(self, target: build.BuildTarget, compiler: Compiler, pch: str) -> T.Tuple[CompilerArgs, str, str, T.List[str]]:
         commands = self._generate_single_compile(target, compiler)
         if pch.split('.')[-1] == 'h' and compiler.language == 'cpp':
             # Explicitly compile pch headers as C++. If Clang is invoked in C++ mode, it actually warns if
@@ -3487,7 +3487,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         dep = dst + '.' + compiler.get_depfile_suffix()
         return commands, dep, dst, []  # Gcc does not create an object file during pch generation.
 
-    def generate_mwcc_pch_command(self, target, compiler, pch: str):
+    def generate_mwcc_pch_command(self, target: build.BuildTarget, compiler: Compiler, pch: str) -> T.Tuple[CompilerArgs, str, str, T.List[str]]:
         commands = self._generate_single_compile(target, compiler)
         dst = os.path.join(self.get_target_private_dir(target),
                            os.path.basename(pch) + '.' + compiler.get_pch_suffix())
@@ -3645,7 +3645,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 return trial
         return None
 
-    def guess_external_link_dependencies(self, linker, target, commands, internal):
+    def guess_external_link_dependencies(self, linker: Compiler, target: build.BuildTarget, commands: CompilerArgs, internal: T.List[str]) -> T.List[str]:
         # Ideally the linker would generate dependency information that could be used.
         # But that has 2 problems:
         # * currently ld cannot create dependency information in a way that ninja can use:
@@ -3658,7 +3658,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         build_dir = self.environment.get_build_dir()
         # the following loop sometimes consumes two items from command in one pass
-        it = iter(linker.native_args_to_unix(commands))
+        it = iter(linker.native_args_to_unix(list(commands)))
         for item in it:
             if item in internal and not item.startswith('-'):
                 continue
