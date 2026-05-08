@@ -25,7 +25,7 @@ from ..programs import ExternalProgram, NonExistingExternalProgram, Program
 from ..dependencies import Dependency
 from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
-from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
+from ..interpreterbase import noPosargs, noKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
@@ -1869,7 +1869,6 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_disabler(self, node, args, kwargs):
         return Disabler()
 
-    @permittedKwargs(build.known_exe_kwargs)
     @typed_pos_args('executable', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('executable', *EXECUTABLE_KWS)
     def func_executable(self, node: mparser.BaseNode,
@@ -1877,7 +1876,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                         kwargs: kwtypes.Executable) -> T.Union[build.Executable, build.SharedLibrary]:
         return self.build_target(node, args, kwargs, build.Executable)
 
-    @permittedKwargs(build.known_stlib_kwargs)
     @typed_pos_args('static_library', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('static_library', *STATIC_LIB_KWS)
     def func_static_lib(self, node: mparser.BaseNode,
@@ -1885,7 +1883,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                         kwargs: kwtypes.StaticLibrary) -> build.StaticLibrary:
         return self.build_target(node, args, kwargs, build.StaticLibrary)
 
-    @permittedKwargs(build.known_shlib_kwargs)
     @typed_pos_args('shared_library', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('shared_library', *SHARED_LIB_KWS)
     def func_shared_lib(self, node: mparser.BaseNode,
@@ -1893,7 +1890,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                         kwargs: kwtypes.SharedLibrary) -> build.SharedLibrary:
         return self.build_target(node, args, kwargs, build.SharedLibrary)
 
-    @permittedKwargs(known_library_kwargs)
     @typed_pos_args('both_libraries', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('both_libraries', *LIBRARY_KWS)
     @noSecondLevelHolderResolving
@@ -1903,7 +1899,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         return self.build_both_libraries(node, args, kwargs)
 
     @FeatureNew('shared_module', '0.37.0')
-    @permittedKwargs(build.known_shmod_kwargs)
     @typed_pos_args('shared_module', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('shared_module', *SHARED_MOD_KWS)
     def func_shared_module(self, node: mparser.BaseNode,
@@ -1911,7 +1906,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                            kwargs: kwtypes.SharedModule) -> build.SharedModule:
         return self.build_target(node, args, kwargs, build.SharedModule)
 
-    @permittedKwargs(known_library_kwargs)
     @typed_pos_args('library', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('library', *LIBRARY_KWS)
     @noSecondLevelHolderResolving
@@ -1920,7 +1914,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                      kwargs: kwtypes.Library) -> build.Executable:
         return self.build_library(node, args, kwargs)
 
-    @permittedKwargs(build.known_jar_kwargs)
     @typed_pos_args('jar', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.ExtractedObjects, build.BuildTarget))
     @typed_kwargs('jar', *JAR_KWS)
     def func_jar(self, node: mparser.BaseNode,
@@ -1929,7 +1922,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         return self.build_target(node, args, kwargs, build.Jar)
 
     @FeatureNewKwargs('build_target', '0.40.0', ['link_whole', 'override_options'])
-    @permittedKwargs(known_build_target_kwargs)
     @typed_pos_args('build_target', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('build_target', *BUILD_TARGET_KWS)
     def func_build_target(self, node: mparser.BaseNode,
