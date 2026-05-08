@@ -2052,8 +2052,8 @@ class NinjaBackend(backends.Backend):
 
         return orderdeps, main_rust_file
 
-    def get_rust_compiler_args(self, target: build.BuildTarget, rustc: Compiler, src_crate_type: str,
-                               depfile: T.Optional[str] = None) -> T.List[str]:
+    def get_rust_compiler_args(self, target: build.BuildTarget, rustc: RustCompiler, src_crate_type: str,
+                               depfile: T.Optional[str] = None) -> CompilerArgs:
         # Compiler args for compiling this target
         args = compilers.get_base_compile_args(target, rustc, self.environment)
 
@@ -2071,16 +2071,16 @@ class NinjaBackend(backends.Backend):
             args += rustc.get_build_link_args(target, self.build)
             args += rustc.get_target_link_args(target)
 
-        args += self.generate_basic_compiler_args(target, rustc)
-        args += ['--crate-name', self._get_rust_crate_name(target.name)]
+        cargs = args + self.generate_basic_compiler_args(target, rustc)
+        cargs += ['--crate-name', self._get_rust_crate_name(target.name)]
         if depfile:
-            args += rustc.get_dependency_gen_args(target_name, depfile)
-        args += rustc.get_output_args(target_name)
-        args += ['-C', 'metadata=' + target.get_id()]
-        args += target.get_extra_args('rust')
-        return args
+            cargs += rustc.get_dependency_gen_args(target_name, depfile)
+        cargs += rustc.get_output_args(target_name)
+        cargs += ['-C', 'metadata=' + target.get_id()]
+        cargs += target.get_extra_args('rust')
+        return cargs
 
-    def get_rust_compiler_deps_and_args(self, target: build.BuildTarget, rustc: Compiler,
+    def get_rust_compiler_deps_and_args(self, target: build.BuildTarget, rustc: RustCompiler,
                                         obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[RustDep], T.List[str]]:
         deps: T.List[str] = []
         project_deps: T.List[RustDep] = []
@@ -2272,8 +2272,8 @@ class NinjaBackend(backends.Backend):
         if target.doctests:
             assert target.doctests.target is not None
             rustdoc = rustc.get_rustdoc()
-            args = rustdoc.get_exe_args()
-            args += self.get_rust_compiler_args(target.doctests.target, rustdoc, target.rust_crate_type)
+            args = rustdoc.get_exe_args() + \
+                self.get_rust_compiler_args(target.doctests.target, rustdoc, target.rust_crate_type)
             o, _ = self.flatten_object_list(target.doctests.target)
             obj_list = unique_list(obj_list + o)
             # Rustc does not add files in the obj_list to Rust rlibs,
