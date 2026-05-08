@@ -50,7 +50,8 @@ if T.TYPE_CHECKING:
     from ..mesonlib import FileOrString
     from .backends import TargetIntrospectionData
 
-    CommandArgOrStr = T.List[T.Union['NinjaCommandArg', str]]
+    CommandArgTypes = T.TypeVar('CommandArgTypes', 'NinjaCommandArg', str, 'NinjaCommandArg | str')
+    CommandArgs = T.List[CommandArgTypes]
     RUST_EDITIONS = Literal['2015', '2018', '2021']
 
     class NinjaRuleArgs(TypedDict, total=False):
@@ -174,7 +175,7 @@ class NinjaComment:
         outfile.write('\n')
 
 class NinjaRule:
-    def __init__(self, rule: str, command: CommandArgOrStr, args: CommandArgOrStr,
+    def __init__(self, rule: str, command: CommandArgs, args: CommandArgs,
                  description: str, rspable: bool = False, deps: T.Optional[str] = None,
                  depfile: T.Optional[str] = None, extra: T.Optional[str] = None,
                  rspfile_quote_style: RSPFileSyntax = RSPFileSyntax.GCC):
