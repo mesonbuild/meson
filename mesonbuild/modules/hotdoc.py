@@ -33,7 +33,12 @@ if T.TYPE_CHECKING:
 
     _T = T.TypeVar('_T')
 
-    class GenerateDocKwargs(TypedDict):
+    # there is currently no way to represent the arbitrary key/value paris that
+    # the hotdoc module allows.
+    #
+    # PEP-728, which is due in Python 3.15, will fix this, we can then add a new
+    # extra_items=str keyword argument.
+    class GenerateDocKwargs(TypedDict, total=False):
         sitemap: T.Union[str, File, CustomTarget, CustomTargetIndex]
         index: T.Union[str, File, CustomTarget, CustomTargetIndex]
         project_version: str
@@ -46,6 +51,8 @@ if T.TYPE_CHECKING:
         extra_extension_paths: T.List[str]
         subprojects: T.List['HotdocTarget']
         install: bool
+        build_by_default: bool
+
 
 def ensure_list(value: T.Union[_T, T.List[_T]]) -> T.List[_T]:
     if not isinstance(value, list):
@@ -90,7 +97,7 @@ class HotdocTargetBuilder:
         if not argname:
             argname = option.strip("-").replace("-", "_")
 
-        value = self.kwargs.pop(argname)
+        value = self.kwargs.pop(argname)  # type: ignore[misc]
         if value is not None and value_processor:
             value = value_processor(value)
 
@@ -143,8 +150,8 @@ class HotdocTargetBuilder:
     def process_extra_args(self) -> None:
         for arg, value in self.kwargs.items():
             option = "--" + arg.replace("_", "-")
-            self.check_extra_arg_type(arg, value)
-            self.set_arg_value(option, value)
+            self.check_extra_arg_type(arg, value)  # type: ignore[arg-type]
+            self.set_arg_value(option, value)  # type: ignore[arg-type]
 
     def add_extension_paths(self, paths: T.Union[T.List[str], T.Set[str]]) -> None:
         for path in paths:
@@ -448,6 +455,7 @@ class HotDocModule(ExtensionModule):
         KwargInfo('extra_extension_paths', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('subprojects', ContainerTypeInfo(list, HotdocTarget), listify=True, default=[]),
         KwargInfo('install', bool, default=False),
+        KwargInfo('build_by_default', bool, default=False),
         allow_unknown=True
     )
     def generate_doc(self, state: ModuleState, args: T.Tuple[str], kwargs: GenerateDocKwargs) -> ModuleReturnValue:
