@@ -1332,7 +1332,7 @@ class NinjaBackend(backends.Backend):
             exe_args += ['--llvm-cov', llvm_cov_exe]
 
         for target in targets:
-            if not hasattr(target, 'compilers'):
+            if not isinstance(target, build.BuildTarget):
                 continue
             for compiler in target.compilers.values():
                 if compiler.get_id() == 'clang' and not compiler.info.is_darwin():
