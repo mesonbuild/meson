@@ -28,7 +28,7 @@ if T.TYPE_CHECKING:
     from . import ModuleState
     from ..environment import Environment
     from ..interpreter import Interpreter
-    from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from ..interpreterbase import TYPE_kwargs, TYPE_var, SubProject
 
     _T = T.TypeVar('_T')
 
@@ -365,7 +365,7 @@ class HotdocTargetHolder(_CustomTargetHolder['HotdocTarget']):
 
 
 class HotdocTarget(CustomTarget):
-    def __init__(self, name: str, subdir: str, subproject: str, hotdoc_conf: File,
+    def __init__(self, name: str, subdir: str, subproject: SubProject, hotdoc_conf: File,
                  extra_extension_paths: T.Set[str], extra_assets: T.List[str],
                  subprojects: T.List['HotdocTarget'], environment: Environment, **kwargs: T.Any):
         super().__init__(name, subdir, subproject, environment, **kwargs, absolute_paths=True)
