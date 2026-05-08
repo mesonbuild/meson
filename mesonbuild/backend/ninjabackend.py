@@ -3365,8 +3365,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 mod_file = 'gcm.cache/std.gcm'
                 mod_obj_file = 'std.o'
                 elem = NinjaBuildElement(self.all_outputs, [mod_file, mod_obj_file], 'CUSTOM_COMMAND', [])
-                compile_args = compiler.get_option_compile_args(target, self.environment)
-                compile_args += compiler.get_option_std_args(target, self.environment)
+                compile_args = compiler.get_option_compile_args(target, target.subproject)
+                compile_args += compiler.get_option_std_args(target, target.subproject)
                 compile_args += ['-c', '-fmodules', '-fsearch-include-path', 'bits/std.cc']
                 elem.add_item('COMMAND', compiler.exelist + compile_args)
                 self.add_build(elem)
@@ -3383,8 +3383,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                     raise SystemExit('VS std import header could not be located.')
                 in_file_str = str(in_file)
                 elem = NinjaBuildElement(self.all_outputs, [mod_file, mod_obj_file], 'CUSTOM_COMMAND', [in_file_str])
-                compile_args = compiler.get_option_compile_args(target, self.environment)
-                compile_args += compiler.get_option_std_args(target, self.environment)
+                compile_args = compiler.get_option_compile_args(target, target.subproject)
+                compile_args += compiler.get_option_std_args(target, target.subproject)
                 compile_args += ['/nologo', '/c', '/O2', in_file_str]
                 elem.add_item('COMMAND', compiler.exelist + compile_args)
                 self.add_build(elem)
