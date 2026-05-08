@@ -179,6 +179,8 @@ class CPPCompiler(CLikeCompiler, Compiler):
         })
         return opts
 
+    def get_cpp20_module_bmi_extension(self) -> str:
+        raise MesonException("Your compiler does not support 'import std' feature or it has not been implemented")
 
 class _StdCPPLibMixin(CompilerMixinBase):
 
@@ -332,6 +334,8 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
         # Although -fmodules-ts is removed in LLVM 17, we keep this in for compatibility with old compilers.
         return ['-fmodules', '-fmodules-ts']
 
+    def get_cpp20_module_bmi_extension(self) -> str:
+        return '.pcm'
 
 class ArmLtdClangCPPCompiler(ClangCPPCompiler):
 

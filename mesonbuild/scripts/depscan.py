@@ -11,6 +11,9 @@ import pathlib
 import pickle
 import re
 import typing as T
+import subprocess as sp
+import shutil
+from mesonbuild.compilers import cpp
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict, NotRequired
@@ -201,8 +204,34 @@ class DependencyScanner:
 
         return 0
 
+class CppDependenciesScanner:
+    pass
+
+class ClangDependencyScanner(CppDependenciesScanner):
+    def __init__(self, compilation_db_file: str, json_output_file: str, dd_output_file: str = 'deps.dd'):
+        self.compilation_db_file = compilation_db_file
+        self.json_output_file = json_output_file
+        self.dd_output_file = dd_output_file
+        self.clang_scan_deps = os.path.join(os.path.dirname(shutil.which(cpp)), 'clang-scan-deps')
+    def scan(self) -> int:
+        try:
+            result = sp.run(
+                [self.clang_scan_deps,
+                 "-format=p1689",
+                 "-compilation-database", self.compilation_db_file],
+                capture_output=True,
+                check=True
+            )
+            with open(self.json_output_file, 'wb') as f:
+                f.write(result.stdout)
+            dependencies_info = json.loads(result.stdout)
+            all_deps_per_objfile = self.generate_dependencies(dependencies_info["rules"])
+            self.generate_dd_file(all_deps_per_objfile)
+            return 0
+        except sp.SubprocessError:
+            return 1
+
 def run(args: T.List[str]) -> int:
-    assert len(args) == 2, 'got wrong number of arguments!'
-    outfile, pickle_file = args
-    scanner = DependencyScanner(pickle_file, outfile)
+    comp_db, json_output, dd_output = args
+    scanner = ClangDependencyScanner(comp_db, json_output, dd_output)
     return scanner.scan()
