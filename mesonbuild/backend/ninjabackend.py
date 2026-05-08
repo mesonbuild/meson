@@ -58,7 +58,6 @@ if T.TYPE_CHECKING:
     class NinjaRuleArgs(TypedDict, total=False):
         rspable: bool
         rspfile_quote_style: RSPFileSyntax
-        extra: T.Optional[str]
 
 
 FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
@@ -179,7 +178,8 @@ class NinjaRule:
     def __init__(self, rule: str, command: CommandArgs, args: CommandArgs,
                  description: str, rspable: bool = False, deps: T.Optional[str] = None,
                  depfile: T.Optional[str] = None, extra: T.Optional[str] = None,
-                 rspfile_quote_style: RSPFileSyntax = RSPFileSyntax.GCC):
+                 rspfile_quote_style: RSPFileSyntax = RSPFileSyntax.GCC,
+                 restat: bool = False):
 
         def strToCommandArg(c: T.Union[NinjaCommandArg, str]) -> NinjaCommandArg:
             if isinstance(c, NinjaCommandArg):
@@ -212,6 +212,7 @@ class NinjaRule:
         self.deps = deps  # depstyle 'gcc' or 'msvc'
         self.depfile = depfile
         self.extra = extra
+        self.restat = restat
         self.rspable = rspable  # if a rspfile can be used
         self.refcount = 0
         self.rsprefcount = 0
@@ -264,6 +265,8 @@ class NinjaRule:
             if self.depfile:
                 outfile.write(f' depfile = {self.depfile}\n')
             outfile.write(f' description = {self.description}\n')
+            if self.restat:
+                outfile.write(' restat = 1\n')
             if self.extra:
                 for l in self.extra.split('\n'):
                     outfile.write(' ')
@@ -1423,13 +1426,13 @@ class NinjaBackend(backends.Backend):
         # Ninja errors out if you have deps = gcc but no depfile, so we must
         # have two rules for custom commands.
         self.add_rule(NinjaRule('CUSTOM_COMMAND', ['$COMMAND'], [], '$DESC',
-                                extra='restat = 1'))
+                                restat=True))
         self.add_rule(NinjaRule('CUSTOM_COMMAND_DEP', ['$COMMAND'], [], '$DESC',
                                 deps='gcc', depfile='$DEPFILE',
-                                extra='restat = 1'))
+                                restat=True))
         self.add_rule(NinjaRule('CUSTOM_COMMAND_MSVC_DEP', ['$COMMAND'], [], '$DESC',
                                 deps='msvc',
-                                extra='restat = 1'))
+                                restat=True))
         self.add_rule(NinjaRule('COPY_FILE', self.environment.get_build_command() + ['--internal', 'copy'],
                                 ['$in', '$out'], 'Copying $in to $out'))
 
@@ -2540,8 +2543,7 @@ class NinjaBackend(backends.Backend):
         symrule = 'SHSYM'
         symcmd = args + ['$CROSS']
         syndesc = 'Generating symbol file $out'
-        synstat = 'restat = 1'
-        self.add_rule(NinjaRule(symrule, symcmd, [], syndesc, extra=synstat))
+        self.add_rule(NinjaRule(symrule, symcmd, [], syndesc, restat=True))
 
     def generate_java_compile_rule(self, compiler) -> None:
         rule = self.compiler_to_rule_name(compiler)
@@ -2572,7 +2574,7 @@ class NinjaBackend(backends.Backend):
         self.add_rule(NinjaRule(rule, command + args, [], description,
                                 depfile=depfile,
                                 deps=depstyle,
-                                extra='restat = 1'))
+                                restat=True))
 
     def generate_cython_compile_rules(self, compiler: 'Compiler') -> None:
         rule = self.compiler_to_rule_name(compiler)
@@ -2587,7 +2589,7 @@ class NinjaBackend(backends.Backend):
         self.add_rule(NinjaRule(rule, command + args, [],
                                 description,
                                 depfile=depfile,
-                                extra='restat = 1'))
+                                restat=True))
 
     def generate_rust_compile_rules(self, compiler) -> None:
         rule = self.compiler_to_rule_name(compiler)
@@ -2614,7 +2616,7 @@ class NinjaBackend(backends.Backend):
 
         command = invoc + ['$ARGS', '$in']
         description = 'Compiling Swift source $in'
-        self.add_rule(NinjaRule(rule, command, [], description, extra='restat = 1'))
+        self.add_rule(NinjaRule(rule, command, [], description, restat=True))
 
     def use_dyndeps_for_fortran(self) -> bool:
         '''Use the new Ninja feature for scanning dependencies during build,
@@ -2643,7 +2645,7 @@ class NinjaBackend(backends.Backend):
         self.add_rule_comment(NinjaComment('''Workaround for these issues:
 https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
-        self.add_rule(NinjaRule(rule, cmd, [], 'Dep hack', extra='restat = 1'))
+        self.add_rule(NinjaRule(rule, cmd, [], 'Dep hack', restat=True))
 
     def generate_llvm_ir_compile_rule(self, compiler) -> None:
         if self.created_llvm_ir_rule[compiler.for_machine]:
@@ -2708,11 +2710,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return
         crstr = self.get_rule_suffix(compiler.for_machine)
         options = self._rsp_options(compiler)
+        restat = False
         if langname == 'fortran':
             self.generate_fortran_dep_hack(crstr)
             # gfortran does not update the modification time of *.mod files, therefore restat is needed.
             # See also: https://github.com/ninja-build/ninja/pull/2275
-            options['extra'] = 'restat = 1'
+            restat = True
         rule = self.compiler_to_rule_name(compiler)
         if langname == 'cuda':
             # for cuda, we manually escape target name ($out) as $CUDA_ESCAPED_TARGET because nvcc doesn't support `-MQ` flag
@@ -2729,7 +2732,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             deps = 'gcc'
             depfile = '$DEPFILE'
         self.add_rule(NinjaRule(rule, command, args, description, **options,
-                                deps=deps, depfile=depfile))
+                                deps=deps, depfile=depfile, restat=restat))
 
     def generate_pch_rule_for(self, langname: str, compiler: Compiler) -> None:
         if langname not in {'c', 'cpp'}:
