@@ -214,21 +214,6 @@ buildtarget_kwargs = {
     'win_subsystem',
 }
 
-known_build_target_kwargs = (
-    buildtarget_kwargs |
-    lang_arg_kwargs |
-    pch_kwargs |
-    vala_kwargs |
-    rust_kwargs |
-    cs_kwargs |
-    swift_kwargs)
-
-known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie', 'vs_module_defs', 'android_exe_type'}
-known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions', 'rust_abi', 'shortname'}
-known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs', 'rust_abi'}
-known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink', 'rust_abi'}
-known_jar_kwargs = known_exe_kwargs | {'main_class', 'java_resources'}
-
 def _process_install_tag(install_tag: T.Optional[T.List[T.Optional[str]]],
                          num_outputs: int) -> T.List[T.Optional[str]]:
     _install_tag: T.List[T.Optional[str]]
@@ -795,8 +780,6 @@ class Target(HoldableObject, metaclass=SimpleABC):
         return False
 
 class BuildTarget(Target):
-    known_kwargs = known_build_target_kwargs
-
     rust_crate_type: RustCrateType
 
     # This set contains all the languages a linker can link natively
@@ -2213,8 +2196,6 @@ class GeneratedList(HoldableObject):
 
 
 class Executable(BuildTarget):
-    known_kwargs = known_exe_kwargs
-
     typename = 'executable'
 
     def __init__(
@@ -2344,8 +2325,6 @@ class Executable(BuildTarget):
 
 
 class StaticLibrary(BuildTarget):
-    known_kwargs = known_stlib_kwargs
-
     typename = 'static library'
 
     def __init__(
@@ -2521,8 +2500,6 @@ class StaticLibrary(BuildTarget):
             self.objects.append(t.extract_all_objects())
 
 class SharedLibrary(BuildTarget):
-    known_kwargs = known_shlib_kwargs
-
     typename = 'shared library'
 
     # Used by AIX to decide whether to archive shared library or not.
@@ -2856,8 +2833,6 @@ class SharedLibrary(BuildTarget):
 # A shared library that is meant to be used with dlopen rather than linking
 # into something else.
 class SharedModule(SharedLibrary):
-    known_kwargs = known_shmod_kwargs
-
     typename = 'shared module'
 
     # Used by AIX to not archive shared library for dlopen mechanism
@@ -3346,8 +3321,6 @@ class AliasTarget(RunTarget):
         return repr_str.format(self.__class__.__name__, self.get_id())
 
 class Jar(BuildTarget):
-    known_kwargs = known_jar_kwargs
-
     typename = 'jar'
     rust_crate_type = ''  # type: ignore[assignment]
 
