@@ -2952,12 +2952,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         mod_files = _scan_fortran_file_deps(src, srcdir, dirname, tdeps, compiler)
         return mod_files
 
-    def get_no_stdlib_link_args(self, target, linker) -> T.List[str]:
+    def get_no_stdlib_link_args(self, target: build.BuildTarget, linker: Compiler | StaticLinker) -> T.List[str]:
         if hasattr(linker, 'language') and linker.language in self.build.stdlibs[target.for_machine]:
             return linker.get_no_stdlib_link_args()
         return []
 
-    def get_compile_debugfile_args(self, compiler, target, objfile) -> T.List[str]:
+    def get_compile_debugfile_args(self, compiler: Compiler, target: build.BuildTarget, objfile: str) -> T.List[str]:
         # The way MSVC uses PDB files is documented exactly nowhere so
         # the following is what we have been able to decipher via
         # reverse engineering.
@@ -3711,7 +3711,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         return guessed_dependencies + absolute_libs
 
-    def generate_prelink(self, target, obj_list) -> T.List[str]:
+    def generate_prelink(self, target: build.BuildTarget, obj_list: T.List[str]) -> T.List[str]:
         assert isinstance(target, build.StaticLibrary)
         prelink_name = os.path.join(self.get_target_private_dir(target), target.name + '-prelink.o')
         elem = NinjaBuildElement(self.all_outputs, [prelink_name], 'CUSTOM_COMMAND', obj_list)
