@@ -41,7 +41,7 @@ if T.TYPE_CHECKING:
     from ..compilers.compilers import Compiler, Language
     from ..environment import Environment
     from ..interpreter import Test
-    from ..linkers.linkers import StaticLinker
+    from ..linkers import StaticLinker
     from ..mesonlib import FileMode, FileOrString
     from ..options import ElementaryOptionValues
 

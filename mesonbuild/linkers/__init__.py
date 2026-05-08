@@ -7,6 +7,7 @@ from .detect import (
     guess_win_linker,
     guess_nix_linker,
 )
+from .linkers import StaticLinker
 
 __all__ = [
     # base.py
@@ -17,4 +18,7 @@ __all__ = [
     'defaults',
     'guess_win_linker',
     'guess_nix_linker',
+
+    # linkers.py
+    'StaticLinker',
 ]

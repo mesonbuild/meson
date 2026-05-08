@@ -48,7 +48,7 @@ if T.TYPE_CHECKING:
     from .interpreter.interpreter import CustomTargetSources, SourceOutputs, Interpreter
     from .interpreter.interpreterobjects import Test, Doctest
     from .interpreter.kwargs import TargetDepends
-    from .linkers.linkers import StaticLinker
+    from .linkers import StaticLinker
     from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
     from .mparser import BaseNode
     from .options import ElementaryOptionValues
