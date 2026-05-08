@@ -1676,8 +1676,8 @@ class NinjaBackend(backends.Backend):
         return list(result)
 
     def split_vala_sources(self, t: build.BuildTarget) -> \
-            T.Tuple[T.MutableMapping[str, File], T.MutableMapping[str, File],
-                    T.Tuple[T.MutableMapping[str, File], T.MutableMapping]]:
+            T.Tuple[T.MutableMapping[str, File | build.GeneratedTypes], T.MutableMapping[str, File | build.GeneratedTypes],
+                    T.Tuple[T.MutableMapping[str, File | build.GeneratedTypes], T.MutableMapping[str, File | build.GeneratedTypes]]]:
         """
         Splits the target's sources into .vala, .gs, .vapi, and other sources.
         Handles both preexisting and generated sources.
@@ -1686,10 +1686,10 @@ class NinjaBackend(backends.Backend):
         the keys being the path to the file (relative to the build directory)
         and the value being the object that generated or represents the file.
         """
-        vala: T.MutableMapping[str, File] = OrderedDict()
-        vapi: T.MutableMapping[str, File] = OrderedDict()
-        others: T.MutableMapping[str, File] = OrderedDict()
-        othersgen: T.MutableMapping[str, File] = OrderedDict()
+        vala: T.MutableMapping[str, File | build.GeneratedTypes] = OrderedDict()
+        vapi: T.MutableMapping[str, File | build.GeneratedTypes] = OrderedDict()
+        others: T.MutableMapping[str, File | build.GeneratedTypes] = OrderedDict()
+        othersgen: T.MutableMapping[str, File | build.GeneratedTypes] = OrderedDict()
         # Split preexisting sources
         for s in t.get_sources():
             # BuildTarget sources are always mesonlib.File files which are
@@ -1718,11 +1718,11 @@ class NinjaBackend(backends.Backend):
                 else:
                     srctype = othersgen
                 # Duplicate outputs are disastrous
-                if f in srctype and srctype[f] is not gensrc:
+                if f in srctype and srctype[f] != gensrc:
                     msg = 'Duplicate output {0!r} from {1!r} {2!r}; ' \
                           'conflicts with {0!r} from {4!r} {3!r}' \
                           ''.format(f, type(gensrc).__name__, gensrc.name,
-                                    srctype[f].name, type(srctype[f]).__name__)
+                                    srctype[f], type(srctype[f]).__name__)
                     raise InvalidArguments(msg)
                 # Store 'somefile.vala': GeneratedList (or CustomTarget)
                 srctype[f] = gensrc
