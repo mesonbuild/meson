@@ -2692,7 +2692,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return
         if langname == 'cs':
             if self.environment.machines.matches_build_machine(compiler.for_machine):
-                self.generate_cs_compile_rule(compiler)
+                self.generate_cs_compile_rule(T.cast('CsCompiler', compiler))
             return
         if langname == 'vala':
             self.generate_vala_compile_rules(compiler)
@@ -3271,7 +3271,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # https://github.com/mesonbuild/meson/issues/1348
             if not is_generated:
                 abs_src = Path(build_dir) / rel_src
-                extra_deps += self.get_fortran_deps(compiler, abs_src, target)
+                extra_deps += self.get_fortran_deps(T.cast('FortranCompiler', compiler),
+                                                    abs_src, target)
             if not self.use_dyndeps_for_fortran():
                 # Dependency hack. Remove once multiple outputs in Ninja is fixed:
                 # https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
