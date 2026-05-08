@@ -101,7 +101,7 @@ clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'nasm', 'fortran')
 # This must be sorted, see sort_clink().
 clink_langs = ('rust', 'd', 'cuda') + clib_langs
 
-SUFFIX_TO_LANG = dict(itertools.chain(*(
+SUFFIX_TO_LANG: T.Mapping[str, Language] = dict(itertools.chain(*(
     [(suffix, lang) for suffix in v] for lang, v in lang_suffixes.items())))
 
 # Languages that should use LDFLAGS arguments when linking.
@@ -111,7 +111,7 @@ LANGUAGES_USING_CPPFLAGS = {'c', 'cpp', 'objc', 'objcpp'}
 soregex = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
 
 # Environment variables that each lang uses.
-CFLAGS_MAPPING: T.Mapping[str, str] = {
+CFLAGS_MAPPING: T.Mapping[Language, str] = {
     'c': 'CFLAGS',
     'cpp': 'CXXFLAGS',
     'cuda': 'CUFLAGS',
@@ -127,7 +127,7 @@ CFLAGS_MAPPING: T.Mapping[str, str] = {
 
 # All these are only for C-linkable languages; see `clink_langs` above.
 
-def sort_clink(lang: str) -> int:
+def sort_clink(lang: Language) -> int:
     '''
     Sorting function to sort the list of languages according to
     reversed(compilers.clink_langs) and append the unknown langs in the end.
