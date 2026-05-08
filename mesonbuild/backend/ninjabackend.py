@@ -1096,7 +1096,7 @@ class NinjaBackend(backends.Backend):
                 unity_src.append(abs_src)
             else:
                 o, s = self.generate_single_compile(target, src, False, [],
-                                                    header_deps + d_generated_deps + fortran_order_deps,
+                                                    [*header_deps, *d_generated_deps, *fortran_order_deps],
                                                     fortran_inc_args)
                 obj_list.append(o)
                 compiled_sources.append(s)
@@ -1104,7 +1104,7 @@ class NinjaBackend(backends.Backend):
 
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
-                o, s = self.generate_single_compile(target, src, True, unity_deps + header_deps + d_generated_deps,
+                o, s = self.generate_single_compile(target, src, True, [*unity_deps, *header_deps, *d_generated_deps],
                                                     fortran_order_deps, fortran_inc_args, unity_src)
                 obj_list.append(o)
                 compiled_sources.append(s)
@@ -1513,7 +1513,7 @@ class NinjaBackend(backends.Backend):
                 gen_src_list.append(raw_src)
 
         compile_args = self.determine_java_compile_args(target, compiler)
-        class_list = self.generate_java_compile(src_list + gen_src_list, target, compiler, compile_args)
+        class_list = self.generate_java_compile([*src_list, *gen_src_list], target, compiler, compile_args)
         class_dep_list = [os.path.join(self.get_target_private_dir(target), i) for i in class_list]
         manifest_path = os.path.join(self.get_target_private_dir(target), 'META-INF', 'MANIFEST.MF')
         manifest_fullpath = os.path.join(self.environment.get_build_dir(), manifest_path)
@@ -3879,9 +3879,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         dep_targets.extend([self.get_dependency_filename(t)
                             for t in target.link_depends])
         elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list, implicit_outs=implicit_outs)
-        elem.add_dep(dep_targets + custom_target_libraries)
+        all_deps = [*dep_targets, *custom_target_libraries]
+        elem.add_dep(all_deps)
         if linker.get_id() == 'tasking':
-            if len([x for x in dep_targets + custom_target_libraries if x.endswith('.ma')]) > 0 and not self.get_target_option(target, OptionKey('b_lto', target.subproject, target.for_machine)):
+            if any(x.endswith('.ma') for x in all_deps) and not self.get_target_option(target, OptionKey('b_lto', target.subproject, target.for_machine)):
                 raise MesonException(f'Tried to link the target named \'{target.name}\' with a MIL archive without LTO enabled! This causes the compiler to ignore the archive.')
 
         # Compiler args must be included in TI C28x linker commands.
