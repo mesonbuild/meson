@@ -53,7 +53,7 @@ if T.TYPE_CHECKING:
     CommandArgTypes = T.TypeVar('CommandArgTypes', 'NinjaCommandArg', str, 'NinjaCommandArg | str')
     CommandArgs = T.List[CommandArgTypes]
     ListifiedStr = str | T.List[str]
-    RUST_EDITIONS = Literal['2015', '2018', '2021']
+    RUST_EDITIONS = Literal['2015', '2018', '2021', '2024']
 
     class NinjaRuleArgs(TypedDict, total=False):
         rspable: bool
@@ -1966,7 +1966,7 @@ class NinjaBackend(backends.Backend):
                                 from_subproject: bool, proc_macro_dylib_path: T.Optional[str],
                                 deps: T.List[RustDep]) -> None:
         raw_edition: T.Optional[str] = mesonlib.first(reversed(args), lambda x: x.startswith('--edition'))
-        edition: RUST_EDITIONS = '2015' if not raw_edition else raw_edition.split('=', 1)[-1]
+        edition = '2015' if not raw_edition else raw_edition.split('=', 1)[-1]
 
         cfg: T.List[str] = []
         arg_itr: T.Iterator[str] = iter(args)
@@ -1982,7 +1982,7 @@ class NinjaBackend(backends.Backend):
             main_rust_file,
             crate_type,
             target_name,
-            edition,
+            T.cast('RUST_EDITIONS', edition),
             deps,
             cfg,
             is_workspace_member=not from_subproject,
