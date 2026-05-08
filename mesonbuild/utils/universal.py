@@ -2263,7 +2263,7 @@ class LibType(enum.IntEnum):
     PREFER_STATIC = 3
 
 
-class ProgressBarFallback:  # lgtm [py/iter-returns-non-self]
+class ProgressBarFallback(T.Generic[_T]):
     '''
     Fallback progress bar implementation when tqdm is not foundclass OptionType(enum.IntEnum):
 
@@ -2323,7 +2323,7 @@ _BUILTIN_NAMES = {
     fallback, it is safe to ignore the 'Iterator does not return self from
     __iter__ method' warning.
     '''
-    def __init__(self, iterable: T.Optional[T.Iterable[str]] = None, total: T.Optional[int] = None,
+    def __init__(self, iterable: T.Optional[T.Iterable[_T]] = None, total: T.Optional[int] = None,
                  bar_type: T.Optional[str] = None, desc: T.Optional[str] = None,
                  disable: T.Optional[bool] = None):
         if iterable is not None:
@@ -2341,10 +2341,10 @@ _BUILTIN_NAMES = {
 
     # Pretend to be an iterator when called as one and don't print any
     # progress
-    def __iter__(self) -> T.Iterator[str]:
+    def __iter__(self) -> T.Iterator[_T]:
         return self.iterable
 
-    def __next__(self) -> str:
+    def __next__(self) -> _T:
         return next(self.iterable)
 
     def print_dot(self) -> None:
