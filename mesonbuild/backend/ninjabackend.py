@@ -655,6 +655,7 @@ class NinjaBackend(backends.Backend):
             outfile.write('ninja_required_version = 1.8.2\n\n')
 
             num_pools = self.environment.coredata.optstore.get_value_for('backend_max_links')
+            assert isinstance(num_pools, int)
             if num_pools > 0:
                 outfile.write(f'''pool link_pool
   depth = {num_pools}
@@ -1784,7 +1785,9 @@ class NinjaBackend(backends.Backend):
             valac_outputs.append(vala_c_file)
 
         args = self.generate_basic_compiler_args(target, valac)
-        args += valac.get_colorout_args(self.get_target_option(target, 'b_colorout'))
+        b_colorout = self.get_target_option(target, 'b_colorout')
+        assert isinstance(b_colorout, str)
+        args += valac.get_colorout_args(b_colorout)
         # Tell Valac to output everything in our private directory. Sadly this
         # means it will also preserve the directory components of Vala sources
         # found inside the build tree (generated sources).
@@ -1861,8 +1864,12 @@ class NinjaBackend(backends.Backend):
 
         args: T.List[str] = []
         args += cython.get_always_args()
-        args += cython.get_debug_args(self.get_target_option(target, 'debug'))
-        args += cython.get_optimization_args(self.get_target_option(target, 'optimization'))
+        debug = self.get_target_option(target, 'debug')
+        assert isinstance(debug, bool)
+        args += cython.get_debug_args(debug)
+        optimization = self.get_target_option(target, 'optimization')
+        assert isinstance(optimization, str)
+        args += cython.get_optimization_args(optimization)
         args += cython.get_option_compile_args(target, target.subproject)
         args += cython.get_option_std_args(target, target.subproject)
         args += self.build.get_global_args(cython, target.for_machine)
@@ -2459,6 +2466,7 @@ class NinjaBackend(backends.Backend):
 
     def generate_static_link_rules(self) -> None:
         num_pools = self.environment.coredata.optstore.get_value_for('backend_max_links')
+        assert isinstance(num_pools, int)
         if 'java' in self.environment.coredata.compilers.host:
             self.generate_java_link()
         for for_machine in MachineChoice:
@@ -2507,6 +2515,7 @@ class NinjaBackend(backends.Backend):
 
     def generate_dynamic_link_rules(self) -> None:
         num_pools = self.environment.coredata.optstore.get_value_for('backend_max_links')
+        assert isinstance(num_pools, int)
         for for_machine in MachineChoice:
             complist = self.environment.coredata.compilers[for_machine]
             for langname, compiler in complist.items():
@@ -3797,7 +3806,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add things like /NOLOGO; usually can't be overridden
         commands += linker.get_linker_always_args()
         # Add buildtype linker args: optimization level, etc.
-        commands += linker.get_optimization_link_args(self.get_target_option(target, 'optimization'))
+        optimization = self.get_target_option(target, 'optimization')
+        assert isinstance(optimization, str)
+        commands += linker.get_optimization_link_args(optimization)
         # Add /DEBUG and the pdb filename when using MSVC
         if self.get_target_option(target, 'debug'):
             commands += self.get_link_debugfile_args(linker, target)
