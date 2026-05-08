@@ -8,7 +8,6 @@ from .disabler import Disabler
 from .exceptions import InterpreterException, InvalidArguments
 from ._unholder import _unholder
 
-from dataclasses import dataclass
 from functools import wraps
 import abc
 import itertools
@@ -124,21 +123,6 @@ def disablerIfNotFound(f: TV_func) -> TV_func:
             return Disabler()
         return ret
     return T.cast('TV_func', wrapped)
-
-@dataclass(repr=False, eq=False)
-class permittedKwargs:
-    permitted: T.Set[str]
-
-    def __call__(self, f: TV_func) -> TV_func:
-        @wraps(f)
-        def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            kwargs = get_callee_args(wrapped_args)[2]
-            unknowns = set(kwargs).difference(self.permitted)
-            if unknowns:
-                ustr = ', '.join([f'"{u}"' for u in sorted(unknowns)])
-                raise InvalidArguments(f'Got unknown keyword arguments {ustr}')
-            return f(*wrapped_args, **wrapped_kwargs)
-        return T.cast('TV_func', wrapped)
 
 def typed_operator(operator: MesonOperator,
                    types: T.Union[T.Type, T.Tuple[T.Type, ...]]) -> T.Callable[['_TV_FN_Operator'], '_TV_FN_Operator']:
