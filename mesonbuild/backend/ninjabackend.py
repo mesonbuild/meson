@@ -3904,7 +3904,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.create_target_linker_introspection(target, linker, commands)
         return elem
 
-    def get_import_std_object(self, target: build.BuildTarget) -> T.List[File]:
+    def get_import_std_object(self, target: build.BuildTarget) -> T.List[str]:
         if not self.target_uses_import_std(target):
             return []
         return self.import_std.gen_objects
