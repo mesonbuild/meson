@@ -2463,7 +2463,7 @@ class NinjaBackend(backends.Backend):
             if static_linker is None:
                 continue
             rule = 'STATIC_LINKER{}'.format(self.get_rule_suffix(for_machine))
-            cmdlist: T.List[T.Union[str, NinjaCommandArg]] = []
+            cmdlist: CommandArgs = []
             args = ['$in']
             # FIXME: Must normalize file names with pathlib.Path before writing
             #        them out to fix this properly on Windows. See:
@@ -2586,7 +2586,7 @@ class NinjaBackend(backends.Backend):
         depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
         depfile = '$out.dep' if depargs else None
 
-        args = depargs + ['$ARGS', '$in']
+        args: CommandArgs = depargs + ['$ARGS', '$in']
         args += NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none)
         self.add_rule(NinjaRule(rule, command + args, [],
                                 description,
