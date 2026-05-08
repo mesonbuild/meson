@@ -150,15 +150,15 @@ class Summary:
     def __init__(self, project_name: str, project_version: str):
         self.project_name = project_name
         self.project_version = project_version
-        self.sections = collections.defaultdict(dict)
+        self.sections: collections.defaultdict[str, dict[str, tuple[mlog.TV_LoggableList, str | None]]] = collections.defaultdict(dict)
         self.max_key_len = 0
 
     def add_section(self, section: str, values: T.Dict[str, T.Any], bool_yn: bool,
-                    list_sep: T.Optional[str], subproject: str) -> None:
+                    list_sep: T.Optional[str], subproject: SubProject) -> None:
         for k, v in values.items():
             if k in self.sections[section]:
                 raise InterpreterException(f'Summary section {section!r} already have key {k!r}')
-            formatted_values = []
+            formatted_values: mlog.TV_LoggableList = []
             for i in listify(v):
                 if isinstance(i, bool):
                     if bool_yn:
@@ -182,7 +182,7 @@ class Summary:
             self.sections[section][k] = (formatted_values, list_sep)
             self.max_key_len = max(self.max_key_len, len(k))
 
-    def dump(self):
+    def dump(self) -> None:
         mlog.log(self.project_name, mlog.normal_cyan(self.project_version))
         for section, values in self.sections.items():
             mlog.log('')  # newline
@@ -197,17 +197,17 @@ class Summary:
                 self.dump_value(v, list_sep, indent)
         mlog.log('')  # newline
 
-    def dump_value(self, arr, list_sep, indent):
+    def dump_value(self, arr: mlog.TV_LoggableList, list_sep: str | None, indent: int) -> None:
         lines_sep = '\n' + ' ' * indent
         if list_sep is None:
             mlog.log(*arr, sep=lines_sep, display_timestamp=False)
             return
         max_len = shutil.get_terminal_size().columns
-        line = []
+        line: mlog.TV_LoggableList = []
         line_len = indent
         lines_sep = list_sep.rstrip() + lines_sep
         for v in arr:
-            v_len = len(v) + len(list_sep)
+            v_len = len(str(v)) + len(list_sep)
             if line and line_len + v_len > max_len:
                 mlog.log(*line, sep=list_sep, end=lines_sep)
                 line_len = indent
@@ -215,6 +215,7 @@ class Summary:
             line.append(v)
             line_len += v_len
         mlog.log(*line, sep=list_sep, display_timestamp=False)
+
 
 class InterpreterRuleRelaxation(Enum):
     ''' Defines specific relaxations of the Meson rules.
