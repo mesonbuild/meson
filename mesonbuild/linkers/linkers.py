@@ -54,6 +54,10 @@ class StaticLinker:
     def get_exelist(self) -> T.List[str]:
         return self.exelist.copy()
 
+    def get_archive_name(self, filename: str) -> str:
+        # Only used for shared libraries on AIX, so return empty.
+        return str()
+
     def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
         return []
 
@@ -61,6 +65,10 @@ class StaticLinker:
         return []
 
     def get_output_args(self, target: str) -> T.List[str]:
+        return []
+
+    def get_no_stdlib_link_args(self) -> T.List[str]:
+        """Arguments to turn off default linking to standard libraries."""
         return []
 
     def get_coverage_link_args(self) -> T.List[str]:

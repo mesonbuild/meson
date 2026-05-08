@@ -2987,6 +2987,12 @@ class CustomTargetBase(metaclass=SimpleABC):
     def uses_rust_abi(self) -> bool:
         return False
 
+    def uses_fortran(self) -> bool:
+        return False
+
+    def uses_swift_cpp_interop(self) -> bool:
+        return False
+
 
 class CustomTarget(Target, CustomTargetBase):
 

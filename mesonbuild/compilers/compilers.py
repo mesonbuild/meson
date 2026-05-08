@@ -1512,6 +1512,10 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         """Arguments to turn off default inclusion of standard libraries."""
         return []
 
+    def get_no_stdlib_link_args(self) -> T.List[str]:
+        """Arguments to turn off default linking to standard libraries."""
+        return []
+
     def get_warn_args(self, level: str) -> T.List[str]:
         return []
 
