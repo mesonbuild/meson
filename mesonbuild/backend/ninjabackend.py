@@ -613,7 +613,8 @@ class NinjaBackend(backends.Backend):
 
         raise MesonException(f'Could not determine vs dep dependency prefix string. output: {stderr} {stdout}')
 
-    def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict] = None) -> T.Optional[T.Dict]:
+    def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict] = None) -> T.Optional[T.Dict[str, T.Dict[Language, T.List[str]]]]:
+        captured_compile_args_per_target: T.Dict[str, T.Dict[Language, T.List[str]]] = {}
         if vslite_ctx:
             # We don't yet have a use case where we'd expect to make use of this,
             # so no harm in catching and reporting something unexpected.
@@ -666,7 +667,6 @@ class NinjaBackend(backends.Backend):
 
             # Optionally capture compile args per target, for later use (i.e. VisStudio project's NMake intellisense include dirs, defines, and compile options).
             if capture:
-                captured_compile_args_per_target = {}
                 for target in self.build.get_targets().values():
                     if isinstance(target, build.BuildTarget):
                         captured_compile_args_per_target[target.get_id()] = self.generate_common_compile_args_per_src_type(target)
@@ -719,8 +719,7 @@ class NinjaBackend(backends.Backend):
         self.generate_compdb()
         self.generate_rust_project_json()
 
-        if capture:
-            return captured_compile_args_per_target
+        return captured_compile_args_per_target
 
     def generate_rust_project_json(self) -> None:
         """Generate a rust-analyzer compatible rust-project.json file."""
@@ -3349,7 +3348,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if self.environment.coredata.get_option_for_target(target, 'cpp_importstd') == 'true':
                 return True
         except KeyError:
-            return False
+            pass
+        return False
 
     def handle_cpp_import_std(self, target: build.BuildTarget, compiler):
         istd_args = []
@@ -3626,7 +3626,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return linker.get_link_whole_for(target_args) if target_args else []
 
     @lru_cache(maxsize=None)
-    def guess_library_absolute_path(self, linker, libname, search_dirs, patterns) -> Path:
+    def guess_library_absolute_path(self, linker, libname, search_dirs, patterns) -> T.Optional[Path]:
         from ..compilers.c import CCompiler
         for d in search_dirs:
             for p in patterns:
@@ -3638,6 +3638,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                     continue
                 # Return the first result
                 return trial
+        return None
 
     def guess_external_link_dependencies(self, linker, target, commands, internal):
         # Ideally the linker would generate dependency information that could be used.
