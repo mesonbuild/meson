@@ -472,6 +472,8 @@ class LinuxlikeTests(BasePlatformTests):
             raise SkipTest('asan not available on Cygwin')
         if is_openbsd():
             raise SkipTest('-fsanitize=address is not supported on OpenBSD')
+        if is_sunos():
+            raise SkipTest('-fsanitize=address is not supported on illumos')
 
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         env = {'CFLAGS': '-fsanitize=address'}
@@ -1024,6 +1026,8 @@ class LinuxlikeTests(BasePlatformTests):
             raise SkipTest('asan not available on Cygwin')
         if is_openbsd():
             raise SkipTest('-fsanitize=address is not supported on OpenBSD')
+        if is_sunos():
+            raise SkipTest('-fsanitize=address is not supported on illumos')
 
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         env = {'CFLAGS': '-fsanitize=address', 'LDFLAGS': '-I.'}
