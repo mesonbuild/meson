@@ -78,6 +78,7 @@ modules = [
     'mesonbuild/modules/simd.py',
     'mesonbuild/modules/snippets.py',
     'mesonbuild/modules/sourceset.py',
+    'mesonbuild/modules/types.py',
     'mesonbuild/modules/wayland.py',
     'mesonbuild/modules/windows.py',
     'mesonbuild/mparser.py',
