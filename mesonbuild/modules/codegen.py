@@ -411,7 +411,7 @@ class CodeGenModule(ExtensionModule):
                     node=state.current_node)
             return YaccGenerator(name, bin)
 
-        yacc_args: T.List[str] = ['@INPUT@', '-o', '@OUTPUT0@']
+        yacc_args: T.List[str] = []
 
         impl = T.cast('YaccImpls', bin.name)
         if impl == 'yacc' and isinstance(bin, ExternalProgram):
@@ -433,6 +433,7 @@ class CodeGenModule(ExtensionModule):
                          'output location be configurable, and may not work.',
                          fatal=False)
             yacc_args.append('-H')
+        yacc_args.extend(['-o', '@OUTPUT0@', '@INPUT@'])
         return YaccGenerator(name, bin, T.cast('ImmutableListProtocol[str]', yacc_args))
 
 
