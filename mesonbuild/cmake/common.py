@@ -18,6 +18,7 @@ language_map: T.Mapping[Language, str] = {
     'c': 'C',
     'cpp': 'CXX',
     'cuda': 'CUDA',
+    'nasm': 'ASM_NASM',
     'objc': 'OBJC',
     'objcpp': 'OBJCXX',
     'nasm': 'ASM_NASM',
