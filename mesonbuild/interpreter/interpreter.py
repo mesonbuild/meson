@@ -121,6 +121,7 @@ if T.TYPE_CHECKING:
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
     from ..options import OptionDict
     from ..mesonlib import SubProject
+    from ..cmdline import SharedCMDOptions
     from .type_checking import SourcesVarargsType
 
     # Input source types passed to Targets
@@ -245,7 +246,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 invoker_method_default_options: T.Optional[OptionDict] = None,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
                 relaxations: T.Optional[T.Set[InterpreterRuleRelaxation]] = None,
-                user_defined_options: T.Optional[coredata.SharedCMDOptions] = None,
+                user_defined_options: T.Optional[SharedCMDOptions] = None,
                 cargo: T.Optional[cargo.Interpreter] = None,
             ) -> None:
         super().__init__(_build.environment.get_source_dir(), subdir, subproject, subproject_dir, _build.environment)
