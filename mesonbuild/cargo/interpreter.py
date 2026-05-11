@@ -913,7 +913,7 @@ def load_cargo_lock(filename: str, subproject_dir: str) -> T.Optional[CargoLock]
                     checksum = cargolock.metadata[f'checksum {package.name} {package.version} ({package.source})']
                 url = f'https://crates.io/api/v1/crates/{package.name}/{package.version}/download'
                 directory = f'{package.name}-{package.version}'
-                name = meson_depname
+                name = SubProject(meson_depname)
                 wrap_type = 'file'
                 cfg = {
                     'directory': directory,
@@ -924,7 +924,7 @@ def load_cargo_lock(filename: str, subproject_dir: str) -> T.Optional[CargoLock]
                 }
             elif package.source.startswith('git+'):
                 url, revision, directory = _parse_git_url(package.source)
-                name = directory
+                name = SubProject(directory)
                 wrap_type = 'git'
                 cfg = {
                     'url': url,
