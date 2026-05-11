@@ -2135,7 +2135,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build_by_default=build_by_default,
             capture=kwargs['capture'],
             console=kwargs['console'],
-            depend_files=kwargs['depend_files'],
+            depend_files=self.source_strings_to_files(kwargs['depend_files']),
             depfile=kwargs['depfile'],
             extra_depends=kwargs['depends'],
             env=kwargs['env'],
