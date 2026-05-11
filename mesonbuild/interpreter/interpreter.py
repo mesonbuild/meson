@@ -2251,7 +2251,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def make_test(self, node: mparser.BaseNode,
                   args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
-                  kwargs: 'kwtypes.BaseTest',
+                  kwargs: kwtypes.FuncTest | kwtypes.FuncBenchmark,
                   klass: T.Type[TestClass] = Test) -> TestClass:
         name = args[0]
         if ':' in name:
@@ -2307,7 +2307,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def add_test(self, node: mparser.BaseNode,
                  args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
-                 kwargs: T.Dict[str, T.Any], is_base_test: bool) -> None:
+                 kwargs: kwtypes.FuncTest | kwtypes.FuncBenchmark, is_base_test: bool) -> None:
         if isinstance(args[1], (build.CustomTarget, build.CustomTargetIndex)):
             FeatureNew.single_use('test with CustomTarget as command', '1.4.0', self.subproject)
         if any(isinstance(i, ExternalProgram) for i in kwargs['args']):

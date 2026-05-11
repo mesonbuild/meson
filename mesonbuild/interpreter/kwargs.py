@@ -56,27 +56,24 @@ class BaseTest(TypedDict):
     expected_exitcode: T.Optional[int]
     timeout: int
     workdir: T.Optional[str]
-    depends: T.List[TargetDepends]
     priority: int
     env: EnvironmentVariables
+    depends: T.List[TargetDepends]
     suite: T.List[str]
+    verbose: bool
 
 
 class FuncBenchmark(BaseTest):
 
-    """Keyword Arguments shared between `test` and `benchmark`."""
+    """Keyword arguments used by `benchmark` and `test`, but not Rust"""
 
+    # Needs complex refactor for rust test to go in BaseTest
     args: T.List[TestArgs]
     protocol: Literal['exitcode', 'tap', 'gtest', 'rust']
 
-
 class FuncTest(FuncBenchmark):
 
-    """Keyword Arguments for `test`
-
-    `test` only adds the `is_parallel` argument over benchmark, so inheritance
-    is helpful here.
-    """
+    """Keyword Arguments for `test` but not `benchmark`"""
 
     is_parallel: bool
 
@@ -138,6 +135,7 @@ class BuildTargeMethodExtractAllObjects(TypedDict):
 class FuncInstallSubdir(TypedDict):
 
     install_dir: str
+    install_tag: T.Optional[str]
     strip_directory: bool
     exclude_files: T.List[str]
     exclude_directories: T.List[str]
@@ -151,7 +149,9 @@ class FuncInstallData(TypedDict):
     sources: T.List[FileOrString]
     rename: T.List[str]
     install_mode: FileMode
+    install_tag: T.Optional[str]
     follow_symlinks: T.Optional[bool]
+    preserve_path: bool
 
 
 class FuncInstallEmptyDir(TypedDict):
@@ -167,12 +167,14 @@ class FuncInstallHeaders(TypedDict):
     subdir: T.Optional[str]
     follow_symlinks: T.Optional[bool]
     install_tag: T.Optional[str]
+    preserve_path: bool
 
 
 class FuncInstallMan(TypedDict):
 
     install_dir: T.Optional[str]
     install_mode: FileMode
+    install_tag: T.Optional[str]
     locale: T.Optional[str]
 
 
@@ -271,6 +273,7 @@ class FindProgram(ExtractRequired, ExtractSearchDirs):
     default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
     native: MachineChoice
     version: T.List[str]
+    version_argument: str
 
 
 class RunCommand(TypedDict):
@@ -338,6 +341,7 @@ class ConfigureFile(TypedDict):
     configuration: T.Optional[T.Union[T.Dict[str, T.Union[str, int, bool]], build.ConfigurationData]]
     macro_name: T.Optional[str]
     build_subdir: str
+    copy: bool
 
 
 class Subproject(ExtractRequired):
