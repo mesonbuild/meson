@@ -2544,7 +2544,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                           tag: T.Optional[str],
                           install_data_type: T.Optional[str] = None,
                           preserve_path: bool = False,
-                          follow_symlinks: T.Optional[bool] = None) -> build.Data:
+                          follow_symlinks: T.Optional[bool] = None) -> list[build.Data]:
         install_dir_name = install_dir.optname if isinstance(install_dir, P_OBJ.OptionString) else install_dir
         dirs = collections.defaultdict(list)
         if preserve_path:
@@ -2554,7 +2554,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             dirs[''].extend(sources)
 
-        ret_data = []
+        ret_data: list[build.Data] = []
         for childdir, files in dirs.items():
             d = build.Data(files, os.path.join(install_dir, childdir), os.path.join(install_dir_name, childdir),
                            install_mode, self.subproject, rename, tag, install_data_type,

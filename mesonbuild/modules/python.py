@@ -318,7 +318,7 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
     )
     @InterpreterObject.method('install_sources')
     def install_sources_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File]]],
-                               kwargs: 'PyInstallKw') -> 'Data':
+                               kwargs: 'PyInstallKw') -> list[Data]:
         self.held_object.run_bytecompile[self.version] = True
         tag = kwargs['install_tag'] or 'python-runtime'
         pure = kwargs['pure'] if kwargs['pure'] is not None else self.pure
