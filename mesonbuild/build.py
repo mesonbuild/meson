@@ -3595,6 +3595,9 @@ class LocalProgram(programs.Program):
     def runnable(self) -> bool:
         return isinstance(self.program, programs.ExternalProgram)
 
+    def get_name(self) -> str:
+        return self.name
+
 # A bit poorly named, but this represents plain data files to copy
 # during install.
 @dataclass(eq=False)
