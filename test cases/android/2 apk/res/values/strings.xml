@@ -1,0 +1,4 @@
+<resources>
+	<string name="app_name">Meson Apk</string>
+	<string name="body_text">This is an Application built entirely using Meson, without AGP.</string>
+</resources>

@@ -37,6 +37,7 @@ index.md
 		Disabler.md
 		Code-formatting.md
 		Modules.md
+			Android-module.md
 			CMake-module.md
 			Codegen-module.md
 			Cuda-module.md
