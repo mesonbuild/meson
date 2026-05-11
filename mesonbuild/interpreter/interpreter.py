@@ -2240,15 +2240,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                   kwargs: 'kwtypes.FuncTest') -> None:
         self.add_test(node, args, kwargs, True)
 
-    def unpack_env_kwarg(self, kwargs: T.Union[EnvironmentVariables, T.Dict[str, 'TYPE_var'], T.List['TYPE_var'], str]) -> EnvironmentVariables:
-        envlist = kwargs.get('env')
-        if envlist is None:
-            return EnvironmentVariables()
-        msg = ENV_KW.validator(envlist)
-        if msg:
-            raise InvalidArguments(f'"env": {msg}')
-        return ENV_KW.convertor(envlist)
-
     def make_test(self, node: mparser.BaseNode,
                   args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
                   kwargs: kwtypes.FuncTest | kwtypes.FuncBenchmark,
@@ -2267,8 +2258,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             kwargs.setdefault('depends', []).append(exe)
         elif isinstance(exe, build.CustomTargetIndex):
             kwargs.setdefault('depends', []).append(exe.target)
-
-        env = self.unpack_env_kwarg(kwargs)
 
         if kwargs['timeout'] <= 0:
             FeatureNew.single_use('test() timeout <= 0', '0.57.0', self.subproject, location=node)
@@ -2296,7 +2285,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                      kwargs['depends'],
                      kwargs.get('is_parallel', False),
                      kwargs['args'],
-                     env,
+                     kwargs['env'],
                      expected_fail,
                      kwargs['expected_exitcode'],
                      kwargs['timeout'],
