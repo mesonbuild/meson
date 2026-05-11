@@ -1361,13 +1361,13 @@ class Interpreter(InterpreterBase, HoldableObject):
             if not isinstance(args[0], str):
                 raise InterpreterException('Summary first argument must be string.')
             values = {args[0]: args[1]}
-        self.summary_impl(kwargs['section'], values, kwargs)
+        self.summary_impl(values=values, **kwargs)
 
-    def summary_impl(self, section: str, values, kwargs: 'kwtypes.Summary') -> None:
+    def summary_impl(self, section: str, values: dict[str, T.Any], bool_yn: bool, list_sep: str | None) -> None:
         if self.subproject not in self.summary:
             self.summary[self.subproject] = Summary(self.active_projectname, self.project_version)
         self.summary[self.subproject].add_section(
-            section, values, kwargs['bool_yn'], kwargs['list_sep'], self.subproject)
+            section, values, bool_yn, list_sep, self.subproject)
 
     def _print_summary(self) -> None:
         # Add automatic 'Subprojects' section in main project.
@@ -1385,10 +1385,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 value += [f'(from {stack})']
             all_subprojects[name] = value
         if all_subprojects:
-            self.summary_impl('Subprojects', all_subprojects,
-                              {'bool_yn': True,
-                               'list_sep': ' ',
-                               })
+            self.summary_impl('Subprojects', all_subprojects, bool_yn=True, list_sep=' ')
         # Add automatic section with all user defined options
         if self.user_defined_options:
             values = collections.OrderedDict()
@@ -1406,7 +1403,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             sorted_options = sorted(self.user_defined_options.cmd_line_options.items(), key=compatibility_sort_helper)
             values.update({str(k): v for k, v in sorted_options})
             if values:
-                self.summary_impl('User defined options', values, {'bool_yn': False, 'list_sep': None})
+                self.summary_impl('User defined options', values, bool_yn=False, list_sep=None)
         # Print all summaries, main project last.
         mlog.log('')  # newline
         main_summary = self.summary.pop('', None)
