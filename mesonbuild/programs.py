@@ -51,6 +51,10 @@ class Program(mesonlib.HoldableObject, metaclass=SimpleABC):
         pass
 
     @abstractmethod
+    def get_name(self) -> T.Optional[str]:
+        pass
+
+    @abstractmethod
     def runnable(self) -> bool:
         pass
 
