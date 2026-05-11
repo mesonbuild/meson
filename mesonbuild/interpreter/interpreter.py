@@ -3759,7 +3759,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             s for s in raw_sources if not isinstance(s, (build.BuildTarget, build.ExtractedObjects))])
         objs = kwargs['objects']
 
-        srcs: T.List['SourceInputs'] = []
+        srcs: T.List[SourceOutputs] = []
         struct: T.Optional[build.StructuredSources] = build.StructuredSources()
         for s in sources:
             if isinstance(s, build.StructuredSources):
@@ -3790,26 +3790,40 @@ class Interpreter(InterpreterBase, HoldableObject):
                             node=node)
                     outputs.update(o)
 
-        if targetclass is build.Executable:
-            nkwargs = self.__convert_executable_kwargs(node, kwargs)
-        elif targetclass is build.StaticLibrary:
-            nkwargs = self.__convert_static_library_kwargs(node, kwargs)
-        elif targetclass is build.SharedLibrary:
-            nkwargs = self.__convert_shared_library_kwargs(node, kwargs)
-        elif targetclass is build.SharedModule:
-            nkwargs = self.__convert_shared_module_kwargs(node, kwargs)
-        else:
-            nkwargs = self.__convert_jar_kwargs(node, kwargs)
-
         if targetclass is not build.Jar:
             self.check_for_jar_sources(sources, targetclass)
 
-        target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
-                             self.environment, self.compilers[for_machine], nkwargs)
+        target: build.BuildTarget
+        if targetclass is build.Executable:
+            nkwargs = self.__convert_executable_kwargs(
+                node, T.cast('kwtypes.Executable', kwargs))
+            target = build.Executable(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
+                                      self.environment, self.compilers[for_machine], nkwargs)
+        elif targetclass is build.StaticLibrary:
+            nkwargs = self.__convert_static_library_kwargs(
+                node, T.cast('kwtypes.StaticLibrary', kwargs))
+            target = build.StaticLibrary(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
+                                         self.environment, self.compilers[for_machine], nkwargs)
+        elif targetclass is build.SharedLibrary:
+            nkwargs = self.__convert_shared_library_kwargs(
+                node, T.cast('kwtypes.SharedLibrary', kwargs))
+            target = build.SharedLibrary(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
+                                         self.environment, self.compilers[for_machine], nkwargs)
+            target.shared_library_only = shared_library_only
+        elif targetclass is build.SharedModule:
+            nkwargs = self.__convert_shared_module_kwargs(
+                node, T.cast('kwtypes.SharedModule', kwargs))
+            target = build.SharedModule(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
+                                        self.environment, self.compilers[for_machine], nkwargs)
+            target.shared_library_only = shared_library_only
+        else:
+            nkwargs = self.__convert_jar_kwargs(
+                node, T.cast('kwtypes.Jar', kwargs))
+            target = build.Jar(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
+                               self.environment, self.compilers[for_machine], nkwargs)
+
         if objs and target.uses_rust():
             FeatureNew.single_use('objects in Rust targets', '1.8.0', self.subproject)
-        if targetclass is build.SharedLibrary:
-            target.shared_library_only = shared_library_only
 
         self.add_target(name, target)
         self.project_args_frozen = True
