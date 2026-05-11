@@ -3504,7 +3504,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # Into split arguments
         vala_keys = ('install_vala_header', 'install_vala_vapi', 'install_vala_gir')
         if len(kwargs['install_dir']) > 1:
-            if any(kwargs[k] is not None for k in vala_keys):
+            if any(kwargs[k] is not None for k in vala_keys):  # type: ignore[literal-required]
                 raise InvalidArguments('Passing install_vala_* and more than one argument to install_dir are mutually exclusive')
 
             install_dirs = kwargs['install_dir'].copy()
@@ -3513,10 +3513,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             for key in vala_keys:
                 action = install_dirs.pop(0) if install_dirs else False
                 if isinstance(action, bool):
-                    final[key] = action
+                    final[key] = action  # type: ignore[literal-required]
                 else:
-                    final[key] = True
-                    final[f'{key}_dir'] = action
+                    final[key] = True  # type: ignore[literal-required]
+                    final[f'{key}_dir'] = action  # type: ignore[literal-required]
             final['install_dir'] = [install_dir]
 
             # This was previously allowed, and tested, so we need to allow it to keep working.
@@ -3524,14 +3524,14 @@ class Interpreter(InterpreterBase, HoldableObject):
                 final['install_vala_gir'] = False
         else:
             for key in vala_keys:
-                action = kwargs[key]
+                action = kwargs[key]  # type: ignore[literal-required]
                 if action is None:
                     action = False
                 if isinstance(action, bool):
-                    final[key] = action
+                    final[key] = action  # type: ignore[literal-required]
                 else:
-                    final[key] = True
-                    final[f'{key}_dir'] = action
+                    final[key] = True  # type: ignore[literal-required]
+                    final[f'{key}_dir'] = action  # type: ignore[literal-required]
             final['install_dir'] = [kwargs['install_dir'][0] if kwargs['install_dir'] else True]
 
     def __convert_executable_kwargs(self, node: mparser.BaseNode, kwargs: kwtypes.Executable) -> build.ExecutableKeywordArguments:
