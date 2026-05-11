@@ -196,7 +196,7 @@ class WrapNotFoundException(WrapException):
     pass
 
 class PackageDefinition:
-    def __init__(self, name: str, subprojects_dir: str, type_: T.Optional[str] = None, values: T.Optional[T.Dict[str, str]] = None):
+    def __init__(self, name: SubProject, subprojects_dir: str, type_: T.Optional[str] = None, values: T.Optional[T.Dict[str, str]] = None):
         self.name = name
         self.subprojects_dir = subprojects_dir
         self.type = type_
@@ -223,12 +223,12 @@ class PackageDefinition:
         self.provided_deps[self.name.lower()] = None
 
     @staticmethod
-    def from_values(name: str, subprojects_dir: str, type_: str, values: T.Dict[str, str]) -> PackageDefinition:
+    def from_values(name: SubProject, subprojects_dir: str, type_: str, values: T.Dict[str, str]) -> PackageDefinition:
         return PackageDefinition(name, subprojects_dir, type_, values)
 
     @staticmethod
     def from_directory(filename: str) -> PackageDefinition:
-        name = os.path.basename(filename)
+        name = SubProject(os.path.basename(filename))
         subprojects_dir = os.path.dirname(filename)
         return PackageDefinition(name, subprojects_dir)
 
@@ -267,7 +267,7 @@ class PackageDefinition:
             wrap.redirected = True
             return wrap
 
-        name = os.path.basename(filename)[:-5]
+        name = SubProject(os.path.basename(filename)[:-5])
         wrap = PackageDefinition.from_values(name, subprojects_dir, type_, values)
         wrap.original_filename = filename
         wrap.parse_provide_section(config)
@@ -381,7 +381,7 @@ class Resolver:
         self.provided_programs: T.Dict[str, PackageDefinition] = {}
         self.wrapdb: T.Dict[str, T.Any] = {}
         self.wrapdb_provided_deps: T.Dict[str, str] = {}
-        self.wrapdb_provided_programs: T.Dict[str, str] = {}
+        self.wrapdb_provided_programs: T.Dict[str, SubProject] = {}
         self.loaded_dirs: T.Set[str] = set()
         self.load_wraps()
         self.load_netrc()
@@ -502,7 +502,7 @@ class Resolver:
         wrap = self.wraps.get(subp_name)
         return wrap.provided_deps.get(depname) if wrap else None
 
-    def find_program_provider(self, names: T.List[str]) -> T.Optional[str]:
+    def find_program_provider(self, names: T.List[str]) -> T.Optional[SubProject]:
         for name in names:
             wrap = self.provided_programs.get(name)
             if wrap:

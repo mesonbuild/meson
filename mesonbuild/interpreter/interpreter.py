@@ -239,7 +239,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 self,
                 _build: build.Build,
                 backend: T.Optional[Backend] = None,
-                subproject: SubProject = '',
+                subproject: SubProject = mesonlib.ROOT_SUBPROJECT,
                 subdir: str = '',
                 subproject_dir: str = 'subprojects',
                 invoker_method_default_options: T.Optional[OptionDict] = None,
@@ -828,7 +828,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         DEFAULT_OPTIONS.evolve(since='0.38.0'),
         KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True),
     )
-    def func_subproject(self, nodes: mparser.BaseNode, args: T.Tuple[str], kwargs: kwtypes.Subproject) -> SubprojectHolder:
+    def func_subproject(self, nodes: mparser.BaseNode, args: T.Tuple[SubProject], kwargs: kwtypes.Subproject) -> SubprojectHolder:
         kw: kwtypes.DoSubproject = {
             'required': kwargs['required'],
             'default_options': kwargs['default_options'],
@@ -1447,7 +1447,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     )
     def func_expect_error(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: TYPE_kwargs) -> ContextManagerObject:
         class ExpectErrorObject(ContextManagerObject):
-            def __init__(self, msg: str, how: str, subproject: str) -> None:
+            def __init__(self, msg: str, how: str, subproject: SubProject) -> None:
                 super().__init__(subproject)
                 self.old_stdout = sys.stdout
                 sys.stdout = self.new_stdout = io.StringIO()
@@ -1698,7 +1698,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             # Override find_program('meson') to return what we were invoked with
             return ExternalProgram('meson', self.environment.get_build_command(), silent=True)
 
-        fallback = None
+        fallback: SubProject | None = None
         wrap_mode = WrapMode.from_string(self.coredata.optstore.get_value_for(OptionKey('wrap_mode')))
         if wrap_mode != WrapMode.nofallback and self.environment.wrap_resolver:
             fallback = self.environment.wrap_resolver.find_program_provider(args)
@@ -1749,7 +1749,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             extra_info.insert(0, mlog.normal_cyan(version))
         return True
 
-    def find_program_fallback(self, fallback: str, args: T.List[mesonlib.FileOrString],
+    def find_program_fallback(self, fallback: SubProject, args: T.List[mesonlib.FileOrString],
                               default_options: OptionDict,
                               required: bool, extra_info: T.List[mlog.TV_Loggable]
                               ) -> T.Optional[Program]:
