@@ -818,7 +818,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                           in_builddir=in_builddir, check=check, capture=kwargs['capture'],
                           console=kwargs['console'])
 
-    def func_option(self, nodes, args, kwargs):
+    def func_option(self, nodes: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> T.NoReturn:
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
 
     @typed_pos_args('subproject', str)
@@ -1324,7 +1324,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             success &= self.add_languages(langs, False, MachineChoice.BUILD)
             return success
 
-    def _stringify_user_arguments(self, args: T.List[TYPE_var], func_name: str) -> T.List[str]:
+    def _stringify_user_arguments(self, args: T.List[TYPE_var], func_name: str) -> mlog.TV_LoggableList:
         try:
             return [stringifyUserArguments(i, self.subproject) for i in args]
         except InvalidArguments as e:
@@ -1332,13 +1332,13 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @noArgsFlattening
     @noKwargs
-    def func_message(self, node: mparser.BaseNode, args, kwargs):
+    def func_message(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> None:
         if len(args) > 1:
             FeatureNew.single_use('message with more than one argument', '0.54.0', self.subproject, location=node)
         args_str = self._stringify_user_arguments(args, 'message')
         self.message_impl(args_str)
 
-    def message_impl(self, args):
+    def message_impl(self, args: mlog.TV_LoggableList) -> None:
         mlog.log(mlog.bold('Message:'), *args)
 
     @noArgsFlattening
@@ -1418,7 +1418,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @noArgsFlattening
     @FeatureNew('warning', '0.44.0')
     @noKwargs
-    def func_warning(self, node, args, kwargs):
+    def func_warning(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> None:
         if len(args) > 1:
             FeatureNew.single_use('warning with more than one argument', '0.54.0', self.subproject, location=node)
         args_str = self._stringify_user_arguments(args, 'warning')
@@ -1426,7 +1426,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @noArgsFlattening
     @noKwargs
-    def func_error(self, node, args, kwargs):
+    def func_error(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> T.NoReturn:
         if len(args) > 1:
             FeatureNew.single_use('error with more than one argument', '0.58.0', self.subproject, location=node)
         args_str = self._stringify_user_arguments(args, 'error')
@@ -1435,13 +1435,13 @@ class Interpreter(InterpreterBase, HoldableObject):
     @noArgsFlattening
     @FeatureNew('debug', '0.63.0')
     @noKwargs
-    def func_debug(self, node, args, kwargs):
+    def func_debug(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> None:
         args_str = self._stringify_user_arguments(args, 'debug')
         mlog.debug('Debug:', *args_str)
 
     @noKwargs
     @noPosargs
-    def func_exception(self, node, args, kwargs):
+    def func_exception(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> T.NoReturn:
         raise RuntimeError('unit test traceback :)')
 
     @typed_pos_args('expect_error', str)
@@ -1851,7 +1851,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @FeatureNew('disabler', '0.44.0')
     @noKwargs
     @noPosargs
-    def func_disabler(self, node, args, kwargs):
+    def func_disabler(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> Disabler:
         return Disabler()
 
     @typed_pos_args('executable', str, varargs=SOURCES_VARARGS)
@@ -2309,7 +2309,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def add_test(self, node: mparser.BaseNode,
                  args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
-                 kwargs: T.Dict[str, T.Any], is_base_test: bool):
+                 kwargs: T.Dict[str, T.Any], is_base_test: bool) -> None:
         if isinstance(args[1], (build.CustomTarget, build.CustomTargetIndex)):
             FeatureNew.single_use('test with CustomTarget as command', '1.4.0', self.subproject)
         if any(isinstance(i, ExternalProgram) for i in kwargs['args']):
@@ -2401,7 +2401,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         INSTALL_MODE_KW,
         KwargInfo('install_tag', (str, NoneType), since='0.62.0')
     )
-    def func_install_emptydir(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs) -> None:
+    def func_install_emptydir(self, node: mparser.BaseNode, args: T.Tuple[str],
+                              kwargs: kwtypes.FuncInstallEmptyDir) -> build.EmptyDir:
         d = build.EmptyDir(args[0], kwargs['install_mode'], self.subproject, kwargs['install_tag'])
         self.build.emptydir.append(d)
 
@@ -2416,8 +2417,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         INSTALL_TAG_KW,
     )
     def func_install_symlink(self, node: mparser.BaseNode,
-                             args: T.Tuple[T.List[str]],
-                             kwargs) -> build.SymlinkData:
+                             args: T.Tuple[str],
+                             kwargs: kwtypes.FuncInstallSymlink) -> build.SymlinkData:
         name = args[0] # Validation while creating the SymlinkData object
         target = kwargs['pointing_to']
         l = build.SymlinkData(target, name, kwargs['install_dir'],
@@ -2620,7 +2621,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build.install_dirs.append(idir)
         return idir
 
-    def validate_build_subdir(self, build_subdir: str, target: str):
+    def validate_build_subdir(self, build_subdir: str, target: str) -> None:
         if build_subdir and build_subdir != '.':
             if os.path.exists(os.path.join(self.source_root, self.subdir, build_subdir)):
                 raise InvalidArguments(f'Build subdir "{build_subdir}" in "{target}" exists in source tree.')
@@ -2666,7 +2667,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('build_subdir', str, default='', since='1.10.0'),
     )
     def func_configure_file(self, node: mparser.BaseNode, args: T.List[TYPE_var],
-                            kwargs: kwtypes.ConfigureFile):
+                            kwargs: kwtypes.ConfigureFile) -> build.File:
         actions = sorted(x for x in ['configuration', 'command', 'copy']
                          if kwargs[x] not in [None, False])
         num_actions = len(actions)
@@ -3133,7 +3134,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     # object is generated. The result can be used in a different
     # subproject than it is defined in (due to e.g. a
     # declare_dependency).
-    def validate_within_subproject(self, subdir, fname):
+    def validate_within_subproject(self, subdir: str, fname: str) -> None:
         srcdir = self.environment.source_dir
         builddir = self.environment.build_dir
         if isinstance(fname, P_OBJ.DependencyVariableString):
@@ -3363,7 +3364,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         return build.BothLibraries(shared_lib, static_lib, preferred_library)
 
-    def build_library(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library):
+    def build_library(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library) -> build.SharedLibrary | build.BothLibraries | build.StaticLibrary:
         default_library = self.coredata.optstore.get_value_for(OptionKey('default_library', subproject=self.subproject))
         assert isinstance(default_library, str), 'for mypy'
         if default_library == 'shared':
@@ -3827,7 +3828,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.project_args_frozen = True
         return target
 
-    def add_stdlib_info(self, target):
+    def add_stdlib_info(self, target: build.BuildTarget) -> None:
         for l in target.compilers.keys():
             dep = self.build.stdlibs[target.for_machine].get(l, None)
             if dep:
@@ -3904,7 +3905,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     @noKwargs
     @FeatureNew('range', '0.58.0')
     @typed_pos_args('range', int, optargs=[int, int])
-    def func_range(self, node, args: T.Tuple[int, T.Optional[int], T.Optional[int]], kwargs: T.Dict[str, T.Any]) -> P_OBJ.RangeHolder:
+    def func_range(self, node: mparser.BaseNode, args: T.Tuple[int, T.Optional[int], T.Optional[int]],
+                   kwargs: TYPE_kwargs) -> P_OBJ.RangeHolder:
         start, stop, step = args
         # Just like Python's range, we allow range(stop), range(start, stop), or
         # range(start, stop, step)
