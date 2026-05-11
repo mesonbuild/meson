@@ -2333,7 +2333,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     )
     def func_install_headers(self, node: mparser.BaseNode,
                              args: T.Tuple[T.List['mesonlib.FileOrString']],
-                             kwargs: 'kwtypes.FuncInstallHeaders') -> build.Headers:
+                             kwargs: 'kwtypes.FuncInstallHeaders') -> list[build.Headers]:
         install_mode = self._warn_kwarg_install_mode_sticky(kwargs['install_mode'])
         source_files = self.source_strings_to_files(args[0])
         install_subdir = kwargs['subdir']
@@ -2346,7 +2346,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_subdir = ''
 
         dirs = collections.defaultdict(list)
-        ret_headers = []
+        ret_headers: list[build.Headers] = []
         if kwargs['preserve_path']:
             for file in source_files:
                 dirname = os.path.dirname(file.fname)
