@@ -1118,9 +1118,11 @@ class Interpreter(InterpreterBase, HoldableObject):
             # Use of the '--genvslite vsxxxx' option ultimately overrides any '--backend xxx'
             # option the user may specify.
             backend_name = self.coredata.optstore.get_value_for(OptionKey('genvslite'))
+            assert isinstance(backend_name, str), 'for mypy'
             self.backend = backends.get_genvslite_backend(backend_name, self.build)
         else:
             backend_name = self.coredata.optstore.get_value_for(OptionKey('backend'))
+            assert isinstance(backend_name, str), 'for mypy'
             self.backend = backends.get_backend_from_name(backend_name, self.build)
 
         if self.backend is None:
@@ -1274,7 +1276,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         # Load wrap files from this (sub)project.
         subprojects_dir = os.path.join(self.subdir, spdirname)
         if not self.is_subproject():
-            wrap_mode = WrapMode.from_string(self.coredata.optstore.get_value_for(OptionKey('wrap_mode')))
+            wrap_mode_s = self.coredata.optstore.get_value_for(OptionKey('wrap_mode'))
+            assert isinstance(wrap_mode_s, str), 'for mypy'
+            wrap_mode = WrapMode.from_string(wrap_mode_s)
             self.environment.wrap_resolver = wrap.Resolver(self.environment.get_source_dir(), subprojects_dir, self.subproject, wrap_mode)
         else:
             assert self.environment.wrap_resolver is not None, 'for mypy'
@@ -1699,7 +1703,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             return ExternalProgram('meson', self.environment.get_build_command(), silent=True)
 
         fallback: SubProject | None = None
-        wrap_mode = WrapMode.from_string(self.coredata.optstore.get_value_for(OptionKey('wrap_mode')))
+        wrap_mode_s = self.coredata.optstore.get_value_for(OptionKey('wrap_mode'))
+        assert isinstance(wrap_mode_s, str), 'for mypy'
+        wrap_mode = WrapMode.from_string(wrap_mode_s)
         if wrap_mode != WrapMode.nofallback and self.environment.wrap_resolver:
             fallback = self.environment.wrap_resolver.find_program_provider(args)
         if fallback and wrap_mode == WrapMode.forcefallback:
@@ -3110,6 +3116,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if (self.coredata.optstore.get_value_for('b_lundef') and
                 self.coredata.optstore.get_value_for('b_sanitize')):
             value = self.coredata.optstore.get_value_for('b_sanitize')
+            assert isinstance(value, list), 'for mypy'
             mlog.warning(textwrap.dedent(f'''\
                     Trying to use {value} sanitizer on Clang with b_lundef.
                     This will probably not work.
@@ -3313,8 +3320,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary, shared_library_only=False)
         static_lib = self.build_target(node, args, kwargs, build.StaticLibrary)
         preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_both_libraries', subproject=self.subproject))
+        assert isinstance(preferred_library, str), 'for mypy'
         if preferred_library == 'auto':
             preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_library', subproject=self.subproject))
+            assert isinstance(preferred_library, str), 'for mypy'
             if preferred_library == 'both':
                 preferred_library = 'shared'
 
