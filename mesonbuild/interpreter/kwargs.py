@@ -154,6 +154,12 @@ class FuncInstallData(TypedDict):
     follow_symlinks: T.Optional[bool]
 
 
+class FuncInstallEmptyDir(TypedDict):
+
+    install_mode: FileMode
+    install_tag: T.Optional[str]
+
+
 class FuncInstallHeaders(TypedDict):
 
     install_dir: T.Optional[str]
@@ -168,6 +174,13 @@ class FuncInstallMan(TypedDict):
     install_dir: T.Optional[str]
     install_mode: FileMode
     locale: T.Optional[str]
+
+
+class FuncInstallSymlink(TypedDict):
+
+    install_dir: T.Optional[str]
+    install_tag: T.Optional[str]
+    pointing_to: str
 
 
 class FuncImportModule(ExtractRequired):
