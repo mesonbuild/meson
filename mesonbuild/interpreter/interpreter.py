@@ -3606,7 +3606,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         final: build.StaticLibraryKeywordArguments = {}
         self.__convert_build_target_base_kwargs(kwargs, final)
 
-        for arg in ('pic', 'prelink'):
+        for arg in ('pic', 'prelink', 'rust_abi'):
             final[arg] = kwargs[arg]
 
         for lang in compilers.all_languages - {'java'}:
@@ -3629,7 +3629,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         final: build.SharedLibraryKeywordArguments = {}
         self.__convert_build_target_base_kwargs(kwargs, final)
 
-        for arg in ('version', 'soversion', 'darwin_versions', 'shortname', 'vs_module_defs'):
+        for arg in ('version', 'soversion', 'darwin_versions', 'rust_abi', 'shortname', 'vs_module_defs'):
             final[arg] = kwargs[arg]
 
         for lang in compilers.all_languages - {'java'}:
@@ -3652,7 +3652,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         final: build.SharedModuleKeywordArguments = {}
         self.__convert_build_target_base_kwargs(kwargs, final)
 
-        for arg in ('vs_module_defs', ):
+        for arg in ('vs_module_defs', 'rust_abi'):
             final[arg] = kwargs[arg]
 
         for lang in compilers.all_languages - {'java'}:

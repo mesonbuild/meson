@@ -109,6 +109,7 @@ if T.TYPE_CHECKING:
         resources: T.List[str]
         swift_interoperability_mode: Literal['c', 'cpp']
         swift_module_name: str
+        rust_abi: T.Optional[Literal['rust', 'c']]
         rust_crate_type: RustCrateType
         rust_dependency_map: T.Dict[str, str]
         vala_gir: T.Optional[str]
