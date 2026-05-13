@@ -134,6 +134,7 @@ __all__ = [
     'is_debianlike',
     'is_dragonflybsd',
     'is_freebsd',
+    'is_fuchsia',
     'is_haiku',
     'is_hurd',
     'is_irix',
@@ -714,6 +715,10 @@ def is_linux() -> bool:
 
 def is_android() -> bool:
     return _PLATFORM_SYSTEM_LOWER == 'android'
+
+
+def is_fuchsia() -> bool:
+    return _PLATFORM_SYSTEM_LOWER == 'fuchsia'
 
 
 def is_haiku() -> bool:
