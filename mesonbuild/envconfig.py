@@ -396,6 +396,9 @@ class MachineInfo(HoldableObject):
         """
         return self.system == 'os/2'
 
+    def is_fuchsia(self) -> bool:
+        return self.system == 'fuchsia'
+
     # Various prefixes and suffixes for import libraries, shared libraries,
     # static libraries, and executables.
     # Versioning is added to these names in the backends as-needed.
@@ -523,6 +526,7 @@ KERNEL_MAPPINGS: T.Mapping[str, str] = {'freebsd': 'freebsd',
                                         'dragonfly': 'dragonfly',
                                         'haiku': 'haiku',
                                         'gnu': 'gnu',
+                                        'fuchsia': 'fuchsia',
                                         }
 
 def detect_windows_arch(compilers: CompilerDict) -> str:

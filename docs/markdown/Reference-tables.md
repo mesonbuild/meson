@@ -176,6 +176,7 @@ These are provided by the `.system()` method call.
 | windows             | Native Windows (not Cygwin or MSYS2) |
 | sunos               | illumos and Solaris |
 | os/2                | OS/2 |
+| fuchsia             | Google's Fuchsia |
 
 Any string not listed above is not guaranteed to remain stable in
 future releases.
@@ -197,7 +198,8 @@ Native names as returned by the `.kernel()` method.
 | solaris             | Kernel derived from OpenSolaris by Oracle |
 | dragonfly | |
 | haiku| |
-| none                 | For e.g. bare metal embedded    |
+| fuchsia             | Google's Fuchsia |
+| none                | For e.g. bare metal embedded    |
 
 
 ## Subsystem names (since 1.2.0)
