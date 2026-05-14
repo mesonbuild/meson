@@ -28,9 +28,8 @@ if T.TYPE_CHECKING:
     from . import dependencies
     from .compilers.compilers import Compiler, CompilerDict, CompileResult, RunResult, CompileCheckMode, Language
     from .dependencies.detect import TV_DepID
-    from .mesonlib import FileOrString
+    from .mesonlib import FileOrString, SubProject
     from .cmake.traceparser import CMakeCacheEntry
-    from .interpreterbase import SubProject
     from .options import ElementaryOptionValues, MutableKeyedOptionDictType
     from .build import BuildTarget
     from .cmdline import SharedCMDOptions

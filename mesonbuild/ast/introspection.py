@@ -12,9 +12,9 @@ import typing as T
 from .. import compilers, environment, mesonlib
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
-from ..interpreterbase import InvalidArguments, SubProject, UnknownValue, Feature
+from ..interpreterbase import InvalidArguments, UnknownValue, Feature
 from ..interpreter import type_checking
-from ..mesonlib import MachineChoice
+from ..mesonlib import MachineChoice, SubProject
 from ..options import OptionKey
 from ..mparser import BaseNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
 from .interpreter import AstInterpreter, IntrospectionBuildTarget, IntrospectionDependency

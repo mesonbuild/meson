@@ -18,10 +18,11 @@ if T.TYPE_CHECKING:
     from typing_extensions import Protocol, TypeAlias, TypeIs
 
     from .. import mparser
+    from ..mesonlib import SubProject
     from ..modules import ModuleObject, ModuleState
     from ..mparser import FunctionNode
     from ..optinterpreter import OptionInterpreter
-    from .baseobjects import InterpreterObject, ObjectHolder, SubProject, TV_func, TYPE_var, TYPE_kwargs
+    from .baseobjects import InterpreterObject, ObjectHolder, TV_func, TYPE_var, TYPE_kwargs
     from .interpreterbase import InterpreterBase
     from .operator import MesonOperator
 
