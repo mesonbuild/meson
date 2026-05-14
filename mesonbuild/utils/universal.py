@@ -59,6 +59,7 @@ _U = T.TypeVar('_U')
 
 __all__ = [
     'GIT',
+    'ROOT_SUBPROJECT',
     'SimpleABC',
     'python_command',
     'NoProjectVersion',
@@ -174,6 +175,8 @@ __all__ = [
 ]
 
 SubProject = T.NewType('SubProject', str)
+
+ROOT_SUBPROJECT = SubProject('')
 
 class NoProjectVersion:
     pass

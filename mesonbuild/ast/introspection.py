@@ -67,7 +67,7 @@ class IntrospectionInterpreter(AstInterpreter):
                  backend: str,
                  visitors: T.Optional[T.List[AstVisitor]] = None,
                  cross_file: T.Optional[str] = None,
-                 subproject: SubProject = SubProject(''),
+                 subproject: SubProject = mesonlib.ROOT_SUBPROJECT,
                  subproject_dir: str = 'subprojects',
                  env: T.Optional[environment.Environment] = None):
         options = IntrospectionHelper(cross_file)

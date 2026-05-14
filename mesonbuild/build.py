@@ -22,7 +22,7 @@ from . import programs
 from .mesonlib import (
     HoldableObject, SecondLevelHolder, SimpleABC, SubProject,
     File, MesonException, MachineChoice, PerMachine, OrderedSet,
-    classify_unity_sources,
+    classify_unity_sources, ROOT_SUBPROJECT,
     get_filenames_templates_dict, substitute_values, has_path_sep,
     is_parent_path, relpath, PerMachineDefaultable,
     MesonBugException, EnvironmentVariables, pickle_load, lazy_property,
@@ -453,7 +453,7 @@ class Build:
                 self.static_linker[MachineChoice.BUILD] = self.static_linker[MachineChoice.HOST]
 
     def get_project(self) -> str:
-        return self.projects[SubProject('')].name
+        return self.projects[ROOT_SUBPROJECT].name
 
     def get_subproject_dir(self) -> str:
         return self.subproject_dir
