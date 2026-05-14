@@ -233,7 +233,7 @@ class PackageDefinition:
         return PackageDefinition(name, subprojects_dir)
 
     @staticmethod
-    def from_wrap_file(filename: str, subproject: SubProject = SubProject('')) -> PackageDefinition:
+    def from_wrap_file(filename: str, subproject: SubProject = mesonlib.ROOT_SUBPROJECT) -> PackageDefinition:
         config, type_, values = PackageDefinition._parse_wrap(filename)
         if 'diff_files' in values:
             FeatureNew('Wrap files with diff_files', '0.63.0').use(subproject)
@@ -366,7 +366,7 @@ def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
 class Resolver:
     source_dir: str
     subdir: str
-    subproject: SubProject = SubProject('')
+    subproject: SubProject = mesonlib.ROOT_SUBPROJECT
     wrap_mode: WrapMode = WrapMode.default
     wrap_frontend: bool = False
     allow_insecure: bool = False
