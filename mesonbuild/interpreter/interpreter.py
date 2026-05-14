@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
-# Copyright © 2023-2025 Intel Corporation
+# Copyright © 2023-2026 Intel Corporation
 
 from __future__ import annotations
 
@@ -2098,7 +2098,17 @@ class Interpreter(InterpreterBase, HoldableObject):
             # string in the meantime.
             FeatureNew.single_use('custom_target() with no name argument', '0.60.0', self.subproject, location=node)
             name = ''
-        inputs = self.source_strings_to_files(kwargs['input'], strict=False)
+        inputs: list[CustomTargetSources] = []
+        for source in kwargs['input']:
+            try:
+                inputs.append(self.source_strings_to_files([source]))
+            except InterpreterException as e:
+                if str(e).startswith('Sandbox violation'):
+                    mlog.warning(f'Source item {source!r} cannot be converted to File object, because it is a generated file. '
+                                 'This will become a hard error in meson 2.0.', location=self.current_node)
+                    inputs.append(mesonlib.File.from_built_file(self.subdir, source))
+                else:
+                    raise
         command = kwargs['command']
         if command and isinstance(command[0], str):
             command[0] = self.find_program_impl([command[0]])
@@ -3190,10 +3200,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.validated_cache.add(fname)
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List['mesonlib.FileOrString'], strict: bool = True) -> T.List['mesonlib.File']: ...
-
-    @T.overload
-    def source_strings_to_files(self, sources: T.List['mesonlib.FileOrString'], strict: bool = False) -> T.List['mesonlib.FileOrString']: ... # noqa: F811
+    def source_strings_to_files(self, sources: T.List['mesonlib.FileOrString']) -> T.List['mesonlib.File']: ...
 
     @T.overload
     def source_strings_to_files(self, sources: T.List[T.Union[mesonlib.FileOrString, build.BuildTargetTypes]]) -> T.List[T.Union[mesonlib.File, build.BuildTargetTypes]]: ...
@@ -3213,12 +3220,12 @@ class Interpreter(InterpreterBase, HoldableObject):
                                 ) -> T.List[T.Union[mesonlib.File, build.GeneratedTypes, build.StructuredSources]]: ... # noqa: F811
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List['SourceInputs'], strict: bool = True) -> T.List['SourceOutputs']: ... # noqa: F811
+    def source_strings_to_files(self, sources: T.List['SourceInputs']) -> T.List['SourceOutputs']: ... # noqa: F811
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List[SourcesVarargsType], strict: bool = True) -> T.List['SourceOutputs']: ... # noqa: F811
+    def source_strings_to_files(self, sources: T.List[SourcesVarargsType]) -> T.List['SourceOutputs']: ... # noqa: F811
 
-    def source_strings_to_files(self, sources: T.List['SourceInputs'], strict: bool = True) -> T.List['SourceOutputs']: # noqa: F811
+    def source_strings_to_files(self, sources: T.List['SourceInputs']) -> T.List['SourceOutputs']: # noqa: F811
         """Lower inputs to a list of Targets and Files, replacing any strings.
 
         :param sources: A raw (Meson DSL) list of inputs (targets, files, and
@@ -3234,13 +3241,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             if isinstance(s, str):
                 if s.endswith(' '):
                     raise MesonException(f'{s!r} ends with a space. This is probably an error.')
-                if not strict and s.startswith(self.environment.get_build_dir()):
-                    results.append(s)
-                    mlog.warning(f'Source item {s!r} cannot be converted to File object, because it is a generated file. '
-                                 'This will become a hard error in meson 2.0.', location=self.current_node)
-                else:
-                    self.validate_within_subproject(self.subdir, s)
-                    results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
+                self.validate_within_subproject(self.subdir, s)
+                results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
             elif isinstance(s, (mesonlib.File, ExternalProgram,
                                 build.GeneratedList, build.BuildTarget,
                                 build.CustomTargetIndex, build.CustomTarget,
