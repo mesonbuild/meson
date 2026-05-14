@@ -24,10 +24,10 @@ from . import builder, version
 from .cfg import eval_cfg
 from .toml import load_toml
 from .manifest import Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname
-from ..interpreterbase import SubProject
 from ..mesonlib import (
     is_parent_path, lazy_property, MesonException, MachineChoice,
-    unique_list, version_compare)
+    unique_list, version_compare, SubProject,
+)
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
 

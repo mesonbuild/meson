@@ -20,7 +20,7 @@ from . import dependencies
 from . import mlog
 from . import programs
 from .mesonlib import (
-    HoldableObject, SecondLevelHolder, SimpleABC,
+    HoldableObject, SecondLevelHolder, SimpleABC, SubProject,
     File, MesonException, MachineChoice, PerMachine, OrderedSet,
     classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
@@ -34,7 +34,7 @@ from .compilers import (
     is_known_suffix, detect_static_linker, LANGUAGES_USING_LDFLAGS,
     get_base_compile_args
 )
-from .interpreterbase import FeatureNew, FeatureDeprecated, SubProject
+from .interpreterbase import FeatureNew, FeatureDeprecated
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Self, TypeAlias, TypedDict

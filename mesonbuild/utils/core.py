@@ -18,8 +18,8 @@ if T.TYPE_CHECKING:
     from hashlib import _Hash
     from typing_extensions import Literal
     from ..mparser import BaseNode
-    from ..interpreterbase import SubProject
     from .. import programs
+    from .universal import SubProject
 
     EnvironOrDict = T.Union[T.Dict[str, str], os._Environ[str]]
 

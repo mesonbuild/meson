@@ -32,8 +32,7 @@ from .scripts.meson_exe import run_exe
 
 if T.TYPE_CHECKING:
     from ._typing import ImmutableListProtocol
-    from .interpreterbase.baseobjects import SubProject
-    from .mesonlib import ExecutableSerialisation
+    from .mesonlib import ExecutableSerialisation, SubProject
 
 archive_choices = ['bztar', 'gztar', 'xztar', 'zip']
 

@@ -118,8 +118,9 @@ if T.TYPE_CHECKING:
     from . import kwargs as kwtypes
     from ..backend.backends import Backend
     from ..compilers.compilers import CompilerDict, Language
-    from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs, SubProject
+    from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
     from ..options import OptionDict
+    from ..mesonlib import SubProject
     from .type_checking import SourcesVarargsType
 
     # Input source types passed to Targets

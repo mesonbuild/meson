@@ -60,7 +60,7 @@ from ..mparser import (
 if T.TYPE_CHECKING:
     from .visitor import AstVisitor
     from ..interpreter import Interpreter
-    from ..interpreterbase import SubProject, TYPE_var, TYPE_nvar
+    from ..interpreterbase import TYPE_var, TYPE_nvar
     from ..mparser import (
         AndNode,
         ComparisonNode,
@@ -71,6 +71,7 @@ if T.TYPE_CHECKING:
         TestCaseClauseNode,
         UMinusNode,
     )
+    from ..mesonlib import SubProject
 
 _T = T.TypeVar('_T')
 _V = T.TypeVar('_V')

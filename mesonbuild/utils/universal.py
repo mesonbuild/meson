@@ -38,7 +38,6 @@ if T.TYPE_CHECKING:
     from ..cmdline import StrOrBytesPath
     from ..environment import Environment
     from ..compilers.compilers import Compiler
-    from ..interpreterbase.baseobjects import SubProject
     from .. import programs
 
     class _EnvPickleLoadable(Protocol):
@@ -65,6 +64,7 @@ __all__ = [
     'NoProjectVersion',
     'project_meson_versions',
     'SecondLevelHolder',
+    'SubProject',
     'File',
     'FileMode',
     'GitException',
@@ -173,6 +173,7 @@ __all__ = [
     'windows_proof_rmtree',
 ]
 
+SubProject = T.NewType('SubProject', str)
 
 class NoProjectVersion:
     pass

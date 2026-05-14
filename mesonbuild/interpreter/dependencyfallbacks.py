@@ -8,11 +8,11 @@ from .. import mlog
 from .. import dependencies
 from .. import build
 from ..wrap import WrapMode
-from ..mesonlib import stringlistify, version_compare_many
+from ..mesonlib import stringlistify, version_compare_many, SubProject
 from ..options import OptionKey
 from ..dependencies import Dependency, DependencyException, NotFoundDependency
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew,
-                               InterpreterException, InvalidArguments, SubProject)
+                               InterpreterException, InvalidArguments)
 
 import typing as T
 if T.TYPE_CHECKING:
