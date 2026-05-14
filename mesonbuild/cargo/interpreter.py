@@ -884,7 +884,8 @@ def _parse_git_url(url: str, branch: T.Optional[str] = None) -> T.Tuple[str, str
     if directory.endswith('.git'):
         directory = directory[:-4]
     if branch:
-        directory += f'-{branch}'
+        branch_encoded = branch.replace('/', '-')
+        directory += f'-{branch_encoded}'
     url = urllib.parse.urlunparse(parts._replace(params='', query='', fragment=''))
     return url, revision, directory
 
