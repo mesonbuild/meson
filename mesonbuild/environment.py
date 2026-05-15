@@ -8,6 +8,7 @@ import itertools
 import os, re
 import typing as T
 import collections
+from pathlib import Path
 
 from . import cmdline
 from . import coredata
@@ -453,6 +454,27 @@ class Environment:
 
     def lookup_binary_entry(self, for_machine: MachineChoice, name: str) -> T.Optional[T.List[str]]:
         return self.binaries[for_machine].lookup_entry(name)
+
+    def lookup_binary_interpreter(self, name: str) -> T.Optional[T.List[str]]:
+        """Resolve the interpreter (loader) prefix for a [binaries] entry.
+
+        Resolution order (build machine only -- bundled tooling is build-time):
+          1. per-binary `<name>.interpreter` under [binaries]
+          2. global `interpreter` under [properties]
+          3. None
+        """
+        per_binary = self.binaries[MachineChoice.BUILD].attrs.get(name, {}).get('interpreter')
+        if per_binary:
+            return list(per_binary)
+        default = self.properties[MachineChoice.BUILD].get_interpreter()
+        if default:
+            return list(default)
+        return None
+
+    def binary_wrappers_dir(self) -> Path:
+        """Directory under the scratch dir where binary-interpreter wrappers
+        are materialized.  Flat layout (no per-machine subdir)."""
+        return Path(self.scratch_dir) / 'binary-wrappers'
 
     def get_scratch_dir(self) -> str:
         return self.scratch_dir

@@ -8,6 +8,7 @@ import tempfile
 import textwrap
 import os
 import shutil
+import stat
 import functools
 import threading
 import sys
@@ -37,7 +38,8 @@ import mesonbuild.modules.pkgconfig
 
 from run_tests import (
     Backend,
-    get_fake_env
+    get_fake_env,
+    get_fake_options,
 )
 
 from .baseplatformtests import BasePlatformTests
@@ -471,6 +473,126 @@ class NativeFileTests(BasePlatformTests):
 
         self.init(testcase, extra_args=['--native-file', config])
         self.build()
+
+    def _make_interpreter_env(self, native_file: str) -> 'mesonbuild.environment.Environment':
+        opts = get_fake_options(prefix='')
+        opts.native_file = [native_file]
+        env = get_fake_env(bdir=self.builddir, opts=opts)
+        # Force host system away from windows so the POSIX wrapper path is used.
+        env.machines.host.system = 'linux'
+        env.machines.build.system = 'linux'
+        return env
+
+    def _assert_wrapper_content(self, wrapper_path: str, interpreter: T.List[str],
+                                real_exe: str, expect_ld_library_path: T.Optional[str]):
+        self.assertTrue(os.path.exists(wrapper_path), f'wrapper missing: {wrapper_path}')
+        st = os.stat(wrapper_path)
+        self.assertTrue(st.st_mode & stat.S_IXUSR, 'wrapper not executable')
+        with open(wrapper_path, encoding='utf-8') as f:
+            content = f.read()
+        self.assertIn('#!/bin/sh', content)
+        self.assertIn('export PATH="$HERE', content)
+        if expect_ld_library_path is not None:
+            self.assertIn('export LD_LIBRARY_PATH=', content)
+            self.assertIn(expect_ld_library_path, content)
+        else:
+            self.assertNotIn('LD_LIBRARY_PATH', content)
+        # Bare-exe path must appear in the exec line.
+        self.assertIn(real_exe, content)
+        # Each interpreter element must appear.
+        for tok in interpreter:
+            self.assertIn(tok, content)
+
+    @skipIf(is_windows(), '[binaries] <name>.interpreter is POSIX-only')
+    def test_binary_interpreter_per_binary(self):
+        from mesonbuild.programs import ExternalProgram
+        # Real exe must exist for ExternalProgram.found() to be True.
+        real_exe = shutil.which('bash')
+        if real_exe is None:
+            raise SkipTest('bash not found on PATH')
+        interpreter = ['/opt/ld/ld.so', '--library-path', '/opt/ld/lib']
+        config = self.helper_create_native_file({
+            'binaries': {
+                'perl': real_exe,
+                'perl.interpreter': interpreter,
+            },
+        })
+        env = self._make_interpreter_env(config)
+        prog = ExternalProgram.from_bin_list(env, MachineChoice.BUILD, 'perl')
+        self.assertTrue(prog.found())
+        expected = str(env.binary_wrappers_dir() / 'perl')
+        self.assertEqual(prog.get_command(), [expected])
+        self.assertEqual(prog.get_path(), expected)
+        self._assert_wrapper_content(expected, interpreter, real_exe,
+                                     expect_ld_library_path='/opt/ld/lib')
+
+    @skipIf(is_windows(), '[binaries] <name>.interpreter is POSIX-only')
+    def test_binary_interpreter_default(self):
+        from mesonbuild.programs import ExternalProgram
+        real_bash = shutil.which('bash')
+        real_sh = shutil.which('sh')
+        if real_bash is None or real_sh is None:
+            raise SkipTest('bash/sh not found on PATH')
+        # No --library-path: LD_LIBRARY_PATH export must NOT appear.
+        interpreter = ['/opt/ld/ld.so']
+        config = self.helper_create_native_file({
+            'binaries': {
+                'perl': real_bash,
+                'awk': real_sh,
+            },
+            'properties': {
+                'interpreter': interpreter,
+            },
+        })
+        env = self._make_interpreter_env(config)
+        for name, real_exe in [('perl', real_bash), ('awk', real_sh)]:
+            prog = ExternalProgram.from_bin_list(env, MachineChoice.BUILD, name)
+            self.assertTrue(prog.found())
+            expected = str(env.binary_wrappers_dir() / name)
+            self.assertEqual(prog.get_command(), [expected])
+            self.assertEqual(prog.get_path(), expected)
+            self._assert_wrapper_content(expected, interpreter, real_exe,
+                                         expect_ld_library_path=None)
+
+    @skipIf(is_windows(), '[binaries] <name>.interpreter is POSIX-only')
+    def test_binary_interpreter_override(self):
+        from mesonbuild.programs import ExternalProgram
+        real_bash = shutil.which('bash')
+        real_sh = shutil.which('sh')
+        if real_bash is None or real_sh is None:
+            raise SkipTest('bash/sh not found on PATH')
+        default_interp = ['/opt/default/ld.so', '--library-path', '/opt/default/lib']
+        override_interp = ['/opt/py36/ld.so', '--library-path', '/opt/py36/lib']
+        config = self.helper_create_native_file({
+            'binaries': {
+                'perl': real_bash,
+                'python3_codegen': real_sh,
+                'python3_codegen.interpreter': override_interp,
+            },
+            'properties': {
+                'interpreter': default_interp,
+            },
+        })
+        env = self._make_interpreter_env(config)
+        # perl: uses global default
+        perl = ExternalProgram.from_bin_list(env, MachineChoice.BUILD, 'perl')
+        self.assertTrue(perl.found())
+        self._assert_wrapper_content(
+            str(env.binary_wrappers_dir() / 'perl'),
+            default_interp, real_bash, expect_ld_library_path='/opt/default/lib')
+        # python3_codegen: per-binary override beats default
+        pycg = ExternalProgram.from_bin_list(env, MachineChoice.BUILD, 'python3_codegen')
+        self.assertTrue(pycg.found())
+        wrapper_path = str(env.binary_wrappers_dir() / 'python3_codegen')
+        self.assertEqual(pycg.get_command(), [wrapper_path])
+        self.assertEqual(pycg.get_path(), wrapper_path)
+        self._assert_wrapper_content(
+            wrapper_path, override_interp, real_sh,
+            expect_ld_library_path='/opt/py36/lib')
+        # Wrapper content must NOT mention the default loader (override beats default).
+        with open(wrapper_path, encoding='utf-8') as f:
+            content = f.read()
+        self.assertNotIn('/opt/default/', content)
 
     def test_user_options(self):
         testcase = os.path.join(self.common_test_dir, '40 options')

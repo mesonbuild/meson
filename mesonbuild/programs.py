@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import functools
 import os
+import shlex
 import shutil
 import stat
 import sys
@@ -18,6 +19,50 @@ from abc import ABCMeta, abstractmethod
 from . import mesonlib
 from . import mlog
 from .mesonlib import MachineChoice, OrderedSet
+
+
+def _generate_binary_wrapper(name: str, interpreter: T.List[str], real_exe: str,
+                             wrappers_dir: Path, host_system: str) -> T.Optional[Path]:
+    """Generate a POSIX shell wrapper that exec's `real_exe` through `interpreter`.
+
+    POSIX-only.  Returns None on Windows (caller falls back to bare exe).
+    Idempotent: regenerates only if the inputs change.
+    """
+    if host_system == 'windows':
+        mlog.warning(f"'{name}.interpreter' is POSIX-only; ignored on Windows",
+                     once=True, fatal=False)
+        return None
+
+    # Extract --library-path argument (if any) for LD_LIBRARY_PATH inheritance.
+    library_path: T.Optional[str] = None
+    for i in range(len(interpreter) - 1):
+        if interpreter[i] == '--library-path':
+            library_path = interpreter[i + 1]
+            break
+
+    lines = [
+        '#!/bin/sh',
+        '# meson-generated binary wrapper -- do not edit',
+        'HERE=$(cd "$(dirname "$0")" && pwd)',
+        'export PATH="$HERE${PATH:+:$PATH}"',
+    ]
+    if library_path is not None:
+        qlp = shlex.quote(library_path)
+        lines.append(
+            f'export LD_LIBRARY_PATH={qlp}'
+            f'"${{LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}}"')
+    quoted_interp = ' '.join(shlex.quote(s) for s in interpreter)
+    quoted_exe = shlex.quote(real_exe)
+    lines.append(f'exec {quoted_interp} {quoted_exe} "$@"')
+    content = '\n'.join(lines) + '\n'
+
+    wrapper = wrappers_dir / name
+    if wrapper.exists() and wrapper.read_text() == content:
+        return wrapper
+    wrappers_dir.mkdir(parents=True, exist_ok=True)
+    wrapper.write_text(content)
+    os.chmod(wrapper, 0o755)
+    return wrapper
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypeAlias
@@ -176,7 +221,7 @@ class ExternalProgram(Program):
         command = env.lookup_binary_entry(for_machine, name)
         if command is None:
             return NonExistingExternalProgram()
-        return cls.from_entry(name, command)
+        return cls.from_entry(name, command, env=env)
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
@@ -203,7 +248,8 @@ class ExternalProgram(Program):
         return os.pathsep.join(paths)
 
     @staticmethod
-    def from_entry(name: str, command: T.Union[str, T.List[str]]) -> 'ExternalProgram':
+    def from_entry(name: str, command: T.Union[str, T.List[str]],
+                   env: T.Optional['Environment'] = None) -> 'ExternalProgram':
         if isinstance(command, list):
             if len(command) == 1:
                 command = command[0]
@@ -212,10 +258,29 @@ class ExternalProgram(Program):
         if isinstance(command, list) or os.path.isabs(command):
             if isinstance(command, str):
                 command = [command]
-            return ExternalProgram(name, command=command, silent=True)
-        assert isinstance(command, str)
-        # Search for the command using the specified string!
-        return ExternalProgram(command, silent=True)
+            prog = ExternalProgram(name, command=command, silent=True)
+        else:
+            assert isinstance(command, str)
+            # Search for the command using the specified string!
+            prog = ExternalProgram(command, silent=True)
+        # If a [binaries] interpreter is configured for this name, replace the
+        # command with a POSIX shell wrapper that exec's the bare binary through
+        # the interpreter.  Build-machine only; bundled tooling is build-time.
+        if env is not None and prog.found():
+            interpreter = env.lookup_binary_interpreter(name)
+            if interpreter:
+                # Identify the bare real_exe: the last argv element of the
+                # resolved command (skips e.g. ccache / python wrappers).
+                real_exe = prog.command[-1]
+                wrappers_dir = env.binary_wrappers_dir()
+                host_system = env.machines.host.system
+                wrapper = _generate_binary_wrapper(
+                    name, interpreter, real_exe, wrappers_dir, host_system)
+                if wrapper is not None:
+                    wrapper_str = str(wrapper)
+                    prog.command = [wrapper_str]
+                    prog.path = wrapper_str
+        return prog
 
     @staticmethod
     def _shebang_to_cmd(script: str) -> T.Optional[T.List[str]]:
@@ -414,7 +479,7 @@ def find_external_program(env: 'Environment', for_machine: MachineChoice, name: 
         if potential_cmd is not None:
             mlog.debug(f'{display_name} binary for {for_machine} specified from cross file, native file, '
                        f'or env var as {potential_cmd}')
-            yield ExternalProgram.from_entry(potential_name, potential_cmd)
+            yield ExternalProgram.from_entry(potential_name, potential_cmd, env=env)
             # We never fallback if the user-specified option is no good, so
             # stop returning options.
             return

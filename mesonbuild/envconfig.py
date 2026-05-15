@@ -160,6 +160,10 @@ class CMakeSkipCompilerTest(Enum):
     NEVER = 'never'
     DEP_ONLY = 'dep_only'
 
+# Known per-binary attributes that may appear in the [binaries] section as
+# `<name>.<attr>` keys.  Values are always validated to be lists of strings.
+KNOWN_BINARY_ATTRS = frozenset({'interpreter'})
+
 class Properties:
     def __init__(
             self,
@@ -246,6 +250,19 @@ class Properties:
         if not all(isinstance(v, str) for v in value):
             raise EnvironmentException('bindgen_clang_arguments must be a string or an array of strings')
         return T.cast('T.List[str]', value)
+
+    def get_interpreter(self) -> T.Optional[T.List[str]]:
+        """Global default `interpreter` for [binaries] entries.
+
+        Returns None if not set.  Validates the entry is a list of strings.
+        """
+        if 'interpreter' not in self.properties:
+            return None
+        raw = self.properties['interpreter']
+        if not isinstance(raw, list) or not all(isinstance(v, str) for v in raw):
+            raise EnvironmentException(
+                "[properties] 'interpreter' must be a list of strings")
+        return raw
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, type(self)):
@@ -421,8 +438,23 @@ class BinaryTable:
             binaries: T.Optional[T.Mapping[str, ElementaryOptionValues]] = None,
     ):
         self.binaries: T.Dict[str, T.List[str]] = {}
+        # Per-binary attributes specified as `<name>.<attr>` keys in [binaries].
+        # Each value is a list of strings.  Validated against KNOWN_BINARY_ATTRS.
+        self.attrs: T.Dict[str, T.Dict[str, T.List[str]]] = {}
         if binaries:
             for name, command in binaries.items():
+                if '.' in name:
+                    base, attr = name.split('.', 1)
+                    if attr not in KNOWN_BINARY_ATTRS:
+                        mlog.warning(
+                            f'Unknown per-binary attribute {attr!r} for entry '
+                            f'{base!r} in [binaries]; ignoring.', fatal=False)
+                        continue
+                    if not isinstance(command, list) or not all(isinstance(v, str) for v in command):
+                        raise mesonlib.MesonException(
+                            f"[binaries] '{name}' must be a list of strings")
+                    self.attrs.setdefault(base, {})[attr] = T.cast('T.List[str]', list(command))
+                    continue
                 if not isinstance(command, (list, str)):
                     raise mesonlib.MesonException(
                         f'Invalid type {command!r} for entry {name!r} in cross file')

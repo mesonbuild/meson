@@ -195,6 +195,49 @@ here is:
 - sdl2-config
 - wx-config (or wx-3.0-config or wx-config-gtk)
 
+#### Per-binary interpreter (POSIX only)
+
+For hermetic-toolchain builds where bundled binaries need a dynamic
+loader prefix (for example `ld-linux --library-path <dir>`) to find
+their shared libraries, you can declare an `interpreter` for any
+`[binaries]` entry using a dotted key:
+
+```ini
+[binaries]
+perl = '/opt/toolchain/bin/perl'
+python3_codegen = '/opt/py36/bin/python3.6'
+python3_codegen.interpreter = ['/opt/py36/lib/ld.so', '--library-path', '/opt/py36/lib']
+
+[properties]
+# Global default applied to any [binaries] entry that does not have its
+# own `<name>.interpreter` set.
+interpreter = ['/opt/toolchain/lib/ld-linux.so', '--library-path', '/opt/toolchain/lib']
+```
+
+Resolution order:
+
+1. Per-binary `<name>.interpreter` under `[binaries]`.
+2. Global `interpreter` under `[properties]`.
+3. Otherwise, the binary is invoked bare.
+
+When an interpreter applies to an entry, Meson materializes a POSIX
+shell wrapper at `<builddir>/meson-private/binary-wrappers/<name>` that:
+
+- Prepends the wrappers directory to `PATH` (so the wrapper appears
+  on `PATH` for downstream tools that re-launch by name).
+- Exports `LD_LIBRARY_PATH=X` if the interpreter contains
+  `--library-path X` (so libraries loaded transitively by the bundled
+  binary also resolve against the hermetic libdir).
+- `exec`s the interpreter on the bare binary, forwarding all arguments.
+
+`ExternalProgram.command` is then a single-element list pointing at
+the wrapper, so positional-argument call sites (e.g. `find_program`)
+work without splatting.
+
+This feature is POSIX-only.  On Windows the property is silently
+ignored with a one-time warning, since DLL resolution does not use a
+dynamic-loader prefix.
+
 ### Paths and Directories
 
 *Deprecated in 0.56.0* use the built-in section instead.
@@ -251,6 +294,11 @@ section.
 - `java_home` is an absolute path pointing to the root of a Java installation.
 - `bindgen_clang_arguments` an array of extra arguments to pass to clang when
   calling bindgen
+- `interpreter` is a list of strings used as a global default interpreter
+  (dynamic-loader prefix) for `[binaries]` entries that do not have their own
+  `<name>.interpreter` override.  See the
+  [per-binary interpreter](#per-binary-interpreter-posix-only) subsection
+  for details.  POSIX-only.
 
 ### CMake variables
 
