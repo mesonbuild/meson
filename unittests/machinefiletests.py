@@ -181,17 +181,6 @@ class CompilerTableTests(TestCase):
         self.assertIsNotNone(desc)
         self.assertEqual(desc.tool_search_paths, ['/opt/binutils/bin'])
 
-    def test_subprocess_interpreter(self):
-        table = self._parse_compilers(textwrap.dedent('''\
-            [compilers]
-            c.subprocess-interpreter = ['/lib64/ld-linux-x86-64.so.2',
-                                         '--library-path', '/lib64']
-            '''))
-        desc = table.lookup('c')
-        self.assertIsNotNone(desc)
-        self.assertEqual(desc.subprocess_interpreter,
-                         ['/lib64/ld-linux-x86-64.so.2', '--library-path', '/lib64'])
-
     def test_multiple_languages(self):
         table = self._parse_compilers(textwrap.dedent('''\
             [compilers]
@@ -1000,6 +989,60 @@ class NativeFileTests(BasePlatformTests):
         # fires at most once per meson invocation.
         self.assertTrue(warn_mock.call_args.kwargs.get('once'),
                         f'warning must pass once=True, got kwargs={warn_mock.call_args.kwargs!r}')
+
+    @skipIf(is_windows(), 'POSIX-only feature')
+    def test_compiler_wrappers_use_binary_interpreter_gcc(self):
+        """[binaries] c.interpreter drives subprocess-wrapper generation for the
+        GCC fast path; the resulting -B<wrapper_dir> would be prepended to argv.
+        """
+        from mesonbuild.compilers import detect as compiler_detect
+        real_exe = shutil.which('bash')
+        if real_exe is None:
+            raise SkipTest('bash not found on PATH')
+        # Stand-in subprogram paths -- the wrapper generator only requires
+        # them to be absolute and existing files.
+        fake_cc1 = real_exe
+        interpreter = ['/opt/ld/ld.so', '--library-path', '/opt/ld/lib']
+        config = self.helper_create_native_file({
+            'binaries': {
+                'c': real_exe,
+                'c.interpreter': interpreter,
+            },
+        })
+        env = self._make_interpreter_env(config)
+
+        def fake_popen(args, *a, **kw):
+            # --print-prog-name <name> -> emit our stand-in path.
+            if '--print-prog-name' in args:
+                return None, fake_cc1 + '\n', ''
+            return None, '', ''
+
+        with mock.patch('mesonbuild.compilers.detect.Popen_safe',
+                        side_effect=fake_popen):
+            wrapper_dir = compiler_detect._generate_subprocess_wrappers(
+                env, [real_exe], 'c', ('cc1', 'cc1plus', 'lto1'),
+                env.lookup_binary_interpreter('c'))
+
+        self.assertIsNotNone(wrapper_dir, 'expected a wrapper dir to be returned')
+        # -B<wrapper_dir> is the argv prefix that would be prepended.
+        argv_flag = f'-B{wrapper_dir}'
+        self.assertTrue(argv_flag.startswith('-B'))
+        self.assertTrue(os.path.isdir(wrapper_dir))
+        for prog in ('cc1', 'cc1plus', 'lto1'):
+            wrapper = os.path.join(wrapper_dir, prog)
+            self.assertTrue(os.path.exists(wrapper),
+                            f'expected GCC subprogram wrapper: {wrapper}')
+            with open(wrapper, encoding='utf-8') as f:
+                content = f.read()
+            self.assertIn('#!/bin/sh', content)
+            # Interpreter argv elements appear in the exec line.
+            for tok in interpreter:
+                self.assertIn(tok, content)
+            self.assertIn(fake_cc1, content)
+            # Wrapper relies solely on the interpreter's `--library-path`
+            # arg; LD_LIBRARY_PATH is intentionally NOT exported so the
+            # hermetic libdir doesn't leak to subprocesses.
+            self.assertNotIn('LD_LIBRARY_PATH', content)
 
     def test_user_options(self):
         testcase = os.path.join(self.common_test_dir, '40 options')

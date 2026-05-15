@@ -296,7 +296,14 @@ Each key is prefixed with the language identifier (`c.`, `cpp.`, etc.).
 | `<lang>.no-default-includes` | bool | Suppress the compiler's built-in system include search. Default: `false`. When set, the compiler's default system include directories are not searched; use `system-include-dirs` to specify them explicitly. Has no effect on compilers that have no equivalent flag (a warning is emitted). |
 | `<lang>.system-include-dirs` | array | System include directories. When set alongside `no-default-includes`, these directories are the only system include directories searched. When set without `no-default-includes`, these directories are searched in addition to the compiler's defaults. |
 | `<lang>.tool-search-paths` | array | Directories in which to search for compiler subtools (assembler, linker helpers, etc.). When omitted, the compiler uses its default search. |
-| `<lang>.subprocess-interpreter` | array | Command used to run compiler subprograms (e.g. cc1, cc1plus, lto1 on GCC). Compiler subprograms are found automatically. The resulting compile commands are fully cacheable by ccache and do not require `-wrapper` or `LD_LIBRARY_PATH`. Accepted but ignored (with an informational note) for monolithic compilers. |
+
+To run compiler subprograms (e.g. `cc1`, `cc1plus`, `lto1` on GCC) through a
+dynamic-loader prefix, set `<lang>.interpreter` under the `[binaries]` section
+(see [Per-binary interpreter](#per-binary-interpreter-posix-only)).  When such
+an interpreter is configured for a GCC- or clang-family `<lang>`, Meson
+generates per-subprogram wrappers under
+`<builddir>/meson-private/compiler-wrappers/<lang>/` and passes
+`-B<that-dir>` to the compiler so its driver finds the wrapped subprograms.
 
 #### Flag translation by compiler family
 
@@ -309,7 +316,6 @@ Each key is prefixed with the language identifier (`c.`, `cpp.`, etc.).
 | `no-default-includes` | `-nostdinc` | `-nostdinc` | `/X` |
 | `system-include-dirs` | `-isystem <dir>` | `-isystem <dir>` | `/imsvc <dir>` |
 | `tool-search-paths` | `-B <dir>` | warning, ignored | warning, ignored |
-| `subprocess-interpreter` | generates cc1/cc1plus/lto1 wrappers (GCC only); no-op (Clang) | no-op | no-op |
 | `ccache` | wraps invocation with ccache if available | wraps invocation with ccache if available | wraps invocation with ccache if available |
 
 Notes:
@@ -332,16 +338,16 @@ _runtime = _sdk / 'runtime'    # ELF loader and companion shared libraries
 [binaries]
 c   = _gcc / 'bin' / 'x86_64-linux-gnu-gcc'
 cpp = _gcc / 'bin' / 'x86_64-linux-gnu-g++'
+c.interpreter   = [_runtime / 'lib64' / 'ld-linux-x86-64.so.2',
+                   '--library-path', _runtime / 'lib64']
+cpp.interpreter = c.interpreter
 
 [compilers]
 c.type    = 'gcc'
 c.version = '12.2.0'
-c.subprocess-interpreter = [_runtime / 'lib64' / 'ld-linux-x86-64.so.2',
-                              '--library-path', _runtime / 'lib64']
 
 cpp.type    = 'gcc'
 cpp.version = '12.2.0'
-cpp.subprocess-interpreter = c.subprocess-interpreter
 ```
 
 With this configuration:

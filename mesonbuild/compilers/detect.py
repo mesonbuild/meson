@@ -7,7 +7,7 @@ from ..mesonlib import (
     MesonException, EnvironmentException, MachineChoice, join_args,
     search_version, is_windows, Popen_safe, Popen_safe_logged, version_compare, windows_proof_rm,
 )
-from ..programs import ExternalProgram
+from ..programs import ExternalProgram, _generate_binary_wrapper
 from ..envconfig import BinaryTable, CompilerDescriptor, detect_cpu_family
 from .. import mlog
 
@@ -16,12 +16,11 @@ from ..linkers import guess_win_linker, guess_nix_linker
 import subprocess
 import platform
 import re
-import shlex
 import shutil
-import stat
 import tempfile
 import os
 import typing as T
+from pathlib import Path
 
 if T.TYPE_CHECKING:
     from .compilers import Language, Compiler, CompilerDict
@@ -125,21 +124,25 @@ def detect_compiler_for(env: 'Environment', lang: Language, for_machine: Machine
 def _generate_subprocess_wrappers(
         env: 'Environment',
         compiler: T.List[str],
-        desc: 'CompilerDescriptor',
+        lang: str,
+        subprograms: T.Sequence[str],
+        interpreter: T.List[str],
 ) -> T.Optional[str]:
-    """Generate cc1/cc1plus/lto1 wrapper scripts for hermetic GCC.
+    """Generate per-compiler subprogram wrapper scripts (cc1/cc1plus/lto1 for
+    GCC; as/ld for clang).
 
-    Returns the wrapper directory path (to be passed as -B<dir>), or None if
-    no subprograms could be located.
+    Each wrapper is materialized by the shared `programs._generate_binary_wrapper`
+    helper, so wrapper-script content (shebang, PATH/LD_LIBRARY_PATH export,
+    exec line) stays consistent with the [binaries] <name>.interpreter feature.
+
+    Returns the per-language wrapper directory path (to be passed as -B<dir>),
+    or None if no subprograms could be located.
     """
-    wrapper_dir = os.path.join(env.scratch_dir, 'compiler-wrappers', desc.lang)
-    os.makedirs(wrapper_dir, exist_ok=True)
-
-    interpreter_parts = desc.subprocess_interpreter
-    interpreter_str = ' '.join(shlex.quote(x) for x in interpreter_parts)
+    wrappers_dir = Path(env.scratch_dir) / 'compiler-wrappers' / lang
+    host_system = env.machines.host.system
 
     generated_any = False
-    for prog in ('cc1', 'cc1plus', 'lto1'):
+    for prog in subprograms:
         try:
             p, out, _ = Popen_safe(compiler + ['--print-prog-name', prog])
         except OSError:
@@ -148,19 +151,15 @@ def _generate_subprocess_wrappers(
         if not real_path or not os.path.isabs(real_path) or not os.path.isfile(real_path):
             continue
 
-        wrapper_path = os.path.join(wrapper_dir, prog)
-        wrapper_content = (
-            '#!/bin/sh\n'
-            f'exec {interpreter_str} {shlex.quote(real_path)} "$@"\n'
-        )
-        with open(wrapper_path, 'w', encoding='utf-8') as f:
-            f.write(wrapper_content)
-        current_mode = os.stat(wrapper_path).st_mode
-        os.chmod(wrapper_path, current_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        mlog.debug(f'Generated {prog} wrapper: {wrapper_path}')
+        wrapper = _generate_binary_wrapper(prog, interpreter, [real_path],
+                                           wrappers_dir, host_system)
+        if wrapper is None:
+            # Windows or wrapper-generation declined; bail.
+            return None
+        mlog.debug(f'Generated {prog} wrapper: {wrapper}')
         generated_any = True
 
-    return wrapper_dir if generated_any else None
+    return str(wrappers_dir) if generated_any else None
 
 
 # Helpers
@@ -370,8 +369,10 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             # --print-prog-name can use tool-search-paths to locate cc1.
             # Prepend -B<wrapper_dir> right after the binary so it wins over
             # any -B<libexec> from tool-search-paths.
-            if desc.subprocess_interpreter:
-                wrapper_dir = _generate_subprocess_wrappers(env, compiler, desc)
+            interpreter = env.lookup_binary_interpreter(lang)
+            if interpreter:
+                wrapper_dir = _generate_subprocess_wrappers(
+                    env, compiler, lang, ('cc1', 'cc1plus', 'lto1'), interpreter)
                 if wrapper_dir:
                     compiler = compiler[:1] + [f'-B{wrapper_dir}'] + compiler[1:]
 

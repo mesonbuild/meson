@@ -541,7 +541,6 @@ class CompilerDescriptor:
     no_default_includes: bool = False
     system_include_dirs: T.List[str] = field(default_factory=list)
     tool_search_paths: T.List[str] = field(default_factory=list)
-    subprocess_interpreter: T.List[str] = field(default_factory=list)
 
 
 class CompilerTable:
@@ -550,7 +549,7 @@ class CompilerTable:
     KNOWN_KEYS: T.FrozenSet[str] = frozenset({
         'type', 'version', 'ccache',
         'sysroot', 'no-default-includes', 'system-include-dirs',
-        'tool-search-paths', 'subprocess-interpreter',
+        'tool-search-paths',
     })
 
     def __init__(
@@ -608,9 +607,6 @@ class CompilerTable:
 
             if 'tool-search-paths' in props:
                 desc.tool_search_paths = mesonlib.stringlistify(props['tool-search-paths'])
-
-            if 'subprocess-interpreter' in props:
-                desc.subprocess_interpreter = mesonlib.stringlistify(props['subprocess-interpreter'])
 
             self.compilers[lang] = desc
 
