@@ -460,11 +460,12 @@ class Environment:
 
         Resolution order (build machine only -- bundled tooling is build-time):
           1. per-binary `<name>.interpreter` under [binaries]
+             (empty list = bare invocation; explicitly disables the global default)
           2. global `interpreter` under [properties]
           3. None
         """
         per_binary = self.binaries[MachineChoice.BUILD].attrs.get(name, {}).get('interpreter')
-        if per_binary:
+        if per_binary is not None:
             return list(per_binary)
         default = self.properties[MachineChoice.BUILD].get_interpreter()
         if default:

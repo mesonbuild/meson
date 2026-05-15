@@ -492,11 +492,15 @@ class NativeFileTests(BasePlatformTests):
             content = f.read()
         self.assertIn('#!/bin/sh', content)
         self.assertIn('export PATH="$HERE', content)
-        if expect_ld_library_path is not None:
-            self.assertIn('export LD_LIBRARY_PATH=', content)
-            self.assertIn(expect_ld_library_path, content)
-        else:
-            self.assertNotIn('LD_LIBRARY_PATH', content)
+        # Wrapper deliberately does NOT export LD_LIBRARY_PATH; the
+        # interpreter's `--library-path` argument suffices for both startup
+        # and dlopen() resolution inside the wrapped process, and keeping
+        # LD_LIBRARY_PATH out of the wrapper's env prevents leakage to
+        # subprocesses (e.g. python -> system ccache) that should use the
+        # host glibc, not the hermetic one.  `expect_ld_library_path` is
+        # kept in the signature for backwards-compatible test call sites
+        # but the assertion below ensures we never re-introduce the export.
+        self.assertNotIn('LD_LIBRARY_PATH', content)
         # Bare-exe path must appear in the exec line.
         self.assertIn(real_exe, content)
         # Each interpreter element must appear.

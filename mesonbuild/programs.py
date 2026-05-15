@@ -21,9 +21,14 @@ from . import mlog
 from .mesonlib import MachineChoice, OrderedSet
 
 
-def _generate_binary_wrapper(name: str, interpreter: T.List[str], real_exe: str,
+def _generate_binary_wrapper(name: str, interpreter: T.List[str],
+                             real_cmd: T.List[str],
                              wrappers_dir: Path, host_system: str) -> T.Optional[Path]:
-    """Generate a POSIX shell wrapper that exec's `real_exe` through `interpreter`.
+    """Generate a POSIX shell wrapper that exec's `real_cmd` through `interpreter`.
+
+    `real_cmd` is the full resolved binary command list (e.g. `[exe]` or
+    `[exe, '-B']`).  Any trailing args in `real_cmd` after the bare exe are
+    inserted between the interpreter and the wrapper's "$@" forward.
 
     POSIX-only.  Returns None on Windows (caller falls back to bare exe).
     Idempotent: regenerates only if the inputs change.
@@ -33,12 +38,14 @@ def _generate_binary_wrapper(name: str, interpreter: T.List[str], real_exe: str,
                      once=True, fatal=False)
         return None
 
-    # Extract --library-path argument (if any) for LD_LIBRARY_PATH inheritance.
-    library_path: T.Optional[str] = None
-    for i in range(len(interpreter) - 1):
-        if interpreter[i] == '--library-path':
-            library_path = interpreter[i + 1]
-            break
+    # We deliberately do NOT export LD_LIBRARY_PATH from the wrapper.
+    # The interpreter's `--library-path` argument is honored by ld-linux.so
+    # both at process startup AND for subsequent dlopen() calls inside the
+    # wrapped process (loader-side search path is shared with libdl).
+    # Exporting LD_LIBRARY_PATH would leak the hermetic libdir to any
+    # subprocesses the wrapped binary spawns (e.g. python -> gcc), which
+    # breaks system binaries linked against a newer glibc than the bundled
+    # one.
 
     lines = [
         '#!/bin/sh',
@@ -46,14 +53,9 @@ def _generate_binary_wrapper(name: str, interpreter: T.List[str], real_exe: str,
         'HERE=$(cd "$(dirname "$0")" && pwd)',
         'export PATH="$HERE${PATH:+:$PATH}"',
     ]
-    if library_path is not None:
-        qlp = shlex.quote(library_path)
-        lines.append(
-            f'export LD_LIBRARY_PATH={qlp}'
-            f'"${{LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}}"')
     quoted_interp = ' '.join(shlex.quote(s) for s in interpreter)
-    quoted_exe = shlex.quote(real_exe)
-    lines.append(f'exec {quoted_interp} {quoted_exe} "$@"')
+    quoted_cmd = ' '.join(shlex.quote(s) for s in real_cmd)
+    lines.append(f'exec {quoted_interp} {quoted_cmd} "$@"')
     content = '\n'.join(lines) + '\n'
 
     wrapper = wrappers_dir / name
@@ -269,13 +271,14 @@ class ExternalProgram(Program):
         if env is not None and prog.found():
             interpreter = env.lookup_binary_interpreter(name)
             if interpreter:
-                # Identify the bare real_exe: the last argv element of the
-                # resolved command (skips e.g. ccache / python wrappers).
-                real_exe = prog.command[-1]
+                # Pass the full resolved binary command (exe + any trailing
+                # args from a list-form entry, e.g. `python -B`) so the
+                # wrapper preserves trailing args before "$@".
+                real_cmd = list(prog.command)
                 wrappers_dir = env.binary_wrappers_dir()
                 host_system = env.machines.host.system
                 wrapper = _generate_binary_wrapper(
-                    name, interpreter, real_exe, wrappers_dir, host_system)
+                    name, interpreter, real_cmd, wrappers_dir, host_system)
                 if wrapper is not None:
                     wrapper_str = str(wrapper)
                     prog.command = [wrapper_str]

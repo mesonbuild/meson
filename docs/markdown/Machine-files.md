@@ -225,10 +225,21 @@ shell wrapper at `<builddir>/meson-private/binary-wrappers/<name>` that:
 
 - Prepends the wrappers directory to `PATH` (so the wrapper appears
   on `PATH` for downstream tools that re-launch by name).
-- Exports `LD_LIBRARY_PATH=X` if the interpreter contains
-  `--library-path X` (so libraries loaded transitively by the bundled
-  binary also resolve against the hermetic libdir).
-- `exec`s the interpreter on the bare binary, forwarding all arguments.
+- `exec`s the interpreter on the bare binary plus any trailing argv
+  from a list-form `[binaries]` entry (e.g. `python = ['/path/python', '-B']`
+  becomes `exec <interp> /path/python -B "$@"`), forwarding remaining
+  arguments via `"$@"`.
+
+The wrapper deliberately does NOT export `LD_LIBRARY_PATH`.  The
+interpreter's `--library-path` argument is honored by `ld-linux.so`
+both at process startup AND for subsequent `dlopen()` calls inside the
+wrapped process (the loader's search path is shared with libdl).
+Keeping `LD_LIBRARY_PATH` out of the wrapper's environment prevents
+the hermetic libdir from leaking to subprocesses (e.g. python -> gcc)
+that should resolve against the host glibc instead.  When per-binary
+environment is needed (e.g. `PERL5LIB=...`), include `env VAR=VAL ...`
+as a prefix in the interpreter list: `perl.interpreter = ['env',
+'PERL5LIB=/p', '/loader', '--library-path', '/libs']`.
 
 `ExternalProgram.command` is then a single-element list pointing at
 the wrapper, so positional-argument call sites (e.g. `find_program`)
