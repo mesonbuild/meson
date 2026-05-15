@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import textwrap
 import os
+import shlex
 import shutil
 import stat
 import functools
@@ -506,6 +507,9 @@ class NativeFileTests(BasePlatformTests):
         # Each interpreter element must appear.
         for tok in interpreter:
             self.assertIn(tok, content)
+        # The wrapper must pass its own path as argv[0] to the loader so that
+        # bundled programs consuming argv[0] see the wrapper, not the bare exe.
+        self.assertIn('--argv0 "$0"', content)
 
     @skipIf(is_windows(), '[binaries] <name>.interpreter is POSIX-only')
     def test_binary_interpreter_per_binary(self):
@@ -597,6 +601,90 @@ class NativeFileTests(BasePlatformTests):
         with open(wrapper_path, encoding='utf-8') as f:
             content = f.read()
         self.assertNotIn('/opt/default/', content)
+
+    @skipIf(is_windows(), '[binaries] <name>.interpreter is POSIX-only')
+    def test_binary_interpreter_wrapper_passes_argv0(self):
+        """--argv0 "$0" must appear immediately after the loader path."""
+        from mesonbuild.programs import ExternalProgram
+        real_exe = shutil.which('bash')
+        if real_exe is None:
+            raise SkipTest('bash not found on PATH')
+        loader = '/opt/ld/ld.so'
+        libdir = '/opt/ld/lib'
+        interpreter = [loader, '--library-path', libdir]
+        config = self.helper_create_native_file({
+            'binaries': {
+                'perl': real_exe,
+                'perl.interpreter': interpreter,
+            },
+        })
+        env = self._make_interpreter_env(config)
+        prog = ExternalProgram.from_bin_list(env, MachineChoice.BUILD, 'perl')
+        self.assertTrue(prog.found())
+        wrapper_path = str(env.binary_wrappers_dir() / 'perl')
+        with open(wrapper_path, encoding='utf-8') as f:
+            content = f.read()
+        # --argv0 "$0" must appear right after the loader, before --library-path.
+        exec_line = next((ln for ln in content.splitlines() if ln.startswith('exec ')), '')
+        self.assertTrue(exec_line, f'no exec line in wrapper:\n{content}')
+        self.assertIn(f'exec {loader} --argv0 "$0" --library-path', exec_line)
+
+    @skipIf(is_windows(), '[binaries] <name>.interpreter is POSIX-only')
+    def test_binary_interpreter_wrapper_passes_argv0_env_prefix(self):
+        """--argv0 "$0" must land after the loader even when the interpreter
+        list starts with an `env VAR=val` prefix (loader is not [0])."""
+        from mesonbuild.programs import ExternalProgram
+        real_exe = shutil.which('bash')
+        if real_exe is None:
+            raise SkipTest('bash not found on PATH')
+        loader = '/opt/ld/ld-linux-x86-64.so.2'
+        libdir = '/opt/ld/lib'
+        interpreter = ['env', 'PYTHONHOME=/opt/py3', loader,
+                       '--library-path', libdir]
+        config = self.helper_create_native_file({
+            'binaries': {
+                'perl': real_exe,
+                'perl.interpreter': interpreter,
+            },
+        })
+        env = self._make_interpreter_env(config)
+        prog = ExternalProgram.from_bin_list(env, MachineChoice.BUILD, 'perl')
+        self.assertTrue(prog.found())
+        wrapper_path = str(env.binary_wrappers_dir() / 'perl')
+        with open(wrapper_path, encoding='utf-8') as f:
+            content = f.read()
+        exec_line = next((ln for ln in content.splitlines() if ln.startswith('exec ')), '')
+        self.assertTrue(exec_line, f'no exec line in wrapper:\n{content}')
+        # --argv0 "$0" must be inserted AFTER the loader (not after env).
+        self.assertIn(
+            f'env PYTHONHOME=/opt/py3 {loader} --argv0 "$0" --library-path',
+            exec_line)
+
+    @skipIf(is_windows(), '[binaries] <name>.interpreter is POSIX-only')
+    def test_binary_interpreter_wrapper_passes_argv0_no_extra_args(self):
+        """--argv0 "$0" must still be emitted when the interpreter is just [loader]."""
+        from mesonbuild.programs import ExternalProgram
+        real_exe = shutil.which('bash')
+        if real_exe is None:
+            raise SkipTest('bash not found on PATH')
+        loader = '/opt/ld/ld.so'
+        interpreter = [loader]
+        config = self.helper_create_native_file({
+            'binaries': {
+                'perl': real_exe,
+                'perl.interpreter': interpreter,
+            },
+        })
+        env = self._make_interpreter_env(config)
+        prog = ExternalProgram.from_bin_list(env, MachineChoice.BUILD, 'perl')
+        self.assertTrue(prog.found())
+        wrapper_path = str(env.binary_wrappers_dir() / 'perl')
+        with open(wrapper_path, encoding='utf-8') as f:
+            content = f.read()
+        exec_line = next((ln for ln in content.splitlines() if ln.startswith('exec ')), '')
+        self.assertTrue(exec_line, f'no exec line in wrapper:\n{content}')
+        # Loader followed immediately by --argv0 "$0", then real_exe.
+        self.assertIn(f'exec {loader} --argv0 "$0" {shlex.quote(real_exe)}', exec_line)
 
     def test_user_options(self):
         testcase = os.path.join(self.common_test_dir, '40 options')

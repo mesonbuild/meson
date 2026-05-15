@@ -53,9 +53,29 @@ def _generate_binary_wrapper(name: str, interpreter: T.List[str],
         'HERE=$(cd "$(dirname "$0")" && pwd)',
         'export PATH="$HERE${PATH:+:$PATH}"',
     ]
-    quoted_interp = ' '.join(shlex.quote(s) for s in interpreter)
+    # Pass the wrapper's own path as argv[0] to the bundled binary.  This lets
+    # programs that consume argv[0] (shells, compilers, CPython for sys.executable)
+    # see the wrapper -- so child processes re-enter through the wrapper and
+    # inherit the loader + library-path setup transparently.  `--argv0` is a
+    # ld-linux.so flag, so it must immediately follow the loader's argv entry;
+    # locate the first element whose basename looks like a ld.so binary
+    # (covers env-prefix forms such as `['env', VAR=val, ld-linux.so, ...]`).
+    # Requires --argv0 support in the bundled loader (glibc >= 2.33).
+    loader_re = re.compile(r'^ld[-.][^/]*\.so(\.\d+)*$')
+    loader_idx = next(
+        (i for i, e in enumerate(interpreter) if loader_re.match(os.path.basename(e))),
+        0)
+    head = interpreter[:loader_idx + 1]
+    tail = interpreter[loader_idx + 1:]
+    quoted_head = ' '.join(shlex.quote(s) for s in head)
+    quoted_tail = ' '.join(shlex.quote(s) for s in tail)
     quoted_cmd = ' '.join(shlex.quote(s) for s in real_cmd)
-    lines.append(f'exec {quoted_interp} {quoted_cmd} "$@"')
+    pieces = [f'exec {quoted_head}', '--argv0 "$0"']
+    if quoted_tail:
+        pieces.append(quoted_tail)
+    pieces.append(quoted_cmd)
+    pieces.append('"$@"')
+    lines.append(' '.join(pieces))
     content = '\n'.join(lines) + '\n'
 
     wrapper = wrappers_dir / name
