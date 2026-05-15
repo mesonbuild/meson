@@ -348,11 +348,12 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
     lnk: T.Union[T.Type[StaticLinker], T.Type[DynamicLinker]]
 
     # Fast path: [compilers] section declared the family (type) explicitly.
-    # Skip pattern-matching on --version output for GCC; generate subprocess
-    # wrappers before running any preprocessing step that invokes cc1.
+    # Skip pattern-matching on --version output for GCC/clang; generate
+    # subprocess wrappers before running any preprocessing step that may invoke
+    # subprograms via the dynamic loader.
     if override_compilers is None:
         desc = env.lookup_compiler_desc(for_machine, lang)
-        if desc is not None and desc.type == 'gcc' and compilers:
+        if desc is not None and desc.type in ('gcc', 'clang') and compilers:
             compiler = list(compilers[0])
 
             # Apply structured flags from [compilers] descriptor.
@@ -366,13 +367,26 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 compiler.append(f'-isystem{d}')
 
             # Generate subprocess wrappers after structured flags are applied so
-            # --print-prog-name can use tool-search-paths to locate cc1.
-            # Prepend -B<wrapper_dir> right after the binary so it wins over
-            # any -B<libexec> from tool-search-paths.
+            # --print-prog-name can use tool-search-paths to locate the
+            # subprogram.  Prepend -B<wrapper_dir> right after the binary so it
+            # wins over any -B<libexec> from tool-search-paths.
+            #
+            # gcc dispatches preprocessing/compilation to cc1/cc1plus/lto1
+            # (these need the dynamic-loader prefix).  Clang is monolithic for
+            # codegen -- only as/ld are dispatched through -B<prefix> (used
+            # when -fno-integrated-as is passed or an external linker is
+            # selected).  ThinLTO link-time codegen runs lto1 as a separate
+            # subprocess on both gcc and clang, so include it in both lists.
+            # TODO: ld64.lld on Darwin -- clang's Darwin driver looks for
+            # ld64.lld rather than ld.lld; extend the clang list there.
+            if desc.type == 'gcc':
+                subprograms = ('cc1', 'cc1plus', 'lto1')
+            else:  # clang
+                subprograms = ('as', 'ld', 'lto1')
             interpreter = env.lookup_binary_interpreter(lang)
             if interpreter:
                 wrapper_dir = _generate_subprocess_wrappers(
-                    env, compiler, lang, ('cc1', 'cc1plus', 'lto1'), interpreter)
+                    env, compiler, lang, subprograms, interpreter)
                 if wrapper_dir:
                     compiler = compiler[:1] + [f'-B{wrapper_dir}'] + compiler[1:]
 
@@ -386,23 +400,26 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                                                   msg='Detecting compiler via')
                 except OSError as e:
                     raise EnvironmentException(
-                        f'Failed to run GCC compiler {compiler[0]!r}: {e}')
+                        f'Failed to run {desc.type} compiler {compiler[0]!r}: {e}')
                 full_version = out.split('\n', 1)[0]
                 version = search_version(out)
 
-            # Still run preprocessor defines detection (requires cc1; wrappers
-            # are now in place so this succeeds even in hermetic builds).
-            defines = _get_gnu_compiler_defines(compiler, lang)
-            if not defines:
-                raise EnvironmentException(
-                    f'GCC compiler at {compiler[0]!r} returned no preprocessor defines; '
-                    'check that the compiler is accessible')
-            if desc.version is None:
-                version = _get_gnu_version_from_defines(defines)
+            # Preprocessor-defines detection (driver-specific).
+            if desc.type == 'gcc':
+                defines = _get_gnu_compiler_defines(compiler, lang)
+                if not defines:
+                    raise EnvironmentException(
+                        f'GCC compiler at {compiler[0]!r} returned no preprocessor defines; '
+                        'check that the compiler is accessible')
+                if desc.version is None:
+                    version = _get_gnu_version_from_defines(defines)
+                cls = c.GnuCCompiler if lang == 'c' else cpp.GnuCPPCompiler
+            else:  # clang
+                defines = _get_clang_compiler_defines(compiler, lang)
+                cls = c.ClangCCompiler if lang == 'c' else cpp.ClangCPPCompiler
 
-            cls_gcc = c.GnuCCompiler if lang == 'c' else cpp.GnuCPPCompiler
-            linker = guess_nix_linker(env, compiler, cls_gcc, version, for_machine)
-            return cls_gcc(
+            linker = guess_nix_linker(env, compiler, cls, version, for_machine)
+            return cls(
                 ccache, compiler, version, for_machine,
                 env, defines=defines, full_version=full_version, linker=linker)
 

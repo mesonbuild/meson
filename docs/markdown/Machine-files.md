@@ -297,13 +297,21 @@ Each key is prefixed with the language identifier (`c.`, `cpp.`, etc.).
 | `<lang>.system-include-dirs` | array | System include directories. When set alongside `no-default-includes`, these directories are the only system include directories searched. When set without `no-default-includes`, these directories are searched in addition to the compiler's defaults. |
 | `<lang>.tool-search-paths` | array | Directories in which to search for compiler subtools (assembler, linker helpers, etc.). When omitted, the compiler uses its default search. |
 
-To run compiler subprograms (e.g. `cc1`, `cc1plus`, `lto1` on GCC) through a
-dynamic-loader prefix, set `<lang>.interpreter` under the `[binaries]` section
-(see [Per-binary interpreter](#per-binary-interpreter-posix-only)).  When such
-an interpreter is configured for a GCC- or clang-family `<lang>`, Meson
-generates per-subprogram wrappers under
-`<builddir>/meson-private/compiler-wrappers/<lang>/` and passes
-`-B<that-dir>` to the compiler so its driver finds the wrapped subprograms.
+To run compiler subprograms through a dynamic-loader prefix, set
+`<lang>.interpreter` under the `[binaries]` section (see
+[Per-binary interpreter](#per-binary-interpreter-posix-only)).  When such an
+interpreter is configured for a GCC- or clang-family `<lang>`, Meson generates
+per-subprogram wrappers under `<builddir>/meson-private/compiler-wrappers/<lang>/`
+and passes `-B<that-dir>` to the compiler so its driver finds the wrapped
+subprograms.
+
+The wrapped subprograms depend on the compiler family:
+
+- **GCC**: `cc1`, `cc1plus`, `lto1`.  These are dispatched by the gcc driver
+  for preprocessing / compilation / link-time optimization.
+- **clang**: `as`, `ld`.  Clang is monolithic for codegen (no separate `cc1`)
+  and only dispatches the assembler / linker through `-B<prefix>`; the wrappers
+  apply when `-fno-integrated-as` or an external linker is used.
 
 #### Flag translation by compiler family
 

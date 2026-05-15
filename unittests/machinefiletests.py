@@ -1044,6 +1044,61 @@ class NativeFileTests(BasePlatformTests):
             # hermetic libdir doesn't leak to subprocesses.
             self.assertNotIn('LD_LIBRARY_PATH', content)
 
+    @skipIf(is_windows(), 'POSIX-only feature')
+    def test_compiler_wrappers_use_binary_interpreter_clang(self):
+        """[binaries] c.interpreter drives subprocess-wrapper generation for the
+        clang fast path; only as/ld are wrapped (clang is monolithic for
+        codegen).
+        """
+        from mesonbuild.compilers import detect as compiler_detect
+        real_exe = shutil.which('bash')
+        if real_exe is None:
+            raise SkipTest('bash not found on PATH')
+        fake_subprog = real_exe
+        interpreter = ['/opt/ld/ld.so', '--library-path', '/opt/ld/lib']
+        config = self.helper_create_native_file({
+            'binaries': {
+                'c': real_exe,
+                'c.interpreter': interpreter,
+            },
+        })
+        env = self._make_interpreter_env(config)
+
+        def fake_popen(args, *a, **kw):
+            if '--print-prog-name' in args:
+                return None, fake_subprog + '\n', ''
+            return None, '', ''
+
+        with mock.patch('mesonbuild.compilers.detect.Popen_safe',
+                        side_effect=fake_popen):
+            wrapper_dir = compiler_detect._generate_subprocess_wrappers(
+                env, [real_exe], 'c', ('as', 'ld', 'lto1'),
+                env.lookup_binary_interpreter('c'))
+
+        self.assertIsNotNone(wrapper_dir,
+                             'expected clang wrapper dir to be returned')
+        argv_flag = f'-B{wrapper_dir}'
+        self.assertTrue(argv_flag.startswith('-B'))
+        self.assertTrue(os.path.isdir(wrapper_dir))
+        # Clang's wrapped subprograms: as, ld, lto1 (NOT cc1/cc1plus -- clang
+        # is monolithic for codegen; lto1 is the ThinLTO link-time backend).
+        for prog in ('as', 'ld', 'lto1'):
+            wrapper = os.path.join(wrapper_dir, prog)
+            self.assertTrue(os.path.exists(wrapper),
+                            f'expected clang subprogram wrapper: {wrapper}')
+            with open(wrapper, encoding='utf-8') as f:
+                content = f.read()
+            self.assertIn('#!/bin/sh', content)
+            for tok in interpreter:
+                self.assertIn(tok, content)
+            self.assertIn(fake_subprog, content)
+            self.assertNotIn('LD_LIBRARY_PATH', content)
+        # Verify gcc-only subprograms were NOT generated for the clang path.
+        for gcc_only in ('cc1', 'cc1plus'):
+            self.assertFalse(
+                os.path.exists(os.path.join(wrapper_dir, gcc_only)),
+                f'unexpected gcc-only wrapper present for clang: {gcc_only}')
+
     def test_user_options(self):
         testcase = os.path.join(self.common_test_dir, '40 options')
         for opt, value in [('testoption', 'some other val'), ('other_one', True),
