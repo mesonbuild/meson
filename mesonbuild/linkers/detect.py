@@ -228,15 +228,17 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         cmd = compiler + comp_class.LINKER_OPTION_STYLE.wrap(['-v']) + extra_args
         _, newo, newerr = Popen_safe_logged(cmd, msg='Detecting Apple linker via')
 
+        is_dyld: bool
         for line in newerr.split('\n'):
             if 'PROJECT:ld' in line or 'PROJECT:dyld' in line:
                 v = line.split('-')[1]
+                is_dyld = 'PROJECT:dyld' in line
                 break
         else:
             __failed_to_detect_linker(compiler, check_args, o, e)
         linker = linkers.AppleDynamicLinker(
             compiler, env, for_machine, comp_class.LINKER_OPTION_STYLE, override,
-            system=system, version=v
+            system=system, version=v, is_dyld=is_dyld
         )
     elif 'ld.exe: unrecognized option' in e or 'ld: unrecognized option' in e:
         linker = linkers.OS2AoutDynamicLinker(
