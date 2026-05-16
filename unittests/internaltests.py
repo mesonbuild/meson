@@ -46,6 +46,7 @@ from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInte
 from mesonbuild.programs import ExternalProgram
 import mesonbuild.modules.pkgconfig
 from mesonbuild import utils
+from mesonbuild.cmake.toolchain import CMakeToolchain
 
 from run_tests import get_fake_env, get_fake_options
 
@@ -2208,3 +2209,39 @@ class InternalTests(unittest.TestCase):
                 self.assertEqual(actual.compile_args, expected.compile_args)
                 self.assertEqual(actual.link_args, expected.link_args)
                 self.assertEqual(actual.cmake, expected.cmake)
+
+    def test_cmake_toolchain_to_unix_path(self) -> None:
+        # Same convention as test cases/unit/18 pkgconfig static: C:/foo/bar -> /c/foo/bar
+        cases = [
+            (r'C:\foo\bar', '/c/foo/bar'),
+            ('C:/foo/bar', '/c/foo/bar'),
+            ('D:/Some/Path', '/d/Some/Path'),
+            ('/usr/bin/gcc', '/usr/bin/gcc'),
+            ('relative/path', 'relative/path'),
+        ]
+        for inp, expected in cases:
+            with self.subTest(inp):
+                self.assertEqual(CMakeToolchain._to_cmake_unix_path(inp, None), expected)
+
+    @mock.patch('mesonbuild.cmake.toolchain.is_windows', return_value=True)
+    @mock.patch('mesonbuild.cmake.toolchain.is_cygwin', return_value=False)
+    @mock.patch.dict(os.environ, {'MSYSTEM': 'UCRT64'})
+    @mock.patch('mesonbuild.cmake.toolchain.shutil.which', return_value='/usr/bin/cygpath')
+    def test_cmake_toolchain_needs_unix_paths_msys2(self, *_: mock.Mock) -> None:
+        self.assertTrue(CMakeToolchain._cmake_needs_unix_paths())
+
+    @mock.patch('mesonbuild.cmake.toolchain.is_windows', return_value=True)
+    @mock.patch('mesonbuild.cmake.toolchain.is_cygwin', return_value=False)
+    @mock.patch.dict(os.environ, {}, clear=True)
+    def test_cmake_toolchain_needs_unix_paths_native_win(self, *_: mock.Mock) -> None:
+        self.assertFalse(CMakeToolchain._cmake_needs_unix_paths())
+
+    @mock.patch('mesonbuild.cmake.toolchain.is_windows', return_value=False)
+    @mock.patch('mesonbuild.cmake.toolchain.is_cygwin', return_value=True)
+    def test_cmake_toolchain_needs_unix_paths_cygwin(self, *_: mock.Mock) -> None:
+        self.assertTrue(CMakeToolchain._cmake_needs_unix_paths())
+
+    @mock.patch('mesonbuild.cmake.toolchain.is_windows', return_value=False)
+    @mock.patch('mesonbuild.cmake.toolchain.is_cygwin', return_value=False)
+    def test_cmake_toolchain_needs_unix_paths_linux(self, *_: mock.Mock) -> None:
+        self.assertFalse(CMakeToolchain._cmake_needs_unix_paths())
