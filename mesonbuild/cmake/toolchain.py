@@ -81,24 +81,29 @@ class CMakeToolchain:
         return res
 
     @staticmethod
-    def _cmake_needs_unix_paths() -> bool:
+    def _cmake_needs_unix_paths(cmakebin: 'CMakeExecutor') -> bool:
         """Detect whether cmake expects POSIX-style paths without drive letters.
 
         MSYS2/Cygwin cmake treats ':' in set() values as a list separator,
         so paths like C:/foo break. Convert to /c/foo form instead.
         See https://github.com/mesonbuild/meson/issues/14636
+
+        MSYSTEM being set does not imply MSYS2 cmake is in use (native Windows
+        cmake may appear earlier on PATH). Check the cmake binary path instead.
         """
-        # Cygwin cmake always uses POSIX paths
         if is_cygwin():
             return True
         if not is_windows():
             return False
-        # Under MSYS2, MSYSTEM is always set (MINGW64, UCRT64, etc.)
-        if not os.environ.get('MSYSTEM'):
-            return False
-        # cygpath is only available in MSYS2/Cygwin environments — its
-        # presence confirms the cmake in PATH is the MSYS2 build.
-        return shutil.which('cygpath') is not None
+        path = cmakebin.executable_path().replace('\\', '/').lower()
+        # MSYSTEM_PREFIX is a unix-style path like /ucrt64; check whether
+        # it appears as a component in the cmake binary's resolved path.
+        prefix = os.environ.get('MSYSTEM_PREFIX', '').replace('\\', '/').lower().rstrip('/')
+        if prefix and f'{prefix}/' in path:
+            return True
+        return any(x in path for x in (
+            '/msys64/', '/ucrt64/', '/clang64/', '/clangarm64/',
+            '/mingw64/', '/mingw32/'))
 
     @staticmethod
     def _to_cmake_unix_path(path: str, cygpath_bin: T.Optional[str]) -> str:
@@ -107,12 +112,13 @@ class CMakeToolchain:
         if len(path) >= 2 and path[1] == ':':
             if cygpath_bin:
                 _p, o, _e = Popen_safe([cygpath_bin, '-u', path])
-                return o.strip()
+                if _p.returncode == 0:
+                    return o.strip()
             return '/' + path[0].lower() + path[2:]
         return path
 
     def _normalize_cmake_paths(self, vars: T.Dict[str, T.List[str]]) -> None:
-        if not self._cmake_needs_unix_paths():
+        if not self._cmake_needs_unix_paths(self.cmakebin):
             return
         cygpath_bin = shutil.which('cygpath')
         for key, value in vars.items():
