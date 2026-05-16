@@ -1,0 +1,7 @@
+--- subprojects/find-me/meson.build	(original)
++++ subprojects/find-me/meson.build	(reformatted)
+@@ -1,3 +1 @@
+-project(
+-    'a'
+-) # should be on one line
++project('a')  # should be on one line
