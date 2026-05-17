@@ -246,7 +246,14 @@ def _list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[
             elif isinstance(opt, options.UserComboOption):
                 optdict['choices'] = opt.printable_choices()
                 typestr = 'combo'
-            elif isinstance(opt, (options.UserIntegerOption, options.UserUmaskOption)):
+            elif isinstance(opt, options.UserUmaskOption):
+                # do not print 0o22
+                if isinstance(optdict['value'], int):
+                    typestr = 'integer'
+                    optdict['value'] = int(optdict['value'])
+                else:
+                    typestr = 'string'
+            elif isinstance(opt, options.UserIntegerOption):
                 typestr = 'integer'
             elif isinstance(opt, options.UserStringArrayOption):
                 typestr = 'array'
