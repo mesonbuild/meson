@@ -331,3 +331,10 @@ class TAPParserTests(unittest.TestCase):
         self.assert_error(events)
         self.assert_test(events, number=2, name='', result=TestResult.FAIL)
         self.assert_last(events)
+
+        # Whitespace-only line in YAML block
+        events = self.parse_tap_v13('ok 1\n ---\n foo: abc\n \n bar: def\nnot ok 2')
+        self.assert_test(events, number=1, name='', result=TestResult.OK)
+        self.assert_error(events)
+        self.assert_test(events, number=2, name='', result=TestResult.FAIL)
+        self.assert_last(events)
