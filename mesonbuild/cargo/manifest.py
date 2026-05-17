@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import collections
 import dataclasses
+import glob
 import os
+import re
 import typing as T
 from pathlib import PurePath
 
@@ -45,6 +47,23 @@ def fixup_meson_varname(name: str) -> str:
     :return: the fixed name
     """
     return name.replace('-', '_')
+
+
+_BRACKET_ESCAPE_RE = re.compile(r'\[(.)\]')
+
+
+def _glob_has_wildcard(s: str) -> bool:
+    """Strip single-character bracket expressions (``[X]``) from *s*, so
+       that the result can be fed to glob.has_magic() without those
+       escapes being mistaken for wildcards."""
+    return glob.has_magic(_BRACKET_ESCAPE_RE.sub('', s))
+
+
+def _remove_simple_globs(s: str) -> str:
+    """Strip single-character bracket expressions (``[X]``) from *s*, so
+       that the result can be fed to glob.has_magic() without those
+       escapes being mistaken for wildcards."""
+    return _BRACKET_ESCAPE_RE.sub(r'\1', s)
 
 
 class DefaultValue:
@@ -624,6 +643,23 @@ class Workspace:
         else:
             ws.default_members = ['.'] if ws.root_package else list(ws.members)
 
+        def expand(entries: T.List[str], keep_glob_results: bool) -> T.List[str]:
+            result: T.List[str] = []
+            for entry in entries:
+                if not _glob_has_wildcard(entry):
+                    result.append(_remove_simple_globs(entry))
+                    continue
+
+                if keep_glob_results:
+                    result.extend(PurePath(exp).as_posix()
+                                  for exp in glob.glob(entry, root_dir=path)
+                                  if os.path.isdir(os.path.join(path, exp)))
+            return result
+
+        # meson-specific behavior for glob members: they are allowed as
+        # arguments to cargo.package(), but never built by default
+        ws.members = expand(ws.members, keep_glob_results=True)
+        ws.default_members = expand(ws.default_members, keep_glob_results=False)
         return ws
 
 
