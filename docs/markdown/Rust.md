@@ -175,3 +175,19 @@ Sources are automatically discovered, but can be specified as a
 It is still possible to use keyword arguments to link non-Rust build targets,
 or even to use the usual Meson functions such as [[static_library]] or
 [[executable]].
+
+### Non-default workspace members
+
+With Cargo, workspace members that are not included in
+`workspace.default-members` can be accessed through the `-p` option.
+In Meson, non-default members are not part of dependency resolution
+by default; the set of optional packages that has to be configured
+is specified *since 1.12.0* in the `extra_members` argument of the
+`workspace()` method, while up to Meson 1.11.x non-default members would
+never be built.
+
+Cargo subprojects will only build default members unless they have a custom
+(handwritten) `meson.build` that sets `extra_members` appropriately;
+typically the choice of which members to build will come from a Meson
+ption.  Note that crates that come from `crates.io` are never workspaces,
+and therefore they are not subject to this limitation.

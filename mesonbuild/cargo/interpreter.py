@@ -316,11 +316,11 @@ class Interpreter:
     def get_build_def_files(self) -> T.List[str]:
         return self.build_def_files
 
-    def load_workspace(self, subdir: str) -> WorkspaceState:
+    def load_workspace(self, subdir: str, extra_members: T.Optional[T.List[str]]) -> WorkspaceState:
         """Load the root Cargo.toml package and prepare it with features and dependencies."""
         subdir = os.path.normpath(subdir)
         manifest, cached = self._load_manifest(subdir)
-        ws = self._get_workspace(manifest, subdir, False)
+        ws = self._get_workspace(manifest, subdir, extra_members, False)
         if not cached:
             self._prepare_entry_point(ws)
         return ws
@@ -356,7 +356,7 @@ class Interpreter:
             assert isinstance(manifest, Manifest)
             return self.interpret_package(manifest, build, subdir, project_root)
         else:
-            ws = self.load_workspace(subdir)
+            ws = self.load_workspace(subdir, None)
             return self.interpret_workspace(ws, build, subdir)
 
     def interpret_package(self, manifest: Manifest, build: builder.Builder, subdir: str, project_root: str) -> mparser.CodeBlockNode:
@@ -447,7 +447,7 @@ class Interpreter:
         else:
             ws.packages[m] = PackageState(manifest_, ws_subdir=ws.subdir, ws_member=m, downloaded=ws.downloaded)
 
-    def _get_workspace(self, manifest: T.Union[Workspace, Manifest], subdir: str, downloaded: bool) -> WorkspaceState:
+    def _get_workspace(self, manifest: T.Union[Workspace, Manifest], subdir: str, extra_members: T.Optional[T.List[str]], downloaded: bool) -> WorkspaceState:
         ws = self.workspaces.get(subdir)
         if ws:
             return ws
@@ -456,6 +456,15 @@ class Interpreter:
         ws = WorkspaceState(workspace, subdir, downloaded=downloaded)
         if workspace.root_package:
             self._add_workspace_member(workspace.root_package, ws, '.')
+
+        if extra_members is not None:
+            for m in extra_members:
+                m = PurePath(m).as_posix()
+                if m not in workspace.members:
+                    l = ', '.join(sorted(list(workspace.members)))
+                    raise MesonException(f'{m} is not a workspace member for {subdir}/Cargo.toml (valid members are {l})')
+                if m not in workspace.default_members:
+                    workspace.default_members.append(m)
         for m in workspace.members:
             self._load_workspace_member(ws, m)
         self.workspaces[subdir] = ws
@@ -530,7 +539,7 @@ class Interpreter:
             subp_name in self.environment.wrap_resolver.wraps and \
             self.environment.wrap_resolver.wraps[subp_name].type is not None
 
-        ws = self._get_workspace(manifest, subdir, downloaded=downloaded)
+        ws = self._get_workspace(manifest, subdir, None, downloaded=downloaded)
         member = ws.packages_to_member[package_name]
         pkg = self._require_workspace_member(ws, member)
         pkg.subproject_name = subp_name
