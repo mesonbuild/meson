@@ -37,6 +37,9 @@ endtestcase
 testcase expect_error('workspace member "nonexistent" not found')
   cargo_ws.package('nonexistent')
 endtestcase
+testcase expect_error('package another-0.1.0 not configured')
+  cargo_ws.package('another')
+endtestcase
 
 # failure test cases for dependency()
 testcase expect_error('package.dependency.*must be one of c, proc-macro, rust.*', how: 're')

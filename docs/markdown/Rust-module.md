@@ -271,7 +271,8 @@ say "require this specific configuration," which may conflict with the parent pr
 packages = ws.packages()
 ```
 
-Returns a list of package names in the workspace.
+Returns a list of configured package names in the workspace.  Non-default
+workspace members are not included.
 
 ### workspace.package()
 

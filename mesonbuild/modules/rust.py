@@ -152,7 +152,9 @@ class RustWorkspace(ModuleObject):
     @noKwargs
     def packages_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns list of package names in workspace."""
-        package_names = [pkg.manifest.package.name for pkg in self.ws.packages.values()]
+        package_names = [pkg.manifest.package.name
+                         for pkg in self.ws.packages.values()
+                         if pkg.cfg]
         return sorted(package_names)
 
     @typed_pos_args('workspace.package', optargs=[str])
@@ -260,6 +262,8 @@ class RustPackage(RustCrate):
 
     def __init__(self, rust_ws: RustWorkspace, package: cargo.PackageState) -> None:
         super().__init__(rust_ws, package)
+        if not package.cfg:
+            raise MesonException(f"package {self.package.manifest.package.name}-{self.package.manifest.package.version} not configured")
         self.methods.update({
             'dependencies': self.dependencies_method,
             'library': self.library_method,
