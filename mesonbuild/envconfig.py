@@ -443,18 +443,19 @@ class BinaryTable:
         self.attrs: T.Dict[str, T.Dict[str, T.List[str]]] = {}
         if binaries:
             for name, command in binaries.items():
+                # Per-binary attributes are keyed as `<base>.<attr>` where
+                # `<attr>` is in KNOWN_BINARY_ATTRS.  Use rpartition so that
+                # binary names containing dots (e.g. `someothertool.py`) are
+                # only reinterpreted as per-binary attributes when the suffix
+                # is a recognised attribute.
                 if '.' in name:
-                    base, attr = name.split('.', 1)
-                    if attr not in KNOWN_BINARY_ATTRS:
-                        mlog.warning(
-                            f'Unknown per-binary attribute {attr!r} for entry '
-                            f'{base!r} in [binaries]; ignoring.', fatal=False)
+                    base, _, attr = name.rpartition('.')
+                    if attr in KNOWN_BINARY_ATTRS:
+                        if not isinstance(command, list) or not all(isinstance(v, str) for v in command):
+                            raise mesonlib.MesonException(
+                                f"[binaries] '{name}' must be a list of strings")
+                        self.attrs.setdefault(base, {})[attr] = T.cast('T.List[str]', list(command))
                         continue
-                    if not isinstance(command, list) or not all(isinstance(v, str) for v in command):
-                        raise mesonlib.MesonException(
-                            f"[binaries] '{name}' must be a list of strings")
-                    self.attrs.setdefault(base, {})[attr] = T.cast('T.List[str]', list(command))
-                    continue
                 if not isinstance(command, (list, str)):
                     raise mesonlib.MesonException(
                         f'Invalid type {command!r} for entry {name!r} in cross file')
