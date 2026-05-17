@@ -1,5 +1,6 @@
 [workspace]
-members = [".", "more"]
+members = [".", "more", "another"]
+default_members = [".", "more"]
 
 [package]
 name = "workspace_test"
