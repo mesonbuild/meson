@@ -8,7 +8,7 @@ from ..mesonlib import (
     search_version, is_windows, Popen_safe, Popen_safe_logged, version_compare, windows_proof_rm,
 )
 from ..programs import ExternalProgram, _generate_binary_wrapper
-from ..envconfig import BinaryTable, CompilerDescriptor, detect_cpu_family
+from ..envconfig import BinaryTable, detect_cpu_family
 from .. import mlog
 
 from ..linkers import guess_win_linker, guess_nix_linker
@@ -353,7 +353,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
     # subprograms via the dynamic loader.
     if override_compilers is None:
         desc = env.lookup_compiler_desc(for_machine, lang)
-        if desc is not None and desc.type in ('gcc', 'clang') and compilers:
+        if desc is not None and desc.type in {'gcc', 'clang'} and compilers:
             compiler = list(compilers[0])
 
             # Apply structured flags from [compilers] descriptor.
