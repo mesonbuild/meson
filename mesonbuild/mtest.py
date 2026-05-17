@@ -396,7 +396,6 @@ class TAPParser:
     def parse_line(self, line: T.Optional[str]) -> T.Iterator[TYPE_TAPResult]:
         if line is not None:
             self.lineno += 1
-            line = line.rstrip()
 
             # YAML blocks are only accepted after a test
             if self.state == self._AFTER_TEST:
@@ -417,6 +416,8 @@ class TAPParser:
                     return
                 yield self.Error(f'YAML block not terminated (started on line {self.yaml_lineno})')
                 self.state = self._MAIN
+
+            line = line.rstrip()
 
             assert self.state == self._MAIN
             if not line or line.startswith('#'):
