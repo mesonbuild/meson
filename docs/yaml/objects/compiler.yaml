@@ -195,7 +195,7 @@ methods:
   returns: int
   description: |
     Returns the alignment of the specified type. For C-like languages,
-    For C-like languages, the header `stddef.h` and `stdio.h` are included
+    the headers `stddef.h` and `stdio.h` are included
     implicitly for native compilation, only `stddef.h` is included when
     cross-compiling.
 
