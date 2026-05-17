@@ -176,7 +176,7 @@ It is still possible to use keyword arguments to link non-Rust build targets,
 or even to use the usual Meson functions such as [[static_library]] or
 [[executable]].
 
-### Non-default workspace members
+### Non-default and wildcard workspace members
 
 With Cargo, workspace members that are not included in
 `workspace.default-members` can be accessed through the `-p` option.
@@ -189,5 +189,12 @@ never be built.
 Cargo subprojects will only build default members unless they have a custom
 (handwritten) `meson.build` that sets `extra_members` appropriately;
 typically the choice of which members to build will come from a Meson
-ption.  Note that crates that come from `crates.io` are never workspaces,
-and therefore they are not subject to this limitation.
+option.
+
+Furthermore, while Cargo accepts glob patterns for the `workspace.members`
+field, Meson (*since 1.12.0*) expands such patterns but never treats
+globbed patterns as default members.  Therefore, they will only be built
+if included in `extra_members`.
+
+Note that crates that come from `crates.io` are never workspaces, and
+therefore they are not subject to these differences.
