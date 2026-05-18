@@ -47,7 +47,7 @@ eatmydata apt-get -y build-dep meson
 
 # packages
 eatmydata apt-get -y install "${pkgs[@]}" "${transitivepkgs[@]}"
-eatmydata apt-get -y install --no-install-recommends wine-stable  # Wine is special
+eatmydata apt-get -y install --no-install-recommends wine  # Wine is special
 
 # HACK: build hotdoc from git repo since current sdist is broken on modern compilers
 # change back to 'hotdoc' once it's fixed
