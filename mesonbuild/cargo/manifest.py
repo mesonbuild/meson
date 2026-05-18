@@ -9,6 +9,7 @@ import collections
 import dataclasses
 import os
 import typing as T
+from pathlib import PurePath
 
 
 from . import version
@@ -617,8 +618,12 @@ class Workspace:
         ws = _raw_to_dataclass(raw['workspace'], cls, 'Workspace')
         if 'package' in raw:
             ws.root_package = Manifest.from_raw(raw, path, ws, '.')
-        if not ws.default_members:
-            ws.default_members = ['.'] if ws.root_package else ws.members
+        ws.members = list(PurePath(m).as_posix() for m in ws.members)
+        if ws.default_members:
+            ws.default_members = list(PurePath(m).as_posix() for m in ws.default_members)
+        else:
+            ws.default_members = ['.'] if ws.root_package else list(ws.members)
+
         return ws
 
 
