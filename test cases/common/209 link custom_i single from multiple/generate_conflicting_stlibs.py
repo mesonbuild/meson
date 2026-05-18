@@ -67,7 +67,7 @@ def generate_lib(outfiles, private_dir, compiler_array):
 
     for i, content in enumerate(contents):
         c_file = private_dir / ('flob_' + str(i + 1) + '.c')
-        c_file.write_text(content)
+        c_file.write_text(content, encoding='utf-8')
         outfile = outfiles[i]
 
         cl_found = False
