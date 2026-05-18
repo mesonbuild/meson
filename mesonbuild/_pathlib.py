@@ -23,6 +23,7 @@ from __future__ import annotations
 import pathlib
 import os
 import platform
+import sys
 
 __all__ = [
     'PurePath',
@@ -39,8 +40,14 @@ PureWindowsPath = pathlib.PureWindowsPath
 if platform.system().lower() in {'windows'}:
     # Can not directly inherit from pathlib.Path because the __new__
     # operator of pathlib.Path() returns a {Posix,Windows}Path object.
-    class Path(type(pathlib.Path())):
-        def resolve(self, strict: bool = False) -> 'Path':
+    # Until Python 3.12, when this was changed so that Path can be directly inherited.
+    if sys.version_info >= (3, 12):
+        _BASE_CLASS = pathlib.Path
+    else:
+        _BASE_CLASS = type(pathlib.Path())
+
+    class _Path(_BASE_CLASS):
+        def resolve(self, strict: bool = False) -> _Path:
             '''
                 Work around a resolve bug on certain Windows systems:
 
@@ -51,7 +58,9 @@ if platform.system().lower() in {'windows'}:
             try:
                 return super().resolve(strict=strict)
             except OSError:
-                return Path(os.path.normpath(self))
+                return _Path(os.path.normpath(self))
+
+    Path: type[_BASE_CLASS] = _Path
 else:
     Path = pathlib.Path
     PosixPath = pathlib.PosixPath
