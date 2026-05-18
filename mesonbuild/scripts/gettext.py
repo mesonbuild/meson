@@ -23,6 +23,7 @@ parser.add_argument('--xgettext', default='xgettext')
 parser.add_argument('--msgmerge', default='msgmerge')
 parser.add_argument('--msginit', default='msginit')
 parser.add_argument('--extra-args', default='')
+parser.add_argument('--no-fuzzy-matching', action='store_true')
 
 def read_linguas(src_sub: str) -> T.List[str]:
     # Syntax of this file is documented here:
@@ -57,12 +58,14 @@ def run_potgen(src_sub: str, xgettext: str, pkgname: str, datadirs: str, args: T
                             '-D', source_root, '-k_', '-o', ofile] + args,
                            env=child_env)
 
-def update_po(src_sub: str, msgmerge: str, msginit: str, pkgname: str, langs: T.List[str]) -> int:
+def update_po(src_sub: str, msgmerge: str, msginit: str, pkgname: str, langs: T.List[str],
+              no_fuzzy_matching: bool) -> int:
     potfile = os.path.join(src_sub, pkgname + '.pot')
+    extra_args = ['--no-fuzzy-matching'] if no_fuzzy_matching else []
     for l in langs:
         pofile = os.path.join(src_sub, l + '.po')
         if os.path.exists(pofile):
-            exe = ExecutableSerialisation([msgmerge, '-q', pofile, potfile], capture=pofile)
+            exe = ExecutableSerialisation([msgmerge, '-q', *extra_args, pofile, potfile], capture=pofile)
             if run_exe(exe) != 0:
                 return 1
         else:
@@ -85,7 +88,7 @@ def run(args: T.List[str]) -> int:
     elif subcmd == 'update_po':
         if run_potgen(src_sub, options.xgettext, options.pkgname, options.datadirs, extra_args, options.source_root) != 0:
             return 1
-        return update_po(src_sub, options.msgmerge, options.msginit, options.pkgname, langs)
+        return update_po(src_sub, options.msgmerge, options.msginit, options.pkgname, langs, options.no_fuzzy_matching)
     else:
         print('Unknown subcommand.')
         return 1
