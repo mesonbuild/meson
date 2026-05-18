@@ -13,4 +13,4 @@ modfile = source_root / 'prog.c'
 
 contents = modfile.read_text()
 contents = contents.replace(sys.argv[1], sys.argv[2])
-modfile.write_text(contents)
+modfile.write_text(contents, encoding='utf-8')

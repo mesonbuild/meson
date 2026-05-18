@@ -70,7 +70,7 @@ def generate_lib(outfile, private_dir, compiler_array):
     if not private_dir.exists():
         private_dir.mkdir()
     c_file = private_dir / 'flob.c'
-    c_file.write_text(contents)
+    c_file.write_text(contents, encoding='utf-8')
     for i in compiler_array:
         if (i.endswith('cl') or i.endswith('cl.exe')) and 'clang-cl' not in i:
             return generate_lib_msvc(outfile, c_file, private_dir, compiler_array)
