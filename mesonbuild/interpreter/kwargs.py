@@ -200,7 +200,7 @@ class FuncAddLanguages(ExtractRequired):
 
 class RunTarget(TypedDict):
 
-    command: T.List[T.Union[str, build.BuildTargetTypes, ExternalProgram, File]]
+    command: T.List[T.Union[str, build.BuildTargetTypes, Program, File]]
     depends: T.List[TargetDepends]
     env: EnvironmentVariables
 
