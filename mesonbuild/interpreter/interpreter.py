@@ -559,7 +559,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             except OSError:
                 f_ = Path(f)
                 s = f_.stat()
-                if (hasattr(s, 'st_file_attributes') and
+                # Mypy needs the `sys.platform` check to understand that this is
+                # a Windows only path
+                if (sys.platform == 'win32' and
                         s.st_file_attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT != 0 and
                         s.st_reparse_tag == stat.IO_REPARSE_TAG_APPEXECLINK):
                     # This is a Windows Store link which we can't
