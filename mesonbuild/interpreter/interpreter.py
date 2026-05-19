@@ -1335,7 +1335,16 @@ class Interpreter(InterpreterBase, HoldableObject):
         if not self.is_subproject():
             self.check_stdlibs()
 
-    @typed_kwargs('add_languages', KwargInfo('native', (bool, NoneType), since='0.54.0'), REQUIRED_KW)
+    @typed_kwargs(
+        'add_languages',
+        KwargInfo(
+            'native',
+            (bool, NoneType),
+            since='0.54.0',
+            convertor=lambda x: {None: None, True: MachineChoice.BUILD, False: MachineChoice.HOST}[x],
+        ),
+        REQUIRED_KW,
+    )
     @typed_pos_args('add_languages', varargs=str)
     def func_add_languages(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddLanguages') -> bool:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
@@ -1348,7 +1357,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
         if native is not None:
-            return self.add_languages(langs, required, self.machine_from_native_kwarg(kwargs))
+            return self.add_languages(langs, required, native)
         else:
             # absent 'native' means 'both' for backwards compatibility
             tv = FeatureNew.get_target_version(self.subproject)
@@ -3932,13 +3941,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             del self.variables[varname]
         except KeyError:
             raise InterpreterException(f'Tried to unset unknown variable "{varname}".')
-
-    @staticmethod
-    def machine_from_native_kwarg(kwargs: T.Dict[str, T.Any]) -> MachineChoice:
-        native = kwargs.get('native', False)
-        if not isinstance(native, bool):
-            raise InvalidArguments('Argument to "native" must be a boolean.')
-        return MachineChoice.BUILD if native else MachineChoice.HOST
 
     @FeatureNew('is_disabler', '0.52.0')
     @typed_pos_args('is_disabler', object)
