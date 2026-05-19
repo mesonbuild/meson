@@ -26,7 +26,7 @@ from .toml import load_toml
 from .manifest import Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname
 from ..mesonlib import (
     is_parent_path, lazy_property, MesonException, MachineChoice,
-    unique_list, SubProject,
+    PerMachine, unique_list, SubProject,
 )
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
@@ -91,8 +91,10 @@ class PackageState:
     # If this package is member of a workspace.
     ws_subdir: T.Optional[str] = None
     ws_member: T.Optional[str] = None
-    # Package configuration state
-    cfg: T.Optional[PackageConfiguration] = None
+    # Per-machine configuration state
+    cfg: PerMachine[T.Optional[PackageConfiguration]] = dataclasses.field(
+        default_factory=lambda: PerMachine(None, None)
+    )
     # Subproject name as known to the wrap resolver (may differ from the
     # meson dep name for git sources, where the wrap is named after the
     # git directory rather than the crate name + api version).
@@ -185,8 +187,7 @@ class PackageState:
             machine = MachineChoice.HOST
 
         rustc = T.cast('RustCompiler', environment.coredata.compilers[machine]['rust'])
-
-        cfg = self.cfg
+        cfg = self.cfg[MachineChoice.HOST]
 
         args: T.List[str] = []
         args.extend(self.get_lint_args(rustc))
@@ -403,7 +404,7 @@ class Interpreter:
             if member in processed_members:
                 return
             pkg = ws.packages[member]
-            cfg = pkg.cfg
+            cfg = pkg.cfg[MachineChoice.HOST]
             if not cfg:
                 raise MesonException(f'Package {pkg.manifest.package.name!r} is not enabled for this build '
                                      'configuration. Maybe you forgot to enable a Cargo feature, or to check '
@@ -544,10 +545,10 @@ class Interpreter:
     def _prepare_package(self, pkg: PackageState) -> None:
         key = PackageKey(pkg.manifest.package.name, pkg.manifest.package.api)
         assert key in self.packages
-        if pkg.cfg:
+        if pkg.cfg[MachineChoice.HOST]:
             return
 
-        pkg.cfg = PackageConfiguration()
+        pkg.cfg[MachineChoice.HOST] = PackageConfiguration()
         # Merge target specific dependencies that are enabled
         cfgs = self._get_cfgs(MachineChoice.HOST)
         for condition, dependencies in pkg.manifest.target.items():
@@ -572,7 +573,7 @@ class Interpreter:
             if not dep.optional:
                 self._add_dependency(pkg, depname)
 
-    def _dep_package(self, pkg: PackageState, dep: Dependency) -> PackageState:
+    def _dep_package(self, pkg: PackageState, dep: Dependency, cfg: PackageConfiguration) -> PackageState:
         if dep.path:
             ws = self.workspaces[pkg.ws_subdir]
             dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
@@ -594,8 +595,8 @@ class Interpreter:
             dep.update_version(f'={dep_pkg.manifest.package.version}')
 
         dep_key = PackageKey(dep.package, dep.api)
-        pkg.cfg.dep_packages.setdefault(dep_key, dep_pkg)
-        assert pkg.cfg.dep_packages[dep_key] == dep_pkg
+        cfg.dep_packages.setdefault(dep_key, dep_pkg)
+        assert cfg.dep_packages[dep_key] == dep_pkg
         return dep_pkg
 
     def _load_manifest(self, subdir: str, workspace: T.Optional[Workspace] = None, member_path: str = '') -> T.Tuple[T.Union[Manifest, Workspace], bool]:
@@ -620,7 +621,7 @@ class Interpreter:
         return manifest_, False
 
     def _add_dependency(self, pkg: PackageState, depname: str) -> None:
-        cfg = pkg.cfg
+        cfg = pkg.cfg[MachineChoice.HOST]
         if depname in cfg.required_deps:
             return
         dep = pkg.manifest.dependencies.get(depname)
@@ -628,7 +629,7 @@ class Interpreter:
             # It could be build/dev/target dependency. Just ignore it.
             return
         cfg.required_deps.add(depname)
-        dep_pkg = self._dep_package(pkg, dep)
+        dep_pkg = self._dep_package(pkg, dep, cfg)
         self._prepare_package(dep_pkg)
         if dep.default_features:
             self._enable_feature(dep_pkg, 'default')
@@ -638,7 +639,7 @@ class Interpreter:
             self._enable_feature(dep_pkg, f)
 
     def _enable_feature(self, pkg: PackageState, feature: str) -> None:
-        cfg = pkg.cfg
+        cfg = pkg.cfg[MachineChoice.HOST]
         if feature in cfg.features:
             return
         cfg.features.add(feature)
@@ -653,7 +654,7 @@ class Interpreter:
                     self._add_dependency(pkg, depname)
                 if depname in cfg.required_deps:
                     dep = pkg.manifest.dependencies[depname]
-                    dep_pkg = self._dep_package(pkg, dep)
+                    dep_pkg = self._dep_package(pkg, dep, cfg)
                     self._enable_feature(dep_pkg, dep_f)
                 else:
                     # This feature will be enabled only if that dependency
