@@ -3364,6 +3364,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             assert isinstance(preferred_library, str), 'for mypy'
             if preferred_library == 'both':
                 preferred_library = 'shared'
+        assert preferred_library in {'shared', 'static'}
+        preferred_library = T.cast('Literal["static", "shared"]', preferred_library)
 
         if self.backend.name == 'xcode':
             # Xcode is a bit special in that you can't (at least for the moment)
