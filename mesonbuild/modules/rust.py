@@ -33,7 +33,7 @@ if T.TYPE_CHECKING:
     from . import ModuleState
     from .. import cargo
     from ..build import ExecutableKeywordArguments, GeneratedTypes, IncludeDirs, LinkableTargetTypes, CommandTypes
-    from ..cargo.interpreter import RUST_ABI
+    from ..cargo.interpreter import RUST_ABI, PackageConfiguration
     from ..compilers.compilers import Language
     from ..compilers.rust import RustCompiler
     from ..dependencies import ExternalLibrary
@@ -162,7 +162,7 @@ class RustWorkspace(ModuleObject):
         """Returns list of package names in workspace."""
         package_names = [pkg.manifest.package.name
                          for pkg in self.ws.packages.values()
-                         if pkg.cfg]
+                         if pkg.cfg.host or pkg.cfg.build]
         return sorted(package_names)
 
     @typed_pos_args('workspace.package', optargs=[str])
@@ -232,6 +232,10 @@ class RustCrate(ModuleObject):
             'rust_dependency_map': self.rust_dependency_map_method, # type: ignore[dict-item]
         })
 
+    @property
+    def cfg(self) -> PackageConfiguration:
+        return self.package.cfg[MachineChoice.HOST]
+
     @noPosargs
     @noKwargs
     def name_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> str:
@@ -260,7 +264,7 @@ class RustCrate(ModuleObject):
     @noKwargs
     def features_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns chosen features for specific package."""
-        return sorted(list(self.package.cfg.features))
+        return sorted(list(self.cfg.features))
 
     @noPosargs
     @noKwargs
@@ -278,7 +282,7 @@ class RustCrate(ModuleObject):
     @noKwargs
     def rust_dependency_map_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.Dict[str, str]:
         """Returns rust dependency mapping for this package."""
-        return self.package.cfg.get_dependency_map(self.package.manifest)
+        return self.cfg.get_dependency_map(self.package.manifest)
 
 
 class RustPackage(RustCrate):
@@ -286,7 +290,7 @@ class RustPackage(RustCrate):
 
     def __init__(self, state: ModuleState, rust_ws: RustWorkspace, package: cargo.PackageState, for_machine: MachineChoice) -> None:
         super().__init__(state, rust_ws, package, for_machine)
-        if not package.cfg:
+        if not package.cfg[MachineChoice.HOST]:
             raise MesonException(f"package {self.package.manifest.package.name}-{self.package.manifest.package.version} not configured")
         self.methods.update({
             'dependencies': self.dependencies_method,
@@ -300,10 +304,8 @@ class RustPackage(RustCrate):
     def _dependencies_method(self, state: ModuleState, kwargs: RustPackageDependencies,
                              for_machine: MachineChoice) -> T.List[Dependency]:
         dependencies: T.List[Dependency] = []
-        cfg = self.package.cfg
-
         if kwargs['dependencies']:
-            for dep_key, dep_pkg in cfg.dep_packages.items():
+            for dep_key, dep_pkg in self.cfg.dep_packages.items():
                 if dep_pkg.manifest.lib:
                     if dep_pkg.ws_subdir != self.rust_ws.subdir or \
                         is_parent_path(os.path.join(self.rust_ws.subdir, state.subproject_dir),
@@ -319,7 +321,7 @@ class RustPackage(RustCrate):
 
         if kwargs['system_dependencies']:
             for name, sys_dep in self.package.manifest.system_dependencies.items():
-                if sys_dep.enabled(cfg.features):
+                if sys_dep.enabled(self.cfg.features):
                     # System dependencies use the original dependency name from Cargo.toml
                     dependency = state.dependency(sys_dep.name, native=(for_machine == MachineChoice.BUILD),
                                                   required=not sys_dep.optional,
@@ -359,8 +361,7 @@ class RustPackage(RustCrate):
         kwargs['dependencies'].extend(deps)
 
         depmap = kwargs['rust_dependency_map']
-        kwargs['rust_dependency_map'] = \
-            self.package.cfg.get_dependency_map(self.package.manifest)
+        kwargs['rust_dependency_map'] = self.cfg.get_dependency_map(self.package.manifest)
         kwargs['rust_dependency_map'].update(depmap)
 
         rust_args = kwargs['rust_args']
