@@ -1203,7 +1203,7 @@ class NinjaBackend(backends.Backend):
         # they use or export.
         for s in scan_sources:
             elem.deps.add(s[0])
-        elem.orderdeps.update(object_deps)
+        elem.add_orderdep(self.order_deps_to_strings(target, object_deps))
         elem.add_item('name', target.name)
         self.add_build(elem)
 
@@ -2279,8 +2279,7 @@ class NinjaBackend(backends.Backend):
         element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, main_rust_file)
         if orderdeps:
             element.add_orderdep(orderdeps)
-        if fortran_order_deps:
-            element.add_orderdep(fortran_order_deps)
+        element.add_orderdep(self.order_deps_to_strings(target, fortran_order_deps))
         if deps:
             # dependencies need to cause a relink, they're not just for ordering
             element.add_dep(deps)
@@ -3201,6 +3200,16 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             src_type_to_args[src_type_str] = commands.to_native()
         return src_type_to_args
 
+    def order_deps_to_strings(self, target: build.BuildTarget, order_deps: T.List[File] | T.List[FileOrString]) -> T.List[str]:
+        result: T.List[str] = []
+        for d in order_deps:
+            if isinstance(d, File):
+                d = d.rel_to_builddir(self.build_to_src)
+            elif not self.has_dir_part(d):
+                d = os.path.join(self.get_target_private_dir(target), d)
+            result.append(d)
+        return result
+
     def generate_single_compile(self, target: build.BuildTarget, src: FileOrString,
                                 is_generated: bool = False,
                                 header_deps: T.Optional[T.List[FileOrString]] = None,
@@ -3323,12 +3332,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_header_deps(target, element, header_deps)
         for d in extra_deps:
             element.add_dep(d)
-        for d in order_deps:
-            if isinstance(d, File):
-                d = d.rel_to_builddir(self.build_to_src)
-            elif not self.has_dir_part(d):
-                d = os.path.join(self.get_target_private_dir(target), d)
-            element.add_orderdep(d)
+        element.add_orderdep(self.order_deps_to_strings(target, order_deps))
         element.add_dep(pch_dep)
         if not self.use_dyndeps_for_fortran():
             for i in self.get_fortran_module_deps(target, compiler):
