@@ -2821,7 +2821,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 continue
             self.generate_genlist_for_target(genlist, target)
 
-    def replace_paths(self, target: build.BuildTarget, args: T.List[str], override_subdir: T.Optional[str] = None) -> T.List[str]:
+    def replace_paths(self, target: build.BuildTarget | build.CustomTarget, args: T.List[str], override_subdir: T.Optional[str] = None) -> T.List[str]:
         if override_subdir:
             source_target_dir = os.path.join(self.build_to_src, override_subdir)
         else:
@@ -2835,7 +2835,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         args = [x.replace('\\', '/') for x in args]
         return args
 
-    def generate_genlist_for_target(self, genlist: build.GeneratedList, target: build.BuildTarget) -> None:
+    def generate_genlist_for_target(self, genlist: build.GeneratedList, target: build.BuildTarget | build.CustomTarget) -> None:
         for x in genlist.depends:
             if isinstance(x, build.GeneratedList):
                 self.generate_genlist_for_target(x, target)
