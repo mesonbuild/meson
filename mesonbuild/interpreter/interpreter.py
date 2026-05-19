@@ -114,6 +114,7 @@ import itertools
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
+    import types
 
     from .. import cargo
     from . import kwargs as kwtypes
@@ -1487,17 +1488,17 @@ class Interpreter(InterpreterBase, HoldableObject):
         'expect_error',
         KwargInfo('how', str, default='literal', validator=in_set_validator({'literal', 're'})),
     )
-    def func_expect_error(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: TYPE_kwargs) -> ContextManagerObject:
+    def func_expect_error(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: kwtypes.FuncExpectError) -> ContextManagerObject:
         class ExpectErrorObject(ContextManagerObject):
             def __init__(self, msg: str, how: str, subproject: SubProject) -> None:
                 super().__init__(subproject)
                 self.old_stdout = sys.stdout
                 sys.stdout = self.new_stdout = io.StringIO()
-                sys.stdout.colorize_console = getattr(self.old_stdout, 'colorize_console', None)
+                sys.stdout.colorize_console = getattr(self.old_stdout, 'colorize_console', None)  # type: ignore[attr-defined]
                 self.msg = msg
                 self.how = how
 
-            def __exit__(self, exc_type, exc_val, exc_tb):
+            def __exit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: types.TracebackType) -> bool:
                 sys.stdout = self.old_stdout
                 for l in self.new_stdout.getvalue().splitlines():
                     if 'ERROR:' in l:
@@ -1512,6 +1513,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                        (self.how == 're' and not re.match(self.msg, msg)):
                         raise InterpreterException(f'Expecting error {self.msg!r} but got {msg!r}')
                     return True
+                return False
         return ExpectErrorObject(args[0], kwargs['how'], self.subproject)
 
     def add_languages(self, args: T.List[Language], required: bool, for_machine: MachineChoice) -> bool:
