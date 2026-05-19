@@ -3714,14 +3714,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         try:
             static_patterns = linker.get_library_naming(LibType.STATIC, strict=True)
             shared_patterns = linker.get_library_naming(LibType.SHARED, strict=True)
-            search_dirs = tuple(search_dirs) + tuple(linker.get_library_dirs())
+            search_dirs_tuple = tuple(search_dirs) + tuple(linker.get_library_dirs())
             for libname in libs:
                 # be conservative and record most likely shared and static resolution, because we don't know exactly
                 # which one the linker will prefer
                 staticlibs = self.guess_library_absolute_path(linker, libname,
-                                                              search_dirs, static_patterns)
+                                                              search_dirs_tuple, static_patterns)
                 sharedlibs = self.guess_library_absolute_path(linker, libname,
-                                                              search_dirs, shared_patterns)
+                                                              search_dirs_tuple, shared_patterns)
                 if staticlibs:
                     guessed_dependencies.append(staticlibs.resolve().as_posix())
                 if sharedlibs:
@@ -3841,7 +3841,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add link args to link to all internal libraries (link_with:) and
         # internal dependencies needed by this target.
         dep_targets: T.List[str] = []
-        dependencies: T.List[build.BuildTargetTypes]
+        dependencies: T.Iterable[build.BuildTargetTypes]
         if isinstance(target, build.StaticLibrary):
             # Link arguments of static libraries are not put in the command
             # line of the library. They are instead appended to the command
