@@ -544,7 +544,7 @@ class Backend:
     def get_executable_serialisation(
             self, cmd: T.Sequence[T.Union[programs.Program, build.BuildTargetTypes, File, str]],
             workdir: T.Optional[str] = None,
-            extra_bdeps: T.Optional[T.Sequence[build.BuildTargetTypes]] = None,
+            extra_bdeps: T.Optional[T.Iterable[build.BuildTargetTypes]] = None,
             capture: T.Optional[str] = None,
             feed: T.Optional[str] = None,
             env: T.Optional[mesonlib.EnvironmentVariables] = None,
@@ -634,7 +634,7 @@ class Backend:
     def as_meson_exe_cmdline(self, exe: T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.Program],
                              cmd_args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.Program]],
                              workdir: T.Optional[str] = None,
-                             extra_bdeps: T.Optional[T.Sequence[build.BuildTargetTypes]] = None,
+                             extra_bdeps: T.Optional[T.Iterable[build.BuildTargetTypes]] = None,
                              capture: T.Optional[str] = None,
                              feed: T.Optional[str] = None,
                              force_serialize: bool = False,
@@ -1138,7 +1138,7 @@ class Backend:
 
     def determine_windows_extra_paths(
             self, target: T.Union[build.BuildTargetTypes, programs.Program, mesonlib.File, str],
-            extra_bdeps: T.Sequence[build.BuildTargetTypes]) -> T.List[str]:
+            extra_bdeps: T.Iterable[build.BuildTargetTypes]) -> T.List[str]:
         """On Windows there is no such thing as an rpath.
 
         We must determine all locations of DLLs that this exe
