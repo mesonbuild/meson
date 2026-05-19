@@ -52,6 +52,7 @@ if T.TYPE_CHECKING:
 
     CommandArgTypes = T.TypeVar('CommandArgTypes', 'NinjaCommandArg', str, 'NinjaCommandArg | str')
     CommandArgs = T.List[CommandArgTypes]
+    FileList = T.List[File] | T.List[str] | T.List[File | str]
     ListifiedStr = str | T.List[str]
     RUST_EDITIONS = Literal['2015', '2018', '2021', '2024']
 
@@ -834,9 +835,9 @@ class NinjaBackend(backends.Backend):
 
     def create_target_source_introspection(self, target: build.Target, comp: compilers.Compiler,
                                            parameters: CompilerArgs | T.List[str],
-                                           sources: T.List[FileOrString],
-                                           generated_sources: T.List[FileOrString],
-                                           unity_sources: T.Optional[T.List[FileOrString]] = None) -> None:
+                                           sources: FileList,
+                                           generated_sources: FileList,
+                                           unity_sources: T.Optional[T.List[str]] = None) -> None:
         '''
         Adds the source file introspection information for a language of a target
 
@@ -1172,7 +1173,7 @@ class NinjaBackend(backends.Backend):
     def generate_dependency_scan_target(self, target: build.BuildTarget,
                                         compiled_sources: T.List[str],
                                         source2object: T.Dict[str, str],
-                                        object_deps: T.List[FileOrString]) -> None:
+                                        object_deps: T.List[File]) -> None:
         if not self.should_use_dyndeps_for_target(target):
             return
         self._uses_dyndeps = True
@@ -2249,7 +2250,7 @@ class NinjaBackend(backends.Backend):
         return deps, project_deps, args
 
     def generate_rust_target(self, target: build.BuildTarget, target_name: str, obj_list: T.List[str],
-                             fortran_order_deps: T.List[str]) -> None:
+                             fortran_order_deps: T.List[File]) -> None:
         orderdeps, main_rust_file = self.generate_rust_sources(target)
         if main_rust_file is None:
             raise RuntimeError('A Rust target has no Rust sources. This is weird. Also a bug. Please report')
@@ -3203,9 +3204,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_single_compile(self, target: build.BuildTarget, src: FileOrString,
                                 is_generated: bool = False,
                                 header_deps: T.Optional[T.List[FileOrString]] = None,
-                                order_deps: T.Optional[T.List[FileOrString]] = None,
+                                order_deps: T.Optional[T.List[File] | T.List[FileOrString]] = None,
                                 extra_args: T.Optional[T.List[str]] = None,
-                                unity_sources: T.Optional[T.List[FileOrString]] = None,
+                                unity_sources: T.Optional[T.List[str]] = None,
                                 ) -> T.Tuple[str, str]:
         """
         Compiles C/C++, ObjC/ObjC++, Fortran, and D sources
