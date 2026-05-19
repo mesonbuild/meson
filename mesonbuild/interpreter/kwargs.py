@@ -381,7 +381,7 @@ class _BaseBuildTarget(TypedDict):
     link_depends: T.List[T.Union[str, File, build.BuildTargetTypes]]
     link_language: T.Optional[Language]
     link_whole: T.List[build.StaticTargetTypes]
-    link_with: T.List[build.BuildTargetTypes]
+    link_with: T.List[build.LinkableTargetTypes]
     name_prefix: T.Optional[str]
     name_suffix: T.Optional[str]
     native: MachineChoice
