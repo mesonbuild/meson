@@ -98,7 +98,7 @@ class InterpreterBase:
         # current meson version target within that if-block.
         self.tmp_meson_version: T.Optional[str] = None
 
-    def handle_meson_version_from_ast(self, strict: bool = True) -> None:
+    def handle_meson_version_from_ast(self) -> None:
         # do nothing in an AST interpreter
         return
 
