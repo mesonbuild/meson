@@ -1371,7 +1371,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             success &= self.add_languages(langs, False, MachineChoice.BUILD)
             return success
 
-    def _stringify_user_arguments(self, args: T.List[TYPE_var], func_name: str) -> mlog.TV_LoggableList:
+    def _stringify_user_arguments(self, args: T.List[TYPE_var], func_name: str) -> list[str]:
         try:
             return [stringifyUserArguments(i, self.subproject) for i in args]
         except InvalidArguments as e:
@@ -1385,7 +1385,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         args_str = self._stringify_user_arguments(args, 'message')
         self.message_impl(args_str)
 
-    def message_impl(self, args: mlog.TV_LoggableList) -> None:
+    def message_impl(self, args: mlog.TV_LoggableList | list[str]) -> None:
         mlog.log(mlog.bold('Message:'), *args)
 
     @noArgsFlattening
