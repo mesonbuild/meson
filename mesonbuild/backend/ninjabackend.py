@@ -2145,7 +2145,7 @@ class NinjaBackend(backends.Backend):
             if isinstance(d, build.StaticLibrary):
                 external_deps.extend(d.external_deps)
             if d.uses_rust_abi():
-                if d not in itertools.chain(target.link_targets, target.link_whole_targets):
+                if d not in target.link_targets and d not in target.link_whole_targets:
                     # Indirect Rust ABI dependency, we only need its path in linkdirs.
                     continue
                 assert isinstance(d, build.BuildTarget)
