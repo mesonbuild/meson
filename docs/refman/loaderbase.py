@@ -8,7 +8,7 @@ import typing as T
 
 from .model import (
     NamedObject,
-    FetureCheck,
+    FeatureCheck,
     ArgBase,
     PosArg,
     DataTypeInfo,
@@ -36,7 +36,7 @@ class _Resolver:
         assert obj.name.islower(), f'Object names must be lower case ({obj.name})'
         assert name_regex.match(obj.name) or obj.name == '[index]', f'Invalid name {obj.name}'
 
-    def _validate_feature_check(self, obj: FetureCheck) -> None:
+    def _validate_feature_check(self, obj: FeatureCheck) -> None:
         meson_version_reg = re.compile(r'[0-9]+\.[0-9]+\.[0-9]+')
         obj.since = obj.since.strip()
         obj.deprecated = obj.deprecated.strip()
