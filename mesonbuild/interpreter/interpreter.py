@@ -189,7 +189,7 @@ class Summary:
         self.sections: collections.defaultdict[str, dict[str, tuple[mlog.TV_LoggableList, str | None]]] = collections.defaultdict(dict)
         self.max_key_len = 0
 
-    def add_section(self, section: str, values: T.Dict[str, T.Any], bool_yn: bool,
+    def add_section(self, section: str, values: T.Dict[str, mlog.TV_Loggable | mlog.TV_LoggableList], bool_yn: bool,
                     list_sep: T.Optional[str], subproject: SubProject) -> None:
         for k, v in values.items():
             if k in self.sections[section]:
@@ -1409,7 +1409,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             values = {args[0]: args[1]}
         self.summary_impl(values=values, **kwargs)
 
-    def summary_impl(self, section: str, values: dict[str, T.Any], bool_yn: bool, list_sep: str | None) -> None:
+    def summary_impl(self, section: str, values: dict[str, mlog.TV_Loggable | mlog.TV_LoggableList], bool_yn: bool, list_sep: str | None) -> None:
         if self.subproject not in self.summary:
             self.summary[self.subproject] = Summary(self.active_projectname, self.project_version)
         self.summary[self.subproject].add_section(
@@ -1417,9 +1417,9 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def _print_summary(self) -> None:
         # Add automatic 'Subprojects' section in main project.
-        all_subprojects = collections.OrderedDict()
+        all_subprojects: dict[str, mlog.TV_Loggable | mlog.TV_LoggableList] = {}
         for name, subp in sorted(self.subprojects.items()):
-            value = [subp.found()]
+            value: mlog.TV_LoggableList = [subp.found()]
             if subp.disabled_feature:
                 value += [f'Feature {subp.disabled_feature!r} disabled']
             elif subp.exception:
@@ -1434,19 +1434,13 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.summary_impl('Subprojects', all_subprojects, bool_yn=True, list_sep=' ')
         # Add automatic section with all user defined options
         if self.user_defined_options:
-            values = collections.OrderedDict()
+            values: dict[str, mlog.TV_Loggable | mlog.TV_LoggableList] = {}
             if self.user_defined_options.cross_file:
                 values['Cross files'] = self.user_defined_options.cross_file
             if self.user_defined_options.native_file:
                 values['Native files'] = self.user_defined_options.native_file
 
-            def compatibility_sort_helper(s):
-                if isinstance(s, tuple):
-                    s = s[0]
-                if isinstance(s, str):
-                    return s
-                return s.name
-            sorted_options = sorted(self.user_defined_options.cmd_line_options.items(), key=compatibility_sort_helper)
+            sorted_options = sorted(self.user_defined_options.cmd_line_options.items(), key=lambda x: x[0].name)
             values.update({str(k): v for k, v in sorted_options})
             if values:
                 self.summary_impl('User defined options', values, bool_yn=False, list_sep=None)
