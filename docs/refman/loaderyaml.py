@@ -37,27 +37,27 @@ class StrictTemplate(Template):
             'description': Str(),
         }
 
-        d_feture_check = {
+        d_feature_check = {
             Optional('since', default=''): Str(),
             Optional('deprecated', default=''): Str(),
         }
 
         self.s_posarg = Map({
-            **d_feture_check,
+            **d_feature_check,
             'description': Str(),
             'type': Str(),
             Optional('default', default=''): Str(),
         })
 
         self.s_varargs = Map({
-            **d_named_object, **d_feture_check,
+            **d_named_object, **d_feature_check,
             'type': Str(),
             Optional('min_varargs', default=-1): Int(),
             Optional('max_varargs', default=-1): Int(),
         })
 
         self.s_kwarg = Map({
-            **d_feture_check,
+            **d_feature_check,
             'type': Str(),
             'description': Str(),
             Optional('required', default=False): Bool(),
@@ -65,7 +65,7 @@ class StrictTemplate(Template):
         })
 
         self.s_function = Map({
-            **d_named_object, **d_feture_check,
+            **d_named_object, **d_feature_check,
             'returns': Str(),
             Optional('notes', default=[]): OrValidator(Seq(Str()), EmptyList()),
             Optional('warnings', default=[]): OrValidator(Seq(Str()), EmptyList()),
@@ -82,7 +82,7 @@ class StrictTemplate(Template):
         })
 
         self.s_object = Map({
-            **d_named_object, **d_feture_check,
+            **d_named_object, **d_feature_check,
             'long_name': Str(),
             Optional('extends', default=''): Str(),
             Optional('notes', default=[]): OrValidator(Seq(Str()), EmptyList()),
