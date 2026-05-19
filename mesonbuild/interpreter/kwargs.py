@@ -312,7 +312,7 @@ class ConfigurationDataSet(TypedDict):
 
 class VcsTag(TypedDict):
 
-    command: T.List[T.Union[str, build.GeneratedTypes, Program, File]]
+    command: T.List[T.Union[str, build.BuildTargetTypes, Program, File]]
     fallback: T.Optional[str]
     input: T.List[T.Union[str, build.BuildTarget, build.GeneratedTypes,
                           build.ExtractedObjects, Program, File]]
