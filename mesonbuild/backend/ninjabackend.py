@@ -1768,7 +1768,7 @@ class NinjaBackend(backends.Backend):
             # If the Vala file is outside the build directory, the paths from
             # the --basedir till the subdir will be duplicated inside the
             # private builddir.
-            if isinstance(gensrc, (build.CustomTarget, build.GeneratedList)) or gensrc.is_built:
+            if isinstance(gensrc, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) or gensrc.is_built:
                 vala_c_file = os.path.splitext(os.path.basename(vala_file))[0] + '.c'
                 # Check if the vala file is in a subdir of --basedir
                 abs_srcbasedir = os.path.join(self.environment.get_source_dir(), target.get_subdir())
