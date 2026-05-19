@@ -1,6 +1,11 @@
 {
   "matrix": {
     "options": {
+      "version": [
+        { "val": "qt4" },
+        { "val": "qt5" },
+        { "val": "qt6" }
+      ],
       "method": [
         { "val": "config-tool" },
         { "val": "qmake" },
