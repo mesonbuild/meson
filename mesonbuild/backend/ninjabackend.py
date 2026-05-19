@@ -3574,7 +3574,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             elem.add_item('CROSS', '--cross-host=' + self.environment.machines[target.for_machine].system)
         self.add_build(elem)
 
-    def get_import_filename(self, target: build.BuildTarget) -> str:
+    def get_import_filename(self, target: build.Executable | build.SharedLibrary) -> str:
         return os.path.join(self.get_target_dir(target), target.import_filename)
 
     def get_target_type_link_args(self, target: build.BuildTarget, linker: T.Union[StaticLinker, Compiler]) -> T.List[str]:
