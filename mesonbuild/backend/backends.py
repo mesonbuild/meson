@@ -483,7 +483,7 @@ class Backend:
                                os.path.join('dummyprefixdir', fromdir))
 
     def flatten_object_list(self, target: build.BuildTarget, proj_dir_to_build_root: str = ''
-                            ) -> T.Tuple[T.List[str], T.List[build.BuildTargetTypes]]:
+                            ) -> T.Tuple[T.List[str], T.List[build.BuildTarget]]:
         obj_list, deps = self._flatten_object_list(target, target.get_objects(), proj_dir_to_build_root)
         return unique_list(obj_list), deps
 
@@ -493,9 +493,9 @@ class Backend:
 
     def _flatten_object_list(self, target: build.BuildTarget,
                              objects: T.Sequence[build.ObjectTypes],
-                             proj_dir_to_build_root: str) -> T.Tuple[T.List[str], T.List[build.BuildTargetTypes]]:
+                             proj_dir_to_build_root: str) -> T.Tuple[T.List[str], T.List[build.BuildTarget]]:
         obj_list: T.List[str] = []
-        deps: T.List[build.BuildTargetTypes] = []
+        deps: T.List[build.BuildTarget] = []
         for obj in objects:
             if isinstance(obj, str):
                 o = os.path.join(proj_dir_to_build_root,
