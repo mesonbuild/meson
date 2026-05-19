@@ -240,7 +240,7 @@ class Project(TypedDict):
 
     version: T.Optional[FileOrString]
     meson_version: T.Optional[str]
-    default_options: T.List[str]
+    default_options: options.OptionDict
     license: T.List[str]
     license_files: T.List[str]
     subproject_dir: str
