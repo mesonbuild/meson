@@ -358,7 +358,7 @@ class DoSubproject(ExtractRequired):
     options: T.Optional[CMakeSubprojectOptions]
 
 
-class _BaseBuildTarget(TypedDict):
+class BaseBuildTarget(TypedDict):
 
     """Arguments used by all BuildTarget like functions.
 
@@ -394,7 +394,7 @@ class _BaseBuildTarget(TypedDict):
     vala_gir: T.Optional[str]
 
 
-class BuildTarget(_BaseBuildTarget):
+class BuildTarget(BaseBuildTarget):
 
     """Arguments shared by non-JAR functions"""
 
@@ -520,7 +520,7 @@ class _JarMixin(TypedDict):
     java_args: T.List[str]
 
 
-class Jar(_BaseBuildTarget, _JarMixin):
+class Jar(BaseBuildTarget, _JarMixin):
 
     sources: T.Union[str, File, build.GeneratedTypes, build.ExtractedObjects, build.BuildTarget]
 

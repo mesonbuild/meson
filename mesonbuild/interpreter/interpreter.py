@@ -3442,7 +3442,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         return depend_files, args
 
-    def __process_language_args(self, kwargs: kwtypes.BuildTarget
+    def __process_language_args(self, kwargs: kwtypes.BaseBuildTarget,
                                 ) -> T.Tuple[T.DefaultDict[Language, T.List[str]], T.List[mesonlib.File]]:
         """Convert split language args into a combined dictionary.
 
