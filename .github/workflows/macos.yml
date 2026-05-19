@@ -46,7 +46,7 @@ jobs:
     - name: Install Python dependencies
       run: |
         python3 -m pip install pytest pytest-xdist pytest-subtests fastjsonschema
-    - run: brew install pkg-config ninja llvm qt@5
+    - run: brew install pkg-config ninja llvm qt@6
     - env:
         CPPFLAGS: "-I/opt/homebrew/include"
         LDFLAGS: "-L/opt/homebrew/lib"
@@ -56,8 +56,8 @@ jobs:
         # These cannot evaluate anything, so we cannot set PATH or SDKROOT here
       run: |
         export SDKROOT="$(xcodebuild -version -sdk macosx Path)"
-        export PATH="$HOME/tools:/opt/homebrew/opt/qt@5/bin:/opt/homebrew/opt/llvm/bin:$PATH"
-        export PKG_CONFIG_PATH="/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/Current/lib/pkgconfig:/opt/homebrew/opt/qt@5/lib/pkgconfig:$PKG_CONFIG_PATH"
+        export PATH="$HOME/tools:/opt/homebrew/opt/qt@6/bin:/opt/homebrew/opt/llvm/bin:$PATH"
+        export PKG_CONFIG_PATH="/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/Current/lib/pkgconfig:/opt/homebrew/opt/qt@6/lib/pkgconfig:$PKG_CONFIG_PATH"
         python3 ./run_unittests.py
 
 
@@ -93,7 +93,7 @@ jobs:
         find /opt/homebrew/Cellar/python* -name EXTERNALLY-MANAGED -print0 | xargs -0 rm -vf
     # use python3 from homebrew because it is a valid framework, unlike the actions one:
     # https://github.com/actions/setup-python/issues/58
-    - run: brew install pkg-config ninja llvm qt@5 boost ldc hdf5 openmpi lapack scalapack sdl2 boost-python3 gtk-doc zstd ncurses objfw libomp
+    - run: brew install pkg-config ninja llvm qt@6 boost ldc hdf5 openmpi lapack scalapack sdl2 boost-python3 gtk-doc zstd ncurses objfw libomp
     - run: |
         python3 -m pip install cython
     - env:
@@ -107,6 +107,6 @@ jobs:
         export SDKROOT="$(xcodebuild -version -sdk macosx Path)"
         # Append LLVM's bin directory to PATH to prioritise Apple Clang over Homebrew Clang.
         # We need this to avoid objfw test failures.
-        export PATH="$HOME/tools:/opt/homebrew/opt/qt@5/bin:/opt/homebrew/opt/ncurses/bin:$PATH:/opt/homebrew/opt/llvm/bin"
-        export PKG_CONFIG_PATH="/opt/homebrew/opt/qt@5/lib/pkgconfig:/opt/homebrew/opt/lapack/lib/pkgconfig:/opt/homebrew/opt/ncurses/lib/pkgconfig:$PKG_CONFIG_PATH"
+        export PATH="$HOME/tools:/opt/homebrew/opt/qt@6/bin:/opt/homebrew/opt/ncurses/bin:$PATH:/opt/homebrew/opt/llvm/bin"
+        export PKG_CONFIG_PATH="/opt/homebrew/opt/qt@6/lib/pkgconfig:/opt/homebrew/opt/lapack/lib/pkgconfig:/opt/homebrew/opt/ncurses/lib/pkgconfig:$PKG_CONFIG_PATH"
         ./run_project_tests.py --backend=ninja -- $MESON_ARGS
