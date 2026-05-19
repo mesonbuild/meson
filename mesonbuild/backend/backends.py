@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from collections import OrderedDict
 from dataclasses import dataclass, InitVar
 from functools import lru_cache
 from itertools import chain
@@ -1394,13 +1393,8 @@ class Backend:
             newargs.append(arg)
         return newargs
 
-    def get_build_by_default_targets(self) -> 'T.OrderedDict[str, T.Union[build.BuildTarget, build.CustomTarget]]':
-        result: 'T.OrderedDict[str, T.Union[build.BuildTarget, build.CustomTarget]]' = OrderedDict()
-        # Get all build and custom targets that must be built by default
-        for name, b in self.build.get_targets().items():
-            if b.build_by_default:
-                result[name] = b
-        return result
+    def get_build_by_default_targets(self) -> dict[str, build.BuildTarget | build.CustomTarget | build.RunTarget]:
+        return {k: v for k, v in self.build.targets.items() if v.build_by_default}
 
     def get_testlike_targets(self, benchmark: bool = False) -> T.Iterable[T.Union[build.BuildTarget, build.CustomTarget]]:
         targets = self.build.get_benchmarks() if benchmark else self.build.get_tests()
@@ -1712,6 +1706,8 @@ class Backend:
         for t in self.build.get_targets().values():
             if not t.should_install():
                 continue
+            # Mypy doesn't understand that AliasTarget and RunTarget always return False above
+            assert isinstance(t, (build.BuildTarget, build.CustomTarget)), 'for mypy'
             outdirs = t.install_dir
             install_dir_names = t.install_dir_names()
             # Sanity-check the outputs and install_dirs
@@ -2005,6 +2001,9 @@ class Backend:
         for t in self.build.get_targets().values():
             if t.for_machine is not MachineChoice.HOST or not t.should_install():
                 continue
+
+            # Mypy doesn't understand that AliasTarget and RunTarget always return False above
+            assert isinstance(t, (build.BuildTarget, build.CustomTarget)), 'for mypy'
 
             if (host_machine.is_windows() or host_machine.is_cygwin()) and isinstance(t, (build.Executable, build.SharedModule)):
                 # On windows we cannot rely on rpath to run executables from build

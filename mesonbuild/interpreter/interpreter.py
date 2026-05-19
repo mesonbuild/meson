@@ -3304,7 +3304,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 FeatureNew.single_use(f"Target name '{name}' reserved in the root build directory, but allowed in subdirectories",
                                       '1.12.0', self.subproject, location=self.current_node)
 
-    def add_target(self, name: str, tobj: build.Target) -> None:
+    def add_target(self, name: str, tobj: build.BuildTarget | build.CustomTarget | build.RunTarget | build.AliasTarget) -> None:
         if self.backend.name == 'none':
             raise InterpreterException('Install-only backend cannot generate target rules, try using `--backend=ninja`.')
         if name == '':
