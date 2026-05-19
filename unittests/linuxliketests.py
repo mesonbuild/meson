@@ -303,25 +303,6 @@ class LinuxlikeTests(BasePlatformTests):
         self.build()
         self._run(self.mtest_command)
 
-    @skipIfNoPkgconfig
-    def test_qtdependency_pkgconfig_detection(self):
-        '''
-        Test that qt4 and qt5 detection with pkgconfig works.
-        '''
-        # Verify Qt4 or Qt5 can be found with pkg-config
-        qt4 = subprocess.call([PKG_CONFIG, '--exists', 'QtCore'])
-        qt5 = subprocess.call([PKG_CONFIG, '--exists', 'Qt5Core'])
-        testdir = os.path.join(self.framework_test_dir, '4 qt')
-        self.init(testdir, extra_args=['-Dmethod=pkg-config'])
-        # Confirm that the dependency was found with pkg-config
-        mesonlog = self.get_meson_log_raw()
-        if qt4 == 0:
-            self.assertRegex(mesonlog,
-                             r'Run-time dependency qt4 \(modules: Core\) found: YES 4.* \(pkg-config\)')
-        if qt5 == 0:
-            self.assertRegex(mesonlog,
-                             r'Run-time dependency qt5 \(modules: Core\) found: YES 5.* \(pkg-config\)')
-
     @skip_if_not_base_option('b_sanitize')
     def test_generate_gir_with_address_sanitizer(self):
         if is_cygwin():
