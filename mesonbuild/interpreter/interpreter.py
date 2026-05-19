@@ -1126,6 +1126,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             # likely good enough for most usecases.
             if not value:
                 return 'none'
+            assert isinstance(value, list), 'for mypy'
             return ','.join(sorted(value))
 
         if isinstance(value, str):
