@@ -1936,7 +1936,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @noSecondLevelHolderResolving
     def func_library(self, node: mparser.BaseNode,
                      args: T.Tuple[str, SourcesVarargsType],
-                     kwargs: kwtypes.Library) -> build.Executable:
+                     kwargs: kwtypes.Library) -> build.StaticLibrary | build.SharedLibrary | build.BothLibraries:
         return self.build_library(node, args, kwargs)
 
     @typed_pos_args('jar', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.ExtractedObjects, build.BuildTarget))
@@ -1944,7 +1944,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_jar(self, node: mparser.BaseNode,
                  args: T.Tuple[str, T.List[T.Union[str, mesonlib.File, build.GeneratedTypes]]],
                  kwargs: kwtypes.Jar) -> build.Jar:
-        return self.build_target(node, args, kwargs, build.Jar)
+        return self.build_target(node, T.cast('tuple[str, SourcesVarargsType]', args), kwargs, build.Jar)
 
     @FeatureNewKwargs('build_target', '0.40.0', ['link_whole', 'override_options'])
     @typed_pos_args('build_target', str, varargs=SOURCES_VARARGS)
