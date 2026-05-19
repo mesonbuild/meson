@@ -325,7 +325,7 @@ class LinuxlikeTests(BasePlatformTests):
                 return NonExistingExternalProgram(prog)
             return self._interpreter.find_program_impl(prog, *args, **kwargs)
         with mock.patch.object(mesonbuild.modules.ModuleState, 'find_program', _no_lrelease):
-            self.init(testdir, inprocess=True, extra_args=['-Dmethod=qmake', '-Dexpect_lrelease=false'])
+            self.init(testdir, inprocess=True, extra_args=['-Dmethod=qmake', '-Dexpect_lrelease=false', '-Dversion=qt5'])
 
     def test_qt5dependency_qmake_detection(self):
         '''
@@ -341,7 +341,7 @@ class LinuxlikeTests(BasePlatformTests):
                 raise SkipTest('Qmake found, but it is not for Qt 5.')
         # Disable pkg-config codepath and force searching with qmake/qmake-qt5
         testdir = os.path.join(self.framework_test_dir, '4 qt')
-        self.init(testdir, extra_args=['-Dmethod=qmake'])
+        self.init(testdir, extra_args=['-Dmethod=qmake', '-Dversion=qt5'])
         # Confirm that the dependency was found with qmake
         mesonlog = self.get_meson_log_raw()
         self.assertRegex(mesonlog,
@@ -361,7 +361,7 @@ class LinuxlikeTests(BasePlatformTests):
                 raise SkipTest('Qmake found, but it is not for Qt 6.')
         # Disable pkg-config codepath and force searching with qmake/qmake-qt6
         testdir = os.path.join(self.framework_test_dir, '4 qt')
-        self.init(testdir, extra_args=['-Dmethod=qmake'])
+        self.init(testdir, extra_args=['-Dmethod=qmake', '-Dversion=qt6'])
         # Confirm that the dependency was found with qmake
         mesonlog = self.get_meson_log_raw()
         self.assertRegex(mesonlog,
