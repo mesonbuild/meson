@@ -363,7 +363,7 @@ class Build:
         self.project_version: T.Optional[str] = None
         self.environment = environment
         self.projects: T.Dict[SubProject, BuildProject] = {}
-        self.targets: 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]' = OrderedDict()
+        self.targets: dict[str, CustomTarget | BuildTarget | RunTarget | AliasTarget] = {}
         self.targetnames: T.Set[T.Tuple[str, str]] = set() # Set of executable names and their subdir
         self.global_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
         self.global_link_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
@@ -458,7 +458,7 @@ class Build:
     def get_subproject_dir(self) -> str:
         return self.subproject_dir
 
-    def get_targets(self) -> 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]':
+    def get_targets(self) -> dict[str, CustomTarget | BuildTarget | RunTarget | AliasTarget]:
         return self.targets
 
     def get_tests(self) -> T.List['Test']:
