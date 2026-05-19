@@ -196,7 +196,7 @@ class FuncIncludeDirectories(TypedDict):
 
 class FuncAddLanguages(ExtractRequired):
 
-    native: T.Optional[bool]
+    native: MachineChoice | None
 
 class RunTarget(TypedDict):
 
