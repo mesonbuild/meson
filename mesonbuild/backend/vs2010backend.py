@@ -92,13 +92,13 @@ def split_o_flags_args(args: T.List[str]) -> T.List[str]:
             o_flags += ['/O' + f for f in flags]
     return o_flags
 
-def generate_guid_from_path(path, path_type) -> str:
+def generate_guid_from_path(path: str | os.PathLike[str], path_type: str) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_URL, 'meson-vs-' + path_type + ':' + str(path))).upper()
 
 def detect_microsoft_gdk(platform: str) -> bool:
-    return re.match(r'Gaming\.(Desktop|Xbox.XboxOne|Xbox.Scarlett)\.x64', platform, re.IGNORECASE)
+    return re.match(r'Gaming\.(Desktop|Xbox.XboxOne|Xbox.Scarlett)\.x64', platform, re.IGNORECASE) is not None
 
-def filtered_src_langs_generator(sources: T.List[str]):
+def filtered_src_langs_generator(sources: T.List[str]) -> T.Iterable[Language]:
     for src in sources:
         ext = src.split('.')[-1]
         if compilers.compilers.is_source_suffix(ext):
@@ -110,8 +110,8 @@ def filtered_src_langs_generator(sources: T.List[str]):
 # simply refer to the project's shared intellisense define and include fields, rather than have to fill out their
 # own duplicate full set of defines/includes/opts intellisense fields.  All of which helps keep the vcxproj file
 # size down.
-def get_primary_source_lang(target_sources: T.List[File], custom_sources: T.List[str]) -> T.Optional[str]:
-    lang_counts = Counter([compilers.compilers.SUFFIX_TO_LANG[src.suffix] for src in target_sources if compilers.compilers.is_source_suffix(src.suffix)])
+def get_primary_source_lang(target_sources: T.List[File], custom_sources: T.List[str]) -> T.Optional[Language]:
+    lang_counts: Counter[Language] = Counter([compilers.compilers.SUFFIX_TO_LANG[src.suffix] for src in target_sources if compilers.compilers.is_source_suffix(src.suffix)])
     lang_counts += Counter(filtered_src_langs_generator(custom_sources))
     most_common_lang_list = lang_counts.most_common(1)
     # It may be possible that we have a target with no actual src files of interest (e.g. a generator target),
@@ -147,14 +147,14 @@ class Vs2010Backend(backends.Backend):
         self.platform_toolset = None
         self.vs_version = '2010'
         self.windows_target_platform_version = None
-        self.subdirs = {}
+        self.subdirs: dict[PurePath, tuple[str, str | None]] = {}
         self.handled_target_deps = {}
         self.gen_lite = gen_lite  # Synonymous with generating the simpler makefile-style multi-config projects that invoke 'meson compile' builds, avoiding native MSBuild complications
 
     def detect_toolset(self) -> None:
         pass
 
-    def get_target_private_dir(self, target):
+    def get_target_private_dir(self, target: build.BuildTargetTypes) -> str:
         return os.path.join(self.get_target_dir(target), target.get_id())
 
     def generate_genlist_for_target(self, genlist: build.GeneratedTypes, target: build.BuildTarget, parent_node: ET.Element, generator_output_files: T.List[str], custom_target_include_dirs: T.List[str], custom_target_output_files: T.List[str]) -> None:
@@ -234,7 +234,7 @@ class Vs2010Backend(backends.Backend):
 
     def generate(self,
                  capture: bool = False,
-                 vslite_ctx: T.Optional[T.Dict] = None) -> T.Optional[T.Dict]:
+                 vslite_ctx: T.Optional[T.Dict] = None) -> None:
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect any vs backend to generate with \'capture = True\'')
@@ -296,7 +296,7 @@ class Vs2010Backend(backends.Backend):
         Vs2010Backend.touch_regen_timestamp(self.environment.get_build_dir())
 
     @staticmethod
-    def get_regen_stampfile(build_dir: str) -> None:
+    def get_regen_stampfile(build_dir: str) -> str:
         return os.path.join(os.path.join(build_dir, Environment.private_dir), 'regen.stamp')
 
     @staticmethod
@@ -304,7 +304,7 @@ class Vs2010Backend(backends.Backend):
         with open(Vs2010Backend.get_regen_stampfile(build_dir), 'w', encoding='utf-8'):
             pass
 
-    def get_vcvars_command(self):
+    def get_vcvars_command(self) -> str:
         has_arch_values = 'VSCMD_ARG_TGT_ARCH' in os.environ and 'VSCMD_ARG_HOST_ARCH' in os.environ
 
         # Use vcvarsall.bat if we found it.
@@ -592,14 +592,14 @@ class Vs2010Backend(backends.Backend):
                 headers.append(i)
         return sources, headers, objects, languages
 
-    def target_to_build_root(self, target):
+    def target_to_build_root(self, target: build.BuildTargetTypes) -> str:
         if self.get_target_dir(target) == '':
             return ''
 
         directories = os.path.normpath(self.get_target_dir(target)).split(os.sep)
         return os.sep.join(['..'] * len(directories))
 
-    def quote_arguments(self, arr):
+    def quote_arguments(self, arr: list[str]) -> list[str]:
         return ['"%s"' % i for i in arr]
 
     def add_project_reference(self, root: ET.Element, include: str, projid: str, link_outputs: bool = False) -> None:
@@ -816,7 +816,7 @@ class Vs2010Backend(backends.Backend):
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     @classmethod
-    def lang_from_source_file(cls, src):
+    def lang_from_source_file(cls, src: mesonlib.FileOrString) -> Language:
         ext = src.split('.')[-1]
         if ext in compilers.c_suffixes:
             return 'c'
@@ -959,16 +959,16 @@ class Vs2010Backend(backends.Backend):
         return f'"{option}"'
 
     @staticmethod
-    def split_link_args(args):
+    def split_link_args(args: list[str]) -> tuple[list[str], list[str], list[str]]:
         """
         Split a list of link arguments into three lists:
         * library search paths
         * library filenames (or paths)
         * other link arguments
         """
-        lpaths = []
-        libs = []
-        other = []
+        lpaths: list[str] = []
+        libs: list[str] = []
+        other: list[str] = []
         for arg in args:
             if arg.startswith('/LIBPATH:'):
                 lpath = arg[9:]
@@ -991,7 +991,7 @@ class Vs2010Backend(backends.Backend):
                 other.append(arg)
         return lpaths, libs, other
 
-    def _get_cl_compiler(self, target: build.BuildTarget):
+    def _get_cl_compiler(self, target: build.BuildTarget) -> compilers.Compiler:
         for lang, c in target.compilers.items():
             if lang in {'c', 'cpp'}:
                 return c
@@ -1016,17 +1016,17 @@ class Vs2010Backend(backends.Backend):
     # Returns:  (target_args,file_args), (target_defines,file_defines), (target_inc_dirs,file_inc_dirs)
     def get_args_defines_and_inc_dirs(self, target: build.BuildTarget, compiler: compilers.Compiler, generated_files_include_dirs, proj_to_src_root, proj_to_src_dir, build_args):
         # Arguments, include dirs, defines for all files in the current target
-        target_args = []
-        target_defines = []
-        target_inc_dirs = []
+        target_args: list[str] = []
+        target_defines: list[str] = []
+        target_inc_dirs: list[str] = []
         # Arguments, include dirs, defines passed to individual files in
         # a target; perhaps because the args are language-specific
         #
         # file_args is also later split out into defines and include_dirs in
         # case someone passed those in there
         file_args: T.Dict[Language, CompilerArgs] = {l: c.compiler_args() for l, c in target.compilers.items()}
-        file_defines = {l: [] for l in target.compilers}
-        file_inc_dirs = {l: [] for l in target.compilers}
+        file_defines: dict[str, list[str]] = {l: [] for l in target.compilers}
+        file_inc_dirs: dict[str, list[str]] = {l: [] for l in target.compilers}
         # The order in which these compile args are added must match
         # generate_single_compile() and generate_basic_compiler_args()
         for l, comp in target.compilers.items():
@@ -1155,7 +1155,7 @@ class Vs2010Backend(backends.Backend):
 
         return (target_args, file_args), (target_defines, file_defines), (target_inc_dirs, file_inc_dirs)
 
-    def get_build_args(self, target: build.BuildTarget, compiler, optimization_level: str, debug: bool, sanitize: str) -> T.List[str]:
+    def get_build_args(self, target: build.BuildTarget, compiler: compilers.Compiler, optimization_level: str, debug: bool, sanitize: str) -> T.List[str]:
         build_args = compiler.get_optimization_args(optimization_level)
         build_args += compiler.get_debug_args(debug)
         build_args += compiler.sanitizer_compile_args(target, sanitize)
@@ -1702,7 +1702,7 @@ class Vs2010Backend(backends.Backend):
 
         # Visual Studio can't load projects that present duplicated items. Filter them out
         # by keeping track of already added paths.
-        def path_normalize_add(path, lis):
+        def path_normalize_add(path: str, lis: T.List[str]) -> bool:
             normalized = os.path.normcase(os.path.normpath(path))
             if normalized not in lis:
                 lis.append(normalized)
@@ -1730,7 +1730,7 @@ class Vs2010Backend(backends.Backend):
                     # used with a vs backend
                     pch_sources[lang] = (pch[0], None, lang, None)
 
-        previous_includes = []
+        previous_includes: list[str] = []
         if len(headers) + len(gen_hdrs) + len(target.extra_files) + len(pch_sources) > 0:
             if self.gen_lite and gen_hdrs:
                 # Although we're constructing our .vcxproj under our '..._vs' directory, we want to reference generated files
@@ -1754,7 +1754,7 @@ class Vs2010Backend(backends.Backend):
                 if path_normalize_add(path, previous_includes):
                     ET.SubElement(inc_hdrs, 'CLInclude', Include=path)
 
-        previous_sources = []
+        previous_sources: list[str] = []
         if len(sources) + len(gen_src) + len(pch_sources) > 0:
             if self.gen_lite:
                 # Get data to fill in intellisense fields for sources that can't reference the project-wide values
@@ -1836,7 +1836,7 @@ class Vs2010Backend(backends.Backend):
         # but the others need to be included explicitly
         explicit_link_gen_objs = [obj for obj in gen_objs if not obj.endswith(('.obj', '.res'))]
 
-        previous_objects = []
+        previous_objects: list[str] = []
         if len(objects) + len(additional_objects) + len(explicit_link_gen_objs) > 0:
             inc_objs = ET.SubElement(root, 'ItemGroup')
             for s in objects:
@@ -1862,7 +1862,7 @@ class Vs2010Backend(backends.Backend):
             self.gen_vcxproj_filters(target, ofname)
         return True
 
-    def gen_vcxproj_filters(self, target, ofname):
+    def gen_vcxproj_filters(self, target, ofname) -> None:
         # Generate pitchfork of filters based on directory structure.
         root = ET.Element('Project', {'ToolsVersion': '4.0',
                                       'xmlns': 'http://schemas.microsoft.com/developer/msbuild/2003'})
@@ -1870,7 +1870,7 @@ class Vs2010Backend(backends.Backend):
         filter_items = ET.SubElement(root, 'ItemGroup')
         mlog.debug(f'Generating vcxproj filters {target.name}.')
 
-        def relative_to_defined_in(file):
+        def relative_to_defined_in(file) -> str:
             # Get the relative path to file's directory from the location of the meson.build that defines this target.
             return os.path.dirname(self.relpath(PureWindowsPath(file.subdir, file.fname), self.get_target_dir(target)))
 
@@ -1911,7 +1911,7 @@ class Vs2010Backend(backends.Backend):
         sources, headers, objects, _ = self.split_sources(all_files)
         down = self.target_to_build_root(target)
 
-        def add_element(type_name, elements):
+        def add_element(type_name: str, elements: list[ET.Element]) -> None:
             for i in elements:
                 if not os.path.isabs(i.fname):
                     dirname = relative_to_defined_in(i)
@@ -1928,7 +1928,7 @@ class Vs2010Backend(backends.Backend):
 
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname + '.filters')
 
-    def gen_regenproj(self):
+    def gen_regenproj(self) -> None:
         # To fully adapt the REGEN work for a 'genvslite' solution, to check timestamps, settings, and regenerate the
         # '[builddir]_vs' solution/vcxprojs, as well as regenerating the accompanying buildtype-suffixed ninja build
         # directories (from which we need to first collect correct, updated preprocessor defs and compiler options in
@@ -2008,7 +2008,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(root, 'ImportGroup', Label='ExtensionTargets')
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
-    def gen_testproj(self):
+    def gen_testproj(self) -> None:
         project_name = 'RUN_TESTS'
         ofname = os.path.join(self.environment.get_build_dir(), f'{project_name}.vcxproj')
         guid = self.environment.coredata.test_guid
@@ -2062,7 +2062,7 @@ class Vs2010Backend(backends.Backend):
         self.add_regen_dependency(root)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
-    def gen_installproj(self):
+    def gen_installproj(self) -> None:
         project_name = 'RUN_INSTALL'
         ofname = os.path.join(self.environment.get_build_dir(), f'{project_name}.vcxproj')
         guid = self.environment.coredata.install_guid
@@ -2162,7 +2162,7 @@ class Vs2010Backend(backends.Backend):
 
     # Returns if a target generates a manifest or not.
     # Returns 'embed' if the generated manifest is embedded.
-    def get_gen_manifest(self, target: T.Optional[build.BuildTarget]):
+    def get_gen_manifest(self, target: T.Optional[build.BuildTarget]) -> bool | T.Literal['embed']:
         if not isinstance(target, build.BuildTarget):
             return True
 
@@ -2186,7 +2186,7 @@ class Vs2010Backend(backends.Backend):
     # and arm64ec+masm (written in x64 assembly).
     #
     # For now, assume it's the native ones. (same behavior as ninja backend)
-    def get_masm_type(self, target: build.BuildTarget):
+    def get_masm_type(self, target: build.BuildTarget) -> T.Literal['marmasm', 'masm'] | None:
         if not isinstance(target, build.BuildTarget):
             return None
 
