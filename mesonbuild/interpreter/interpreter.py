@@ -1968,7 +1968,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             return self.build_both_libraries(node, args, kwargs)
         elif target_type == 'library':
             return self.build_library(node, args, kwargs)
-        return self.build_target(node, args, kwargs, build.Jar)
+        # We can't avoid the cast here because of the mis-matched sources types
+        # between Jar and BuildTarget types
+        return self.build_target(node, args, T.cast('kwtypes.Jar', kwargs), build.Jar)
 
     @noPosargs
     @typed_kwargs(

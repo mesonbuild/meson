@@ -436,7 +436,7 @@ class _LibraryMixin(TypedDict):
     rust_abi: T.Optional[RustAbi]
 
 
-class Executable(BuildTarget):
+class _ExecutableMixin(TypedDict):
 
     export_dynamic: T.Optional[bool]
     gui_app: T.Optional[bool]
@@ -445,6 +445,10 @@ class Executable(BuildTarget):
     vs_module_defs: T.Optional[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex]]
     win_subsystem: T.Optional[str]
     android_exe_type: T.Optional[Literal['application', 'executable']]
+
+
+class Executable(BuildTarget, _ExecutableMixin):
+    pass
 
 
 class _StaticLibMixin(TypedDict):
@@ -462,12 +466,12 @@ class _SharedLibMixin(TypedDict):
     darwin_versions: T.Optional[T.Tuple[str, str]]
     soversion: T.Optional[str]
     version: T.Optional[str]
-    vs_module_defs: T.Optional[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex]]
     shortname: str
 
 
 class SharedLibrary(BuildTarget, _SharedLibMixin, _LibraryMixin):
-    pass
+
+    vs_module_defs: T.Optional[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex]]
 
 
 class SharedModule(BuildTarget, _LibraryMixin):
@@ -509,18 +513,22 @@ class Library(BuildTarget, _SharedLibMixin, _StaticLibMixin, _LibraryMixin):
     masm_shared_args: NotRequired[T.List[str]]
 
 
-class BuildTargetFunc(Library):
-
-    target_type: Literal['executable', 'shared_library', 'static_library',
-                         'shared_module', 'both_libraries', 'library', 'jar']
-
-
-class Jar(_BaseBuildTarget):
+class _JarMixin(TypedDict):
 
     main_class: str
     java_resources: T.Optional[build.StructuredSources]
-    sources: T.Union[str, File, build.GeneratedTypes, build.ExtractedObjects, build.BuildTarget]
     java_args: T.List[str]
+
+
+class Jar(_BaseBuildTarget, _JarMixin):
+
+    sources: T.Union[str, File, build.GeneratedTypes, build.ExtractedObjects, build.BuildTarget]
+
+
+class BuildTargetFunc(Library, _ExecutableMixin, _JarMixin):
+
+    target_type: Literal['executable', 'shared_library', 'static_library',
+                         'shared_module', 'both_libraries', 'library', 'jar']
 
 
 class FuncDeclareDependency(TypedDict):
