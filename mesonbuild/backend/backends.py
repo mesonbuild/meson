@@ -62,7 +62,8 @@ if T.TYPE_CHECKING:
 # Languages that can mix with C or C++ but don't support unity builds yet
 # because the syntax we use for unity builds is specific to C/++/ObjC/++.
 # Assembly files cannot be unitified and neither can LLVM IR files
-LANGS_CANT_UNITY: T.FrozenSet[Language] = frozenset({'d', 'fortran', 'vala', 'rust'})
+
+LANGS_CANT_UNITY: T.FrozenSet[Language] = frozenset({'d', 'fortran', 'vala', 'rust', 'swift'})
 
 @dataclass(eq=False)
 class RegenInfo:
@@ -527,7 +528,9 @@ class Backend:
         return obj_list, deps
 
     @staticmethod
-    def is_swift_target(target: build.BuildTarget) -> bool:
+    def is_swift_target(target: build.BuildTargetTypes) -> bool:
+        if not isinstance(target, build.BuildTarget):
+            return False
         for s in target.sources:
             if s.endswith('swift'):
                 return True
