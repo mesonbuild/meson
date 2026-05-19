@@ -1142,8 +1142,10 @@ class NinjaBackend(backends.Backend):
                 elem = NinjaBuildElement(self.all_outputs, linker.get_archive_name(outname), 'AIX_LINKER', [outname])
                 self.add_build(elem)
 
-    def should_use_dyndeps_for_target(self, target: 'build.BuildTarget') -> bool:
+    def should_use_dyndeps_for_target(self, target: build.BuildTargetTypes) -> bool:
         if not self.ninja_has_dyndeps:
+            return False
+        if not isinstance(target, build.BuildTarget):
             return False
         if 'fortran' in target.compilers:
             return True
@@ -1207,6 +1209,7 @@ class NinjaBackend(backends.Backend):
         infiles: T.Set[str] = set()
         for t in target.get_all_linked_targets():
             if self.should_use_dyndeps_for_target(t):
+                assert isinstance(t, build.BuildTarget)
                 infiles.add(self.get_dep_scan_file_for(t)[0])
         _, od = self.flatten_object_list(target)
         infiles.update({self.get_dep_scan_file_for(t)[0] for t in od if t.uses_fortran()})
@@ -2322,6 +2325,7 @@ class NinjaBackend(backends.Backend):
         result = []
         for l in target.link_targets:
             if self.is_swift_target(l):
+                assert isinstance(l, build.BuildTarget) # for mypy
                 result.append(self.swift_module_file_name(l))
         return result
 
