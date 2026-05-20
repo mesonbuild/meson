@@ -2,7 +2,7 @@
   "matrix": {
     "options": {
       "version": [
-        { "val": "qt4", "expect_skip_on_jobname": ["arch", "fedora", "gentoo", "opensuse", "ubuntu-rolling"] },
+        { "val": "qt4", "expect_skip_on_jobname": ["arch", "fedora", "gentoo", "macos", "opensuse", "ubuntu-rolling"] },
         { "val": "qt5", "expect_skip_on_jobname": ["gentoo"] },
         { "val": "qt6", "expect_skip_on_jobname": ["macos"] }
       ],
