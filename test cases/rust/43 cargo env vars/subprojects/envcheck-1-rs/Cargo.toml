@@ -1,0 +1,8 @@
+[package]
+name = "envcheck"
+version = "1.2.3"
+edition = "2021"
+
+[lib]
+crate-type = ["staticlib"]
+path = "lib.rs"

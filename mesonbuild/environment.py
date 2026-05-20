@@ -85,6 +85,10 @@ class Environment:
 
     def __init__(self, source_dir: str, build_dir: T.Optional[str], cmd_options: cmdline.SharedCMDOptions) -> None:
         self.source_dir = source_dir
+        # Path to the meson_env wrapper executable built at setup time.
+        # Currently only used when a Cargo workspace is being interpreted on
+        # Windows with stable Rust.
+        self.meson_env_exe: T.Optional[str] = None
         # Do not try to create build directories when build_dir is none.
         # This reduced mode is used by the --buildoptions introspector
         if build_dir is not None:
