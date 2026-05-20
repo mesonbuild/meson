@@ -3473,6 +3473,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         ]
 
     def generate_msvc_pch_command(self, target: build.BuildTarget, compiler: Compiler, pch: T.Tuple[str, T.Optional[str]]) -> T.Tuple[T.List[str], str, str, T.List[str], str]:
+        from ..compilers.mixins.visualstudio import VisualStudioLikeCompiler
+        assert isinstance(compiler, VisualStudioLikeCompiler) # for mypy
         header = pch[0]
         pchname = compiler.get_pch_name(header)
         dst = os.path.join(self.get_target_private_dir(target), pchname)
