@@ -388,7 +388,21 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 wrapper_dir = _generate_subprocess_wrappers(
                     env, compiler, lang, subprograms, interpreter)
                 if wrapper_dir:
-                    compiler = compiler[:1] + [f'-B{wrapper_dir}'] + compiler[1:]
+                    # Build the list of -B prefixes gcc/clang must inherit:
+                    #   compiler-wrappers/<lang> -- hosts wrapped cc1/cc1plus/
+                    #                               lto1 (or as/ld for clang)
+                    #   binary-wrappers          -- hosts wrapped ld.lld + ar +
+                    #                               strip etc. (so -fuse-ld=lld
+                    #                               + -B... finds the hermetic
+                    #                               wrapper)
+                    # Order matters: gcc/clang search -B prefixes left to
+                    # right.  Placing compiler-wrappers/<lang>/ first means
+                    # a name collision (e.g. a future shared wrapper named
+                    # 'cpp' or 'as' present in both dirs) resolves to the
+                    # language-specific wrapper, not the generic one.
+                    b_flags = [f'-B{wrapper_dir}',
+                               f'-B{env.binary_wrappers_dir()}']
+                    compiler = compiler[:1] + b_flags + compiler[1:]
 
             # Determine version: use declared version or run --version.
             if desc.version is not None:
