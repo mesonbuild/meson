@@ -253,7 +253,7 @@ class ExternalProgram(Program):
         command = env.lookup_binary_entry(for_machine, name)
         if command is None:
             return NonExistingExternalProgram()
-        return cls.from_entry(name, command, env=env)
+        return cls.from_entry(name, command, env=env, for_machine=for_machine)
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
@@ -281,7 +281,8 @@ class ExternalProgram(Program):
 
     @staticmethod
     def from_entry(name: str, command: T.Union[str, T.List[str]],
-                   env: T.Optional['Environment'] = None) -> 'ExternalProgram':
+                   env: T.Optional['Environment'] = None,
+                   for_machine: MachineChoice = MachineChoice.BUILD) -> 'ExternalProgram':
         if isinstance(command, list):
             if len(command) == 1:
                 command = command[0]
@@ -297,9 +298,11 @@ class ExternalProgram(Program):
             prog = ExternalProgram(command, silent=True)
         # If a [binaries] interpreter is configured for this name, replace the
         # command with a POSIX shell wrapper that exec's the bare binary through
-        # the interpreter.  Build-machine only; bundled tooling is build-time.
+        # the interpreter.  Defaults to the build machine; callers resolving a
+        # cross-targeted binary (e.g. the host linker) pass `for_machine`
+        # explicitly so cross builds get the host machine's loader prefix.
         if env is not None and prog.found():
-            interpreter = env.lookup_binary_interpreter(name)
+            interpreter = env.lookup_binary_interpreter(name, for_machine)
             if interpreter:
                 # Pass the resolved binary command; only `real_cmd[0]`
                 # (the bare exe) is baked into the wrapper's exec line.

@@ -462,19 +462,22 @@ class Environment:
     def lookup_binary_entry(self, for_machine: MachineChoice, name: str) -> T.Optional[T.List[str]]:
         return self.binaries[for_machine].lookup_entry(name)
 
-    def lookup_binary_interpreter(self, name: str) -> T.Optional[T.List[str]]:
+    def lookup_binary_interpreter(self, name: str,
+                                  for_machine: MachineChoice = MachineChoice.BUILD) -> T.Optional[T.List[str]]:
         """Resolve the interpreter (loader) prefix for a [binaries] entry.
 
-        Resolution order (build machine only -- bundled tooling is build-time):
+        Resolution order (defaults to the build machine, since most bundled
+        tooling is build-time; pass `for_machine=MachineChoice.HOST` for
+        cross-targeted binaries like the host linker):
           1. per-binary `<name>.interpreter` under [binaries]
              (empty list = bare invocation; explicitly disables the global default)
           2. global `interpreter` under [properties]
           3. None
         """
-        per_binary = self.binaries[MachineChoice.BUILD].attrs.get(name, {}).get('interpreter')
+        per_binary = self.binaries[for_machine].attrs.get(name, {}).get('interpreter')
         if per_binary is not None:
             return list(per_binary)
-        default = self.properties[MachineChoice.BUILD].get_interpreter()
+        default = self.properties[for_machine].get_interpreter()
         if default:
             return list(default)
         return None

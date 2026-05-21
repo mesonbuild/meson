@@ -143,6 +143,22 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     if value is not None:
         override = comp_class.use_linker_args(value[0], comp_version)
         check_args += override
+        # If [binaries] ld.<value[0]> (or bare <value[0]>) is configured,
+        # materialize its interpreter-wrapper now so the gcc
+        # -fuse-ld=<value[0]> search via -B<binary-wrappers> (injected by
+        # compilers/detect.py) finds it.  Prefer the canonical `ld.<short>`
+        # name (matches the gcc/clang -fuse-ld search path); fall back to
+        # the bare name so users with `[binaries] mold = <path>` don't
+        # have to also add a redundant `ld.mold` entry.  `for_machine` is
+        # passed through so cross builds resolve the host machine's
+        # loader prefix.
+        from ..programs import ExternalProgram
+        for ld_name in (f'ld.{value[0]}', value[0]):
+            ld_entry = env.lookup_binary_entry(for_machine, ld_name)
+            if ld_entry is not None:
+                ExternalProgram.from_entry(ld_name, ld_entry, env=env,
+                                           for_machine=for_machine)
+                break
 
     if env.machines[for_machine].is_os2() and env.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
         check_args += ['-Zomf']
