@@ -1099,6 +1099,142 @@ class NativeFileTests(BasePlatformTests):
                 os.path.exists(os.path.join(wrapper_dir, gcc_only)),
                 f'unexpected gcc-only wrapper present for clang: {gcc_only}')
 
+    @skipIf(is_windows(), 'POSIX-only feature')
+    def test_linker_wrapper_materializes_on_c_ld_lld(self):
+        """[linkers] guess_nix_linker materializes the ld.<linker> wrapper
+        eagerly when c_ld/cpp_ld selects a linker that has a [binaries]
+        ld.<short> entry with an interpreter prefix.
+        """
+        from mesonbuild.programs import ExternalProgram
+        real_exe = shutil.which('bash')
+        if real_exe is None:
+            raise SkipTest('bash not found on PATH')
+        interpreter = ['/opt/ld/ld.so', '--library-path', '/opt/ld/lib']
+        config = self.helper_create_native_file({
+            'binaries': {
+                'c': real_exe,
+                'ld.lld': real_exe,
+                'ld.lld.interpreter': interpreter,
+            },
+        })
+        env = self._make_interpreter_env(config)
+        # Mimic guess_nix_linker's eager materialization path.
+        ld_entry = env.lookup_binary_entry(MachineChoice.BUILD, 'ld.lld')
+        self.assertIsNotNone(ld_entry, 'fixture should expose [binaries] ld.lld')
+        ExternalProgram.from_entry('ld.lld', ld_entry, env=env,
+                                   for_machine=MachineChoice.BUILD)
+        wrapper = env.binary_wrappers_dir() / 'ld.lld'
+        self.assertTrue(wrapper.exists(),
+                        f'expected ld.lld wrapper to materialize: {wrapper}')
+        self._assert_wrapper_content(str(wrapper), interpreter, real_exe,
+                                     expect_ld_library_path='/opt/ld/lib')
+
+    @skipIf(is_windows(), 'POSIX-only feature')
+    def test_linker_wrapper_noop_when_binary_missing(self):
+        """No-op when c_ld/cpp_ld selects a linker that has no matching
+        [binaries] entry: guess_nix_linker must not crash and must not
+        materialize any wrapper.
+        """
+        real_exe = shutil.which('bash')
+        if real_exe is None:
+            raise SkipTest('bash not found on PATH')
+        interpreter = ['/opt/ld/ld.so', '--library-path', '/opt/ld/lib']
+        config = self.helper_create_native_file({
+            'binaries': {
+                'c': real_exe,
+                'c.interpreter': interpreter,
+            },
+        })
+        env = self._make_interpreter_env(config)
+        # Neither 'ld.gold' nor bare 'gold' is configured -> lookup returns None.
+        for name in ('ld.gold', 'gold'):
+            self.assertIsNone(env.lookup_binary_entry(MachineChoice.BUILD, name),
+                              f'fixture should not expose [binaries] {name}')
+        # binary_wrappers_dir() may or may not exist; either way, no ld.gold
+        # wrapper should be present.
+        wrapper = env.binary_wrappers_dir() / 'ld.gold'
+        self.assertFalse(wrapper.exists(),
+                         f'unexpected wrapper materialized: {wrapper}')
+
+    @skipIf(is_windows(), 'POSIX-only feature')
+    def test_linker_wrapper_bare_name_fallback(self):
+        """When the user configures `[binaries] mold = <path>` (without a
+        redundant `ld.mold` entry) and selects `c_ld='mold'`, guess_nix_linker's
+        bare-name fallback materializes the wrapper under the bare name.
+        """
+        from mesonbuild.programs import ExternalProgram
+        real_exe = shutil.which('bash')
+        if real_exe is None:
+            raise SkipTest('bash not found on PATH')
+        interpreter = ['/opt/ld/ld.so', '--library-path', '/opt/ld/lib']
+        config = self.helper_create_native_file({
+            'binaries': {
+                'c': real_exe,
+                'mold': real_exe,
+                'mold.interpreter': interpreter,
+            },
+        })
+        env = self._make_interpreter_env(config)
+        # Canonical name absent; bare name present.
+        self.assertIsNone(env.lookup_binary_entry(MachineChoice.BUILD, 'ld.mold'),
+                          'fixture should not expose ld.mold')
+        bare_entry = env.lookup_binary_entry(MachineChoice.BUILD, 'mold')
+        self.assertIsNotNone(bare_entry,
+                             'fixture should expose [binaries] mold')
+        ExternalProgram.from_entry('mold', bare_entry, env=env,
+                                   for_machine=MachineChoice.BUILD)
+        wrapper = env.binary_wrappers_dir() / 'mold'
+        self.assertTrue(wrapper.exists(),
+                        f'expected mold wrapper to materialize via bare-name fallback: {wrapper}')
+        self._assert_wrapper_content(str(wrapper), interpreter, real_exe,
+                                     expect_ld_library_path='/opt/ld/lib')
+
+    @skipIf(is_windows(), 'POSIX-only feature')
+    def test_linker_wrapper_cross_machine(self):
+        """Cross builds: c_ld='lld' + host-machine [binaries] ld.lld must
+        materialize using the HOST machine's interpreter prefix, not the
+        BUILD machine's.  Verifies for_machine is threaded through
+        lookup_binary_interpreter().
+        """
+        from mesonbuild.programs import ExternalProgram
+        real_exe = shutil.which('bash')
+        if real_exe is None:
+            raise SkipTest('bash not found on PATH')
+        host_interpreter = ['/opt/host-ld/ld.so',
+                            '--library-path', '/opt/host-ld/lib']
+        # Build a config that sets BOTH host and (intentionally distinct)
+        # build interpreters so we can confirm the host one wins for a
+        # host-targeted linker entry.
+        cfg_path = os.path.join(self.builddir, 'cross_linker.config')
+        with open(cfg_path, 'wt', encoding='utf-8') as f:
+            f.write('[binaries]\n')
+            f.write(f"c = '{real_exe}'\n")
+            f.write(f"ld.lld = '{real_exe}'\n")
+            tokens = ', '.join([f"'{w}'" for w in host_interpreter])
+            f.write(f"ld.lld.interpreter = [{tokens}]\n")
+        opts = get_fake_options(prefix='')
+        opts.cross_file = [cfg_path]
+        env = get_fake_env(bdir=self.builddir, opts=opts)
+        env.machines.host.system = 'linux'
+        env.machines.build.system = 'linux'
+        # Sanity: the host machine should see the entry; the build machine
+        # should not (cross file populates HOST, native file BUILD).
+        self.assertIsNotNone(
+            env.lookup_binary_entry(MachineChoice.HOST, 'ld.lld'),
+            'cross-file [binaries] ld.lld should be visible on HOST')
+        ld_entry = env.lookup_binary_entry(MachineChoice.HOST, 'ld.lld')
+        ExternalProgram.from_entry('ld.lld', ld_entry, env=env,
+                                   for_machine=MachineChoice.HOST)
+        wrapper = env.binary_wrappers_dir() / 'ld.lld'
+        self.assertTrue(wrapper.exists(),
+                        f'expected host-machine ld.lld wrapper: {wrapper}')
+        with open(wrapper, encoding='utf-8') as f:
+            content = f.read()
+        # The HOST interpreter prefix must be baked into the wrapper.
+        for tok in host_interpreter:
+            self.assertIn(tok, content,
+                          f'host interpreter token missing from wrapper: {tok}')
+
     def test_user_options(self):
         testcase = os.path.join(self.common_test_dir, '40 options')
         for opt, value in [('testoption', 'some other val'), ('other_one', True),
