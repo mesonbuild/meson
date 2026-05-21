@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import io, sys, traceback
+import dataclasses
 
 from .. import mparser
 from .. import environment
@@ -147,6 +148,29 @@ def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None])
         elif not isinstance(value[0], mesonlib.File):
             return 'when passed as array must contain a File'
     return None
+
+
+@dataclasses.dataclass
+class SandboxViolationError(InterpreterException):
+
+    """Exception raised when trying to use files outside of this project
+
+    :param inputtype: The kind of thing, usually "directory" or "file"
+    :param name: The name of the thing being used
+    :param subproject: Is this an attempt to use a file from inside a subproject?
+    """
+
+    inputtype: str
+    name: str
+    subproject: bool = dataclasses.field(default=True, kw_only=True)
+
+    def __str__(self) -> str:
+        if self.subproject:
+            msg = 'a nested subproject'
+        else:
+            msg = 'outside current (sub)project'
+        return f'Sandbox violation: Tried to grab {self.inputtype} {self.name} from {msg}.'
+
 
 class Summary:
     def __init__(self, project_name: str, project_version: str):
@@ -3162,12 +3186,12 @@ class Interpreter(InterpreterBase, HoldableObject):
             project_root = os.path.join(srcdir, self.root_subdir)
             if not is_parent_path(project_root, norm):
                 name = os.path.basename(norm)
-                raise InterpreterException(f'Sandbox violation: Tried to grab {inputtype} {name} outside current (sub)project.')
+                raise SandboxViolationError(inputtype, name, subproject=False)
 
             subproject_dir = os.path.join(project_root, self.subproject_dir)
             if is_parent_path(subproject_dir, norm):
                 name = os.path.basename(norm)
-                raise InterpreterException(f'Sandbox violation: Tried to grab {inputtype} {name} from a nested subproject.')
+                raise SandboxViolationError(inputtype, name)
 
         fname = os.path.join(subdir, fname)
         if fname in self.validated_cache:
