@@ -196,12 +196,23 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=mesonlib.Sim
                 qt_inc_dir = mod.get_variable(pkgconfig='includedir')
                 mod_private_dir = os.path.join(qt_inc_dir, 'Qt' + m)
                 if not os.path.isdir(mod_private_dir):
-                    # At least some versions of homebrew don't seem to set this
-                    # up correctly. /usr/local/opt/qt/include/Qt + m_name is a
-                    # symlink to /usr/local/opt/qt/include, but the pkg-config
-                    # file points to /usr/local/Cellar/qt/x.y.z/Headers/, and
-                    # the Qt + m_name there is not a symlink, it's a file
-                    mod_private_dir = qt_inc_dir
+                    if self.env.machines[self.for_machine].is_darwin():
+                        # On macOS Qt is conventionally shipped as a framework
+                        # (e.g. Homebrew's qt@6). pkg-config 'includedir' is
+                        # just the prefix include dir and contains no Qt
+                        # headers; both public and private headers live under
+                        # <libdir>/Qt<Module>.framework/Headers.
+                        libdir = mod.get_variable(pkgconfig='libdir', default_value='')
+                        framework_inc = os.path.join(libdir, f'Qt{m}.framework', 'Headers')
+                        if libdir and os.path.isdir(framework_inc):
+                            mod_private_dir = framework_inc
+                    if not os.path.isdir(mod_private_dir):
+                        # At least some versions of homebrew don't seem to set this
+                        # up correctly. /usr/local/opt/qt/include/Qt + m_name is a
+                        # symlink to /usr/local/opt/qt/include, but the pkg-config
+                        # file points to /usr/local/Cellar/qt/x.y.z/Headers/, and
+                        # the Qt + m_name there is not a symlink, it's a file
+                        mod_private_dir = qt_inc_dir
                 mod_private_inc = _qt_get_private_includes(mod_private_dir, m, mod.version)
                 for directory in mod_private_inc:
                     mod.compile_args.append('-I' + directory)
