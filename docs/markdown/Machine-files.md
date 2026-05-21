@@ -245,6 +245,21 @@ as a prefix in the interpreter list: `perl.interpreter = ['env',
 the wrapper, so positional-argument call sites (e.g. `find_program`)
 work without splatting.
 
+Setting `<name>.interpreter = []` disables the global `[properties]
+interpreter` default for this entry: `lookup_binary_interpreter` returns
+the empty list, and the wrapper-generation call site treats that as "no
+interpreter applies", so the bare binary is used directly (see
+`mesonbuild/environment.py:lookup_binary_interpreter` and
+`mesonbuild/programs.py:ExternalProgram.from_entry`).
+
+The wrapper uses the bundled loader's `--argv0` flag to propagate the
+wrapper's own path as `argv[0]` to the wrapped binary (so child processes
+that re-launch by name -- e.g. CPython exec'ing `sys.executable` -- enter
+through the wrapper and inherit the loader prefix transparently).  This
+requires `--argv0` support in the loader, which was added in glibc 2.33;
+earlier loaders will not honor the flag and the wrapped binary will see
+the loader path as `argv[0]` instead.
+
 This feature is POSIX-only.  On Windows the property is silently
 ignored with a one-time warning, since DLL resolution does not use a
 dynamic-loader prefix.
