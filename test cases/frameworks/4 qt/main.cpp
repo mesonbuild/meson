@@ -3,10 +3,6 @@
 #include <QDebug>
 #include "mainWindow.h"
 
-// Our CI gets its Qt via Homebrew. Starting with
-// Qt 6 they stopped shipping private headers.
-// If the situation changes, remove this ifndef.
-#ifndef __APPLE__
 #if QT_VERSION > 0x050000
 // include some random private headers
 // As you're not supposed to use it, your system may miss
@@ -14,7 +10,6 @@
 //  - dnf provides */private/qobject_p.h
 //  - apt-file search qobject_p.h
     #include <private/qobject_p.h>
-#endif
 #endif
 
 int main(int argc, char **argv) {
