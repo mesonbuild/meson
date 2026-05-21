@@ -24,11 +24,18 @@ from .mesonlib import MachineChoice, OrderedSet
 def _generate_binary_wrapper(name: str, interpreter: T.List[str],
                              real_cmd: T.List[str],
                              wrappers_dir: Path, host_system: str) -> T.Optional[Path]:
-    """Generate a POSIX shell wrapper that exec's `real_cmd` through `interpreter`.
+    """Generate a POSIX shell wrapper that exec's `real_cmd[0]` through `interpreter`.
 
-    `real_cmd` is the full resolved binary command list (e.g. `[exe]` or
-    `[exe, '-B']`).  Any trailing args in `real_cmd` after the bare exe are
-    inserted between the interpreter and the wrapper's "$@" forward.
+    `real_cmd` is the resolved binary command list.  Only the bare exe
+    (`real_cmd[0]`) is baked into the wrapper's exec line; any trailing
+    args from a list-form `[binaries]` entry (e.g. `python = ['/path/python',
+    '-B']`) are NOT interleaved into the exec line.  Baking trailing args
+    into the wrapper would cause callers that re-discover the binary via
+    PATH (the wrapper directory is prepended to PATH) to inherit unexpected
+    arguments -- for example, `python -B foo.py` invoked via the wrapper
+    would silently see `-B -B foo.py`.  Callers that need extra args
+    should pass them as positional arguments at call sites, not bake them
+    into the [binaries] list-form entry.
 
     POSIX-only.  Returns None on Windows (caller falls back to bare exe).
     Idempotent: regenerates only if the inputs change.
@@ -69,7 +76,10 @@ def _generate_binary_wrapper(name: str, interpreter: T.List[str],
     tail = interpreter[loader_idx + 1:]
     quoted_head = ' '.join(shlex.quote(s) for s in head)
     quoted_tail = ' '.join(shlex.quote(s) for s in tail)
-    quoted_cmd = ' '.join(shlex.quote(s) for s in real_cmd)
+    # Only the bare exe goes into the exec line.  Trailing args from a
+    # list-form [binaries] entry are deliberately discarded (see docstring).
+    bare_exe = real_cmd[0]
+    quoted_cmd = shlex.quote(bare_exe)
     pieces = [f'exec {quoted_head}', '--argv0 "$0"']
     if quoted_tail:
         pieces.append(quoted_tail)
@@ -291,9 +301,11 @@ class ExternalProgram(Program):
         if env is not None and prog.found():
             interpreter = env.lookup_binary_interpreter(name)
             if interpreter:
-                # Pass the full resolved binary command (exe + any trailing
-                # args from a list-form entry, e.g. `python -B`) so the
-                # wrapper preserves trailing args before "$@".
+                # Pass the resolved binary command; only `real_cmd[0]`
+                # (the bare exe) is baked into the wrapper's exec line.
+                # See `_generate_binary_wrapper` docstring for the
+                # rationale (trailing args from a list-form entry are
+                # deliberately not interleaved).
                 real_cmd = list(prog.command)
                 wrappers_dir = env.binary_wrappers_dir()
                 host_system = env.machines.host.system
