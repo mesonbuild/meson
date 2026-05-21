@@ -686,6 +686,169 @@ class NativeFileTests(BasePlatformTests):
         # Loader followed immediately by --argv0 "$0", then real_exe.
         self.assertIn(f'exec {loader} --argv0 "$0" {shlex.quote(real_exe)}', exec_line)
 
+    @skipIf(is_windows(), '[binaries] <name>.interpreter is POSIX-only')
+    def test_binary_interpreter_disabled_via_empty_list(self):
+        """Per-binary `<name>.interpreter = []` must override the global
+        `[properties] interpreter` default and skip wrapper generation."""
+        from mesonbuild.programs import ExternalProgram
+        real_exe = shutil.which('bash')
+        if real_exe is None:
+            raise SkipTest('bash not found on PATH')
+        default_interp = ['/opt/default/ld.so', '--library-path', '/opt/default/lib']
+        config = self.helper_create_native_file({
+            'binaries': {
+                'foo': real_exe,
+                'foo.interpreter': [],
+            },
+            'properties': {
+                'interpreter': default_interp,
+            },
+        })
+        env = self._make_interpreter_env(config)
+        prog = ExternalProgram.from_bin_list(env, MachineChoice.BUILD, 'foo')
+        self.assertTrue(prog.found())
+        # Wrapper must NOT be materialized; command stays the bare exe.
+        wrapper_path = env.binary_wrappers_dir() / 'foo'
+        self.assertFalse(wrapper_path.exists(),
+                         f'wrapper should not be generated when foo.interpreter=[]: {wrapper_path}')
+        self.assertEqual(prog.get_command(), [real_exe])
+        self.assertEqual(prog.get_path(), real_exe)
+
+    @skipIf(is_windows(), '[binaries] <name>.interpreter is POSIX-only')
+    def test_binary_interpreter_find_program_returns_wrapper_path(self):
+        """`find_program(name).full_path()` must return the wrapper, not the
+        bare exe, when a [binaries] interpreter applies.  Exercised via the
+        underlying `ExternalProgram.from_bin_list` path that `find_program`
+        calls into (same get_path() return)."""
+        from mesonbuild.programs import ExternalProgram
+        real_exe = shutil.which('bash')
+        if real_exe is None:
+            raise SkipTest('bash not found on PATH')
+        interpreter = ['/opt/ld/ld.so', '--library-path', '/opt/ld/lib']
+        config = self.helper_create_native_file({
+            'binaries': {
+                'foo': real_exe,
+            },
+            'properties': {
+                'interpreter': interpreter,
+            },
+        })
+        env = self._make_interpreter_env(config)
+        prog = ExternalProgram.from_bin_list(env, MachineChoice.BUILD, 'foo')
+        self.assertTrue(prog.found())
+        expected_wrapper = str(env.binary_wrappers_dir() / 'foo')
+        self.assertEqual(prog.get_path(), expected_wrapper)
+        self.assertNotEqual(prog.get_path(), real_exe)
+        # Command list (what find_program(...).full_path() ultimately
+        # surfaces for a single-element command) must point at the wrapper.
+        self.assertEqual(prog.get_command(), [expected_wrapper])
+
+    @skipIf(is_windows(), '[binaries] <name>.interpreter is POSIX-only')
+    def test_binary_interpreter_end_to_end_exec(self):
+        """Run the wrapper through a fake loader and verify the loader
+        observes the WRAPPER path as `--argv0` (the wrapper-to-loader
+        half of the --argv0 contract; glibc owns loader-to-binary)."""
+        from mesonbuild.programs import ExternalProgram
+        # Fake loader: a shell script that emulates ld-linux's command-line
+        # surface (`--argv0 <s>` + `--library-path <dir>`), records the
+        # argv0 value to a sentinel, then exec's the remaining args.  This
+        # exercises the wrapper's exec line without needing a real glibc
+        # loader.  We deliberately do NOT try to assert that the wrapped
+        # binary's $0 equals the wrapper path, because the kernel resets
+        # argv[0] when exec'ing a shebang script -- that's glibc/ld.so's
+        # job for real binaries, not something a shell-script test can
+        # observe.
+        sentinel = os.path.join(self.builddir, 'argv0-sentinel.txt')
+        loader = os.path.join(self.builddir, 'fake-loader.sh')
+        with open(loader, 'w', encoding='utf-8') as f:
+            f.write(textwrap.dedent(f'''\
+                #!/bin/sh
+                # Fake ld.so: parse --argv0 <s> and --library-path <dir>,
+                # record argv0 to a sentinel, then exec the remaining args.
+                argv0=
+                while [ $# -gt 0 ]; do
+                    case "$1" in
+                        --argv0) argv0=$2; shift 2 ;;
+                        --library-path) shift 2 ;;
+                        *) break ;;
+                    esac
+                done
+                printf '%s' "$argv0" > {shlex.quote(sentinel)}
+                exec "$@"
+                '''))
+        os.chmod(loader, 0o755)
+        # Real exe: a no-op shell script; the wrapped binary only needs to
+        # exit cleanly so we can confirm the wrapper completed end-to-end.
+        real_exe = os.path.join(self.builddir, 'real-exe.sh')
+        with open(real_exe, 'w', encoding='utf-8') as f:
+            f.write('#!/bin/sh\nexit 0\n')
+        os.chmod(real_exe, 0o755)
+        interpreter = [loader, '--library-path', '/unused']
+        config = self.helper_create_native_file({
+            'binaries': {
+                'foo': real_exe,
+                'foo.interpreter': interpreter,
+            },
+        })
+        env = self._make_interpreter_env(config)
+        prog = ExternalProgram.from_bin_list(env, MachineChoice.BUILD, 'foo')
+        self.assertTrue(prog.found())
+        wrapper_path = str(env.binary_wrappers_dir() / 'foo')
+        self.assertEqual(prog.get_path(), wrapper_path)
+        # Execute the wrapper; the fake loader must record the wrapper path
+        # as the --argv0 value it received.
+        result = subprocess.run([wrapper_path], check=False,
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0,
+                         f'wrapper exec failed: stdout={result.stdout!r} stderr={result.stderr!r}')
+        with open(sentinel, encoding='utf-8') as f:
+            recorded = f.read()
+        self.assertEqual(recorded, wrapper_path,
+                         f'expected --argv0={wrapper_path!r}, loader saw={recorded!r}')
+
+    def test_binary_interpreter_posix_only_skip(self):
+        """On Windows host, the interpreter property is silently ignored
+        with a one-time warning; no wrapper is generated."""
+        from mesonbuild.programs import ExternalProgram
+        from mesonbuild.envconfig import MachineInfo
+        from mesonbuild import mlog
+        real_exe = shutil.which('bash') or shutil.which('cmd.exe')
+        if real_exe is None:
+            raise SkipTest('no executable found for test')
+        interpreter = ['/opt/ld/ld.so', '--library-path', '/opt/ld/lib']
+        config = self.helper_create_native_file({
+            'binaries': {
+                'foo': real_exe,
+                'foo.interpreter': interpreter,
+            },
+        })
+        opts = get_fake_options(prefix='')
+        opts.native_file = [config]
+        env = get_fake_env(bdir=self.builddir, opts=opts)
+        # Force host machine to Windows.  PerThreeMachine starts out with
+        # host/build/target pointing at the SAME MachineInfo, so mutating
+        # `.system` on one would mutate all three (last write wins).  Swap
+        # in a fresh Windows MachineInfo for host only.
+        env.machines.host = MachineInfo(
+            system='windows', cpu_family='x86_64', cpu='x86_64',
+            endian='little', kernel=None, subsystem=None)
+        with mock.patch.object(mlog, 'warning') as warn_mock:
+            prog = ExternalProgram.from_bin_list(env, MachineChoice.BUILD, 'foo')
+        self.assertTrue(prog.found())
+        # No wrapper materialized.
+        self.assertFalse((env.binary_wrappers_dir() / 'foo').exists(),
+                         'wrapper must not be generated on Windows host')
+        # Command stays the bare exe.
+        self.assertEqual(prog.get_command(), [real_exe])
+        # One-time warning fired.
+        self.assertTrue(warn_mock.called, 'mlog.warning was not called on Windows host')
+        warn_msg = ' '.join(str(a) for a in warn_mock.call_args.args)
+        self.assertIn('POSIX-only', warn_msg)
+        # `once=True` must be set on the warning call so the message
+        # fires at most once per meson invocation.
+        self.assertTrue(warn_mock.call_args.kwargs.get('once'),
+                        f'warning must pass once=True, got kwargs={warn_mock.call_args.kwargs!r}')
+
     def test_user_options(self):
         testcase = os.path.join(self.common_test_dir, '40 options')
         for opt, value in [('testoption', 'some other val'), ('other_one', True),
