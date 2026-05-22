@@ -1,3 +1,12 @@
 {
+  "matrix": {
+    "options": {
+      "method": [
+        { "val": "auto" },
+        { "val": "pkg-config" },
+        { "val": "config-tool", "expect_skip_on_jobname": ["ubuntu-rolling"] }
+      ]
+    }
+  },
   "expect_skip_on_jobname": ["azure", "cygwin", "macos", "msys2", "windows"]
 }
