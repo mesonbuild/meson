@@ -307,8 +307,10 @@ class Dependency:
     features: T.List[str] = dataclasses.field(default_factory=list)
 
     @lazy_property
-    def meson_version(self) -> T.List[str]:
-        return version.convert(self.version)
+    def accepts_version(self) -> T.Callable[[str], bool]:
+        # The value of the property is the function that checks the validity
+        # of a given package version, so dep.accepts_version(v) works.
+        return version.cargo_parse(self.version)
 
     @lazy_property
     def api(self) -> str:
@@ -321,7 +323,7 @@ class Dependency:
         except AttributeError:
             pass
         try:
-            delattr(self, 'meson_version')
+            delattr(self, 'accepts_version')
         except AttributeError:
             pass
 

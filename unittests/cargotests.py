@@ -13,8 +13,8 @@ from mesonbuild.cargo.cfg import TokenType
 from mesonbuild.cargo.interpreter import load_cargo_lock
 from mesonbuild.cargo.manifest import Dependency, Lint, Manifest, Package, Workspace
 from mesonbuild.cargo.toml import load_toml
-from mesonbuild.cargo.version import api, convert
-from mesonbuild.mesonlib import MesonException, version_compare
+from mesonbuild.cargo.version import api, cargo_parse
+from mesonbuild.mesonlib import MesonException
 
 
 class CargoVersionTest(unittest.TestCase):
@@ -82,10 +82,7 @@ class CargoVersionTest(unittest.TestCase):
         ]
 
         for (cargo_req, accepted, rejected) in cases:
-            translated = convert(cargo_req)
-            def check(ver):
-                return all(version_compare(ver, constraint) for constraint in translated)
-
+            check = cargo_parse(cargo_req)
             for ver in accepted:
                 with self.subTest(req=cargo_req, ver=ver):
                     self.assertTrue(check(ver), f'{cargo_req!r} should accept {ver!r}')
@@ -282,7 +279,7 @@ class CargoTomlTest(unittest.TestCase):
         num-complex = "0.4"
         rayon = "1.0"
         once_cell = "1"
-        async-channel = "2.0"
+        async-channel = "2.1"
         zerocopy = { version = "0.7", features = ["derive"] }
 
         [lints.rust]
@@ -415,21 +412,24 @@ class CargoTomlTest(unittest.TestCase):
         dep = Dependency.from_raw('glib', {'workspace': True}, 'member', workspace)
         self.assertEqual(dep.package, 'glib')
         self.assertEqual(dep.version, '')
-        self.assertEqual(dep.meson_version, [])
+        self.assertTrue(dep.accepts_version('9999'))
         self.assertEqual(dep.path, os.path.join('..', 'glib'))
         self.assertEqual(dep.features, [])
 
         dep = Dependency.from_raw('gtk', {'workspace': True}, 'member', workspace)
         self.assertEqual(dep.package, 'gtk4')
         self.assertEqual(dep.version, '0.9')
-        self.assertEqual(dep.meson_version, ['>= 0.9', '< 0.10'])
+        self.assertTrue(dep.accepts_version('0.9'))
+        self.assertFalse(dep.accepts_version('0.10'))
         self.assertEqual(dep.api, '0.9')
         self.assertEqual(dep.features, [])
 
         dep = Dependency.from_raw('once_cell', {'workspace': True, 'optional': True}, 'member', workspace)
         self.assertEqual(dep.package, 'once_cell')
         self.assertEqual(dep.version, '1.0')
-        self.assertEqual(dep.meson_version, ['>= 1.0', '< 2'])
+        self.assertTrue(dep.accepts_version('1.0'))
+        self.assertTrue(dep.accepts_version('1.23'))
+        self.assertFalse(dep.accepts_version('2.0'))
         self.assertEqual(dep.api, '1')
         self.assertEqual(dep.features, [])
         self.assertTrue(dep.optional)
@@ -437,7 +437,9 @@ class CargoTomlTest(unittest.TestCase):
         dep = Dependency.from_raw('syn', {'workspace': True, 'features': ['full']}, 'member', workspace)
         self.assertEqual(dep.package, 'syn')
         self.assertEqual(dep.version, '>=1, <3')
-        self.assertEqual(dep.meson_version, ['>= 1', '< 3'])
+        self.assertTrue(dep.accepts_version('1.0'))
+        self.assertTrue(dep.accepts_version('2.0'))
+        self.assertFalse(dep.accepts_version('3.0'))
         self.assertEqual(dep.api, '1')
         self.assertEqual(sorted(set(dep.features)), ['full', 'parse'])
 
@@ -509,33 +511,44 @@ class CargoTomlTest(unittest.TestCase):
         self.assertEqual(len(manifest.dependencies), 6)
         self.assertEqual(manifest.dependencies['gtk'].package, 'gtk4')
         self.assertEqual(manifest.dependencies['gtk'].version, '0.9')
-        self.assertEqual(manifest.dependencies['gtk'].meson_version, ['>= 0.9', '< 0.10'])
+        self.assertTrue(manifest.dependencies['gtk'].accepts_version('0.9'))
+        self.assertFalse(manifest.dependencies['gtk'].accepts_version('0.10'))
         self.assertEqual(manifest.dependencies['gtk'].api, '0.9')
         self.assertEqual(manifest.dependencies['num-complex'].package, 'num-complex')
         self.assertEqual(manifest.dependencies['num-complex'].version, '0.4')
-        self.assertEqual(manifest.dependencies['num-complex'].meson_version, ['>= 0.4', '< 0.5'])
+        self.assertTrue(manifest.dependencies['num-complex'].accepts_version('0.4'))
+        self.assertFalse(manifest.dependencies['num-complex'].accepts_version('0.5'))
         self.assertEqual(manifest.dependencies['rayon'].package, 'rayon')
         self.assertEqual(manifest.dependencies['rayon'].version, '1.0')
-        self.assertEqual(manifest.dependencies['rayon'].meson_version, ['>= 1.0', '< 2'])
+        self.assertTrue(manifest.dependencies['rayon'].accepts_version('1.0'))
+        self.assertTrue(manifest.dependencies['rayon'].accepts_version('1.23'))
+        self.assertFalse(manifest.dependencies['rayon'].accepts_version('2.0'))
         self.assertEqual(manifest.dependencies['rayon'].api, '1')
         self.assertEqual(manifest.dependencies['once_cell'].package, 'once_cell')
         self.assertEqual(manifest.dependencies['once_cell'].version, '1')
-        self.assertEqual(manifest.dependencies['once_cell'].meson_version, ['>= 1', '< 2'])
+        self.assertTrue(manifest.dependencies['once_cell'].accepts_version('1.0'))
+        self.assertTrue(manifest.dependencies['once_cell'].accepts_version('1.23'))
+        self.assertFalse(manifest.dependencies['once_cell'].accepts_version('2.0'))
         self.assertEqual(manifest.dependencies['once_cell'].api, '1')
         self.assertEqual(manifest.dependencies['async-channel'].package, 'async-channel')
-        self.assertEqual(manifest.dependencies['async-channel'].version, '2.0')
-        self.assertEqual(manifest.dependencies['async-channel'].meson_version, ['>= 2.0', '< 3'])
+        self.assertEqual(manifest.dependencies['async-channel'].version, '2.1')
+        self.assertFalse(manifest.dependencies['async-channel'].accepts_version('2.0'))
+        self.assertTrue(manifest.dependencies['async-channel'].accepts_version('2.1'))
+        self.assertTrue(manifest.dependencies['async-channel'].accepts_version('2.23'))
+        self.assertFalse(manifest.dependencies['async-channel'].accepts_version('2.0'))
         self.assertEqual(manifest.dependencies['async-channel'].api, '2')
         self.assertEqual(manifest.dependencies['zerocopy'].package, 'zerocopy')
         self.assertEqual(manifest.dependencies['zerocopy'].version, '0.7')
-        self.assertEqual(manifest.dependencies['zerocopy'].meson_version, ['>= 0.7', '< 0.8'])
+        self.assertTrue(manifest.dependencies['zerocopy'].accepts_version('0.7'))
+        self.assertFalse(manifest.dependencies['zerocopy'].accepts_version('0.8'))
         self.assertEqual(manifest.dependencies['zerocopy'].features, ['derive'])
         self.assertEqual(manifest.dependencies['zerocopy'].api, '0.7')
 
         self.assertEqual(len(manifest.dev_dependencies), 1)
         self.assertEqual(manifest.dev_dependencies['gir-format-check'].package, 'gir-format-check')
         self.assertEqual(manifest.dev_dependencies['gir-format-check'].version, '^0.1')
-        self.assertEqual(manifest.dev_dependencies['gir-format-check'].meson_version, ['>= 0.1', '< 0.2'])
+        self.assertTrue(manifest.dev_dependencies['gir-format-check'].accepts_version('0.1'))
+        self.assertFalse(manifest.dev_dependencies['gir-format-check'].accepts_version('0.2'))
         self.assertEqual(manifest.dev_dependencies['gir-format-check'].api, '0.1')
 
     def test_cargo_toml_proc_macro(self) -> None:

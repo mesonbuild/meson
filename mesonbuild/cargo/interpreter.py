@@ -26,7 +26,7 @@ from .toml import load_toml
 from .manifest import Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname
 from ..mesonlib import (
     is_parent_path, lazy_property, MesonException, MachineChoice,
-    unique_list, version_compare, SubProject,
+    unique_list, SubProject,
 )
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
@@ -489,19 +489,20 @@ class Interpreter:
             return pkg
         return self._fetch_package_from_provider(package_name, api)
 
-    def _resolve_package(self, package_name: str, version_constraints: T.List[str]) -> T.Optional[CargoLockPackage]:
+    def _resolve_package(self, package_name: str, accepts_version: T.Callable[[str], bool]) -> \
+            T.Optional[CargoLockPackage]:
         """From all available versions from Cargo.lock, pick the most recent
            satisfying the constraints and return it."""
         if not self.cargolock:
             return None
 
         for cargo_pkg in self.cargolock.named(package_name):
-            if all(version_compare(cargo_pkg.version, v) for v in version_constraints):
+            if accepts_version(cargo_pkg.version):
                 return cargo_pkg
         return None
 
     def resolve_package(self, package_name: str, api: str) -> T.Optional[PackageState]:
-        cargo_pkg = self._resolve_package(package_name, version.convert(api))
+        cargo_pkg = self._resolve_package(package_name, version.cargo_parse(api))
         if not cargo_pkg:
             return None
         api = version.api(cargo_pkg.version)
@@ -584,7 +585,7 @@ class Interpreter:
             _, _, directory = _parse_git_url(dep.git, dep.branch)
             dep_pkg = self._fetch_package_from_subproject(dep.package, directory)
         else:
-            cargo_pkg = self._resolve_package(dep.package, dep.meson_version)
+            cargo_pkg = self._resolve_package(dep.package, dep.accepts_version)
             if cargo_pkg:
                 dep.update_version(f'={cargo_pkg.version}')
             dep_pkg = self._fetch_package(dep.package, dep.api)
