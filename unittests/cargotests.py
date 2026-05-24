@@ -331,7 +331,7 @@ class CargoTomlTest(unittest.TestCase):
         glib = { path = "glib" }
         gtk = { package = "gtk4", version = "0.9" }
         once_cell = "1.0"
-        syn = { version = "2", features = ["parse"] }
+        syn = { version = ">=1, <3", features = ["parse"] }
 
         [workspace.lints.rust]
         warnings = "deny"
@@ -369,6 +369,19 @@ class CargoTomlTest(unittest.TestCase):
         self.assertEqual(pkg.edition, '2015')
         self.assertEqual(pkg.repository, None)
 
+    def test_update_dependency(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, 'Cargo.toml')
+            with open(fname, 'w', encoding='utf-8') as f:
+                f.write(self.CARGO_TOML_WS)
+            workspace_toml = load_toml(fname)
+
+        workspace = Workspace.from_raw(workspace_toml, tmpdir)
+        dep = Dependency.from_raw('syn', {'workspace': True, 'features': ['full']}, 'member', workspace)
+        self.assertEqual(dep.api, '1')
+        dep.update_version('=2.0.113')
+        self.assertEqual(dep.api, '2')
+
     def test_cargo_toml_ws_dependency(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             fname = os.path.join(tmpdir, 'Cargo.toml')
@@ -401,9 +414,9 @@ class CargoTomlTest(unittest.TestCase):
 
         dep = Dependency.from_raw('syn', {'workspace': True, 'features': ['full']}, 'member', workspace)
         self.assertEqual(dep.package, 'syn')
-        self.assertEqual(dep.version, '2')
-        self.assertEqual(dep.meson_version, ['>= 2', '< 3'])
-        self.assertEqual(dep.api, '2')
+        self.assertEqual(dep.version, '>=1, <3')
+        self.assertEqual(dep.meson_version, ['>=1', '<3'])
+        self.assertEqual(dep.api, '1')
         self.assertEqual(sorted(set(dep.features)), ['full', 'parse'])
 
     def test_cargo_toml_package(self) -> None:
