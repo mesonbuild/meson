@@ -13,7 +13,8 @@ from mesonbuild.cargo.cfg import TokenType
 from mesonbuild.cargo.interpreter import load_cargo_lock
 from mesonbuild.cargo.manifest import Dependency, Lint, Manifest, Package, Workspace
 from mesonbuild.cargo.toml import load_toml
-from mesonbuild.cargo.version import convert
+from mesonbuild.cargo.version import api, convert
+from mesonbuild.mesonlib import MesonException
 
 
 class CargoVersionTest(unittest.TestCase):
@@ -69,6 +70,20 @@ class CargoVersionTest(unittest.TestCase):
         for (data, expected) in cases:
             with self.subTest():
                 self.assertListEqual(convert(data), expected)
+
+    def test_api(self) -> None:
+        cases: T.List[T.Tuple[str, str]] = [
+            # Plain versions
+            ('1.2.3', '1'),
+            ('0.4.5', '0.4'),
+            ('0.0.3', '0'),
+
+            # Explicit operators
+            ('1.*', '1'),
+        ]
+        for (data, expected) in cases:
+            with self.subTest(data=data):
+                self.assertEqual(api(data), expected)
 
 
 class CargoCfgTest(unittest.TestCase):
