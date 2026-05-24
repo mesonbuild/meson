@@ -4,6 +4,8 @@
 """Convert Cargo versions into Meson compatible ones."""
 
 from __future__ import annotations
+from functools import lru_cache
+from ..mesonlib import version_compare
 import typing as T
 
 from ..mesonlib import MesonException
@@ -13,7 +15,7 @@ def _api_of(version: str) -> str:
     # 0.x.y -> 0.x
     # 0.0.x -> 0
     vers = version.split('.')
-    if int(vers[0]) != 0:
+    if not vers[0] or int(vers[0]) != 0:
         return vers[0]
     elif len(vers) >= 2 and int(vers[1]) != 0:
         return f'0.{vers[1]}'
@@ -63,12 +65,13 @@ def api(cargo_ver: str) -> str:
         raise MesonException(f'Cannot determine API version from {cargo_ver!r}.')
 
 
-def convert(cargo_ver: str) -> T.List[str]:
+@lru_cache(maxsize=None)
+def cargo_parse(cargo_ver: str) -> T.Callable[[str], bool]:
     """Return a function that checks a Version against a Cargo version
        requirement.
 
     :param cargo_ver: The version, as Cargo specifies
-    :return: A list of version constraints, as Meson understands them
+    :return: A function returning true if the version is accepted.
     """
     out: T.List[str] = []
     for op, ver in split(cargo_ver):
@@ -137,4 +140,9 @@ def convert(cargo_ver: str) -> T.List[str]:
         else:
             out.append(f'{op} {ver}')
 
-    return out
+    def compare(ver: str) -> bool:
+        return all(version_compare(ver, comparison) for comparison in out)
+
+    if not out:
+        return lambda v: True
+    return compare
