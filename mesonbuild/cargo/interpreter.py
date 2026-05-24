@@ -492,16 +492,12 @@ class Interpreter:
     def _resolve_package(self, package_name: str, version_constraints: T.List[str]) -> T.Optional[CargoLockPackage]:
         """From all available versions from Cargo.lock, pick the most recent
            satisfying the constraints and return it."""
-        if self.cargolock:
-            cargo_lock_pkgs = self.cargolock.named(package_name)
-        else:
-            cargo_lock_pkgs = []
-        for cargo_pkg in cargo_lock_pkgs:
+        if not self.cargolock:
+            return None
+
+        for cargo_pkg in self.cargolock.named(package_name):
             if all(version_compare(cargo_pkg.version, v) for v in version_constraints):
                 return cargo_pkg
-
-        if not version_constraints:
-            raise MesonException(f'Cannot determine version of cargo package {package_name}')
         return None
 
     def resolve_package(self, package_name: str, api: str) -> T.Optional[PackageState]:
