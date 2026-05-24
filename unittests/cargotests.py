@@ -437,7 +437,7 @@ class CargoTomlTest(unittest.TestCase):
         dep = Dependency.from_raw('syn', {'workspace': True, 'features': ['full']}, 'member', workspace)
         self.assertEqual(dep.package, 'syn')
         self.assertEqual(dep.version, '>=1, <3')
-        self.assertEqual(dep.meson_version, ['>=1', '<3'])
+        self.assertEqual(dep.meson_version, ['>= 1', '< 3'])
         self.assertEqual(dep.api, '1')
         self.assertEqual(sorted(set(dep.features)), ['full', 'parse'])
 

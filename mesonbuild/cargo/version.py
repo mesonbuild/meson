@@ -19,43 +19,55 @@ def api(version: str) -> str:
     return '0'
 
 
+def split(cargo_ver: str) -> T.Iterable[tuple[str, str]]:
+    """Canonicalization of Cargo version requirements"""
+    cargo_ver = cargo_ver.strip()
+    if not cargo_ver:
+        return
+    for ver in cargo_ver.split(','):
+        ver = ver.strip()
+        if ver == '*':
+            continue
+
+        if ver.startswith(('>=', '<=', '!=')):
+            yield ver[0:2], ver[2:].lstrip()
+        elif ver.startswith(('~', '=', '^', '>', '<')):
+            yield ver[0], ver[1:].lstrip()
+        elif ver.endswith('.*'):
+            # asterisk requirements are same as tilde: 1.* == ~1
+            # https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#wildcard-requirements
+            yield '~', ver[:-2].lstrip()
+        else:
+            # caret requirement is the default strategy
+            yield '^', ver
+
+
 def convert(cargo_ver: str) -> T.List[str]:
-    """Convert a Cargo compatible version into a Meson compatible one.
+    """Return a function that checks a Version against a Cargo version
+       requirement.
 
     :param cargo_ver: The version, as Cargo specifies
     :return: A list of version constraints, as Meson understands them
     """
-    # Cleanup, just for safety
-    cargo_ver = cargo_ver.strip()
-    if not cargo_ver:
-        return []
-    cargo_vers = [c.strip() for c in cargo_ver.split(',')]
-
     out: T.List[str] = []
-
-    for ver in cargo_vers:
+    for op, ver in split(cargo_ver):
         # https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#comparison-requirements
         # <= 3 allows 3.0.0 where meson version compare does not
         # So change <= into < with a bumped version
-        if ver.startswith('<='):
-            v = ver[2:].strip().split('.')
+        if op == '<=':
+            v = ver.split('.')
             if len(v) == 1:
                 out.append(f'< {int(v[0]) + 1}')
             elif len(v) == 2:
                 out.append(f'< {v[0]}.{int(v[1]) + 1}')
             else:
-                out.append(ver)
+                out.append(f'{op} {ver}')
 
-        # This covers >= as well
-        elif ver.startswith(('>', '<', '=')):
-            out.append(ver)
-
-        elif ver.startswith('~'):
-            # Rust has these tilde requirements, which means that it is >= to
-            # the version, but less than the next version
+        elif op == '~':
+            # Tilde requirements are the same as asterisk, so 1.* == ~1
             # https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#tilde-requirements
             # we convert those into a pair of constraints
-            v = ver[1:].split('.')
+            v = ver.split('.')
             out.append(f'>= {".".join(v)}')
             if len(v) == 3:
                 out.append(f'< {v[0]}.{int(v[1]) + 1}.0')
@@ -64,24 +76,8 @@ def convert(cargo_ver: str) -> T.List[str]:
             else:
                 out.append(f'< {int(v[0]) + 1}')
 
-        elif '*' in ver:
-            # Rust has astrisk requirements,, which are like 1.* == ~1
-            # https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#wildcard-requirements
-            v = ver.split('.')[:-1]
-            if v:
-                out.append(f'>= {".".join(v)}')
-            if len(v) == 2:
-                out.append(f'< {v[0]}.{int(v[1]) + 1}')
-            elif len(v) == 1:
-                out.append(f'< {int(v[0]) + 1}')
-
-        else:
-            # a Caret version is equivalent to the default strategy
-            # https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#caret-requirements
-            if ver.startswith('^'):
-                ver = ver[1:]
-
-            # If there is no qualifier, then it means this or the next non-zero version
+        elif op == '^':
+            # Allow changes after the first non-zero version
             # That means that if this is `1.1.0``, then we need `>= 1.1.0` && `< 2.0.0`
             # Or if we have `0.1.0`, then we need `>= 0.1.0` && `< 0.2.0`
             # Or if we have `0.1`, then we need `>= 0.1.0` && `< 0.2.0`
@@ -116,5 +112,8 @@ def convert(cargo_ver: str) -> T.List[str]:
                 out.append('< {}'.format('.'.join(max_)))
             else:
                 out.append('< 1')
+
+        else:
+            out.append(f'{op} {ver}')
 
     return out
