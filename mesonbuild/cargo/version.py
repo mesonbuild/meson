@@ -6,8 +6,9 @@
 from __future__ import annotations
 import typing as T
 
+from ..mesonlib import MesonException
 
-def api(version: str) -> str:
+def _api_of(version: str) -> str:
     # x.y.z -> x
     # 0.x.y -> 0.x
     # 0.0.x -> 0
@@ -40,6 +41,26 @@ def split(cargo_ver: str) -> T.Iterable[tuple[str, str]]:
         else:
             # caret requirement is the default strategy
             yield '^', ver
+
+
+def api(cargo_ver: str) -> str:
+    """Determine the API version implied by a Cargo version requirement.
+
+    :param cargo_ver: A Cargo version string.
+    :return: empty string if no lower bound establishes an API, otherwise the
+        major version (or ``"0.x"`` / ``"0"`` for 0.x.y / 0.0.x versions).
+        Raise exception if constraints disagree on the API.
+    """
+    apis: T.Set[str] = set()
+    for op, ver in split(cargo_ver):
+        if op in {'>=', '=', '^', '~'}:
+            apis.add(_api_of(ver))
+    if not apis:
+        return ''
+    elif len(apis) == 1:
+        return apis.pop()
+    else:
+        raise MesonException(f'Cannot determine API version from {cargo_ver!r}.')
 
 
 def convert(cargo_ver: str) -> T.List[str]:
