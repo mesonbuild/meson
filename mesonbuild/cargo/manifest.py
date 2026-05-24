@@ -312,19 +312,7 @@ class Dependency:
 
     @lazy_property
     def api(self) -> str:
-        # Extract wanted API version from version constraints.
-        api = set()
-        for v in self.meson_version:
-            if v.startswith(('>=', '==')):
-                api.add(version.api(v[2:].strip()))
-            elif v.startswith('='):
-                api.add(version.api(v[1:].strip()))
-        if not api:
-            return ''
-        elif len(api) == 1:
-            return api.pop()
-        else:
-            raise MesonException(f'Cannot determine minimum API version from {self.version}.')
+        return version.api(self.version)
 
     def update_version(self, v: str) -> None:
         self.version = v
