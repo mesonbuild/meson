@@ -26,6 +26,14 @@ class CargoVersionTest(unittest.TestCase):
             ('> 1', ['> 1']),
             ('= 1', ['= 1']),
             ('< 1', ['< 1']),
+            # Trailing zeros in the bound: Meson's Version treats a shorter
+            # prefix as < the same prefix with trailing zeros, so the >= bound
+            # must be canonicalized to behave like Cargo (where 1 == 1.0 == 1.0.0).
+#           ('>= 1.0', ['>= 1']),
+#           ('>= 1.0.0', ['>= 1']),
+#           ('> 1.0', ['> 1.0']),
+#           ('> 1.0.0', ['> 1.0.0']),
+            # Cargo's <= must accept x.y.z, which Meson's <= would not
             ('<= 1', ['< 2']),
             ('<= 1.1', ['< 1.2']),
             ('<= 1.1.1', ['<= 1.1.1']),
@@ -44,6 +52,8 @@ class CargoVersionTest(unittest.TestCase):
             ('2', ['>= 2', '< 3']),
             ('2.4', ['>= 2.4', '< 3']),
             ('2.4.5', ['>= 2.4.5', '< 3']),
+#           ('1.0', ['>= 1', '< 2']),
+#           ('1.0.0', ['>= 1', '< 2']),
             ('0.0.0', ['< 1']),
             ('0.0', ['< 1']),
             ('0', ['< 1']),
@@ -56,6 +66,8 @@ class CargoVersionTest(unittest.TestCase):
             ('^2', ['>= 2', '< 3']),
             ('^2.4', ['>= 2.4', '< 3']),
             ('^2.4.5', ['>= 2.4.5', '< 3']),
+#           ('^1.0', ['>= 1', '< 2']),
+#           ('^1.0.0', ['>= 1', '< 2']),
             ('^0.0.0', ['< 1']),
             ('^0.0', ['< 1']),
             ('^0', ['< 1']),
