@@ -13,7 +13,7 @@ from mesonbuild.cargo.cfg import TokenType
 from mesonbuild.cargo.interpreter import load_cargo_lock
 from mesonbuild.cargo.manifest import Dependency, Lint, Manifest, Package, Workspace
 from mesonbuild.cargo.toml import load_toml
-from mesonbuild.cargo.version import api, cargo_parse
+from mesonbuild.cargo.version import api, cargo_parse, SemVer
 from mesonbuild.mesonlib import MesonException
 
 
@@ -89,6 +89,30 @@ class CargoVersionTest(unittest.TestCase):
             for ver in rejected:
                 with self.subTest(req=cargo_req, ver=ver):
                     self.assertFalse(check(ver), f'{cargo_req!r} should reject {ver!r}')
+
+    def test_semver_parse(self) -> None:
+        # Pre-release components parse into the version vector after a -1
+        # sentinel; build metadata (after '+') is discarded.
+        self.assertEqual(SemVer('1.2.3')._v, [1, 2, 3, 0])
+        self.assertEqual(SemVer('1.0.0-alpha.1')._v, [1, 0, 0, -1, 'alpha', 1])
+        self.assertEqual(SemVer('1.2.3-rc.1+exp.sha')._v, [1, 2, 3, -1, 'rc', 1])
+        self.assertEqual(SemVer('1.0.0+build.5')._v, [1, 0, 0, 0])
+
+        # numeric identifiers sort below alphanumeric ones, a larger set of fields
+        # wins, and a release sorts above all of its pre-releases.
+        # https://semver.org/#spec-item-11
+        ordered = [
+            '1.0.0-alpha', '1.0.0-alpha.1', '1.0.0-alpha.beta', '1.0.0-beta',
+            '1.0.0-beta.2', '1.0.0-beta.11', '1.0.0-rc.1', '1.0.0',
+        ]
+        for lo, hi in zip(ordered, ordered[1:]):
+            with self.subTest(lo=lo, hi=hi):
+                self.assertLess(SemVer(lo), SemVer(hi))
+                self.assertGreater(SemVer(hi), SemVer(lo))
+
+        # Build metadata does not affect precedence.
+        self.assertEqual(SemVer('1.0.0+build.5'), SemVer('1.0.0'))
+        self.assertEqual(SemVer('1.2.3-rc.1+exp.sha'), SemVer('1.2.3-rc.1'))
 
     def test_api(self) -> None:
         cases: T.List[T.Tuple[str, str]] = [
