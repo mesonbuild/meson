@@ -1518,7 +1518,7 @@ class Vs2010Backend(backends.Backend):
                             rel_obj = self.object_filename_from_source(t, compiler, src, target_private_dir)
                             extra_link_args.append(rel_obj)
 
-                    extra_link_args.extend(self.flatten_object_list(t))
+                    extra_link_args.extend(self.flatten_object_list(t)[0])
                 else:
                     # /WHOLEARCHIVE:foo must go into AdditionalOptions
                     extra_link_args += compiler.get_link_whole_for(linkname)
