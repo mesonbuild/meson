@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 from functools import lru_cache
-from ..mesonlib import version_compare
 import operator
 import re
 import typing as T
@@ -201,75 +200,57 @@ def cargo_parse(cargo_ver: str) -> T.Callable[[str], bool]:
     :param cargo_ver: The version, as Cargo specifies
     :return: A function returning true if the version is accepted.
     """
-    out: T.List[str] = []
+    out: list[tuple[T.Callable[[T.Any, T.Any], bool], SemVer]] = []
     for op, ver in split(cargo_ver):
+        semver = SemVer(ver)
+
         # https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#comparison-requirements
-        # <= 3 allows 3.0.0 where meson version compare does not
-        # So change <= into < with a bumped version
         if op == '<=':
-            v = ver.split('.')
-            if len(v) == 1:
-                out.append(f'< {int(v[0]) + 1}')
-            elif len(v) == 2:
-                out.append(f'< {v[0]}.{int(v[1]) + 1}')
-            else:
-                out.append(f'{op} {ver}')
+            # Bump the last *specified* component and convert to `<`.
+            nextver = semver.next_ver(semver.specified_count - 1)
+            out.append((operator.lt, nextver))
 
         elif op == '~':
             # Tilde requirements are the same as asterisk, so 1.* == ~1
             # https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#tilde-requirements
             # we convert those into a pair of constraints
-            v = ver.split('.')
-            out.append(f'>= {".".join(v)}')
-            if len(v) == 3:
-                out.append(f'< {v[0]}.{int(v[1]) + 1}.0')
-            elif len(v) == 2:
-                out.append(f'< {v[0]}.{int(v[1]) + 1}')
+            out.append((operator.ge, semver))
+            if semver.specified_count >= 2:
+                nextver = semver.next_ver(1)
             else:
-                out.append(f'< {int(v[0]) + 1}')
+                nextver = semver.next_ver(0)
+            out.append((operator.lt, nextver))
 
         elif op == '^':
-            # Allow changes after the first non-zero version
-            # That means that if this is `1.1.0``, then we need `>= 1.1.0` && `< 2.0.0`
-            # Or if we have `0.1.0`, then we need `>= 0.1.0` && `< 0.2.0`
-            # Or if we have `0.1`, then we need `>= 0.1.0` && `< 0.2.0`
-            # Or if we have `0.0.0`, then we need `< 1.0.0`
-            # Or if we have `0.0`, then we need `< 1.0.0`
-            # Or if we have `0`, then we need `< 1.0.0`
-            # Or if we have `0.0.3`, then we need `>= 0.0.3` && `< 0.0.4`
-            # https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-cratesio
-            #
-            # this works much like the ~ versions, but in reverse. Tilde starts
-            # at the patch version and works up, to the major version, while
-            # bare numbers start at the major version and work down to the patch
-            # version
-            vers = ver.split('.')
-            min_: T.List[str] = []
-            max_: T.List[str] = []
-            bumped = False
-            for v_ in vers:
-                if v_ != '0' and not bumped:
-                    min_.append(v_)
-                    max_.append(str(int(v_) + 1))
-                    bumped = True
-                else:
-                    min_.append(v_)
-                    if not bumped:
-                        max_.append('0')
-
-            # If there is no minimum, don't emit one
-            if set(min_) != {'0'}:
-                out.append('>= {}'.format('.'.join(min_)))
-            if set(max_) != {'0'}:
-                out.append('< {}'.format('.'.join(max_)))
+            # https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#caret-requirements
+            # Bump the leftmost non-zero major/minor/patch component
+            out.append((operator.ge, semver))
+            for bump_idx in range(3):
+                if semver._v[bump_idx] != 0:
+                    break
             else:
-                out.append('< 1')
+                # All zeros: ``^0.0.0`` means ``< 1.0.0``, so bump the major.
+                bump_idx = 0
+            nextver = semver.next_ver(bump_idx)
+            out.append((operator.lt, nextver))
 
-        else:
-            out.append(f'{op} {ver}')
+        elif op == '>=':
+            out.append((operator.ge, semver))
+        elif op == '!=':
+            out.append((operator.ne, semver))
+        elif op == '=':
+            out.append((operator.eq, semver))
+        elif op == '>':
+            out.append((operator.gt, semver))
+        elif op == '<':
+            out.append((operator.lt, semver))
 
     def compare(ver: str) -> bool:
-        return all(version_compare(ver, comparison) for comparison in out)
+        lhs = SemVer(ver)
+        for op, rhs in out:
+            if not op(lhs, rhs):
+                return False
+        return True
 
     if not out:
         return lambda v: True

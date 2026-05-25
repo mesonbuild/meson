@@ -15,7 +15,7 @@ from pathlib import PurePath
 
 
 from . import version
-from ..mesonlib import MesonException, lazy_property, Version
+from ..mesonlib import MesonException, lazy_property
 from .. import mlog
 
 if T.TYPE_CHECKING:
@@ -696,7 +696,7 @@ class CargoLock:
         for pkg in self.package:
             versions[pkg.name].append(pkg)
         for pkg_versions in versions.values():
-            pkg_versions.sort(reverse=True, key=lambda pkg: Version(pkg.version))
+            pkg_versions.sort(reverse=True, key=lambda pkg: version.SemVer(pkg.version))
         return versions
 
     @classmethod
