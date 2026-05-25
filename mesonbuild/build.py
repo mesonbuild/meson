@@ -3206,9 +3206,6 @@ class CustomTarget(Target, CustomTargetBase):
             return False
         return CustomTargetIndex(self, self.outputs[0]).is_internal()
 
-    def extract_all_objects(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
-        return T.cast('list[str | ExtractedObjects]', self.get_outputs())
-
     def type_suffix(self) -> str:
         return "@cus"
 
@@ -3505,9 +3502,6 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
         '''
         suf = os.path.splitext(self.output)[-1]
         return suf in {'.a', '.lib'} and not self.should_install()
-
-    def extract_all_objects(self) -> T.Union[str, 'ExtractedObjects']:
-        return self.output
 
     def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
         return self.target.get_custom_install_dir()
