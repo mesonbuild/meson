@@ -14,74 +14,84 @@ from mesonbuild.cargo.interpreter import load_cargo_lock
 from mesonbuild.cargo.manifest import Dependency, Lint, Manifest, Package, Workspace
 from mesonbuild.cargo.toml import load_toml
 from mesonbuild.cargo.version import api, convert
-from mesonbuild.mesonlib import MesonException
+from mesonbuild.mesonlib import MesonException, version_compare
 
 
 class CargoVersionTest(unittest.TestCase):
 
-    def test_cargo_to_meson(self) -> None:
-        cases: T.List[T.Tuple[str, T.List[str]]] = [
-            # Basic requirements
-            ('>= 1', ['>= 1']),
-            ('> 1', ['> 1']),
-            ('= 1', ['= 1']),
-            ('< 1', ['< 1']),
+    def test_cargo_parse(self) -> None:
+        # Each case is (cargo_requirement, accepted_versions, rejected_versions).
+        # The conversion from Cargo to Meson constraints is opaque, so probe the
+        # resulting predicate on versions around the boundaries.
+        cases: T.List[T.Tuple[str, T.List[str], T.List[str]]] = [
+            # Basic comparison requirements
+            ('>= 1', ['1', '1.0', '1.5', '2'], ['0.9']),
+            ('> 1', ['1.0.1', '1.5', '2'], ['0.9', '1']),
+            ('= 1', ['1'], ['0.9', '1.0.1', '2']),
+#           ('= 1', ['1.0', '1.0.0'], []),
+            ('< 1', ['0.9'], ['1', '1.0', '2']),
             # Trailing zeros in the bound: Meson's Version treats a shorter
             # prefix as < the same prefix with trailing zeros, so the >= bound
             # must be canonicalized to behave like Cargo (where 1 == 1.0 == 1.0.0).
-#           ('>= 1.0', ['>= 1']),
-#           ('>= 1.0.0', ['>= 1']),
-#           ('> 1.0', ['> 1.0']),
-#           ('> 1.0.0', ['> 1.0.0']),
+#           ('>= 1.0', ['1', '1.0', '1.0.0', '1.5'], ['0.9']),
+#           ('>= 1.0.0', ['1', '1.0', '1.0.0', '1.5'], ['0.9']),
+#           ('> 1.0', ['1.0.1', '1.5', '2'], ['0.9', '1', '1.0']),
+#           ('> 1.0.0', ['1.0.1', '1.5', '2'], ['0.9', '1', '1.0', '1.0.0']),
             # Cargo's <= must accept x.y.z, which Meson's <= would not
-            ('<= 1', ['< 2']),
-            ('<= 1.1', ['< 1.2']),
-            ('<= 1.1.1', ['<= 1.1.1']),
+            ('<= 1', ['0.9', '1', '1.0', '1.5', '1.99'], ['2', '2.0']),
+            ('<= 1.1', ['1.0', '1.1', '1.1.5'], ['1.2', '2']),
+            ('<= 1.1.1', ['1.0', '1.1', '1.1.1'], ['1.1.2', '1.2']),
 
-            # tilde tests
-            ('~1', ['>= 1', '< 2']),
-            ('~1.1', ['>= 1.1', '< 1.2']),
-            ('~1.1.2', ['>= 1.1.2', '< 1.2.0']),
+            # Tilde requirements
+            ('~1', ['1', '1.5', '1.99'], ['0.9', '2']),
+            ('~1.1', ['1.1', '1.1.5'], ['1.0', '1.2', '2']),
+            ('~1.1.2', ['1.1.2', '1.1.5'], ['1.1.1', '1.2.0']),
 
             # Wildcards
-            ('*', []),
-            ('1.*', ['>= 1', '< 2']),
-            ('2.3.*', ['>= 2.3', '< 2.4']),
+            ('*', ['0.1', '1', '99.99'], []),
+            ('1.*', ['1', '1.5'], ['0.9', '2']),
+            ('2.3.*', ['2.3', '2.3.5'], ['2.2', '2.4']),
 
             # Unqualified
-            ('2', ['>= 2', '< 3']),
-            ('2.4', ['>= 2.4', '< 3']),
-            ('2.4.5', ['>= 2.4.5', '< 3']),
-#           ('1.0', ['>= 1', '< 2']),
-#           ('1.0.0', ['>= 1', '< 2']),
-            ('0.0.0', ['< 1']),
-            ('0.0', ['< 1']),
-            ('0', ['< 1']),
-            ('0.0.5', ['>= 0.0.5', '< 0.0.6']),
-            ('0.5.0', ['>= 0.5.0', '< 0.6']),
-            ('0.5', ['>= 0.5', '< 0.6']),
-            ('1.0.45', ['>= 1.0.45', '< 2']),
+            ('2', ['2', '2.5'], ['1', '3']),
+            ('2.4', ['2.4', '2.5'], ['2.3', '3']),
+            ('2.4.5', ['2.4.5', '2.6'], ['2.4.4', '3']),
+            ('0.0.0', ['0', '0.0.0', '0.0.5', '0.5'], ['1']),
+            ('0.0', ['0', '0.5', '0.999'], ['1']),
+            ('0', ['0', '0.5'], ['1']),
+            ('0.0.5', ['0.0.5'], ['0.0.4', '0.0.6']),
+            ('0.5.0', ['0.5.0', '0.5.5'], ['0.4.0', '0.6']),
+            ('0.5', ['0.5', '0.5.5'], ['0.4', '0.6']),
+            ('1.0.45', ['1.0.45', '1.5'], ['1.0.44', '2']),
 
-            # Caret (Which is the same as unqualified)
-            ('^2', ['>= 2', '< 3']),
-            ('^2.4', ['>= 2.4', '< 3']),
-            ('^2.4.5', ['>= 2.4.5', '< 3']),
-#           ('^1.0', ['>= 1', '< 2']),
-#           ('^1.0.0', ['>= 1', '< 2']),
-            ('^0.0.0', ['< 1']),
-            ('^0.0', ['< 1']),
-            ('^0', ['< 1']),
-            ('^0.0.5', ['>= 0.0.5', '< 0.0.6']),
-            ('^0.5.0', ['>= 0.5.0', '< 0.6']),
-            ('^0.5', ['>= 0.5', '< 0.6']),
+            # Caret (equivalent to unqualified)
+            ('^2', ['2', '2.5'], ['1', '3']),
+            ('^2.4', ['2.4', '2.5'], ['2.3', '3']),
+            ('^2.4.5', ['2.4.5', '2.6'], ['2.4.4', '3']),
+#           ('^1.0', ['1', '1.0', '1.0.0', '1.5'], ['0.9', '2']),
+#           ('^1.0.0', ['1', '1.0', '1.0.0', '1.5'], ['0.9', '2']),
+            ('^0.0.0', ['0', '0.0.5'], ['1']),
+            ('^0.0', ['0', '0.5'], ['1']),
+            ('^0', ['0', '0.5'], ['1']),
+            ('^0.0.5', ['0.0.5'], ['0.0.4', '0.0.6']),
+            ('^0.5.0', ['0.5.0', '0.5.5'], ['0.4.0', '0.6']),
+            ('^0.5', ['0.5', '0.5.5'], ['0.4', '0.6']),
 
             # Multiple requirements
-            ('>= 1.2.3, < 1.4.7', ['>= 1.2.3', '< 1.4.7']),
+            ('>= 1.2.3, < 1.4.7', ['1.2.3', '1.3.0'], ['1.2.2', '1.4.7', '1.5']),
         ]
 
-        for (data, expected) in cases:
-            with self.subTest():
-                self.assertListEqual(convert(data), expected)
+        for (cargo_req, accepted, rejected) in cases:
+            translated = convert(cargo_req)
+            def check(ver):
+                return all(version_compare(ver, constraint) for constraint in translated)
+
+            for ver in accepted:
+                with self.subTest(req=cargo_req, ver=ver):
+                    self.assertTrue(check(ver), f'{cargo_req!r} should accept {ver!r}')
+            for ver in rejected:
+                with self.subTest(req=cargo_req, ver=ver):
+                    self.assertFalse(check(ver), f'{cargo_req!r} should reject {ver!r}')
 
     def test_api(self) -> None:
         cases: T.List[T.Tuple[str, str]] = [
