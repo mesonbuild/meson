@@ -1496,6 +1496,11 @@ class Vs2010Backend(backends.Backend):
             if t in target.link_whole_targets:
                 if compiler.id == 'msvc' and version_compare(compiler.version, '<19.00.23918'):
                     # Expand our object lists manually if we are on pre-Visual Studio 2015 Update 2
+                    if not isinstance(t, build.BuildTarget):
+                        raise MesonException(
+                            f'Cannot extract objects from custom target {t.name!r} to '
+                            f'link_whole it into {target.name!r}: this is not supported '
+                            'with versions of MSVC older than Visual Studio 2015 Update 2.')
                     l = t.extract_all_objects(False)
 
                     # Unfortunately, we can't use self.object_filename_from_source()

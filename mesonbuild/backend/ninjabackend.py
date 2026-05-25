@@ -41,7 +41,6 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
     from .._typing import ImmutableListProtocol
-    from ..build import ExtractedObjects
     from ..compilers.compilers import Language
     from ..compilers.cs import CsCompiler
     from ..compilers.fortran import FortranCompiler
@@ -3647,8 +3646,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 use_custom = True
 
         if use_custom:
-            objects_from_static_libs: T.List[ExtractedObjects] = []
+            objects_from_static_libs: T.List[str] = []
             for dep in target.link_whole_targets:
+                if not isinstance(dep, build.BuildTarget):
+                    raise MesonException(
+                        f'Cannot extract objects from custom target {dep.name!r} to '
+                        f'link_whole it into {target.name!r}: this is not supported '
+                        'with versions of MSVC older than Visual Studio 2015 Update 2.')
                 l = dep.extract_all_objects(False)
                 objects_from_static_libs += self.determine_ext_objs(l)
                 objects_from_static_libs.extend(self.flatten_object_list(dep)[0])
