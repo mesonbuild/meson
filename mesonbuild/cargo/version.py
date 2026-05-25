@@ -201,8 +201,12 @@ def cargo_parse(cargo_ver: str) -> T.Callable[[str], bool]:
     :return: A function returning true if the version is accepted.
     """
     out: list[tuple[T.Callable[[T.Any, T.Any], bool], SemVer]] = []
+    # Pre-release versions only match when at least one constraint
+    # names a pre-release.
+    accept_prerelease = False
     for op, ver in split(cargo_ver):
         semver = SemVer(ver)
+        accept_prerelease = accept_prerelease or semver.has_prerelease
 
         # https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#comparison-requirements
         if op == '<=':
@@ -247,6 +251,8 @@ def cargo_parse(cargo_ver: str) -> T.Callable[[str], bool]:
 
     def compare(ver: str) -> bool:
         lhs = SemVer(ver)
+        if lhs.has_prerelease and not accept_prerelease:
+            return False
         for op, rhs in out:
             if not op(lhs, rhs):
                 return False

@@ -78,6 +78,18 @@ class CargoVersionTest(unittest.TestCase):
 
             # Multiple requirements
             ('>= 1.2.3, < 1.4.7', ['1.2.3', '1.3.0'], ['1.2.2', '1.4.7', '1.5']),
+
+            # Pre-releases are excluded unless a constraint itself names a
+            # pre-release, even when otherwise in range.
+            ('>= 1.0', ['1.0', '1.5', '2'], ['2.0-pre1', '1.5-pre1']),
+            ('^1', ['1', '1.5'], ['1.5.0-pre', '2.0-pre']),
+            # A pre-release bound enables pre-release matching and orders them.
+            ('>= 1.0.0-alpha',
+             ['1.0.0-alpha', '1.0.0-alpha.1', '1.0.0-beta', '1.0.0', '1.5'],
+             ['1.0.0-alph', '0.9']),
+            ('>= 1.0.0-alpha, < 1.0.0',
+             ['1.0.0-alpha', '1.0.0-beta', '1.0.0-rc.1'],
+             ['1.0.0', '0.9']),
         ]
 
         for (cargo_req, accepted, rejected) in cases:
@@ -88,6 +100,11 @@ class CargoVersionTest(unittest.TestCase):
             for ver in rejected:
                 with self.subTest(req=cargo_req, ver=ver):
                     self.assertFalse(check(ver), f'{cargo_req!r} should reject {ver!r}')
+
+    def test_semver_has_prerelease(self) -> None:
+        self.assertTrue(SemVer('1.0.0-alpha').has_prerelease)
+        self.assertFalse(SemVer('1.0.0').has_prerelease)
+        self.assertFalse(SemVer('1.0.0+build.5').has_prerelease)
 
     def test_semver_parse(self) -> None:
         # Pre-release components parse into the version vector after a -1
@@ -453,6 +470,7 @@ class CargoTomlTest(unittest.TestCase):
         self.assertTrue(dep.accepts_version('1.0'))
         self.assertTrue(dep.accepts_version('1.23'))
         self.assertFalse(dep.accepts_version('2.0'))
+        self.assertFalse(dep.accepts_version('2.0-pre1'))
         self.assertEqual(dep.api, '1')
         self.assertEqual(dep.features, [])
         self.assertTrue(dep.optional)
@@ -546,12 +564,14 @@ class CargoTomlTest(unittest.TestCase):
         self.assertTrue(manifest.dependencies['rayon'].accepts_version('1.0'))
         self.assertTrue(manifest.dependencies['rayon'].accepts_version('1.23'))
         self.assertFalse(manifest.dependencies['rayon'].accepts_version('2.0'))
+        self.assertFalse(manifest.dependencies['rayon'].accepts_version('2.0-pre1'))
         self.assertEqual(manifest.dependencies['rayon'].api, '1')
         self.assertEqual(manifest.dependencies['once_cell'].package, 'once_cell')
         self.assertEqual(manifest.dependencies['once_cell'].version, '1')
         self.assertTrue(manifest.dependencies['once_cell'].accepts_version('1.0'))
         self.assertTrue(manifest.dependencies['once_cell'].accepts_version('1.23'))
         self.assertFalse(manifest.dependencies['once_cell'].accepts_version('2.0'))
+        self.assertFalse(manifest.dependencies['once_cell'].accepts_version('2.0-pre1'))
         self.assertEqual(manifest.dependencies['once_cell'].api, '1')
         self.assertEqual(manifest.dependencies['async-channel'].package, 'async-channel')
         self.assertEqual(manifest.dependencies['async-channel'].version, '2.1')
@@ -559,6 +579,7 @@ class CargoTomlTest(unittest.TestCase):
         self.assertTrue(manifest.dependencies['async-channel'].accepts_version('2.1'))
         self.assertTrue(manifest.dependencies['async-channel'].accepts_version('2.23'))
         self.assertFalse(manifest.dependencies['async-channel'].accepts_version('2.0'))
+        self.assertFalse(manifest.dependencies['async-channel'].accepts_version('2.0-pre1'))
         self.assertEqual(manifest.dependencies['async-channel'].api, '2')
         self.assertEqual(manifest.dependencies['zerocopy'].package, 'zerocopy')
         self.assertEqual(manifest.dependencies['zerocopy'].version, '0.7')
