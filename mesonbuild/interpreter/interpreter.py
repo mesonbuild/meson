@@ -2808,8 +2808,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             # Substitute @INPUT@, @OUTPUT@, etc here.
             _cmd = mesonlib.substitute_values(kwargs['command'], values)
             mlog.log('Configuring', mlog.bold(output), 'with command')
-            cmd, *args = _cmd
-            res = self.run_command_impl((cmd, args),
+            cmd, *_args = _cmd
+            res = self.run_command_impl((cmd, _args),
                                         {'capture': True,
                                          'console': False,
                                          'check': True,
