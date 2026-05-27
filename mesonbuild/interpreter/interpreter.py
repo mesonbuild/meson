@@ -2326,7 +2326,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                      suite,
                      exe,
                      kwargs['depends'],
-                     kwargs.get('is_parallel', False),
+                     T.cast('bool', kwargs.get('is_parallel', False)),
                      kwargs['args'],
                      kwargs['env'],
                      expected_fail,

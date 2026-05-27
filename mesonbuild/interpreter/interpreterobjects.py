@@ -839,7 +839,7 @@ class GeneratedObjectsHolder(ObjectHolder[build.ExtractedObjects]):
 
 class Test(MesonInterpreterObject):
     def __init__(self, name: str, project: str, suite: T.List[str],
-                 exe: T.Union[Program, build.Executable, build.CustomTarget, build.CustomTargetIndex],
+                 exe: T.Union[Program, build.Executable, build.CustomTarget, build.CustomTargetIndex, build.Jar],
                  depends: T.Sequence[kwargs.TargetDepends],
                  is_parallel: bool,
                  cmd_args: T.List[T.Union[str, mesonlib.File, build.Target, Program]],
