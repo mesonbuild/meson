@@ -124,7 +124,7 @@ if T.TYPE_CHECKING:
     from ..options import OptionDict
     from ..mesonlib import SubProject
     from ..cmdline import SharedCMDOptions
-    from .type_checking import SourcesVarargsType
+    from .type_checking import SourcesVarargsType, FullEnvInitValueType
 
     # Input source types passed to Targets
     SourceInputs = T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.BuildTarget,
@@ -3096,7 +3096,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('environment', optargs=[(str, list, dict)])
     @typed_kwargs('environment', ENV_METHOD_KW, ENV_SEPARATOR_KW.evolve(since='0.62.0'))
     def func_environment(self, node: mparser.FunctionNode, args: T.Tuple[T.Union[None, str, T.List['TYPE_var'], T.Dict[str, 'TYPE_var']]],
-                         kwargs: 'TYPE_kwargs') -> EnvironmentVariables:
+                         kwargs: kwtypes.FuncEnvironment) -> EnvironmentVariables:
         init = args[0]
         if init is not None:
             FeatureNew.single_use('environment positional arguments', '0.52.0', self.subproject, location=node)
@@ -3105,7 +3105,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InvalidArguments(f'"environment": {msg}')
             if isinstance(init, dict) and any(i for i in init.values() if isinstance(i, list)):
                 FeatureNew.single_use('List of string in dictionary value', '0.62.0', self.subproject, location=node)
-            return env_convertor_with_method(init, kwargs['method'], kwargs['separator'])
+            # the validator call above ensured that we have the correct type
+            return env_convertor_with_method(T.cast('FullEnvInitValueType', init), kwargs['method'], kwargs['separator'])
         return EnvironmentVariables()
 
     @typed_pos_args('join_paths', varargs=str, min_varargs=1)

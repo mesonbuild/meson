@@ -575,3 +575,9 @@ class FuncDependency(ExtractRequired):
 class FuncExpectError(TypedDict):
 
     how: str
+
+
+class FuncEnvironment(TypedDict):
+
+    method: Literal['set', 'prepend', 'append']
+    separator: str
