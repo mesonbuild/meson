@@ -268,7 +268,7 @@ def is_ascii_string(astring: T.Union[str, bytes]) -> bool:
     return True
 
 
-def check_direntry_issues(direntry_array: T.Union[T.Iterable[T.Union[str, bytes]], str, bytes]) -> None:
+def check_direntry_issues(direntry_array: T.Iterable[object]) -> None:
     import locale
     # Warn if the locale is not UTF-8. This can cause various unfixable issues
     # such as os.stat not being able to decode filenames with unicode in them.
@@ -279,13 +279,13 @@ def check_direntry_issues(direntry_array: T.Union[T.Iterable[T.Union[str, bytes]
         if isinstance(direntry_array, (str, bytes)):
             direntry_array = [direntry_array]
         for de in direntry_array:
-            if is_ascii_string(de):
-                continue
-            mlog.warning(textwrap.dedent(f'''
-                You are using {e!r} which is not a Unicode-compatible
-                locale but you are trying to access a file system entry called {de!r} which is
-                not pure ASCII. This may cause problems.
-                '''))
+            if isinstance(de, (str, bytes)) and not is_ascii_string(de):
+                mlog.warning(textwrap.dedent(f'''
+                    You are using {e!r} which is not a Unicode-compatible
+                    locale but you are trying to access a file system entry called {de!r} which is
+                    not pure ASCII. This may cause problems.
+                    '''))
+
 
 class SimpleABC(type):
     '''Lightweight replacement for ``abc.ABCMeta``.
