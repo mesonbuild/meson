@@ -24,7 +24,7 @@ from .type_checking import PkgConfigDefineType, SourcesVarargsType
 TestArgs = T.Union[str, File, build.Target, Program]
 TargetDepends = T.Union[build.CustomTarget, build.CustomTargetIndex, build.BuildTarget, build.GeneratedList, Program]
 CustomTargetInputs = T.Union[str, build.BuildTarget, build.GeneratedTypes,
-                             build.ExtractedObjects, ExternalProgram, File]
+                             build.ExtractedObjects, Program, File]
 RustAbi = Literal['rust', 'c']
 
 class NativeKW(TypedDict):
@@ -314,8 +314,7 @@ class VcsTag(TypedDict):
 
     command: T.List[T.Union[str, build.BuildTargetTypes, Program, File]]
     fallback: T.Optional[str]
-    input: T.List[T.Union[str, build.BuildTarget, build.GeneratedTypes,
-                          build.ExtractedObjects, Program, File]]
+    input: list[CustomTargetInputs]
     output: T.List[str]
     replace_string: str
     install: bool
