@@ -2345,7 +2345,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if any(isinstance(i, ExternalProgram) for i in kwargs['args']):
             FeatureNew.single_use('test with program in args', '1.6.0', self.subproject)
 
-        t = self.make_test(node, args, kwargs)
+        t: Test = self.make_test(node, args, kwargs)
         if is_base_test:
             self.build.tests.append(t)
             mlog.debug('Adding test', mlog.bold(t.name, True))
