@@ -302,6 +302,7 @@ class BuildProject:
     name: str
     version: str
     subproject: SubProject
+    for_machine: MachineChoice
     project_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
     project_link_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
 
@@ -318,7 +319,7 @@ class Build:
         self.project_name = 'name of master project'
         self.project_version: T.Optional[str] = None
         self.environment = environment
-        self.projects: T.Dict[SubProject, BuildProject] = {}
+        self.projects: PerMachine[T.Dict[SubProject, BuildProject]] = PerMachine({}, {})
         self.targets: dict[str, Target] = {}
         self.targetnames: T.Set[T.Tuple[str, str]] = set() # Set of executable names and their subdir
         self.global_args: PerMachine[T.Dict[Language, T.List[str]]] = PerMachine({}, {})
@@ -415,7 +416,7 @@ class Build:
                 self.static_linker.build = self.static_linker.host
 
     def get_project(self) -> str:
-        return self.projects[ROOT_SUBPROJECT].name
+        return self.projects.host[ROOT_SUBPROJECT].name
 
     def get_subproject_dir(self) -> str:
         return self.subproject_dir
@@ -894,7 +895,7 @@ class BuildTarget(Target):
             mlog.warning(f'Build target {name} has no sources. '
                          'This was never supposed to be allowed but did because of a bug, '
                          'support will be removed in a future release of Meson')
-        self.validate_install()
+        self.validate_cross()
         self.check_module_linking()
 
     @lazy_property
@@ -975,7 +976,13 @@ class BuildTarget(Target):
     def __str__(self) -> str:
         return f"{self.name}"
 
-    def validate_install(self) -> None:
+    def validate_cross(self) -> None:
+        if self.build_project.for_machine is MachineChoice.BUILD:
+            if self.for_machine is MachineChoice.HOST:
+                raise MesonBugException('Tried to build a target for the host machine in a build-only subproject.')
+            if self.install:
+                raise MesonBugException('Tried to build an installable target in a build-only subproject.')
+
         if self.for_machine is MachineChoice.BUILD and self.install:
             if self.environment.is_cross_build():
                 raise InvalidArguments('Tried to install a target for the build machine in a cross build.')
