@@ -10,6 +10,6 @@ ftempl = '''int %s(void) {
 }
 '''
 
-d = pathlib.Path(ifilename).read_text().split('\n')[0].strip()
+d = pathlib.Path(ifilename).read_text(encoding='utf-8').split('\n')[0].strip()
 
 pathlib.Path(ofilename).write_text(ftempl % d, encoding='utf-8')

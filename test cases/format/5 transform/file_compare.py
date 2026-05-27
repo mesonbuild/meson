@@ -13,9 +13,9 @@ def main() -> int:
     parser.add_argument('expected', help='the contents we expected')
     args = parser.parse_args()
 
-    with open(args.actual, 'r') as f:
+    with open(args.actual, 'r', encoding='utf-8') as f:
         actual = f.readlines()
-    with open(args.expected, 'r') as f:
+    with open(args.expected, 'r', encoding='utf-8') as f:
         expected = f.readlines()
 
     if actual == expected:
