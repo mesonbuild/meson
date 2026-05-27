@@ -2286,7 +2286,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def make_test(self, node: mparser.BaseNode,
                   args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
                   kwargs: kwtypes.FuncTest | kwtypes.FuncBenchmark,
-                  klass: T.Type[TestClass] = Test) -> TestClass:
+                  klass: T.Type[TestClass] = Test) -> TestClass:  # type: ignore[assignment]
         name = args[0]
         if ':' in name:
             mlog.deprecation(f'":" is not allowed in test name "{name}", it has been replaced with "_"',
