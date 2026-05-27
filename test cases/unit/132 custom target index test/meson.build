@@ -10,7 +10,7 @@ foobar_txt = custom_target(command: [python3, '-c', gen_code, '@OUTPUT@'], outpu
 
 test_code = '''
 import sys, pathlib
-sys.exit(0 if pathlib.Path(sys.argv[1]).read_text() == sys.argv[2] else 4)'''
+sys.exit(0 if pathlib.Path(sys.argv[1]).read_text(encoding='utf-8') == sys.argv[2] else 4)'''
 
 test('foo.txt', python3, args: ['-c', test_code, foobar_txt[0], 'foo'])
 test('bar.txt', python3, args: ['-c', test_code, foobar_txt[1], 'bar'])
