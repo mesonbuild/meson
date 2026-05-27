@@ -1014,7 +1014,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         '-r', '--recursive',
         action='store_true',
-        help='recurse subdirs (requires --check-only or --inplace option)',
+        help='recurse subdirs (requires --check-only, --check-diff or --inplace option)',
     )
     parser.add_argument(
         '-c', '--configuration',
@@ -1056,8 +1056,8 @@ def get_meson_format(sources: T.List[Path]) -> T.Optional[Path]:
 def run(options: argparse.Namespace) -> int:
     if options.output and len(options.sources) != 1:
         raise MesonException('--output argument implies having exactly one source file')
-    if options.recursive and not (options.inplace or options.check_only):
-        raise MesonException('--recursive argument requires either --inplace or --check-only option')
+    if options.recursive and not (options.inplace or options.check_only or options.check_diff):
+        raise MesonException('--recursive argument requires one of --inplace, --check-diff or --check-only')
 
     from_stdin = len(options.sources) == 1 and options.sources[0].name == '-' and options.sources[0].parent == Path()
     if options.recursive and from_stdin:
@@ -1075,6 +1075,7 @@ def run(options: argparse.Namespace) -> int:
         options.configuration = get_meson_format(sources)
 
     formatter = Formatter(options.configuration, options.editor_config, options.recursive)
+    err = 0
 
     while sources:
         src_file = sources.pop(0)
@@ -1102,13 +1103,15 @@ def run(options: argparse.Namespace) -> int:
                 raise MesonException(f'Unable to write to {src_file}') from e
         elif options.check_only or options.check_diff:
             if code != formatted:
+                err = 1
                 if options.check_diff:
                     diff = difflib.unified_diff(code.splitlines(), formatted.splitlines(),
                                                 str(src_file), str(src_file),
                                                 '(original)', '(reformatted)',
                                                 lineterm='')
                     print('\n'.join(diff))
-                return 1
+                else:
+                    break
         elif options.output:
             try:
                 with options.output.open('w', encoding='utf-8', newline=formatter.current_config.newline) as of:
@@ -1118,7 +1121,7 @@ def run(options: argparse.Namespace) -> int:
         else:
             print(formatted, end='')
 
-    return 0
+    return err
 
 # TODO: remove empty newlines when more than N (2...)
 # TODO: magic comment to prevent formatting
