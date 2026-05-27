@@ -11,7 +11,7 @@ import typing as T
 
 from . import build, cmdline, coredata, environment, interpreter, mesonlib, mintro, mlog
 from .dependencies import Dependency
-from .mesonlib import MesonException
+from .mesonlib import MesonException, MachineChoice
 from .interpreterbase import ObjectHolder
 from .options import OptionKey
 
@@ -19,6 +19,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Protocol
     from .cmdline import SharedCMDOptions
     from .interpreter import SubprojectHolder
+    from .mesonlib import PerMachine
 
     class CMDOptions(SharedCMDOptions, Protocol):
 
@@ -195,9 +196,12 @@ class MesonApp:
                                     'Some other Meson process is already using this build directory. Exiting.'):
             return self._generate(env, capture, vslite_ctx)
 
-    def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Dict[OptionKey, str], all_subprojects: T.Mapping[str, SubprojectHolder]) -> None:
+    def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Dict[OptionKey, str],
+                             all_subprojects: PerMachine[T.Dict[str, SubprojectHolder]]) -> None:
         errlist: T.List[str] = []
-        known_subprojects = [name for name, obj in all_subprojects.items() if obj.found()]
+        known_subprojects: T.Set[str] = set()
+        for m in MachineChoice:
+            known_subprojects.update((name for name, obj in all_subprojects[m].items() if obj.found()))
         for opt in cmd_line_options:
             # Accept options that exist or could appear in subsequent reconfigurations,
             # including options for subprojects that were not used
