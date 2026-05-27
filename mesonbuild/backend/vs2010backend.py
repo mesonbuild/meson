@@ -1326,7 +1326,8 @@ class Vs2010Backend(backends.Backend):
             type_config: ET.Element,
             target: build.BuildTarget,
             platform: str,
-            subsystem,
+            subsystem: str | None,
+            version: str | None,
             build_args,
             target_args,
             target_defines,
@@ -1553,8 +1554,13 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(link, 'AdditionalDependencies').text = ';'.join(additional_links)
         ofile = ET.SubElement(link, 'OutputFile')
         ofile.text = f'$(OutDir){target.get_filename()}'
-        subsys = ET.SubElement(link, 'SubSystem')
-        subsys.text = subsystem
+        if subsystem is not None:
+            subsys = ET.SubElement(link, 'SubSystem')
+            subsys.text = subsystem
+        if version is not None:
+            # Undocumented, but you can find a reference in WDK props
+            minver = ET.SubElement(link, 'MinimumRequiredVersion')
+            minver.text = version
         if isinstance(target, (build.SharedLibrary, build.Executable)) and target.get_import_filename():
             # DLLs built with MSVC always have an import library except when
             # they're data-only DLLs, but we don't support those yet.
@@ -1617,7 +1623,8 @@ class Vs2010Backend(backends.Backend):
     # we need to respect that not all targets will have generated a project.
     def gen_vcxproj(self, target: build.BuildTarget, ofname: str, guid: str, vslite_ctx: dict = None) -> bool:
         mlog.debug(f'Generating vcxproj {target.name}.')
-        subsystem = 'Windows'
+        subsystem: str | None = None
+        version: str | None = None
         self.handled_target_deps[target.get_id()] = []
 
         # vs backend does not support link_early_args
@@ -1634,13 +1641,12 @@ class Vs2010Backend(backends.Backend):
             conftype = 'Makefile'
         elif isinstance(target, build.Executable):
             conftype = 'Application'
-            # If someone knows how to set the version properly,
-            # please send a patch.
-            subsystem = target.win_subsystem.split(',')[0]
+            subsystem, _, version = target.win_subsystem.partition(',')
         elif isinstance(target, build.StaticLibrary):
             conftype = 'StaticLibrary'
         elif isinstance(target, build.SharedLibrary):
             conftype = 'DynamicLibrary'
+            subsystem, _, version = target.win_subsystem.partition(',')
         elif isinstance(target, build.CustomTarget):
             self.gen_custom_target_vcxproj(target, ofname, guid)
             return True
@@ -1700,7 +1706,7 @@ class Vs2010Backend(backends.Backend):
             primary_src_lang = get_primary_source_lang(target.sources, custom_src)
             self.add_gen_lite_makefile_vcxproj_elements(root, platform, tfilename[1], vslite_ctx, target, proj_to_build_root, primary_src_lang)
         else:
-            self.add_non_makefile_vcxproj_elements(root, type_config, target, platform, subsystem, build_args, target_args, target_defines, target_inc_dirs, file_args)
+            self.add_non_makefile_vcxproj_elements(root, type_config, target, platform, subsystem, version, build_args, target_args, target_defines, target_inc_dirs, file_args)
 
         meson_file_group = ET.SubElement(root, 'ItemGroup')
         ET.SubElement(meson_file_group, 'None', Include=os.path.join(proj_to_src_dir, build_filename))
