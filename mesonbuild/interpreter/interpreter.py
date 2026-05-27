@@ -2555,7 +2555,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     )
     def func_install_data(self, node: mparser.BaseNode,
                           args: T.Tuple[T.List['mesonlib.FileOrString']],
-                          kwargs: 'kwtypes.FuncInstallData') -> build.Data:
+                          kwargs: 'kwtypes.FuncInstallData') -> list[build.Data]:
         sources = self.source_strings_to_files(args[0] + kwargs['sources'])
         rename = kwargs['rename'] or None
         if rename:
