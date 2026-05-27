@@ -502,8 +502,11 @@ class Resolver:
         wrap = self.wraps.get(subp_name)
         return wrap.provided_deps.get(depname) if wrap else None
 
-    def find_program_provider(self, names: T.List[str]) -> T.Optional[SubProject]:
+    def find_program_provider(self, names: list[str | mesonlib.File]) -> T.Optional[SubProject]:
         for name in names:
+            # A File is always a local program, i.e., a script file in the source tree
+            if isinstance(name, mesonlib.File):
+                continue
             wrap = self.provided_programs.get(name)
             if wrap:
                 return wrap.name
