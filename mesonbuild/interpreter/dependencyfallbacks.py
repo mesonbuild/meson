@@ -137,7 +137,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         return self._get_subproject_dep(subp_name, varname, kwargs)
 
     def _get_subproject(self, subp_name: str) -> T.Optional[SubprojectHolder]:
-        sub = self.interpreter.subprojects.get(subp_name)
+        sub = self.interpreter.subprojects[self.for_machine].get(subp_name)
         if sub and sub.found():
             return sub
         return None

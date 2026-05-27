@@ -76,7 +76,7 @@ class IntrospectionInterpreter(AstInterpreter):
 
         self.cross_file = cross_file
         self.backend = backend
-        self.build_project = BuildProject(subproject, '', subproject)
+        self.build_project = BuildProject(subproject, '', subproject, MachineChoice.HOST)
         self.project_data: T.Dict[str, T.Any] = {}
         self.targets: T.List[IntrospectionBuildTarget] = []
         self.dependencies: T.List[IntrospectionDependency] = []
