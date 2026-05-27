@@ -2698,8 +2698,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     )
     def func_configure_file(self, node: mparser.BaseNode, args: T.List[TYPE_var],
                             kwargs: kwtypes.ConfigureFile) -> mesonlib.File:
-        actions = sorted(x for x in ['configuration', 'command', 'copy']
-                         if kwargs[x] not in [None, False])
+        actions = sorted(x for x in ('configuration', 'command', 'copy')
+                         if kwargs[x] not in [None, False])  # type: ignore[literal-required]
         num_actions = len(actions)
         if num_actions == 0:
             raise InterpreterException('Must specify an action with one of these '
