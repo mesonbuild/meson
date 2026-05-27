@@ -336,7 +336,7 @@ class ConfigureFile(TypedDict):
     install_mode: FileMode
     install_tag: T.Optional[str]
     encoding: str
-    command: T.Optional[T.List[T.Union[build.Executable, ExternalProgram, Compiler, File, str]]]
+    command: T.Optional[T.List[T.Union[build.Executable, Program, Compiler, File, str]]]
     input: T.List[FileOrString]
     configuration: T.Optional[T.Union[T.Dict[str, T.Union[str, int, bool]], build.ConfigurationData]]
     macro_name: T.Optional[str]
