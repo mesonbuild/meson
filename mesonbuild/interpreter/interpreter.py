@@ -3903,7 +3903,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @noKwargs
     @noArgsFlattening
     @noSecondLevelHolderResolving
-    def func_set_variable(self, node: mparser.BaseNode, args: T.Tuple[str, object], kwargs: 'TYPE_kwargs') -> None:
+    def func_set_variable(self, node: mparser.BaseNode, args: T.Tuple[str, TYPE_var | InterpreterObject], kwargs: 'TYPE_kwargs') -> None:
         varname, value = args
         if mparser.IDENT_RE.fullmatch(varname) is None:
             raise InvalidCode('Invalid variable name: ' + varname)
@@ -3913,8 +3913,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     @noKwargs
     @noArgsFlattening
     @unholder_return
-    def func_get_variable(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, Disabler], T.Optional[object]],
-                          kwargs: 'TYPE_kwargs') -> 'TYPE_var':
+    def func_get_variable(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, Disabler], T.Optional[TYPE_var | InterpreterObject]],
+                          kwargs: 'TYPE_kwargs') -> TYPE_var | InterpreterObject:
         varname, fallback = args
         if isinstance(varname, Disabler):
             return varname
