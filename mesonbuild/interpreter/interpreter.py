@@ -1799,7 +1799,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                               required: bool, extra_info: T.List[mlog.TV_Loggable]
                               ) -> T.Optional[Program]:
         mlog.log('Fallback to subproject', mlog.bold(fallback), 'which provides program',
-                 mlog.bold(' '.join(args)))
+                 mlog.bold(' '.join(str(a) for a in args)))
         sp_kwargs: kwtypes.DoSubproject = {
             'required': required,
             'default_options': default_options or {},
@@ -1827,7 +1827,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                           ) -> Program:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
-            mlog.log('Program', mlog.bold(' '.join(args[0])), 'skipped: feature', mlog.bold(feature), 'disabled')
+            mlog.log('Program', mlog.bold(' '.join(str(a) for a in args[0])), 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.notfound_program(args[0])
 
         search_dirs = extract_search_dirs(kwargs)
@@ -2002,7 +2002,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if isinstance(vcs_cmd[0], (str, mesonlib.File)):
                 if isinstance(vcs_cmd[0], mesonlib.File):
                     FeatureNew.single_use('vcs_tag with file as the first argument', '0.62.0', self.subproject, location=node)
-                maincmd = self.find_program_impl(vcs_cmd[0], required=False)
+                maincmd = self.find_program_impl([vcs_cmd[0]], required=False)
                 if maincmd.found():
                     vcs_cmd[0] = maincmd
             else:
