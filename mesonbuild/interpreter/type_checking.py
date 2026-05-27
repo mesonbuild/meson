@@ -352,7 +352,7 @@ OUTPUT_KW: KwargInfo[str] = KwargInfo(
     validator=lambda x: _output_validator([x])
 )
 
-def _local_program_convertor(raw: T.List[T.Union[str, File, BuildTarget, GeneratedTypes, ExtractedObjects, LocalProgram]]) -> T.List[CustomTargetInputs]:
+def _local_program_convertor(raw: T.List[T.Union[str, File, BuildTarget, GeneratedTypes, ExtractedObjects, Program]]) -> T.List[CustomTargetInputs]:
     result: T.List[CustomTargetInputs] = []
     for i in raw:
         if isinstance(i, LocalProgram):
@@ -361,7 +361,7 @@ def _local_program_convertor(raw: T.List[T.Union[str, File, BuildTarget, Generat
             result.append(i)
     return result
 
-CT_INPUT_KW: KwargInfo[T.List[T.Union[str, File, BuildTarget, GeneratedTypes, ExtractedObjects, LocalProgram]]] = KwargInfo(
+CT_INPUT_KW: KwargInfo[T.List[T.Union[str, File, BuildTarget, GeneratedTypes, ExtractedObjects, Program]]] = KwargInfo(
     'input',
     ContainerTypeInfo(list, (str, File, BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects, GeneratedList, Program)),
     listify=True,

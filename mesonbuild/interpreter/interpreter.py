@@ -134,7 +134,7 @@ if T.TYPE_CHECKING:
                             build.ExtractedObjects, build.StructuredSources]
     # Sources for custom targets, which can also include ExternalProgram
     CustomTargetSources = T.Union[mesonlib.File, build.GeneratedTypes, build.BuildTarget,
-                                  build.ExtractedObjects, ExternalProgram]
+                                  build.ExtractedObjects, Program]
 
     BuildTargetSource = T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.StructuredSources]
 
@@ -3222,34 +3222,53 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.validated_cache.add(fname)
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List['mesonlib.FileOrString']) -> T.List['mesonlib.File']: ...
+    def source_strings_to_files(self, sources: list[str]) -> list[mesonlib.File]: ...
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List[T.Union[mesonlib.FileOrString, build.BuildTargetTypes]]) -> T.List[T.Union[mesonlib.File, build.BuildTargetTypes]]: ...
+    def source_strings_to_files(self, sources: list['mesonlib.FileOrString']) -> list['mesonlib.File']: ...
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]) -> T.List[T.Union[mesonlib.File, build.GeneratedTypes]]: ... # noqa: F811
+    def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.BuildTargetTypes]]) -> list[T.Union[mesonlib.File, build.BuildTargetTypes]]: ...  # type: ignore[overload-overlap]
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List[kwtypes.CustomTargetInputs]) -> T.List['CustomTargetSources']: ... # noqa: F811
+    def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]) -> list[T.Union[mesonlib.File, build.GeneratedTypes]]: ...
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List[T.Union[mesonlib.FileOrString, build.BuildTargetTypes, build.BothLibraries, build.ExtractedObjects, build.GeneratedTypes]],
-                                strict: bool = True
-                                ) -> T.List[T.Union[mesonlib.File, build.BuildTargetTypes, build.BothLibraries, build.ExtractedObjects, build.GeneratedTypes]]: ... # noqa: F811
+    def source_strings_to_files(self, sources: list[kwtypes.CustomTargetInputs]) -> list['CustomTargetSources']: ...  # type: ignore[overload-overlap]
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.StructuredSources]],
-                                strict: bool = True,
-                                ) -> T.List[T.Union[mesonlib.File, build.GeneratedTypes, build.StructuredSources]]: ... # noqa: F811
+    def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.BuildTargetTypes, build.BothLibraries, build.ExtractedObjects, build.GeneratedTypes]],  # type: ignore[overload-overlap]
+                                ) -> list[T.Union[mesonlib.File, build.BuildTargetTypes, build.BothLibraries, build.ExtractedObjects, build.GeneratedTypes]]: ...
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List['SourceInputs']) -> T.List['SourceOutputs']: ... # noqa: F811
+    def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.StructuredSources]],
+                                ) -> list[T.Union[mesonlib.File, build.GeneratedTypes, build.StructuredSources]]: ... # noqa: F811
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List[SourcesVarargsType]) -> T.List['SourceOutputs']: ... # noqa: F811
+    def source_strings_to_files(self, sources: list[SourcesVarargsType]) -> list['SourceOutputs']: ...
 
-    def source_strings_to_files(self, sources: T.List['SourceInputs']) -> T.List['SourceOutputs']: # noqa: F811
+    @T.overload
+    def source_strings_to_files(self, sources: list['SourceInputs']) -> list['SourceOutputs']: ...  # type: ignore[overload-cannot-match]
+
+    def source_strings_to_files(self,
+                                sources: T.Union[
+                                    list[str],
+                                    list[mesonlib.File | str],
+                                    list[mesonlib.File | str | build.BuildTargetTypes],
+                                    list[mesonlib.File | str | build.GeneratedTypes],
+                                    list[kwtypes.CustomTargetInputs],
+                                    list[mesonlib.File | str | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes],
+                                    list[mesonlib.File | str | build.GeneratedTypes | build.StructuredSources],
+                                    list[SourceInputs],
+                                    list[SourcesVarargsType],
+                                ]
+                                ) -> T.Union[list[mesonlib.File],
+                                             list[mesonlib.File | build.BuildTargetTypes],
+                                             list[mesonlib.File | build.GeneratedTypes],
+                                             list[mesonlib.File | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes],
+                                             list[mesonlib.File | build.GeneratedTypes | build.StructuredSources],
+                                             list[CustomTargetSources],
+                                             list[SourceOutputs]]:
         """Lower inputs to a list of Targets and Files, replacing any strings.
 
         :param sources: A raw (Meson DSL) list of inputs (targets, files, and
@@ -3258,9 +3277,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         :return: A list of Targets and Files
         """
         mesonlib.check_direntry_issues(sources)
-        if not isinstance(sources, list):
-            sources = [sources]
-        results: T.List['SourceOutputs'] = []
+        results: list[mesonlib.File | build.GeneratedTypes | build.BuildTarget | build.ExtractedObjects | build.StructuredSources | Program] = []
 
         # In Meson 2.0 this shoul not add ALLOW_BUILD_DIR_FILE_REFERENCES
         # universally, and we should just use self.relaxations
@@ -3279,15 +3296,14 @@ class Interpreter(InterpreterBase, HoldableObject):
                     results.append(mesonlib.File.from_built_file(self.subdir, s))
                 else:
                     results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
-            elif isinstance(s, (mesonlib.File, ExternalProgram,
-                                build.GeneratedList, build.BuildTarget,
-                                build.CustomTargetIndex, build.CustomTarget,
+            elif isinstance(s, (mesonlib.File, build.GeneratedList, Program,
+                                build.BuildTarget, build.CustomTargetIndex, build.CustomTarget,
                                 build.ExtractedObjects, build.StructuredSources)):
                 results.append(s)
             else:
                 raise InterpreterException(f'Source item is {s!r} instead of '
                                            'string or File-type object')
-        return results
+        return results  # type: ignore[return-value]
 
     def validate_forbidden_targets(self, name: str, in_root: bool) -> None:
         if name.startswith('meson-internal__'):
