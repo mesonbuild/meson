@@ -225,10 +225,10 @@ class Vs2010Backend(backends.Backend):
                 ET.SubElement(cbs, 'Outputs').text = ';'.join(outfiles)
                 ET.SubElement(cbs, 'AdditionalInputs').text = ';'.join(deps)
 
-    def generate_custom_generator_commands(self, target, parent_node):
-        generator_output_files = []
-        custom_target_include_dirs = []
-        custom_target_output_files = []
+    def generate_custom_generator_commands(self, target: build.BuildTarget, parent_node: ET.Element) -> tuple[list[str], list[str], list[str]]:
+        generator_output_files: list[str] = []
+        custom_target_include_dirs: list[str] = []
+        custom_target_output_files: list[str] = []
         for genlist in target.get_generated_sources():
             self.generate_genlist_for_target(genlist, target, parent_node, generator_output_files, custom_target_include_dirs, custom_target_output_files)
         return generator_output_files, custom_target_output_files, custom_target_include_dirs
