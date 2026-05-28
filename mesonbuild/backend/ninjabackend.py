@@ -48,7 +48,7 @@ if T.TYPE_CHECKING:
     from ..compilers.rust import RustCompiler
     from ..compilers.swift import SwiftCompiler
     from ..mesonlib import FileOrString
-    from .backends import TargetIntrospectionData
+    from .backends import TargetIntrospectionData, CompilerIntrospectionData, LinkerIntrospectionData
 
     CommandArgTypes = T.TypeVar('CommandArgTypes', 'NinjaCommandArg', str, 'NinjaCommandArg | str')
     CommandArgs = T.List[CommandArgTypes]
@@ -511,7 +511,9 @@ class NinjaBackend(backends.Backend):
         self.all_outputs: T.Set[str] = set()
         self.all_pch: T.Dict[str, T.Set[str]] = defaultdict(set)
         self.all_structured_sources: T.Set[str] = set()
-        self.introspection_data = {}
+        # 1st level: target; 2nd: compiler or linker; 3rd: individual keys
+        self.introspection_data: dict[str, dict[tuple[str, tuple[str, ...]] | tuple[str, ...],
+                                                TargetIntrospectionData]] = {}
         self.created_llvm_ir_rule = PerMachine(False, False)
         self.rust_crates: T.Dict[str, RustCrate] = {}
         self.implicit_meson_outs: T.List[str] = []
@@ -858,8 +860,10 @@ class NinjaBackend(backends.Backend):
         lang = comp.get_language()
         tgt = self.introspection_data[tid]
         # Find an existing entry or create a new one
-        id_hash = (lang, tuple(parameters))
-        src_block = tgt.get(id_hash, None)
+        id_hash: tuple[str, tuple] = (lang, tuple(parameters))
+
+        src_block: T.Optional[CompilerIntrospectionData]
+        src_block = T.cast('T.Optional[CompilerIntrospectionData]', tgt.get(id_hash, None))
         if src_block is None:
             # Convert parameters
             if isinstance(parameters, CompilerArgs):
@@ -891,8 +895,9 @@ class NinjaBackend(backends.Backend):
     def create_target_linker_introspection(self, target: build.Target, linker: T.Union[Compiler, StaticLinker], parameters: CompilerArgs) -> None:
         tid = target.get_id()
         tgt = self.introspection_data[tid]
-        lnk_hash = tuple(parameters)
-        lnk_block = tgt.get(lnk_hash, None)
+        lnk_hash: tuple[str, ...] = tuple(parameters)
+        lnk_block: T.Optional[LinkerIntrospectionData]
+        lnk_block = T.cast('T.Optional[LinkerIntrospectionData]', tgt.get(lnk_hash, None))
         if lnk_block is None:
             paramlist = parameters.to_native(copy=True)
 
