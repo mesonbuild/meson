@@ -1035,8 +1035,8 @@ class Vs2010Backend(backends.Backend):
         # file_args is also later split out into defines and include_dirs in
         # case someone passed those in there
         file_args: T.Dict[Language, CompilerArgs] = {l: c.compiler_args() for l, c in target.compilers.items()}
-        file_defines: dict[str, list[str]] = {l: [] for l in target.compilers}
-        file_inc_dirs: dict[str, list[str]] = {l: [] for l in target.compilers}
+        file_defines: dict[Language, list[str]] = {l: [] for l in target.compilers}
+        file_inc_dirs: dict[Language, list[str]] = {l: [] for l in target.compilers}
         # The order in which these compile args are added must match
         # generate_single_compile() and generate_basic_compiler_args()
         for l, comp in target.compilers.items():
