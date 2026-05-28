@@ -3626,7 +3626,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def get_target_type_link_args_post_dependencies(self, target: build.BuildTarget, linker: T.Union[Compiler, StaticLinker]) -> T.List[str]:
         commands: T.List[str] = []
-        if isinstance(target, build.Executable):
+        if isinstance(target, (build.Executable, build.SharedLibrary)):
             assert isinstance(linker, Compiler)
 
             # If win_subsystem is significant on this platform, add the appropriate linker arguments.

@@ -472,11 +472,13 @@ class _SharedLibMixin(TypedDict):
 class SharedLibrary(BuildTarget, _SharedLibMixin, _LibraryMixin):
 
     vs_module_defs: T.Optional[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex]]
+    win_subsystem: T.Optional[str]
 
 
 class SharedModule(BuildTarget, _LibraryMixin):
 
     vs_module_defs: T.Optional[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex]]
+    win_subsystem: T.Optional[str]
 
 
 class Library(BuildTarget, _SharedLibMixin, _StaticLibMixin, _LibraryMixin):
