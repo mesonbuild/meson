@@ -1804,6 +1804,7 @@ class NinjaBackend(backends.Backend):
         args += ['--directory', c_out_dir]
         args += ['--basedir', srcbasedir]
         if target.is_linkable_target():
+            assert isinstance(target, build.LinkableTarget)
             # Library name
             args += ['--library', target.name]
             # Outputted header
