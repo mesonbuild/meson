@@ -363,7 +363,7 @@ class Build:
         self.project_version: T.Optional[str] = None
         self.environment = environment
         self.projects: T.Dict[SubProject, BuildProject] = {}
-        self.targets: dict[str, CustomTarget | BuildTarget | RunTarget | AliasTarget] = {}
+        self.targets: dict[str, Target] = {}
         self.targetnames: T.Set[T.Tuple[str, str]] = set() # Set of executable names and their subdir
         self.global_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
         self.global_link_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
@@ -458,7 +458,7 @@ class Build:
     def get_subproject_dir(self) -> str:
         return self.subproject_dir
 
-    def get_targets(self) -> dict[str, CustomTarget | BuildTarget | RunTarget | AliasTarget]:
+    def get_targets(self) -> dict[str, Target]:
         return self.targets
 
     def get_tests(self) -> T.List['Test']:
@@ -670,6 +670,7 @@ class Target(HoldableObject, metaclass=SimpleABC):
     build_always_stale: bool = False
     extra_files: T.List[File] = field(default_factory=list)
     build_subdir: str = ''
+    depend_files: T.List[File] = field(default_factory=list)
 
     @abc.abstractmethod
     def type_suffix(self) -> str:

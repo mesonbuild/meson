@@ -906,15 +906,15 @@ class NinjaBackend(backends.Backend):
             }
             tgt[lnk_hash] = lnk_block
 
-    def generate_target(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.RunTarget]) -> None:
-        if isinstance(target, build.BuildTarget):
-            os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
+    def generate_target(self, target: T.Union[build.Target]) -> None:
         if isinstance(target, build.CustomTarget):
             self.generate_custom_target(target)
             return
         if isinstance(target, build.RunTarget):
             self.generate_run_target(target)
             return
+        assert isinstance(target, build.BuildTarget)
+        os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
         compiled_sources: T.List[str] = []
         source2object: T.Dict[str, str] = {}
         name = target.get_id()
@@ -1232,7 +1232,7 @@ class NinjaBackend(backends.Backend):
             elif ext.lower() in compilers.lang_suffixes['fortran']:
                 yield source, 'fortran'
 
-    def process_target_dependencies(self, target: build.Target) -> None:
+    def process_target_dependencies(self, target: build.BuildTarget) -> None:
         for t in target.get_dependencies():
             if t.get_id() not in self.processed_targets:
                 self.generate_target(t)
