@@ -280,13 +280,25 @@ class Vs2010Backend(backends.Backend):
         else:
             raise MesonException('Unsupported Visual Studio platform: ' + build_machine)
 
-        self.buildtype = self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))
-        self.optimization = self.environment.coredata.optstore.get_value_for(OptionKey('optimization'))
-        self.debug = self.environment.coredata.optstore.get_value_for(OptionKey('debug'))
+        buildtype = self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))
+        assert isinstance(buildtype, str), 'for mypy'
+        self.buildtype = buildtype
+
+        optimization = self.environment.coredata.optstore.get_value_for(OptionKey('optimization'))
+        assert isinstance(optimization, str), 'for mypy'
+        self.optimization = optimization
+
+        debug = self.environment.coredata.optstore.get_value_for(OptionKey('debug'))
+        assert isinstance(debug, bool), 'for mypy'
+        self.debug = debug
+
         try:
-            self.sanitize = self.environment.coredata.optstore.get_value_for(OptionKey('b_sanitize'))
+            sanitize = self.environment.coredata.optstore.get_value_for(OptionKey('b_sanitize'))
+            assert isinstance(sanitize, list), 'for mypy'
         except KeyError:
-            self.sanitize = []
+            sanitize = []
+        self.sanitize = sanitize
+
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
         projlist = self.generate_projects(vslite_ctx)
         self.gen_testproj()
@@ -1052,7 +1064,9 @@ class Vs2010Backend(backends.Backend):
         # Compile args added from the env or cross file: CFLAGS/CXXFLAGS, etc. We want these
         # to override all the defaults, but not the per-target compile args.
         for lang in file_args.keys():
-            file_args[lang] += self.get_target_option(target, OptionKey(f'{lang}_args', machine=target.for_machine))
+            l_args = self.get_target_option(target, OptionKey(f'{lang}_args', machine=target.for_machine))
+            assert isinstance(l_args, list), 'for mypy'
+            file_args[lang] += l_args
         for args in file_args.values():
             # This is where Visual Studio will insert target_args, target_defines,
             # etc, which are added later from external deps (see below).
@@ -1358,6 +1372,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
         # CRT type; debug or release
         vscrt_type = self.get_target_option(target, 'b_vscrt')
+        assert isinstance(vscrt_type, str), 'for mypy'
         vscrt_val = compiler.get_crt_val(vscrt_type)
         if vscrt_val == 'mdd':
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
