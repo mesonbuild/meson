@@ -484,7 +484,7 @@ class Backend:
         return result
 
     @staticmethod
-    def relpath(todir: str, fromdir: str) -> str:
+    def relpath(todir: str | os.PathLike[str], fromdir: str | os.PathLike[str]) -> str:
         return os.path.relpath(os.path.join('dummyprefixdir', todir),
                                os.path.join('dummyprefixdir', fromdir))
 
