@@ -24,6 +24,7 @@ from .. import mesonlib
 from .. import build
 from .. import mlog
 from .. import compilers
+from .. import programs
 from .. import tooldetect
 from ..arglist import CompilerArgs
 from ..compilers import Compiler, is_library
@@ -1248,6 +1249,10 @@ class NinjaBackend(backends.Backend):
         deps = []
         for i in target.get_dependencies():
             # Add a dependency on all the outputs of this target
+            if isinstance(i, build.LocalProgram):
+                i = i.program
+            if isinstance(i, programs.Program):
+                continue
             for output in i.get_outputs():
                 deps.append(os.path.join(self.get_target_dir(i), output))
         return deps
