@@ -1245,9 +1245,6 @@ class NinjaBackend(backends.Backend):
     def unwrap_dep_list(self, target: T.Union[build.CustomTarget, build.RunTarget]) -> T.List[str]:
         deps = []
         for i in target.get_dependencies():
-            # FIXME, should not grab element at zero but rather expand all.
-            if isinstance(i, list):
-                i = i[0]
             # Add a dependency on all the outputs of this target
             for output in i.get_outputs():
                 deps.append(os.path.join(self.get_target_dir(i), output))
