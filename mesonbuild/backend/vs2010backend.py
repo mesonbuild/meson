@@ -602,7 +602,7 @@ class Vs2010Backend(backends.Backend):
                 headers.append(i)
         return sources, headers, objects, languages
 
-    def target_to_build_root(self, target: build.BuildTargetTypes) -> str:
+    def target_to_build_root(self, target: build.AnyTargetType) -> str:
         if self.get_target_dir(target) == '':
             return ''
 
