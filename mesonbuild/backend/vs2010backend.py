@@ -31,6 +31,7 @@ if T.TYPE_CHECKING:
     from ..compilers.compilers import Language
 
     Project = T.Tuple[str, Path, str, MachineChoice]
+    FileLike = T.TypeVar('FileLike', bound=File | str)
 
 def autodetect_vs_version(build: T.Optional[build.Build]) -> backends.Backend:
     vs_version = os.getenv('VisualStudioVersion', None)
@@ -567,11 +568,11 @@ class Vs2010Backend(backends.Backend):
 
         return projlist
 
-    def split_sources(self, srclist):
-        sources = []
-        headers = []
-        objects = []
-        languages = []
+    def split_sources(self, srclist: list[FileLike]) -> tuple[list[FileLike], list[FileLike], list[FileLike], list[str]]:
+        sources: list[FileLike] = []
+        headers: list[FileLike] = []
+        objects: list[FileLike] = []
+        languages: list[str] = []
         for i in srclist:
             if compilers.is_header(i):
                 headers.append(i)
