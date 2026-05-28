@@ -32,6 +32,7 @@ modules = [
     'mesonbuild/arglist.py',
     'mesonbuild/build.py',
     'mesonbuild/backend/backends.py',
+    'mesonbuild/backend/ninjabackend.py',
     'mesonbuild/backend/nonebackend.py',
     'mesonbuild/cmdline.py',
     'mesonbuild/coredata.py',
