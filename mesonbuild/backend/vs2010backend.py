@@ -17,6 +17,7 @@ from collections import Counter
 from . import backends
 from .. import build
 from .. import mlog
+from .. import programs
 from .. import compilers
 from .. import mesonlib
 from ..mesonlib import (
@@ -189,6 +190,10 @@ class Vs2010Backend(backends.Backend):
                 deps = self.get_target_depend_files(genlist, True)
                 for d in genlist.extra_depends:
                     # Add a dependency on all the outputs of this target
+                    if isinstance(d, build.LocalProgram):
+                        d = d.program
+                    if isinstance(d, programs.Program):
+                        continue
                     for output in d.get_outputs():
                         deps.append(os.path.join(self.get_target_dir(d), output))
                 base_args = generator.get_arglist(infilename)
