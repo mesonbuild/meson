@@ -346,8 +346,8 @@ class DepManifest:
 class BuildProject:
     name: str
     version: str
-    project_args: PerMachine[T.Dict[str, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
-    project_link_args: PerMachine[T.Dict[str, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
+    project_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
+    project_link_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
 
 
 # literally everything isn't dataclass stuff
@@ -365,8 +365,8 @@ class Build:
         self.projects: T.Dict[SubProject, BuildProject] = {}
         self.targets: dict[str, Target] = {}
         self.targetnames: T.Set[T.Tuple[str, str]] = set() # Set of executable names and their subdir
-        self.global_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
-        self.global_link_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
+        self.global_args: PerMachine[T.Dict[Language, T.List[str]]] = PerMachine({}, {})
+        self.global_link_args: PerMachine[T.Dict[Language, T.List[str]]] = PerMachine({}, {})
         self.tests: T.List['Test'] = []
         self.benchmarks: T.List['Test'] = []
         self.headers: T.List[Headers] = []
