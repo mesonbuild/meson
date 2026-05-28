@@ -1908,11 +1908,12 @@ class NinjaBackend(backends.Backend):
 
         header_deps = []  # Keep track of generated headers for those sources
         for gen in target.get_generated_sources():
+            if isinstance(gen, GeneratedList):
+                builddir = self.get_target_private_dir(target)
+            else:
+                builddir = self.get_target_dir(gen)
             for ssrc in gen.get_outputs():
-                if isinstance(gen, GeneratedList):
-                    ssrc = os.path.join(self.get_target_private_dir(target), ssrc)
-                else:
-                    ssrc = os.path.join(gen.get_builddir(), ssrc)
+                ssrc = os.path.join(builddir, ssrc)
                 if ssrc.endswith('.pyx'):
                     output = os.path.join(self.get_target_private_dir(target), f'{ssrc}.{ext}')
                     element = NinjaBuildElement(
@@ -1925,7 +1926,7 @@ class NinjaBackend(backends.Backend):
                     # TODO: introspection?
                     cython_sources.append(output)
                 else:
-                    generated_sources[ssrc] = mesonlib.File.from_built_file(gen.get_builddir(), ssrc)
+                    generated_sources[ssrc] = mesonlib.File.from_built_file(builddir, ssrc)
                     # Following logic in L883-900 where we determine whether to add generated source
                     # as a header(order-only) dep to the .so compilation rule
                     if not compilers.is_source(ssrc) and \
