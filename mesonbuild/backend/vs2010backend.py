@@ -1346,12 +1346,12 @@ class Vs2010Backend(backends.Backend):
             type_config: ET.Element,
             target: build.BuildTarget,
             platform: str,
-            subsystem,
-            build_args,
-            target_args,
-            target_defines,
-            target_inc_dirs,
-            file_args
+            subsystem: str,
+            build_args: list[str],
+            target_args: list[str],
+            target_defines: list[str],
+            target_inc_dirs: list[str],
+            file_args: dict[Language, CompilerArgs]
             ) -> None:
         compiler = self._get_cl_compiler(target)
         buildtype_link_args = compiler.get_optimization_link_args(self.optimization)
@@ -1513,7 +1513,10 @@ class Vs2010Backend(backends.Backend):
                 lobj = t
             else:
                 lobj = self.build.targets[t.get_id()]
-            linkname = os.path.join(down, self.get_target_filename_for_linking(lobj))
+            targetname = self.get_target_filename_for_linking(lobj)
+            if targetname is None:
+                continue
+            linkname = os.path.join(down, targetname)
             if t in target.link_whole_targets:
                 if compiler.id == 'msvc' and version_compare(compiler.version, '<19.00.23918'):
                     # Expand our object lists manually if we are on pre-Visual Studio 2015 Update 2
@@ -1542,7 +1545,7 @@ class Vs2010Backend(backends.Backend):
                     extra_link_args.extend(self.flatten_object_list(t)[0])
                 else:
                     # /WHOLEARCHIVE:foo must go into AdditionalOptions
-                    extra_link_args += compiler.get_link_whole_for(linkname)
+                    extra_link_args += compiler.get_link_whole_for([linkname])
                 # To force Visual Studio to build this project even though it
                 # has no sources, we include a reference to the vcxproj file
                 # that builds this target. Technically we should add this only
@@ -2183,7 +2186,7 @@ class Vs2010Backend(backends.Backend):
             regen_vcxproj = os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj')
             self.add_project_reference(root, regen_vcxproj, self.environment.coredata.regen_guid)
 
-    def generate_lang_standard_info(self, file_args: T.Dict[str, CompilerArgs], clconf: ET.Element) -> None:
+    def generate_lang_standard_info(self, file_args: T.Dict[Language, CompilerArgs], clconf: ET.Element) -> None:
         pass
 
     # Returns if a target generates a manifest or not.
