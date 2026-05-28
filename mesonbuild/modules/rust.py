@@ -891,6 +891,9 @@ class RustModule(ExtensionModule):
             else:
                 raise InterpreterException(f'Unknown file type extension for: {name}')
 
+        # Mypy can't figure out that if Literal a is a subset of Literal B it's valid
+        language = T.cast('Language', language)
+
         # We only want include directories and defines, other things may not be valid
         cargs = state.get_option(f'{language}_args', state.subproject)
         assert isinstance(cargs, list), 'for mypy'

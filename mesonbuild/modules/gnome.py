@@ -42,6 +42,7 @@ if T.TYPE_CHECKING:
     from . import ModuleState
     from ..build import BuildTarget
     from ..compilers import Compiler
+    from ..compilers.compilers import Language
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import CustomTargetSources
     from ..interpreter.kwargs import CustomTargetInputs, TargetDepends
@@ -889,8 +890,8 @@ class GnomeModule(ExtensionModule):
         return ret
 
     @staticmethod
-    def _get_girtargets_langs_compilers(girtargets: T.Sequence[build.BuildTarget]) -> T.List[T.Tuple[str, 'Compiler']]:
-        ret: T.List[T.Tuple[str, 'Compiler']] = []
+    def _get_girtargets_langs_compilers(girtargets: T.Sequence[build.BuildTarget]) -> T.List[T.Tuple[Language, 'Compiler']]:
+        ret: T.List[T.Tuple[Language, 'Compiler']] = []
         for girtarget in girtargets:
             for lang, compiler in girtarget.compilers.items():
                 # XXX: Can you use g-i with any other language?
@@ -917,7 +918,7 @@ class GnomeModule(ExtensionModule):
         return ret
 
     @staticmethod
-    def _get_langs_compilers_flags(state: 'ModuleState', langs_compilers: T.List[T.Tuple[str, 'Compiler']]
+    def _get_langs_compilers_flags(state: 'ModuleState', langs_compilers: T.List[T.Tuple[Language, 'Compiler']]
                                    ) -> T.Tuple[T.List[str], T.List[str], T.List[str]]:
         cflags: T.List[str] = []
         internal_ldflags: T.List[str] = []
