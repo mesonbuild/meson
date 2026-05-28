@@ -1393,7 +1393,7 @@ class Backend:
             newargs.append(arg)
         return newargs
 
-    def get_build_by_default_targets(self) -> dict[str, build.BuildTarget | build.CustomTarget | build.RunTarget]:
+    def get_build_by_default_targets(self) -> dict[str, build.Target]:
         return {k: v for k, v in self.build.targets.items() if v.build_by_default}
 
     def get_testlike_targets(self, benchmark: bool = False) -> T.Iterable[T.Union[build.BuildTarget, build.CustomTarget]]:
@@ -1465,7 +1465,7 @@ class Backend:
             srcs += fname
         return srcs
 
-    def get_target_depend_files(self, target: T.Union[build.CustomTarget, build.BuildTarget, build.GeneratedList, build.RunTarget], absolute_paths: bool = False) -> T.List[str]:
+    def get_target_depend_files(self, target: T.Union[build.Target, build.GeneratedList], absolute_paths: bool = False) -> T.List[str]:
         deps: T.List[str] = []
         for i in target.depend_files:
             if isinstance(i, mesonlib.File):
