@@ -1245,9 +1245,9 @@ class NinjaBackend(backends.Backend):
             if isinstance(s, build.GeneratedList):
                 self.generate_genlist_for_target(s, target)
 
-    def unwrap_dep_list(self, target: T.Union[build.CustomTarget, build.RunTarget]) -> T.List[str]:
+    def unwrap_dep_list(self, target: build.Target, dep_targets: T.Iterable[build.Target | build.GeneratedList | build.CustomTargetIndex | programs.Program]) -> T.List[str]:
         deps = []
-        for i in target.get_dependencies():
+        for i in dep_targets:
             # Add a dependency on all the outputs of this target
             if isinstance(i, build.LocalProgram):
                 i = i.program
@@ -1255,6 +1255,7 @@ class NinjaBackend(backends.Backend):
                 continue
             for output in i.get_outputs():
                 if isinstance(i, GeneratedList):
+                    assert isinstance(target, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex))
                     deps.append(os.path.join(self.get_target_private_dir(target), output))
                 else:
                     deps.append(os.path.join(self.get_target_dir(i), output))
@@ -1263,7 +1264,7 @@ class NinjaBackend(backends.Backend):
     def generate_custom_target(self, target: build.CustomTarget) -> None:
         self.custom_target_generator_inputs(target)
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
-        deps = self.unwrap_dep_list(target)
+        deps = self.unwrap_dep_list(target, target.get_dependencies())
         deps += self.get_target_depend_files(target)
         if target.build_always_stale:
             deps.append('PHONY')
@@ -1329,7 +1330,7 @@ class NinjaBackend(backends.Backend):
             elem.add_item('COMMAND', meson_exe_cmd)
             elem.add_item('description', f'Running external command {target.name}{cmd_type}')
             elem.add_item('pool', 'console')
-        deps = self.unwrap_dep_list(target)
+        deps = self.unwrap_dep_list(target, target.get_dependencies())
         deps += self.get_target_depend_files(target)
         elem.add_dep(deps)
         self.add_build(elem)
@@ -2849,11 +2850,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         subdir = genlist.subdir
         exe = generator.get_exe()
         infilelist = genlist.get_inputs()
-        extra_dependencies = self.get_target_depend_files(genlist)
-        for d in genlist.extra_depends:
-            # Add a dependency on all the outputs of this target
-            for output in d.get_outputs():
-                extra_dependencies.append(os.path.join(self.get_target_dir(d), output))
+        dependencies = self.get_target_depend_files(genlist)
+        dependencies += self.unwrap_dep_list(target, generator.depends)
+        dependencies += self.unwrap_dep_list(target, genlist.extra_depends)
         for curfile in infilelist:
             infilename = curfile.rel_to_builddir(self.build_to_src, self.get_target_private_dir(target))
             base_args = generator.get_arglist(infilename)
@@ -2888,11 +2887,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             os.makedirs(abs_pdir, exist_ok=True)
 
             elem = NinjaBuildElement(self.all_outputs, outfilespriv, rulename, infilename)
-            elem.add_dep([self.get_target_filename(x) for x in generator.depends])
+            elem.add_dep(dependencies)
             if generator.depfile is not None:
                 elem.add_item('DEPFILE', depfile)
-            if len(extra_dependencies) > 0:
-                elem.add_dep(extra_dependencies)
 
             if len(generator.outputs) == 1:
                 what = f'{sole_output!r}'
