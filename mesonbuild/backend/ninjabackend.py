@@ -794,13 +794,13 @@ class NinjaBackend(backends.Backend):
         self._generated_header_cache[tid] = header_deps
         return header_deps
 
-    def get_target_generated_sources(self, target: build.BuildTarget) -> T.MutableMapping[str, File]:
+    def get_target_generated_sources(self, target: build.BuildTarget) -> T.MutableMapping[str, File | build.GeneratedTypes]:
         """
         Returns a dictionary with the keys being the path to the file
         (relative to the build directory) and the value being the File object
         representing the same path.
         """
-        srcs: T.MutableMapping[str, File] = OrderedDict()
+        srcs: T.MutableMapping[str, File | build.GeneratedTypes] = {}
         for gensrc in target.get_generated_sources():
             for s in gensrc.get_outputs():
                 rel_src = self.get_target_generated_dir(target, gensrc, s)
@@ -954,7 +954,7 @@ class NinjaBackend(backends.Backend):
 
         # GeneratedList and CustomTarget sources to be built; dict of the full
         # path to source relative to build root and the generating target/list
-        generated_sources: T.MutableMapping[str, File]
+        generated_sources: T.MutableMapping[str, File | build.GeneratedTypes]
 
         # List of sources that have been transpiled from a DSL (like Vala) into
         # a language that is handled below, such as C or C++
@@ -1522,7 +1522,7 @@ class NinjaBackend(backends.Backend):
         # Add possible java generated files to src list
         generated_sources = self.get_target_generated_sources(target)
         gen_src_list = []
-        for rel_src in generated_sources.keys():
+        for rel_src in generated_sources:
             raw_src = File.from_built_relative(rel_src)
             if rel_src.endswith('.java'):
                 gen_src_list.append(raw_src)
@@ -1609,7 +1609,7 @@ class NinjaBackend(backends.Backend):
             outputs = [outname_rel]
         generated_sources = self.get_target_generated_sources(target)
         generated_rel_srcs = []
-        for rel_src in generated_sources.keys():
+        for rel_src in generated_sources:
             if rel_src.lower().endswith('.cs'):
                 generated_rel_srcs.append(os.path.normpath(rel_src))
             deps.append(os.path.normpath(rel_src))
@@ -1640,7 +1640,7 @@ class NinjaBackend(backends.Backend):
     def generate_java_compile(self, srcs: T.List[File], target: build.BuildTarget, compiler: Compiler, args: T.List[str]) -> T.List[str]:
         deps = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
         generated_sources = self.get_target_generated_sources(target)
-        for rel_src in generated_sources.keys():
+        for rel_src in generated_sources:
             if rel_src.endswith('.java'):
                 deps.append(rel_src)
 
@@ -1692,7 +1692,7 @@ class NinjaBackend(backends.Backend):
 
     def split_vala_sources(self, t: build.BuildTarget) -> \
             T.Tuple[T.MutableMapping[str, File | build.GeneratedTypes], T.MutableMapping[str, File | build.GeneratedTypes],
-                    T.Tuple[T.MutableMapping[str, File | build.GeneratedTypes], T.MutableMapping[str, File | build.GeneratedTypes]]]:
+                    T.MutableMapping[str, File], T.MutableMapping[str, File | build.GeneratedTypes]]:
         """
         Splits the target's sources into .vala, .gs, .vapi, and other sources.
         Handles both preexisting and generated sources.
@@ -1703,7 +1703,7 @@ class NinjaBackend(backends.Backend):
         """
         vala: T.MutableMapping[str, File | build.GeneratedTypes] = OrderedDict()
         vapi: T.MutableMapping[str, File | build.GeneratedTypes] = OrderedDict()
-        others: T.MutableMapping[str, File | build.GeneratedTypes] = OrderedDict()
+        others: T.MutableMapping[str, File] = OrderedDict()
         othersgen: T.MutableMapping[str, File | build.GeneratedTypes] = OrderedDict()
         # Split preexisting sources
         for s in t.get_sources():
@@ -1714,39 +1714,38 @@ class NinjaBackend(backends.Backend):
                 raise InvalidArguments(f'All sources in target {t!r} must be of type mesonlib.File, not {s!r}')
             f = s.rel_to_builddir(self.build_to_src)
             if s.endswith(('.vala', '.gs')):
-                srctype = vala
+                vala[f] = s
             elif s.endswith('.vapi'):
-                srctype = vapi
+                vapi[f] = s
             else:
-                srctype = others
-            srctype[f] = s
+                others[f] = s
         # Split generated sources
         for gensrc in t.get_generated_sources():
             for s in gensrc.get_outputs():
                 f = self.get_target_generated_dir(t, gensrc, s)
                 if s.endswith(('.vala', '.gs')):
-                    srctype = vala
+                    gensrctype = vala
                 elif s.endswith('.vapi'):
-                    srctype = vapi
+                    gensrctype = vapi
                 # Generated non-Vala (C/C++) sources. Won't be used for
                 # generating the Vala compile rule below.
                 else:
-                    srctype = othersgen
+                    gensrctype = othersgen
                 # Duplicate outputs are disastrous
-                if f in srctype and srctype[f] != gensrc:
+                if f in gensrctype and gensrctype[f] != gensrc:
                     msg = 'Duplicate output {0!r} from {1!r} {2!r}; ' \
                           'conflicts with {0!r} from {4!r} {3!r}' \
                           ''.format(f, type(gensrc).__name__, gensrc.name,
-                                    srctype[f], type(srctype[f]).__name__)
+                                    gensrctype[f], type(gensrctype[f]).__name__)
                     raise InvalidArguments(msg)
                 # Store 'somefile.vala': GeneratedList (or CustomTarget)
-                srctype[f] = gensrc
-        return vala, vapi, (others, othersgen)
+                gensrctype[f] = gensrc
+        return vala, vapi, others, othersgen
 
     def generate_vala_compile(self, target: build.BuildTarget) -> \
-            T.Tuple[T.MutableMapping[str, File], T.MutableMapping[str, File], T.List[str]]:
+            T.Tuple[T.MutableMapping[str, File], T.MutableMapping[str, File | build.GeneratedTypes], T.List[str]]:
         """Vala is compiled into C. Set up all necessary build steps here."""
-        (vala_src, vapi_src, other_src) = self.split_vala_sources(target)
+        (vala_src, vapi_src, others, othersgen) = self.split_vala_sources(target)
         extra_dep_files = []
         if not vala_src:
             raise InvalidArguments(f'Vala library {target.name!r} has no Vala or Genie source files.')
@@ -1835,7 +1834,7 @@ class NinjaBackend(backends.Backend):
                     args += ['--shared-library', shared_target.get_filename()]
         # Detect gresources and add --gresources/--gresourcesdir arguments for each
         gres_dirs = []
-        for gensrc in other_src[1].values():
+        for gensrc in othersgen.values():
             if isinstance(gensrc, modules.GResourceTarget):
                 gres_xml, = self.get_custom_target_sources(gensrc)
                 args += ['--gresources=' + gres_xml]
@@ -1861,14 +1860,14 @@ class NinjaBackend(backends.Backend):
         element.add_dep(extra_dep_files)
         self.add_build(element)
         self.create_target_source_introspection(target, valac, args, all_files, [])
-        return other_src[0], other_src[1], vala_c_src
+        return others, othersgen, vala_c_src
 
     def generate_cython_transpile(self, target: build.BuildTarget) -> \
-            T.Tuple[T.MutableMapping[str, File], T.MutableMapping[str, File], T.List[str]]:
+            T.Tuple[T.MutableMapping[str, File], T.MutableMapping[str, File | build.GeneratedTypes], T.List[str]]:
         """Generate rules for transpiling Cython files to C or C++"""
 
         static_sources: T.MutableMapping[str, File] = OrderedDict()
-        generated_sources: T.MutableMapping[str, File] = OrderedDict()
+        generated_sources: T.MutableMapping[str, File | build.GeneratedTypes] = OrderedDict()
         cython_sources: T.List[str] = []
 
         cython = target.compilers['cython']
