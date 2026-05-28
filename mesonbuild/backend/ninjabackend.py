@@ -1254,7 +1254,10 @@ class NinjaBackend(backends.Backend):
             if isinstance(i, programs.Program):
                 continue
             for output in i.get_outputs():
-                deps.append(os.path.join(self.get_target_dir(i), output))
+                if isinstance(i, GeneratedList):
+                    deps.append(os.path.join(self.get_target_private_dir(target), output))
+                else:
+                    deps.append(os.path.join(self.get_target_dir(i), output))
         return deps
 
     def generate_custom_target(self, target: build.CustomTarget) -> None:
