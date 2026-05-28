@@ -1235,6 +1235,8 @@ class NinjaBackend(backends.Backend):
     def process_target_dependencies(self, target: build.BuildTarget) -> None:
         for t in target.get_dependencies():
             if t.get_id() not in self.processed_targets:
+                if isinstance(t, build.CustomTargetIndex):
+                    t = t.target
                 self.generate_target(t)
 
     def custom_target_generator_inputs(self, target: build.CustomTarget) -> None:
