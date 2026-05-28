@@ -3329,12 +3329,7 @@ class RunTarget(Target):
         return self.name
 
     def get_outputs(self) -> T.List[str]:
-        if isinstance(self.name, str):
-            return [self.name]
-        elif isinstance(self.name, list):
-            return self.name
-        else:
-            raise RuntimeError('RunTarget: self.name is neither a list nor a string. This is a bug')
+        return [self.name]
 
     def type_suffix(self) -> str:
         return "@run"
