@@ -617,7 +617,7 @@ class NinjaBackend(backends.Backend):
         if result:
             return result
 
-        raise MesonException(f'Could not determine vs dep dependency prefix string. output: {stderr} {stdout}')
+        raise MesonException(f'Could not determine vs dep dependency prefix string. output: {stderr!r} {stdout!r}')
 
     def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict] = None) -> T.Optional[T.Dict[str, T.Dict[Language, T.List[str]]]]:
         captured_compile_args_per_target: T.Dict[str, T.Dict[Language, T.List[str]]] = {}
