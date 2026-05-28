@@ -942,7 +942,7 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
     def get_cpp_modules_args(self) -> T.List[str]:
         return ['/interface']
 
-class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, ClangClCompiler, CPPCompiler):
+class ClangClCPPCompiler(VisualStudioLikeCPPCompilerMixin, ClangClCompiler, CPPCompiler):
 
     id = 'clang-cl'
 
@@ -955,8 +955,25 @@ class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, Cl
         ClangClCompiler.__init__(self, target)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++20', 'vc++20', 'c++latest']
+        cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++20', 'vc++20', 'c++23', 'vc++23', 'c++latest']
         return self._get_options_impl(super().get_options(), cpp_stds)
+
+    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+        std = self.get_compileropt_value('std', target, subproject)
+        assert isinstance(std, str)
+        if std == 'none':
+            return []
+        # c++latest and vc++latest have no /clang:-std= equivalent
+        if std in {'c++latest', 'vc++latest'}:
+            args = ['/std:c++latest']
+            if std == 'c++latest':
+                args.append('/permissive-')
+            return args
+        # vc++ variants: permissive mode, strip 'vc++' prefix to get clang std name
+        if std.startswith('vc++'):
+            return [f'/clang:-std=c++{std[4:]}']
+        # c++ variants: strict conformance mode
+        return [f'/clang:-std={std}', '/permissive-']
 
     def get_cpp_modules_args(self) -> T.List[str]:
         # clang-cl does not support /interface.
