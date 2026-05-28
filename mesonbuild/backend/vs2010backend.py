@@ -836,27 +836,27 @@ class Vs2010Backend(backends.Backend):
             return 'masm'
         raise MesonException(f'Could not guess language from source file {src}.')
 
-    def add_pch(self, pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
-                lang, inc_cl) -> None:
+    def add_pch(self, pch_sources: T.Dict[Language, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
+                lang: Language, inc_cl: ET.Element) -> None:
         if lang in pch_sources:
             self.use_pch(pch_sources, lang, inc_cl)
 
-    def create_pch(self, pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
-                   lang, inc_cl) -> None:
+    def create_pch(self, pch_sources: T.Dict[Language, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
+                   lang: Language, inc_cl: ET.Element) -> None:
         pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
         pch.text = 'Create'
         self.add_pch_files(pch_sources, lang, inc_cl)
 
-    def use_pch(self, pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
-                lang, inc_cl) -> None:
+    def use_pch(self, pch_sources: T.Dict[Language, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
+                lang: Language, inc_cl: ET.Element) -> None:
         pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
         pch.text = 'Use'
         header = self.add_pch_files(pch_sources, lang, inc_cl)
         pch_include = ET.SubElement(inc_cl, 'ForcedIncludeFiles')
         pch_include.text = header + ';%(ForcedIncludeFiles)'
 
-    def add_pch_files(self, pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
-                      lang, inc_cl) -> str:
+    def add_pch_files(self, pch_sources: T.Dict[Language, T.Tuple[str, T.Optional[str], str, T.Optional[str]]],
+                      lang: Language, inc_cl: ET.Element) -> str:
         header = os.path.basename(pch_sources[lang][0])
         pch_file = ET.SubElement(inc_cl, 'PrecompiledHeaderFile')
         # When USING PCHs, MSVC will not do the regular include
@@ -1728,7 +1728,7 @@ class Vs2010Backend(backends.Backend):
             else:
                 return False
 
-        pch_sources: T.Dict[str, T.Tuple[str, T.Optional[str], str, T.Optional[str]]] = {}
+        pch_sources: T.Dict[Language, T.Tuple[str, T.Optional[str], str, T.Optional[str]]] = {}
         if self.target_uses_pch(target):
             for lang in T.cast('T.Tuple[Language]', ('c', 'cpp')):
                 pch = target.pch[lang]
