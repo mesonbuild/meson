@@ -889,7 +889,7 @@ class Vs2010Backend(backends.Backend):
             return True
         return entry[1:].startswith('M')
 
-    def add_additional_options(self, lang, parent_node, file_args):
+    def add_additional_options(self, lang: Language, parent_node: ET.Element, file_args: dict[Language, CompilerArgs]) -> None:
         args = []
         for arg in file_args[lang].to_native():
             if self.is_argument_with_msbuild_xml_entry(arg):
@@ -930,7 +930,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(parent_node, 'AdditionalIncludeDirectories').text = '$(NMakeIncludeSearchPath)'
             ET.SubElement(parent_node, 'AdditionalOptions').text = '$(AdditionalOptions)'
 
-    def add_preprocessor_defines(self, lang, parent_node, file_defines):
+    def add_preprocessor_defines(self, lang: Language, parent_node: ET.Element, file_defines: dict[Language, CompilerArgs]) -> None:
         defines = []
         for define in file_defines[lang]:
             if define == '%(PreprocessorDefinitions)':
@@ -939,7 +939,7 @@ class Vs2010Backend(backends.Backend):
                 defines.append(self.escape_preprocessor_define(define))
         ET.SubElement(parent_node, "PreprocessorDefinitions").text = ';'.join(defines)
 
-    def add_include_dirs(self, lang, parent_node, file_inc_dirs):
+    def add_include_dirs(self, lang: Language, parent_node: ET.Element, file_inc_dirs: dict[Language, list[str]]) -> None:
         dirs = file_inc_dirs[lang]
         ET.SubElement(parent_node, "AdditionalIncludeDirectories").text = ';'.join(dirs)
 
