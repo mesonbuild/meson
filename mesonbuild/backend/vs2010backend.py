@@ -1867,7 +1867,7 @@ class Vs2010Backend(backends.Backend):
             self.gen_vcxproj_filters(target, ofname)
         return True
 
-    def gen_vcxproj_filters(self, target, ofname) -> None:
+    def gen_vcxproj_filters(self, target: build.BuildTarget, ofname: str) -> None:
         # Generate pitchfork of filters based on directory structure.
         root = ET.Element('Project', {'ToolsVersion': '4.0',
                                       'xmlns': 'http://schemas.microsoft.com/developer/msbuild/2003'})
@@ -1875,7 +1875,7 @@ class Vs2010Backend(backends.Backend):
         filter_items = ET.SubElement(root, 'ItemGroup')
         mlog.debug(f'Generating vcxproj filters {target.name}.')
 
-        def relative_to_defined_in(file) -> str:
+        def relative_to_defined_in(file: File) -> str:
             # Get the relative path to file's directory from the location of the meson.build that defines this target.
             return os.path.dirname(self.relpath(PureWindowsPath(file.subdir, file.fname), self.get_target_dir(target)))
 
@@ -1916,7 +1916,7 @@ class Vs2010Backend(backends.Backend):
         sources, headers, objects, _ = self.split_sources(all_files)
         down = self.target_to_build_root(target)
 
-        def add_element(type_name: str, elements: list[ET.Element]) -> None:
+        def add_element(type_name: str, elements: list[File]) -> None:
             for i in elements:
                 if not os.path.isabs(i.fname):
                     dirname = relative_to_defined_in(i)
