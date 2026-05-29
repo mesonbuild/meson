@@ -635,8 +635,17 @@ class FeatureCheckBase(metaclass=mesonlib.SimpleABC):
 
     def __init__(self, feature_name: str, feature_version: str, extra_message: str = ''):
         self.feature_name = feature_name
-        self.feature_version = feature_version
+        self.feature_version_for_msg = feature_version
         self.extra_message = extra_message
+        self.feature_version = feature_version
+        # Map versions in the constraint of the form '0.46.0' to '0.46', to
+        # ensure that '0.46' in project(meson_version: '>=0.46') allows
+        # using features in '0.46.0'.  Meson versioning is basically
+        # semver, i.e. '0.46.0' is the lowest version which satisfies the
+        # constraint '>=0.46', but meson.version_compare() is more like
+        # rpm versions for historical reasons.
+        while self.feature_version.endswith('.0'):
+            self.feature_version = self.feature_version[:-2]
 
     @staticmethod
     def get_target_version(subproject: str) -> T.Union[str, mesonlib.NoProjectVersion]:
@@ -660,18 +669,18 @@ class FeatureCheckBase(metaclass=mesonlib.SimpleABC):
             return
         # Feature is too new for target version or we want to emit notices, register it
         if subproject not in self.feature_registry:
-            self.feature_registry[subproject] = {self.feature_version: set()}
+            self.feature_registry[subproject] = {self.feature_version_for_msg: set()}
         register = self.feature_registry[subproject]
-        if self.feature_version not in register:
-            register[self.feature_version] = set()
+        if self.feature_version_for_msg not in register:
+            register[self.feature_version_for_msg] = set()
 
         feature_key = (self.feature_name, location)
-        if feature_key in register[self.feature_version]:
+        if feature_key in register[self.feature_version_for_msg]:
             # Don't warn about the same feature multiple times
             # FIXME: This is needed to prevent duplicate warnings, but also
             # means we won't warn about a feature used in multiple places.
             return
-        register[self.feature_version].add(feature_key)
+        register[self.feature_version_for_msg].add(feature_key)
         # Target version is new enough, don't warn even if it is registered for notice
         if self.check_version(tv, self.feature_version):
             return
@@ -729,7 +738,7 @@ class FeatureNew(FeatureCheckBase):
 
     # Class variable, shared across all instances
     #
-    # Format: {subproject: {feature_version: set(feature_names)}}
+    # Format: {subproject: {feature_version_for_msg: set(feature_names)}}
     feature_registry = {}
 
     @staticmethod
@@ -760,7 +769,7 @@ class FeatureNew(FeatureCheckBase):
         args = [
             prefix,
             'but uses feature introduced in',
-            f"'{self.feature_version}':",
+            f"'{self.feature_version_for_msg}':",
             f'{self.feature_name}.',
         ]
         if self.extra_message:
@@ -772,7 +781,7 @@ class FeatureDeprecated(FeatureCheckBase):
 
     # Class variable, shared across all instances
     #
-    # Format: {subproject: {feature_version: set(feature_names)}}
+    # Format: {subproject: {feature_version_for_msg: set(feature_names)}}
     feature_registry = {}
     emit_notice = True
 
@@ -801,7 +810,7 @@ class FeatureDeprecated(FeatureCheckBase):
         args = [
             prefix,
             'but uses feature deprecated since',
-            f"'{self.feature_version}':",
+            f"'{self.feature_version_for_msg}':",
             f'{self.feature_name}.',
         ]
         if self.extra_message:
@@ -814,7 +823,7 @@ class FeatureBroken(FeatureCheckBase):
 
     # Class variable, shared across all instances
     #
-    # Format: {subproject: {feature_version: set(feature_names)}}
+    # Format: {subproject: {feature_version_for_msg: set(feature_names)}}
     feature_registry = {}
     unconditional = True
 
@@ -835,7 +844,7 @@ class FeatureBroken(FeatureCheckBase):
         args = [
             'Project uses feature that was always broken,',
             'and is now deprecated since',
-            f"'{self.feature_version}':",
+            f"'{self.feature_version_for_msg}':",
             f'{self.feature_name}.',
         ]
         if self.extra_message:

@@ -149,9 +149,10 @@ class VersionComparisonTests(unittest.TestCase):
         # != condition always returns False
         self.assertFalse(version_compare_condition_with_min('!=0.40.0', '0.46.0'))
 
-        # two-component version in condition is mapped to three-component
-        # e.g. '>=0.46' is treated as '>=0.46.0'
-        self.assertTrue(version_compare_condition_with_min('>=0.46', '0.46.0'))
+        # test behavior of two-component versions
+        # '0.46.0' is mangled to '0.46' so that '>=0.46.0' works, but this is
+        # not done by version_compare_condition_with_min
+        self.assertFalse(version_compare_condition_with_min('>=0.46', '0.46.0'))
         self.assertFalse(version_compare_condition_with_min('>=0.46', '0.46.1'))
         self.assertTrue(version_compare_condition_with_min('>=0.46.0', '0.46'))
         self.assertTrue(version_compare_condition_with_min('>=0.46.1', '0.46'))

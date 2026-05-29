@@ -1361,7 +1361,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             # absent 'native' means 'both' for backwards compatibility
             tv = FeatureNew.get_target_version(self.subproject)
-            if FeatureNew.check_version(tv, '0.54.0'):
+            if FeatureNew.check_version(tv, '0.54'):
                 mlog.warning('add_languages is missing native:, assuming languages are wanted for both host and build.',
                              location=node)
 
@@ -2786,7 +2786,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if confdata_useless:
                     ifbase = os.path.basename(inputs_abs[0])
                     tv = FeatureNew.get_target_version(self.subproject)
-                    if FeatureNew.check_version(tv, '0.47.0'):
+                    if FeatureNew.check_version(tv, '0.47'):
                         mlog.warning('Got an empty configuration_data() object and found no '
                                      f'substitutions in the input file {ifbase!r}. If you want to '
                                      'copy a file to the build dir, use the \'copy:\' keyword '
