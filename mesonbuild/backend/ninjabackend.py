@@ -1254,6 +1254,7 @@ class NinjaBackend(backends.Backend):
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
         deps = self.get_paths_for_dep_outputs(target, target.get_dependencies())
         deps += self.get_target_depend_files(target)
+        deps += self.get_paths_for_dep_outputs(target, target.extra_depends)
         if target.build_always_stale:
             deps.append('PHONY')
         if target.depfile_type == 'gcc':
@@ -1264,10 +1265,6 @@ class NinjaBackend(backends.Backend):
             rulename = 'CUSTOM_COMMAND'
         elem = NinjaBuildElement(self.all_outputs, ofilenames, rulename, srcs)
         elem.add_dep(deps)
-        for d in target.extra_depends:
-            # Add a dependency on all the outputs of this target
-            for output in d.get_outputs():
-                elem.add_dep(os.path.join(self.get_target_dir(d), output))
 
         cmd, reason = self.as_meson_exe_cmdline(target.command[0], cmd[1:],
                                                 extra_bdeps=target.get_transitive_build_target_deps(),
