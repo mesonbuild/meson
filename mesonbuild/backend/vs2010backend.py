@@ -30,7 +30,7 @@ if T.TYPE_CHECKING:
     from ..arglist import CompilerArgs
     from ..compilers.compilers import Language
 
-    Project = T.Tuple[str, Path, str, MachineChoice]
+    Project = T.Tuple[str, PurePath, str, MachineChoice]
     FileLike = T.TypeVar('FileLike', bound=File | str)
 
 def autodetect_vs_version(build: T.Optional[build.Build]) -> backends.Backend:
@@ -410,7 +410,7 @@ class Vs2010Backend(backends.Backend):
         ret.update(all_deps)
         return ret
 
-    def generate_solution_dirs(self, ofile: str, parents: T.Sequence[Path]) -> None:
+    def generate_solution_dirs(self, ofile: T.TextIO, parents: T.Sequence[PurePath]) -> None:
         prj_templ = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
         iterpaths = reversed(parents)
         # Skip first path
