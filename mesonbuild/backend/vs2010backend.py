@@ -126,7 +126,7 @@ def get_primary_source_lang(target_sources: T.List[File], custom_sources: T.List
 def get_non_primary_lang_intellisense_fields(vslite_ctx: dict,
                                              target_id: str,
                                              primary_src_lang: str) -> T.Dict[str, T.Dict[str, T.Tuple[str, str, str]]]:
-    defs_paths_opts_per_lang_and_buildtype = {}
+    defs_paths_opts_per_lang_and_buildtype: dict[str, dict[str, tuple[str, str, str]]] = {}
     for buildtype in coredata.get_genvs_default_buildtype_list():
         captured_build_args = vslite_ctx[buildtype][target_id] # Results in a 'Src types to compile args' dict
         non_primary_build_args_per_src_lang = [(lang, build_args) for lang, build_args in captured_build_args.items() if lang != primary_src_lang] # Only need to individually populate intellisense fields for sources of non-primary types.
@@ -149,7 +149,7 @@ class Vs2010Backend(backends.Backend):
         self.vs_version = '2010'
         self.windows_target_platform_version = None
         self.subdirs: dict[PurePath, tuple[str, str | None]] = {}
-        self.handled_target_deps = {}
+        self.handled_target_deps: dict[str, list[str]] = {}
         self.gen_lite = gen_lite  # Synonymous with generating the simpler makefile-style multi-config projects that invoke 'meson compile' builds, avoiding native MSBuild complications
 
     def detect_toolset(self) -> None:
@@ -341,7 +341,7 @@ class Vs2010Backend(backends.Backend):
                     (script_path, os.environ['VSCMD_ARG_TGT_ARCH'], os.environ['VSCMD_ARG_HOST_ARCH'])
         return ''
 
-    def get_obj_target_deps(self, obj_list):
+    def get_obj_target_deps(self, obj_list: list[build.ObjectTypes]) -> T.Iterable[tuple[str, build.BuildTarget]]:
         result = {}
         for o in obj_list:
             if isinstance(o, build.ExtractedObjects):
@@ -454,7 +454,7 @@ class Vs2010Backend(backends.Backend):
                     self.environment.coredata.lang_guids[lang],
                     prj[0], prj[1], prj[2])
                 ofile.write(prj_line)
-                target_dict = {target.get_id(): target}
+                target_dict: dict[str, build.AnyTargetType] = {target.get_id(): target}
                 # Get recursive deps
                 recursive_deps = self.get_target_deps(
                     target_dict, recursive=True)
@@ -622,8 +622,8 @@ class Vs2010Backend(backends.Backend):
             # objects and .lib files manually.
             ET.SubElement(pref, 'LinkLibraryDependencies').text = 'false'
 
-    def add_target_deps(self, root: ET.Element, target):
-        target_dict = {target.get_id(): target}
+    def add_target_deps(self, root: ET.Element, target: build.AnyTargetType) -> None:
+        target_dict: T.Dict[str, build.AnyTargetType] = {target.get_id(): target}
         for dep in self.get_target_deps(target_dict).values():
             if dep.get_id() in self.handled_target_deps[target.get_id()]:
                 # This dependency was already handled manually.
@@ -633,13 +633,13 @@ class Vs2010Backend(backends.Backend):
             tid = self.environment.coredata.target_guids[dep.get_id()]
             self.add_project_reference(root, vcxproj, tid)
 
-    def create_basic_project(self, target_name, *,
-                             temp_dir,
-                             guid,
-                             conftype='Utility',
-                             target_ext=None,
-                             target_platform=None,
-                             gen_manifest=True,
+    def create_basic_project(self, target_name: str, *,
+                             temp_dir: str,
+                             guid: str,
+                             conftype: str = 'Utility',
+                             target_ext: T.Optional[str] = None,
+                             target_platform: T.Optional[str] = None,
+                             gen_manifest: bool | T.Literal['embed'] = True,
                              masm_type: T.Optional[T.Literal['masm', 'marmasm']] = None) -> T.Tuple[ET.Element, ET.Element]:
         root = ET.Element('Project', {'DefaultTargets': "Build",
                                       'ToolsVersion': '4.0',
@@ -879,7 +879,7 @@ class Vs2010Backend(backends.Backend):
 
         return header
 
-    def is_argument_with_msbuild_xml_entry(self, entry):
+    def is_argument_with_msbuild_xml_entry(self, entry: str) -> bool:
         # Remove arguments that have a top level XML entry so
         # they are not used twice.
         # FIXME add args as needed.
@@ -901,7 +901,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(parent_node, "AdditionalOptions").text = ' '.join(args)
 
     # Set up each project's source file ('CLCompile') element with appropriate preprocessor, include dir, and compile option values for correct intellisense.
-    def add_project_nmake_defs_incs_and_opts(self, parent_node, src: str, defs_paths_opts_per_lang_and_buildtype: dict, platform: str):
+    def add_project_nmake_defs_incs_and_opts(self, parent_node: ET.Element, src: str, defs_paths_opts_per_lang_and_buildtype: dict, platform: str) -> None:
         # For compactness, sources whose type matches the primary src type (i.e. most frequent in the set of source types used in the target/project,
         # according to the 'captured_build_args' map), can simply reference the preprocessor definitions, include dirs, and compile option NMake fields of
         # the project itself.
@@ -1271,7 +1271,7 @@ class Vs2010Backend(backends.Backend):
                                                platform: str,
                                                target_ext: str,
                                                vslite_ctx: dict,
-                                               target,
+                                               target: build.AnyTargetType,
                                                proj_to_build_root: str,
                                                primary_src_lang: T.Optional[str]) -> None:
         ET.SubElement(root, 'ImportGroup', Label='ExtensionSettings')
