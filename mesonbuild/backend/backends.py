@@ -1472,6 +1472,23 @@ class Backend:
             srcs += fname
         return srcs
 
+    def get_paths_for_dep_outputs(self, target: build.Target, dep_targets: T.Iterable[build.Target | build.GeneratedList | build.CustomTargetIndex | programs.Program]) -> T.List[str]:
+        """Return a list of strings with the paths to all the outputs of all targets in
+           dep_targets."""
+        deps = []
+        for i in dep_targets:
+            if isinstance(i, build.LocalProgram):
+                i = i.program
+            if isinstance(i, programs.Program):
+                continue
+            for output in i.get_outputs():
+                if isinstance(i, build.GeneratedList):
+                    assert isinstance(target, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex))
+                    deps.append(os.path.join(self.get_target_private_dir(target), output))
+                else:
+                    deps.append(os.path.join(self.get_target_dir(i), output))
+        return deps
+
     def get_target_depend_files(self, target: T.Union[build.Target, build.GeneratedList], absolute_paths: bool = False) -> T.List[str]:
         deps: T.List[str] = []
         for i in target.depend_files:
