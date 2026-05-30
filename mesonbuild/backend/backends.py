@@ -1492,17 +1492,11 @@ class Backend:
     def get_target_depend_files(self, target: T.Union[build.Target, build.GeneratedList], absolute_paths: bool = False) -> T.List[str]:
         deps: T.List[str] = []
         for i in target.depend_files:
-            if isinstance(i, mesonlib.File):
-                if absolute_paths:
-                    deps.append(i.absolute_path(self.environment.get_source_dir(),
-                                                self.environment.get_build_dir()))
-                else:
-                    deps.append(i.rel_to_builddir(self.build_to_src))
+            if absolute_paths:
+                deps.append(i.absolute_path(self.environment.get_source_dir(),
+                                            self.environment.get_build_dir()))
             else:
-                if absolute_paths:
-                    deps.append(os.path.join(self.environment.get_source_dir(), target.get_subdir(), i))
-                else:
-                    deps.append(os.path.join(self.build_to_src, target.get_subdir(), i))
+                deps.append(i.rel_to_builddir(self.build_to_src))
         return deps
 
     def get_custom_target_output_dir(self, target: build.AnyTargetType) -> str:
