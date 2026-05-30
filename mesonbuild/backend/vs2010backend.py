@@ -348,7 +348,7 @@ class Vs2010Backend(backends.Backend):
                 result[o.target.get_id()] = o.target
         return result.items()
 
-    def get_target_deps(self, t: T.Dict[T.Any, build.AnyTargetType], recursive=False):
+    def get_target_deps(self, t: T.Mapping[str, build.AnyTargetType], recursive: bool = False) -> T.Dict[str, build.Target]:
         all_deps: T.Dict[str, build.Target] = {}
         for target in t.values():
             if isinstance(target, build.CustomTargetIndex):
@@ -2183,7 +2183,7 @@ class Vs2010Backend(backends.Backend):
 
     # Returns if a target generates a manifest or not.
     # Returns 'embed' if the generated manifest is embedded.
-    def get_gen_manifest(self, target: T.Optional[build.BuildTarget]) -> bool | T.Literal['embed']:
+    def get_gen_manifest(self, target: T.Optional[build.Target]) -> bool | T.Literal['embed']:
         if not isinstance(target, build.BuildTarget):
             return True
 
