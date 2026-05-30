@@ -24,7 +24,6 @@ from .. import mesonlib
 from .. import build
 from .. import mlog
 from .. import compilers
-from .. import programs
 from .. import tooldetect
 from ..arglist import CompilerArgs
 from ..compilers import Compiler, is_library
@@ -1250,26 +1249,10 @@ class NinjaBackend(backends.Backend):
             if isinstance(s, build.GeneratedList):
                 self.generate_genlist_for_target(s, target)
 
-    def unwrap_dep_list(self, target: build.Target, dep_targets: T.Iterable[build.Target | build.GeneratedList | build.CustomTargetIndex | programs.Program]) -> T.List[str]:
-        deps = []
-        for i in dep_targets:
-            # Add a dependency on all the outputs of this target
-            if isinstance(i, build.LocalProgram):
-                i = i.program
-            if isinstance(i, programs.Program):
-                continue
-            for output in i.get_outputs():
-                if isinstance(i, GeneratedList):
-                    assert isinstance(target, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex))
-                    deps.append(os.path.join(self.get_target_private_dir(target), output))
-                else:
-                    deps.append(os.path.join(self.get_target_dir(i), output))
-        return deps
-
     def generate_custom_target(self, target: build.CustomTarget) -> None:
         self.custom_target_generator_inputs(target)
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
-        deps = self.unwrap_dep_list(target, target.get_dependencies())
+        deps = self.get_paths_for_dep_outputs(target, target.get_dependencies())
         deps += self.get_target_depend_files(target)
         if target.build_always_stale:
             deps.append('PHONY')
@@ -1335,7 +1318,7 @@ class NinjaBackend(backends.Backend):
             elem.add_item('COMMAND', meson_exe_cmd)
             elem.add_item('description', f'Running external command {target.name}{cmd_type}')
             elem.add_item('pool', 'console')
-        deps = self.unwrap_dep_list(target, target.get_dependencies())
+        deps = self.get_paths_for_dep_outputs(target, target.get_dependencies())
         deps += self.get_target_depend_files(target)
         elem.add_dep(deps)
         self.add_build(elem)
@@ -2857,8 +2840,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         exe = generator.get_exe()
         infilelist = genlist.get_inputs()
         dependencies = self.get_target_depend_files(genlist)
-        dependencies += self.unwrap_dep_list(target, generator.depends)
-        dependencies += self.unwrap_dep_list(target, genlist.extra_depends)
+        dependencies += self.get_paths_for_dep_outputs(target, generator.depends)
+        dependencies += self.get_paths_for_dep_outputs(target, genlist.extra_depends)
         for curfile in infilelist:
             infilename = curfile.rel_to_builddir(self.build_to_src, self.get_target_private_dir(target))
             base_args = generator.get_arglist(infilename)
