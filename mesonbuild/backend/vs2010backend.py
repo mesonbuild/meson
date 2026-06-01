@@ -945,7 +945,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(parent_node, 'AdditionalIncludeDirectories').text = '$(NMakeIncludeSearchPath)'
             ET.SubElement(parent_node, 'AdditionalOptions').text = '$(AdditionalOptions)'
 
-    def add_preprocessor_defines(self, lang: Language, parent_node: ET.Element, file_defines: dict[Language, CompilerArgs]) -> None:
+    def add_preprocessor_defines(self, lang: Language, parent_node: ET.Element, file_defines: dict[Language, list[str]]) -> None:
         defines = []
         for define in file_defines[lang]:
             if define == '%(PreprocessorDefinitions)':
@@ -1039,7 +1039,14 @@ class Vs2010Backend(backends.Backend):
         replace_if_different(ofname, ofname_tmp)
 
     # Returns:  (target_args,file_args), (target_defines,file_defines), (target_inc_dirs,file_inc_dirs)
-    def get_args_defines_and_inc_dirs(self, target: build.BuildTarget, compiler: compilers.Compiler, generated_files_include_dirs, proj_to_src_root, proj_to_src_dir, build_args):
+    def get_args_defines_and_inc_dirs(
+            self, target: build.BuildTarget,
+            compiler: compilers.Compiler,
+            generated_files_include_dirs: list[str],
+            proj_to_src_root: str,
+            proj_to_src_dir: str,
+            build_args: list[str]
+            ) -> tuple[tuple[list[str], dict[Language, CompilerArgs]], tuple[list[str], dict[Language, list[str]]], tuple[list[str], dict[Language, list[str]]]]:
         # Arguments, include dirs, defines for all files in the current target
         target_args: list[str] = []
         target_defines: list[str] = []
