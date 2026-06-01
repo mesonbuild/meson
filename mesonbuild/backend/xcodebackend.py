@@ -1155,7 +1155,7 @@ class XCodeBackend(backends.Backend):
         product_dict.add_item('name', 'Products')
         product_dict.add_item('sourceTree', '<group>')
 
-    def write_group_target_entry(self, objects_dict: PbxDict, t) -> str:
+    def write_group_target_entry(self, objects_dict: PbxDict, t: build.BuildTarget) -> str:
         tid = t.get_id()
         group_id = self.gen_id()
         target_dict = PbxDict()
