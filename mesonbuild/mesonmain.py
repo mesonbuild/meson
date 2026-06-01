@@ -20,6 +20,14 @@ import typing as T
 from .utils.core import MesonException, MesonBugException
 from . import mlog
 
+if T.TYPE_CHECKING:
+
+    class MesonMainCMDOptions(T.Protocol):
+
+        command: str
+        run_func: T.Callable[['MesonMainCMDOptions'], int]
+
+
 def errorhandler(e: Exception, command: str) -> int:
     import traceback
     if isinstance(e, MesonException):
@@ -178,7 +186,7 @@ class CommandLineParser:
 
         from . import mesonlib
         args = mesonlib.expand_arguments(args)
-        options = parser.parse_args(args)
+        options = T.cast('MesonMainCMDOptions', parser.parse_args(args))
 
         if command is None:
             command = options.command
