@@ -14,6 +14,7 @@ from .. import mlog
 from ..arglist import CompilerArgs
 from ..dependencies.platform import AppleFrameworks
 from ..mesonlib import MesonBugException, MesonException
+from ..linkers import StaticLinker
 from ..options import OptionKey
 
 if T.TYPE_CHECKING:
@@ -1714,7 +1715,7 @@ class XCodeBackend(backends.Backend):
                 linker, stdlib_args = target.compilers['swift'], []
             else:
                 linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
-            if not isinstance(target, build.StaticLibrary):
+            if not isinstance(linker, StaticLinker):
                 ldargs += linker.get_build_link_args(target, self.build)
             cargs = []
             for dep in target.get_external_deps():
@@ -1750,8 +1751,10 @@ class XCodeBackend(backends.Backend):
                     else:
                         raise RuntimeError(o)
             if isinstance(target, build.SharedModule):
+                assert not isinstance(linker, StaticLinker), 'for mypy'
                 ldargs += linker.get_std_shared_module_link_args(target)
             elif isinstance(target, build.SharedLibrary):
+                assert not isinstance(linker, StaticLinker), 'for mypy'
                 ldargs += linker.get_std_shared_lib_link_args()
             ldstr = ' '.join(ldargs)
             valid = self.buildconfmap[target_name][buildtype]
