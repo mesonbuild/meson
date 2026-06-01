@@ -146,9 +146,9 @@ class Vs2010Backend(backends.Backend):
         self.project_file_version = '10.0.30319.1'
         self.sln_file_version = '11.00'
         self.sln_version_comment = '2010'
-        self.platform_toolset = None
+        self.platform_toolset: str | None = None
         self.vs_version = '2010'
-        self.windows_target_platform_version = None
+        self.windows_target_platform_version: str | None = None
         self.subdirs: dict[PurePath, tuple[str, str | None]] = {}
         self.handled_target_deps: dict[str, list[str]] = {}
         self.gen_lite = gen_lite  # Synonymous with generating the simpler makefile-style multi-config projects that invoke 'meson compile' builds, avoiding native MSBuild complications
