@@ -309,7 +309,7 @@ class XCodeBackend(backends.Backend):
             result.append(os.path.join(self.environment.get_build_dir(), self.get_target_dir(l)))
         return result
 
-    def set_arch(self):
+    def set_arch(self) -> None:
         self.arch = self.build.environment.machines.host.cpu
         if self.arch == 'aarch64':
             self.arch = 'arm64'
@@ -596,7 +596,9 @@ class XCodeBackend(backends.Backend):
         self.generate_target_file_maps_impl(self.build_targets)
         self.generate_target_file_maps_impl(self.custom_targets)
 
-    def generate_target_file_maps_impl(self, targets) -> None:
+    def generate_target_file_maps_impl(
+            self, targets: T.Mapping[str, build.BuildTarget | build.CustomTarget]
+            ) -> None:
         for tname, t in targets.items():
             for s in t.sources:
                 if not isinstance(s, mesonlib.File):
@@ -607,7 +609,7 @@ class XCodeBackend(backends.Backend):
                 self.buildfile_ids[k] = self.gen_id()
                 assert k not in self.fileref_ids
                 self.fileref_ids[k] = self.gen_id()
-            if not hasattr(t, 'objects'):
+            if isinstance(t, build.CustomTarget):
                 continue
             for o in t.objects:
                 if isinstance(o, build.ExtractedObjects):
