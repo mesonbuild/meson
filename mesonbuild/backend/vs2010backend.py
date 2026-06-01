@@ -159,7 +159,13 @@ class Vs2010Backend(backends.Backend):
     def get_target_private_dir(self, target: build.BuildTargetTypes) -> str:
         return os.path.join(self.get_target_dir(target), target.get_id())
 
-    def generate_genlist_for_target(self, genlist: build.GeneratedTypes, target: build.BuildTarget, parent_node: ET.Element, generator_output_files: T.List[str], custom_target_include_dirs: T.List[str], custom_target_output_files: T.List[str]) -> None:
+    def generate_genlist_for_target(
+            self, genlist: build.GeneratedTypes,
+            target: build.BuildTarget | build.CustomTarget,
+            parent_node: ET.Element,
+            generator_output_files: T.List[str],
+            custom_target_include_dirs: T.List[str],
+            custom_target_output_files: T.List[str]) -> None:
         if isinstance(genlist, build.GeneratedList):
             for x in genlist.depends:
                 self.generate_genlist_for_target(x, target, parent_node, [], [], [])
@@ -223,7 +229,9 @@ class Vs2010Backend(backends.Backend):
                 ET.SubElement(cbs, 'Outputs').text = ';'.join(outfiles)
                 ET.SubElement(cbs, 'AdditionalInputs').text = ';'.join(deps)
 
-    def generate_custom_generator_commands(self, target: build.BuildTarget, parent_node: ET.Element) -> tuple[list[str], list[str], list[str]]:
+    def generate_custom_generator_commands(
+            self, target: build.BuildTarget | build.CustomTarget, parent_node: ET.Element
+            ) -> tuple[list[str], list[str], list[str]]:
         generator_output_files: list[str] = []
         custom_target_include_dirs: list[str] = []
         custom_target_output_files: list[str] = []
