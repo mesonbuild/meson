@@ -466,6 +466,8 @@ class Vs2010Backend(backends.Backend):
                 ofile.write('EndProject\n')
                 for dep, target in recursive_deps.items():
                     if prj[0] in default_projlist:
+                        if isinstance(target, build.CustomTargetIndex):
+                            target = target.target
                         default_projlist[dep] = target
 
             test_line = prj_templ % (self.environment.coredata.lang_guids['default'],
