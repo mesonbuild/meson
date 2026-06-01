@@ -15,6 +15,7 @@ from mesonbuild.mesonlib import version_compare
 modules = [
     # fully typed submodules
     'mesonbuild/ast/',
+    'mesonbuild/backend',
     'mesonbuild/cargo/',
     'mesonbuild/cmake/',
     'mesonbuild/compilers/',
@@ -31,17 +32,6 @@ modules = [
     # specific files
     'mesonbuild/arglist.py',
     'mesonbuild/build.py',
-    'mesonbuild/backend/backends.py',
-    'mesonbuild/backend/ninjabackend.py',
-    'mesonbuild/backend/nonebackend.py',
-    'mesonbuild/backend/vs2010backend.py',
-    'mesonbuild/backend/vs2012backend.py',
-    'mesonbuild/backend/vs2013backend.py',
-    'mesonbuild/backend/vs2015backend.py',
-    'mesonbuild/backend/vs2017backend.py',
-    'mesonbuild/backend/vs2019backend.py',
-    'mesonbuild/backend/vs2022backend.py',
-    'mesonbuild/backend/vs2026backend.py',
     'mesonbuild/cmdline.py',
     'mesonbuild/coredata.py',
     'mesonbuild/depfile.py',
