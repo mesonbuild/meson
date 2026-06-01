@@ -519,8 +519,8 @@ class XCodeBackend(backends.Backend):
     def generate_generator_target_map(self) -> None:
         # Generator objects do not have natural unique ids
         # so use a counter.
-        self.generator_fileref_ids = {}
-        self.generator_buildfile_ids = {}
+        self.generator_fileref_ids: dict[tuple[str, int], list[str]] = {}
+        self.generator_buildfile_ids: dict[tuple[str, int], list[str]] = {}
         for tname, t in self.build_targets.items():
             generator_id = 0
             for genlist in t.generated:
@@ -665,7 +665,7 @@ class XCodeBackend(backends.Backend):
                 custom_target_dependencies.append(self.pbx_custom_dep_map[t.get_id()])
             elif isinstance(t, build.BuildTarget):
                 target_dependencies.append(self.pbx_dep_map[t.get_id()])
-        aggregated_targets = []
+        aggregated_targets: list[tuple[str, str, str, list[str], list[str]]] = []
         aggregated_targets.append((self.all_id,
                                    'ALL_BUILD',
                                    self.all_buildconf_id,
