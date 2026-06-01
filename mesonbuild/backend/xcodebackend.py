@@ -256,7 +256,7 @@ class XCodeBackend(backends.Backend):
         self.regen_buildconf_id = self.gen_id()
         self.regen_dependency_id = self.gen_id()
         self.top_level_dict = PbxDict()
-        self.generator_outputs = {}
+        self.generator_outputs: dict[tuple[str, int], list[str]] = {}
         self.set_arch()
         self.xcodeversion, self.objversion = autodetect_xcode_version()
         # In Xcode files are not accessed via their file names, but rather every one of them
@@ -544,15 +544,15 @@ class XCodeBackend(backends.Backend):
         if genlist.extra_depends:
             raise NotImplementedError('XCode backend does not support depends for generator.process')
         self.shell_targets[k] = self.gen_id()
-        ofile_abs = []
+        ofile_abs: list[str] = []
         for i in genlist.get_inputs():
             for o_base in genlist.get_outputs_for(i):
                 o = os.path.join(self.get_target_private_dir(t), o_base)
                 ofile_abs.append(os.path.join(self.environment.get_build_dir(), o))
         assert k not in self.generator_outputs
         self.generator_outputs[k] = ofile_abs
-        buildfile_ids = []
-        fileref_ids = []
+        buildfile_ids: list[str] = []
+        fileref_ids: list[str] = []
         for i in range(len(ofile_abs)):
             buildfile_ids.append(self.gen_id())
             fileref_ids.append(self.gen_id())
