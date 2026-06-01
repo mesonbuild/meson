@@ -226,8 +226,8 @@ def run_script_command(script_name: str, script_args: T.List[str]) -> int:
         return 1
 
 def ensure_stdout_accepts_unicode() -> None:
-    if sys.stdout.encoding and not sys.stdout.encoding.upper().startswith('UTF-'):
-        sys.stdout.reconfigure(errors='surrogateescape') # type: ignore[attr-defined]
+    if sys.stdout.encoding and isinstance(sys.stdout.encoding, str) and not sys.stdout.encoding.upper().startswith('UTF-'):
+        sys.stdout.reconfigure(errors='surrogateescape')  # type: ignore[union-attr]
 
 def set_meson_command(mainfile: str) -> None:
     # Set the meson command that will be used to run scripts and so on
