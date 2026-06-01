@@ -20,6 +20,8 @@ if T.TYPE_CHECKING:
     from ..build import BuildTarget
     from ..compilers import Compiler
 
+    PbxDictItemTypes = T.TypeVar('PbxDictItemTypes', 'PbxArray', 'PbxDict', str, int)
+
 INDENT = '\t'
 XCODETYPEMAP = {'c': 'sourcecode.c.c',
                 'a': 'archive.ar',
@@ -166,6 +168,7 @@ class PbxDictItem:
 
         return quoted
 
+
 class PbxDict:
     def __init__(self) -> None:
         # This class is a bit weird, because we want to write PBX dicts in
@@ -187,6 +190,12 @@ class PbxDict:
             if item.key == key:
                 return item
         return None
+
+    def get_item_value(self, key: str, type_: type[PbxDictItemTypes]) -> PbxDictItemTypes:
+        i = self.get_item(key).value
+        if not isinstance(i, type_):
+            raise MesonBugException(f'Attempted to get the wrong type for key {key}, expected {type_} but got {type(i)}')
+        return i
 
     def has_item(self, key: str) -> bool:
         return key in self.keys
@@ -1188,7 +1197,7 @@ class XCodeBackend(backends.Backend):
             # If the file is in a folder, add it to the group representing that folder.
             if '/' in s.fname:
                 folder = '/'.join(s.fname.split('/')[:-1])
-                folder_dict = objects_dict.get_item(self.foldermap[(folder, t)]).value.get_item('children').value
+                folder_dict = objects_dict.get_item_value(self.foldermap[(folder, t)], PbxDict).get_item_value('children', PbxDict)
                 temp = os.path.join(s.subdir, s.fname)
                 folder_dict.add_item(self.fileref_ids[(tid, temp)], temp)
                 if self.foldermap[(folder, t)] in folder_ids:
