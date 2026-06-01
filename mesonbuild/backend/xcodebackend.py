@@ -1744,7 +1744,9 @@ class XCodeBackend(backends.Backend):
                 if compiler is None:
                     continue
                 # Start with warning args
-                warn_args = compiler.get_warn_args(self.get_target_option(target, 'warning_level'))
+                _warn_level = self.get_target_option(target, 'warning_level')
+                assert isinstance(_warn_level, str), 'for mypy'
+                warn_args = compiler.get_warn_args(_warn_level)
                 std_args = compiler.get_option_compile_args(target, target.subproject)
                 std_args += compiler.get_option_std_args(target, target.subproject)
                 # Add compile args added using add_project_arguments()
@@ -1795,9 +1797,13 @@ class XCodeBackend(backends.Backend):
             if target.suffix:
                 suffix = '.' + target.suffix
                 settings_dict.add_item('EXECUTABLE_SUFFIX', suffix)
-            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', BOOL2XCODEBOOL[self.get_target_option(target, 'debug')])
+            debug = self.get_target_option(target, 'debug')
+            assert isinstance(debug, bool), 'for mypy'
+            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', BOOL2XCODEBOOL[debug])
             settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
-            opt_flag = OPT2XCODEOPT[self.get_target_option(target, 'optimization')]
+            opt = self.get_target_option(target, 'optimization')
+            assert isinstance(opt, str), 'for mypy'
+            opt_flag = OPT2XCODEOPT[opt]
             if opt_flag is not None:
                 settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', opt_flag)
             if target.has_pch:
