@@ -19,6 +19,7 @@ from .. import build
 from .. import mlog
 from .. import compilers
 from .. import mesonlib
+from .. import programs
 from ..mesonlib import (
     File, MesonBugException, MesonException, replace_if_different, version_compare, MachineChoice
 )
@@ -348,8 +349,8 @@ class Vs2010Backend(backends.Backend):
                 result[o.target.get_id()] = o.target
         return result.items()
 
-    def get_target_deps(self, t: T.Mapping[str, build.AnyTargetType], recursive: bool = False) -> T.Dict[str, build.Target]:
-        all_deps: T.Dict[str, build.Target] = {}
+    def get_target_deps(self, t: T.Mapping[str, build.AnyTargetType], recursive: bool = False) -> T.Dict[str, build.AnyTargetType]:
+        all_deps: T.Dict[str, build.AnyTargetType] = {}
         for target in t.values():
             if isinstance(target, build.CustomTargetIndex):
                 # just transfer it to the CustomTarget code
@@ -362,6 +363,10 @@ class Vs2010Backend(backends.Backend):
                         all_deps[d.get_id()] = d
             elif isinstance(target, build.RunTarget):
                 for d in target.get_dependencies():
+                    if isinstance(d, build.LocalProgram):
+                        d = d.program
+                    if isinstance(d, (programs.Program, build.GeneratedList)):
+                        continue
                     all_deps[d.get_id()] = d
             elif isinstance(target, build.BuildTarget):
                 for ldep in target.link_targets:
