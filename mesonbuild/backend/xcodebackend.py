@@ -268,7 +268,7 @@ class XCodeBackend(backends.Backend):
         # That is not enough, though. Each target/file combination also gets a unique id
         # in the file reference section. Because why not. This means that a source file
         # that is used in two targets gets a total of four unique ID numbers.
-        self.fileref_ids = {}
+        self.fileref_ids: dict[tuple[str, str] | str, str] = {}
 
         self.buildphase_map: dict[str, dict[str, str]] = {}
 
