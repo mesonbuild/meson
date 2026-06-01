@@ -415,9 +415,9 @@ class XCodeBackend(backends.Backend):
         return xcodetype
 
     def generate_filemap(self) -> None:
-        self.filemap = {} # Key is source file relative to src root.
-        self.foldermap = {}
-        self.target_filemap = {}
+        self.filemap: dict[str, str] = {} # Key is source file relative to src root.
+        self.foldermap: dict[tuple[str, build.BuildTarget], str] = {}
+        self.target_filemap: dict[str, str] = {}
         for name, t in self.build_targets.items():
             for s in t.sources:
                 if isinstance(s, mesonlib.File):
