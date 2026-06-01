@@ -138,6 +138,8 @@ class PbxComment:
         ofile.write(f'\n{self.text}\n')
 
 class PbxDictItem:
+    value: PbxArray | PbxDict | str | int
+
     def __init__(self, key: str, value: T.Union[PbxArray, PbxDict, str, int], comment: str = ''):
         self.key = key
         if isinstance(value, str):
@@ -694,6 +696,9 @@ class XCodeBackend(backends.Backend):
                 if isinstance(s, build.GeneratedList):
                     build_phases.append(self.shell_targets[(tname, generator_id)])
                     for d in s.depends:
+                        # TODO: what to do about this
+                        if isinstance(d, build.GeneratedList):
+                            continue
                         dependencies.append(self.pbx_custom_dep_map[d.get_id()])
                     generator_id += 1
                 elif isinstance(s, build.ExtractedObjects):
@@ -1194,8 +1199,9 @@ class XCodeBackend(backends.Backend):
                 continue
             if isinstance(o, mesonlib.File):
                 o = os.path.join(o.subdir, o.fname)
-            else:
+            elif isinstance(o, str):
                 o = os.path.join(t.subdir, o)
+            # TODO: handle CustomTarget, CustomTargeIndex, and GeneratedList
             target_children.add_item(self.fileref_ids[(tid, o)], o)
         for e in t.extra_files:
             if isinstance(e, mesonlib.File):
@@ -1544,7 +1550,7 @@ class XCodeBackend(backends.Backend):
         objects_dict.add_item(self.build_all_tdep_id, all_dict, 'ALL_BUILD')
         all_dict.add_item('isa', 'PBXTargetDependency')
         all_dict.add_item('target', self.all_id)
-        targets = []
+        targets: list[tuple[str, str, str, str | None]] = []
         targets.append((self.regen_dependency_id, self.regen_id, 'REGEN', None))
         for t in self.build_targets:
             idval = self.pbx_dep_map[t] # VERIFY: is this correct?
@@ -1725,7 +1731,7 @@ class XCodeBackend(backends.Backend):
                     else:
                         raise RuntimeError(o)
             if isinstance(target, build.SharedModule):
-                ldargs += linker.get_std_shared_module_link_args(target.get_options())
+                ldargs += linker.get_std_shared_module_link_args(target)
             elif isinstance(target, build.SharedLibrary):
                 ldargs += linker.get_std_shared_lib_link_args()
             ldstr = ' '.join(ldargs)
