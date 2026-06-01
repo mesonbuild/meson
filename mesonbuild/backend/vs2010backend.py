@@ -1638,7 +1638,7 @@ class Vs2010Backend(backends.Backend):
     # Returns bool indicating whether the .vcxproj has been generated.
     # Under some circumstances, it's unnecessary to create some .vcxprojs, so, when generating the .sln,
     # we need to respect that not all targets will have generated a project.
-    def gen_vcxproj(self, target: build.BuildTarget, ofname: str, guid: str, vslite_ctx: dict = None) -> bool:
+    def gen_vcxproj(self, target: build.Target, ofname: str, guid: str, vslite_ctx: dict = None) -> bool:
         mlog.debug(f'Generating vcxproj {target.name}.')
         subsystem = 'Windows'
         self.handled_target_deps[target.get_id()] = []
