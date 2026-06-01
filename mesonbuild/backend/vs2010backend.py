@@ -28,11 +28,14 @@ from ..environment import Environment, build_filename
 from .. import coredata
 
 if T.TYPE_CHECKING:
+    from typing_extensions import TypeAlias
+
     from ..arglist import CompilerArgs
     from ..compilers.compilers import Language
 
     Project = T.Tuple[str, PurePath, str, MachineChoice]
     FileLike = T.TypeVar('FileLike', bound=File | str)
+    _VSLITE_CTX: TypeAlias = dict[str, dict[str, dict[Language, list[str]]]]
 
 def autodetect_vs_version(build: T.Optional[build.Build]) -> backends.Backend:
     vs_version = os.getenv('VisualStudioVersion', None)
@@ -124,9 +127,10 @@ def get_primary_source_lang(target_sources: T.List[File], custom_sources: T.List
 # (pre-processor defines, include paths, additional compiler options)
 # fields to use to fill in the respective intellisense fields of sources that can't simply
 # reference and re-use the shared 'primary' language intellisense fields of the vcxproj.
-def get_non_primary_lang_intellisense_fields(vslite_ctx: dict,
+def get_non_primary_lang_intellisense_fields(vslite_ctx: _VSLITE_CTX,
                                              target_id: str,
-                                             primary_src_lang: str) -> T.Dict[str, T.Dict[str, T.Tuple[str, str, str]]]:
+                                             primary_src_lang: Language
+                                             ) -> T.Dict[str, T.Dict[str, T.Tuple[str, str, str]]]:
     defs_paths_opts_per_lang_and_buildtype: dict[str, dict[str, tuple[str, str, str]]] = {}
     for buildtype in coredata.get_genvs_default_buildtype_list():
         captured_build_args = vslite_ctx[buildtype][target_id] # Results in a 'Src types to compile args' dict
@@ -241,7 +245,7 @@ class Vs2010Backend(backends.Backend):
 
     def generate(self,
                  capture: bool = False,
-                 vslite_ctx: T.Optional[T.Dict] = None) -> None:
+                 vslite_ctx: _VSLITE_CTX | None = None) -> None:
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect any vs backend to generate with \'capture = True\'')
@@ -568,7 +572,7 @@ class Vs2010Backend(backends.Backend):
             ofile.write('EndGlobal\n')
         replace_if_different(sln_filename, sln_filename_tmp)
 
-    def generate_projects(self, vslite_ctx: dict = None) -> T.List[Project]:
+    def generate_projects(self, vslite_ctx: _VSLITE_CTX | None = None) -> T.List[Project]:
         startup_project = self.environment.coredata.optstore.get_value_for('backend_startup_project')
         projlist: T.List[Project] = []
         startup_idx = 0
@@ -1292,10 +1296,10 @@ class Vs2010Backend(backends.Backend):
                                                root: ET.Element,
                                                platform: str,
                                                target_ext: str,
-                                               vslite_ctx: dict,
+                                               vslite_ctx: _VSLITE_CTX,
                                                target: build.AnyTargetType,
                                                proj_to_build_root: str,
-                                               primary_src_lang: T.Optional[str]) -> None:
+                                               primary_src_lang: T.Optional[Language]) -> None:
         ET.SubElement(root, 'ImportGroup', Label='ExtensionSettings')
         ET.SubElement(root, 'ImportGroup', Label='Shared')
         prop_sheets_grp = ET.SubElement(root, 'ImportGroup', Label='PropertySheets')
@@ -1653,7 +1657,7 @@ class Vs2010Backend(backends.Backend):
     # Returns bool indicating whether the .vcxproj has been generated.
     # Under some circumstances, it's unnecessary to create some .vcxprojs, so, when generating the .sln,
     # we need to respect that not all targets will have generated a project.
-    def gen_vcxproj(self, target: build.Target, ofname: str, guid: str, vslite_ctx: dict = None) -> bool:
+    def gen_vcxproj(self, target: build.Target, ofname: str, guid: str, vslite_ctx: _VSLITE_CTX | None = None) -> bool:
         mlog.debug(f'Generating vcxproj {target.name}.')
         subsystem = 'Windows'
         self.handled_target_deps[target.get_id()] = []
