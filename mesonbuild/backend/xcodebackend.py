@@ -24,58 +24,70 @@ if T.TYPE_CHECKING:
     PbxDictItemTypes = T.TypeVar('PbxDictItemTypes', 'PbxArray', 'PbxDict', str, int)
 
 INDENT = '\t'
-XCODETYPEMAP = {'c': 'sourcecode.c.c',
-                'a': 'archive.ar',
-                'cc': 'sourcecode.cpp.cpp',
-                'cxx': 'sourcecode.cpp.cpp',
-                'cpp': 'sourcecode.cpp.cpp',
-                'c++': 'sourcecode.cpp.cpp',
-                'm': 'sourcecode.c.objc',
-                'mm': 'sourcecode.cpp.objcpp',
-                'h': 'sourcecode.c.h',
-                'hpp': 'sourcecode.cpp.h',
-                'hxx': 'sourcecode.cpp.h',
-                'hh': 'sourcecode.cpp.hh',
-                'inc': 'sourcecode.c.h',
-                'swift': 'sourcecode.swift',
-                'dylib': 'compiled.mach-o.dylib',
-                'o': 'compiled.mach-o.objfile',
-                's': 'sourcecode.asm',
-                'asm': 'sourcecode.nasm',
-                'metal': 'sourcecode.metal',
-                'glsl': 'sourcecode.glsl',
-                }
-NEEDS_CUSTOM_RULES = {'nasm': 'sourcecode.nasm',
-                      }
-LANGNAMEMAP = {'c': 'C',
-               'cpp': 'CPLUSPLUS',
-               'objc': 'OBJC',
-               'objcpp': 'OBJCPLUSPLUS',
-               'swift': 'SWIFT_'
-               }
-OPT2XCODEOPT = {'plain': None,
-                '0': '0',
-                'g': '0',
-                '1': '1',
-                '2': '2',
-                '3': '3',
-                's': 's',
-                }
-BOOL2XCODEBOOL = {True: 'YES', False: 'NO'}
-LINKABLE_EXTENSIONS = {'.o', '.a', '.obj', '.so', '.dylib'}
-XCODEVERSIONS = {'1500': ('Xcode 15.0', 60),
-                 '1400': ('Xcode 14.0', 56),
-                 '1300': ('Xcode 13.0', 55),
-                 '1200': ('Xcode 12.0', 54),
-                 '1140': ('Xcode 11.4', 53),
-                 '1100': ('Xcode 11.0', 52),
-                 '1000': ('Xcode 10.0', 51),
-                 '930': ('Xcode 9.3', 50),
-                 '800': ('Xcode 8.0', 48),
-                 '630': ('Xcode 6.3', 47),
-                 '320': ('Xcode 3.2', 46),
-                 '310': ('Xcode 3.1', 45)
-                 }
+
+XCODETYPEMAP: T.Mapping[str, str] = {
+    'c': 'sourcecode.c.c',
+    'a': 'archive.ar',
+    'cc': 'sourcecode.cpp.cpp',
+    'cxx': 'sourcecode.cpp.cpp',
+    'cpp': 'sourcecode.cpp.cpp',
+    'c++': 'sourcecode.cpp.cpp',
+    'm': 'sourcecode.c.objc',
+    'mm': 'sourcecode.cpp.objcpp',
+    'h': 'sourcecode.c.h',
+    'hpp': 'sourcecode.cpp.h',
+    'hxx': 'sourcecode.cpp.h',
+    'hh': 'sourcecode.cpp.hh',
+    'inc': 'sourcecode.c.h',
+    'swift': 'sourcecode.swift',
+    'dylib': 'compiled.mach-o.dylib',
+    'o': 'compiled.mach-o.objfile',
+    's': 'sourcecode.asm',
+    'asm': 'sourcecode.nasm',
+    'metal': 'sourcecode.metal',
+    'glsl': 'sourcecode.glsl',
+}
+
+NEEDS_CUSTOM_RULES: T.Mapping[str, str] = {
+    'nasm': 'sourcecode.nasm',
+}
+
+LANGNAMEMAP: T.Mapping[str, str] = {
+    'c': 'C',
+    'cpp': 'CPLUSPLUS',
+    'objc': 'OBJC',
+    'objcpp': 'OBJCPLUSPLUS',
+    'swift': 'SWIFT_'
+}
+
+OPT2XCODEOPT: T.Mapping[str, str | None] = {
+    'plain': None,
+    '0': '0',
+    'g': '0',
+    '1': '1',
+    '2': '2',
+    '3': '3',
+    's': 's',
+}
+
+BOOL2XCODEBOOL: T.Mapping[bool, str] = {True: 'YES', False: 'NO'}
+
+LINKABLE_EXTENSIONS: T.AbstractSet[str] = {'.o', '.a', '.obj', '.so', '.dylib'}
+
+XCODEVERSIONS: T.Mapping[str, tuple[str, int]] = {
+    '1500': ('Xcode 15.0', 60),
+    '1400': ('Xcode 14.0', 56),
+    '1300': ('Xcode 13.0', 55),
+    '1200': ('Xcode 12.0', 54),
+    '1140': ('Xcode 11.4', 53),
+    '1100': ('Xcode 11.0', 52),
+    '1000': ('Xcode 10.0', 51),
+    '930': ('Xcode 9.3', 50),
+    '800': ('Xcode 8.0', 48),
+    '630': ('Xcode 6.3', 47),
+    '320': ('Xcode 3.2', 46),
+    '310': ('Xcode 3.1', 45)
+}
 
 def autodetect_xcode_version() -> T.Tuple[str, int]:
     try:
