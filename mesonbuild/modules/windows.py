@@ -185,12 +185,13 @@ class WindowsModule(ExtensionModule):
 
             if rescomp_type == ResourceCompilerType.rc:
                 compiler = self.detect_compiler(state.environment.coredata.compilers[MachineChoice.HOST])
-                depfile_type = 'msvc'
+                if compiler.id in {'msvc', 'clang-cl'}:
+                    depfile_type = 'msvc'
 
-                command.extend(state.environment.get_build_command())
-                command.extend(['--internal', 'rc',
-                                '--cl', compiler.get_exelist(False)[0],
-                                '--rc'])
+                    command.extend(state.environment.get_build_command())
+                    command.extend(['--internal', 'rc',
+                                    '--cl', compiler.get_exelist(False)[0],
+                                    '--rc'])
 
             command.append(rescomp)
             command.extend(res_args)
