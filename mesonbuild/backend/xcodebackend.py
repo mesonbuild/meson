@@ -264,7 +264,7 @@ class XCodeBackend(backends.Backend):
         # in. If you generate only one id per file and use them, compilation will work but the
         # UI will only show the file in one target but not the others. Thus they key is
         # a tuple containing the target and filename.
-        self.buildfile_ids = {}
+        self.buildfile_ids: dict[tuple[str, str] | str, str] = {}
         # That is not enough, though. Each target/file combination also gets a unique id
         # in the file reference section. Because why not. This means that a source file
         # that is used in two targets gets a total of four unique ID numbers.
@@ -696,9 +696,9 @@ class XCodeBackend(backends.Backend):
                 if isinstance(s, build.GeneratedList):
                     build_phases.append(self.shell_targets[(tname, generator_id)])
                     for d in s.depends:
-                        # TODO: what to do about this
                         if isinstance(d, build.GeneratedList):
-                            continue
+                            # TODO: what to do about this
+                            raise MesonBugException('Not implemented, patches highly welcome')
                         dependencies.append(self.pbx_custom_dep_map[d.get_id()])
                     generator_id += 1
                 elif isinstance(s, build.ExtractedObjects):
@@ -769,6 +769,9 @@ class XCodeBackend(backends.Backend):
                     o = os.path.join(o.subdir, o.fname)
                 elif isinstance(o, str):
                     o = os.path.join(t.subdir, o)
+                else:
+                    # TODO: handle CustomTarget | CustomTargetIndex | GeneratedList
+                    raise MesonBugException('Not implemented, patches highly welcome')
                 idval = self.buildfile_ids[(tname, o)]
                 k = (tname, o)
                 fileref = self.fileref_ids[k]
@@ -1201,7 +1204,9 @@ class XCodeBackend(backends.Backend):
                 o = os.path.join(o.subdir, o.fname)
             elif isinstance(o, str):
                 o = os.path.join(t.subdir, o)
-            # TODO: handle CustomTarget, CustomTargeIndex, and GeneratedList
+            else:
+                # TODO: handle CustomTarget, CustomTargeIndex, and GeneratedList
+                raise MesonBugException('Not implemented, patches highly welcome')
             target_children.add_item(self.fileref_ids[(tid, o)], o)
         for e in t.extra_files:
             if isinstance(e, mesonlib.File):
