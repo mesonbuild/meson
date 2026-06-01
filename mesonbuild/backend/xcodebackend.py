@@ -268,6 +268,8 @@ class XCodeBackend(backends.Backend):
         # that is used in two targets gets a total of four unique ID numbers.
         self.fileref_ids = {}
 
+        self.buildphase_map: dict[str, dict[str, str]] = {}
+
     def write_pbxfile(self, top_level_dict: PbxDict, ofilename: str) -> None:
         tmpname = ofilename + '.tmp'
         with open(tmpname, 'w', encoding='utf-8') as ofile:
@@ -450,12 +452,14 @@ class XCodeBackend(backends.Backend):
     def generate_build_phase_map(self) -> None:
         for tname, t in self.build_targets.items():
             # generate id for our own target-name
-            t.buildphasemap = {}
-            t.buildphasemap[tname] = self.gen_id()
-            # each target can have its own Frameworks/Sources/..., generate id's for those
-            t.buildphasemap['Frameworks'] = self.gen_id()
-            t.buildphasemap['Resources'] = self.gen_id()
-            t.buildphasemap['Sources'] = self.gen_id()
+            self.buildphase_map[t.id] = {
+                tname: self.gen_id(),
+                # each target can have its own Frameworks/Sources/..., generate
+                # id's for those
+                'Frameworks': self.gen_id(),
+                'Resources': self.gen_id(),
+                'Sources': self.gen_id(),
+            }
 
     def generate_build_configuration_map(self) -> None:
         self.buildconfmap = {}
@@ -1040,7 +1044,7 @@ class XCodeBackend(backends.Backend):
     def generate_pbx_frameworks_buildphase(self, objects_dict: PbxDict) -> None:
         for t in self.build_targets.values():
             bt_dict = PbxDict()
-            objects_dict.add_item(t.buildphasemap['Frameworks'], bt_dict, 'Frameworks')
+            objects_dict.add_item(self.buildphase_map[t.id]['Frameworks'], bt_dict, 'Frameworks')
             bt_dict.add_item('isa', 'PBXFrameworksBuildPhase')
             bt_dict.add_item('buildActionMask', 2147483647)
             file_list = PbxArray()
@@ -1273,7 +1277,7 @@ class XCodeBackend(backends.Backend):
                 if isinstance(g, build.GeneratedList):
                     buildphases_array.add_item(self.shell_targets[(tname, generator_id)], f'Generator {generator_id}/{tname}')
                     generator_id += 1
-            for bpname, bpval in t.buildphasemap.items():
+            for bpname, bpval in self.buildphase_map[t.id].items():
                 buildphases_array.add_item(bpval, f'{bpname} yyy')
             build_rules = PbxArray()
             for language, build_rule_idval in self.build_rules[tname].items():
@@ -1504,7 +1508,7 @@ class XCodeBackend(backends.Backend):
         for name in self.source_phase:
             phase_dict = PbxDict()
             t = self.build_targets[name]
-            objects_dict.add_item(t.buildphasemap[name], phase_dict, 'Sources')
+            objects_dict.add_item(self.buildphase_map[t.id][name], phase_dict, 'Sources')
             phase_dict.add_item('isa', 'PBXSourcesBuildPhase')
             phase_dict.add_item('buildActionMask', 2147483647)
             file_arr = PbxArray()
