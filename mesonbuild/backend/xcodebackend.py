@@ -956,9 +956,12 @@ class XCodeBackend(backends.Backend):
                 if isinstance(o, mesonlib.File):
                     fullpath = o.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
                     o = os.path.join(o.subdir, o.fname)
-                else:
+                elif isinstance(o, str):
                     o = os.path.join(t.subdir, o)
                     fullpath = os.path.join(self.environment.get_source_dir(), o)
+                else:
+                    # TODO: handle CustomTarget, CustomTargeIndex, and GeneratedList
+                    raise MesonBugException('Not implemented, patches highly welcome')
                 idval = self.fileref_ids[(tname, o)]
                 rel_name = mesonlib.relpath(fullpath, self.environment.get_source_dir())
                 o_dict = PbxDict()
@@ -1696,6 +1699,8 @@ class XCodeBackend(backends.Backend):
             ldargs += target.link_args
             # Swift is special. Again. You can't mix Swift with other languages
             # in the same target. Thus for Swift we only use
+            # TODO: is this still true?
+            stdlib_args: list[str]
             if is_swift:
                 linker, stdlib_args = target.compilers['swift'], []
             else:
