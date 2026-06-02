@@ -41,6 +41,7 @@ modules = [
     'mesonbuild/environment.py',
     'mesonbuild/machinefile.py',
     'mesonbuild/mesondata.py',
+    'mesonbuild/mesonmain.py',
     'mesonbuild/mcompile.py',
     'mesonbuild/mdevenv.py',
     'mesonbuild/mconf.py',

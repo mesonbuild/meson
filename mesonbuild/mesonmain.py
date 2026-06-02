@@ -221,13 +221,14 @@ def run_script_command(script_name: str, script_args: T.List[str]) -> int:
     module_name = script_map.get(script_name, script_name)
 
     try:
-        module = importlib.import_module('mesonbuild.scripts.' + module_name)
-    except ModuleNotFoundError as e:
+        func = T.cast('T.Callable[[list[str]], int]',
+                      importlib.import_module('mesonbuild.scripts.' + module_name).run)
+    except (ModuleNotFoundError, AttributeError) as e:
         mlog.exception(e)
         return 1
 
     try:
-        return module.run(script_args)
+        return func(script_args)
     except MesonException as e:
         mlog.error(f'Error in {script_name} helper script:')
         mlog.exception(e)
