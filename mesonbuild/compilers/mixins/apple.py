@@ -16,7 +16,7 @@ def _get_libomp_prefix() -> T.Optional[str]:
     """Call `brew --prefix libomp` once and cache it. Returns None if unavailable."""
     try:
         return subprocess.run(
-            ['brew', '--prefix', 'libomp'],
+            ['brew', '--prefix', '--installed', 'libomp'],
             capture_output=True,
             encoding='utf-8',
             check=True,
