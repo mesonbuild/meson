@@ -604,6 +604,8 @@ class GnuCompiler(GnuLikeCompiler):
                 result = False
             if self.language in {'c', 'objc'} and 'is valid for C++/ObjC++' in p.stderr:
                 result = False
+            if 'not supported for this target' in p.stderr:
+                result = False
         return result, p.cached
 
     def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
