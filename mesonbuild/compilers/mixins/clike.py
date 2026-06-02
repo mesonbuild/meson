@@ -545,7 +545,12 @@ class CLikeCompiler(Compiler):
             return -1, False
         if res.returncode != 0:
             raise mesonlib.EnvironmentException('Could not run sizeof test binary.')
-        return int(res.stdout), res.cached
+        try:
+            return int(res.stdout), res.cached
+        except ValueError:
+            raise mesonlib.EnvironmentException(
+                f'Could not determine size of {typename}: compiler output was empty or invalid.'
+            )
 
     def _cross_alignment(self, typename: str, prefix: str, *,
                          extra_args: T.Optional[T.List[str]] = None,
