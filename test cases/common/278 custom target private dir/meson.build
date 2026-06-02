@@ -7,7 +7,7 @@ custom_target(
   command: [
     python,
     '-c',
-    'import os, sys; os.chdir(sys.argv[1]); open(sys.argv[2], "w")',
+    'import os, sys; os.chdir(sys.argv[1]); open(sys.argv[2], "w", encoding="utf-8")',
     '@PRIVATE_DIR@',
     '@OUTPUT@',
   ],
