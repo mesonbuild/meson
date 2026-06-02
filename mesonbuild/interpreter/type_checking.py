@@ -706,6 +706,7 @@ _NAME_PREFIX_KW: KwargInfo[T.Optional[T.Union[str, T.List]]] = KwargInfo(
     (str, NoneType, list),
     validator=_name_validator,
     convertor=lambda x: None if isinstance(x, list) else x,
+    deprecated_values={list: ('1.12.0', 'use the `default()` function instead')},
 )
 
 
