@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from .. import coredata, mesonlib, mlog
 from .disabler import Disabler
+from .baseobjects import DefaultObject
 from .exceptions import InterpreterException, InvalidArguments
 from ._unholder import _unholder
 
@@ -216,6 +217,7 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
             num_args = len(args)
             num_types = len(types)
             a_types = types
+            last_pos = num_args
 
             if varargs:
                 min_args = num_types + min_varargs
@@ -238,6 +240,18 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
 
             for i, (arg, type_) in enumerate(itertools.zip_longest(args, a_types, fillvalue=varargs), start=1):
                 if not isinstance(arg, type_):
+                    # if DefaultObject is an explicit allowed allowed type allow
+                    # it through.
+                    if isinstance(arg, DefaultObject):
+                        if i >= last_pos:
+                            if varargs:
+                                msg = 'not allowed for variadic arguments'
+                            else:
+                                msg = 'not allowed for optional positional arguments'
+                        else:
+                            msg = 'not allowed for required positional arguments'
+                        raise InvalidArguments(f'default() objects are {msg}')
+
                     if isinstance(type_, tuple):
                         shouldbe = 'one of: {}'.format(", ".join(f'"{t.__name__}"' for t in type_))
                     else:
@@ -565,6 +579,15 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
             for info in types:
                 types_tuple = info.types if isinstance(info.types, tuple) else (info.types,)
                 value = kwargs.get(info.name)
+                if isinstance(value, DefaultObject):
+                    # Ensure that default() is not used for required options
+                    # Otherwise, set the value to None, which will send us down
+                    # the "unset" path
+                    if info.required:
+                        raise InvalidArguments(f'"{name}" got a default() value for the required keyword argument "{info.name}". '
+                                               'default() may not be used for required keyword arguments.')
+                    value = None
+
                 if value is not None:
                     if info.since:
                         feature_name = info.name + ' arg in ' + name
