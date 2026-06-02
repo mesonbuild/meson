@@ -254,8 +254,6 @@ class NinjaRule:
             if rsp == '_RSP':
                 if self.rspfile_quote_style is RSPFileSyntax.TASKING:
                     outfile.write(' command = {} --option-file=$out.rsp\n'.format(' '.join([self._quoter(x) for x in self.command])))
-                elif self.rspfile_quote_style is RSPFileSyntax.NASM:
-                    outfile.write(' command = {} -@$out.rsp\n'.format(' '.join([self._quoter(x) for x in self.command])))
                 else:
                     outfile.write(' command = {} @$out.rsp\n'.format(' '.join([self._quoter(x) for x in self.command])))
                 outfile.write(' rspfile = $out.rsp\n')
