@@ -159,6 +159,12 @@ class NasmCompiler(ASMCompiler):
             return []
         return self.crt_args[self.get_crt_val(crt_val)]
 
+    def can_linker_accept_rsp(self) -> bool:
+        """
+        Determines whether the linker can accept arguments using the @rsp syntax.
+        """
+        return False
+
 class YasmCompiler(NasmCompiler):
     id = 'yasm'
 
