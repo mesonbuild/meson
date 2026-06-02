@@ -1,0 +1,5 @@
+name: default
+long_name: Default
+description: |
+  A default object can be passed to keyword arguments to get the default value.
+
