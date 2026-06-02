@@ -441,7 +441,7 @@ class Backend:
         osrc = f'{target.name}-unity{number}.{suffix}'
         return mesonlib.File.from_built_file(self.get_target_private_dir(target), osrc)
 
-    def generate_unity_files(self, target: build.BuildTarget, unity_src: T.List[str]) -> T.List[mesonlib.File]:
+    def generate_unity_files(self, target: build.BuildTarget, unity_src: list[File]) -> list[mesonlib.File]:
         abs_files: T.List[str] = []
         result: T.List[mesonlib.File] = []
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
@@ -474,7 +474,7 @@ class Backend:
                     ofile = init_language_file(comp.get_default_suffix(), unity_file_number)
                     unity_file_number += 1
                     files_in_current = 0
-                ofile.write(f'#include<{src}>\n')
+                ofile.write(f'#include<{src.absolute_path(self.source_dir, self.build_dir)}>\n')
                 files_in_current += 1
             if ofile:
                 ofile.close()
