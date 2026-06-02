@@ -14,6 +14,7 @@ from . import coredata
 from . import mesonlib
 from . import machinefile
 from . import options
+from pathlib import (PurePath)
 
 from .mesonlib import (
     MesonException, MachineChoice, Popen_safe, PerMachine,
@@ -88,7 +89,8 @@ class Environment:
         # Do not try to create build directories when build_dir is none.
         # This reduced mode is used by the --buildoptions introspector
         if build_dir is not None:
-            self.build_dir = build_dir
+            # Ensure build_dir follows Unix-style paths (with '/' as separator)
+            self.build_dir = PurePath(build_dir).as_posix()
             self.scratch_dir = os.path.join(build_dir, Environment.private_dir)
             self.log_dir = os.path.join(build_dir, Environment.log_dir)
             self.info_dir = os.path.join(build_dir, Environment.info_dir)
