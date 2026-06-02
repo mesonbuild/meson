@@ -41,6 +41,7 @@ from mesonbuild.options import OptionKey
 from mesonbuild.programs import ExternalProgram
 
 from mesonbuild.compilers.mixins.clang import ClangCompiler
+from mesonbuild.compilers.mixins.elbrus import ElbrusCompiler
 from mesonbuild.compilers.mixins.gnu import GnuCompiler
 from mesonbuild.compilers.mixins.intel import IntelGnuLikeCompiler
 from mesonbuild.compilers.c import VisualStudioCCompiler, ClangClCCompiler
@@ -1164,7 +1165,11 @@ class AllPlatformTests(BasePlatformTests):
                     # Very rough/strict heuristics. Would never work for actual
                     # compiler detection, but should be ok for the tests.
                     ebase = os.path.basename(evalue)
-                    if ebase.startswith('g') or ebase.endswith(('-gcc', '-g++')):
+                    if ecc.id == 'lcc':
+                        # lcc ships the gcc symlink, but it isn't a GnuCompiler,
+                        # but a GnuLikeCompiler
+                        self.assertIsInstance(ecc, ElbrusCompiler)
+                    elif ebase.startswith('g') or ebase.endswith(('-gcc', '-g++')):
                         self.assertIsInstance(ecc, gnu)
                         self.assertIsInstance(elinker, ar)
                     elif 'clang-cl' in ebase:
