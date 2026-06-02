@@ -19,7 +19,6 @@ class RSPFileSyntax(enum.Enum):
     MSVC = enum.auto()
     GCC = enum.auto()
     TASKING = enum.auto()
-    NASM = enum.auto()
 
 
 class ArLikeLinker:
