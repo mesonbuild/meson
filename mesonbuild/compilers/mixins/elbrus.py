@@ -96,3 +96,7 @@ class ElbrusCompiler(GnuLikeCompiler):
 
     def openmp_flags(self) -> T.List[str]:
         return ['-fopenmp']
+
+    @classmethod
+    def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
+        return []
