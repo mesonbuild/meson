@@ -840,7 +840,7 @@ class NinjaBackend(backends.Backend):
                                            parameters: CompilerArgs | T.List[str],
                                            sources: FileList,
                                            generated_sources: FileList,
-                                           unity_sources: T.Optional[T.List[str]] = None) -> None:
+                                           unity_sources: T.Optional[T.List[File]] = None) -> None:
         '''
         Adds the source file introspection information for a language of a target
 
@@ -985,7 +985,7 @@ class NinjaBackend(backends.Backend):
         obj_list = []
         is_unity = self.is_unity(target)
         header_deps = []
-        unity_src = []
+        unity_src: T.List[mesonlib.File] = []
         unity_deps = [] # Generated sources that must be built before compiling a Unity target.
         header_deps += self.get_generated_headers(target)
 
@@ -1010,8 +1010,7 @@ class NinjaBackend(backends.Backend):
             if compilers.is_source(rel_src):
                 if is_unity and self.get_target_source_can_unity(target, rel_src):
                     unity_deps.append(raw_src)
-                    abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
-                    unity_src.append(abs_src)
+                    unity_src.append(raw_src)
                 else:
                     generated_source_files.append(raw_src)
             elif compilers.is_object(rel_src):
@@ -1102,9 +1101,7 @@ class NinjaBackend(backends.Backend):
                 o, s = self.generate_llvm_ir_compile(target, src)
                 obj_list.append(o)
             elif is_unity and self.get_target_source_can_unity(target, src):
-                abs_src = os.path.join(self.environment.get_build_dir(),
-                                       src.rel_to_builddir(self.build_to_src))
-                unity_src.append(abs_src)
+                unity_src.append(src)
             else:
                 o, s = self.generate_single_compile(target, src, False, [],
                                                     [*header_deps, *d_generated_deps, *fortran_order_deps],
@@ -1113,7 +1110,7 @@ class NinjaBackend(backends.Backend):
                 compiled_sources.append(s)
                 source2object[s] = o
 
-        if is_unity:
+        if unity_src:
             for src in self.generate_unity_files(target, unity_src):
                 o, s = self.generate_single_compile(target, src, True, [*unity_deps, *header_deps, *d_generated_deps],
                                                     fortran_order_deps, fortran_inc_args, unity_src)
@@ -3206,7 +3203,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                                 header_deps: T.Optional[T.List[FileOrString]] = None,
                                 order_deps: T.Optional[T.List[File] | T.List[FileOrString]] = None,
                                 extra_args: T.Optional[T.List[str]] = None,
-                                unity_sources: T.Optional[T.List[str]] = None,
+                                unity_sources: T.Optional[T.List[File]] = None,
                                 ) -> T.Tuple[str, str]:
         """
         Compiles C/C++, ObjC/ObjC++, Fortran, and D sources
