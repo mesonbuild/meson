@@ -223,7 +223,7 @@ kwargs:
       object files had to be placed in `sources`.
 
   name_prefix:
-    type: str | array[void]
+    type: str
     description: |
       The string that will be used as the prefix for the
       target output filename by overriding the default (only used for
@@ -231,10 +231,11 @@ kwargs:
       except for MSVC shared libraries where it is omitted to follow
       convention, and Cygwin shared libraries where it is `cyg`.
 
-      Set this to `[]`, or omit the keyword argument for the default behaviour.
+      To conditionally keep the default behavior use a [[default]] object.
+      For Meson < 1.12, use `[]`.
 
   name_suffix:
-    type: str | array[void]
+    type: str
     description: |
       The string that will be used as the extension for the
       target by overriding the default. By default on Windows this is
@@ -247,7 +248,8 @@ kwargs:
       potential name clash with shared libraries which also generate
       import libraries with a `lib` suffix.
 
-      Set this to `[]`, or omit the keyword argument for the default behaviour.
+      To conditionally keep the default behavior use a [[default]] object.
+      For Meson < 1.12, use `[]`.
 
   override_options:
     type: array[str] | dict[str | bool | int | array[str]]
