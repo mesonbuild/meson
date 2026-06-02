@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from .. import coredata, mesonlib, mlog
 from .disabler import Disabler
+from .baseobjects import DefaultObject
 from .exceptions import InterpreterException, InvalidArguments
 from ._unholder import _unholder
 
@@ -557,6 +558,15 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
             for info in types:
                 types_tuple = info.types if isinstance(info.types, tuple) else (info.types,)
                 value = kwargs.get(info.name)
+                if isinstance(value, DefaultObject):
+                    # Ensure that default() is not used for required options
+                    # Otherwise, set the value to None, which will send us down
+                    # the "unset" path
+                    if info.required:
+                        raise InvalidArguments(f'"{name}" got a default() value for the required keyword argument "{info.name}" '
+                                               'default() may not be used for required keyword arguments')
+                    value = None
+
                 if value is not None:
                     if info.since:
                         feature_name = info.name + ' arg in ' + name

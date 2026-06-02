@@ -1,0 +1,4 @@
+name: default
+returns: default
+description: Returns a [[@default]] object.
+since: 1.12.0

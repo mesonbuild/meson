@@ -30,7 +30,7 @@ from ..interpreterbase import noPosargs, noKwargs, noArgsFlattening, noSecondLev
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
-from ..interpreterbase import ObjectHolder, ContextManagerObject
+from ..interpreterbase import ObjectHolder, ContextManagerObject, DefaultObject
 from ..interpreterbase import stringifyUserArguments, Feature, FeatureValue
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..optinterpreter import optname_regex
@@ -367,6 +367,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                            'declare_dependency': self.func_declare_dependency,
                            'dependency': self.func_dependency,
                            'disabler': self.func_disabler,
+                           'default': self.func_default,
                            'environment': self.func_environment,
                            'error': self.func_error,
                            'executable': self.func_executable,
@@ -1886,6 +1887,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         for f in d.featurechecks:
             f.use(self.subproject, node)
         return d
+
+    @FeatureNew('default', '1.12.0')
+    @noKwargs
+    @noPosargs
+    def func_default(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> DefaultObject:
+        return DefaultObject()
 
     @FeatureNew('disabler', '0.44.0')
     @noKwargs

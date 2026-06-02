@@ -86,6 +86,7 @@ syn keyword mesonBuiltin
   \ custom_target
   \ debug
   \ declare_dependency
+  \ default
   \ dependency
   \ disabler
   \ environment
