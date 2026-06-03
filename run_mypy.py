@@ -30,6 +30,7 @@ modules = [
     'mesonbuild/wrap/',
 
     # specific files
+    'mesonbuild/_pathlib.py',
     'mesonbuild/arglist.py',
     'mesonbuild/build.py',
     'mesonbuild/cmdline.py',

@@ -23,7 +23,6 @@ from __future__ import annotations
 import pathlib
 import os
 import platform
-import sys
 
 __all__ = [
     'PurePath',
@@ -37,16 +36,15 @@ PurePosixPath = pathlib.PurePosixPath
 PureWindowsPath = pathlib.PureWindowsPath
 
 # Only patch on platforms where the bug occurs
-if platform.system().lower() in {'windows'}:
+if platform.system().lower() == 'windows':
     # Can not directly inherit from pathlib.Path because the __new__
-    # operator of pathlib.Path() returns a {Posix,Windows}Path object.
-    # Until Python 3.12, when this was changed so that Path can be directly inherited.
-    if sys.version_info >= (3, 12):
-        _BASE_CLASS = pathlib.Path
-    else:
-        _BASE_CLASS = type(pathlib.Path())
-
-    class _Path(_BASE_CLASS):
+    # operator of pathlib.Path() returns a {Posix,Windows}Path object
+    # until Python 3.12, when this was changed so that Path can be directly
+    # inherited.
+    #
+    # Since this particular code path is only relevant to Windows, just inherit
+    # WindowsPath directly.
+    class _Path(pathlib.WindowsPath):
         def resolve(self, strict: bool = False) -> _Path:
             '''
                 Work around a resolve bug on certain Windows systems:
@@ -60,7 +58,7 @@ if platform.system().lower() in {'windows'}:
             except OSError:
                 return _Path(os.path.normpath(self))
 
-    Path: type[_BASE_CLASS] = _Path
+    Path: type[pathlib.Path] = _Path
 else:
     Path = pathlib.Path
     PosixPath = pathlib.PosixPath
