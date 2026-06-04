@@ -12,55 +12,8 @@ import typing as T
 
 from mesonbuild.mesonlib import version_compare
 
-modules = [
-    # fully typed submodules
-    'mesonbuild/ast/',
-    'mesonbuild/backend',
-    'mesonbuild/cargo/',
-    'mesonbuild/cmake/',
-    'mesonbuild/compilers/',
-    'mesonbuild/dependencies/',
-    'mesonbuild/interpreter/',
-    'mesonbuild/interpreterbase/',
-    'mesonbuild/linkers/',
-    'mesonbuild/modules/',
-    'mesonbuild/scripts/',
-    'mesonbuild/templates/',
-    'mesonbuild/utils/',
-    'mesonbuild/wrap/',
+MESONBUILD = 'mesonbuild/'
 
-    # specific files
-    'mesonbuild/_pathlib.py',
-    'mesonbuild/arglist.py',
-    'mesonbuild/build.py',
-    'mesonbuild/cmdline.py',
-    'mesonbuild/coredata.py',
-    'mesonbuild/depfile.py',
-    'mesonbuild/envconfig.py',
-    'mesonbuild/environment.py',
-    'mesonbuild/machinefile.py',
-    'mesonbuild/mesondata.py',
-    'mesonbuild/mesonmain.py',
-    'mesonbuild/mcompile.py',
-    'mesonbuild/mdevenv.py',
-    'mesonbuild/mconf.py',
-    'mesonbuild/mdist.py',
-    'mesonbuild/mformat.py',
-    'mesonbuild/minit.py',
-    'mesonbuild/minstall.py',
-    'mesonbuild/mintro.py',
-    'mesonbuild/mlog.py',
-    'mesonbuild/msubprojects.py',
-    'mesonbuild/mparser.py',
-    'mesonbuild/msetup.py',
-    'mesonbuild/mtest.py',
-    'mesonbuild/munstable_coredata.py',
-    'mesonbuild/optinterpreter.py',
-    'mesonbuild/options.py',
-    'mesonbuild/programs.py',
-    'mesonbuild/rewriter.py',
-    'mesonbuild/tooldetect.py',
-]
 additional = [
     'run_mypy.py',
     'run_project_tests.py',
@@ -107,9 +60,7 @@ def main() -> int:
     additional_to_check = [] # type: T.List[str]
     if opts.files:
         for f in opts.files:
-            if f in modules:
-                to_check.append(f)
-            elif any(f.startswith(i) for i in modules):
+            if f.startswith(MESONBUILD):
                 to_check.append(f)
             elif f in additional:
                 additional_to_check.append(f)
@@ -119,7 +70,7 @@ def main() -> int:
                 if not opts.quiet:
                     print(f'skipping {f!r} because it is not yet typed')
     else:
-        to_check.extend(modules)
+        to_check.append(MESONBUILD)
         additional_to_check.extend(additional)
 
     if not to_check:
