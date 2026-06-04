@@ -1,7 +1,8 @@
 # External Project module
 
-**Note**: the functionality of this module is governed by [Meson's
-  rules on mixing build systems](Mixing-build-systems.md).
+```{note}
+The functionality of this module is governed by [Meson's rules on mixing build systems](Mixing-build-systems.md).
+```
 
 *This is an experimental module, API could change.*
 

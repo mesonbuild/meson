@@ -1,8 +1,8 @@
 ---
-short-description: Overview of the Meson build system
+short-description: User guide
 ...
 
-# Overview
+# Guide
 
 Meson is a build system that is designed to be as user-friendly as
 possible without sacrificing performance. The main tool for this is a
@@ -26,8 +26,7 @@ first need to build a custom tool and then use that tool to generate
 more source code to build. This functionality needs to be supported
 and be as easy to use as other parts of the system.
 
-Terminology
---
+## Terminology
 
 Meson follows the overall structure of other popular build systems,
 such as CMake and GNU Autotools. This means that the build is divided

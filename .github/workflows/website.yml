@@ -45,8 +45,8 @@ jobs:
       - name: Install package
         run: |
           sudo apt-get update
-          sudo apt-get -y install python3-pip ninja-build libjson-glib-dev
-          pip install hotdoc chevron strictyaml aiohttp
+          sudo apt-get -y install python3-pip ninja-build
+          pip install sphinx myst-parser pydata-sphinx-theme chevron strictyaml aiohttp
 
       - uses: actions/cache/save@v4
         with:

@@ -665,9 +665,11 @@ Logical operations work only on boolean values.
 To do an operation on all elements of an iterable, use the `foreach`
 command.
 
-> Note that Meson variables are immutable. Trying to assign a new value
-> to the iterated object inside a foreach loop will not affect foreach's
-> control flow.
+```{note}
+Meson variables are immutable. Trying to assign a new value
+to the iterated object inside a foreach loop will not affect foreach's
+control flow.
+```
 
 ### Foreach with an array
 

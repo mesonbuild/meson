@@ -37,7 +37,7 @@ example: |
   into `/{prefix}/include/proj/`:
 
   ```meson
-  install_headers('common.h, 'proj/kola.h', preserve_path : true)
+  install_headers('common.h', 'proj/kola.h', preserve_path : true)
   ```
 
 varargs:

@@ -1,3 +1,8 @@
+---
+language: pt_BR
+short-description: Getting Meson — Português
+...
+
 # Obtendo o Meson
 
 Meson é implementado em Python 3, e requer a versão 3.10 ou mais nova.

@@ -297,8 +297,10 @@ fallback to use the subproject, assuming it uses
 
 ### CMake wraps
 
-**Note**: This is experimental and has no backwards or forwards compatibility guarantees.
+```{note}
+This is experimental and has no backwards or forwards compatibility guarantees.
 See [Meson's rules on mixing build systems](Mixing-build-systems.md).
+```
 
 Since the CMake module does not know the public name of the provided
 dependencies, a CMake `.wrap` file cannot use the `dependency_names = foo`
@@ -319,8 +321,10 @@ foo-bar-1.0 = foo_bar_dep
 ```
 ### Cargo wraps
 
-**Note**: This is experimental and has no backwards or forwards compatibility guarantees.
+```{note}
+This is experimental and has no backwards or forwards compatibility guarantees.
 See [Meson's rules on mixing build systems](Mixing-build-systems.md).
+```
 
 Cargo subprojects automatically call `override_dependency` with the name
 `<package_name>-<version>-<suffix>`, where every part is defeined as follows:

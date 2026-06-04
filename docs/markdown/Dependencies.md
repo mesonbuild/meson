@@ -573,18 +573,24 @@ arguments will also be added.
 dep = dependency('jni', version: '>= 1.8.0', modules: ['jvm'])
 ```
 
-**Note**: Due to usage of a resolved path, upgrading the JDK may cause the
+```{note}
+Due to usage of a resolved path, upgrading the JDK may cause the
 various paths to not be found. In that case, please reconfigure the build
 directory. One workaround is to explicitly set `JAVA_HOME` instead of relying on
 the fallback `javac` resolved path behavior.
+```
 
-**Note**: Include paths might be broken on platforms other than `linux`,
+```{note}
+Include paths might be broken on platforms other than `linux`,
 `windows`, `darwin`, and `sunos`. Please submit a PR or open an issue in this
 case.
+```
 
-**Note**: Use of the `modules` argument on a JDK `<= 1.8` may be broken if your
+```{note}
+Use of the `modules` argument on a JDK `<= 1.8` may be broken if your
 system is anything other than `x86_64`. Please submit a PR or open an issue in
 this case.
+```
 
 ## libgcrypt
 
@@ -790,11 +796,11 @@ non exhaustive list of possible Qt6 modules:
 * `QuickWidgets`
 * `QmlIntegration`
 
-**Notes:**
-
-* In Qt's documentation, the module names are referenced with and extra `Qt` prefix,
-e.g. `QtCore` or `QtQmlIntegration`.
-* For more information on how to build a Qt application with meson, see the [Qt6 module](Qt6-module.md)
+```{note}
+- In Qt's documentation, the module names are referenced with an extra `Qt` prefix,
+  e.g. `QtCore` or `QtQmlIntegration`.
+- For more information on how to build a Qt application with meson, see the [Qt6 module](Qt6-module.md)
+```
 
 ## SDL2
 

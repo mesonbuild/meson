@@ -96,56 +96,39 @@ refman_md = custom_target(
         '--no-modules',
     ],
 )
-sitemap = refman_md[0]
 
-genrelnotes = custom_target(
-    output: ['sitemap-genrelnotes.txt'],
-    build_always_stale: true,
-    command: [find_program('genrelnotes.py'),
-        '--input-sitemap', sitemap,
-        '--output-sitemap', '@OUTPUT0@',
-        '--output-dir', meson.current_build_dir(),
-        '--source-dir', meson.current_source_dir(),
-    ]
-)
-sitemap = genrelnotes[0]
+sphinx_build = find_program('sphinx-build', required: true)
 
-hotdoc_prog = find_program('hotdoc', version: '>=0.13.7')
-py = import('python').find_installation('python3', modules: ['chevron'], required: false)
-if not py.found()
-    error('Building the HTML docs requires the chevron module to render generated markdown pages')
-endif
-
-hotdoc = import('hotdoc')
-documentation = hotdoc.generate_doc(meson.project_name(),
-    project_version: meson.project_version(),
-    sitemap: sitemap,
-    build_by_default: true,
-    depends: docs_gen,
-    index: 'markdown/index.md',
-    install: false,
-    extra_assets: ['images/'],
-    include_paths: ['markdown', cur_bdir],
-    default_license: 'CC-BY-SAv4.0',
-    html_extra_theme: join_paths('theme', 'extra'),
-    git_upload_repository: 'git@github.com:mesonbuild/mesonbuild.github.io.git',
-    edit_on_github_repository: 'https://github.com/mesonbuild/meson',
-    syntax_highlighting_activate: true,
-    keep_markup_in_code_blocks: true,
-    extra_extension: meson.current_source_dir() / 'extensions' / 'refman_links.py',
-    refman_data_file: refman_md[1],
-    fatal_warnings: true,
-    devhelp_activate: true,
-    devhelp_online: 'https://mesonbuild.com/',
+sphinx_conf = configure_file(
+    input: 'sphinx/conf.py.in',
+    output: 'conf.py',
+    configuration: {
+        'PROJECT_NAME': meson.project_name(),
+        'PROJECT_VERSION': meson.project_version(),
+        'SPHINX_EXTENSION_DIR': meson.current_source_dir() / 'sphinx',
+        'SPHINX_SITEMAP_FILE': refman_md[0].full_path(),
+        'REFMAN_DATA_FILE': refman_md[1].full_path(),
+        'MESON_LOGO': meson.current_source_dir() / 'theme' / 'extra' / 'images' / 'meson_logo.png',
+        'MESON_FAVICON': meson.current_source_dir() / 'theme' / 'extra' / 'images' / 'favicon.png',
+    }
 )
 
-run_target('upload',
-    command: [hotdoc_prog, 'run',
-      '--conf-file', documentation.config_path(),
-      '--git-upload',
-      '-vv',
+custom_target(
+    'sphinx_docs',
+    input: sphinx_conf,
+    output: 'sphinx_docs.stamp',
+    command: [
+        py,
+        files('sphinx/run_sphinx.py'),
+        sphinx_build,
+        meson.current_build_dir(),
+        meson.current_source_dir() / 'markdown',
+        meson.current_build_dir(),
+        meson.current_build_dir() / (meson.project_name() + '-doc') / 'html',
+        '@OUTPUT@',
     ],
-    depends: documentation,
+    depends: [refman_md, docs_gen],
+    build_by_default: true,
 )
 
 test('validate_links', find_program('./validatelinks.py'), args: meson.current_source_dir() / 'markdown' / 'Users.md', timeout: 65)

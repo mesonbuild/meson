@@ -7,7 +7,7 @@
 * [Tests](Unit-tests.md)
 * [Syntax](Syntax.md)
 
-### [Modules](Module-reference.md)
+### [Modules](Modules.md)
 
 * [codegen](Codegen-module.md)
 * [gnome](Gnome-module.md)

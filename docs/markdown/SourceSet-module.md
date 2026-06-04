@@ -107,10 +107,12 @@ missing dependency will simply be ignored and will *not* disable the
 rule, similar to how the `dependencies` keyword argument works in
 build targets.
 
-**Note**: It is generally better to avoid mixing source sets and
+```{note}
+It is generally better to avoid mixing source sets and
 disablers. This is because disablers will cause the rule to be dropped
 altogether, and the `list_of_alt_sources_and_deps` would not be taken into
 account anymore.
+```
 
 #### `add_all()`
 

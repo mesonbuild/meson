@@ -96,7 +96,7 @@ class GeneratorMD(GeneratorBase):
     def _link_to_object(self, obj: T.Union[Function, Object], in_code_block: bool = False) -> str:
         '''
             Generate a placeholder tag for the function/method/object documentation.
-            This tag is then replaced in the custom hotdoc plugin.
+            This tag is then replaced in the refman_links Sphinx extension.
         '''
         prefix = '#' if in_code_block else ''
         if isinstance(obj, Object):
@@ -144,7 +144,13 @@ class GeneratorMD(GeneratorBase):
                     return f'{base}[{render_type(dt.holds, in_code_block)}]'
                 return base
             assert typ.resolved
-            return ' | '.join([data_type_to_str(x) for x in typ.resolved])
+            parts = [data_type_to_str(x) for x in typ.resolved]
+            if not in_code_block:
+                parts = [
+                    f'<span class="text-nowrap">{p}</span>' if not x.holds else p
+                    for p, x in zip(parts, typ.resolved)
+                ]
+            return ' | '.join(parts)
 
         def len_stripped(s: str) -> int:
             s = s.replace(']]', '')
@@ -372,7 +378,7 @@ class GeneratorMD(GeneratorBase):
 
     def _generate_link_def(self) -> None:
         '''
-            Generate the link definition file for the refman_links hotdoc
+            Generate the link definition file for the refman_links
             plugin. The plugin is then responsible for replacing the [[tag]]
             tags with custom HTML elements.
         '''

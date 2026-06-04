@@ -1,0 +1,5 @@
+html[data-theme="dark"] {
+    --pst-color-primary: #87cefa;    /* 8.63:1 against bg */
+    --pst-color-secondary: #aab5be;  /* 7.10:1 — lightened from #7a8288 (3.79:1) */
+    --pst-color-accent: #59bcf9;     /* 7.04:1 — lightened from #56baf8 (6.90:1) */
+}

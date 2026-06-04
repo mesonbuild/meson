@@ -261,13 +261,15 @@ generate CMake toolchain file used for both CMake dependencies and
 CMake subprojects. The type of each entry must be either a string or a
 list of strings.
 
-**Note:** All occurrences of `\` in the value of all keys will be replaced with
-          a `/` since CMake has a lot of issues with correctly escaping `\` when
-          dealing with variables (even in cases where a path in `CMAKE_C_COMPILER`
-          is correctly escaped, CMake will still trip up internally for instance)
+```{note}
+All occurrences of `\` in the value of all keys will be replaced with
+`/` since CMake has a lot of issues with correctly escaping `\` when
+dealing with variables (even in cases where a path in `CMAKE_C_COMPILER`
+is correctly escaped, CMake will still trip up internally for instance).
 
-          A custom toolchain file should be used (via the `cmake_toolchain_file`
-          property) if `\` support is required.
+A custom toolchain file should be used (via the `cmake_toolchain_file`
+property) if `\` support is required.
+```
 
 ```ini
 [cmake]

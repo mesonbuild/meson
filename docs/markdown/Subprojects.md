@@ -256,7 +256,8 @@ the following command-line options:
     but you only want to build against the library sources for a few
     of them.
 
-    **Warning**: This could lead to mixing system and subproject version of the
+    ````{warning}
+    This could lead to mixing system and subproject version of the
     same library in the same process. Take this case as example:
     - Libraries `glib-2.0` and `gstreamer-1.0` are installed on your system.
     - `gstreamer-1.0` depends on `glib-2.0`, pkg-config file `gstreamer-1.0.pc`
@@ -270,13 +271,15 @@ the following command-line options:
       )
       ```
     - You configure with `--force-fallback-for=glib`.
-    This result in linking to two different versions of library `glib-2.0`
+
+    This results in linking to two different versions of library `glib-2.0`
     because `dependency('glib-2.0', fallback: 'glib')` will return the
     subproject dependency, but `dependency('gstreamer-1.0', fallback: 'gstreamer')`
     will not fallback and return the system dependency, including `glib-2.0`
-    library. To avoid that situation, every dependency that itself depend on
+    library. To avoid that situation, every dependency that itself depends on
     `glib-2.0` must also be forced to fallback, in this case with
     `--force-fallback-for=glib,gsteamer`.
+    ````
 
 * **--wrap-mode=nopromote**
 

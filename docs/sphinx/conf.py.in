@@ -1,0 +1,51 @@
+import sys
+sys.path.insert(0, '@SPHINX_EXTENSION_DIR@')
+
+project = '@PROJECT_NAME@'
+author = 'The Meson development team'
+version = '@PROJECT_VERSION@'
+release = '@PROJECT_VERSION@'
+
+extensions = [
+    'myst_parser',
+    'meson_domain',
+    'refman_links',
+    'sitemap',
+    'docs_includes',
+    'sphinx.ext.githubpages',
+]
+
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
+
+myst_heading_anchors = 6
+
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+templates_path = ['@SPHINX_EXTENSION_DIR@/_templates']
+html_static_path = ['@SPHINX_EXTENSION_DIR@/_static']
+html_css_files = ['custom.css']
+html_logo = '@MESON_LOGO@'
+html_favicon = '@MESON_FAVICON@'
+html_theme = 'pydata_sphinx_theme'
+
+html_show_sourcelink = False
+
+html_theme_options = {
+    "search_as_you_type": True,
+    "use_edit_page_button": True,
+    "footer_center": ["footer_center.html"],
+    "pygment_light_style": "friendly",
+    "pygment_dark_style": "monokai",
+}
+
+html_context = {
+    "github_user": "mesonbuild",
+    "github_repo": "meson",
+    "github_version": "master",
+    "doc_path": "docs/markdown",
+}
+
+refman_data_file = '@REFMAN_DATA_FILE@'
+sphinx_sitemap_file = '@SPHINX_SITEMAP_FILE@'

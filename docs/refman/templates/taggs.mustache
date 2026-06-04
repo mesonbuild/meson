@@ -1,18 +1,8 @@
-<div style="margin: 0px; text-align: center;">
-{{#since}}
-<p style="margin: 0px;"><em style="color: #5affff;">(since {{since}})</em></p>
+{{#since}}{meson:since}`{{since}}`
 {{/since}}
-{{#deprecated}}
-<div style="color: #ffa844">
-    <p style="margin: 0px;"><strong>DEPRECATED</strong></p>
-    <p style="margin: 0px;"><em>in {{deprecated}}</em></p>
-</div>
+{{#deprecated}}{meson:deprecated}`{{deprecated}}`
 {{/deprecated}}
-{{#optional}}
-<p style="margin: 0px;"><b>[optional]</b></p>
+{{#optional}}{meson:optional}` `
 {{/optional}}
-{{#default}}
-<p style="margin: 0px;"><code class="language-meson">default =
-{{default}}</code></p>
+{{#default}}<code class="language-meson text-nowrap">default = {{default}}</code>
 {{/default}}
-</div>

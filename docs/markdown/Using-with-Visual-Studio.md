@@ -39,7 +39,7 @@ You will first need to get a copy of llvm+clang for Windows, such versions
 are available from a number of sources, including the llvm website. Then you
 will need the [llvm toolset extension for visual
 studio](https://marketplace.visualstudio.com/items?itemName=LLVMExtensions.llvm-toolchain).
-You then need to either use a [native file](Native-environments.md#binaries)
+You then need to either use a [native file](Machine-files.md#binaries)
 or `set CC=clang-cl`, and `set CXX=clang-cl` to use those compilers, Meson
 will do the rest.
 

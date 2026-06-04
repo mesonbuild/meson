@@ -27,8 +27,10 @@ Changes options of a configured meson project.
 
 Most arguments are the same as in [`setup`](#setup).
 
-Note: reconfiguring project will not reset options to their default
+```{note}
+Reconfiguring a project will not reset options to their default
 values (even if they were changed in `meson.build`).
+```
 
 #### Examples:
 

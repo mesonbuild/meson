@@ -36,7 +36,7 @@ Methods (for all kinds of objects, including modules) can be linked to like
 this: `[[<object name>.<method name>]]`.
 To link to objects themselves, the `[[@<object name>]]` syntax can be used.
 
-These tags do **not** need to be put in inline code! A hotdoc extension handles
+These tags do **not** need to be put in inline code! A Sphinx extension handles
 the formatting here. If tags need to be placed (for instance, to include reference
 directly in code blocks), the `[[#<remaining tag>]]` syntax should be used.
 
@@ -47,7 +47,7 @@ Examples:
 
 Now the same in a code block:
 
-```meson
+```
 [[#@str]] [[#executable]]('main', [
     'file_@0@.cpp'.format([[#meson.version]])
 ])

@@ -5,11 +5,11 @@
 The Qt6 module provides methods to automatically deal with the various
 tools and steps required for Qt.
 
-<div class="alert alert-warning">
-<strong>Warning:</strong> before version 0.63.0 Meson would fail to find
+```{warning}
+Before version 0.63.0 Meson would fail to find
 Qt 6.1 or later due to the Qt tools having moved to the libexec subdirectory,
 and tool names being suffixed with only the Qt major version number e.g. qmake6.
-</div>
+```
 
 ## Dependencies
 
@@ -65,8 +65,10 @@ can also be build with meson using the following methods of the qt module object
 - [compile_moc](#compile_moc)
 - [qml_module](#qml_module)
 
-**Note:** when using [qml_module](#qml_module) with C++ `QML_ELEMENT` or `Q_GADGET` annotated headers in sub-folders,
-their direct parent folder needs to be added to "include directories". This will cause problems is the header names are not unique.
+```{note}
+When using [qml_module](#qml_module) with C++ `QML_ELEMENT` or `Q_GADGET` annotated headers in sub-folders,
+their direct parent folder needs to be added to "include directories". This will cause problems if the header names are not unique.
+```
 
 Here's an example meson code
 
@@ -376,13 +378,15 @@ This method takes the following keyword arguments:
   - `install_dir` string: directory to install to (optional).
 
 
-Note: Qt uses static initialization to register its resources, if you're
+```{note}
+Qt uses static initialization to register its resources. If you're
 building a static library you may need to call these entry points
 explicitly. For a module `Foo.Bar42` the generated resources are `Foo_Bar42`
 and `qmlcache_Foo_Bar42` when qmlcache is used, they can be imported using
 `Q_INIT_RESOURCE`. All non-alphanumeric characters from the module name are
 replaced with `_`. Type registration may be invoked explicitly using
 `extern void qml_register_types_Foo_Bar42()`.
+```
 
 See [Qt documentation](https://doc.qt.io/qt-6/resources.html#explicit-loading-and-unloading-of-embedded-resources)
 for more information
