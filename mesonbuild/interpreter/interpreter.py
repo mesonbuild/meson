@@ -3290,7 +3290,17 @@ class Interpreter(InterpreterBase, HoldableObject):
                     if InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFERENCES not in self.relaxations:
                         #raise
                         mlog.warning(str(e), location=self.current_node)
-                    results.append(mesonlib.File.from_built_file(self.subdir, s))
+                    if path_has_root(s):
+                        # A built File's name must be relative to the build
+                        # root, otherwise the absolute fname leaks through
+                        # File.relative_name() and breaks the backend.
+                        # Use join and relpath together to handle paths without
+                        # the drive part.
+                        rel = os.path.relpath(os.path.join(self.environment.build_dir, s),
+                                              self.environment.build_dir)
+                        results.append(mesonlib.File.from_built_relative(rel))
+                    else:
+                        results.append(mesonlib.File.from_built_file(self.subdir, s))
                 else:
                     results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
             elif isinstance(s, (mesonlib.File, build.GeneratedList, Program,
