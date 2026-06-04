@@ -32,7 +32,7 @@ from ..mesonlib import (
     File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg, unique_list
 )
-from ..mesonlib import get_compiler_for_source, has_path_sep, is_parent_path, lookbehind
+from ..mesonlib import get_compiler_for_source, has_path_sep, is_parent_path, lookbehind, path_has_root
 from ..options import OptionKey
 from .backends import CleanTrees
 from ..build import GeneratedList, InvalidArguments
@@ -3241,13 +3241,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         build_dir = self.environment.get_build_dir()
         if isinstance(src, File):
+            if src.is_built and path_has_root(src.fname):
+                raise MesonBugException('absolute file name for built file ' + src.relative_name())
             rel_src = src.rel_to_builddir(self.build_to_src)
-            if os.path.isabs(rel_src):
-                # Source files may not be from the source directory if they originate in source-only libraries,
-                # so we can't assert that the absolute path is anywhere in particular.
-                if src.is_built:
-                    assert rel_src.startswith(build_dir)
-                    rel_src = rel_src[len(build_dir) + 1:]
         elif is_generated:
             raise AssertionError(f'BUG: broken generated source file handling for {src!r}')
         else:
