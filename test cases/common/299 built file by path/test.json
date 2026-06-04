@@ -1,7 +1,7 @@
 {
   "stdout": [
     {
-       "line": "test cases/common/299 built file by path/meson.build:3: WARNING: '.*/fullpath.c' is a generated file, and should be passed by reference instead of string name. This will become a hard error in Meson 2.0",
+       "line": "test cases/common/299 built file by path/meson.build:12: WARNING: '.*/fullpath.c' is a generated file, and should be passed by reference instead of string name. This will become a hard error in Meson 2.0",
        "match": "re"
     }
   ]
