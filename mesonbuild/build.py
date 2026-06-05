@@ -2086,14 +2086,16 @@ class Generator(HoldableObject):
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None,
                       env: T.Optional[EnvironmentVariables] = None,
-                      extra_depends: T.Optional[T.Sequence[TargetDepends]] = None) -> 'GeneratedList':
+                      extra_depends: T.Optional[T.Sequence[TargetDepends]] = None,
+                      output_subdir: str = '') -> 'GeneratedList':
         output = GeneratedList(
             self,
             subdir,
             preserve_path_from,
             extra_args=extra_args if extra_args is not None else [],
             env=env if env is not None else EnvironmentVariables(),
-            extra_depends=list(extra_depends) if extra_depends is not None else [])
+            extra_depends=list(extra_depends) if extra_depends is not None else [],
+            output_subdir=output_subdir)
 
         for e in files:
             if isinstance(e, (CustomTarget, CustomTargetIndex)):
@@ -2132,6 +2134,11 @@ class GeneratedList(HoldableObject):
     extra_args: T.List[str]
     env: T.Optional[EnvironmentVariables]
     extra_depends: T.List[TargetDepends]
+    # An extra directory, relative to the target private dir, that the outputs
+    # are placed in. Used to reproduce the directory layout of structured
+    # sources without baking the path into the (shared) generator's template.
+    output_subdir: str = ''
+
     depends: set[GeneratedTypes] = field(default_factory=set, init=False)
     infilelist: list[FileMaybeInTargetPrivateDir] = field(default_factory=list, init=False)
     outfilelist: list[str] = field(default_factory=list, init=False)
@@ -2182,6 +2189,8 @@ class GeneratedList(HoldableObject):
         if self.preserve_path_from:
             path_segment = self.get_preserved_path_segment(newfile)
             outfiles = [os.path.join(path_segment, of) for of in outfiles]
+        if self.output_subdir:
+            outfiles = [os.path.join(self.output_subdir, of) for of in outfiles]
         self.outfilelist += outfiles
         self.outmap[newfile] = outfiles
 
