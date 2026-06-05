@@ -366,6 +366,9 @@ class NinjaBuildElement:
         if self.rulename == 'phony':
             return False
 
+        if not self.rule:
+            raise MesonBugException(f"build statement for {self.outfilenames} references unmapped rule {self.rulename}")
+
         return self.rule.should_use_rspfile(self)
 
     def count_rule_references(self) -> None:
@@ -3374,7 +3377,27 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                     result += c
                 return result
             element.add_item('CUDA_ESCAPED_TARGET', quote_make_target(rel_obj))
-        element.add_item('ARGS', commands)
+        if self.ninja.should_use_rspfile(element) and compiler.rsp_file_syntax() == RSPFileSyntax.NASM:
+            exe = compiler.get_exelist()
+            # Add to commands the args created by generate_compile_rule_for().
+            # commands remain separate from exelist because they must stay
+            # a CompilerArgs.
+            if dep_file:
+                commands += compiler.get_dependency_gen_args(rel_obj, dep_file)
+            commands += [*compiler.get_output_args(rel_obj), *compiler.get_compile_only_args(), rel_src]
+
+            element.rulename = 'CUSTOM_COMMAND'
+            meson_exe_cmd, reason = self.as_meson_exe_cmdline(exe[0],
+                                                              exe[1:] + commands.to_native(),
+                                                              separator='\n',
+                                                              rsp_file_flag='-@',
+                                                              can_use_rsp_file=True,
+                                                              verbose=True)
+            cmd_type = f' (wrapped by meson {reason})' if reason else ''
+            element.add_item('COMMAND', meson_exe_cmd)
+            element.add_item('description', f'Compiling {compiler.get_display_language()} object {rel_obj}{cmd_type}')
+        else:
+            element.add_item('ARGS', commands)
 
         self.add_dependency_scanner_entries_to_element(target, compiler, element, src)
         self.add_build(element)

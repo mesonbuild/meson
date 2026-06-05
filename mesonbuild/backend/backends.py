@@ -551,10 +551,11 @@ class Backend:
             feed: T.Optional[str] = None,
             env: T.Optional[mesonlib.EnvironmentVariables] = None,
             can_use_rsp_file: bool = False,
+            separator: str = ' ',
+            rsp_file_flag: str = '@',
             tag: T.Optional[str] = None,
             verbose: bool = False,
             installdir_map: T.Optional[T.Dict[str, str]] = None) -> 'ExecutableSerialisation':
-
         # XXX: cmd_args either need to be lowered to strings, or need to be checked for non-string arguments, right?
         exe, *raw_cmd_args = cmd
         if isinstance(exe, build.LocalProgram):
@@ -620,14 +621,14 @@ class Backend:
 
         if needs_rsp_file:
             hasher = hashlib.sha1()
-            args = ' '.join(mesonlib.quote_arg(arg) for arg in cmd_args)
+            args = separator.join(mesonlib.quote_arg(arg) for arg in cmd_args)
             hasher.update(args.encode(encoding='utf-8', errors='ignore'))
             digest = hasher.hexdigest()
             scratch_file = f'meson_rsp_{digest}.rsp'
             rsp_file = os.path.join(self.environment.get_scratch_dir(), scratch_file)
             with open(rsp_file, 'w', encoding='utf-8', newline='\n') as f:
                 f.write(args)
-                cmd_args = [f'@{rsp_file}']
+                cmd_args = [f'{rsp_file_flag}{rsp_file}']
 
         return ExecutableSerialisation(exe_cmd + cmd_args, env,
                                        exe_wrapper, workdir,
@@ -642,6 +643,8 @@ class Backend:
                              force_serialize: bool = False,
                              env: T.Optional[mesonlib.EnvironmentVariables] = None,
                              can_use_rsp_file: bool = False,
+                             separator: str = ' ',
+                             rsp_file_flag: str = '@',
                              verbose: bool = False) -> T.Tuple[T.List[str], str]:
         '''
         Serialize an executable for running with a generator or a custom target
@@ -649,7 +652,7 @@ class Backend:
         cmd: T.List[build.CommandTypes] = []
         cmd.append(exe)
         cmd.extend(cmd_args)
-        es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, feed, env, can_use_rsp_file, verbose=verbose)
+        es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, feed, env, can_use_rsp_file, separator=separator, rsp_file_flag=rsp_file_flag, verbose=verbose)
         reasons: T.List[str] = []
         if es.extra_paths:
             reasons.append('to set PATH')
@@ -666,6 +669,9 @@ class Backend:
         if env and env.varnames:
             reasons.append('to set env')
 
+        if separator != ' ':
+            reasons.append('to use a custom argument separator')
+
         # force_serialize passed to this function means that the VS backend has
         # decided it absolutely cannot use real commands. This is "always",
         # because it's not clear what will work (other than compilers) and so
@@ -675,7 +681,7 @@ class Backend:
         # It's also overridden for a few conditions that can't be handled
         # inside a command line
 
-        can_use_env = env.can_use_env and not force_serialize
+        can_use_env = env and env.can_use_env and not force_serialize
         force_serialize = force_serialize or bool(reasons)
 
         if capture:
@@ -689,7 +695,7 @@ class Backend:
                 envlist.append(f'{k}={v}')
             return ['env'] + envlist + es.cmd_args, ', '.join(reasons)
 
-        if any(a.startswith('@') for a in es.cmd_args):
+        if can_use_rsp_file and any(a.startswith(rsp_file_flag) for a in es.cmd_args):
             reasons.append('because command is too long')
 
         if not force_serialize:
