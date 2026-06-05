@@ -499,6 +499,9 @@ class Environment:
     def get_bindir(self) -> str:
         return _as_str(self.coredata.optstore.get_value_for(OptionKey('bindir')))
 
+    def get_sbindir(self) -> str:
+        return _as_str(self.coredata.optstore.get_value_for(OptionKey('sbindir')))
+
     def get_includedir(self) -> str:
         return _as_str(self.coredata.optstore.get_value_for(OptionKey('includedir')))
 

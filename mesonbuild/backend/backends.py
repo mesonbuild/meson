@@ -1695,6 +1695,7 @@ class Backend:
 
     def guess_install_tag(self, fname: str, outdir: T.Optional[str] = None) -> T.Optional[str]:
         prefix = self.environment.get_prefix()
+        sbindir = Path(prefix, self.environment.get_sbindir())
         bindir = Path(prefix, self.environment.get_bindir())
         libdir = Path(prefix, self.environment.get_libdir())
         incdir = Path(prefix, self.environment.get_includedir())
@@ -1702,7 +1703,7 @@ class Backend:
         assert isinstance(_ldir, str), 'for mypy'
         localedir = Path(prefix, _ldir)
         dest_path = Path(prefix, outdir, Path(fname).name) if outdir else Path(prefix, fname)
-        if bindir in dest_path.parents:
+        if bindir in dest_path.parents or sbindir in dest_path.parents:
             return 'runtime'
         elif libdir in dest_path.parents:
             if dest_path.suffix in {'.a', '.pc'}:
