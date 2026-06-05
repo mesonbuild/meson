@@ -2132,14 +2132,14 @@ class GeneratedList(HoldableObject):
     extra_args: T.List[str]
     env: T.Optional[EnvironmentVariables]
     extra_depends: T.List[TargetDepends]
+    depends: set[GeneratedTypes] = field(default_factory=set, init=False)
+    infilelist: list[FileMaybeInTargetPrivateDir] = field(default_factory=list, init=False)
+    outfilelist: list[str] = field(default_factory=list, init=False)
+    outmap: dict[FileMaybeInTargetPrivateDir, list[str]] = field(default_factory=dict, init=False)
+    depend_files: list[File] = field(default_factory=list, init=False)
 
     def __post_init__(self) -> None:
         self.name = self.generator.exe
-        self.depends: T.Set[GeneratedTypes] = set()
-        self.infilelist: T.List[FileMaybeInTargetPrivateDir] = []
-        self.outfilelist: T.List[str] = []
-        self.outmap: T.Dict[FileMaybeInTargetPrivateDir, T.List[str]] = {}
-        self.depend_files: T.List[File] = []
 
         if self.extra_args is None:
             self.extra_args: T.List[str] = []
