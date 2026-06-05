@@ -2063,7 +2063,8 @@ class Generator(HoldableObject):
                  depfile: T.Optional[str] = None,
                  capture: bool = False,
                  depends: T.Optional[T.Sequence[TargetDepends]] = None,
-                 name: str = 'Generator'):
+                 name: str = 'Generator',
+                 description: T.Optional[str] = None):
         self.environment = env
         self.exe = exe
         self.depfile = depfile
@@ -2072,6 +2073,9 @@ class Generator(HoldableObject):
         self.arglist = arguments
         self.outputs = output
         self.name = name
+        # A str.format() template used by the backend for the build progress
+        # message, with '{input}' and '{output}' fields.
+        self.description = description
 
     def __repr__(self) -> str:
         repr_str = "<{0}: {1}>"
