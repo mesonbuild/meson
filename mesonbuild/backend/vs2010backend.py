@@ -614,9 +614,7 @@ class Vs2010Backend(backends.Backend):
                 lang = self.lang_from_source_file(i)
                 if lang not in languages:
                     languages.append(lang)
-            elif compilers.is_library(i):
-                pass
-            else:
+            elif compilers.is_unknown(i):
                 # Everything that is not an object or source file is considered a header.
                 headers.append(i)
         return sources, headers, objects, languages
