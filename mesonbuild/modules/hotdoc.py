@@ -176,8 +176,8 @@ class HotdocTargetBuilder:
 
         self.cmd += ['--gi-c-source-roots'] + value
 
-    def process_dependencies(self, deps: T.Sequence[TargetDepends | Dependency | File | build.ExtractedObjects | build.StructuredSources]) -> T.List[str]:
-        # build.StructuredSources and build.ExtractedObjects shouldn't actually
+    def process_dependencies(self, deps: T.Sequence[TargetDepends | Dependency | File | build.ExtractedObjects]) -> T.List[str]:
+        # build.ExtractedObjects shouldn't actually
         # happen here, but we get them from Dependency.
         cflags = set()
         for dep in mesonlib.listify(ensure_list(deps)):

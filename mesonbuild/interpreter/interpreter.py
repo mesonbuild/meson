@@ -489,7 +489,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             held_type: holder_type
         })
 
-    def process_new_values(self, invalues: list[TYPE_var | ExecutableSerialisation] | list[build.GeneratedTypes | mesonlib.File | build.StructuredSources]) -> None:
+    def process_new_values(self, invalues: list[TYPE_var | ExecutableSerialisation] | list[build.GeneratedTypes | mesonlib.File]) -> None:
         for v in invalues:
             if isinstance(v, ObjectHolder):
                 raise InterpreterException('Modules must not return ObjectHolders')
