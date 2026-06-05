@@ -2912,10 +2912,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if generator.depfile is not None:
                 elem.add_item('DEPFILE', depfile)
 
-            desc = 'Generating '
-            if len(generator.outputs) == 1:
-                desc += f'{outfilespriv[0]!r} '
-            desc += f'from {curfile!r}'
+            if generator.description is not None:
+                desc = generator.description.format(input=curfile, output=outfilespriv[0])
+            else:
+                desc = 'Generating '
+                if len(generator.outputs) == 1:
+                    desc += f'{outfilespriv[0]!r} '
+                desc += f'from {curfile!r}'
             if reason:
                 desc += f' (wrapped by meson {reason})'
             elem.add_item('DESC', desc)
