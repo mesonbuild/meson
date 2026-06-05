@@ -88,3 +88,7 @@ executable(
 testcase expect_error('structured_sources: \'../escape\' is outside the root of the structure.')
     structured_sources('src/main.rs', {'../escape' : 'priv.rs'})
 endtestcase
+
+testcase expect_error('cannot mix \'.rs\' files in structured and unstructured sources')
+    executable('bad', structured_sources([m_src]), m_src2)
+endtestcase
