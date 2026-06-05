@@ -349,10 +349,13 @@ class NinjaBuildElement:
             self.elems.append((name + '_UNQUOTED', elems))
 
     @mesonlib.lazy_property
-    def _should_use_rspfile(self) -> bool:
+    def should_use_rspfile(self) -> bool:
         # 'phony' is a rule built-in to ninja
         if self.rulename == 'phony':
             return False
+
+        if not self.rule:
+            raise MesonBugException(f"build statement for {self.outfilenames} references unmapped rule {self.rulename}")
 
         if not self.rule.rspable:
             return False
@@ -366,7 +369,7 @@ class NinjaBuildElement:
 
     def count_rule_references(self) -> None:
         if self.rulename != 'phony':
-            if self._should_use_rspfile:
+            if self.should_use_rspfile:
                 self.rule.rsprefcount += 1
             else:
                 self.rule.refcount += 1
@@ -379,7 +382,7 @@ class NinjaBuildElement:
         implicit_outs = ' '.join([ninja_quote(i, True) for i in self.implicit_outfilenames])
         if implicit_outs:
             implicit_outs = ' | ' + implicit_outs
-        use_rspfile = self._should_use_rspfile
+        use_rspfile = self.should_use_rspfile
         if use_rspfile:
             rulename = self.rulename + '_RSP'
             mlog.debug(f'Command line for building {self.outfilenames} is long, using a response file')
@@ -3351,7 +3354,27 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                     result += c
                 return result
             element.add_item('CUDA_ESCAPED_TARGET', quote_make_target(rel_obj))
-        element.add_item('ARGS', commands)
+        if element.rulename in self.ruledict:
+            element.rule = self.ruledict[element.rulename]
+        if element.should_use_rspfile and compiler.rsp_file_syntax() == RSPFileSyntax.NASM:
+            exe = compiler.get_exelist()
+            # This renders the args part of generate_compile_rule_for()
+            # and adds the inputs and output. They are separate from
+            # the exelist because they must stay a CompilerArgs.
+            args = commands + compiler.get_output_args(rel_obj) + compiler.get_compile_only_args() + [rel_src]
+
+            element.rulename = 'CUSTOM_COMMAND'
+            meson_exe_cmd, reason = self.as_meson_exe_cmdline(exe[0],
+                                                              exe[1:] + args.to_native(),
+                                                              separator='\n',
+                                                              rsp_file_flag='-@',
+                                                              can_use_rsp_file=True,
+                                                              verbose=True)
+            cmd_type = f' (wrapped by meson {reason})' if reason else ''
+            element.add_item('COMMAND', meson_exe_cmd)
+            element.add_item('description', f'Compiling {compiler.get_display_language()} object {rel_obj}{cmd_type}')
+        else:
+            element.add_item('ARGS', commands)
 
         self.add_dependency_scanner_entries_to_element(target, compiler, element, src)
         self.add_build(element)
