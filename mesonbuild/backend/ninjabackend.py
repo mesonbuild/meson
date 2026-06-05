@@ -1563,9 +1563,11 @@ class NinjaBackend(backends.Backend):
         commands += ['-C', self.get_target_private_dir(target), '.']
         elem = NinjaBuildElement(self.all_outputs, outname_rel, jar_rule, [])
         elem.add_dep(class_dep_list)
-        if resources:
+        for gl in resources:
             # Copy all resources into the root of the jar.
-            elem.add_orderdep(self.__generate_sources_structure(Path(self.get_target_private_dir(target)), resources)[0])
+            self.generate_genlist_for_target(gl, target)
+            elem.add_orderdep([os.path.join(self.get_target_private_dir(target), o)
+                               for o in gl.get_outputs()])
         elem.add_item('ARGS', commands)
         self.add_build(elem)
         # Create introspection information

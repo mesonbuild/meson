@@ -1028,6 +1028,17 @@ class BuildTarget(Target):
         for compiler in self.compilers.values():
             self.single_compile_base_args[compiler] = self._generate_single_compile_base_args(compiler)
 
+    def lower_structured_sources(self, struct: StructuredSources, subdir: str) -> T.List[GeneratedList]:
+        """Turn structured sources into GeneratedLists."""
+        generator = get_copy_generator(self.environment)
+        genlists = [generator.process_files(files, self.subdir,
+                                            output_subdir=os.path.join(subdir, path))
+                    for path, files in struct.sources.items()]
+        # build the main directory first, so that the first file in the root
+        # directory is used as the main file for Rust structured_sources.
+        genlists.sort(key=lambda g: g.output_subdir)
+        return genlists
+
     def process_structured_sources(self) -> None:
         source_suffixes = set()
         for s in itertools.chain(self.sources, *(g.get_outputs() for g in self.generated)):
@@ -3422,6 +3433,12 @@ class Jar(BuildTarget):
         self.java_args = self.extra_args['java']
         self.main_class = kwargs.get('main_class', '')
         self.java_resources: T.Optional[StructuredSources] = kwargs.get('java_resources', None)
+        # Resources are always copied into the jar's private directory (so that
+        # `jar -C <privatedir> .` can pick them up); unlike compiled structured
+        # sources they are not added to self.generated.
+        self.java_resource_genlists: T.List[GeneratedList] = []
+        if self.java_resources:
+            self.java_resource_genlists = self.lower_structured_sources(self.java_resources, '')
 
     def _extract_link_with(self, kwargs: BuildTargetKeywordArguments) -> list[LinkableTargetTypes]:
         return kwargs['link_with']
@@ -3435,8 +3452,8 @@ class Jar(BuildTarget):
     def get_java_args(self) -> T.List[str]:
         return self.java_args
 
-    def get_java_resources(self) -> T.Optional[StructuredSources]:
-        return self.java_resources
+    def get_java_resources(self) -> T.List[GeneratedList]:
+        return self.java_resource_genlists
 
     def validate_install(self) -> None:
         # All jar targets are installable.
