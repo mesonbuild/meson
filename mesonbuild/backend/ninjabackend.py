@@ -1073,15 +1073,14 @@ class NinjaBackend(backends.Backend):
                     generated_source_files.append(raw_src)
             elif compilers.is_object(rel_src):
                 obj_list.append(rel_src)
-            elif compilers.is_library(rel_src) or modules.is_module_library(rel_src):
-                pass
-            elif is_compile_target:
-                generated_source_files.append(raw_src)
-            else:
-                # Assume anything not specifically a source file is a header. This is because
-                # people generate files with weird suffixes (.inc, .fh) that they then include
-                # in their source files.
-                header_deps.append(raw_src)
+            elif compilers.is_unknown(rel_src):
+                if is_compile_target:
+                    generated_source_files.append(raw_src)
+                else:
+                    # Assume anything not specifically a source file is a header. This is because
+                    # people generate files with weird suffixes (.inc, .fh) that they then include
+                    # in their source files.
+                    header_deps.append(raw_src)
 
         # For D language, the object of generated source files are added
         # as order only deps because other files may depend on them
@@ -1954,12 +1953,7 @@ class NinjaBackend(backends.Backend):
                     cython_sources.append(output)
                 else:
                     generated_sources[ssrc] = mesonlib.File.from_built_file(builddir, ssrc)
-                    # Following logic in L883-900 where we determine whether to add generated source
-                    # as a header(order-only) dep to the .so compilation rule
-                    if not compilers.is_source(ssrc) and \
-                            not compilers.is_object(ssrc) and \
-                            not compilers.is_library(ssrc) and \
-                            not modules.is_module_library(ssrc):
+                    if compilers.is_unknown(ssrc):
                         header_deps.append(ssrc)
         for source in pyx_sources:
             source.add_orderdep(header_deps)
