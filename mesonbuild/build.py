@@ -33,7 +33,7 @@ from .options import OptionKey
 
 from .compilers import (
     is_header, is_object, is_source, clink_langs, sort_clink,
-    is_known_suffix, detect_static_linker, LANGUAGES_USING_LDFLAGS,
+    is_known_suffix, is_separate_compile, detect_static_linker, LANGUAGES_USING_LDFLAGS,
     get_base_compile_args
 )
 from .interpreterbase import FeatureNew, FeatureDeprecated
@@ -937,6 +937,8 @@ class BuildTarget(Target):
 
         self.swift_interoperability_mode = kwargs.get('swift_interoperability_mode', 'c')
         self.swift_module_name = kwargs.get('swift_module_name') or self.name
+        if self.structured_sources:
+            self.process_structured_sources()
         self.missing_languages = self.process_compilers()
         self.single_compile_base_args: T.Dict[Compiler, ImmutableListProtocol[str]] = {}
 
@@ -1004,12 +1006,6 @@ class BuildTarget(Target):
         if self.uses_rust():
             if self.link_language and self.link_language != 'rust':
                 raise MesonException('cannot build Rust sources with a different link_language')
-            if self.structured_sources:
-                # TODO: the interpreter should be able to generate a better error message?
-                if any((s.endswith('.rs') for s in self.sources)) or \
-                       any(any((s.endswith('.rs') for s in g.get_outputs())) for g in self.generated):
-                    raise MesonException('cannot mix Rust structured sources and unstructured sources')
-
             # relocation-model=pic is rustc's default and Meson does not
             # currently have a way to disable PIC.
             self.pic = True
@@ -1031,6 +1027,27 @@ class BuildTarget(Target):
 
         for compiler in self.compilers.values():
             self.single_compile_base_args[compiler] = self._generate_single_compile_base_args(compiler)
+
+    def process_structured_sources(self) -> None:
+        source_suffixes = set()
+        for s in itertools.chain(self.sources, *(g.get_outputs() for g in self.generated)):
+            assert isinstance(s, (File, str)), 'for mypy'
+            if isinstance(s, File):
+                s = s.fname
+            if is_separate_compile(s):
+                continue
+            suffix = s.split('.')[-1]
+            source_suffixes.add('.' + suffix)
+
+        for v in self.structured_sources.sources.values():
+            for src in v:
+                if isinstance(src, (str, File)):
+                    items = (src,)
+                else:
+                    items = src.get_outputs()
+                for suffix in source_suffixes:
+                    if any(s.endswith(suffix) for s in items):
+                        raise MesonException(f'cannot mix {suffix!r} files in structured and unstructured sources')
 
     def __repr__(self) -> str:
         repr_str = "<{0} {1}: {2}>"
