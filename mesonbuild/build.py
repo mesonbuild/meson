@@ -2237,6 +2237,18 @@ class GeneratedList(HoldableObject):
         return self.generator.name
 
 
+def get_copy_generator(environment: Environment) -> Generator:
+    """Return a shared Generator that copies a file using `meson --internal copy`."""
+    if environment.copy_generator is None:
+        exe = programs.ExternalProgram(
+            'meson', command=environment.get_build_command() + ['--internal', 'copy'],
+            silent=True)
+        environment.copy_generator = Generator(
+            environment, exe, ['@INPUT@', '@OUTPUT@'], ['@PLAINNAME@'],
+            name='copy', description='Copying {input} to {output}')
+    return environment.copy_generator
+
+
 class Executable(BuildTarget, LinkableTarget):
     typename = 'executable'
 
