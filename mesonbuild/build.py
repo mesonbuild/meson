@@ -32,7 +32,7 @@ from .mesonlib import (
 from .options import OptionKey
 
 from .compilers import (
-    is_header, is_object, is_source, clink_langs, sort_clink,
+    is_header, is_object, is_source, is_unknown, clink_langs, sort_clink,
     is_known_suffix, is_separate_compile, detect_static_linker, LANGUAGES_USING_LDFLAGS,
     get_base_compile_args
 )
@@ -956,7 +956,7 @@ class BuildTarget(Target):
         self._set_vala_args(kwargs)
 
         if not any([[src for src in self.sources if not is_header(src)], self.generated, self.objects,
-                    self.link_whole_targets, self.structured_sources, kwargs.pop('_allow_no_sources', False)]):
+                    self.link_whole_targets, kwargs.pop('_allow_no_sources', False)]):
             mlog.warning(f'Build target {name} has no sources. '
                          'This was never supposed to be allowed but did because of a bug, '
                          'support will be removed in a future release of Meson')
@@ -1010,9 +1010,6 @@ class BuildTarget(Target):
             # currently have a way to disable PIC.
             self.pic = True
             self.pie = True
-        else:
-            if self.structured_sources:
-                raise MesonException('structured sources are only supported in Rust targets')
 
         if self.is_linkable_target():
             if self.vala_header is not None:
@@ -1040,6 +1037,8 @@ class BuildTarget(Target):
         return genlists
 
     def process_structured_sources(self) -> None:
+        """Turn structured sources into regular sources or GeneratedLists,
+           depending on whether a copy into the build tree is needed."""
         source_suffixes = set()
         for s in itertools.chain(self.sources, *(g.get_outputs() for g in self.generated)):
             assert isinstance(s, (File, str)), 'for mypy'
@@ -1059,6 +1058,20 @@ class BuildTarget(Target):
                 for suffix in source_suffixes:
                     if any(s.endswith(suffix) for s in items):
                         raise MesonException(f'cannot mix {suffix!r} files in structured and unstructured sources')
+
+        if self.structured_sources.needs_copy():
+            self.generated += self.lower_structured_sources(self.structured_sources, 'structured')
+            return
+
+        # Every entry is a plain source file that is already laid out correctly
+        # in the source tree, so it can be used in place.  Note that backends
+        # drop unknown files when generated but not when they are from the source
+        # tree; since StructuredSources effectively always count as generated,
+        # drop them here.
+        for f in self.structured_sources.as_list():
+            assert isinstance(f, File) and not f.is_built
+            if not is_unknown(f.fname):
+                self.sources.append(f)
 
     def __repr__(self) -> str:
         repr_str = "<{0} {1}: {2}>"
@@ -1205,22 +1218,14 @@ class BuildTarget(Target):
         C/C++ compiler for cython.
         '''
         missing_languages: T.List[Language] = []
-        if not any([self.sources, self.generated, self.objects, self.structured_sources]):
+        if not any([self.sources, self.generated, self.objects]):
             return missing_languages
+
         # Preexisting sources
         sources: T.List['FileOrString'] = list(self.sources)
-        generated = self.generated.copy()
-
-        if self.structured_sources:
-            for v in self.structured_sources.sources.values():
-                for src in v:
-                    if isinstance(src, File):
-                        sources.append(src)
-                    else:
-                        generated.append(src)
 
         # All generated sources
-        for gensrc in generated:
+        for gensrc in self.generated:
             for s in gensrc.get_outputs():
                 # Generated objects can't be compiled, so don't use them for
                 # compiler detection. If our target only has generated objects,

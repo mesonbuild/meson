@@ -725,7 +725,7 @@ class RustModule(ExtensionModule):
 
         new_target = Executable(
             name, base_target.subdir, base_target.for_machine,
-            sources, base_target.structured_sources,
+            sources, None,
             base_target.objects, base_target.environment, base_target.compilers,
             state.current_build_project, new_target_kwargs
         )
