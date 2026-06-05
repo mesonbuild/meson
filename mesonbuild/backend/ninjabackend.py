@@ -2912,14 +2912,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if generator.depfile is not None:
                 elem.add_item('DEPFILE', depfile)
 
+            desc = 'Generating '
             if len(generator.outputs) == 1:
-                what = f'{sole_output!r}'
-            else:
-                # since there are multiple outputs, we log the source that caused the rebuild
-                what = f'from {sole_output!r}'
+                desc += f'{outfilespriv[0]!r} '
+            desc += f'from {curfile!r}'
             if reason:
-                reason = f' (wrapped by meson {reason})'
-            elem.add_item('DESC', f'Generating {what}{reason}')
+                desc += f' (wrapped by meson {reason})'
+            elem.add_item('DESC', desc)
 
             elem.add_item('COMMAND', cmdlist)
             self.add_build(elem)
