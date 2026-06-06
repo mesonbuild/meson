@@ -179,7 +179,7 @@ class BuiltFileByNameError(InterpreterException):
     name: str
 
     def __str__(self) -> str:
-        return (f'{self.name} is a generated file, and should be passed by reference instead of string name. '
+        return (f'{self.name!r} is a generated file, and should be passed by reference instead of string name. '
                 'This will become a hard error in Meson 2.0')
 
 
@@ -3283,10 +3283,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         mesonlib.check_direntry_issues(sources)
         results: list[mesonlib.File | build.GeneratedTypes | build.BuildTarget | build.ExtractedObjects | build.StructuredSources | Program] = []
 
-        # In Meson 2.0 this shoul not add ALLOW_BUILD_DIR_FILE_REFERENCES
-        # universally, and we should just use self.relaxations
-        relaxations: set[InterpreterRuleRelaxation] = self.relaxations | {InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFERENCES}
-
         for s in sources:
             if isinstance(s, str):
                 if s.endswith(' '):
@@ -3294,9 +3290,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                 try:
                     self.validate_within_subproject(self.subdir, s)
                 except BuiltFileByNameError as e:
-                    if InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFERENCES not in relaxations:
-                        raise
-                    mlog.warning(str(e), location=self.current_node)
+                    # In Meson 2.0 this should just raise
+                    if InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFERENCES not in self.relaxations:
+                        #raise
+                        mlog.warning(str(e), location=self.current_node)
                     results.append(mesonlib.File.from_built_file(self.subdir, s))
                 else:
                     results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
