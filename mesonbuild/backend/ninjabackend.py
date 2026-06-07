@@ -274,8 +274,8 @@ class NinjaRule:
                     outfile.write('\n')
             outfile.write('\n')
 
-    def length_estimate(self, infiles: str, outfiles: str,
-                        elems: T.List[T.Tuple[str, T.List[str]]]) -> int:
+    def _length_estimate(self, infiles: str, outfiles: str,
+                         elems: T.List[T.Tuple[str, T.List[str]]]) -> int:
         # determine variables
         # this order of actions only approximates ninja's scoping rules, as
         # documented at: https://ninja-build.org/manual.html#ref_scope
@@ -301,6 +301,17 @@ class NinjaRule:
 
         # determine command length
         return estimate
+
+    def should_use_rspfile(self, element: NinjaBuildElement) -> bool:
+        if not self.rspable:
+            return False
+
+        infilenames = ' '.join([ninja_quote(i, True) for i in element.infilenames])
+        outfilenames = ' '.join([ninja_quote(i, True) for i in element.outfilenames])
+
+        return self._length_estimate(infilenames,
+                                     outfilenames,
+                                     element.elems) >= rsp_threshold
 
 class NinjaBuildElement:
 
@@ -354,15 +365,7 @@ class NinjaBuildElement:
         if self.rulename == 'phony':
             return False
 
-        if not self.rule.rspable:
-            return False
-
-        infilenames = ' '.join([ninja_quote(i, True) for i in self.infilenames])
-        outfilenames = ' '.join([ninja_quote(i, True) for i in self.outfilenames])
-
-        return self.rule.length_estimate(infilenames,
-                                         outfilenames,
-                                         self.elems) >= rsp_threshold
+        return self.rule.should_use_rspfile(self)
 
     def count_rule_references(self) -> None:
         if self.rulename != 'phony':
