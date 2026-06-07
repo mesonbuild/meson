@@ -115,15 +115,23 @@ inc = include_directories('.')
 qt6 = import('qt6')
 
 # Qml and QmlIntegration are needed here
-qt6_dep = dependency('qt6', modules: ['Core', 'Gui', 'Network', 'Svg', 'Quick', 'Qml', 'QuickWidgets', 'QmlIntegration'])
+qt6_dep = dependency(
+  'qt6',
+  modules: ['Core', 'Gui', 'Network', 'Svg', 'Quick', 'Qml', 'QuickWidgets', 'QmlIntegration'],
+  # To make the `win_subsystem: 'windows'` line below work on windows, the
+  # program must provide a WinMain() or wWinMain() entrypoint. Qt provides a
+  # library which provides these functions (which just call main()). To link
+  # against the Qt6EntryPoint library, `main: true` must be supplied.
+  main: true,
+)
 
 compiled_resources = qt6.compile_resources(sources: files('resources.qrc'))
 
 # compile 'moc_header_files' list with moc
 moc_files = qt6.compile_moc(
-  headers : moc_header_files,
+  headers: moc_header_files,
   include_directories: inc,
-  dependencies: qt6_dep
+  dependencies: qt6_dep,
 )
 
 # everything involved in C++-QML interaction goes in here
@@ -143,7 +151,9 @@ executable('MyExecutable',
   dependencies: [qt6_dep],
   win_subsystem: 'windows', # useful for Windows: displays the app without spawning
                             # a console alongside it, no-op on other platforms.
-  install: true)
+                            # see also comment above on `main: true` dependency()
+  install: true,
+)
 ```
 
 ## Functions
