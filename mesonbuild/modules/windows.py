@@ -81,7 +81,7 @@ class WindowsModule(ExtensionModule):
                 return None
 
             comp = self.detect_compiler(state.environment.coredata.compilers[for_machine])
-            if comp.id in {'msvc', 'clang-cl', 'intel-cl'} or (comp.linker and comp.linker.id in {'link', 'lld-link'}):
+            if comp.linker and comp.linker.id in {'link', 'lld-link'}:
                 rescomp = search_programs(['rc', 'llvm-rc'])
             else:
                 rescomp = search_programs(['windres', 'llvm-windres'])
@@ -186,15 +186,32 @@ class WindowsModule(ExtensionModule):
 
             if rescomp_type == ResourceCompilerType.rc:
                 compiler = self.detect_compiler(state.environment.coredata.compilers[MachineChoice.HOST])
-                if compiler.id in {'msvc', 'clang-cl'}:
+                command.extend(state.environment.get_build_command())
+                command.extend(['--internal', 'rc',
+                                '--rc', *rescomp.get_command(),
+                                '--cl', *compiler.get_exelist(False)])
+
+                if compiler.id in {'msvc', 'clang-cl', 'intel-cl'}:
                     depfile_type = 'msvc'
+                    command.extend(['--Xarg=/showIncludes',
+                                    '--Xarg=/EP',
+                                    '--Xarg=/nologo',
+                                    '--Xarg=/DRC_INVOKED',
+                                    '--Xarg=/Tc@INPUT@',
+                                    ])
+                else:
+                    depfile = f'{output}.d'
+                    depfile_type = 'gcc'
+                    command.extend(['--Xarg=-xc',
+                                    '--Xarg=-E',
+                                    '--Xarg=-MD',
+                                    '--Xarg=-MQ@OUTPUT@',
+                                    '--Xarg=-MF@DEPFILE@',
+                                    '--Xarg=-DRC_INVOKED',
+                                    ])
+            else:
+                command.extend(rescomp.get_command())
 
-                    command.extend(state.environment.get_build_command())
-                    command.extend(['--internal', 'rc',
-                                    '--cl', compiler.get_exelist(False)[0],
-                                    '--rc'])
-
-            command.append(rescomp)
             command.extend(res_args)
 
             # instruct binutils windres to generate a preprocessor depfile
