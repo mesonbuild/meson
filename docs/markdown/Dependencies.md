@@ -770,6 +770,10 @@ qt6_dep = dependency('qt6', modules : ['Core', 'Gui', 'Widgets'])
 An optional `method` keyword argument can be set: `auto` (default), `pkg-config`, `config-tool` or `qmake` (*deprecated
 since 0.58.0*; use `config-tool` instead).
 
+An optional `main` boolean keyword argument can be set to `true` to add a link
+dependency on `Qt6EntryPoint` on Windows, which is in most cases necessary to
+be able to compile `win_subsystem: 'windows'` executables.
+
 The `modules` keyword receives an array of Qt module names that will be required
 and linked against.
 
