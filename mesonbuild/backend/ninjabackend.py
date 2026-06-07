@@ -10,6 +10,7 @@ from enum import Enum, unique
 from functools import lru_cache
 from pathlib import PurePath, Path
 from textwrap import dedent
+import dataclasses
 import itertools
 import json
 import os
@@ -445,6 +446,59 @@ class NinjaBuildElement:
             self.all_outputs.add(n)
 
 @dataclass
+class NinjaBuild:
+    rules: list[NinjaRule | NinjaComment] = dataclasses.field(default_factory=list, init=False)
+    ruledict: dict[str, NinjaRule] = dataclasses.field(default_factory=dict, init=False)
+    build_elements: list[NinjaBuildElement | NinjaComment] = dataclasses.field(default_factory=list, init=False)
+
+    def add_rule_comment(self, comment: NinjaComment) -> None:
+        self.rules.append(comment)
+
+    def add_build_comment(self, comment: NinjaComment) -> None:
+        self.build_elements.append(comment)
+
+    def add_rule(self, rule: NinjaRule) -> None:
+        if rule.name in self.ruledict:
+            raise MesonException(f'Tried to add rule {rule.name} twice.')
+        self.rules.append(rule)
+        self.ruledict[rule.name] = rule
+
+    def has_rule(self, name: str) -> bool:
+        return name in self.ruledict
+
+    def should_use_rspfile(self, build: NinjaBuildElement) -> bool:
+        if build.rulename == 'phony':
+            return False
+
+        if build.rulename in self.ruledict:
+            return self.ruledict[build.rulename].should_use_rspfile(build)
+
+        mlog.warning(f"build statement for {build.outfilenames} references nonexistent rule {build.rulename}")
+        return False
+
+    def add_build(self, build: NinjaBuildElement) -> None:
+        build.check_outputs()
+        self.build_elements.append(build)
+
+        if build.rulename != 'phony':
+            # reference rule
+            if build.rulename in self.ruledict:
+                build.rule = self.ruledict[build.rulename]
+            else:
+                mlog.warning(f"build statement for {build.outfilenames} references nonexistent rule {build.rulename}")
+
+    def write(self, outfile: T.TextIO) -> None:
+        for b in self.build_elements:
+            if isinstance(b, NinjaBuildElement):
+                b.count_rule_references()
+
+        for r in self.rules:
+            r.write(outfile)
+
+        for b in ProgressBar(self.build_elements, desc='Writing build.ninja'):
+            b.write(outfile)
+
+@dataclass
 class RustDep:
 
     name: str
@@ -505,6 +559,7 @@ class NinjaBackend(backends.Backend):
     def __init__(self, build: T.Optional[build.Build]):
         super().__init__(build)
         self.name = 'ninja'
+        self.ninja = NinjaBuild()
         self.ninja_filename = 'build.ninja'
         self.fortran_deps: T.Dict[str, T.Dict[str, File]] = {}
         self.all_outputs: T.Set[str] = set()
@@ -670,8 +725,6 @@ class NinjaBackend(backends.Backend):
 
         with self.detect_vs_dep_prefix(tempfilename) as outfile:
             self.generate_rules()
-
-            self.build_elements: T.List[T.Union[NinjaBuildElement, NinjaComment]] = []
             self.generate_phony()
             self.add_build_comment(NinjaComment('Build rules for targets'))
 
@@ -710,8 +763,8 @@ class NinjaBackend(backends.Backend):
             mlog.log_timestamp("Utils generated")
             self.generate_ending()
 
-            self.write_rules(outfile)
-            self.write_builds(outfile)
+            self.ninja.write(outfile)
+            mlog.log_timestamp("build.ninja generated")
 
             default = 'default all\n\n'
             outfile.write(default)
@@ -1411,9 +1464,6 @@ class NinjaBackend(backends.Backend):
         self.add_build(elem)
 
     def generate_rules(self) -> None:
-        self.rules: T.List[T.Union[NinjaRule, NinjaComment]] = []
-        self.ruledict: T.Dict[str, NinjaRule] = {}
-
         self.add_rule_comment(NinjaComment('Rules for module scanning.'))
         self.generate_scanner_rules()
         self.add_rule_comment(NinjaComment('Rules for compiling.'))
@@ -1449,40 +1499,16 @@ class NinjaBackend(backends.Backend):
                                 extra='generator = 1'))
 
     def add_rule_comment(self, comment: NinjaComment) -> None:
-        self.rules.append(comment)
+        self.ninja.add_rule_comment(comment)
 
     def add_build_comment(self, comment: NinjaComment) -> None:
-        self.build_elements.append(comment)
+        self.ninja.add_build_comment(comment)
 
     def add_rule(self, rule: NinjaRule) -> None:
-        if rule.name in self.ruledict:
-            raise MesonException(f'Tried to add rule {rule.name} twice.')
-        self.rules.append(rule)
-        self.ruledict[rule.name] = rule
+        self.ninja.add_rule(rule)
 
     def add_build(self, build: NinjaBuildElement) -> None:
-        build.check_outputs()
-        self.build_elements.append(build)
-
-        if build.rulename != 'phony':
-            # reference rule
-            if build.rulename in self.ruledict:
-                build.rule = self.ruledict[build.rulename]
-            else:
-                mlog.warning(f"build statement for {build.outfilenames} references nonexistent rule {build.rulename}")
-
-    def write_rules(self, outfile: T.TextIO) -> None:
-        for b in self.build_elements:
-            if isinstance(b, NinjaBuildElement):
-                b.count_rule_references()
-
-        for r in self.rules:
-            r.write(outfile)
-
-    def write_builds(self, outfile: T.TextIO) -> None:
-        for b in ProgressBar(self.build_elements, desc='Writing build.ninja'):
-            b.write(outfile)
-        mlog.log_timestamp("build.ninja generated")
+        self.ninja.add_build(build)
 
     def generate_phony(self) -> None:
         self.add_build_comment(NinjaComment('Phony build target, always out of date'))
@@ -2771,7 +2797,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def generate_scanner_rules(self) -> None:
         rulename = 'depscan'
-        if rulename in self.ruledict:
+        if self.ninja.has_rule(rulename):
             # Scanning command is the same for native and cross compilation.
             return
 
