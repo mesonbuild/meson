@@ -10,7 +10,7 @@ from ...mesonlib import File, MesonException
 from ...interpreter.type_checking import NoneType
 from ...interpreterbase.decorators import (
     noKwargs, KwargInfo, typed_kwargs, typed_pos_args,
-    ContainerTypeInfo, permittedKwargs
+    ContainerTypeInfo
 )
 from .. import ModuleInfo, NewExtensionModule, ModuleObject
 from .feature import FeatureObject, ConflictAttr
@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from typing import TypedDict
     from ...interpreterbase import TYPE_var, TYPE_kwargs
     from .. import ModuleState
-    from .feature import FeatureKwArgs
 
     class TestKwArgs(TypedDict):
         compiler: Optional[Compiler]
@@ -104,11 +103,12 @@ class TargetsObject(ModuleObject):
             else tuple(sorted(features))
         )
         targets: List[build.StaticLibrary] = self._targets.setdefault(
-            tfeatures, cast(List[build.StaticLibrary], []))  # type: ignore
+            tfeatures, [])
         targets.append(target)
 
 class Module(NewExtensionModule):
     INFO = ModuleInfo('features', '0.1.0')
+
     def __init__(self) -> None:
         super().__init__()
         self.methods.update({
@@ -142,7 +142,8 @@ class Module(NewExtensionModule):
         self._cache_dict(state)[key] = val
 
     @typed_pos_args('features.test', varargs=FeatureObject, min_varargs=1)
-    @typed_kwargs('features.test',
+    @typed_kwargs(
+        'features.test',
         KwargInfo('compiler', (NoneType, Compiler)),
         KwargInfo('anyfet', bool, default = False),
         KwargInfo('cached', bool, default = True),
@@ -255,7 +256,7 @@ class Module(NewExtensionModule):
         features_any = set()
         for fet in all_features:
             _, test_any_result = self.cached_test(
-                state, features={fet,},
+                state, features={fet, },
                 compiler=compiler,
                 cached=cached,
                 anyfet=False,
@@ -293,7 +294,7 @@ class Module(NewExtensionModule):
             # Set the highest interested feature
             prevalent_features = sorted(features)[-1:]
 
-        prevalent_names =  [fet.name for fet in prevalent_features]
+        prevalent_names = [fet.name for fet in prevalent_features]
         # prepare the result dict
         test_result: 'TestResultKwArgs' = {
             'target_name': '__'.join(prevalent_names),
@@ -307,6 +308,7 @@ class Module(NewExtensionModule):
             'is_disabled': False,
             'fail_reason': '',
         }
+
         def fail_result(fail_reason: str, is_disabled: bool = False
                         ) -> 'TestResultKwArgs':
             test_result.update({
@@ -337,7 +339,7 @@ class Module(NewExtensionModule):
         predecessor_features = implied_features.difference(_caller)
         for fet in sorted(predecessor_features):
             _, pred_result = self.cached_test(
-                state, features={fet,},
+                state, features={fet, },
                 compiler=compiler,
                 cached=cached,
                 anyfet=False,
@@ -398,7 +400,7 @@ class Module(NewExtensionModule):
         test_args = compiler.has_multi_arguments
         args = test_result['args']
         if args:
-            supported_args, test_cached = test_args(args, state.environment)
+            supported_args, test_cached = test_args(args)
             if not supported_args:
                 return fail_result(
                     f'Arguments "{", ".join(args)}" are not supported'
@@ -423,15 +425,13 @@ class Module(NewExtensionModule):
                 test_result[k].append(extra_name)  # type: ignore
         return test_result
 
-    @permittedKwargs(build.known_stlib_kwargs | {
-        'dispatch', 'baseline', 'prefix', 'cached', 'keep_sort'
-    })
     @typed_pos_args('features.multi_targets', str, min_varargs=1, varargs=(
         str, File, build.CustomTarget, build.CustomTargetIndex,
         build.GeneratedList, build.StructuredSources, build.ExtractedObjects,
         build.BuildTarget
     ))
-    @typed_kwargs('features.multi_targets',
+    @typed_kwargs(
+        'features.multi_targets',
         KwargInfo(
             'dispatch', (
                 ContainerTypeInfo(list, (FeatureObject, list)),
@@ -451,8 +451,8 @@ class Module(NewExtensionModule):
         allow_unknown=True
     )
     def multi_targets_method(self, state: 'ModuleState',
-                            args: Tuple[str], kwargs: 'TYPE_kwargs'
-                            ) -> TargetsObject:
+                             args: Tuple[str], kwargs: 'TYPE_kwargs'
+                             ) -> TargetsObject:
         config_name = args[0]
         sources = args[1]  # type: ignore
         dispatch: List[Union[FeatureObject, List[FeatureObject]]] = (
@@ -467,7 +467,7 @@ class Module(NewExtensionModule):
         if not compiler:
             compiler = get_compiler(state)
 
-        baseline_features : Set[FeatureObject] = set()
+        baseline_features: Set[FeatureObject] = set()
         has_baseline = baseline is not None
         if has_baseline:
             baseline_features = FeatureObject.get_implicit_combine_multi(baseline)
@@ -488,7 +488,7 @@ class Module(NewExtensionModule):
         ]] = []
         for d in dispatch:
             if isinstance(d, FeatureObject):
-                target = {d,}
+                target = {d, }
                 is_base_part = d in baseline_features
             else:
                 target = set(d)
@@ -647,7 +647,7 @@ class Module(NewExtensionModule):
                 c_detect = '1'
             dispatch_calls.append(
                 f'{prefix}_MTARGETS_EXPAND('
-                    f'EXEC_CB({c_detect}, {test["target_name"]}, __VA_ARGS__)'
+                f'EXEC_CB({c_detect}, {test["target_name"]}, __VA_ARGS__)'
                 ')'
             )
 
@@ -683,7 +683,8 @@ class Module(NewExtensionModule):
         return config_path
 
     @typed_pos_args('features.sort', varargs=FeatureObject, min_varargs=1)
-    @typed_kwargs('features.sort',
+    @typed_kwargs(
+        'features.sort',
         KwargInfo('reverse', bool, default = False),
     )
     def sort_method(self, state: 'ModuleState',

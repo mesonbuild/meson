@@ -2,9 +2,9 @@
 import hashlib
 from typing import Tuple, List, Union, Any, TYPE_CHECKING
 from ...mesonlib import MesonException, MachineChoice
+from ...compilers.compilers import CompileCheckMode, Compiler
 
 if TYPE_CHECKING:
-    from ...compilers import Compiler
     from ...mesonlib import File
     from .. import ModuleState
 
@@ -27,13 +27,12 @@ def test_code(state: 'ModuleState', compiler: 'Compiler',
               ) -> Tuple[bool, bool, str]:
     # TODO: Add option to treat warnings as errors
     with compiler.cached_compile(
-        code, state.environment.coredata, extra_args=args
+        code, extra_args=args, mode=CompileCheckMode.COMPILE
     ) as p:
         return p.cached, p.returncode == 0, p.stderr
 
 def generate_hash(*args: Any) -> str:
     hasher = hashlib.sha1()
-    test: List[bytes] = []
     for a in args:
         hasher.update(bytes(str(a), encoding='utf-8'))
     return hasher.hexdigest()

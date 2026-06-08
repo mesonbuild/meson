@@ -1,10 +1,12 @@
 # Copyright (c) 2023, NumPy Developers.
 
 import re
+import os
 import contextlib
+from unittest import mock
 from mesonbuild.interpreter import Interpreter
 from mesonbuild.build import Build
-from mesonbuild.mparser import FunctionNode, ArgumentNode, Token
+from mesonbuild.mparser import IdNode, SymbolNode, Token, FunctionNode, ArgumentNode
 from mesonbuild.modules import ModuleState
 from mesonbuild.modules.features import Module
 from mesonbuild.compilers import Compiler, CompileResult
@@ -12,7 +14,7 @@ from mesonbuild.mesonlib import MachineChoice
 from mesonbuild.envconfig import MachineInfo
 
 from .baseplatformtests import BasePlatformTests
-from run_tests import get_convincing_fake_env_and_cc
+from run_tests import FakeBuild, get_fake_env, get_convincing_fake_env_and_cc
 
 class FakeCompiler(Compiler):
     language = 'c'
@@ -20,13 +22,8 @@ class FakeCompiler(Compiler):
     def __init__(self, trap_args = '', trap_code=''):
         super().__init__(
             ccache=[], exelist=[], version='0.0',
+            environment=get_fake_env(),
             for_machine=MachineChoice.HOST,
-            info=MachineInfo(
-                system='linux', cpu_family='x86_64',
-                cpu='xeon', endian='little',
-                kernel='linux', subsystem='numpy'
-            ),
-            is_cross=True
         )
         self.trap_args = trap_args
         self.trap_code = trap_code
@@ -40,7 +37,7 @@ class FakeCompiler(Compiler):
     def get_output_args(self, outputname: str) -> 'T.List[str]':
         return []
 
-    def has_multi_arguments(self, args: 'T.List[str]', env: 'Environment') -> 'T.Tuple[bool, bool]':
+    def has_multi_arguments(self, args: 'T.List[str]') -> 'T.Tuple[bool, bool]':
         if self.trap_args:
             for a in args:
                 if re.match(self.trap_args, a):
@@ -54,7 +51,13 @@ class FakeCompiler(Compiler):
             rcode = -1
         else:
             rcode = 0
-        result = CompileResult(returncode=rcode)
+        result = CompileResult(
+            stdout='',
+            stderr='',
+            command=[],
+            returncode=rcode,
+            input_name='fake_input.c'
+        )
         yield result
 
     @contextlib.contextmanager
@@ -64,28 +67,51 @@ class FakeCompiler(Compiler):
             rcode = -1
         else:
             rcode = 0
-        result = CompileResult(returncode=rcode)
+        result = CompileResult(
+            stdout='',
+            stderr='',
+            command=[],
+            returncode=rcode,
+            input_name='fake_input.c'
+        )
         yield result
 
+
+    def _sanity_check_source_code(self) -> str:
+        return 'public static int main() { return 0; }'
+
 class FeaturesTests(BasePlatformTests):
+
+    @mock.patch.dict(os.environ)
+    @mock.patch.object(Interpreter, 'load_root_meson_file', mock.Mock(return_value=None))
+    @mock.patch.object(Interpreter, 'sanity_check_ast', mock.Mock(return_value=None))
+    @mock.patch.object(Interpreter, 'parse_project', mock.Mock(return_value=None))
     def setUp(self):
         super().setUp()
         env, cc = get_convincing_fake_env_and_cc(
             bdir=self.builddir, prefix=self.prefix)
         env.machines.target = env.machines.host
 
+        # Disable unit test specific syntax
+        os.environ.pop('MESON_RUNNING_IN_PROJECT_TESTS', None)
         build = Build(env)
-        interp = Interpreter(build, mock=True)
+        interp = Interpreter(build)
+        # Mock out user_defined_options to bypass the coredata initialization crash
+        interp.user_defined_options = mock.Mock()
+        interp.user_defined_options.cmd_line_options = {}
+
         project = interp.funcs['project']
         filename = 'featurestests.py'
+        dummy_span = (0, 0) # Safe placeholder for bytespan: Tuple[int, int]
+        func_name_token = Token('id', filename, 0, 0, 0, dummy_span, 'FeaturesTests')
+        lpar_token = Token('lpar', filename, 0, 0, 13, dummy_span, '(')
+        arg_token = Token('string', filename, 0, 0, 14, dummy_span, '')
+        rpar_token = Token('rpar', filename, 0, 0, 15, dummy_span, ')')
         node = FunctionNode(
-            filename = filename,
-            lineno = 0,
-            colno = 0,
-            end_lineno = 0,
-            end_colno = 0,
-            func_name = 'FeaturesTests',
-            args = ArgumentNode(Token('string', filename, 0, 0, 0, None, ''))
+            IdNode(func_name_token),
+            SymbolNode(lpar_token),
+            ArgumentNode(arg_token),
+            SymbolNode(rpar_token)
         )
         project(node, ['Test Module Features'], {'version': '0.1'})
         self.cc = cc
@@ -272,7 +298,7 @@ class FeaturesTests(BasePlatformTests):
             ),
             (
                 [fet6],
-                'args', {'val':'arch=', 'match': 'arg.*[0-9]|arch=.*', 'mfilter': '([0-9])|arch=(\w+)', 'mjoin': '*'},
+                'args', {'val':'arch=', 'match': 'arg.*[0-9]|arch=.*', 'mfilter': r'([0-9])|arch=(\w+)', 'mjoin': '*'},
                 ['arch=1*2*3*4*5*xx'],
             ),
             (

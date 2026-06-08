@@ -3,7 +3,7 @@
 import re
 from typing import (
     Dict, Set, Tuple, List, Callable, Optional,
-    Union, Any, Iterable, cast, TYPE_CHECKING
+    Union, Any, Iterable, TYPE_CHECKING
 )
 from dataclasses import dataclass, field
 from ...mesonlib import File, MesonException
@@ -18,7 +18,6 @@ if TYPE_CHECKING:
     from typing import TypedDict
     from typing_extensions import NotRequired
     from ...interpreterbase import TYPE_var, TYPE_kwargs
-    from ...compilers import Compiler
     from .. import ModuleState
 
 @dataclass(unsafe_hash=True, order=True)
@@ -80,7 +79,7 @@ class KwargConfilctAttr(KwargInfo):
         )
 
     @staticmethod
-    def convert(func_name:str, opt_name: str, values: 'IMPLIED_ATTR',
+    def convert(func_name: str, opt_name: str, values: 'IMPLIED_ATTR',
                 ) -> Union[None, List[ConflictAttr]]:
         if values is None:
             return None
@@ -131,6 +130,7 @@ if TYPE_CHECKING:
             Union[str, Dict[str, str]]
         ]
     ]
+
     class FeatureKwArgs(TypedDict):
         #implies: Optional[List['FeatureObject']]
         implies: NotRequired[List[Any]]
@@ -163,7 +163,8 @@ class FeatureObject(ModuleObject):
         super().__init__()
 
         @typed_pos_args('features.new', str, int)
-        @typed_kwargs('features.new',
+        @typed_kwargs(
+            'features.new',
             KwargInfo(
                 'implies',
                 (FeatureObject, ContainerTypeInfo(list, FeatureObject)),
@@ -209,7 +210,8 @@ class FeatureObject(ModuleObject):
     def update_method(self, state: 'ModuleState', args: List['TYPE_var'],
                       kwargs: 'TYPE_kwargs') -> 'FeatureObject':
         @noPosargs
-        @typed_kwargs('features.FeatureObject.update',
+        @typed_kwargs(
+            'features.FeatureObject.update',
             KwargInfo('name', (NoneType, str)),
             KwargInfo('interest', (NoneType, int)),
             KwargInfo(
@@ -306,7 +308,7 @@ class FeatureObject(ModuleObject):
             # FIXME: that's not a safe way to increase the rank for
             # multi features this why this function isn't considerd
             # accurate.
-            rank += len(prevalent_features) -1
+            rank += len(prevalent_features) - 1
             return rank
         return sorted(features, reverse=reverse, key=sort_cb)
 
