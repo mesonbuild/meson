@@ -307,6 +307,7 @@ class InternalDependency(Dependency):
     type_name = DependencyTypeName('internal')
 
     def __init__(self, version: str, incdirs: T.Optional[T.List['IncludeDirs']] = None,
+                 embed_dirs: list[IncludeDirs] | None = None,
                  compile_args: T.Optional[T.List[str]] = None,
                  link_args: T.Optional[T.List[str]] = None,
                  libraries: T.Optional[T.List[LinkableTargetTypes]] = None,
@@ -322,6 +323,7 @@ class InternalDependency(Dependency):
         self.version = version
         self.is_found = True
         self.include_directories = incdirs or []
+        self.embed_directories = embed_dirs or []
         self.compile_args = compile_args or []
         self.link_args = link_args or []
         self.libraries = libraries or []
