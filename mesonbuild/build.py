@@ -30,7 +30,7 @@ from .mesonlib import (
 from .options import OptionKey
 
 from .compilers import (
-    is_header, is_object, is_source, clink_langs, sort_clink, all_languages,
+    is_header, is_object, is_source, clink_langs, sort_clink,
     is_known_suffix, detect_static_linker, LANGUAGES_USING_LDFLAGS,
     get_base_compile_args
 )
@@ -169,51 +169,6 @@ DEFAULT_SHARED_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str, str]] = {
     'windows': ('', 'dll', 'dll.lib'),
     'darwin': ('lib', 'dylib', ''),
     'cygwin': ('cyg', 'dll', 'dll.a'),
-}
-
-pch_kwargs = {'c_pch', 'cpp_pch'}
-
-lang_arg_kwargs = {f'{lang}_args' for lang in all_languages}
-lang_arg_kwargs |= {
-    'd_import_dirs',
-    'd_unittest',
-    'd_module_versions',
-    'd_debug',
-}
-
-vala_kwargs = {'vala_header', 'vala_gir', 'vala_vapi', 'install_vala_header', 'install_vala_gir', 'install_vala_vapi'}
-rust_kwargs = {'rust_crate_type', 'rust_dependency_map'}
-cs_kwargs = {'resources', 'cs_args'}
-swift_kwargs = {'swift_interoperability_mode', 'swift_module_name'}
-
-buildtarget_kwargs = {
-    'build_by_default',
-    'build_rpath',
-    'build_subdir',
-    'dependencies',
-    'extra_files',
-    'gui_app',
-    'link_with',
-    'link_whole',
-    'link_args',
-    'link_early_args',
-    'link_depends',
-    'implicit_include_directories',
-    'include_directories',
-    'install',
-    'install_rpath',
-    'install_dir',
-    'install_mode',
-    'install_tag',
-    'name_prefix',
-    'name_suffix',
-    'native',
-    'objects',
-    'override_options',
-    'sources',
-    'gnu_symbol_visibility',
-    'link_language',
-    'win_subsystem',
 }
 
 def _process_install_tag(install_tag: T.Optional[T.List[T.Optional[str]]],
