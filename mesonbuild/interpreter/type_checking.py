@@ -577,7 +577,7 @@ _BASE_LANG_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
     default=[],
 )
 
-_LANGUAGE_KWS: T.List[KwargInfo[T.List[str]]] = [
+_LANGUAGE_KWS: T.List[KwargInfo[T.List[str | File]]] = [
     _BASE_LANG_KW.evolve(name=f'{lang}_args')
     for lang in compilers.all_languages - {'rust', 'vala', 'java'}
 ]
@@ -587,7 +587,7 @@ _LANGUAGE_KWS.append(KwargInfo(
 _LANGUAGE_KWS.append(_BASE_LANG_KW.evolve(name='rust_args', since='0.41.0'))
 
 # We need this deprecated values more than the non-deprecated values. So we'll evolve them out elsewhere.
-_JAVA_LANG_KW: KwargInfo[T.List[str]] = _BASE_LANG_KW.evolve(
+_JAVA_LANG_KW: KwargInfo[T.List[str | File]] = _BASE_LANG_KW.evolve(
     name='java_args',
     deprecated='1.3.0',
     deprecated_message='This does not, and never has, done anything. It should be removed'
@@ -1010,7 +1010,7 @@ JAR_KWS = [
       for a in _LANGUAGE_KWS],
 ]
 
-_SHARED_STATIC_ARGS: T.List[KwargInfo[T.List[str]]] = [
+_SHARED_STATIC_ARGS: T.List[KwargInfo[T.List[str | File]]] = [
     *[l.evolve(name=l.name.replace('_', '_static_'), since='1.3.0')
       for l in _LANGUAGE_KWS],
     *[l.evolve(name=l.name.replace('_', '_shared_'), since='1.3.0')
