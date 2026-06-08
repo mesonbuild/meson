@@ -441,7 +441,7 @@ class KwargInfo(T.Generic[_T]):
                convertor: T.Union[T.Callable[[_T], object], None, _NULL_T] = _NULL,
                extra_types: T.Union[T.Mapping[T.Type, T.Callable[[object], str]], None, _NULL_T] = _NULL,
                as_default: T.Union[T.List[T.Tuple[object, T.Union[str, T.Tuple[str, str]]]], None, _NULL_T] = _NULL
-               ) -> 'KwargInfo':
+               ) -> 'KwargInfo[_T]':
         """Create a shallow copy of this KwargInfo, with modifications.
 
         This allows us to create a new copy of a KwargInfo with modifications.
