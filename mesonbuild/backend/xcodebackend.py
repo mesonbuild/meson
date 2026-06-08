@@ -1210,9 +1210,10 @@ class XCodeBackend(backends.Backend):
             # If the file is in a folder, add it to the group representing that folder.
             if '/' in s.fname:
                 folder = '/'.join(s.fname.split('/')[:-1])
-                folder_dict = objects_dict.get_item_value(self.foldermap[(folder, t)], PbxDict).get_item_value('children', PbxDict)
+                folder_dict = objects_dict.get_item_value(self.foldermap[(folder, t)], PbxDict)
+                folder_children = folder_dict.get_item_value('children', PbxArray)
                 temp = os.path.join(s.subdir, s.fname)
-                folder_dict.add_item(self.fileref_ids[(tid, temp)], temp)
+                folder_children.add_item(self.fileref_ids[(tid, temp)], temp)
                 if self.foldermap[(folder, t)] in folder_ids:
                     continue
                 if len(folder.split('/')) == 1:
