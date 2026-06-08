@@ -372,11 +372,12 @@ class InternalDependency(Dependency):
         final_sources = self.sources.copy() if sources else []
         final_extra_files = self.extra_files.copy() if extra_files else []
         final_includes = self.include_directories.copy() if includes else []
+        final_embed = self.embed_directories.copy() if includes else []
         final_deps = [d.get_partial_dependency(
             compile_args=compile_args, link_args=link_args, links=links,
             includes=includes, sources=sources) for d in self.ext_deps]
         return type(self)(
-            self.version, final_includes, final_compile_args,
+            self.version, final_includes, final_embed, final_compile_args,
             final_link_args, final_libraries, final_whole_libraries,
             final_sources, final_extra_files, final_deps, self.variables, [], [], [], self.name)
 

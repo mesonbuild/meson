@@ -2324,7 +2324,7 @@ class GnomeModule(ExtensionModule):
         incs = [build.IncludeDirs(state.subdir, ['.'] + vapi_includes, False,
                 state.current_build_project)]
         sources = [vapi_target] + vapi_depends
-        rv = InternalDependency(None, incs, [], [], link_with, [], sources, [], [], {}, [], [], [])
+        rv = InternalDependency(None, incs, [], [], [], link_with, [], sources, [], [], {}, [], [], [])
         created_values.append(rv)
         return ModuleReturnValue(rv, created_values)
 
