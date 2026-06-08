@@ -1,4 +1,4 @@
-project('generated header dep', 'c')
+project('generated header dep', 'c', meson_version : '>= 1.10.0')
 
 # Regression test case for a very specific case:
 # - Uses both_libraries(), or library() with default_library=both.
@@ -20,3 +20,19 @@ sources_dep = declare_dependency(sources: files('foo.c'))
 both_libraries('foo', header,
   dependencies: sources_dep,
 )
+
+# include_directories() can point to a build_subdir that a custom_target()
+# generated into, so the subdir must exist in the build tree at setup time
+subheader = custom_target(
+  output: 'sub.h',
+  capture: true,
+  command: [python, '-c', 'print("#define SUB 0")'],
+  build_subdir: 'generated_includes',
+)
+
+inc = include_directories('generated_includes')
+
+subprog = executable('subprog', 'subprog.c', subheader,
+  include_directories: inc,
+)
+test('subprog', subprog)
