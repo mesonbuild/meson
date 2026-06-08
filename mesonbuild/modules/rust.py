@@ -666,7 +666,7 @@ class RustModule(ExtensionModule):
 
         new_target = Executable(
             name, base_target.subdir, state.subproject, base_target.for_machine,
-            sources, base_target.structured_sources,
+            sources, None,
             base_target.objects, base_target.environment, base_target.compilers,
             new_target_kwargs)
         return new_target, tkwargs

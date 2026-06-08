@@ -1017,15 +1017,14 @@ class NinjaBackend(backends.Backend):
                     generated_source_files.append(raw_src)
             elif compilers.is_object(rel_src):
                 obj_list.append(rel_src)
-            elif compilers.is_library(rel_src) or modules.is_module_library(rel_src):
-                pass
-            elif is_compile_target:
-                generated_source_files.append(raw_src)
-            else:
-                # Assume anything not specifically a source file is a header. This is because
-                # people generate files with weird suffixes (.inc, .fh) that they then include
-                # in their source files.
-                header_deps.append(raw_src)
+            elif compilers.is_unknown(rel_src):
+                if is_compile_target:
+                    generated_source_files.append(raw_src)
+                else:
+                    # Assume anything not specifically a source file is a header. This is because
+                    # people generate files with weird suffixes (.inc, .fh) that they then include
+                    # in their source files.
+                    header_deps.append(raw_src)
 
         # For D language, the object of generated source files are added
         # as order only deps because other files may depend on them
@@ -1435,8 +1434,6 @@ class NinjaBackend(backends.Backend):
         self.add_rule(NinjaRule('CUSTOM_COMMAND_MSVC_DEP', ['$COMMAND'], [], '$DESC',
                                 deps='msvc',
                                 restat=True))
-        self.add_rule(NinjaRule('COPY_FILE', self.environment.get_build_command() + ['--internal', 'copy'],
-                                ['$in', '$out'], 'Copying $in to $out'))
 
         c = self.environment.get_build_command() + \
             ['--internal',
@@ -1537,9 +1534,11 @@ class NinjaBackend(backends.Backend):
         commands += ['-C', self.get_target_private_dir(target), '.']
         elem = NinjaBuildElement(self.all_outputs, outname_rel, jar_rule, [])
         elem.add_dep(class_dep_list)
-        if resources:
+        for gl in resources:
             # Copy all resources into the root of the jar.
-            elem.add_orderdep(self.__generate_sources_structure(Path(self.get_target_private_dir(target)), resources)[0])
+            self.generate_genlist_for_target(gl, target)
+            elem.add_orderdep([os.path.join(self.get_target_private_dir(target), o)
+                               for o in gl.get_outputs()])
         elem.add_item('ARGS', commands)
         self.add_build(elem)
         # Create introspection information
@@ -1913,51 +1912,12 @@ class NinjaBackend(backends.Backend):
                     cython_sources.append(output)
                 else:
                     generated_sources[ssrc] = mesonlib.File.from_built_file(builddir, ssrc)
-                    # Following logic in L883-900 where we determine whether to add generated source
-                    # as a header(order-only) dep to the .so compilation rule
-                    if not compilers.is_source(ssrc) and \
-                            not compilers.is_object(ssrc) and \
-                            not compilers.is_library(ssrc) and \
-                            not modules.is_module_library(ssrc):
+                    if compilers.is_unknown(ssrc):
                         header_deps.append(ssrc)
         for source in pyx_sources:
             source.add_orderdep(header_deps)
 
         return static_sources, generated_sources, cython_sources
-
-    def _generate_copy_target(self, src: FileOrString, output: Path) -> None:
-        """Create a target to copy a source file from one location to another."""
-        if isinstance(src, File):
-            instr = src.absolute_path(self.environment.source_dir, self.environment.build_dir)
-        else:
-            instr = src
-        elem = NinjaBuildElement(self.all_outputs, [str(output)], 'COPY_FILE', [instr])
-        elem.add_orderdep(instr)
-        self.add_build(elem)
-
-    def __generate_sources_structure(self, root: Path, structured_sources: build.StructuredSources,
-                                     main_file_ext: T.Union[str, T.Tuple[str, ...]] = tuple(),
-                                     ) -> T.Tuple[T.List[str], T.Optional[str]]:
-        first_file: T.Optional[str] = None
-        orderdeps: T.List[str] = []
-        for path, files in structured_sources.sources.items():
-            for file in files:
-                if isinstance(file, File):
-                    out = root / path / Path(file.fname).name
-                    self._generate_copy_target(file, out)
-                    out_s = str(out)
-                    orderdeps.append(out_s)
-                    if first_file is None and out_s.endswith(main_file_ext):
-                        first_file = out_s
-                else:
-                    for f in file.get_outputs():
-                        out = root / path / f
-                        out_s = str(out)
-                        orderdeps.append(out_s)
-                        self._generate_copy_target(str(Path(file.subdir) / f), out)
-                        if first_file is None and out_s.endswith(main_file_ext):
-                            first_file = out_s
-        return orderdeps, first_file
 
     def _add_rust_project_entry(self, name: str, main_rust_file: str, args: CompilerArgs,
                                 crate_type: str, target_name: str,
@@ -2012,44 +1972,6 @@ class NinjaBackend(backends.Backend):
         # figures out what other files are needed via import
         # statements and magic.
         main_rust_file: T.Optional[str] = None
-        if target.structured_sources:
-            if target.structured_sources.needs_copy():
-                _ods, main_rust_file = self.__generate_sources_structure(Path(
-                    self.get_target_private_dir(target)) / 'structured', target.structured_sources, '.rs')
-                if main_rust_file is None:
-                    raise MesonException('Could not find a rust file to treat as the main file for ', target.name)
-            else:
-                # The only way to get here is to have only files in the "root"
-                # positional argument, which are all generated into the same
-                # directory
-                for g in target.structured_sources.sources['']:
-                    if isinstance(g, File):
-                        if g.endswith('.rs'):
-                            main_rust_file = g.rel_to_builddir(self.build_to_src)
-                    elif isinstance(g, GeneratedList):
-                        for h in g.get_outputs():
-                            if h.endswith('.rs'):
-                                main_rust_file = os.path.join(self.get_target_private_dir(target), h)
-                                break
-                    else:
-                        for h in g.get_outputs():
-                            if h.endswith('.rs'):
-                                main_rust_file = os.path.join(g.get_builddir(), h)
-                                break
-                    if main_rust_file is not None:
-                        break
-
-                _ods = []
-                for f in target.structured_sources.as_list():
-                    if isinstance(f, File):
-                        _ods.append(f.rel_to_builddir(self.build_to_src))
-                    else:
-                        _ods.extend([os.path.join(self.build_to_src, f.subdir, s)
-                                     for s in f.get_outputs()])
-            self.all_structured_sources.update(_ods)
-            orderdeps.extend(_ods)
-            return orderdeps, main_rust_file
-
         for i in target.get_sources():
             if main_rust_file is None and i.endswith('.rs'):
                 main_rust_file = i.rel_to_builddir(self.build_to_src)
@@ -2878,14 +2800,18 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if generator.depfile is not None:
                 elem.add_item('DEPFILE', depfile)
 
-            if len(generator.outputs) == 1:
-                what = f'{sole_output!r}'
+            if generator is self.environment.copy_generator:
+                self.all_structured_sources.update(outfilespriv)
+            if generator.description is not None:
+                desc = generator.description.format(input=curfile, output=outfilespriv[0])
             else:
-                # since there are multiple outputs, we log the source that caused the rebuild
-                what = f'from {sole_output!r}'
+                desc = 'Generating '
+                if len(generator.outputs) == 1:
+                    desc += f'{outfilespriv[0]!r} '
+                desc += f'from {curfile!r}'
             if reason:
-                reason = f' (wrapped by meson {reason})'
-            elem.add_item('DESC', f'Generating {what}{reason}')
+                desc += f' (wrapped by meson {reason})'
+            elem.add_item('DESC', desc)
 
             elem.add_item('COMMAND', cmdlist)
             self.add_build(elem)
