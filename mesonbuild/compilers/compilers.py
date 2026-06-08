@@ -1704,3 +1704,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_target_libdir(self) -> str:
         """Where is the libdir for the current machine located"""
         raise EnvironmentException(f'{self.get_id()} does not support Rust target libdir')
+
+    def get_embed_args(self, path: str) -> list[str]:
+        """Format arguments for C and C++ #embed statements."""
+        raise EnvironmentException(f'{self.get_id()} does not support embed search paths')
