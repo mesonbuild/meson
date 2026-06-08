@@ -1,6 +1,3 @@
-project('multi_targets', 'c')
-subdir('init_features')
-
 multi_targets = mod_features.multi_targets(
     'dispatch1.conf.h', 'dispatch1.c',
     dispatch: [SSSE3, ASIMD],

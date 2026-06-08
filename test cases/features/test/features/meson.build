@@ -1,18 +1,16 @@
-#project('test-features', 'c')
 mod_features = import('features')
 cpu_family = host_machine.cpu_family()
 compiler_id = meson.get_compiler('c').get_id()
-source_root = meson.project_source_root() + '/../init_features/'
 # Basic X86 Features
 # ------------------
 SSE = mod_features.new(
   'SSE', 1,  args: '-msse',
-  test_code: files(source_root + 'checks/cpu_sse.c')[0]
+  test_code: files('cpu_sse.c')[0]
 )
 SSE2 = mod_features.new(
   'SSE2', 2, implies: SSE,
   args: '-msse2',
-  test_code: files(source_root + 'checks/cpu_sse2.c')[0]
+  test_code: files('cpu_sse2.c')[0]
 )
 # enabling SSE without SSE2 is useless also
 # it's non-optional for x86_64
@@ -20,17 +18,17 @@ SSE.update(implies: SSE2)
 SSE3 = mod_features.new(
   'SSE3', 3, implies: SSE2,
   args: '-msse3',
-  test_code: files(source_root + 'checks/cpu_sse3.c')[0]
+  test_code: files('cpu_sse3.c')[0]
 )
 SSSE3 = mod_features.new(
   'SSSE3', 4, implies: SSE3,
   args: '-mssse3',
-  test_code: files(source_root + 'checks/cpu_ssse3.c')[0]
+  test_code: files('cpu_ssse3.c')[0]
 )
 SSE41 = mod_features.new(
   'SSE41', 5, implies: SSSE3,
   args: '-msse4.1',
-  test_code: files(source_root + 'checks/cpu_sse41.c')[0]
+  test_code: files('cpu_sse41.c')[0]
 )
 if cpu_family not in ['x86', 'x86_64']
   # should disable any prevalent features
@@ -62,21 +60,21 @@ endif
 # ------------------
 NEON = mod_features.new(
   'NEON', 200,
-  test_code: files(source_root + 'checks/cpu_neon.c')[0]
+  test_code: files('cpu_neon.c')[0]
 )
 NEON_FP16 = mod_features.new(
   'NEON_FP16', 201, implies: NEON,
-  test_code: files(source_root + 'checks/cpu_neon_fp16.c')[0]
+  test_code: files('cpu_neon_fp16.c')[0]
 )
 # FMA
 NEON_VFPV4 = mod_features.new(
   'NEON_VFPV4', 202, implies: NEON_FP16,
-  test_code: files(source_root + 'checks/cpu_neon_vfpv4.c')[0]
+  test_code: files('cpu_neon_vfpv4.c')[0]
 )
 # Advanced SIMD
 ASIMD = mod_features.new(
   'ASIMD', 203, implies: NEON_VFPV4, detect: {'val': 'ASIMD', 'match': 'NEON.*'},
-  test_code: files(source_root + 'checks/cpu_asimd.c')[0]
+  test_code: files('cpu_asimd.c')[0]
 )
 if cpu_family == 'aarch64'
   # hardware baseline, they can't be enabled independently

@@ -1,6 +1,3 @@
-project('baseline', 'c')
-subdir('init_features')
-
 baseline = mod_features.test(SSE3, NEON, anyfet: true)
 message(baseline)
 baseline_args = baseline[1]['args']
