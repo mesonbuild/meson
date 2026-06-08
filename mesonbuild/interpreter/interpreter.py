@@ -882,6 +882,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.subprojects[subp_name] = sub
         return sub
 
+    def create_build_subdir(self, subdir: str) -> None:
+        os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
+
     def do_subproject(self, subp_name: SubProject, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None,
                       forced_options: T.Optional[OptionDict] = None) -> SubprojectHolder:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
@@ -943,7 +946,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             mlog.error(*msg)
             raise e
 
-        os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
+        self.create_build_subdir(subdir)
         self.global_args_frozen = True
 
         stack = ':'.join(self.subproject_stack + [subp_name])
@@ -2517,7 +2520,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if not is_new:
             raise InvalidArguments(f'Tried to enter directory "{subdir}", which has already been visited.')
 
-        os.makedirs(os.path.join(self.environment.build_dir, subdir), exist_ok=True)
+        self.create_build_subdir(subdir)
 
         if InterpreterRuleRelaxation.CARGO_SUBDIR in self.relaxations and \
            os.path.exists(os.path.join(self.environment.get_source_dir(), subdir, 'Cargo.toml')):
@@ -2657,6 +2660,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InvalidArguments(f'Build subdir "{build_subdir}" in "{target}" exists in source tree.')
             if '..' in build_subdir:
                 raise InvalidArguments(f'Build subdir "{build_subdir}" in "{target}" contains ..')
+            self.create_build_subdir(os.path.join(self.subdir, build_subdir))
 
     @noPosargs
     @typed_kwargs(
@@ -2834,7 +2838,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         elif kwargs['copy']:
             if len(inputs_abs) != 1:
                 raise InterpreterException('Exactly one input file must be given in copy mode')
-            os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
+            self.create_build_subdir(self.subdir)
             shutil.copy2(inputs_abs[0], ofile_abs)
 
         # Install file if requested, we check for the empty string
