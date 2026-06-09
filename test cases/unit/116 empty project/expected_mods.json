@@ -194,6 +194,7 @@
       "mesonbuild.environment",
       "mesonbuild.interpreter",
       "mesonbuild.interpreter.compiler",
+      "mesonbuild.interpreter.decorators",
       "mesonbuild.interpreter.dependencyfallbacks",
       "mesonbuild.interpreter.interpreter",
       "mesonbuild.interpreter.interpreterobjects",
@@ -241,6 +242,6 @@
       "mesonbuild.wrap",
       "mesonbuild.wrap.wrap"
     ],
-    "count": 72
+    "count": 73
   }
 }
