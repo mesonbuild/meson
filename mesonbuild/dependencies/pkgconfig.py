@@ -66,7 +66,6 @@ class PkgConfigInterface:
         Even when we use another implementation internally, external tools might
         still need the CLI implementation.
         '''
-        for_machine = for_machine if env.is_cross_build() else MachineChoice.HOST
         impl: T.Union[Literal[False], T.Optional[PkgConfigInterface]] # Help confused mypy
         impl = PkgConfigInterface.instance(env, for_machine, silent)
         if impl and not isinstance(impl, PkgConfigCLI):
