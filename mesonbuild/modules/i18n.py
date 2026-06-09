@@ -134,6 +134,7 @@ class XgettextProgram:
         self.interpreter = interpreter
 
     def extract(self,
+                state: ModuleState,
                 name: str,
                 sources: T.List[SourcesType],
                 args: T.List[str],
@@ -168,11 +169,11 @@ class XgettextProgram:
         ct = build.CustomTarget(
             '',
             self.interpreter.subdir,
-            self.interpreter.subproject,
             self.interpreter.environment,
             command,
             inputs,
             [name],
+            state.current_build_project,
             depend_files = depend_files,
             extra_depends = depends,
             install = install,
@@ -332,11 +333,11 @@ class I18nModule(ExtensionModule):
         ct = build.CustomTarget(
             '',
             state.subdir,
-            state.subproject,
             state.environment,
             command,
             inputs,
             [kwargs['output']],
+            state.current_build_project,
             build_by_default=build_by_default,
             install=kwargs['install'],
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] is not None else None,
@@ -407,8 +408,8 @@ class I18nModule(ExtensionModule):
             potargs.append(extra_arg)
         if self.tools['xgettext'].found():
             potargs.append('--xgettext=' + self.tools['xgettext'].get_path())
-        pottarget = build.RunTarget(packagename + '-pot', potargs, [], state.subdir, state.subproject,
-                                    state.environment, default_env=False)
+        pottarget = build.RunTarget(packagename + '-pot', potargs, [], state.subdir,
+                                    state.environment, state.current_build_project, default_env=False)
         targets.append(pottarget)
 
         install = kwargs['install']
@@ -425,11 +426,11 @@ class I18nModule(ExtensionModule):
             gmotarget = build.CustomTarget(
                 f'{packagename}-{l}.mo',
                 path.join(state.subdir, l, 'LC_MESSAGES'),
-                state.subproject,
                 state.environment,
                 [self.tools['msgfmt'], '-o', '@OUTPUT@', '@INPUT@'],
                 [po_file],
                 [f'{packagename}.mo'],
+                state.current_build_project,
                 install=install,
                 # We have multiple files all installed as packagename+'.mo' in different install subdirs.
                 # What we really wanted to do, probably, is have a rename: kwarg, but that's not available
@@ -442,8 +443,8 @@ class I18nModule(ExtensionModule):
             targets.append(gmotarget)
             gmotargets.append(gmotarget)
 
-        allgmotarget = build.AliasTarget(packagename + '-gmo', gmotargets, state.subdir, state.subproject,
-                                         state.environment)
+        allgmotarget = build.AliasTarget(packagename + '-gmo', gmotargets, state.subdir,
+                                         state.environment, state.current_build_project)
         targets.append(allgmotarget)
 
         updatepoargs = state.environment.get_build_command() + ['--internal', 'gettext', 'update_po', pkg_arg]
@@ -459,8 +460,8 @@ class I18nModule(ExtensionModule):
         for tool in ['msginit', 'msgmerge']:
             if self.tools[tool].found():
                 updatepoargs.append(f'--{tool}=' + self.tools[tool].get_path())
-        updatepotarget = build.RunTarget(packagename + '-update-po', updatepoargs, [], state.subdir, state.subproject,
-                                         state.environment, default_env=False)
+        updatepotarget = build.RunTarget(packagename + '-update-po', updatepoargs, [], state.subdir,
+                                         state.environment, state.current_build_project, default_env=False)
         targets.append(updatepotarget)
 
         return ModuleReturnValue([gmotargets, pottarget, updatepotarget], targets)
@@ -520,11 +521,11 @@ class I18nModule(ExtensionModule):
         ct = build.CustomTarget(
             '',
             state.subdir,
-            state.subproject,
             state.environment,
             command,
             inputs,
             [kwargs['output']],
+            state.current_build_project,
             build_by_default=build_by_default,
             extra_depends=mo_targets,
             install=kwargs['install'],
@@ -559,7 +560,7 @@ class I18nModule(ExtensionModule):
             raise InvalidArguments('i18n.xgettext: "install_dir" keyword argument must be set when "install" is true.')
 
         xgettext_program = XgettextProgram(T.cast('ExternalProgram', self.tools[toolname]), self.interpreter)
-        return xgettext_program.extract(*args, **kwargs)
+        return xgettext_program.extract(state, *args, **kwargs)
 
 
 def initialize(interp: 'Interpreter') -> I18nModule:

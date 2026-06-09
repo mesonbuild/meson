@@ -2058,11 +2058,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         tg = build.CustomTarget(
             kwargs['output'][0],
             self.subdir,
-            self.subproject,
             self.environment,
             cmd,
             self.source_strings_to_files(kwargs['input']),
             kwargs['output'],
+            self.current_build_project(),
             build_by_default=True,
             build_always_stale=True,
             install=install,
@@ -2189,11 +2189,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         tg = build.CustomTarget(
             name,
             self.subdir,
-            self.subproject,
             self.environment,
             command,
             inputs,
             kwargs['output'],
+            self.current_build_project(),
             build_always_stale=build_always_stale,
             build_by_default=build_by_default,
             capture=kwargs['capture'],
@@ -2237,8 +2237,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException('run_target does not have support for @DEPFILE@')
 
         name = args[0]
-        tg = build.RunTarget(name, all_args, kwargs['depends'], self.subdir, self.subproject, self.environment,
-                             kwargs['env'])
+        tg = build.RunTarget(name, all_args, kwargs['depends'], self.subdir, self.environment,
+                             self.current_build_project(), kwargs['env'])
         self.add_target(name, tg)
         return tg
 
@@ -2257,7 +2257,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                 real_deps.append(d.static)
             else:
                 real_deps.append(d)
-        tg = build.AliasTarget(name, real_deps, self.subdir, self.subproject, self.environment)
+        tg = build.AliasTarget(name, real_deps, self.subdir, self.environment,
+                               self.current_build_project())
         self.add_target(name, tg)
         return tg
 
@@ -3927,30 +3928,30 @@ class Interpreter(InterpreterBase, HoldableObject):
         if targetclass is build.Executable:
             nkwargs = self.__convert_executable_kwargs(
                 node, T.cast('kwtypes.Executable', kwargs))
-            target = build.Executable(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
-                                      self.environment, self.compilers[for_machine], nkwargs)
+            target = build.Executable(name, self.subdir, for_machine, srcs, struct, objs,
+                                      self.environment, self.compilers[for_machine], self.current_build_project(), nkwargs)
         elif targetclass is build.StaticLibrary:
             nkwargs = self.__convert_static_library_kwargs(
                 node, T.cast('kwtypes.StaticLibrary', kwargs))
-            target = build.StaticLibrary(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
-                                         self.environment, self.compilers[for_machine], nkwargs)
+            target = build.StaticLibrary(name, self.subdir, for_machine, srcs, struct, objs,
+                                         self.environment, self.compilers[for_machine], self.current_build_project(), nkwargs)
         elif targetclass is build.SharedLibrary:
             nkwargs = self.__convert_shared_library_kwargs(
                 node, T.cast('kwtypes.SharedLibrary', kwargs))
-            target = build.SharedLibrary(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
-                                         self.environment, self.compilers[for_machine], nkwargs)
+            target = build.SharedLibrary(name, self.subdir, for_machine, srcs, struct, objs,
+                                         self.environment, self.compilers[for_machine], self.current_build_project(), nkwargs)
             target.shared_library_only = shared_library_only
         elif targetclass is build.SharedModule:
             nkwargs = self.__convert_shared_module_kwargs(
                 node, T.cast('kwtypes.SharedModule', kwargs))
-            target = build.SharedModule(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
-                                        self.environment, self.compilers[for_machine], nkwargs)
+            target = build.SharedModule(name, self.subdir, for_machine, srcs, struct, objs,
+                                        self.environment, self.compilers[for_machine], self.current_build_project(), nkwargs)
             target.shared_library_only = shared_library_only
         else:
             nkwargs = self.__convert_jar_kwargs(
                 node, T.cast('kwtypes.Jar', kwargs))
-            target = build.Jar(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
-                               self.environment, self.compilers[for_machine], nkwargs)
+            target = build.Jar(name, self.subdir, for_machine, srcs, struct, objs,
+                               self.environment, self.compilers[for_machine], self.current_build_project(), nkwargs)
 
         if objs and target.uses_rust():
             FeatureNew.single_use('objects in Rust targets', '1.8.0', self.subproject)

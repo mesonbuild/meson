@@ -21,6 +21,7 @@ from glob import glob
 from pathlib import (PurePath, Path)
 import typing as T
 
+from mesonbuild.build import BuildProject
 import mesonbuild.mlog
 import mesonbuild.depfile
 import mesonbuild.dependencies.base
@@ -34,7 +35,7 @@ from mesonbuild.mesonlib import (
     DirectoryLock, DirectoryLockAction, MachineChoice, is_windows, is_osx, is_cygwin, is_dragonflybsd,
     is_sunos, windows_proof_rmtree, python_command, version_compare, split_args, quote_arg,
     relpath, is_linux, git, search_version, do_conf_file, do_conf_str, default_prefix,
-    MesonException, EnvironmentException,
+    SubProject, MesonException, EnvironmentException,
     windows_proof_rm, first
 )
 from mesonbuild.options import OptionKey
@@ -5003,11 +5004,11 @@ class AllPlatformTests(BasePlatformTests):
         env = get_fake_env(testdir, self.builddir, self.prefix)
 
         def output_name(name, type_):
-            target = type_(name=name, subdir=None, subproject=None,
+            target = type_(name=name, subdir='',
                            for_machine=MachineChoice.HOST, sources=[],
                            structured_sources=None,
                            objects=[], environment=env, compilers=env.coredata.compilers[MachineChoice.HOST],
-                           kwargs={})
+                           build_project=BuildProject('', '', SubProject('')), kwargs={})
             target.process_compilers_late()
             return target.filename
 

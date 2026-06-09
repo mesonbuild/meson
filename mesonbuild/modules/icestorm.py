@@ -66,31 +66,31 @@ class IceStormModule(ExtensionModule):
         blif_target = build.CustomTarget(
             f'{proj_name}_blif',
             state.subdir,
-            state.subproject,
             state.environment,
             [self.tools['yosys'], '-q', '-p', 'synth_ice40 -blif @OUTPUT@', '@INPUT@'],
             all_sources,
             [f'{proj_name}.blif'],
+            state.current_build_project,
         )
 
         asc_target = build.CustomTarget(
             f'{proj_name}_asc',
             state.subdir,
-            state.subproject,
             state.environment,
             [self.tools['arachne'], '-q', '-d', '1k', '-p', '@INPUT@', '-o', '@OUTPUT@'],
             [constraint_file, blif_target],
             [f'{proj_name}.asc'],
+            state.current_build_project,
         )
 
         bin_target = build.CustomTarget(
             f'{proj_name}_bin',
             state.subdir,
-            state.subproject,
             state.environment,
             [self.tools['icepack'], '@INPUT@', '@OUTPUT@'],
             [asc_target],
             [f'{proj_name}.bin'],
+            state.current_build_project,
             build_by_default=True,
         )
 
@@ -99,8 +99,8 @@ class IceStormModule(ExtensionModule):
             [self.tools['iceprog'], bin_target],
             [],
             state.subdir,
-            state.subproject,
             state.environment,
+            state.current_build_project,
         )
 
         time_target = build.RunTarget(
@@ -108,8 +108,8 @@ class IceStormModule(ExtensionModule):
             [self.tools['icetime'], bin_target],
             [],
             state.subdir,
-            state.subproject,
             state.environment,
+            state.current_build_project,
         )
 
         return ModuleReturnValue(

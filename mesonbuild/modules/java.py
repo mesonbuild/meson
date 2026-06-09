@@ -93,10 +93,11 @@ class JavaModule(NewExtensionModule):
                    if isinstance(s, str) else s for s in args[0]]
         target = CustomTarget(f'{prefix}-native-headers',
                               state.subdir,
-                              state.subproject,
                               state.environment,
                               command,
-                              sources=sources, outputs=headers, backend=state.backend)
+                              sources, headers,
+                              state.current_build_project,
+                              backend=state.backend)
 
         # It is only known that 1.8.0 won't pre-create the directory. 11 and 16
         # do not exhibit this behavior.

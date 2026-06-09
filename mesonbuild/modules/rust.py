@@ -666,10 +666,11 @@ class RustModule(ExtensionModule):
         sources.extend(base_target.generated)
 
         new_target = Executable(
-            name, base_target.subdir, state.subproject, base_target.for_machine,
+            name, base_target.subdir, base_target.for_machine,
             sources, base_target.structured_sources,
             base_target.objects, base_target.environment, base_target.compilers,
-            new_target_kwargs)
+            state.current_build_project, new_target_kwargs
+        )
         return new_target, tkwargs
 
     @typed_pos_args('rust.test', str, BuildTarget)
@@ -960,11 +961,11 @@ class RustModule(ExtensionModule):
         target = CustomTarget(
             f'rustmod-bindgen-{name}'.replace('/', '_'),
             state.subdir,
-            state.subproject,
             state.environment,
             cmd,
             [header],
             outputs,
+            state.current_build_project,
             depfile='@PLAINNAME@.d',
             extra_depends=depends,
             depend_files=depend_files,
