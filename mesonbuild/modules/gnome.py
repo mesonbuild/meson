@@ -1521,8 +1521,7 @@ class GnomeModule(ExtensionModule):
         for tool in ['scan', 'scangobj', 'mkdb', 'mkhtml', 'fixxref']:
             program_name = 'gtkdoc-' + tool
             program = state.find_program(program_name)
-            path = program.get_path()
-            assert path is not None, "This shouldn't be possible since program should be found"
+            path = mesonlib.unwrap(program.get_path())
             t_args.append(f'--{program_name}={path}')
         if namespace:
             t_args.append('--namespace=' + namespace)

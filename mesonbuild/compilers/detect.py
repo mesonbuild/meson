@@ -6,6 +6,7 @@ from __future__ import annotations
 from ..mesonlib import (
     MesonException, EnvironmentException, MachineChoice, join_args,
     search_version, is_windows, Popen_safe, Popen_safe_logged, version_compare, windows_proof_rm,
+    unwrap,
 )
 from ..programs import ExternalProgram
 from ..envconfig import BinaryTable, detect_cpu_family
@@ -396,8 +397,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 linker=linker, full_version=full_version)
 
         if 'Arm C/C++/Fortran Compiler' in out:
-            arm_ver_match = re.search(r'version (\d+)\.(\d+)\.?(\d+)? \(build number (\d+)\)', out)
-            assert arm_ver_match is not None, 'for mypy'  # because mypy *should* be complaining that this could be None
+            arm_ver_match = unwrap(re.search(r'version (\d+)\.(\d+)\.?(\d+)? \(build number (\d+)\)', out))
             version = '.'.join([x for x in arm_ver_match.groups() if x is not None])
             if lang == 'c':
                 cls = c.ArmLtdClangCCompiler
@@ -624,8 +624,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 cls = c.MetrowerksCCompilerEmbeddedPowerPC if lang == 'c' else cpp.MetrowerksCPPCompilerEmbeddedPowerPC
                 lnk = linkers.MetrowerksLinkerEmbeddedPowerPC
 
-            mwcc_ver_match = re.search(r'Version (\d+)\.(\d+)\.?(\d+)? build (\d+)', out)
-            assert mwcc_ver_match is not None, 'for mypy'  # because mypy *should* be complaining that this could be None
+            mwcc_ver_match = unwrap(re.search(r'Version (\d+)\.(\d+)\.?(\d+)? build (\d+)', out))
             compiler_version = '.'.join(x for x in mwcc_ver_match.groups() if x is not None)
 
             env.add_lang_args(cls.language, cls, for_machine)
@@ -634,8 +633,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             if ld is not None:
                 _, o_ld, _ = Popen_safe(ld + ['--version'])
 
-                mwld_ver_match = re.search(r'Version (\d+)\.(\d+)\.?(\d+)? build (\d+)', o_ld)
-                assert mwld_ver_match is not None, 'for mypy'  # because mypy *should* be complaining that this could be None
+                mwld_ver_match = unwrap(re.search(r'Version (\d+)\.(\d+)\.?(\d+)? build (\d+)', o_ld))
                 linker_version = '.'.join(x for x in mwld_ver_match.groups() if x is not None)
 
                 linker = lnk(ld, env, for_machine, version=linker_version)
@@ -649,8 +647,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             cls = c.TaskingCCompiler
             lnk = linkers.TaskingLinker
 
-            tasking_ver_match = re.search(r'v([0-9]+)\.([0-9]+)r([0-9]+) Build ([0-9]+)', err)
-            assert tasking_ver_match is not None, 'for mypy'
+            tasking_ver_match = unwrap(re.search(r'v([0-9]+)\.([0-9]+)r([0-9]+) Build ([0-9]+)', err))
             tasking_version = '.'.join(x for x in tasking_ver_match.groups() if x is not None)
 
             env.add_lang_args(cls.language, cls, for_machine)
@@ -776,8 +773,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
 
             if 'Arm C/C++/Fortran Compiler' in out:
                 cls = fortran.ArmLtdFlangFortranCompiler
-                arm_ver_match = re.search(r'version (\d+)\.(\d+)\.?(\d+)? \(build number (\d+)\)', out)
-                assert arm_ver_match is not None, 'for mypy'  # because mypy *should* be complaining that this could be None
+                arm_ver_match = unwrap(re.search(r'version (\d+)\.(\d+)\.?(\d+)? \(build number (\d+)\)', out))
                 version = '.'.join([x for x in arm_ver_match.groups() if x is not None])
                 linker = guess_nix_linker(env, compiler, cls, version, for_machine)
                 return cls(

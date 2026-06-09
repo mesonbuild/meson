@@ -13,7 +13,7 @@ import typing as T
 
 from .. import options
 from ..dependencies import InternalDependency
-from ..mesonlib import EnvironmentException, MesonException, Popen_safe, Popen_safe_logged, version_compare
+from ..mesonlib import EnvironmentException, MesonException, Popen_safe, Popen_safe_logged, version_compare, unwrap
 from ..linkers.linkers import VisualStudioLikeLinkerMixin
 from ..options import OptionKey
 from .compilers import Compiler, CompileCheckMode, clike_debug_args, is_library
@@ -167,8 +167,7 @@ class RustCompiler(Compiler):
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
         cmdlist = self.exelist.copy()
         largs: T.List[str] = []
-        assert self.linker is not None, 'for mypy'
-        if self.info.kernel == 'none' and 'ld.' in self.linker.id:
+        if self.info.kernel == 'none' and 'ld.' in unwrap(self.linker).id:
             largs.extend(rustc_link_args(['-nostartfiles']))
         cmdlist.extend(self.get_output_args(binname))
         cmdlist.append(sourcename)

@@ -759,8 +759,7 @@ class ConverterCustomTarget:
                 self.depends += [tgt]
             elif gen:
                 ctgt_ref = gen.get_ref(raw)
-                assert ctgt_ref is not None
-                self.inputs += [ctgt_ref]
+                self.inputs += [mesonlib.unwrap(ctgt_ref)]
 
     def process_inter_target_dependencies(self) -> None:
         # Move the dependencies from all TRANSFER_DEPENDENCIES_FROM to the target

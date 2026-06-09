@@ -15,7 +15,7 @@ from ..interpreterbase import (
     ContainerTypeInfo, ObjectHolder, KwargInfo, typed_pos_args, typed_kwargs,
     noPosargs, noKwargs, disablerIfNotFound, InterpreterObject
 )
-from ..mesonlib import File, MesonException, Popen_safe, version_compare
+from ..mesonlib import File, MesonException, Popen_safe, version_compare, unwrap
 from ..programs import Program, ExternalProgram, NonExistingExternalProgram
 from ..utils.core import HoldableObject
 from .. import mlog
@@ -308,8 +308,7 @@ class CodeGenModule(ExtensionModule):
         if kwargs['implementations']:
             names = kwargs['implementations']
         else:
-            assert state.environment.machines[kwargs['native']] is not None, 'for mypy'
-            if state.environment.machines[kwargs['native']].system == 'windows':
+            if unwrap(state.environment.machines[kwargs['native']]).system == 'windows':
                 names.append('win_flex')
             names.extend(['flex', 'reflex', 'lex'])
 
@@ -386,8 +385,7 @@ class CodeGenModule(ExtensionModule):
         if kwargs['implementations']:
             names = kwargs['implementations']
         else:
-            assert state.environment.machines[kwargs['native']] is not None, 'for mypy'
-            if state.environment.machines[kwargs['native']].system == 'windows':
+            if unwrap(state.environment.machines[kwargs['native']]).system == 'windows':
                 names = ['win_bison', 'bison', 'yacc']
             else:
                 names = ['bison', 'byacc', 'yacc']
