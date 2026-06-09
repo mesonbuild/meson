@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import itertools
 import os, re
 import typing as T
@@ -18,7 +19,7 @@ from . import options
 from .mesonlib import (
     MesonException, MachineChoice, Popen_safe, PerMachine,
     PerMachineDefaultable, PerThreeMachineDefaultable, split_args,
-    MesonBugException
+    MesonBugException, ThreeMachineChoice
 )
 from .options import OptionKey
 from . import mlog
@@ -36,6 +37,8 @@ if T.TYPE_CHECKING:
     from .compilers.compilers import Compiler, CompilerDict, Language
     from .options import OptionDict, ElementaryOptionValues
     from .wrap.wrap import Resolver
+
+    import enum
 
 
 NON_LANG_ENV_OPTIONS = [
@@ -76,6 +79,31 @@ def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T
         return None
     mlog.debug(f'Using {var!r} from environment with value: {value!r}')
     return value
+
+
+@dataclasses.dataclass
+class MachineMap:
+    # BUILD if cross compiling, HOST if not cross compiling
+    build: MachineChoice
+    # This is not entirely correct: it is possible in principle for
+    # the host machine to be originally configured as a target, and
+    # switched to be the host for a single subproject.  Ultimately,
+    # Environment should include N arbitrarily-named configurations,
+    # and kwargs['native'] would be supplanted by kwargs['for_machine']
+    # of type T.NewType('MachineChoice', str) after parameter parsing.
+    host: MachineChoice
+    target: ThreeMachineChoice
+
+    @T.overload
+    def __getitem__(self, machine: MachineChoice) -> MachineChoice:
+        ...
+
+    @T.overload
+    def __getitem__(self, machine: ThreeMachineChoice) -> ThreeMachineChoice:
+        ...
+
+    def __getitem__(self, machine: MachineChoice | ThreeMachineChoice) -> enum.IntEnum:
+        return [self.build, self.host, self.target][machine.value]
 
 
 class Environment:
@@ -120,6 +148,13 @@ class Environment:
             self.build_dir = ''
             self.scratch_dir = ''
             self.create_new_coredata(cmd_options)
+
+        # Store which machine is actually returned by self.machines after
+        # taking into account defaults
+        if self.coredata.cross_files:
+            self.machine_map = MachineMap(MachineChoice.BUILD, MachineChoice.HOST, ThreeMachineChoice.HOST)
+        else:
+            self.machine_map = MachineMap(MachineChoice.HOST, MachineChoice.HOST, ThreeMachineChoice.HOST)
 
         ## locally bind some unfrozen configuration
 
@@ -168,9 +203,7 @@ class Environment:
             binaries.build = BinaryTable(config.get('binaries', {}))
             properties.build = Properties(config.get('properties', {}))
             cmakevars.build = CMakeVariables(config.get('cmake', {}))
-            self._load_machine_file_options(
-                config, properties.build,
-                MachineChoice.BUILD if self.coredata.cross_files else MachineChoice.HOST)
+            self._load_machine_file_options(config, properties.build, self.machine_map.build)
 
         ## Read in cross file(s) to override host machine configuration
 
@@ -183,6 +216,7 @@ class Environment:
                 machines.host = MachineInfo.from_literal(config['host_machine'])
             if 'target_machine' in config:
                 machines.target = MachineInfo.from_literal(config['target_machine'])
+                self.machine_map.target = ThreeMachineChoice.TARGET
             # Keep only per machine options from the native file. The cross
             # file takes precedence over all other options.
             for key, value in list(self.options.items()):
@@ -430,7 +464,7 @@ class Environment:
                 self.coredata.optstore.set_option(k, v)
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
-        return self.coredata.is_cross_build(when_building_for)
+        return self.machine_map[when_building_for] is not self.machine_map.build
 
     def dump_coredata(self) -> str:
         return coredata.save(self.coredata, self.get_build_dir())

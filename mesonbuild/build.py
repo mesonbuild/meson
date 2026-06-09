@@ -21,8 +21,8 @@ from . import mlog
 from . import programs
 from .mesonlib import (
     HoldableObject, SecondLevelHolder, SimpleABC, SubProject,
-    File, MesonException, MachineChoice, PerMachine, OrderedSet,
-    classify_unity_sources, ROOT_SUBPROJECT,
+    File, MesonException, MachineChoice, PerMachine,
+    OrderedSet, classify_unity_sources, ROOT_SUBPROJECT,
     get_filenames_templates_dict, substitute_values, has_path_sep,
     is_parent_path, relpath, PerMachineDefaultable,
     MesonBugException, EnvironmentVariables, pickle_load, lazy_property,
@@ -352,6 +352,7 @@ class Build:
             environment.is_cross_build(), {}, {})
 
         self.devenv: T.List[EnvironmentVariables] = []
+        self.machine_map = self.environment.machine_map
         self.modules: T.Set[str] = set()
         """Used to track which modules are enabled in all subprojects.
 
@@ -392,6 +393,10 @@ class Build:
 
     def merge(self, other: Build) -> None:
         for k, v in other.__dict__.items():
+            # This one is modified for build-only configs, but it is
+            # local.  No need to copy it.
+            if k == 'machine_map':
+                continue
             # These are not modified in subprojects
             if k in {'global_args', 'global_link_args'}:
                 continue
@@ -404,11 +409,11 @@ class Build:
                 self.__dict__[k] = v
 
     def ensure_static_linker(self, compiler: Compiler) -> None:
-        for_machine = compiler.for_machine if self.environment.is_cross_build() else MachineChoice.HOST
+        for_machine = self.machine_map[compiler.for_machine]
         if self.static_linker[for_machine] is None and compiler.needs_static_linker():
             self.static_linker[for_machine] = detect_static_linker(self.environment, compiler)
-            if not self.environment.is_cross_build():
-                self.static_linker[MachineChoice.BUILD] = self.static_linker[MachineChoice.HOST]
+            if self.machine_map.build is self.machine_map.host:
+                self.static_linker.build = self.static_linker.host
 
     def get_project(self) -> str:
         return self.projects[ROOT_SUBPROJECT].name

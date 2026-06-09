@@ -265,7 +265,7 @@ class MesonMain(MesonInterpreterObject):
 
     def _can_run_host_binaries_impl(self) -> bool:
         return not (
-            self.build.environment.is_cross_build() and
+            self.build.machine_map.host is not self.build.machine_map.build and
             self.build.environment.need_exe_wrapper() and
             self.build.environment.exe_wrapper is None
         )
@@ -274,7 +274,7 @@ class MesonMain(MesonInterpreterObject):
     @noKwargs
     @InterpreterObject.method('is_cross_build')
     def is_cross_build_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
-        return self.build.environment.is_cross_build()
+        return self.build.machine_map.host is not self.build.machine_map.build
 
     @typed_pos_args('meson.get_compiler', str)
     @typed_kwargs('meson.get_compiler', NATIVE_KW)
