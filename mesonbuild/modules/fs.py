@@ -308,11 +308,11 @@ class FSModule(ExtensionModule):
         ct = CustomTarget(
             dest,
             state.subdir,
-            state.subproject,
             state.environment,
             state.environment.get_build_command() + ['--internal', 'copy', '@INPUT@', '@OUTPUT@'],
             [src],
             [dest],
+            state.current_build_project,
             build_by_default=True,
             install=kwargs['install'],
             install_dir=[kwargs['install_dir']],

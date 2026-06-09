@@ -455,7 +455,8 @@ class Build:
         return d.get(compiler.get_language(), [])
 
     def get_project_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
-        args = self.projects[target.subproject].project_args[target.for_machine]
+        d = target.build_project
+        args = d.project_args[target.for_machine]
         if not args:
             return []
         return args.get(compiler.get_language(), [])
@@ -465,7 +466,8 @@ class Build:
         return d.get(compiler.get_language(), [])
 
     def get_project_link_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
-        link_args = self.projects[target.subproject].project_link_args[target.for_machine]
+        d = target.build_project
+        link_args = d.project_link_args[target.for_machine]
         if not link_args:
             return []
 
@@ -623,10 +625,10 @@ class Target(HoldableObject, metaclass=SimpleABC):
 
     name: str
     subdir: str
-    subproject: 'SubProject'
     build_by_default: bool
     for_machine: MachineChoice
     environment: Environment
+    build_project: BuildProject
     install: bool = False
     build_always_stale: bool = False
     extra_files: T.List[File] = field(default_factory=list)
@@ -721,6 +723,10 @@ class Target(HoldableObject, metaclass=SimpleABC):
         return my_id
 
     @lazy_property
+    def subproject(self) -> SubProject:
+        return self.build_project.subproject
+
+    @lazy_property
     def id(self) -> str:
         return self.construct_id_from_path(
             self.builddir, self.name, self.type_suffix())
@@ -753,18 +759,19 @@ class BuildTarget(Target):
             self,
             name: str,
             subdir: str,
-            subproject: SubProject,
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.Sequence[ObjectTypes | GeneratedTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_project: BuildProject,
             kwargs: BuildTargetKeywordArguments):
-        super().__init__(name, subdir, subproject, kwargs.get('build_by_default', True),
+        super().__init__(name, subdir, kwargs.get('build_by_default', True),
                          for_machine, environment,
                          install=kwargs.get('install', False),
-                         build_subdir=kwargs.get('build_subdir', ''))
+                         build_subdir=kwargs.get('build_subdir', ''),
+                         build_project=build_project)
         self.original_kwargs = kwargs
         # all_compilers is a reference to Interpreter.compilers, as such we
         # cannot mutate it inside build. Use a Mapping to get help from the
@@ -2142,18 +2149,18 @@ class Executable(BuildTarget, LinkableTarget):
             self,
             name: str,
             subdir: str,
-            subproject: SubProject,
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.Sequence[ObjectTypes | GeneratedTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_project: BuildProject,
             kwargs: ExecutableKeywordArguments):
         self.export_dynamic = kwargs.get('export_dynamic', False)
         self.rust_crate_type = kwargs.get('rust_crate_type', 'bin')
-        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+        super().__init__(name, subdir, for_machine, sources, structured_sources, objects,
+                         environment, compilers, build_project, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
         self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
         # Check for export_dynamic
@@ -2275,18 +2282,18 @@ class StaticLibrary(BuildTarget, LinkableTarget):
             self,
             name: str,
             subdir: str,
-            subproject: SubProject,
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.Sequence[ObjectTypes | GeneratedTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_project: BuildProject,
             kwargs: StaticLibraryKeywordArguments):
         self.prelink = kwargs.get('prelink', False)
         self.rust_crate_type = kwargs.get('rust_crate_type', 'rlib')
-        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+        super().__init__(name, subdir, for_machine, sources, structured_sources, objects,
+                         environment, compilers, build_project, kwargs)
         self.pic = self._extract_pic_pie(kwargs, 'pic', 'b_staticpic')
         if not self.pic:
             self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
@@ -2457,16 +2464,16 @@ class SharedLibrary(BuildTarget, LinkableTarget):
             self,
             name: str,
             subdir: str,
-            subproject: SubProject,
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.Sequence[ObjectTypes | GeneratedTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_project: BuildProject,
             kwargs: SharedLibraryKeywordArguments):
-        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+        super().__init__(name, subdir, for_machine, sources, structured_sources, objects,
+                         environment, compilers, build_project, kwargs)
         # Max length 2, first element is compatibility_version, second is current_version
         self.darwin_versions: T.Optional[T.Tuple[str, str]] = None
         self.soversion: T.Optional[str] = None
@@ -2795,16 +2802,16 @@ class SharedModule(SharedLibrary):
             self,
             name: str,
             subdir: str,
-            subproject: SubProject,
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.Sequence[ObjectTypes | GeneratedTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_project: BuildProject,
             kwargs: SharedModuleKeywordArguments):
-        super().__init__(name, subdir, subproject, for_machine, sources,
-                         structured_sources, objects, environment, compilers,
+        super().__init__(name, subdir, for_machine, sources,
+                         structured_sources, objects, environment, compilers, build_project,
                          # SharedModuleKeywordArguments is a subclass, it's annoying mypy can't figure this out
                          T.cast('SharedLibraryKeywordArguments', kwargs))
         # We need to set the soname in cases where build files link the module
@@ -2942,11 +2949,11 @@ class CustomTarget(Target, CustomTargetBase):
     def __init__(self,
                  name: T.Optional[str],
                  subdir: str,
-                 subproject: SubProject,
                  environment: Environment,
                  command: T.Sequence[CommandTypes],
                  sources: T.Sequence[CustomTargetSources],
                  outputs: T.List[str],
+                 build_project: BuildProject,
                  *,
                  build_always_stale: bool = False,
                  build_by_default: T.Optional[bool] = None,
@@ -2969,8 +2976,8 @@ class CustomTarget(Target, CustomTargetBase):
                  build_subdir: str = '',
                  ):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
-        super().__init__(name, subdir, subproject, False, MachineChoice.HOST, environment,
-                         install, build_always_stale, build_subdir = build_subdir)
+        super().__init__(name, subdir, False, MachineChoice.HOST, environment,
+                         build_project, install, build_always_stale, build_subdir = build_subdir)
         self.sources = list(sources)
         self.outputs = substitute_values(
             outputs, get_filenames_templates_dict(
@@ -2982,7 +2989,7 @@ class CustomTarget(Target, CustomTargetBase):
         self.depend_files = list(depend_files or [])
         self.dependencies: T.List[T.Union[CustomTarget, BuildTarget]] = []
         # must be after depend_files and dependencies
-        c, df, d = flatten_command(command, self.subproject)
+        c, df, d = flatten_command(command, build_project.subproject)
         self.command = c
         self.depend_files.extend(df)
         self.dependencies.extend(d)
@@ -3173,7 +3180,6 @@ class CompileTarget(BuildTarget):
     def __init__(self,
                  name: str,
                  subdir: str,
-                 subproject: SubProject,
                  environment: Environment,
                  sources: T.List['SourceOutputs'],
                  output_templ: str,
@@ -3182,6 +3188,7 @@ class CompileTarget(BuildTarget):
                  compile_args: T.List[str],
                  include_directories: T.List[IncludeDirs],
                  dependencies: T.List[dependencies.Dependency],
+                 build_project: BuildProject,
                  depends: T.List[BuildTargetTypes]):
         compilers = {compiler.get_language(): compiler}
         kwargs: BuildTargetKeywordArguments = {
@@ -3190,8 +3197,9 @@ class CompileTarget(BuildTarget):
             'include_directories': include_directories,
             'dependencies': dependencies,
         }
-        super().__init__(name, subdir, subproject, compiler.for_machine,
-                         sources, None, [], environment, compilers, kwargs)
+        super().__init__(name, subdir, compiler.for_machine,
+                         sources, None, [], environment, compilers,
+                         build_project, kwargs)
         self.filename = name
         self.compiler = compiler
         self.output_templ = output_templ
@@ -3233,14 +3241,14 @@ class RunTarget(Target):
                  # the RunTarget case is used by gnome.yelp()
                  dependencies: T.Sequence[Target | CustomTargetIndex | GeneratedList | programs.Program],
                  subdir: str,
-                 subproject: SubProject,
                  environment: Environment,
+                 build_project: BuildProject,
                  env: T.Optional[EnvironmentVariables] = None,
                  default_env: bool = True):
         # These don't produce output artifacts
-        super().__init__(name, subdir, subproject, False, MachineChoice.BUILD, environment)
+        super().__init__(name, subdir, False, MachineChoice.BUILD, environment, build_project)
         self.dependencies = list(dependencies)
-        self.command, self.depend_files, d = flatten_command(command, subproject)
+        self.command, self.depend_files, d = flatten_command(command, build_project.subproject)
         self.dependencies.extend(d)
         self.absolute_paths = False
         self.env = env
@@ -3276,8 +3284,9 @@ class AliasTarget(RunTarget):
     typename = 'alias'
 
     def __init__(self, name: str, dependencies: T.Sequence[Target],
-                 subdir: str, subproject: SubProject, environment: Environment):
-        super().__init__(name, [], dependencies, subdir, subproject, environment)
+                 subdir: str, environment: Environment,
+                 build_project: BuildProject):
+        super().__init__(name, [], dependencies, subdir, environment, build_project)
 
     def __repr__(self) -> str:
         repr_str = "<{0} {1}>"
@@ -3287,12 +3296,12 @@ class Jar(BuildTarget):
     typename = 'jar'
     rust_crate_type = ''  # type: ignore[assignment]
 
-    def __init__(self, name: str, subdir: str, subproject: SubProject, for_machine: MachineChoice,
+    def __init__(self, name: str, subdir: str, for_machine: MachineChoice,
                  sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
                  objects: T.Sequence[ObjectTypes | GeneratedTypes], environment: Environment, compilers: CompilerDict,
-                 kwargs: JarKeywordArguments):
-        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+                 build_project: BuildProject, kwargs: JarKeywordArguments):
+        super().__init__(name, subdir, for_machine, sources, structured_sources, objects,
+                         environment, compilers, build_project, kwargs)
         for s in self.sources:
             if not s.endswith('.java'):
                 raise InvalidArguments(f'Jar source {s} is not a java file.')

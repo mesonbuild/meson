@@ -207,11 +207,11 @@ class WindowsModule(ExtensionModule):
             res_targets.append(build.CustomTarget(
                 name_formatted,
                 state.subdir,
-                state.subproject,
                 state.environment,
                 command,
                 [src],
                 [output],
+                state.current_build_project,
                 depfile=depfile,
                 depfile_type=depfile_type,
                 depend_files=wrc_depend_files,
