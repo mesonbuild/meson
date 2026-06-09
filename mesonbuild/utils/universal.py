@@ -539,7 +539,7 @@ def classify_unity_sources(compilers: T.Iterable['Compiler'], sources: T.List[Fi
     return compsrclist
 
 
-MACHINE_NAMES = ['build', 'host']
+MACHINE_NAMES = ['build', 'host', 'target']
 MACHINE_PREFIXES = ['build.', '']
 
 
@@ -560,6 +560,23 @@ class MachineChoice(enum.IntEnum):
 
     def get_prefix(self) -> str:
         return MACHINE_PREFIXES[self.value]
+
+
+class ThreeMachineChoice(enum.IntEnum):
+
+    """Enum class representing any of the three abstract machine names:
+    the build, host, and target, machines.
+    """
+
+    BUILD = MachineChoice.BUILD.value
+    HOST = MachineChoice.HOST.value
+    TARGET = 2
+
+    def __str__(self) -> str:
+        return f'{self.get_lower_case_name()} machine'
+
+    def get_lower_case_name(self) -> str:
+        return MACHINE_NAMES[self.value]
 
 
 @dataclasses.dataclass(eq=False, order=False)
@@ -610,6 +627,12 @@ class PerThreeMachine(PerMachine[_T]):
     """
 
     target: _T
+
+    def __getitem__(self, machine: MachineChoice | ThreeMachineChoice) -> _T:
+        return [self.build, self.host, self.target][machine.value]
+
+    def __setitem__(self, machine: MachineChoice | ThreeMachineChoice, val: _T) -> None:
+        setattr(self, machine.get_lower_case_name(), val)
 
     def miss_defaulting(self) -> "PerThreeMachineDefaultable[T.Optional[_T]]":
         """Unset definition duplicated from their previous to None
