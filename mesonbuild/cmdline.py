@@ -64,7 +64,7 @@ def read_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
 
     # Do a copy because config is not really a dict. options.cmd_line_options
     # overrides values from the file.
-    d = {OptionKey.from_string(k): v for k, v in config['options'].items()}
+    d: dict[OptionKey, str | None] = {OptionKey.from_string(k): v for k, v in config['options'].items()}
     d.update(options.cmd_line_options)
     options.cmd_line_options = d
     options.builtin_keys = set()
@@ -131,7 +131,7 @@ class KeyNoneAction(argparse.Action):
         super().__init__(option_strings, dest, nargs=1, **kwargs)
 
     def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace,
-                 arg: T.List[str], option_string: str = None) -> None: # type: ignore[override]
+                 arg: T.List[str], option_string: str | None = None) -> None: # type: ignore[override]
         current_dict = getattr(namespace, self.dest)
         if current_dict is None:
             current_dict = {}
@@ -168,7 +168,7 @@ class BuiltinAction(argparse.Action):
                          help=f'{h}{help_suffix}.', **kwargs)
 
     def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace,
-                 arg: T.Optional[T.List[str]], option_string: str = None) -> None: # type: ignore[override]
+                 arg: T.Optional[T.List[str]], option_string: str | None = None) -> None: # type: ignore[override]
         current_dict = getattr(namespace, self.dest)
         if current_dict is None:
             current_dict = {}
@@ -189,7 +189,7 @@ class KeyValueAction(argparse.Action):
         super().__init__(option_strings, dest, nargs=1, **kwargs)
 
     def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace,
-                 arg: T.List[str], option_string: str = None) -> None: # type: ignore[override]
+                 arg: T.List[str], option_string: str | None = None) -> None: # type: ignore[override]
         current_dict = getattr(namespace, self.dest)
         if current_dict is None:
             current_dict = {}
