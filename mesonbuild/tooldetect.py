@@ -78,11 +78,13 @@ def compute_llvm_suffix(coredata: coredata.CoreData) -> T.Optional[str]:
     # Neither compiler is a Clang, or no compilers are for C or C++
     return None
 
-def detect_lcov_genhtml(lcov_exe: str = 'lcov', genhtml_exe: str = 'genhtml') \
-        -> T.Tuple[str, T.Optional[str], str]:
-    lcov_exe, lcov_version = detect_lcov(lcov_exe)
-    if shutil.which(genhtml_exe) is None:
+def detect_lcov_genhtml(lcov_exe_: str = 'lcov', genhtml_exe_: str = 'genhtml') \
+        -> tuple[str | None, str | None, str | None]:
+    lcov_exe, lcov_version = detect_lcov(lcov_exe_)
+    if shutil.which(genhtml_exe_) is None:
         genhtml_exe = None
+    else:
+        genhtml_exe = genhtml_exe_
 
     return lcov_exe, lcov_version, genhtml_exe
 
