@@ -1,3 +1,6 @@
+[binaries]
+c = @c_compiler@
+
 [host_machine]
 system = '@system@'
 cpu_family = '@cpu_family@'

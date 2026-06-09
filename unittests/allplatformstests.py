@@ -3376,6 +3376,29 @@ class AllPlatformTests(BasePlatformTests):
             name = entry['name']
             self.assertEqual(entry['subproject'], expected[name])
 
+    def test_introspection_target_native_subproject(self):
+        # When the same subproject is built for both the build machine
+        # (native : true) and the host machine (native : false) in a cross
+        # build, it is configured twice. The two copies of its 'lib' target
+        # share the same name and subproject but must have different ids.
+        crossdir = os.path.join(self.unit_test_dir, '69 cross')
+        # Reuse the cross test project to generate a native and a cross file
+        # describing this machine, so the configuration below is treated as a
+        # cross build (see test_identity_cross).
+        self.init(crossdir, extra_args=['-Dgenerate=true'])
+        self.meson_native_files = [os.path.join(self.builddir, "nativefile")]
+        self.meson_cross_files = [os.path.join(self.builddir, "crossfile")]
+
+        self.new_builddir()
+        testdir = os.path.join(self.unit_test_dir, '136 native subproject introspect')
+        self.init(testdir)
+        res = self.introspect('--targets')
+
+        ids = [entry['id'] for entry in res
+               if entry['name'] == 'lib' and entry['subproject'] == 'recursive-both']
+        self.assertEqual(len(ids), 2, 'subproject should be built for both machines')
+        self.assertEqual(len(set(ids)), 2, 'native and non-native targets must have different ids')
+
     def test_introspect_projectinfo_subproject_dir(self):
         testdir = os.path.join(self.common_test_dir, '75 custom subproject dir')
         self.init(testdir)

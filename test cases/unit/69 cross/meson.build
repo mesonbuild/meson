@@ -2,7 +2,14 @@ project('crosstest')
 
 add_languages('c', native: true)
 if get_option('generate')
+    cc = meson.get_compiler('c', native: true)
+    quoted = []
+    foreach part : cc.cmd_array()
+        quoted += '\'' + part + '\''
+    endforeach
+
     conf_data = configuration_data()
+    conf_data.set('c_compiler', '[' + ', '.join(quoted) + ']')
     conf_data.set('system', build_machine.system())
     conf_data.set('cpu', build_machine.cpu())
     conf_data.set('cpu_family', build_machine.cpu_family())
