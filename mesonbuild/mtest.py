@@ -1123,7 +1123,7 @@ TestRun.PROTOCOL_TO_CLASS[TestProtocol.EXITCODE] = TestRunExitCode
 
 class TestRunGTest(TestRunExitCode):
     def complete(self) -> None:
-        filename = f'{self.test.name}.xml'
+        filename = '-'.join(self.test.suite + [self.test.name]) + '.xml'
         if self.test.workdir:
             filename = os.path.join(self.test.workdir, filename)
 
@@ -1639,9 +1639,9 @@ class SingleTestRunner:
 
         extra_cmd: T.List[str] = []
         if self.test.protocol is TestProtocol.GTEST:
-            gtestname = self.test.name
+            gtestname = '-'.join(self.test.suite + [self.test.name])
             if self.test.workdir:
-                gtestname = os.path.join(self.test.workdir, self.test.name)
+                gtestname = os.path.join(self.test.workdir, gtestname)
             extra_cmd.append(f'--gtest_output=xml:{gtestname}.xml')
 
         p = await self._run_subprocess(cmd + extra_cmd,
