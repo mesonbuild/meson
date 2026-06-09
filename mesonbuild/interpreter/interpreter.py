@@ -340,11 +340,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build.environment.update_build_machine()
 
         self.builtin['build_machine'] = \
-            OBJ.MachineHolder(self.build.environment.machines.build, self)
+            OBJ.MachineHolder(self.build.environment.machines[self.build.machine_map.build], self)
         self.builtin['host_machine'] = \
-            OBJ.MachineHolder(self.build.environment.machines.host, self)
+            OBJ.MachineHolder(self.build.environment.machines[self.build.machine_map.host], self)
         self.builtin['target_machine'] = \
-            OBJ.MachineHolder(self.build.environment.machines.target, self)
+            OBJ.MachineHolder(self.build.environment.machines[self.build.machine_map.target], self)
 
     def build_func_dict(self) -> None:
         self.funcs.update({'add_global_arguments': self.func_add_global_arguments,
