@@ -267,8 +267,8 @@ class Properties:
 @dataclass(unsafe_hash=True)
 class MachineInfo(HoldableObject):
     system: str
-    cpu_family: str
-    cpu: str
+    cpu_family: str | None
+    cpu: str | None
     endian: str
     kernel: T.Optional[str]
     subsystem: T.Optional[str]
