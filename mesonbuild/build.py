@@ -19,9 +19,10 @@ from . import coredata
 from . import dependencies
 from . import mlog
 from . import programs
+from .environment import MachineMap
 from .mesonlib import (
     HoldableObject, SecondLevelHolder, SimpleABC, SubProject,
-    File, MesonException, MachineChoice, PerMachine,
+    File, MesonException, MachineChoice, ThreeMachineChoice, PerMachine,
     OrderedSet, classify_unity_sources, ROOT_SUBPROJECT,
     get_filenames_templates_dict, substitute_values, has_path_sep,
     is_parent_path, relpath, PerMachineDefaultable,
@@ -400,6 +401,19 @@ class Build:
         for k, v in self.__dict__.items():
             other.__dict__[k] = copy.copy(v)
         return other
+
+    def copy_for_build_machine(self) -> Build:
+        """Create a build-only copy for build machine subprojects.
+
+        Build-only subprojects run with host==build configuration so that get_compiler(),
+        dependency() etc. look up the native (non-cross) environments.  However, note
+        that the environment is still a cross one so that the build-machine options,
+        dependencies, etc. are looked up.
+        """
+        new = self.copy()
+        new.machine_map = MachineMap(self.machine_map.build, self.machine_map.build,
+                                     ThreeMachineChoice(self.machine_map.host))
+        return new
 
     def merge(self, other: Build) -> None:
         for k, v in other.__dict__.items():

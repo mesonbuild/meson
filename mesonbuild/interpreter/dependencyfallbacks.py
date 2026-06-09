@@ -361,6 +361,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
             kwargs['required'] = required and (i == last)
             func_kwargs: DoSubproject = {
                 'required': kwargs['required'],
+                'for_machine': self.for_machine,
                 'cmake_options': [],
                 'default_options': self.default_options,
                 'options': None,
