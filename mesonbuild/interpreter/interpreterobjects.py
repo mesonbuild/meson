@@ -689,9 +689,7 @@ class ProgramHolder(ObjectHolder[_PROG]):
             assert isinstance(self.held_object, build.LocalProgram) and \
                 isinstance(self.held_object.program, (build.BuildTarget, build.CustomTargetIndex))
             return self.interpreter.backend.get_target_filename_abs(self.held_object.program)
-        path = self.held_object.get_path()
-        assert path is not None
-        return path
+        return mesonlib.unwrap(self.held_object.get_path())
 
     @noPosargs
     @noKwargs
@@ -702,9 +700,7 @@ class ProgramHolder(ObjectHolder[_PROG]):
             raise InterpreterException('Unable to get the path of a not-found external program')
         if not self.held_object.runnable():
             return [self._full_path()]
-        cmd = self.held_object.get_command()
-        assert cmd is not None
-        return cmd
+        return self.held_object.get_command()
 
     @noPosargs
     @noKwargs
@@ -1098,9 +1094,9 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
         if self._target_object.vala_header is None:
             raise mesonlib.MesonException("Attempted to get a Vala header from a target that doesn't generate one")
 
-        assert self.interpreter.backend is not None, 'for mypy'
         return mesonlib.File.from_built_file(
-            self.interpreter.backend.get_target_dir(self._target_object), self._target_object.vala_header)
+            self.interpreter.backend.get_target_dir(self._target_object),
+            self._target_object.vala_header)
 
     @FeatureNew('vala_vapi', '1.10.0')
     @noPosargs
@@ -1110,9 +1106,9 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
         if self._target_object.vala_vapi is None:
             raise mesonlib.MesonException("Attempted to get a Vala VAPI from a target that doesn't generate one")
 
-        assert self.interpreter.backend is not None, 'for mypy'
         return mesonlib.File.from_built_file(
-            self.interpreter.backend.get_target_dir(self._target_object), self._target_object.vala_vapi)
+            self.interpreter.backend.get_target_dir(self._target_object),
+            self._target_object.vala_vapi)
 
     @FeatureNew('vala_gir', '1.10.0')
     @noPosargs
@@ -1122,9 +1118,9 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
         if self._target_object.vala_gir is None:
             raise mesonlib.MesonException("Attempted to get a Vala GIR from a target that doesn't generate one")
 
-        assert self.interpreter.backend is not None, 'for mypy'
         return mesonlib.File.from_built_file(
-            self.interpreter.backend.get_target_dir(self._target_object), self._target_object.vala_gir)
+            self.interpreter.backend.get_target_dir(self._target_object),
+            self._target_object.vala_gir)
 
 
 class ExecutableHolder(BuildTargetHolder[build.Executable]):
@@ -1177,7 +1173,6 @@ class CustomTargetIndexHolder(ObjectHolder[build.CustomTargetIndex]):
     @noKwargs
     @InterpreterObject.method('full_path')
     def full_path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
-        assert self.interpreter.backend is not None
         return self.interpreter.backend.get_target_filename_abs(self.held_object)
 
 _CT = T.TypeVar('_CT', bound=build.CustomTarget)

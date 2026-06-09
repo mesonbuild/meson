@@ -310,7 +310,6 @@ class CodeGenModule(ExtensionModule):
         if kwargs['implementations']:
             names = kwargs['implementations']
         else:
-            assert state.environment.machines[kwargs['native']] is not None, 'for mypy'
             if state.environment.machines[kwargs['native']].system == 'windows':
                 names.append('win_flex')
             names.extend(['flex', 'reflex', 'lex'])
@@ -389,7 +388,6 @@ class CodeGenModule(ExtensionModule):
         if kwargs['implementations']:
             names = kwargs['implementations']
         else:
-            assert state.environment.machines[kwargs['native']] is not None, 'for mypy'
             if state.environment.machines[kwargs['native']].system == 'windows':
                 names = ['win_bison', 'bison', 'yacc']
             else:

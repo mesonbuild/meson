@@ -1322,7 +1322,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.active_projectname = proj_name
 
         version = kwargs['version']
-        assert version is not None, 'for mypy'
         if isinstance(version, mesonlib.File):
             FeatureNew.single_use('version from file', '0.57.0', self.subproject, location=node)
             self.add_build_def_file(version)
@@ -1384,7 +1383,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             wrap_mode = WrapMode.from_string(wrap_mode_s)
             self.environment.wrap_resolver = wrap.Resolver(self.environment.get_source_dir(), subprojects_dir, self.subproject, wrap_mode)
         else:
-            assert self.environment.wrap_resolver is not None, 'for mypy'
             self.environment.wrap_resolver.load_and_merge(subprojects_dir, self.subproject)
 
         if self.cargo is None:

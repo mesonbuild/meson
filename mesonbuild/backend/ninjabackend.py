@@ -191,8 +191,7 @@ class NinjaRule:
                 # shell constructs shouldn't be shell quoted
                 return NinjaCommandArg(c, Quoting.notShell)
             if c.startswith('$'):
-                varp = re.match(r'\$\{?(\w*)\}?', c)
-                assert varp is not None, 'for mypy'
+                varp = mesonlib.unwrap(re.match(r'\$\{?(\w*)\}?', c))
                 var: str = varp.group(1)
                 if var not in raw_names:
                     # ninja variables shouldn't be ninja quoted, and their value

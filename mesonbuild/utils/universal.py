@@ -228,8 +228,7 @@ class GitException(MesonException):
 
 GIT = shutil.which('git')
 def git(cmd: T.List[str], workingdir: StrOrBytesPath, check: bool = False, **kwargs: T.Any) -> T.Tuple[subprocess.Popen[str], str, str]:
-    assert GIT is not None, 'Callers should make sure it exists'
-    cmd = [GIT, *cmd]
+    cmd = [unwrap(GIT, 'Callers should make sure it exists'), *cmd]
     p, o, e = Popen_safe(cmd, cwd=workingdir, **kwargs)
     if check and p.returncode != 0:
         raise GitException('Git command failed: ' + str(cmd), e)
@@ -690,8 +689,8 @@ class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
         This allows just specifying nothing in the native case, and just host in the
         cross non-compiler case.
         """
-        assert self.build is not None, 'Cannot fill in missing when all fields are empty'
-        return PerMachine(self.build, self.host if self.host is not None else self.build)
+        build = unwrap(self.build, 'Cannot fill in missing when all fields are empty')
+        return PerMachine(build, self.host if self.host is not None else build)
 
     @classmethod
     def default(cls, is_cross: bool, build: _T, host: _T) -> PerMachine[_T]:
@@ -722,10 +721,10 @@ class PerThreeMachineDefaultable(PerMachineDefaultable[T.Optional[_T]], PerThree
         cross non-compiler case, and just target in the native-built
         cross-compiler case.
         """
-        assert self.build is not None, 'Cannot default a PerMachine when all values are None'
-        host = self.host if self.host is not None else self.build
+        build = unwrap(self.build, 'Cannot fill in missing when all fields are empty')
+        host = self.host if self.host is not None else build
         target = self.target if self.target is not None else host
-        return PerThreeMachine(self.build, host, target)
+        return PerThreeMachine(build, host, target)
 
 
 _PLATFORM_SYSTEM_LOWER = platform.system().lower()

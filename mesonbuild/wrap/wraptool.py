@@ -192,8 +192,7 @@ def promote(options: 'argparse.Namespace') -> None:
 
 def status(options: 'argparse.Namespace') -> None:
     print('Subproject status')
-    subdir = mesonlib.get_subproject_dir()
-    assert subdir is not None, "This should only happen in a non-native subproject"
+    subdir = mesonlib.unwrap(mesonlib.get_subproject_dir(), "This should only happen in a non-native subproject")
     for w in glob(f'{subdir}/*.wrap'):
         name = os.path.basename(w)[:-5]
         try:
