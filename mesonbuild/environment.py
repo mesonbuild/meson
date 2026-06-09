@@ -111,6 +111,8 @@ class Environment:
     log_dir = 'meson-logs'
     info_dir = 'meson-info'
 
+    exe_wrapper: ExternalProgram | None
+
     def __init__(self, source_dir: str, build_dir: T.Optional[str], cmd_options: cmdline.SharedCMDOptions) -> None:
         self.source_dir = source_dir
         # Do not try to create build directories when build_dir is none.
@@ -258,6 +260,7 @@ class Environment:
                         if k.machine is MachineChoice.HOST or self.coredata.optstore.is_per_machine_option(k)}
 
         exe_wrapper = self.lookup_binary_entry(MachineChoice.HOST, 'exe_wrapper')
+        self.exe_wrapper: ExternalProgram | None
         if exe_wrapper is not None:
             self.exe_wrapper = ExternalProgram.from_bin_list(self, MachineChoice.HOST, 'exe_wrapper')
         else:
