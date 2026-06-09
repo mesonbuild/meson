@@ -113,7 +113,7 @@ class MesonApp:
         return os.path.exists(fname)
 
     def validate_core_dirs(self, dir1: T.Optional[str], dir2: T.Optional[str]) -> T.Tuple[str, str]:
-        invalid_msg_prefix = f'Neither source directory {dir1!r} nor build directory {dir2!r}'
+        invalid_msg_prefix = f'Neither source directory {dir2!r} nor build directory {dir1!r}'
         if dir1 is None:
             if dir2 is None:
                 if not self.has_build_file('.') and self.has_build_file('..'):
