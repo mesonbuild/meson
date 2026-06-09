@@ -160,10 +160,10 @@ class _Logger:
                 raise MesonException(f'Failed to start pager: {str(e)}')
 
     def stop_pager(self) -> None:
-        if self.log_pager:
+        if self.log_pager and (stdin := self.log_pager.stdin) is not None:
             try:
-                self.log_pager.stdin.flush()
-                self.log_pager.stdin.close()
+                stdin.flush()
+                stdin.close()
             except OSError:
                 pass
             self.log_pager.wait()
@@ -374,6 +374,7 @@ class _Logger:
             self.log_depth.pop()
 
     def get_log_dir(self) -> str:
+        assert self.log_dir is not None, 'attempted to use logger without initializing'
         return self.log_dir
 
     def get_log_depth(self) -> int:
@@ -396,7 +397,7 @@ class _Logger:
 
     def colorize_console(self) -> bool:
         output = sys.stderr if self.log_to_stderr else sys.stdout
-        _colorize_console: bool = getattr(output, 'colorize_console', None)
+        _colorize_console: bool | None = getattr(output, 'colorize_console', None)
         if _colorize_console is not None:
             return _colorize_console
         try:
