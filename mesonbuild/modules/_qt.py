@@ -455,11 +455,11 @@ class QtBaseModule(ExtensionModule):
             res_target = build.CustomTarget(
                 name,
                 state.subdir,
-                state.subproject,
                 state.environment,
                 cmd,
                 sources,
                 [f'{name}.cpp'],
+                state.current_build_project,
                 depend_files=qrc_deps,
                 depfile=f'{name}.d',
                 description='Compiling Qt resources {}',
@@ -474,11 +474,11 @@ class QtBaseModule(ExtensionModule):
                 res_target = build.CustomTarget(
                     name,
                     state.subdir,
-                    state.subproject,
                     state.environment,
                     cmd,
                     [rcc_file],
                     [f'{name}.cpp'],
+                    state.current_build_project,
                     depend_files=qrc_deps,
                     depfile=f'{name}.d',
                     description='Compiling Qt resources {}',
@@ -745,11 +745,11 @@ class QtBaseModule(ExtensionModule):
             lrelease_target = build.CustomTarget(
                 f'qt{self.qt_version}-compile-{ts}',
                 outdir,
-                state.subproject,
                 state.environment,
                 cmd,
                 [ts_file],
                 ['@BASENAME@.qm'],
+                state.current_build_project,
                 install=kwargs['install'],
                 install_dir=[kwargs['install_dir']],
                 install_tag=['i18n'],
@@ -885,11 +885,11 @@ class QtBaseModule(ExtensionModule):
         return build.CustomTarget(
             f'moc_collect_json_{target_name}',
             state.subdir,
-            state.subproject,
             state.environment,
             cmd,
             moc_json,
             [f'{target_name}_json_collect.json'],
+            state.current_build_project,
             description=f'Collecting json type information for {target_name}',
         )
 
@@ -933,12 +933,12 @@ class QtBaseModule(ExtensionModule):
         cacheloader_target = build.CustomTarget(
             f'cacheloader_{target_name}',
             state.subdir,
-            state.subproject,
             state.environment,
             cmd,
             [kwargs['qml_qrc']],
             #output name format matters here
             [f'{target_name}_qmlcache_loader.cpp'],
+            state.current_build_project,
             description=f'Qml cache loader for {target_name}',
         )
         output.append(cacheloader_target)
@@ -990,11 +990,11 @@ class QtBaseModule(ExtensionModule):
         return build.CustomTarget(
             f'typeregistrar_{target_name}',
             state.subdir,
-            state.subproject,
             state.environment,
             cmd,
             inputs,
             outputs,
+            state.current_build_project,
             install=kwargs['install'],
             install_dir=install_dir,
             install_tag=install_tag,

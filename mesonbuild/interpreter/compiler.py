@@ -908,7 +908,6 @@ class CompilerHolder(ObjectHolder['Compiler']):
         tg = build.CompileTarget(
             tg_name,
             self.interpreter.subdir,
-            self.subproject,
             self.environment,
             sources,
             kwargs['output'],
@@ -917,6 +916,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             kwargs['compile_args'],
             self.interpreter.extract_incdirs(kwargs['include_directories']),
             kwargs['dependencies'],
+            self.interpreter.current_build_project(),
             kwargs['depends'])
         self.interpreter.add_target(tg.name, tg)
         # Expose this target as list of its outputs, so user can pass them to

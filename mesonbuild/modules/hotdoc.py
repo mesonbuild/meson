@@ -26,6 +26,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from . import ModuleState
+    from ..build import BuildProject
     from ..environment import Environment
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import TargetDepends
@@ -331,7 +332,6 @@ class HotdocTargetBuilder:
 
         target = HotdocTarget(fullname,
                               subdir=self.subdir,
-                              subproject=self.state.subproject,
                               environment=self.state.environment,
                               hotdoc_conf=File.from_built_file(
                                   self.subdir, hotdoc_config_name),
@@ -342,6 +342,7 @@ class HotdocTargetBuilder:
                               extra_depends=self.extra_depends,
                               outputs=[fullname],
                               sources=[],
+                              build_project=self.state.current_build_project,
                               depfile=os.path.basename(depfile),
                               build_by_default=self.build_by_default)
 
@@ -387,10 +388,11 @@ class HotdocTargetHolder(_CustomTargetHolder['HotdocTarget']):
 
 
 class HotdocTarget(CustomTarget):
-    def __init__(self, name: str, subdir: str, subproject: mesonlib.SubProject, hotdoc_conf: File,
+    def __init__(self, name: str, subdir: str, hotdoc_conf: File,
                  extra_extension_paths: T.Set[str], extra_assets: T.List[str],
-                 subprojects: T.List['HotdocTarget'], environment: Environment, **kwargs: T.Any):
-        super().__init__(name, subdir, subproject, environment, **kwargs, absolute_paths=True)
+                 subprojects: T.List['HotdocTarget'], environment: Environment,
+                 build_project: BuildProject, **kwargs: T.Any):
+        super().__init__(name, subdir, environment, **kwargs, build_project=build_project, absolute_paths=True)
         self.hotdoc_conf = hotdoc_conf
         self.extra_extension_paths = extra_extension_paths
         self.extra_assets = extra_assets

@@ -180,11 +180,11 @@ class LexHolder(ObjectHolder[LexGenerator]):
         target = CustomTarget(
             f'codegen-lex-{name}-{for_machine.get_lower_case_name()}',
             self.interpreter.subdir,
-            self.interpreter.subproject,
             self.interpreter.environment,
             command,
             [input],
             outputs,
+            self.interpreter.current_build_project(),
             backend=self.interpreter.backend,
             description='Generating lexer {{}} with {}'.format(self.held_object.name),
         )
@@ -255,11 +255,11 @@ class YaccHolder(ObjectHolder[YaccGenerator]):
         target = CustomTarget(
             f'codegen-yacc-{name}-{for_machine.get_lower_case_name()}',
             self.interpreter.subdir,
-            self.interpreter.subproject,
             self.interpreter.environment,
             command,
             [input],
             outputs,
+            self.interpreter.current_build_project(),
             backend=self.interpreter.backend,
             description='Generating parser {{}} with {}'.format(self.held_object.name),
         )
