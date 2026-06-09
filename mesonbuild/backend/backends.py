@@ -1455,8 +1455,7 @@ class Backend:
                 fname = self.determine_ext_objs(i)
             elif isinstance(i, programs.Program):
                 assert i.found(), "This shouldn't be possible"
-                assert i.get_path() is not None, 'for mypy'
-                fname = [i.get_path()]
+                fname = [mesonlib.unwrap(i.get_path())]
             else:
                 fname = [i.rel_to_builddir(self.build_to_src)]
             if target.absolute_paths:
