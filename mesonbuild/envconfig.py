@@ -758,7 +758,7 @@ def machine_info_can_run(machine_info: MachineInfo) -> bool:
     system = detect_system()
     if machine_info.system != system:
         return False
-    if machine_info.subsystem != detect_subsystem(system):
+    if machine_info.subsystem and machine_info.subsystem != detect_subsystem(system):
         return False
     true_build_cpu_family = detect_cpu_family({})
     assert machine_info.cpu_family is not None, 'called on incomplete machine_info'
