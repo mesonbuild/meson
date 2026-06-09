@@ -18,10 +18,12 @@ import re
 from . import build, tooldetect
 from .backend.backends import InstallData
 from .mesonlib import (MesonException, Popen_safe, RealPathAction, is_windows,
-                       is_aix, setup_vsenv, path_has_root, pickle_load, is_osx)
+                       is_aix, setup_vsenv, path_has_root, pickle_load, is_osx,
+                       unwrap)
 from .options import OptionKey
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
+main_file: str | None
 try:
     from __main__ import __file__ as main_file
 except ImportError:
@@ -165,7 +167,11 @@ def set_chown(path: str, user: T.Union[str, int, None] = None,
     if sys.version_info >= (3, 13):
         # pylint: disable=unexpected-keyword-arg
         # cannot handle sys.version_info, https://github.com/pylint-dev/pylint/issues/9622
-        shutil.chown(path, user, group, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
+        #
+        # Mypy does not understand that the assert above ensures that user,
+        # group is either `None, int | str` or `int | str, None`, so we need to
+        # ignore the warning
+        shutil.chown(path, user, group, dir_fd=dir_fd, follow_symlinks=follow_symlinks)  # type: ignore[arg-type]
     else:
         real_os_chown = os.chown
 
@@ -181,7 +187,10 @@ def set_chown(path: str, user: T.Union[str, int, None] = None,
 
         try:
             os.chown = chown
-            shutil.chown(path, user, group)
+            # Mypy does not understand that the assert above ensures that user,
+            # group is either `None, int | str` or `int | str, None`, so we need to
+            # ignore the warning
+            shutil.chown(path, user, group)  # type: ignore[arg-type]
         finally:
             os.chown = real_os_chown
 
@@ -577,6 +586,7 @@ class Installer:
             if is_windows() or destdir != '' or not os.isatty(sys.stdout.fileno()) or not os.isatty(sys.stderr.fileno()):
                 # can't elevate to root except in an interactive unix environment *and* when not doing a destdir install
                 raise
+
             rootcmd = (
                 os.environ.get('MESON_ROOT_CMD')
                 or shutil.which('sudo')
@@ -606,7 +616,8 @@ class Installer:
                     if ans is not None:
                         raise MesonException('Answer not one of [y/n]')
                 if ans == 'y':
-                    os.execlp(rootcmd, rootcmd, sys.executable, main_file, *sys.argv[1:],
+                    mf = unwrap(main_file, 'main_file should only be None on Windows')
+                    os.execlp(rootcmd, rootcmd, sys.executable, mf, *sys.argv[1:],
                               '-C', os.getcwd(), '--no-rebuild')
             raise
 
