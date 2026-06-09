@@ -114,10 +114,10 @@ class ReproTester:
         self.check_contents('buildrepro', 'buildrepro.1st', True)
         self.check_contents('buildrepro.1st', 'buildrepro', False)
 
-def run(options: T.Any) -> None:
+def run(options: argparse.Namespace) -> int:
     rt = ReproTester(options)
     try:
-        sys.exit(rt.run())
+        return rt.run()
     except Exception as e:
         print(e)
-        sys.exit(1)
+        return 1
