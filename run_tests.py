@@ -136,6 +136,7 @@ def _using_intelcl() -> bool:
 class FakeBuild:
     def __init__(self, env):
         self.environment = env
+        self.machine_map = env.machine_map
 
 def get_fake_options(prefix: str = '') -> SharedCMDOptions:
     opts = T.cast('SharedCMDOptions', argparse.Namespace())

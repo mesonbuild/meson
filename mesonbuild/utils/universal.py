@@ -81,6 +81,7 @@ __all__ = [
     'GitException',
     'LibType',
     'MachineChoice',
+    'ThreeMachineChoice',
     'EnvironmentException',
     'FileOrString',
     'GitException',
