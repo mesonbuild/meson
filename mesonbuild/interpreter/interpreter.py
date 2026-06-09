@@ -1332,7 +1332,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         if self.cargo is None:
             self.load_root_cargo_lock_file()
 
-        self.build.projects[self.subproject] = build.BuildProject(proj_name, self.project_version)
+        self.build.projects[self.subproject] = build.BuildProject(proj_name, self.project_version,
+                                                                  self.subproject)
         mlog.log('Project name:', mlog.bold(proj_name))
         mlog.log('Project version:', mlog.bold(self.project_version))
 
