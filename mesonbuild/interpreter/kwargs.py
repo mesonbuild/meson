@@ -580,3 +580,9 @@ class FuncEnvironment(TypedDict):
 
     method: Literal['set', 'prepend', 'append']
     separator: str
+
+
+class MachineMapArgs(TypedDict):
+
+    native: NotRequired[MachineChoice]
+    install: NotRequired[bool]

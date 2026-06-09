@@ -27,6 +27,7 @@ from ..dependencies import Dependency
 from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
 from ..interpreterbase import noPosargs, noKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
+from .decorators import apply_machine_map
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
@@ -345,6 +346,11 @@ class Interpreter(InterpreterBase, HoldableObject):
             OBJ.MachineHolder(self.build.environment.machines[self.build.machine_map.host], self)
         self.builtin['target_machine'] = \
             OBJ.MachineHolder(self.build.environment.machines[self.build.machine_map.target], self)
+
+    def apply_machine_map_to_kwargs(self, kwargs: kwtypes.MachineMapArgs) -> None:
+        orig_for_machine: MachineChoice | None = kwargs.get('native', None)
+        if orig_for_machine is not None:
+            kwargs['native'] = self.build.machine_map[orig_for_machine]
 
     def build_func_dict(self) -> None:
         self.funcs.update({'add_global_arguments': self.func_add_global_arguments,
@@ -1823,6 +1829,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         DEFAULT_OPTIONS.evolve(since='1.3.0')
     )
     @disablerIfNotFound
+    @apply_machine_map
     def func_find_program(self, node: mparser.BaseNode, args: T.Tuple[T.List[mesonlib.FileOrString]],
                           kwargs: 'kwtypes.FindProgram',
                           ) -> Program:
@@ -1841,6 +1848,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('dependency', varargs=str, min_varargs=1)
     @typed_kwargs('dependency', *DEPENDENCY_KWS)
     @disablerIfNotFound
+    @apply_machine_map
     def func_dependency(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]], kwargs: kwtypes.FuncDependency) -> Dependency:
         # Replace '' by empty list of names
         names = [n for n in args[0] if n]
@@ -1991,6 +1999,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         INSTALL_TAG_KW.evolve(since='1.7.0'),
         INSTALL_MODE_KW.evolve(since='1.7.0'),
     )
+    @apply_machine_map
     def func_vcs_tag(self, node: mparser.BaseNode, args: T.List['TYPE_var'], kwargs: 'kwtypes.VcsTag') -> build.CustomTarget:
         if kwargs['fallback'] is None:
             FeatureNew.single_use('Optional fallback in vcs_tag', '0.41.0', self.subproject, location=node)
@@ -2101,6 +2110,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('console', bool, default=False, since='0.48.0'),
         KwargInfo('build_subdir', str, default='', since='1.10.0'),
     )
+    @apply_machine_map
     def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[str],
                            kwargs: 'kwtypes.CustomTarget') -> build.CustomTarget:
         if kwargs['depfile'] and ('@BASENAME@' in kwargs['depfile'] or '@PLAINNAME@' in kwargs['depfile']):
@@ -2698,6 +2708,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('macro_name', (str, NoneType), default=None, since='1.3.0'),
         KwargInfo('build_subdir', str, default='', since='1.10.0'),
     )
+    @apply_machine_map
     def func_configure_file(self, node: mparser.BaseNode, args: T.List[TYPE_var],
                             kwargs: kwtypes.ConfigureFile) -> mesonlib.File:
         actions = sorted(x for x in ('configuration', 'command', 'copy')
@@ -2991,22 +3002,26 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @typed_pos_args('add_global_arguments', varargs=str)
     @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
+    @apply_machine_map
     def func_add_global_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
         self._add_global_arguments(node, self.build.global_args[kwargs['native']], args[0], kwargs)
 
     @typed_pos_args('add_global_link_arguments', varargs=str)
     @typed_kwargs('add_global_link_arguments', NATIVE_KW, LANGUAGE_KW)
+    @apply_machine_map
     def func_add_global_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
         self._add_global_arguments(node, self.build.global_link_args[kwargs['native']], args[0], kwargs)
 
     @typed_pos_args('add_project_arguments', varargs=str)
     @typed_kwargs('add_project_arguments', NATIVE_KW, LANGUAGE_KW)
+    @apply_machine_map
     def func_add_project_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
         self._add_project_arguments(node, self.current_build_project().project_args[kwargs['native']],
                                     args[0], kwargs)
 
     @typed_pos_args('add_project_link_arguments', varargs=str)
     @typed_kwargs('add_project_link_arguments', NATIVE_KW, LANGUAGE_KW)
+    @apply_machine_map
     def func_add_project_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
         self._add_project_arguments(node, self.current_build_project().project_link_args[kwargs['native']],
                                     args[0], kwargs)
@@ -3017,6 +3032,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @FeatureNew('add_project_dependencies', '0.63.0')
     @typed_pos_args('add_project_dependencies', varargs=dependencies.Dependency)
     @typed_kwargs('add_project_dependencies', NATIVE_KW, LANGUAGE_KW)
+    @apply_machine_map
     def func_add_project_dependencies(self, node: mparser.FunctionNode, args: T.Tuple[T.List[dependencies.Dependency]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
         for_machine = kwargs['native']
         for lang in kwargs['language']:

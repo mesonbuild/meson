@@ -1018,7 +1018,7 @@ class CrossFileTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '137 external property nonexisting')
         self.meson_native_files = [os.path.join(testdir, "propfile")]
         out = self.init(testdir, allow_fail=True, extra_args=['-Dnative=true'])
-        self.assertIn('Unknown property for build machine: nonexisting', out)
+        self.assertIn('Unknown property for host machine: nonexisting', out)
 
     def test_external_property_host_machine_native(self):
         testdir = os.path.join(self.unit_test_dir, '137 external property nonexisting')
