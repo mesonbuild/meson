@@ -46,7 +46,6 @@ class PkgConfigInterface:
     def instance(env: Environment, for_machine: MachineChoice, silent: bool,
                  extra_paths: T.Optional[T.List[str]] = None) -> T.Optional[PkgConfigInterface]:
         '''Return a pkg-config implementation singleton'''
-        for_machine = for_machine if env.is_cross_build() else MachineChoice.HOST
         extra_paths_key = tuple(extra_paths) if extra_paths is not None else None
         impl = PkgConfigInterface.class_impl[for_machine].get(extra_paths_key, False)
         if impl is False:
