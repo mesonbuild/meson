@@ -18,6 +18,7 @@ from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, 
 from ..compilers.compilers import are_asserts_disabled_for_subproject, lang_suffixes
 from ..compilers.rust import parse_target, RustSystemDependency
 from ..dependencies import Dependency
+from ..interpreter.decorators import apply_machine_map
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
     OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NATIVE_KW, NoneType, in_set_validator,
@@ -976,6 +977,7 @@ class RustModule(ExtensionModule):
     @FeatureNew('rust.compiler_target', '1.11.0')
     @noPosargs
     @typed_kwargs('rust.compiler_target', NATIVE_KW)
+    @apply_machine_map
     def compiler_target(self, state: ModuleState, args: T.List, kwargs: '_kwargs.NativeKW') -> str:
         """Returns the Rust target triple for the specified machine's Rust compiler."""
         for_machine = kwargs['native']
