@@ -410,8 +410,11 @@ class Build:
 
             if isinstance(v, PerMachine):
                 dest = self.__dict__[k]
+                if dest.host is dest.build:
+                    dest.host = v.build
+                elif v.host is not v.build:
+                    dest.host = v.host
                 dest.build = v.build
-                dest.host = v.host
             else:
                 self.__dict__[k] = v
 
