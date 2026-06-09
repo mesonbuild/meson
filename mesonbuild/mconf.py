@@ -21,7 +21,7 @@ from . import mesonlib
 from . import mintro
 from . import mlog
 from .ast import AstIDGenerator, IntrospectionInterpreter
-from .mesonlib import MachineChoice
+from .mesonlib import MachineChoice, unwrap
 from .options import OptionKey
 from .optinterpreter import OptionInterpreter
 
@@ -189,8 +189,8 @@ class Conf:
                 mlog.log(*items)
 
     def split_options_per_subproject(self, opts: T.Union[options.MutableKeyedOptionDictType, options.OptionStore]
-                                     ) -> T.Dict[str, options.MutableKeyedOptionDictType]:
-        result: T.Dict[str, options.MutableKeyedOptionDictType] = {}
+                                     ) -> T.Dict[str | None, options.MutableKeyedOptionDictType]:
+        result: T.Dict[str | None, options.MutableKeyedOptionDictType] = {}
         for k, o in opts.items():
             if k.subproject is not None:
                 self.all_subprojects.add(k.subproject)
@@ -278,10 +278,9 @@ class Conf:
                 dir_options[k] = v
             elif k in test_option_names:
                 test_options[k] = v
-            elif k.has_module_prefix():
+            elif (modname := k.get_module_prefix()) is not None:
                 # Ignore module options if we did not use that module during
                 # configuration.
-                modname = k.get_module_prefix()
                 if self.build and modname not in self.build.modules:
                     continue
                 module_options[modname][k] = v
@@ -293,7 +292,7 @@ class Conf:
         host_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if self.coredata.optstore.is_compiler_option(k) and k.machine is MachineChoice.HOST})
         build_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if self.coredata.optstore.is_compiler_option(k) and k.machine is MachineChoice.BUILD})
         project_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if self.coredata.optstore.is_project_option(k)})
-        show_build_options = self.default_values_only or self.build.environment.is_cross_build()
+        show_build_options = self.default_values_only or unwrap(self.build).environment.is_cross_build()
 
         self.add_section('Global build options')
         self.print_options('Core options', host_core_options[None])
@@ -390,8 +389,9 @@ def run_impl(options: CMDOptions, builddir: str) -> int:
             save = True
         if save:
             c.save()
-            mintro.update_build_options(c.coredata, c.build.environment.info_dir)
-            mintro.write_meson_info_file(c.build, [])
+            build = unwrap(c.build)
+            mintro.update_build_options(c.coredata, build.environment.info_dir)
+            mintro.write_meson_info_file(build, [])
     except ConfException as e:
         mlog.log('Meson configurator encountered an error:')
         if c is not None and c.build is not None:
