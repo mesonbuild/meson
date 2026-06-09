@@ -303,6 +303,7 @@ class DepManifest:
 class BuildProject:
     name: str
     version: str
+    subproject: SubProject
     project_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
     project_link_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
 
