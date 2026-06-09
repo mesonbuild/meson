@@ -57,7 +57,7 @@ def errorhandler(e: Exception, command: str) -> int:
         elif isinstance(e, OSError):
             mlog.exception(Exception("Unhandled python OSError. This is probably not a Meson bug, "
                            "but an issue with your build environment."))
-            return e.errno
+            return e.errno or 0
         else: # Exception
             msg = 'Unhandled python exception'
             if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
@@ -126,7 +126,8 @@ class CommandLineParser:
                          help_msg=argparse.SUPPRESS)
 
     def add_command(self, name: str, add_arguments_func: T.Callable[[argparse.ArgumentParser], None],
-                    run_func: T.Callable[[argparse.Namespace], int], help_msg: str, aliases: T.List[str] = None) -> None:
+                    run_func: T.Callable[[argparse.Namespace], int], help_msg: str,
+                    aliases: T.List[str] | None = None) -> None:
         aliases = aliases or []
         # FIXME: Cannot have hidden subparser:
         # https://bugs.python.org/issue22848
@@ -185,7 +186,7 @@ class CommandLineParser:
             command = None
 
         from . import mesonlib
-        args = mesonlib.expand_arguments(args)
+        args = mesonlib.unwrap_err(mesonlib.expand_arguments(args), 'Failed to expand arguments')
         options = T.cast('MesonMainCMDOptions', parser.parse_args(args))
 
         if command is None:
