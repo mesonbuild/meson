@@ -172,6 +172,7 @@ class RustWorkspace(ModuleObject):
             'options': None,
             'cmake_options': [],
             'default_options': {},
+            'for_machine': MachineChoice.HOST,
         }
         subp_name = pkg.get_subproject_name()
         self.interpreter.do_subproject(subp_name, kw, force_method='cargo')
