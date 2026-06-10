@@ -1225,7 +1225,7 @@ class Vs2010Backend(backends.Backend):
     @staticmethod
     def get_nmake_base_meson_command_and_exe_search_paths() -> T.Tuple[str, str]:
         meson_cmd_list = mesonlib.get_meson_command()
-        assert (len(meson_cmd_list) == 1) or (len(meson_cmd_list) == 2)
+        assert len(meson_cmd_list) in {1, 2}
         # We expect get_meson_command() to either be of the form -
         #   1:  ['path/to/meson.exe']
         # or -
