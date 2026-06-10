@@ -380,7 +380,7 @@ class Backend:
         raise AssertionError(f'BUG: Tried to link to {target!r} which is not linkable')
 
     @lru_cache(maxsize=None)
-    def get_target_dir(self, target: build.AnyTargetType) -> str:
+    def get_target_dir_cached(self, target: build.Target) -> str:
         if isinstance(target, build.RunTarget):
             # this produces no output, only a dummy top-level name
             dirname = ''
@@ -392,6 +392,12 @@ class Backend:
             if build_subdir:
                 dirname = os.path.join(dirname, build_subdir)
         return dirname
+
+    def get_target_dir(self, target: build.AnyTargetType) -> str:
+        if isinstance(target, build.CustomTargetIndex):
+            return self.get_target_dir_cached(target.target)
+        else:
+            return self.get_target_dir_cached(target)
 
     def get_target_dir_relative_to(self,
                                    t: T.Union[build.Target, build.CustomTargetIndex],

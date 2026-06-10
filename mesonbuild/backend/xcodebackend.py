@@ -304,9 +304,8 @@ class XCodeBackend(backends.Backend):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
 
     @functools.lru_cache(maxsize=None)
-    def get_target_dir(self, target: build.AnyTargetType) -> str:
+    def get_target_dir_cached(self, target: build.Target) -> str:
         dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))))
-        #os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
     def get_custom_target_output_dir(self, target: build.AnyTargetType) -> str:
