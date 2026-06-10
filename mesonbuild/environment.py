@@ -410,11 +410,10 @@ class Environment:
         # re-initialized with project options by the interpreter during
         # build file parsing.
         # meson_command is used by the regenchecker script, which runs meson
-        meson_command = mesonlib.get_meson_command()
-        if meson_command is None:
+        try:
+            meson_command = mesonlib.get_meson_command().copy()
+        except MesonBugException:
             meson_command = []
-        else:
-            meson_command = meson_command.copy()
         self.coredata = coredata.CoreData(options, self.scratch_dir, meson_command)
         self.first_invocation = True
 
@@ -443,10 +442,7 @@ class Environment:
 
     @staticmethod
     def get_build_command(unbuffered: bool = False) -> T.List[str]:
-        cmd = mesonlib.get_meson_command()
-        if cmd is None:
-            raise MesonBugException('No command?')
-        cmd = cmd.copy()
+        cmd = mesonlib.get_meson_command().copy()
         if unbuffered and 'python' in os.path.basename(cmd[0]):
             cmd.insert(1, '-u')
         return cmd
