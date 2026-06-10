@@ -344,6 +344,11 @@ class ElbrusFortranCompiler(ElbrusCompiler, FortranCompiler):
     def get_module_outdir_args(self, path: str) -> T.List[str]:
         return ['-J' + path]
 
+    def language_stdlib_only_link_flags(self) -> T.List[str]:
+        # No need to add search paths here, because LCC ships everything
+        # (C, C++, Fortran) and always knows where to look for its stuff
+        return ['-lgfortran', '-lm']
+
 
 class G95FortranCompiler(FortranCompiler):
 
