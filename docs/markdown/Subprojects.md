@@ -227,34 +227,35 @@ the following command-line options:
 * **--wrap-mode=nofallback**
 
     Meson will not use subproject fallbacks for any dependency
-    declarations in the build files, and will only look for them in the
-    system. Note that this does not apply to unconditional subproject()
-    calls, and those are meant to be used for sources that cannot be
-    provided by the system, such as copylibs.
+    declarations and program lookups in the build files, and will only
+    look for them in the system. Note that this does not apply to
+    unconditional subproject() calls, and those are meant to be used for
+    sources that cannot be provided by the system, such as copylibs.
 
     This option may be overridden by `--force-fallback-for` for specific
     dependencies.
 
 * **--wrap-mode=forcefallback**
 
-    Meson will not look at the system for any dependencies which have
-    subproject fallbacks available, and will *only* use subprojects for
-    them. This is useful when you want to test your fallback setup, or
-    want to specifically build against the library sources provided by
-    your subprojects.
+    Meson will not look at the system for any dependencies and programs
+    which have subproject fallbacks available, and will *only* use
+    subprojects for them. This is useful when you want to test your
+    fallback setup, or want to specifically build against the library
+    sources provided by your subprojects.
 
-* **--force-fallback-for=list,of,dependencies**
+* **--force-fallback-for=list,of,dependencies,or,subprojects**
 
-    Meson will not look at the system for any dependencies listed there,
-    provided a fallback was supplied when the dependency was declared.
+    Meson will not look at the system for any dependencies and
+    subprojects listed there, provided a fallback was supplied in the
+    wrapfile or when the dependency was declared.
 
     This option takes precedence over `--wrap-mode=nofallback`, and when
     used in combination with `--wrap-mode=nodownload` will only work
-    if the dependency has already been downloaded.
+    if the subproject has already been downloaded.
 
-    This is useful when your project has many fallback dependencies,
-    but you only want to build against the library sources for a few
-    of them.
+    This is useful when your project has many fallback dependencies or
+    programs, but you only want to build against the library sources for
+    a few of them.
 
     **Warning**: This could lead to mixing system and subproject version of the
     same library in the same process. Take this case as example:
@@ -277,6 +278,10 @@ the following command-line options:
     library. To avoid that situation, every dependency that itself depend on
     `glib-2.0` must also be forced to fallback, in this case with
     `--force-fallback-for=glib,gsteamer`.
+
+    Starting with version 1.12, meson will also fallback into evaluating a
+    subproject during find_program, if a wrap file indicates it provides the
+    requested program and the wrap name of the is listed in `--force-fallback-for`.
 
 * **--wrap-mode=nopromote**
 

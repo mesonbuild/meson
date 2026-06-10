@@ -1818,13 +1818,17 @@ class Interpreter(InterpreterBase, HoldableObject):
             # Override find_program('meson') to return what we were invoked with
             return ExternalProgram('meson', self.environment.get_build_command(), silent=True)
 
-        fallback: SubProject | None = None
         wrap_mode_s = self.coredata.optstore.get_value_for(OptionKey('wrap_mode'))
+        force_fallback_for = self.coredata.optstore.get_value_for(OptionKey('force_fallback_for'))
         assert isinstance(wrap_mode_s, str), 'for mypy'
+        assert isinstance(force_fallback_for, list), 'for mypy'
         wrap_mode = WrapMode.from_string(wrap_mode_s)
-        if wrap_mode != WrapMode.nofallback and self.environment.wrap_resolver:
-            fallback = self.environment.wrap_resolver.find_program_provider(args)
-        if fallback and wrap_mode == WrapMode.forcefallback:
+
+        fallback: SubProject | None = \
+            self.environment.wrap_resolver.find_program_provider(args) \
+            if self.environment.wrap_resolver is not None \
+            else None
+        if fallback and (wrap_mode == WrapMode.forcefallback or fallback in force_fallback_for):
             return self.find_program_fallback(fallback, args, for_machine, default_options, required, extra_info)
 
         progobj = self.program_from_file_for(for_machine, args)
