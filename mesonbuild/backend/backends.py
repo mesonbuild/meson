@@ -749,9 +749,7 @@ class Backend:
         Otherwise, we query the target for the dynamic linker.
         '''
         if isinstance(target, build.StaticLibrary):
-            static_linker = self.build.static_linker[target.for_machine]
-            assert static_linker is not None, "Compiler.needs_static_linker does not match backend logic"
-            return static_linker, []
+            return self.build.get_static_linker(target), []
         l, stdlib_args = target.get_clink_dynamic_linker_and_stdlibs()
         return l, stdlib_args
 
