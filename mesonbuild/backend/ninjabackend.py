@@ -470,7 +470,6 @@ class RustCrate:
     edition: RUST_EDITIONS
     deps: T.List[RustDep]
     cfg: T.List[str]
-    is_proc_macro: bool
 
     # This is set to True for members of this project, and False for all
     # subprojects
@@ -483,13 +482,12 @@ class RustCrate:
             "root_module": self.root_module,
             "edition": self.edition,
             "cfg": self.cfg,
-            "is_proc_macro": self.is_proc_macro,
+            "is_proc_macro": self.proc_macro_dylib_path is not None,
             "deps": [d.to_json() for d in self.deps],
         }
 
-        if self.is_proc_macro:
-            assert self.proc_macro_dylib_path is not None, "This shouldn't happen"
-            ret["proc_macro_dylib_path"] = self.proc_macro_dylib_path
+        if (proc_macro := self.proc_macro_dylib_path) is not None:
+            ret["proc_macro_dylib_path"] = proc_macro
 
         return ret
 
@@ -1984,7 +1982,6 @@ class NinjaBackend(backends.Backend):
             deps,
             cfg,
             is_workspace_member=not from_subproject,
-            is_proc_macro=proc_macro_dylib_path is not None,
             proc_macro_dylib_path=proc_macro_dylib_path,
         )
 
