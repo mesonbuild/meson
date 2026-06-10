@@ -498,6 +498,12 @@ class Build:
 
         return link_args.get(compiler.get_language(), [])
 
+    def get_static_linker(self, target: BuildTarget) -> StaticLinker:
+        archiver = self.static_linker[target.for_machine]
+        if archiver is None:
+            raise MesonBugException(f'Required static_linker for {target.for_machine} not found')
+        return archiver
+
 @dataclass(eq=False)
 class IncludeDirs(HoldableObject):
 
