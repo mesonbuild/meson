@@ -38,7 +38,7 @@ def no_pkgconfig():
 
     def new_search(self, name, search_dirs, exclude_paths):
         if name == 'pkg-config':
-            return [None]
+            return []
         return old_search(self, name, search_dirs, exclude_paths)
 
     def new_which(cmd, **kwargs):
