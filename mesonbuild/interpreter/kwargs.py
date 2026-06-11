@@ -21,7 +21,7 @@ from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import Program, ExternalProgram
 from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
-TargetDepends = T.Union[build.CustomTarget, build.CustomTargetIndex, build.BuildTarget, build.GeneratedList, Program]
+TargetDepends = T.Union[build.BuildTargetProto, build.GeneratedList, Program]
 CustomTargetInputs = T.Union[str, build.BuildTarget, build.GeneratedTypes,
                              build.ExtractedObjects, Program, File]
 BuildTargetObjects = T.Union[str, File, build.ExtractedObjects, build.GeneratedTypes]
@@ -379,7 +379,7 @@ class BaseBuildTarget(TypedDict):
     install_tag: T.Optional[str]
     install_rpath: str
     implicit_include_directories: bool
-    link_depends: T.List[T.Union[str, File, build.BuildTargetTypes]]
+    link_depends: T.List[T.Union[str, File, build.BuildTargetProto]]
     link_language: T.Optional[Language]
     link_whole: T.List[build.StaticTargetTypes]
     link_with: T.List[build.LinkableTargetTypes]
