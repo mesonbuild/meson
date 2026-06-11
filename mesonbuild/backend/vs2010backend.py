@@ -160,7 +160,7 @@ class Vs2010Backend(backends.Backend):
     def detect_toolset(self) -> None:
         pass
 
-    def get_target_private_dir(self, target: build.BuildTargetTypes) -> str:
+    def get_target_private_dir(self, target: build.BuildTargetProto) -> str:
         return os.path.join(self.get_target_dir(target), target.get_id())
 
     def generate_genlist_for_target(
@@ -609,7 +609,7 @@ class Vs2010Backend(backends.Backend):
                 headers.append(i)
         return sources, headers, objects, languages
 
-    def target_to_build_root(self, target: build.BuildTargetTypes) -> str:
+    def target_to_build_root(self, target: build.BuildTargetProto) -> str:
         if self.get_target_dir(target) == '':
             return ''
 
@@ -1529,7 +1529,7 @@ class Vs2010Backend(backends.Backend):
                     # Expand our object lists manually if we are on pre-Visual Studio 2015 Update 2
                     if not isinstance(t, build.BuildTarget):
                         raise MesonException(
-                            f'Cannot extract objects from custom target {t.name!r} to '
+                            f'Cannot extract objects from custom target {t.get_basename()!r} to '
                             f'link_whole it into {target.name!r}: this is not supported '
                             'with versions of MSVC older than Visual Studio 2015 Update 2.')
                     l = t.extract_all_objects(False)

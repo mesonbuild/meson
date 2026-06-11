@@ -308,7 +308,7 @@ class Backend:
     def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict] = None) -> T.Optional[T.Dict]:
         raise RuntimeError(f'generate is not implemented in {type(self).__name__}')
 
-    def get_target_filename(self, t: build.BuildTargetTypes, *, warn_multi_output: bool = True) -> str:
+    def get_target_filename(self, t: build.BuildTargetProto, *, warn_multi_output: bool = True) -> str:
         if isinstance(t, build.CustomTarget):
             if warn_multi_output and len(t.get_outputs()) != 1:
                 mlog.warning(f'custom_target {t.name!r} has more than one output! '
@@ -317,10 +317,11 @@ class Backend:
         elif isinstance(t, build.CustomTargetIndex):
             filename = t.get_outputs()[0]
         else:
+            assert isinstance(t, build.BuildTarget), t
             filename = t.get_filename()
         return os.path.join(self.get_target_dir(t), filename)
 
-    def get_target_filename_abs(self, target: build.BuildTargetTypes) -> str:
+    def get_target_filename_abs(self, target: build.BuildTargetProto) -> str:
         return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
 
     def get_target_debug_filename(self, target: build.BuildTarget) -> T.Optional[str]:
@@ -409,15 +410,15 @@ class Backend:
             return os.path.join(self.build_to_src, target_dir)
         return self.build_to_src
 
-    def get_target_private_dir(self, target: build.BuildTargetTypes) -> str:
+    def get_target_private_dir(self, target: build.BuildTargetProto) -> str:
         return os.path.join(self.get_target_filename(target, warn_multi_output=False) + '.p')
 
-    def get_target_private_dir_abs(self, target: build.BuildTargetTypes) -> str:
+    def get_target_private_dir_abs(self, target: build.BuildTargetProto) -> str:
         return os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
 
     @lru_cache(maxsize=None)
     def get_target_generated_dir(
-            self, target: build.BuildTargetTypes,
+            self, target: build.BuildTargetProto,
             gensrc: build.GeneratedTypes,
             src: str) -> str:
         """
@@ -432,11 +433,11 @@ class Backend:
         # target that the GeneratedList is used in
         return os.path.join(self.get_target_private_dir(target), src)
 
-    def get_unity_source_file(self, target: build.BuildTargetTypes,
+    def get_unity_source_file(self, target: build.BuildTargetProto,
                               suffix: str, number: int) -> mesonlib.File:
         # There is a potential conflict here, but it is unlikely that
         # anyone both enables unity builds and has a file called foo-unity.cpp.
-        osrc = f'{target.name}-unity{number}.{suffix}'
+        osrc = f'{target.get_basename()}-unity{number}.{suffix}'
         return mesonlib.File.from_built_file(self.get_target_private_dir(target), osrc)
 
     def generate_unity_files(self, target: build.BuildTarget, unity_src: list[File]) -> list[mesonlib.File]:
@@ -527,7 +528,7 @@ class Backend:
         return obj_list, deps
 
     @staticmethod
-    def is_swift_target(target: build.BuildTargetTypes) -> bool:
+    def is_swift_target(target: build.BuildTargetProto) -> bool:
         if not isinstance(target, build.BuildTarget):
             return False
         for s in target.get_sources():
@@ -544,7 +545,7 @@ class Backend:
     def get_executable_serialisation(
             self, cmd: T.Iterable[build.CommandTypes],
             workdir: T.Optional[str] = None,
-            extra_bdeps: T.Optional[T.Iterable[build.BuildTargetTypes]] = None,
+            extra_bdeps: T.Optional[T.Iterable[build.BuildTargetProto]] = None,
             capture: T.Optional[str] = None,
             feed: T.Optional[str] = None,
             env: T.Optional[mesonlib.EnvironmentVariables] = None,
@@ -634,7 +635,7 @@ class Backend:
     def as_meson_exe_cmdline(self, exe: build.CommandTypes,
                              cmd_args: T.Iterable[build.CommandTypes],
                              workdir: T.Optional[str] = None,
-                             extra_bdeps: T.Optional[T.Iterable[build.BuildTargetTypes]] = None,
+                             extra_bdeps: T.Optional[T.Iterable[build.BuildTargetProto]] = None,
                              capture: T.Optional[str] = None,
                              feed: T.Optional[str] = None,
                              force_serialize: bool = False,
@@ -1038,7 +1039,7 @@ class Backend:
                 commands += compiler.get_include_args(priv_dir, False)
         return commands
 
-    def build_target_link_arguments(self, compiler: Compiler, deps: T.Iterable[build.BuildTargetTypes]) -> T.List[str]:
+    def build_target_link_arguments(self, compiler: Compiler, deps: T.Iterable[build.BuildTargetProto]) -> T.List[str]:
         args: T.List[str] = []
         for d in deps:
             if not d.is_linkable_target():
@@ -1136,15 +1137,15 @@ class Backend:
         return results
 
     def determine_windows_extra_paths(
-            self, target: T.Union[build.BuildTargetTypes, programs.Program, mesonlib.File, str],
-            extra_bdeps: T.Iterable[build.BuildTargetTypes]) -> T.List[str]:
+            self, target: T.Union[build.BuildTargetProto, programs.Program, mesonlib.File, str],
+            extra_bdeps: T.Iterable[build.BuildTargetProto]) -> T.List[str]:
         """On Windows there is no such thing as an rpath.
 
         We must determine all locations of DLLs that this exe
         links to and return them so they can be used in unit
         tests.
         """
-        prospectives: T.Set[build.BuildTargetTypes] = set()
+        prospectives: T.Set[build.BuildTargetProto] = set()
         internal_deps: T.Set[str] = set()
         external_deps: T.Set[str] = set()
 
@@ -1208,7 +1209,7 @@ class Backend:
             exe_wrapper = self.environment.get_exe_wrapper()
             machine = self.environment.machines[exe.for_machine]
             if machine.is_windows() or machine.is_cygwin():
-                extra_bdeps: T.List[build.BuildTargetTypes] = []
+                extra_bdeps: T.List[build.BuildTargetProto] = []
                 if isinstance(exe, build.CustomTarget):
                     extra_bdeps = list(exe.get_transitive_build_target_deps())
                 extra_bdeps.extend(t.depends)
@@ -1218,7 +1219,7 @@ class Backend:
                 extra_paths = []
 
             cmd_args: T.List[str] = []
-            depends: T.Set[build.BuildTargetTypes] = set(t.depends)
+            depends: T.Set[build.BuildTargetProto] = set(t.depends)
             if isinstance(exe, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 depends.add(exe)
             for a in t.cmd_args:
@@ -1276,7 +1277,7 @@ class Backend:
     def write_test_serialisation(self, tests: T.List['Test'], datafile: T.BinaryIO) -> None:
         pickle.dump(self.create_test_serialisation(tests), datafile)
 
-    def construct_target_rel_paths(self, t: build.AnyTargetProto, workdir: T.Optional[str]) -> T.List[str]:
+    def construct_target_rel_paths(self, t: build.BuildTargetProto, workdir: T.Optional[str]) -> T.List[str]:
         target_dir = self.get_target_dir(t)
         # ensure that test executables can be run when passed as arguments
         if isinstance(t, build.Executable) and workdir is None:
@@ -1361,13 +1362,13 @@ class Backend:
             if delta > 0.001:
                 raise MesonException(f'Clock skew detected. File {absf} has a time stamp {delta:.4f}s in the future.')
 
-    def build_target_to_cmd_array(self, bt: T.Union[build.BuildTargetTypes, programs.Program]) -> T.List[str]:
+    def build_target_to_cmd_array(self, bt: T.Union[build.BuildTargetProto, programs.Program]) -> T.List[str]:
         if isinstance(bt, build.LocalProgram):
             bt = bt.program
-        if isinstance(bt, (build.Target, build.CustomTargetIndex)):
-            arr = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(bt))]
-        else:
+        if isinstance(bt, programs.Program):
             arr = bt.get_command()
+        else:
+            arr = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(bt))]
         return arr
 
     def replace_extra_args(self, args: T.List[str], genlist: 'build.GeneratedList') -> T.List[str]:
@@ -1424,7 +1425,7 @@ class Backend:
         return libs
 
     @lru_cache(maxsize=None)
-    def get_custom_target_provided_libraries(self, target: T.Union[build.BuildTarget, build.CustomTarget]) -> 'ImmutableListProtocol[str]':
+    def get_custom_target_provided_libraries(self, target: build.BuildTargetProto) -> 'ImmutableListProtocol[str]':
         libs: T.List[str] = []
         for t in target.get_generated_sources():
             if not isinstance(t, build.CustomTarget):
@@ -2078,7 +2079,7 @@ class Backend:
                               compiler: 'Compiler',
                               sources: T.List[TargetSources],
                               output_templ: str,
-                              depends: T.Optional[T.List[build.BuildTargetTypes]] = None,
+                              depends: T.Optional[T.List[build.BuildTargetProto]] = None,
                               ) -> build.GeneratedList:
         '''
         Some backends don't support custom compilers. This is a convenience

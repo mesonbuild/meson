@@ -862,7 +862,7 @@ class Test(MesonInterpreterObject):
         self.priority = priority
         self.verbose = verbose
 
-        self.depends: T.List[build.BuildTargetTypes] = []
+        self.depends: T.List[build.BuildTargetProto] = []
         for d in depends:
             if isinstance(d, build.GeneratedList):
                 raise MesonException('generated_list not allowed as a dependency for test')

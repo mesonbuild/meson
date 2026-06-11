@@ -1148,7 +1148,7 @@ class NinjaBackend(backends.Backend):
                 elem = NinjaBuildElement(self.all_outputs, linker.get_archive_name(outname), 'AIX_LINKER', [outname])
                 self.add_build(elem)
 
-    def should_use_dyndeps_for_target(self, target: build.BuildTargetTypes) -> bool:
+    def should_use_dyndeps_for_target(self, target: build.BuildTargetProto) -> bool:
         if not self.ninja_has_dyndeps:
             return False
         if not isinstance(target, build.BuildTarget):
@@ -3837,7 +3837,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add link args to link to all internal libraries (link_with:) and
         # internal dependencies needed by this target.
         dep_targets: T.List[str] = []
-        dependencies: T.Iterable[build.BuildTargetTypes]
+        dependencies: T.Iterable[build.BuildTargetProto]
         if isinstance(target, build.StaticLibrary):
             # Link arguments of static libraries are not put in the command
             # line of the library. They are instead appended to the command
@@ -3932,7 +3932,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return []
         return self.import_std.gen_objects
 
-    def get_dependency_filename(self, t: T.Union[File, build.BuildTargetTypes]) -> str:
+    def get_dependency_filename(self, t: T.Union[File, build.BuildTargetProto]) -> str:
         if isinstance(t, build.SharedLibrary):
             if t.uses_rust() and t.rust_crate_type == 'proc-macro':
                 return self.get_target_filename(t)
