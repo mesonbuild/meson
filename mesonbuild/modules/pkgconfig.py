@@ -30,7 +30,8 @@ if T.TYPE_CHECKING:
     from .. import mparser
     from ..interpreter import Interpreter
 
-    ANY_DEP = T.Union[dependencies.Dependency, build.BuildTargetTypes, str]
+    ANY_DEP = T.Union[dependencies.Dependency, build.LinkableTargetTypes, str]
+    REQS = T.Union[dependencies.Dependency, build.LibTypes, str]
     LIBS = T.Union[build.LibTypes, str]
 
     class GenerateKw(TypedDict):
@@ -44,10 +45,12 @@ if T.TYPE_CHECKING:
         subdirs: T.List[str]
         conflicts: T.List[str]
         dataonly: bool
+        # Executable is not accepted by the DSL, but the DependenciesHelper
+        # has to handle it for link_with so use ANY_DEP here.
         libraries: T.List[ANY_DEP]
         libraries_private: T.List[ANY_DEP]
-        requires: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]
-        requires_private: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]
+        requires: T.List[REQS]
+        requires_private: T.List[REQS]
         install_dir: T.Optional[str]
         d_module_versions: T.List[T.Union[str, int]]
         extra_cflags: T.List[str]
@@ -58,7 +61,7 @@ if T.TYPE_CHECKING:
         unescaped_uninstalled_variables: T.Dict[str, str]
 
 
-_PKG_LIBRARIES: KwargInfo[T.List[T.Union[str, dependencies.Dependency, build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]]] = KwargInfo(
+_PKG_LIBRARIES: KwargInfo[T.List[ANY_DEP]] = KwargInfo(
     'libraries',
     ContainerTypeInfo(list, (str, dependencies.Dependency,
                              build.SharedLibrary, build.StaticLibrary,
@@ -67,7 +70,7 @@ _PKG_LIBRARIES: KwargInfo[T.List[T.Union[str, dependencies.Dependency, build.Sha
     listify=True,
 )
 
-_PKG_REQUIRES: KwargInfo[T.List[T.Union[str, build.SharedLibrary, build.StaticLibrary, dependencies.Dependency]]] = KwargInfo(
+_PKG_REQUIRES: KwargInfo[T.List[REQS]] = KwargInfo(
     'requires',
     ContainerTypeInfo(list, (str, build.SharedLibrary, build.StaticLibrary, dependencies.Dependency)),
     default=[],
@@ -101,7 +104,7 @@ class DependenciesHelper:
         self.cflags: T.List[str] = []
         self.cflags_private: T.List[str] = []
         self.version_reqs: T.DefaultDict[str, T.Set[str]] = defaultdict(set)
-        self.link_whole_targets: T.List[T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary]] = []
+        self.link_whole_targets: T.List[build.StaticTargetTypes] = []
         self.uninstalled_incdirs: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
 
     def add_pub_libs(self, libs: T.List[ANY_DEP]) -> None:
@@ -115,13 +118,13 @@ class DependenciesHelper:
         self.priv_libs = p_libs + self.priv_libs
         self.priv_reqs += reqs
 
-    def add_pub_reqs(self, reqs: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]) -> None:
+    def add_pub_reqs(self, reqs: T.List[REQS]) -> None:
         self.pub_reqs += self._process_reqs(reqs)
 
-    def add_priv_reqs(self, reqs: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]) -> None:
+    def add_priv_reqs(self, reqs: T.List[REQS]) -> None:
         self.priv_reqs += self._process_reqs(reqs)
 
-    def _check_generated_pc_deprecation(self, obj: T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary, build.SharedLibrary]) -> None:
+    def _check_generated_pc_deprecation(self, obj: build.LibTypes) -> None:
         if obj.get_id() in self.metadata:
             return
         data = self.metadata[obj.get_id()]
@@ -138,7 +141,7 @@ class DependenciesHelper:
                          location=data.location)
         data.warned = True
 
-    def _process_reqs(self, reqs: T.Sequence[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]) -> T.List[str]:
+    def _process_reqs(self, reqs: T.Sequence[REQS]) -> T.List[str]:
         '''Returns string names of requirements'''
         processed_reqs: T.List[str] = []
         for obj in mesonlib.listify(reqs):
@@ -197,9 +200,9 @@ class DependenciesHelper:
 
     def _process_libs(
             self, libs: T.List[ANY_DEP], public: bool
-            ) -> T.Tuple[T.List[T.Union[str, build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]], T.List[str], T.List[str]]:
+            ) -> T.Tuple[T.List[LIBS], T.List[str], T.List[str]]:
         libs = mesonlib.listify(libs)
-        processed_libs: T.List[T.Union[str, build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]] = []
+        processed_libs: T.List[LIBS] = []
         processed_reqs: T.List[str] = []
         processed_cflags: T.List[str] = []
         for obj in libs:
@@ -264,8 +267,8 @@ class DependenciesHelper:
         return processed_libs, processed_reqs, processed_cflags
 
     def _add_lib_dependencies(
-            self, link_targets: T.Sequence[build.BuildTargetTypes],
-            link_whole_targets: T.Sequence[T.Union[build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]],
+            self, link_targets: T.Sequence[build.LinkableTargetTypes],
+            link_whole_targets: T.Sequence[build.StaticTargetTypes],
             external_deps: T.List[dependencies.Dependency],
             public: bool,
             private_external_deps: bool = False) -> None:
@@ -289,7 +292,7 @@ class DependenciesHelper:
         else:
             add_libs(T.cast('T.List[ANY_DEP]', external_deps))
 
-    def _add_link_whole(self, t: T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary], public: bool) -> None:
+    def _add_link_whole(self, t: build.StaticTargetTypes, public: bool) -> None:
         # Don't include static libraries that we link_whole. But we still need to
         # include their dependencies: a static library we link_whole
         # could itself link to a shared library or an installed static library.
@@ -347,7 +350,7 @@ class DependenciesHelper:
 
         # We can't just check if 'x' is excluded because we could have copies of
         # the same SharedLibrary object for example.
-        def _ids(x: T.Union[str, build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary, build.SharedLibrary]) -> T.Iterable[str]:
+        def _ids(x: LIBS) -> T.Iterable[str]:
             if isinstance(x, str):
                 yield x
             else:
@@ -356,7 +359,7 @@ class DependenciesHelper:
                 yield x.get_id()
 
         # Exclude 'x' in all its forms and return if it was already excluded
-        def _add_exclude(x: T.Union[str, build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary, build.SharedLibrary]) -> bool:
+        def _add_exclude(x: LIBS) -> bool:
             was_excluded = False
             for i in _ids(x):
                 if i in exclude:
@@ -424,8 +427,7 @@ class PkgConfigModule(NewExtensionModule):
         if self.devenv is not None:
             b.devenv.append(self.devenv)
 
-    def _get_lname(self, l: T.Union[build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex],
-                   msg: str, pcfile: str) -> str:
+    def _get_lname(self, l: build.LibTypes, msg: str, pcfile: str) -> str:
         if isinstance(l, (build.CustomTargetIndex, build.CustomTarget)):
             basename = os.path.basename(l.get_filename())
             name = os.path.splitext(basename)[0]
