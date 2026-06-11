@@ -58,7 +58,7 @@ if T.TYPE_CHECKING:
     LinkableTargetTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex', 'Executable']
     BuildTargetTypes: TypeAlias = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
     StaticTargetTypes: TypeAlias = T.Union['StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
-    ObjectTypes: TypeAlias = T.Union[str, 'File', 'ExtractedObjects', 'GeneratedTypes']
+    ObjectTypes: TypeAlias = T.Union['File', 'ExtractedObjects', 'GeneratedTypes']
     AnyTargetType: TypeAlias = T.Union['Target', 'CustomTargetIndex']
     RustCrateType: TypeAlias = Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
     _LibraryType: TypeAlias = Literal['auto', 'shared', 'static']
@@ -976,7 +976,7 @@ class BuildTarget(Target):
         assert isinstance(objects, list)
         deprecated_non_objects = []
         for s in objects:
-            if isinstance(s, (str, File, ExtractedObjects)):
+            if isinstance(s, (File, ExtractedObjects)):
                 self.objects.append(s)
                 if not isinstance(s, ExtractedObjects) and not is_object(s):
                     deprecated_non_objects.append(s)

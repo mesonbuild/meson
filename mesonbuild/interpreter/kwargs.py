@@ -25,6 +25,7 @@ TestArgs = T.Union[str, File, build.Target, Program]
 TargetDepends = T.Union[build.CustomTarget, build.CustomTargetIndex, build.BuildTarget, build.GeneratedList, Program]
 CustomTargetInputs = T.Union[str, build.BuildTarget, build.GeneratedTypes,
                              build.ExtractedObjects, Program, File]
+BuildTargetObjects = T.Union[str, File, build.ExtractedObjects, build.GeneratedTypes]
 RustAbi = Literal['rust', 'c']
 
 class NativeKW(TypedDict):
@@ -384,7 +385,7 @@ class BaseBuildTarget(TypedDict):
     name_prefix: T.Optional[str]
     name_suffix: T.Optional[str]
     native: MachineChoice
-    objects: T.List[build.ObjectTypes]
+    objects: T.List[BuildTargetObjects]
     override_options: T.Dict[str, options.ElementaryOptionValues]
     depend_files: NotRequired[T.List[File]]
     resources: T.List[str]
