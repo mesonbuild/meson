@@ -64,7 +64,7 @@ if T.TYPE_CHECKING:
         install_dir: T.Optional[str]
         install_tag: T.Optional[str]
         its_files: T.List[str]
-        mo_targets: T.List[build.BuildTargetTypes]
+        mo_targets: T.List[build.BuildTargetProto]
 
     class XgettextProgramT(TypedDict):
 
@@ -74,7 +74,7 @@ if T.TYPE_CHECKING:
         install_dir: T.Optional[str]
         install_tag: T.Optional[str]
 
-    SourcesType = T.Union[str, mesonlib.File, build.BuildTargetTypes, build.BothLibraries]
+    SourcesType = T.Union[str, mesonlib.File, build.BuildTargetProto, build.BothLibraries]
 
 
 _ARGS: KwargInfo[T.List[str]] = KwargInfo(
