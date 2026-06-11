@@ -58,7 +58,7 @@ if T.TYPE_CHECKING:
     LinkableTargetTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex', 'Executable']
     BuildTargetTypes: TypeAlias = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
     StaticTargetTypes: TypeAlias = T.Union['StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
-    ObjectTypes: TypeAlias = T.Union['File', 'ExtractedObjects', 'GeneratedTypes']
+    ObjectTypes: TypeAlias = T.Union['File', 'ExtractedObjects']
     AnyTargetType: TypeAlias = T.Union['Target', 'CustomTargetIndex']
     RustCrateType: TypeAlias = Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
     _LibraryType: TypeAlias = Literal['auto', 'shared', 'static']
@@ -748,7 +748,7 @@ class BuildTarget(Target):
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
-            objects: T.List[ObjectTypes],
+            objects: T.Sequence[ObjectTypes | GeneratedTypes],
             environment: Environment,
             compilers: CompilerDict,
             kwargs: BuildTargetKeywordArguments):
@@ -972,7 +972,7 @@ class BuildTarget(Target):
             else:
                 mlog.warning('Installing target build for the build machine. This will fail in a cross build.')
 
-    def process_objectlist(self, objects: T.List[ObjectTypes]) -> None:
+    def process_objectlist(self, objects: T.Iterable[ObjectTypes | GeneratedTypes]) -> None:
         assert isinstance(objects, list)
         deprecated_non_objects = []
         for s in objects:
@@ -2164,7 +2164,7 @@ class Executable(BuildTarget, LinkableTarget):
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
-            objects: T.List[ObjectTypes],
+            objects: T.Sequence[ObjectTypes | GeneratedTypes],
             environment: Environment,
             compilers: CompilerDict,
             kwargs: ExecutableKeywordArguments):
@@ -2297,7 +2297,7 @@ class StaticLibrary(BuildTarget, LinkableTarget):
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
-            objects: T.List[ObjectTypes],
+            objects: T.Sequence[ObjectTypes | GeneratedTypes],
             environment: Environment,
             compilers: CompilerDict,
             kwargs: StaticLibraryKeywordArguments):
@@ -2479,7 +2479,7 @@ class SharedLibrary(BuildTarget, LinkableTarget):
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
-            objects: T.List[ObjectTypes],
+            objects: T.Sequence[ObjectTypes | GeneratedTypes],
             environment: Environment,
             compilers: CompilerDict,
             kwargs: SharedLibraryKeywordArguments):
@@ -2815,7 +2815,7 @@ class SharedModule(SharedLibrary):
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
-            objects: T.List[ObjectTypes],
+            objects: T.Sequence[ObjectTypes | GeneratedTypes],
             environment: Environment,
             compilers: CompilerDict,
             kwargs: SharedModuleKeywordArguments):
@@ -3307,7 +3307,7 @@ class Jar(BuildTarget):
 
     def __init__(self, name: str, subdir: str, subproject: SubProject, for_machine: MachineChoice,
                  sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
-                 objects: T.List[ObjectTypes], environment: Environment, compilers: CompilerDict,
+                 objects: T.Sequence[ObjectTypes | GeneratedTypes], environment: Environment, compilers: CompilerDict,
                  kwargs: JarKeywordArguments):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
