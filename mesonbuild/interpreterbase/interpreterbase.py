@@ -296,7 +296,6 @@ class InterpreterBase:
         return self._holderify(v.operator_call(MesonOperator.NOT, None))
 
     def evaluate_if(self, node: mparser.IfClauseNode) -> T.Optional[Disabler]:
-        assert isinstance(node, mparser.IfClauseNode)
         for i in node.ifs:
             # Reset self.tmp_meson_version to know if it gets set during this
             # statement evaluation.
@@ -415,7 +414,6 @@ class InterpreterBase:
         return self._holderify(res)
 
     def evaluate_ternary(self, node: mparser.TernaryNode) -> T.Optional[InterpreterObject]:
-        assert isinstance(node, mparser.TernaryNode)
         result = self.evaluate_statement(node.condition)
         if result is None:
             raise mesonlib.MesonException('Cannot use a void statement as condition for ternary operator.')
@@ -451,7 +449,6 @@ class InterpreterBase:
         return self._holderify(res)
 
     def evaluate_foreach(self, node: mparser.ForeachClauseNode) -> None:
-        assert isinstance(node, mparser.ForeachClauseNode)
         items = self.evaluate_statement(node.items)
         if not isinstance(items, IterableObject):
             raise InvalidArguments('Items of foreach loop do not support iterating')
@@ -480,7 +477,6 @@ class InterpreterBase:
                 break
 
     def evaluate_plusassign(self, node: mparser.PlusAssignmentNode) -> None:
-        assert isinstance(node, mparser.PlusAssignmentNode)
         varname = node.var_name.value
         addition = self.evaluate_statement(node.value)
         if addition is None:
@@ -494,7 +490,6 @@ class InterpreterBase:
         self.set_variable(varname, new_value)
 
     def evaluate_indexing(self, node: mparser.IndexNode) -> InterpreterObject:
-        assert isinstance(node, mparser.IndexNode)
         iobject = self.evaluate_statement(node.iobject)
         if iobject is None:
             raise InterpreterException('Tried to evaluate indexing on void.')
@@ -584,7 +579,6 @@ class InterpreterBase:
                 T.List[InterpreterObject],
                 T.Dict[str, InterpreterObject]
             ]:
-        assert isinstance(args, mparser.ArgumentNode)
         if args.incorrect_order():
             raise InvalidArguments('All keyword arguments must be after positional arguments.')
         self.argument_depth += 1
@@ -621,7 +615,6 @@ class InterpreterBase:
         return kwargs
 
     def assignment(self, node: mparser.AssignmentNode) -> None:
-        assert isinstance(node, mparser.AssignmentNode)
         if self.argument_depth != 0:
             raise InvalidArguments(textwrap.dedent('''\
                 Tried to assign values inside an argument list.
