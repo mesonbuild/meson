@@ -3412,14 +3412,15 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     target: T.Union[CustomTarget, CompileTarget]
     output: str
 
-    def __post_init__(self) -> None:
-        self.for_machine = self.target.for_machine
-
     @lazy_property
     def __index(self) -> int:
         # Must be detected lazily becuase preporcessed sources don't end up in the
         # outputs, but can still be in a CustomTargetIndex.
         return self.target.outputs.index(self.output)
+
+    @property
+    def for_machine(self) -> MachineChoice:
+        return self.target.for_machine
 
     @property
     def name(self) -> str:
