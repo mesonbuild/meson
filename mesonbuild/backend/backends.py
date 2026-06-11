@@ -547,7 +547,7 @@ class Backend:
         return result
 
     def get_executable_serialisation(
-            self, cmd: T.Sequence[T.Union[programs.Program, build.BuildTargetTypes, File, str]],
+            self, cmd: T.Iterable[build.CommandTypes],
             workdir: T.Optional[str] = None,
             extra_bdeps: T.Optional[T.Iterable[build.BuildTargetTypes]] = None,
             capture: T.Optional[str] = None,
@@ -636,8 +636,8 @@ class Backend:
                                        exe_wrapper, workdir,
                                        extra_paths, capture, feed, tag, verbose, installdir_map)
 
-    def as_meson_exe_cmdline(self, exe: T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.Program],
-                             cmd_args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.Program]],
+    def as_meson_exe_cmdline(self, exe: build.CommandTypes,
+                             cmd_args: T.Iterable[build.CommandTypes],
                              workdir: T.Optional[str] = None,
                              extra_bdeps: T.Optional[T.Iterable[build.BuildTargetTypes]] = None,
                              capture: T.Optional[str] = None,
@@ -649,7 +649,7 @@ class Backend:
         '''
         Serialize an executable for running with a generator or a custom target
         '''
-        cmd: T.List[T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.Program]] = []
+        cmd: T.List[build.CommandTypes] = []
         cmd.append(exe)
         cmd.extend(cmd_args)
         es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, feed, env, can_use_rsp_file, verbose=verbose)
@@ -1201,7 +1201,6 @@ class Backend:
 
             # we allow passing compiled executables to tests, which may be cross built.
             # We need to consider these as well when considering whether the target is cross or not.
-            a: T.Union[str, File, build.Target, build.BuildTargetTypes, programs.Program]
             for a in t.cmd_args:
                 if isinstance(a, build.LocalProgram):
                     a = a.program

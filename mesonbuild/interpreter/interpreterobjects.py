@@ -842,7 +842,7 @@ class Test(MesonInterpreterObject):
                  exe: T.Union[Program, build.Executable, build.CustomTarget, build.CustomTargetIndex, build.Jar],
                  depends: T.Sequence[kwargs.TargetDepends],
                  is_parallel: bool,
-                 cmd_args: T.List[T.Union[str, mesonlib.File, build.Target, Program]],
+                 cmd_args: T.List[build.CommandTypes],
                  env: mesonlib.EnvironmentVariables,
                  expected_fail: bool, expected_exitcode: int, timeout: int, workdir: T.Optional[str], protocol: str,
                  priority: int, verbose: bool):
