@@ -1186,7 +1186,7 @@ class BuildTarget(Target):
             langs = ', '.join(self.compilers.keys())
             raise InvalidArguments(f'Cannot mix those languages into a target: {langs}')
 
-    def extract_objects(self, srclist: T.List[T.Union['FileOrString', 'GeneratedTypes']], is_unity: bool) -> ExtractedObjects:
+    def extract_objects(self, srclist: T.List[T.Union[File, 'GeneratedTypes']], is_unity: bool) -> ExtractedObjects:
         sources_set = set(self.sources)
         generated_set = set(self.generated)
 
@@ -1194,10 +1194,6 @@ class BuildTarget(Target):
         obj_gen: T.List['GeneratedTypes'] = []
         for src in srclist:
             if isinstance(src, (str, File)):
-                if isinstance(src, str):
-                    src = File(False, self.subdir, src)
-                else:
-                    FeatureNew.single_use('File argument for extract_objects', '0.50.0', self.subproject)
                 if src not in sources_set:
                     raise MesonException(f'Tried to extract unknown source {src}.')
                 obj_src.append(src)

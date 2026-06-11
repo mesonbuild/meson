@@ -1043,7 +1043,18 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
         tobj = self._target_object
         unity_value = self.interpreter.coredata.get_option_for_target(tobj, "unity")
         is_unity = (unity_value == 'on' or (unity_value == 'subprojects' and tobj.subproject != ''))
-        return tobj.extract_objects(args[0], is_unity)
+
+        obj_src: list[mesonlib.File | build.GeneratedTypes] = []
+        for raw_src in args[0]:
+            if isinstance(raw_src, str):
+                src = File(False, tobj.subdir, raw_src)
+            else:
+                if isinstance(raw_src, File):
+                    FeatureNew.single_use('File argument for extract_objects', '0.50.0', self.subproject)
+                src = raw_src
+            obj_src.append(src)
+
+        return tobj.extract_objects(obj_src, is_unity)
 
     @noPosargs
     @typed_kwargs(
