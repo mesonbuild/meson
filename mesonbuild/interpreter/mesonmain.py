@@ -128,8 +128,7 @@ class MesonMain(MesonInterpreterObject):
     @InterpreterObject.method('add_install_script')
     def add_install_script_method(
             self,
-            args: T.Tuple[T.Union[str, mesonlib.File, build.Executable, Program],
-                          T.List[T.Union[str, mesonlib.File, build.BuildTargetTypes, Program]]],
+            args: T.Tuple[T.Union[str, mesonlib.File, build.Executable, Program], T.List[build.CommandTypes]],
             kwargs: 'AddInstallScriptKW') -> None:
         script_args = self._process_script_args('add_install_script', args[1])
         script = self._find_source_script('add_install_script', args[0], script_args, allow_built_program=True)

@@ -54,6 +54,7 @@ if T.TYPE_CHECKING:
     from .options import ElementaryOptionValues
 
     TargetSources: TypeAlias = T.Union['File', 'GeneratedTypes']
+    CommandTypes: TypeAlias = T.Union['programs.Program', 'BuildTargetTypes', File, str]
     GeneratedTypes: TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
     LinkableTargetTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex', 'Executable']
@@ -2838,7 +2839,7 @@ class BothLibraries(SecondLevelHolder, LinkableTarget):
         return True
 
 
-def flatten_command(cmd: T.Sequence[str | File | programs.Program | BuildTargetTypes],
+def flatten_command(cmd: T.Iterable[CommandTypes],
                     subproject: SubProject) -> tuple[list[str | File | BuildTarget | CustomTarget | programs.Program],
                                                      list[File], list[BuildTarget | CustomTarget]]:
     final_cmd: list[str | File | programs.Program | BuildTarget | CustomTarget] = []
@@ -2934,9 +2935,7 @@ class CustomTarget(Target, CustomTargetBase):
                  subdir: str,
                  subproject: SubProject,
                  environment: Environment,
-                 command: T.Sequence[T.Union[
-                     str, BuildTargetTypes,
-                     programs.Program, File]],
+                 command: T.Sequence[CommandTypes],
                  sources: T.Sequence[CustomTargetSources],
                  outputs: T.List[str],
                  *,
@@ -3221,7 +3220,7 @@ class RunTarget(Target):
     typename = 'run'
 
     def __init__(self, name: str,
-                 command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.Program]],
+                 command: T.Sequence[CommandTypes],
                  # the RunTarget case is used by gnome.yelp()
                  dependencies: T.Sequence[Target | CustomTargetIndex | GeneratedList | programs.Program],
                  subdir: str,

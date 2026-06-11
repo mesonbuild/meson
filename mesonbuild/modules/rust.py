@@ -31,7 +31,7 @@ from ..programs import ExternalProgram, NonExistingExternalProgram
 if T.TYPE_CHECKING:
     from . import ModuleState
     from .. import cargo
-    from ..build import ExecutableKeywordArguments, GeneratedTypes, IncludeDirs, LinkableTargetTypes
+    from ..build import ExecutableKeywordArguments, GeneratedTypes, IncludeDirs, LinkableTargetTypes, CommandTypes
     from ..cargo.interpreter import RUST_ABI
     from ..compilers.compilers import Language
     from ..compilers.rust import RustCompiler
@@ -57,7 +57,7 @@ if T.TYPE_CHECKING:
         link_whole: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]
         rust_args: T.List[str]
 
-    FuncTest = FuncRustTest[_kwargs.TestArgs]
+    FuncTest = FuncRustTest[CommandTypes]
     FuncDoctest = FuncRustTest[str]
 
     class FuncBindgen(TypedDict):
