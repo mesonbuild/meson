@@ -850,7 +850,6 @@ class OptionStore:
         return potential
 
     def get_option_and_value_for(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
-        assert isinstance(key, OptionKey)
         key = self.ensure_and_validate_key(key)
         option_object = self.resolve_option(key)
         computed_value = option_object.value

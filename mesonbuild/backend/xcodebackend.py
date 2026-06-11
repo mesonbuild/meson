@@ -145,7 +145,6 @@ class PbxArrayItem:
 
 class PbxComment:
     def __init__(self, text: str):
-        assert isinstance(text, str)
         assert '/*' not in text
         self.text = f'/* {text} */'
 
@@ -668,7 +667,6 @@ class XCodeBackend(backends.Backend):
 
     def generate_build_file_maps(self) -> None:
         for buildfile in self.build.def_files:
-            assert isinstance(buildfile, str)
             self.buildfile_ids[buildfile] = self.gen_id()
             self.fileref_ids[buildfile] = self.gen_id()
 
