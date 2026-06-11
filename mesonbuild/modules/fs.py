@@ -26,6 +26,8 @@ if T.TYPE_CHECKING:
 
     from typing_extensions import TypedDict
 
+    FilePathTypes = str | File | BuildTargetTypes
+
     class ReadKwArgs(TypedDict):
         """Keyword Arguments for fs.read."""
 
@@ -78,7 +80,7 @@ class FSModule(ExtensionModule):
         return os.path.join(state.source_root, state.subdir, os.path.expanduser(arg))
 
     @staticmethod
-    def _obj_to_pathstr(feature_new_prefix: str, obj: T.Union[FileOrString, BuildTargetTypes], state: ModuleState) -> str:
+    def _obj_to_pathstr(feature_new_prefix: str, obj: FilePathTypes, state: ModuleState) -> str:
         if isinstance(obj, str):
             return obj
 
@@ -203,7 +205,7 @@ class FSModule(ExtensionModule):
 
     @noKwargs
     @typed_pos_args('fs.replace_suffix', (str, File, CustomTarget, CustomTargetIndex, BuildTarget), str)
-    def replace_suffix(self, state: ModuleState, args: T.Tuple[T.Union[FileOrString, BuildTargetTypes], str], kwargs: T.Dict[str, T.Any]) -> str:
+    def replace_suffix(self, state: ModuleState, args: T.Tuple[FilePathTypes, str], kwargs: T.Dict[str, T.Any]) -> str:
         if args[1] and not args[1].startswith('.'):
             raise ValueError(f"Invalid suffix {args[1]!r}")
         path = self._obj_to_pathstr('fs.replace_suffix', args[0], state)
@@ -211,27 +213,27 @@ class FSModule(ExtensionModule):
 
     @noKwargs
     @typed_pos_args('fs.parent', (str, File, CustomTarget, CustomTargetIndex, BuildTarget))
-    def parent(self, state: ModuleState, args: T.Tuple[T.Union[FileOrString, BuildTargetTypes]], kwargs: T.Dict[str, T.Any]) -> str:
+    def parent(self, state: ModuleState, args: T.Tuple[FilePathTypes], kwargs: T.Dict[str, T.Any]) -> str:
         path = self._obj_to_pathstr('fs.parent', args[0], state)
         return os.path.split(path)[0] or '.'
 
     @noKwargs
     @typed_pos_args('fs.name', (str, File, CustomTarget, CustomTargetIndex, BuildTarget))
-    def name(self, state: ModuleState, args: T.Tuple[T.Union[FileOrString, BuildTargetTypes]], kwargs: T.Dict[str, T.Any]) -> str:
+    def name(self, state: ModuleState, args: T.Tuple[FilePathTypes], kwargs: T.Dict[str, T.Any]) -> str:
         path = self._obj_to_pathstr('fs.name', args[0], state)
         return os.path.basename(path)
 
     @noKwargs
     @typed_pos_args('fs.stem', (str, File, CustomTarget, CustomTargetIndex, BuildTarget))
     @FeatureNew('fs.stem', '0.54.0')
-    def stem(self, state: ModuleState, args: T.Tuple[T.Union[FileOrString, BuildTargetTypes]], kwargs: T.Dict[str, T.Any]) -> str:
+    def stem(self, state: ModuleState, args: T.Tuple[FilePathTypes], kwargs: T.Dict[str, T.Any]) -> str:
         path = self._obj_to_pathstr('fs.name', args[0], state)
         return os.path.splitext(os.path.basename(path))[0]
 
     @noKwargs
     @typed_pos_args('fs.suffix', (str, File, CustomTarget, CustomTargetIndex, BuildTarget))
     @FeatureNew('fs.suffix', '1.9.0')
-    def suffix(self, state: ModuleState, args: T.Tuple[T.Union[FileOrString, BuildTargetTypes]], kwargs: T.Dict[str, T.Any]) -> str:
+    def suffix(self, state: ModuleState, args: T.Tuple[FilePathTypes], kwargs: T.Dict[str, T.Any]) -> str:
         path = self._obj_to_pathstr('fs.suffix', args[0], state)
         return os.path.splitext(path)[1]
 
@@ -326,8 +328,8 @@ class FSModule(ExtensionModule):
     @FeatureNew('fs.relative_to', '1.3.0')
     @typed_pos_args('fs.relative_to', (str, File, CustomTarget, CustomTargetIndex, BuildTarget), (str, File, CustomTarget, CustomTargetIndex, BuildTarget))
     @noKwargs
-    def relative_to(self, state: ModuleState, args: T.Tuple[T.Union[FileOrString, BuildTargetTypes], T.Union[FileOrString, BuildTargetTypes]], kwargs: TYPE_kwargs) -> str:
-        def to_path(arg: T.Union[FileOrString, CustomTarget, CustomTargetIndex, BuildTarget]) -> str:
+    def relative_to(self, state: ModuleState, args: T.Tuple[FilePathTypes, FilePathTypes], kwargs: TYPE_kwargs) -> str:
+        def to_path(arg: FilePathTypes) -> str:
             if isinstance(arg, File):
                 return arg.absolute_path(state.environment.source_dir, state.environment.build_dir)
             elif isinstance(arg, (CustomTarget, CustomTargetIndex, BuildTarget)):
