@@ -129,12 +129,12 @@ if T.TYPE_CHECKING:
         implib: T.Optional[str]
         export_dynamic: bool
         pie: bool
-        vs_module_defs: T.Union[str, File, CustomTarget, CustomTargetIndex]
+        vs_module_defs: T.Union[File, CustomTarget, CustomTargetIndex]
         win_subsystem: str
 
     class SharedModuleKeywordArguments(BuildTargetKeywordArguments, total=False):
 
-        vs_module_defs: T.Union[str, File, CustomTarget, CustomTargetIndex]
+        vs_module_defs: T.Union[File, CustomTarget, CustomTargetIndex]
 
     class SharedLibraryKeywordArguments(SharedModuleKeywordArguments, total=False):
 
@@ -770,7 +770,7 @@ class BuildTarget(Target):
         self.link_targets: T.List[LinkableTargetTypes] = []
         self.link_whole_targets: T.List[StaticTargetTypes] = []
         self.depend_files = kwargs.get('depend_files', [])
-        self.link_depends: T.List[T.Union[File, BuildTargetTypes]] = []
+        self.link_depends = kwargs.get('link_depends', [])
         self.added_deps: T.Set[dependencies.Dependency] = set()
         self.name_prefix_set = False
         self.name_suffix_set = False
@@ -827,7 +827,6 @@ class BuildTarget(Target):
                     This will become a hard error in a future Meson release.
                 '''))
         self.link_early_args = kwargs.get('link_early_args', [])
-        self.process_link_depends(kwargs.get('link_depends', []))
         # Target-specific include dirs must be added BEFORE include dirs from
         # internal deps (added inside self.add_deps()) to override them.
         self.add_include_dirs(kwargs.get('include_directories', []))
@@ -1186,24 +1185,6 @@ class BuildTarget(Target):
         if len(self.compilers) > 1 and any(lang in self.compilers for lang in ['cs', 'java']):
             langs = ', '.join(self.compilers.keys())
             raise InvalidArguments(f'Cannot mix those languages into a target: {langs}')
-
-    def process_link_depends(self, sources: T.Iterable[T.Union[str, File, BuildTargetTypes]]) -> None:
-        """Process the link_depends keyword argument.
-
-        This is designed to handle strings, Files, and the output of Custom
-        Targets. Notably it doesn't handle generator() returned objects, since
-        adding them as a link depends would inherently cause them to be
-        generated twice, since the output needs to be passed to the ld_args and
-        link_depends.
-        """
-        for s in sources:
-            if isinstance(s, File):
-                self.link_depends.append(s)
-            elif isinstance(s, str):
-                self.link_depends.append(
-                    File.from_source_file(self.environment.source_dir, self.get_subdir(), s))
-            else:
-                self.link_depends.append(s)
 
     def extract_objects(self, srclist: T.List[T.Union['FileOrString', 'GeneratedTypes']], is_unity: bool) -> ExtractedObjects:
         sources_set = set(self.sources)
@@ -1774,18 +1755,13 @@ class BuildTarget(Target):
         if path is None:
             return
 
-        if isinstance(path, str):
-            if os.path.isabs(path):
-                self.vs_module_defs = File.from_absolute_file(path)
-            else:
-                self.vs_module_defs = File.from_source_file(self.environment.source_dir, self.subdir, path)
-        elif isinstance(path, File):
+        self.link_depends.append(path)
+        if isinstance(path, File):
             # When passing a generated file.
             self.vs_module_defs = path
         else:
             # When passing output of a Custom Target
             self.vs_module_defs = File.from_built_file(path.get_builddir(), path.get_filename())
-        self.process_link_depends([path])
 
     def _default_library_type(self) -> _LibraryType:
         bl_type = self.environment.coredata.optstore.get_value_for(OptionKey('default_both_libraries'))

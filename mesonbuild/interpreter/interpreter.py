@@ -3239,6 +3239,9 @@ class Interpreter(InterpreterBase, HoldableObject):
     def source_strings_to_files(self, sources: list['mesonlib.FileOrString']) -> list['mesonlib.File']: ...
 
     @T.overload
+    def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.CustomTarget, build.CustomTargetIndex]]) -> list[T.Union[mesonlib.File, build.CustomTarget, build.CustomTargetIndex]]: ...
+
+    @T.overload
     def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.BuildTargetTypes]]) -> list[T.Union[mesonlib.File, build.BuildTargetTypes]]: ...  # type: ignore[overload-overlap]
 
     @T.overload
@@ -3269,6 +3272,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                 sources: T.Union[
                                     list[str],
                                     list[mesonlib.File | str],
+                                    list[mesonlib.File | str | build.CustomTarget | build.CustomTargetIndex],
                                     list[mesonlib.File | str | build.BuildTargetTypes],
                                     list[mesonlib.File | str | build.GeneratedTypes],
                                     list[kwtypes.CustomTargetInputs],
@@ -3280,6 +3284,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                 ]
                                 ) -> T.Union[list[mesonlib.File],
                                              list[mesonlib.File | build.BuildTargetTypes],
+                                             list[mesonlib.File | build.CustomTarget | build.CustomTargetIndex],
                                              list[mesonlib.File | build.GeneratedTypes],
                                              list[mesonlib.File | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes],
                                              list[build.ObjectTypes | build.GeneratedTypes],
@@ -3328,6 +3333,11 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InterpreterException(f'Source item is {s!r} instead of '
                                            'string or File-type object')
         return results  # type: ignore[return-value]
+
+    def source_string_to_file(self, source: str | mesonlib.File | build.CustomTarget | build.CustomTargetIndex | None) -> mesonlib.File | build.CustomTarget | build.CustomTargetIndex:
+        if source is None:
+            return None
+        return self.source_strings_to_files([source])[0]
 
     def validate_forbidden_targets(self, name: str, in_root: bool) -> None:
         if name.startswith('meson-internal__'):
@@ -3640,8 +3650,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.__convert_build_target_base_kwargs(kwargs, final)
 
         # Exe exclusive arguments
-        for exe_arg in ('android_exe_type', 'pie', 'vs_module_defs'):
+        for exe_arg in ('android_exe_type', 'pie'):
             final[exe_arg] = kwargs[exe_arg]
+        final['vs_module_defs'] = self.source_string_to_file(kwargs['vs_module_defs'])
 
         # rewrite `gui_app` to `win_subsystem`
         if kwargs['gui_app'] is not None:
@@ -3718,8 +3729,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         final: build.SharedLibraryKeywordArguments = {}
         self.__convert_build_target_base_kwargs(kwargs, final)
 
-        for arg in ('version', 'soversion', 'darwin_versions', 'shortname', 'vs_module_defs'):
+        for arg in ('version', 'soversion', 'darwin_versions', 'shortname'):
             final[arg] = kwargs[arg]
+        final['vs_module_defs'] = self.source_string_to_file(kwargs['vs_module_defs'])
 
         for lang in compilers.all_languages - {'java'}:
             deps, args = self.__convert_file_args(kwargs.get(f'{lang}_shared_args', []))  # type: ignore[arg-type]
@@ -3741,8 +3753,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         final: build.SharedModuleKeywordArguments = {}
         self.__convert_build_target_base_kwargs(kwargs, final)
 
-        for arg in ('vs_module_defs', ):
-            final[arg] = kwargs[arg]
+        final['vs_module_defs'] = self.source_string_to_file(kwargs['vs_module_defs'])
 
         for lang in compilers.all_languages - {'java'}:
             deps, args = self.__convert_file_args(kwargs.get(f'{lang}_shared_args', []))  # type: ignore[arg-type]
