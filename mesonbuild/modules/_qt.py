@@ -22,6 +22,7 @@ from ..programs import NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
+    from ..build import TargetSources
     from ..dependencies.qt import QtPkgConfigDependency, QmakeQtDependency
     from ..dependencies.base import DependencyObjectKWs
     from ..interpreter import Interpreter
@@ -40,7 +41,7 @@ if T.TYPE_CHECKING:
         """Keyword arguments for the Resource Compiler method."""
 
         name: T.Optional[str]
-        sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        sources: T.List[str | build.TargetSources]
         extra_args: T.List[str]
         method: DependencyMethods
 
@@ -48,7 +49,7 @@ if T.TYPE_CHECKING:
 
         """Keyword arguments for the Ui Compiler method."""
 
-        sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        sources: T.List[str | build.TargetSources]
         extra_args: T.List[str]
         method: DependencyMethods
         preserve_paths: bool
@@ -57,8 +58,8 @@ if T.TYPE_CHECKING:
 
         """Keyword arguments for the Moc Compiler method."""
 
-        sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
-        headers: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        sources: T.List[str | build.TargetSources]
+        headers: T.List[str | build.TargetSources]
         extra_args: T.List[str]
         method: DependencyMethods
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
@@ -69,10 +70,10 @@ if T.TYPE_CHECKING:
     class PreprocessKwArgs(TypedDict):
 
         sources: T.List[FileOrString]
-        moc_sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
-        moc_headers: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        moc_sources: T.List[str | build.TargetSources]
+        moc_headers: T.List[str | build.TargetSources]
         qresources: T.List[FileOrString]
-        ui_files: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        ui_files: T.List[str | build.TargetSources]
         moc_extra_arguments: T.List[str]
         rcc_extra_arguments: T.List[str]
         uic_extra_arguments: T.List[str]
@@ -96,7 +97,7 @@ if T.TYPE_CHECKING:
         method: DependencyMethods
         qresource: T.Optional[str]
         rcc_extra_arguments: T.List[str]
-        ts_files: T.List[T.Union[str, File, build.GeneratedTypes]]
+        ts_files: T.List[str | build.TargetSources]
 
     class GenQrcKwArgs(TypedDict):
 
@@ -110,9 +111,9 @@ if T.TYPE_CHECKING:
         module_name: str
         module_version: str
         module_prefix: str
-        qml_sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
-        qml_singletons: T.List[T.Union[FileOrString, build.GeneratedTypes]]
-        qml_internals: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        qml_sources: T.List[str | build.TargetSources]
+        qml_singletons: T.List[str | build.TargetSources]
+        qml_internals: T.List[str | build.TargetSources]
         designer_supported: bool
         imports: T.List[str]
         optional_imports: T.List[str]
@@ -124,7 +125,7 @@ if T.TYPE_CHECKING:
     class GenQmlCachegenKwArgs(TypedDict):
 
         target_name: str
-        qml_sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        qml_sources: T.List[str | build.TargetSources]
         qml_qrc: File
         extra_args: T.List[str]
         module_prefix: str
@@ -154,11 +155,11 @@ if T.TYPE_CHECKING:
     class QmlModuleKwArgs(TypedDict):
 
         version: str
-        qml_sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
-        qml_singletons: T.List[T.Union[FileOrString, build.GeneratedTypes]]
-        qml_internals: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        qml_sources: T.List[str | build.TargetSources]
+        qml_singletons: T.List[str | build.TargetSources]
+        qml_internals: T.List[str | build.TargetSources]
         resources_prefix: str
-        moc_headers: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        moc_headers: T.List[str | build.TargetSources]
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
         imports: T.List[str]
         optional_imports: T.List[str]
@@ -642,8 +643,7 @@ class QtBaseModule(ExtensionModule):
         if _sources:
             FeatureDeprecated.single_use('qt.preprocess positional sources', '0.59', state.subproject, location=state.current_node)
         # List is invariant, os we have to cast...
-        sources = T.cast('T.List[T.Union[str, File, build.GeneratedList, build.CustomTarget]]',
-                         _sources + kwargs['sources'])
+        sources: T.List[str | build.TargetSources] = [*_sources, *kwargs['sources']]
         for s in sources:
             if not isinstance(s, (str, File)):
                 raise build.InvalidArguments('Variadic arguments to qt.preprocess must be Strings or Files')
@@ -652,7 +652,7 @@ class QtBaseModule(ExtensionModule):
         if kwargs['qresources']:
             # custom output name set? -> one output file, multiple otherwise
             rcc_kwargs: ResourceCompilerKwArgs = {'name': '',
-                                                  'sources': T.cast('T.List[FileOrString | build.GeneratedTypes]', kwargs['qresources']),
+                                                  'sources': T.cast('T.List[str | TargetSources]', kwargs['qresources']),
                                                   'extra_args': kwargs['rcc_extra_arguments'], 'method': method}
             if args:
                 name = args[0]
@@ -766,7 +766,7 @@ class QtBaseModule(ExtensionModule):
         else:
             return ModuleReturnValue(translations, [translations])
 
-    def _source_to_files(self, state: ModuleState, sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]) -> T.List[File]:
+    def _source_to_files(self, state: ModuleState, sources: T.List[str | build.TargetSources]) -> T.List[File]:
 
         content_files = []
         for s in sources:
@@ -833,7 +833,7 @@ class QtBaseModule(ExtensionModule):
                     version: str = match.group(4) or ''
                     fd.write(f'{import_type} {module} {version}\n')
 
-            def __gen_declaration(qualifier: str, version: str, importlist: T.List[T.Union[FileOrString, build.GeneratedTypes]]) -> None:
+            def __gen_declaration(qualifier: str, version: str, importlist: T.List[str | build.TargetSources]) -> None:
                 importpathlist = self._source_to_files(state, importlist)
                 for s in importpathlist:
                     basename: str = os.path.basename(s.fname)
@@ -1076,8 +1076,8 @@ class QtBaseModule(ExtensionModule):
         #same format as the one derived from qmltyperegistrar
         target_name = re.sub(r'[^A-Za-z0-9]', '_', module_name)
 
-        qrc_resouces: T.List[T.Union[FileOrString, build.GeneratedTypes]] = []
-        all_qml: T.List[T.Union[FileOrString, build.GeneratedTypes]] = kwargs['qml_sources'] + kwargs['qml_singletons'] + kwargs['qml_internals']
+        qrc_resouces: T.List[str | build.TargetSources] = []
+        all_qml: T.List[str | build.TargetSources] = kwargs['qml_sources'] + kwargs['qml_singletons'] + kwargs['qml_internals']
         all_qml_files: T.List[File] = self._source_to_files(state, all_qml)
         all_qml_basename: T.List[str] = [os.path.basename(p.fname) for p in all_qml_files]
 

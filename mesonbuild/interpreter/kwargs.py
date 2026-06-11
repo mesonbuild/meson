@@ -524,7 +524,7 @@ class _JarMixin(TypedDict):
 
 class Jar(BaseBuildTarget, _JarMixin):
 
-    sources: T.Union[str, File, build.GeneratedTypes, build.ExtractedObjects, build.BuildTarget]
+    sources: T.Union[str, build.TargetSources, build.ExtractedObjects, build.BuildTarget]
 
 
 class BuildTargetFunc(Library, _ExecutableMixin, _JarMixin):
@@ -545,7 +545,7 @@ class FuncDeclareDependency(TypedDict):
     link_whole: T.List[build.StaticTargetTypes]
     link_with: T.List[build.LinkableTargetTypes]
     objects: T.List[build.ExtractedObjects]
-    sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+    sources: T.List[str | build.TargetSources]
     variables: T.Dict[str, str]
     version: T.Optional[str]
 

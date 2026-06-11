@@ -37,6 +37,7 @@ from ..options import OptionKey
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
     from ..arglist import CompilerArgs
+    from ..build import TargetSources
     from ..compilers.compilers import Compiler, Language
     from ..environment import Environment
     from ..interpreter import Test
@@ -45,8 +46,6 @@ if T.TYPE_CHECKING:
     from ..options import ElementaryOptionValues
 
     from typing_extensions import Literal, TypedDict, NotRequired, TypeAlias
-
-    _ALL_SOURCES_TYPE = T.List[T.Union[File, build.GeneratedTypes]]
 
     class CompilerIntrospectionData(TypedDict):
 
@@ -2084,7 +2083,7 @@ class Backend:
 
     def compiler_to_generator(self, target: build.BuildTarget,
                               compiler: 'Compiler',
-                              sources: _ALL_SOURCES_TYPE,
+                              sources: T.List[TargetSources],
                               output_templ: str,
                               depends: T.Optional[T.List[build.BuildTargetTypes]] = None,
                               ) -> build.GeneratedList:
@@ -2102,7 +2101,7 @@ class Backend:
         return generator.process_files(sources)
 
     def compile_target_to_generator(self, target: build.CompileTarget) -> build.GeneratedList:
-        all_sources = T.cast('_ALL_SOURCES_TYPE', target.sources) + T.cast('_ALL_SOURCES_TYPE', target.generated)
+        all_sources: T.List[TargetSources] = [*target.sources, *target.generated]
         return self.compiler_to_generator(target, target.compiler, all_sources,
                                           target.output_templ, target.depends)
 

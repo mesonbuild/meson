@@ -1027,7 +1027,7 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @noKwargs
     @typed_pos_args('extract_objects', varargs=(mesonlib.File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList))
     @InterpreterObject.method('extract_objects')
-    def extract_objects_method(self, args: T.Tuple[T.List[T.Union[mesonlib.FileOrString, 'build.GeneratedTypes']]], kwargs: TYPE_nkwargs) -> build.ExtractedObjects:
+    def extract_objects_method(self, args: T.Tuple[T.List[str | build.TargetSources]], kwargs: TYPE_nkwargs) -> build.ExtractedObjects:
         if self.subproject != self.held_object.subproject:
             raise InterpreterException('Tried to extract objects from a different subproject.')
         tobj = self._target_object
@@ -1228,7 +1228,7 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
     )
     @InterpreterObject.method('process')
     def process_method(self,
-                       args: T.Tuple[T.List[T.Union[str, mesonlib.File, 'build.GeneratedTypes']]],
+                       args: T.Tuple[T.List[str | build.TargetSources]],
                        kwargs: 'kwargs.GeneratorProcess') -> build.GeneratedList:
         preserve_path_from = kwargs['preserve_path_from']
         if preserve_path_from is not None:
