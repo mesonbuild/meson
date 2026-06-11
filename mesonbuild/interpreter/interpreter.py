@@ -3242,7 +3242,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @T.overload
     def source_strings_to_files(self, sources: list[kwtypes.BuildTargetObjects],  # type: ignore[overload-overlap]
-                                ) -> list[T.Union[build.ObjectTypes]]: ...
+                                ) -> list[T.Union[build.ObjectTypes, build.GeneratedTypes]]: ...
 
     @T.overload
     def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.BuildTargetTypes, build.BothLibraries, build.ExtractedObjects, build.GeneratedTypes]],  # type: ignore[overload-overlap]
@@ -3275,7 +3275,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                              list[mesonlib.File | build.BuildTargetTypes],
                                              list[mesonlib.File | build.GeneratedTypes],
                                              list[mesonlib.File | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes],
-                                             list[build.ObjectTypes],
+                                             list[build.ObjectTypes | build.GeneratedTypes],
                                              list[mesonlib.File | build.GeneratedTypes | build.StructuredSources],
                                              list[CustomTargetSources],
                                              list[SourceOutputs]]:
