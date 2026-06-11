@@ -31,8 +31,8 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
 
     ANY_DEP = T.Union[dependencies.Dependency, build.LinkableTargetProto, str]
-    REQS = T.Union[dependencies.Dependency, build.LibTypes, str]
-    LIBS = T.Union[build.LibTypes, str]
+    REQS = T.Union[dependencies.Dependency, build.LibTargetProto, str]
+    LIBS = T.Union[build.LibTargetProto, str]
 
     class GenerateKw(TypedDict):
 
@@ -99,7 +99,7 @@ class _LibDeps:
 
     source: object
     link_targets: T.Sequence[build.LinkableTargetProto]
-    link_whole_targets: T.Sequence[build.StaticTargetTypes]
+    link_whole_targets: T.Sequence[build.StaticTargetProto]
     external_deps: T.List[dependencies.Dependency]
     public: bool
 
@@ -118,7 +118,7 @@ class DependenciesHelper:
         self.cflags: T.List[str] = []
         self.cflags_private: T.List[str] = []
         self.version_reqs: T.DefaultDict[str, T.Set[str]] = defaultdict(set)
-        self.link_whole_targets: T.List[build.StaticTargetTypes] = []
+        self.link_whole_targets: T.List[build.StaticTargetProto] = []
         self.uninstalled_incdirs: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
         # Libraries whose recursive dependencies still have to be added.
         self._dep_stack: T.List[_LibDeps] = []
@@ -141,7 +141,7 @@ class DependenciesHelper:
     def add_priv_reqs(self, reqs: T.List[REQS]) -> None:
         self.priv_reqs += self._process_reqs(reqs)
 
-    def _check_generated_pc_deprecation(self, obj: build.LibTypes) -> None:
+    def _check_generated_pc_deprecation(self, obj: build.LibTargetProto) -> None:
         if obj.get_id() in self.metadata:
             return
         data = self.metadata[obj.get_id()]
@@ -442,8 +442,8 @@ class PkgConfigModule(NewExtensionModule):
         if self.devenv is not None:
             b.devenv.append(self.devenv)
 
-    def _get_lname(self, l: build.LibTypes, msg: str, pcfile: str) -> str:
-        if isinstance(l, (build.CustomTargetIndex, build.CustomTarget)):
+    def _get_lname(self, l: build.LibTargetProto, msg: str, pcfile: str) -> str:
+        if not isinstance(l, build.BuildTarget):
             basename = os.path.basename(l.get_filename())
             name = os.path.splitext(basename)[0]
             if name.startswith('lib'):
@@ -625,12 +625,15 @@ class PkgConfigModule(NewExtensionModule):
                                 install_dir = _i[0] if _i else ''
                         if install_dir is False:
                             continue
+                        lname = self._get_lname(l, msg, pcfile)
+                        lflag = f'-l{lname}'
                         if isinstance(l, build.BuildTarget) and 'cs' in l.compilers:
                             if custom_install_dir:
                                 Lflag = '-r{}/{}'.format(self._escape(self._make_relative(prefix, install_dir, pure_path_class)),
                                                          l.filename)
                             else:
                                 Lflag = '-r${libdir}/%s' % l.filename
+                            lflag = None
                         else:
                             if custom_install_dir:
                                 Lflag = '-L{}'.format(self._escape(self._make_relative(prefix, install_dir, pure_path_class)))
@@ -639,13 +642,12 @@ class PkgConfigModule(NewExtensionModule):
                         if Lflag not in Lflags:
                             Lflags.append(Lflag)
                             yield Lflag
-                        lname = self._get_lname(l, msg, pcfile)
                         # If using a custom suffix, the compiler may not be able to
                         # find the library
                         if isinstance(l, build.BuildTarget) and l.name_suffix_set:
                             mlog.warning(msg.format(l.name, 'name_suffix', lname, pcfile))
-                        if isinstance(l, (build.CustomTarget, build.CustomTargetIndex)) or 'cs' not in l.compilers:
-                            yield f'-l{lname}'
+                        if lflag is not None:
+                            yield lflag
 
             if deps.pub_libs:
                 ofile.write('Libs: {}\n'.format(' '.join(generate_libs_flags(deps.pub_libs))))
