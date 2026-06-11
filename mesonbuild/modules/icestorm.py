@@ -20,8 +20,8 @@ if T.TYPE_CHECKING:
 
     class ProjectKwargs(TypedDict):
 
-        sources: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]
-        constraint_file: T.Union[mesonlib.FileOrString, build.GeneratedTypes]
+        sources: T.List[str | build.TargetSources]
+        constraint_file: str | build.TargetSources
 
 class IceStormModule(ExtensionModule):
 
@@ -54,7 +54,7 @@ class IceStormModule(ExtensionModule):
         )
     )
     def project(self, state: ModuleState,
-                args: T.Tuple[str, T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]],
+                args: T.Tuple[str, T.List[str | build.TargetSources]],
                 kwargs: ProjectKwargs) -> ModuleReturnValue:
         if not self.tools:
             self.detect_tools(state)

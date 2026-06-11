@@ -53,6 +53,7 @@ if T.TYPE_CHECKING:
     from .mparser import BaseNode
     from .options import ElementaryOptionValues
 
+    TargetSources: TypeAlias = T.Union['File', 'GeneratedTypes']
     GeneratedTypes: TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
     LinkableTargetTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex', 'Executable']
@@ -578,7 +579,7 @@ class StructuredSources(HoldableObject):
     represent the required filesystem layout.
     """
 
-    sources: T.DefaultDict[str, T.List[T.Union[File, GeneratedTypes]]] = field(
+    sources: T.DefaultDict[str, T.List[TargetSources]] = field(
         default_factory=lambda: defaultdict(list))
 
     def __add__(self, other: StructuredSources) -> StructuredSources:
@@ -590,7 +591,7 @@ class StructuredSources(HoldableObject):
     def __bool__(self) -> bool:
         return bool(self.sources)
 
-    def as_list(self) -> T.List[T.Union[File, GeneratedTypes]]:
+    def as_list(self) -> T.List[TargetSources]:
         return list(itertools.chain.from_iterable(self.sources.values()))
 
     def needs_copy(self) -> bool:
@@ -1186,7 +1187,7 @@ class BuildTarget(Target):
             langs = ', '.join(self.compilers.keys())
             raise InvalidArguments(f'Cannot mix those languages into a target: {langs}')
 
-    def extract_objects(self, srclist: T.List[T.Union[File, 'GeneratedTypes']], is_unity: bool) -> ExtractedObjects:
+    def extract_objects(self, srclist: T.List[TargetSources], is_unity: bool) -> ExtractedObjects:
         sources_set = set(self.sources)
         generated_set = set(self.generated)
 
@@ -1999,7 +2000,7 @@ class Generator(HoldableObject):
         basename = os.path.splitext(plainname)[0]
         return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
 
-    def process_files(self, files: T.Iterable[T.Union[str, File, GeneratedTypes]],
+    def process_files(self, files: T.Iterable[str | TargetSources],
                       subdir: str = '',
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None,
