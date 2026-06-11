@@ -563,6 +563,7 @@ RUST_ABI_KW: KwargInfo[T.Union[str, None]] = KwargInfo(
     since='1.3.0',
     validator=in_set_validator({'rust', 'c'}))
 
+# this is implicitly an extra link_depends and thus shares the same type
 _VS_MODULE_DEFS_KW: KwargInfo[T.Optional[T.Union[str, File, CustomTarget, CustomTargetIndex]]] = KwargInfo(
     'vs_module_defs',
     (str, File, CustomTarget, CustomTargetIndex, NoneType),
@@ -809,6 +810,10 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
         since='0.48.0',
     ),
     KwargInfo('install_rpath', str, default=''),
+    # FIXME: an old comment said that link_depends "doesn't handle generator()
+    # returned objects, since adding them as a link depends would inherently
+    # cause them to be generated twice, since the output needs to be passed
+    # to the ld_args and link_depends".  Is this still true?
     KwargInfo(
         'link_depends',
         ContainerTypeInfo(list, (str, File, CustomTarget, CustomTargetIndex, BuildTarget)),
