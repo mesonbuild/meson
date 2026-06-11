@@ -28,8 +28,8 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
     from ..build import (
-        CustomTarget, IncludeDirs, CustomTargetIndex, LinkableProto,
-        StaticLibrary, ExtractedObjects, TargetSources
+        IncludeDirs, LinkableProto,
+        ExtractedObjects, TargetSources, StaticTargetProto,
     )
     from ..interpreter.type_checking import PkgConfigDefineType
 
@@ -310,7 +310,7 @@ class InternalDependency(Dependency):
                  compile_args: T.Optional[T.List[str]] = None,
                  link_args: T.Optional[T.List[str]] = None,
                  libraries: T.Optional[T.List[LinkableProto]] = None,
-                 whole_libraries: T.Optional[T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]] = None,
+                 whole_libraries: T.Optional[T.List[StaticTargetProto]] = None,
                  sources: T.Optional[T.Sequence[TargetSources]] = None,
                  extra_files: T.Optional[T.Sequence[mesonlib.File]] = None,
                  ext_deps: T.Optional[T.List[Dependency]] = None, variables: T.Optional[T.Dict[str, str]] = None,
@@ -402,8 +402,7 @@ class InternalDependency(Dependency):
                                      'CustomTarget or CustomTargetIndex which is a shared library')
 
         # Mypy doesn't understand that the above is a TypeGuard
-        new_dep.whole_libraries += T.cast('T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]',
-                                          new_dep.libraries)
+        new_dep.whole_libraries += T.cast('T.List[StaticTargetProto]', new_dep.libraries)
         new_dep.libraries = []
         return new_dep
 

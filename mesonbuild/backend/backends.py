@@ -487,7 +487,7 @@ class Backend:
         return os.path.relpath(os.path.join('dummyprefixdir', todir),
                                os.path.join('dummyprefixdir', fromdir))
 
-    def flatten_object_list(self, target: build.BuildTarget, proj_dir_to_build_root: str = ''
+    def flatten_object_list(self, target: build.BuildTargetProto, proj_dir_to_build_root: str = ''
                             ) -> T.Tuple[T.List[str], T.List[build.BuildTarget]]:
         obj_list, deps = self._flatten_object_list(target, target.get_objects(), proj_dir_to_build_root)
         return unique_list(obj_list), deps
@@ -496,7 +496,7 @@ class Backend:
         obj_list, _ = self._flatten_object_list(objects.target, [objects], '')
         return unique_list(obj_list)
 
-    def _flatten_object_list(self, target: build.BuildTarget,
+    def _flatten_object_list(self, target: build.BuildTargetProto,
                              objects: T.Sequence[build.ObjectTypes],
                              proj_dir_to_build_root: str) -> T.Tuple[T.List[str], T.List[build.BuildTarget]]:
         obj_list: T.List[str] = []

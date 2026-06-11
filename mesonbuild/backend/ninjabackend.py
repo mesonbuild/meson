@@ -3633,12 +3633,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if use_custom:
             objects_from_static_libs: T.List[str] = []
             for dep in target.link_whole_targets:
-                if not isinstance(dep, build.BuildTarget):
+                try:
+                    l = dep.extract_all_objects(False)
+                except MesonException:
                     raise MesonException(
-                        f'Cannot extract objects from custom target {dep.name!r} to '
+                        f'Cannot extract objects from custom target {dep.get_basename()!r} to '
                         f'link_whole it into {target.name!r}: this is not supported '
                         'with versions of MSVC older than Visual Studio 2015 Update 2.')
-                l = dep.extract_all_objects(False)
                 objects_from_static_libs += self.determine_ext_objs(l)
                 objects_from_static_libs.extend(self.flatten_object_list(dep)[0])
 
