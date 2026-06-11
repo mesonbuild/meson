@@ -2467,8 +2467,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             self, node: mparser.BaseNode,
             args: T.Tuple[object, T.Optional[T.Dict[str, object]]],
             kwargs: 'TYPE_kwargs') -> build.StructuredSources:
-        valid_types = (str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)
-        sources: T.DefaultDict[str, T.List[T.Union[mesonlib.File, 'build.GeneratedTypes']]] = collections.defaultdict(list)
+        valid_types = (str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.BuildTarget)
+        sources: T.DefaultDict[str, T.List[T.Union[mesonlib.File, 'build.GeneratedTypes', build.BuildTarget]]] = collections.defaultdict(list)
 
         for arg in mesonlib.listify(args[0]):
             if not isinstance(arg, valid_types):

@@ -1,7 +1,8 @@
 project('libgcrypt test', 'c')
 
 wm = find_program('libgcrypt-config', required : false)
-if not wm.found()
+dep = dependency('libgcrypt', method: 'pkg-config', required: false)
+if not wm.found() and not dep.found()
   error('MESON_SKIP_TEST: libgcrypt-config not installed')
 endif
 
@@ -15,9 +16,15 @@ test('libgcrypttest', e)
 
 # Test using the method keyword:
 
-dependency('libgcrypt', method : 'config-tool')
-dependency('libgcrypt', method : 'pkg-config', required: false)
+lct = dependency('libgcrypt', method : 'config-tool', required: false)
+pct = dependency('libgcrypt', method : 'pkg-config', required: false)
+if not lct.found() and not pct.found()
+  error('libgcrypt not found')
+endif
 
 # Check we can apply a version constraint
-dependency('libgcrypt', version: '>=@0@'.format(libgcrypt_dep.version()), method: 'pkg-config', required: false)
-dependency('libgcrypt', version: '>=@0@'.format(libgcrypt_dep.version()), method: 'config-tool')
+lctv = dependency('libgcrypt', version: '>=@0@'.format(libgcrypt_dep.version()), method: 'pkg-config', required: false)
+pctv = dependency('libgcrypt', version: '>=@0@'.format(libgcrypt_dep.version()), method: 'config-tool', required: false)
+if not lct.found() and not pct.found()
+  error('libgcrypt version constraint not working as expected')
+endif

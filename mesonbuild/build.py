@@ -578,7 +578,7 @@ class StructuredSources(HoldableObject):
     represent the required filesystem layout.
     """
 
-    sources: T.DefaultDict[str, T.List[T.Union[File, GeneratedTypes]]] = field(
+    sources: T.DefaultDict[str, T.List[T.Union[File, GeneratedTypes, BuildTarget]]] = field(
         default_factory=lambda: defaultdict(list))
 
     def __add__(self, other: StructuredSources) -> StructuredSources:
@@ -590,7 +590,7 @@ class StructuredSources(HoldableObject):
     def __bool__(self) -> bool:
         return bool(self.sources)
 
-    def as_list(self) -> T.List[T.Union[File, GeneratedTypes]]:
+    def as_list(self) -> T.List[T.Union[File, GeneratedTypes, BuildTarget]]:
         return list(itertools.chain.from_iterable(self.sources.values()))
 
     def needs_copy(self) -> bool:
@@ -1110,7 +1110,7 @@ class BuildTarget(Target):
             return missing_languages
         # Preexisting sources
         sources: T.List['FileOrString'] = list(self.sources)
-        generated = self.generated.copy()
+        generated: T.List[T.Union[GeneratedTypes, BuildTarget]] = [*self.generated]
 
         if self.structured_sources:
             for v in self.structured_sources.sources.values():

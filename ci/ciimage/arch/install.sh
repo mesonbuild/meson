@@ -11,7 +11,7 @@ pkgs=(
   ninja make git sudo fakeroot autoconf automake patch
   libelf gcc gcc-fortran gcc-objc vala rust byacc flex cython go dlang-dmd
   mono boost boost-libs qt5-base gtkmm3 gtest gmock protobuf gobject-introspection
-  itstool glib2-devel gtk3 java-environment=8 gtk-doc llvm clang sdl2 graphviz
+  itstool glib2-devel gtk3 java-environment gtk-doc llvm clang sdl2 graphviz
   doxygen vulkan-headers vulkan-icd-loader vulkan-validation-layers openssh mercurial gtk-sharp-3 qt5-tools
   libwmf cmake netcdf-fortran openmpi nasm gnustep-base gettext
   python-lxml hotdoc rust-bindgen qt6-base qt6-tools qt6-declarative wayland wayland-protocols
@@ -29,9 +29,16 @@ PACMAN_OPTS='--needed --noprogressbar --noconfirm'
 export CMAKE_POLICY_VERSION_MINIMUM=3.5
 
 # Patch config files
+pacman -Syu $PACMAN_OPTS ed
 sed -i 's/#Color/Color/g'                            /etc/pacman.conf
 sed -i 's,#MAKEFLAGS="-j2",MAKEFLAGS="-j$(nproc)",g' /etc/makepkg.conf
 sed -i "s,PKGEXT='.pkg.tar.zst',PKGEXT='.pkg.tar',g" /etc/makepkg.conf
+ed /etc/makepkg.conf<<EOF
+/^OPTIONS=/
+s/debug/!debug/
+w
+q
+EOF
 
 # Install packages
 pacman -Syu $PACMAN_OPTS "${pkgs[@]}"
