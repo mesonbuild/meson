@@ -524,7 +524,8 @@ class QtBaseModule(ExtensionModule):
             kwargs['extra_args'] + ['-o', '@OUTPUT@', '@INPUT@'],
             ['ui_@BASENAME@.h'],
             name=f'Qt{self.qt_version} ui')
-        return gen.process_files(kwargs['sources'], state.subdir, preserve_path_from)
+        sources = self._source_to_files(state, kwargs['sources'])
+        return gen.process_files(sources, state.subdir, preserve_path_from)
 
     @FeatureNew('qt.compile_moc', '0.59.0')
     @noPosargs
@@ -572,7 +573,7 @@ class QtBaseModule(ExtensionModule):
 
         inc = state.get_include_args(include_dirs=kwargs['include_directories'])
         compile_args: T.List[str] = []
-        sources: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]] = []
+        depends: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]] = []
         for dep in kwargs['dependencies']:
             compile_args.extend(a for a in dep.get_all_compile_args() if a.startswith(('-I', '-F', '-D')))
             if isinstance(dep, InternalDependency):
@@ -580,7 +581,7 @@ class QtBaseModule(ExtensionModule):
                     compile_args.extend(f'-I{i}' for i in incl.abs_string_list(self.interpreter.source_root, self.interpreter.environment.build_dir))
                 for src in dep.sources:
                     if isinstance(src, (build.CustomTarget, build.BuildTarget, build.CustomTargetIndex)):
-                        sources.append(src)
+                        depends.append(src)
 
         output: T.List[build.GeneratedList] = []
 
@@ -601,10 +602,11 @@ class QtBaseModule(ExtensionModule):
             moc_gen = build.Generator(
                 state.environment,
                 self.tools['moc'], arguments, header_gen_output,
-                depends=sources,
+                depends=depends,
                 depfile='moc_@BASENAME@.cpp.d',
                 name=f'Qt{self.qt_version} moc header')
-            output.append(moc_gen.process_files(kwargs['headers'], state.subdir, preserve_path_from))
+            headers = self._source_to_files(state, kwargs['headers'])
+            output.append(moc_gen.process_files(headers, state.subdir, preserve_path_from))
         if kwargs['sources']:
             source_gen_output: T.List[str] = ['@BASENAME@.moc']
             if do_output_json:
@@ -614,7 +616,8 @@ class QtBaseModule(ExtensionModule):
                 self.tools['moc'], arguments, source_gen_output,
                 depfile='@BASENAME@.moc.d',
                 name=f'Qt{self.qt_version} moc source')
-            output.append(moc_gen.process_files(kwargs['sources'], state.subdir, preserve_path_from))
+            sources = self._source_to_files(state, kwargs['sources'])
+            output.append(moc_gen.process_files(sources, state.subdir, preserve_path_from))
 
         return output
 
@@ -922,7 +925,8 @@ class QtBaseModule(ExtensionModule):
             name=f'Qml cache generation for {target_name}')
 
         output: T.List[T.Union[build.CustomTarget, build.GeneratedList]] = []
-        output.append(cache_gen.process_files(kwargs['qml_sources'], state.subdir))
+        qml_sources = self._source_to_files(state, kwargs['qml_sources'])
+        output.append(cache_gen.process_files(qml_sources, state.subdir))
 
         cachegen_inputs: T.List[str] = []
         qml_sources_paths = self._source_to_files(state, kwargs['qml_sources'])
