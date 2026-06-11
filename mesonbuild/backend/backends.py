@@ -42,7 +42,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreter import Test
     from ..linkers import StaticLinker
-    from ..mesonlib import FileMode, FileOrString
+    from ..mesonlib import FileMode
     from ..options import ElementaryOptionValues
 
     from typing_extensions import Literal, TypedDict, NotRequired, TypeAlias
@@ -775,8 +775,7 @@ class Backend:
             fname = fname.replace(ch, '_')
         return hashed + fname
 
-    def object_filename_from_source(self, target: build.BuildTarget, compiler: Compiler, source: 'FileOrString', targetdir: T.Optional[str] = None) -> str:
-        assert isinstance(source, mesonlib.File)
+    def object_filename_from_source(self, target: build.BuildTarget, compiler: Compiler, source: File, targetdir: T.Optional[str] = None) -> str:
         if isinstance(target, build.CompileTarget):
             return target.sources_map[source]
         build_dir = self.environment.get_build_dir()
@@ -828,14 +827,14 @@ class Backend:
         targetdir = self.get_target_private_dir(extobj.target)
 
         # Merge sources and generated sources
-        raw_sources = list(extobj.srclist)
+        raw_sources: T.List[File] = list(extobj.srclist)
         for gensrc in extobj.genlist:
             for r in gensrc.get_outputs():
                 path = self.get_target_generated_dir(extobj.target, gensrc, r)
                 raw_sources.append(File.from_built_relative(path))
 
         # Filter out headers and all non-source files
-        sources: T.List['FileOrString'] = []
+        sources: T.List[File] = []
         for s in raw_sources:
             if compilers.is_source(s):
                 sources.append(s)
