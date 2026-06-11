@@ -2307,10 +2307,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InvalidArguments('Tried to use not-found external program as test exe')
         elif isinstance(exe, mesonlib.File):
             exe = self.find_program_impl([exe])
-        if isinstance(exe, (build.Executable, build.CustomTarget)):
-            kwargs.setdefault('depends', []).append(exe)
-        elif isinstance(exe, build.CustomTargetIndex):
-            kwargs.setdefault('depends', []).append(exe.target)
+        if isinstance(exe, (build.Executable, build.CustomTarget, build.CustomTargetIndex)):
+            kwargs.setdefault('depends', []).append(exe.get_target())
 
         if kwargs['timeout'] <= 0:
             FeatureNew.single_use('test() timeout <= 0', '0.57.0', self.subproject, location=node)

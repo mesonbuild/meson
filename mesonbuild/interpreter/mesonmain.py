@@ -99,10 +99,7 @@ class MesonMain(MesonInterpreterObject):
                 # this without completely rewriting install script handling.
                 # This is complicated by the fact that the install target
                 # depends on all.
-                if isinstance(a, build.CustomTargetIndex):
-                    a.target.build_by_default = True
-                else:
-                    a.build_by_default = True
+                a.get_target().build_by_default = True
             else:
                 script_args.extend(a.get_command())
                 new = True
