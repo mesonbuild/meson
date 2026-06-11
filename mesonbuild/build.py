@@ -37,7 +37,7 @@ from .compilers import (
 from .interpreterbase import FeatureNew, FeatureDeprecated
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypeAlias, TypedDict
+    from typing_extensions import Literal, Self, TypeAlias, TypedDict
 
     from .arglist import CompilerArgs
     from .environment import Environment
@@ -683,6 +683,9 @@ class Target(HoldableObject, metaclass=SimpleABC):
 
     def get_builddir(self) -> str:
         return self.builddir
+
+    def get_target(self) -> Self:
+        return self
 
     @staticmethod
     def _get_id_hash(target_id: str) -> str:
@@ -3393,6 +3396,9 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
 
     def get_id(self) -> str:
         return self.target.get_id()
+
+    def get_target(self) -> BuildTarget | CustomTarget:
+        return self.target
 
     def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return self.target.get_all_link_deps()

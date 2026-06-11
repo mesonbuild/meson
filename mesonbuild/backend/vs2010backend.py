@@ -379,30 +379,19 @@ class Vs2010Backend(backends.Backend):
                         d = d.program
                     if isinstance(d, (programs.Program, build.GeneratedList)):
                         continue
-                    if isinstance(d, build.CustomTargetIndex):
-                        all_deps[d.get_id()] = d.target
-                    else:
-                        all_deps[d.get_id()] = d
+                    all_deps[d.get_id()] = d.get_target()
             elif isinstance(target, build.BuildTarget):
                 for ldep in target.link_targets:
-                    if isinstance(ldep, build.CustomTargetIndex):
-                        all_deps[ldep.get_id()] = ldep.target
-                    else:
-                        all_deps[ldep.get_id()] = ldep
+                    all_deps[ldep.get_id()] = ldep.get_target()
                 for ldep in target.link_whole_targets:
-                    if isinstance(ldep, build.CustomTargetIndex):
-                        all_deps[ldep.get_id()] = ldep.target
-                    else:
-                        all_deps[ldep.get_id()] = ldep
+                    all_deps[ldep.get_id()] = ldep.get_target()
 
                 for ldep in target.link_depends:
-                    if isinstance(ldep, build.CustomTargetIndex):
-                        all_deps[ldep.get_id()] = ldep.target
-                    elif isinstance(ldep, File):
+                    if isinstance(ldep, File):
                         # Already built, no target references needed
                         pass
                     else:
-                        all_deps[ldep.get_id()] = ldep
+                        all_deps[ldep.get_id()] = ldep.get_target()
 
                 for obj_id, objdep in self.get_obj_target_deps(target.objects):
                     all_deps[obj_id] = objdep
@@ -410,10 +399,8 @@ class Vs2010Backend(backends.Backend):
                 raise MesonException(f'Unknown target type for target {target}')
 
             for gendep in target.get_generated_sources():
-                if isinstance(gendep, build.CustomTarget):
-                    all_deps[gendep.get_id()] = gendep
-                elif isinstance(gendep, build.CustomTargetIndex):
-                    all_deps[gendep.target.get_id()] = gendep.target
+                if isinstance(gendep, (build.CustomTarget, build.CustomTargetIndex)):
+                    all_deps[gendep.get_id()] = gendep.get_target()
                 else:
                     generator = gendep.get_generator()
                     for d in itertools.chain(generator.depends, gendep.depends, gendep.extra_depends):
@@ -481,9 +468,7 @@ class Vs2010Backend(backends.Backend):
                 ofile.write('EndProject\n')
                 for dep, target in recursive_deps.items():
                     if prj[0] in default_projlist:
-                        if isinstance(target, build.CustomTargetIndex):
-                            target = target.target
-                        default_projlist[dep] = target
+                        default_projlist[dep] = target.get_target()
 
             test_line = prj_templ % (self.environment.coredata.lang_guids['default'],
                                      'RUN_TESTS', 'RUN_TESTS.vcxproj',

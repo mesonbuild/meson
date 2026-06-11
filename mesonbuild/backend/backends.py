@@ -393,10 +393,7 @@ class Backend:
         return dirname
 
     def get_target_dir(self, target: build.AnyTargetType) -> str:
-        if isinstance(target, build.CustomTargetIndex):
-            return self.get_target_dir_cached(target.target)
-        else:
-            return self.get_target_dir_cached(target)
+        return self.get_target_dir_cached(target.get_target())
 
     def get_target_dir_relative_to(self,
                                    t: T.Union[build.Target, build.CustomTargetIndex],

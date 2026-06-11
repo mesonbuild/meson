@@ -591,13 +591,8 @@ class XCodeBackend(backends.Backend):
         self.target_dependency_map: T.Dict[T.Union[str, T.Tuple[str, str]], str] = {}
         for tname, t in self.build_targets.items():
             for target in t.link_targets:
-                if isinstance(target, build.CustomTargetIndex):
-                    k = (tname, target.target.get_basename())
-                    if k in self.target_dependency_map:
-                        continue
-                else:
-                    k = (tname, target.get_basename())
-                    assert k not in self.target_dependency_map
+                k = (tname, target.get_basename())
+                assert k not in self.target_dependency_map
                 self.target_dependency_map[k] = self.gen_id()
         for tname, t in self.custom_targets.items():
             k = tname
@@ -1324,10 +1319,8 @@ class XCodeBackend(backends.Backend):
             for lt in self.build_targets[tname].link_targets:
                 # NOT DOCUMENTED, may need to make different links
                 # to same target have different targetdependency item.
-                if isinstance(lt, build.CustomTarget):
-                    dep_array.add_item(self.pbx_custom_dep_map[lt.get_id()], lt.name)
-                elif isinstance(lt, build.CustomTargetIndex):
-                    dep_array.add_item(self.pbx_custom_dep_map[lt.target.get_id()], lt.target.name)
+                if isinstance(lt, (build.CustomTarget, build.CustomTargetIndex)):
+                    dep_array.add_item(self.pbx_custom_dep_map[lt.get_id()], lt.get_basename())
                 else:
                     idval = self.pbx_dep_map[lt.get_id()]
                     dep_array.add_item(idval, 'PBXTargetDependency')
@@ -1338,10 +1331,8 @@ class XCodeBackend(backends.Backend):
                     dep_array.add_item(idval, 'PBXTargetDependency')
             generator_id = 0
             for o in t.generated:
-                if isinstance(o, build.CustomTarget):
-                    dep_array.add_item(self.pbx_custom_dep_map[o.get_id()], o.name)
-                elif isinstance(o, build.CustomTargetIndex):
-                    dep_array.add_item(self.pbx_custom_dep_map[o.target.get_id()], o.target.name)
+                if isinstance(o, (build.CustomTarget, build.CustomTargetIndex)):
+                    dep_array.add_item(self.pbx_custom_dep_map[o.get_id()], o.get_basename())
 
                 generator_id += 1
 
@@ -1659,11 +1650,8 @@ class XCodeBackend(backends.Backend):
         for l in target.link_targets:
             if isinstance(target, build.SharedModule) and isinstance(l, build.Executable):
                 continue
-            if isinstance(l, build.CustomTargetIndex):
-                rel_dir = self.get_custom_target_output_dir(l.target)
-                libname = l.get_filename()
-            elif isinstance(l, build.CustomTarget):
-                rel_dir = self.get_custom_target_output_dir(l)
+            if isinstance(l, (build.CustomTarget, build.CustomTargetIndex)):
+                rel_dir = self.get_custom_target_output_dir(l.get_target())
                 libname = l.get_filename()
             else:
                 rel_dir = self.get_target_dir(l)
