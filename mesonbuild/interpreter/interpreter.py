@@ -3921,7 +3921,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if dep:
                 target.add_deps([dep])
 
-    def check_for_jar_sources(self, sources: T.Union[T.List[str], T.Sequence[T.Union[mesonlib.File, build.BuildTargetTypes, build.GeneratedList, build.StructuredSources]]],
+    def check_for_jar_sources(self, sources: T.Union[T.List[str], T.Sequence[T.Union[mesonlib.File, build.GeneratedTypes, build.StructuredSources]]],
                               targetclass: T.Type[build.BuildTarget]) -> None:
         for s in sources:
             if isinstance(s, (str, mesonlib.File)) and compilers.is_java(s):
