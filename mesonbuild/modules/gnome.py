@@ -669,7 +669,7 @@ class GnomeModule(ExtensionModule):
         return link_command, new_depends
 
     def _get_dependencies_flags_raw(
-            self, deps: T.Sequence[T.Union['Dependency', build.BuildTargetTypes]],
+            self, deps: T.Sequence[T.Union['Dependency', build.BuildTargetProto]],
             state: 'ModuleState',
             depends: T.Sequence[TargetDepends],
             include_rpath: bool,
@@ -762,7 +762,7 @@ class GnomeModule(ExtensionModule):
         return cflags, internal_ldflags, external_ldflags, gi_includes, depends
 
     def _get_dependencies_flags(
-            self, deps: T.Sequence[T.Union['Dependency', build.BuildTargetTypes]],
+            self, deps: T.Sequence[T.Union['Dependency', build.BuildTargetProto]],
             state: 'ModuleState',
             depends: T.Sequence[TargetDepends],
             include_rpath: bool = False,
@@ -915,8 +915,8 @@ class GnomeModule(ExtensionModule):
 
     @staticmethod
     def _get_gir_targets_deps(girtargets: T.Sequence[build.BuildTarget]
-                              ) -> T.List[T.Union[build.BuildTargetTypes, Dependency]]:
-        ret: T.List[T.Union[build.BuildTargetTypes, Dependency]] = []
+                              ) -> T.List[T.Union[build.BuildTargetProto, Dependency]]:
+        ret: T.List[T.Union[build.BuildTargetProto, Dependency]] = []
         for girtarget in girtargets:
             ret += girtarget.get_all_link_deps()
             ret += girtarget.get_external_deps()
@@ -1077,7 +1077,7 @@ class GnomeModule(ExtensionModule):
     @staticmethod
     def _gather_typelib_includes_and_update_depends(
             state: 'ModuleState',
-            deps: T.Sequence[T.Union[Dependency, build.BuildTargetTypes]],
+            deps: T.Sequence[T.Union[Dependency, build.BuildTargetProto]],
             depends: T.Sequence[TargetDepends]
             ) -> T.Tuple[T.List[str], T.List[TargetDepends]]:
         # Need to recursively add deps on GirTarget sources from our
@@ -2102,7 +2102,7 @@ class GnomeModule(ExtensionModule):
             *,
             install: bool = False,
             install_dir: T.Optional[T.Sequence[T.Union[str, bool]]] = None,
-            depends: T.Optional[T.Sequence[build.BuildTargetTypes]] = None
+            depends: T.Optional[T.Sequence[build.BuildTargetProto]] = None
             ) -> build.CustomTarget:
         real_cmd: CommandList = [self._find_tool(state, 'glib-mkenums')]
         real_cmd.extend(cmd)
