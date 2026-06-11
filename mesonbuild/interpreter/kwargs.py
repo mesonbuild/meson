@@ -21,7 +21,6 @@ from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import Program, ExternalProgram
 from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
-TestArgs = T.Union[str, File, build.Target, Program]
 TargetDepends = T.Union[build.CustomTarget, build.CustomTargetIndex, build.BuildTarget, build.GeneratedList, Program]
 CustomTargetInputs = T.Union[str, build.BuildTarget, build.GeneratedTypes,
                              build.ExtractedObjects, Program, File]
@@ -69,7 +68,7 @@ class FuncBenchmark(BaseTest):
     """Keyword arguments used by `benchmark` and `test`, but not Rust"""
 
     # Needs complex refactor for rust test to go in BaseTest
-    args: T.List[TestArgs]
+    args: T.List[build.CommandTypes]
     protocol: Literal['exitcode', 'tap', 'gtest', 'rust']
 
 class FuncTest(FuncBenchmark):
@@ -201,7 +200,7 @@ class FuncAddLanguages(ExtractRequired):
 
 class RunTarget(TypedDict):
 
-    command: T.List[T.Union[str, build.BuildTargetTypes, Program, File]]
+    command: T.List[build.CommandTypes]
     depends: T.List[TargetDepends]
     env: EnvironmentVariables
 
@@ -213,7 +212,7 @@ class CustomTarget(TypedDict):
     build_by_default: T.Optional[bool]
     build_subdir: str
     capture: bool
-    command: T.List[T.Union[str, build.BuildTargetTypes, Program, File]]
+    command: T.List[build.CommandTypes]
     console: bool
     depend_files: T.List[FileOrString]
     depends: T.List[TargetDepends]
@@ -313,7 +312,7 @@ class ConfigurationDataSet(TypedDict):
 
 class VcsTag(TypedDict):
 
-    command: T.List[T.Union[str, build.BuildTargetTypes, Program, File]]
+    command: T.List[build.CommandTypes]
     fallback: T.Optional[str]
     input: list[CustomTargetInputs]
     output: T.List[str]

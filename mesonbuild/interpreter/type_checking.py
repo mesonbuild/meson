@@ -26,7 +26,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from .kwargs import CustomTargetInputs
-    from ..build import ObjectTypes, GeneratedTypes, BuildTargetTypes, TargetSources
+    from ..build import ObjectTypes, GeneratedTypes, CommandTypes, TargetSources
     from ..interpreterbase import TYPE_var
     from ..options import ElementaryOptionValues
     from ..mesonlib import EnvInitValueType
@@ -287,7 +287,7 @@ DEPEND_FILES_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
     default=[],
 )
 
-COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTargetTypes, Program, File]]] = KwargInfo(
+COMMAND_KW: KwargInfo[T.List[T.Union[str, CommandTypes, Program, File]]] = KwargInfo(
     'command',
     ContainerTypeInfo(list, (str, BuildTarget, CustomTarget, CustomTargetIndex, Program, File), allow_empty=False),
     required=True,
