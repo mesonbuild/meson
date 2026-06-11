@@ -26,7 +26,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from .kwargs import CustomTargetInputs
-    from ..build import ObjectTypes, GeneratedTypes, BuildTargetTypes
+    from ..build import ObjectTypes, GeneratedTypes, BuildTargetTypes, TargetSources
     from ..interpreterbase import TYPE_var
     from ..options import ElementaryOptionValues
     from ..mesonlib import EnvInitValueType
@@ -490,7 +490,7 @@ LINK_WHOLE_KW: KwargInfo[T.List[T.Union[BothLibraries, StaticLibrary, CustomTarg
     extra_types={Dependency: lambda _: _LINK_WITH_ERROR}
 )
 
-DEPENDENCY_SOURCES_KW: KwargInfo[T.List[T.Union[str, File, GeneratedTypes]]] = KwargInfo(
+DEPENDENCY_SOURCES_KW: KwargInfo[T.List[str | TargetSources]] = KwargInfo(
     'sources',
     ContainerTypeInfo(list, (str, File, CustomTarget, CustomTargetIndex, GeneratedList)),
     listify=True,
