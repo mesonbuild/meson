@@ -3241,6 +3241,10 @@ class Interpreter(InterpreterBase, HoldableObject):
     def source_strings_to_files(self, sources: list[kwtypes.CustomTargetInputs]) -> list['CustomTargetSources']: ...  # type: ignore[overload-overlap]
 
     @T.overload
+    def source_strings_to_files(self, sources: list[kwtypes.BuildTargetObjects],  # type: ignore[overload-overlap]
+                                ) -> list[T.Union[build.ObjectTypes]]: ...
+
+    @T.overload
     def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.BuildTargetTypes, build.BothLibraries, build.ExtractedObjects, build.GeneratedTypes]],  # type: ignore[overload-overlap]
                                 ) -> list[T.Union[mesonlib.File, build.BuildTargetTypes, build.BothLibraries, build.ExtractedObjects, build.GeneratedTypes]]: ...
 
@@ -3262,6 +3266,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                     list[mesonlib.File | str | build.GeneratedTypes],
                                     list[kwtypes.CustomTargetInputs],
                                     list[mesonlib.File | str | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes],
+                                    list[kwtypes.BuildTargetObjects],
                                     list[mesonlib.File | str | build.GeneratedTypes | build.StructuredSources],
                                     list[SourceInputs],
                                     list[SourcesVarargsType],
@@ -3270,6 +3275,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                              list[mesonlib.File | build.BuildTargetTypes],
                                              list[mesonlib.File | build.GeneratedTypes],
                                              list[mesonlib.File | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes],
+                                             list[build.ObjectTypes],
                                              list[mesonlib.File | build.GeneratedTypes | build.StructuredSources],
                                              list[CustomTargetSources],
                                              list[SourceOutputs]]:
@@ -3836,7 +3842,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         # backwards compatibility anyway
         sources = self.source_strings_to_files([
             s for s in raw_sources if not isinstance(s, (build.BuildTarget, build.ExtractedObjects))])
-        objs = kwargs['objects']
+
+        objs = self.source_strings_to_files(kwargs['objects'])
 
         srcs: T.List[SourceOutputs] = []
         struct: T.Optional[build.StructuredSources] = build.StructuredSources()
