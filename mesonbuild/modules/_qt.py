@@ -40,7 +40,7 @@ if T.TYPE_CHECKING:
         """Keyword arguments for the Resource Compiler method."""
 
         name: T.Optional[str]
-        sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
+        sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
         extra_args: T.List[str]
         method: DependencyMethods
 
@@ -48,7 +48,7 @@ if T.TYPE_CHECKING:
 
         """Keyword arguments for the Ui Compiler method."""
 
-        sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
+        sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
         extra_args: T.List[str]
         method: DependencyMethods
         preserve_paths: bool
@@ -57,8 +57,8 @@ if T.TYPE_CHECKING:
 
         """Keyword arguments for the Moc Compiler method."""
 
-        sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
-        headers: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
+        sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        headers: T.List[T.Union[FileOrString, build.GeneratedTypes]]
         extra_args: T.List[str]
         method: DependencyMethods
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
@@ -69,10 +69,10 @@ if T.TYPE_CHECKING:
     class PreprocessKwArgs(TypedDict):
 
         sources: T.List[FileOrString]
-        moc_sources: T.List[T.Union[FileOrString, build.CustomTarget]]
-        moc_headers: T.List[T.Union[FileOrString, build.CustomTarget]]
+        moc_sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        moc_headers: T.List[T.Union[FileOrString, build.GeneratedTypes]]
         qresources: T.List[FileOrString]
-        ui_files: T.List[T.Union[FileOrString, build.CustomTarget]]
+        ui_files: T.List[T.Union[FileOrString, build.GeneratedTypes]]
         moc_extra_arguments: T.List[str]
         rcc_extra_arguments: T.List[str]
         uic_extra_arguments: T.List[str]
@@ -100,8 +100,8 @@ if T.TYPE_CHECKING:
 
     class GenQrcKwArgs(TypedDict):
 
-        sources: T.Sequence[File]
-        aliases: T.Sequence[str]
+        sources: T.List[File]
+        aliases: T.List[str]
         prefix: str
         output: str
 
@@ -110,9 +110,9 @@ if T.TYPE_CHECKING:
         module_name: str
         module_version: str
         module_prefix: str
-        qml_sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
-        qml_singletons: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
-        qml_internals: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
+        qml_sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        qml_singletons: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        qml_internals: T.List[T.Union[FileOrString, build.GeneratedTypes]]
         designer_supported: bool
         imports: T.List[str]
         optional_imports: T.List[str]
@@ -124,7 +124,7 @@ if T.TYPE_CHECKING:
     class GenQmlCachegenKwArgs(TypedDict):
 
         target_name: str
-        qml_sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
+        qml_sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
         qml_qrc: File
         extra_args: T.List[str]
         module_prefix: str
@@ -648,7 +648,9 @@ class QtBaseModule(ExtensionModule):
 
         if kwargs['qresources']:
             # custom output name set? -> one output file, multiple otherwise
-            rcc_kwargs: ResourceCompilerKwArgs = {'name': '', 'sources': kwargs['qresources'], 'extra_args': kwargs['rcc_extra_arguments'], 'method': method}
+            rcc_kwargs: ResourceCompilerKwArgs = {'name': '',
+                                                  'sources': T.cast('T.List[FileOrString | build.GeneratedTypes]', kwargs['qresources']),
+                                                  'extra_args': kwargs['rcc_extra_arguments'], 'method': method}
             if args:
                 name = args[0]
                 if not isinstance(name, str):
@@ -761,7 +763,7 @@ class QtBaseModule(ExtensionModule):
         else:
             return ModuleReturnValue(translations, [translations])
 
-    def _source_to_files(self, state: ModuleState, sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]) -> T.List[File]:
+    def _source_to_files(self, state: ModuleState, sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]) -> T.List[File]:
 
         content_files = []
         for s in sources:
@@ -819,7 +821,7 @@ class QtBaseModule(ExtensionModule):
 
         with open(fileout_abs, 'w', encoding='utf-8') as fd:
 
-            def __gen_import(import_type: str, importlist: T.Sequence[str]) -> None:
+            def __gen_import(import_type: str, importlist: T.List[str]) -> None:
                 for import_string in importlist:
                     match = import_re.match(import_string)
                     if not match:
@@ -828,7 +830,7 @@ class QtBaseModule(ExtensionModule):
                     version: str = match.group(4) or ''
                     fd.write(f'{import_type} {module} {version}\n')
 
-            def __gen_declaration(qualifier: str, version: str, importlist: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]) -> None:
+            def __gen_declaration(qualifier: str, version: str, importlist: T.List[T.Union[FileOrString, build.GeneratedTypes]]) -> None:
                 importpathlist = self._source_to_files(state, importlist)
                 for s in importpathlist:
                     basename: str = os.path.basename(s.fname)
@@ -1072,7 +1074,7 @@ class QtBaseModule(ExtensionModule):
         target_name = re.sub(r'[^A-Za-z0-9]', '_', module_name)
 
         qrc_resouces: T.List[T.Union[FileOrString, build.GeneratedTypes]] = []
-        all_qml: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]] = kwargs['qml_sources'] + kwargs['qml_singletons'] + kwargs['qml_internals']
+        all_qml: T.List[T.Union[FileOrString, build.GeneratedTypes]] = kwargs['qml_sources'] + kwargs['qml_singletons'] + kwargs['qml_internals']
         all_qml_files: T.List[File] = self._source_to_files(state, all_qml)
         all_qml_basename: T.List[str] = [os.path.basename(p.fname) for p in all_qml_files]
 
