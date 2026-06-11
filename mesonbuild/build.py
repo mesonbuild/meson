@@ -535,20 +535,20 @@ class ExtractedObjects(HoldableObject):
         return r.format(self.__class__.__name__, self.target.name, self.srclist)
 
     @staticmethod
-    def get_sources(sources: T.Sequence['FileOrString'], generated_sources: T.Sequence['GeneratedTypes']) -> T.List['FileOrString']:
+    def get_sources(sources: T.Sequence['File'], generated_sources: T.Sequence['GeneratedTypes']) -> T.List['FileOrString']:
         # Merge sources and generated sources
-        sources = list(sources)
+        ret: T.List[FileOrString] = list(sources)
         for gensrc in generated_sources:
             for s in gensrc.get_outputs():
                 # We cannot know the path where this source will be generated,
                 # but all we need here is the file extension to determine the
                 # compiler.
-                sources.append(s)
+                ret.append(s)
 
         # Filter out headers and all non-source files
-        return [s for s in sources if is_source(s)]
+        return [s for s in ret if is_source(s)]
 
-    def classify_all_sources(self, sources: T.Sequence[FileOrString], generated_sources: T.Sequence['GeneratedTypes']) -> T.Dict['Compiler', T.List['FileOrString']]:
+    def classify_all_sources(self, sources: T.Sequence[File], generated_sources: T.Sequence['GeneratedTypes']) -> T.Dict['Compiler', T.List['FileOrString']]:
         sources_ = self.get_sources(sources, generated_sources)
         return classify_unity_sources(self.target.compilers.values(), sources_)
 
@@ -1106,7 +1106,7 @@ class BuildTarget(Target):
         if self.structured_sources:
             for v in self.structured_sources.sources.values():
                 for src in v:
-                    if isinstance(src, (str, File)):
+                    if isinstance(src, File):
                         sources.append(src)
                     else:
                         generated.append(src)
@@ -1120,9 +1120,10 @@ class BuildTarget(Target):
                 # which is what we need.
                 if not is_object(s):
                     sources.append(s)
+
         for d in self.external_deps:
             for s in d.sources:
-                if isinstance(s, (str, File)):
+                if isinstance(s, File):
                     sources.append(s)
 
         # Sources that were used to create our extracted objects
