@@ -78,11 +78,11 @@ class WaylandModule(ExtensionModule):
             code = CustomTarget(
                 f'{name}-protocol',
                 state.subdir,
-                state.subproject,
                 state.environment,
                 [self.scanner_bin, f'{scope}-code', '@INPUT@', '@OUTPUT@'],
                 [xml_file],
                 [f'{name}-protocol.c'],
+                state.current_build_project,
                 backend=state.backend,
             )
             targets.append(code)
@@ -95,11 +95,11 @@ class WaylandModule(ExtensionModule):
                 header = CustomTarget(
                     f'{name}-{side}-protocol',
                     state.subdir,
-                    state.subproject,
                     state.environment,
                     command,
                     [xml_file],
                     [f'{name}-{side}-protocol.h'],
+                    state.current_build_project,
                     backend=state.backend,
                 )
                 targets.append(header)

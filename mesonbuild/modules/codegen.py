@@ -9,6 +9,7 @@ import typing as T
 from . import ExtensionModule, ModuleInfo
 from ..build import CustomTarget, CustomTargetIndex, GeneratedList
 from ..compilers.compilers import lang_suffixes
+from ..interpreter.decorators import apply_machine_map
 from ..interpreter.interpreterobjects import extract_required_kwarg
 from ..interpreter.type_checking import NoneType, REQUIRED_KW, DISABLER_KW, NATIVE_KW
 from ..interpreterbase import (
@@ -86,6 +87,7 @@ class _CodeGenerator(HoldableObject):
 
     name: str
     program: Program
+    for_machine: MachineChoice
     arguments: ImmutableListProtocol[str] = dataclasses.field(default_factory=list)
 
     def command(self) -> CommandList:
@@ -146,9 +148,8 @@ class LexHolder(ObjectHolder[LexGenerator]):
             ext = kwargs['source'].rsplit('.', 1)[1]
             is_cpp = ext in lang_suffixes['cpp']
 
-        for_machine = self.held_object.program.for_machine
-
         # Flex uses FlexLexer.h for C++ code
+        for_machine = self.held_object.for_machine
         if is_cpp and self.held_object.name in {'flex', 'win_flex'}:
             try:
                 comp = self.interpreter.environment.coredata.compilers[for_machine]['cpp']
@@ -179,11 +180,11 @@ class LexHolder(ObjectHolder[LexGenerator]):
         target = CustomTarget(
             f'codegen-lex-{name}-{for_machine.get_lower_case_name()}',
             self.interpreter.subdir,
-            self.interpreter.subproject,
             self.interpreter.environment,
             command,
             [input],
             outputs,
+            self.interpreter.current_build_project(),
             backend=self.interpreter.backend,
             description='Generating lexer {{}} with {}'.format(self.held_object.name),
         )
@@ -250,15 +251,15 @@ class YaccHolder(ObjectHolder[YaccGenerator]):
         if kwargs['locations'] is not None:
             outputs.append(kwargs['locations'])
 
-        for_machine = self.held_object.program.for_machine
+        for_machine = self.held_object.for_machine
         target = CustomTarget(
             f'codegen-yacc-{name}-{for_machine.get_lower_case_name()}',
             self.interpreter.subdir,
-            self.interpreter.subproject,
             self.interpreter.environment,
             command,
             [input],
             outputs,
+            self.interpreter.current_build_project(),
             backend=self.interpreter.backend,
             description='Generating parser {{}} with {}'.format(self.held_object.name),
         )
@@ -297,12 +298,13 @@ class CodeGenModule(ExtensionModule):
         DISABLER_KW,
         NATIVE_KW
     )
+    @apply_machine_map
     @disablerIfNotFound
     def lex_method(self, state: ModuleState, args: T.Tuple, kwargs: FindLexKwargs) -> LexGenerator:
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject)
         if disabled:
             mlog.log('generator lex skipped: feature', mlog.bold(feature), 'disabled')
-            return LexGenerator('lex', NonExistingExternalProgram('lex'))
+            return LexGenerator('lex', NonExistingExternalProgram('lex'), kwargs['native'])
 
         names: T.List[LexImpls] = []
         if kwargs['implementations']:
@@ -348,7 +350,7 @@ class CodeGenModule(ExtensionModule):
                 raise MesonException.from_node(
                     'Could not find a lex implementation. Tried: ', ", ".join(names),
                     node=state.current_node)
-            return LexGenerator(name, bin)
+            return LexGenerator(name, bin, kwargs['native'])
 
         lex_args: T.List[str] = []
         # This option allows compiling with MSVC
@@ -356,7 +358,7 @@ class CodeGenModule(ExtensionModule):
         if bin.name == 'win_flex' and state.environment.machines[kwargs['native']].is_windows():
             lex_args.append('--wincompat')
         lex_args.extend(['-o', '@OUTPUT0@'])
-        return LexGenerator(name, bin, T.cast('ImmutableListProtocol[str]', lex_args))
+        return LexGenerator(name, bin, kwargs['native'], T.cast('ImmutableListProtocol[str]', lex_args))
 
     @noPosargs
     @typed_kwargs(
@@ -376,12 +378,13 @@ class CodeGenModule(ExtensionModule):
         DISABLER_KW,
         NATIVE_KW,
     )
+    @apply_machine_map
     @disablerIfNotFound
     def yacc_method(self, state: ModuleState, args: T.Tuple, kwargs: FindYaccKwargs) -> YaccGenerator:
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject)
         if disabled:
             mlog.log('generator yacc skipped: feature', mlog.bold(feature), 'disabled')
-            return YaccGenerator('yacc', NonExistingExternalProgram('yacc'))
+            return YaccGenerator('yacc', NonExistingExternalProgram('yacc'), kwargs['native'])
         names: T.List[YaccImpls]
         if kwargs['implementations']:
             names = kwargs['implementations']
@@ -409,7 +412,7 @@ class CodeGenModule(ExtensionModule):
                 raise MesonException.from_node(
                     'Could not find a yacc implementation. Tried: ', ", ".join(names),
                     node=state.current_node)
-            return YaccGenerator(name, bin)
+            return YaccGenerator(name, bin, kwargs['native'])
 
         yacc_args: T.List[str] = []
 
@@ -434,7 +437,7 @@ class CodeGenModule(ExtensionModule):
                          fatal=False)
             yacc_args.append('-H')
         yacc_args.extend(['-o', '@OUTPUT0@', '@INPUT@'])
-        return YaccGenerator(name, bin, T.cast('ImmutableListProtocol[str]', yacc_args))
+        return YaccGenerator(name, bin, kwargs['native'], T.cast('ImmutableListProtocol[str]', yacc_args))
 
 
 def initialize(interpreter: Interpreter) -> CodeGenModule:

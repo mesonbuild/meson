@@ -18,9 +18,10 @@ from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, 
 from ..compilers.compilers import are_asserts_disabled_for_subproject, lang_suffixes
 from ..compilers.rust import parse_target, RustSystemDependency
 from ..dependencies import Dependency
+from ..interpreter.decorators import apply_machine_map
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
-    OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NATIVE_KW, NoneType, in_set_validator,
+    NATIVE_KW, OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator,
     EXECUTABLE_KWS, LIBRARY_KWS, SHARED_MOD_KWS, _BASE_LANG_KW
 )
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs
@@ -71,6 +72,12 @@ if T.TYPE_CHECKING:
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         language: T.Optional[Literal['c', 'cpp']]
         bindgen_version: T.List[str]
+
+    class FuncSubproject(TypedDict):
+        native: MachineChoice
+
+    class FuncPackage(TypedDict):
+        native: MachineChoice
 
     class FuncWorkspace(TypedDict):
         default_features: T.Optional[bool]
@@ -159,25 +166,39 @@ class RustWorkspace(ModuleObject):
         return sorted(package_names)
 
     @typed_pos_args('workspace.package', optargs=[str])
-    def package_method(self, state: 'ModuleState', args: T.List, kwargs: TYPE_kwargs) -> RustPackage:
+    @typed_kwargs(
+        'workspace.package',
+        NATIVE_KW.evolve(since='1.12.0'))
+    def package_method(self, state: 'ModuleState', args: T.List, kwargs: FuncPackage) -> RustPackage:
         """Returns a package object."""
         package_name = args[0] if args else None
-        return RustPackage(self, self.interpreter.cargo.load_package(self.ws, package_name))
+        return RustPackage(state, self, self.interpreter.cargo.load_package(self.ws, package_name),
+                           kwargs['native'])
 
-    def _do_subproject(self, pkg: cargo.PackageState) -> None:
+    def _do_subproject(self, state: ModuleState, pkg: cargo.PackageState, for_machine: MachineChoice) -> None:
+        # Unless the crate builds as both a procedural macro and something else,
+        # it can be built just once; the same dependency is used as an override
+        # for both the host and the build machine.  In that case, always build the
+        # subproject for the build machine to ensure that it is not run twice.
+        if pkg.manifest.lib.crate_type == ['proc-macro']:
+            for_machine = state.machine_map.build
+
         kw: _kwargs.DoSubproject = {
             'required': True,
             'version': None,
             'options': None,
             'cmake_options': [],
             'default_options': {},
+            'for_machine': for_machine,
         }
         subp_name = pkg.get_subproject_name()
         self.interpreter.do_subproject(subp_name, kw, force_method='cargo')
 
     @typed_pos_args('workspace.subproject', str, optargs=[str])
-    @noKwargs
-    def subproject_method(self, state: ModuleState, args: T.Tuple[str, T.Optional[str]], kwargs: TYPE_kwargs) -> RustSubproject:
+    @typed_kwargs(
+        'workspace.subproject',
+        NATIVE_KW.evolve(since='1.12.0'))
+    def subproject_method(self, state: ModuleState, args: T.Tuple[str, T.Optional[str]], kwargs: FuncSubproject) -> RustSubproject:
         """Returns a package object for a subproject package."""
         package_name = args[0]
         pkg = self.interpreter.cargo.resolve_package(package_name, args[1] or '')
@@ -187,15 +208,17 @@ class RustWorkspace(ModuleObject):
             else:
                 raise MesonException(f'Cargo package "{package_name}" not available')
 
-        self._do_subproject(pkg)
-        return RustSubproject(self, pkg)
+        self._do_subproject(state, pkg, kwargs['native'])
+        return RustSubproject(state, self, pkg, kwargs['native'])
 
 
 class RustCrate(ModuleObject):
     """Abstract base class for Rust crate representations."""
 
-    def __init__(self, rust_ws: RustWorkspace, package: cargo.PackageState) -> None:
+    def __init__(self, state: ModuleState, rust_ws: RustWorkspace, package: cargo.PackageState, for_machine: MachineChoice) -> None:
         super().__init__()
+
+        self.for_machine = state.machine_map[for_machine]
         self.rust_ws = rust_ws
         self.package = package
         self.methods.update({
@@ -243,7 +266,7 @@ class RustCrate(ModuleObject):
     @noKwargs
     def rust_args_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns rustc arguments for this package."""
-        return self.package.get_rustc_args(state.environment, state.subdir, mesonlib.MachineChoice.HOST)
+        return self.package.get_rustc_args(state.environment, state.subdir, self.for_machine)
 
     @noPosargs
     @noKwargs
@@ -261,8 +284,8 @@ class RustCrate(ModuleObject):
 class RustPackage(RustCrate):
     """Represents a Rust package within a workspace."""
 
-    def __init__(self, rust_ws: RustWorkspace, package: cargo.PackageState) -> None:
-        super().__init__(rust_ws, package)
+    def __init__(self, state: ModuleState, rust_ws: RustWorkspace, package: cargo.PackageState, for_machine: MachineChoice) -> None:
+        super().__init__(state, rust_ws, package, for_machine)
         if not package.cfg:
             raise MesonException(f"package {self.package.manifest.package.name}-{self.package.manifest.package.version} not configured")
         self.methods.update({
@@ -285,7 +308,7 @@ class RustPackage(RustCrate):
                     if dep_pkg.ws_subdir != self.rust_ws.subdir or \
                         is_parent_path(os.path.join(self.rust_ws.subdir, state.subproject_dir),
                                        dep_pkg.path):
-                        self.rust_ws._do_subproject(dep_pkg)
+                        self.rust_ws._do_subproject(state, dep_pkg, for_machine)
                     # Get the dependency name for this package (rust or proc-macro ABI)
                     depname = dep_pkg.get_rust_dependency_name()
                     dependency = state.overridden_dependency(depname, for_machine)
@@ -312,7 +335,7 @@ class RustPackage(RustCrate):
                   KwargInfo('system_dependencies', bool, default=True))
     def dependencies_method(self, state: ModuleState, args: T.List, kwargs: RustPackageDependencies) -> T.List[Dependency]:
         """Returns the dependencies for this package."""
-        return self._dependencies_method(state, kwargs, MachineChoice.HOST)
+        return self._dependencies_method(state, kwargs, self.for_machine)
 
     @staticmethod
     def validate_pos_args(name: str, args: T.Tuple[
@@ -325,7 +348,7 @@ class RustPackage(RustCrate):
         return None, args[0]
 
     def merge_kw_args(self, state: ModuleState, kwargs: T.Union[RustPackageExecutable, RustPackageLibrary]) -> None:
-        kwargs.setdefault('native', MachineChoice.HOST)
+        kwargs.setdefault('native', self.for_machine)
 
         deps = kwargs['dependencies']
         kwargs['dependencies'] = self._dependencies_method(state, {
@@ -405,20 +428,20 @@ class RustPackage(RustCrate):
         dep = args[0]
         rust_abi = self.package.abi_resolve_default(kwargs['rust_abi'])
         depname = self.package.get_dependency_name(rust_abi)
+        assert rust_abi in self.package.supported_abis()
 
-        if rust_abi == 'proc-macro':
+        if state.environment.is_cross_build() and self.package.manifest.lib.crate_type == ['proc-macro']:
             state.override_dependency(depname, dep, for_machine=MachineChoice.HOST)
             state.override_dependency(depname, dep, static=False, for_machine=MachineChoice.HOST)
-            if state.environment.is_cross_build():
-                state.override_dependency(depname, dep, for_machine=MachineChoice.BUILD)
-                state.override_dependency(depname, dep, static=False, for_machine=MachineChoice.BUILD)
+            state.override_dependency(depname, dep, for_machine=MachineChoice.BUILD)
+            state.override_dependency(depname, dep, static=False, for_machine=MachineChoice.BUILD)
             return
 
-        state.override_dependency(depname, dep)
+        state.override_dependency(depname, dep, for_machine=self.for_machine)
         if self.package.abi_has_static(rust_abi):
-            state.override_dependency(depname, dep, static=True)
+            state.override_dependency(depname, dep, static=True, for_machine=self.for_machine)
         if self.package.abi_has_shared(rust_abi):
-            state.override_dependency(depname, dep, static=False)
+            state.override_dependency(depname, dep, static=False, for_machine=self.for_machine)
 
     @typed_pos_args('package.library', optargs=[(str, StructuredSources), StructuredSources])
     @typed_kwargs(
@@ -530,8 +553,8 @@ class RustPackage(RustCrate):
 class RustSubproject(RustCrate):
     """Represents a Cargo subproject."""
 
-    def __init__(self, rust_ws: RustWorkspace, package: cargo.PackageState) -> None:
-        super().__init__(rust_ws, package)
+    def __init__(self, state: ModuleState, rust_ws: RustWorkspace, package: cargo.PackageState, for_machine: MachineChoice) -> None:
+        super().__init__(state, rust_ws, package, for_machine)
         self.methods.update({
             'dependency': self.dependency_method,
         })
@@ -542,7 +565,7 @@ class RustSubproject(RustCrate):
     def dependency_method(self, state: ModuleState, args: T.List, kwargs: FuncDependency) -> Dependency:
         """Returns dependency for the package with the given ABI."""
         depname = self.package.get_dependency_name(kwargs['rust_abi'])
-        return state.overridden_dependency(depname)
+        return state.overridden_dependency(depname, for_machine=self.for_machine)
 
 
 class RustModule(ExtensionModule):
@@ -665,10 +688,11 @@ class RustModule(ExtensionModule):
         sources.extend(base_target.generated)
 
         new_target = Executable(
-            name, base_target.subdir, state.subproject, base_target.for_machine,
+            name, base_target.subdir, base_target.for_machine,
             sources, base_target.structured_sources,
             base_target.objects, base_target.environment, base_target.compilers,
-            new_target_kwargs)
+            state.current_build_project, new_target_kwargs
+        )
         return new_target, tkwargs
 
     @typed_pos_args('rust.test', str, BuildTarget)
@@ -959,11 +983,11 @@ class RustModule(ExtensionModule):
         target = CustomTarget(
             f'rustmod-bindgen-{name}'.replace('/', '_'),
             state.subdir,
-            state.subproject,
             state.environment,
             cmd,
             [header],
             outputs,
+            state.current_build_project,
             depfile='@PLAINNAME@.d',
             extra_depends=depends,
             depend_files=depend_files,
@@ -976,6 +1000,7 @@ class RustModule(ExtensionModule):
     @FeatureNew('rust.compiler_target', '1.11.0')
     @noPosargs
     @typed_kwargs('rust.compiler_target', NATIVE_KW)
+    @apply_machine_map
     def compiler_target(self, state: ModuleState, args: T.List, kwargs: '_kwargs.NativeKW') -> str:
         """Returns the Rust target triple for the specified machine's Rust compiler."""
         for_machine = kwargs['native']

@@ -347,6 +347,7 @@ class Subproject(ExtractRequired):
 
     default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
     version: T.List[str]
+    native: MachineChoice
 
 
 class DoSubproject(ExtractRequired):
@@ -355,6 +356,7 @@ class DoSubproject(ExtractRequired):
     version: T.List[str]
     cmake_options: T.List[str]
     options: T.Optional[CMakeSubprojectOptions]
+    for_machine: MachineChoice
 
 
 class BaseBuildTarget(TypedDict):
@@ -580,3 +582,9 @@ class FuncEnvironment(TypedDict):
 
     method: Literal['set', 'prepend', 'append']
     separator: str
+
+
+class MachineMapArgs(TypedDict):
+
+    native: NotRequired[MachineChoice]
+    install: NotRequired[bool]

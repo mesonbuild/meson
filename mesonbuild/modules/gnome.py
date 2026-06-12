@@ -515,11 +515,11 @@ class GnomeModule(ExtensionModule):
         target_c = GResourceTarget(
             name,
             state.subdir,
-            state.subproject,
             state.environment,
             target_cmd,
             [input_file],
             [output],
+            state.current_build_project,
             build_by_default=kwargs['build_by_default'],
             depfile=depfile,
             depend_files=depend_files,
@@ -538,11 +538,11 @@ class GnomeModule(ExtensionModule):
         target_h = GResourceHeaderTarget(
             f'{target_name}_h',
             state.subdir,
-            state.subproject,
             state.environment,
             cmd,
             [input_file],
             [f'{target_name}.h'],
+            state.current_build_project,
             build_by_default=kwargs['build_by_default'],
             extra_depends=depends,
             install=install_header,
@@ -1016,11 +1016,11 @@ class GnomeModule(ExtensionModule):
         return GirTarget(
             girfile,
             state.subdir,
-            state.subproject,
             state.environment,
             scan_command,
             generated_files,
             [girfile],
+            state.current_build_project,
             build_by_default=kwargs['build_by_default'],
             extra_depends=depends,
             install=install,
@@ -1048,11 +1048,11 @@ class GnomeModule(ExtensionModule):
         return TypelibTarget(
             typelib_output,
             state.subdir,
-            state.subproject,
             state.environment,
             typelib_cmd,
             generated_files,
             [typelib_output],
+            state.current_build_project,
             install=install,
             install_dir=[install_dir],
             install_tag=['typelib'],
@@ -1291,11 +1291,11 @@ class GnomeModule(ExtensionModule):
         target_g = CustomTarget(
             targetname,
             state.subdir,
-            state.subproject,
             state.environment,
             cmd,
             [],
             ['gschemas.compiled'],
+            state.current_build_project,
             build_by_default=kwargs['build_by_default'],
             depend_files=state._interpreter.source_strings_to_files(kwargs['depend_files']),
             description='Compiling gschemas {}',
@@ -1366,8 +1366,8 @@ class GnomeModule(ExtensionModule):
         pot_args: CommandList = [itstool, '-o', pot_file]
         pot_args.extend(pot_sources)
         pottarget = build.RunTarget(f'help-{project_id}-pot', pot_args, [],
-                                    os.path.join(state.subdir, 'C'), state.subproject,
-                                    state.environment)
+                                    os.path.join(state.subdir, 'C'),
+                                    state.environment, state.current_build_project)
         targets.append(pottarget)
 
         for l in langs:
@@ -1399,8 +1399,8 @@ class GnomeModule(ExtensionModule):
                                     '--internal', 'exe', '--capture', po_path, '--',
                                     msgmerge, '-q', po_path, pot_file]
             potarget = build.RunTarget(f'help-{project_id}-{l}-update-po',
-                                       po_args, [pottarget], l_subdir, state.subproject,
-                                       state.environment)
+                                       po_args, [pottarget], l_subdir,
+                                       state.environment, state.current_build_project)
             targets.append(potarget)
             potargets.append(potarget)
 
@@ -1409,11 +1409,11 @@ class GnomeModule(ExtensionModule):
             gmotarget = CustomTarget(
                 f'help-{project_id}-{l}-gmo',
                 l_subdir,
-                state.subproject,
                 state.environment,
                 [msgfmt, '@INPUT@', '-o', '@OUTPUT@'],
                 [po_file],
                 [gmo_file],
+                state.current_build_project,
                 install_tag=['doc'],
                 description='Generating yelp doc {}',
             )
@@ -1422,11 +1422,11 @@ class GnomeModule(ExtensionModule):
             mergetarget = CustomTarget(
                 f'help-{project_id}-{l}',
                 l_subdir,
-                state.subproject,
                 state.environment,
                 [itstool, '-m', os.path.join(l_subdir, gmo_file), '--lang', l, '-o', '@OUTDIR@', '@INPUT@'],
                 sources_files,
                 sources,
+                state.current_build_project,
                 extra_depends=[gmotarget],
                 install=True,
                 install_dir=[l_install_dir],
@@ -1436,7 +1436,8 @@ class GnomeModule(ExtensionModule):
             targets.append(mergetarget)
 
         allpotarget = build.AliasTarget(f'help-{project_id}-update-po', potargets,
-                                        state.subdir, state.subproject, state.environment)
+                                        state.subdir, state.environment,
+                                        state.current_build_project)
         targets.append(allpotarget)
 
         return ModuleReturnValue(None, targets)
@@ -1571,16 +1572,17 @@ class GnomeModule(ExtensionModule):
         custom_target = CustomTarget(
             targetname,
             state.subdir,
-            state.subproject,
             state.environment,
             command + t_args,
             [],
             [f'{modulename}-decl.txt'],
+            state.current_build_project,
             build_always_stale=True,
             extra_depends=new_depends,
             description='Generating gtkdoc {}',
         )
-        alias_target = build.AliasTarget(targetname, [custom_target], state.subdir, state.subproject, state.environment)
+        alias_target = build.AliasTarget(targetname, [custom_target], state.subdir,
+                                         state.environment, state.current_build_project)
         if kwargs['check']:
             check_cmd = state.find_program('gtkdoc-check')
             check_env = ['DOC_MODULE=' + modulename,
@@ -1739,11 +1741,11 @@ class GnomeModule(ExtensionModule):
         cfile_custom_target = CustomTarget(
             output,
             state.subdir,
-            state.subproject,
             state.environment,
             c_cmd,
             xml_files,
             [output],
+            state.current_build_project,
             build_by_default=build_by_default,
             description='Generating gdbus source {}',
         )
@@ -1760,11 +1762,11 @@ class GnomeModule(ExtensionModule):
         hfile_custom_target = CustomTarget(
             output,
             state.subdir,
-            state.subproject,
             state.environment,
             hfile_cmd,
             xml_files,
             [output],
+            state.current_build_project,
             build_by_default=build_by_default,
             extra_depends=depends,
             install=install_header,
@@ -1792,11 +1794,11 @@ class GnomeModule(ExtensionModule):
             docbook_custom_target = CustomTarget(
                 output,
                 state.subdir,
-                state.subproject,
                 state.environment,
                 docbook_cmd,
                 xml_files,
                 outputs,
+                state.current_build_project,
                 build_by_default=build_by_default,
                 extra_depends=depends,
                 description='Generating gdbus docbook {}',
@@ -1814,11 +1816,11 @@ class GnomeModule(ExtensionModule):
             rst_custom_target = CustomTarget(
                 output,
                 state.subdir,
-                state.subproject,
                 state.environment,
                 cmd + ['--output-directory', '@OUTDIR@', '--generate-rst', rst, '@INPUT@'],
                 xml_files,
                 outputs,
+                state.current_build_project,
                 build_by_default=build_by_default,
                 description='Generating gdbus reStructuredText {}',
             )
@@ -1835,11 +1837,11 @@ class GnomeModule(ExtensionModule):
             markdown_custom_target = CustomTarget(
                 output,
                 state.subdir,
-                state.subproject,
                 state.environment,
                 cmd + ['--output-directory', '@OUTDIR@', '--generate-md', markdown, '@INPUT@'],
                 xml_files,
                 outputs,
+                state.current_build_project,
                 build_by_default=build_by_default,
                 description='Generating gdbus markdown {}',
             )
@@ -2074,11 +2076,11 @@ class GnomeModule(ExtensionModule):
         return CustomTarget(
             output,
             state.subdir,
-            state.subproject,
             state.environment,
             real_cmd,
             sources,
             [output],
+            state.current_build_project,
             capture=True,
             install=install,
             install_dir=[_install_dir],
@@ -2147,11 +2149,11 @@ class GnomeModule(ExtensionModule):
         header = CustomTarget(
             output + '_h',
             state.subdir,
-            state.subproject,
             state.environment,
             h_cmd,
             sources,
             [header_file],
+            state.current_build_project,
             install=install_header,
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] else [],
             install_tag=['devel'],
@@ -2169,11 +2171,11 @@ class GnomeModule(ExtensionModule):
         body = CustomTarget(
             output + '_c',
             state.subdir,
-            state.subproject,
             state.environment,
             c_cmd,
             sources,
             [f'{output}.c'],
+            state.current_build_project,
             capture=capture,
             depend_files=kwargs['depend_files'],
             extra_depends=extra_deps,
@@ -2297,11 +2299,11 @@ class GnomeModule(ExtensionModule):
         vapi_target = VapiTarget(
             vapi_output,
             state.subdir,
-            state.subproject,
             state.environment,
-            command=cmd,
-            sources=inputs,
-            outputs=[vapi_output],
+            cmd,
+            inputs,
+            [vapi_output],
+            state.current_build_project,
             extra_depends=vapi_depends,
             install=kwargs['install'],
             install_dir=[install_dir],
@@ -2312,7 +2314,8 @@ class GnomeModule(ExtensionModule):
         # - link with the correct library
         # - include the vapi and dependent vapi files in sources
         # - add relevant directories to include dirs
-        incs = [build.IncludeDirs(state.subdir, ['.'] + vapi_includes, False)]
+        incs = [build.IncludeDirs(state.subdir, ['.'] + vapi_includes, False,
+                state.current_build_project)]
         sources = [vapi_target] + vapi_depends
         rv = InternalDependency(None, incs, [], [], link_with, [], sources, [], [], {}, [], [], [])
         created_values.append(rv)

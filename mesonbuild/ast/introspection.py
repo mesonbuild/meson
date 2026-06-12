@@ -10,7 +10,7 @@ import os
 import typing as T
 
 from .. import compilers, environment, mesonlib
-from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
+from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary, BuildProject
 from ..compilers import detect_compiler_for
 from ..interpreterbase import InvalidArguments, UnknownValue, Feature
 from ..interpreter import type_checking
@@ -76,6 +76,7 @@ class IntrospectionInterpreter(AstInterpreter):
 
         self.cross_file = cross_file
         self.backend = backend
+        self.build_project = BuildProject(subproject, '', subproject, MachineChoice.HOST)
         self.project_data: T.Dict[str, T.Any] = {}
         self.targets: T.List[IntrospectionBuildTarget] = []
         self.dependencies: T.List[IntrospectionDependency] = []
@@ -263,8 +264,9 @@ class IntrospectionInterpreter(AstInterpreter):
         empty_sources: T.List[T.Any] = []
         # Passing the unresolved sources list causes errors
         kwargs_reduced['_allow_no_sources'] = True
-        target = targetclass(name, self.subdir, self.subproject, for_machine, empty_sources, None, objects,
-                             self.environment, self.coredata.compilers[for_machine], kwargs_reduced)
+        target = targetclass(name, self.subdir, for_machine, empty_sources, None, objects,
+                             self.environment, self.coredata.compilers[for_machine],
+                             self.build_project, kwargs_reduced)
         target.process_compilers_late()
 
         build_by_default: T.Union[UnknownValue, bool] = target.build_by_default
