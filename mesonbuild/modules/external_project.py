@@ -76,18 +76,10 @@ class ExternalProject(NewExtensionModule):
         self.src_dir = Path(self.env.get_source_dir(), self.subdir)
         self.build_dir = Path(self.env.get_build_dir(), self.subdir, 'build')
         self.install_dir = Path(self.env.get_build_dir(), self.subdir, 'dist')
-        _p = self.env.coredata.optstore.get_value_for(OptionKey('prefix'))
-        assert isinstance(_p, str), 'for mypy'
-        self.prefix = Path(_p)
-        _l = self.env.coredata.optstore.get_value_for(OptionKey('libdir'))
-        assert isinstance(_l, str), 'for mypy'
-        self.libdir = Path(_l)
-        _l = self.env.coredata.optstore.get_value_for(OptionKey('bindir'))
-        assert isinstance(_l, str), 'for mypy'
-        self.bindir = Path(_l)
-        _i = self.env.coredata.optstore.get_value_for(OptionKey('includedir'))
-        assert isinstance(_i, str), 'for mypy'
-        self.includedir = Path(_i)
+        self.prefix = Path(self.env.coredata.optstore.get_value_for(OptionKey('prefix'), str))
+        self.libdir = Path(self.env.coredata.optstore.get_value_for(OptionKey('libdir'), str))
+        self.bindir = Path(self.env.coredata.optstore.get_value_for(OptionKey('bindir'), str))
+        self.includedir = Path(self.env.coredata.optstore.get_value_for(OptionKey('includedir'), str))
         self.name = self.src_dir.name
 
         self.prefix = self._cygpath_convert(self.prefix)
@@ -156,13 +148,13 @@ class ExternalProject(NewExtensionModule):
         for lang, compiler in self.env.coredata.compilers[MachineChoice.HOST].items():
             if any(lang not in i for i in (ENV_VAR_PROG_MAP, CFLAGS_MAPPING)):
                 continue
-            cargs = self.env.coredata.get_external_args(MachineChoice.HOST, lang)
+            cargs = self.env.coredata.optstore.get_external_args(MachineChoice.HOST, lang)
             assert isinstance(cargs, list), 'for mypy'
             self.run_env[ENV_VAR_PROG_MAP[lang][0]] = self._quote_and_join(compiler.get_exelist())
             self.run_env[CFLAGS_MAPPING[lang]] = self._quote_and_join(cargs)
             if not link_exelist:
                 link_exelist = compiler.get_linker_exelist()
-                _l = self.env.coredata.get_external_link_args(MachineChoice.HOST, lang)
+                _l = self.env.coredata.optstore.get_external_link_args(MachineChoice.HOST, lang)
                 assert isinstance(_l, list), 'for mypy'
                 link_args = _l
         if link_exelist:

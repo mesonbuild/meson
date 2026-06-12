@@ -53,8 +53,7 @@ class CMakeExecutor:
             return
 
         prefpath = self.environment.coredata.optstore.get_value_for(
-            OptionKey(name='cmake_prefix_path', machine=for_machine))
-        assert isinstance(prefpath, list)
+            OptionKey(name='cmake_prefix_path', machine=for_machine), list)
         self.prefix_paths = prefpath
         if self.prefix_paths:
             self.extra_cmake_args += ['-DCMAKE_PREFIX_PATH={}'.format(';'.join(self.prefix_paths))]

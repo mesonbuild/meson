@@ -41,8 +41,7 @@ if T.TYPE_CHECKING:
 
     from . import ModuleState
     from ..build import BuildTarget
-    from ..compilers import Compiler
-    from ..compilers.compilers import Language
+    from ..compilers.compilers import Compiler, Language
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import CustomTargetSources
     from ..interpreter.kwargs import CustomTargetInputs, TargetDepends
@@ -533,8 +532,7 @@ class GnomeModule(ExtensionModule):
         if gresource: # Only one target for .gresource files
             return ModuleReturnValue(target_c, [target_c])
 
-        install_dir = kwargs['install_dir'] or state.environment.coredata.optstore.get_value_for(OptionKey('includedir'))
-        assert isinstance(install_dir, str), 'for mypy'
+        install_dir = kwargs['install_dir'] or state.environment.coredata.optstore.get_value_for(OptionKey('includedir'), str)
         target_h = GResourceHeaderTarget(
             f'{target_name}_h',
             state.subdir,
@@ -844,11 +842,11 @@ class GnomeModule(ExtensionModule):
         return ret, gir_inc_dirs, depends
 
     @staticmethod
-    def _scan_langs(state: 'ModuleState', langs: T.Iterable[str]) -> T.List[str]:
+    def _scan_langs(state: 'ModuleState', langs: T.Iterable[Language]) -> T.List[str]:
         ret: T.List[str] = []
 
         for lang in langs:
-            link_args = state.environment.coredata.get_external_link_args(MachineChoice.HOST, lang)
+            link_args = state.environment.coredata.optstore.get_external_link_args(MachineChoice.HOST, lang)
             for link_arg in link_args:
                 if link_arg.startswith('-L'):
                     ret.append(link_arg)
@@ -930,8 +928,7 @@ class GnomeModule(ExtensionModule):
             if state.project_args.get(lang):
                 cflags += state.project_args[lang]
             if OptionKey('b_sanitize') in compiler.base_options:
-                sanitize = state.environment.coredata.optstore.get_value_for('b_sanitize')
-                assert isinstance(sanitize, list)
+                sanitize = state.environment.coredata.optstore.get_value_for(OptionKey('b_sanitize'), list)
                 cflags += compiler.sanitizer_compile_args(None, sanitize)
                 # These must be first in ldflags
                 if 'address' in sanitize:
@@ -1102,10 +1099,10 @@ class GnomeModule(ExtensionModule):
         return typelib_includes, new_depends
 
     @staticmethod
-    def _get_external_args_for_langs(state: 'ModuleState', langs: T.List[str]) -> T.List[str]:
+    def _get_external_args_for_langs(state: 'ModuleState', langs: T.List[Language]) -> T.List[str]:
         ret: T.List[str] = []
         for lang in langs:
-            ret += mesonlib.listify(state.environment.coredata.get_external_args(MachineChoice.HOST, lang))
+            ret += mesonlib.listify(state.environment.coredata.optstore.get_external_args(MachineChoice.HOST, lang))
         return ret
 
     @staticmethod
@@ -1196,7 +1193,7 @@ class GnomeModule(ExtensionModule):
         scan_cflags += list(self._get_scanner_cflags(self._get_external_args_for_langs(state, [lc[0] for lc in langs_compilers])))
         scan_internal_ldflags = []
         scan_external_ldflags = []
-        scan_env_ldflags = state.environment.coredata.get_external_link_args(MachineChoice.HOST, 'c')
+        scan_env_ldflags = state.environment.coredata.optstore.get_external_link_args(MachineChoice.HOST, 'c')
         for cli_flags, env_flags in (self._get_scanner_ldflags(internal_ldflags), self._get_scanner_ldflags(dep_internal_ldflags)):
             scan_internal_ldflags += cli_flags
             scan_env_ldflags += env_flags
@@ -1609,8 +1606,8 @@ class GnomeModule(ExtensionModule):
         ldflags.extend(internal_ldflags)
         ldflags.extend(external_ldflags)
 
-        cflags.extend(state.environment.coredata.get_external_args(MachineChoice.HOST, 'c'))
-        ldflags.extend(state.environment.coredata.get_external_link_args(MachineChoice.HOST, 'c'))
+        cflags.extend(state.environment.coredata.optstore.get_external_args(MachineChoice.HOST, 'c'))
+        ldflags.extend(state.environment.coredata.optstore.get_external_link_args(MachineChoice.HOST, 'c'))
         compiler = state.environment.coredata.compilers[MachineChoice.HOST]['c']
 
         compiler_flags = self._get_langs_compilers_flags(state, [('c', compiler)])
@@ -1694,8 +1691,7 @@ class GnomeModule(ExtensionModule):
 
         targets = []
         install_header = kwargs['install_header']
-        install_dir = kwargs['install_dir'] or state.environment.coredata.optstore.get_value_for(OptionKey('includedir'))
-        assert isinstance(install_dir, str), 'for mypy'
+        install_dir = kwargs['install_dir'] or state.environment.coredata.optstore.get_value_for(OptionKey('includedir'), str)
 
         output = namebase + '.c'
         # Added in https://gitlab.gnome.org/GNOME/glib/commit/e4d68c7b3e8b01ab1a4231bf6da21d045cb5a816 (2.55.2)
@@ -2063,13 +2059,12 @@ class GnomeModule(ExtensionModule):
             cmd: T.List[str],
             *,
             install: bool = False,
-            install_dir: T.Optional[T.Sequence[T.Union[str, bool]]] = None,
+            install_dir: T.Optional[str] = None,
             depends: T.Optional[T.Sequence[build.BuildTargetTypes]] = None
             ) -> build.CustomTarget:
         real_cmd: CommandList = [self._find_tool(state, 'glib-mkenums')]
         real_cmd.extend(cmd)
-        _install_dir = install_dir or state.environment.coredata.optstore.get_value_for(OptionKey('includedir'))
-        assert isinstance(_install_dir, str), 'for mypy'
+        _install_dir = install_dir or state.environment.coredata.optstore.get_value_for(OptionKey('includedir'), str)
 
         return CustomTarget(
             output,
@@ -2286,8 +2281,7 @@ class GnomeModule(ExtensionModule):
             inputs.append(i)
 
         vapi_output = library + '.vapi'
-        datadir = state.environment.coredata.optstore.get_value_for(OptionKey('datadir'))
-        assert isinstance(datadir, str), 'for mypy'
+        datadir = state.environment.coredata.optstore.get_value_for(OptionKey('datadir'), str)
         install_dir = kwargs['install_dir'] or os.path.join(datadir, 'vala', 'vapi')
 
         if kwargs['install']:

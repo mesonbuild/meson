@@ -584,7 +584,7 @@ class NinjaBackend(backends.Backend):
         # cpp_args in a native file) so that cl.exe can locate system headers
         # even when the INCLUDE environment variable is not set — for example,
         # when using a bundled MSVC toolchain outside a VS Developer Shell.
-        extra_args = self.environment.coredata.get_external_args(
+        extra_args = self.environment.coredata.optstore.get_external_args(
             MachineChoice.HOST, compiler.language)
         pc = subprocess.Popen(compiler.get_exelist() +
                               ['/showIncludes', '/c', filebase] + extra_args,
@@ -635,7 +635,7 @@ class NinjaBackend(backends.Backend):
                     self.allow_thin_archives[for_machine] = False
 
         ninja = tooldetect.detect_ninja_command_and_version(log=True)
-        if self.environment.coredata.optstore.get_value_for(OptionKey('vsenv')):
+        if self.environment.coredata.optstore.get_value_for(OptionKey('vsenv'), bool):
             builddir = Path(self.environment.get_build_dir())
             try:
                 # For prettier printing, reduce to a relative path. If
@@ -660,8 +660,7 @@ class NinjaBackend(backends.Backend):
             outfile.write('# Do not edit by hand.\n\n')
             outfile.write('ninja_required_version = 1.8.2\n\n')
 
-            num_pools = self.environment.coredata.optstore.get_value_for('backend_max_links')
-            assert isinstance(num_pools, int)
+            num_pools = self.environment.coredata.optstore.get_value_for(OptionKey('backend_max_links'), int)
             if num_pools > 0:
                 outfile.write(f'''pool link_pool
   depth = {num_pools}
@@ -692,9 +691,7 @@ class NinjaBackend(backends.Backend):
             mlog.log_timestamp("Install generated")
             self.generate_dist()
             mlog.log_timestamp("Dist generated")
-            key = OptionKey('b_coverage')
-            if key in self.environment.coredata.optstore and\
-                    self.environment.coredata.optstore.get_value_for('b_coverage'):
+            if self.environment.coredata.optstore.get_value_for(OptionKey('b_coverage'), bool, default=False):
                 gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe = tooldetect.find_coverage_tools(self.environment.coredata)
                 mlog.debug(f'Using {gcovr_exe} ({gcovr_version}), {lcov_exe} and {llvm_cov_exe} for code coverage')
                 if gcovr_exe or (lcov_exe and genhtml_exe):
@@ -1164,9 +1161,8 @@ class NinjaBackend(backends.Backend):
         cpp = target.compilers['cpp']
         if cpp.get_id() != 'msvc':
             return False
-        cppversion = self.get_target_option(target, OptionKey('cpp_std',
-                                                              machine=target.for_machine,
-                                                              subproject=target.subproject))
+        cppversion = self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey('cpp_std', machine=target.for_machine, subproject=target.subproject), str)
         if cppversion not in ('latest', 'c++latest', 'vc++latest'):
             return False
         if not mesonlib.current_vs_supports_modules():
@@ -1392,9 +1388,9 @@ class NinjaBackend(backends.Backend):
     def generate_tests(self) -> None:
         self.serialize_tests()
         cmd = self.environment.get_build_command(True) + ['test', '--no-rebuild']
-        if not self.environment.coredata.optstore.get_value_for(OptionKey('stdsplit')):
+        if not self.environment.coredata.optstore.get_value_for(OptionKey('stdsplit'), bool):
             cmd += ['--no-stdsplit']
-        if self.environment.coredata.optstore.get_value_for(OptionKey('errorlogs')):
+        if self.environment.coredata.optstore.get_value_for(OptionKey('errorlogs'), bool):
             cmd += ['--print-errorlogs']
         elem = self.create_phony_target('test', 'CUSTOM_COMMAND', ['all', 'meson-test-prereq', 'PHONY'])
         elem.add_item('COMMAND', cmd)
@@ -1781,9 +1777,9 @@ class NinjaBackend(backends.Backend):
             valac_outputs.append(vala_c_file)
 
         args = self.generate_basic_compiler_args(target, valac)
-        b_colorout = self.get_target_option(target, 'b_colorout')
-        assert isinstance(b_colorout, str)
-        args += valac.get_colorout_args(b_colorout)
+        args += valac.get_colorout_args(
+            self.environment.coredata.optstore.get_option_for_target(
+                target, OptionKey('b_colorout'), str))
         # Tell Valac to output everything in our private directory. Sadly this
         # means it will also preserve the directory components of Vala sources
         # found inside the build tree (generated sources).
@@ -1861,19 +1857,18 @@ class NinjaBackend(backends.Backend):
 
         args: T.List[str] = []
         args += cython.get_always_args()
-        debug = self.get_target_option(target, 'debug')
-        assert isinstance(debug, bool)
-        args += cython.get_debug_args(debug)
-        optimization = self.get_target_option(target, 'optimization')
-        assert isinstance(optimization, str)
-        args += cython.get_optimization_args(optimization)
-        args += cython.get_option_compile_args(target, target.subproject)
-        args += cython.get_option_std_args(target, target.subproject)
+        args += cython.get_debug_args(self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey('debug'), bool))
+        args += cython.get_optimization_args(self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey('optimization'), str))
+        args += cython.get_option_compile_args(target)
+        args += cython.get_option_std_args(target)
         args += self.build.get_global_args(cython, target.for_machine)
         args += self.build.get_project_args(cython, target)
         args += target.get_extra_args('cython')
 
-        ext = self.get_target_option(target, OptionKey('cython_language', machine=target.for_machine))
+        ext = self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey('cython_language', machine=target.for_machine), str)
 
         pyx_sources = []  # Keep track of sources we're adding to build
 
@@ -2220,7 +2215,7 @@ class NinjaBackend(backends.Backend):
             # against are dynamic or this is a dynamic library itself,
             # otherwise we'll end up with multiple implementations of libstd.
             has_rust_shared_deps = True
-        elif self.get_target_option(target, 'rust_dynamic_std'):
+        elif self.environment.coredata.optstore.get_option_for_target(target, OptionKey('rust_dynamic_std'), bool):
             if target.rust_crate_type == 'staticlib':
                 # staticlib crates always include a copy of the Rust libstd,
                 # therefore it is not possible to also link it dynamically.
@@ -2463,8 +2458,7 @@ class NinjaBackend(backends.Backend):
         return options
 
     def generate_static_link_rules(self) -> None:
-        num_pools = self.environment.coredata.optstore.get_value_for('backend_max_links')
-        assert isinstance(num_pools, int)
+        num_pools = self.environment.coredata.optstore.get_value_for(OptionKey('backend_max_links'), int)
         if 'java' in self.environment.coredata.compilers.host:
             self.generate_java_link()
         for for_machine in MachineChoice:
@@ -2512,8 +2506,7 @@ class NinjaBackend(backends.Backend):
             self.add_rule(NinjaRule(rule, cmdlist, args, description, **options, extra=pool))
 
     def generate_dynamic_link_rules(self) -> None:
-        num_pools = self.environment.coredata.optstore.get_value_for('backend_max_links')
-        assert isinstance(num_pools, int)
+        num_pools = self.environment.coredata.optstore.get_value_for(OptionKey('backend_max_links'), int)
         for for_machine in MachineChoice:
             complist = self.environment.coredata.compilers[for_machine]
             for langname, compiler in complist.items():
@@ -3274,7 +3267,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # then compilation rule name is a special one to output MIL files
         # instead of object files for .c files
         if compiler.get_id() == 'tasking':
-            target_lto = self.get_target_option(target, OptionKey('b_lto', machine=target.for_machine, subproject=target.subproject))
+            target_lto = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('b_lto', target.subproject, target.for_machine), bool)
             if ((isinstance(target, build.StaticLibrary) and target.prelink) or target_lto) and src.rsplit('.', 1)[1] in compilers.lang_suffixes['c']:
                 compiler_name = self.get_compiler_rule_name('tasking_mil_compile', compiler.for_machine)
             else:
@@ -3358,12 +3351,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def target_uses_import_std(self, target: build.BuildTarget) -> bool:
         if 'cpp' not in target.compilers:
             return False
-        try:
-            if self.environment.coredata.get_option_for_target(target, 'cpp_importstd') == 'true':
-                return True
-        except KeyError:
-            pass
-        return False
+        return self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey('cpp_importstd'), str, default='false') == 'true'
 
     def handle_cpp_import_std(self, target: build.BuildTarget, compiler: Compiler) -> T.Tuple[T.List[str], T.List[File]]:
         istd_args: T.List[str] = []
@@ -3379,8 +3368,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 mod_file = 'gcm.cache/std.gcm'
                 mod_obj_file = 'std.o'
                 elem = NinjaBuildElement(self.all_outputs, [mod_file, mod_obj_file], 'CUSTOM_COMMAND', [])
-                compile_args = compiler.get_option_compile_args(target, target.subproject)
-                compile_args += compiler.get_option_std_args(target, target.subproject)
+                compile_args = compiler.get_option_compile_args(target)
+                compile_args += compiler.get_option_std_args(target)
                 compile_args += ['-c', '-fmodules', '-fsearch-include-path', 'bits/std.cc']
                 elem.add_item('COMMAND', compiler.exelist + compile_args)
                 self.add_build(elem)
@@ -3397,8 +3386,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                     raise SystemExit('VS std import header could not be located.')
                 in_file_str = str(in_file)
                 elem = NinjaBuildElement(self.all_outputs, [mod_file, mod_obj_file], 'CUSTOM_COMMAND', [in_file_str])
-                compile_args = compiler.get_option_compile_args(target, target.subproject)
-                compile_args += compiler.get_option_std_args(target, target.subproject)
+                compile_args = compiler.get_option_compile_args(target)
+                compile_args += compiler.get_option_std_args(target)
                 compile_args += ['/nologo', '/c', '/O2', in_file_str]
                 elem.add_item('COMMAND', compiler.exelist + compile_args)
                 self.add_build(elem)
@@ -3811,11 +3800,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add things like /NOLOGO; usually can't be overridden
         commands += linker.get_linker_always_args()
         # Add buildtype linker args: optimization level, etc.
-        optimization = self.get_target_option(target, 'optimization')
-        assert isinstance(optimization, str)
-        commands += linker.get_optimization_link_args(optimization)
+        commands += linker.get_optimization_link_args(
+            self.environment.coredata.optstore.get_option_for_target(target, OptionKey('optimization'), str))
         # Add /DEBUG and the pdb filename when using MSVC
-        if self.get_target_option(target, 'debug'):
+        if self.environment.coredata.optstore.get_option_for_target(target, OptionKey('debug'), bool):
             commands += self.get_link_debugfile_args(linker, target)
             debugfile = self.get_link_debugfile_name(linker, target)
             if debugfile is not None:
@@ -3907,7 +3895,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         all_deps = [*dep_targets, *extra_objs, *custom_target_libraries]
         elem.add_dep(all_deps)
         if linker.get_id() == 'tasking':
-            if any(x.endswith('.ma') for x in all_deps) and not self.get_target_option(target, OptionKey('b_lto', target.subproject, target.for_machine)):
+            if (any(x.endswith('.ma') for x in all_deps) and not
+                    self.environment.coredata.optstore.get_option_for_target(target, OptionKey('b_lto', target.subproject, target.for_machine), bool)):
                 raise MesonException(f'Tried to link the target named \'{target.name}\' with a MIL archive without LTO enabled! This causes the compiler to ignore the archive.')
 
         # Compiler args must be included in TI C28x linker commands.
@@ -4076,9 +4065,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if extra_arg:
             target_name += f'-{extra_arg}'
             extra_args.append(f'--{extra_arg}')
-        colorout = self.environment.coredata.optstore.get_value_for('b_colorout') \
-            if OptionKey('b_colorout') in self.environment.coredata.optstore else 'always'
-        assert isinstance(colorout, str), 'for mypy'
+        colorout = self.environment.coredata.optstore.get_value_for(OptionKey('b_colorout'), str, default='always')
         extra_args.extend(['--color', colorout])
         if not os.path.exists(os.path.join(self.environment.source_dir, '.clang-' + name)) and \
                 not os.path.exists(os.path.join(self.environment.source_dir, '_clang-' + name)):
@@ -4186,8 +4173,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if ctlist:
             elem.add_dep(self.generate_custom_target_clean(ctlist))
 
-        if OptionKey('b_coverage') in self.environment.coredata.optstore and \
-           self.environment.coredata.optstore.get_value_for('b_coverage'):
+        if self.environment.coredata.optstore.get_value_for(OptionKey('b_coverage'), bool, default=False):
             self.generate_gcov_clean()
             elem.add_dep('clean-gcda')
             elem.add_dep('clean-gcno')

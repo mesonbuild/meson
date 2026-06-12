@@ -23,7 +23,7 @@ if T.TYPE_CHECKING:
     from ..options import MutableKeyedOptionDictType
     from ..environment import Environment  # noqa: F401
     from ..linkers.linkers import DynamicLinker
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, SubProject
     from ..dependencies import Dependency
     from ..build import BuildTarget
 
@@ -155,7 +155,8 @@ class RustCompiler(Compiler):
         self.has_check_cfg = version_compare(version, '>=1.80.0')
 
     def init_from_options(self) -> None:
-        nightly_opt = self.get_compileropt_value('nightly', None)
+        key = self.form_compileropt_key('nightly', None)
+        nightly_opt = self.environment.coredata.optstore.get_value_for(key, str)
         if nightly_opt == 'enabled' and not self.is_nightly:
             raise EnvironmentException(f'Rust compiler {self.name_string()} is not a nightly compiler as required by the "nightly" option.')
         self.allow_nightly = nightly_opt != 'disabled' and self.is_nightly
@@ -269,7 +270,7 @@ class RustCompiler(Compiler):
         if not target:
             return self.allow_nightly
         key = self.form_compileropt_key('nightly')
-        nightly_opt = self.environment.coredata.get_option_for_target(target, key)
+        nightly_opt = self.environment.coredata.optstore.get_option_for_target(target, key, str)
         if nightly_opt == 'enabled' and not self.is_nightly:
             raise EnvironmentException(f'Rust compiler {self.name_string()} is not a nightly compiler as required by the "nightly" option.')
         return nightly_opt != 'disabled' and self.is_nightly
@@ -386,10 +387,11 @@ class RustCompiler(Compiler):
         # provided by the linker flags.
         return []
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        args: T.List[str] = []
+        target, subproject = self._get_subproject_and_target(target)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('--edition=' + std)
         return args

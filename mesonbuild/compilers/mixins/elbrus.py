@@ -18,6 +18,7 @@ from ...options import OptionKey
 
 if T.TYPE_CHECKING:
     from ...build import BuildTarget
+    from ...mesonlib import SubProject
 
 
 class ElbrusCompiler(GnuLikeCompiler):
@@ -82,14 +83,11 @@ class ElbrusCompiler(GnuLikeCompiler):
         # Actually it's not supported for now, but probably will be supported in future
         return 'pch'
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
-        key = OptionKey(f'{self.language}_std', subproject=subproject, machine=self.for_machine)
-        if target:
-            std = self.environment.coredata.get_option_for_target(target, key)
-        else:
-            std = self.environment.coredata.optstore.get_value_for(key)
-        assert isinstance(std, str)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args

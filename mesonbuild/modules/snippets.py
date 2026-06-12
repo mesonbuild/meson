@@ -22,6 +22,7 @@ from . import NewExtensionModule, ModuleInfo
 from ..interpreterbase import KwargInfo, typed_kwargs, typed_pos_args
 from ..interpreter.type_checking import NoneType
 from .. import mesonlib
+from ..options import OptionKey
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
@@ -63,7 +64,7 @@ class SnippetsModule(NewExtensionModule):
         static_compilation = kwargs['static_compilation'] or f'{namespace}_STATIC_COMPILATION'
         static_only = kwargs['static_only']
         if static_only is None:
-            default_library = state.get_option('default_library')
+            default_library = state.environment.coredata.optstore.get_value_for(OptionKey('default_library'), str)
             static_only = default_library == 'static'
         content = textwrap.dedent('''\
             // SPDX-license-identifier: 0BSD OR CC0-1.0 OR WTFPL OR Apache-2.0 OR LGPL-2.0-or-later

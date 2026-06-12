@@ -23,7 +23,6 @@ if T.TYPE_CHECKING:
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..programs import Program
     from ..dependencies import Dependency
-    from ..options import ElementaryOptionValues
 
 class ModuleState:
     """Object passed to all module methods.
@@ -158,10 +157,6 @@ class ModuleState:
         real_args = list(args)
         # TODO: Use interpreter internal API, but we need to go through @typed_kwargs
         self._interpreter.func_test(self.current_node, real_args, kwargs)
-
-    def get_option(self, name: str, subproject: str = '',
-                   machine: MachineChoice = MachineChoice.HOST) -> ElementaryOptionValues:
-        return self.environment.coredata.optstore.get_value_for(OptionKey(name, subproject, machine))
 
     def is_user_defined_option(self, name: str, subproject: str = '',
                                machine: MachineChoice = MachineChoice.HOST,

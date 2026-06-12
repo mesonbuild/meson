@@ -26,6 +26,7 @@ from ..interpreter.type_checking import (
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs
 from ..interpreter.interpreterobjects import Doctest
 from ..mesonlib import (is_parent_path, File, MachineChoice, MesonException, PerMachine)
+from ..options import OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
@@ -895,8 +896,7 @@ class RustModule(ExtensionModule):
         language = T.cast('Language', language)
 
         # We only want include directories and defines, other things may not be valid
-        cargs = state.get_option(f'{language}_args', state.subproject)
-        assert isinstance(cargs, list), 'for mypy'
+        cargs = state.environment.coredata.optstore.get_value_for(OptionKey(f'{language}_args', state.subproject), list)
         for a in itertools.chain(state.global_args.get(language, []), state.project_args.get(language, []), cargs):
             if a.startswith(('-I', '/I', '-D', '/D', '-U', '/U')):
                 clang_args.append(a)
@@ -906,8 +906,7 @@ class RustModule(ExtensionModule):
 
         # Add the C++ standard to the clang arguments. Attempt to translate VS
         # extension versions into the nearest standard version
-        std = state.get_option(f'{language}_std')
-        assert isinstance(std, str), 'for mypy'
+        std = state.environment.coredata.optstore.get_value_for(OptionKey(f'{language}_std'), str)
         if std.startswith('vc++'):
             if std.endswith('latest'):
                 mlog.warning('Attempting to translate vc++latest into a clang compatible version.',
@@ -944,11 +943,7 @@ class RustModule(ExtensionModule):
         if self._bindgen_rust_target and '--rust-target' not in cmd:
             cmd.extend(['--rust-target', self._bindgen_rust_target])
         if self._bindgen_set_std and '--rust-edition' not in cmd:
-            try:
-                rust_std = state.environment.coredata.optstore.get_value_for('rust_std')
-            except KeyError:
-                rust_std = 'none'
-            assert isinstance(rust_std, str), 'for mypy'
+            rust_std = state.environment.coredata.optstore.get_value_for(OptionKey('rust_std'), str, default='none')
             if rust_std != 'none':
                 cmd.extend(['--rust-edition', rust_std])
         cmd.append('--')

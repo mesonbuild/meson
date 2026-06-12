@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
-# Copyright © 2023-2025 Intel Corporation
+# Copyright © 2023-2026 Intel Corporation
 
+from __future__ import annotations
 import itertools
 import subprocess
 import re
@@ -30,6 +31,7 @@ import mesonbuild.environment
 import mesonbuild.coredata
 import mesonbuild.machinefile
 import mesonbuild.modules.gnome
+import mesonbuild.tooldetect
 from mesonbuild.mesonlib import (
     DirectoryLock, DirectoryLockAction, MachineChoice, is_windows, is_osx, is_cygwin, is_dragonflybsd,
     is_sunos, windows_proof_rmtree, python_command, version_compare, split_args, quote_arg,
@@ -48,7 +50,7 @@ from mesonbuild.compilers.c import VisualStudioCCompiler, ClangClCCompiler
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler, ClangClCPPCompiler
 from mesonbuild.compilers import (
     detect_static_linker, detect_c_compiler, compiler_from_language,
-    detect_compiler_for, lang_suffixes
+    detect_compiler_for
 )
 from mesonbuild.linkers import linkers
 
@@ -66,6 +68,10 @@ from run_tests import (
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
+
+if T.TYPE_CHECKING:
+    from mesonbuild.compilers.compilers import Language
+    from mesonbuild.environment import Environment
 
 UNIT_MACHINEFILE_DIR = Path(__file__).parent / 'machinefiles'
 
@@ -2503,86 +2509,137 @@ class AllPlatformTests(BasePlatformTests):
             self.init(tdir)
         self.assertIn('ERROR: compiler.has_header_symbol got unknown keyword arguments "prefixxx"', cm.exception.output)
 
-    def test_templates(self):
-        ninja = mesonbuild.tooldetect.detect_ninja()
-        if ninja is None:
-            raise SkipTest('This test currently requires ninja. Fix this once "meson build" works.')
+    def _template_test_fresh(self, lang: Language, target_type: str, env: Environment, ninja: list[str]) -> None:
+        if is_windows() and lang == 'fortran' and target_type == 'library':
+            # non-Gfortran Windows Fortran compilers do not do shared libraries in a Fortran standard way
+            # see "test cases/fortran/6 dynamic"
+            fc = detect_compiler_for(env, 'fortran', MachineChoice.HOST, True, '')
+            if fc.get_id() in {'intel-cl', 'pgi'}:
+                raise SkipTest('The Intel (classic) and PGI fortran compilers do not support standard shared libraries')
 
-        langs = []
-        env = get_fake_env()
-        for l in ['c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'objc', 'objcpp', 'rust', 'vala']:
-            try:
-                comp = detect_compiler_for(env, l, MachineChoice.HOST, True, '')
-                with tempfile.TemporaryDirectory() as d:
-                    comp.sanity_check(d)
-                langs.append(l)
-            except EnvironmentException:
-                pass
+        # test empty directory
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._run(self.meson_command + ['init', '--language', lang, '--type', target_type],
+                      workdir=tmpdir)
+            self._run(self.setup_command + ['--backend=ninja', 'builddir'], workdir=tmpdir)
+            self._run(ninja, workdir=os.path.join(tmpdir, 'builddir'))
 
-        # The D template fails under mac CI and we don't know why.
-        # Patches welcome
-        if is_osx():
-            langs = [l for l in langs if l != 'd']
-
-        def _template_test_fresh(lang, target_type):
-            if is_windows() and lang == 'fortran' and target_type == 'library':
-                # non-Gfortran Windows Fortran compilers do not do shared libraries in a Fortran standard way
-                # see "test cases/fortran/6 dynamic"
-                fc = detect_compiler_for(env, 'fortran', MachineChoice.HOST, True, '')
-                if fc.get_id() in {'intel-cl', 'pgi'}:
-                    return
-
-            # test empty directory
+        # custom executable name
+        if target_type == 'executable':
             with tempfile.TemporaryDirectory() as tmpdir:
-                self._run(self.meson_command + ['init', '--language', lang, '--type', target_type],
-                            workdir=tmpdir)
-                self._run(self.setup_command + ['--backend=ninja', 'builddir'], workdir=tmpdir)
-                self._run(ninja, workdir=os.path.join(tmpdir, 'builddir'))
-
-            # custom executable name
-            if target_type == 'executable':
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    self._run(self.meson_command + ['init', '--language', lang, '--type', target_type,
-                                                    '--executable', 'foobar'],
-                                                    workdir=tmpdir)
-                    self._run(self.setup_command + ['--backend=ninja', 'builddir'], workdir=tmpdir)
-                    self._run(ninja, workdir=os.path.join(tmpdir, 'builddir'))
-
-                    if lang not in {'cs', 'java'}:
-                        exe = os.path.join(tmpdir, 'builddir', 'foobar' + exe_suffix)
-                        self.assertTrue(os.path.exists(exe))
-
-        def _template_test_dirty(lang, target_type):
-            if is_windows() and lang == 'fortran' and target_type == 'library':
-                # non-Gfortran Windows Fortran compilers do not do shared libraries in a Fortran standard way
-                # see "test cases/fortran/6 dynamic"
-                fc = detect_compiler_for(env, 'fortran', MachineChoice.HOST, True, '')
-                if fc.get_id() in {'intel-cl', 'pgi'}:
-                    return
-
-            # test empty directory
-            with tempfile.TemporaryDirectory() as tmpdir:
-                self._run(self.meson_command + ['init', '--language', lang, '--type', target_type],
+                self._run(self.meson_command + ['init', '--language', lang, '--type', target_type,
+                                                '--executable', 'foobar'],
                           workdir=tmpdir)
                 self._run(self.setup_command + ['--backend=ninja', 'builddir'], workdir=tmpdir)
                 self._run(ninja, workdir=os.path.join(tmpdir, 'builddir'))
 
-            # test directory with existing code file
-            if lang in {'c', 'cpp', 'd'}:
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    with open(os.path.join(tmpdir, 'foo.' + lang), 'w', encoding='utf-8') as f:
-                        f.write('int main(void) {}')
-                    self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
+                if lang not in {'cs', 'java'}:
+                    exe = os.path.join(tmpdir, 'builddir', 'foobar' + exe_suffix)
+                    self.assertTrue(os.path.exists(exe))
 
-            elif lang in {'java'}:
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    with open(os.path.join(tmpdir, 'Foo.' + lang), 'w', encoding='utf-8') as f:
-                        f.write('public class Foo { public static void main() {} }')
-                    self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
+    def _template_test_dirty(self, lang: Language, target_type: str, env: Environment, ninja: list[str]) -> None:
+        if is_windows() and lang == 'fortran' and target_type == 'library':
+            # non-Gfortran Windows Fortran compilers do not do shared libraries in a Fortran standard way
+            # see "test cases/fortran/6 dynamic"
+            fc = detect_compiler_for(env, 'fortran', MachineChoice.HOST, True, '')
+            if fc.get_id() in {'intel-cl', 'pgi'}:
+                raise SkipTest('The Intel (classic) and PGI fortran compilers do not support standard shared libraries')
 
-        for lang, target_type, fresh in itertools.product(langs, ('executable', 'library'), (True, False)):
-            with self.subTest(f'Language: {lang}; type: {target_type}; fresh: {fresh}'):
-                _template_test_fresh(lang, target_type) if fresh else _template_test_dirty(lang, target_type)
+        # test empty directory
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._run(self.meson_command + ['init', '--language', lang, '--type', target_type],
+                      workdir=tmpdir)
+            self._run(self.setup_command + ['--backend=ninja', 'builddir'], workdir=tmpdir)
+            self._run(ninja, workdir=os.path.join(tmpdir, 'builddir'))
+
+        # test directory with existing code file
+        if lang in {'c', 'cpp', 'd'}:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                with open(os.path.join(tmpdir, 'foo.' + lang), 'w', encoding='utf-8') as f:
+                    f.write('int main(void) {}')
+                self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
+
+        elif lang in {'java'}:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                with open(os.path.join(tmpdir, 'Foo.' + lang), 'w', encoding='utf-8') as f:
+                    f.write('public class Foo { public static void main() {} }')
+                self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
+
+    def _test_template(self, lang: Language) -> None:
+        ninja = mesonbuild.tooldetect.detect_ninja()
+        if ninja is None:
+            raise SkipTest('This test currently requires ninja. Fix this once "meson build" works.')
+
+        env = get_fake_env(bdir=self.builddir)
+
+        extra_lang: Language | None
+        match lang:
+            case 'cuda':
+                extra_lang = 'cpp'
+            case 'vala':
+                extra_lang = 'c'
+            case _:
+                extra_lang = None
+
+        if extra_lang is not None:
+            try:
+                comp = detect_compiler_for(env, extra_lang, MachineChoice.HOST, True, '')
+            except EnvironmentException:
+                comp = None
+            if comp is None:
+                raise SkipTest(f'Could not find compiler for {extra_lang}, which is required for {lang}')
+
+        with tempfile.TemporaryDirectory() as d:
+            try:
+                comp = detect_compiler_for(env, lang, MachineChoice.HOST, True, '')
+                if comp is None:
+                    raise SkipTest(f'Could not find compiler for language: {lang}')
+                comp.sanity_check(d)
+            except EnvironmentException:
+                raise SkipTest(f'Compiler for language {lang} failed to sanity check')
+
+        for target_type, fresh in itertools.product(('executable', 'library'), (True, False)):
+            with self.subTest(type=target_type, fresh=fresh):
+                func = self._template_test_fresh if fresh else self._template_test_dirty
+                try:
+                    func(lang, target_type, env, ninja)
+                except subprocess.CalledProcessError as e:
+                    self.fail(e.stdout)
+
+    def test_template_c(self) -> None:
+        self._test_template('c')
+
+    def test_template_cpp(self) -> None:
+        self._test_template('cpp')
+
+    def test_template_cs(self) -> None:
+        self._test_template('cs')
+
+    def test_template_cuda(self) -> None:
+        self._test_template('cuda')
+
+    def test_template_d(self) -> None:
+        if is_osx():
+            raise SkipTest('The D template fails under MacOS CI, we are unsure why. Patches welcome.')
+        self._test_template('d')
+
+    def test_template_fortran(self) -> None:
+        self._test_template('fortran')
+
+    def test_template_java(self) -> None:
+        self._test_template('java')
+
+    def test_template_objc(self) -> None:
+        self._test_template('objc')
+
+    def test_template_objcpp(self) -> None:
+        self._test_template('objcpp')
+
+    def test_template_rust(self) -> None:
+        self._test_template('rust')
+
+    def test_template_vala(self) -> None:
+        self._test_template('vala')
 
     def test_compiler_run_command(self):
         '''
@@ -2790,35 +2847,35 @@ class AllPlatformTests(BasePlatformTests):
         out = self.init(testdir, extra_args=['--profile-self', '--fatal-meson-warnings'])
         self.assertNotIn('[default: true]', out)
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for('default_library'), 'static')
-        self.assertEqual(obj.optstore.get_value_for('warning_level'), '1')
-        self.assertEqual(obj.optstore.get_value_for(OptionKey('set_sub_opt', '')), True)
-        self.assertEqual(obj.optstore.get_value_for(OptionKey('subp_opt', 'subp')), 'default3')
+        self.assertEqual(obj.optstore.get_value_for_untyped('default_library'), 'static')
+        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '1')
+        self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('set_sub_opt', '')), True)
+        self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('subp_opt', 'subp')), 'default3')
         self.wipe()
 
         # warning_level is special, it's --warnlevel instead of --warning-level
         # for historical reasons
         self.init(testdir, extra_args=['--warnlevel=2', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for('warning_level'), '2')
+        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '2')
         self.setconf('--warnlevel=3')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for('warning_level'), '3')
+        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '3')
         self.setconf('--warnlevel=everything')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for('warning_level'), 'everything')
+        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), 'everything')
         self.wipe()
 
         # But when using -D syntax, it should be 'warning_level'
         self.init(testdir, extra_args=['-Dwarning_level=2', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for('warning_level'), '2')
+        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '2')
         self.setconf('-Dwarning_level=3')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for('warning_level'), '3')
+        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '3')
         self.setconf('-Dwarning_level=everything')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for('warning_level'), 'everything')
+        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), 'everything')
         self.wipe()
 
         # Mixing --option and -Doption is forbidden
@@ -2842,15 +2899,15 @@ class AllPlatformTests(BasePlatformTests):
         # --default-library should override default value from project()
         self.init(testdir, extra_args=['--default-library=both', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for('default_library'), 'both')
+        self.assertEqual(obj.optstore.get_value_for_untyped('default_library'), 'both')
         self.setconf('--default-library=shared')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for('default_library'), 'shared')
+        self.assertEqual(obj.optstore.get_value_for_untyped('default_library'), 'shared')
         if self.backend is Backend.ninja:
             # reconfigure target works only with ninja backend
             self.build('reconfigure')
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.optstore.get_value_for('default_library'), 'shared')
+            self.assertEqual(obj.optstore.get_value_for_untyped('default_library'), 'shared')
         self.wipe()
 
         # Should fail on unknown options
@@ -2887,22 +2944,22 @@ class AllPlatformTests(BasePlatformTests):
         # Test we can set subproject option
         self.init(testdir, extra_args=['-Dsubp:subp_opt=foo', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for(OptionKey('subp_opt', 'subp')), 'foo')
+        self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('subp_opt', 'subp')), 'foo')
         self.wipe()
 
         # c_args value should be parsed with split_args
         self.init(testdir, extra_args=['-Dc_args=-Dfoo -Dbar "-Dthird=one two"', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for(OptionKey('c_args')), ['-Dfoo', '-Dbar', '-Dthird=one two'])
+        self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('c_args')), ['-Dfoo', '-Dbar', '-Dthird=one two'])
 
         self.setconf('-Dc_args="foo bar" one two')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for(OptionKey('c_args')), ['foo bar', 'one', 'two'])
+        self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('c_args')), ['foo bar', 'one', 'two'])
         self.wipe()
 
         self.init(testdir, extra_args=['-Dset_percent_opt=myoption%', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for(OptionKey('set_percent_opt', '')), 'myoption%')
+        self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('set_percent_opt', '')), 'myoption%')
         self.wipe()
 
         # Setting a 2nd time the same option should override the first value
@@ -2913,19 +2970,19 @@ class AllPlatformTests(BasePlatformTests):
                                            '-Dc_args=-Dfoo', '-Dc_args=-Dbar',
                                            '-Db_lundef=false', '--fatal-meson-warnings'])
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.optstore.get_value_for('bindir'), 'bar')
-            self.assertEqual(obj.optstore.get_value_for('buildtype'), 'release')
-            self.assertEqual(obj.optstore.get_value_for('b_sanitize'), ['thread'])
-            self.assertEqual(obj.optstore.get_value_for(OptionKey('c_args')), ['-Dbar'])
+            self.assertEqual(obj.optstore.get_value_for_untyped('bindir'), 'bar')
+            self.assertEqual(obj.optstore.get_value_for_untyped('buildtype'), 'release')
+            self.assertEqual(obj.optstore.get_value_for_untyped('b_sanitize'), ['thread'])
+            self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('c_args')), ['-Dbar'])
             self.setconf(['--bindir=bar', '--bindir=foo',
                           '-Dbuildtype=release', '-Dbuildtype=plain',
                           '-Db_sanitize=thread', '-Db_sanitize=address',
                           '-Dc_args=-Dbar', '-Dc_args=-Dfoo'])
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.optstore.get_value_for('bindir'), 'foo')
-            self.assertEqual(obj.optstore.get_value_for('buildtype'), 'plain')
-            self.assertEqual(obj.optstore.get_value_for('b_sanitize'), ['address'])
-            self.assertEqual(obj.optstore.get_value_for(OptionKey('c_args')), ['-Dfoo'])
+            self.assertEqual(obj.optstore.get_value_for_untyped('bindir'), 'foo')
+            self.assertEqual(obj.optstore.get_value_for_untyped('buildtype'), 'plain')
+            self.assertEqual(obj.optstore.get_value_for_untyped('b_sanitize'), ['address'])
+            self.assertEqual(obj.optstore.get_value_for_untyped(OptionKey('c_args')), ['-Dfoo'])
             self.wipe()
         except KeyError:
             # Ignore KeyError, it happens on CI for compilers that does not
@@ -2939,25 +2996,25 @@ class AllPlatformTests(BasePlatformTests):
         # Verify default values when passing no args
         self.init(testdir)
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for('warning_level'), '0')
+        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '0')
         self.wipe()
 
         # verify we can override w/ --warnlevel
         self.init(testdir, extra_args=['--warnlevel=1'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for('warning_level'), '1')
+        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '1')
         self.setconf('--warnlevel=0')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for('warning_level'), '0')
+        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '0')
         self.wipe()
 
         # verify we can override w/ -Dwarning_level
         self.init(testdir, extra_args=['-Dwarning_level=1'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for('warning_level'), '1')
+        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '1')
         self.setconf('-Dwarning_level=0')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value_for('warning_level'), '0')
+        self.assertEqual(obj.optstore.get_value_for_untyped('warning_level'), '0')
         self.wipe()
 
     def test_feature_check_usage_subprojects(self):
@@ -4815,10 +4872,10 @@ class AllPlatformTests(BasePlatformTests):
             # C does have a separate linking step. It can be done through the compiler
             # driver or not; act accordingly.
             if cc.USED_FOR_SEPARATE_LINKING_STEP:
-                link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
+                link_args = env.coredata.optstore.get_external_link_args(cc.for_machine, cc.language)
                 self.assertEqual(sorted(link_args), sorted(['-DCFLAG', '-flto']))
             else:
-                link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
+                link_args = env.coredata.optstore.get_external_link_args(cc.for_machine, cc.language)
                 self.assertEqual(sorted(link_args), sorted(['-flto']))
 
     def test_install_tag(self) -> None:

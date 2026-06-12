@@ -33,7 +33,7 @@ if T.TYPE_CHECKING:
     from ..dependencies import Dependency
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, SubProject
     from ..build import BuildTarget
 
 
@@ -57,8 +57,8 @@ class FortranCompiler(CLikeCompiler, Compiler):
                              'that example is to see if the compiler has Fortran 2008 Block element.')
 
     def _get_basic_compiler_args(self, mode: CompileCheckMode) -> T.Tuple[T.List[str], T.List[str]]:
-        cargs = self.environment.coredata.get_external_args(self.for_machine, self.language)
-        largs = self.environment.coredata.get_external_link_args(self.for_machine, self.language)
+        cargs = self.environment.coredata.optstore.get_external_args(self.for_machine, self.language)
+        largs = self.environment.coredata.optstore.get_external_link_args(self.for_machine, self.language)
         return cargs, largs
 
     def _sanity_check_source_code(self) -> str:
@@ -285,10 +285,11 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
         self._update_language_stds(opts, fortran_stds)
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
@@ -420,11 +421,13 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
         self._update_language_stds(opts, ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018'])
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', target, subproject)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
+
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
-        assert isinstance(std, str)
         if std != 'none':
             args.append('-stand=' + stds[std])
         return args
@@ -478,11 +481,13 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
         self._update_language_stds(opts, ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018'])
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', target, subproject)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
+
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
-        assert isinstance(std, str)
         if std != 'none':
             args.append('/stand:' + stds[std])
         return args

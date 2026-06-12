@@ -355,15 +355,14 @@ def run(options: 'argparse.Namespace') -> int:
 
     b = build.load(options.wd)
     cdata = b.environment.coredata
-    need_vsenv = T.cast('bool', cdata.optstore.get_value_for(OptionKey('vsenv')))
+    need_vsenv = cdata.optstore.get_value_for(OptionKey('vsenv'), bool)
     if setup_vsenv(need_vsenv):
         mlog.log(mlog.green('INFO:'), 'automatically activated MSVC compiler environment')
 
     cmd: T.List[str] = []
     env: T.Optional[T.Dict[str, str]] = None
 
-    backend = cdata.optstore.get_value_for(OptionKey('backend'))
-    assert isinstance(backend, str)
+    backend = cdata.optstore.get_value_for(OptionKey('backend'), str)
     mlog.log(mlog.green('INFO:'), 'autodetecting backend as', backend)
     if backend == 'ninja':
         cmd, env = get_parsed_args_ninja(options, bdir)
