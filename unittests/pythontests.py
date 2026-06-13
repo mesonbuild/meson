@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
-import glob, os, pathlib, shutil, subprocess, sys, unittest
+import glob, os, pathlib, shutil, subprocess, sys, sysconfig, unittest
 
 from run_tests import (
     Backend
@@ -109,6 +109,37 @@ python = pymod.find_installation('python3', required: true)
         self.assertPathExists(limited_library_path)
 
         limited_dep_name = 'python3.dll'
+        if shutil.which('dumpbin'):
+            # MSVC
+            output = subprocess.check_output(['dumpbin', '/DEPENDENTS', limited_library_path],
+                                            stderr=subprocess.STDOUT)
+            self.assertIn(limited_dep_name, output.decode())
+        elif shutil.which('objdump'):
+            # mingw
+            output = subprocess.check_output(['objdump', '-p', limited_library_path],
+                                             stderr=subprocess.STDOUT)
+            self.assertIn(limited_dep_name, output.decode())
+        else:
+            raise self.skipTest('Test needs either dumpbin(MSVC) or objdump(mingw).')
+
+    def test_abi3t_linked_correct_lib(self):
+        if sysconfig.get_config_var('Py_GIL_DISABLED') != 1:
+            return self.skipTest('Test only run with freethreading Python')
+        if not is_windows():
+            return self.skipTest('Test only run on Windows.')
+
+        testdir = os.path.join(self.src_root, 'test cases', 'python', '12 extmodule limited api ft')
+
+        self.init(testdir)
+        self.build()
+
+        from importlib.machinery import EXTENSION_SUFFIXES
+        limited_suffix = EXTENSION_SUFFIXES[1]
+
+        limited_library_path = os.path.join(self.builddir, f'limited{limited_suffix}')
+        self.assertPathExists(limited_library_path)
+
+        limited_dep_name = 'python3t.dll'
         if shutil.which('dumpbin'):
             # MSVC
             output = subprocess.check_output(['dumpbin', '/DEPENDENTS', limited_library_path],
