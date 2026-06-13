@@ -1,0 +1,27 @@
+/*
+ * Copyright (C) 2025-2026 The Magma GPU Project
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Generated via:
+ *   https://github.com/mesonbuild/meson/tree/master/mesonbuild/convert
+ *
+ * Submit patches, do not hand-edit.
+ *
+ */
+
+package {
+    // See: http://go/android-license-faq
+    default_applicable_licenses: ["test_license"],
+}
+
+cc_library_shared {
+    name: "lib1",
+    vendor: true,
+    host_supported: true,
+    srcs: [
+        "lib1.c",
+    ],
+    static_libs: [
+        "lib2",
+    ],
+}

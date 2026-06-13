@@ -1,0 +1,364 @@
+# Copyright 2026 The Meson Development Team
+# SPDX-License-Identifier-Apache-2.0
+
+# Generated via meson check-platforms --android-ndk-version r29 -o android_r29.toml
+
+[[wrap]]
+name = "android_ndk"
+source_url = "https://dl.google.com/android/repository/android-ndk-r29-linux.zip"
+source_filename = "android-ndk-r29-linux.zip"
+source_hash = "4abbbcdc842f3d4879206e9695d52709603e52dd68d3c1fff04b3b5e7a308ecf"
+
+[[toolchain]]
+name = "android_ndk_toolchain_aarch64"
+wrap_name = "android_ndk"
+ar = "toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+cc = "toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang"
+cpp = "toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang++"
+strip = "toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
+
+[[toolchain]]
+name = "android_ndk_toolchain_x86"
+wrap_name = "android_ndk"
+ar = "toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+cc = "toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android35-clang"
+cpp = "toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android35-clang++"
+strip = "toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
+
+[[toolchain]]
+name = "android_ndk_toolchain_x86_64"
+wrap_name = "android_ndk"
+ar = "toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+cc = "toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android35-clang"
+cpp = "toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android35-clang++"
+strip = "toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
+
+[[platform]]
+name = "android_arm64"
+toolchain = "android_ndk_toolchain_aarch64"
+
+[platform.sysroot]
+wrap_name = "android_ndk"
+path = "toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+
+[platform.host_machine]
+cpu_family = "aarch64"
+cpu = "aarch64"
+system = "android"
+endian = "little"
+
+[platform.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[platform.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[platform.rust]
+compiler_id = "rustc"
+linker_id = "ld.lld"
+version = "1.90.0"
+
+[platform.c.check_header.fails]
+"pthread_np.h" = true
+
+[platform.c.has_header_symbol.fails]
+"sys/mkdev.h" = { major = true, minor = true, makedev = true }
+"errno.h" = { program_invocation_name = true }
+
+[platform.c.has_function.fails]
+qsort_s = true
+secure_getenv = true
+pthread_setaffinity_np = true
+__builtin_add_overflow_p = true
+__builtin_sub_overflow_p = true
+
+[platform.c.supported_arguments.fails]
+args = [
+    "-Wno-nonnull-compare",
+]
+
+[platform.cpp.links.fails]
+"qsort_r" = true
+
+[platform.cpp.supported_arguments.fails]
+args = [
+    "-flifetime-dse=1",
+    "-Wno-class-memaccess",
+]
+
+[[platform]]
+name = "android_x86"
+toolchain = "android_ndk_toolchain_x86"
+
+[platform.sysroot]
+wrap_name = "android_ndk"
+path = "toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+
+[platform.host_machine]
+cpu_family = "x86"
+cpu = "i686"
+system = "android"
+endian = "little"
+
+[platform.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[platform.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[platform.rust]
+compiler_id = "rustc"
+linker_id = "ld.lld"
+version = "1.90.0"
+
+[platform.c.compiles.fails]
+"__uint128_t" = true
+
+[platform.c.check_header.fails]
+"pthread_np.h" = true
+
+[platform.c.has_header_symbol.fails]
+"sys/mkdev.h" = { major = true, minor = true, makedev = true }
+"errno.h" = { program_invocation_name = true }
+
+[platform.c.has_function.fails]
+qsort_s = true
+secure_getenv = true
+pthread_setaffinity_np = true
+__builtin_add_overflow_p = true
+__builtin_sub_overflow_p = true
+
+[platform.c.supported_arguments.fails]
+args = [
+    "-Wno-nonnull-compare",
+]
+
+[platform.cpp.links.fails]
+"qsort_r" = true
+
+[platform.cpp.supported_arguments.fails]
+args = [
+    "-flifetime-dse=1",
+    "-Wno-class-memaccess",
+]
+
+[[platform]]
+name = "android_x86_64"
+toolchain = "android_ndk_toolchain_x86_64"
+
+[platform.sysroot]
+wrap_name = "android_ndk"
+path = "toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+
+[platform.host_machine]
+cpu_family = "x86_64"
+cpu = "x86_64"
+system = "android"
+endian = "little"
+
+[platform.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[platform.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[platform.rust]
+compiler_id = "rustc"
+linker_id = "ld.lld"
+version = "1.90.0"
+
+[platform.c.check_header.fails]
+"pthread_np.h" = true
+
+[platform.c.has_header_symbol.fails]
+"sys/mkdev.h" = { major = true, minor = true, makedev = true }
+"errno.h" = { program_invocation_name = true }
+
+[platform.c.has_function.fails]
+qsort_s = true
+secure_getenv = true
+pthread_setaffinity_np = true
+__builtin_add_overflow_p = true
+__builtin_sub_overflow_p = true
+
+[platform.c.supported_arguments.fails]
+args = [
+    "-Wno-nonnull-compare",
+]
+
+[platform.cpp.links.fails]
+"qsort_r" = true
+
+[platform.cpp.supported_arguments.fails]
+args = [
+    "-flifetime-dse=1",
+    "-Wno-class-memaccess",
+]
+
+[[platform]]
+name = "linux_glibc_x86_64"
+
+[platform.host_machine]
+cpu_family = "x86_64"
+cpu = "x86_64"
+system = "linux"
+endian = "little"
+
+[platform.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[platform.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[platform.rust]
+compiler_id = "rustc"
+linker_id = "ld.lld"
+version = "1.90.0"
+
+[platform.c.check_header.fails]
+"pthread_np.h" = true
+"linux/udmabuf.h" = true
+
+[platform.c.has_header_symbol.fails]
+"sys/mkdev.h" = { major = true, minor = true, makedev = true }
+"errno.h" = { program_invocation_name = true }
+
+[platform.c.has_function.fails]
+memfd_create = true
+qsort_s = true
+pthread_setaffinity_np = true
+thrd_create = true
+getrandom = true
+__builtin_add_overflow_p = true
+__builtin_sub_overflow_p = true
+reallocarray = true
+
+[platform.c.supported_arguments.fails]
+args = [
+    "-Wno-nonnull-compare",
+]
+
+[platform.cpp.supported_arguments.fails]
+args = [
+    "-flifetime-dse=1",
+]
+
+[[platform]]
+name = "linux_musl_x86_64"
+
+[platform.host_machine]
+cpu_family = "x86_64"
+cpu = "x86_64"
+system = "linux"
+endian = "little"
+
+[platform.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[platform.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[platform.rust]
+compiler_id = "rustc"
+linker_id = "ld.lld"
+version = "1.90.0"
+
+[platform.c.check_header.fails]
+"pthread_np.h" = true
+"linux/udmabuf.h" = true
+"xlocale.h" = true
+
+[platform.c.has_header_symbol.fails]
+"sys/mkdev.h" = { major = true, minor = true, makedev = true }
+"errno.h" = { program_invocation_name = true }
+
+[platform.c.has_function.fails]
+memfd_create = true
+qsort_s = true
+pthread_setaffinity_np = true
+thrd_create = true
+getrandom = true
+__builtin_add_overflow_p = true
+__builtin_sub_overflow_p = true
+
+[platform.c.supported_arguments.fails]
+args = [
+    "-Wno-nonnull-compare",
+]
+
+[platform.cpp.supported_arguments.fails]
+args = [
+    "-flifetime-dse=1",
+]
+
+[[platform]]
+name = "linux_musl_aarch64"
+
+[platform.host_machine]
+cpu_family = "aarch64"
+cpu = "aarch64"
+system = "linux"
+endian = "little"
+
+[platform.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[platform.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "21.0.0"
+
+[platform.rust]
+compiler_id = "rustc"
+linker_id = "ld.lld"
+version = "1.90.0"
+
+[platform.c.check_header.fails]
+"pthread_np.h" = true
+"linux/udmabuf.h" = true
+"xlocale.h" = true
+
+[platform.c.has_header_symbol.fails]
+"sys/mkdev.h" = { major = true, minor = true, makedev = true }
+"errno.h" = { program_invocation_name = true }
+
+[platform.c.has_function.fails]
+memfd_create = true
+qsort_s = true
+pthread_setaffinity_np = true
+thrd_create = true
+getrandom = true
+__builtin_add_overflow_p = true
+__builtin_sub_overflow_p = true
+
+[platform.c.supported_arguments.fails]
+args = [
+    "-Wno-nonnull-compare",
+]
+
+[platform.cpp.supported_arguments.fails]
+args = [
+    "-flifetime-dse=1",
+]
