@@ -47,6 +47,7 @@ if T.TYPE_CHECKING:
         libraries: T.List[ANY_DEP]
         libraries_private: T.List[ANY_DEP]
         requires: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]
+        requires_shared: T.Optional[T.List[T.Union[str, dependencies.Dependency]]]
         requires_private: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]
         install_dir: T.Optional[str]
         d_module_versions: T.List[T.Union[str, int]]
@@ -103,6 +104,7 @@ class DependenciesHelper:
         self.version_reqs: T.DefaultDict[str, T.Set[str]] = defaultdict(set)
         self.link_whole_targets: T.List[T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary]] = []
         self.uninstalled_incdirs: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
+        self.shlib_needs_requires_private: bool = True
 
     def add_pub_libs(self, libs: T.List[ANY_DEP]) -> None:
         p_libs, reqs, cflags = self._process_libs(libs, True)
@@ -111,6 +113,12 @@ class DependenciesHelper:
         self.cflags += cflags
 
     def add_priv_libs(self, libs: T.List[ANY_DEP]) -> None:
+        # FIXME: cflags from non-pkg-config ExternalDependency objects are
+        # discarded here.  They should be added to self.cflags so that
+        # consumers get the right compile flags when headers require those
+        # non-pkg-config external dependencies.  PkgConfigDependency is
+        # fine because its cflags come transitively via Requires.private.
+        # The same applies to add_shlib_deps below.
         p_libs, reqs, _ = self._process_libs(libs, False)
         self.priv_libs = p_libs + self.priv_libs
         self.priv_reqs += reqs
@@ -120,6 +128,22 @@ class DependenciesHelper:
 
     def add_priv_reqs(self, reqs: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]) -> None:
         self.priv_reqs += self._process_reqs(reqs)
+
+    def add_shlib_deps(self, external_deps: T.List[dependencies.Dependency]) -> None:
+        if not self.shlib_needs_requires_private:
+            return
+        # A mix of add_priv_libs and add_priv_reqs.  Like the
+        # shared_library_only=False case, Libs.private is not needed
+        # (consumers link to the .so, not its deps); but unlike
+        # add_priv_reqs, _process_libs does not raise an error for
+        # non-pkg-config ExternalDependency objects.  This ensures that
+        # shared_library() and library() with default_library=shared
+        # produce the same Requires.private in the generated .pc file,
+        # but it is not entirely correct.  See the comment above for
+        # add_priv_libs().
+        libs = T.cast('T.List[ANY_DEP]', external_deps)
+        _, reqs, _ = self._process_libs(libs, False)
+        self.priv_reqs += reqs
 
     def _check_generated_pc_deprecation(self, obj: T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary, build.SharedLibrary]) -> None:
         if obj.get_id() in self.metadata:
@@ -232,25 +256,25 @@ class DependenciesHelper:
                 if obj.found():
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
-            elif isinstance(obj, build.SharedLibrary) and obj.shared_library_only:
-                # Do not pull dependencies for shared libraries because they are
-                # only required for static linking. Adding private requires has
-                # the side effect of exposing their cflags, which is the
-                # intended behaviour of pkg-config but force Debian to add more
-                # than needed build deps.
-                # See https://bugs.freedesktop.org/show_bug.cgi?id=105572
-                processed_libs.append(obj)
-                self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_subdir())
             elif isinstance(obj, (build.SharedLibrary, build.StaticLibrary)):
                 processed_libs.append(obj)
                 self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_subdir())
-                # If there is a static library in `Libs:` all its deps must be
-                # public too, otherwise the generated pc file will never be
-                # usable without --static.
-                self._add_lib_dependencies(obj.link_targets,
-                                           obj.link_whole_targets,
-                                           obj.external_deps,
-                                           isinstance(obj, build.StaticLibrary) and public)
+                if isinstance(obj, build.SharedLibrary) and obj.shared_library_only:
+                    # Do not pull dependencies for shared libraries because they are
+                    # only required for static linking.  Requires.private
+                    # are needed on the assumption that the headers need them,
+                    # which is the intended behaviour of pkg-config though it
+                    # forced Debian to add more than needed build deps.
+                    # See https://bugs.freedesktop.org/show_bug.cgi?id=105572
+                    self.add_shlib_deps(obj.external_deps)
+                else:
+                    # If there is a static library in `Libs:` all its deps must be
+                    # public too, otherwise the generated pc file will never be
+                    # usable without --static.
+                    self._add_lib_dependencies(obj.link_targets,
+                                               obj.link_whole_targets,
+                                               obj.external_deps,
+                                               isinstance(obj, build.StaticLibrary) and public)
             elif isinstance(obj, (build.CustomTarget, build.CustomTargetIndex)):
                 if not obj.is_linkable_target():
                     raise mesonlib.MesonException('library argument contains a not linkable custom_target.')
@@ -679,6 +703,11 @@ class PkgConfigModule(NewExtensionModule):
         _PKG_LIBRARIES.evolve(name='libraries_private'),
         _PKG_REQUIRES,
         _PKG_REQUIRES.evolve(name='requires_private'),
+        KwargInfo('requires_shared',
+                  (ContainerTypeInfo(list, (str, dependencies.Dependency)), NoneType),
+                  default=None,
+                  listify=True,
+                  since='1.11.0')
     )
     def generate(self, state: ModuleState,
                  args: T.Tuple[T.Optional[T.Union[build.SharedLibrary, build.StaticLibrary]]],
@@ -742,10 +771,14 @@ class PkgConfigModule(NewExtensionModule):
             libraries.insert(0, mainlib)
 
         deps = DependenciesHelper(state, filebase, self._metadata)
+        if kwargs['requires_shared'] is not None:
+            deps.shlib_needs_requires_private = False
         deps.add_pub_libs(libraries)
         deps.add_priv_libs(kwargs['libraries_private'])
         deps.add_pub_reqs(kwargs['requires'])
         deps.add_priv_reqs(kwargs['requires_private'])
+        if kwargs['requires_shared'] is not None:
+            deps.add_priv_reqs(kwargs['requires_shared'])
         deps.add_cflags(kwargs['extra_cflags'])
         deps.add_cflags_private(kwargs['cflags_private'])
 
