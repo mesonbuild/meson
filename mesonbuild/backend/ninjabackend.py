@@ -799,13 +799,13 @@ class NinjaBackend(backends.Backend):
         self._generated_header_cache[tid] = header_deps
         return header_deps
 
-    def get_target_generated_sources(self, target: build.BuildTarget) -> T.MutableMapping[str, File | build.GeneratedTypes]:
+    def get_target_generated_sources(self, target: build.BuildTarget) -> T.MutableMapping[str, build.TargetSources]:
         """
         Returns a dictionary with the keys being the path to the file
         (relative to the build directory) and the value being the File object
         representing the same path.
         """
-        srcs: T.MutableMapping[str, File | build.GeneratedTypes] = {}
+        srcs: T.MutableMapping[str, build.TargetSources] = {}
         for gensrc in target.get_generated_sources():
             for s in gensrc.get_outputs():
                 rel_src = self.get_target_generated_dir(target, gensrc, s)
@@ -962,7 +962,7 @@ class NinjaBackend(backends.Backend):
 
         # GeneratedList and CustomTarget sources to be built; dict of the full
         # path to source relative to build root and the generating target/list
-        generated_sources: T.MutableMapping[str, File | build.GeneratedTypes]
+        generated_sources: T.MutableMapping[str, build.TargetSources]
 
         # List of sources that have been transpiled from a DSL (like Vala) into
         # a language that is handled below, such as C or C++
@@ -1677,8 +1677,8 @@ class NinjaBackend(backends.Backend):
         return list(result)
 
     def split_vala_sources(self, t: build.BuildTarget) -> \
-            T.Tuple[T.MutableMapping[str, File | build.GeneratedTypes], T.MutableMapping[str, File | build.GeneratedTypes],
-                    T.MutableMapping[str, File], T.MutableMapping[str, File | build.GeneratedTypes]]:
+            T.Tuple[T.MutableMapping[str, build.TargetSources], T.MutableMapping[str, build.TargetSources],
+                    T.MutableMapping[str, File], T.MutableMapping[str, build.TargetSources]]:
         """
         Splits the target's sources into .vala, .gs, .vapi, and other sources.
         Handles both preexisting and generated sources.
@@ -1687,10 +1687,10 @@ class NinjaBackend(backends.Backend):
         the keys being the path to the file (relative to the build directory)
         and the value being the object that generated or represents the file.
         """
-        vala: T.MutableMapping[str, File | build.GeneratedTypes] = OrderedDict()
-        vapi: T.MutableMapping[str, File | build.GeneratedTypes] = OrderedDict()
+        vala: T.MutableMapping[str, build.TargetSources] = OrderedDict()
+        vapi: T.MutableMapping[str, build.TargetSources] = OrderedDict()
         others: T.MutableMapping[str, File] = OrderedDict()
-        othersgen: T.MutableMapping[str, File | build.GeneratedTypes] = OrderedDict()
+        othersgen: T.MutableMapping[str, build.TargetSources] = OrderedDict()
         # Split preexisting sources
         for s in t.get_sources():
             # BuildTarget sources are always mesonlib.File files which are
@@ -1729,7 +1729,7 @@ class NinjaBackend(backends.Backend):
         return vala, vapi, others, othersgen
 
     def generate_vala_compile(self, target: build.BuildTarget) -> \
-            T.Tuple[T.MutableMapping[str, File], T.MutableMapping[str, File | build.GeneratedTypes], T.List[str]]:
+            T.Tuple[T.MutableMapping[str, File], T.MutableMapping[str, build.TargetSources], T.List[str]]:
         """Vala is compiled into C. Set up all necessary build steps here."""
         (vala_src, vapi_src, others, othersgen) = self.split_vala_sources(target)
         extra_dep_files = []
@@ -1850,11 +1850,11 @@ class NinjaBackend(backends.Backend):
         return others, othersgen, vala_c_src
 
     def generate_cython_transpile(self, target: build.BuildTarget) -> \
-            T.Tuple[T.MutableMapping[str, File], T.MutableMapping[str, File | build.GeneratedTypes], T.List[str]]:
+            T.Tuple[T.MutableMapping[str, File], T.MutableMapping[str, build.TargetSources], T.List[str]]:
         """Generate rules for transpiling Cython files to C or C++"""
 
         static_sources: T.MutableMapping[str, File] = OrderedDict()
-        generated_sources: T.MutableMapping[str, File | build.GeneratedTypes] = OrderedDict()
+        generated_sources: T.MutableMapping[str, build.TargetSources] = OrderedDict()
         cython_sources: T.List[str] = []
 
         cython = target.compilers['cython']

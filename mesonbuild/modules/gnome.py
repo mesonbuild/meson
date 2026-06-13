@@ -103,7 +103,7 @@ if T.TYPE_CHECKING:
         link_with: T.List[T.Union[build.SharedLibrary, build.StaticLibrary]]
         namespace: str
         nsversion: str
-        sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        sources: T.List[str | build.TargetSources]
         symbol_prefix: T.List[str]
 
     class GtkDoc(TypedDict):
@@ -191,7 +191,7 @@ if T.TYPE_CHECKING:
 
     class MkEnums(_MkEnumsCommon):
 
-        sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        sources: T.List[str | build.TargetSources]
         c_template: T.Optional[FileOrString]
         h_template: T.Optional[FileOrString]
         comments: T.Optional[str]
@@ -1656,10 +1656,10 @@ class GnomeModule(ExtensionModule):
             validator=in_set_validator({'all', 'none', 'objects'})),
         INSTALL_DIR_KW.evolve(since='0.46.0')
     )
-    def gdbus_codegen(self, state: 'ModuleState', args: T.Tuple[str, T.Optional[T.Union['FileOrString', build.GeneratedTypes]]],
+    def gdbus_codegen(self, state: 'ModuleState', args: T.Tuple[str, T.Optional[str | build.TargetSources]],
                       kwargs: 'GdbusCodegen') -> ModuleReturnValue:
         namebase = args[0]
-        xml_files: T.List[T.Union[mesonlib.File, build.GeneratedTypes]] = \
+        xml_files: T.List[build.TargetSources] = \
             self.interpreter.source_strings_to_files([args[1]]) if args[1] else []
         cmd: CommandList = [self._find_tool(state, 'gdbus-codegen')]
         cmd.extend(kwargs['extra_args'])

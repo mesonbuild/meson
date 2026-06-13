@@ -104,7 +104,6 @@ endmacro()
 
 class CMakeSubproject(ModuleObject):
     def __init__(self, subp: SubprojectHolder):
-        assert isinstance(subp, SubprojectHolder)
         assert subp.cm_interpreter is not None
         super().__init__()
         self.subp = subp

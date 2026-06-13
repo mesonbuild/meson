@@ -26,7 +26,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from .kwargs import CustomTargetInputs
-    from ..build import ObjectTypes, GeneratedTypes, BuildTargetTypes
+    from ..build import ObjectTypes, GeneratedTypes, CommandTypes, TargetSources
     from ..interpreterbase import TYPE_var
     from ..options import ElementaryOptionValues
     from ..mesonlib import EnvInitValueType
@@ -287,7 +287,7 @@ DEPEND_FILES_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
     default=[],
 )
 
-COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTargetTypes, Program, File]]] = KwargInfo(
+COMMAND_KW: KwargInfo[T.List[T.Union[str, CommandTypes, Program, File]]] = KwargInfo(
     'command',
     ContainerTypeInfo(list, (str, BuildTarget, CustomTarget, CustomTargetIndex, Program, File), allow_empty=False),
     required=True,
@@ -490,7 +490,7 @@ LINK_WHOLE_KW: KwargInfo[T.List[T.Union[BothLibraries, StaticLibrary, CustomTarg
     extra_types={Dependency: lambda _: _LINK_WITH_ERROR}
 )
 
-DEPENDENCY_SOURCES_KW: KwargInfo[T.List[T.Union[str, File, GeneratedTypes]]] = KwargInfo(
+DEPENDENCY_SOURCES_KW: KwargInfo[T.List[str | TargetSources]] = KwargInfo(
     'sources',
     ContainerTypeInfo(list, (str, File, CustomTarget, CustomTargetIndex, GeneratedList)),
     listify=True,
@@ -563,6 +563,7 @@ RUST_ABI_KW: KwargInfo[T.Union[str, None]] = KwargInfo(
     since='1.3.0',
     validator=in_set_validator({'rust', 'c'}))
 
+# this is implicitly an extra link_depends and thus shares the same type
 _VS_MODULE_DEFS_KW: KwargInfo[T.Optional[T.Union[str, File, CustomTarget, CustomTargetIndex]]] = KwargInfo(
     'vs_module_defs',
     (str, File, CustomTarget, CustomTargetIndex, NoneType),
@@ -809,6 +810,10 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
         since='0.48.0',
     ),
     KwargInfo('install_rpath', str, default=''),
+    # FIXME: an old comment said that link_depends "doesn't handle generator()
+    # returned objects, since adding them as a link depends would inherently
+    # cause them to be generated twice, since the output needs to be passed
+    # to the ld_args and link_depends".  Is this still true?
     KwargInfo(
         'link_depends',
         ContainerTypeInfo(list, (str, File, CustomTarget, CustomTargetIndex, BuildTarget)),

@@ -127,16 +127,16 @@ if T.TYPE_CHECKING:
     from .type_checking import SourcesVarargsType, FullEnvInitValueType
 
     # Input source types passed to Targets
-    SourceInputs = T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.BuildTarget,
+    SourceInputs = T.Union[str, build.TargetSources, build.BuildTarget,
                            build.BothLibraries, build.ExtractedObjects]
     # Input source types passed to the build.Target classes
-    SourceOutputs = T.Union[mesonlib.File, build.GeneratedTypes, build.BuildTarget,
+    SourceOutputs = T.Union[build.TargetSources, build.BuildTarget,
                             build.ExtractedObjects, build.StructuredSources]
     # Sources for custom targets, which can also include ExternalProgram
-    CustomTargetSources = T.Union[mesonlib.File, build.GeneratedTypes, build.BuildTarget,
+    CustomTargetSources = T.Union[build.TargetSources, build.BuildTarget,
                                   build.ExtractedObjects, Program]
 
-    BuildTargetSource = T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.StructuredSources]
+    BuildTargetSource = T.Union[str, build.TargetSources, build.StructuredSources]
 
     ProgramVersionFunc = T.Callable[[Program], str]
 
@@ -489,7 +489,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             held_type: holder_type
         })
 
-    def process_new_values(self, invalues: list[TYPE_var | ExecutableSerialisation] | list[build.GeneratedTypes | mesonlib.File | build.StructuredSources]) -> None:
+    def process_new_values(self, invalues: list[TYPE_var | ExecutableSerialisation] | list[build.GeneratedTypes | mesonlib.File]) -> None:
         for v in invalues:
             if isinstance(v, ObjectHolder):
                 raise InterpreterException('Modules must not return ObjectHolders')
@@ -1951,7 +1951,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('jar', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.ExtractedObjects, build.BuildTarget))
     @typed_kwargs('jar', *JAR_KWS)
     def func_jar(self, node: mparser.BaseNode,
-                 args: T.Tuple[str, T.List[T.Union[str, mesonlib.File, build.GeneratedTypes]]],
+                 args: T.Tuple[str, T.List[str | build.TargetSources]],
                  kwargs: kwtypes.Jar) -> build.Jar:
         return self.build_target(node, T.cast('tuple[str, SourcesVarargsType]', args), kwargs, build.Jar)
 
@@ -2475,7 +2475,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             args: T.Tuple[object, T.Optional[T.Dict[str, object]]],
             kwargs: 'TYPE_kwargs') -> build.StructuredSources:
         valid_types = (str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)
-        sources: T.DefaultDict[str, T.List[T.Union[mesonlib.File, 'build.GeneratedTypes']]] = collections.defaultdict(list)
+        sources: T.DefaultDict[str, T.List[T.Union[build.TargetSources]]] = collections.defaultdict(list)
 
         for arg in mesonlib.listify(args[0]):
             if not isinstance(arg, valid_types):
@@ -3239,21 +3239,28 @@ class Interpreter(InterpreterBase, HoldableObject):
     def source_strings_to_files(self, sources: list['mesonlib.FileOrString']) -> list['mesonlib.File']: ...
 
     @T.overload
+    def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.CustomTarget, build.CustomTargetIndex]]) -> list[T.Union[mesonlib.File, build.CustomTarget, build.CustomTargetIndex]]: ...
+
+    @T.overload
     def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.BuildTargetTypes]]) -> list[T.Union[mesonlib.File, build.BuildTargetTypes]]: ...  # type: ignore[overload-overlap]
 
     @T.overload
-    def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]) -> list[T.Union[mesonlib.File, build.GeneratedTypes]]: ...
+    def source_strings_to_files(self, sources: list[T.Union[str, build.TargetSources]]) -> list[build.TargetSources]: ...
 
     @T.overload
     def source_strings_to_files(self, sources: list[kwtypes.CustomTargetInputs]) -> list['CustomTargetSources']: ...  # type: ignore[overload-overlap]
 
     @T.overload
-    def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.BuildTargetTypes, build.BothLibraries, build.ExtractedObjects, build.GeneratedTypes]],  # type: ignore[overload-overlap]
-                                ) -> list[T.Union[mesonlib.File, build.BuildTargetTypes, build.BothLibraries, build.ExtractedObjects, build.GeneratedTypes]]: ...
+    def source_strings_to_files(self, sources: list[kwtypes.BuildTargetObjects],  # type: ignore[overload-overlap]
+                                ) -> list[T.Union[build.ObjectTypes, build.GeneratedTypes]]: ...
 
     @T.overload
-    def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.StructuredSources]],
-                                ) -> list[T.Union[mesonlib.File, build.GeneratedTypes, build.StructuredSources]]: ... # noqa: F811
+    def source_strings_to_files(self, sources: list[T.Union[str, build.TargetSources, build.BuildTargetTypes, build.BothLibraries, build.ExtractedObjects]],  # type: ignore[overload-overlap]
+                                ) -> list[T.Union[build.TargetSources, build.BuildTargetTypes, build.BothLibraries, build.ExtractedObjects]]: ...
+
+    @T.overload
+    def source_strings_to_files(self, sources: list[T.Union[str, build.TargetSources, build.StructuredSources]],
+                                ) -> list[T.Union[build.TargetSources, build.StructuredSources]]: ... # noqa: F811
 
     @T.overload
     def source_strings_to_files(self, sources: list[SourcesVarargsType]) -> list['SourceOutputs']: ...
@@ -3265,19 +3272,23 @@ class Interpreter(InterpreterBase, HoldableObject):
                                 sources: T.Union[
                                     list[str],
                                     list[mesonlib.File | str],
+                                    list[mesonlib.File | str | build.CustomTarget | build.CustomTargetIndex],
                                     list[mesonlib.File | str | build.BuildTargetTypes],
-                                    list[mesonlib.File | str | build.GeneratedTypes],
+                                    list[str | build.TargetSources],
+                                    list[str | build.TargetSources | build.StructuredSources],
                                     list[kwtypes.CustomTargetInputs],
                                     list[mesonlib.File | str | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes],
-                                    list[mesonlib.File | str | build.GeneratedTypes | build.StructuredSources],
+                                    list[kwtypes.BuildTargetObjects],
                                     list[SourceInputs],
                                     list[SourcesVarargsType],
                                 ]
                                 ) -> T.Union[list[mesonlib.File],
                                              list[mesonlib.File | build.BuildTargetTypes],
-                                             list[mesonlib.File | build.GeneratedTypes],
+                                             list[mesonlib.File | build.CustomTarget | build.CustomTargetIndex],
+                                             list[build.TargetSources],
+                                             list[build.TargetSources | build.StructuredSources],
                                              list[mesonlib.File | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes],
-                                             list[mesonlib.File | build.GeneratedTypes | build.StructuredSources],
+                                             list[build.ObjectTypes | build.GeneratedTypes],
                                              list[CustomTargetSources],
                                              list[SourceOutputs]]:
         """Lower inputs to a list of Targets and Files, replacing any strings.
@@ -3288,7 +3299,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         :return: A list of Targets and Files
         """
         mesonlib.check_direntry_issues(sources)
-        results: list[mesonlib.File | build.GeneratedTypes | build.BuildTarget | build.ExtractedObjects | build.StructuredSources | Program] = []
+        results: list[build.TargetSources | build.BuildTarget | build.ExtractedObjects | build.StructuredSources | Program] = []
 
         for s in sources:
             if isinstance(s, str):
@@ -3322,6 +3333,11 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InterpreterException(f'Source item is {s!r} instead of '
                                            'string or File-type object')
         return results  # type: ignore[return-value]
+
+    def source_string_to_file(self, source: str | mesonlib.File | build.CustomTarget | build.CustomTargetIndex | None) -> mesonlib.File | build.CustomTarget | build.CustomTargetIndex:
+        if source is None:
+            return None
+        return self.source_strings_to_files([source])[0]
 
     def validate_forbidden_targets(self, name: str, in_root: bool) -> None:
         if name.startswith('meson-internal__'):
@@ -3634,8 +3650,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.__convert_build_target_base_kwargs(kwargs, final)
 
         # Exe exclusive arguments
-        for exe_arg in ('android_exe_type', 'pie', 'vs_module_defs'):
+        for exe_arg in ('android_exe_type', 'pie'):
             final[exe_arg] = kwargs[exe_arg]
+        final['vs_module_defs'] = self.source_string_to_file(kwargs['vs_module_defs'])
 
         # rewrite `gui_app` to `win_subsystem`
         if kwargs['gui_app'] is not None:
@@ -3712,8 +3729,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         final: build.SharedLibraryKeywordArguments = {}
         self.__convert_build_target_base_kwargs(kwargs, final)
 
-        for arg in ('version', 'soversion', 'darwin_versions', 'shortname', 'vs_module_defs'):
+        for arg in ('version', 'soversion', 'darwin_versions', 'shortname'):
             final[arg] = kwargs[arg]
+        final['vs_module_defs'] = self.source_string_to_file(kwargs['vs_module_defs'])
 
         for lang in compilers.all_languages - {'java'}:
             deps, args = self.__convert_file_args(kwargs.get(f'{lang}_shared_args', []))  # type: ignore[arg-type]
@@ -3735,8 +3753,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         final: build.SharedModuleKeywordArguments = {}
         self.__convert_build_target_base_kwargs(kwargs, final)
 
-        for arg in ('vs_module_defs', ):
-            final[arg] = kwargs[arg]
+        final['vs_module_defs'] = self.source_string_to_file(kwargs['vs_module_defs'])
 
         for lang in compilers.all_languages - {'java'}:
             deps, args = self.__convert_file_args(kwargs.get(f'{lang}_shared_args', []))  # type: ignore[arg-type]
@@ -3843,7 +3860,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         # backwards compatibility anyway
         sources = self.source_strings_to_files([
             s for s in raw_sources if not isinstance(s, (build.BuildTarget, build.ExtractedObjects))])
-        objs = kwargs['objects']
+
+        objs = self.source_strings_to_files(kwargs['objects'])
 
         srcs: T.List[SourceOutputs] = []
         struct: T.Optional[build.StructuredSources] = build.StructuredSources()
@@ -3921,7 +3939,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if dep:
                 target.add_deps([dep])
 
-    def check_for_jar_sources(self, sources: T.Union[T.List[str], T.Sequence[T.Union[mesonlib.File, build.BuildTargetTypes, build.GeneratedList, build.StructuredSources]]],
+    def check_for_jar_sources(self, sources: T.Union[T.List[str], T.Sequence[T.Union[build.TargetSources, build.StructuredSources]]],
                               targetclass: T.Type[build.BuildTarget]) -> None:
         for s in sources:
             if isinstance(s, (str, mesonlib.File)) and compilers.is_java(s):

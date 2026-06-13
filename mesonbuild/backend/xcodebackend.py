@@ -145,7 +145,6 @@ class PbxArrayItem:
 
 class PbxComment:
     def __init__(self, text: str):
-        assert isinstance(text, str)
         assert '/*' not in text
         self.text = f'/* {text} */'
 
@@ -305,9 +304,8 @@ class XCodeBackend(backends.Backend):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
 
     @functools.lru_cache(maxsize=None)
-    def get_target_dir(self, target: build.AnyTargetType) -> str:
+    def get_target_dir_cached(self, target: build.Target) -> str:
         dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))))
-        #os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
     def get_custom_target_output_dir(self, target: build.AnyTargetType) -> str:
@@ -316,15 +314,13 @@ class XCodeBackend(backends.Backend):
         return dirname
 
     def object_filename_from_source(self, target: build.BuildTarget, compiler: Compiler,
-                                    source: mesonlib.FileOrString, targetdir: T.Optional[str] = None) -> str:
+                                    source: mesonlib.File, targetdir: T.Optional[str] = None) -> str:
         # Xcode has the following naming scheme:
         # projectname.build/debug/prog@exe.build/Objects-normal/x86_64/func.o
         project = self.build.project_name
         buildtype = self.buildtype
         tname = target.get_id()
-        if isinstance(source, mesonlib.File):
-            source = source.fname
-        stem = os.path.splitext(os.path.basename(source))[0]
+        stem = os.path.splitext(os.path.basename(source.fname))[0]
         # Append "build" before the actual object path to match OBJROOT
         obj_path = f'build/{project}.build/{buildtype}/{tname}.build/Objects-normal/{self.arch}/{stem}.o'
         return obj_path
@@ -668,7 +664,6 @@ class XCodeBackend(backends.Backend):
 
     def generate_build_file_maps(self) -> None:
         for buildfile in self.build.def_files:
-            assert isinstance(buildfile, str)
             self.buildfile_ids[buildfile] = self.gen_id()
             self.fileref_ids[buildfile] = self.gen_id()
 

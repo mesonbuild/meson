@@ -37,16 +37,15 @@ from ..options import OptionKey
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
     from ..arglist import CompilerArgs
+    from ..build import TargetSources
     from ..compilers.compilers import Compiler, Language
     from ..environment import Environment
     from ..interpreter import Test
     from ..linkers import StaticLinker
-    from ..mesonlib import FileMode, FileOrString
+    from ..mesonlib import FileMode
     from ..options import ElementaryOptionValues
 
     from typing_extensions import Literal, TypedDict, NotRequired, TypeAlias
-
-    _ALL_SOURCES_TYPE = T.List[T.Union[File, build.GeneratedTypes]]
 
     class CompilerIntrospectionData(TypedDict):
 
@@ -326,7 +325,6 @@ class Backend:
         return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
 
     def get_target_debug_filename(self, target: build.BuildTarget) -> T.Optional[str]:
-        assert isinstance(target, build.BuildTarget), target
         if target.get_debug_filename():
             debug_filename = target.get_debug_filename()
             return os.path.join(self.get_target_dir(target), debug_filename)
@@ -334,7 +332,6 @@ class Backend:
             return None
 
     def get_target_debug_filename_abs(self, target: build.BuildTarget) -> T.Optional[str]:
-        assert isinstance(target, build.BuildTarget), target
         if not target.get_debug_filename():
             return None
         return os.path.join(self.environment.get_build_dir(), self.get_target_debug_filename(target))
@@ -382,7 +379,7 @@ class Backend:
         raise AssertionError(f'BUG: Tried to link to {target!r} which is not linkable')
 
     @lru_cache(maxsize=None)
-    def get_target_dir(self, target: build.AnyTargetType) -> str:
+    def get_target_dir_cached(self, target: build.Target) -> str:
         if isinstance(target, build.RunTarget):
             # this produces no output, only a dummy top-level name
             dirname = ''
@@ -394,6 +391,12 @@ class Backend:
             if build_subdir:
                 dirname = os.path.join(dirname, build_subdir)
         return dirname
+
+    def get_target_dir(self, target: build.AnyTargetType) -> str:
+        if isinstance(target, build.CustomTargetIndex):
+            return self.get_target_dir_cached(target.target)
+        else:
+            return self.get_target_dir_cached(target)
 
     def get_target_dir_relative_to(self,
                                    t: T.Union[build.Target, build.CustomTargetIndex],
@@ -503,11 +506,7 @@ class Backend:
         obj_list: T.List[str] = []
         deps: T.List[build.BuildTarget] = []
         for obj in objects:
-            if isinstance(obj, str):
-                o = os.path.join(proj_dir_to_build_root,
-                                 self.build_to_src, target.get_subdir(), obj)
-                obj_list.append(o)
-            elif isinstance(obj, mesonlib.File):
+            if isinstance(obj, mesonlib.File):
                 if obj.is_built:
                     o = os.path.join(proj_dir_to_build_root,
                                      obj.rel_to_builddir(self.build_to_src))
@@ -548,7 +547,7 @@ class Backend:
         return result
 
     def get_executable_serialisation(
-            self, cmd: T.Sequence[T.Union[programs.Program, build.BuildTargetTypes, File, str]],
+            self, cmd: T.Iterable[build.CommandTypes],
             workdir: T.Optional[str] = None,
             extra_bdeps: T.Optional[T.Iterable[build.BuildTargetTypes]] = None,
             capture: T.Optional[str] = None,
@@ -637,8 +636,8 @@ class Backend:
                                        exe_wrapper, workdir,
                                        extra_paths, capture, feed, tag, verbose, installdir_map)
 
-    def as_meson_exe_cmdline(self, exe: T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.Program],
-                             cmd_args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.Program]],
+    def as_meson_exe_cmdline(self, exe: build.CommandTypes,
+                             cmd_args: T.Iterable[build.CommandTypes],
                              workdir: T.Optional[str] = None,
                              extra_bdeps: T.Optional[T.Iterable[build.BuildTargetTypes]] = None,
                              capture: T.Optional[str] = None,
@@ -650,7 +649,7 @@ class Backend:
         '''
         Serialize an executable for running with a generator or a custom target
         '''
-        cmd: T.List[T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.Program]] = []
+        cmd: T.List[build.CommandTypes] = []
         cmd.append(exe)
         cmd.extend(cmd_args)
         es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, feed, env, can_use_rsp_file, verbose=verbose)
@@ -776,8 +775,7 @@ class Backend:
             fname = fname.replace(ch, '_')
         return hashed + fname
 
-    def object_filename_from_source(self, target: build.BuildTarget, compiler: Compiler, source: 'FileOrString', targetdir: T.Optional[str] = None) -> str:
-        assert isinstance(source, mesonlib.File)
+    def object_filename_from_source(self, target: build.BuildTarget, compiler: Compiler, source: File, targetdir: T.Optional[str] = None) -> str:
         if isinstance(target, build.CompileTarget):
             return target.sources_map[source]
         build_dir = self.environment.get_build_dir()
@@ -829,14 +827,14 @@ class Backend:
         targetdir = self.get_target_private_dir(extobj.target)
 
         # Merge sources and generated sources
-        raw_sources = list(extobj.srclist)
+        raw_sources: T.List[File] = list(extobj.srclist)
         for gensrc in extobj.genlist:
             for r in gensrc.get_outputs():
                 path = self.get_target_generated_dir(extobj.target, gensrc, r)
                 raw_sources.append(File.from_built_relative(path))
 
         # Filter out headers and all non-source files
-        sources: T.List['FileOrString'] = []
+        sources: T.List[File] = []
         for s in raw_sources:
             if compilers.is_source(s):
                 sources.append(s)
@@ -1203,7 +1201,6 @@ class Backend:
 
             # we allow passing compiled executables to tests, which may be cross built.
             # We need to consider these as well when considering whether the target is cross or not.
-            a: T.Union[str, File, build.Target, build.BuildTargetTypes, programs.Program]
             for a in t.cmd_args:
                 if isinstance(a, build.LocalProgram):
                     a = a.program
@@ -2084,7 +2081,7 @@ class Backend:
 
     def compiler_to_generator(self, target: build.BuildTarget,
                               compiler: 'Compiler',
-                              sources: _ALL_SOURCES_TYPE,
+                              sources: T.List[TargetSources],
                               output_templ: str,
                               depends: T.Optional[T.List[build.BuildTargetTypes]] = None,
                               ) -> build.GeneratedList:
@@ -2102,7 +2099,7 @@ class Backend:
         return generator.process_files(sources)
 
     def compile_target_to_generator(self, target: build.CompileTarget) -> build.GeneratedList:
-        all_sources = T.cast('_ALL_SOURCES_TYPE', target.sources) + T.cast('_ALL_SOURCES_TYPE', target.generated)
+        all_sources: T.List[TargetSources] = [*target.sources, *target.generated]
         return self.compiler_to_generator(target, target.compiler, all_sources,
                                           target.output_templ, target.depends)
 

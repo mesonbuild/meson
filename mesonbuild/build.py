@@ -53,12 +53,14 @@ if T.TYPE_CHECKING:
     from .mparser import BaseNode
     from .options import ElementaryOptionValues
 
+    TargetSources: TypeAlias = T.Union['File', 'GeneratedTypes']
+    CommandTypes: TypeAlias = T.Union['programs.Program', 'BuildTargetTypes', File, str]
     GeneratedTypes: TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
     LinkableTargetTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex', 'Executable']
     BuildTargetTypes: TypeAlias = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
     StaticTargetTypes: TypeAlias = T.Union['StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
-    ObjectTypes: TypeAlias = T.Union[str, 'File', 'ExtractedObjects', 'GeneratedTypes']
+    ObjectTypes: TypeAlias = T.Union['File', 'ExtractedObjects']
     AnyTargetType: TypeAlias = T.Union['Target', 'CustomTargetIndex']
     RustCrateType: TypeAlias = Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
     _LibraryType: TypeAlias = Literal['auto', 'shared', 'static']
@@ -129,12 +131,12 @@ if T.TYPE_CHECKING:
         implib: T.Optional[str]
         export_dynamic: bool
         pie: bool
-        vs_module_defs: T.Union[str, File, CustomTarget, CustomTargetIndex]
+        vs_module_defs: T.Union[File, CustomTarget, CustomTargetIndex]
         win_subsystem: str
 
     class SharedModuleKeywordArguments(BuildTargetKeywordArguments, total=False):
 
-        vs_module_defs: T.Union[str, File, CustomTarget, CustomTargetIndex]
+        vs_module_defs: T.Union[File, CustomTarget, CustomTargetIndex]
 
     class SharedLibraryKeywordArguments(SharedModuleKeywordArguments, total=False):
 
@@ -534,20 +536,20 @@ class ExtractedObjects(HoldableObject):
         return r.format(self.__class__.__name__, self.target.name, self.srclist)
 
     @staticmethod
-    def get_sources(sources: T.Sequence['FileOrString'], generated_sources: T.Sequence['GeneratedTypes']) -> T.List['FileOrString']:
+    def get_sources(sources: T.Sequence['File'], generated_sources: T.Sequence['GeneratedTypes']) -> T.List['FileOrString']:
         # Merge sources and generated sources
-        sources = list(sources)
+        ret: T.List[FileOrString] = list(sources)
         for gensrc in generated_sources:
             for s in gensrc.get_outputs():
                 # We cannot know the path where this source will be generated,
                 # but all we need here is the file extension to determine the
                 # compiler.
-                sources.append(s)
+                ret.append(s)
 
         # Filter out headers and all non-source files
-        return [s for s in sources if is_source(s)]
+        return [s for s in ret if is_source(s)]
 
-    def classify_all_sources(self, sources: T.Sequence[FileOrString], generated_sources: T.Sequence['GeneratedTypes']) -> T.Dict['Compiler', T.List['FileOrString']]:
+    def classify_all_sources(self, sources: T.Sequence[File], generated_sources: T.Sequence['GeneratedTypes']) -> T.Dict['Compiler', T.List['FileOrString']]:
         sources_ = self.get_sources(sources, generated_sources)
         return classify_unity_sources(self.target.compilers.values(), sources_)
 
@@ -578,7 +580,7 @@ class StructuredSources(HoldableObject):
     represent the required filesystem layout.
     """
 
-    sources: T.DefaultDict[str, T.List[T.Union[File, GeneratedTypes]]] = field(
+    sources: T.DefaultDict[str, T.List[TargetSources]] = field(
         default_factory=lambda: defaultdict(list))
 
     def __add__(self, other: StructuredSources) -> StructuredSources:
@@ -590,7 +592,7 @@ class StructuredSources(HoldableObject):
     def __bool__(self) -> bool:
         return bool(self.sources)
 
-    def as_list(self) -> T.List[T.Union[File, GeneratedTypes]]:
+    def as_list(self) -> T.List[TargetSources]:
         return list(itertools.chain.from_iterable(self.sources.values()))
 
     def needs_copy(self) -> bool:
@@ -748,7 +750,7 @@ class BuildTarget(Target):
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
-            objects: T.List[ObjectTypes],
+            objects: T.Sequence[ObjectTypes | GeneratedTypes],
             environment: Environment,
             compilers: CompilerDict,
             kwargs: BuildTargetKeywordArguments):
@@ -770,7 +772,7 @@ class BuildTarget(Target):
         self.link_targets: T.List[LinkableTargetTypes] = []
         self.link_whole_targets: T.List[StaticTargetTypes] = []
         self.depend_files = kwargs.get('depend_files', [])
-        self.link_depends: T.List[T.Union[File, BuildTargetTypes]] = []
+        self.link_depends = kwargs.get('link_depends', [])
         self.added_deps: T.Set[dependencies.Dependency] = set()
         self.name_prefix_set = False
         self.name_suffix_set = False
@@ -827,7 +829,6 @@ class BuildTarget(Target):
                     This will become a hard error in a future Meson release.
                 '''))
         self.link_early_args = kwargs.get('link_early_args', [])
-        self.process_link_depends(kwargs.get('link_depends', []))
         # Target-specific include dirs must be added BEFORE include dirs from
         # internal deps (added inside self.add_deps()) to override them.
         self.add_include_dirs(kwargs.get('include_directories', []))
@@ -972,11 +973,11 @@ class BuildTarget(Target):
             else:
                 mlog.warning('Installing target build for the build machine. This will fail in a cross build.')
 
-    def process_objectlist(self, objects: T.List[ObjectTypes]) -> None:
+    def process_objectlist(self, objects: T.Iterable[ObjectTypes | GeneratedTypes]) -> None:
         assert isinstance(objects, list)
         deprecated_non_objects = []
         for s in objects:
-            if isinstance(s, (str, File, ExtractedObjects)):
+            if isinstance(s, (File, ExtractedObjects)):
                 self.objects.append(s)
                 if not isinstance(s, ExtractedObjects) and not is_object(s):
                     deprecated_non_objects.append(s)
@@ -1007,15 +1008,6 @@ class BuildTarget(Target):
                     self.seen_sources.add(s)
             elif isinstance(s, (CustomTarget, CustomTargetIndex, GeneratedList)):
                 self.generated.append(s)
-
-    @staticmethod
-    def can_compile_remove_sources(compiler: 'Compiler', sources: T.List['FileOrString']) -> bool:
-        removed = False
-        for s in sources[:]:
-            if compiler.can_compile(s):
-                sources.remove(s)
-                removed = True
-        return removed
 
     def process_compilers_late(self) -> None:
         """Processes additional compilers after kwargs have been evaluated.
@@ -1115,7 +1107,7 @@ class BuildTarget(Target):
         if self.structured_sources:
             for v in self.structured_sources.sources.values():
                 for src in v:
-                    if isinstance(src, (str, File)):
+                    if isinstance(src, File):
                         sources.append(src)
                     else:
                         generated.append(src)
@@ -1129,9 +1121,10 @@ class BuildTarget(Target):
                 # which is what we need.
                 if not is_object(s):
                     sources.append(s)
+
         for d in self.external_deps:
             for s in d.sources:
-                if isinstance(s, (str, File)):
+                if isinstance(s, File):
                     sources.append(s)
 
         # Sources that were used to create our extracted objects
@@ -1196,25 +1189,7 @@ class BuildTarget(Target):
             langs = ', '.join(self.compilers.keys())
             raise InvalidArguments(f'Cannot mix those languages into a target: {langs}')
 
-    def process_link_depends(self, sources: T.Iterable[T.Union[str, File, BuildTargetTypes]]) -> None:
-        """Process the link_depends keyword argument.
-
-        This is designed to handle strings, Files, and the output of Custom
-        Targets. Notably it doesn't handle generator() returned objects, since
-        adding them as a link depends would inherently cause them to be
-        generated twice, since the output needs to be passed to the ld_args and
-        link_depends.
-        """
-        for s in sources:
-            if isinstance(s, File):
-                self.link_depends.append(s)
-            elif isinstance(s, str):
-                self.link_depends.append(
-                    File.from_source_file(self.environment.source_dir, self.get_subdir(), s))
-            else:
-                self.link_depends.append(s)
-
-    def extract_objects(self, srclist: T.List[T.Union['FileOrString', 'GeneratedTypes']], is_unity: bool) -> ExtractedObjects:
+    def extract_objects(self, srclist: T.List[TargetSources], is_unity: bool) -> ExtractedObjects:
         sources_set = set(self.sources)
         generated_set = set(self.generated)
 
@@ -1222,10 +1197,6 @@ class BuildTarget(Target):
         obj_gen: T.List['GeneratedTypes'] = []
         for src in srclist:
             if isinstance(src, (str, File)):
-                if isinstance(src, str):
-                    src = File(False, self.subdir, src)
-                else:
-                    FeatureNew.single_use('File argument for extract_objects', '0.50.0', self.subproject)
                 if src not in sources_set:
                     raise MesonException(f'Tried to extract unknown source {src}.')
                 obj_src.append(src)
@@ -1783,18 +1754,13 @@ class BuildTarget(Target):
         if path is None:
             return
 
-        if isinstance(path, str):
-            if os.path.isabs(path):
-                self.vs_module_defs = File.from_absolute_file(path)
-            else:
-                self.vs_module_defs = File.from_source_file(self.environment.source_dir, self.subdir, path)
-        elif isinstance(path, File):
+        self.link_depends.append(path)
+        if isinstance(path, File):
             # When passing a generated file.
             self.vs_module_defs = path
         else:
             # When passing output of a Custom Target
             self.vs_module_defs = File.from_built_file(path.get_builddir(), path.get_filename())
-        self.process_link_depends([path])
 
     def _default_library_type(self) -> _LibraryType:
         bl_type = self.environment.coredata.optstore.get_value_for(OptionKey('default_both_libraries'))
@@ -2036,7 +2002,7 @@ class Generator(HoldableObject):
         basename = os.path.splitext(plainname)[0]
         return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
 
-    def process_files(self, files: T.Iterable[T.Union[str, File, GeneratedTypes]],
+    def process_files(self, files: T.Iterable[TargetSources],
                       subdir: str = '',
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None,
@@ -2173,7 +2139,7 @@ class Executable(BuildTarget, LinkableTarget):
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
-            objects: T.List[ObjectTypes],
+            objects: T.Sequence[ObjectTypes | GeneratedTypes],
             environment: Environment,
             compilers: CompilerDict,
             kwargs: ExecutableKeywordArguments):
@@ -2306,7 +2272,7 @@ class StaticLibrary(BuildTarget, LinkableTarget):
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
-            objects: T.List[ObjectTypes],
+            objects: T.Sequence[ObjectTypes | GeneratedTypes],
             environment: Environment,
             compilers: CompilerDict,
             kwargs: StaticLibraryKeywordArguments):
@@ -2488,7 +2454,7 @@ class SharedLibrary(BuildTarget, LinkableTarget):
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
-            objects: T.List[ObjectTypes],
+            objects: T.Sequence[ObjectTypes | GeneratedTypes],
             environment: Environment,
             compilers: CompilerDict,
             kwargs: SharedLibraryKeywordArguments):
@@ -2824,7 +2790,7 @@ class SharedModule(SharedLibrary):
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
-            objects: T.List[ObjectTypes],
+            objects: T.Sequence[ObjectTypes | GeneratedTypes],
             environment: Environment,
             compilers: CompilerDict,
             kwargs: SharedModuleKeywordArguments):
@@ -2873,7 +2839,7 @@ class BothLibraries(SecondLevelHolder, LinkableTarget):
         return True
 
 
-def flatten_command(cmd: T.Sequence[str | File | programs.Program | BuildTargetTypes],
+def flatten_command(cmd: T.Iterable[CommandTypes],
                     subproject: SubProject) -> tuple[list[str | File | BuildTarget | CustomTarget | programs.Program],
                                                      list[File], list[BuildTarget | CustomTarget]]:
     final_cmd: list[str | File | programs.Program | BuildTarget | CustomTarget] = []
@@ -2969,9 +2935,7 @@ class CustomTarget(Target, CustomTargetBase):
                  subdir: str,
                  subproject: SubProject,
                  environment: Environment,
-                 command: T.Sequence[T.Union[
-                     str, BuildTargetTypes,
-                     programs.Program, File]],
+                 command: T.Sequence[CommandTypes],
                  sources: T.Sequence[CustomTargetSources],
                  outputs: T.List[str],
                  *,
@@ -3256,7 +3220,7 @@ class RunTarget(Target):
     typename = 'run'
 
     def __init__(self, name: str,
-                 command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.Program]],
+                 command: T.Sequence[CommandTypes],
                  # the RunTarget case is used by gnome.yelp()
                  dependencies: T.Sequence[Target | CustomTargetIndex | GeneratedList | programs.Program],
                  subdir: str,
@@ -3316,7 +3280,7 @@ class Jar(BuildTarget):
 
     def __init__(self, name: str, subdir: str, subproject: SubProject, for_machine: MachineChoice,
                  sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
-                 objects: T.List[ObjectTypes], environment: Environment, compilers: CompilerDict,
+                 objects: T.Sequence[ObjectTypes | GeneratedTypes], environment: Environment, compilers: CompilerDict,
                  kwargs: JarKeywordArguments):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)

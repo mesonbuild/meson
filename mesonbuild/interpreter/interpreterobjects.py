@@ -842,7 +842,7 @@ class Test(MesonInterpreterObject):
                  exe: T.Union[Program, build.Executable, build.CustomTarget, build.CustomTargetIndex, build.Jar],
                  depends: T.Sequence[kwargs.TargetDepends],
                  is_parallel: bool,
-                 cmd_args: T.List[T.Union[str, mesonlib.File, build.Target, Program]],
+                 cmd_args: T.List[build.CommandTypes],
                  env: mesonlib.EnvironmentVariables,
                  expected_fail: bool, expected_exitcode: int, timeout: int, workdir: T.Optional[str], protocol: str,
                  priority: int, verbose: bool):
@@ -1037,13 +1037,24 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @noKwargs
     @typed_pos_args('extract_objects', varargs=(mesonlib.File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList))
     @InterpreterObject.method('extract_objects')
-    def extract_objects_method(self, args: T.Tuple[T.List[T.Union[mesonlib.FileOrString, 'build.GeneratedTypes']]], kwargs: TYPE_nkwargs) -> build.ExtractedObjects:
+    def extract_objects_method(self, args: T.Tuple[T.List[str | build.TargetSources]], kwargs: TYPE_nkwargs) -> build.ExtractedObjects:
         if self.subproject != self.held_object.subproject:
             raise InterpreterException('Tried to extract objects from a different subproject.')
         tobj = self._target_object
         unity_value = self.interpreter.coredata.get_option_for_target(tobj, "unity")
         is_unity = (unity_value == 'on' or (unity_value == 'subprojects' and tobj.subproject != ''))
-        return tobj.extract_objects(args[0], is_unity)
+
+        obj_src: list[mesonlib.File | build.GeneratedTypes] = []
+        for raw_src in args[0]:
+            if isinstance(raw_src, str):
+                src = File(False, tobj.subdir, raw_src)
+            else:
+                if isinstance(raw_src, File):
+                    FeatureNew.single_use('File argument for extract_objects', '0.50.0', self.subproject)
+                src = raw_src
+            obj_src.append(src)
+
+        return tobj.extract_objects(obj_src, is_unity)
 
     @noPosargs
     @typed_kwargs(
@@ -1227,7 +1238,7 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
     )
     @InterpreterObject.method('process')
     def process_method(self,
-                       args: T.Tuple[T.List[T.Union[str, mesonlib.File, 'build.GeneratedTypes']]],
+                       args: T.Tuple[T.List[str | build.TargetSources]],
                        kwargs: 'kwargs.GeneratorProcess') -> build.GeneratedList:
         preserve_path_from = kwargs['preserve_path_from']
         if preserve_path_from is not None:
@@ -1241,7 +1252,8 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
                 'Calling generator.process with CustomTarget or Index of CustomTarget.',
                 '0.57.0', self.interpreter.subproject)
 
-        gl = self.held_object.process_files(args[0], self.interpreter.subdir,
+        sources = self.interpreter.source_strings_to_files(args[0])
+        gl = self.held_object.process_files(sources, self.interpreter.subdir,
                                             preserve_path_from, extra_args=kwargs['extra_args'], env=kwargs['env'],
                                             extra_depends=kwargs['depends'])
 

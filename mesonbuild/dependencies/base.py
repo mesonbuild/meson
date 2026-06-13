@@ -29,7 +29,7 @@ if T.TYPE_CHECKING:
     from ..interpreterbase import FeatureCheckBase
     from ..build import (
         CustomTarget, IncludeDirs, CustomTargetIndex, LinkableTargetTypes,
-        StaticLibrary, StructuredSources, ExtractedObjects, GeneratedTypes
+        StaticLibrary, ExtractedObjects, TargetSources
     )
     from ..interpreter.type_checking import PkgConfigDefineType
 
@@ -148,7 +148,7 @@ class Dependency(HoldableObject):
         # Raw -L and -l arguments without manual library searching
         # If None, self.link_args will be used
         self.raw_link_args: T.Optional[T.List[str]] = None
-        self.sources: T.List[T.Union[mesonlib.File, GeneratedTypes, 'StructuredSources']] = []
+        self.sources: T.List[TargetSources] = []
         self.extra_files: T.List[mesonlib.File] = []
         self.include_type = kwargs.get('include_type', 'preserve')
         self.ext_deps: T.List[Dependency] = []
@@ -220,7 +220,7 @@ class Dependency(HoldableObject):
     def found(self) -> bool:
         return self.is_found
 
-    def get_sources(self) -> T.List[T.Union[mesonlib.File, GeneratedTypes, 'StructuredSources']]:
+    def get_sources(self) -> T.List[TargetSources]:
         """Source files that need to be added to the target.
         As an example, gtest-all.cc when using GTest."""
         return self.sources
@@ -311,7 +311,7 @@ class InternalDependency(Dependency):
                  link_args: T.Optional[T.List[str]] = None,
                  libraries: T.Optional[T.List[LinkableTargetTypes]] = None,
                  whole_libraries: T.Optional[T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]] = None,
-                 sources: T.Optional[T.Sequence[T.Union[mesonlib.File, GeneratedTypes, StructuredSources]]] = None,
+                 sources: T.Optional[T.Sequence[TargetSources]] = None,
                  extra_files: T.Optional[T.Sequence[mesonlib.File]] = None,
                  ext_deps: T.Optional[T.List[Dependency]] = None, variables: T.Optional[T.Dict[str, str]] = None,
                  d_module_versions: T.Optional[T.List[T.Union[str, int]]] = None,

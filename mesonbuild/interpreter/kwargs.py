@@ -21,10 +21,10 @@ from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import Program, ExternalProgram
 from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
-TestArgs = T.Union[str, File, build.Target, Program]
 TargetDepends = T.Union[build.CustomTarget, build.CustomTargetIndex, build.BuildTarget, build.GeneratedList, Program]
 CustomTargetInputs = T.Union[str, build.BuildTarget, build.GeneratedTypes,
                              build.ExtractedObjects, Program, File]
+BuildTargetObjects = T.Union[str, File, build.ExtractedObjects, build.GeneratedTypes]
 RustAbi = Literal['rust', 'c']
 
 class NativeKW(TypedDict):
@@ -68,7 +68,7 @@ class FuncBenchmark(BaseTest):
     """Keyword arguments used by `benchmark` and `test`, but not Rust"""
 
     # Needs complex refactor for rust test to go in BaseTest
-    args: T.List[TestArgs]
+    args: T.List[build.CommandTypes]
     protocol: Literal['exitcode', 'tap', 'gtest', 'rust']
 
 class FuncTest(FuncBenchmark):
@@ -200,7 +200,7 @@ class FuncAddLanguages(ExtractRequired):
 
 class RunTarget(TypedDict):
 
-    command: T.List[T.Union[str, build.BuildTargetTypes, Program, File]]
+    command: T.List[build.CommandTypes]
     depends: T.List[TargetDepends]
     env: EnvironmentVariables
 
@@ -212,7 +212,7 @@ class CustomTarget(TypedDict):
     build_by_default: T.Optional[bool]
     build_subdir: str
     capture: bool
-    command: T.List[T.Union[str, build.BuildTargetTypes, Program, File]]
+    command: T.List[build.CommandTypes]
     console: bool
     depend_files: T.List[FileOrString]
     depends: T.List[TargetDepends]
@@ -312,7 +312,7 @@ class ConfigurationDataSet(TypedDict):
 
 class VcsTag(TypedDict):
 
-    command: T.List[T.Union[str, build.BuildTargetTypes, Program, File]]
+    command: T.List[build.CommandTypes]
     fallback: T.Optional[str]
     input: list[CustomTargetInputs]
     output: T.List[str]
@@ -384,7 +384,7 @@ class BaseBuildTarget(TypedDict):
     name_prefix: T.Optional[str]
     name_suffix: T.Optional[str]
     native: MachineChoice
-    objects: T.List[build.ObjectTypes]
+    objects: T.List[BuildTargetObjects]
     override_options: T.Dict[str, options.ElementaryOptionValues]
     depend_files: NotRequired[T.List[File]]
     resources: T.List[str]
@@ -523,7 +523,7 @@ class _JarMixin(TypedDict):
 
 class Jar(BaseBuildTarget, _JarMixin):
 
-    sources: T.Union[str, File, build.GeneratedTypes, build.ExtractedObjects, build.BuildTarget]
+    sources: T.Union[str, build.TargetSources, build.ExtractedObjects, build.BuildTarget]
 
 
 class BuildTargetFunc(Library, _ExecutableMixin, _JarMixin):
@@ -544,7 +544,7 @@ class FuncDeclareDependency(TypedDict):
     link_whole: T.List[build.StaticTargetTypes]
     link_with: T.List[build.LinkableTargetTypes]
     objects: T.List[build.ExtractedObjects]
-    sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+    sources: T.List[str | build.TargetSources]
     variables: T.Dict[str, str]
     version: T.Optional[str]
 
