@@ -1209,7 +1209,7 @@ class TestRunRust(TestRun):
         def parse_res(n: int, name: str, result: str) -> TAPParser.Test:
             if result == 'ok':
                 return TAPParser.Test(n, name, TestResult.OK, None)
-            elif result == 'ignored':
+            elif result.startswith('ignored'):
                 return TAPParser.Test(n, name, TestResult.SKIP, None)
             elif result == 'FAILED':
                 return TAPParser.Test(n, name, TestResult.FAIL, None)
