@@ -52,6 +52,7 @@ if T.TYPE_CHECKING:
         install: bool
         install_dir: T.Optional[str]
         languages: T.List[str]
+        no_fuzzy_matching: bool
         preset: T.Optional[str]
 
     class ItsJoinFile(TypedDict):
@@ -360,6 +361,7 @@ class I18nModule(ExtensionModule):
             validator=in_set_validator(set(PRESET_ARGS)),
             since='0.37.0',
         ),
+        KwargInfo('no_fuzzy_matching', bool, default=False, since='1.12.0'),
     )
     def gettext(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'Gettext') -> ModuleReturnValue:
         for tool, strict in [('msgfmt', True), ('msginit', False), ('msgmerge', False), ('xgettext', False)]:
@@ -456,6 +458,8 @@ class I18nModule(ExtensionModule):
             updatepoargs.append(datadirs)
         if extra_arg:
             updatepoargs.append(extra_arg)
+        if kwargs['no_fuzzy_matching']:
+            updatepoargs.append('--no-fuzzy-matching')
         for tool in ['msginit', 'msgmerge']:
             if self.tools[tool].found():
                 updatepoargs.append(f'--{tool}=' + self.tools[tool].get_path())

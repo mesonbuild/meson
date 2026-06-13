@@ -30,6 +30,10 @@ argument which is the name of the gettext module.
   for their value
 * `install`: (*Added 0.43.0*) if false, do not install the built translations.
 * `install_dir`: (*Added 0.50.0*) override default install location, default is `localedir`
+* `no_fuzzy_matching`: (*Added 1.12.0*) if `true`, pass
+  `--no-fuzzy-matching` to `msgmerge` when updating the `.po` files,
+  preventing the auto-generation of fuzzy translations for new
+  strings. Defaults to `false`.
 
 This function also defines targets for maintainers to use:
 **Note**: These output to the source directory
