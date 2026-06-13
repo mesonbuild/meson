@@ -21,4 +21,10 @@ mod tests {
     fn test_add_intentional_fail2() {
         assert_eq!(add(1, 7), 5);
     }
+
+    #[test]
+    #[ignore = "Ignore this with a reason"]
+    fn test_add_intentional_fail3() {
+        assert_eq!(add(1, 9), 7)
+    }
 }
