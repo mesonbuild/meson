@@ -81,7 +81,7 @@ class WindowsModule(ExtensionModule):
                 return None
 
             comp = self.detect_compiler(state.environment.coredata.compilers[for_machine])
-            if comp.id in {'msvc', 'clang-cl', 'intel-cl'} or (comp.linker and comp.linker.id in {'link', 'lld-link'}):
+            if comp.linker and comp.linker.id in {'link', 'lld-link'}:
                 rescomp = search_programs(['rc', 'llvm-rc'])
             else:
                 rescomp = search_programs(['windres', 'llvm-windres'])
@@ -185,13 +185,30 @@ class WindowsModule(ExtensionModule):
 
             if rescomp_type == ResourceCompilerType.rc:
                 compiler = self.detect_compiler(state.environment.coredata.compilers[MachineChoice.HOST])
+                command.extend(state.environment.get_build_command())
+                command.extend(['--internal', 'rc',
+                                '--cl', compiler.get_exelist(False)[0]])
+
                 if compiler.id in {'msvc', 'clang-cl'}:
                     depfile_type = 'msvc'
-
-                    command.extend(state.environment.get_build_command())
-                    command.extend(['--internal', 'rc',
-                                    '--cl', compiler.get_exelist(False)[0],
-                                    '--rc'])
+                    command.extend(['--arg=/showIncludes',
+                                    '--arg=/EP',
+                                    '--arg=/nologo',
+                                    '--arg=/DRC_INVOKED',
+                                    '--arg=/Tc@INPUT@',
+                                    '--rc',
+                                    ])
+                else:
+                    depfile = f'{output}.d'
+                    depfile_type = 'gcc'
+                    command.extend(['--Xarg=-xc',
+                                    '--Xarg=-E',
+                                    '--Xarg=-MD',
+                                    '--Xarg=-MQ@OUTPUT@',
+                                    '--Xarg=-MF@DEPFILE@',
+                                    '--Xarg=-DRC_INVOKED',
+                                    '--rc',
+                                    ])
 
             command.append(rescomp)
             command.extend(res_args)
