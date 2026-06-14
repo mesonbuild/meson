@@ -1014,6 +1014,45 @@ class CrossFileTests(BasePlatformTests):
                 break
         self.assertEqual(found, 2, 'Did not find all sections.')
 
+    def test_external_property_build_machine_native(self):
+        testdir = os.path.join(self.unit_test_dir, '137 external property nonexisting')
+        self.meson_native_files = [os.path.join(testdir, "propfile")]
+        out = self.init(testdir, allow_fail=True, extra_args=['-Dnative=true'])
+        self.assertIn('Unknown property for host machine: nonexisting', out)
+
+    def test_external_property_host_machine_native(self):
+        testdir = os.path.join(self.unit_test_dir, '137 external property nonexisting')
+        self.meson_native_files = [os.path.join(testdir, "propfile")]
+        out = self.init(testdir, allow_fail=True, extra_args=['-Dnative=false'])
+        self.assertIn('Unknown property for host machine: nonexisting', out)
+
+    def test_external_property_build_machine_cross(self):
+        # meson.get_external_property(..., native : true) refers to the build
+        # machine. In a cross build the build and host machines are distinct, so
+        # the error for a missing property must refer to the build machine.
+        crossdir = os.path.join(self.unit_test_dir, '69 cross')
+        # Reuse the cross test project to generate a native and a cross file
+        # describing this machine, so the configuration below is treated as a
+        # cross build (see test_identity_cross).
+        self.init(crossdir, extra_args=['-Dgenerate=true'])
+
+        nativefile = os.path.join(self.builddir, "nativefile")
+        crossfile = os.path.join(self.builddir, "crossfile")
+
+        self.new_builddir()
+        testdir = os.path.join(self.unit_test_dir, '137 external property nonexisting')
+        self.meson_native_files = [nativefile, os.path.join(testdir, "propfile")]
+        self.meson_cross_files = [crossfile]
+        out = self.init(testdir, allow_fail=True, extra_args=['-Dnative=true'])
+        self.assertIn('Unknown property for build machine: nonexisting', out)
+
+        self.new_builddir()
+        testdir = os.path.join(self.unit_test_dir, '137 external property nonexisting')
+        self.meson_native_files = [nativefile]
+        self.meson_cross_files = [crossfile, os.path.join(testdir, "propfile")]
+        out = self.init(testdir, allow_fail=True, extra_args=['-Dnative=false'])
+        self.assertIn('Unknown property for host machine: nonexisting', out)
+
     def test_project_options_native_only(self) -> None:
         # Do not load project options from a native file when doing a cross
         # build

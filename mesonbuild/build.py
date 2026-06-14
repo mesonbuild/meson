@@ -19,10 +19,11 @@ from . import coredata
 from . import dependencies
 from . import mlog
 from . import programs
+from .environment import MachineMap
 from .mesonlib import (
     HoldableObject, SecondLevelHolder, SimpleABC, SubProject,
-    File, MesonException, MachineChoice, PerMachine, OrderedSet,
-    classify_unity_sources, ROOT_SUBPROJECT,
+    File, MesonException, MachineChoice, ThreeMachineChoice, PerMachine,
+    OrderedSet, classify_unity_sources, ROOT_SUBPROJECT,
     get_filenames_templates_dict, substitute_values, has_path_sep,
     is_parent_path, relpath, PerMachineDefaultable,
     MesonBugException, EnvironmentVariables, pickle_load, lazy_property,
@@ -301,8 +302,14 @@ class DepManifest:
 class BuildProject:
     name: str
     version: str
+    subproject: SubProject
+    for_machine: MachineChoice
     project_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
     project_link_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
+
+    @lazy_property
+    def prefix(self) -> str:
+        return 'build.' if self.for_machine is MachineChoice.BUILD else ''
 
 
 # literally everything isn't dataclass stuff
@@ -317,7 +324,7 @@ class Build:
         self.project_name = 'name of master project'
         self.project_version: T.Optional[str] = None
         self.environment = environment
-        self.projects: T.Dict[SubProject, BuildProject] = {}
+        self.projects: PerMachine[T.Dict[SubProject, BuildProject]] = PerMachine({}, {})
         self.targets: dict[str, Target] = {}
         self.targetnames: T.Set[T.Tuple[str, str]] = set() # Set of executable names and their subdir
         self.global_args: PerMachine[T.Dict[Language, T.List[str]]] = PerMachine({}, {})
@@ -339,7 +346,11 @@ class Build:
         self.dep_manifest: T.Dict[str, DepManifest] = {}
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name: str | None = None
-        self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
+        self.find_overrides: PerMachine[T.Dict[str, programs.Program]] = PerMachineDefaultable.default(
+            environment.is_cross_build(), {}, {})
+        # The list of all programs that have been searched for.
+        self.searched_programs: PerMachine[T.Set[str]] = PerMachineDefaultable.default(
+            environment.is_cross_build(), set(), set())
 
         # If we are doing a cross build we need two caches, if we're doing a
         # build == host compilation the both caches should point to the same place.
@@ -349,6 +360,7 @@ class Build:
             environment.is_cross_build(), {}, {})
 
         self.devenv: T.List[EnvironmentVariables] = []
+        self.machine_map = self.environment.machine_map
         self.modules: T.Set[str] = set()
         """Used to track which modules are enabled in all subprojects.
 
@@ -387,28 +399,48 @@ class Build:
             other.__dict__[k] = copy.copy(v)
         return other
 
+    def copy_for_build_machine(self) -> Build:
+        """Create a build-only copy for build machine subprojects.
+
+        Build-only subprojects run with host==build configuration so that get_compiler(),
+        dependency() etc. look up the native (non-cross) environments.  However, note
+        that the environment is still a cross one so that the build-machine options,
+        dependencies, etc. are looked up.
+        """
+        new = self.copy()
+        new.machine_map = MachineMap(self.machine_map.build, self.machine_map.build,
+                                     ThreeMachineChoice(self.machine_map.host))
+        return new
+
     def merge(self, other: Build) -> None:
         for k, v in other.__dict__.items():
+            # This one is modified for build-only configs, but it is
+            # local.  No need to copy it.
+            if k == 'machine_map':
+                continue
             # These are not modified in subprojects
             if k in {'global_args', 'global_link_args'}:
                 continue
 
             if isinstance(v, PerMachine):
                 dest = self.__dict__[k]
+                if dest.host is dest.build:
+                    dest.host = v.build
+                elif v.host is not v.build:
+                    dest.host = v.host
                 dest.build = v.build
-                dest.host = v.host
             else:
                 self.__dict__[k] = v
 
     def ensure_static_linker(self, compiler: Compiler) -> None:
-        for_machine = compiler.for_machine if self.environment.is_cross_build() else MachineChoice.HOST
+        for_machine = self.machine_map[compiler.for_machine]
         if self.static_linker[for_machine] is None and compiler.needs_static_linker():
             self.static_linker[for_machine] = detect_static_linker(self.environment, compiler)
-            if not self.environment.is_cross_build():
-                self.static_linker[MachineChoice.BUILD] = self.static_linker[MachineChoice.HOST]
+            if self.machine_map.build is self.machine_map.host:
+                self.static_linker.build = self.static_linker.host
 
     def get_project(self) -> str:
-        return self.projects[ROOT_SUBPROJECT].name
+        return self.projects.host[ROOT_SUBPROJECT].name
 
     def get_subproject_dir(self) -> str:
         return self.subproject_dir
@@ -445,7 +477,8 @@ class Build:
         return d.get(compiler.get_language(), [])
 
     def get_project_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
-        args = self.projects[target.subproject].project_args[target.for_machine]
+        d = target.build_project
+        args = d.project_args[target.for_machine]
         if not args:
             return []
         return args.get(compiler.get_language(), [])
@@ -455,7 +488,8 @@ class Build:
         return d.get(compiler.get_language(), [])
 
     def get_project_link_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
-        link_args = self.projects[target.subproject].project_link_args[target.for_machine]
+        d = target.build_project
+        link_args = d.project_link_args[target.for_machine]
         if not link_args:
             return []
 
@@ -475,6 +509,7 @@ class IncludeDirs(HoldableObject):
     curdir: str
     incdirs: T.List[str]
     is_system: bool
+    build_project: BuildProject
     extra_build_dirs: T.List[str] = field(default_factory=list)
 
     def abs_string_list(self, sourcedir: str, builddir: str) -> T.List[str]:
@@ -485,12 +520,14 @@ class IncludeDirs(HoldableObject):
             be added if this is unset
         :returns: A list of strings (without compiler argument)
         """
+        bsubdir = self.build_project.prefix + self.curdir
+
         strlist: T.List[str] = []
         for idir in self.incdirs:
             strlist.append(os.path.join(sourcedir, self.curdir, idir))
-            strlist.append(os.path.join(builddir, self.curdir, idir))
+            strlist.append(os.path.join(builddir, bsubdir, idir))
         for idir in self.extra_build_dirs:
-            strlist.append(os.path.join(builddir, self.curdir, idir))
+            strlist.append(os.path.join(builddir, bsubdir, idir))
         return strlist
 
     def rel_string_list(self, build_to_src: str, build_root: T.Optional[str] = None) -> T.List[str]:
@@ -502,17 +539,15 @@ class IncludeDirs(HoldableObject):
         :return: A list if strings (without compiler argument)
         """
         strlist: T.List[str] = []
+        bsubdir = self.build_project.prefix + self.curdir
+
         for idirs, add_src in [(self.incdirs, True), (self.extra_build_dirs, False)]:
             for idir in idirs:
-                bld_dir = os.path.normpath(os.path.join(self.curdir, idir))
-                if idir not in {'', '.'}:
-                    expdir = bld_dir
-                else:
-                    expdir = self.curdir
-                if build_root is None or os.path.isdir(os.path.join(build_root, expdir)):
+                bld_dir = os.path.normpath(os.path.join(bsubdir, idir))
+                if build_root is None or os.path.isdir(os.path.join(build_root, bld_dir)):
                     strlist.append(bld_dir)
                 if add_src:
-                    strlist.append(os.path.normpath(os.path.join(build_to_src, expdir)))
+                    strlist.append(os.path.normpath(os.path.join(build_to_src, self.curdir, idir)))
 
         return strlist
 
@@ -617,10 +652,10 @@ class Target(HoldableObject, metaclass=SimpleABC):
 
     name: str
     subdir: str
-    subproject: 'SubProject'
     build_by_default: bool
     for_machine: MachineChoice
     environment: Environment
+    build_project: BuildProject
     install: bool = False
     build_always_stale: bool = False
     extra_files: T.List[File] = field(default_factory=list)
@@ -639,9 +674,9 @@ class Target(HoldableObject, metaclass=SimpleABC):
                 Target "{self.name}" has a path separator in its name.
                 This is not supported, it can cause unexpected failures and will become
                 a hard error in the future.'''))
-        self.builddir = self.subdir
+        self.builddir = self.build_project.prefix + self.subdir
         if self.build_subdir:
-            self.builddir = os.path.join(self.subdir, self.build_subdir)
+            self.builddir = os.path.join(self.builddir, self.build_subdir)
 
     # dataclass comparators?
     def __lt__(self, other: object) -> bool:
@@ -712,6 +747,10 @@ class Target(HoldableObject, metaclass=SimpleABC):
         return my_id
 
     @lazy_property
+    def subproject(self) -> SubProject:
+        return self.build_project.subproject
+
+    @lazy_property
     def id(self) -> str:
         return self.construct_id_from_path(
             self.builddir, self.name, self.type_suffix())
@@ -744,18 +783,19 @@ class BuildTarget(Target):
             self,
             name: str,
             subdir: str,
-            subproject: SubProject,
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_project: BuildProject,
             kwargs: BuildTargetKeywordArguments):
-        super().__init__(name, subdir, subproject, kwargs.get('build_by_default', True),
+        super().__init__(name, subdir, kwargs.get('build_by_default', True),
                          for_machine, environment,
                          install=kwargs.get('install', False),
-                         build_subdir=kwargs.get('build_subdir', ''))
+                         build_subdir=kwargs.get('build_subdir', ''),
+                         build_project=build_project)
         self.original_kwargs = kwargs
         # all_compilers is a reference to Interpreter.compilers, as such we
         # cannot mutate it inside build. Use a Mapping to get help from the
@@ -884,7 +924,7 @@ class BuildTarget(Target):
             mlog.warning(f'Build target {name} has no sources. '
                          'This was never supposed to be allowed but did because of a bug, '
                          'support will be removed in a future release of Meson')
-        self.validate_install()
+        self.validate_cross()
         self.check_module_linking()
 
     @lazy_property
@@ -965,7 +1005,13 @@ class BuildTarget(Target):
     def __str__(self) -> str:
         return f"{self.name}"
 
-    def validate_install(self) -> None:
+    def validate_cross(self) -> None:
+        if self.build_project.for_machine is MachineChoice.BUILD:
+            if self.for_machine is MachineChoice.HOST:
+                raise MesonBugException('Tried to build a target for the host machine in a build-only subproject.')
+            if self.install:
+                raise MesonBugException('Tried to build an installable target in a build-only subproject.')
+
         if self.for_machine is MachineChoice.BUILD and self.install:
             if self.environment.is_cross_build():
                 raise InvalidArguments('Tried to install a target for the build machine in a cross build.')
@@ -1591,7 +1637,8 @@ class BuildTarget(Target):
     def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: str = 'preserve') -> None:
         if set_is_system != 'preserve':
             is_system = set_is_system == 'system'
-            self.include_dirs.extend([IncludeDirs(x.curdir, x.incdirs, is_system, x.extra_build_dirs) for x in args])
+            self.include_dirs.extend([IncludeDirs(x.curdir, x.incdirs, is_system, x.build_project,
+                                                  x.extra_build_dirs) for x in args])
         else:
             self.include_dirs.extend(args)
 
@@ -2169,18 +2216,18 @@ class Executable(BuildTarget, LinkableTarget):
             self,
             name: str,
             subdir: str,
-            subproject: SubProject,
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_project: BuildProject,
             kwargs: ExecutableKeywordArguments):
         self.export_dynamic = kwargs.get('export_dynamic', False)
         self.rust_crate_type = kwargs.get('rust_crate_type', 'bin')
-        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+        super().__init__(name, subdir, for_machine, sources, structured_sources, objects,
+                         environment, compilers, build_project, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
         self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
         # Check for export_dynamic
@@ -2302,18 +2349,18 @@ class StaticLibrary(BuildTarget, LinkableTarget):
             self,
             name: str,
             subdir: str,
-            subproject: SubProject,
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_project: BuildProject,
             kwargs: StaticLibraryKeywordArguments):
         self.prelink = kwargs.get('prelink', False)
         self.rust_crate_type = kwargs.get('rust_crate_type', 'rlib')
-        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+        super().__init__(name, subdir, for_machine, sources, structured_sources, objects,
+                         environment, compilers, build_project, kwargs)
         self.pic = self._extract_pic_pie(kwargs, 'pic', 'b_staticpic')
         if not self.pic:
             self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
@@ -2484,16 +2531,16 @@ class SharedLibrary(BuildTarget, LinkableTarget):
             self,
             name: str,
             subdir: str,
-            subproject: SubProject,
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_project: BuildProject,
             kwargs: SharedLibraryKeywordArguments):
-        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+        super().__init__(name, subdir, for_machine, sources, structured_sources, objects,
+                         environment, compilers, build_project, kwargs)
         # Max length 2, first element is compatibility_version, second is current_version
         self.darwin_versions: T.Optional[T.Tuple[str, str]] = None
         self.soversion: T.Optional[str] = None
@@ -2820,16 +2867,16 @@ class SharedModule(SharedLibrary):
             self,
             name: str,
             subdir: str,
-            subproject: SubProject,
             for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
             environment: Environment,
             compilers: CompilerDict,
+            build_project: BuildProject,
             kwargs: SharedModuleKeywordArguments):
-        super().__init__(name, subdir, subproject, for_machine, sources,
-                         structured_sources, objects, environment, compilers,
+        super().__init__(name, subdir, for_machine, sources,
+                         structured_sources, objects, environment, compilers, build_project,
                          # SharedModuleKeywordArguments is a subclass, it's annoying mypy can't figure this out
                          T.cast('SharedLibraryKeywordArguments', kwargs))
         # We need to set the soname in cases where build files link the module
@@ -2967,13 +3014,13 @@ class CustomTarget(Target, CustomTargetBase):
     def __init__(self,
                  name: T.Optional[str],
                  subdir: str,
-                 subproject: SubProject,
                  environment: Environment,
                  command: T.Sequence[T.Union[
                      str, BuildTargetTypes,
                      programs.Program, File]],
                  sources: T.Sequence[CustomTargetSources],
                  outputs: T.List[str],
+                 build_project: BuildProject,
                  *,
                  build_always_stale: bool = False,
                  build_by_default: T.Optional[bool] = None,
@@ -2996,8 +3043,8 @@ class CustomTarget(Target, CustomTargetBase):
                  build_subdir: str = '',
                  ):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
-        super().__init__(name, subdir, subproject, False, MachineChoice.HOST, environment,
-                         install, build_always_stale, build_subdir = build_subdir)
+        super().__init__(name, subdir, False, MachineChoice.HOST, environment,
+                         build_project, install, build_always_stale, build_subdir = build_subdir)
         self.sources = list(sources)
         self.outputs = substitute_values(
             outputs, get_filenames_templates_dict(
@@ -3009,7 +3056,7 @@ class CustomTarget(Target, CustomTargetBase):
         self.depend_files = list(depend_files or [])
         self.dependencies: T.List[T.Union[CustomTarget, BuildTarget]] = []
         # must be after depend_files and dependencies
-        c, df, d = flatten_command(command, self.subproject)
+        c, df, d = flatten_command(command, build_project.subproject)
         self.command = c
         self.depend_files.extend(df)
         self.dependencies.extend(d)
@@ -3200,7 +3247,6 @@ class CompileTarget(BuildTarget):
     def __init__(self,
                  name: str,
                  subdir: str,
-                 subproject: SubProject,
                  environment: Environment,
                  sources: T.List['SourceOutputs'],
                  output_templ: str,
@@ -3209,6 +3255,7 @@ class CompileTarget(BuildTarget):
                  compile_args: T.List[str],
                  include_directories: T.List[IncludeDirs],
                  dependencies: T.List[dependencies.Dependency],
+                 build_project: BuildProject,
                  depends: T.List[BuildTargetTypes]):
         compilers = {compiler.get_language(): compiler}
         kwargs: BuildTargetKeywordArguments = {
@@ -3217,8 +3264,9 @@ class CompileTarget(BuildTarget):
             'include_directories': include_directories,
             'dependencies': dependencies,
         }
-        super().__init__(name, subdir, subproject, compiler.for_machine,
-                         sources, None, [], environment, compilers, kwargs)
+        super().__init__(name, subdir, compiler.for_machine,
+                         sources, None, [], environment, compilers,
+                         build_project, kwargs)
         self.filename = name
         self.compiler = compiler
         self.output_templ = output_templ
@@ -3260,14 +3308,14 @@ class RunTarget(Target):
                  # the RunTarget case is used by gnome.yelp()
                  dependencies: T.Sequence[Target | CustomTargetIndex | GeneratedList | programs.Program],
                  subdir: str,
-                 subproject: SubProject,
                  environment: Environment,
+                 build_project: BuildProject,
                  env: T.Optional[EnvironmentVariables] = None,
                  default_env: bool = True):
         # These don't produce output artifacts
-        super().__init__(name, subdir, subproject, False, MachineChoice.BUILD, environment)
+        super().__init__(name, subdir, False, MachineChoice.BUILD, environment, build_project)
         self.dependencies = list(dependencies)
-        self.command, self.depend_files, d = flatten_command(command, subproject)
+        self.command, self.depend_files, d = flatten_command(command, build_project.subproject)
         self.dependencies.extend(d)
         self.absolute_paths = False
         self.env = env
@@ -3303,8 +3351,9 @@ class AliasTarget(RunTarget):
     typename = 'alias'
 
     def __init__(self, name: str, dependencies: T.Sequence[Target],
-                 subdir: str, subproject: SubProject, environment: Environment):
-        super().__init__(name, [], dependencies, subdir, subproject, environment)
+                 subdir: str, environment: Environment,
+                 build_project: BuildProject):
+        super().__init__(name, [], dependencies, subdir, environment, build_project)
 
     def __repr__(self) -> str:
         repr_str = "<{0} {1}>"
@@ -3314,12 +3363,12 @@ class Jar(BuildTarget):
     typename = 'jar'
     rust_crate_type = ''  # type: ignore[assignment]
 
-    def __init__(self, name: str, subdir: str, subproject: SubProject, for_machine: MachineChoice,
+    def __init__(self, name: str, subdir: str, for_machine: MachineChoice,
                  sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
                  objects: T.List[ObjectTypes], environment: Environment, compilers: CompilerDict,
-                 kwargs: JarKeywordArguments):
-        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+                 build_project: BuildProject, kwargs: JarKeywordArguments):
+        super().__init__(name, subdir, for_machine, sources, structured_sources, objects,
+                         environment, compilers, build_project, kwargs)
         for s in self.sources:
             if not s.endswith('.java'):
                 raise InvalidArguments(f'Jar source {s} is not a java file.')
