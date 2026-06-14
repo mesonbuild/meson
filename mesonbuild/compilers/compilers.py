@@ -793,7 +793,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         mlog.debug(so)
         mlog.debug('Program stderr:\n')
         mlog.debug(se)
-        return RunResult(True, pe.returncode, so, se)
+        return RunResult(pe.returncode == 0, pe.returncode, so, se)
 
     # Caching run() in general seems too risky (no way to know what the program
     # depends on), but some callers know more about the programs they intend to
