@@ -347,6 +347,22 @@ class RustPackage(RustCrate):
 
         kwargs['override_options'].setdefault('rust_std', self.package.manifest.package.edition)
 
+    def _apply_rustc_env(self, state: ModuleState,
+                         native: MachineChoice,
+                         result: T.Union[BothLibraries, BuildTarget]) -> None:
+        env = self.package.get_rustc_env(state.environment, state.subdir, native)
+        if not env:
+            return
+        # On Windows we need a tiny native wrapper to set the env before
+        # running rustc
+        from .. import cargo as _cargo
+        _cargo.interpreter.ensure_meson_env_exe(state.environment)
+        if isinstance(result, BothLibraries):
+            result.shared.rust_compile_env = dict(env)
+            result.static.rust_compile_env = dict(env)
+        else:
+            result.rust_compile_env = dict(env)
+
     def _library_method(self, state: ModuleState, args: T.Tuple[
             T.Optional[T.Union[str, StructuredSources]],
             T.Optional[StructuredSources]], kwargs: RustPackageLibrary,
@@ -371,22 +387,25 @@ class RustPackage(RustCrate):
 
         lib_args: T.Tuple[str, SourcesVarargsType] = (tgt_name, [sources])
         self.merge_kw_args(state, kwargs)
+        native = kwargs['native']
 
+        result: T.Union[BothLibraries, SharedLibrary, StaticLibrary, SharedModule]
         if shared_mod:
-            return state._interpreter.build_target(state.current_node, lib_args,
-                                                   T.cast('_kwargs.SharedModule', kwargs),
-                                                   SharedModule)
-
-        if static and shared:
-            return state._interpreter.build_both_libraries(state.current_node, lib_args, kwargs)
+            result = state._interpreter.build_target(state.current_node, lib_args,
+                                                     T.cast('_kwargs.SharedModule', kwargs),
+                                                     SharedModule)
+        elif static and shared:
+            result = state._interpreter.build_both_libraries(state.current_node, lib_args, kwargs)
         elif shared:
-            return state._interpreter.build_target(state.current_node, lib_args,
-                                                   T.cast('_kwargs.SharedLibrary', kwargs),
-                                                   SharedLibrary)
+            result = state._interpreter.build_target(state.current_node, lib_args,
+                                                     T.cast('_kwargs.SharedLibrary', kwargs),
+                                                     SharedLibrary)
         else:
-            return state._interpreter.build_target(state.current_node, lib_args,
-                                                   T.cast('_kwargs.StaticLibrary', kwargs),
-                                                   StaticLibrary)
+            result = state._interpreter.build_target(state.current_node, lib_args,
+                                                     T.cast('_kwargs.StaticLibrary', kwargs),
+                                                     StaticLibrary)
+        self._apply_rustc_env(state, native, result)
+        return result
 
     def _proc_macro_method(self, state: 'ModuleState', args: T.Tuple[
             T.Optional[T.Union[str, StructuredSources]],
@@ -524,7 +543,10 @@ class RustPackage(RustCrate):
 
         exe_args: T.Tuple[str, SourcesVarargsType] = (tgt_name, [sources])
         self.merge_kw_args(state, kwargs)
-        return state._interpreter.build_target(state.current_node, exe_args, kwargs, Executable)
+        native = kwargs['native']
+        result = state._interpreter.build_target(state.current_node, exe_args, kwargs, Executable)
+        self._apply_rustc_env(state, native, result)
+        return result
 
 
 class RustSubproject(RustCrate):

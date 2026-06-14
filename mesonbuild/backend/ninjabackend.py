@@ -15,6 +15,7 @@ import json
 import os
 import pickle
 import re
+import shlex
 import subprocess
 import typing as T
 
@@ -106,7 +107,7 @@ rsp_threshold = mesonlib.get_rsp_threshold()
 # variables (or variables we use them in) is interpreted directly by ninja
 # (e.g. the value of the depfile variable is a pathname that ninja will read
 # from, etc.), so it must not be shell quoted.
-raw_names = {'DEPFILE_UNQUOTED', 'DESC', 'pool', 'description', 'targetdep', 'dyndep'}
+raw_names = {'DEPFILE_UNQUOTED', 'DESC', 'pool', 'description', 'targetdep', 'dyndep', 'RUSTENV'}
 
 NINJA_QUOTE_BUILD_PAT = re.compile(r"[$ :\n]")
 NINJA_QUOTE_VAR_PAT = re.compile(r"[$ \n]")
@@ -2279,6 +2280,8 @@ class NinjaBackend(backends.Backend):
             element.add_dep(deps)
         element.add_item('ARGS', args)
         element.add_item('targetdep', depfile)
+        if target.rust_compile_env:
+            element.add_item('RUSTENV', self._rust_env_tokens(target.rust_compile_env))
         self.add_build(element)
         self.create_target_source_introspection(target, rustc, args, [main_rust_file], [])
 
@@ -2603,9 +2606,27 @@ class NinjaBackend(backends.Backend):
                                 depfile=depfile,
                                 restat=True))
 
+    def _rust_env_tokens(self, env: T.Dict[str, str]) -> T.List[str]:
+        '''
+        Build the tokens that expand into the $RUSTENV ninja variable. They
+        are pre-quoted for the target shell so they survive ninja
+        substitution without further escaping
+        '''
+        if mesonlib.is_windows():
+            wrapper = self.environment.meson_env_exe
+            assert wrapper is not None, \
+                'meson_env.exe path not set; setup-time build is missing'
+            tokens = [mesonlib.quote_arg(wrapper)]
+            tokens += [mesonlib.quote_arg(f'{k}={v}') for k, v in env.items()]
+            return tokens
+        return [f'{k}={shlex.quote(v)}' for k, v in env.items()]
+
     def generate_rust_compile_rules(self, compiler: RustCompiler) -> None:
         rule = self.compiler_to_rule_name(compiler)
-        command = compiler.get_exelist() + ['$ARGS', '$in']
+        command: T.List[T.Union[str, NinjaCommandArg]] = [
+            NinjaCommandArg('$RUSTENV', Quoting.none),
+        ]
+        command += compiler.get_exelist() + ['$ARGS', '$in']
         description = 'Compiling Rust source $in'
         depfile = '$targetdep'
         depstyle = 'gcc'

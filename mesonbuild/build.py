@@ -860,6 +860,8 @@ class BuildTarget(Target):
         self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
         self.gnu_symbol_visibility = kwargs.get('gnu_symbol_visibility', '')
         self.rust_dependency_map = kwargs.get('rust_dependency_map', {})
+        # Env vars to set for rustc
+        self.rust_compile_env: T.Dict[str, str] = {}
 
         self.swift_interoperability_mode = kwargs.get('swift_interoperability_mode', 'c')
         self.swift_module_name = kwargs.get('swift_module_name') or self.name
