@@ -28,7 +28,7 @@ import json
 import dataclasses
 
 from mesonbuild import mlog
-from .core import MesonException, HoldableObject
+from .core import MesonException, MesonBugException, HoldableObject
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Protocol, Self
@@ -176,6 +176,8 @@ __all__ = [
     'substring_is_in_list',
     'typeslistify',
     'unique_list',
+    'unwrap',
+    'unwrap_err',
     'verbose_git',
     'version_check_to_range',
     'version_compare',
@@ -223,8 +225,7 @@ class GitException(MesonException):
 
 GIT = shutil.which('git')
 def git(cmd: T.List[str], workingdir: StrOrBytesPath, check: bool = False, **kwargs: T.Any) -> T.Tuple[subprocess.Popen[str], str, str]:
-    assert GIT is not None, 'Callers should make sure it exists'
-    cmd = [GIT, *cmd]
+    cmd = [unwrap(GIT, 'Callers should make sure it exists'), *cmd]
     p, o, e = Popen_safe(cmd, cwd=workingdir, **kwargs)
     if check and p.returncode != 0:
         raise GitException('Git command failed: ' + str(cmd), e)
@@ -267,7 +268,9 @@ def set_meson_command(mainfile: str) -> None:
         mlog.log(f'meson_command is {_meson_command!r}')
 
 
-def get_meson_command() -> T.Optional['ImmutableListProtocol[str]']:
+def get_meson_command() -> ImmutableListProtocol[str]:
+    if _meson_command is None:
+        raise MesonBugException('Attempting to use meson_command before it is set')
     return _meson_command
 
 
@@ -611,14 +614,14 @@ class PerThreeMachine(PerMachine[_T]):
 
     target: _T
 
-    def miss_defaulting(self) -> "PerThreeMachineDefaultable[T.Optional[_T]]":
+    def miss_defaulting(self) -> "PerThreeMachineDefaultable[_T]":
         """Unset definition duplicated from their previous to None
 
         This is the inverse of ''default_missing''. By removing defaulted
         machines, we can elaborate the original and then redefault them and thus
         avoid repeating the elaboration explicitly.
         """
-        unfreeze: PerThreeMachineDefaultable[T.Optional[_T]] = PerThreeMachineDefaultable()
+        unfreeze: PerThreeMachineDefaultable[_T] = PerThreeMachineDefaultable()
         unfreeze.build = self.build
         unfreeze.host = self.host
         unfreeze.target = self.target
@@ -660,8 +663,8 @@ class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
         This allows just specifying nothing in the native case, and just host in the
         cross non-compiler case.
         """
-        assert self.build is not None, 'Cannot fill in missing when all fields are empty'
-        return PerMachine(self.build, self.host if self.host is not None else self.build)
+        build = unwrap(self.build, 'Cannot fill in missing when all fields are empty')
+        return PerMachine(build, self.host if self.host is not None else build)
 
     @classmethod
     def default(cls, is_cross: bool, build: _T, host: _T) -> PerMachine[_T]:
@@ -692,10 +695,10 @@ class PerThreeMachineDefaultable(PerMachineDefaultable[T.Optional[_T]], PerThree
         cross non-compiler case, and just target in the native-built
         cross-compiler case.
         """
-        assert self.build is not None, 'Cannot default a PerMachine when all values are None'
-        host = self.host if self.host is not None else self.build
+        build = unwrap(self.build, 'Cannot fill in missing when all fields are empty')
+        host = self.host if self.host is not None else build
         target = self.target if self.target is not None else host
-        return PerThreeMachine(self.build, host, target)
+        return PerThreeMachine(build, host, target)
 
 
 _PLATFORM_SYSTEM_LOWER = platform.system().lower()
@@ -2763,3 +2766,38 @@ def pathname_sort_key(key: str) -> tuple[tuple[bool, tuple[int | str, ...]], ...
 
     return tuple((key.count('/') <= idx, alphanum_key(x))
                  for idx, x in enumerate(key.split('/')))
+
+
+def unwrap(value: _T | None, msg: str | None = None) -> _T:
+    """Remove None from a union type when it is a Meson bug.
+
+    This is used for cases where None being in the Union is a bug in Meson
+    itself.
+
+    :param value: The Union
+    :param msg: A message to print when a buggy value occurs, defaults to None
+    :raises MesonBugException: When None is in value
+    :return: The value union with None removed
+    """
+    if value is not None:
+        return value
+    raise MesonBugException(msg or 'Unexpected None value')
+
+
+def unwrap_err(value: _T | None, msg: str) -> _T:
+    """Remove None from a union type when it is not a Meson bug.
+
+    This is for cases where None is possible, but it represents a problem
+    outside of Meson itself.
+
+    For example, a missing external program, or a read only file system, or a
+    missing file
+
+    :param value: The Union to remove None from
+    :param msg: The message to print when None is found
+    :raises MesonException: When None is found in the union
+    :return: The Union with None removed
+    """
+    if value is not None:
+        return value
+    raise MesonException(msg)

@@ -1461,8 +1461,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         :return: The list of commands wrapped by the exe_wrapper if it is needed, otherwise the original commands
         """
         if self.is_cross and self.environment.has_exe_wrapper():
-            assert self.environment.exe_wrapper is not None, 'for mypy'
-            return self.environment.exe_wrapper.get_command() + command
+            return mesonlib.unwrap(self.environment.exe_wrapper).get_command() + command
         return command
 
     def _run_sanity_check(self, cmdlist: T.List[str], work_dir: str) -> None:

@@ -26,6 +26,7 @@ from .mesonlib import (
     get_filenames_templates_dict, substitute_values, has_path_sep,
     is_parent_path, relpath, PerMachineDefaultable,
     MesonBugException, EnvironmentVariables, pickle_load, lazy_property,
+    unwrap,
 )
 from .options import OptionKey
 
@@ -460,6 +461,12 @@ class Build:
             return []
 
         return link_args.get(compiler.get_language(), [])
+
+    def get_static_linker(self, target: BuildTarget) -> StaticLinker:
+        archiver = self.static_linker[target.for_machine]
+        if archiver is None:
+            raise MesonBugException(f'Required static_linker for {target.for_machine} not found')
+        return archiver
 
 @dataclass(eq=False)
 class IncludeDirs(HoldableObject):
@@ -1373,7 +1380,6 @@ class BuildTarget(Target):
         # PIC is always on for Windows (all code is position-independent
         # since library loading is done differently)
         m = self.environment.machines[self.for_machine]
-        assert m is not None, 'for mypy'
         if arg == 'pic' and (m.is_darwin() or m.is_windows()):
             return True
 
@@ -2890,9 +2896,8 @@ def flatten_command(cmd: T.Sequence[str | File | programs.Program | BuildTargetT
         elif isinstance(c, programs.Program):
             if not c.found():
                 raise InvalidArguments('Tried to use not-found external program in "command"')
-            path = c.get_path()
-            # We know path is not non if c.found()
-            assert path is not None, 'for mypy'
+            # We know path is not none if c.found()
+            path = unwrap(c.get_path())
             if os.path.isabs(path):
                 # Can only add a dependency on an external program which we
                 # know the absolute path of

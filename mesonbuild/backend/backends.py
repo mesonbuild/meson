@@ -27,7 +27,7 @@ from .. import compilers
 from ..compilers import detect, lang_suffixes
 from ..mesonlib import (
     File, MachineChoice, MesonException, MesonBugException, OrderedSet,
-    ExecutableSerialisation, EnvironmentException,
+    ExecutableSerialisation, EnvironmentException, FileMode,
     classify_unity_sources, get_compiler_for_source,
     get_rsp_threshold, unique_list
 )
@@ -41,7 +41,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreter import Test
     from ..linkers import StaticLinker
-    from ..mesonlib import FileMode, FileOrString
+    from ..mesonlib import FileOrString
     from ..options import ElementaryOptionValues
 
     from typing_extensions import Literal, TypedDict, NotRequired, TypeAlias
@@ -147,8 +147,7 @@ class TargetInstallData:
     install_name_mappings: T.Mapping[str, str]
     rpath_dirs_to_remove: T.Set[bytes]
     install_rpath: str
-    # TODO: install_mode should just always be a FileMode object
-    install_mode: T.Optional['FileMode']
+    install_mode: FileMode
     subproject: str
     system: str
     optional: bool = False
@@ -753,9 +752,7 @@ class Backend:
         Otherwise, we query the target for the dynamic linker.
         '''
         if isinstance(target, build.StaticLibrary):
-            static_linker = self.build.static_linker[target.for_machine]
-            assert static_linker is not None, "Compiler.needs_static_linker does not match backend logic"
-            return static_linker, []
+            return self.build.get_static_linker(target), []
         l, stdlib_args = target.get_clink_dynamic_linker_and_stdlibs()
         return l, stdlib_args
 
@@ -1463,8 +1460,7 @@ class Backend:
                 fname = self.determine_ext_objs(i)
             elif isinstance(i, programs.Program):
                 assert i.found(), "This shouldn't be possible"
-                assert i.get_path() is not None, 'for mypy'
-                fname = [i.get_path()]
+                fname = [mesonlib.unwrap(i.get_path())]
             else:
                 fname = [i.rel_to_builddir(self.build_to_src)]
             if target.absolute_paths:
@@ -1737,7 +1733,7 @@ class Backend:
                     'using the default installation directory for an output.'
                 raise MesonException(m.format(t.name, num_out, t.get_outputs(), num_outdirs, outdirs))
             assert len(t.install_tag) == num_out
-            install_mode = t.get_custom_install_mode()
+            install_mode = t.get_custom_install_mode() or FileMode()
             # because mypy gets confused type narrowing in lists
             first_outdir = outdirs[0]
             first_outdir_name = install_dir_names[0]

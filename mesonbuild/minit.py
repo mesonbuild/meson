@@ -198,7 +198,8 @@ def run(options: Arguments) -> int:
         if vsenv_active:
             mlog.log(mlog.green('INFO:'), 'automatically activated MSVC compiler environment')
 
-        cmd = detect_ninja() + ['-C', options.builddir]
+        ninja = mesonlib.unwrap_err(detect_ninja(), 'Could not detect ninja and it is required')
+        cmd = ninja + ['-C', options.builddir]
         ret = subprocess.run(cmd)
         if ret.returncode:
             raise SystemExit

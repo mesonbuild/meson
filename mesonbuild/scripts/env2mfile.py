@@ -537,7 +537,7 @@ class AndroidDetector:
                 ofile.write("endian = 'little'\n")
 
 
-def run(options: T.Any) -> None:
+def run(options: argparse.Namespace) -> int:
     mlog.notice('This functionality is experimental and subject to change.')
     if options.cross:
         if options.use_for_build:
@@ -554,3 +554,5 @@ def run(options: T.Any) -> None:
         ad.detect_toolchains()
     else:
         raise ValueError("Encountered unreachable code-path")
+
+    return 0
