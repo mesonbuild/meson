@@ -61,7 +61,7 @@ jobs:
         shell: msys2 {0}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: msys2/setup-msys2@v2
         with:
@@ -127,7 +127,7 @@ jobs:
 
           MSYSTEM= python3 ./run_tests.py --backend=ninja
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.NAME }}
           path: meson-test-run.*
