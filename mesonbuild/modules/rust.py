@@ -935,9 +935,22 @@ class RustModule(ExtensionModule):
                 '--wrap-static-fns-path', os.path.join(state.environment.build_dir, '@OUTPUT1@')
             ]
 
+        # When output_inline_wrapper is set, bindgen embeds the input path
+        # verbatim as an #include in the generated wrapper .c file. A relative
+        # path (from @INPUT@) breaks compilation when the generated file is in
+        # a build subdirectory, because GCC resolves the include relative to
+        # the .c file's directory rather than the build root. Use an absolute
+        # path so the generated #include is always valid. See also:
+        # https://github.com/mesonbuild/meson/issues/13227
+        if kwargs['output_inline_wrapper'] and isinstance(header, File):
+            bindgen_input_arg: T.Union[str, File] = header.absolute_path(
+                state.environment.source_dir, state.environment.build_dir)
+        else:
+            bindgen_input_arg = '@INPUT@'
+
         cmd = self._bindgen_bin.get_command() + \
             [
-                '@INPUT@', '--output',
+                bindgen_input_arg, '--output',
                 os.path.join(state.environment.build_dir, '@OUTPUT0@')
             ] + \
             kwargs['args'] + inline_wrapper_args
