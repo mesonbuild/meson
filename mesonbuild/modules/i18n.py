@@ -48,6 +48,7 @@ if T.TYPE_CHECKING:
     class Gettext(TypedDict):
 
         args: T.List[str]
+        msgfmt_args: T.List[str]
         data_dirs: T.List[str]
         install: bool
         install_dir: T.Optional[str]
@@ -81,6 +82,14 @@ _ARGS: KwargInfo[T.List[str]] = KwargInfo(
     ContainerTypeInfo(list, str),
     default=[],
     listify=True,
+)
+
+_MSGFMT_ARGS: KwargInfo[T.List[str]] = KwargInfo(
+    'msgfmt_args',
+    ContainerTypeInfo(list, str),
+    default=[],
+    listify=True,
+    since='1.12.0',
 )
 
 _DATA_DIRS: KwargInfo[T.List[str]] = KwargInfo(
@@ -350,6 +359,7 @@ class I18nModule(ExtensionModule):
     @typed_kwargs(
         'i18n.gettext',
         _ARGS,
+        _MSGFMT_ARGS,
         _DATA_DIRS.evolve(since='0.36.0'),
         INSTALL_KW.evolve(default=True),
         INSTALL_DIR_KW.evolve(since='0.50.0'),
@@ -422,12 +432,15 @@ class I18nModule(ExtensionModule):
             if isinstance(install_dir, OptionString):
                 name = path.join(install_dir.optname, l, 'LC_MESSAGES')
                 mo_install_dir = OptionString(mo_install_dir, name)
+
+            gmobasecmd: list[str | Program] = [self.tools['msgfmt'], '-o', '@OUTPUT@', '@INPUT@']
+
             gmotarget = build.CustomTarget(
                 f'{packagename}-{l}.mo',
                 path.join(state.subdir, l, 'LC_MESSAGES'),
                 state.subproject,
                 state.environment,
-                [self.tools['msgfmt'], '-o', '@OUTPUT@', '@INPUT@'],
+                [*gmobasecmd, *kwargs['msgfmt_args']],
                 [po_file],
                 [f'{packagename}.mo'],
                 install=install,
