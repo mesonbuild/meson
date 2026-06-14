@@ -15,7 +15,7 @@ concurrency:
 
 on:
   push:
-    paths:
+    paths: &shared_paths
     - ".github/workflows/unusedargs_missingreturn.yml"
     - "test cases/cmake/**"
     - "test cases/common/**"
@@ -26,15 +26,7 @@ on:
     - "test cases/windows/**"
 
   pull_request:
-    paths:
-    - ".github/workflows/unusedargs_missingreturn.yml"
-    - "test cases/cmake/**"
-    - "test cases/common/**"
-    - "test cases/fortran/**"
-    - "test cases/linuxlike/**"
-    - "test cases/objc/**"
-    - "test cases/objcpp/**"
-    - "test cases/windows/**"
+    paths: *shared_paths
 
 permissions:
   contents: read
