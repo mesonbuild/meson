@@ -1676,12 +1676,19 @@ class TestHarness:
         self.collected_failures: T.List[TestRun] = []
         self.maxfail_reached = False
         self.fail_count = 0
+        self.subtest_fail_count = 0
         self.expectedfail_count = 0
+        self.subtest_expectedfail_count = 0
         self.unexpectedpass_count = 0
+        self.subtest_unexpectedpass_count = 0
         self.success_count = 0
+        self.subtest_success_count = 0
         self.skip_count = 0
+        self.subtest_skip_count = 0
         self.ignored_count = 0
+        self.subtest_ignored_count = 0
         self.timeout_count = 0
+        self.subtest_timeout_count = 0
         self.test_count = 0
         self.name_max_len = 0
         self.is_run = False
@@ -1820,6 +1827,14 @@ class TestHarness:
         return SingleTestRunner(test, env, name, options)
 
     def process_test_result(self, result: TestRun) -> None:
+        self.subtest_timeout_count += sum(x.result is TestResult.TIMEOUT for x in result.results)
+        self.subtest_skip_count += sum(x.result is TestResult.SKIP for x in result.results)
+        self.subtest_ignored_count += sum(x.result is TestResult.IGNORED for x in result.results)
+        self.subtest_success_count += sum(x.result is TestResult.OK for x in result.results)
+        self.subtest_fail_count += sum(x.result in {TestResult.FAIL, TestResult.ERROR, TestResult.INTERRUPT} for x in result.results)
+        self.subtest_expectedfail_count += sum(x.result is TestResult.EXPECTEDFAIL for x in result.results)
+        self.subtest_unexpectedpass_count += sum(x.result is TestResult.UNEXPECTEDPASS for x in result.results)
+
         if result.res is TestResult.TIMEOUT:
             self.timeout_count += 1
         elif result.res is TestResult.SKIP:
@@ -1888,13 +1903,20 @@ class TestHarness:
 
     def summary(self) -> str:
         results = {
-          'Ok:                ': self.success_count,
-          'Expected Fail:     ': self.expectedfail_count,
-          'Fail:              ': self.fail_count,
-          'Unexpected Pass:   ': self.unexpectedpass_count,
-          'Skipped:           ': self.skip_count,
-          'Ignored:           ': self.ignored_count,
-          'Timeout:           ': self.timeout_count,
+          'Ok:                       ': self.success_count,
+          'Subtests Ok:              ': self.subtest_success_count,
+          'Expected Fail:            ': self.expectedfail_count,
+          'Subtests Expected Fail:   ': self.subtest_expectedfail_count,
+          'Fail:                     ': self.fail_count,
+          'Subtests Fail:            ': self.subtest_fail_count,
+          'Unexpected Pass:          ': self.unexpectedpass_count,
+          'Subtests Unexpected Pass: ': self.subtest_unexpectedpass_count,
+          'Skipped:                  ': self.skip_count,
+          'Subtests Skipped:         ': self.subtest_skip_count,
+          'Ignored:                  ': self.ignored_count,
+          'Subtests Ignored:         ': self.subtest_ignored_count,
+          'Timeout:                  ': self.timeout_count,
+          'Subtests Timeout:         ': self.subtest_timeout_count,
         }
 
         summary = []
