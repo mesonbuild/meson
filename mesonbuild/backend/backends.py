@@ -1234,7 +1234,7 @@ class Backend:
                     cmd_args.append(a)
                 elif isinstance(a, str):
                     cmd_args.append(a)
-                elif isinstance(a, (build.Target, build.CustomTargetIndex)):
+                elif isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                     cmd_args.extend(self.construct_target_rel_paths(a, t.workdir))
                 elif isinstance(a, programs.ExternalProgram):
                     cmd_args.extend(a.get_command())
@@ -1278,7 +1278,7 @@ class Backend:
     def write_test_serialisation(self, tests: T.List['Test'], datafile: T.BinaryIO) -> None:
         pickle.dump(self.create_test_serialisation(tests), datafile)
 
-    def construct_target_rel_paths(self, t: build.AnyTargetType, workdir: T.Optional[str]) -> T.List[str]:
+    def construct_target_rel_paths(self, t: build.BuildTargetTypes, workdir: T.Optional[str]) -> T.List[str]:
         target_dir = self.get_target_dir(t)
         # ensure that test executables can be run when passed as arguments
         if isinstance(t, build.Executable) and workdir is None:
