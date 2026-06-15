@@ -2233,8 +2233,8 @@ class GnomeModule(ExtensionModule):
                 ofile.write(package + '\n')
         return build.Data([mesonlib.File(True, outdir, fname)], install_dir, install_dir, mesonlib.FileMode(), state.subproject, install_tag='devel')
 
-    def _get_vapi_link_with(self, target: CustomTarget) -> T.List[build.LibTypes]:
-        link_with: T.List[build.LibTypes] = []
+    def _get_vapi_link_with(self, target: CustomTarget) -> T.List[build.LinkableProto]:
+        link_with: T.List[build.LinkableProto] = []
         for dep in target.get_target_dependencies():
             if isinstance(dep, build.SharedLibrary):
                 link_with.append(dep)
@@ -2273,7 +2273,7 @@ class GnomeModule(ExtensionModule):
         cmd += ['--metadatadir=' + source_dir]
 
         inputs: T.List[T.Union[mesonlib.File, GirTarget]] = []
-        link_with: T.List[build.LinkableTargetTypes] = []
+        link_with: T.List[build.LinkableProto] = []
         i: CustomTargetInputs
         for i in kwargs['sources']:
             if isinstance(i, str):

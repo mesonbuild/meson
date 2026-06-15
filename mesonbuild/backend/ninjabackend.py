@@ -1788,7 +1788,7 @@ class NinjaBackend(backends.Backend):
         args += ['--directory', c_out_dir]
         args += ['--basedir', srcbasedir]
         if target.is_linkable_target():
-            assert isinstance(target, build.LinkableTarget)
+            assert isinstance(target, (build.StaticLibrary, build.SharedLibrary, build.Executable))
             # Library name
             args += ['--library', target.name]
             # Outputted header
@@ -2347,9 +2347,9 @@ class NinjaBackend(backends.Backend):
             cpp_targets = [t for t in target.link_targets if t.uses_swift_cpp_interop()]
             if cpp_targets != []:
                 target_word = 'targets' if len(cpp_targets) > 1 else 'target'
-                first = ', '.join(repr(t.name) for t in cpp_targets[:-1])
+                first = ', '.join(repr(t.get_basename()) for t in cpp_targets[:-1])
                 and_word = ' and ' if len(cpp_targets) > 1 else ''
-                last = repr(cpp_targets[-1].name)
+                last = repr(cpp_targets[-1].get_basename())
                 enable_word = 'enable' if len(cpp_targets) > 1 else 'enables'
                 raise MesonException('Swift target {0} links against {1} {2}{3}{4} which {5} C++ interoperability. '
                                      'This requires {0} to also have it enabled. '
@@ -3539,12 +3539,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             self.all_pch[compiler.id].update(objs + [dst])
         return pch_objects
 
-    def get_target_shsym_filename(self, target: build.BuildTarget) -> str:
+    def get_target_shsym_filename(self, target: build.LinkableProto) -> str:
         # Always name the .symbols file after the primary build output because it always exists
         targetdir = self.get_target_private_dir(target)
         return os.path.join(targetdir, target.get_filename() + '.symbols')
 
-    def generate_shsym(self, target: build.BuildTarget) -> None:
+    def generate_shsym(self, target: build.LinkableProto) -> None:
         # On OS/2, an import library is generated after linking a DLL, so
         # if a DLL is used as a target, import library is not generated.
         if self.environment.machines[target.for_machine].is_os2():

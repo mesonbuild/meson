@@ -30,7 +30,7 @@ if T.TYPE_CHECKING:
     from .. import mparser
     from ..interpreter import Interpreter
 
-    ANY_DEP = T.Union[dependencies.Dependency, build.LinkableTargetTypes, str]
+    ANY_DEP = T.Union[dependencies.Dependency, build.LinkableProto, str]
     REQS = T.Union[dependencies.Dependency, build.LibTypes, str]
     LIBS = T.Union[build.LibTypes, str]
 
@@ -267,7 +267,7 @@ class DependenciesHelper:
         return processed_libs, processed_reqs, processed_cflags
 
     def _add_lib_dependencies(
-            self, link_targets: T.Sequence[build.LinkableTargetTypes],
+            self, link_targets: T.Sequence[build.LinkableProto],
             link_whole_targets: T.Sequence[build.StaticTargetTypes],
             external_deps: T.List[dependencies.Dependency],
             public: bool,

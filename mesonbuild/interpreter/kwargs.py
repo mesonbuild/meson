@@ -382,7 +382,7 @@ class BaseBuildTarget(TypedDict):
     link_depends: T.List[T.Union[str, File, build.BuildTargetProto]]
     link_language: T.Optional[Language]
     link_whole: T.List[build.StaticTargetTypes]
-    link_with: T.List[build.LinkableTargetTypes]
+    link_with: T.List[build.LinkableProto]
     name_prefix: T.Optional[str]
     name_suffix: T.Optional[str]
     native: MachineChoice
@@ -544,7 +544,7 @@ class FuncDeclareDependency(TypedDict):
     include_directories: T.List[T.Union[build.IncludeDirs, str]]
     link_args: T.List[str]
     link_whole: T.List[build.StaticTargetTypes]
-    link_with: T.List[build.LinkableTargetTypes]
+    link_with: T.List[build.LinkableProto]
     objects: T.List[build.ExtractedObjects]
     sources: T.List[str | build.TargetSources]
     variables: T.Dict[str, str]
