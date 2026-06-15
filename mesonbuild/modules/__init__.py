@@ -275,11 +275,11 @@ def is_module_library(fname: mesonlib.FileOrString) -> bool:
 
 
 class ModuleReturnValue:
-    def __init__(self, return_value: T.Optional['TYPE_var'],
-                 new_objects: T.Sequence[T.Union['TYPE_var', 'mesonlib.ExecutableSerialisation']]) -> None:
+    def __init__(self, return_value: T.Optional[TYPE_var],
+                 new_objects: T.Sequence[T.Union[TYPE_var, mesonlib.InstallScript]]) -> None:
         self.return_value = return_value
         assert isinstance(new_objects, list)
-        self.new_objects: T.List[T.Union['TYPE_var', 'mesonlib.ExecutableSerialisation']] = new_objects
+        self.new_objects: T.List[T.Union[TYPE_var, mesonlib.InstallScript]] = new_objects
 
 class GResourceTarget(build.CustomTarget):
     source_dirs: T.List[str] = []

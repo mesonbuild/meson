@@ -51,7 +51,7 @@ if T.TYPE_CHECKING:
     from .interpreter.interpreterobjects import Test, Doctest
     from .interpreter.kwargs import TargetDepends
     from .linkers import StaticLinker
-    from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
+    from .mesonlib import ExecutableSerialisation, FileMode, FileOrString, InstallScript
     from .mparser import BaseNode
     from .options import ElementaryOptionValues
 
@@ -342,7 +342,7 @@ class Build:
         self.symlinks: T.List[SymlinkData] = []
         self.static_linker: PerMachine[T.Optional[StaticLinker]] = PerMachine(None, None)
         self.subproject_dir = ''
-        self.install_scripts: T.List['ExecutableSerialisation'] = []
+        self.install_scripts: T.List[InstallScript] = []
         self.postconf_scripts: T.List['ExecutableSerialisation'] = []
         self.dist_scripts: T.List['ExecutableSerialisation'] = []
         self.install_dirs: T.List[InstallDir] = []

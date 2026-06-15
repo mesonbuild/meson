@@ -31,7 +31,7 @@ from ..interpreterbase import noPosargs, noKwargs, FeatureNew, FeatureDeprecated
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import (
-    MachineChoice, MesonException, OrderedSet, Popen_safe, join_args, quote_arg
+    InstallScriptFailure, MachineChoice, MesonException, OrderedSet, Popen_safe, join_args, quote_arg
 )
 from ..options import OptionKey
 from ..scripts.gettext import read_linguas
@@ -47,7 +47,7 @@ if T.TYPE_CHECKING:
     from ..interpreter.interpreter import CustomTargetSources
     from ..interpreter.kwargs import CustomTargetInputs, TargetDepends
     from ..interpreterbase import TYPE_var, TYPE_kwargs
-    from ..mesonlib import EnvironmentVariables, FileOrString
+    from ..mesonlib import EnvironmentVariables, FileOrString, InstallScript
     from ..programs import Program, CommandList, CommandListEntry
 
     class PostInstall(TypedDict):
@@ -313,7 +313,7 @@ class GnomeModule(ExtensionModule):
                      once=True, fatal=False)
 
     @staticmethod
-    def _find_tool(state: 'ModuleState', tool: str) -> Program:
+    def _find_tool(state: 'ModuleState', tool: str, required: bool = True) -> Program:
         tool_map = {
             'gio-querymodules': 'gio-2.0',
             'glib-compile-schemas': 'gio-2.0',
@@ -326,7 +326,20 @@ class GnomeModule(ExtensionModule):
         }
         depname = tool_map[tool]
         varname = tool.replace('-', '_')
-        return state.find_tool(tool, depname, varname, native=depname != "gobject-introspection-1.0")
+        return state.find_tool(tool, depname, varname, required=required, native=depname != "gobject-introspection-1.0")
+
+    @staticmethod
+    def _get_install_script(state: ModuleState, name: str, exe: Program, args: T.List[str], skip_if_destdir: bool = True) -> InstallScript:
+        if not exe.found():
+            mlog.warning(f'Program {name} was not found, installation without DESTDIR will fail', fatal=False)
+            return InstallScriptFailure(name, 'Executable was not found')
+        try:
+            install_script = state.backend.get_executable_serialisation([exe, *args])
+            install_script.skip_if_destdir = skip_if_destdir
+            return install_script
+        except MesonException as e:
+            mlog.warning(f'Meson will be unable to run {name}, installation without DESTDIR will fail', fatal=False)
+            return InstallScriptFailure(name, str(e))
 
     @typed_kwargs(
         'gnome.post_install',
@@ -339,46 +352,41 @@ class GnomeModule(ExtensionModule):
     @noPosargs
     @FeatureNew('gnome.post_install', '0.57.0')
     def post_install(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'PostInstall') -> ModuleReturnValue:
-        rv: T.List['mesonlib.ExecutableSerialisation'] = []
+        rv: T.List[InstallScript] = []
         datadir_abs = os.path.join(state.environment.get_prefix(), state.environment.get_datadir())
         if kwargs['glib_compile_schemas'] and not self.install_glib_compile_schemas:
             self.install_glib_compile_schemas = True
-            prog = self._find_tool(state, 'glib-compile-schemas')
+            prog = self._find_tool(state, 'glib-compile-schemas', required=False)
             schemasdir = os.path.join(datadir_abs, 'glib-2.0', 'schemas')
-            script = state.backend.get_executable_serialisation([prog, schemasdir])
-            script.skip_if_destdir = True
+            script = self._get_install_script(state, 'glib-compile-schemas', prog, [schemasdir])
             rv.append(script)
         for d in kwargs['gio_querymodules']:
             if d not in self.install_gio_querymodules:
                 self.install_gio_querymodules.append(d)
-                prog = self._find_tool(state, 'gio-querymodules')
+                prog = self._find_tool(state, 'gio-querymodules', required=False)
                 moduledir = os.path.join(state.environment.get_prefix(), d)
-                script = state.backend.get_executable_serialisation([prog, moduledir])
-                script.skip_if_destdir = True
+                script = self._get_install_script(state, 'gio-querymodules', prog, [moduledir])
                 rv.append(script)
         if kwargs['gtk_update_icon_cache'] and not self.install_gtk_update_icon_cache:
             self.install_gtk_update_icon_cache = True
             prog = state.find_program('gtk4-update-icon-cache', required=False)
             found = isinstance(prog, Executable) or prog.found()
             if not found:
-                prog = state.find_program('gtk-update-icon-cache')
+                prog = state.find_program('gtk-update-icon-cache', required=False)
             icondir = os.path.join(datadir_abs, 'icons', 'hicolor')
-            script = state.backend.get_executable_serialisation([prog, '-q', '-t', '-f', icondir])
-            script.skip_if_destdir = True
+            script = self._get_install_script(state, 'gtk4-update-icon-cache', prog, ['-q', '-t', '-f', icondir])
             rv.append(script)
         if kwargs['update_desktop_database'] and not self.install_update_desktop_database:
             self.install_update_desktop_database = True
-            prog = state.find_program('update-desktop-database')
+            prog = state.find_program('update-desktop-database', required=False)
             appdir = os.path.join(datadir_abs, 'applications')
-            script = state.backend.get_executable_serialisation([prog, '-q', appdir])
-            script.skip_if_destdir = True
+            script = self._get_install_script(state, 'update-desktop-database', prog, ['-q', appdir])
             rv.append(script)
         if kwargs['update_mime_database'] and not self.install_update_mime_database:
             self.install_update_mime_database = True
-            prog = state.find_program('update-mime-database')
+            prog = state.find_program('update-mime-database', required=False)
             appdir = os.path.join(datadir_abs, 'mime')
-            script = state.backend.get_executable_serialisation([prog, appdir])
-            script.skip_if_destdir = True
+            script = self._get_install_script(state, 'update-mime-database', prog, [appdir])
             rv.append(script)
         return ModuleReturnValue(None, rv)
 
