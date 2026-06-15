@@ -2320,6 +2320,7 @@ _BUILTIN_NAMES = {
     'cmake_prefix_path',
     'vsenv',
     'os2_emxomf',
+    'forceabsolutepath',
 }
 
 

@@ -99,6 +99,7 @@ machine](#specifying-options-per-machine) section for details.
 | force_fallback_for                     | []            | Force fallback for those dependencies                          | no             | no                |
 | vsenv                                  | false         | Activate Visual Studio environment                             | no             | no                |
 | os2_emxomf                             | false         | Use OMF format on OS/2                                         | no             | no                |
+| forceabsolutepath                      | false         | Use absolute paths to sources in generated build files        | no             | no                |
 
 (For the Rust language only, `warning_level=0` disables all warnings).
 

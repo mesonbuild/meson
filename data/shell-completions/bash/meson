@@ -256,6 +256,7 @@ _meson_common_setup_configure_longopts=(
   unity-size
   warnlevel
   werror
+  forceabsolutepath
   wrap-mode
   force-fallback-for
   vsenv

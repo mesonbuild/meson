@@ -62,6 +62,7 @@ local -a __meson_common=(
   '--unity=[unity builds on/off]:whether to do unity builds:(on off subprojects)'
   '--warnlevel=[compiler warning level]:compiler warning level:warning level:(1 2 3)'
   '--werror[treat warnings as errors]'
+  '--forceabsolutepath[use absolute paths to sources in generated build files]'
   '--wrap-mode=[special wrap mode]:wrap mode:'"$__meson_wrap_modes"
   '--force-fallback-for=[force fallback for listed subprojects]'
   '--pkg-config-path=[extra paths for HOST pkg-config to search]:paths:_dir_list -s ,'

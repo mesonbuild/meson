@@ -3087,7 +3087,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         #
         # But never subdir()s into the actual dir.
         if os.path.isdir(os.path.join(self.environment.get_build_dir(), expdir)):
-            bargs = compiler.get_include_args(expdir, is_system)
+            builddir = expdir
+            if self.force_absolute_path:
+                builddir = os.path.join(self.environment.get_build_dir(), expdir)
+            bargs = compiler.get_include_args(builddir, is_system)
         else:
             bargs = []
         return (sargs, bargs)
@@ -3105,7 +3108,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add custom target dirs as includes automatically, but before
         # target-specific include directories.
         if target.implicit_include_directories:
-            commands += self.get_custom_target_dir_include_args(target, compiler)
+            commands += self.get_custom_target_dir_include_args(target, compiler, absolute_path=self.force_absolute_path)
         # Add include dirs from the `include_directories:` kwarg on the target
         # and from `include_directories:` of internal deps of the target.
         #
@@ -3164,12 +3167,15 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # in their source tree. Many projects that are moving to Meson have
         # both Meson and Autotools in parallel as part of the transition.
         if target.implicit_include_directories:
-            commands += self.get_source_dir_include_args(target, compiler)
+            commands += self.get_source_dir_include_args(target, compiler, absolute_path=self.force_absolute_path)
         if target.implicit_include_directories:
-            commands += self.get_build_dir_include_args(target, compiler)
+            commands += self.get_build_dir_include_args(target, compiler, absolute_path=self.force_absolute_path)
         # Finally add the private dir for the target to the include path. This
         # must override everything else and must be the final path added.
-        commands += compiler.get_include_args(self.get_target_private_dir(target), False)
+        private_dir = self.get_target_private_dir(target)
+        if self.force_absolute_path:
+            private_dir = os.path.join(self.environment.get_build_dir(), private_dir)
+        commands += compiler.get_include_args(private_dir, False)
         return list(commands)
 
     # Returns a dictionary, mapping from each compiler src type (e.g. 'c', 'cpp', etc.) to a list of compiler arg strings

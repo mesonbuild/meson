@@ -100,6 +100,7 @@ _BUILTIN_NAMES = {
     'cmake_prefix_path',
     'vsenv',
     'os2_emxomf',
+    'forceabsolutepath',
 }
 
 _BAD_VALUE = 'Qwert Zuiopü'
@@ -704,6 +705,7 @@ BUILTIN_CORE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
         UserStringArrayOption('force_fallback_for', 'Force fallback for those subprojects', []),
         UserBooleanOption('vsenv', 'Activate Visual Studio environment', False, readonly=True),
         UserBooleanOption('os2_emxomf', 'Use OMF format on OS/2', False),
+        UserBooleanOption('forceabsolutepath', 'Use absolute paths to sources in generated build files', False),
 
         # Pkgconfig module
         UserBooleanOption('pkgconfig.relocatable', 'Generate pkgconfig files as relocatable', False),

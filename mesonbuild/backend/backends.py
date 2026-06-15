@@ -287,8 +287,12 @@ class Backend:
         self.processed_targets: T.Set[str] = set()
         self.build_dir = self.environment.get_build_dir()
         self.source_dir = self.environment.get_source_dir()
-        self.build_to_src = mesonlib.relpath(self.environment.get_source_dir(),
-                                             self.environment.get_build_dir())
+        self.force_absolute_path = self.environment.coredata.optstore.get_value_for(OptionKey('forceabsolutepath'))
+        if self.force_absolute_path:
+            self.build_to_src = self.environment.get_source_dir()
+        else:
+            self.build_to_src = mesonlib.relpath(self.environment.get_source_dir(),
+                                                 self.environment.get_build_dir())
         self.src_to_build = mesonlib.relpath(self.environment.get_build_dir(),
                                              self.environment.get_source_dir())
 
@@ -878,6 +882,8 @@ class Backend:
     def get_pch_include_args(self, compiler: 'Compiler', target: build.BuildTarget) -> T.List[str]:
         args: T.List[str] = []
         pchpath = self.get_target_private_dir(target)
+        if self.force_absolute_path:
+            pchpath = os.path.join(self.environment.get_build_dir(), pchpath)
         includeargs = compiler.get_include_args(pchpath, False)
         p = target.pch.get(compiler.get_language())
         if p:
