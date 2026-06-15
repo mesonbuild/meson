@@ -315,7 +315,7 @@ class Backend:
     def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict] = None) -> T.Optional[T.Dict]:
         raise RuntimeError(f'generate is not implemented in {type(self).__name__}')
 
-    def get_target_filename(self, t: build.AnyTargetType, *, warn_multi_output: bool = True) -> str:
+    def get_target_filename(self, t: build.BuildTargetTypes, *, warn_multi_output: bool = True) -> str:
         if isinstance(t, build.CustomTarget):
             if warn_multi_output and len(t.get_outputs()) != 1:
                 mlog.warning(f'custom_target {t.name!r} has more than one output! '
@@ -324,7 +324,6 @@ class Backend:
         elif isinstance(t, build.CustomTargetIndex):
             filename = t.get_outputs()[0]
         else:
-            assert isinstance(t, build.BuildTarget), t
             filename = t.get_filename()
         return os.path.join(self.get_target_dir(t), filename)
 
@@ -339,7 +338,7 @@ class Backend:
         linker, _ = t.get_clink_dynamic_linker_and_stdlibs()
         return linker.get_archive_name(filename)
 
-    def get_target_filename_abs(self, target: build.AnyTargetType) -> str:
+    def get_target_filename_abs(self, target: build.BuildTargetTypes) -> str:
         return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
 
     def get_target_debug_filename(self, target: build.BuildTarget) -> T.Optional[str]:
@@ -428,7 +427,7 @@ class Backend:
             return os.path.join(self.build_to_src, target_dir)
         return self.build_to_src
 
-    def get_target_private_dir(self, target: build.AnyTargetType) -> str:
+    def get_target_private_dir(self, target: build.BuildTargetTypes) -> str:
         return os.path.join(self.get_target_filename(target, warn_multi_output=False) + '.p')
 
     def get_target_private_dir_abs(self, target: build.BuildTargetTypes) -> str:
