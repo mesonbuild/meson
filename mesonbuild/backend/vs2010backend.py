@@ -182,7 +182,8 @@ class Vs2010Backend(backends.Backend):
         else:
             target_private_dir = self.relpath(self.get_target_private_dir(target), self.get_target_dir(target))
             for x in genlist.depends:
-                self.generate_genlist_for_target(x, target, parent_node, [], [], [])
+                if isinstance(x, build.GeneratedList):
+                    self.generate_genlist_for_target(x, target, parent_node, [], [], [])
             generator = genlist.get_generator()
             exe = generator.get_exe()
             infilelist = genlist.get_inputs()
