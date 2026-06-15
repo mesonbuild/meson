@@ -308,7 +308,7 @@ class XCodeBackend(backends.Backend):
         dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))))
         return dirname
 
-    def get_custom_target_output_dir(self, target: build.AnyTargetType) -> str:
+    def get_custom_target_output_dir(self, target: build.AnyTargetProto) -> str:
         dirname = target.get_subdir()
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
@@ -1502,7 +1502,7 @@ class XCodeBackend(backends.Backend):
                 for arg in base_args:
                     arg = arg.replace("@INPUT@", infilename)
                     arg = arg.replace('@OUTPUT@', o).replace('@BUILD_DIR@', self.get_target_private_dir(t))
-                    arg = arg.replace("@CURRENT_SOURCE_DIR@", os.path.join(self.build_to_src, t.subdir))
+                    arg = arg.replace("@CURRENT_SOURCE_DIR@", os.path.join(self.build_to_src, t.get_subdir()))
                     args.append(arg)
                 args = self.replace_outputs(args, self.get_target_private_dir(t), outfilelist)
                 args = self.replace_extra_args(args, genlist)

@@ -1313,7 +1313,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(per_config_prop_group, 'OutDir').text = f'{proj_to_build_dir_for_buildtype}\\'
             ET.SubElement(per_config_prop_group, 'IntDir').text = f'{proj_to_build_dir_for_buildtype}\\'
             ET.SubElement(per_config_prop_group, 'NMakeBuildCommandLine').text = f'{nmake_base_meson_command} compile -C "{proj_to_build_dir_for_buildtype}"'
-            ET.SubElement(per_config_prop_group, 'NMakeOutput').text = f'$(OutDir){target.name}{target_ext}'
+            ET.SubElement(per_config_prop_group, 'NMakeOutput').text = f'$(OutDir){target.get_basename()}{target_ext}'
             captured_build_args = vslite_ctx[buildtype][target.get_id()]
             # 'captured_build_args' is a dictionary, mapping from each src file type to a list of compile args to use for that type.
             # Usually, there's just one but we could have multiple src types.  However, since there's only one field for the makefile

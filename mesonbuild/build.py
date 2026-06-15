@@ -38,7 +38,7 @@ from .compilers import (
 from .interpreterbase import FeatureNew, FeatureDeprecated
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, Self, TypeAlias, TypedDict
+    from typing_extensions import Literal, Self, TypeAlias, TypedDict, Protocol
 
     from .arglist import CompilerArgs
     from .environment import Environment
@@ -62,9 +62,20 @@ if T.TYPE_CHECKING:
     BuildTargetTypes: TypeAlias = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
     StaticTargetTypes: TypeAlias = T.Union['StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
     ObjectTypes: TypeAlias = T.Union['File', 'ExtractedObjects']
-    AnyTargetType: TypeAlias = T.Union['Target', 'CustomTargetIndex']
     RustCrateType: TypeAlias = Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
     _LibraryType: TypeAlias = Literal['auto', 'shared', 'static']
+
+    class AnyTargetProto(Protocol):
+        @property
+        def depend_files(self) -> T.List[File]: ...
+
+        def get_basename(self) -> str: ...
+        def get_build_subdir(self) -> str: ...
+        def get_builddir(self) -> str: ...
+        def get_id(self) -> str: ...
+        def get_outputs(self) -> T.List[str]: ...
+        def get_subdir(self) -> str: ...
+        def get_target(self) -> Target: ...
 
     class DFeatures(TypedDict):
 
@@ -157,6 +168,8 @@ if T.TYPE_CHECKING:
         java_args: T.List[str]
         java_resources: T.Optional[StructuredSources]
         main_class: str
+else:
+    AnyTargetProto = object
 
 
 _T = T.TypeVar('_T')
@@ -649,7 +662,7 @@ class StructuredSources(HoldableObject):
 
 
 @dataclass(eq=False)
-class Target(HoldableObject, metaclass=SimpleABC):
+class Target(HoldableObject, AnyTargetProto, metaclass=SimpleABC):
 
     typename: T.ClassVar[str]
 
@@ -2939,7 +2952,7 @@ def flatten_command(cmd: T.Iterable[CommandTypes],
     return final_cmd, depend_files, dependencies
 
 
-class CustomTargetBase(LinkableTarget, metaclass=SimpleABC):
+class CustomTargetBase(LinkableTarget, AnyTargetProto, metaclass=SimpleABC):
     ''' Base class for CustomTarget and CustomTargetIndex
 
     This base class can be used to provide a dummy implementation of some
@@ -3276,7 +3289,7 @@ class RunTarget(Target):
     def __init__(self, name: str,
                  command: T.Sequence[CommandTypes],
                  # the RunTarget case is used by gnome.yelp()
-                 dependencies: T.Sequence[Target | CustomTargetIndex | GeneratedList | programs.Program],
+                 dependencies: T.Sequence[AnyTargetProto | GeneratedList | programs.Program],
                  subdir: str,
                  environment: Environment,
                  build_project: BuildProject,
@@ -3295,7 +3308,7 @@ class RunTarget(Target):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command[0])
 
-    def get_dependencies(self) -> T.List[Target | CustomTargetIndex | GeneratedList | programs.Program]:
+    def get_dependencies(self) -> T.Iterable[AnyTargetProto | GeneratedList | programs.Program]:
         return self.dependencies
 
     def get_generated_sources(self) -> T.List[GeneratedTypes]:
