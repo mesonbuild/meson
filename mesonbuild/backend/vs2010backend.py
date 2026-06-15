@@ -1285,7 +1285,7 @@ class Vs2010Backend(backends.Backend):
                                                platform: str,
                                                target_ext: str,
                                                vslite_ctx: _VSLITE_CTX,
-                                               target: build.AnyTargetType,
+                                               target: build.Target,
                                                proj_to_build_root: str,
                                                primary_src_lang: T.Optional[Language]) -> None:
         ET.SubElement(root, 'ImportGroup', Label='ExtensionSettings')
@@ -1637,7 +1637,7 @@ class Vs2010Backend(backends.Backend):
     # once a build/compile has generated these sources.
     #
     # This modifies the paths in 'gen_files' in place, as opposed to returning a new list of modified paths.
-    def relocate_generated_file_paths_to_concrete_build_dir(self, gen_files: T.List[str], target: build.AnyTargetType) -> None:
+    def relocate_generated_file_paths_to_concrete_build_dir(self, gen_files: T.List[str], target: build.BuildTarget) -> None:
         (_, build_dir_tail) = os.path.split(self.src_to_build)
         meson_build_dir_for_buildtype = build_dir_tail[:-2] + coredata.get_genvs_default_buildtype_list()[0] # Get the first buildtype suffixed dir (i.e. '[builddir]_debug') from '[builddir]_vs'
         # Relative path from this .vcxproj to the directory containing the set of '..._[debug/debugoptimized/release]' setup meson build dirs.
