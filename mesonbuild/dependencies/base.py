@@ -28,7 +28,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
     from ..build import (
-        CustomTarget, IncludeDirs, CustomTargetIndex, LinkableTargetTypes,
+        CustomTarget, IncludeDirs, CustomTargetIndex, LinkableProto,
         StaticLibrary, ExtractedObjects, TargetSources
     )
     from ..interpreter.type_checking import PkgConfigDefineType
@@ -309,7 +309,7 @@ class InternalDependency(Dependency):
     def __init__(self, version: str, incdirs: T.Optional[T.List['IncludeDirs']] = None,
                  compile_args: T.Optional[T.List[str]] = None,
                  link_args: T.Optional[T.List[str]] = None,
-                 libraries: T.Optional[T.List[LinkableTargetTypes]] = None,
+                 libraries: T.Optional[T.List[LinkableProto]] = None,
                  whole_libraries: T.Optional[T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]] = None,
                  sources: T.Optional[T.Sequence[TargetSources]] = None,
                  extra_files: T.Optional[T.Sequence[mesonlib.File]] = None,

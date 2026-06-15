@@ -59,7 +59,6 @@ if T.TYPE_CHECKING:
     CommandTypes: TypeAlias = T.Union['programs.Program', 'BuildTargetTypes', File, str]
     GeneratedTypes: TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
-    LinkableTargetTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex', 'Executable']
     BuildTargetTypes: TypeAlias = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
     StaticTargetTypes: TypeAlias = T.Union['StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
     ObjectTypes: TypeAlias = T.Union['File', 'ExtractedObjects']
@@ -108,6 +107,9 @@ if T.TYPE_CHECKING:
     # if not, this will be a mypy error
     def _assert_BuildTargetProto(x: BuildTargetTypes) -> BuildTargetProto: return x
 
+    class LinkableProto(BuildTargetProto, Protocol):
+        def get(self, lib_type: _LibraryType, recursive: bool = False) -> LinkableProto: ...
+
     class DFeatures(TypedDict):
 
         unittest: bool
@@ -146,7 +148,7 @@ if T.TYPE_CHECKING:
         link_depends: T.Sequence[T.Union[File, BuildTargetProto]]
         link_language: Language
         link_whole: T.List[StaticTargetTypes]
-        link_with: T.List[LinkableTargetTypes]
+        link_with: T.List[LinkableProto]
         name_prefix: T.Optional[str]
         name_suffix: T.Optional[str]
         native: MachineChoice
@@ -202,6 +204,7 @@ if T.TYPE_CHECKING:
 else:
     AnyTargetProto = object
     BuildTargetProto = object
+    LinkableProto = object
 
 
 _T = T.TypeVar('_T')
@@ -886,7 +889,7 @@ class BuildTarget(Target, BuildTargetProto):
         self.external_deps: T.List[dependencies.Dependency] = []
         self.include_dirs: T.List['IncludeDirs'] = []
         self.link_language: T.Optional[Language] = kwargs.get('link_language')
-        self.link_targets: T.List[LinkableTargetTypes] = []
+        self.link_targets: T.List[LinkableProto] = []
         self.link_whole_targets: T.List[StaticTargetTypes] = []
         self.depend_files = kwargs.get('depend_files', [])
         self.link_depends = list(kwargs.get('link_depends', []))
@@ -1178,7 +1181,7 @@ class BuildTarget(Target, BuildTargetProto):
         # the languages of those libraries as well.
         if self.link_targets or self.link_whole_targets:
             for t in itertools.chain(self.link_targets, self.link_whole_targets):
-                if isinstance(t, (CustomTarget, CustomTargetIndex)):
+                if not isinstance(t, BuildTarget):
                     continue # We can't know anything about these.
                 target_langs = [t.link_language] if t.link_language else list(t.compilers)
                 for lang in target_langs:
@@ -1641,7 +1644,7 @@ class BuildTarget(Target, BuildTargetProto):
     def is_internal(self) -> bool:
         return False
 
-    def link(self, targets: T.Iterable[LinkableTargetTypes]) -> None:
+    def link(self, targets: T.Iterable[LinkableProto]) -> None:
         for t in targets:
             self.check_can_link_together(t)
             self.link_targets.append(t)
@@ -1712,7 +1715,7 @@ class BuildTarget(Target, BuildTargetProto):
         # Check if any of the internal libraries this target links to were
         # written in this language
         for t in itertools.chain(self.link_targets, self.link_whole_targets):
-            if isinstance(t, (CustomTarget, CustomTargetIndex)):
+            if not isinstance(t, BuildTarget):
                 continue
             target_langs = [t.link_language] if t.link_language else list(t.compilers)
             for language in target_langs:
@@ -1890,10 +1893,10 @@ class BuildTarget(Target, BuildTargetProto):
         assert isinstance(bl_type, str), 'for mypy'
         return T.cast('_LibraryType', bl_type)
 
-    def _extract_link_with(self, kwargs: BuildTargetKeywordArguments) -> list[LinkableTargetTypes]:
+    def _extract_link_with(self, kwargs: BuildTargetKeywordArguments) -> list[LinkableProto]:
         bl_type = self._default_library_type()
 
-        lib_list: list[LinkableTargetTypes] = []
+        lib_list: list[LinkableProto] = []
         for lib in itertools.chain(kwargs.get('link_with', []), self.link_targets):
             if isinstance(lib, (CustomTarget, CustomTargetIndex)):
                 lib_list.append(lib)
@@ -2037,13 +2040,6 @@ class BuildTarget(Target, BuildTargetProto):
             return 'darwin'
         else:
             return 'unix'
-
-
-class LinkableTarget(metaclass=SimpleABC):
-    @abc.abstractmethod
-    def get(self, lib_type: _LibraryType) -> LinkableTargetTypes:
-        """If applicable, return the shared or static "part" of this target.
-           Otherwise, just return self."""
 
 
 class FileInTargetPrivateDir:
@@ -2251,7 +2247,7 @@ class GeneratedList(HoldableObject):
         return self.generator.name
 
 
-class Executable(BuildTarget, LinkableTarget):
+class Executable(BuildTarget, LinkableProto):
     typename = 'executable'
 
     def __init__(
@@ -2354,7 +2350,7 @@ class Executable(BuildTarget, LinkableTarget):
                 name += '_' + self.suffix
             self.debug_filename = name + '.pdb'
 
-    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LinkableTargetTypes:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> Self:
         """Base case used by BothLibraries"""
         return self
 
@@ -2384,7 +2380,7 @@ class Executable(BuildTarget, LinkableTarget):
         return self.is_linkwithable
 
 
-class StaticLibrary(BuildTarget, LinkableTarget):
+class StaticLibrary(BuildTarget, LinkableProto):
     typename = 'static library'
 
     def __init__(
@@ -2506,7 +2502,7 @@ class StaticLibrary(BuildTarget, LinkableTarget):
         self.both_lib = copy.copy(shared_library)
         self.both_lib.both_lib = None
 
-    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LinkableTargetTypes:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> SharedLibrary | StaticLibrary:
         result = self
         if lib_type == 'shared':
             result = self.both_lib or self
@@ -2532,7 +2528,7 @@ class StaticLibrary(BuildTarget, LinkableTarget):
                     self._bundle_static_library(lib, True)
             self.link_whole_targets.append(t)
 
-    def link(self, targets: T.Iterable[LinkableTargetTypes]) -> None:
+    def link(self, targets: T.Iterable[LinkableProto]) -> None:
         for t in targets:
             if self.install and t.is_internal():
                 # When we're a static library and we link_with to an
@@ -2563,7 +2559,7 @@ class StaticLibrary(BuildTarget, LinkableTarget):
         else:
             self.objects.append(t.extract_all_objects())
 
-class SharedLibrary(BuildTarget, LinkableTarget):
+class SharedLibrary(BuildTarget, LinkableProto):
     typename = 'shared library'
 
     # Used by AIX to decide whether to archive shared library or not.
@@ -2870,7 +2866,7 @@ class SharedLibrary(BuildTarget, LinkableTarget):
         self.both_lib = copy.copy(static_library)
         self.both_lib.both_lib = None
 
-    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LinkableTargetTypes:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> SharedLibrary | StaticLibrary:
         result = self
         if lib_type == 'static':
             result = self.both_lib or self
@@ -2890,7 +2886,7 @@ class SharedLibrary(BuildTarget, LinkableTarget):
                 raise InvalidArguments(msg)
             self.link_whole_targets.append(t)
 
-    def link(self, targets: T.Iterable[LinkableTargetTypes]) -> None:
+    def link(self, targets: T.Iterable[LinkableProto]) -> None:
         for t in targets:
             if isinstance(t, StaticLibrary) and not t.pic:
                 msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
@@ -2930,7 +2926,7 @@ class SharedModule(SharedLibrary):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_shared_module_dir(), '{moduledir_shared}'
 
-class BothLibraries(SecondLevelHolder, LinkableTarget):
+class BothLibraries(SecondLevelHolder):
     typename: T.ClassVar[str] = 'both libraries'
 
     def __init__(self, shared: SharedLibrary, static: StaticLibrary, preferred_library: Literal['shared', 'static']) -> None:
@@ -3010,7 +3006,7 @@ def flatten_command(cmd: T.Iterable[CommandTypes],
     return final_cmd, depend_files, dependencies
 
 
-class CustomTargetBase(LinkableTarget, BuildTargetProto, metaclass=SimpleABC):
+class CustomTargetBase(LinkableProto, metaclass=SimpleABC):
     ''' Base class for CustomTarget and CustomTargetIndex
 
     This base class can be used to provide a dummy implementation of some
@@ -3038,7 +3034,7 @@ class CustomTargetBase(LinkableTarget, BuildTargetProto, metaclass=SimpleABC):
     def get_all_linked_targets(self) -> ImmutableListProtocol[BuildTargetProto]:
         return []
 
-    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LinkableTargetTypes:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> Self:
         """Base case used by BothLibraries"""
         assert isinstance(self, (CustomTarget, CustomTargetIndex))
         return self
@@ -3431,7 +3427,7 @@ class Jar(BuildTarget):
         self.main_class = kwargs.get('main_class', '')
         self.java_resources: T.Optional[StructuredSources] = kwargs.get('java_resources', None)
 
-    def _extract_link_with(self, kwargs: BuildTargetKeywordArguments) -> list[LinkableTargetTypes]:
+    def _extract_link_with(self, kwargs: BuildTargetKeywordArguments) -> list[LinkableProto]:
         return kwargs['link_with']
 
     def get_main_class(self) -> str:
