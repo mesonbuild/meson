@@ -20,8 +20,8 @@ from .. import envconfig
 from ..wrap import wrap, WrapMode
 from .. import mesonlib
 from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException, HoldableObject,
-                        FileMode, MachineChoice, PerMachine, PerMachineDefaultable, is_parent_path, listify,
-                        has_path_sep, path_has_root, path_is_in_root)
+                        FileMode, InstallScriptFailure, MachineChoice, PerMachine, PerMachineDefaultable, is_parent_path,
+                        listify, has_path_sep, path_has_root, path_is_in_root)
 from ..options import OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram, Program
 from ..dependencies import Dependency
@@ -124,7 +124,7 @@ if T.TYPE_CHECKING:
     from ..compilers.compilers import CompilerDict, Language
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
     from ..options import OptionDict
-    from ..mesonlib import SubProject
+    from ..mesonlib import InstallScript, SubProject
     from ..cmdline import SharedCMDOptions
     from .type_checking import SourcesVarargsType, FullEnvInitValueType
 
@@ -512,7 +512,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             held_type: holder_type
         })
 
-    def process_new_values(self, invalues: list[TYPE_var | ExecutableSerialisation] | list[build.GeneratedTypes | mesonlib.File]) -> None:
+    def process_new_values(self, invalues: list[TYPE_var | InstallScript] | list[build.GeneratedTypes | mesonlib.File]) -> None:
         for v in invalues:
             if isinstance(v, ObjectHolder):
                 raise InterpreterException('Modules must not return ObjectHolders')
@@ -520,7 +520,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 self.add_target(v.name, v)
             elif isinstance(v, list):
                 self.process_new_values(v)
-            elif isinstance(v, ExecutableSerialisation):
+            elif isinstance(v, (ExecutableSerialisation, InstallScriptFailure)):
                 v.subproject = self.subproject
                 self.build.install_scripts.append(v)
             elif isinstance(v, build.Data):

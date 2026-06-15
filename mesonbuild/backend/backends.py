@@ -27,7 +27,7 @@ from .. import compilers
 from ..compilers import detect, lang_suffixes
 from ..mesonlib import (
     File, MachineChoice, MesonException, MesonBugException, OrderedSet,
-    ExecutableSerialisation, EnvironmentException, FileMode,
+    ExecutableSerialisation, EnvironmentException, FileMode, InstallScriptFailure,
     classify_unity_sources, get_compiler_for_source,
     get_rsp_threshold, unique_list
 )
@@ -42,6 +42,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreter import Test
     from ..linkers import StaticLinker
+    from ..mesonlib import InstallScript
     from ..options import ElementaryOptionValues
 
     from typing_extensions import Literal, TypedDict, NotRequired, TypeAlias
@@ -133,7 +134,7 @@ class InstallData:
         self.emptydir: T.List[InstallEmptyDir] = []
         self.data: T.List[InstallDataBase] = []
         self.symlinks: T.List[InstallSymlinkData] = []
-        self.install_scripts: T.List[ExecutableSerialisation] = []
+        self.install_scripts: T.List[InstallScript] = []
         self.install_subdirs: T.List[SubdirInstallData] = []
 
 @dataclass(eq=False)
@@ -1855,7 +1856,8 @@ class Backend:
         d.install_scripts = self.build.install_scripts
         for i in d.install_scripts:
             if not i.tag:
-                mlog.debug('Failed to guess install tag for install script:', ' '.join(i.cmd_args))
+                name = i.name if isinstance(i, InstallScriptFailure) else ' '.join(i.cmd_args)
+                mlog.debug('Failed to guess install tag for install script:', name)
 
     def generate_header_install(self, d: InstallData) -> None:
         incroot = self.environment.get_includedir()

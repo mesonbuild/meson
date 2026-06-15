@@ -17,8 +17,8 @@ import re
 
 from . import build, tooldetect
 from .backend.backends import InstallData
-from .mesonlib import (MesonException, Popen_safe, RealPathAction, is_windows,
-                       is_aix, setup_vsenv, path_has_root, pickle_load, is_osx,
+from .mesonlib import (InstallScriptFailure, MesonException, Popen_safe, RealPathAction,
+                       is_windows, is_aix, setup_vsenv, path_has_root, pickle_load, is_osx,
                        unwrap)
 from .options import OptionKey
 from .scripts import depfixer, destdir_join
@@ -36,7 +36,7 @@ if T.TYPE_CHECKING:
             InstallDataBase, InstallEmptyDir,
             InstallSymlinkData, TargetInstallData
     )
-    from .mesonlib import FileMode, EnvironOrDict, ExecutableSerialisation
+    from .mesonlib import FileMode, EnvironOrDict, ExecutableSerialisation, InstallScript
 
     try:
         from typing import Protocol
@@ -389,7 +389,7 @@ class Installer:
 
     def should_install(self, d: T.Union[TargetInstallData, InstallEmptyDir,
                                         InstallDataBase, InstallSymlinkData,
-                                        ExecutableSerialisation]) -> bool:
+                                        InstallScript]) -> bool:
         if d.subproject and (d.subproject in self.skip_subprojects or '*' in self.skip_subprojects):
             return False
         if self.tags and d.tag not in self.tags:
@@ -706,6 +706,12 @@ class Installer:
             self.set_mode(outfilename, t.install_mode, d.install_umask)
 
     def run_install_script(self, d: InstallData, destdir: str, fullprefix: str) -> None:
+        failing_scripts = [script for script in d.install_scripts if isinstance(script, InstallScriptFailure)]
+        if not destdir and len(failing_scripts) > 0:
+            for script in failing_scripts:
+                self.log(f'ERROR: Failed to run install script {script.name}: {script.reason}')
+            raise MesonException('Install scripts failed to run')
+
         env = {'MESON_SOURCE_ROOT': d.source_dir,
                'MESON_BUILD_ROOT': d.build_dir,
                'MESONINTROSPECT': ' '.join([shlex.quote(x) for x in d.mesonintrospect]),
@@ -719,6 +725,13 @@ class Installer:
             if not self.should_install(i):
                 continue
 
+            name = i.name if isinstance(i, InstallScriptFailure) else ' '.join(i.cmd_args)
+            if destdir and (isinstance(i, InstallScriptFailure) or i.skip_if_destdir):
+                self.log(f'Skipping custom install script because DESTDIR is set {name!r}')
+                continue
+
+            assert not isinstance(i, InstallScriptFailure) # Should part of failing_scripts and thus this is not reached
+
             if i.installdir_map is not None:
                 mapp = i.installdir_map
             else:
@@ -727,10 +740,6 @@ class Installer:
             localenv.update({'MESON_INSTALL_'+k.upper(): os.path.join(d.prefix, v) for k, v in mapp.items()})
             localenv.update({'MESON_INSTALL_DESTDIR_'+k.upper(): get_destdir_path(destdir, fullprefix, v) for k, v in mapp.items()})
 
-            name = ' '.join(i.cmd_args)
-            if i.skip_if_destdir and destdir:
-                self.log(f'Skipping custom install script because DESTDIR is set {name!r}')
-                continue
             self.did_install_something = True  # Custom script must report itself if it does nothing.
             self.log(f'Running custom install script {name!r}')
             try:

@@ -28,7 +28,7 @@ import json
 import dataclasses
 
 from mesonbuild import mlog
-from .core import MesonException, MesonBugException, HoldableObject
+from .core import MesonException, MesonBugException, HoldableObject, ExecutableSerialisation
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Protocol, Self
@@ -86,6 +86,8 @@ __all__ = [
     'EnvironmentException',
     'FileOrString',
     'GitException',
+    'InstallScript',
+    'InstallScriptFailure',
     'dump_conf_header',
     'OrderedSet',
     'PerMachine',
@@ -726,6 +728,16 @@ class PerThreeMachineDefaultable(PerMachineDefaultable[T.Optional[_T]], PerThree
         target = self.target if self.target is not None else host
         return PerThreeMachine(build, host, target)
 
+@dataclasses.dataclass(eq=False)
+class InstallScriptFailure:
+
+    name: str
+    reason: str
+    tag: T.Optional[str] = None
+
+    subproject = ROOT_SUBPROJECT
+
+InstallScript = T.Union[ExecutableSerialisation, InstallScriptFailure]
 
 _PLATFORM_SYSTEM_LOWER = platform.system().lower()
 _PLATFORM_RELEASE_LOWER = platform.release().lower()
