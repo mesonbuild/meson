@@ -160,7 +160,7 @@ class Vs2010Backend(backends.Backend):
     def detect_toolset(self) -> None:
         pass
 
-    def get_target_private_dir(self, target: build.AnyTargetType) -> str:
+    def get_target_private_dir(self, target: build.BuildTargetTypes) -> str:
         return os.path.join(self.get_target_dir(target), target.get_id())
 
     def generate_genlist_for_target(
@@ -609,7 +609,7 @@ class Vs2010Backend(backends.Backend):
                 headers.append(i)
         return sources, headers, objects, languages
 
-    def target_to_build_root(self, target: build.AnyTargetType) -> str:
+    def target_to_build_root(self, target: build.BuildTargetTypes) -> str:
         if self.get_target_dir(target) == '':
             return ''
 
