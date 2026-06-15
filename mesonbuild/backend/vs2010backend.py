@@ -170,10 +170,6 @@ class Vs2010Backend(backends.Backend):
             generator_output_files: T.List[str],
             custom_target_include_dirs: T.List[str],
             custom_target_output_files: T.List[str]) -> None:
-        if isinstance(genlist, build.GeneratedList):
-            for x in genlist.depends:
-                self.generate_genlist_for_target(x, target, parent_node, [], [], [])
-        target_private_dir = self.relpath(self.get_target_private_dir(target), self.get_target_dir(target))
         down = self.target_to_build_root(target)
         if isinstance(genlist, (build.CustomTarget, build.CustomTargetIndex)):
             for i in genlist.get_outputs():
@@ -184,6 +180,9 @@ class Vs2010Backend(backends.Backend):
             if idir not in custom_target_include_dirs:
                 custom_target_include_dirs.append(idir)
         else:
+            target_private_dir = self.relpath(self.get_target_private_dir(target), self.get_target_dir(target))
+            for x in genlist.depends:
+                self.generate_genlist_for_target(x, target, parent_node, [], [], [])
             generator = genlist.get_generator()
             exe = generator.get_exe()
             infilelist = genlist.get_inputs()
