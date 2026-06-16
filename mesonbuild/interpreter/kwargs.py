@@ -238,7 +238,7 @@ class AddTestSetup(TypedDict):
 
 class Project(TypedDict):
 
-    version: T.Optional[FileOrString]
+    version: FileOrString
     meson_version: T.Optional[str]
     default_options: options.OptionDict
     license: T.List[str]
