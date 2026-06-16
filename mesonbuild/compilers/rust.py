@@ -167,8 +167,7 @@ class RustCompiler(Compiler):
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
         cmdlist = self.exelist.copy()
         largs: T.List[str] = []
-        assert self.linker is not None, 'for mypy'
-        if self.info.kernel == 'none' and 'ld.' in self.linker.id:
+        if self.info.kernel == 'none' and 'ld.' in self.get_linker_id():
             largs.extend(rustc_link_args(['-nostartfiles']))
         cmdlist.extend(self.get_output_args(binname))
         cmdlist.append(sourcename)
