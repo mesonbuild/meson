@@ -225,7 +225,7 @@ class TestSerialisation:
             assert isinstance(self.exe_wrapper, programs.ExternalProgram)
 
 
-def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None) -> T.Optional['Backend']:
+def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None) -> Backend:
     if backend == 'ninja':
         from . import ninjabackend
         return ninjabackend.NinjaBackend(build)
@@ -262,17 +262,17 @@ def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None) -
     elif backend == 'none':
         from . import nonebackend
         return nonebackend.NoneBackend(build)
-    return None
+    raise MesonException(f'Unknown backend {backend}')
 
 
-def get_genvslite_backend(genvsname: str, build: T.Optional[build.Build] = None) -> T.Optional['Backend']:
+def get_genvslite_backend(genvsname: str, build: T.Optional[build.Build] = None) -> Backend:
     if genvsname == 'vs2022':
         from . import vs2022backend
         return vs2022backend.Vs2022Backend(build, gen_lite = True)
     if genvsname == 'vs2026':
         from . import vs2026backend
         return vs2026backend.Vs2026Backend(build, gen_lite = True)
-    return None
+    raise MesonException(f'Unknown genvslite backend {genvsname}')
 
 # This class contains the basic functionality that is needed by all backends.
 # Feel free to move stuff in and out of it as you see fit.
