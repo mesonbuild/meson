@@ -1263,7 +1263,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('meson_version', (str, NoneType)),
         KwargInfo(
             'version',
-            (str, mesonlib.File, NoneType, list),
+            (str, mesonlib.File, list),
             default='undefined',
             validator=_project_version_validator,
             convertor=lambda x: x[0] if isinstance(x, list) else x,
