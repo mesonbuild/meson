@@ -1225,8 +1225,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             assert isinstance(backend_name, str), 'for mypy'
             self.backend = backends.get_backend_from_name(backend_name, self.build)
 
-        if self.backend is None:
-            raise InterpreterException(f'Unknown backend "{backend_name}".')
         if backend_name != self.backend.name:
             if self.backend.name.startswith('vs'):
                 mlog.log('Auto detected Visual Studio backend:', mlog.bold(self.backend.name))
