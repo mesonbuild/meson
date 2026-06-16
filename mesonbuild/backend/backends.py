@@ -27,7 +27,7 @@ from .. import compilers
 from ..compilers import detect, lang_suffixes
 from ..mesonlib import (
     File, MachineChoice, MesonException, MesonBugException, OrderedSet,
-    ExecutableSerialisation, EnvironmentException,
+    ExecutableSerialisation, EnvironmentException, FileMode,
     classify_unity_sources, get_compiler_for_source,
     get_rsp_threshold, unique_list
 )
@@ -42,7 +42,6 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreter import Test
     from ..linkers import StaticLinker
-    from ..mesonlib import FileMode
     from ..options import ElementaryOptionValues
 
     from typing_extensions import Literal, TypedDict, NotRequired, TypeAlias
@@ -146,8 +145,7 @@ class TargetInstallData:
     install_name_mappings: T.Mapping[str, str]
     rpath_dirs_to_remove: T.Set[bytes]
     install_rpath: str
-    # TODO: install_mode should just always be a FileMode object
-    install_mode: T.Optional['FileMode']
+    install_mode: FileMode
     subproject: str
     system: str
     optional: bool = False
@@ -1728,7 +1726,7 @@ class Backend:
                     'using the default installation directory for an output.'
                 raise MesonException(m.format(t.name, num_out, t.get_outputs(), num_outdirs, outdirs))
             assert len(t.install_tag) == num_out
-            install_mode = t.get_custom_install_mode()
+            install_mode = t.get_custom_install_mode() or FileMode()
             # because mypy gets confused type narrowing in lists
             first_outdir = outdirs[0]
             first_outdir_name = install_dir_names[0]
