@@ -458,9 +458,8 @@ class ConverterTarget:
         for gen_file in self.generated_raw:
             ctgt = output_target_map.generated(gen_file)
             if ctgt:
-                assert isinstance(ctgt, ConverterCustomTarget)
                 ref = ctgt.get_ref(gen_file)
-                assert isinstance(ref, CustomTargetReference) and ref.valid()
+                assert ref.valid()
                 self.generated_ctgt += [ref]
             else:
                 self.generated += [gen_file]
@@ -759,7 +758,6 @@ class ConverterCustomTarget:
                 self.depends += [tgt]
             elif gen:
                 ctgt_ref = gen.get_ref(raw)
-                assert ctgt_ref is not None
                 self.inputs += [ctgt_ref]
 
     def process_inter_target_dependencies(self) -> None:
@@ -775,15 +773,16 @@ class ConverterCustomTarget:
                 new_deps += [i]
         self.depends = list(OrderedSet(new_deps))
 
-    def get_ref(self, fname: Path) -> T.Optional[CustomTargetReference]:
+    def get_ref(self, fname: Path) -> CustomTargetReference:
         name = fname.name
+        if name in self.conflict_map:
+            name = self.conflict_map[name]
         try:
-            if name in self.conflict_map:
-                name = self.conflict_map[name]
             idx = self.outputs.index(name)
-            return CustomTargetReference(self, idx)
         except ValueError:
-            return None
+            raise mesonlib.MesonBugException(f'Attempted to get an output for {fname}, but none exists')
+
+        return CustomTargetReference(self, idx)
 
     def log(self) -> None:
         mlog.log('Custom Target', mlog.bold(self.name), f'({self.cmake_name})')
