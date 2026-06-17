@@ -16,6 +16,7 @@ import itertools
 import os
 import pathlib
 import collections
+import subprocess
 import urllib.parse
 import typing as T
 from pathlib import PurePath
@@ -45,6 +46,41 @@ if T.TYPE_CHECKING:
 def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
     basename = package_name[:-len(suffix)] if suffix and package_name.endswith(suffix) else package_name
     return f'{basename}-{api}{suffix}'
+
+
+def ensure_meson_env_exe(environment: Environment) -> None:
+    """
+    Build the meson_env wrapper on windows when using stable Rust that lacks
+    --env-set, since that's the only way to set a process's environment in
+    ninja. Requires a build-machine Rust toolchain.
+    """
+    if environment.meson_env_exe is not None:
+        return
+    from ..mesonlib import is_windows
+    if not is_windows():
+        return
+    host_rust = environment.coredata.compilers[MachineChoice.HOST].get('rust')
+    if host_rust is None:
+        return
+    if T.cast('RustCompiler', host_rust).enable_env_set_args() is not None:
+        # rustc supports --env-set; no wrapper needed.
+        return
+
+    build_rust = environment.coredata.compilers[MachineChoice.BUILD].get('rust')
+    if build_rust is None:
+        raise MesonException('Cargo subproject on Windows requires a build-machine Rust toolchain')
+
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    source = os.path.join(here, 'scripts', 'meson_env.rs')
+    out = os.path.join(environment.get_scratch_dir(), 'meson_env.exe')
+    if not os.path.exists(out) or os.path.getmtime(out) < os.path.getmtime(source):
+        mlog.log('Building meson_env wrapper for Cargo subprojects...')
+        cmd = build_rust.get_exelist() + ['-O', '-o', out, source]
+        try:
+            subprocess.run(cmd, check=True)
+        except subprocess.CalledProcessError as e:
+            raise MesonException(f'Failed to build meson_env wrapper: {e}')
+    environment.meson_env_exe = out
 
 
 def _extra_args_varname() -> str:
@@ -167,7 +203,7 @@ class PackageState:
 
         return args
 
-    def get_env_args(self, rustc: RustCompiler, environment: Environment, subdir: str) -> T.List[str]:
+    def get_env_set_args(self, rustc: RustCompiler, environment: Environment, subdir: str) -> T.List[str]:
         """Get environment variable arguments for rustc."""
         enable_env_set_args = rustc.enable_env_set_args()
         if enable_env_set_args is None:
@@ -178,6 +214,15 @@ class PackageState:
         for k, v in env_dict.items():
             env_args.extend(['--env-set', f'{k}={v}'])
         return env_args
+
+    def get_rustc_env(self, environment: Environment, subdir: str, machine: MachineChoice) -> T.Dict[str, str]:
+        """Get environment variables as a dict for rustc."""
+        if not environment.is_cross_build():
+            machine = MachineChoice.HOST
+        rustc = T.cast('RustCompiler', environment.coredata.compilers[machine]['rust'])
+        if rustc.enable_env_set_args() is not None:
+            return {}
+        return self.get_env_dict(environment, subdir)
 
     def get_rustc_args(self, environment: Environment, subdir: str, machine: MachineChoice) -> T.List[str]:
         """Get rustc arguments for this package."""
@@ -191,7 +236,7 @@ class PackageState:
         args: T.List[str] = []
         args.extend(self.get_lint_args(rustc))
         args.extend(cfg.get_features_args())
-        args.extend(self.get_env_args(rustc, environment, subdir))
+        args.extend(self.get_env_set_args(rustc, environment, subdir))
         return args
 
     def supported_abis(self) -> T.Set[RUST_ABI]:

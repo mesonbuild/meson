@@ -1,0 +1,5 @@
+[wrap-file]
+method = cargo
+
+[provide]
+dependency_names = envcheck-1
