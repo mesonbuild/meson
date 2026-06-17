@@ -1460,9 +1460,8 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         :param command: The string list of commands to run
         :return: The list of commands wrapped by the exe_wrapper if it is needed, otherwise the original commands
         """
-        if self.is_cross and self.environment.has_exe_wrapper():
-            assert self.environment.exe_wrapper is not None, 'for mypy'
-            return self.environment.exe_wrapper.get_command() + command
+        if self.is_cross and (exe_wrapper := self.environment.get_exe_wrapper()):
+            return exe_wrapper.get_command() + command
         return command
 
     def _run_sanity_check(self, cmdlist: T.List[str], work_dir: str) -> None:
