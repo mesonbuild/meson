@@ -13,6 +13,7 @@ from mesonbuild.cargo.cfg import TokenType
 from mesonbuild.cargo.interpreter import load_cargo_lock
 from mesonbuild.cargo.manifest import Dependency, Lint, Manifest, Package, Workspace
 from mesonbuild.cargo.toml import load_toml
+from mesonbuild.cargo.validate import validator
 from mesonbuild.cargo.version import api, cargo_parse, SemVer
 from mesonbuild.mesonlib import MesonException
 
@@ -679,3 +680,93 @@ class CargoTomlTest(unittest.TestCase):
         self.assertEqual(manifest.features['v1_42'], ['pango-sys/v1_42'])
         self.assertEqual(manifest.features['v1_44'], ['v1_42', 'pango-sys/v1_44'])
         self.assertEqual(manifest.features['default'], [])
+
+
+class A:
+    pass
+
+
+class TypedDictExample(T.TypedDict, total=False):
+    name: str
+    version: str
+
+
+class TypedDictReq(T.TypedDict, total=False):
+    name: T.Required[str]
+    version: str
+
+
+class TypedDictTotal(T.TypedDict):
+    name: T.Required[str]
+    version: str
+
+
+class ValidatorTest(unittest.TestCase):
+
+    def test_validator(self):
+        assert validator(bool)(True)
+        assert not validator(bool)('')
+        assert not validator(bool)('abc')
+
+        assert validator(float)(1)
+
+        assert validator(T.List)([])
+        assert validator(T.List)(['abc'])
+        assert validator(T.List)(['abc', 'def'])
+        assert validator(T.List[str])(['abc', 'def'])
+        assert not validator(T.List[int])(['abc', 'def'])
+        assert validator(T.List[int])(['abc', 'def']).path == [0]
+        assert not validator(T.List[int])([123, 'def'])
+        assert validator(T.List[int])([123, 'def']).path == [1]
+        assert not validator(T.List[str])([123, 'def'])
+        assert validator(T.List[str])([123, 'def']).path == [0]
+
+        assert validator(T.Optional[int])(123)
+        assert validator(T.Optional[int])(None)
+        assert not validator(int)(None)
+
+        assert validator(T.Union[str, int])(123)
+        assert validator(T.Union[str, int])('abc')
+        assert not validator(T.Union[str, int])([])
+        assert not validator(T.Union[str, int])(['abc'])
+
+        assert validator(T.Dict[str, int])({'abc': 123})
+        assert not validator(T.Dict[str, int])({'abc': 'abc'})
+
+        assert validator(T.Mapping[str, int])({'abc': 123})
+        assert not validator(T.Mapping[str, int])({'abc': 'abc'})
+
+        assert not validator(T.Tuple[int])(123)
+        assert validator(T.Tuple[int])((123, ))
+        assert not validator(T.Tuple[int])((123, 456))
+        assert validator(T.Tuple[int, ...])((123, 456))
+        assert not validator(T.Tuple[int, ...])((123, 'abc'))
+        assert validator(T.List[int])([123, 'def']).path == [1]
+        assert validator(T.Tuple[int, str])((123, 'abc'))
+
+        assert validator(T.Literal['abc', 'def'])('abc')
+        assert validator(T.Literal['abc', 'def'])('def')
+        assert not validator(T.Literal['abc', 'def'])('ghi')
+        assert not validator(T.Literal['abc', 'def'])(123)
+
+        assert validator(T.Type)(A)
+        assert not validator(T.Type)(A())
+        assert validator(T.Type[A])(A)
+        assert not validator(T.Type[A])(A())
+
+        assert validator(A)(A())
+        assert not validator(A)(A)
+
+    def test_typeddict_validator(self):
+        assert validator(TypedDictExample)({})
+        assert validator(TypedDictExample)({'name': 'abc'})
+        assert validator(TypedDictExample)({'name': 'abc', 'extra': 123})
+        assert not validator(TypedDictExample)({'name': 123})
+
+        assert not validator(TypedDictReq)({})
+        assert validator(TypedDictReq)({'name': 'abc'})
+        assert validator(TypedDictReq)({'name': 'abc', 'extra': 123})
+
+        assert not validator(TypedDictTotal)({})
+        assert validator(TypedDictTotal)({'name': 'abc'})
+        assert not validator(TypedDictTotal)({'name': 'abc', 'extra': 123})
