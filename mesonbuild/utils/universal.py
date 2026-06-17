@@ -64,6 +64,7 @@ if T.TYPE_CHECKING:
 
 FileOrString = T.Union['File', str]
 
+_P = T.ParamSpec('_P')
 _T = T.TypeVar('_T')
 _U = T.TypeVar('_U')
 
@@ -2592,11 +2593,11 @@ def get_wine_shortpath(winecmd: T.List[str], wine_paths: T.List[str],
     return wine_path
 
 
-def run_once(func: T.Callable[..., _T]) -> T.Callable[..., _T]:
+def run_once(func: T.Callable[_P, _T]) -> T.Callable[_P, _T]:
     ret: T.List[_T] = []
 
     @wraps(func)
-    def wrapper(*args: T.Any, **kwargs: T.Any) -> _T:
+    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _T:
         if ret:
             return ret[0]
 
@@ -2607,9 +2608,9 @@ def run_once(func: T.Callable[..., _T]) -> T.Callable[..., _T]:
     return wrapper
 
 
-def generate_list(func: T.Callable[..., T.Generator[_T, None, None]]) -> T.Callable[..., T.List[_T]]:
+def generate_list(func: T.Callable[_P, T.Generator[_T, None, None]]) -> T.Callable[_P, T.List[_T]]:
     @wraps(func)
-    def wrapper(*args: T.Any, **kwargs: T.Any) -> T.List[_T]:
+    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> T.List[_T]:
         return list(func(*args, **kwargs))
 
     return wrapper
