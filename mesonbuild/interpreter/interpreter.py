@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import io, sys, traceback
 import dataclasses
+import functools
 
 from .. import mparser
 from .. import environment
@@ -272,6 +273,8 @@ implicit_check_false_warning = """You should add the boolean check kwarg to the 
          See also: https://github.com/mesonbuild/meson/issues/9300"""
 class Interpreter(InterpreterBase, HoldableObject):
 
+    backend: mesonlib.late_property[Backend] = mesonlib.late_property()
+
     def __init__(
                 self,
                 _build: build.Build,
@@ -288,7 +291,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         super().__init__(_build.environment.get_source_dir(), subdir, subproject, subproject_dir, _build.environment)
         self.active_projectname = ''
         self.build = _build
-        self.backend = backend
+        if backend is not None:
+            self.backend = backend
         self.cargo = cargo
         self.summary: T.Dict[str, 'Summary'] = {}
         self.modules: T.Dict[str, NewExtensionModule] = {}
@@ -1209,10 +1213,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                         f'"configuration_data": initial value dictionary key "{k!r}"" must be "str | int | bool", not "{v!r}"')
         return build.ConfigurationData(initial_values)
 
+    @functools.lru_cache(None)
     def set_backend(self) -> None:
-        # The backend is already set when parsing subprojects
-        if self.backend is not None:
-            return
         from ..backend import backends
 
         if OptionKey('genvslite') in self.user_defined_options.cmd_line_options:
