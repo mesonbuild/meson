@@ -152,6 +152,7 @@ __all__ = [
     'is_wsl',
     'iter_regexin_iter',
     'join_args',
+    'late_property',
     'lazy_property',
     'listify',
     'listify_array_value',
@@ -2708,6 +2709,28 @@ class lazy_property(T.Generic[_T]):
         value = self.__func(instance)
         setattr(instance, self.__name, value)
         return value
+
+
+class late_property(T.Generic[_T]):
+    """Descriptor that allows setting a property late and erroring if it's
+    accessed early.
+
+    This property allows a more ergonomically typed equivalent of
+    self.value: T | None = None, since you then don't need to worry about
+    whether self.value is None.
+    """
+
+    def __init__(self) -> None:
+        self.__name: str | None = None
+
+    def __set_name__(self, owner: object, name: str) -> None:
+        if self.__name is None:
+            self.__name = name
+        else:
+            assert self.__name == name
+
+    def __get__(self, instance: T.Any, cls: type) -> _T:
+        raise MesonBugException(f'Attempted to access attribute {self.__name} before it is set')
 
 
 def get_subproject_dir(directory: str = '.') -> T.Optional[str]:
