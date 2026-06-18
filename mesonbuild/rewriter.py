@@ -12,7 +12,6 @@ from __future__ import annotations
 from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
 from .ast.interpreter import IntrospectionBuildTarget, IntrospectionDependency, _symbol
 from .interpreterbase import UnknownValue, TV_func
-from .interpreterbase.helpers import flatten
 from mesonbuild.mesonlib import MesonException, pathname_sort_key, relpath, setup_vsenv
 from . import mlog, environment
 from functools import wraps
@@ -761,7 +760,7 @@ class Rewriter:
             tgt_function.args.kwargs[extra_files_idnode] = new_extra_files_node
 
         newfiles_relto = self.get_relto(target.node, chosen)
-        old_src_list: T.List[T.Any] = flatten([self.interpreter.node_to_runtime_value(sn) for sn in old])
+        old_src_list: T.List[T.Any] = self.interpreter.flatten_args(list(old))
 
         if op == 'src_add':
             name = 'Source'

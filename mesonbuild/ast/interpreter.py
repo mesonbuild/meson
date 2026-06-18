@@ -30,8 +30,6 @@ from ..interpreterbase import (
     InterpreterObject,
 )
 
-from ..interpreterbase.helpers import flatten
-
 from ..interpreter import (
     StringHolder,
     BooleanHolder,
@@ -722,7 +720,7 @@ class AstInterpreter(InterpreterBase):
             else:
                 raise TypeError
 
-        rtvals: T.List[T.Any] = flatten([self.node_to_runtime_value(sn) for sn in nodes])
+        rtvals: T.List[T.Any] = self.flatten_args(nodes)
         return [src_to_abs(x) for x in rtvals]
 
     def flatten_args(self, args: T.Sequence[TYPE_nvar]) -> T.List[TYPE_var]:
@@ -736,10 +734,12 @@ class AstInterpreter(InterpreterBase):
                 if resolved is not None:
                     if not isinstance(resolved, list):
                         resolved = [resolved]
-                    flattened_args += resolved
+                    flattened_args += self.flatten_args(resolved)
             elif isinstance(i, (str, bool, int, float, UnknownValue, IntrospectionFile,
                                 IntrospectionBuildTarget, IntrospectionDependency)):
                 flattened_args += [i]
+            elif isinstance(i, list):
+                flattened_args += self.flatten_args(i)
             else:
                 raise NotImplementedError(f'flatten_args is missing a case for {type(i)}')
         return flattened_args
