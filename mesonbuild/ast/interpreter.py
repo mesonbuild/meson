@@ -270,7 +270,7 @@ class AstInterpreter(InterpreterBase):
             self.ast.accept(i)
 
     def func_subdir(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
-        args = self.flatten_args(args)
+        args = self.flatten_args_hack(args)
         if len(args) != 1 or not isinstance(args[0], str):
             sys.stderr.write(f'Unable to evaluate subdir({args}) in AstInterpreter --> Skipping\n')
             return
@@ -742,6 +742,14 @@ class AstInterpreter(InterpreterBase):
             else:
                 raise NotImplementedError
         return flattened_args
+
+    def flatten_args_hack(self, args: T.List[TYPE_var]) -> T.List[TYPE_var]:
+        # Unlike method calls, functions are invoked even if one or more values
+        # are unknown.  The types in this declaration are completely wrong;
+        # the right solution would involve making TYPE_var an argument to
+        # InterpreterBase, so that FunctionType is also changed to not
+        # use TYPE_var.
+        return self.flatten_args(args)
 
     def evaluate_testcase(self, node: TestCaseClauseNode) -> Disabler | None:
         return Disabler(subproject=self.subproject)
