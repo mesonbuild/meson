@@ -41,7 +41,6 @@ from ..interpreter import (
 )
 
 from ..mparser import (
-    ArgumentNode,
     ArithmeticNode,
     ArrayNode,
     AssignmentNode,
@@ -355,15 +354,12 @@ class AstInterpreter(InterpreterBase):
             self.evaluate_statement(arg)
         for value in args.kwargs.values():
             self.evaluate_statement(value)
-        if isinstance(args, ArgumentNode):
-            kwargs = {}
-            for key, val in args.kwargs.items():
-                kwargs[key_resolver(key)] = val
-            if args.incorrect_order():
-                raise InvalidArguments('All keyword arguments must be after positional arguments.')
-            return self.flatten_args(args.arguments), kwargs
-        else:
-            return self.flatten_args(args), {}
+        kwargs = {}
+        for key, val in args.kwargs.items():
+            kwargs[key_resolver(key)] = val
+        if args.incorrect_order():
+            raise InvalidArguments('All keyword arguments must be after positional arguments.')
+        return self.flatten_args(args.arguments), kwargs
 
     def evaluate_comparison(self, node: ComparisonNode) -> None:
         self.evaluate_statement(node.left)
