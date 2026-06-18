@@ -26,7 +26,6 @@ TYPE_elementary: TypeAlias = T.Union[str, int, bool, T.Sequence['TYPE_elementary
 TYPE_var: TypeAlias = T.Union[TYPE_elementary, HoldableObject, 'MesonInterpreterObject', T.Sequence['TYPE_var'], T.Dict[str, 'TYPE_var']]
 TYPE_nvar = T.Union[TYPE_var, mparser.BaseNode]
 TYPE_kwargs = T.Dict[str, TYPE_var]
-TYPE_nkwargs = T.Dict[str, TYPE_nvar]
 TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
 TYPE_op_arg = T.TypeVar('TYPE_op_arg', bound='TYPE_var', contravariant=True)
 TYPE_op_func = T.Callable[[TYPE_op_arg, TYPE_op_arg], TYPE_var]
