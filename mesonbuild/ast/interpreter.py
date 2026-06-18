@@ -725,13 +725,7 @@ class AstInterpreter(InterpreterBase):
         rtvals: T.List[T.Any] = flatten([self.node_to_runtime_value(sn) for sn in nodes])
         return [src_to_abs(x) for x in rtvals]
 
-    def flatten_args(self, args_raw: T.Union[TYPE_nvar, T.Sequence[TYPE_nvar]], include_unknown_args: bool = False) -> T.List[TYPE_var]:
-        # Make sure we are always dealing with lists
-        if isinstance(args_raw, list):
-            args = args_raw
-        else:
-            args = [args_raw]
-
+    def flatten_args(self, args: T.Sequence[TYPE_nvar]) -> T.List[TYPE_var]:
         # BaseNode resolves to Any. :/
         flattened_args: T.List[T.Union[TYPE_var, T.Any]] = []
 
@@ -743,7 +737,7 @@ class AstInterpreter(InterpreterBase):
                     if not isinstance(resolved, list):
                         resolved = [resolved]
                     flattened_args += resolved
-            elif isinstance(i, (str, bool, int, float, UnknownValue, IntrospectionFile)) or include_unknown_args:
+            elif isinstance(i, (str, bool, int, float, UnknownValue, IntrospectionFile)):
                 flattened_args += [i]
             else:
                 raise NotImplementedError
