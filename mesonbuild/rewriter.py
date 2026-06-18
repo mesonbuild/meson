@@ -449,7 +449,7 @@ class Rewriter:
             return None
 
     def find_dependency(self, dependency: str) -> T.Optional[IntrospectionDependency]:
-        potential_deps = []
+        potential_deps: T.List[IntrospectionDependency] = []
         for i in self.interpreter.dependencies:
             if i.name == dependency:
                 potential_deps.append(i)
@@ -457,8 +457,10 @@ class Rewriter:
         checking_varnames = len(potential_deps) == 0
 
         if checking_varnames:
-            potential_deps1 = self.all_assignments(dependency)
-            potential_deps = [self.interpreter.node_to_runtime_value(el) for el in potential_deps1 if isinstance(el, FunctionNode) and el.func_name.value == 'dependency']
+            potential_deps1 = [self.interpreter.node_to_runtime_value(el)
+                               for el in self.all_assignments(dependency)
+                               if isinstance(el, FunctionNode) and el.func_name.value == 'dependency']
+            potential_deps = T.cast('T.List[IntrospectionDependency]', potential_deps1)
 
         if not potential_deps:
             return None
