@@ -57,7 +57,7 @@ from ..mparser import (
 if T.TYPE_CHECKING:
     from .visitor import AstVisitor
     from ..interpreter import Interpreter
-    from ..interpreterbase import TYPE_var, TYPE_nvar
+    from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..mparser import (
         AndNode,
         ComparisonNode,
@@ -68,7 +68,13 @@ if T.TYPE_CHECKING:
         TestCaseClauseNode,
         UMinusNode,
     )
-    from ..mesonlib import SubProject
+    from ..mesonlib import HoldableObject, SubProject
+
+    TYPE_ivar = T.Union[str, int, bool, 'HoldableObject', 'MesonInterpreterObject',
+                        'UnknownValue', 'IntrospectionBuildTarget', 'IntrospectionFile',
+                        'IntrospectionDependency', list['TYPE_ivar'], dict[str | UnknownValue, 'TYPE_ivar']]
+    TYPE_nvar = T.Union[TYPE_ivar, mparser.BaseNode]
+    TYPE_nkwargs = T.Dict[str, TYPE_nvar]
 
 _T = T.TypeVar('_T')
 _V = T.TypeVar('_V')
@@ -282,24 +288,28 @@ class AstInterpreter(InterpreterBase):
             buildfilename = os.path.join(subdir, environment.build_filename)
             sys.stderr.write(f'Unable to find build file {buildfilename} --> Skipping\n')
 
-    def inner_method_call(self, obj: BaseNode, method_name: str, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Any:
-        for arg in itertools.chain(args, kwargs.values()):
+    def inner_method_call(self, iobj: TYPE_ivar, method_name: str, iargs: T.List[TYPE_ivar], nkwargs: TYPE_nkwargs) -> TYPE_ivar:
+        for arg in itertools.chain(iargs, nkwargs.values()):
             if isinstance(arg, UnknownValue):
                 return UnknownValue()
 
-        if isinstance(obj, str):
-            result = StringHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
-        elif isinstance(obj, bool):
-            result = BooleanHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
-        elif isinstance(obj, int):
-            result = IntegerHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
-        elif isinstance(obj, list):
+        args = T.cast('list[TYPE_var]', iargs)
+        kwargs = T.cast('TYPE_kwargs', nkwargs)
+        if isinstance(iobj, str):
+            result = StringHolder(iobj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
+        elif isinstance(iobj, bool):
+            result = BooleanHolder(iobj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
+        elif isinstance(iobj, int):
+            result = IntegerHolder(iobj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
+        elif isinstance(iobj, list):
+            obj = T.cast('list[TYPE_var]', iobj) # assuming ArrayHolder is fine with receiving TYPE_ivars...
             result = ArrayHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
-        elif isinstance(obj, dict):
+        elif isinstance(iobj, dict):
+            obj = T.cast('dict[str, TYPE_var]', iobj) # assuming DictHolder is fine with receiving TYPE_ivars...
             result = DictHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
         else:
             return UnknownValue()
-        return result
+        return T.cast('TYPE_ivar', result)
 
     def method_call(self, node: mparser.MethodNode) -> None:
         invocable = node.source_object
@@ -342,17 +352,19 @@ class AstInterpreter(InterpreterBase):
         self.evaluate_statement(node.iobject)
         self.evaluate_statement(node.index)
 
-    def reduce_arguments(
+    # this returns a different type than the supertype; TYPE_nvar and TYPE_nkwargs
+    # are limited to the AstInterpreter
+    def reduce_arguments( # type: ignore[override]
                 self,
                 args: mparser.ArgumentNode,
                 key_resolver: T.Callable[[mparser.BaseNode], str] = default_resolve_key,
                 duplicate_key_error: T.Optional[str] = None,
-            ) -> T.Tuple[T.List[T.Any], T.Any]:
+            ) -> T.Tuple[T.List[TYPE_ivar], TYPE_nkwargs]:
         for arg in args.arguments:
             self.evaluate_statement(arg)
         for value in args.kwargs.values():
             self.evaluate_statement(value)
-        kwargs = {}
+        kwargs: TYPE_nkwargs = {}
         for key, val in args.kwargs.items():
             kwargs[key_resolver(key)] = val
         if args.incorrect_order():
@@ -537,7 +549,7 @@ class AstInterpreter(InterpreterBase):
     # node = [123, somedep.found()]
     # ```
     # `node_to_runtime_value` will return `[123, UnknownValue()]`.
-    def node_to_runtime_value(self, node: T.Union[UnknownValue, BaseNode, TYPE_var]) -> T.Any:
+    def node_to_runtime_value(self, node: T.Union[UnknownValue, TYPE_ivar, mparser.BaseNode]) -> TYPE_ivar:
         if isinstance(node, (mparser.StringNode, mparser.BooleanNode, mparser.NumberNode)):
             return node.value
         elif isinstance(node, mparser.StringNode):
@@ -550,7 +562,7 @@ class AstInterpreter(InterpreterBase):
         elif isinstance(node, ArrayNode):
             return [self.node_to_runtime_value(x) for x in node.args.arguments]
         elif isinstance(node, mparser.DictNode):
-            result: T.Dict[str | UnknownValue, T.Any] = {}
+            result: T.Dict[str | UnknownValue, TYPE_ivar] = {}
             for raw_k, raw_v in node.args.kwargs.items():
                 k = self.node_to_runtime_value(raw_k)
                 if not isinstance(k, (str, UnknownValue)):
@@ -572,8 +584,8 @@ class AstInterpreter(InterpreterBase):
             else:
                 return self.node_to_runtime_value(funcval)
         elif isinstance(node, ArithmeticNode):
-            left = self.node_to_runtime_value(node.left)
-            right = self.node_to_runtime_value(node.right)
+            left: TYPE_ivar = self.node_to_runtime_value(node.left)
+            right: TYPE_ivar = self.node_to_runtime_value(node.right)
             if isinstance(left, list) and isinstance(right, UnknownValue):
                 return left + [right]
             if isinstance(right, list) and isinstance(left, UnknownValue):
@@ -590,11 +602,11 @@ class AstInterpreter(InterpreterBase):
                     if not isinstance(right, list):
                         right = [right]
                     return left + right
-                return left + right
+                return left + right # type: ignore[operator]
             elif node.operation == '-':
-                return left - right
+                return left - right # type: ignore[operator]
             elif node.operation == '*':
-                return left * right
+                return left * right # type: ignore[operator]
             elif node.operation == '/':
                 if isinstance(left, int) and isinstance(right, int):
                     return left // right
@@ -610,7 +622,7 @@ class AstInterpreter(InterpreterBase):
             index = self.node_to_runtime_value(node.index)
             if isinstance(iobject, UnknownValue) or isinstance(index, UnknownValue):
                 return UnknownValue()
-            return iobject[index]
+            return iobject[index] # type: ignore[index]
         elif isinstance(node, mparser.ComparisonNode):
             left = self.node_to_runtime_value(node.left)
             right = self.node_to_runtime_value(node.right)
@@ -621,9 +633,9 @@ class AstInterpreter(InterpreterBase):
             elif node.ctype == '!=':
                 return left != right
             elif node.ctype == 'in':
-                return left in right
+                return left in right # type: ignore[operator]
             elif node.ctype == 'not in':
-                return left not in right
+                return left not in right # type: ignore[operator]
         elif isinstance(node, mparser.TernaryNode):
             cond = self.node_to_runtime_value(node.condition)
             if isinstance(cond, UnknownValue):
@@ -724,7 +736,7 @@ class AstInterpreter(InterpreterBase):
         self.cur_assignments[var_name].append((self.nesting.copy(), node))
 
     def nodes_to_pretty_filelist(self, root_path: Path, subdir: str, nodes: T.List[BaseNode]) -> T.List[T.Union[str, UnknownValue]]:
-        def src_to_abs(src: T.Union[str, IntrospectionFile, UnknownValue]) -> T.Union[str, UnknownValue]:
+        def src_to_abs(src: TYPE_ivar) -> T.Union[str, UnknownValue]:
             if isinstance(src, str):
                 return os.path.normpath(os.path.join(root_path, subdir, src))
             elif isinstance(src, IntrospectionFile):
@@ -737,9 +749,8 @@ class AstInterpreter(InterpreterBase):
         rtvals: T.List[T.Any] = self.flatten_args(nodes)
         return [src_to_abs(x) for x in rtvals]
 
-    def flatten_args(self, args: T.Sequence[TYPE_nvar]) -> T.List[TYPE_var]:
-        # BaseNode resolves to Any. :/
-        flattened_args: T.List[T.Union[TYPE_var, T.Any]] = []
+    def flatten_args(self, args: T.Sequence[TYPE_nvar]) -> T.List[TYPE_ivar]:
+        flattened_args: T.List[TYPE_ivar] = []
 
         # Resolve the contents of args
         for i in args:
@@ -760,11 +771,13 @@ class AstInterpreter(InterpreterBase):
 
     def flatten_args_hack(self, args: T.List[TYPE_var]) -> T.List[TYPE_var]:
         # Unlike method calls, functions are invoked even if one or more values
-        # are unknown.  The types in this declaration are completely wrong;
-        # the right solution would involve making TYPE_var an argument to
+        # are unknown.  The return type is actually T.List[TYPE_ivar], and
+        # while callers declare args as T.List[TYPE_var], they receive a
+        # list of TYPE_ivar too.
+        # The right solution would involve making TYPE_var an argument to
         # InterpreterBase, so that FunctionType is also changed to not
         # use TYPE_var.
-        return self.flatten_args(args)
+        return T.cast('T.List[TYPE_var]', self.flatten_args(T.cast('T.List[TYPE_ivar]', args)))
 
     def evaluate_testcase(self, node: TestCaseClauseNode) -> Disabler | None:
         return Disabler(subproject=self.subproject)
