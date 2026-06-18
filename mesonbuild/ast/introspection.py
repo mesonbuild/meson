@@ -121,7 +121,7 @@ class IntrospectionInterpreter(AstInterpreter):
             proj_vers = proj_vers.value
         if not isinstance(proj_vers, str):
             proj_vers = 'undefined'
-        proj_langs = self.flatten_args(args[1:])
+        proj_langs = self.flatten_args_hack(args[1:])
         # Match the value returned by ``meson.project_license()`` when
         # no ``license`` argument is specified in the ``project()`` call.
         proj_license = _str_list(kwargs.get('license', None)) or ['unknown']
@@ -174,7 +174,7 @@ class IntrospectionInterpreter(AstInterpreter):
 
     def _add_languages(self, raw_langs: T.List[TYPE_var], required: T.Union[bool, UnknownValue], for_machine: MachineChoice) -> None:
         langs: T.List[Language] = []
-        for l in self.flatten_args(raw_langs):
+        for l in self.flatten_args_hack(raw_langs):
             # we need to call .lower() here because `project('foo', 'CpP')` is valid.
             if isinstance(l, str):
                 langs.append(T.cast('Language', l.lower()))
@@ -194,7 +194,7 @@ class IntrospectionInterpreter(AstInterpreter):
 
     def func_dependency(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[IntrospectionDependency]:
         assert isinstance(node, FunctionNode)
-        args = self.flatten_args(args)
+        args = self.flatten_args_hack(args)
         kwargs = self.flatten_kwargs(kwargs)
         if not args:
             return None
@@ -223,7 +223,7 @@ class IntrospectionInterpreter(AstInterpreter):
 
     def build_target(self, node: BaseNode, args: T.List[TYPE_var], kwargs_raw: T.Dict[str, TYPE_var], targetclass: T.Type[BuildTarget]) -> T.Union[IntrospectionBuildTarget, UnknownValue]:
         assert isinstance(node, FunctionNode)
-        args = self.flatten_args(args)
+        args = self.flatten_args_hack(args)
         if not args or not isinstance(args[0], str):
             return UnknownValue()
         name = args[0]
