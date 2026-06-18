@@ -550,7 +550,17 @@ class AstInterpreter(InterpreterBase):
         elif isinstance(node, ArrayNode):
             return [self.node_to_runtime_value(x) for x in node.args.arguments]
         elif isinstance(node, mparser.DictNode):
-            return {self.node_to_runtime_value(k): self.node_to_runtime_value(v) for k, v in node.args.kwargs.items()}
+            result: T.Dict[str | UnknownValue, T.Any] = {}
+            for raw_k, raw_v in node.args.kwargs.items():
+                k = self.node_to_runtime_value(raw_k)
+                if not isinstance(k, (str, UnknownValue)):
+                    k = UnknownValue()
+                if isinstance(k, UnknownValue):
+                    # there could be more than one unknown key, so add an unknown mapping
+                    result[k] = UnknownValue()
+                else:
+                    result[k] = self.node_to_runtime_value(raw_v)
+            return result
         elif isinstance(node, IdNode):
             assert len(self.dataflow_dag.tgt_to_srcs[node]) == 1
             val = next(iter(self.dataflow_dag.tgt_to_srcs[node]))
