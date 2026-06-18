@@ -625,15 +625,19 @@ class AstInterpreter(InterpreterBase):
         elif isinstance(node, mparser.OrNode):
             left = self.node_to_runtime_value(node.left)
             right = self.node_to_runtime_value(node.right)
+            if left is True or right is True:
+                return True
             if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
                 return UnknownValue()
-            return left or right
+            return False
         elif isinstance(node, mparser.AndNode):
             left = self.node_to_runtime_value(node.left)
             right = self.node_to_runtime_value(node.right)
+            if left is False or right is False:
+                return False
             if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
                 return UnknownValue()
-            return left and right
+            return True
         elif isinstance(node, mparser.UMinusNode):
             val = self.node_to_runtime_value(node.value)
             if isinstance(val, UnknownValue):
