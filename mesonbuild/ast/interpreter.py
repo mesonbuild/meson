@@ -737,10 +737,11 @@ class AstInterpreter(InterpreterBase):
                     if not isinstance(resolved, list):
                         resolved = [resolved]
                     flattened_args += resolved
-            elif isinstance(i, (str, bool, int, float, UnknownValue, IntrospectionFile)):
+            elif isinstance(i, (str, bool, int, float, UnknownValue, IntrospectionFile,
+                                IntrospectionBuildTarget, IntrospectionDependency)):
                 flattened_args += [i]
             else:
-                raise NotImplementedError
+                raise NotImplementedError(f'flatten_args is missing a case for {type(i)}')
         return flattened_args
 
     def flatten_args_hack(self, args: T.List[TYPE_var]) -> T.List[TYPE_var]:
