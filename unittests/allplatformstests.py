@@ -2192,7 +2192,7 @@ class AllPlatformTests(BasePlatformTests):
         kwargs = {'required': True, 'silent': True, 'native': MachineChoice.HOST}
         foo_dep = PkgConfigDependency('libanswer', env, kwargs)
         # Ensure link_args are properly quoted
-        libdir = Path(prefix, libdir).resolve()
+        libdir = PurePath(prefix) / PurePath(libdir)
         link_args = ['-L' + libdir.as_posix(), '-lanswer']
         self.assertEqual(foo_dep.get_link_args(), link_args)
         # Ensure include args are properly quoted

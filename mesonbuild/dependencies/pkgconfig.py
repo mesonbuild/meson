@@ -15,6 +15,7 @@ from pathlib import PurePath
 from functools import lru_cache
 import re
 import os
+import posixpath
 import shlex
 import typing as T
 
@@ -423,7 +424,7 @@ class PkgConfigDependency(ExternalDependency):
                 if not path_has_root(path):
                     # Resolve the path as a compiler in the build directory would
                     path = os.path.join(self.env.get_build_dir(), path)
-                prefix_libpaths.add(Path(path).resolve().as_posix())
+                prefix_libpaths.add(posixpath.normpath(path))
         # Library paths are not always ordered in a meaningful way
         #
         # Instead of relying on pkg-config or pkgconf to provide -L flags in a
