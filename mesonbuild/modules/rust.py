@@ -146,12 +146,12 @@ _STR_STRUCT_OARG = OptArgInfo((str, StructuredSources))
 _STRUCT_OARG = OptArgInfo(StructuredSources)
 
 
-def no_spaces_validator(arg: T.Optional[T.Union[str, T.List]]) -> T.Optional[str]:
+def no_spaces_validator(arg: T.Union[str, T.List]) -> T.Optional[str]:
     if any(bool(re.search(r'\s', x)) for x in arg):
         return 'must not contain spaces due to limitations of rustdoc'
     return None
 
-def dep_to_system_dependency(dep: Dependency, depname: str) -> Dependency:
+def dep_to_system_dependency(dep: Dependency, depname: T.Optional[str]) -> Dependency:
     if not dep.found():
         return dep
     if not depname:
@@ -204,13 +204,13 @@ class RustWorkspace(ModuleObject):
         # it can be built just once; the same dependency is used as an override
         # for both the host and the build machine.  In that case, always build the
         # subproject for the build machine to ensure that it is not run twice.
-        if pkg.manifest.lib.crate_type == ['proc-macro']:
+        if pkg.manifest.lib and pkg.manifest.lib.crate_type == ['proc-macro']:
             assert not pkg.has_both_machines()
             for_machine = state.machine_map.build
 
         kw: _kwargs.DoSubproject = {
             'required': True,
-            'version': None,
+            'version': [],
             'options': None,
             'cmake_options': [],
             'default_options': {},
@@ -422,7 +422,7 @@ class RustPackage(RustCrate):
 
         self.merge_kw_args(state, kwargs)
 
-        sources: T.Union[StructuredSources, str]
+        sources: StructuredSources | str | None
         tgt_name, sources = tgt_args
         if not tgt_name:
             rust_abi: RUST_ABI
@@ -473,7 +473,7 @@ class RustPackage(RustCrate):
         dep = args[0]
         rust_abi = self.package.abi_resolve_default(kwargs['rust_abi'])
         depname = self.package.get_dependency_name(rust_abi)
-        assert rust_abi in self.package.supported_abis()
+        assert self.package.manifest.lib and rust_abi in self.package.supported_abis()
 
         if state.environment.is_cross_build() and self.package.manifest.lib.crate_type == ['proc-macro']:
             assert not self.package.has_both_machines()
@@ -582,7 +582,7 @@ class RustPackage(RustCrate):
         if not self.package.manifest.bin:
             raise MesonException("no [[bin]] section in Cargo package")
 
-        sources: T.Union[StructuredSources, str]
+        sources: StructuredSources | str | None
         tgt_name, sources = tgt_args
         # If there's more than one binary, the first argument must be specified
         # and must be one of the keys in pkg.bin
@@ -834,15 +834,15 @@ class RustModule(ExtensionModule):
         if workdir:
             tkwargs['args'].append('--test-run-directory=' + workdir)
 
-        if self.rustdoc[base_target.for_machine] is None:
+        if (rustdoc_prog := self.rustdoc[base_target.for_machine]) is None:
             rustc = T.cast('RustCompiler', base_target.compilers['rust'])
             rustdoc = rustc.get_rustdoc()
-            if rustdoc:
-                self.rustdoc[base_target.for_machine] = ExternalProgram(rustdoc.get_exe())
-            else:
-                self.rustdoc[base_target.for_machine] = NonExistingExternalProgram()
+            rustdoc_prog = \
+                self.rustdoc[base_target.for_machine] = ExternalProgram(rustdoc.get_exe()) if rustdoc \
+                else NonExistingExternalProgram()
 
-        rustdoc_prog = self.rustdoc[base_target.for_machine]
+            self.rustdoc[base_target.for_machine] = rustdoc_prog
+
         if not rustdoc_prog.found():
             raise MesonException(f'could not find rustdoc for {base_target.for_machine} machine')
 
