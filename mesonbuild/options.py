@@ -823,7 +823,7 @@ class OptionStore:
             key = key.as_host()
         return key
 
-    def get_pending_value(self, key: T.Union[OptionKey, str], default: T.Optional[ElementaryOptionValues] = None) -> ElementaryOptionValues:
+    def get_pending_value(self, key: T.Union[OptionKey, str], default: T.Optional[ElementaryOptionValues] = None) -> ElementaryOptionValues | None:
         key = self.ensure_and_validate_key(key)
         if key in self.options:
             return self.options[key].value
