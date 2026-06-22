@@ -1105,7 +1105,7 @@ class OptionStore:
         else:
             raise MesonException(f'Unknown option: "{o}".')
 
-    def set_from_configure_command(self, D_args: T.Dict[OptionKey, T.Optional[str]]) -> bool:
+    def set_from_configure_command(self, D_args: dict[OptionKey, str]) -> bool:
         dirty = False
         for key, valstr in D_args.items():
             if valstr is not None:
@@ -1244,9 +1244,9 @@ class OptionStore:
 
     def first_handle_prefix(self,
                             project_default_options: OptionDict,
-                            cmd_line_options: dict[OptionKey, str | None],
+                            cmd_line_options: dict[OptionKey, str],
                             machine_file_options: OptionDict) \
-            -> T.Tuple[OptionDict, dict[OptionKey, str | None], OptionDict]:
+            -> T.Tuple[OptionDict, dict[OptionKey, str], OptionDict]:
         # Copy to avoid later mutation
         nopref_machine_file_options = copy.copy(machine_file_options)
 
@@ -1280,7 +1280,7 @@ class OptionStore:
 
     def initialize_from_top_level_project_call(self,
                                                project_default_options_in: OptionDict,
-                                               cmd_line_options_in: dict[OptionKey, str | None],
+                                               cmd_line_options_in: dict[OptionKey, str],
                                                machine_file_options_in: OptionDict) -> None:
         (project_default_options, cmd_line_options, machine_file_options) = self.first_handle_prefix(project_default_options_in,
                                                                                                      cmd_line_options_in,
@@ -1324,7 +1324,7 @@ class OptionStore:
                                         subproject: str,
                                         spcall_default_options: OptionDict,
                                         project_default_options: OptionDict,
-                                        cmd_line_options: dict[OptionKey, str | None],
+                                        cmd_line_options: dict[OptionKey, str],
                                         machine_file_options: OptionDict) -> None:
 
         options: OptionDict = {}
