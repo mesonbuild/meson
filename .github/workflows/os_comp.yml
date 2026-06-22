@@ -61,6 +61,8 @@ jobs:
 
         source /ci/env_vars.sh
         cd $GITHUB_WORKSPACE
+        # disable git ownership checks
+        git config --global safe.directory '*'
         ./run_tests.py $CI_ARGS
 
   pypy:
