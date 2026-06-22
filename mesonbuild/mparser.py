@@ -857,7 +857,10 @@ class Parser:
                     temp_node.append_whitespaces(w)
 
                 not_token.bytespan = (not_token.bytespan[0], in_token.bytespan[1])
-                not_token.value += temp_node.whitespaces.value + in_token.value
+                if temp_node.whitespaces is not None:
+                    not_token.value += temp_node.whitespaces.value + in_token.value
+                else:
+                    not_token.value += in_token.value
                 operator = self.create_node(SymbolNode, not_token)
                 return self.create_node(ComparisonNode, 'not in', left, operator, self.e5())
         return left
