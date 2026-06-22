@@ -359,6 +359,9 @@ class UserOption(T.Generic[_T], HoldableObject):
         self.value = self.validate_value(newvalue)
         return self.value != oldvalue
 
+    def has_default_value(self) -> bool:
+        return self.value == self.default
+
 @dataclasses.dataclass
 class EnumeratedUserOption(UserOption[_T]):
 

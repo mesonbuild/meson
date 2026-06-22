@@ -161,12 +161,6 @@ class ModuleState:
         # TODO: Use interpreter internal API, but we need to go through @typed_kwargs
         self._interpreter.func_test(self.current_node, real_args, kwargs)
 
-    def is_user_defined_option(self, name: str, subproject: str = '',
-                               machine: MachineChoice = MachineChoice.HOST,
-                               lang: T.Optional[str] = None) -> bool:
-        key = OptionKey(name, subproject, machine)
-        return key in self._interpreter.user_defined_options.cmd_line_options
-
     def process_include_dirs(self, dirs: T.Iterable[T.Union[str, IncludeDirs]]) -> T.Iterable[IncludeDirs]:
         """Convert raw include directory arguments to only IncludeDirs
 

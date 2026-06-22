@@ -89,7 +89,7 @@ class PythonExternalProgram(BasicPythonExternalProgram):
             return rel_path
         value = state.environment.coredata.optstore.get_value_for(OptionKey(f'python.{key}dir'), str)
         if value:
-            if state.is_user_defined_option('python.install_env'):
+            if not state.environment.coredata.optstore.get_value_object(OptionKey('python.install_env')).has_default_value():
                 raise mesonlib.MesonException(f'python.{key}dir and python.install_env are mutually exclusive')
             return value
 
