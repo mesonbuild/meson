@@ -25,6 +25,7 @@ from .mesonlib import (
     default_mandir,
     default_sbindir,
     default_sysconfdir,
+    unwrap,
     MesonException,
     MesonBugException,
     listify_array_value,
@@ -857,7 +858,7 @@ class OptionStore:
             assert key.subproject is not None
             computed_value = self.augments[key]
         elif option_object.yielding:
-            computed_value = option_object.parent.value
+            computed_value = unwrap(option_object.parent).value
         return (option_object, computed_value)
 
     def option_has_value(self, key: OptionKey, value: ElementaryOptionValues) -> bool:
