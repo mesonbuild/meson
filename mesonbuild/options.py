@@ -364,7 +364,7 @@ class EnumeratedUserOption(UserOption[_T]):
 
     choices: T.List[_T] = dataclasses.field(default_factory=list)
 
-    def printable_choices(self) -> T.Optional[T.List[str]]:
+    def printable_choices(self) -> T.List[str]:
         return [str(c) for c in self.choices]
 
 
@@ -412,7 +412,7 @@ class _UserIntegerBase(UserOption[_T]):
             choices.append(f'<= {self.max_value!s}')
         self.__choices: str = ', '.join(choices)
 
-    def printable_choices(self) -> T.Optional[T.List[str]]:
+    def printable_choices(self) -> T.List[str]:
         return [self.__choices]
 
     def validate_value(self, value: object) -> _T:
