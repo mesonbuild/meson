@@ -239,7 +239,7 @@ class MesonApp:
             mlog.log('Build type:', mlog.bold('native build'))
         b = build.Build(env)
 
-        intr = interpreter.Interpreter(b, user_defined_options=user_defined_options)
+        intr = interpreter.Interpreter(b, user_defined_options)
         # Super hack because mlog.log and mlog.debug have different signatures,
         # and there is currently no way to annotate them correctly, unionize them, or
         # even to write `T.Callable[[*mlog.TV_Loggable], None]`
