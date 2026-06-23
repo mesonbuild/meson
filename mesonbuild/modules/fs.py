@@ -315,7 +315,7 @@ class FSModule(ExtensionModule):
             state.current_build_project,
             build_by_default=True,
             install=kwargs['install'],
-            install_dir=[kwargs['install_dir']],
+            install_dir=[kwargs['install_dir']] if kwargs['install_dir'] is not None else [],
             install_mode=kwargs['install_mode'],
             install_tag=[kwargs['install_tag']],
             backend=state.backend,
