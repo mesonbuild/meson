@@ -3017,13 +3017,16 @@ class CustomTarget(Target, CustomTargetBase):
                  build_subdir: str = '',
                  ):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
-        super().__init__(name, subdir, False, MachineChoice.HOST, environment,
-                         build_project, install, build_always_stale, build_subdir = build_subdir)
-        self.sources = list(sources)
         self.outputs = substitute_values(
             outputs, get_filenames_templates_dict(
                 get_sources_string_names(sources, backend),
                 []))
+        name = name or self.outputs[0]
+
+        super().__init__(name, subdir, False, MachineChoice.HOST, environment,
+                         build_project, install, build_always_stale, build_subdir = build_subdir)
+
+        self.sources = list(sources)
         self.build_by_default = build_by_default if build_by_default is not None else install
         self.capture = capture
         self.console = console
@@ -3042,7 +3045,6 @@ class CustomTarget(Target, CustomTargetBase):
         self.has_custom_install_dir = bool(self.install_dir)
         self.install_mode = install_mode
         self.install_tag = _process_install_tag(install_tag, len(self.outputs))
-        self.name = name if name else self.outputs[0]
         self.description = description
 
         # Whether to use absolute paths for all files on the commandline
