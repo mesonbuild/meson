@@ -107,7 +107,7 @@ class DictMergeValue(ConvertValue):
     def __init__(self, func: T.Callable[[T.Any], T.List[object]],
                  merge_key: T.Callable[[T.Any], str],
                  out_key: T.Callable[[T.Any], str],
-                 base: T.Mapping[str, object] = None) -> None:
+                 base: T.Mapping[str, object]) -> None:
         super().__init__(func, base)
         self.merge_key = merge_key
         self.out_key = out_key
