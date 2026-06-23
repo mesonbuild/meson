@@ -40,6 +40,8 @@ def apply_machine_map(f: TV_func) -> TV_func:
             raise MesonBugException(f'cannot use @apply_machine_map if the object is a {type(wrapped_args[0])}')
 
         _, _, kwargs, _ = get_callee_args(wrapped_args)
+        if kwargs is None:
+            raise MesonBugException(f'cannot use @apply_machine_map if the function does not take keyword arguments')
         if 'native' in kwargs:
             s.apply_machine_map_to_kwargs(T.cast('MachineMapArgs', kwargs))
 
