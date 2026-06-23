@@ -23,7 +23,10 @@ from pathlib import PurePath
 from . import builder, version
 from .cfg import eval_cfg
 from .toml import load_toml
-from .manifest import Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname
+from .manifest import (
+    Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname,
+    validate_patch,
+)
 from ..mesonlib import (
     is_parent_path, lazy_property, MesonException, MachineChoice,
     PerMachine, unique_list, SubProject,
@@ -332,6 +335,10 @@ class Interpreter:
         manifest, cached = self._load_manifest(subdir)
         ws = self._get_workspace(manifest, subdir, extra_members, False)
         if not cached:
+            # [patch] only takes effect in the top-level Cargo.toml
+            for warning in validate_patch(ws.workspace.patch, ws.packages_to_member):
+                mlog.warning(warning)
+
             self._prepare_entry_point(ws)
         return ws
 

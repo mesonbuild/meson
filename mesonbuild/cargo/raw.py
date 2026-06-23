@@ -176,8 +176,8 @@ Manifest = TypedDict(
         'target': T.Dict[str, Target],
         'workspace': Workspace,
         'lints': T.Union[FromWorkspace, T.Dict[str, T.Dict[str, LintV]]],
+        'patch': T.Dict[str, object],
 
-        # TODO: patch?
         # TODO: replace?
     },
     total=False,

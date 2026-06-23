@@ -534,6 +534,9 @@ class Manifest:
     features: T.Dict[str, T.List[str]] = dataclasses.field(default_factory=dict)
     target: T.Dict[str, T.Dict[str, Dependency]] = dataclasses.field(default_factory=dict)
     lints: T.List[Lint] = dataclasses.field(default_factory=list)
+    # Kept in raw form: Meson does not implement [patch], it only validates it
+    # for the entry-point crate (see validate_patch).
+    patch: object = None
 
     # missing: profile
 
@@ -642,6 +645,9 @@ class Workspace:
     # A workspace can also have a root package.
     root_package: T.Optional[Manifest] = None
 
+    # Top-level [patch] table, kept in raw form (see Manifest.validate_patch).
+    patch: object = None
+
     @lazy_property
     def inheritable(self) -> T.Dict[str, object]:
         # the whole lints table is inherited.  Do not add package, dependencies
@@ -655,6 +661,10 @@ class Workspace:
         ws = _raw_to_dataclass(raw['workspace'], cls, 'Workspace')
         if 'package' in raw:
             ws.root_package = Manifest.from_raw(raw, path, ws, '.')
+            ws.patch = ws.root_package.patch
+        else:
+            ws.patch = raw.get('patch')
+
         ws.members = list(PurePath(m).as_posix() for m in ws.members)
         if ws.default_members:
             ws.default_members = list(PurePath(m).as_posix() for m in ws.default_members)
@@ -731,3 +741,27 @@ class CargoLock:
     def from_raw(cls, raw: raw.CargoLock) -> Self:
         return _raw_to_dataclass(raw, cls, 'Cargo.lock',
                                  package=ConvertValue(lambda x: [CargoLockPackage.from_raw(p) for p in x]))
+
+
+def validate_patch(patch: object, resolved: T.Mapping[str, str]) -> T.Iterator[str]:
+    # Meson does not implement [patch]; recognize entries that simply point
+    # at a package Meson already builds from the workspace ('resolved' maps
+    # each such package name to its path), and warn for everything else.
+    # This is only done for the top-level Cargo.toml, since Cargo ignores
+    # [patch] in a dependency's manifest too.
+    if not patch:
+        return
+    if not isinstance(patch, dict):
+        yield '[patch] format not recognized'
+    elif list(patch.keys()) != ['crates-io']:
+        yield 'Found [patch] for a registry other than crates.io'
+    elif not isinstance(patch['crates-io'], dict):
+        yield '[patch.crates-io] format not recognized'
+    else:
+        for name, value in patch['crates-io'].items():
+            if not isinstance(value, dict) or not isinstance(value.get('path'), str):
+                yield f'Unrecognized [patch.crates-io] entry {name!r}'
+            elif resolved.get(name) == os.path.normpath(value['path']):
+                continue
+            else:
+                yield f'[patch.crates-io] entry {name!r} is not for a dependency'

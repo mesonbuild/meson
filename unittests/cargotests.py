@@ -11,7 +11,7 @@ import typing as T
 from mesonbuild.cargo import cfg
 from mesonbuild.cargo.cfg import TokenType
 from mesonbuild.cargo.interpreter import load_cargo_lock
-from mesonbuild.cargo.manifest import Dependency, Lint, Manifest, Package, Workspace
+from mesonbuild.cargo.manifest import Dependency, Lint, Manifest, Package, Workspace, validate_patch
 from mesonbuild.cargo.toml import load_toml
 from mesonbuild.cargo.version import api, cargo_parse, SemVer
 from mesonbuild.mesonlib import MesonException
@@ -679,3 +679,38 @@ class CargoTomlTest(unittest.TestCase):
         self.assertEqual(manifest.features['v1_42'], ['pango-sys/v1_42'])
         self.assertEqual(manifest.features['v1_44'], ['v1_42', 'pango-sys/v1_44'])
         self.assertEqual(manifest.features['default'], [])
+
+    def test_validate_patch(self) -> None:
+        # packages_to_member values are normalized with os.path.normpath (see
+        # _load_workspace_member), so do the same here
+        resolved = {
+            'cxx': '.',
+            'cxx-build': os.path.normpath('gen/build'),
+            'member': os.path.normpath('vendor/member'),
+        }
+
+        patch = {'crates-io': {
+            'cxx': {'path': '.'},
+            'cxx-build': {'path': 'gen/build'},
+            'member': {'version': '1', 'path': 'vendor/member'},
+        }}
+
+        # Empty or absent [patch]
+        self.assertFalse(list(validate_patch(None, resolved)))
+        self.assertFalse(list(validate_patch({}, resolved)))
+
+        # Invalid [patch] tables
+        self.assertTrue(list(validate_patch({'crates-io': {}, 'https://example.com': {}}, resolved)))
+        self.assertTrue(list(validate_patch({'crates-io': 'nonsense'}, resolved)))
+        self.assertTrue(list(validate_patch('nonsense', resolved)))
+
+        # Invalid entries
+        self.assertTrue(list(validate_patch({'crates-io': {'cxx': {'git': 'https://example.com'}}}, resolved)))
+        self.assertTrue(list(validate_patch({'crates-io': {'cxx': '1.0'}}, resolved)))
+
+        # Unknown crate
+        self.assertTrue(list(validate_patch({'crates-io': {'unknown': {'path': 'foo'}}}, resolved)))
+
+        # The only entries that don't warn point at a package that Meson already builds
+        self.assertFalse(list(validate_patch(patch, resolved)))
+        self.assertTrue(list(validate_patch({'crates-io': {'cxx-build': {'path': 'elsewhere'}}}, resolved)))
