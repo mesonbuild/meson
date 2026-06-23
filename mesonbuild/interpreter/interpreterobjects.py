@@ -25,6 +25,7 @@ from ..interpreterbase import (
                                InterpreterException, InvalidArguments, InvalidCode)
 from ..interpreter.type_checking import NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
+from ..options import OptionKey
 from ..programs import Program
 from ..mesonlib import File, HoldableObject, listify, MachineChoice, MesonException
 
@@ -115,7 +116,7 @@ def extract_search_dirs(kwargs: 'kwargs.ExtractSearchDirs') -> T.List[str]:
 class FeatureOptionHolder(ObjectHolder[Feature]):
     def __init__(self, option: Feature, interpreter: 'Interpreter'):
         if option.is_auto():
-            auto_value = T.cast('str', interpreter.environment.coredata.optstore.get_value_for('auto_features'))
+            auto_value = interpreter.environment.coredata.optstore.get_value_for(OptionKey('auto_features'), str)
             option = option.with_value(FeatureValue(auto_value))
         super().__init__(option, interpreter)
 
@@ -1044,7 +1045,7 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
         if self.subproject != self.held_object.subproject:
             raise InterpreterException('Tried to extract objects from a different subproject.')
         tobj = self._target_object
-        unity_value = self.interpreter.coredata.get_option_for_target(tobj, "unity")
+        unity_value = self.interpreter.coredata.optstore.get_option_for_target(tobj, OptionKey("unity"), str)
         is_unity = (unity_value == 'on' or (unity_value == 'subprojects' and tobj.subproject != ''))
 
         obj_src: list[mesonlib.File | build.GeneratedTypes] = []

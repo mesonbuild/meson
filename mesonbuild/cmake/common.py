@@ -58,16 +58,11 @@ blacklist_cmake_defs = [
 ]
 
 def cmake_is_debug(env: 'Environment') -> bool:
-    if 'b_vscrt' in env.coredata.optstore:
-        is_debug = env.coredata.optstore.get_value_for('buildtype') == 'debug'
-        if env.coredata.optstore.get_value_for('b_vscrt') in {'mdd', 'mtd'}:
-            is_debug = True
+    if vcrt := env.coredata.optstore.get_value_for(OptionKey('b_vscrt'), str, default=''):
+        is_debug = env.coredata.optstore.get_value_for(OptionKey('buildtype'), str) == 'debug'
+        is_debug |= vcrt in {'mdd', 'mtd'}
         return is_debug
-    else:
-        # Don't directly assign to is_debug to make mypy happy
-        debug_opt = env.coredata.optstore.get_value_for('debug')
-        assert isinstance(debug_opt, bool)
-        return debug_opt
+    return env.coredata.optstore.get_value_for(OptionKey('debug'), bool)
 
 class CMakeException(MesonException):
     pass
@@ -122,8 +117,7 @@ def _cmake_get_generator_args(backend_name: str) -> ImmutableListProtocol[str]:
     return args
 
 def cmake_get_generator_args(env: 'Environment') -> T.List[str]:
-    backend_name = env.coredata.optstore.get_value_for(OptionKey('backend'))
-    assert isinstance(backend_name, str)
+    backend_name = env.coredata.optstore.get_value_for(OptionKey('backend'), str)
     return list(_cmake_get_generator_args(backend_name))
 
 def cmake_defines_to_args(raw: T.List[T.Dict[str, TYPE_var]], permissive: bool = False) -> T.List[str]:

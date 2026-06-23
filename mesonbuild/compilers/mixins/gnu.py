@@ -659,7 +659,7 @@ class GnuCompiler(GnuLikeCompiler):
 
     def get_always_args(self) -> T.List[str]:
         args: T.List[str] = []
-        if self.info.is_os2() and self.environment.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
+        if self.info.is_os2() and self.environment.coredata.optstore.get_value_for(OptionKey('os2_emxomf'), bool):
             args += ['-Zomf']
         return super().get_always_args() + args
 

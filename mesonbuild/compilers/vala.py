@@ -15,7 +15,7 @@ from .compilers import CompileCheckMode, Compiler
 if T.TYPE_CHECKING:
     from ..arglist import CompilerArgs
     from ..environment import Environment
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, SubProject
     from ..dependencies import Dependency
     from ..build import BuildTarget
 
@@ -153,7 +153,7 @@ class ValaCompiler(Compiler):
         if not extra_dirs:
             code = 'class MesonFindLibrary : Object { }'
             args: T.List[str] = []
-            args += self.environment.coredata.get_external_args(self.for_machine, self.language)
+            args += self.environment.coredata.optstore.get_external_args(self.for_machine, self.language)
             vapi_args = ['--pkg', libname]
             args += vapi_args
             with self.cached_compile(code, extra_args=args, mode=CompileCheckMode.COMPILE) as p:
@@ -173,7 +173,7 @@ class ValaCompiler(Compiler):
     def thread_link_flags(self) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         return []
 
     def build_wrapper_args(self,
@@ -212,10 +212,10 @@ class ValaCompiler(Compiler):
 
         if mode is CompileCheckMode.COMPILE:
             # Add DFLAGS from the env
-            args += self.environment.coredata.get_external_args(self.for_machine, self.language)
+            args += self.environment.coredata.optstore.get_external_args(self.for_machine, self.language)
         elif mode is CompileCheckMode.LINK:
             # Add LDFLAGS from the env
-            args += self.environment.coredata.get_external_link_args(self.for_machine, self.language)
+            args += self.environment.coredata.optstore.get_external_link_args(self.for_machine, self.language)
         # extra_args must override all other arguments, so we add them last
         args += extra_args
         return args

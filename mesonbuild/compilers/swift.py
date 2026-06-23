@@ -18,7 +18,7 @@ if T.TYPE_CHECKING:
     from ..dependencies import Dependency
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, SubProject
 
 swift_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
@@ -128,11 +128,12 @@ class SwiftCompiler(Compiler):
 
         return opts
 
-    def get_option_std_args(self, target: build.BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: build.BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
 
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
 
         if std != 'none':
             args += ['-swift-version', std]
@@ -145,7 +146,8 @@ class SwiftCompiler(Compiler):
         c_lang = first(c_langs, lambda x: x in target.compilers)
         if c_lang is not None:
             cc = target.compilers[c_lang]
-            args.extend(arg for c_arg in cc.get_option_std_args(target, subproject) for arg in ['-Xcc', c_arg])
+            cc_std_args = cc.get_option_std_args(target if target is not None else subproject)
+            args.extend(arg for c_arg in cc_std_args for arg in ['-Xcc', c_arg])
 
         return args
 
@@ -184,7 +186,7 @@ class SwiftCompiler(Compiler):
         if self.is_cross:
             args.extend(self.get_compile_only_args())
         else:
-            largs.extend(self.environment.coredata.get_external_link_args(self.for_machine, self.language))
+            largs.extend(self.environment.coredata.optstore.get_external_link_args(self.for_machine, self.language))
         args.extend(self.get_output_args(binname))
         args.append(sourcename)
 

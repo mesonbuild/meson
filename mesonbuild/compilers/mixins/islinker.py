@@ -20,6 +20,7 @@ if T.TYPE_CHECKING:
     from ...compilers.compilers import Compiler
     from ...build import BuildTarget
     from ...options import OptionStore
+    from ...mesonlib import SubProject
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
     # Compiler, so we get all of the methods and attributes defined for us, but
@@ -59,7 +60,7 @@ class BasicLinkerIsCompilerMixin(Compiler):
     def get_linker_lib_prefix(self) -> str:
         return ''
 
-    def get_option_link_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         return []
 
     def has_multi_link_args(self, args: T.List[str]) -> T.Tuple[bool, bool]:

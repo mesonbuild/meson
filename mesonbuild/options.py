@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 from collections import OrderedDict
+from functools import lru_cache
 from itertools import chain
 import copy
 import dataclasses
@@ -35,6 +36,7 @@ from . import mlog
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Final, TypeAlias
 
+    from .build import BuildTarget
     from .envconfig import MachineInfo
     from .mesonlib import SubProject
     from .compilers.compilers import Language
@@ -45,6 +47,7 @@ if T.TYPE_CHECKING:
         'UserIntegerOption', 'UserStdOption', 'UserStringArrayOption',
         'UserStringOption', 'UserUmaskOption']
     ElementaryOptionValues: TypeAlias = T.Union[str, int, bool, T.List[str]]
+    ElementaryOptionType = T.TypeVar('ElementaryOptionType', str, int, bool, T.List[str])
     MutableKeyedOptionDictType: TypeAlias = T.Dict['OptionKey', AnyOptionType]
 
     _OptionKeyTuple: TypeAlias = T.Tuple[T.Optional[str], MachineChoice, str]
@@ -355,6 +358,9 @@ class UserOption(T.Generic[_T], HoldableObject):
         oldvalue = self.value
         self.value = self.validate_value(newvalue)
         return self.value != oldvalue
+
+    def has_default_value(self) -> bool:
+        return self.value == self.default
 
 @dataclasses.dataclass
 class EnumeratedUserOption(UserOption[_T]):
@@ -849,7 +855,7 @@ class OptionStore:
                 return self.options[parent_key]
         return potential
 
-    def get_option_and_value_for(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
+    def get_option_and_value_for_untyped(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
         key = self.ensure_and_validate_key(key)
         option_object = self.resolve_option(key)
         computed_value = option_object.value
@@ -861,17 +867,80 @@ class OptionStore:
         return (option_object, computed_value)
 
     def option_has_value(self, key: OptionKey, value: ElementaryOptionValues) -> bool:
-        option_object, current_value = self.get_option_and_value_for(key)
+        option_object, current_value = self.get_option_and_value_for_untyped(key)
         return option_object.validate_value(value) == current_value
 
-    def get_value_for(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
+    def get_value_for_untyped(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
         if isinstance(name, str):
             key = OptionKey(name, subproject)
         else:
             assert subproject is None
             key = name
-        _, resolved_value = self.get_option_and_value_for(key)
+        _, resolved_value = self.get_option_and_value_for_untyped(key)
         return resolved_value
+
+    def get_value_for(self, key: OptionKey, type_: T.Type[ElementaryOptionType],
+                      *, default: T.Optional[ElementaryOptionType] = None) -> ElementaryOptionType:
+        try:
+            val = self.get_value_for_untyped(key)
+        except KeyError:
+            if default is not None:
+                return default
+            raise
+        if not isinstance(val, type_):
+            raise MesonBugException(f'Expected {key!s} to have type {type_!s}, but had type {type(val)!s}')
+        return val
+
+    def get_option_for_target_untyped(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
+        if isinstance(key, str):
+            assert ':' not in key
+            newkey = OptionKey(key, target.subproject)
+        else:
+            newkey = key
+        if newkey.subproject != target.subproject:
+            # FIXME: this should be an error. The caller needs to ensure that
+            # key and target have the same subproject for consistency.
+            # Now just do this to get things going.
+            newkey = newkey.evolve(subproject=target.subproject)
+        if self.is_cross:
+            newkey = newkey.evolve(machine=target.for_machine)
+        option_object, value = self.get_option_and_value_for_untyped(newkey)
+        override = target.get_override(newkey.name)
+        if override is not None:
+            try:
+                return option_object.validate_value(override)
+            except MesonException as e:
+                raise MesonException(f'In override_options for {target}: {e!s}')
+        return value
+
+    def get_option_for_target(self, target: 'BuildTarget', key: OptionKey,
+                              type_: T.Type[ElementaryOptionType],
+                              *, default: T.Optional[ElementaryOptionType] = None) -> ElementaryOptionType:
+        try:
+            val = self.get_option_for_target_untyped(target, key)
+        except KeyError:
+            if default is not None:
+                return default
+            raise
+        if not isinstance(val, type_):
+            raise MesonBugException(f'Expected {key!s} to have type {type_!s}, but had type {type(val)!s}')
+        return val
+
+    def get_option_for_maybe_target(self, target: T.Optional[BuildTarget], key: OptionKey,
+                                    type_: T.Type[ElementaryOptionType],
+                                    *, default: T.Optional[ElementaryOptionType] = None) -> ElementaryOptionType:
+        if target is not None:
+            return self.get_option_for_target(target, key, type_, default=default)
+        return self.get_value_for(key, type_, default=default)
+
+    def get_external_args(self, for_machine: MachineChoice, lang: Language) -> T.List[str]:
+        key = OptionKey(f'{lang}_args', machine=for_machine)
+        return self.get_value_for(key, list)
+
+    @lru_cache(maxsize=None)
+    def get_external_link_args(self, for_machine: MachineChoice, lang: Language) -> T.List[str]:
+        linkkey = OptionKey(f'{lang}_link_args', machine=for_machine)
+        return self.get_value_for(linkkey, list)
 
     def add_system_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
@@ -1013,8 +1082,7 @@ class OptionStore:
             assert isinstance(new_value, str), 'for mypy'
             new_value = self.sanitize_prefix(new_value)
         elif self.is_builtin_option(key):
-            prefix = self.get_value_for('prefix')
-            assert isinstance(prefix, str), 'for mypy'
+            prefix = self.get_value_for(OptionKey('prefix'), str)
             new_value = self.sanitize_dir_option_value(prefix, key, new_value)
 
         try:

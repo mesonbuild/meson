@@ -8,7 +8,6 @@ import os.path
 import typing as T
 
 from .. import options
-from ..options import OptionKey
 from .. import mlog
 from ..mesonlib import MesonException, version_compare
 from .c_function_attributes import C_FUNC_ATTRIBUTES
@@ -41,7 +40,7 @@ if T.TYPE_CHECKING:
     from ..dependencies import Dependency
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, SubProject
     from .compilers import CompileCheckMode
     from ..build import BuildTarget
 
@@ -127,22 +126,20 @@ class ClangCCompiler(ClangCStds, ClangCompiler, CCompiler):
                 gnu_winlibs)
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         if self.info.is_windows() or self.info.is_cygwin():
-            retval = self.get_compileropt_value('winlibs', target, subproject)
-            assert isinstance(retval, list)
-            libs: T.List[str] = retval.copy()
-            for l in libs:
-                assert isinstance(l, str)
-            return libs
+            key = self.form_compileropt_key('winlibs', subproject)
+            return self.environment.coredata.optstore.get_option_for_maybe_target(target, key, list).copy()
         return []
 
 
@@ -212,15 +209,16 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
         std_opt.set_versions(['c90', 'c99', 'c11'], gnu=True)
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         return []
 
 
@@ -255,25 +253,20 @@ class GnuCCompiler(GnuCStds, GnuCompiler, CCompiler):
                 gnu_winlibs)
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
-        key = OptionKey('c_std', machine=self.for_machine)
-        std = self.get_compileropt_value(key, target, subproject)
-        assert isinstance(std, str)
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: BuildTarget | SubProject | None) -> list[str]:
         if self.info.is_windows() or self.info.is_cygwin():
-            # without a typeddict mypy can't figure this out
-            retval = self.get_compileropt_value('winlibs', target, subproject)
-
-            assert isinstance(retval, list)
-            libs: T.List[str] = retval.copy()
-            for l in libs:
-                assert isinstance(l, str)
-            return libs
+            target, subproject = self._get_subproject_and_target(target)
+            key = self.form_compileropt_key('winlibs', subproject)
+            return self.environment.coredata.optstore.get_option_for_maybe_target(target, key, list).copy()
         return []
 
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
@@ -308,10 +301,11 @@ class NvidiaHPC_CCompiler(PGICompiler, CCompiler):
         std_opt.set_versions(cppstd_choices, gnu=True)
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
@@ -382,10 +376,11 @@ class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
         std_opt.set_versions(stds, gnu=True)
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
@@ -409,13 +404,10 @@ class VisualStudioLikeCCompilerMixin(CompilerMixinBase):
             msvc_winlibs)
         return opts
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
-        retval = self.get_compileropt_value('winlibs', target, subproject)
-        assert isinstance(retval, list)
-        libs: T.List[str] = retval.copy()
-        for l in libs:
-            assert isinstance(l, str)
-        return libs
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        key = self.form_compileropt_key('winlibs', subproject)
+        return self.environment.coredata.optstore.get_option_for_maybe_target(target, key, list).copy()
 
 
 class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
@@ -444,9 +436,11 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
         std_opt.set_versions(stds, gnu=True, gnu_deprecated=True)
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
-        std = self.get_compileropt_value('std', target, subproject)
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
 
         # As of MVSC 16.8, /std:c11 and /std:c17 are the only valid C standard options.
         if std in {'c11'}:
@@ -465,9 +459,10 @@ class ClangClCCompiler(ClangCStds, ClangClCompiler, VisualStudioLikeCCompilerMix
                            env, linker=linker, full_version=full_version)
         ClangClCompiler.__init__(self, target)
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != "none":
             return [f'/clang:-std={std}']
         return []
@@ -493,10 +488,11 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
         std_opt.set_versions(['c89', 'c99', 'c11'])
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std == 'c89':
             mlog.log("ICL doesn't explicitly implement c89, setting the standard to 'none', which is close.", once=True)
         elif std != 'none':
@@ -526,10 +522,11 @@ class ArmCCompiler(ArmCompiler, CCompiler):
         std_opt.set_versions(['c89', 'c99', 'c11'])
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('--' + std)
         return args
@@ -559,10 +556,11 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
     def get_no_stdinc_args(self) -> T.List[str]:
         return []
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std == 'c89':
             args.append('-lang=c')
         elif std == 'c99':
@@ -607,10 +605,11 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
     def get_no_stdinc_args(self) -> T.List[str]:
         return []
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('-ansi')
             args.append('-std=' + std)
@@ -702,10 +701,11 @@ class TICCompiler(TICompiler, CCompiler):
     def get_no_stdinc_args(self) -> T.List[str]:
         return []
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('--' + std)
         return args
@@ -736,10 +736,11 @@ class MetrowerksCCompilerARM(MetrowerksCompiler, CCompiler):
         self._update_language_stds(opts, ['c99'])
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
-        std = self.get_compileropt_value('std', target, subproject)
-        assert isinstance(std, str)
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         if std != 'none':
             args.append('-lang')
             args.append(std)
@@ -764,9 +765,11 @@ class MetrowerksCCompilerEmbeddedPowerPC(MetrowerksCompiler, CCompiler):
         self._update_language_stds(opts, ['c99'])
         return opts
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args = []
-        std = self.get_compileropt_value('std', target, subproject)
+    def get_option_std_args(self, target: BuildTarget | SubProject | None) -> list[str]:
+        target, subproject = self._get_subproject_and_target(target)
+        args: T.List[str] = []
+        key = self.form_compileropt_key('std', subproject)
+        std = self.environment.coredata.optstore.get_option_for_maybe_target(target, key, str)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-lang ' + std)
