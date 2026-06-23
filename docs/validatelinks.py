@@ -28,14 +28,20 @@ async def main(filename):
             tasks = []
             for link in LINK.finditer(text):
                 name, url = link.groups()
+                name = name.replace('\n', ' ')
                 task = asyncio.ensure_future(fetch(session, name, url, timeout))
                 tasks.append(task)
             responses = asyncio.gather(*tasks)
             errors = [r for r in await responses if r is not None]
+        bad = False
         for name, url, result in errors:
-            print(f'"{name}" {url} {result}')
+            if re.match(r'https://github.com/(search|topics/)', url) and result == 429:
+                print(f'"{name}" {url} {result} (ignored)')
+            else:
+                print(f'"{name}" {url} {result}')
+                bad = True
         if errors:
-            sys.exit(1)
+            sys.exit(int(bad))
 
 
 if __name__ == '__main__':
