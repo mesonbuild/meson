@@ -448,6 +448,7 @@ class Example(BuildTarget):
     def from_raw(cls, raw: raw.BuildTarget, pkg: Package) -> Self:
         name = raw["name"]
         return _raw_to_dataclass(raw, cls, f'Example entry {name}',
+                                 ignored_fields=['doc-scrape-examples'],
                                  path=DefaultValue(f'examples/{name}.rs'),
                                  edition=DefaultValue(pkg.edition),
                                  test=DefaultValue(False),
