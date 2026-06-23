@@ -20,7 +20,7 @@ from ..interpreterbase import FeatureNew
 from ..interpreter.type_checking import ENV_KW, DEPENDS_KW
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
 from ..mesonlib import (EnvironmentException, MesonException, Popen_safe, MachineChoice,
-                        get_variable_regex, do_replacement, join_args)
+                        FileMode, get_variable_regex, do_replacement, join_args)
 from ..options import OptionKey
 
 if T.TYPE_CHECKING:
@@ -265,8 +265,8 @@ class ExternalProject(NewExtensionModule):
                                 Path('dist', self.rel_prefix).as_posix(),
                                 install_dir='.',
                                 install_dir_name='.',
-                                install_mode=None,
-                                exclude=None,
+                                install_mode=FileMode(),
+                                exclude=(set(), set()),
                                 strip_directory=True,
                                 from_source_dir=False,
                                 subproject=self.subproject)
