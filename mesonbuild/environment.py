@@ -95,6 +95,14 @@ class Environment:
             os.makedirs(self.scratch_dir, exist_ok=True)
             os.makedirs(self.log_dir, exist_ok=True)
             os.makedirs(self.info_dir, exist_ok=True)
+            # Write CACHEDIR.TAG so backup tools can identify this as cache
+            cachedir_tag = os.path.join(build_dir, 'CACHEDIR.TAG')
+            if not os.path.exists(cachedir_tag):
+                with open(cachedir_tag, 'w') as f:
+                    f.write('Signature: 8a477f597d28d172789f06886806bc55\n'
+                            '# This file is a cache directory tag created by Meson.\n'
+                            '# For information about cache directory tags, see:\n'
+                            '#\thttps://bford.info/cachedir/\n')
             try:
                 self.coredata: coredata.CoreData = coredata.load(self.get_build_dir(), suggest_reconfigure=False)
                 self.first_invocation = False
