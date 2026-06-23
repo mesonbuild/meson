@@ -4,7 +4,7 @@ description: Opaque wrapper for storing include directories
 
 methods:
 - name: to_list
-  returns: list[str]
+  returns: array[str]
   since: 1.12.0
   description: |
     Returns a list of strings of absolute paths to the directories
