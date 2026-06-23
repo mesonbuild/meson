@@ -4243,6 +4243,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 # Create a list of all custom target outputs
                 for o in t.get_outputs():
                     ctlist.append(os.path.join(self.get_target_dir(t), o))
+        # Also clean meson-dist directory created by `meson dist`
+        ctlist.append('meson-dist')
         if ctlist:
             elem.add_dep(self.generate_custom_target_clean(ctlist))
 
