@@ -998,10 +998,10 @@ class RustModule(ExtensionModule):
             [header],
             outputs,
             state.current_build_project,
+            state.backend,
             depfile='@PLAINNAME@.d',
             extra_depends=depends,
             depend_files=depend_files,
-            backend=state.backend,
             description='Generating bindings for Rust {}',
         )
 

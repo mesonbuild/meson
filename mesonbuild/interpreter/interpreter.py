@@ -2130,6 +2130,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.source_strings_to_files(kwargs['input']),
             kwargs['output'],
             self.current_build_project(),
+            self.backend,
             build_by_default=True,
             build_always_stale=True,
             install=install,
@@ -2261,6 +2262,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             inputs,
             kwargs['output'],
             self.current_build_project(),
+            self.backend,
             build_always_stale=build_always_stale,
             build_by_default=build_by_default,
             capture=kwargs['capture'],
@@ -2274,7 +2276,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_dir=kwargs['install_dir'],
             install_mode=install_mode,
             install_tag=kwargs['install_tag'],
-            backend=self.backend,
             build_subdir=kwargs['build_subdir'])
 
         subdir = tg.get_builddir()

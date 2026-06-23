@@ -2995,6 +2995,7 @@ class CustomTarget(Target, CustomTargetBase):
                  sources: T.Sequence[CustomTargetSources],
                  outputs: T.List[str],
                  build_project: BuildProject,
+                 backend: Backend,
                  *,
                  build_always_stale: bool = False,
                  build_by_default: T.Optional[bool] = None,
@@ -3012,7 +3013,6 @@ class CustomTarget(Target, CustomTargetBase):
                  install_tag: T.Optional[T.List[T.Optional[str]]] = None,
                  rspable: bool = False,
                  absolute_paths: bool = False,
-                 backend: T.Optional['Backend'] = None,
                  description: str = 'Generating {} with a custom command',
                  build_subdir: str = '',
                  ):
