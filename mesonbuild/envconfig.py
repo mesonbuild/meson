@@ -77,6 +77,23 @@ known_cpu_families = (
     'tricore'
 )
 
+KNOWN_SYSTEMS = frozenset({
+    'aix',
+    'android',
+    'cygwin',
+    'darwin',
+    'dragonfly',
+    'freebsd',
+    'gnu',
+    'haiku',
+    'linux',
+    'netbsd',
+    'openbsd',
+    'os/2',
+    'sunos',
+    'windows',
+})
+
 # It would feel more natural to call this "64_BIT_CPU_FAMILIES", but
 # python identifiers cannot start with numbers
 CPU_FAMILIES_64_BIT = [
@@ -301,6 +318,8 @@ class MachineInfo(HoldableObject):
             mlog.warning(f'Unknown endian {endian}')
 
         system = literal['system']
+        if system not in KNOWN_SYSTEMS:
+            mlog.warning(f'Unknown system {system}, please report this at https://github.com/mesonbuild/meson/issues/new')
         kernel = literal.get('kernel', None)
         subsystem = literal.get('subsystem', None)
 
