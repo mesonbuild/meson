@@ -344,6 +344,17 @@ class MachineInfo(HoldableObject):
         """
         return self.system == 'android'
 
+    def is_ohos(self) -> bool:
+        """
+        Machine is OpenHarmony (OHOS)?
+
+        OHOS is modelled as an Android subsystem: it behaves like Android
+        (apps are shared libraries, no versioned sonames, ...) but uses musl
+        instead of Bionic. Machine files select it with system = 'android'
+        and subsystem = 'ohos'.
+        """
+        return self.is_android() and self.subsystem == 'ohos'
+
     def is_haiku(self) -> bool:
         """
         Machine is Haiku?

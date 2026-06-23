@@ -155,7 +155,13 @@ class CMakeToolchain:
         # Only set these in a cross build. Otherwise CMake will trip up in native
         # builds and thing they are cross (which causes TRY_RUN() to break)
         if self.env.is_cross_build(when_building_for=self.for_machine):
-            defaults['CMAKE_SYSTEM_NAME'] = [SYSTEM_MAP.get(self.minfo.system, self.minfo.system)]
+            # OHOS is modelled as an Android subsystem in meson, but CMake has a
+            # dedicated OHOS system name, so map it explicitly.
+            if self.minfo.is_ohos():
+                system_name = 'OHOS'
+            else:
+                system_name = SYSTEM_MAP.get(self.minfo.system, self.minfo.system)
+            defaults['CMAKE_SYSTEM_NAME'] = [system_name]
             defaults['CMAKE_SYSTEM_PROCESSOR'] = [self.minfo.cpu_family]
 
         defaults['CMAKE_SIZEOF_VOID_P'] = ['8' if self.minfo.is_64_bit else '4']

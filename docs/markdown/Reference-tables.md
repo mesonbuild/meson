@@ -162,7 +162,7 @@ These are provided by the `.system()` method call.
 
 | Value               | Comment                         |
 | -----               | -------                         |
-| android             | |
+| android             | Android or OpenHarmony / HarmonyOS (OHOS) |
 | cygwin              | Cygwin or MSYS2 environment on Windows |
 | darwin              | Either OSX or iOS |
 | dragonfly           | DragonFly BSD |
@@ -208,6 +208,10 @@ A more specific description of the system in question. Most values are
 meant to be used in cross files only, as those platforms can not run
 Meson natively.
 
+### `darwin` subsystems
+
+Set when `system` is `darwin`.
+
 | Value               | Comment                         |
 | -----               | -------                         |
 | macos               | Apple macOS (formerly OSX)      |
@@ -219,6 +223,15 @@ Meson natively.
 | visionos-simulator  |                                 |
 | watchos             | Apple watchOS                   |
 | watchos-simulator   |                                 |
+
+### `android` subsystems (since 1.12.0)
+
+Set when `system` is `android`.
+
+| Value               | Comment                         |
+| -----               | -------                         |
+| android             | Android (Bionic libc)           |
+| ohos                | OpenHarmony / HarmonyOS (OHOS)  |
 
 ## Language arguments parameter names
 

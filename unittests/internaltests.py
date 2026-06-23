@@ -54,6 +54,22 @@ from .helpers import *
 
 class InternalTests(unittest.TestCase):
 
+    def test_machine_info_is_ohos(self):
+        def machine(system: str, subsystem: str) -> mesonbuild.envconfig.MachineInfo:
+            return mesonbuild.envconfig.MachineInfo(
+                system=system, cpu_family='aarch64', cpu='aarch64',
+                endian='little', kernel='linux', subsystem=subsystem)
+
+        # OHOS is modelled as an Android subsystem.
+        ohos = machine('android', 'ohos')
+        self.assertTrue(ohos.is_ohos())
+        self.assertTrue(ohos.is_android())
+
+        # Plain Android is not OHOS.
+        self.assertFalse(machine('android', 'android').is_ohos())
+        # A non-Android system with an 'ohos' subsystem is not OHOS either.
+        self.assertFalse(machine('linux', 'ohos').is_ohos())
+
     def test_version_number(self):
         self.assertEqual(search_version('foobar 1.2.3'), '1.2.3')
         self.assertEqual(search_version('1.2.3'), '1.2.3')
