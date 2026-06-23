@@ -354,7 +354,12 @@ class RustPackage(RustCrate):
         return None, args[0]
 
     def merge_kw_args(self, state: ModuleState, kwargs: T.Union[RustPackageExecutable, RustPackageLibrary]) -> None:
-        kwargs.setdefault('native', self.for_machine)
+        if state.environment.is_cross_build():
+            kwargs.setdefault('native', self.for_machine)
+        else:
+            # dependent crates are not compiled separately for build and host;
+            # do not use 'native: true' to allow linking to them without warnings
+            kwargs.setdefault('native', MachineChoice.HOST)
         cfg = self.package.cfg[kwargs['native']]
         if not cfg:
             raise MesonException(f"package {self.package.manifest.package.name}-{self.package.manifest.package.version} not configured for {self.for_machine}")
@@ -1025,6 +1030,8 @@ class RustModule(ExtensionModule):
     @typed_pos_args('rust.proc_macro', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('rust.proc_macro', *_PROC_MACRO_KWS)
     def proc_macro(self, state: ModuleState, args: T.Tuple[str, SourcesVarargsType], kwargs: _kwargs.SharedLibrary) -> SharedLibrary:
+        # Silently force to native; rust.proc_macro() has always done
+        # that even when not cross compiling.
         kwargs['native'] = MachineChoice.BUILD
         kwargs['rust_crate_type'] = 'proc-macro'
         kwargs['rust_args'] = kwargs['rust_args'] + ['--extern', 'proc_macro']

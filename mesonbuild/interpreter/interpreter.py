@@ -3935,7 +3935,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.apply_machine_map_to_kwargs(kwargs)
         for_machine = kwargs['native']
 
-        if kwargs.get('rust_crate_type') == 'proc-macro':
+        if self.environment.is_cross_build() and kwargs.get('rust_crate_type') == 'proc-macro':
             # Silently force to native because that's the only sensible value
             # and rust_crate_type is deprecated any way.
             for_machine = MachineChoice.BUILD
