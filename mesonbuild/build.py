@@ -807,7 +807,7 @@ class BuildTarget(Target):
         super().__init__(name, subdir, kwargs.get('build_by_default', True),
                          for_machine, environment,
                          install=kwargs.get('install', False),
-                         build_subdir=kwargs.get('build_subdir', ''),
+                         build_subdir=kwargs.get('build_subdir') or '',
                          build_project=build_project)
         self.original_kwargs = kwargs
         # all_compilers is a reference to Interpreter.compilers, as such we
