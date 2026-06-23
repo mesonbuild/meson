@@ -72,6 +72,7 @@ class _Logger:
     log_fatal_warnings = False
     log_disable_stdout = False
     log_errors_only = False
+    force_colorize: T.Optional[bool] = None
     logged_once: T.Set[T.Tuple[str, ...]] = field(default_factory=set)
     log_warnings_counter = 0
     log_pager: T.Optional['subprocess.Popen'] = None
@@ -104,6 +105,9 @@ class _Logger:
 
     def set_timestamp_start(self, start: float) -> None:
         self.log_timestamp_start = start
+
+    def set_colorize(self, colorize: T.Optional[bool]) -> None:
+        self.force_colorize = colorize
 
     def shutdown(self) -> T.Optional[str]:
         if self.log_file is not None:
@@ -395,6 +399,8 @@ class _Logger:
         self.log_to_stderr = to_stderr
 
     def colorize_console(self) -> bool:
+        if self.force_colorize is not None:
+            return self.force_colorize
         output = sys.stderr if self.log_to_stderr else sys.stdout
         _colorize_console: bool = getattr(output, 'colorize_console', None)
         if _colorize_console is not None:
@@ -441,6 +447,7 @@ notice = _logger.notice
 process_markup = _logger.process_markup
 redirect = _logger.redirect
 set_quiet = _logger.set_quiet
+set_colorize = _logger.set_colorize
 set_timestamp_start = _logger.set_timestamp_start
 set_verbose = _logger.set_verbose
 setup_console = _logger.setup_console
