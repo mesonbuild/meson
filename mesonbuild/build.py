@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 from collections import defaultdict, deque, OrderedDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, InitVar
 from functools import lru_cache
 import abc
 import copy
@@ -3588,14 +3588,16 @@ class Data(HoldableObject):
     install_dir_name: str
     install_mode: 'FileMode'
     subproject: SubProject
-    rename: T.List[str] = None
+    rename_: InitVar[list[str] | None] = None
     install_tag: T.Optional[str] = None
-    data_type: str = None
+    data_type: str | None = None
     follow_symlinks: T.Optional[bool] = None
 
-    def __post_init__(self) -> None:
-        if self.rename is None:
-            self.rename = [os.path.basename(f.fname) for f in self.sources]
+    def __post_init__(self, rename_: list[str] | None) -> None:
+        if rename_ is None:
+            rename_ = [os.path.basename(f.fname) for f in self.sources]
+        self.rename = rename_
+
 
 @dataclass(eq=False)
 class SymlinkData(HoldableObject):
