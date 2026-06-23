@@ -77,9 +77,10 @@ class SampleImpl(metaclass=SimpleABC):
     def _detect_sources(self, srcfiles: T.List[Path], transform: T.Callable[[str], str]) -> T.Tuple[str, T.List[Path]]:
         # Try a source based on the executable name, fallback to one based
         # on the project name if none is found.
-        expected_name = f'{transform(self.executable_name)}.{self.source_ext}'
-        if any(str(x) == expected_name for x in srcfiles):
-            return expected_name, srcfiles
+        if self.executable_name:
+            expected_name = f'{transform(self.executable_name)}.{self.source_ext}'
+            if any(str(x) == expected_name for x in srcfiles):
+                return expected_name, srcfiles
         expected_name = f'{transform(self.lowercase_token)}.{self.source_ext}'
         if any(str(x) == expected_name for x in srcfiles):
             return expected_name, srcfiles
