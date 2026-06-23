@@ -283,7 +283,7 @@ class HotdocTargetBuilder:
             if arg in self.kwargs:
                 raise InvalidArguments(f'Argument "{arg}" is forbidden.')
 
-    def make_targets(self) -> T.Tuple[HotdocTarget, mesonlib.ExecutableSerialisation]:
+    def make_targets(self) -> T.Tuple[HotdocTarget, mesonlib.ExecutableSerialisation | None]:
         self.check_forbidden_args()
         self.process_known_arg("--index", value_processor=self.ensure_file)
         self.process_known_arg("--project-version")

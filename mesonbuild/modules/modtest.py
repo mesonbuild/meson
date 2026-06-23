@@ -8,7 +8,7 @@ from . import NewExtensionModule, ModuleInfo
 from ..interpreterbase import noKwargs, noPosargs
 
 if T.TYPE_CHECKING:
-    from . import ModuleState
+    from . import ModuleState, ModuleReturnValue
     from ..interpreter.interpreter import Interpreter
     from ..interpreterbase.baseobjects import TYPE_kwargs, TYPE_var
 
@@ -25,8 +25,9 @@ class TestModule(NewExtensionModule):
 
     @noKwargs
     @noPosargs
-    def print_hello(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> None:
+    def print_hello(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> ModuleReturnValue:
         print('Hello from a Meson module')
+        return ModuleReturnValue(None, [])
 
 
 def initialize(interp: Interpreter) -> TestModule:
