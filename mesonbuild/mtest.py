@@ -1179,15 +1179,15 @@ class TestRunTAP(TestRun):
                 res = TestResult.ERROR
 
         if warnings:
-            unknown = str(mlog.yellow('UNKNOWN'))
+            unknown = str(mlog.yellow('UNKNOWN:'))
             width = len(str(max(i.lineno for i in warnings)))
             for w in warnings:
-                self.warnings.append(f'stdout: {w.lineno:{width}}: {unknown}: {w.message}')
+                self.warnings.append(f'stdout: {w.lineno:{width}}: {unknown} {w.message}')
             if version > 13:
                 self.warnings.append('Unknown TAP output lines have been ignored. Please open a feature request to\n'
                                      'implement them, or prefix them with a # if they are not TAP syntax.')
             else:
-                self.warnings.append(str(mlog.red('ERROR')) + ': Unknown TAP output lines for a supported TAP version.\n'
+                self.warnings.append(str(mlog.yellow('WARNING:')) + ' Unknown TAP output lines for a supported TAP version.\n'
                                      'This is probably a bug in the test; if they are not TAP syntax, prefix them with a #')
         if all(t.result is TestResult.SKIP for t in self.results):
             # This includes the case where self.results is empty
