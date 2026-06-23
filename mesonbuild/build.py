@@ -3059,7 +3059,7 @@ class CustomTarget(Target, CustomTargetBase):
                 if isinstance(d, LocalProgram):
                     d = d.get_target()
                 elif isinstance(d, programs.Program):
-                    path = d.get_path()
+                    path = unwrap(d.get_path())
                     # Can only add a dependency on an external program which we
                     # know the absolute path of
                     if not os.path.isabs(path):
@@ -3554,7 +3554,7 @@ class LocalProgram(programs.Program):
         # Only the backend knows the actual path to the build program.
         raise MesonBugException('Cannot call get_command() on program that is a build target.')
 
-    def get_path(self) -> str:
+    def get_path(self) -> str | None:
         if isinstance(self.program, programs.ExternalProgram):
             return self.program.get_path()
         # Only the backend knows the actual path to the build program.
@@ -3633,7 +3633,7 @@ def get_sources_string_names(sources: T.Sequence[CustomTargetSources], backend: 
         elif isinstance(s, File):
             names.append(s.fname)
         elif isinstance(s, programs.ExternalProgram):
-            names.append(s.get_path())
+            names.append(unwrap(s.get_path()))
         else:
             raise MesonBugException(f'Unknown source type: {s!r}')
     return names
