@@ -90,7 +90,7 @@ class SemVer:
 
     __slots__ = ('_v', 'specified_count')
 
-    def __init__(self, in_: str | list[int | str] = None) -> None:
+    def __init__(self, in_: str | list[int | str]) -> None:
         vec: list[int | str]
         if isinstance(in_, str):
             vec = []
