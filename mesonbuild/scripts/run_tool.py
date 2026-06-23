@@ -46,7 +46,7 @@ async def run_with_buffered_output(cmdlist: T.List[str], env: T.Optional[T.Dict[
     if stdo:
         print(mlog.blue('>>>'), quoted_cmdline, flush=True)
         sys.stdout.buffer.write(stdo)
-    return p.returncode
+    return p.returncode or 0
 
 async def _run_workers(infos: T.Iterable[Info],
                        fn: T.Callable[[Info], T.Iterable[T.Coroutine[None, None, int]]]) -> int:
