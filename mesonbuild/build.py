@@ -2591,7 +2591,7 @@ class SharedLibrary(BuildTarget, LinkableTarget):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_shared_lib_dir(), '{libdir_shared}'
 
-    def determine_naming_info(self) -> T.Tuple[str, str, str, str, bool]:
+    def determine_naming_info(self) -> T.Tuple[str, str, str, str | None, bool]:
         scheme = self.environment.coredata.get_option_for_target(self, 'namingscheme')
         assert isinstance(scheme, str), 'for mypy'
 
