@@ -828,6 +828,7 @@ class BuildTarget(Target):
         self.name_prefix_set = False
         self.name_suffix_set = False
         self.filename = 'no_name'
+        self.vs_module_defs: File | None = None
         self.doctests: T.Optional[Doctest] = None
         # The debugging information file this target will generate
         self.debug_filename: str | None = None
@@ -2211,8 +2212,6 @@ class Executable(BuildTarget, LinkableTarget):
         self.implib_name = kwargs.get('implib')
         # Only linkwithable if using export_dynamic
         self.is_linkwithable = self.export_dynamic
-
-        self.vs_module_defs: T.Optional[File] = None
         self.process_vs_module_defs_kw(kwargs)
 
     def _set_vala_args(self, kwargs: BuildTargetKeywordArguments) -> None:
@@ -2539,7 +2538,6 @@ class SharedLibrary(BuildTarget, LinkableTarget):
 
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
 
-        self.vs_module_defs: File | None = None
         # Visual Studio module-definitions file
         self.process_vs_module_defs_kw(kwargs)
 
