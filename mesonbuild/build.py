@@ -2138,13 +2138,14 @@ class GeneratedList(HoldableObject):
             else:
                 self.extra_depends.append(t)
         else:
-            path = self.generator.exe.get_path()
+            path = unwrap(self.generator.exe.get_path())
             if os.path.isabs(path):
                 # Can only add a dependency on an external program which we
                 # know the absolute path of
                 self.depend_files.append(File.from_absolute_file(path))
 
     def get_preserved_path_segment(self, infile: FileMaybeInTargetPrivateDir) -> str:
+        assert self.preserve_path_from, 'the caller must ensure this'
         in_abs = infile.absolute_path(self.generator.environment.source_dir, self.generator.environment.build_dir)
         assert os.path.isabs(self.preserve_path_from)
         rel = os.path.relpath(in_abs, self.preserve_path_from)
