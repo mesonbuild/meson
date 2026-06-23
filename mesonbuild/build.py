@@ -2565,9 +2565,9 @@ class SharedLibrary(BuildTarget, LinkableTarget):
                                        'Replace them with underscores, for example')
 
         if not hasattr(self, 'prefix'):
-            self.prefix = None
+            self.prefix = ''
         if not hasattr(self, 'suffix'):
-            self.suffix = None
+            self.suffix = ''
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         self.determine_filenames()
 
