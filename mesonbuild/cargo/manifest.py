@@ -600,15 +600,36 @@ class Manifest:
                 autobins[bin_name] = Binary.from_raw({'name': bin_name, 'path': bin_path}, pkg)
 
         def dependencies_from_raw(x: T.Dict[str, T.Any]) -> T.Dict[str, Dependency]:
+            """Convert a raw dependency dictionary into resolved Dependency objects.
+
+            Each entry may reference workspace level values via workspace = true,
+            in which case the workspace object is consulted for the actual values.
+            """
             return {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()}
+
+        def dev_dependencies_from_raw(x: T.Dict[str, T.Any]) -> T.Dict[str, Dependency]:
+            """Convert raw dev dependency entries, using the workspace's
+            dev_dependencies table for workspace = true resolution."""
+            ws_for_dev = None
+            if workspace:
+                ws_for_dev = dataclasses.replace(workspace, dependencies=workspace.dev_dependencies)
+            return {k: Dependency.from_raw(k, v, member_path, ws_for_dev) for k, v in x.items()}
+
+        def build_dependencies_from_raw(x: T.Dict[str, T.Any]) -> T.Dict[str, Dependency]:
+            """Convert raw build dependency entries, using the workspace's
+            build_dependencies table for workspace = true resolution."""
+            ws_for_build = None
+            if workspace:
+                ws_for_build = dataclasses.replace(workspace, dependencies=workspace.build_dependencies)
+            return {k: Dependency.from_raw(k, v, member_path, ws_for_build) for k, v in x.items()}
 
         return _raw_to_dataclass(raw, cls, f'Cargo.toml package {pkg.name}',
                                  raw_from_workspace=workspace.inheritable if workspace else None,
                                  ignored_fields=['badges', 'workspace'],
                                  package=ConvertValue(lambda _: pkg),
                                  dependencies=ConvertValue(dependencies_from_raw),
-                                 dev_dependencies=ConvertValue(dependencies_from_raw),
-                                 build_dependencies=ConvertValue(dependencies_from_raw),
+                                 dev_dependencies=ConvertValue(dev_dependencies_from_raw),
+                                 build_dependencies=ConvertValue(build_dependencies_from_raw),
                                  lints=ConvertValue(Lint.from_raw),
                                  lib=ConvertValue(lambda x: Library.from_raw(x, pkg), default=autolib),
                                  bin=DictMergeValue(lambda x: [Binary.from_raw(b, pkg) for b in x],
@@ -625,6 +646,12 @@ class Manifest:
 class Workspace:
 
     """Cargo Workspace definition.
+
+    Workspaces can define shared dependency tables (dependencies,
+    dev_dependencies, build_dependencies) that members can inherit
+    from using the ``workspace = true`` syntax in their Cargo.toml.
+    These are stored in raw format so that ``_raw_to_dataclass`` can
+    resolve per field workspace inheritance for each member.
     """
 
     resolver: str = dataclasses.field(default_factory=lambda: '2')
@@ -632,9 +659,11 @@ class Workspace:
     exclude: T.List[str] = dataclasses.field(default_factory=list)
     default_members: T.List[str] = dataclasses.field(default_factory=list)
 
-    # inheritable settings are kept in raw format, for use with _raw_to_dataclass
+    # Inheritable settings are kept in raw format, for use with _raw_to_dataclass.
     package: T.Optional[raw.Package] = None
     dependencies: T.Dict[str, raw.Dependency] = dataclasses.field(default_factory=dict)
+    dev_dependencies: T.Dict[str, raw.Dependency] = dataclasses.field(default_factory=dict)
+    build_dependencies: T.Dict[str, raw.Dependency] = dataclasses.field(default_factory=dict)
     lints: T.Dict[str, T.Dict[str, raw.LintV]] = dataclasses.field(default_factory=dict)
     metadata: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
 
@@ -643,7 +672,7 @@ class Workspace:
 
     @lazy_property
     def inheritable(self) -> T.Dict[str, object]:
-        # the whole lints table is inherited.  Do not add package, dependencies
+        # The whole lints table is inherited. Do not add package, dependencies
         # etc. because they can only be inherited a field at a time.
         return {
             'lints': self.lints,

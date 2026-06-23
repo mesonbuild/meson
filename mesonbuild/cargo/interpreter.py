@@ -57,12 +57,21 @@ def _extra_deps_varname() -> str:
 
 @dataclasses.dataclass
 class PackageConfiguration:
-    """Configuration for a package during dependency resolution."""
+    """Configuration for a package during dependency resolution.
+
+    Tracks which dependencies (normal, dev, and build) have been resolved
+    for a given machine. Dev dependencies are used by tests. Build
+    dependencies are used by code generators and must be configured with
+    native: true (i.e. MachineChoice.BUILD).
+    """
     for_machine: MachineChoice
     features: T.Set[str] = dataclasses.field(default_factory=set)
     required_deps: T.Set[str] = dataclasses.field(default_factory=set)
+    required_dev_deps: T.Set[str] = dataclasses.field(default_factory=set)
+    required_build_deps: T.Set[str] = dataclasses.field(default_factory=set)
     optional_deps_features: T.Dict[str, T.Set[str]] = dataclasses.field(default_factory=lambda: collections.defaultdict(set))
-    # Cache of resolved dependency packages
+    # Cache of resolved dependency packages, shared across all three
+    # dependency categories (normal, dev, build).
     dep_packages: T.Dict[PackageKey, PackageState] = dataclasses.field(default_factory=dict)
 
     def get_features_args(self) -> T.List[str]:
@@ -72,16 +81,41 @@ class PackageConfiguration:
             args.extend(['--cfg', f'feature="{feature}"'])
         return args
 
-    def get_dependency_map(self, manifest: Manifest) -> T.Dict[str, str]:
-        """Get the rust dependency mapping for this package configuration."""
+    def _build_dependency_map_for(self, names: T.Iterable[str],
+                                  dep_dict: T.Dict[str, 'Dependency'],
+                                  for_machine: MachineChoice) -> T.Dict[str, str]:
+        """Build the library name to crate name mapping for a set of resolved
+        dependency names within a specific dependency dictionary."""
         dependency_map: T.Dict[str, str] = {}
-        for name in sorted(self.required_deps):
-            dep = manifest.dependencies[name]
+        for name in sorted(names):
+            dep = dep_dict[name]
             dep_key = PackageKey(dep.package, dep.api)
             dep_pkg = self.dep_packages[dep_key]
-            dep_lib_name = dep_pkg.library_name(self.for_machine)
+            dep_lib_name = dep_pkg.library_name(for_machine)
             dep_crate_name = name if name != dep.package else dep_pkg.manifest.lib.name
             dependency_map[dep_lib_name] = dep_crate_name
+        return dependency_map
+
+    def get_dependency_map(self, manifest: Manifest) -> T.Dict[str, str]:
+        """Get the rust dependency mapping for this package configuration.
+
+        Includes mappings from all three dependency categories: normal
+        dependencies, dev dependencies, and build dependencies.
+        """
+        dependency_map: T.Dict[str, str] = {}
+        dependency_map.update(
+            self._build_dependency_map_for(self.required_deps,
+                                           manifest.dependencies,
+                                           self.for_machine))
+        dependency_map.update(
+            self._build_dependency_map_for(self.required_dev_deps,
+                                           manifest.dev_dependencies,
+                                           self.for_machine))
+        # Build dependencies are always for the build machine.
+        dependency_map.update(
+            self._build_dependency_map_for(self.required_build_deps,
+                                           manifest.build_dependencies,
+                                           MachineChoice.BUILD))
         return dependency_map
 
 
@@ -564,6 +598,21 @@ class Interpreter:
         pkg.subproject_name = subp_name
         return pkg
 
+    def _find_dependency(self, pkg: PackageState, depname: str) -> T.Optional['Dependency']:
+        """Look up a dependency by name across all three dependency
+        categories: normal, dev, and build.
+
+        Returns the Dependency object if found, or None if the name
+        does not appear in any category.
+        """
+        dep = pkg.manifest.dependencies.get(depname)
+        if dep:
+            return dep
+        dep = pkg.manifest.dev_dependencies.get(depname)
+        if dep:
+            return dep
+        return pkg.manifest.build_dependencies.get(depname)
+
     def _prepare_package(self, pkg: PackageState, machine: MachineChoice) -> None:
         key = PackageKey(pkg.manifest.package.name, pkg.manifest.package.api)
         assert key in self.packages
@@ -571,14 +620,16 @@ class Interpreter:
             return  # Already prepared for this machine
 
         pkg.cfg[machine] = PackageConfiguration(for_machine=machine)
-        # Merge target-specific dependencies that are enabled for this machine
+        # Merge target specific dependencies that are enabled for this machine.
         target_cfgs = self._get_cfgs(machine)
         for condition, dependencies in pkg.manifest.target.items():
             if eval_cfg(condition, target_cfgs):
                 pkg.manifest.dependencies.update(dependencies)
 
-        # If you specify the optional dependency with the dep: prefix anywhere in the [features]
-        # table, that disables the implicit feature.
+        # If you specify the optional dependency with the dep: prefix anywhere
+        # in the [features] table, that disables the implicit feature. We scan
+        # all three dependency categories (normal, dev, build) because optional
+        # deps may appear in any of them.
         deps = set(feature[4:]
                    for feature in itertools.chain.from_iterable(pkg.manifest.features.values())
                    if feature.startswith('dep:'))
@@ -590,7 +641,9 @@ class Interpreter:
                 pkg.manifest.features[name].append(f'dep:{name}')
                 deps.add(name)
 
-        # Fetch required dependencies recursively for this machine
+        # Fetch required (non optional) dependencies recursively for this
+        # machine. Normal dependencies are resolved for the current machine,
+        # while dev and build dependencies are resolved later on demand.
         for depname, dep in pkg.manifest.dependencies.items():
             if not dep.optional:
                 self._add_dependency(pkg, depname, machine)
@@ -643,16 +696,29 @@ class Interpreter:
         return manifest_, False
 
     def _add_dependency(self, pkg: PackageState, depname: str, machine: MachineChoice) -> None:
+        """Resolve a normal (non dev, non build) dependency and register it.
+
+        If the dependency name is not found in the normal dependencies dict
+        it may belong to the dev or build categories; in that case we delegate
+        to the appropriate method so that it gets tracked in the right set.
+        """
         cfg = pkg.cfg[machine]
         if depname in cfg.required_deps:
             return
         dep = pkg.manifest.dependencies.get(depname)
         if not dep:
-            # It could be build/dev/target dependency. Just ignore it.
+            # The name might be a dev or build dependency referenced by a
+            # feature. Try those categories before giving up.
+            if depname in pkg.manifest.dev_dependencies:
+                self._add_dev_dependency(pkg, depname, machine)
+                return
+            if depname in pkg.manifest.build_dependencies:
+                self._add_build_dependency(pkg, depname, machine)
+                return
             return
         cfg.required_deps.add(depname)
         dep_pkg = self._dep_package(pkg, dep, cfg)
-        # Use machines_from() to determine which machines the dependency needs
+        # Use machines_from() to determine which machines the dependency needs.
         for dep_machine in dep_pkg.manifest.machines_from(machine, self.is_cross):
             self._prepare_package(dep_pkg, dep_machine)
             if dep.default_features:
@@ -661,6 +727,57 @@ class Interpreter:
                 self._enable_feature(dep_pkg, f, dep_machine)
             for f in cfg.optional_deps_features[depname]:
                 self._enable_feature(dep_pkg, f, dep_machine)
+
+    def _add_dev_dependency(self, pkg: PackageState, depname: str, machine: MachineChoice) -> None:
+        """Resolve a dev dependency and register it in required_dev_deps.
+
+        Dev dependencies are used by test targets. They are resolved for
+        the same machine as the parent package, following the same logic
+        as normal dependencies.
+        """
+        cfg = pkg.cfg[machine]
+        if depname in cfg.required_dev_deps:
+            return
+        dep = pkg.manifest.dev_dependencies.get(depname)
+        if not dep:
+            return
+        cfg.required_dev_deps.add(depname)
+        dep_pkg = self._dep_package(pkg, dep, cfg)
+        for dep_machine in dep_pkg.manifest.machines_from(machine, self.is_cross):
+            self._prepare_package(dep_pkg, dep_machine)
+            if dep.default_features:
+                self._enable_feature(dep_pkg, 'default', dep_machine)
+            for f in dep.features:
+                self._enable_feature(dep_pkg, f, dep_machine)
+            for f in cfg.optional_deps_features[depname]:
+                self._enable_feature(dep_pkg, f, dep_machine)
+
+    def _add_build_dependency(self, pkg: PackageState, depname: str, machine: MachineChoice) -> None:
+        """Resolve a build dependency and register it in required_build_deps.
+
+        Build dependencies in Cargo are used by build.rs code generators.
+        In Meson they correspond to tools that run on the build machine,
+        so they are always resolved with MachineChoice.BUILD regardless
+        of the parent package's machine. This ensures their own transitive
+        dependencies are also configured for the build machine.
+        """
+        cfg = pkg.cfg[machine]
+        if depname in cfg.required_build_deps:
+            return
+        dep = pkg.manifest.build_dependencies.get(depname)
+        if not dep:
+            return
+        cfg.required_build_deps.add(depname)
+        dep_pkg = self._dep_package(pkg, dep, cfg)
+        # Build dependencies always target the build machine so that their
+        # outputs can be used as code generators during compilation.
+        self._prepare_package(dep_pkg, MachineChoice.BUILD)
+        if dep.default_features:
+            self._enable_feature(dep_pkg, 'default', MachineChoice.BUILD)
+        for f in dep.features:
+            self._enable_feature(dep_pkg, f, MachineChoice.BUILD)
+        for f in cfg.optional_deps_features[depname]:
+            self._enable_feature(dep_pkg, f, MachineChoice.BUILD)
 
     def _enable_feature(self, pkg: PackageState, feature: str, machine: MachineChoice) -> None:
         cfg = pkg.cfg[machine]
@@ -676,10 +793,13 @@ class Interpreter:
                     depname = depname[:-1]
                 else:
                     self._add_dependency(pkg, depname, machine)
-                if depname in cfg.required_deps:
-                    dep = pkg.manifest.dependencies[depname]
+                # Check all dependency categories to find the resolved dep.
+                all_required = cfg.required_deps | cfg.required_dev_deps | cfg.required_build_deps
+                if depname in all_required:
+                    dep = self._find_dependency(pkg, depname)
                     dep_pkg = self._dep_package(pkg, dep, cfg)
-                    # Use machines_from() to determine which machines the dependency needs
+                    # Use machines_from() to determine which machines the
+                    # dependency needs.
                     for dep_machine in dep_pkg.manifest.machines_from(machine, self.is_cross):
                         self._enable_feature(dep_pkg, dep_f, dep_machine)
                 else:

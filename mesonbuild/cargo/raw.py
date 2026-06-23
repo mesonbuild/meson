@@ -142,21 +142,30 @@ LintV = T.Union[Lint, str]
 """A Lint entry, either a string or a Lint Dict."""
 
 
-class Workspace(TypedDict):
+Workspace = TypedDict(
+    'Workspace',
+    {
+        'members': T.List[str],
+        'exclude': T.List[str],
+        'package': Package,
+        'dependencies': T.Dict[str, DependencyV],
+        'dev-dependencies': T.Dict[str, DependencyV],
+        'build-dependencies': T.Dict[str, DependencyV],
+    },
+    total=False,
+)
+"""The representation of a workspace.
 
-    """The representation of a workspace.
+In a virtual manifest the members key is always present, but in a
+project manifest, an empty workspace may be provided, in which case the
+workspace is implicitly filled in by values from the path based dependencies.
 
-    In a vritual manifest the :attribute:`members` is always present, but in a
-    project manifest, an empty workspace may be provided, in which case the
-    workspace is implicitly filled in by values from the path based dependencies.
+The exclude key is always optional.
 
-    the :attribute:`exclude` is always optional
-    """
-
-    members: T.List[str]
-    exclude: T.List[str]
-    package: Package
-    dependencies: T.Dict[str, DependencyV]
+Cargo workspaces can also define shared dependency tables (dependencies,
+dev-dependencies, build-dependencies) that members can inherit from via
+the workspace = true syntax in their own Cargo.toml.
+"""
 
 
 Manifest = TypedDict(

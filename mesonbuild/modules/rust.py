@@ -90,6 +90,7 @@ if T.TYPE_CHECKING:
     class RustPackageDependencies(TypedDict):
         dependencies: bool
         dev_dependencies: bool
+        build_dependencies: bool
         system_dependencies: bool
 
     class RustPackageExecutable(_kwargs.Executable):
@@ -303,30 +304,86 @@ class RustPackage(RustCrate):
             'override_dependency': self.override_dependency_method,
         })
 
+    def _resolve_dep_packages(self, state: ModuleState,
+                              dep_names: T.Set[str],
+                              dep_dict: T.Dict[str, 'cargo.manifest.Dependency'],
+                              cfg: 'PackageConfiguration',
+                              for_machine: MachineChoice) -> T.List[Dependency]:
+        """Resolve a set of dependency names into Meson dependency objects.
+
+        For each resolved dependency that has a library, this method
+        ensures its subproject has been processed and returns the
+        overridden Meson dependency.
+        """
+        dependencies: T.List[Dependency] = []
+        for depname in sorted(dep_names):
+            dep = dep_dict[depname]
+            dep_key = cargo.PackageKey(dep.package, dep.api)
+            dep_pkg = cfg.dep_packages.get(dep_key)
+            if dep_pkg and dep_pkg.manifest.lib:
+                if dep_pkg.ws_subdir != self.rust_ws.subdir or \
+                    is_parent_path(os.path.join(self.rust_ws.subdir, state.subproject_dir),
+                                   dep_pkg.path):
+                    self.rust_ws._do_subproject(state, dep_pkg, for_machine)
+                meson_depname = dep_pkg.get_rust_dependency_name()
+                dependency = state.overridden_dependency(meson_depname, for_machine)
+                dependencies.append(dependency)
+        return dependencies
+
     def _dependencies_method(self, state: ModuleState, kwargs: RustPackageDependencies,
                              for_machine: MachineChoice) -> T.List[Dependency]:
+        """Core implementation of the dependencies() method.
+
+        Collects and returns Meson dependency objects for the requested
+        categories of Cargo dependencies:
+          * dependencies: normal crate dependencies
+          * dev_dependencies: test only dependencies
+          * build_dependencies: build.rs / code generator dependencies
+            (always resolved for MachineChoice.BUILD)
+          * system_dependencies: system pkg-config dependencies
+        """
         dependencies: T.List[Dependency] = []
         cfg = self.package.cfg[for_machine]
 
         if kwargs['dependencies']:
-            for dep_key, dep_pkg in cfg.dep_packages.items():
-                if dep_pkg.manifest.lib:
-                    if dep_pkg.ws_subdir != self.rust_ws.subdir or \
-                        is_parent_path(os.path.join(self.rust_ws.subdir, state.subproject_dir),
-                                       dep_pkg.path):
-                        self.rust_ws._do_subproject(state, dep_pkg, for_machine)
-                    # Get the dependency name for this package (rust or proc-macro ABI)
-                    depname = dep_pkg.get_rust_dependency_name()
-                    dependency = state.overridden_dependency(depname, for_machine)
-                    dependencies.append(dependency)
+            dependencies.extend(
+                self._resolve_dep_packages(
+                    state, cfg.required_deps,
+                    self.package.manifest.dependencies,
+                    cfg, for_machine))
 
         if kwargs['dev_dependencies']:
-            raise MesonException('dev_dependencies is not implemented yet')
+            # Resolve any dev dependencies that have not been fetched yet.
+            # Dev dependencies are used by test targets and share the
+            # same machine as the parent package.
+            cargo_interp = state._interpreter.cargo
+            for depname, dep in self.package.manifest.dev_dependencies.items():
+                if not dep.optional or depname in cfg.features:
+                    cargo_interp._add_dev_dependency(self.package, depname, for_machine)
+            dependencies.extend(
+                self._resolve_dep_packages(
+                    state, cfg.required_dev_deps,
+                    self.package.manifest.dev_dependencies,
+                    cfg, for_machine))
+
+        if kwargs['build_dependencies']:
+            # Resolve any build dependencies that have not been fetched yet.
+            # Build dependencies are always for the build machine because
+            # they represent tools (code generators) that run during
+            # compilation.
+            cargo_interp = state._interpreter.cargo
+            for depname, dep in self.package.manifest.build_dependencies.items():
+                if not dep.optional or depname in cfg.features:
+                    cargo_interp._add_build_dependency(self.package, depname, for_machine)
+            dependencies.extend(
+                self._resolve_dep_packages(
+                    state, cfg.required_build_deps,
+                    self.package.manifest.build_dependencies,
+                    cfg, MachineChoice.BUILD))
 
         if kwargs['system_dependencies']:
             for name, sys_dep in self.package.manifest.system_dependencies.items():
                 if sys_dep.enabled(cfg.features):
-                    # System dependencies use the original dependency name from Cargo.toml
                     dependency = state.dependency(sys_dep.name, native=(for_machine == MachineChoice.BUILD),
                                                   required=not sys_dep.optional,
                                                   wanted=sys_dep.meson_version)
@@ -338,9 +395,16 @@ class RustPackage(RustCrate):
     @typed_kwargs('package.dependencies',
                   KwargInfo('dependencies', bool, default=True),
                   KwargInfo('dev_dependencies', bool, default=False),
+                  KwargInfo('build_dependencies', bool, default=False),
                   KwargInfo('system_dependencies', bool, default=True))
     def dependencies_method(self, state: ModuleState, args: T.List, kwargs: RustPackageDependencies) -> T.List[Dependency]:
-        """Returns the dependencies for this package."""
+        """Returns the dependencies for this package.
+
+        By default only normal and system dependencies are included.
+        Pass dev_dependencies: true to include test only dependencies,
+        or build_dependencies: true to include build.rs / code generator
+        dependencies (which are always native: true).
+        """
         return self._dependencies_method(state, kwargs, self.for_machine)
 
     @staticmethod
@@ -363,6 +427,7 @@ class RustPackage(RustCrate):
         kwargs['dependencies'] = self._dependencies_method(state, {
             'dependencies': True,
             'dev_dependencies': False,
+            'build_dependencies': False,
             'system_dependencies': True,
         }, kwargs['native'])
         kwargs['dependencies'].extend(deps)
