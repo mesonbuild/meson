@@ -3647,11 +3647,10 @@ def load(build_dir: str) -> Build:
     except FileNotFoundError:
         raise MesonException(f'No such build data file as {filename!r}.')
 
-
 def save(obj: Build, filename: str) -> None:
     # Exclude coredata because we pickle it separately already
     cdata = obj.environment.coredata
-    obj.environment.coredata = None
+    obj.environment.coredata = None  # type: ignore[assignment]
     try:
         with open(filename, 'wb') as f:
             pickle.dump(obj, f)
