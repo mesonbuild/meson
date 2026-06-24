@@ -20,7 +20,7 @@ import urllib.parse
 import typing as T
 from pathlib import PurePath
 
-from . import builder, version
+from . import builder, raw, version
 from .cfg import eval_cfg
 from .toml import load_toml
 from .manifest import Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname
@@ -28,11 +28,11 @@ from ..mesonlib import (
     is_parent_path, lazy_property, MesonException, MachineChoice,
     PerMachine, unique_list, SubProject,
 )
+from .validate import validator
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
 
 if T.TYPE_CHECKING:
-    from . import raw
     from .. import mparser
     from typing_extensions import Literal
 
@@ -634,8 +634,12 @@ class Interpreter:
 
         self.build_def_files.append(filename)
         if 'workspace' in raw_manifest:
+            if not (result := validator(raw.Workspace)(raw_manifest)):
+                raise MesonException(f'invalid {subdir}/Cargo.toml at {".".join(result.path)}')
             manifest_ = Workspace.from_raw(raw_manifest, path)
         elif 'package' in raw_manifest:
+            if not (result := validator(raw.Manifest)(raw_manifest)):
+                raise MesonException(f'invalid {subdir}/Cargo.toml at {".".join(result.path)}')
             manifest_ = Manifest.from_raw(raw_manifest, path, workspace, member_path)
         else:
             raise MesonException(f'{subdir}/Cargo.toml does not have [package] or [workspace] section')
@@ -850,6 +854,8 @@ def load_cargo_lock(filename: str, subproject_dir: str) -> T.Optional[CargoLock]
     # provides multiple dependency names.
     if os.path.exists(filename):
         toml = load_toml(filename)
+        if not validator(raw.CargoLock)(toml):
+            raise MesonException(f'invalid {filename}')
         raw_cargolock = T.cast('raw.CargoLock', toml)
         cargolock = CargoLock.from_raw(raw_cargolock)
         packagefiles_dir = os.path.join(subproject_dir, 'packagefiles')

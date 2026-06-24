@@ -14,20 +14,17 @@ import typing as T
 from pathlib import PurePath
 
 
-from . import version
-from ..mesonlib import MesonException, lazy_property, MachineChoice
+from . import raw, version
+from .raw import EDITION, CRATE_TYPE, LINT_LEVEL
+from .validate import dataclass_field_validators
 from .. import mlog
+from ..mesonlib import MesonException, lazy_property, MachineChoice, MesonBugException
+from ..wrap.wrap import PackageDefinition
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Protocol, Self
+    from typing_extensions import Self
+    from .._typing import DataclassInstance
 
-    from . import raw
-    from .raw import EDITION, CRATE_TYPE, LINT_LEVEL
-    from ..wrap.wrap import PackageDefinition
-
-    # Copied from typeshed. Blarg that they don't expose this
-    class DataclassInstance(Protocol):
-        __dataclass_fields__: T.ClassVar[dict[str, dataclasses.Field[T.Any]]]
 
 _DI = T.TypeVar('_DI', bound='DataclassInstance')
 
@@ -151,10 +148,10 @@ def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI], msg: str,
     """
     new_dict = {}
     unexpected = set()
-    fields = {x.name for x in dataclasses.fields(cls)}
     raw_from_workspace = raw_from_workspace or {}
     ignored_fields = ignored_fields or []
     inherit = raw.get('workspace', False)
+    typedict = dataclass_field_validators(cls)
 
     for orig_k, v in raw.items():
         if orig_k == 'workspace':
@@ -169,29 +166,43 @@ def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI], msg: str,
             # function in the case it wants to merge values.
             ws_v = raw_from_workspace.get(orig_k)
         k = fixup_meson_varname(orig_k)
-        if k not in fields:
+        if k not in typedict:
             if orig_k not in ignored_fields:
                 unexpected.add(orig_k)
             continue
         if k in kwargs:
-            new_dict[k] = kwargs[k].convert(v, ws_v)
+            v = kwargs[k].convert(v, ws_v)
         else:
-            new_dict[k] = v if v is not None else ws_v
+            v = v if v is not None else ws_v
+        if not typedict[k](v):
+            # treat it as a Meson bug if the type is not TOML-native
+            if isinstance(v, (int, str, bool, list, dict)):
+                raise MesonException(f'unexpected type for key "{k}": "{type(v)}"')
+            else:
+                raise Exception(f'unexpected type for key "{k}": "{type(v)}"')
+        new_dict[k] = v
 
     if inherit:
         # Inherit any keys from the workspace that we don't have yet.
         for orig_k, ws_v in raw_from_workspace.items():
             k = fixup_meson_varname(orig_k)
-            if k not in fields:
+            if k not in typedict:
                 if orig_k not in ignored_fields:
                     unexpected.add(orig_k)
                 continue
             if k in new_dict:
                 continue
             if k in kwargs:
-                new_dict[k] = kwargs[k].convert(None, ws_v)
+                v = kwargs[k].convert(None, ws_v)
             else:
-                new_dict[k] = ws_v
+                v = ws_v
+            if not typedict[k](v):
+                # treat it as a Meson bug if the type is not TOML-native
+                if isinstance(v, (int, str, bool, list, dict)):
+                    raise MesonException(f'unexpected type for key "{k}": "{type(v)}"')
+                else:
+                    raise MesonBugException(f'unexpected type for key "{k}": "{type(v)}"')
+            new_dict[k] = v
 
     # Finally, set default values.
     for k, convertor in kwargs.items():
