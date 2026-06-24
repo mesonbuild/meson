@@ -375,6 +375,38 @@ class RustCompiler(Compiler):
             "Nightly Rust compiler (enabled=required, disabled=don't use nightly feature, auto=use nightly feature if available)",
             'auto')
 
+        key = self.form_compileropt_key('panic')
+        opts[key] = options.UserComboOption(
+            self.make_option_name(key),
+            'Panic strategy (none=use the compiler default)',
+            'none',
+            choices=['none', 'unwind', 'abort'])
+
+        key = self.form_compileropt_key('overflow_checks')
+        opts[key] = options.UserBooleanOption(
+            self.make_option_name(key),
+            'Whether to enable runtime integer overflow checks',
+            False)
+
+        key = self.form_compileropt_key('codegen_units')
+        opts[key] = options.UserIntegerOption(
+            self.make_option_name(key),
+            'Number of code generation units to split the crate into (0=use the compiler default)',
+            0,
+            min_value=0)
+
+        key = self.form_compileropt_key('incremental')
+        opts[key] = options.UserBooleanOption(
+            self.make_option_name(key),
+            'Whether to enable incremental compilation',
+            False)
+
+        key = self.form_compileropt_key('incremental_cache_dir')
+        opts[key] = options.UserStringOption(
+            self.make_option_name(key),
+            'Directory used to store incremental compilation data (empty=pick a default under the build directory)',
+            '')
+
         return opts
 
     def get_dependency_compile_args(self, dep: 'Dependency') -> T.List[str]:
@@ -391,6 +423,36 @@ class RustCompiler(Compiler):
         assert isinstance(std, str)
         if std != 'none':
             args.append('--edition=' + std)
+        return args
+
+    def get_option_compile_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+        args: T.List[str] = []
+
+        panic = self.get_compileropt_value('panic', target, subproject)
+        assert isinstance(panic, str)
+        if panic != 'none':
+            args += ['-C', f'panic={panic}']
+
+        overflow_checks = self.get_compileropt_value('overflow_checks', target, subproject)
+        assert isinstance(overflow_checks, bool)
+        args += ['-C', 'overflow-checks=' + ('yes' if overflow_checks else 'no')]
+
+        codegen_units = self.get_compileropt_value('codegen_units', target, subproject)
+        assert isinstance(codegen_units, int)
+        if codegen_units > 0:
+            args += ['-C', f'codegen-units={codegen_units}']
+
+        incremental = self.get_compileropt_value('incremental', target, subproject)
+        assert isinstance(incremental, bool)
+        if incremental and target:
+            path = self.get_compileropt_value('incremental_cache_dir', target, subproject)
+            assert isinstance(path, str)
+            if not path:
+                # rustc locks the incremental directory while it runs, so give
+                # each target its own to avoid clashes between parallel builds.
+                path = os.path.join(self.environment.get_scratch_dir(), 'rust-incremental', target.get_id())
+            args += ['-C', f'incremental={path}']
+
         return args
 
     def get_crt_compile_args(self, crt_val: str) -> T.List[str]:
@@ -526,7 +588,7 @@ class RustCompiler(Compiler):
 
     def get_assert_args(self, disable: bool) -> T.List[str]:
         action = "no" if disable else "yes"
-        return ['-C', f'debug-assertions={action}', '-C', 'overflow-checks=no']
+        return ['-C', f'debug-assertions={action}']
 
     def get_rust_tool(self, name: str) -> T.List[str]:
         if self.rustup_run_and_args:
