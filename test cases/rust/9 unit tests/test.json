@@ -1,0 +1,10 @@
+{
+  "matrix": {
+    "options": {
+      "rust_panic": [
+        { "val": "abort" },
+        { "val": "unwind" }
+      ]
+    }
+  }
+}

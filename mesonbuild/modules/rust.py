@@ -432,6 +432,7 @@ class RustPackage(RustCrate):
         kwargs['rust_abi'] = None
         kwargs['rust_crate_type'] = 'proc-macro'
         kwargs['rust_args'] = kwargs['rust_args'] + ['--extern', 'proc_macro']
+        kwargs['override_options'].setdefault('rust_panic', 'none')
         result = self._library_method(state, args, kwargs, shared=True, static=False)
         return T.cast('SharedLibrary', result)
 
@@ -691,6 +692,12 @@ class RustModule(ExtensionModule):
                 del new_target_kwargs[kw]  # type: ignore[misc]
 
         new_target_kwargs['install'] = False
+        # Compiling tests with panic=abort is not supported
+        # (https://doc.rust-lang.org/nightly/unstable-book/compiler-flags/panic-abort-tests.html)
+        new_target_kwargs['override_options'] = {
+            'rust_panic': 'none',
+            **new_target_kwargs.get('override_options', {}),
+        }
         new_target_kwargs['dependencies'] = new_target_kwargs.get('dependencies', []) + kwargs['dependencies']
         new_target_kwargs['link_with'] = new_target_kwargs.get('link_with', []) + kwargs['link_with']
         new_target_kwargs['link_whole'] = new_target_kwargs.get('link_whole', []) + kwargs['link_whole']
@@ -1035,6 +1042,7 @@ class RustModule(ExtensionModule):
         kwargs['native'] = MachineChoice.BUILD
         kwargs['rust_crate_type'] = 'proc-macro'
         kwargs['rust_args'] = kwargs['rust_args'] + ['--extern', 'proc_macro']
+        kwargs['override_options'].setdefault('rust_panic', 'none')
 
         # Set any kwargs to default that haven't already been set
         for s in SHARED_LIB_KWS:
