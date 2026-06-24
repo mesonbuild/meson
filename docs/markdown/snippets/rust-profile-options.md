@@ -19,3 +19,6 @@ settings found in a Cargo `[profile]` section can be expressed natively:
 The remaining Cargo profile keys map onto existing built-in options:
 `opt-level` to `optimization`, `debug` to `debug`, `debug-assertions`
 to `b_ndebug` and `lto` to `b_lto`.
+
+The Cargo workspace object will also add these automatically based on
+the value of another new option, `rust_cargo_profile`.
