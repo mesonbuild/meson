@@ -375,6 +375,31 @@ class CargoTomlTest(unittest.TestCase):
         crate-type = ["lib"] # ignored
     ''')
 
+    CARGO_TOML_PROFILE = textwrap.dedent('''\
+        [package]
+        name = "demo"
+        version = "0.1.0"
+        edition = "2021"
+
+        [profile.release]
+        opt-level = 3
+        debug = false
+        strip = "symbols"
+        debug-assertions = false
+        overflow-checks = false
+        lto = "thin"
+        panic = "abort"
+        incremental = false
+        codegen-units = 16
+
+        [profile.release.build-override]
+        opt-level = 0
+        codegen-units = 256
+
+        [profile.dev]
+        opt-level = "s"
+    ''')
+
     CARGO_TOML_WS = textwrap.dedent('''\
         [workspace]
         resolver = "2"
@@ -679,6 +704,36 @@ class CargoTomlTest(unittest.TestCase):
         self.assertEqual(manifest.features['v1_42'], ['pango-sys/v1_42'])
         self.assertEqual(manifest.features['v1_44'], ['v1_42', 'pango-sys/v1_44'])
         self.assertEqual(manifest.features['default'], [])
+
+    def test_cargo_toml_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, 'Cargo.toml')
+            with open(fname, 'w', encoding='utf-8') as f:
+                f.write(self.CARGO_TOML_PROFILE)
+            manifest_toml = load_toml(fname)
+            manifest = Manifest.from_raw(manifest_toml, 'Cargo.toml')
+
+        self.assertEqual(sorted(manifest.profile), ['dev', 'release'])
+        release = manifest.profile['release']
+        self.assertEqual(release.opt_level, '3')
+        self.assertEqual(release.debug, False)
+        self.assertEqual(release.strip, True)
+        self.assertEqual(release.debug_assertions, False)
+        self.assertEqual(release.overflow_checks, False)
+        self.assertEqual(release.lto, True)
+        self.assertEqual(release.lto_mode, 'thin')
+        self.assertEqual(release.panic, 'abort')
+        self.assertEqual(release.incremental, False)
+        self.assertEqual(release.codegen_units, 16)
+
+        build_override = release.build_override
+        assert build_override is not None
+        self.assertEqual(build_override.opt_level, '0')
+        self.assertEqual(build_override.codegen_units, 256)
+        self.assertIsNone(build_override.lto)
+        self.assertIsNone(build_override.lto_mode)
+
+        self.assertEqual(manifest.profile['dev'].opt_level, 's')
 
     def test_validate_patch(self) -> None:
         # packages_to_member values are normalized with os.path.normpath (see
