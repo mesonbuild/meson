@@ -537,8 +537,7 @@ class Manifest:
     # Kept in raw form: Meson does not implement [patch], it only validates it
     # for the entry-point crate (see validate_patch).
     patch: object = None
-
-    # missing: profile
+    profile: object = None
 
     def __post_init__(self) -> None:
         self.features.setdefault('default', [])
@@ -647,6 +646,7 @@ class Workspace:
 
     # Top-level [patch] table, kept in raw form (see Manifest.validate_patch).
     patch: object = None
+    profile: object = None
 
     @lazy_property
     def inheritable(self) -> T.Dict[str, object]:
@@ -662,8 +662,10 @@ class Workspace:
         if 'package' in raw:
             ws.root_package = Manifest.from_raw(raw, path, ws, '.')
             ws.patch = ws.root_package.patch
+            ws.profile = ws.root_package.profile
         else:
             ws.patch = raw.get('patch')
+            ws.profile = raw.get('profile')
 
         ws.members = list(PurePath(m).as_posix() for m in ws.members)
         if ws.default_members:
