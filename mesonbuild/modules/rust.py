@@ -381,7 +381,11 @@ class RustPackage(RustCrate):
             self.package.get_rustc_args(state.environment, state.subdir, kwargs['native'])
         kwargs['rust_args'].extend(rust_args)
 
-        kwargs['override_options'].setdefault('rust_std', self.package.manifest.package.edition)
+        profile = kwargs['override_options'].get('rust_cargo_profile')
+        assert profile is None or isinstance(profile, str), 'for mypy'
+        overrides = self.rust_ws.interpreter.cargo.get_override_options(self.package, kwargs['native'], profile)
+        for key, value in overrides.items():
+            kwargs['override_options'].setdefault(key, value)
 
     def _library_method(self, state: ModuleState, args: T.Tuple[
             T.Optional[T.Union[str, StructuredSources]],

@@ -23,6 +23,7 @@ if T.TYPE_CHECKING:
 
     from . import raw
     from .raw import EDITION, CRATE_TYPE, LINT_LEVEL
+    from ..options import ElementaryOptionValues
     from ..wrap.wrap import PackageDefinition
 
     # Copied from typeshed. Blarg that they don't expose this
@@ -549,6 +550,36 @@ class Profile:
         if profile.lto:
             profile.lto_mode = 'thin' if raw_profile.get('lto') == 'thin' else 'default'
         return profile
+
+    def to_meson_options(self, for_machine: MachineChoice) -> T.Dict[str, ElementaryOptionValues]:
+        """Map the profile onto Meson option values, only for keys that are set.
+           For the build machine, the [build-override] settings are layered on top
+           (Cargo applies those to build scripts, proc macros and their deps)."""
+        opts: T.Dict[str, ElementaryOptionValues] = {}
+        if self.opt_level is not None:
+            # Meson's 'optimization' has no 'z'; fall back to 's'.
+            opts['optimization'] = 's' if self.opt_level == 'z' else self.opt_level
+        if self.debug is not None:
+            opts['debug'] = self.debug
+        # Meson only handles strip at install time
+        if self.debug_assertions is not None:
+            # note inverted polarity
+            opts['b_ndebug'] = 'false' if self.debug_assertions else 'true'
+        if self.overflow_checks is not None:
+            opts['rust_overflow_checks'] = self.overflow_checks
+        if self.lto is not None:
+            opts['b_lto'] = self.lto
+        if self.lto_mode is not None:
+            opts['b_lto_mode'] = self.lto_mode
+        if self.panic is not None:
+            opts['rust_panic'] = self.panic
+        if self.incremental is not None:
+            opts['rust_incremental'] = self.incremental
+        if self.codegen_units is not None:
+            opts['rust_codegen_units'] = self.codegen_units
+        if for_machine is MachineChoice.BUILD and self.build_override is not None:
+            opts.update(self.build_override.to_meson_options(for_machine))
+        return opts
 
 
 @dataclasses.dataclass

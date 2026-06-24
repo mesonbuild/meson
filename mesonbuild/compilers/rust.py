@@ -407,6 +407,13 @@ class RustCompiler(Compiler):
             'Directory used to store incremental compilation data (empty=pick a default under the build directory)',
             '')
 
+        key = self.form_compileropt_key('cargo_profile')
+        opts[key] = options.UserComboOption(
+            self.make_option_name(key),
+            'Cargo [profile] to apply when building Cargo subprojects',
+            'from_buildtype',
+            choices=['none', 'dev', 'release', 'from_buildtype'])
+
         return opts
 
     def get_dependency_compile_args(self, dep: 'Dependency') -> T.List[str]:

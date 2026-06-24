@@ -14,7 +14,7 @@ from mesonbuild.cargo.interpreter import load_cargo_lock
 from mesonbuild.cargo.manifest import Dependency, Lint, Manifest, Package, Workspace, validate_patch
 from mesonbuild.cargo.toml import load_toml
 from mesonbuild.cargo.version import api, cargo_parse, SemVer
-from mesonbuild.mesonlib import MesonException
+from mesonbuild.mesonlib import MachineChoice, MesonException
 
 
 class CargoVersionTest(unittest.TestCase):
@@ -734,6 +734,28 @@ class CargoTomlTest(unittest.TestCase):
         self.assertIsNone(build_override.lto_mode)
 
         self.assertEqual(manifest.profile['dev'].opt_level, 's')
+
+    def test_cargo_toml_profile_to_meson_options(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, 'Cargo.toml')
+            with open(fname, 'w', encoding='utf-8') as f:
+                f.write(self.CARGO_TOML_PROFILE)
+            manifest = Manifest.from_raw(load_toml(fname), 'Cargo.toml')
+
+        release = manifest.profile['release']
+        host = release.to_meson_options(MachineChoice.HOST)
+        self.assertEqual(host['optimization'], '3')
+        self.assertEqual(host['rust_codegen_units'], 16)
+        self.assertEqual(host['b_lto_mode'], 'thin')
+        self.assertEqual(host['rust_panic'], 'abort')
+
+        build = release.to_meson_options(MachineChoice.BUILD)
+        # On the build machine the [build-override] keys are layered on top.
+        self.assertEqual(build['optimization'], '0')
+        self.assertEqual(build['rust_codegen_units'], 256)
+        # keys not set by build-override stay from the base profile
+        self.assertEqual(build['b_lto_mode'], 'thin')
+        self.assertEqual(build['rust_panic'], 'abort')
 
     def test_validate_patch(self) -> None:
         # packages_to_member values are normalized with os.path.normpath (see
