@@ -338,6 +338,8 @@ class Interpreter:
             # [patch] only takes effect in the top-level Cargo.toml
             for warning in validate_patch(ws.workspace.patch, ws.packages_to_member):
                 mlog.warning(warning)
+            if ws.workspace.profile:
+                mlog.warning('[profile] entries are not implemented yet')
 
             self._prepare_entry_point(ws)
         return ws
