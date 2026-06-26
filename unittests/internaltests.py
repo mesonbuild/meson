@@ -291,19 +291,24 @@ class InternalTests(unittest.TestCase):
         cc = VisualStudioCPPCompiler([], [], '20.00', MachineChoice.HOST, env, 'x64', linker=linker)
 
         a = cc.compiler_args(cc.get_always_args())
-        self.assertEqual(a.to_native(copy=True), ['/nologo', '/showIncludes', '/utf-8', '/Zc:__cplusplus'])
+        self.assertEqual(a.to_native(copy=True), ['/nologo', '/utf-8', '/Zc:__cplusplus'])
 
         # Ensure /source-charset: removes /utf-8
         a.append('/source-charset:utf-8')
-        self.assertEqual(a.to_native(copy=True), ['/nologo', '/showIncludes', '/Zc:__cplusplus', '/source-charset:utf-8'])
+        self.assertEqual(a.to_native(copy=True), ['/nologo', '/Zc:__cplusplus', '/source-charset:utf-8'])
 
         # Ensure /execution-charset: removes /utf-8
         a = cc.compiler_args(cc.get_always_args() + ['/execution-charset:utf-8'])
-        self.assertEqual(a.to_native(copy=True), ['/nologo', '/showIncludes', '/Zc:__cplusplus', '/execution-charset:utf-8'])
+        self.assertEqual(a.to_native(copy=True), ['/nologo', '/Zc:__cplusplus', '/execution-charset:utf-8'])
 
         # Ensure /validate-charset- removes /utf-8
         a = cc.compiler_args(cc.get_always_args() + ['/validate-charset-'])
-        self.assertEqual(a.to_native(copy=True), ['/nologo', '/showIncludes', '/Zc:__cplusplus', '/validate-charset-'])
+        self.assertEqual(a.to_native(copy=True), ['/nologo', '/Zc:__cplusplus', '/validate-charset-'])
+
+        # /showIncludes is needed for build dependency tracking in Ninja
+        # See: https://ninja-build.org/manual.html#_deps
+        a = cc.compiler_args(cc.get_show_dep_args())
+        self.assertEqual(a.to_native(copy=True), ['/showIncludes'])
 
 
     def test_msvc_unix_args_to_native(self):

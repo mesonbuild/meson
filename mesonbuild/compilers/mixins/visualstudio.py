@@ -87,13 +87,11 @@ class VisualStudioLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
         'mtd': ['/MTd'],
     }
 
-    # /showIncludes is needed for build dependency tracking in Ninja
-    # See: https://ninja-build.org/manual.html#_deps
     # Assume UTF-8 sources by default, but self.unix_args_to_native() removes it
     # if `/source-charset` is set too.
     # It is also dropped if Visual Studio 2013 or earlier is used, since it would
     # not be supported in that case.
-    always_args = ['/nologo', '/showIncludes', '/utf-8']
+    always_args = ['/nologo', '/utf-8']
     warn_args: T.Dict[str, T.List[str]] = {
         '0': [],
         '1': ['/W2'],
@@ -353,6 +351,11 @@ class VisualStudioLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
 
     def get_pie_args(self) -> T.List[str]:
         return []
+
+    def get_show_dep_args(self) -> T.List[str]:
+        # /showIncludes is needed for build dependency tracking in Ninja
+        # See: https://ninja-build.org/manual.html#_deps
+        return ['/showIncludes']
 
 class MSVCCompiler(VisualStudioLikeCompiler):
 

@@ -3132,6 +3132,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add compiler args and include paths from several sources; defaults,
         # build options, external dependencies, etc.
         commands = self.generate_basic_compiler_args(target, compiler)
+        commands += compiler.get_show_dep_args()
         # Add custom target dirs as includes automatically, but before
         # target-specific include directories.
         if target.implicit_include_directories:
