@@ -230,10 +230,13 @@ class QtBaseModule(ExtensionModule):
 
         def gen_bins() -> T.Generator[T.Tuple[str, str], None, None]:
             for b in self.tools:
-                if qt_dep.bindir:
-                    yield os.path.join(qt_dep.bindir, b), b
-                if qt_dep.libexecdir:
-                    yield os.path.join(qt_dep.libexecdir, b), b
+                if self.qt_version >= 6 and b != 'lrelease':
+                    dirs = [qt_dep.libexecdir, qt_dep.bindir]
+                else:
+                    dirs = [qt_dep.bindir, qt_dep.libexecdir]
+                for d in dirs:
+                    if d:
+                        yield os.path.join(d, b), b
                 # prefer the (official) <tool><version> or (unofficial) <tool>-qt<version>
                 # of the tool to the plain one, as we
                 # don't know what the unsuffixed one points to without calling it.
