@@ -155,5 +155,6 @@ index.md
 		Yaml-RefMan.md
 		MesonCI.md
 	Releasing.md
+	LTS-releases.md
 	legal.md
 	Videos.md
