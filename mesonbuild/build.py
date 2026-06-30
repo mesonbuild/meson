@@ -2059,7 +2059,7 @@ class Generator(HoldableObject):
         basename = os.path.splitext(plainname)[0]
         return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
 
-    def process_files(self, files: T.Iterable[TargetSources],
+    def process_files(self, files: T.Iterable[TargetSources | BuildTarget],
                       subdir: str = '',
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None,
@@ -2074,7 +2074,7 @@ class Generator(HoldableObject):
             extra_depends=list(extra_depends) if extra_depends is not None else [])
 
         for e in files:
-            if isinstance(e, (CustomTarget, CustomTargetIndex)):
+            if isinstance(e, (BuildTarget, CustomTarget, CustomTargetIndex)):
                 output.depends.add(e)
                 fs = [File.from_built_file(e.get_builddir(), f) for f in e.get_outputs()]
             elif isinstance(e, GeneratedList):
@@ -2113,7 +2113,7 @@ class GeneratedList(HoldableObject):
 
     def __post_init__(self) -> None:
         self.name = self.generator.exe
-        self.depends: T.Set[GeneratedTypes] = set()
+        self.depends: T.Set[BuildTarget | GeneratedTypes] = set()
         self.infilelist: T.List[FileMaybeInTargetPrivateDir] = []
         self.outfilelist: T.List[str] = []
         self.outmap: T.Dict[FileMaybeInTargetPrivateDir, T.List[str]] = {}
