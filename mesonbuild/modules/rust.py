@@ -21,8 +21,8 @@ from ..dependencies import Dependency
 from ..interpreter.decorators import apply_machine_map
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
-    NATIVE_KW, OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator,
-    EXECUTABLE_KWS, LIBRARY_KWS, SHARED_MOD_KWS, _BASE_LANG_KW
+    OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NATIVE_KW, NoneType, in_set_validator,
+    EXECUTABLE_KWS, LIBRARY_KWS, SHARED_MOD_KWS, _BASE_LANG_KW, DEPEND_FILES_KW, INSTALL_DIR_KW, INSTALL_KW,
 )
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs
 from ..interpreter.interpreterobjects import Doctest
@@ -45,8 +45,9 @@ if T.TYPE_CHECKING:
     from ..interpreterbase import TYPE_kwargs
     from ..programs import Program
     from ..interpreter.type_checking import SourcesVarargsType
+    from ..utils.universal import FileOrString
 
-    from typing_extensions import TypedDict, Literal
+    from typing_extensions import Literal, TypedDict
 
     ArgsType = T.TypeVar('ArgsType')
 
@@ -72,6 +73,15 @@ if T.TYPE_CHECKING:
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         language: T.Optional[Literal['c', 'cpp']]
         bindgen_version: T.List[str]
+
+    class FuncCBindgen(TypedDict):
+
+        config: str | File | CustomTarget | CustomTargetIndex
+        language: T.Literal['c', 'cpp', 'cython'] | None
+        depends: list[TargetDepends]
+        depend_files: list[FileOrString]
+        install: bool
+        install_dir: str | None
 
     class FuncSubproject(TypedDict):
         native: MachineChoice
@@ -583,6 +593,12 @@ class RustSubproject(RustCrate):
         return state.overridden_dependency(depname, for_machine=self.for_machine)
 
 
+def _cbindgen_config_validator(val: str) -> T.Optional[str]:
+    if os.path.splitext(val)[1] != '.toml':
+        return 'config file must be a .toml file'
+    return None
+
+
 class RustModule(ExtensionModule):
 
     """A module that holds helper functions for rust."""
@@ -600,6 +616,10 @@ class RustModule(ExtensionModule):
         else:
             self._bindgen_rust_target = None
         self._bindgen_set_std = False
+
+        self._cbindgen_bin: Program | None = None
+        self._cbindgen_has_depfile = False
+
         self.methods.update({
             'test': self.test,
             'doctest': self.doctest,
@@ -608,6 +628,7 @@ class RustModule(ExtensionModule):
             'proc_macro': self.proc_macro,
             'to_system_dependency': self.to_system_dependency,
             'workspace': self.workspace,
+            'cbindgen': self.cbindgen,
         })
 
     def test_common(self, funcname: str, state: ModuleState, args: T.Tuple[str, BuildTarget], kwargs: FuncRustTest) -> T.Tuple[Executable, _kwargs.FuncTest]:
@@ -1099,6 +1120,121 @@ class RustModule(ExtensionModule):
         os.makedirs(self.interpreter.environment.wrap_resolver.subdir_root, exist_ok=True)
 
         return RustWorkspace(self.interpreter, ws)
+
+    @FeatureNew('rust.cbindgen', '1.12.0')
+    @typed_pos_args('rust.cbindgen', (str, File, CustomTargetIndex, CustomTarget, StructuredSources), str)
+    @typed_kwargs(
+        'rust.cbindgen',
+        KwargInfo('config', (str, File, CustomTarget, CustomTargetIndex), required=True, validator=_cbindgen_config_validator),
+        KwargInfo(
+            'language',
+            (str, NoneType),
+            validator=in_set_validator({'c', 'cpp', 'cython'}),
+        ),
+        KwargInfo(
+            'depends',
+            ContainerTypeInfo(list, (CustomTarget, CustomTargetIndex)),
+            default=[],
+            listify=True,
+        ),
+        DEPEND_FILES_KW,
+        INSTALL_KW,
+        INSTALL_DIR_KW,
+    )
+    def cbindgen(self, state: ModuleState,
+                 args: tuple[FileOrString | CustomTarget | CustomTargetIndex | StructuredSources, str],
+                 kwargs: FuncCBindgen) -> ModuleReturnValue:
+        # TODO: should we allow GeneratedList here?
+
+        if kwargs['install'] and not kwargs['install_dir']:
+            raise InterpreterException.from_node('cbindgen: When `install` is true `install_dir` must be set',
+                                                 node=state.current_node)
+
+        if self._cbindgen_bin is None:
+            self._cbindgen_bin = state.find_program('cbindgen')
+            self._cbindgen_has_depfile = mesonlib.version_compare(
+                self._cbindgen_bin.get_version(self.interpreter), '>= 0.25')
+
+        _infile, outfile = args
+        infile = self.interpreter.source_strings_to_files([_infile])[0]
+        depend_files = self.interpreter.source_strings_to_files(kwargs['depend_files'])
+        depends = kwargs['depends'].copy()
+
+        if isinstance(infile, StructuredSources):
+            infile, *_depends = infile.as_list()
+            if isinstance(infile, GeneratedList):
+                raise MesonException.from_node(
+                    'Using a GeneratedList as the main input for cbindgen is unsupported',
+                    node=state.current_node)
+            for d in _depends:
+                if isinstance(d, File):
+                    depend_files.append(d)
+                else:
+                    depends.append(d)
+
+        if isinstance(infile, File):
+            name = infile.fname
+        else:
+            if len(infile.get_outputs()) != 1:
+                raise mesonlib.MesonException.from_node(
+                    'Cannot pass a custom_target generating more than one output to rust.cbindgen, use custom_target[index] to select the output to generate bindings for',
+                    node=state.current_node)
+            name = infile.get_outputs()[0]
+
+        if os.path.dirname(outfile):
+            raise InvalidArguments.from_node(
+                'outfile name must not contain a path segment', node=state.current_node)
+
+        # Detect langauge from output file extension
+        language = kwargs['language']
+        if language is None:
+            ext = os.path.splitext(outfile)[1][1:]
+            if ext in lang_suffixes['cpp']:
+                language = 'cpp'
+            elif ext == 'h':
+                language = 'c'
+            else:
+                raise InterpreterException.from_node(
+                   f'Unknown file type extension for: {outfile}', node=state.current_node)
+
+        # Convert Meson's `cpp` to cbindgen's `c++`
+        if language == 'cpp':
+            language = 'c++'
+
+        # Set the --profile flag based on meson's debug option
+        debug = state.get_option('debug')
+        assert isinstance(debug, bool), 'for mypy'
+
+        command: list[str | Program] = [
+            self._cbindgen_bin, '--output', '@OUTPUT@', '--config',
+            '@INPUT0@', '--quiet', '--lang', language,
+            '--profile', 'debug' if debug else 'release',
+        ]
+        if language == 'c':
+            command.append('--cpp-compat')
+        if self._cbindgen_has_depfile:
+            command.extend(['--depfile', '@DEPFILE@'])
+        command.extend(['--', '@INPUT1@'])  # must be last
+
+        config_file = self.interpreter.source_strings_to_files([kwargs['config']])
+
+        target = CustomTarget(
+            f'rustmod-cbindgen-{outfile}',
+            state.subdir,
+            state.environment,
+            command,
+            [config_file[0], infile],
+            [outfile],
+            state.current_build_project,
+            depfile=f'{name}.d',
+            depend_files=depend_files,
+            extra_depends=depends,
+            install=kwargs['install'],
+            install_dir=[kwargs['install_dir']],
+            install_tag=['devel'],
+        )
+
+        return ModuleReturnValue(target, [target])
 
 
 def initialize(interp: Interpreter) -> RustModule:
