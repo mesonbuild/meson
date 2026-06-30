@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
 from .ast.interpreter import IntrospectionBuildTarget, IntrospectionDependency, _symbol
-from .interpreterbase import UnknownValue, TV_func
+from .interpreterbase import UnknownValue
 from .interpreterbase.helpers import flatten
 from mesonbuild.mesonlib import MesonException, pathname_sort_key, relpath, setup_vsenv
 from . import mlog, environment
@@ -25,7 +25,13 @@ from pathlib import Path
 if T.TYPE_CHECKING:
     import argparse
     from argparse import ArgumentParser, _FormatterClass
+
+    from typing_extensions import TypeAlias
+
     from .mlog import AnsiDecorator
+
+    RewriterKeysT: TypeAlias = dict[str, tuple[type, object | None, list[str] | None]]
+    RewriterFuncT: TypeAlias = T.Callable[['Rewriter', dict[str, object]], None]
 
 class RewriterException(MesonException):
     pass
@@ -68,20 +74,13 @@ def add_arguments(parser: ArgumentParser, formatter: _FormatterClass) -> None:
     cmd_parser.add_argument('json', help='JSON string or file to execute')
 
 class RequiredKeys:
-    keys: T.Dict[str, T.Any]
-
-    def __init__(self, keys: T.Dict[str, T.Any]):
+    def __init__(self, keys: RewriterKeysT):
         self.keys = keys
 
-    def __call__(self, f: TV_func) -> TV_func:
+    def __call__(self, f: RewriterFuncT) -> RewriterFuncT:
         @wraps(f)
-        def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            assert len(wrapped_args) >= 2
-            cmd = wrapped_args[1]
-            for key, val in self.keys.items():
-                typ = val[0] # The type of the value
-                default = val[1] # The default value -- None is required
-                choices = val[2] # Valid choices -- None is for everything
+        def wrapped(rewriter: 'Rewriter', cmd: dict[str, object]) -> None:
+            for key, (typ, default, choices) in self.keys.items():
                 if key not in cmd:
                     if default is not None:
                         cmd[key] = default
@@ -92,13 +91,11 @@ class RequiredKeys:
                     raise RewriterException('Invalid type of "{}". Required is {} but provided was {}'
                                             .format(key, typ.__name__, type(cmd[key]).__name__))
                 if choices is not None:
-                    assert isinstance(choices, list)
                     if cmd[key] not in choices:
                         raise RewriterException('Invalid value of "{}": Possible values are {} but provided was "{}"'
                                                 .format(key, choices, cmd[key]))
-            return f(*wrapped_args, **wrapped_kwargs)
-
-        return T.cast('TV_func', wrapped)
+            return f(rewriter, cmd)
+        return wrapped
 
 class MTypeBase:
     node: BaseNode
@@ -314,7 +311,7 @@ class MTypeIDList(MTypeList):
     def supported_element_nodes(cls) -> T.List[T.Type]:
         return [IdNode]
 
-rewriter_keys: T.Dict[str, T.Dict[str, T.Any]] = {
+rewriter_keys: T.Dict[str, RewriterKeysT] = {
     'default_options': {
         'operation': (str, None, ['set', 'delete']),
         'options': (dict, {}, None)
