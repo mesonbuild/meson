@@ -88,7 +88,6 @@ class InterpreterBase:
         self.coredata = env.get_coredata()
         self.variables: T.Dict[str, InterpreterObject] = {}
         self.argument_depth = 0
-        self.current_lineno = -1
         # Current node set during a function call. This can be used as location
         # when printing a warning message during a method call.
         self.current_node = mparser.BaseNode(-1, -1, 'sentinel')
@@ -597,7 +596,6 @@ class InterpreterBase:
         reduced_kw: T.Dict[str, InterpreterObject] = {}
         for key, val in args.kwargs.items():
             reduced_key = key_resolver(key)
-            assert isinstance(val, mparser.BaseNode)
             reduced_val = self.evaluate_statement(val)
             if reduced_val is None:
                 raise InvalidArguments(f'Value of key {reduced_key} is void.')

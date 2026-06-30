@@ -12,7 +12,6 @@ from __future__ import annotations
 from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
 from .ast.interpreter import IntrospectionBuildTarget, IntrospectionDependency, _symbol
 from .interpreterbase import UnknownValue, TV_func
-from .interpreterbase.helpers import flatten
 from mesonbuild.mesonlib import MesonException, pathname_sort_key, relpath, setup_vsenv
 from . import mlog, environment
 from functools import wraps
@@ -450,7 +449,7 @@ class Rewriter:
             return None
 
     def find_dependency(self, dependency: str) -> T.Optional[IntrospectionDependency]:
-        potential_deps = []
+        potential_deps: T.List[IntrospectionDependency] = []
         for i in self.interpreter.dependencies:
             if i.name == dependency:
                 potential_deps.append(i)
@@ -458,8 +457,10 @@ class Rewriter:
         checking_varnames = len(potential_deps) == 0
 
         if checking_varnames:
-            potential_deps1 = self.all_assignments(dependency)
-            potential_deps = [self.interpreter.node_to_runtime_value(el) for el in potential_deps1 if isinstance(el, FunctionNode) and el.func_name.value == 'dependency']
+            potential_deps1 = [self.interpreter.node_to_runtime_value(el)
+                               for el in self.all_assignments(dependency)
+                               if isinstance(el, FunctionNode) and el.func_name.value == 'dependency']
+            potential_deps = T.cast('T.List[IntrospectionDependency]', potential_deps1)
 
         if not potential_deps:
             return None
@@ -761,7 +762,7 @@ class Rewriter:
             tgt_function.args.kwargs[extra_files_idnode] = new_extra_files_node
 
         newfiles_relto = self.get_relto(target.node, chosen)
-        old_src_list: T.List[T.Any] = flatten([self.interpreter.node_to_runtime_value(sn) for sn in old])
+        old_src_list: T.List[T.Any] = self.interpreter.flatten_args(list(old))
 
         if op == 'src_add':
             name = 'Source'
