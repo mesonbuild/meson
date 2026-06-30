@@ -125,6 +125,9 @@ def parse_generator_expressions(
         'COMMA': lambda x: ',',
         'SEMICOLON': lambda x: ';',
 
+        # Link-related expressions
+        'LINK_ONLY': lambda x: x,
+
         # Target related expressions
         'TARGET_EXISTS': lambda x: '1' if x in trace.targets else '0',
         'TARGET_NAME_IF_EXISTS': lambda x: x if x in trace.targets else '',
