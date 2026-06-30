@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 from collections import defaultdict, deque, OrderedDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, InitVar
 from functools import lru_cache
 import abc
 import copy
@@ -807,7 +807,7 @@ class BuildTarget(Target):
         super().__init__(name, subdir, kwargs.get('build_by_default', True),
                          for_machine, environment,
                          install=kwargs.get('install', False),
-                         build_subdir=kwargs.get('build_subdir', ''),
+                         build_subdir=kwargs.get('build_subdir') or '',
                          build_project=build_project)
         self.original_kwargs = kwargs
         # all_compilers is a reference to Interpreter.compilers, as such we
@@ -828,6 +828,7 @@ class BuildTarget(Target):
         self.name_prefix_set = False
         self.name_suffix_set = False
         self.filename = 'no_name'
+        self.vs_module_defs: File | None = None
         self.doctests: T.Optional[Doctest] = None
         # The debugging information file this target will generate
         self.debug_filename: str | None = None
@@ -2138,13 +2139,14 @@ class GeneratedList(HoldableObject):
             else:
                 self.extra_depends.append(t)
         else:
-            path = self.generator.exe.get_path()
+            path = unwrap(self.generator.exe.get_path())
             if os.path.isabs(path):
                 # Can only add a dependency on an external program which we
                 # know the absolute path of
                 self.depend_files.append(File.from_absolute_file(path))
 
     def get_preserved_path_segment(self, infile: FileMaybeInTargetPrivateDir) -> str:
+        assert self.preserve_path_from, 'the caller must ensure this'
         in_abs = infile.absolute_path(self.generator.environment.source_dir, self.generator.environment.build_dir)
         assert os.path.isabs(self.preserve_path_from)
         rel = os.path.relpath(in_abs, self.preserve_path_from)
@@ -2210,8 +2212,6 @@ class Executable(BuildTarget, LinkableTarget):
         self.implib_name = kwargs.get('implib')
         # Only linkwithable if using export_dynamic
         self.is_linkwithable = self.export_dynamic
-
-        self.vs_module_defs: T.Optional[File] = None
         self.process_vs_module_defs_kw(kwargs)
 
     def _set_vala_args(self, kwargs: BuildTargetKeywordArguments) -> None:
@@ -2538,7 +2538,6 @@ class SharedLibrary(BuildTarget, LinkableTarget):
 
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
 
-        self.vs_module_defs: File | None = None
         # Visual Studio module-definitions file
         self.process_vs_module_defs_kw(kwargs)
 
@@ -2566,9 +2565,9 @@ class SharedLibrary(BuildTarget, LinkableTarget):
                                        'Replace them with underscores, for example')
 
         if not hasattr(self, 'prefix'):
-            self.prefix = None
+            self.prefix = ''
         if not hasattr(self, 'suffix'):
-            self.suffix = None
+            self.suffix = ''
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         self.determine_filenames()
 
@@ -2592,7 +2591,7 @@ class SharedLibrary(BuildTarget, LinkableTarget):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_shared_lib_dir(), '{libdir_shared}'
 
-    def determine_naming_info(self) -> T.Tuple[str, str, str, str, bool]:
+    def determine_naming_info(self) -> T.Tuple[str, str, str, str | None, bool]:
         scheme = self.environment.coredata.get_option_for_target(self, 'namingscheme')
         assert isinstance(scheme, str), 'for mypy'
 
@@ -2996,6 +2995,7 @@ class CustomTarget(Target, CustomTargetBase):
                  sources: T.Sequence[CustomTargetSources],
                  outputs: T.List[str],
                  build_project: BuildProject,
+                 backend: Backend,
                  *,
                  build_always_stale: bool = False,
                  build_by_default: T.Optional[bool] = None,
@@ -3013,18 +3013,20 @@ class CustomTarget(Target, CustomTargetBase):
                  install_tag: T.Optional[T.List[T.Optional[str]]] = None,
                  rspable: bool = False,
                  absolute_paths: bool = False,
-                 backend: T.Optional['Backend'] = None,
                  description: str = 'Generating {} with a custom command',
                  build_subdir: str = '',
                  ):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
-        super().__init__(name, subdir, False, MachineChoice.HOST, environment,
-                         build_project, install, build_always_stale, build_subdir = build_subdir)
-        self.sources = list(sources)
         self.outputs = substitute_values(
             outputs, get_filenames_templates_dict(
                 get_sources_string_names(sources, backend),
                 []))
+        name = name or self.outputs[0]
+
+        super().__init__(name, subdir, False, MachineChoice.HOST, environment,
+                         build_project, install, build_always_stale, build_subdir = build_subdir)
+
+        self.sources = list(sources)
         self.build_by_default = build_by_default if build_by_default is not None else install
         self.capture = capture
         self.console = console
@@ -3043,7 +3045,6 @@ class CustomTarget(Target, CustomTargetBase):
         self.has_custom_install_dir = bool(self.install_dir)
         self.install_mode = install_mode
         self.install_tag = _process_install_tag(install_tag, len(self.outputs))
-        self.name = name if name else self.outputs[0]
         self.description = description
 
         # Whether to use absolute paths for all files on the commandline
@@ -3058,7 +3059,7 @@ class CustomTarget(Target, CustomTargetBase):
                 if isinstance(d, LocalProgram):
                     d = d.get_target()
                 elif isinstance(d, programs.Program):
-                    path = d.get_path()
+                    path = unwrap(d.get_path())
                     # Can only add a dependency on an external program which we
                     # know the absolute path of
                     if not os.path.isabs(path):
@@ -3553,7 +3554,7 @@ class LocalProgram(programs.Program):
         # Only the backend knows the actual path to the build program.
         raise MesonBugException('Cannot call get_command() on program that is a build target.')
 
-    def get_path(self) -> str:
+    def get_path(self) -> str | None:
         if isinstance(self.program, programs.ExternalProgram):
             return self.program.get_path()
         # Only the backend knows the actual path to the build program.
@@ -3587,14 +3588,16 @@ class Data(HoldableObject):
     install_dir_name: str
     install_mode: 'FileMode'
     subproject: SubProject
-    rename: T.List[str] = None
+    rename_: InitVar[list[str] | None] = None
     install_tag: T.Optional[str] = None
-    data_type: str = None
+    data_type: str | None = None
     follow_symlinks: T.Optional[bool] = None
 
-    def __post_init__(self) -> None:
-        if self.rename is None:
-            self.rename = [os.path.basename(f.fname) for f in self.sources]
+    def __post_init__(self, rename_: list[str] | None) -> None:
+        if rename_ is None:
+            rename_ = [os.path.basename(f.fname) for f in self.sources]
+        self.rename = rename_
+
 
 @dataclass(eq=False)
 class SymlinkData(HoldableObject):
@@ -3632,7 +3635,7 @@ def get_sources_string_names(sources: T.Sequence[CustomTargetSources], backend: 
         elif isinstance(s, File):
             names.append(s.fname)
         elif isinstance(s, programs.ExternalProgram):
-            names.append(s.get_path())
+            names.append(unwrap(s.get_path()))
         else:
             raise MesonBugException(f'Unknown source type: {s!r}')
     return names
@@ -3647,11 +3650,10 @@ def load(build_dir: str) -> Build:
     except FileNotFoundError:
         raise MesonException(f'No such build data file as {filename!r}.')
 
-
 def save(obj: Build, filename: str) -> None:
     # Exclude coredata because we pickle it separately already
     cdata = obj.environment.coredata
-    obj.environment.coredata = None
+    obj.environment.coredata = None  # type: ignore[assignment]
     try:
         with open(filename, 'wb') as f:
             pickle.dump(obj, f)

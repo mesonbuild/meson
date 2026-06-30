@@ -461,6 +461,7 @@ class QtBaseModule(ExtensionModule):
                 sources,
                 [f'{name}.cpp'],
                 state.current_build_project,
+                state.backend,
                 depend_files=qrc_deps,
                 depfile=f'{name}.d',
                 description='Compiling Qt resources {}',
@@ -480,6 +481,7 @@ class QtBaseModule(ExtensionModule):
                     [rcc_file],
                     [f'{name}.cpp'],
                     state.current_build_project,
+                    state.backend,
                     depend_files=qrc_deps,
                     depfile=f'{name}.d',
                     description='Compiling Qt resources {}',
@@ -758,6 +760,7 @@ class QtBaseModule(ExtensionModule):
                 [ts_file],
                 ['@BASENAME@.qm'],
                 state.current_build_project,
+                state.backend,
                 install=kwargs['install'],
                 install_dir=[kwargs['install_dir']],
                 install_tag=['i18n'],
@@ -898,6 +901,7 @@ class QtBaseModule(ExtensionModule):
             moc_json,
             [f'{target_name}_json_collect.json'],
             state.current_build_project,
+            state.backend,
             description=f'Collecting json type information for {target_name}',
         )
 
@@ -948,6 +952,7 @@ class QtBaseModule(ExtensionModule):
             #output name format matters here
             [f'{target_name}_qmlcache_loader.cpp'],
             state.current_build_project,
+            state.backend,
             description=f'Qml cache loader for {target_name}',
         )
         output.append(cacheloader_target)
@@ -1004,6 +1009,7 @@ class QtBaseModule(ExtensionModule):
             inputs,
             outputs,
             state.current_build_project,
+            state.backend,
             install=kwargs['install'],
             install_dir=install_dir,
             install_tag=install_tag,
