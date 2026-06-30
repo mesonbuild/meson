@@ -39,7 +39,7 @@ from .compilers import (
 from .interpreterbase import FeatureNew, FeatureDeprecated
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, Self, TypeAlias, TypedDict
+    from typing_extensions import Literal, Self, TypeAlias, TypedDict, Protocol
 
     from .arglist import CompilerArgs
     from .environment import Environment
@@ -58,14 +58,70 @@ if T.TYPE_CHECKING:
     TargetSources: TypeAlias = T.Union['File', 'GeneratedTypes']
     CommandTypes: TypeAlias = T.Union['programs.Program', 'BuildTargetTypes', File, str]
     GeneratedTypes: TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
-    LibTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
-    LinkableTargetTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex', 'Executable']
     BuildTargetTypes: TypeAlias = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
-    StaticTargetTypes: TypeAlias = T.Union['StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
     ObjectTypes: TypeAlias = T.Union['File', 'ExtractedObjects']
-    AnyTargetType: TypeAlias = T.Union['Target', 'CustomTargetIndex']
     RustCrateType: TypeAlias = Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
     _LibraryType: TypeAlias = Literal['auto', 'shared', 'static']
+
+    class AnyTargetProto(Protocol):
+        @property
+        def depend_files(self) -> T.List[File]: ...
+
+        def get_basename(self) -> str: ...
+        def get_build_subdir(self) -> str: ...
+        def get_builddir(self) -> str: ...
+        def get_id(self) -> str: ...
+        def get_outputs(self) -> T.List[str]: ...
+        def get_subdir(self) -> str: ...
+        def get_target(self) -> Target: ...
+
+    class BuildTargetProto(AnyTargetProto):
+        @property
+        def for_machine(self) -> MachineChoice: ...
+
+        @property
+        def rust_crate_type(self) -> str: ...
+
+        def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetProto]: ...
+        def get_all_linked_targets(self) -> ImmutableListProtocol[BuildTargetProto]: ...
+        def get_dependencies(self) -> T.Iterable[BuildTargetProto]: ...
+        def get_dependencies_recurse(self, result: OrderedSet[BuildTargetProto], visited: T.Set[T.Tuple[BuildTargetProto, bool, bool]], include_internals: bool = True, handled_by_rustc: bool = False) -> None: ...
+        def get_filename(self) -> str: ...
+        def get_generated_sources(self) -> T.Iterable[GeneratedTypes]: ...
+        def get_internal_static_libraries(self) -> OrderedSet[StaticTargetProto]: ...
+        def get_internal_static_libraries_recurse(self, result: OrderedSet[StaticTargetProto]) -> None: ...
+        def get_link_dep_subdirs(self) -> T.AbstractSet[str]: ...
+        def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]: ...
+        def get_objects(self) -> T.List[ObjectTypes]: ...
+        def install_dir_names(self) -> T.List[T.Optional[str]]: ...
+        def is_internal(self) -> bool: ...
+        def is_linkable_target(self) -> bool: ...
+        def uses_fortran(self) -> bool: ...
+        def uses_rust(self) -> bool: ...
+        def uses_rust_abi(self) -> bool: ...
+        def uses_swift_cpp_interop(self) -> bool: ...
+
+    # all types included in BuildTargetTypes must implement BuildTargetProto;
+    # if not, this will be a mypy error
+    def _assert_BuildTargetProto(x: BuildTargetTypes) -> BuildTargetProto: return x
+
+    class LinkableProto(BuildTargetProto):
+        def get(self, lib_type: _LibraryType, recursive: bool = False) -> LinkableProto: ...
+
+    class LibProto(LinkableProto):
+        name_prefix_set: bool
+        prefix: str
+
+        # FIXME: convert pkgconfig.py to use install_dir_names()
+        @property
+        def install_dir(self) -> T.List[T.Union[str, Literal[False]]]: ...
+        @property
+        def has_custom_install_dir(self) -> bool: ...
+        @property
+        def name(self) -> str: ...
+
+    class StaticTargetProto(LibProto):
+        def extract_all_objects(self, recursive: bool = True) -> ExtractedObjects: ...
 
     class DFeatures(TypedDict):
 
@@ -102,10 +158,10 @@ if T.TYPE_CHECKING:
         language_args: T.DefaultDict[Language, T.List[str]]
         link_args: T.List[str]
         link_early_args: T.List[str]
-        link_depends: T.List[T.Union[File, BuildTargetTypes]]
+        link_depends: T.Sequence[T.Union[File, BuildTargetProto]]
         link_language: Language
-        link_whole: T.List[StaticTargetTypes]
-        link_with: T.List[LinkableTargetTypes]
+        link_whole: T.List[StaticTargetProto]
+        link_with: T.List[LinkableProto]
         name_prefix: T.Optional[str]
         name_suffix: T.Optional[str]
         native: MachineChoice
@@ -158,6 +214,12 @@ if T.TYPE_CHECKING:
         java_args: T.List[str]
         java_resources: T.Optional[StructuredSources]
         main_class: str
+else:
+    AnyTargetProto = object
+    BuildTargetProto = object
+    LinkableProto = object
+    LibProto = object
+    StaticTargetProto = object
 
 
 _T = T.TypeVar('_T')
@@ -656,7 +718,7 @@ class StructuredSources(HoldableObject):
 
 
 @dataclass(eq=False)
-class Target(HoldableObject, metaclass=SimpleABC):
+class Target(HoldableObject, AnyTargetProto, metaclass=SimpleABC):
 
     typename: T.ClassVar[str]
 
@@ -780,7 +842,7 @@ class Target(HoldableObject, metaclass=SimpleABC):
     def should_install(self) -> bool:
         return False
 
-class BuildTarget(Target):
+class BuildTarget(Target, BuildTargetProto):
     rust_crate_type: RustCrateType
 
     # This set contains all the languages a linker can link natively
@@ -820,10 +882,10 @@ class BuildTarget(Target):
         self.external_deps: T.List[dependencies.Dependency] = []
         self.include_dirs: T.List['IncludeDirs'] = []
         self.link_language: T.Optional[Language] = kwargs.get('link_language')
-        self.link_targets: T.List[LinkableTargetTypes] = []
-        self.link_whole_targets: T.List[StaticTargetTypes] = []
+        self.link_targets: T.List[LinkableProto] = []
+        self.link_whole_targets: T.List[StaticTargetProto] = []
         self.depend_files = kwargs.get('depend_files', [])
-        self.link_depends = kwargs.get('link_depends', [])
+        self.link_depends = list(kwargs.get('link_depends', []))
         self.added_deps: T.Set[dependencies.Dependency] = set()
         self.name_prefix_set = False
         self.name_suffix_set = False
@@ -1112,7 +1174,7 @@ class BuildTarget(Target):
         # the languages of those libraries as well.
         if self.link_targets or self.link_whole_targets:
             for t in itertools.chain(self.link_targets, self.link_whole_targets):
-                if isinstance(t, (CustomTarget, CustomTargetIndex)):
+                if not isinstance(t, BuildTarget):
                     continue # We can't know anything about these.
                 target_langs = [t.link_language] if t.link_language else list(t.compilers)
                 for lang in target_langs:
@@ -1275,15 +1337,15 @@ class BuildTarget(Target):
                                 recursive, pch=True)
 
     @lru_cache(maxsize=None)
-    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
+    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetProto]:
         """ Get all shared libraries dependencies
         This returns all shared libraries in the entire dependency tree. Those
         are libraries needed at runtime which is different from the set needed
         at link time, see get_dependencies() for that.
         """
-        result: OrderedSet[BuildTargetTypes] = OrderedSet()
-        nonresults: T.Set[BuildTargetTypes] = set()
-        stack: T.Deque[BuildTargetTypes] = deque()
+        result: OrderedSet[BuildTargetProto] = OrderedSet()
+        nonresults: T.Set[BuildTargetProto] = set()
+        stack: T.Deque[BuildTargetProto] = deque()
         stack.appendleft(self)
         while stack:
             t = stack.pop()
@@ -1302,7 +1364,7 @@ class BuildTarget(Target):
         return list(result)
 
     @lru_cache(maxsize=None)
-    def get_all_linked_targets(self) -> ImmutableListProtocol[BuildTargetTypes]:
+    def get_all_linked_targets(self) -> ImmutableListProtocol[BuildTargetProto]:
         """Get all targets that have been linked with this one.
 
         This is useful for cases where we need to analyze these links, such as
@@ -1316,8 +1378,8 @@ class BuildTarget(Target):
 
         :returns: An immutable list of BuildTargets
         """
-        result: OrderedSet[BuildTargetTypes] = OrderedSet()
-        stack: T.Deque[BuildTargetTypes] = deque()
+        result: OrderedSet[BuildTargetProto] = OrderedSet()
+        stack: T.Deque[BuildTargetProto] = deque()
         stack.extendleft(self.link_targets)
         stack.extendleft(self.link_whole_targets)
         while stack:
@@ -1454,14 +1516,14 @@ class BuildTarget(Target):
         return self.extra_args[language]
 
     @lru_cache(maxsize=None)
-    def get_dependencies(self) -> OrderedSet[BuildTargetTypes]:
+    def get_dependencies(self) -> T.Iterable[BuildTargetProto]:
         # Get all targets needed for linking. This includes all link_with and
         # link_whole targets, and also all dependencies of static libraries
         # recursively. The algorithm here is closely related to what we do in
         # get_internal_static_libraries(): Installed static libraries include
         # objects from all their dependencies already.
-        result: OrderedSet[BuildTargetTypes] = OrderedSet()
-        visited: T.Set[T.Tuple[BuildTargetTypes, bool, bool]] = set()
+        result: OrderedSet[BuildTargetProto] = OrderedSet()
+        visited: T.Set[T.Tuple[BuildTargetProto, bool, bool]] = set()
         for t in itertools.chain(self.link_targets, self.link_whole_targets):
             if t not in result:
                 result.add(t)
@@ -1469,8 +1531,8 @@ class BuildTarget(Target):
                     t.get_dependencies_recurse(result, visited, handled_by_rustc=self.uses_rust())
         return result
 
-    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes],
-                                 visited: T.Set[T.Tuple[BuildTargetTypes, bool, bool]],
+    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetProto],
+                                 visited: T.Set[T.Tuple[BuildTargetProto, bool, bool]],
                                  include_internals: bool = True, handled_by_rustc: bool = False) -> None:
         # self is always a static library because we don't need to pull dependencies
         # of shared libraries. If self is installed (not internal) it already
@@ -1517,7 +1579,7 @@ class BuildTarget(Target):
     def get_objects(self) -> T.List[ObjectTypes]:
         return self.objects
 
-    def get_generated_sources(self) -> T.List['GeneratedTypes']:
+    def get_generated_sources(self) -> T.Iterable['GeneratedTypes']:
         return self.generated
 
     def should_install(self) -> bool:
@@ -1575,26 +1637,26 @@ class BuildTarget(Target):
     def is_internal(self) -> bool:
         return False
 
-    def link(self, targets: T.Iterable[LinkableTargetTypes]) -> None:
+    def link(self, targets: T.Iterable[LinkableProto]) -> None:
         for t in targets:
             self.check_can_link_together(t)
             self.link_targets.append(t)
 
     def link_whole(
             self,
-            targets: T.Iterable[StaticTargetTypes],
+            targets: T.Iterable[StaticTargetProto],
             promoted: bool = False) -> None:
         for t in targets:
             self.check_can_link_together(t)
             self.link_whole_targets.append(t)
 
     @lru_cache(maxsize=None)
-    def get_internal_static_libraries(self) -> OrderedSet[StaticTargetTypes]:
-        result: OrderedSet[StaticTargetTypes] = OrderedSet()
+    def get_internal_static_libraries(self) -> OrderedSet[StaticTargetProto]:
+        result: OrderedSet[StaticTargetProto] = OrderedSet()
         self.get_internal_static_libraries_recurse(result)
         return result
 
-    def get_internal_static_libraries_recurse(self, result: OrderedSet[StaticTargetTypes]) -> None:
+    def get_internal_static_libraries_recurse(self, result: OrderedSet[StaticTargetProto]) -> None:
         for t in self.link_targets:
             if t.is_internal() and t not in result:
                 assert isinstance(t, (StaticLibrary, CustomTarget, CustomTargetIndex)), 'for mypy'
@@ -1604,12 +1666,12 @@ class BuildTarget(Target):
             if t.is_internal():
                 t.get_internal_static_libraries_recurse(result)
 
-    def check_can_link_together(self, t: BuildTargetTypes) -> None:
-        links_with_rust_abi = isinstance(t, BuildTarget) and t.uses_rust_abi()
+    def check_can_link_together(self, t: BuildTargetProto) -> None:
+        links_with_rust_abi = t.uses_rust_abi()
         if not self.uses_rust() and links_with_rust_abi:
-            raise InvalidArguments(f'Try to link Rust ABI library {t.name!r} with a non-Rust target {self.name!r}')
+            raise InvalidArguments(f'Try to link Rust ABI library {t.get_basename()!r} with a non-Rust target {self.get_basename()!r}')
         if self.for_machine is not t.for_machine and (not links_with_rust_abi or t.rust_crate_type != 'proc-macro'):
-            msg = f'Tried to mix a {t.for_machine} library ("{t.name}") with a {self.for_machine} target "{self.name}"'
+            msg = f'Tried to mix a {t.for_machine} library ("{t.get_basename()}") with a {self.for_machine} target "{self.get_basename()}"'
             if self.environment.is_cross_build():
                 raise InvalidArguments(msg + ' This is not possible in a cross build.')
             else:
@@ -1646,7 +1708,7 @@ class BuildTarget(Target):
         # Check if any of the internal libraries this target links to were
         # written in this language
         for t in itertools.chain(self.link_targets, self.link_whole_targets):
-            if isinstance(t, (CustomTarget, CustomTargetIndex)):
+            if not isinstance(t, BuildTarget):
                 continue
             target_langs = [t.link_language] if t.link_language else list(t.compilers)
             for language in target_langs:
@@ -1824,10 +1886,10 @@ class BuildTarget(Target):
         assert isinstance(bl_type, str), 'for mypy'
         return T.cast('_LibraryType', bl_type)
 
-    def _extract_link_with(self, kwargs: BuildTargetKeywordArguments) -> list[LinkableTargetTypes]:
+    def _extract_link_with(self, kwargs: BuildTargetKeywordArguments) -> list[LinkableProto]:
         bl_type = self._default_library_type()
 
-        lib_list: list[LinkableTargetTypes] = []
+        lib_list: list[LinkableProto] = []
         for lib in itertools.chain(kwargs.get('link_with', []), self.link_targets):
             if isinstance(lib, (CustomTarget, CustomTargetIndex)):
                 lib_list.append(lib)
@@ -1835,8 +1897,8 @@ class BuildTarget(Target):
                 lib_list.append(lib.get(bl_type))
         return lib_list
 
-    def _extract_link_whole(self, kwargs: BuildTargetKeywordArguments) -> list[StaticTargetTypes]:
-        lib_list: list[StaticTargetTypes] = []
+    def _extract_link_whole(self, kwargs: BuildTargetKeywordArguments) -> list[StaticTargetProto]:
+        lib_list: list[StaticTargetProto] = []
         for lib in itertools.chain(kwargs.get('link_whole', []), self.link_whole_targets):
             if isinstance(lib, BothLibraries):
                 lib = lib.get('static')
@@ -1971,13 +2033,6 @@ class BuildTarget(Target):
             return 'darwin'
         else:
             return 'unix'
-
-
-class LinkableTarget(metaclass=SimpleABC):
-    @abc.abstractmethod
-    def get(self, lib_type: _LibraryType) -> LinkableTargetTypes:
-        """If applicable, return the shared or static "part" of this target.
-           Otherwise, just return self."""
 
 
 class FileInTargetPrivateDir:
@@ -2185,7 +2240,7 @@ class GeneratedList(HoldableObject):
         return self.generator.name
 
 
-class Executable(BuildTarget, LinkableTarget):
+class Executable(BuildTarget, LinkableProto):
     typename = 'executable'
 
     def __init__(
@@ -2288,7 +2343,7 @@ class Executable(BuildTarget, LinkableTarget):
                 name += '_' + self.suffix
             self.debug_filename = name + '.pdb'
 
-    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LinkableTargetTypes:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> Self:
         """Base case used by BothLibraries"""
         return self
 
@@ -2318,7 +2373,7 @@ class Executable(BuildTarget, LinkableTarget):
         return self.is_linkwithable
 
 
-class StaticLibrary(BuildTarget, LinkableTarget):
+class StaticLibrary(BuildTarget, StaticTargetProto):
     typename = 'static library'
 
     def __init__(
@@ -2440,7 +2495,7 @@ class StaticLibrary(BuildTarget, LinkableTarget):
         self.both_lib = copy.copy(shared_library)
         self.both_lib.both_lib = None
 
-    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LinkableTargetTypes:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> SharedLibrary | StaticLibrary:
         result = self
         if lib_type == 'shared':
             result = self.both_lib or self
@@ -2450,7 +2505,7 @@ class StaticLibrary(BuildTarget, LinkableTarget):
 
     def link_whole(
             self,
-            targets: T.Iterable[StaticTargetTypes],
+            targets: T.Iterable[StaticTargetProto],
             promoted: bool = False) -> None:
         for t in targets:
             self.check_can_link_together(t)
@@ -2466,7 +2521,7 @@ class StaticLibrary(BuildTarget, LinkableTarget):
                     self._bundle_static_library(lib, True)
             self.link_whole_targets.append(t)
 
-    def link(self, targets: T.Iterable[LinkableTargetTypes]) -> None:
+    def link(self, targets: T.Iterable[LinkableProto]) -> None:
         for t in targets:
             if self.install and t.is_internal():
                 # When we're a static library and we link_with to an
@@ -2477,27 +2532,27 @@ class StaticLibrary(BuildTarget, LinkableTarget):
             self.check_can_link_together(t)
             self.link_targets.append(t)
 
-    def _bundle_static_library(self, t: StaticTargetTypes, promoted: bool = False) -> None:
+    def _bundle_static_library(self, t: StaticTargetProto, promoted: bool = False) -> None:
         if self.uses_rust():
             # Rustc can bundle static libraries, no need to extract objects.
             self.link_whole_targets.append(t)
-        elif isinstance(t, (CustomTarget, CustomTargetIndex)) or t.uses_rust():
+        elif not isinstance(t, StaticLibrary) or t.uses_rust():
             # To extract objects from a custom target we would have to extract
             # the archive, WIP implementation can be found in
             # https://github.com/mesonbuild/meson/pull/9218.
             # For Rust C ABI we could in theory have access to objects, but we
             # don't currently build them in such a way that this is possible:
             # https://github.com/mesonbuild/meson/issues/10724
-            m = (f'Cannot link_whole a custom or Rust target {t.name!r} into a static library {self.name!r}. '
+            m = (f'Cannot link_whole a custom or Rust target {t.get_basename()!r} into a static library {self.get_basename()!r}. '
                  'Instead, pass individual object files with the "objects:" keyword argument if possible.')
             if promoted:
-                m += (f' Meson had to promote link to link_whole because {self.name!r} is installed but not {t.name!r},'
-                      f' and thus has to include objects from {t.name!r} to be usable.')
+                m += (f' Meson had to promote link to link_whole because {self.get_basename()!r} is installed but not {t.get_basename()!r},'
+                      f' and thus has to include objects from {t.get_basename()!r} to be usable.')
             raise InvalidArguments(m)
         else:
             self.objects.append(t.extract_all_objects())
 
-class SharedLibrary(BuildTarget, LinkableTarget):
+class SharedLibrary(BuildTarget, LibProto):
     typename = 'shared library'
 
     # Used by AIX to decide whether to archive shared library or not.
@@ -2804,7 +2859,7 @@ class SharedLibrary(BuildTarget, LinkableTarget):
         self.both_lib = copy.copy(static_library)
         self.both_lib.both_lib = None
 
-    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LinkableTargetTypes:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> SharedLibrary | StaticLibrary:
         result = self
         if lib_type == 'static':
             result = self.both_lib or self
@@ -2814,20 +2869,20 @@ class SharedLibrary(BuildTarget, LinkableTarget):
 
     def link_whole(
             self,
-            targets: T.Iterable[StaticTargetTypes],
+            targets: T.Iterable[StaticTargetProto],
             promoted: bool = False) -> None:
         for t in targets:
             self.check_can_link_together(t)
             if not getattr(t, 'pic', True):
-                msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
+                msg = f"Can't link non-PIC static library {t.get_basename()!r} into shared library {self.get_basename()!r}. "
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
             self.link_whole_targets.append(t)
 
-    def link(self, targets: T.Iterable[LinkableTargetTypes]) -> None:
+    def link(self, targets: T.Iterable[LinkableProto]) -> None:
         for t in targets:
             if isinstance(t, StaticLibrary) and not t.pic:
-                msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
+                msg = f"Can't link non-PIC static library {t.get_basename()!r} into shared library {self.get_basename()!r}. "
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
             self.check_can_link_together(t)
@@ -2864,7 +2919,7 @@ class SharedModule(SharedLibrary):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_shared_module_dir(), '{moduledir_shared}'
 
-class BothLibraries(SecondLevelHolder, LinkableTarget):
+class BothLibraries(SecondLevelHolder):
     typename: T.ClassVar[str] = 'both libraries'
 
     def __init__(self, shared: SharedLibrary, static: StaticLibrary, preferred_library: Literal['shared', 'static']) -> None:
@@ -2944,7 +2999,7 @@ def flatten_command(cmd: T.Iterable[CommandTypes],
     return final_cmd, depend_files, dependencies
 
 
-class CustomTargetBase(LinkableTarget, metaclass=SimpleABC):
+class CustomTargetBase(StaticTargetProto, metaclass=SimpleABC):
     ''' Base class for CustomTarget and CustomTargetIndex
 
     This base class can be used to provide a dummy implementation of some
@@ -2954,25 +3009,34 @@ class CustomTargetBase(LinkableTarget, metaclass=SimpleABC):
 
     rust_crate_type = ''
 
-    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes],
-                                 visited: T.Set[tuple[BuildTargetTypes, bool, bool]],
+    def extract_all_objects(self, recursive: bool = True) -> ExtractedObjects:
+        raise MesonException(f'Cannot extract objects from custom target {self.get_basename()!r}')
+
+    def get_objects(self) -> T.List[ObjectTypes]:
+        return []
+
+    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetProto],
+                                 visited: T.Set[tuple[BuildTargetProto, bool, bool]],
                                  include_internals: bool = True,
                                  handled_by_rustc: bool = False) -> None:
         pass
 
-    def get_internal_static_libraries(self) -> OrderedSet[StaticTargetTypes]:
+    def get_internal_static_libraries(self) -> OrderedSet[StaticTargetProto]:
         return OrderedSet()
 
-    def get_internal_static_libraries_recurse(self, result: OrderedSet[StaticTargetTypes]) -> None:
+    def get_internal_static_libraries_recurse(self, result: OrderedSet[StaticTargetProto]) -> None:
         pass
 
-    def get_all_linked_targets(self) -> ImmutableListProtocol[BuildTargetTypes]:
+    def get_all_linked_targets(self) -> ImmutableListProtocol[BuildTargetProto]:
         return []
 
-    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LinkableTargetTypes:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> Self:
         """Base case used by BothLibraries"""
         assert isinstance(self, (CustomTarget, CustomTargetIndex))
         return self
+
+    def uses_rust(self) -> bool:
+        return False
 
     def uses_rust_abi(self) -> bool:
         return False
@@ -3039,8 +3103,8 @@ class CustomTarget(Target, CustomTargetBase):
         self.depfile_type = 'gcc' if depfile else depfile_type
         self.env = env or EnvironmentVariables()
         self.feed = feed
-        self.install_dir = list(install_dir or [])
-        self.has_custom_install_dir = bool(self.install_dir)
+        self.install_dir: T.List[T.Union[str, T.Literal[False]]] = list(install_dir or [])
+        self.has_custom_install_dir: bool = bool(self.install_dir)
         self.install_mode = install_mode
         self.install_tag = _process_install_tag(install_tag, len(self.outputs))
         self.name = name if name else self.outputs[0]
@@ -3052,7 +3116,7 @@ class CustomTarget(Target, CustomTargetBase):
         # Whether to enable using response files for the underlying tool
         self.rspable = rspable
 
-        self.extra_depends: T.List[T.Union[GeneratedTypes, BuildTarget]] = []
+        self.extra_depends: T.List[T.Union[GeneratedList, BuildTargetProto]] = []
         if extra_depends:
             for d in extra_depends:
                 if isinstance(d, LocalProgram):
@@ -3109,7 +3173,7 @@ class CustomTarget(Target, CustomTargetBase):
                 bdeps.update(d.get_transitive_build_target_deps())
         return bdeps
 
-    def get_dependencies(self) -> T.List[T.Union[CustomTarget, BuildTarget]]:
+    def get_dependencies(self) -> T.Iterable[BuildTargetProto]:
         return self.dependencies
 
     def should_install(self) -> bool:
@@ -3137,7 +3201,7 @@ class CustomTarget(Target, CustomTargetBase):
                 genlists.append(c)
         return genlists
 
-    def get_generated_sources(self) -> T.List[GeneratedList]:
+    def get_generated_sources(self) -> T.Iterable[GeneratedTypes]:
         return self.get_generated_lists()
 
     def get_dep_outname(self, infilenames: list[str]) -> str:
@@ -3181,7 +3245,7 @@ class CustomTarget(Target, CustomTargetBase):
     def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
         return OrderedSet()
 
-    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
+    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetProto]:
         return []
 
     def is_internal(self) -> bool:
@@ -3231,7 +3295,7 @@ class CompileTarget(BuildTarget):
                  include_directories: T.List[IncludeDirs],
                  dependencies: T.List[dependencies.Dependency],
                  build_project: BuildProject,
-                 depends: T.List[BuildTargetTypes]):
+                 depends: T.Sequence[BuildTargetProto]):
         compilers = {compiler.get_language(): compiler}
         kwargs: BuildTargetKeywordArguments = {
             'build_by_default': False,
@@ -3268,7 +3332,7 @@ class CompileTarget(BuildTarget):
     def get_generated_headers(self) -> T.List[File]:
         gen_headers: T.List[File] = []
         for dep in self.depends:
-            gen_headers += [File(True, dep.subdir, o) for o in dep.get_outputs()]
+            gen_headers += [File(True, dep.get_subdir(), o) for o in dep.get_outputs()]
         return gen_headers
 
     def is_linkable_output(self, output: str) -> bool:
@@ -3281,7 +3345,7 @@ class RunTarget(Target):
     def __init__(self, name: str,
                  command: T.Sequence[CommandTypes],
                  # the RunTarget case is used by gnome.yelp()
-                 dependencies: T.Sequence[Target | CustomTargetIndex | GeneratedList | programs.Program],
+                 dependencies: T.Sequence[AnyTargetProto | GeneratedList | programs.Program],
                  subdir: str,
                  environment: Environment,
                  build_project: BuildProject,
@@ -3300,10 +3364,10 @@ class RunTarget(Target):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command[0])
 
-    def get_dependencies(self) -> T.List[Target | CustomTargetIndex | GeneratedList | programs.Program]:
+    def get_dependencies(self) -> T.Iterable[AnyTargetProto | GeneratedList | programs.Program]:
         return self.dependencies
 
-    def get_generated_sources(self) -> T.List[GeneratedTypes]:
+    def get_generated_sources(self) -> T.Iterable[GeneratedTypes]:
         return []
 
     def get_sources(self) -> T.List[File]:
@@ -3358,7 +3422,7 @@ class Jar(BuildTarget):
         self.main_class = kwargs.get('main_class', '')
         self.java_resources: T.Optional[StructuredSources] = kwargs.get('java_resources', None)
 
-    def _extract_link_with(self, kwargs: BuildTargetKeywordArguments) -> list[LinkableTargetTypes]:
+    def _extract_link_with(self, kwargs: BuildTargetKeywordArguments) -> list[LinkableProto]:
         return kwargs['link_with']
 
     def get_main_class(self) -> str:
@@ -3404,14 +3468,15 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     target: T.Union[CustomTarget, CompileTarget]
     output: str
 
-    def __post_init__(self) -> None:
-        self.for_machine = self.target.for_machine
-
     @lazy_property
     def __index(self) -> int:
         # Must be detected lazily becuase preporcessed sources don't end up in the
         # outputs, but can still be in a CustomTargetIndex.
         return self.target.outputs.index(self.output)
+
+    @property
+    def for_machine(self) -> MachineChoice:
+        return self.target.for_machine
 
     @property
     def name(self) -> str:
@@ -3436,6 +3501,9 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     def __repr__(self) -> str:
         return '<CustomTargetIndex: {!r}[{}]>'.format(self.target, self.output)
 
+    def get_generated_sources(self) -> T.Iterable[GeneratedTypes]:
+        return self.target.get_generated_sources()
+
     def get_outputs(self) -> T.List[str]:
         return [self.output]
 
@@ -3457,7 +3525,7 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     def get_target(self) -> BuildTarget | CustomTarget:
         return self.target
 
-    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
+    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetProto]:
         return self.target.get_all_link_deps()
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:

@@ -308,7 +308,7 @@ class XCodeBackend(backends.Backend):
         dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))))
         return dirname
 
-    def get_custom_target_output_dir(self, target: build.AnyTargetType) -> str:
+    def get_custom_target_output_dir(self, target: build.AnyTargetProto) -> str:
         dirname = target.get_subdir()
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
@@ -556,7 +556,7 @@ class XCodeBackend(backends.Backend):
                 generator_id += 1
 
     def gen_single_target_map(self, genlist: build.GeneratedList, tname: str,
-                              t: build.AnyTargetType, generator_id: int) -> None:
+                              t: build.BuildTargetProto, generator_id: int) -> None:
         k = (tname, generator_id)
         assert k not in self.shell_targets
         if genlist.extra_depends:
@@ -1464,7 +1464,7 @@ class XCodeBackend(backends.Backend):
                     self.generate_single_generator_phase(tname, t, genlist, generator_id, objects_dict)
                     generator_id += 1
 
-    def generate_single_generator_phase(self, tname: str, t: build.AnyTargetType,
+    def generate_single_generator_phase(self, tname: str, t: build.BuildTargetProto,
                                         genlist: build.GeneratedList, generator_id: int, objects_dict: PbxDict) -> None:
         # TODO: this should be rewritten to use the meson wrapper, like the other generators do
         # Currently it doesn't handle a host binary that requires an exe wrapper correctly.
@@ -1502,7 +1502,7 @@ class XCodeBackend(backends.Backend):
                 for arg in base_args:
                     arg = arg.replace("@INPUT@", infilename)
                     arg = arg.replace('@OUTPUT@', o).replace('@BUILD_DIR@', self.get_target_private_dir(t))
-                    arg = arg.replace("@CURRENT_SOURCE_DIR@", os.path.join(self.build_to_src, t.subdir))
+                    arg = arg.replace("@CURRENT_SOURCE_DIR@", os.path.join(self.build_to_src, t.get_subdir()))
                     args.append(arg)
                 args = self.replace_outputs(args, self.get_target_private_dir(t), outfilelist)
                 args = self.replace_extra_args(args, genlist)

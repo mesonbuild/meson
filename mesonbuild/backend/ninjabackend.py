@@ -1204,7 +1204,7 @@ class NinjaBackend(backends.Backend):
                 elem = NinjaBuildElement(self.all_outputs, linker.get_archive_name(outname), 'AIX_LINKER', [outname])
                 self.add_build(elem)
 
-    def should_use_dyndeps_for_target(self, target: build.BuildTargetTypes) -> bool:
+    def should_use_dyndeps_for_target(self, target: build.BuildTargetProto) -> bool:
         if not self.ninja_has_dyndeps:
             return False
         if not isinstance(target, build.BuildTarget):
@@ -1817,7 +1817,7 @@ class NinjaBackend(backends.Backend):
         args += ['--directory', c_out_dir]
         args += ['--basedir', srcbasedir]
         if target.is_linkable_target():
-            assert isinstance(target, build.LinkableTarget)
+            assert isinstance(target, (build.StaticLibrary, build.SharedLibrary, build.Executable))
             # Library name
             args += ['--library', target.name]
             # Outputted header
@@ -2389,9 +2389,9 @@ class NinjaBackend(backends.Backend):
             cpp_targets = [t for t in target.link_targets if t.uses_swift_cpp_interop()]
             if cpp_targets != []:
                 target_word = 'targets' if len(cpp_targets) > 1 else 'target'
-                first = ', '.join(repr(t.name) for t in cpp_targets[:-1])
+                first = ', '.join(repr(t.get_basename()) for t in cpp_targets[:-1])
                 and_word = ' and ' if len(cpp_targets) > 1 else ''
-                last = repr(cpp_targets[-1].name)
+                last = repr(cpp_targets[-1].get_basename())
                 enable_word = 'enable' if len(cpp_targets) > 1 else 'enables'
                 raise MesonException('Swift target {0} links against {1} {2}{3}{4} which {5} C++ interoperability. '
                                      'This requires {0} to also have it enabled. '
@@ -3601,12 +3601,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             self.all_pch[compiler.id].update(objs + [dst])
         return pch_objects
 
-    def get_target_shsym_filename(self, target: build.BuildTarget) -> str:
+    def get_target_shsym_filename(self, target: build.LinkableProto) -> str:
         # Always name the .symbols file after the primary build output because it always exists
         targetdir = self.get_target_private_dir(target)
         return os.path.join(targetdir, target.get_filename() + '.symbols')
 
-    def generate_shsym(self, target: build.BuildTarget) -> None:
+    def generate_shsym(self, target: build.LinkableProto) -> None:
         # On OS/2, an import library is generated after linking a DLL, so
         # if a DLL is used as a target, import library is not generated.
         if self.environment.machines[target.for_machine].is_os2():
@@ -3695,12 +3695,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if use_custom:
             objects_from_static_libs: T.List[str] = []
             for dep in target.link_whole_targets:
-                if not isinstance(dep, build.BuildTarget):
+                try:
+                    l = dep.extract_all_objects(False)
+                except MesonException:
                     raise MesonException(
-                        f'Cannot extract objects from custom target {dep.name!r} to '
+                        f'Cannot extract objects from custom target {dep.get_basename()!r} to '
                         f'link_whole it into {target.name!r}: this is not supported '
                         'with versions of MSVC older than Visual Studio 2015 Update 2.')
-                l = dep.extract_all_objects(False)
                 objects_from_static_libs += self.determine_ext_objs(l)
                 objects_from_static_libs.extend(self.flatten_object_list(dep)[0])
 
@@ -3899,7 +3900,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add link args to link to all internal libraries (link_with:) and
         # internal dependencies needed by this target.
         dep_targets: T.List[str] = []
-        dependencies: T.Iterable[build.BuildTargetTypes]
+        dependencies: T.Iterable[build.BuildTargetProto]
         if isinstance(target, build.StaticLibrary):
             # Link arguments of static libraries are not put in the command
             # line of the library. They are instead appended to the command
@@ -3994,7 +3995,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return []
         return self.import_std.gen_objects
 
-    def get_dependency_filename(self, t: T.Union[File, build.BuildTargetTypes]) -> str:
+    def get_dependency_filename(self, t: T.Union[File, build.BuildTargetProto]) -> str:
         if isinstance(t, build.SharedLibrary):
             if t.uses_rust() and t.rust_crate_type == 'proc-macro':
                 return self.get_target_filename(t)

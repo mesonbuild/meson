@@ -160,7 +160,7 @@ class Vs2010Backend(backends.Backend):
     def detect_toolset(self) -> None:
         pass
 
-    def get_target_private_dir(self, target: build.AnyTargetType) -> str:
+    def get_target_private_dir(self, target: build.BuildTargetProto) -> str:
         return os.path.join(self.get_target_dir(target), target.get_id())
 
     def generate_genlist_for_target(
@@ -609,7 +609,7 @@ class Vs2010Backend(backends.Backend):
                 headers.append(i)
         return sources, headers, objects, languages
 
-    def target_to_build_root(self, target: build.AnyTargetType) -> str:
+    def target_to_build_root(self, target: build.BuildTargetProto) -> str:
         if self.get_target_dir(target) == '':
             return ''
 
@@ -1285,7 +1285,7 @@ class Vs2010Backend(backends.Backend):
                                                platform: str,
                                                target_ext: str,
                                                vslite_ctx: _VSLITE_CTX,
-                                               target: build.AnyTargetType,
+                                               target: build.Target,
                                                proj_to_build_root: str,
                                                primary_src_lang: T.Optional[Language]) -> None:
         ET.SubElement(root, 'ImportGroup', Label='ExtensionSettings')
@@ -1313,7 +1313,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(per_config_prop_group, 'OutDir').text = f'{proj_to_build_dir_for_buildtype}\\'
             ET.SubElement(per_config_prop_group, 'IntDir').text = f'{proj_to_build_dir_for_buildtype}\\'
             ET.SubElement(per_config_prop_group, 'NMakeBuildCommandLine').text = f'{nmake_base_meson_command} compile -C "{proj_to_build_dir_for_buildtype}"'
-            ET.SubElement(per_config_prop_group, 'NMakeOutput').text = f'$(OutDir){target.name}{target_ext}'
+            ET.SubElement(per_config_prop_group, 'NMakeOutput').text = f'$(OutDir){target.get_basename()}{target_ext}'
             captured_build_args = vslite_ctx[buildtype][target.get_id()]
             # 'captured_build_args' is a dictionary, mapping from each src file type to a list of compile args to use for that type.
             # Usually, there's just one but we could have multiple src types.  However, since there's only one field for the makefile
@@ -1529,7 +1529,7 @@ class Vs2010Backend(backends.Backend):
                     # Expand our object lists manually if we are on pre-Visual Studio 2015 Update 2
                     if not isinstance(t, build.BuildTarget):
                         raise MesonException(
-                            f'Cannot extract objects from custom target {t.name!r} to '
+                            f'Cannot extract objects from custom target {t.get_basename()!r} to '
                             f'link_whole it into {target.name!r}: this is not supported '
                             'with versions of MSVC older than Visual Studio 2015 Update 2.')
                     l = t.extract_all_objects(False)
@@ -1637,7 +1637,7 @@ class Vs2010Backend(backends.Backend):
     # once a build/compile has generated these sources.
     #
     # This modifies the paths in 'gen_files' in place, as opposed to returning a new list of modified paths.
-    def relocate_generated_file_paths_to_concrete_build_dir(self, gen_files: T.List[str], target: build.AnyTargetType) -> None:
+    def relocate_generated_file_paths_to_concrete_build_dir(self, gen_files: T.List[str], target: build.BuildTarget) -> None:
         (_, build_dir_tail) = os.path.split(self.src_to_build)
         meson_build_dir_for_buildtype = build_dir_tail[:-2] + coredata.get_genvs_default_buildtype_list()[0] # Get the first buildtype suffixed dir (i.e. '[builddir]_debug') from '[builddir]_vs'
         # Relative path from this .vcxproj to the directory containing the set of '..._[debug/debugoptimized/release]' setup meson build dirs.
