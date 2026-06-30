@@ -419,6 +419,11 @@ INCLUDE_DIRECTORIES: KwargInfo[T.List[T.Union[str, IncludeDirs]]] = KwargInfo(
     default=[],
 )
 
+EMBED_DIRECTORIES = INCLUDE_DIRECTORIES.evolve(
+    name='embed_directories',
+    since='1.13.0',
+)
+
 def _default_options_convertor(raw: T.Union[str, T.List[str], T.Dict[str, ElementaryOptionValues]]) -> T.Dict[OptionKey, ElementaryOptionValues]:
     d = _override_options_convertor(raw)
     return {OptionKey.from_string(k): v for k, v in d.items()}
@@ -781,6 +786,7 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     *_LANGUAGE_KWS,
     BT_SOURCES_KW,
     INCLUDE_DIRECTORIES.evolve(name='d_import_dirs'),
+    EMBED_DIRECTORIES,
     LINK_ARGS_KW,
     LINK_WHOLE_KW.evolve(
         as_default=[('', ('1.11.0', "Replace an empty string with an empty array: `link_whole : ''` -> `link_whole : []`"))],

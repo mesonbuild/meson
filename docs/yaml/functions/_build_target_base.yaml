@@ -84,6 +84,14 @@ kwargs:
 
       These may only be static sources.
 
+  embed_directories:
+    type: array[inc | str]
+    since: 1.13.0
+    description: |
+      one or more objects created with the [[include_directories]] function, or
+      strings, which will be implicitly convert to [[@inc]] objects, that is
+      used for the #embed.
+
   gui_app:
     type: bool
     deprecated: 0.56.0

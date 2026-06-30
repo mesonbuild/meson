@@ -249,6 +249,11 @@ class ClangCompiler(GnuLikeCompiler):
             args.append(f'-flto-jobs={threads}')
         return args
 
+    def get_embed_args(self, path: str) -> list[str]:
+        # Requires C23 or C++26 standard and Clang 19
+        # Is not currently supported by AppleClang
+        return [f'--embed-dir={path}']
+
 
 class ClangCStds(CompilerMixinBase):
 

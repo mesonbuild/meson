@@ -3176,6 +3176,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 commands += bargs
             for d in i.extra_build_dirs:
                 commands += compiler.get_include_args(d, i.is_system)
+
+        # Add any embed search dir arguments
+        for i in target.embed_dirs:
+            for incdir in i.rel_string_list(self.build_to_src, self.build_dir):
+                commands.extend(compiler.get_embed_args(incdir))
+
         # Add per-target compile args, f.ex, `c_args : ['-DFOO']`. We set these
         # near the end since these are supposed to override everything else.
         commands += self.escape_extra_args(target.get_extra_args(compiler.get_language()))
