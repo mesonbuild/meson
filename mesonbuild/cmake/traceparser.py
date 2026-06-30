@@ -75,6 +75,7 @@ class CMakeTarget:
             self.properties[key] = [x.strip() for x in val]
             assert all(';' not in x for x in self.properties[key])
 
+# FIXME: name can be empty here, so this is not quite a CMakeTarget
 class CMakeGeneratorTarget(CMakeTarget):
     def __init__(self, name: str) -> None:
         super().__init__(name, 'CUSTOM', {})
@@ -395,7 +396,7 @@ class CMakeTraceParser:
         else:
             self.targets[args[0]] = CMakeTarget(args[0], 'NORMAL', {}, tline=tline)
 
-    def _cmake_add_custom_command(self, tline: CMakeTraceLine, name: T.Optional[str] = None) -> None:
+    def _cmake_add_custom_command(self, tline: CMakeTraceLine, name: str = '') -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_command.html
         args = self._flatten_args(list(tline.args))  # Commands can be passed as ';' separated lists
 

@@ -10,7 +10,7 @@ import subprocess
 
 from .run_tool import run_tool_on_targets, run_with_buffered_output
 from .. import build, mlog
-from ..mesonlib import MachineChoice, PerMachine
+from ..mesonlib import MachineChoice, PerMachine, unwrap
 from ..tooldetect import detect_ninja
 
 if T.TYPE_CHECKING:
@@ -80,7 +80,7 @@ def run(args: T.List[str]) -> int:
     # Build as much of the project as possible, or else
     # we get errors about missing libraries in the build directory and
     # other related errors.
-    subprocess.run(detect_ninja() + ['clippy-json-prereq', '-k0'])
+    subprocess.run(unwrap(detect_ninja()) + ['clippy-json-prereq', '-k0'])
 
     with tempfile.TemporaryDirectory() as d:
         return run_tool_on_targets(ClippyDriver(build_data, d, args[1:]))
