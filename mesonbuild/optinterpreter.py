@@ -17,19 +17,21 @@ from .interpreter.type_checking import NoneType, in_set_validator
 if T.TYPE_CHECKING:
     from .interpreterbase import TYPE_var, TYPE_kwargs
     from .mesonlib import SubProject
-    from typing_extensions import TypedDict, Literal
+    from typing_extensions import TypeAlias, TypedDict, Literal, NotRequired
     from .options import OptionStore
 
     _DEPRECATED_ARGS = T.Union[bool, str, T.Dict[str, str], T.List[str]]
+
+    ParserFuncT: TypeAlias = T.Callable[[str, str, tuple[bool, _DEPRECATED_ARGS], TYPE_kwargs], options.AnyOptionType]
 
     FuncOptionArgs = TypedDict('FuncOptionArgs', {
         'type': str,
         'description': str,
         'yield': bool,
-        'choices': T.Optional[T.List[str]],
+        'choices': NotRequired[list[str] | None],
         'value': object,
-        'min': T.Optional[int],
-        'max': T.Optional[int],
+        'min': NotRequired[int | None],
+        'max': NotRequired[int | None],
         'deprecated': _DEPRECATED_ARGS,
         })
 
@@ -68,7 +70,7 @@ class OptionInterpreter:
     def __init__(self, optionstore: 'OptionStore', subproject: 'SubProject') -> None:
         self.options: options.MutableKeyedOptionDictType = {}
         self.subproject = subproject
-        self.option_types: T.Dict[str, T.Callable[..., options.AnyOptionType]] = {
+        self.option_types: dict[str, ParserFuncT] = {
             'string': self.string_parser,
             'boolean': self.boolean_parser,
             'combo': self.combo_parser,
@@ -199,8 +201,9 @@ class OptionInterpreter:
         description = kwargs['description'] or opt_name
 
         # Drop the arguments we've already consumed
-        n_kwargs = {k: v for k, v in kwargs.items()
-                    if k not in {'type', 'description', 'deprecated', 'yield'}}
+        n_kwargs = T.cast(
+            'TYPE_kwargs',
+            {k: v for k, v in kwargs.items() if k not in {'type', 'description', 'deprecated', 'yield'}})
 
         opt = parser(opt_name, description, (kwargs['yield'], kwargs['deprecated']), n_kwargs)
         if key in self.options:
@@ -237,7 +240,7 @@ class OptionInterpreter:
         choices = kwargs['choices']
         value = kwargs['value']
         if value is None:
-            value = kwargs['choices'][0]
+            value = choices[0]
         return options.UserComboOption(name, description, value, *args, choices=choices)
 
     @typed_kwargs(
