@@ -22,7 +22,7 @@ if T.TYPE_CHECKING:
 
     _DEPRECATED_ARGS = T.Union[bool, str, T.Dict[str, str], T.List[str]]
 
-    ParserFuncT: TypeAlias = T.Callable[[str, str, tuple[bool, _DEPRECATED_ARGS], TYPE_kwargs], options.AnyOptionType]
+    ParserFuncT: TypeAlias = T.Callable[[tuple[str, str, bool, _DEPRECATED_ARGS], TYPE_kwargs], options.AnyOptionType]
 
     FuncOptionArgs = TypedDict('FuncOptionArgs', {
         'type': str,
@@ -205,7 +205,7 @@ class OptionInterpreter:
             'TYPE_kwargs',
             {k: v for k, v in kwargs.items() if k not in {'type', 'description', 'deprecated', 'yield'}})
 
-        opt = parser(opt_name, description, (kwargs['yield'], kwargs['deprecated']), n_kwargs)
+        opt = parser((opt_name, description, kwargs['yield'], kwargs['deprecated']), n_kwargs)
         if key in self.options:
             mlog.deprecation(f'Option {opt_name} already exists.')
         self.options[key] = opt
@@ -214,8 +214,9 @@ class OptionInterpreter:
         'string option',
         KwargInfo('value', str, default=''),
     )
-    def string_parser(self, name: str, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: StringArgs) -> options.UserOption:
-        return options.UserStringOption(name, description, kwargs['value'], *args)
+    def string_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: StringArgs) -> options.UserOption:
+        name, description, yielding, deprecated = args
+        return options.UserStringOption(name, description, kwargs['value'], yielding, deprecated)
 
     @typed_kwargs(
         'boolean option',
@@ -227,8 +228,8 @@ class OptionInterpreter:
             deprecated_values={str: ('1.1.0', 'use a boolean, not a string')},
         ),
     )
-    def boolean_parser(self, name: str, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: BooleanArgs) -> options.UserOption:
-        yielding, deprecated = args
+    def boolean_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: BooleanArgs) -> options.UserOption:
+        name, description, yielding, deprecated = args
         return options.UserBooleanOption(name, description, kwargs['value'], yielding=yielding, deprecated=deprecated)
 
     @typed_kwargs(
@@ -236,12 +237,13 @@ class OptionInterpreter:
         KwargInfo('value', (str, NoneType)),
         KwargInfo('choices', ContainerTypeInfo(list, str, allow_empty=False), required=True),
     )
-    def combo_parser(self, name: str, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: ComboArgs) -> options.UserOption:
+    def combo_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: ComboArgs) -> options.UserOption:
         choices = kwargs['choices']
         value = kwargs['value']
         if value is None:
             value = choices[0]
-        return options.UserComboOption(name, description, value, *args, choices=choices)
+        name, description, yielding, deprecated = args
+        return options.UserComboOption(name, description, value, yielding, deprecated, choices=choices)
 
     @typed_kwargs(
         'integer option',
@@ -255,16 +257,17 @@ class OptionInterpreter:
         KwargInfo('min', (int, NoneType)),
         KwargInfo('max', (int, NoneType)),
     )
-    def integer_parser(self, name: str, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: IntegerArgs) -> options.UserOption:
+    def integer_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: IntegerArgs) -> options.UserOption:
+        name, description, yielding, deprecated = args
         return options.UserIntegerOption(
-            name, description, kwargs['value'], *args, min_value=kwargs['min'], max_value=kwargs['max'])
+            name, description, kwargs['value'], yielding, deprecated, min_value=kwargs['min'], max_value=kwargs['max'])
 
     @typed_kwargs(
         'string array option',
         KwargInfo('value', (ContainerTypeInfo(list, str), str, NoneType)),
         KwargInfo('choices', ContainerTypeInfo(list, str), default=[]),
     )
-    def string_array_parser(self, name: str, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: StringArrayArgs) -> options.UserOption:
+    def string_array_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: StringArrayArgs) -> options.UserOption:
         choices = kwargs['choices']
         value = kwargs['value'] if kwargs['value'] is not None else choices
         if isinstance(value, str):
@@ -272,15 +275,17 @@ class OptionInterpreter:
                 FeatureDeprecated('String value for array option', '1.3.0').use(self.subproject)
             else:
                 raise mesonlib.MesonException('Value does not define an array: ' + value)
+        name, description, yielding, deprecated = args
         return options.UserStringArrayOption(
             name, description, value,
             choices=choices,
-            yielding=args[0],
-            deprecated=args[1])
+            yielding=yielding,
+            deprecated=deprecated)
 
     @typed_kwargs(
         'feature option',
         KwargInfo('value', str, default='auto', validator=in_set_validator({'auto', 'enabled', 'disabled'})),
     )
-    def feature_parser(self, name: str, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: FeatureArgs) -> options.UserOption:
-        return options.UserFeatureOption(name, description, kwargs['value'], *args)
+    def feature_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: FeatureArgs) -> options.UserOption:
+        name, description, yielding, deprecated = args
+        return options.UserFeatureOption(name, description, kwargs['value'], yielding, deprecated)

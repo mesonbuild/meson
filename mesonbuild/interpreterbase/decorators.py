@@ -59,7 +59,7 @@ def get_callee_args(wrapped_args: T.Tuple[ModuleObject, ModuleState, T.List[TYPE
 
 
 @T.overload
-def get_callee_args(wrapped_args: T.Tuple[OptionInterpreter, str, str, T.List[TYPE_var], TYPE_kwargs]) -> CalleeArgs: ...
+def get_callee_args(wrapped_args: T.Tuple[OptionInterpreter, T.List[TYPE_var], TYPE_kwargs]) -> CalleeArgs: ...
 
 
 def get_callee_args(wrapped_args: T.Union[
@@ -67,7 +67,7 @@ def get_callee_args(wrapped_args: T.Union[
             T.Tuple[ObjectHolder, object],
             T.Tuple[InterpreterBase, FunctionNode, T.List[TYPE_var], TYPE_kwargs],
             T.Tuple[ModuleObject, ModuleState, T.List[TYPE_var], TYPE_kwargs],
-            T.Tuple[OptionInterpreter, str, str, T.List[TYPE_var], TYPE_kwargs],
+            T.Tuple[OptionInterpreter, T.List[TYPE_var], TYPE_kwargs],
         ]) -> CalleeArgs:
     if is_module(wrapped_args[0]):
         s = wrapped_args[1]
