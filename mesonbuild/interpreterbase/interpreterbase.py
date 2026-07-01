@@ -14,6 +14,7 @@ from .baseobjects import (
     ObjectHolder,
     IterableObject,
     ContextManagerObject,
+    DefaultObject,
 
     HoldableTypes,
 )
@@ -612,7 +613,12 @@ class InterpreterBase:
     def expand_default_kwargs(self, kwargs: T.Dict[str, T.Optional[InterpreterObject]]) -> T.Dict[str, T.Optional[InterpreterObject]]:
         if 'kwargs' not in kwargs:
             return kwargs
-        to_expand = _unholder(kwargs.pop('kwargs'))
+
+        kwargs_var = kwargs.pop('kwargs')
+        if isinstance(kwargs_var, DefaultObject):
+            return kwargs
+
+        to_expand = _unholder(kwargs_var)
         if not isinstance(to_expand, dict):
             raise InterpreterException('Value of "kwargs" must be dictionary.')
         if 'kwargs' in to_expand:

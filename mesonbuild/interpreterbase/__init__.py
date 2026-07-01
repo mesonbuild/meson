@@ -8,6 +8,7 @@ __all__ = [
     'IterableObject',
     'MutableInterpreterObject',
     'ContextManagerObject',
+    'DefaultObject',
 
     'MesonOperator',
 
@@ -70,6 +71,7 @@ from .baseobjects import (
     IterableObject,
     MutableInterpreterObject,
     ContextManagerObject,
+    DefaultObject,
 
     TV_func,
     TYPE_elementary,

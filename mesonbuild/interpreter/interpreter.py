@@ -32,7 +32,7 @@ from .decorators import apply_machine_map
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
-from ..interpreterbase import ObjectHolder, ContextManagerObject
+from ..interpreterbase import ObjectHolder, ContextManagerObject, DefaultObject
 from ..interpreterbase import stringifyUserArguments, Feature, FeatureValue
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule, __path__ as modules_path
 from ..optinterpreter import optname_regex
@@ -390,6 +390,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                            'declare_dependency': self.func_declare_dependency,
                            'dependency': self.func_dependency,
                            'disabler': self.func_disabler,
+                           'default': self.func_default,
                            'environment': self.func_environment,
                            'error': self.func_error,
                            'executable': self.func_executable,
@@ -1971,6 +1972,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         for f in d.featurechecks:
             f.use(self.subproject, node)
         return d
+
+    @FeatureNew('default', '1.12.0')
+    @noKwargs
+    @noPosargs
+    def func_default(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> DefaultObject:
+        return DefaultObject()
 
     @FeatureNew('disabler', '0.44.0')
     @noKwargs
@@ -4056,7 +4063,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def is_subproject(self) -> bool:
         return self.subproject != ''
 
-    @typed_pos_args('set_variable', str, object)
+    @typed_pos_args('set_variable', str, (object, DefaultObject))
     @noKwargs
     @noArgsFlattening
     @noSecondLevelHolderResolving
@@ -4066,7 +4073,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InvalidCode('Invalid variable name: ' + varname)
         self.set_variable(varname, value, holderify=True)
 
-    @typed_pos_args('get_variable', (str, Disabler), optargs=[object])
+    @typed_pos_args('get_variable', (str, Disabler, DefaultObject), optargs=[object])
     @noKwargs
     @noArgsFlattening
     @unholder_return
