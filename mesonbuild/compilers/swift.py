@@ -153,7 +153,7 @@ class SwiftCompiler(Compiler):
 
         return opts
 
-    def get_option_std_args(self, target: build.BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: T.Optional[build.BuildTarget], subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
 
         std = self.get_compileropt_value('std', target, subproject)
@@ -163,6 +163,10 @@ class SwiftCompiler(Compiler):
             args += ['-swift-version', std]
 
         # Pass C compiler -std=... arg to swiftc
+
+        # TODO: What do we do if target is None? (e.g. when called by compiler.compiles())
+        if target is None:
+            return args
 
         objc_interop = target.uses_swift_objc_interop()
         cpp_interop = target.uses_swift_cpp_interop()
