@@ -92,6 +92,10 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(search_version('2016.x'), 'unknown version')
         self.assertEqual(search_version(r'something version is \033[32;2m1.2.0\033[0m.'), '1.2.0')
 
+        self.assertEqual(search_version(r'''(FooBar LLVM-Linux 5.0.0) clang version 21.9.0
+Target: riscv64-unknown-linux-gnu
+Thread model: posix'''), '21.9.0')
+
         # Literal output of mvn
         self.assertEqual(search_version(r'''\
             \033[1mApache Maven 3.8.1 (05c21c65bdfed0f71a2f2ada8b84da59348c4c5d)\033[0m
