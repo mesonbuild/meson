@@ -1222,7 +1222,8 @@ def search_version(text: str) -> str:
         (
             -[a-zA-Z0-9]+   # Hyphen and one or more alphanumeric
         )?              # Zero or one occurrence
-    )                   # One occurrence
+    )
+    (?!\S)              # Must not be followed by non-space char
     """, re.VERBOSE)
     match = version_regex.search(text)
     if match:
