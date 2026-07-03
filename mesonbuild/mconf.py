@@ -369,7 +369,7 @@ def is_print_only(options: CMDOptions) -> bool:
         return False
     return True
 
-def run_impl(options: CMDOptions, builddir: str) -> int:
+def _run_impl(options: CMDOptions, builddir: str) -> int:
     print_only = is_print_only(options)
     c = None
     try:
@@ -401,6 +401,14 @@ def run_impl(options: CMDOptions, builddir: str) -> int:
         # Pager quit before we wrote everything.
         pass
     return 0
+
+def run_impl(options: CMDOptions, builddir: str) -> int:
+    if os.path.exists(os.path.join(builddir, 'meson-private', 'coredata.dat')):
+        with mesonlib.DirectoryLock(builddir, 'meson-private/meson.lock',
+                                    mesonlib.DirectoryLockAction.FAIL,
+                                    'Some other Meson process is already using this build directory. Exiting.'):
+            return _run_impl(options, builddir)
+    return _run_impl(options, builddir)
 
 def run(options: CMDOptions) -> int:
     cmdline.parse_cmd_line_options(options)

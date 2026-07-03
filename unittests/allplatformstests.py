@@ -2654,6 +2654,19 @@ class AllPlatformTests(BasePlatformTests):
                     exception_raised = True
         self.assertTrue(exception_raised, 'Double locking did not raise exception.')
 
+    def test_configure_fails_when_builddir_is_locked(self):
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        self.init(testdir)
+        old_prefix = self.getconf('prefix')
+
+        with DirectoryLock(self.builddir, 'meson-private/meson.lock',
+                           DirectoryLockAction.FAIL, 'failed to lock directory'):
+            with self.assertRaises(subprocess.CalledProcessError) as cm:
+                self._run(self.mconf_command + ['-Dprefix=/locked', self.builddir])
+            self.assertIn('Some other Meson process is already using this build directory. Exiting.',
+                          cm.exception.output)
+        self.assertEqual(old_prefix, self.getconf('prefix'))
+
     @skipIf(is_osx(), 'Test not applicable to OSX')
     def test_check_module_linking(self):
         """
