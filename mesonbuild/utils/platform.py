@@ -76,18 +76,6 @@ if sys.platform == 'win32':
             msvcrt.locking(self.lockfile.fileno(), msvcrt.LK_UNLCK, 1)
             self.lockfile.close()
 
-    # os.path.isabs changed in Python 3.13 (wtf) and now excludes Windows
-    # path with a root component but no drive.  However, checking
-    # whether something is from outside the source tree, or is installed
-    # outside the prefix fails this new test.
-    def path_has_root(path: str) -> bool:
-        # Check for root-relative paths (and also UNC paths, which is okay);
-        # unnecessary on Python pre-3.13, but not a problem to do it anyway
-        if path and path[0] in '/\\':
-            return True
-        # Check for paths including a drive
-        return os.path.isabs(path)
-
 else:
     import fcntl
 
@@ -128,5 +116,19 @@ else:
             fcntl.flock(self.lockfile, fcntl.LOCK_UN)
             self.lockfile.close()
 
+if sys.platform in {'win32', 'os2knix'}:
+    # os.path.isabs changed in Python 3.13 (wtf) and now excludes Windows
+    # and OS/2 path with a root component but no drive. However, checking
+    # whether something is from outside the source tree, or is installed
+    # outside the prefix fails this new test.
+    def path_has_root(path: str) -> bool:
+        # Check for root-relative paths (and also UNC paths, which is okay);
+        # unnecessary on Python pre-3.13, but not a problem to do it anyway
+        if path and path[0] in '/\\':
+            return True
+        # Check for paths including a drive
+        return os.path.isabs(path)
+
+else:
     # on POSIX systems don't go through pathlib as it's slower
-    path_has_root = os.path.isabs
+    path_has_root = os.path.isabs   # type: ignore[assignment]
