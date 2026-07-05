@@ -273,14 +273,16 @@ def os2_syms(impfilename: str, outfilename: str) -> None:
         result = [x for x in output.split('\n') if ' E ' in x]
         write_if_changed('\n'.join(result) + '\n', outfilename)
         return
-    all_stderr += e
+    if e:
+        all_stderr += e
     # Next try listomf.exe for omf .lib
     output, e = call_tool_nowarn(get_tool('listomf') + ['-d', impfilename])
     if output:
         result = [x for x in output.split('\n') if ' IMPDEF ' in x]
         write_if_changed('\n'.join(result) + '\n', outfilename)
         return
-    all_stderr += e
+    if e:
+        all_stderr += e
     print_tool_warning(['nm', 'listomf'], 'do not work or were not found', all_stderr)
 
 def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host: str) -> None:
