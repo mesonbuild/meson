@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/138 misspelled function name/meson.build:2:19: ERROR: Unknown function \"executabl\". Did you mean \"executable\"?"
+    }
+  ]
+}

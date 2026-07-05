@@ -479,7 +479,7 @@ class RewriterTests(BasePlatformTests):
         self.assertEqualIgnoreOrder(out, expected)
 
     def test_raw_printer_is_idempotent(self):
-        test_path = Path(self.unit_test_dir, '120 rewrite')
+        test_path = Path(self.unit_test_dir, '121 rewrite')
         meson_build_file = test_path / 'meson.build'
         # original_contents = meson_build_file.read_bytes()
         original_contents = meson_build_file.read_text(encoding='utf-8')
@@ -533,6 +533,6 @@ class RewriterTests(BasePlatformTests):
 
     @skip_if_not_language('nasm')
     def test_nasm(self) -> None:
-        srcdir = os.path.join(self.unit_test_dir, '133 nasm language only')
+        srcdir = os.path.join(self.unit_test_dir, '134 nasm language only')
         self.rewrite_raw(srcdir, ['kwargs', 'info', 'project', '/'])
 

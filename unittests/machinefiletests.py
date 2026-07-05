@@ -423,7 +423,7 @@ class NativeFileTests(BasePlatformTests):
     def test_java_classpath(self):
         if self.backend is not Backend.ninja:
             raise SkipTest('Jar is only supported with Ninja')
-        testdir = os.path.join(self.unit_test_dir, '112 classpath')
+        testdir = os.path.join(self.unit_test_dir, '113 classpath')
         self.init(testdir)
         self.build()
         one_build_path = get_classpath(os.path.join(self.builddir, 'one.jar'))
@@ -1015,13 +1015,13 @@ class CrossFileTests(BasePlatformTests):
         self.assertEqual(found, 2, 'Did not find all sections.')
 
     def test_external_property_build_machine_native(self):
-        testdir = os.path.join(self.unit_test_dir, '137 external property nonexisting')
+        testdir = os.path.join(self.unit_test_dir, '138 external property nonexisting')
         self.meson_native_files = [os.path.join(testdir, "propfile")]
         out = self.init(testdir, allow_fail=True, extra_args=['-Dnative=true'])
         self.assertIn('Unknown property for host machine: nonexisting', out)
 
     def test_external_property_host_machine_native(self):
-        testdir = os.path.join(self.unit_test_dir, '137 external property nonexisting')
+        testdir = os.path.join(self.unit_test_dir, '138 external property nonexisting')
         self.meson_native_files = [os.path.join(testdir, "propfile")]
         out = self.init(testdir, allow_fail=True, extra_args=['-Dnative=false'])
         self.assertIn('Unknown property for host machine: nonexisting', out)
@@ -1040,14 +1040,14 @@ class CrossFileTests(BasePlatformTests):
         crossfile = os.path.join(self.builddir, "crossfile")
 
         self.new_builddir()
-        testdir = os.path.join(self.unit_test_dir, '137 external property nonexisting')
+        testdir = os.path.join(self.unit_test_dir, '138 external property nonexisting')
         self.meson_native_files = [nativefile, os.path.join(testdir, "propfile")]
         self.meson_cross_files = [crossfile]
         out = self.init(testdir, allow_fail=True, extra_args=['-Dnative=true'])
         self.assertIn('Unknown property for build machine: nonexisting', out)
 
         self.new_builddir()
-        testdir = os.path.join(self.unit_test_dir, '137 external property nonexisting')
+        testdir = os.path.join(self.unit_test_dir, '138 external property nonexisting')
         self.meson_native_files = [nativefile]
         self.meson_cross_files = [crossfile, os.path.join(testdir, "propfile")]
         out = self.init(testdir, allow_fail=True, extra_args=['-Dnative=false'])
@@ -1072,7 +1072,7 @@ class CrossFileTests(BasePlatformTests):
     @skip_if_not_language('rust')
     @skipIfNoExecutable('bindgen')
     def test_bindgen_finds_target_in_clang_options(self) -> None:
-        testcase = os.path.join(self.unit_test_dir, '135 minimal bindgen')
+        testcase = os.path.join(self.unit_test_dir, '136 minimal bindgen')
 
         def check_target(include: T.Optional[str], exclude: T.Optional[str] = None) -> None:
             configuration = self.introspect('--targets')
