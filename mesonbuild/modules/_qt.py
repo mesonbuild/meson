@@ -750,8 +750,13 @@ class QtBaseModule(ExtensionModule):
                 outdir = state.subdir
                 ts_file = ts
             cmd: CommandList = [self.tools['lrelease'], '@INPUT@', '-qm', '@OUTPUT@']
+            # A .ts file may live in a subdirectory, which would put a path
+            # separator into the target name; that is not allowed. Replace the
+            # separators while keeping the full (relative) path so that files
+            # with the same basename in different directories stay unique. (#5019)
+            lrelease_name = f'qt{self.qt_version}-compile-{ts}'.replace('/', '_').replace('\\', '_')
             lrelease_target = build.CustomTarget(
-                f'qt{self.qt_version}-compile-{ts}',
+                lrelease_name,
                 outdir,
                 state.environment,
                 cmd,

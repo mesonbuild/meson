@@ -120,6 +120,11 @@ foreach qt : ['qt4', 'qt5', 'qt6']
       # do not have an X server.
 
       translations = qtmodule.compile_translations(ts_files : qt+'core_fr.ts', build_by_default : true)
+
+      # Regression test for https://github.com/mesonbuild/meson/issues/5019:
+      # a .ts file located in a subdirectory must not put a path separator into
+      # the generated compile-translations target name.
+      qtmodule.compile_translations(ts_files : 'subtranslations/' + qt + 'sub_fr.ts', build_by_default : true)
     endif
 
     qtcore = dependency(qt, modules : 'Core', method : get_option('method'))

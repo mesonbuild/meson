@@ -12,5 +12,8 @@
       ]
     }
   },
+  "stdout": [
+    { "comment": "regression test for #5019: a .ts file in a subdirectory must not warn about a path separator in the generated target name", "line": ".*has a path separator in its name.*", "match": "re", "count": 0 }
+  ],
   "expect_skip_on_jobname": ["cygwin", "msys2", "azure", "windows"]
 }
