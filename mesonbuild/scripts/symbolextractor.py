@@ -17,11 +17,14 @@ from .. import mlog
 from ..mesonlib import Popen_safe
 import argparse
 
-parser = argparse.ArgumentParser()
+if T.TYPE_CHECKING:
+    class Arguments(T.Protocol):
 
-parser.add_argument('--cross-host', default=None, dest='cross_host',
-                    help='cross compilation host platform')
-parser.add_argument('args', nargs='+')
+        cross_host: str | None
+        builddir: str
+        libfilename: str
+        impfilename: str
+        outfilename: str
 
 TOOL_WARNING_FILE: str
 RELINKING_WARNING = 'Relinking will always happen on source changes.'
@@ -285,48 +288,48 @@ def os2_syms(impfilename: str, outfilename: str) -> None:
         all_stderr += e
     print_tool_warning(['nm', 'listomf'], 'do not work or were not found', all_stderr)
 
-def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host: str) -> None:
-    if cross_host is not None:
+def gen_symbols(options: Arguments) -> None:
+    if options.cross_host is not None:
         # In case of cross builds just always relink. In theory we could
         # determine the correct toolset, but we would need to use the correct
         # `nm`, `readelf`, etc, from the cross info which requires refactoring.
-        if cross_host == 'windows' and os.path.isfile(impfilename):
-            windows_syms(impfilename, outfilename)
+        if options.cross_host == 'windows' and os.path.isfile(options.impfilename):
+            windows_syms(options.impfilename, options.outfilename)
         else:
-            dummy_syms(outfilename)
+            dummy_syms(options.outfilename)
     elif mesonlib.is_linux() or mesonlib.is_hurd() or mesonlib.is_haiku():
-        gnu_syms(libfilename, outfilename)
+        gnu_syms(options.libfilename, options.outfilename)
     elif mesonlib.is_osx():
-        osx_syms(libfilename, outfilename)
+        osx_syms(options.libfilename, options.outfilename)
     elif mesonlib.is_openbsd():
-        openbsd_syms(libfilename, outfilename)
+        openbsd_syms(options.libfilename, options.outfilename)
     elif mesonlib.is_freebsd():
-        freebsd_syms(libfilename, outfilename)
+        freebsd_syms(options.libfilename, options.outfilename)
     elif mesonlib.is_netbsd():
-        freebsd_syms(libfilename, outfilename)
+        freebsd_syms(options.libfilename, options.outfilename)
     elif mesonlib.is_windows():
-        if os.path.isfile(impfilename):
-            windows_syms(impfilename, outfilename)
+        if os.path.isfile(options.impfilename):
+            windows_syms(options.impfilename, options.outfilename)
         else:
             # No import library. Not sure how the DLL is being used, so just
             # rebuild everything that links to it every time.
-            dummy_syms(outfilename)
+            dummy_syms(options.outfilename)
     elif mesonlib.is_cygwin():
-        if os.path.isfile(impfilename):
-            cygwin_syms(impfilename, outfilename)
+        if os.path.isfile(options.impfilename):
+            cygwin_syms(options.impfilename, options.outfilename)
         else:
             # No import library. Not sure how the DLL is being used, so just
             # rebuild everything that links to it every time.
-            dummy_syms(outfilename)
+            dummy_syms(options.outfilename)
     elif mesonlib.is_sunos():
-        solaris_syms(libfilename, outfilename)
+        solaris_syms(options.libfilename, options.outfilename)
     elif mesonlib.is_os2():
-        if os.path.isfile(impfilename):
-            os2_syms(impfilename, outfilename)
+        if os.path.isfile(options.impfilename):
+            os2_syms(options.impfilename, options.outfilename)
         else:
             # No import library. Not sure how the DLL is being used, so just
             # rebuild everything that links to it every time.
-            dummy_syms(outfilename)
+            dummy_syms(options.outfilename)
     else:
         if not os.path.exists(TOOL_WARNING_FILE):
             mlog.warning('Symbol extracting has not been implemented for this '
@@ -334,20 +337,22 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
             # Write it out so we don't warn again
             with open(TOOL_WARNING_FILE, 'w', encoding='utf-8'):
                 pass
-        dummy_syms(outfilename)
+        dummy_syms(options.outfilename)
 
 def run(args: T.List[str]) -> int:
     global TOOL_WARNING_FILE  # pylint: disable=global-statement
-    options = parser.parse_args(args)
-    if len(options.args) != 4:
-        print('symbolextractor.py <shared library file> <import library> <output file>')
-        sys.exit(1)
-    privdir = os.path.join(options.args[0], 'meson-private')
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cross-host', default=None, dest='cross_host',
+                        help='cross compilation host platform')
+    parser.add_argument('builddir', metavar='build directory')
+    parser.add_argument('libfilename', metavar='shared library')
+    parser.add_argument('impfilename', metavar='import library')
+    parser.add_argument('outfilename', metavar='output')
+    options = T.cast('Arguments', parser.parse_args(args))
+    privdir = os.path.join(options.builddir, 'meson-private')
     TOOL_WARNING_FILE = os.path.join(privdir, 'symbolextractor_tool_warning_printed')
-    libfile = options.args[1]
-    impfile = options.args[2] # Only used on Windows
-    outfile = options.args[3]
-    gen_symbols(libfile, impfile, outfile, options.cross_host)
+    gen_symbols(options)
     return 0
 
 if __name__ == '__main__':
