@@ -636,6 +636,19 @@ class BoostDependency(SystemDependency):
         abitag = libs[0].abitag
         libs = [x for x in libs if x.abitag == abitag]
 
+        # Assume that we are building against the latest Python version
+        # and that the other ones are only there for backwards compatibility.
+        # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1141440
+        no_python_libs = []
+        python_libs = []
+        for l in libs:
+            if l.is_python_lib():
+                python_libs.append(l)
+            else:
+                no_python_libs.append(l)
+        sorted_pylibs = sorted(python_libs, key=lambda l: l.name, reverse=True)
+        libs = no_python_libs + sorted_pylibs[:1]
+
         return libs
 
     def detect_libraries(self, libdir: Path) -> T.List[BoostLibraryFile]:
