@@ -63,7 +63,7 @@ def get_tool(name: str) -> T.List[str]:
         return shlex.split(os.environ[evar])
     return [name]
 
-def call_tool(name: str, args: T.List[str], **kwargs: T.Any) -> str:
+def call_tool(name: str, args: T.List[str], **kwargs: T.Any) -> str | None:
     tool = get_tool(name)
     try:
         p, output, e = Popen_safe(tool + args, **kwargs)
@@ -78,7 +78,7 @@ def call_tool(name: str, args: T.List[str], **kwargs: T.Any) -> str:
         return None
     return output
 
-def call_tool_nowarn(tool: T.List[str], **kwargs: T.Any) -> T.Tuple[str, str]:
+def call_tool_nowarn(tool: T.List[str], **kwargs: T.Any) -> T.Tuple[str | None, str | None]:
     try:
         p, output, e = Popen_safe(tool, **kwargs)
     except FileNotFoundError:
@@ -201,7 +201,7 @@ def cygwin_syms(impfilename: str, outfilename: str) -> None:
         result.append(line.split(maxsplit=1)[0])
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
-def _get_implib_dllname(impfilename: str) -> T.Tuple[T.List[str], str]:
+def _get_implib_dllname(impfilename: str) -> T.Tuple[T.List[str], str | None]:
     all_stderr = ''
     # First try lib.exe, which is provided by MSVC. Then llvm-lib.exe, by LLVM
     # for clang-cl.
@@ -217,15 +217,17 @@ def _get_implib_dllname(impfilename: str) -> T.Tuple[T.List[str], str]:
             # a single DLL, so we can pick any of these. Pick the last one for
             # simplicity. Also skip the last line, which is empty.
             return output.split('\n')[-2:-1], None
-        all_stderr += e
+        if e:
+            all_stderr += e
     # Next, try dlltool.exe which is provided by MinGW
     output, e = call_tool_nowarn(get_tool('dlltool') + ['-I', impfilename])
     if output:
         return [output], None
-    all_stderr += e
+    if e:
+        all_stderr += e
     return ([], all_stderr)
 
-def _get_implib_exports(impfilename: str) -> T.Tuple[T.List[str], str]:
+def _get_implib_exports(impfilename: str) -> T.Tuple[T.List[str], str | None]:
     all_stderr = ''
     # Force dumpbin.exe to use en-US so we can parse its output
     env = os.environ.copy()
@@ -236,7 +238,8 @@ def _get_implib_exports(impfilename: str) -> T.Tuple[T.List[str], str]:
         start = lines.index('File Type: LIBRARY')
         end = lines.index('  Summary')
         return lines[start:end], None
-    all_stderr += e
+    if e:
+        all_stderr += e
     # Next, try llvm-nm.exe provided by LLVM, then nm.exe provided by MinGW
     for nm in ('llvm-nm', 'nm'):
         output, e = call_tool_nowarn(get_tool(nm) + ['--extern-only', '--defined-only',
@@ -248,7 +251,8 @@ def _get_implib_exports(impfilename: str) -> T.Tuple[T.List[str], str]:
                     continue
                 result.append(line.split(maxsplit=1)[0])
             return result, None
-        all_stderr += e
+        if e:
+            all_stderr += e
     return ([], all_stderr)
 
 def windows_syms(impfilename: str, outfilename: str) -> None:
