@@ -1044,7 +1044,7 @@ class NinjaBackend(backends.Backend):
         is_unity = self.is_unity(target)
         header_deps = []
         unity_src: list[File] = []
-        unity_deps = [] # Generated sources that must be built before compiling a Unity target.
+        unity_deps: list[File] = [] # Generated sources that must be built before compiling a Unity target.
         header_deps += self.get_generated_headers(target)
 
         if is_unity:
@@ -1146,7 +1146,7 @@ class NinjaBackend(backends.Backend):
             else:
                 transpiled_source_files.append(raw_src)
         for src in transpiled_source_files:
-            o, s = self.generate_single_compile(target, src, True, [], header_deps)
+            o, s = self.generate_single_compile(target, src, True, full_deps=header_deps)
             obj_list.append(o)
 
         # Generate compile targets for all the preexisting sources for this target
@@ -1170,8 +1170,9 @@ class NinjaBackend(backends.Backend):
 
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
-                o, s = self.generate_single_compile(target, src, True, [*unity_deps, *header_deps, *d_generated_deps],
-                                                    fortran_order_deps, fortran_inc_args, unity_src)
+                o, s = self.generate_single_compile(target, src, True, unity_deps,
+                                                    [*header_deps, *d_generated_deps, *fortran_order_deps],
+                                                    fortran_inc_args, unity_src)
                 obj_list.append(o)
                 compiled_sources.append(s)
                 source2object[s] = o
@@ -3242,7 +3243,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def generate_single_compile(self, target: build.BuildTarget, src: FileOrString,
                                 is_generated: bool = False,
-                                full_deps: T.Optional[T.List[FileOrString]] = None,
+                                full_deps: list[FileOrString] | list[File] | None = None,
                                 order_deps: T.Optional[T.List[File] | T.List[FileOrString]] = None,
                                 extra_args: T.Optional[T.List[str]] = None,
                                 unity_sources: list[File] | None = None,
@@ -3358,7 +3359,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # C++ import std is complicated enough to get its own method.
         istd_args, istd_dep = self.handle_cpp_import_std(target, compiler)
         commands.extend(istd_args)
-        full_deps += istd_dep
+        full_deps += T.cast('list[FileOrString]', istd_dep)
         if extra_args is not None:
             commands.extend(extra_args)
 
