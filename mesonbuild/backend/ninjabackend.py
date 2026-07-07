@@ -3242,15 +3242,23 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def generate_single_compile(self, target: build.BuildTarget, src: FileOrString,
                                 is_generated: bool = False,
-                                header_deps: T.Optional[T.List[FileOrString]] = None,
+                                full_deps: T.Optional[T.List[FileOrString]] = None,
                                 order_deps: T.Optional[T.List[File] | T.List[FileOrString]] = None,
                                 extra_args: T.Optional[T.List[str]] = None,
                                 unity_sources: list[File] | None = None,
                                 ) -> T.Tuple[str, str]:
         """
         Compiles C/C++, ObjC/ObjC++, Fortran, and D sources
+
+        :param target: the target being built
+        :param src: the single source being compiled
+        :param full_deps: dependencies that require a full rebuild of this object, and
+            that the dependency must be built before this object can be built
+        :param order_deps: dependencies that must be built before this target is built
+        :param unity_sources: The list of unity source (if there are any)
+        :returns: a tuple of object file, source file
         """
-        header_deps = header_deps if header_deps is not None else []
+        full_deps = full_deps if full_deps is not None else []
         order_deps = order_deps if order_deps is not None else []
 
         if isinstance(src, str) and src.endswith('.h'):
@@ -3350,12 +3358,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # C++ import std is complicated enough to get its own method.
         istd_args, istd_dep = self.handle_cpp_import_std(target, compiler)
         commands.extend(istd_args)
-        header_deps += istd_dep
+        full_deps += istd_dep
         if extra_args is not None:
             commands.extend(extra_args)
 
         element = NinjaBuildElement(self.all_outputs, rel_obj, compiler_name, rel_src)
-        self.add_full_deps(target, element, header_deps)
+        self.add_full_deps(target, element, full_deps)
         for d in extra_deps:
             element.add_dep(d)
         element.add_orderdep(self.order_deps_to_strings(target, order_deps))
