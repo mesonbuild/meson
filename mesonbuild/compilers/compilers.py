@@ -1195,9 +1195,13 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         # Link args added using add_global_link_arguments() override
         # per-project link arguments.  Link args added from the env (LDFLAGS)
         # override all the defaults but not the per-target link args.
+        # Resolved per target so that per-subproject values
+        # (-Dsub:c_link_args=...) are honoured.
+        ext_link_args = self.environment.coredata.get_option_for_target(target, f'{self.get_language()}_link_args')
+        assert isinstance(ext_link_args, list), 'for mypy'
         return build.get_project_link_args(self, target) \
             + build.get_global_link_args(self, self.for_machine) \
-            + self.environment.coredata.get_external_link_args(self.for_machine, self.get_language())
+            + ext_link_args
 
     def get_target_link_args(self, target: 'BuildTarget') -> T.List[str]:
         return target.link_args

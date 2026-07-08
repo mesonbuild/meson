@@ -3360,6 +3360,23 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
+    def test_subproject_lang_args(self):
+        testdir = os.path.join(self.unit_test_dir, '139 subproject lang args')
+        self.init(testdir, extra_args=['-Dc_args=-DTOP_FLAG', '-Dsub:c_args=-DSUB_FLAG'])
+        # The source files #error out if their expected flag is missing.
+        self.build()
+        # A per-subproject or per-target value replaces the global one.
+        for cmd in self.get_compdb():
+            if cmd['file'].endswith('top.c'):
+                self.assertIn('-DTOP_FLAG', cmd['command'])
+                self.assertNotIn('-DSUB_FLAG', cmd['command'])
+            elif cmd['file'].endswith('sub.c'):
+                self.assertIn('-DSUB_FLAG', cmd['command'])
+                self.assertNotIn('-DTOP_FLAG', cmd['command'])
+            elif cmd['file'].endswith('over.c'):
+                self.assertIn('-DOVERRIDE_FLAG', cmd['command'])
+                self.assertNotIn('-DTOP_FLAG', cmd['command'])
+
     def test_wipe_from_builddir(self):
         testdir = os.path.join(self.common_test_dir, '157 custom target subdir depend files')
         self.init(testdir)
