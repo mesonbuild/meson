@@ -4944,11 +4944,11 @@ class AllPlatformTests(BasePlatformTests):
 
             # C does have a separate linking step. It can be done through the compiler
             # driver or not; act accordingly.
+            link_args = env.coredata.optstore.get_value_for(OptionKey(f'{cc.language}_link_args', machine=cc.for_machine))
+            assert isinstance(link_args, list), 'for mypy'
             if cc.USED_FOR_SEPARATE_LINKING_STEP:
-                link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
                 self.assertEqual(sorted(link_args), sorted(['-DCFLAG', '-flto']))
             else:
-                link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
                 self.assertEqual(sorted(link_args), sorted(['-flto']))
 
     def test_install_tag(self) -> None:

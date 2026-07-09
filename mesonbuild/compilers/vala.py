@@ -153,7 +153,8 @@ class ValaCompiler(Compiler):
         if not extra_dirs:
             code = 'class MesonFindLibrary : Object { }'
             args: T.List[str] = []
-            args += self.environment.coredata.get_external_args(self.for_machine, self.language)
+            args += T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
+                OptionKey(f'{self.language}_args', machine=self.for_machine)))
             vapi_args = ['--pkg', libname]
             args += vapi_args
             with self.cached_compile(code, extra_args=args, mode=CompileCheckMode.COMPILE) as p:
@@ -212,10 +213,12 @@ class ValaCompiler(Compiler):
 
         if mode is CompileCheckMode.COMPILE:
             # Add DFLAGS from the env
-            args += self.environment.coredata.get_external_args(self.for_machine, self.language)
+            args += T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
+                OptionKey(f'{self.language}_args', machine=self.for_machine)))
         elif mode is CompileCheckMode.LINK:
             # Add LDFLAGS from the env
-            args += self.environment.coredata.get_external_link_args(self.for_machine, self.language)
+            args += T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
+                OptionKey(f'{self.language}_link_args', machine=self.for_machine)))
         # extra_args must override all other arguments, so we add them last
         args += extra_args
         return args
