@@ -4068,6 +4068,14 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir)
         self._run(self.mconf_command + [self.builddir])
 
+    def test_configure_with_augments(self):
+        # A list-valued augment used to crash `meson configure <builddir>`.
+        testdir = os.path.join(self.unit_test_dir, '47 reconfigure')
+        self.init(testdir, extra_args=['-Dsub1:c_args=-DFOO'])
+        out = self._run(self.mconf_command + [self.builddir])
+        self.assertIn('sub1:c_args', out)
+        self.assertIn('[-DFOO]', out)
+
     def test_summary(self):
         testdir = os.path.join(self.unit_test_dir, '71 summary')
         out = self.init(testdir, extra_args=['-Denabled_opt=enabled', f'-Dpython={sys.executable}'])
