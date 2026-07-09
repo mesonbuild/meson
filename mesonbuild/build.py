@@ -90,6 +90,7 @@ if T.TYPE_CHECKING:
         d_unittest: bool
         dependencies: T.List[dependencies.Dependency]
         depend_files: T.List[File]
+        embed_directories: list[IncludeDirs]
         extra_files: T.List[File]
         gnu_symbol_visibility: Literal['default', 'internal', 'hidden', 'protected', 'inlineshidden', '']
         implicit_include_directories: bool
@@ -819,6 +820,7 @@ class BuildTarget(Target):
         self.structured_sources = structured_sources
         self.external_deps: T.List[dependencies.Dependency] = []
         self.include_dirs: T.List['IncludeDirs'] = []
+        self.embed_dirs = kwargs['embed_directories'].copy()
         self.link_language: T.Optional[Language] = kwargs.get('link_language')
         self.link_targets: T.List[LinkableTargetTypes] = []
         self.link_whole_targets: T.List[StaticTargetTypes] = []
@@ -1543,6 +1545,7 @@ class BuildTarget(Target):
                 self.process_sourcelist(dep.sources)
                 self.extra_files.extend(f for f in dep.extra_files if f not in self.extra_files)
                 self.add_include_dirs(dep.include_directories, dep.get_include_type())
+                self.embed_dirs.extend(dep.embed_directories)
                 self.objects.extend(dep.objects)
                 self.link_targets.extend(dep.libraries)
                 self.link_whole_targets.extend(dep.whole_libraries)

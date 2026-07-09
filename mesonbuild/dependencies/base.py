@@ -307,6 +307,7 @@ class InternalDependency(Dependency):
     type_name = DependencyTypeName('internal')
 
     def __init__(self, version: str, incdirs: T.Optional[T.List['IncludeDirs']] = None,
+                 embed_dirs: list[IncludeDirs] | None = None,
                  compile_args: T.Optional[T.List[str]] = None,
                  link_args: T.Optional[T.List[str]] = None,
                  libraries: T.Optional[T.List[LinkableTargetTypes]] = None,
@@ -322,6 +323,7 @@ class InternalDependency(Dependency):
         self.version = version
         self.is_found = True
         self.include_directories = incdirs or []
+        self.embed_directories = embed_dirs or []
         self.compile_args = compile_args or []
         self.link_args = link_args or []
         self.libraries = libraries or []
@@ -370,11 +372,12 @@ class InternalDependency(Dependency):
         final_sources = self.sources.copy() if sources else []
         final_extra_files = self.extra_files.copy() if extra_files else []
         final_includes = self.include_directories.copy() if includes else []
+        final_embed = self.embed_directories.copy() if includes else []
         final_deps = [d.get_partial_dependency(
             compile_args=compile_args, link_args=link_args, links=links,
             includes=includes, sources=sources) for d in self.ext_deps]
         return type(self)(
-            self.version, final_includes, final_compile_args,
+            self.version, final_includes, final_embed, final_compile_args,
             final_link_args, final_libraries, final_whole_libraries,
             final_sources, final_extra_files, final_deps, self.variables, [], [], [], self.name)
 
