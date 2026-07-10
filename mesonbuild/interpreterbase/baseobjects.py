@@ -40,13 +40,7 @@ TYPE_op_func = T.Callable[[TYPE_op_arg, TYPE_op_arg], TYPE_var]
 TYPE_method_func = T.Callable[['InterpreterObject', T.List[TYPE_var], TYPE_kwargs], TYPE_var]
 
 class InterpreterObject:
-    TRIVIAL_OPERATORS: T.Dict[
-        MesonOperator,
-        T.Tuple[
-            T.Union[T.Type, T.Tuple[T.Type, ...]],
-            TYPE_op_func
-        ]
-    ] = {}
+    TRIVIAL_OPERATORS: dict[MesonOperator, T.Tuple[type, TYPE_op_func]] = {}
 
     OPERATORS: T.Dict[MesonOperator, TYPE_op_func] = {}
 
