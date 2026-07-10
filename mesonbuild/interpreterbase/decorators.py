@@ -16,23 +16,16 @@ import copy
 import typing as T
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Protocol, TypeAlias, TypeIs
+    from typing_extensions import TypeAlias, TypeIs
 
     from .. import mparser
     from ..mesonlib import SubProject
     from ..modules import ModuleObject, ModuleState
     from ..mparser import FunctionNode
     from ..optinterpreter import OptionInterpreter
-    from .baseobjects import InterpreterObject, ObjectHolder, TV_func, TYPE_var, TYPE_kwargs
+    from .baseobjects import InterpreterObject, ObjectHolder, TV_func, TYPE_var, TYPE_kwargs, TV_FN_Operator
     from .interpreterbase import InterpreterBase
     from .operator import MesonOperator
-
-    _TV_IntegerObject = T.TypeVar('_TV_IntegerObject', bound=InterpreterObject, contravariant=True)
-    _TV_ARG1 = T.TypeVar('_TV_ARG1', bound=TYPE_var, contravariant=True)
-
-    class FN_Operator(Protocol[_TV_IntegerObject, _TV_ARG1]):
-        def __call__(s, self: _TV_IntegerObject, other: _TV_ARG1) -> TYPE_var: ...
-    _TV_FN_Operator = T.TypeVar('_TV_FN_Operator', bound=FN_Operator)
 
     CalleeArgs: TypeAlias = T.Tuple[mparser.BaseNode, T.Optional[T.List[TYPE_var]], T.Optional[TYPE_kwargs], SubProject]
 
@@ -137,19 +130,19 @@ def kwargs_get_close_matches(invalid_kwargs: T.Set[str], valid_kwargs: T.Set[str
     return with_close_matches
 
 def typed_operator(operator: MesonOperator,
-                   types: T.Union[T.Type, T.Tuple[T.Type, ...]]) -> T.Callable[['_TV_FN_Operator'], '_TV_FN_Operator']:
+                   types: T.Union[T.Type, T.Tuple[T.Type, ...]]) -> T.Callable[[TV_FN_Operator], TV_FN_Operator]:
     """Decorator that does type checking for operator calls.
 
     The principle here is similar to typed_pos_args, however much simpler
     since only one other object ever is passed
     """
-    def inner(f: '_TV_FN_Operator') -> '_TV_FN_Operator':
+    def inner(f: TV_FN_Operator) -> TV_FN_Operator:
         @wraps(f)
         def wrapper(self: 'InterpreterObject', other: TYPE_var) -> TYPE_var:
             if not isinstance(other, types):
                 raise InvalidArguments(f'The `{operator.value}` of {self.display_name()} does not accept objects of type {type(other).__name__} ({other})')
             return f(self, other)
-        return T.cast('_TV_FN_Operator', wrapper)
+        return T.cast('TV_FN_Operator', wrapper)
     return inner
 
 

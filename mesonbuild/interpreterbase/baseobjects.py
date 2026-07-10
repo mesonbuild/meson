@@ -19,6 +19,13 @@ if T.TYPE_CHECKING:
     # Object holders need the actual interpreter
     from ..interpreter import Interpreter
 
+    _TV_IntegerObject = T.TypeVar('_TV_IntegerObject', bound='InterpreterObject', contravariant=True)
+    _TV_ARG1 = T.TypeVar('_TV_ARG1', bound='TYPE_var', contravariant=True)
+
+    class FN_Operator(T.Protocol[_TV_IntegerObject, _TV_ARG1]):
+        def __call__(s, self: _TV_IntegerObject, other: _TV_ARG1) -> TYPE_var: ...
+    TV_FN_Operator = T.TypeVar('TV_FN_Operator', bound=FN_Operator)
+
 
 TV_func = T.TypeVar('TV_func', bound=T.Callable[..., T.Any])
 
