@@ -36,7 +36,7 @@ TYPE_kwargs = T.Dict[str, TYPE_var]
 TYPE_nkwargs = T.Dict[str, TYPE_nvar]
 TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
 TYPE_op_arg = T.TypeVar('TYPE_op_arg', bound='TYPE_var', contravariant=True)
-TYPE_op_func: TypeAlias = T.Callable[[TYPE_op_arg, TYPE_op_arg], TYPE_op_arg] | T.Callable[[TYPE_op_arg, TYPE_op_arg], bool]
+TYPE_op_func: TypeAlias = T.Callable[['InterpreterObject', TYPE_op_arg], TYPE_op_arg] | T.Callable[[TYPE_op_arg, TYPE_op_arg], bool]
 TYPE_method_func = T.Callable[['InterpreterObject', T.List[TYPE_var], TYPE_kwargs], TYPE_var]
 
 class InterpreterObject:
