@@ -40,7 +40,7 @@ TYPE_op_func: TypeAlias = T.Callable[['InterpreterObject', TYPE_op_arg], TYPE_op
 TYPE_method_func = T.Callable[['InterpreterObject', T.List[TYPE_var], TYPE_kwargs], TYPE_var]
 
 class InterpreterObject:
-    TRIVIAL_OPERATORS: dict[MesonOperator, T.Tuple[type, TYPE_op_func]] = {}
+    TRIVIAL_OPERATORS: dict[MesonOperator, T.Tuple[type | None, TYPE_op_func]] = {}
 
     OPERATORS: T.Dict[MesonOperator, TYPE_op_func] = {}
 
