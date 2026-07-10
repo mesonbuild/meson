@@ -97,10 +97,10 @@ class InterpreterObject:
         return decorator
 
     @staticmethod
-    def operator(op: MesonOperator) -> T.Callable[[TV_func], TV_func]:
+    def operator(op: MesonOperator) -> T.Callable[[TV_FN_Operator], TV_FN_Operator]:
         '''Decorator that tags a method as the implementation of an operator
            for the Meson interpreter'''
-        def decorator(f: TV_func) -> TV_func:
+        def decorator(f: TV_FN_Operator) -> TV_FN_Operator:
             f.meson_operator = op    # type: ignore[attr-defined]
             return f
         return decorator
