@@ -23,7 +23,7 @@ if T.TYPE_CHECKING:
     from ..modules import ModuleObject, ModuleState
     from ..mparser import FunctionNode
     from ..optinterpreter import OptionInterpreter
-    from .baseobjects import InterpreterObject, TV_func, TYPE_var, TYPE_kwargs, TV_FN_Operator
+    from .baseobjects import InterpreterObject, TV_func, TYPE_var, TYPE_kwargs, TV_FN_Operator, TYPE_op_arg, InterpreterObjectTypeVar
     from .interpreterbase import InterpreterBase
     from .operator import MesonOperator
 
@@ -41,7 +41,7 @@ def get_callee_args(wrapped_args: T.Tuple[InterpreterObject, T.List[TYPE_var], T
 
 
 @T.overload
-def get_callee_args(wrapped_args: T.Tuple[InterpreterObject, TYPE_var]) -> CalleeArgs: ...
+def get_callee_args(wrapped_args: T.Tuple[InterpreterObject[TYPE_op_arg, InterpreterObjectTypeVar], TYPE_op_arg]) -> CalleeArgs: ...
 
 
 @T.overload
