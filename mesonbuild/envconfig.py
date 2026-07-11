@@ -463,11 +463,11 @@ class BinaryTable:
     @staticmethod
     def detect_sccache() -> ExternalProgram:
         return ExternalProgram('sccache', silent=True)
-    
+
     @staticmethod
     def detect_kache() -> ExternalProgram:
         return ExternalProgram('kache', silent=True)
-    
+
     @staticmethod
     def detect_compiler_cache() -> ExternalProgram:
         # Sccache is "newer" so it is assumed that people would prefer it by default.
