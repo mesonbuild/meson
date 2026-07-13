@@ -14,7 +14,7 @@ from ..interpreter.interpreterobjects import extract_required_kwarg
 from ..interpreter.type_checking import NoneType, REQUIRED_KW, DISABLER_KW, NATIVE_KW
 from ..interpreterbase import (
     ContainerTypeInfo, ObjectHolder, KwargInfo, typed_pos_args, TypedArgs,
-    noPosargs, noKwargs, disablerIfNotFound, InterpreterObject
+    noPosargs, disablerIfNotFound, InterpreterObject
 )
 from ..mesonlib import File, MesonException, Popen_safe, version_compare
 from ..programs import Program, ExternalProgram, NonExistingExternalProgram
@@ -105,13 +105,13 @@ class LexGenerator(_CodeGenerator):
 class LexHolder(ObjectHolder[LexGenerator]):
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('codegen.lex.implementation')
     @InterpreterObject.method('implementation')
     def implementation_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.name
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('codegen.lex.found')
     @InterpreterObject.method('found')
     def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.found()
@@ -203,13 +203,13 @@ class YaccGenerator(_CodeGenerator):
 class YaccHolder(ObjectHolder[YaccGenerator]):
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('codegen.yacc.implementation')
     @InterpreterObject.method('implementation')
     def implementation_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.name
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('codegen.yacc.found')
     @InterpreterObject.method('found')
     def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.found()
