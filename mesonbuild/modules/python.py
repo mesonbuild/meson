@@ -17,7 +17,7 @@ from ..interpreter import extract_required_kwarg, primitives as P_OBJ
 from ..interpreter.interpreterobjects import ProgramHolder
 from ..interpreter.type_checking import NoneType, DEPENDENCY_KWS, PRESERVE_PATH_KW, REQUIRED_KW, SHARED_MOD_KWS
 from ..interpreterbase import (
-    noPosargs, noKwargs, ContainerTypeInfo,
+    noPosargs, ContainerTypeInfo,
     InvalidArguments, typed_pos_args, TypedArgs, KwargInfo,
     FeatureNew, disablerIfNotFound, InterpreterObject
 )
@@ -358,19 +358,19 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         return P_OBJ.OptionString(os.path.join(base, subdir), os.path.join(name, subdir))
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('python_installation.language_version')
     @InterpreterObject.method('language_version')
     def language_version_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.version
 
     @typed_pos_args('python_installation.has_path', str)
-    @noKwargs
+    @TypedArgs('python_installation.has_path')
     @InterpreterObject.method('has_path')
     def has_path_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
         return args[0] in self.paths
 
     @typed_pos_args('python_installation.get_path', str, optargs=[object])
-    @noKwargs
+    @TypedArgs('python_installation.get_path')
     @InterpreterObject.method('get_path')
     def get_path_method(self, args: T.Tuple[str, T.Optional['TYPE_var']], kwargs: 'TYPE_kwargs') -> 'TYPE_var':
         path_name, fallback = args
@@ -382,13 +382,13 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
             raise InvalidArguments(f'{path_name} is not a valid path name')
 
     @typed_pos_args('python_installation.has_variable', str)
-    @noKwargs
+    @TypedArgs('python_installation.has_variable')
     @InterpreterObject.method('has_variable')
     def has_variable_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
         return args[0] in self.variables
 
     @typed_pos_args('python_installation.get_variable', str, optargs=[object])
-    @noKwargs
+    @TypedArgs('python_installation.get_variable')
     @InterpreterObject.method('get_variable')
     def get_variable_method(self, args: T.Tuple[str, T.Optional['TYPE_var']], kwargs: 'TYPE_kwargs') -> 'TYPE_var':
         var_name, fallback = args
@@ -400,11 +400,11 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
             raise InvalidArguments(f'{var_name} is not a valid variable name')
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('python_installation.path')
     @FeatureNew('Python module path method', '0.50.0')
     @InterpreterObject.method('path')
     def path_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
-        return super().path_method(args, kwargs)
+        return T.cast('str', super().path_method(args, kwargs))
 
 
 class PythonModule(ExtensionModule):
