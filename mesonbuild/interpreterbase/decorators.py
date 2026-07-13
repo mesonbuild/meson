@@ -654,6 +654,140 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
     return inner
 
 
+@dataclasses.dataclass(slots=True, eq=False)
+class TypedArgs:
+
+    name: str
+    kw_types: list[KwargInfo] = dataclasses.field(default_factory=list, kw_only=True)
+    unknown_kwargs: bool = dataclasses.field(default=False, kw_only=True)
+
+    def _emit_feature_change(self, value: object, values: dict[_T, str | tuple[str, str]],
+                             feature: type['FeatureDeprecated'] | type['FeatureNew'],
+                             subproject: SubProject, node: mparser.BaseNode, info: KwargInfo) -> None:
+        for n, version in values.items():
+            if isinstance(version, tuple):
+                version, msg = version
+            else:
+                msg = None
+
+            warning: str | None = None
+            if isinstance(n, ContainerTypeInfo):
+                if n.check_any(value):
+                    d, extra = n.description()
+                    warning = f'of type "{d}"'
+                    if extra:
+                        warning = f'{warning} {extra}'
+            elif isinstance(n, type):
+                if isinstance(value, n):
+                    warning = f'of type {n.__name__}'
+            elif isinstance(value, list):
+                if n in value:
+                    warning = f'value "{n}" in list'
+            elif isinstance(value, dict):
+                if n in value:
+                    warning = f'value "{n}" in dict keys'
+            elif n == value:
+                warning = f'value "{n}"'
+            if warning:
+                feature.single_use(f'"{self.name}" keyword argument "{info.name}" {warning}', version, subproject, msg, location=node)
+
+    # TODO: need to use two different types here to avoid passing the original type through
+    def __call__(self, f: TV_func) -> T.Callable[..., T.Any]:
+        @wraps(f)
+        def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
+            node, _, _kwargs, subproject = get_callee_args(wrapped_args)
+            # Cast here, as the convertor function may place something other than a TYPE_var in the kwargs
+            kwargs = T.cast('T.Dict[str, object]', _kwargs)
+
+            if not self.unknown_kwargs:
+                all_names = {t.name for t in self.kw_types}
+                unknowns = set(kwargs).difference(all_names)
+                if unknowns:
+                    ustr = ', '.join(kwargs_get_close_matches(unknowns, all_names))
+                    raise InvalidArguments(f'{self.name} got unknown keyword arguments {ustr}')
+
+            for info in self.kw_types:
+                types_tuple = info.types if isinstance(info.types, tuple) else (info.types,)
+                value = kwargs.get(info.name)
+                if isinstance(value, DefaultObject):
+                    # Ensure that default() is not used for required options
+                    # Otherwise, set the value to None, which will send us down
+                    # the "unset" path
+                    if info.required:
+                        raise InvalidArguments(f'"{self.name}" got a default() value for the required keyword argument "{info.name}". '
+                                               'default() may not be used for required keyword arguments.')
+                    value = None
+
+                if value is not None:
+                    extra: str | None
+                    if info.since:
+                        feature_name = info.name + ' arg in ' + self.name
+                        FeatureNew.single_use(feature_name, info.since, subproject, info.since_message, location=node)
+                    if info.deprecated:
+                        feature_name = info.name + ' arg in ' + self.name
+                        FeatureDeprecated.single_use(feature_name, info.deprecated, subproject, info.deprecated_message, location=node)
+                    if info.as_default:
+                        found = mesonlib.first(info.as_default, lambda x: value == x[0])
+                        if found is not None:
+                            msg = found[1]
+                            extra = ''
+                            if isinstance(msg, tuple):
+                                msg, extra = msg
+                            FeatureBroken.single_use(f"Using '{value}' as an empty value in {info.name}", msg, subproject, extra, node)
+                            value = copy.copy(info.default)
+                    if info.listify:
+                        kwargs[info.name] = value = mesonlib.listify(value)
+                    if not _check_value_type(types_tuple, value):
+                        extra = None
+                        if info.extra_types:
+                            extra_desc: T.List[str] = []
+                            if isinstance(value, list):
+                                for (t, cb), v in itertools.product(info.extra_types.items(), value):
+                                    if isinstance(v, t):
+                                        extra_desc.append(cb(v))
+                            else:
+                                for t, cb in info.extra_types.items():
+                                    if isinstance(value, t):
+                                        extra_desc.append(cb(value))
+                            extra = '. '.join(extra_desc)
+
+                        raise InvalidArguments(
+                            _shouldbe_format(self.name, 'keyword', info.name, value, types_tuple, extra))
+
+                    if info.validator is not None:
+                        msg = info.validator(value)
+                        if msg is not None:
+                            raise InvalidArguments(f'{self.name} keyword argument "{info.name}" {msg}')
+
+                    if info.feature_validator is not None:
+                        for each in info.feature_validator(value):
+                            each.use(subproject, node)
+
+                    if info.deprecated_values is not None:
+                        self._emit_feature_change(value, info.deprecated_values, FeatureDeprecated, subproject, node, info)
+
+                    if info.since_values is not None:
+                        self._emit_feature_change(value, info.since_values, FeatureNew, subproject, node, info)
+
+                elif info.required:
+                    raise InvalidArguments(f'{self.name} is missing required keyword argument "{info.name}"')
+                else:
+                    # set the value to the default, this ensuring all kwargs are present
+                    # This both simplifies the typing checking and the usage
+                    assert _check_value_type(types_tuple, info.default), f'In function {self.name} default value of {info.name} is not a valid type, got {type(info.default)} expected {_types_description(types_tuple)}'
+                    # Create a shallow copy of the container. This allows mutable
+                    # types to be used safely as default values
+                    kwargs[info.name] = copy.copy(info.default)
+                    if info.not_set_warning:
+                        mlog.warning(info.not_set_warning)
+
+                if info.convertor:
+                    kwargs[info.name] = info.convertor(kwargs[info.name])
+
+            return f(*wrapped_args, **wrapped_kwargs)
+        return T.cast('T.Callable[..., T.Any]', wrapper)
+
+
 # This cannot be a dataclass due to https://github.com/python/mypy/issues/5374
 class FeatureCheckBase(metaclass=mesonlib.SimpleABC):
     "Base class for feature version checks"
