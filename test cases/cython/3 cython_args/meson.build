@@ -24,6 +24,11 @@ mod = python.extension_module(
   ],
 )
 
+builtin_mod = python.extension_module(
+  'builtincythonargs',
+  files('builtincythonargs.pyx'),
+)
+
 test(
   'test',
   python,

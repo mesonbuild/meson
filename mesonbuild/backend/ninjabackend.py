@@ -1898,6 +1898,7 @@ class NinjaBackend(backends.Backend):
         args += cython.get_option_std_args(target, target.subproject)
         args += self.build.get_global_args(cython, target.for_machine)
         args += self.build.get_project_args(cython, target)
+        args += self.environment.coredata.get_external_args(target.for_machine, cython.get_language())
         args += target.get_extra_args('cython')
 
         ext = self.get_target_option(target, OptionKey('cython_language', machine=target.for_machine))
