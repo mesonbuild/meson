@@ -18,7 +18,7 @@ if T.TYPE_CHECKING:
 def apply_machine_map(f: TV_func) -> TV_func:
     """Enforce build-only subproject constraints on native/install kwargs.
 
-    Must be placed AFTER @typed_kwargs (so converters have run).
+    Must be placed AFTER :class:`TypedArgs` (so converters have run).
     """
     @wraps(f)
     def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
