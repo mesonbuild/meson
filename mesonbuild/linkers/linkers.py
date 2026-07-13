@@ -959,7 +959,9 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def get_lto_obj_cache_path(self, path: str) -> T.List[str]:
         # https://clang.llvm.org/docs/CommandGuide/clang.html#cmdoption-flto
-        return ["-Wl,-object_path_lto," + path]
+        if mesonlib.version_compare(self.version, '>=123.2'):
+            return self._apply_prefix(['-object_path_lto', path])
+        return []
 
     def export_dynamic_args(self) -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=224.1'):
