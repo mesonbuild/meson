@@ -213,8 +213,14 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             compiler, env, for_machine, comp_class.LINKER_OPTION_STYLE, override, version=v)
     # detect xtools first, bug #10805
     elif 'xtools-' in o.split('\n', maxsplit=1)[0]:
-        xtools = o.split(' ', maxsplit=1)[0]
-        v = xtools.split('-', maxsplit=2)[1]
+        # See https://github.com/iains/darwin-xtools/blob/darwin-xtools-3-3-0/ld64/src/ld/ld_vers.c.in
+        # for the format
+        for line in o.split('\n'):
+            if line.startswith('Based on Apple Inc. ld64-'):
+                v = line.split()[4][5:]
+                break
+        else:
+            __failed_to_detect_linker(compiler, check_args, o, e)
         linker = linkers.AppleDynamicLinker(
             compiler, env, for_machine, comp_class.LINKER_OPTION_STYLE, override,
             system=system, version=v
