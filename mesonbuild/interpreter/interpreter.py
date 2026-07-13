@@ -3486,6 +3486,17 @@ class Interpreter(InterpreterBase, HoldableObject):
             tobj.process_compilers_late()
             self.add_stdlib_info(tobj)
 
+            if tobj.uses_cython():
+                for gensrc in tobj.get_generated_sources():
+                    # a generator producing a .pyx has always worked; feeding
+                    # anything else from a generator into Cython triggered a bug
+                    # in the ninja backend and was effectively a new feature.
+                    if isinstance(gensrc, build.GeneratedList) and \
+                            any(not o.endswith('.pyx') for o in gensrc.get_outputs()):
+                        FeatureNew.single_use('Generators for non-.pyx Cython sources',
+                                              '1.12.0', self.subproject, location=self.current_node)
+                        break
+
         self.build.targets[idname] = tobj
         # Only need to add executables to this set
         if isinstance(tobj, build.Executable):

@@ -2,6 +2,7 @@ project(
   'generated cython sources',
   ['cython', 'c'],
   default_options : ['buildtype=release'],
+  meson_version : '>= 1.10.0',
 )
 
 if meson.backend() != 'ninja'
@@ -71,6 +72,26 @@ test(
   'generator',
   py3,
   args : [files('test.py'), 'g'],
+  env : ['PYTHONPATH=' + meson.current_build_dir()]
+)
+
+# A generator whose output is *not* a .pyx file, mixed with a Cython .pyx
+# source in the same target.
+gen_c = generator(
+  find_program('generator.py'),
+  arguments : ['@INPUT@', '@OUTPUT@'],
+  output : '@BASENAME@',
+)
+
+genc_ext = py3.extension_module(
+  'genc',
+  gen_c.process('genc.pyx.in', 'answer.c.in'),
+)
+
+test(
+  'generator with non-pyx output',
+  py3,
+  args : [files('test.py'), 'genc'],
   env : ['PYTHONPATH=' + meson.current_build_dir()]
 )
 
