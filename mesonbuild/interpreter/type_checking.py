@@ -641,7 +641,7 @@ def _bt_install_dir_deprecated(args: T.List[T.Union[str, bool]]) -> T.Iterator[F
 
 # Applies to all build_target like classes
 _ALL_TARGET_KWS: T.List[KwargInfo] = [
-    OVERRIDE_OPTIONS_KW,
+    OVERRIDE_OPTIONS_KW.evolve(since='0.40.0'),
     KwargInfo('build_by_default', bool, default=True, since='0.38.0'),
     DEPENDENCIES_KW,
     KwargInfo(
@@ -784,6 +784,7 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     INCLUDE_DIRECTORIES.evolve(name='d_import_dirs'),
     LINK_ARGS_KW,
     LINK_WHOLE_KW.evolve(
+        since='0.40.0',
         as_default=[('', ('1.11.0', "Replace an empty string with an empty array: `link_whole : ''` -> `link_whole : []`"))],
     ),
     _NAME_PREFIX_KW,
