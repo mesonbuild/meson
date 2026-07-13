@@ -13,7 +13,7 @@ from .. import build, mesonlib, mlog
 from ..build import CustomTarget, CustomTargetIndex
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase import (
-    InvalidArguments, noPosargs, noKwargs, TypedArgs, FeatureDeprecated,
+    InvalidArguments, noPosargs, TypedArgs, FeatureDeprecated,
     ContainerTypeInfo, KwargInfo, typed_pos_args, InterpreterObject
 )
 from ..interpreter.interpreterobjects import _CustomTargetHolder
@@ -374,7 +374,7 @@ class HotdocTargetBuilder:
 
 class HotdocTargetHolder(_CustomTargetHolder['HotdocTarget']):
     @noPosargs
-    @noKwargs
+    @TypedArgs('hotdoc_target.config_path')
     @InterpreterObject.method('config_path')
     def config_path_method(self, *args: T.Any, **kwargs: T.Any) -> str:
         conf = self.held_object.hotdoc_conf.absolute_path(self.interpreter.environment.source_dir,
@@ -419,7 +419,7 @@ class HotDocModule(ExtensionModule):
             'generate_doc': self.generate_doc,
         })
 
-    @noKwargs
+    @TypedArgs('hotdoc.has_extensions')
     @typed_pos_args('hotdoc.has_extensions', varargs=str, min_varargs=1)
     def has_extensions(self, state: ModuleState, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> bool:
         return self.hotdoc.run_hotdoc([f'--has-extension={extension}' for extension in args[0]]) == 0

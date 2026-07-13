@@ -16,11 +16,11 @@ from ...interpreterbase import (
     FeatureNew,
     typed_operator,
     noArgsFlattening,
-    noKwargs,
     noPosargs,
     typed_pos_args,
     InvalidArguments,
     FeatureBroken,
+    TypedArgs,
     stringifyUserArguments,
 )
 
@@ -45,26 +45,26 @@ class StringHolder(ObjectHolder[str]):
     def display_name(self) -> str:
         return 'str'
 
-    @noKwargs
+    @TypedArgs('str.contains')
     @typed_pos_args('str.contains', str)
     @InterpreterObject.method('contains')
     def contains_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.find(args[0]) >= 0
 
-    @noKwargs
+    @TypedArgs('str.startswith')
     @typed_pos_args('str.startswith', str)
     @InterpreterObject.method('startswith')
     def startswith_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.startswith(args[0])
 
-    @noKwargs
+    @TypedArgs('str.endswith')
     @typed_pos_args('str.endswith', str)
     @InterpreterObject.method('endswith')
     def endswith_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.endswith(args[0])
 
     @noArgsFlattening
-    @noKwargs
+    @TypedArgs('str.format')
     @typed_pos_args('str.format', varargs=object)
     @InterpreterObject.method('format')
     def format_method(self, args: T.Tuple[T.List[TYPE_var]], kwargs: TYPE_kwargs) -> str:
@@ -84,27 +84,27 @@ class StringHolder(ObjectHolder[str]):
 
         return re.sub(r'@(\d+)@', arg_replace, self.held_object)
 
-    @noKwargs
+    @TypedArgs('str.splitlines')
     @noPosargs
     @FeatureNew('str.splitlines', '1.2.0')
     @InterpreterObject.method('splitlines')
     def splitlines_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[str]:
         return self.held_object.splitlines()
 
-    @noKwargs
+    @TypedArgs('str.join')
     @typed_pos_args('str.join', varargs=str)
     @InterpreterObject.method('join')
     def join_method(self, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> str:
         return self.held_object.join(args[0])
 
-    @noKwargs
+    @TypedArgs('str.replace')
     @FeatureNew('str.replace', '0.58.0')
     @typed_pos_args('str.replace', str, str)
     @InterpreterObject.method('replace')
     def replace_method(self, args: T.Tuple[str, str], kwargs: TYPE_kwargs) -> str:
         return self.held_object.replace(args[0], args[1])
 
-    @noKwargs
+    @TypedArgs('str.split')
     @typed_pos_args('str.split', optargs=[str])
     @InterpreterObject.method('split')
     def split_method(self, args: T.Tuple[T.Optional[str]], kwargs: TYPE_kwargs) -> T.List[str]:
@@ -113,7 +113,7 @@ class StringHolder(ObjectHolder[str]):
             raise InvalidArguments('str.split() delimitier must not be an empty string')
         return self.held_object.split(delimiter)
 
-    @noKwargs
+    @TypedArgs('str.strip')
     @typed_pos_args('str.strip', optargs=[str])
     @InterpreterObject.method('strip')
     def strip_method(self, args: T.Tuple[T.Optional[str]], kwargs: TYPE_kwargs) -> str:
@@ -121,7 +121,7 @@ class StringHolder(ObjectHolder[str]):
             FeatureNew.single_use('str.strip with a positional argument', '0.43.0', self.subproject, location=self.current_node)
         return self.held_object.strip(args[0])
 
-    @noKwargs
+    @TypedArgs('str.substring')
     @FeatureNew('str.substring', '0.56.0')
     @typed_pos_args('str.substring', optargs=[int, int])
     @InterpreterObject.method('substring')
@@ -130,7 +130,7 @@ class StringHolder(ObjectHolder[str]):
         end = args[1] if args[1] is not None else len(self.held_object)
         return self.held_object[start:end]
 
-    @noKwargs
+    @TypedArgs('str.to_int')
     @noPosargs
     @InterpreterObject.method('to_int')
     def to_int_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> int:
@@ -146,25 +146,25 @@ class StringHolder(ObjectHolder[str]):
         except ValueError:
             raise InvalidArguments(f'String {self.held_object!r} cannot be converted to int')
 
-    @noKwargs
+    @TypedArgs('str.to_lower')
     @noPosargs
     @InterpreterObject.method('to_lower')
     def to_lower_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.lower()
 
-    @noKwargs
+    @TypedArgs('str.to_upper')
     @noPosargs
     @InterpreterObject.method('to_upper')
     def to_upper_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.upper()
 
-    @noKwargs
+    @TypedArgs('underscorify')
     @noPosargs
     @InterpreterObject.method('underscorify')
     def underscorify_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return underscorify(self.held_object)
 
-    @noKwargs
+    @TypedArgs('str.version_compare')
     @InterpreterObject.method('version_compare')
     @typed_pos_args('str.version_compare', varargs=str, min_varargs=1)
     def version_compare_method(self, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> bool:
@@ -207,7 +207,7 @@ class MesonVersionString(str):
     pass
 
 class MesonVersionStringHolder(StringHolder):
-    @noKwargs
+    @TypedArgs('str.version_compare')
     @InterpreterObject.method('version_compare')
     @typed_pos_args('str.version_compare', varargs=str, min_varargs=1)
     def version_compare_method(self, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> bool:

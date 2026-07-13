@@ -27,7 +27,7 @@ from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, 
 from ..dependencies import Dependency, InternalDependency
 from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
 from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, ENV_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, DEPENDENCY_SOURCES_KW, in_set_validator
-from ..interpreterbase import noPosargs, noKwargs, FeatureNew, FeatureDeprecated
+from ..interpreterbase import noPosargs, FeatureNew, FeatureDeprecated
 from ..interpreterbase import TypedArgs, KwargInfo, ContainerTypeInfo
 from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import (
@@ -1659,7 +1659,7 @@ class GnomeModule(ExtensionModule):
 
         return args, new_depends
 
-    @noKwargs
+    @TypedArgs('gnome.gtkdoc_html_dir')
     @typed_pos_args('gnome.gtkdoc_html_dir', str)
     def gtkdoc_html_dir(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> str:
         return os.path.join('share/gtk-doc/html', args[0])

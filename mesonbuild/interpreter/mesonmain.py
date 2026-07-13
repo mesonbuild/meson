@@ -17,7 +17,7 @@ from ..options import OptionKey
 from ..programs import Program, ExternalProgram
 from ..interpreter.type_checking import ENV_KW, ENV_METHOD_KW, ENV_SEPARATOR_KW, env_convertor_with_method
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated, FeatureBroken,
-                               typed_pos_args,  noArgsFlattening, noPosargs, noKwargs,
+                               typed_pos_args,  noArgsFlattening, noPosargs,
                                TypedArgs, KwargInfo, InterpreterException, InterpreterObject)
 from .decorators import apply_machine_map
 from .primitives import MesonVersionString
@@ -144,7 +144,7 @@ class MesonMain(MesonInterpreterObject):
         (str, mesonlib.File, Program),
         varargs=(str, mesonlib.File, Program)
     )
-    @noKwargs
+    @TypedArgs('meson.add_postconf_script')
     @InterpreterObject.method('add_postconf_script')
     def add_postconf_script_method(
             self,
@@ -162,7 +162,7 @@ class MesonMain(MesonInterpreterObject):
         (str, mesonlib.File, Program),
         varargs=(str, mesonlib.File, Program)
     )
-    @noKwargs
+    @TypedArgs('meson.add_dist_script')
     @FeatureNew('meson.add_dist_script', '0.48.0')
     @InterpreterObject.method('add_dist_script')
     def add_dist_script_method(
@@ -181,7 +181,7 @@ class MesonMain(MesonInterpreterObject):
         self.build.dist_scripts.append(script)
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.current_source_dir')
     @InterpreterObject.method('current_source_dir')
     def current_source_dir_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         src = self.interpreter.environment.source_dir
@@ -191,7 +191,7 @@ class MesonMain(MesonInterpreterObject):
         return os.path.join(src, sub)
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.current_build_dir')
     @InterpreterObject.method('current_build_dir')
     def current_build_dir_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         src = self.interpreter.environment.build_dir
@@ -201,27 +201,27 @@ class MesonMain(MesonInterpreterObject):
         return os.path.join(src, sub)
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.backend')
     @InterpreterObject.method('backend')
     def backend_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.interpreter.backend.name
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.source_root')
     @FeatureDeprecated('meson.source_root', '0.56.0', 'use meson.project_source_root() or meson.global_source_root() instead.')
     @InterpreterObject.method('source_root')
     def source_root_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.interpreter.environment.source_dir
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.build_root')
     @FeatureDeprecated('meson.build_root', '0.56.0', 'use meson.project_build_root() or meson.global_build_root() instead.')
     @InterpreterObject.method('build_root')
     def build_root_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.interpreter.environment.build_dir
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.project_source_root')
     @FeatureNew('meson.project_source_root', '0.56.0')
     @InterpreterObject.method('project_source_root')
     def project_source_root_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
@@ -232,7 +232,7 @@ class MesonMain(MesonInterpreterObject):
         return os.path.join(src, sub)
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.project_build_root')
     @FeatureNew('meson.project_build_root', '0.56.0')
     @InterpreterObject.method('project_build_root')
     def project_build_root_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
@@ -243,28 +243,28 @@ class MesonMain(MesonInterpreterObject):
         return os.path.join(src, sub)
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.global_source_root')
     @FeatureNew('meson.global_source_root', '0.58.0')
     @InterpreterObject.method('global_source_root')
     def global_source_root_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.interpreter.environment.source_dir
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.global_build_root')
     @FeatureNew('meson.global_build_root', '0.58.0')
     @InterpreterObject.method('global_build_root')
     def global_build_root_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.interpreter.environment.build_dir
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.has_exe_wrapper')
     @FeatureDeprecated('meson.has_exe_wrapper', '0.55.0', 'use meson.can_run_host_binaries instead.')
     @InterpreterObject.method('has_exe_wrapper')
     def has_exe_wrapper_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
         return self._can_run_host_binaries_impl()
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.can_run_host_binaries')
     @FeatureNew('meson.can_run_host_binaries', '0.55.0')
     @InterpreterObject.method('can_run_host_binaries')
     def can_run_host_binaries_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
@@ -278,7 +278,7 @@ class MesonMain(MesonInterpreterObject):
         )
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.is_cross_build')
     @InterpreterObject.method('is_cross_build')
     def is_cross_build_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
         return self.build.machine_map.host is not self.build.machine_map.build
@@ -308,20 +308,20 @@ class MesonMain(MesonInterpreterObject):
             return comp
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.is_unity')
     @InterpreterObject.method('is_unity')
     def is_unity_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
         optval = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('unity'))
         return optval == 'on' or (optval == 'subprojects' and self.interpreter.is_subproject())
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.is_subproject')
     @InterpreterObject.method('is_subproject')
     def is_subproject_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
         return self.interpreter.is_subproject()
 
     @typed_pos_args('meson.install_dependency_manifest', str)
-    @noKwargs
+    @TypedArgs('meson.install_dependency_manifest')
     @InterpreterObject.method('install_dependency_manifest')
     def install_dependency_manifest_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> None:
         self.build.dep_manifest_name = args[0]
@@ -417,33 +417,33 @@ class MesonMain(MesonInterpreterObject):
             build.DependencyOverride(dep, self.interpreter.current_node)
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.project_version')
     @InterpreterObject.method('project_version')
     def project_version_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.build.dep_manifest[self.interpreter.active_projectname].version
 
     @FeatureNew('meson.project_license()', '0.45.0')
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.project_license')
     @InterpreterObject.method('project_license')
     def project_license_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> T.List[str]:
         return self.build.dep_manifest[self.interpreter.active_projectname].license
 
     @FeatureNew('meson.project_license_files()', '1.1.0')
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.project_license_files')
     @InterpreterObject.method('project_license_files')
     def project_license_files_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[mesonlib.File]:
         return [l[1] for l in self.build.dep_manifest[self.interpreter.active_projectname].license_files]
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.version')
     @InterpreterObject.method('version')
     def version_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> MesonVersionString:
         return MesonVersionString(self.interpreter.coredata.version)
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.project_name')
     @InterpreterObject.method('project_name')
     def project_name_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.interpreter.active_projectname
@@ -460,7 +460,7 @@ class MesonMain(MesonInterpreterObject):
     @noArgsFlattening
     @FeatureDeprecated('meson.get_cross_property', '0.58.0', 'Use meson.get_external_property() instead')
     @typed_pos_args('meson.get_cross_property', str, optargs=[object])
-    @noKwargs
+    @TypedArgs('meson.get_cross_property')
     @InterpreterObject.method('get_cross_property')
     def get_cross_property_method(self, args: T.Tuple[str, T.Optional[object]], kwargs: 'TYPE_kwargs') -> object:
         propname, fallback = args
@@ -500,7 +500,7 @@ class MesonMain(MesonInterpreterObject):
         self.build.devenv.append(converted)
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('meson.build_options')
     @FeatureNew('meson.build_options', '1.1.0')
     @InterpreterObject.method('build_options')
     def build_options_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
