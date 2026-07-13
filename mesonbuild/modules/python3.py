@@ -13,7 +13,7 @@ from ..build import (
     GeneratedList, SharedModule, StructuredSources
 )
 from ..interpreter.type_checking import SHARED_MOD_KWS
-from ..interpreterbase import TypedArgs, typed_pos_args, noPosargs, noKwargs
+from ..interpreterbase import TypedArgs, typed_pos_args, noPosargs
 from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
@@ -60,7 +60,7 @@ class Python3Module(ExtensionModule):
         return m
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('python3.find_python')
     def find_python(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> ExternalProgram:
         command = state.environment.lookup_binary_entry(mesonlib.MachineChoice.HOST, 'python3')
         if command is not None:
@@ -70,12 +70,12 @@ class Python3Module(ExtensionModule):
         return py3
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('python3.sysconfig_path')
     def language_version(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return sysconfig.get_python_version()
 
-    @noKwargs
     @typed_pos_args('python3.sysconfig_path', str)
+    @TypedArgs('python3.sysconfig_path')
     def sysconfig_path(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> str:
         path_name = args[0]
         valid_names = sysconfig.get_path_names()

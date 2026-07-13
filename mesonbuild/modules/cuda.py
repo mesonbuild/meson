@@ -16,7 +16,7 @@ from . import NewExtensionModule, ModuleInfo
 
 from ..utils.universal import Version
 from ..interpreterbase import (
-    ContainerTypeInfo, InvalidArguments, KwargInfo, noKwargs, TypedArgs, typed_pos_args,
+    ContainerTypeInfo, InvalidArguments, KwargInfo, TypedArgs, typed_pos_args,
 )
 
 if T.TYPE_CHECKING:
@@ -234,7 +234,7 @@ class CudaModule(NewExtensionModule):
             "nvcc_arch_readable": self.nvcc_arch_readable,
         })
 
-    @noKwargs
+    @TypedArgs('cuda.min_driver_version')
     def min_driver_version(self, state: 'ModuleState',
                            args: T.List[TYPE_var],
                            kwargs: T.Dict[str, T.Any]) -> str:
