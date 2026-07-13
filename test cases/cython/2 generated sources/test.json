@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/cython/2 generated sources/meson.build:86: WARNING: Project targets '>= 1.10.0' but uses feature introduced in '1.12.0': Generators for non-.pyx Cython sources."
+    }
+  ]
+}

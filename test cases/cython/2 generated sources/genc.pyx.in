@@ -1,0 +1,9 @@
+cdef extern from *:
+    """
+    const char *c_func(void);
+    """
+    const char *c_func()
+
+cpdef func():
+    cdef bytes b = c_func()
+    return b.decode('utf-8')
