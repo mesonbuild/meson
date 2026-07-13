@@ -37,7 +37,7 @@ from mesonbuild.compilers.detect import detect_c_compiler
 from mesonbuild.compilers.mixins.visualstudio import MSVCCompiler, ClangClCompiler
 from mesonbuild.linkers import linkers
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectHolder
-from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_kwargs, ContainerTypeInfo, KwargInfo
+from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, TypedArgs, ContainerTypeInfo, KwargInfo
 from mesonbuild.mesonlib import (
     LibType, MachineChoice, PerMachine, SimpleABC, Version, is_windows, is_osx,
     is_cygwin, is_openbsd, search_version, MesonException, EnvironmentException, python_command,
@@ -1554,9 +1554,9 @@ Thread model: posix'''), '21.9.0')
         _(None, mock.Mock(), ['string', '1'], None)
 
     def test_typed_kwarg_basic(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', str, default='')
+            kw_types=[KwargInfo('input', str, default='')],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertIsInstance(kwargs['input'], str)
@@ -1565,9 +1565,9 @@ Thread model: posix'''), '21.9.0')
         _(None, mock.Mock(), [], {'input': 'foo'})
 
     def test_typed_kwarg_missing_required(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', str, required=True),
+            kw_types=[KwargInfo('input', str, required=True)],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertTrue(False)  # should be unreachable
@@ -1577,9 +1577,9 @@ Thread model: posix'''), '21.9.0')
         self.assertEqual(str(cm.exception), '"testfunc" is missing required keyword argument "input"')
 
     def test_typed_kwarg_missing_optional(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', (str, type(None))),
+            kw_types=[KwargInfo('input', (str, type(None)))],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.Optional[str]]) -> None:
             self.assertIsNone(kwargs['input'])
@@ -1587,9 +1587,9 @@ Thread model: posix'''), '21.9.0')
         _(None, mock.Mock(), [], {})
 
     def test_typed_kwarg_default(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', str, default='default'),
+            kw_types=[KwargInfo('input', str, default='default')],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertEqual(kwargs['input'], 'default')
@@ -1597,9 +1597,9 @@ Thread model: posix'''), '21.9.0')
         _(None, mock.Mock(), [], {})
 
     def test_typed_kwarg_container_valid(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(list, str), default=[], required=True),
+            kw_types=[KwargInfo('input', ContainerTypeInfo(list, str), default=[], required=True)],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
             self.assertEqual(kwargs['input'], ['str'])
@@ -1607,9 +1607,9 @@ Thread model: posix'''), '21.9.0')
         _(None, mock.Mock(), [], {'input': ['str']})
 
     def test_typed_kwarg_container_invalid(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(list, str), required=True),
+            kw_types=[KwargInfo('input', ContainerTypeInfo(list, str), required=True)],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
             self.assertTrue(False)  # should be unreachable
@@ -1619,9 +1619,9 @@ Thread model: posix'''), '21.9.0')
         self.assertEqual(str(cm.exception), '"testfunc" keyword argument "input" was of type "dict[]" but should have been "array[str]"')
 
     def test_typed_kwarg_contained_invalid(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(dict, str), required=True),
+            kw_types=[KwargInfo('input', ContainerTypeInfo(dict, str), required=True)],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.Dict[str, str]]) -> None:
             self.assertTrue(False)  # should be unreachable
@@ -1631,9 +1631,9 @@ Thread model: posix'''), '21.9.0')
         self.assertEqual(str(cm.exception), '"testfunc" keyword argument "input" was of type "dict[int]" but should have been "dict[str]"')
 
     def test_typed_kwarg_container_listify(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(list, str), default=[], listify=True),
+            kw_types=[KwargInfo('input', ContainerTypeInfo(list, str), default=[], listify=True)],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
             self.assertEqual(kwargs['input'], ['str'])
@@ -1642,9 +1642,9 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_kwarg_container_default_copy(self) -> None:
         default: T.List[str] = []
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=default),
+            kw_types=[KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=default)],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
             self.assertIsNot(kwargs['input'], default)
@@ -1652,9 +1652,9 @@ Thread model: posix'''), '21.9.0')
         _(None, mock.Mock(), [], {})
 
     def test_typed_kwarg_container_pairs(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(list, str, pairs=True), listify=True),
+            kw_types=[KwargInfo('input', ContainerTypeInfo(list, str, pairs=True), listify=True)],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
             self.assertEqual(kwargs['input'], ['a', 'b'])
@@ -1666,10 +1666,12 @@ Thread model: posix'''), '21.9.0')
         self.assertEqual(str(cm.exception), '"testfunc" keyword argument "input" was of type "array[str]" but should have been "array[str]" that has even size')
 
     def test_typed_kwarg_since(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', str, since='1.0', since_message='It\'s awesome, use it',
-                      deprecated='2.0', deprecated_message='It\'s terrible, don\'t use it')
+            kw_types=[
+                KwargInfo('input', str, since='1.0', since_message='It\'s awesome, use it',
+                          deprecated='2.0', deprecated_message='It\'s terrible, don\'t use it')
+            ]
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertIsInstance(kwargs['input'], str)
@@ -1699,9 +1701,9 @@ Thread model: posix'''), '21.9.0')
             self.assertNotRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc. It\'s awesome, use it')
 
     def test_typed_kwarg_validator(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', str, default='', validator=lambda x: 'invalid!' if x != 'foo' else None)
+            kw_types=[KwargInfo('input', str, default='', validator=lambda x: 'invalid!' if x != 'foo' else None)]
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             pass
@@ -1714,9 +1716,9 @@ Thread model: posix'''), '21.9.0')
         self.assertEqual(str(cm.exception), "\"testfunc\" keyword argument \"input\" invalid!")
 
     def test_typed_kwarg_convertor(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('native', bool, default=False, convertor=lambda n: MachineChoice.BUILD if n else MachineChoice.HOST)
+            kw_types=[KwargInfo('native', bool, default=False, convertor=lambda n: MachineChoice.BUILD if n else MachineChoice.HOST)]
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, MachineChoice]) -> None:
             assert isinstance(kwargs['native'], MachineChoice)
@@ -1725,36 +1727,42 @@ Thread model: posix'''), '21.9.0')
 
     @mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': version_check_to_range(['>=1.0'])})
     def test_typed_kwarg_since_values(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=[], deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
-            KwargInfo('output', ContainerTypeInfo(dict, str), default={}, deprecated_values={'foo': '0.9', 'foo2': ('0.9', 'don\'t use it')}, since_values={'bar': '1.1', 'bar2': ('1.1', 'use this')}),
-            KwargInfo('install_dir', (bool, str, NoneType), deprecated_values={False: '0.9'}),
-            KwargInfo(
-                'mode',
-                (str, type(None)),
-                validator=in_set_validator({'clean', 'build', 'rebuild', 'deprecated', 'since'}),
-                deprecated_values={'deprecated': '1.0'},
-                since_values={'since': '1.1'}),
-            KwargInfo('dict', (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)), default={},
-                      since_values={list: '1.9'}),
-            KwargInfo('new_dict', (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)), default={},
-                      since_values={dict: '1.1'}),
-            KwargInfo('foo', (str, int, ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str), ContainerTypeInfo(list, int)), default={},
-                      since_values={str: '1.1', ContainerTypeInfo(list, str): '1.2', ContainerTypeInfo(dict, str): '1.3'},
-                      deprecated_values={int: '0.8', ContainerTypeInfo(list, int): '0.9'}),
-            KwargInfo('tuple', (ContainerTypeInfo(list, (str, int))), default=[], listify=True,
-                      since_values={ContainerTypeInfo(list, str): '1.1', ContainerTypeInfo(list, int): '1.2'}),
-            KwargInfo(
-                'types_tuple_since',
-                (bool, int, str, NoneType),
-                since_values={(bool, int): '1.5'},
-            ),
-            KwargInfo(
-                'types_tuple_deprecated',
-                (bool, int, str, NoneType),
-                deprecated_values={(bool, int): '0.9'},
-            ),
+            kw_types=[
+                KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=[], deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
+                KwargInfo('output', ContainerTypeInfo(dict, str), default={}, deprecated_values={'foo': '0.9', 'foo2': ('0.9', 'don\'t use it')}, since_values={'bar': '1.1', 'bar2': ('1.1', 'use this')}),
+                KwargInfo('install_dir', (bool, str, NoneType), deprecated_values={False: '0.9'}),
+                KwargInfo(
+                    'mode',
+                    (str, type(None)),
+                    validator=in_set_validator({'clean', 'build', 'rebuild', 'deprecated', 'since'}),
+                    deprecated_values={'deprecated': '1.0'},
+                    since_values={'since': '1.1'}),
+                KwargInfo(
+                    'dict', (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)), default={},
+                    since_values={list: '1.9'}),
+                KwargInfo(
+                    'new_dict', (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)), default={},
+                    since_values={dict: '1.1'}),
+                KwargInfo(
+                    'foo', (str, int, ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str), ContainerTypeInfo(list, int)), default={},
+                    since_values={str: '1.1', ContainerTypeInfo(list, str): '1.2', ContainerTypeInfo(dict, str): '1.3'},
+                    deprecated_values={int: '0.8', ContainerTypeInfo(list, int): '0.9'}),
+                KwargInfo(
+                    'tuple', (ContainerTypeInfo(list, (str, int))), default=[], listify=True,
+                    since_values={ContainerTypeInfo(list, str): '1.1', ContainerTypeInfo(list, int): '1.2'}),
+                KwargInfo(
+                    'types_tuple_since',
+                    (bool, int, str, NoneType),
+                    since_values={(bool, int): '1.5'},
+                ),
+                KwargInfo(
+                    'types_tuple_deprecated',
+                    (bool, int, str, NoneType),
+                    deprecated_values={(bool, int): '0.9'},
+                ),
+            ],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             pass
@@ -1861,11 +1869,13 @@ Thread model: posix'''), '21.9.0')
         self.assertEqual(v.default, 'bar')
 
     def test_typed_kwarg_default_type(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('no_default', (str, ContainerTypeInfo(list, str), NoneType)),
-            KwargInfo('str_default', (str, ContainerTypeInfo(list, str)), default=''),
-            KwargInfo('list_default', (str, ContainerTypeInfo(list, str)), default=['']),
+            kw_types=[
+                KwargInfo('no_default', (str, ContainerTypeInfo(list, str), NoneType)),
+                KwargInfo('str_default', (str, ContainerTypeInfo(list, str)), default=''),
+                KwargInfo('list_default', (str, ContainerTypeInfo(list, str)), default=['']),
+            ]
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertEqual(kwargs['no_default'], None)
@@ -1874,18 +1884,18 @@ Thread model: posix'''), '21.9.0')
         _(None, mock.Mock(), [], {})
 
     def test_typed_kwarg_invalid_default_type(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('invalid_default', (str, ContainerTypeInfo(list, str), NoneType), default=42),
+            kw_types=[KwargInfo('invalid_default', (str, ContainerTypeInfo(list, str), NoneType), default=42)],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             pass
         self.assertRaises(AssertionError, _, None, mock.Mock(), [], {})
 
     def test_typed_kwarg_container_in_tuple(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', (str, ContainerTypeInfo(list, str))),
+            kw_types=[KwargInfo('input', (str, ContainerTypeInfo(list, str)))],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertEqual(kwargs['input'], args[0])
