@@ -118,15 +118,6 @@ def noPosargs(f: TV_func) -> TV_func:
         return f(*wrapped_args, **wrapped_kwargs)
     return T.cast('TV_func', wrapped)
 
-def noKwargs(f: TV_func) -> TV_func:
-    @wraps(f)
-    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-        kwargs = get_callee_args(wrapped_args)[2]
-        if kwargs:
-            raise InvalidArguments('Function does not take keyword arguments.')
-        return f(*wrapped_args, **wrapped_kwargs)
-    return T.cast('TV_func', wrapped)
-
 def noArgsFlattening(f: TV_func) -> TV_func:
     setattr(f, 'no-args-flattening', True)  # noqa: B010
     return f
