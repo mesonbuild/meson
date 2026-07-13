@@ -24,7 +24,7 @@ from ..interpreter.type_checking import (
     OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NATIVE_KW, NoneType, in_set_validator,
     EXECUTABLE_KWS, LIBRARY_KWS, SHARED_MOD_KWS, _BASE_LANG_KW, DEPEND_FILES_KW, INSTALL_DIR_KW, INSTALL_KW,
 )
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, TypedArgs, typed_pos_args, noKwargs, noPosargs
+from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, TypedArgs, typed_pos_args, noPosargs
 from ..interpreter.interpreterobjects import Doctest
 from ..mesonlib import (is_parent_path, File, MachineChoice, MesonException, PerMachine)
 from ..programs import ExternalProgram, NonExistingExternalProgram
@@ -174,7 +174,7 @@ class RustWorkspace(ModuleObject):
         return self.ws.subdir
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('rust_workspace.packages')
     def packages_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns list of package names in workspace."""
         package_names = [pkg.manifest.package.name
@@ -248,8 +248,8 @@ class RustCrate(ModuleObject):
             'name': self.name_method,
             'version': self.version_method,
             'rust_args': self.rust_args_method,
-            'env': self.env_method, # type: ignore[dict-item]
-            'rust_dependency_map': self.rust_dependency_map_method, # type: ignore[dict-item]
+            'env': self.env_method,
+            'rust_dependency_map': self.rust_dependency_map_method,
         })
 
     @property
@@ -257,49 +257,49 @@ class RustCrate(ModuleObject):
         return self.package.cfg[self.for_machine]
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('rust_crate.name')
     def name_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> str:
         """Returns the name of the package."""
         return self.package.manifest.package.name
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('rust_crate.api')
     def api_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> str:
         """Returns the API version of the package."""
         return self.package.manifest.package.api
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('rust_crate.version')
     def version_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> str:
         """Returns the version of the package."""
         return self.package.manifest.package.version
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('rust_crate.all_features')
     def all_features_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns all features for specific package."""
         return sorted(list(self.package.manifest.features.keys()))
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('rust_crate.features')
     def features_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns chosen features for specific package."""
         return sorted(list(self.cfg.features))
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('rust_crate.rust_args')
     def rust_args_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns rustc arguments for this package."""
         return self.package.get_rustc_args(state.environment, state.subdir, self.for_machine)
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('rust_crate.env')
     def env_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.Dict[str, str]:
         """Returns environment variables for this package."""
         return self.package.get_env_dict(state.environment, state.subdir)
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('rust_crate.rust_dependency_map')
     def rust_dependency_map_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.Dict[str, str]:
         """Returns rust dependency mapping for this package."""
         return self.cfg.get_dependency_map(self.package.manifest)
@@ -1093,7 +1093,7 @@ class RustModule(ExtensionModule):
 
     @FeatureNew('rust.to_system_dependency', '1.11.0')
     @typed_pos_args('rust.to_system_dependency', Dependency, optargs=[str])
-    @noKwargs
+    @TypedArgs('rust.to_system_dependency', kw_types=_PROC_MACRO_KWS)
     def to_system_dependency(self, state: ModuleState, args: T.Tuple[Dependency, T.Optional[str]], kwargs: TYPE_kwargs) -> Dependency:
         dep, depname = args
         return dep_to_system_dependency(dep, depname)

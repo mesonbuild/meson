@@ -11,7 +11,6 @@ from ...interpreterbase import (
     MesonOperator,
     ObjectHolder,
     typed_operator,
-    noKwargs,
     noPosargs,
     noArgsFlattening,
     TypedArgs,
@@ -49,7 +48,7 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
         return len(self.held_object)
 
     @noArgsFlattening
-    @noKwargs
+    @TypedArgs('array.contains')
     @typed_pos_args('array.contains', object)
     @InterpreterObject.method('contains')
     def contains_method(self, args: T.Tuple[object], kwargs: TYPE_kwargs) -> bool:
@@ -64,14 +63,14 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
             return False
         return check_contains(self.held_object)
 
-    @noKwargs
+    @TypedArgs('array.length')
     @noPosargs
     @InterpreterObject.method('length')
     def length_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> int:
         return len(self.held_object)
 
     @noArgsFlattening
-    @noKwargs
+    @TypedArgs('array.get')
     @typed_pos_args('array.get', int, optargs=[object])
     @InterpreterObject.method('get')
     def get_method(self, args: T.Tuple[int, T.Optional[TYPE_var]], kwargs: TYPE_kwargs) -> TYPE_var:
@@ -113,7 +112,7 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
             raise InvalidArguments(f'Index {other} out of bounds of array of size {len(self.held_object)}.')
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('array.flatten')
     @FeatureNew('array.flatten', '1.9.0')
     @InterpreterObject.method('flatten')
     def flatten_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> TYPE_var:

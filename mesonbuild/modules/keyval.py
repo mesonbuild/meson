@@ -8,7 +8,7 @@ import typing as T
 
 from . import ExtensionModule, ModuleInfo
 from .. import mesonlib
-from ..interpreterbase import noKwargs, typed_pos_args
+from ..interpreterbase import TypedArgs, typed_pos_args
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
@@ -44,8 +44,8 @@ class KeyvalModule(ExtensionModule):
 
         return result
 
-    @noKwargs
     @typed_pos_args('keyval.load', (str, mesonlib.File))
+    @TypedArgs('keyval.load')
     def load(self, state: 'ModuleState', args: T.Tuple['mesonlib.FileOrString'], kwargs: T.Dict[str, T.Any]) -> T.Dict[str, str]:
         s = args[0]
         is_built = False

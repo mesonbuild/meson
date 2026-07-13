@@ -28,7 +28,7 @@ from ..programs import ExternalProgram, NonExistingExternalProgram, Program
 from ..dependencies import Dependency
 from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, TypedArgs, typed_pos_args
-from ..interpreterbase import noPosargs, noKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
+from ..interpreterbase import noPosargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
 from .decorators import apply_machine_map
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
@@ -746,7 +746,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return ext_module
 
     @typed_pos_args('files', varargs=str)
-    @noKwargs
+    @TypedArgs('files')
     def func_files(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[mesonlib.File]:
         return self.source_strings_to_files(args[0])
 
@@ -806,7 +806,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return dep
 
     @typed_pos_args('assert', bool, optargs=[str])
-    @noKwargs
+    @TypedArgs('assert')
     def func_assert(self, node: mparser.FunctionNode, args: T.Tuple[bool, T.Optional[str]],
                     kwargs: 'TYPE_kwargs') -> None:
         value, message = args
@@ -1192,7 +1192,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 cargo=cargo_int)
 
     @typed_pos_args('get_option', str)
-    @noKwargs
+    @TypedArgs('get_option')
     def func_get_option(self, node: mparser.BaseNode, args: T.Tuple[str],
                         kwargs: TYPE_kwargs) -> T.Union[options.UserOption, 'TYPE_var']:
         optname = args[0]
@@ -1238,7 +1238,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return value
 
     @typed_pos_args('configuration_data', optargs=[dict])
-    @noKwargs
+    @TypedArgs('configuration_data')
     def func_configuration_data(self, node: mparser.BaseNode, args: T.Tuple[T.Optional[T.Dict[str, T.Any]]],
                                 kwargs: 'TYPE_kwargs') -> build.ConfigurationData:
         initial_values = args[0]
@@ -1488,7 +1488,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InvalidArguments(f'{func_name}(): {str(e)}')
 
     @noArgsFlattening
-    @noKwargs
+    @TypedArgs('message')
     def func_message(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> None:
         if len(args) > 1:
             FeatureNew.single_use('message with more than one argument', '0.54.0', self.subproject, location=node)
@@ -1573,7 +1573,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @noArgsFlattening
     @FeatureNew('warning', '0.44.0')
-    @noKwargs
+    @TypedArgs('warning')
     def func_warning(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> None:
         if len(args) > 1:
             FeatureNew.single_use('warning with more than one argument', '0.54.0', self.subproject, location=node)
@@ -1581,7 +1581,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         mlog.warning(*args_str, location=node)
 
     @noArgsFlattening
-    @noKwargs
+    @TypedArgs('error')
     def func_error(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> T.NoReturn:
         if len(args) > 1:
             FeatureNew.single_use('error with more than one argument', '0.58.0', self.subproject, location=node)
@@ -1590,12 +1590,12 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @noArgsFlattening
     @FeatureNew('debug', '0.63.0')
-    @noKwargs
+    @TypedArgs('debug')
     def func_debug(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> None:
         args_str = self._stringify_user_arguments(args, 'debug')
         mlog.debug('Debug:', *args_str)
 
-    @noKwargs
+    @TypedArgs('exception')
     @noPosargs
     def func_exception(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> T.NoReturn:
         raise RuntimeError('unit test traceback :)')
@@ -2020,14 +2020,14 @@ class Interpreter(InterpreterBase, HoldableObject):
         return d
 
     @FeatureNew('default', '1.12.0')
-    @noKwargs
     @noPosargs
+    @TypedArgs('default')
     def func_default(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> DefaultObject:
         return DefaultObject()
 
     @FeatureNew('disabler', '0.44.0')
-    @noKwargs
     @noPosargs
+    @TypedArgs('disabler')
     def func_disabler(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> Disabler:
         return Disabler()
 
@@ -2196,7 +2196,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @FeatureNew('subdir_done', '0.46.0')
     @noPosargs
-    @noKwargs
+    @TypedArgs('subdir_done')
     def func_subdir_done(self, node: mparser.BaseNode, args: TYPE_var, kwargs: TYPE_kwargs) -> T.NoReturn:
         raise SubdirDoneRequest()
 
@@ -2373,7 +2373,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @FeatureNew('alias_target', '0.52.0')
     @typed_pos_args('alias_target', str, varargs=(build.Target, build.BothLibraries), min_varargs=1)
-    @noKwargs
+    @TypedArgs('alias_target')
     def func_alias_target(self, node: mparser.BaseNode, args: T.Tuple[str, T.List[T.Union[build.Target, build.BothLibraries]]],
                           kwargs: TYPE_kwargs) -> build.AliasTarget:
         name, deps = args
@@ -2614,7 +2614,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @FeatureNew('structured_sources', '0.62.0')
     @typed_pos_args('structured_sources', object, optargs=[dict])
-    @noKwargs
+    @TypedArgs('structured_sources')
     @noArgsFlattening
     def func_structured_sources(
             self, node: mparser.BaseNode,
@@ -3301,7 +3301,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return EnvironmentVariables()
 
     @typed_pos_args('join_paths', varargs=str, min_varargs=1)
-    @noKwargs
+    @TypedArgs('join_paths')
     def func_join_paths(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> str:
         parts = args[0]
         other = os.path.join('', *parts[1:]).replace('\\', '/')
@@ -4167,7 +4167,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return self.subproject != ''
 
     @typed_pos_args('set_variable', str, (object, DefaultObject))
-    @noKwargs
+    @TypedArgs('set_variable')
     @noArgsFlattening
     @noSecondLevelHolderResolving
     def func_set_variable(self, node: mparser.BaseNode, args: T.Tuple[str, TYPE_var | InterpreterObject], kwargs: 'TYPE_kwargs') -> None:
@@ -4177,7 +4177,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.set_variable(varname, value, holderify=True)
 
     @typed_pos_args('get_variable', (str, Disabler, DefaultObject), optargs=[object])
-    @noKwargs
+    @TypedArgs('get_variable')
     @noArgsFlattening
     @unholder_return
     def func_get_variable(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, Disabler], T.Optional[TYPE_var | InterpreterObject]],
@@ -4199,13 +4199,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         raise InterpreterException(ustr)
 
     @typed_pos_args('is_variable', str)
-    @noKwargs
+    @TypedArgs('is_variable')
     def func_is_variable(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
         return args[0] in self.variables
 
     @FeatureNew('unset_variable', '0.60.0')
     @typed_pos_args('unset_variable', str)
-    @noKwargs
+    @TypedArgs('unset_variable')
     def func_unset_variable(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> None:
         varname = args[0]
         try:
@@ -4220,12 +4220,12 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @FeatureNew('is_disabler', '0.52.0')
     @typed_pos_args('is_disabler', object)
-    @noKwargs
+    @TypedArgs('is_disabler')
     def func_is_disabler(self, node: mparser.BaseNode, args: T.Tuple[object], kwargs: 'TYPE_kwargs') -> bool:
         return isinstance(args[0], Disabler)
 
-    @noKwargs
     @FeatureNew('range', '0.58.0')
+    @TypedArgs('range')
     @typed_pos_args('range', int, optargs=[int, int])
     def func_range(self, node: mparser.BaseNode, args: T.Tuple[int, T.Optional[int], T.Optional[int]],
                    kwargs: TYPE_kwargs) -> P_OBJ.RangeHolder:
