@@ -9,7 +9,7 @@ from .. import build
 from .. import dependencies
 from .. import mesonlib
 from ..interpreterbase import (
-    noPosargs, noKwargs,
+    noPosargs,
     InterpreterException, InvalidArguments, InvalidCode, FeatureNew,
 )
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, TypedArgs, typed_pos_args
@@ -214,7 +214,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
             into.deps.update(entry.if_false_deps)
         return into
 
-    @noKwargs
+    @TypedArgs('sourcset.all_sources')
     @noPosargs
     def all_sources_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs
                            ) -> T.List[str | build.TargetSources]:
@@ -222,7 +222,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
         files = self.collect(lambda x: True, True)
         return list(files.sources)
 
-    @noKwargs
+    @TypedArgs('sourcset.all_dependencies')
     @noPosargs
     @FeatureNew('source_set.all_dependencies() method', '0.52.0')
     def all_dependencies_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs
@@ -271,13 +271,13 @@ class SourceFilesObject(ModuleObject):
         })
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('source_set_files.sources')
     def sources_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs
                        ) -> T.List[str | build.TargetSources]:
         return list(self.files.sources)
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('source_set_files.dependencies')
     def dependencies_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs
                             ) -> T.List[dependencies.Dependency]:
         return list(self.files.deps)
@@ -292,7 +292,7 @@ class SourceSetModule(ExtensionModule):
             'source_set': self.source_set,
         })
 
-    @noKwargs
+    @TypedArgs('sourcset.source_set')
     @noPosargs
     def source_set(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> SourceSetImpl:
         return SourceSetImpl(self.interpreter)

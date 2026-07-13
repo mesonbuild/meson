@@ -11,10 +11,10 @@ from ...interpreterbase import (
     ObjectHolder,
     FeatureNew,
     typed_operator,
-    noKwargs,
     noPosargs,
     noArgsFlattening,
     typed_pos_args,
+    TypedArgs,
 
     TYPE_var,
 
@@ -52,19 +52,19 @@ class DictHolder(ObjectHolder[T.Dict[str, TYPE_var]], IterableObject):
     def _keys_getter(self) -> T.List[str]:
         return sorted(self.held_object)
 
-    @noKwargs
+    @TypedArgs('dict.has_key')
     @typed_pos_args('dict.has_key', str)
     @InterpreterObject.method('has_key')
     def has_key_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> bool:
         return args[0] in self.held_object
 
-    @noKwargs
+    @TypedArgs('dict.keys')
     @noPosargs
     @InterpreterObject.method('keys')
     def keys_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[str]:
         return self._keys_getter()
 
-    @noKwargs
+    @TypedArgs('dict.values')
     @noPosargs
     @InterpreterObject.method('values')
     @FeatureNew('dict.values', '1.10.0')
@@ -72,7 +72,7 @@ class DictHolder(ObjectHolder[T.Dict[str, TYPE_var]], IterableObject):
         return [self.held_object[k] for k in self._keys_getter()]
 
     @noArgsFlattening
-    @noKwargs
+    @TypedArgs('dict.get')
     @typed_pos_args('dict.get', str, optargs=[object])
     @InterpreterObject.method('get')
     def get_method(self, args: T.Tuple[str, T.Optional[TYPE_var]], kwargs: TYPE_kwargs) -> TYPE_var:

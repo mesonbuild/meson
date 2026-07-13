@@ -19,7 +19,6 @@ from ..interpreterbase import (
     FeatureNew,
 
     noPosargs,
-    noKwargs,
 
     InvalidArguments,
     InterpreterException,
@@ -129,8 +128,8 @@ class CMakeSubproject(ModuleObject):
         assert all(x in res for x in ['inc', 'src', 'dep', 'tgt', 'func'])
         return res
 
-    @noKwargs
     @typed_pos_args('cmake.subproject.get_variable', str, optargs=[str])
+    @TypedArgs('cmake.subproject.get_variable')
     def get_variable(self, state: ModuleState, args: T.Tuple[str, T.Optional[str]], kwargs: TYPE_kwargs) -> T.Union[TYPE_var, InterpreterObject]:
         return self.subp.get_variable(args, kwargs)
 
@@ -149,8 +148,8 @@ class CMakeSubproject(ModuleObject):
             return orig.generate_system_dependency(kwargs['include_type'])
         return orig
 
-    @noKwargs
     @typed_pos_args('cmake.subproject.include_directories', str)
+    @TypedArgs('cmake.subproject.include_directories')
     def include_directories(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> T.List[build.IncludeDirs]:
         info = self._args_to_info(args[0])
         inc = self.get_variable(state, [info['inc']], kwargs)
@@ -158,27 +157,27 @@ class CMakeSubproject(ModuleObject):
         assert isinstance(inc[0], build.IncludeDirs), 'for mypy'
         return inc
 
-    @noKwargs
     @typed_pos_args('cmake.subproject.target', str)
+    @TypedArgs('cmake.subproject.target')
     def target(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> build.Target:
         info = self._args_to_info(args[0])
         tgt = self.get_variable(state, [info['tgt']], kwargs)
         assert isinstance(tgt, build.Target), 'for mypy'
         return tgt
 
-    @noKwargs
     @typed_pos_args('cmake.subproject.target_type', str)
+    @TypedArgs('cmake.subproject.target_type')
     def target_type(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> str:
         info = self._args_to_info(args[0])
         return info['func']
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('cmake.subproject.target_list')
     def target_list(self, state: ModuleState, args: TYPE_var, kwargs: TYPE_kwargs) -> T.List[str]:
         return self.cm_interpreter.target_list()
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('cmake.subproject.found')
     @FeatureNew('CMakeSubproject.found()', '0.53.2')
     def found_method(self, state: ModuleState, args: TYPE_var, kwargs: TYPE_kwargs) -> bool:
         return self.subp is not None
@@ -207,7 +206,7 @@ class CMakeSubprojectOptions(ModuleObject):
         return self.target_options.global_options
 
     @typed_pos_args('subproject_options.add_cmake_defines', varargs=dict)
-    @noKwargs
+    @TypedArgs('cmake.subproject_options.add_cmake_defines')
     def add_cmake_defines(self, state: ModuleState, args: T.Tuple[T.List[T.Dict[str, TYPE_var]]], kwargs: TYPE_kwargs) -> None:
         self.cmake_options += cmake_defines_to_args(args[0])
 
@@ -232,7 +231,7 @@ class CMakeSubprojectOptions(ModuleObject):
         self._get_opts(kwargs).append_link_args(args[0])
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('cmake.subproject_options.clear')
     def clear(self, state: ModuleState, args: TYPE_var, kwargs: TYPE_kwargs) -> None:
         self.cmake_options.clear()
         self.target_options = TargetOptions()
@@ -467,7 +466,7 @@ class CmakeModule(ExtensionModule):
         return CMakeSubproject(subp)
 
     @FeatureNew('subproject_options', '0.55.0')
-    @noKwargs
+    @TypedArgs('cmake.subproject_options')
     @noPosargs
     def subproject_options(self, state: ModuleState, args: TYPE_var, kwargs: TYPE_kwargs) -> CMakeSubprojectOptions:
         return CMakeSubprojectOptions()
