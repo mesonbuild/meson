@@ -562,7 +562,10 @@ class TypedArgs:
                 unknowns = set(kwargs).difference(all_names)
                 if unknowns:
                     ustr = ', '.join(kwargs_get_close_matches(unknowns, all_names))
-                    raise InvalidArguments(f'{self.name} got unknown keyword arguments {ustr}')
+                    has_args = '.'
+                    if not self.kw_types:
+                        has_args = '. Function expects no keyword arguments.'
+                    raise InvalidArguments(f'{self.name} got unknown keyword arguments {ustr}{has_args}')
 
             for info in self.kw_types:
                 types_tuple = info.types if isinstance(info.types, tuple) else (info.types,)
