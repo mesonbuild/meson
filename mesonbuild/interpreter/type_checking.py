@@ -277,7 +277,7 @@ DEPENDS_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget, CustomTargetInde
     ContainerTypeInfo(list, (BuildTarget, CustomTarget, CustomTargetIndex, Program)),
     listify=True,
     default=[],
-    since_values={CustomTargetIndex: '1.5.0', ExternalProgram: '1.11.2'},
+    since_values={CustomTargetIndex: '1.5.0', ExternalProgram: '1.12.0'},
 )
 
 DEPEND_FILES_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
@@ -367,7 +367,7 @@ CT_INPUT_KW: KwargInfo[T.List[T.Union[str, File, BuildTarget, GeneratedTypes, Ex
     listify=True,
     default=[],
     convertor=_local_program_convertor,
-    since_values={ExternalProgram: '1.11.2'},
+    since_values={ExternalProgram: '1.12.0'},
 )
 
 CT_INSTALL_TAG_KW: KwargInfo[T.List[T.Union[str, bool]]] = KwargInfo(
