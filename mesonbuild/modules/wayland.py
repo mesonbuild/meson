@@ -8,7 +8,7 @@ import typing as T
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from ..build import CustomTarget
 from ..interpreter.type_checking import NoneType, in_set_validator
-from ..interpreterbase import typed_pos_args, typed_kwargs, KwargInfo, FeatureNew
+from ..interpreterbase import typed_pos_args, TypedArgs, KwargInfo, FeatureNew
 from ..mesonlib import File, MesonException
 
 if T.TYPE_CHECKING:
@@ -49,12 +49,14 @@ class WaylandModule(ExtensionModule):
         })
 
     @typed_pos_args('wayland.scan_xml', varargs=(str, File), min_varargs=1)
-    @typed_kwargs(
+    @TypedArgs(
         'wayland.scan_xml',
-        KwargInfo('public', bool, default=False),
-        KwargInfo('client', bool, default=True),
-        KwargInfo('server', bool, default=False),
-        KwargInfo('include_core_only', bool, default=True, since='0.64.0'),
+        kw_types=[
+            KwargInfo('public', bool, default=False),
+            KwargInfo('client', bool, default=True),
+            KwargInfo('server', bool, default=False),
+            KwargInfo('include_core_only', bool, default=True, since='0.64.0'),
+        ],
     )
     def scan_xml(self, state: ModuleState, args: T.Tuple[T.List[FileOrString]], kwargs: ScanXML) -> ModuleReturnValue:
         if self.scanner_bin is None:
@@ -107,10 +109,12 @@ class WaylandModule(ExtensionModule):
         return ModuleReturnValue(targets, targets)
 
     @typed_pos_args('wayland.find_protocol', str)
-    @typed_kwargs(
+    @TypedArgs(
         'wayland.find_protocol',
-        KwargInfo('state', str, default='stable', validator=in_set_validator({'stable', 'staging', 'unstable'})),
-        KwargInfo('version', (int, NoneType)),
+        kw_types=[
+            KwargInfo('state', str, default='stable', validator=in_set_validator({'stable', 'staging', 'unstable'})),
+            KwargInfo('version', (int, NoneType)),
+        ],
     )
     def find_protocol(self, state: ModuleState, args: T.Tuple[str], kwargs: FindProtocol) -> File:
         base_name = args[0]

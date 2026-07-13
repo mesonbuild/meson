@@ -21,7 +21,7 @@ from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
 from ..interpreter.primitives import OptionString
 from ..interpreter.type_checking import D_MODULE_VERSIONS_KW, INSTALL_DIR_KW, VARIABLES_KW, NoneType
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken
-from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
+from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, TypedArgs, typed_pos_args
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
@@ -658,29 +658,31 @@ class PkgConfigModule(NewExtensionModule):
                 ofile.write('Cflags.private: {}\n'.format(' '.join(cflags_private)))
 
     @typed_pos_args('pkgconfig.generate', optargs=[(build.SharedLibrary, build.StaticLibrary)])
-    @typed_kwargs(
+    @TypedArgs(
         'pkgconfig.generate',
-        D_MODULE_VERSIONS_KW.evolve(since='0.43.0'),
-        INSTALL_DIR_KW,
-        KwargInfo('cflags_private', ContainerTypeInfo(list, str), default=[], listify=True, since='1.9.0'),
-        KwargInfo('conflicts', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('dataonly', bool, default=False, since='0.54.0'),
-        KwargInfo('description', (str, NoneType)),
-        KwargInfo('extra_cflags', ContainerTypeInfo(list, str), default=[], listify=True, since='0.42.0'),
-        KwargInfo('filebase', (str, NoneType), validator=lambda x: 'must not be an empty string' if x == '' else None),
-        KwargInfo('name', (str, NoneType), validator=lambda x: 'must not be an empty string' if x == '' else None),
-        KwargInfo('subdirs', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('url', str, default=''),
-        KwargInfo('license', str, default='', since='1.9.0'),
-        KwargInfo('version', (str, NoneType)),
-        VARIABLES_KW.evolve(name="unescaped_uninstalled_variables", since='0.59.0'),
-        VARIABLES_KW.evolve(name="unescaped_variables", since='0.59.0'),
-        VARIABLES_KW.evolve(name="uninstalled_variables", since='0.54.0', since_values={dict: '0.56.0'}),
-        VARIABLES_KW.evolve(since='0.41.0', since_values={dict: '0.56.0'}),
-        _PKG_LIBRARIES,
-        _PKG_LIBRARIES.evolve(name='libraries_private'),
-        _PKG_REQUIRES,
-        _PKG_REQUIRES.evolve(name='requires_private'),
+        kw_types=[
+            D_MODULE_VERSIONS_KW.evolve(since='0.43.0'),
+            INSTALL_DIR_KW,
+            KwargInfo('cflags_private', ContainerTypeInfo(list, str), default=[], listify=True, since='1.9.0'),
+            KwargInfo('conflicts', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('dataonly', bool, default=False, since='0.54.0'),
+            KwargInfo('description', (str, NoneType)),
+            KwargInfo('extra_cflags', ContainerTypeInfo(list, str), default=[], listify=True, since='0.42.0'),
+            KwargInfo('filebase', (str, NoneType), validator=lambda x: 'must not be an empty string' if x == '' else None),
+            KwargInfo('name', (str, NoneType), validator=lambda x: 'must not be an empty string' if x == '' else None),
+            KwargInfo('subdirs', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('url', str, default=''),
+            KwargInfo('license', str, default='', since='1.9.0'),
+            KwargInfo('version', (str, NoneType)),
+            VARIABLES_KW.evolve(name="unescaped_uninstalled_variables", since='0.59.0'),
+            VARIABLES_KW.evolve(name="unescaped_variables", since='0.59.0'),
+            VARIABLES_KW.evolve(name="uninstalled_variables", since='0.54.0', since_values={dict: '0.56.0'}),
+            VARIABLES_KW.evolve(since='0.41.0', since_values={dict: '0.56.0'}),
+            _PKG_LIBRARIES,
+            _PKG_LIBRARIES.evolve(name='libraries_private'),
+            _PKG_REQUIRES,
+            _PKG_REQUIRES.evolve(name='requires_private'),
+        ],
     )
     def generate(self, state: ModuleState,
                  args: T.Tuple[T.Optional[T.Union[build.SharedLibrary, build.StaticLibrary]]],
