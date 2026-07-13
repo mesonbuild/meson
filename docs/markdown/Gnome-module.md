@@ -132,7 +132,7 @@ Generates a marshal file using the `glib-genmarshal` tool. The first
 argument is the basename of the output files.
 
 * `depends` [](BuildTarget | CustomTarget | CustomTargetIndex | Program):
-  passed directly to CustomTarget (*since 0.61.0*; `program` *since 1.11.2*)
+  passed directly to CustomTarget (*since 0.61.0*; `program` *since 1.12.0*)
 * `depend_files` [](str | File): Passed directly to CustomTarget (*since 0.61.0*)
 * `extra_args`: (*Added 0.42.0*) additional command line arguments to pass
 * `install_dir`: directory to install header to
