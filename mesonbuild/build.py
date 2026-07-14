@@ -307,6 +307,7 @@ class BuildProject:
     name: str
     version: str
     subproject: SubProject
+    orig_for_machine: MachineChoice
     for_machine: MachineChoice
     project_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
     project_link_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
@@ -323,6 +324,7 @@ class Build:
     """
 
     def __init__(self, environment: Environment):
+        self.for_machine = MachineChoice.HOST
         self.version = coredata.version
         self._def_files: T.Optional[T.List[str]] = None
         self.project_name = 'name of master project'
@@ -414,6 +416,7 @@ class Build:
         new = self.copy()
         new.machine_map = MachineMap(self.machine_map.build, self.machine_map.build,
                                      ThreeMachineChoice(self.machine_map.host))
+        new.for_machine = MachineChoice.BUILD
         return new
 
     def merge(self, other: Build) -> None:
