@@ -39,11 +39,13 @@ __all__ = [
     'ContainerTypeInfo',
     'KwargInfo',
     'TypedArgs',
+    'PosArgInfo',
+    'OptArgInfo',
+    'VarArgInfo',
     'FeatureCheckBase',
     'FeatureNew',
     'FeatureDeprecated',
     'FeatureBroken',
-    'TypedArgs',
 
     'InterpreterBase',
 
@@ -97,6 +99,9 @@ from .decorators import (
     FeatureDeprecated,
     FeatureBroken,
     TypedArgs,
+    PosArgInfo,
+    OptArgInfo,
+    VarArgInfo,
 )
 
 from .exceptions import (
