@@ -63,6 +63,32 @@ if T.TYPE_CHECKING:
         extra_types: T.Mapping[type, T.Callable[[object], str]] | None
         as_default: list[tuple[object, str | tuple[str, str]]] | None
 
+    class _PosArgKWs(T.TypedDict, total=False):
+
+        since: str | None
+        since_message: str | None
+        since_values: dict[object | ContainerTypeInfo | type, str | T.Tuple[str, str]] | None
+        deprecated: str | None
+        deprecated_message: str | None
+        deprecated_values: dict[object | ContainerTypeInfo | type, str | T.Tuple[str, str]] | None
+        feature_validator: T.Callable[[T.Any], T.Iterable[FeatureCheckBase]] | None
+        validator: T.Optional[T.Callable[[T.Any], str | None]]
+        convertor: T.Optional[T.Callable[[T.Any], object]]
+        listify: bool
+
+    class _OptArgKWs(_PosArgKWs, total=False):
+
+        default: TYPE_var | None
+        optional_since: str | None
+        optional_since_message: str | None
+
+    class _VarArgKWs(_PosArgKWs, total=False):
+
+        min_args: int
+        max_args: int
+        variadic_since: str | None
+        variadic_since_message: str | None
+
 
 def is_module(obj: object) -> TypeIs[ModuleObject]:
     return not hasattr(obj, 'current_node')
@@ -504,9 +530,61 @@ class KwargInfo(T.Generic[_T]):
 
 
 @dataclasses.dataclass(slots=True, eq=False)
+class _PosArgInfoBase:
+
+    types: type | T.Tuple[type | ContainerTypeInfo, ...] | ContainerTypeInfo
+    since: str | None = dataclasses.field(default=None, kw_only=True)
+    since_message: str | None = dataclasses.field(default=None, kw_only=True)
+    since_values: dict[object | ContainerTypeInfo | type, str | T.Tuple[str, str]] | None = \
+        dataclasses.field(default=None, kw_only=True)
+    deprecated: str | None = dataclasses.field(default=None, kw_only=True)
+    deprecated_message: str | None = dataclasses.field(default=None, kw_only=True)
+    deprecated_values: dict[object | ContainerTypeInfo | type, str | T.Tuple[str, str]] | None = \
+        dataclasses.field(default=None, kw_only=True)
+    feature_validator: T.Callable[[T.Any], T.Iterable[FeatureCheckBase]] | None = \
+        dataclasses.field(default=None, kw_only=True)
+    validator: T.Optional[T.Callable[[T.Any], str | None]] = dataclasses.field(default=None, kw_only=True)
+    convertor: T.Optional[T.Callable[[T.Any], object]] = dataclasses.field(default=None, kw_only=True)
+    listify: bool = dataclasses.field(default=False, kw_only=True)
+
+
+@dataclasses.dataclass(slots=True, eq=False)
+class PosArgInfo(_PosArgInfoBase):
+
+    def evolve(self, **kwargs: Unpack[_PosArgKWs]) -> PosArgInfo:
+        return dataclasses.replace(self, **kwargs)
+
+
+@dataclasses.dataclass(slots=True, eq=False)
+class OptArgInfo(_PosArgInfoBase):
+
+    default: TYPE_var | None = dataclasses.field(default=None, kw_only=True)
+    optional_since: str | None = dataclasses.field(default=None, kw_only=True)
+    optional_since_message: str | None = dataclasses.field(default=None, kw_only=True)
+
+    def evolve(self, **kwargs: Unpack[_OptArgKWs]) -> OptArgInfo:
+        return dataclasses.replace(self, **kwargs)
+
+
+@dataclasses.dataclass(slots=True, eq=False)
+class VarArgInfo(_PosArgInfoBase):
+
+    min_args: int = dataclasses.field(default=0, kw_only=True)
+    max_args: int = dataclasses.field(default=0, kw_only=True)
+    variadic_since: str | None = dataclasses.field(default=None, kw_only=True)
+    variadic_since_message: str | None = dataclasses.field(default=None, kw_only=True)
+
+    def evolve(self, **kwargs: Unpack[_VarArgKWs]) -> VarArgInfo:
+        return dataclasses.replace(self, **kwargs)
+
+
+@dataclasses.dataclass(slots=True, eq=False)
 class TypedArgs:
 
     name: str
+    pos_types: list[PosArgInfo] | None = dataclasses.field(default=None, kw_only=True)
+    opt_types: list[OptArgInfo] = dataclasses.field(default_factory=list, kw_only=True)
+    var_types: VarArgInfo | None = dataclasses.field(default=None, kw_only=True)
     kw_types: list[KwargInfo] = dataclasses.field(default_factory=list, kw_only=True)
     unknown_kwargs: bool = dataclasses.field(default=False, kw_only=True)
 
@@ -552,7 +630,7 @@ class TypedArgs:
                 has_args = '.'
                 if not self.kw_types:
                     has_args = '. Function expects no keyword arguments.'
-                raise InvalidArguments(f'{self.name} got unknown keyword arguments {ustr}{has_args}')
+                raise InvalidArguments(f'"{self.name}" got unknown keyword arguments {ustr}{has_args}')
 
         for info in self.kw_types:
             types_tuple = info.types if isinstance(info.types, tuple) else (info.types,)
@@ -632,13 +710,179 @@ class TypedArgs:
             if info.convertor:
                 kwargs[info.name] = info.convertor(kwargs[info.name])
 
+    def _pw_emit_feature_change(self, value: object, values: T.Dict[_T, T.Union[str, T.Tuple[str, str]]],
+                                feature: T.Union[T.Type['FeatureDeprecated'], T.Type['FeatureNew']],
+                                subproject: SubProject, node: mparser.BaseNode, info: _PosArgInfoBase,
+                                index: int) -> None:
+        for n, version in values.items():
+            if isinstance(version, tuple):
+                version, msg = version
+            else:
+                msg = None
+
+            warning: T.Optional[str] = None
+            if isinstance(n, ContainerTypeInfo):
+                if n.check_any(value):
+                    d, extra = n.description()
+                    warning = f'of type "{d}"'
+                    if extra:
+                        warning = f'{warning} {extra}'
+            elif isinstance(n, (type, tuple)):
+                if isinstance(value, n):
+                    warning = f'of type "{type(value).__name__}"'
+            elif isinstance(value, list):
+                if n in value:
+                    warning = f'value "{n}" in list'
+            elif isinstance(value, dict):
+                if n in value:
+                    warning = f'value "{n}" in dict keys'
+            elif n == value:
+                warning = f'value "{n}"'
+            if warning:
+                feature.single_use(f'"{self.name}" positional argument "{index}" {warning}', version, subproject, msg, location=node)
+
+    def _process_args(self, node: mparser.BaseNode, args: list[TYPE_var], subproject: SubProject) -> tuple[object, ...] | None:
+        if self.pos_types is None and not (self.opt_types or self.var_types):
+            return None
+
+        assert not (self.opt_types and self.var_types), \
+            'Cannot use optional arguments and variadic arguments together due to ambiguity'
+
+        nargs = T.cast('list[object]', args).copy()
+        num_args = len(args)
+        num_types = len(self.pos_types or [])
+        types: tuple[_PosArgInfoBase, ...] = tuple(self.pos_types or [])
+
+        if self.var_types:
+            min_args = num_types + self.var_types.min_args
+            max_args = num_types + self.var_types.max_args
+            if self.var_types.max_args == 0 and num_args < min_args:
+                raise InvalidArguments.from_node(
+                    f'"{self.name}" takes at least {min_args} arguments, but got {num_args}.',
+                    node=node)
+            elif self.var_types.max_args != 0 and (num_args < min_args or num_args > max_args):
+                raise InvalidArguments.from_node(
+                    f'"{self.name}" takes between {min_args} and {max_args} arguments, but got {num_args}.',
+                    node=node)
+        elif self.opt_types:
+            if num_args < num_types:
+                raise InvalidArguments.from_node(
+                    f'"{self.name}" takes at least {num_types} arguments, but got {num_args}.',
+                    node=node)
+
+            num_types_tot = num_types + len(self.opt_types)
+            if num_args > num_types_tot:
+                raise InvalidArguments.from_node(
+                    f'"{self.name}" takes at most {num_types_tot} arguments, but got {num_args}.',
+                    node=node)
+
+            # The number of unset optional arguments we need to use the default values for
+            unset_opt_args = num_args - num_types
+            # Add the types to cover optional arguments that have been passed
+            types = tuple(list(types) + list(self.opt_types[:unset_opt_args]))
+            assert len(types) == num_args, (len(types), num_args)
+        elif num_args != num_types:
+            raise InvalidArguments.from_node(
+                f'"{self.name}" takes exactly {num_types} arguments, but got {num_args}.',
+                node=node)
+
+        for i, (value, info) in enumerate(itertools.zip_longest(args, types, fillvalue=self.var_types), start=1):
+            assert info is not None, 'We should never get a None info'
+            types_tuple = info.types if isinstance(info.types, tuple) else (info.types,)
+
+            if isinstance(value, DefaultObject) and DefaultObject not in types_tuple:
+                if isinstance(info, PosArgInfo):
+                    raise InvalidArguments.from_node(
+                        'default() objects are not allowed for required positional arguments', node=node)
+                elif isinstance(info, OptArgInfo):
+                    FeatureNew.single_use('default() object for optional positional arguments', '1.13.0',
+                                          subproject, location=node)
+                    # Replace the DefaultObject with the default value, but skip further validation.
+                    # If the default is None, and we don't have None in the types_tuple (common),
+                    # then we'll fail validation later.
+                    nargs[i - 1] = value = copy.copy(info.default)
+                    continue
+                else:
+                    raise InvalidArguments.from_node(
+                        'default() objects are not allowed for variadic arguments', node=node)
+
+            if info.since:
+                feature_name = f'positional argument "{i}" in {self.name}'
+                FeatureNew.single_use(feature_name, info.since, subproject, info.since_message, location=node)
+
+            if info.deprecated:
+                feature_name = f'positional argument "{i}" in {self.name}'
+                FeatureDeprecated.single_use(feature_name, info.deprecated, subproject, info.deprecated_message, location=node)
+
+            if info.listify:
+                nargs[i - 1] = value = mesonlib.listify(value)
+
+            if not _check_value_type(types_tuple, value):
+                raise InvalidArguments(
+                    _shouldbe_format(self.name, 'positional', str(i), value, types_tuple))
+
+            if info.validator is not None:
+                msg = info.validator(value)
+                if msg is not None:
+                    raise InvalidArguments.from_node(
+                        f'"{self.name}" positional argument "{i}" {msg}', node=node)
+
+            if info.feature_validator is not None:
+                for each in info.feature_validator(value):
+                    each.use(subproject, node)
+
+            if info.deprecated_values is not None:
+                self._pw_emit_feature_change(
+                    value, info.deprecated_values, FeatureDeprecated, subproject, node, info, i)
+
+            if info.since_values is not None:
+                self._pw_emit_feature_change(
+                    value, info.since_values, FeatureNew, subproject, node, info, i)
+
+            if info.convertor:
+                nargs[i - 1] = info.convertor(value)
+
+        if self.opt_types:
+            for i, info in enumerate(self.opt_types[unset_opt_args:], start=num_args):
+                if info.optional_since:
+                    feature_name = f'positional argument "{i}" in {self.name} as optional'
+                    FeatureNew.single_use(feature_name, info.optional_since, subproject,
+                                          info.optional_since_message, node)
+
+                nargs.append(copy.copy(info.default))
+        elif self.var_types:
+            # if we have varargs we need to split them into a separate
+            # tuple, as python's typing doesn't understand tuples with
+            # fixed elements and variadic elements, only one or the other.
+            # so in that case we need T.Tuple[int, str, float, T.Tuple[str, ...]]
+            pos = nargs[:len(types)]
+            var = list(nargs[len(types):])
+            nargs = pos
+            nargs.append(var)
+
+            if self.var_types.variadic_since is not None and len(var) > 1:
+                FeatureNew.single_use(f'"{self.name}": More than one variadic argument',
+                                      self.var_types.variadic_since,
+                                      subproject, location=node)
+
+        return tuple(nargs)
+
     # TODO: need to use two different types here to avoid passing the original type through
     def __call__(self, f: TV_func) -> T.Callable[..., T.Any]:
         @wraps(f)
         def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            node, _, _kwargs, subproject = get_callee_args(wrapped_args)
+            node, _args, _kwargs, subproject = get_callee_args(wrapped_args)
+
+            assert _args is not None, 'for mypy'
+            assert _kwargs is not None, 'for mypy'
 
             self._process_kwargs(node, _kwargs, subproject)
+            args = self._process_args(node, _args, subproject)
+            if args is not None:
+                w = list(wrapped_args)
+                i = w.index(_args)
+                w[i] = args
+                wrapped_args = tuple(w)
 
             return f(*wrapped_args, **wrapped_kwargs)
         return T.cast('T.Callable[..., T.Any]', wrapper)

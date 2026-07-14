@@ -14,7 +14,10 @@ from ..build import (CustomTarget, BuildTarget,
 from ..options import OptionKey
 from ..dependencies import Dependency, DependencyMethods, InternalDependency
 from ..interpreterbase import Feature
-from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken, FeatureDeprecated, FeatureNew
+from ..interpreterbase.decorators import (
+    KwargInfo, ContainerTypeInfo, FeatureBroken, FeatureDeprecated, FeatureNew,
+    PosArgInfo, OptArgInfo, VarArgInfo,
+)
 from ..mesonlib import (File, FileMode, MachineChoice, has_path_sep, listify, stringlistify,
                         EnvironmentVariables)
 from ..programs import Program, ExternalProgram
@@ -1161,3 +1164,23 @@ DEPENDENCY_KWS: T.List[KwargInfo] = [
     KwargInfo('static', (bool, NoneType)),
     KwargInfo('version', ContainerTypeInfo(list, str), listify=True, default=[]),
 ]
+
+STR_PARG = PosArgInfo(str)
+STR_FILE_PARG = PosArgInfo((str, File))
+INT_PARG = PosArgInfo(int)
+BOOL_PARG = PosArgInfo(bool)
+OBJ_PARG = PosArgInfo(object)
+
+STR_OARG = OptArgInfo(str)
+INT_OARG = OptArgInfo(int)
+BOOL_OARG = OptArgInfo(bool)
+OBJ_OARG = OptArgInfo(object)
+
+STR_VARG = VarArgInfo(str)
+STR_VARG_1 = VarArgInfo(str, min_args=1)
+STR_FILE_VARG = VarArgInfo((str, File))
+INT_VARG = VarArgInfo(int)
+BOOL_VARG = VarArgInfo(bool)
+OBJ_VARG = VarArgInfo(object)
+SRC_VARG = VarArgInfo(SOURCES_VARARGS)
+TGT_VARG = VarArgInfo((str, File, CustomTarget, CustomTargetIndex, GeneratedList))
