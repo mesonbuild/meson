@@ -5125,10 +5125,11 @@ class AllPlatformTests(BasePlatformTests):
 
         def output_name(name, type_):
             target = type_(name=name, subdir='',
-                           for_machine=MachineChoice.HOST, sources=[],
+                           orig_for_machine=MachineChoice.HOST, sources=[],
                            structured_sources=None,
                            objects=[], environment=env, compilers=env.coredata.compilers[MachineChoice.HOST],
-                           build_project=BuildProject('', '', SubProject(''), MachineChoice.HOST), kwargs={})
+                           build_project=BuildProject('', '', SubProject(''), MachineChoice.HOST),
+                           kwargs={'native': MachineChoice.HOST})
             target.process_compilers_late()
             return target.filename
 

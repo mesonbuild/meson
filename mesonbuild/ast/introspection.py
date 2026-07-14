@@ -254,12 +254,14 @@ class IntrospectionInterpreter(AstInterpreter):
                 assert extraf_nodes is None
                 extraf_nodes = v
 
+        for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
+
         # Make sure nothing can crash when creating the build class
         _kwargs_reduced = {k: v for k, v in kwargs.items() if k in _TARGET_KWARGS[targetclass.typename] and k in {'install', 'build_by_default', 'build_always', 'name_prefix'}}
         _kwargs_reduced = {k: v.value if isinstance(v, ElementaryNode) else v for k, v in _kwargs_reduced.items()}
         _kwargs_reduced = {k: v for k, v in _kwargs_reduced.items() if not isinstance(v, (BaseNode, UnknownValue))}
+        _kwargs_reduced['native'] = for_machine
         kwargs_reduced = T.cast('BuildTargetKeywordArguments', _kwargs_reduced)
-        for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
         objects: T.List[T.Any] = []
         empty_sources: T.List[T.Any] = []
         # Passing the unresolved sources list causes errors

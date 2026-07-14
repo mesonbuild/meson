@@ -477,23 +477,23 @@ class Build:
         return self.install_dirs
 
     def get_global_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
-        d = self.global_args[target.for_machine]
+        d = self.global_args[target.orig_for_machine]
         return d.get(compiler.get_language(), [])
 
     def get_project_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
         d = target.build_project
-        args = d.project_args[target.for_machine]
+        args = d.project_args[target.orig_for_machine]
         if not args:
             return []
         return args.get(compiler.get_language(), [])
 
     def get_global_link_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
-        d = self.global_link_args[target.for_machine]
+        d = self.global_link_args[target.orig_for_machine]
         return d.get(compiler.get_language(), [])
 
     def get_project_link_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
         d = target.build_project
-        link_args = d.project_link_args[target.for_machine]
+        link_args = d.project_link_args[target.orig_for_machine]
         if not link_args:
             return []
 
@@ -796,7 +796,7 @@ class BuildTarget(Target):
             self,
             name: str,
             subdir: str,
-            for_machine: MachineChoice,
+            orig_for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.Sequence[ObjectTypes | GeneratedTypes],
@@ -805,10 +805,11 @@ class BuildTarget(Target):
             build_project: BuildProject,
             kwargs: BuildTargetKeywordArguments):
         super().__init__(name, subdir, kwargs.get('build_by_default', True),
-                         for_machine, environment,
+                         kwargs['native'], environment,
                          install=kwargs.get('install', False),
                          build_subdir=kwargs.get('build_subdir', ''),
                          build_project=build_project)
+        self.orig_for_machine = orig_for_machine
         self.original_kwargs = kwargs
         # all_compilers is a reference to Interpreter.compilers, as such we
         # cannot mutate it inside build. Use a Mapping to get help from the
@@ -2192,7 +2193,7 @@ class Executable(BuildTarget, LinkableTarget):
             self,
             name: str,
             subdir: str,
-            for_machine: MachineChoice,
+            orig_for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.Sequence[ObjectTypes | GeneratedTypes],
@@ -2202,7 +2203,7 @@ class Executable(BuildTarget, LinkableTarget):
             kwargs: ExecutableKeywordArguments):
         self.export_dynamic = kwargs.get('export_dynamic', False)
         self.rust_crate_type = kwargs.get('rust_crate_type', 'bin')
-        super().__init__(name, subdir, for_machine, sources, structured_sources, objects,
+        super().__init__(name, subdir, orig_for_machine, sources, structured_sources, objects,
                          environment, compilers, build_project, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
         self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
@@ -2325,7 +2326,7 @@ class StaticLibrary(BuildTarget, LinkableTarget):
             self,
             name: str,
             subdir: str,
-            for_machine: MachineChoice,
+            orig_for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.Sequence[ObjectTypes | GeneratedTypes],
@@ -2335,7 +2336,7 @@ class StaticLibrary(BuildTarget, LinkableTarget):
             kwargs: StaticLibraryKeywordArguments):
         self.prelink = kwargs.get('prelink', False)
         self.rust_crate_type = kwargs.get('rust_crate_type', 'rlib')
-        super().__init__(name, subdir, for_machine, sources, structured_sources, objects,
+        super().__init__(name, subdir, orig_for_machine, sources, structured_sources, objects,
                          environment, compilers, build_project, kwargs)
         self.pic = self._extract_pic_pie(kwargs, 'pic', 'b_staticpic')
         if not self.pic:
@@ -2507,7 +2508,7 @@ class SharedLibrary(BuildTarget, LinkableTarget):
             self,
             name: str,
             subdir: str,
-            for_machine: MachineChoice,
+            orig_for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.Sequence[ObjectTypes | GeneratedTypes],
@@ -2515,7 +2516,7 @@ class SharedLibrary(BuildTarget, LinkableTarget):
             compilers: CompilerDict,
             build_project: BuildProject,
             kwargs: SharedLibraryKeywordArguments):
-        super().__init__(name, subdir, for_machine, sources, structured_sources, objects,
+        super().__init__(name, subdir, orig_for_machine, sources, structured_sources, objects,
                          environment, compilers, build_project, kwargs)
         # Max length 2, first element is compatibility_version, second is current_version
         self.darwin_versions: T.Optional[T.Tuple[str, str]] = None
@@ -2845,7 +2846,7 @@ class SharedModule(SharedLibrary):
             self,
             name: str,
             subdir: str,
-            for_machine: MachineChoice,
+            orig_for_machine: MachineChoice,
             sources: T.List['SourceOutputs'],
             structured_sources: T.Optional[StructuredSources],
             objects: T.Sequence[ObjectTypes | GeneratedTypes],
@@ -2853,7 +2854,7 @@ class SharedModule(SharedLibrary):
             compilers: CompilerDict,
             build_project: BuildProject,
             kwargs: SharedModuleKeywordArguments):
-        super().__init__(name, subdir, for_machine, sources,
+        super().__init__(name, subdir, orig_for_machine, sources,
                          structured_sources, objects, environment, compilers, build_project,
                          # SharedModuleKeywordArguments is a subclass, it's annoying mypy can't figure this out
                          T.cast('SharedLibraryKeywordArguments', kwargs))
@@ -3238,6 +3239,7 @@ class CompileTarget(BuildTarget):
             'language_args': defaultdict(list, [(compiler.language, compile_args)]),
             'include_directories': include_directories,
             'dependencies': dependencies,
+            'native': compiler.for_machine,
         }
         super().__init__(name, subdir, compiler.for_machine,
                          sources, None, [], environment, compilers,
@@ -3338,11 +3340,11 @@ class Jar(BuildTarget):
     typename = 'jar'
     rust_crate_type = ''  # type: ignore[assignment]
 
-    def __init__(self, name: str, subdir: str, for_machine: MachineChoice,
+    def __init__(self, name: str, subdir: str, orig_for_machine: MachineChoice,
                  sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
                  objects: T.Sequence[ObjectTypes | GeneratedTypes], environment: Environment, compilers: CompilerDict,
                  build_project: BuildProject, kwargs: JarKeywordArguments):
-        super().__init__(name, subdir, for_machine, sources, structured_sources, objects,
+        super().__init__(name, subdir, orig_for_machine, sources, structured_sources, objects,
                          environment, compilers, build_project, kwargs)
         for s in self.sources:
             if not s.endswith('.java'):
