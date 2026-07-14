@@ -1196,7 +1196,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         # per-project link arguments.  Link args added from the env (LDFLAGS)
         # override all the defaults but not the per-target link args.
         return build.get_project_link_args(self, target) \
-            + build.get_global_link_args(self, self.for_machine) \
+            + build.get_global_link_args(self, target) \
             + self.environment.coredata.get_external_link_args(self.for_machine, self.get_language())
 
     def get_target_link_args(self, target: 'BuildTarget') -> T.List[str]:
