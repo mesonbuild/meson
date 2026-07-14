@@ -307,6 +307,13 @@ class BuildProject:
     name: str
     version: str
     subproject: SubProject
+    # orig_for_machine in BuildProject and BuildTarget is used to choose
+    # between "native: true" and "native: false" global arguments
+    #    proj.o_f_m     target.o_f_m        global arguments used
+    #    BUILD          HOST                BUILD ("native: true")
+    #    BUILD          BUILD               BUILD ("native: true")
+    #    HOST           HOST                HOST ("native: false")
+    #    HOST           BUILD               BUILD ("native: true")
     orig_for_machine: MachineChoice
     for_machine: MachineChoice
     project_args: PerMachine[T.Dict[Language, T.List[str]]] = field(default_factory=lambda: PerMachine({}, {}))
@@ -480,7 +487,14 @@ class Build:
         return self.install_dirs
 
     def get_global_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
-        d = self.global_args[target.orig_for_machine]
+        # for build-machine subprojects, even "native: false" targets use
+        # the global build-machine arguments (using the host machine would
+        # make no sense when cross compiling)
+        args_machine = MachineChoice.BUILD \
+            if target.build_project.orig_for_machine is MachineChoice.BUILD \
+            else target.orig_for_machine
+
+        d = self.global_args[args_machine]
         return d.get(compiler.get_language(), [])
 
     def get_project_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
@@ -491,7 +505,11 @@ class Build:
         return args.get(compiler.get_language(), [])
 
     def get_global_link_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
-        d = self.global_link_args[target.orig_for_machine]
+        args_machine = MachineChoice.BUILD \
+            if target.build_project.orig_for_machine is MachineChoice.BUILD \
+            else target.orig_for_machine
+
+        d = self.global_link_args[args_machine]
         return d.get(compiler.get_language(), [])
 
     def get_project_link_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
