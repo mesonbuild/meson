@@ -959,7 +959,7 @@ class RustModule(ExtensionModule):
 
         # bindgen assumes that C++ headers will be called .hpp. We want to
         # ensure that anything Meson considers a C++ header is treated as one.
-        language = kwargs['language']
+        language: T.Optional[T.Union[Language, str]] = kwargs['language']
         if language is None:
             ext = os.path.splitext(name)[1][1:]
             if ext in lang_suffixes['cpp']:
@@ -1187,7 +1187,7 @@ class RustModule(ExtensionModule):
                 'outfile name must not contain a path segment', node=state.current_node)
 
         # Detect langauge from output file extension
-        language = kwargs['language']
+        language: T.Optional[str] = kwargs['language']
         if language is None:
             ext = os.path.splitext(outfile)[1][1:]
             if ext in lang_suffixes['cpp']:
