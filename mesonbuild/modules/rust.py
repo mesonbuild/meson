@@ -29,7 +29,7 @@ from ..interpreterbase import (
     ContainerTypeInfo, InterpreterException, KwargInfo, TypedArgs,
     PosArgInfo, OptArgInfo,
 )
-from ..interpreter.interpreterobjects import Doctest
+from ..interpreter.interpreterobjects import CustomTargetHolder, Doctest
 from ..mesonlib import (is_parent_path, File, MachineChoice, MesonException, PerMachine)
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
@@ -626,6 +626,12 @@ def _cbindgen_config_validator(val: str) -> T.Optional[str]:
     return None
 
 
+class RustBindgenTarget(CustomTarget):
+    """CustomTarget produced by rust.bindgen() preserving original kwargs."""
+
+    original_kwargs: FuncBindgen
+
+
 class RustModule(ExtensionModule):
 
     """A module that holds helper functions for rust."""
@@ -961,7 +967,11 @@ class RustModule(ExtensionModule):
         if self._bindgen_bin is None:
             self._bindgen_bin = state.find_program('bindgen', wanted=kwargs['bindgen_version'])
             if self._bindgen_rust_target is not None:
-                _, _, err = mesonlib.Popen_safe(self._bindgen_bin.get_command() + ['--rust-target', self._bindgen_rust_target])
+                err = self.interpreter.run_command_impl(
+                    (self._bindgen_bin, ['--rust-target', self._bindgen_rust_target]),
+                    {'capture': True, 'console': False, 'check': False, 'env': mesonlib.EnvironmentVariables()},
+                    True,
+                ).stderr
                 # < 0.71: Sometimes this is "invalid Rust target" and
                 # sometimes "invalid # rust target"
                 # >= 0.71: error: invalid value '...' for '--rust-target <RUST_TARGET>': "..." is not a valid Rust target, accepted values are of the form ...
@@ -1054,7 +1064,7 @@ class RustModule(ExtensionModule):
         cmd.extend(clang_args)
         cmd.extend(['-MD', '-MQ', '@INPUT@', '-MF', '@DEPFILE@'])
 
-        target = CustomTarget(
+        target = RustBindgenTarget(
             f'rustmod-bindgen-{name}'.replace('/', '_'),
             state.subdir,
             state.environment,
@@ -1068,6 +1078,7 @@ class RustModule(ExtensionModule):
             backend=state.backend,
             description='Generating bindings for Rust {}',
         )
+        target.original_kwargs = kwargs
 
         return ModuleReturnValue(target, [target])
 
@@ -1290,4 +1301,6 @@ class RustModule(ExtensionModule):
 
 
 def initialize(interp: Interpreter) -> RustModule:
-    return RustModule(interp)
+    mod = RustModule(interp)
+    mod.interpreter.append_holder_map(RustBindgenTarget, CustomTargetHolder)
+    return mod
