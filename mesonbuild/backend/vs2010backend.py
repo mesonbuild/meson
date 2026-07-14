@@ -1063,15 +1063,11 @@ class Vs2010Backend(backends.Backend):
                 file_args[l] += comp.get_option_std_args(
                     target, target.subproject)
 
-        # Add compile args added using add_project_arguments()
+        # Add compile args added using add_project_arguments() and add_global_arguments()
         for l, comp in target.compilers.items():
             file_args[l] += self.build.get_project_args(comp, target)
+            file_args[l] += self.build.get_global_args(comp, target.for_machine)
 
-        # Add compile args added using add_global_arguments()
-        # These override per-project arguments
-        for l, args in self.build.global_args[target.for_machine].items():
-            if l in file_args:
-                file_args[l] += args
         # Compile args added from the env or cross file: CFLAGS/CXXFLAGS, etc. We want these
         # to override all the defaults, but not the per-target compile args.
         for lang in file_args.keys():
