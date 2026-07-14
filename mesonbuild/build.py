@@ -476,8 +476,8 @@ class Build:
     def get_install_subdirs(self) -> T.List['InstallDir']:
         return self.install_dirs
 
-    def get_global_args(self, compiler: 'Compiler', for_machine: 'MachineChoice') -> T.List[str]:
-        d = self.global_args[for_machine]
+    def get_global_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
+        d = self.global_args[target.for_machine]
         return d.get(compiler.get_language(), [])
 
     def get_project_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
@@ -487,8 +487,8 @@ class Build:
             return []
         return args.get(compiler.get_language(), [])
 
-    def get_global_link_args(self, compiler: 'Compiler', for_machine: 'MachineChoice') -> T.List[str]:
-        d = self.global_link_args[for_machine]
+    def get_global_link_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:
+        d = self.global_link_args[target.for_machine]
         return d.get(compiler.get_language(), [])
 
     def get_project_link_args(self, compiler: 'Compiler', target: BuildTarget) -> T.List[str]:

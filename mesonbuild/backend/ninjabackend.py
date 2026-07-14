@@ -1896,7 +1896,7 @@ class NinjaBackend(backends.Backend):
         args += cython.get_optimization_args(optimization)
         args += cython.get_option_compile_args(target, target.subproject)
         args += cython.get_option_std_args(target, target.subproject)
-        args += self.build.get_global_args(cython, target.for_machine)
+        args += self.build.get_global_args(cython, target)
         args += self.build.get_project_args(cython, target)
         args += target.get_extra_args('cython')
 
@@ -2416,7 +2416,7 @@ class NinjaBackend(backends.Backend):
         compile_args += swiftc.get_module_args(module_name)
         compile_args += swiftc.get_cxx_interoperability_args(target)
         compile_args += self.build.get_project_args(swiftc, target)
-        compile_args += self.build.get_global_args(swiftc, target.for_machine)
+        compile_args += self.build.get_global_args(swiftc, target)
         if isinstance(target, (build.StaticLibrary, build.SharedLibrary)):
             # swiftc treats modules with a single source file, and the main.swift file in multi-source file modules
             # as top-level code. This is undesirable in library targets since it emits a main function. Add the
@@ -2430,7 +2430,7 @@ class NinjaBackend(backends.Backend):
         compile_args += target.get_extra_args('swift')
         link_args = swiftc.get_output_args(os.path.join(self.environment.get_build_dir(), self.get_target_filename(target)))
         link_args += self.build.get_project_link_args(swiftc, target)
-        link_args += self.build.get_global_link_args(swiftc, target.for_machine)
+        link_args += self.build.get_global_link_args(swiftc, target)
         rundir = self.get_target_private_dir(target)
         out_module_name = self.swift_module_file_name(target)
         in_module_files = self.determine_swift_dep_modules(target)
