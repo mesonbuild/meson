@@ -224,7 +224,8 @@ class ValaCompiler(Compiler):
               compiler: T.Optional['Compiler'] = None,
               extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
               dependencies: T.Optional[T.List['Dependency']] = None,
-              disable_cache: bool = False) -> T.Tuple[bool, bool]:
+              disable_cache: bool = False,
+              testname: str = '') -> T.Tuple[bool, bool]:
         self.force_link = True
         if compiler:
             with compiler._build_wrapper(code, dependencies=dependencies, want_output=True) as r:
