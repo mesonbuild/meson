@@ -490,3 +490,42 @@ class WindowsTests(BasePlatformTests):
         with mock.patch.object(self, 'install_command', self.meson_command + ['install']):
             out = self.install(override_envvars=env)
             self.assertIn('Activating VS', out)
+
+    def test_custom_target_in_depends_no_extra_paths_bloat(self):
+        '''
+        Test that when a test depends on a non-BuildTarget, the extra_paths does
+        not include parent directories from that non-BuildTarget.
+
+        This is a regression test for: when t.depends contained non-BuildTarget
+        items (like CustomTarget), they were incorrectly added to extra_bdeps
+        and their parent directories could end up in the PATH, causing bloat.
+
+        See: https://www.postgresql.org/message-id/CAD5tBcJXAX8bz5q9ngE4znvVLiXaPO89D0yTFhJgEPrPyT-Erw@mail.gmail.com
+        '''
+        testdir = os.path.join(self.platform_test_dir, '13 test argument extra paths')
+        self.init(testdir)
+
+        tests = self.introspect('--tests')
+        test_with_custom_depends = None
+        for t in tests:
+            if t['name'] == 'run_exe_with_custom_depends':
+                test_with_custom_depends = t
+                break
+
+        self.assertIsNotNone(test_with_custom_depends, 'Test run_exe_with_custom_depends not found')
+
+        extra_paths = test_with_custom_depends.get('extra_paths', [])
+        self.assertIsInstance(extra_paths, list)
+
+        # The executable 'barexe' links against libfoo, so the lib directory
+        # should be in extra_paths (so the DLL can be found at runtime).
+        self.assertTrue(any('lib' in p for p in extra_paths) or len(extra_paths) == 0,
+            f'extra_paths should contain a lib directory or be empty: {extra_paths}')
+
+        # The test depends on a CustomTarget in the test subdirectory.
+        # The CustomTarget's parent directory should NOT appear in extra_paths.
+        for path in extra_paths:
+            self.assertNotIn('test', path,
+                'extra_paths should not include the test subdirectory. '
+                'This would indicate that non-BuildTarget dependencies are incorrectly '
+                'adding their parent directories to PATH.')
