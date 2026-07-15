@@ -14,7 +14,6 @@ from ..dependencies import NotFoundDependency
 from ..dependencies.detect import get_dep_identifier, find_external_dependency
 from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase
 from ..interpreter import extract_required_kwarg, primitives as P_OBJ
-from ..interpreter.decorators import apply_machine_map
 from ..interpreter.interpreterobjects import ProgramHolder
 from ..interpreter.type_checking import NoneType, DEPENDENCY_KWS, PRESERVE_PATH_KW, REQUIRED_KW, SHARED_MOD_KWS
 from ..interpreterbase import (
@@ -153,7 +152,6 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         _LIMITED_API_KW,
         KwargInfo('install_dir', (str, bool, NoneType)),
     )
-    @apply_machine_map
     @InterpreterObject.method('extension_module')
     def extension_module_method(self, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: ExtensionModuleKw) -> 'SharedModule':
         target_kwargs = T.cast('SharedModuleKw', {k: v for k, v in kwargs.items() if k not in {'install_dir', 'subdir', 'limited_api'}})
@@ -204,7 +202,8 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
             target_kwargs['cpp_args'] = new_cpp_args
 
             # On Windows, the limited API DLL is python3.dll, not python3X.dll.
-            for_machine = kwargs['native']
+            # FIXME: pydep.for_machine is nicer, but InternalDependency does not have the attribute
+            for_machine = self.interpreter.build.machine_map[kwargs['native']]
             if self.interpreter.environment.machines[for_machine].is_windows():
                 pydep_copy = copy.copy(pydep)
                 if isinstance(pydep_copy, _PythonDependencyBase):
@@ -270,7 +269,9 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         return '0x{:02x}{:02x}0000'.format(major, minor)
 
     def _dependency_method_impl(self, kwargs: DependencyObjectKWs) -> Dependency:
-        for_machine = kwargs['native']
+        for_machine = self.interpreter.build.machine_map[kwargs['native']]
+        kwargs['native'] = for_machine
+
         identifier = get_dep_identifier(self._full_path(), kwargs)
 
         dep = self.interpreter.coredata.deps[for_machine].get(identifier)
