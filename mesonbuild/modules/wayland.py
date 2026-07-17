@@ -7,8 +7,8 @@ import typing as T
 
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from ..build import CustomTarget
-from ..interpreter.type_checking import NoneType, in_set_validator
-from ..interpreterbase import typed_pos_args, TypedArgs, KwargInfo, FeatureNew
+from ..interpreter.type_checking import STR_PARG, STR_FILE_VARG,  NoneType, in_set_validator
+from ..interpreterbase import TypedArgs, KwargInfo, FeatureNew
 from ..mesonlib import File, MesonException
 
 if T.TYPE_CHECKING:
@@ -48,9 +48,9 @@ class WaylandModule(ExtensionModule):
             'find_protocol': self.find_protocol,
         })
 
-    @typed_pos_args('wayland.scan_xml', varargs=(str, File), min_varargs=1)
     @TypedArgs(
         'wayland.scan_xml',
+        var_types=STR_FILE_VARG,
         kw_types=[
             KwargInfo('public', bool, default=False),
             KwargInfo('client', bool, default=True),
@@ -108,9 +108,9 @@ class WaylandModule(ExtensionModule):
 
         return ModuleReturnValue(targets, targets)
 
-    @typed_pos_args('wayland.find_protocol', str)
     @TypedArgs(
         'wayland.find_protocol',
+        pos_types=[STR_PARG],
         kw_types=[
             KwargInfo('state', str, default='stable', validator=in_set_validator({'stable', 'staging', 'unstable'})),
             KwargInfo('version', (int, NoneType)),
