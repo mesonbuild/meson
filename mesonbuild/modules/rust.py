@@ -194,9 +194,9 @@ class RustWorkspace(ModuleObject):
         opt_types=[STR_OARG],
         kw_types=[NATIVE_KW.evolve(since='1.12.0')],
     )
-    def package_method(self, state: 'ModuleState', args: T.List, kwargs: FuncPackage) -> RustPackage:
+    def package_method(self, state: 'ModuleState', args: tuple[str | None], kwargs: FuncPackage) -> RustPackage:
         """Returns a package object."""
-        package_name = args[0] if args else None
+        package_name = args[0]
         return RustPackage(state, self, self.interpreter.cargo.load_package(self.ws, package_name),
                            kwargs['native'])
 
@@ -223,13 +223,13 @@ class RustWorkspace(ModuleObject):
     @TypedArgs(
         'workspace.subproject',
         pos_types=[STR_PARG],
-        opt_types=[STR_OARG],
+        opt_types=[STR_OARG.evolve(default='')],
         kw_types=[NATIVE_KW.evolve(since='1.12.0')],
     )
-    def subproject_method(self, state: ModuleState, args: T.Tuple[str, T.Optional[str]], kwargs: FuncSubproject) -> RustSubproject:
+    def subproject_method(self, state: ModuleState, args: T.Tuple[str, str], kwargs: FuncSubproject) -> RustSubproject:
         """Returns a package object for a subproject package."""
         package_name = args[0]
-        pkg = self.interpreter.cargo.resolve_package(package_name, args[1] or '')
+        pkg = self.interpreter.cargo.resolve_package(package_name, args[1])
         if pkg is None:
             if args[1]:
                 raise MesonException(f'No version of cargo package "{package_name}" provides API {args[1]}')
