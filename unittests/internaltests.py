@@ -26,6 +26,7 @@ import mesonbuild.envconfig
 import mesonbuild.environment
 import mesonbuild.modules.cuda
 import mesonbuild.modules.gnome
+import mesonbuild.scripts.depfixer
 import mesonbuild.scripts.env2mfile
 from mesonbuild import coredata
 from mesonbuild.compilers.c import ClangCCompiler, GnuCCompiler
@@ -2499,3 +2500,14 @@ Thread model: posix'''), '21.9.0')
             with self.subTest(cuda_version=cuda_version, arch_list=arch_list):
                 with self.assertRaisesRegex(InvalidArguments, message):
                     flags(cuda_version, arch_list)
+
+    def test_depfixer_skips_install_name_tool_on_non_darwin(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, 'libfoo.so')
+            with open(fname, 'wb') as f:
+                f.write(b'not an elf file')
+            with mock.patch('mesonbuild.scripts.depfixer.INSTALL_NAME_TOOL', True), \
+                 mock.patch('mesonbuild.scripts.depfixer.fix_darwin') as mock_fix_darwin:
+                mesonbuild.scripts.depfixer.fix_rpath(
+                    fname, set(), '', '', {}, system='linux', verbose=False)
+                mock_fix_darwin.assert_not_called()
