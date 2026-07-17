@@ -25,6 +25,7 @@ import mesonbuild.dependencies.factory
 import mesonbuild.envconfig
 import mesonbuild.environment
 import mesonbuild.modules.gnome
+import mesonbuild.scripts.depfixer
 import mesonbuild.scripts.env2mfile
 from mesonbuild import coredata
 from mesonbuild.compilers.c import ClangCCompiler, GnuCCompiler
@@ -2233,3 +2234,13 @@ class InternalTests(unittest.TestCase):
                 self.assertEqual(actual.compile_args, expected.compile_args)
                 self.assertEqual(actual.link_args, expected.link_args)
                 self.assertEqual(actual.cmake, expected.cmake)
+
+    def test_depfixer_skips_install_name_tool_on_non_darwin(self) -> None:
+        with tempfile.NamedTemporaryFile(suffix='.so') as f:
+            f.write(b'not an elf file')
+            f.flush()
+            with mock.patch('mesonbuild.scripts.depfixer.INSTALL_NAME_TOOL', True), \
+                 mock.patch('mesonbuild.scripts.depfixer.fix_darwin') as mock_fix_darwin:
+                mesonbuild.scripts.depfixer.fix_rpath(
+                    f.name, set(), '', '', {}, system='linux', verbose=False)
+                mock_fix_darwin.assert_not_called()
