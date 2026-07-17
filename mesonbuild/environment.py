@@ -555,6 +555,10 @@ class Environment:
         else:
             # This option is only supported by gcc and clang. If we don't get a
             # GCC or Clang compiler return and empty list.
+            #
+            # qcc excluded: '-print-search-dirs' isn't a documented qcc
+            # option, and this function raises rather than degrading
+            # gracefully on a non-zero exit.
             return []
 
         p, out, _ = Popen_safe(comp.get_exelist() + ['-print-search-dirs'])
@@ -567,11 +571,11 @@ class Environment:
         for comp in self.coredata.compilers[for_machine].values():
             if comp.id == 'clang':
                 break
-            elif comp.id == 'gcc':
+            elif comp.id in {'gcc', 'qcc'}:
                 break
         else:
-            # This option is only supported by gcc and clang. If we don't get a
-            # GCC or Clang compiler return and empty list.
+            # Only gcc, clang, and gcc-compatible drivers (e.g. qcc) support
+            # this; return an empty list otherwise.
             return []
         return comp.get_default_include_dirs()
 

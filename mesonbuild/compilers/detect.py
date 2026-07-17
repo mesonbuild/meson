@@ -59,6 +59,13 @@ else:
         defaults['cpp'] = ['c++', 'g++', 'l++', 'clang++']
         defaults['objc'] = ['clang']
         defaults['objcpp'] = ['clang++']
+    elif platform.system().lower() == 'qnx':
+        # qcc/q++ preferred if present; falls through to cc/gcc/clang
+        # otherwise. See docs/markdown/snippets/qcc-support.md.
+        defaults['c'] = ['qcc', 'cc', 'gcc', 'clang']
+        defaults['cpp'] = ['q++', 'c++', 'g++', 'clang++']
+        defaults['objc'] = ['clang']
+        defaults['objcpp'] = ['clang++']
     else:
         defaults['c'] = ['cc', 'gcc', 'clang', 'nvc', 'pgcc', 'icc', 'icx']
         defaults['cpp'] = ['c++', 'g++', 'clang++', 'nvc++', 'pgc++', 'icpc', 'icpx']
@@ -357,6 +364,10 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
         if 'Microchip' in out:
             # this output has "Free Software Foundation" in its version
             guess_gcc_or_lcc = None
+        # qcc/q++ have no distinguishing banner text, so recognize them by
+        # driver name instead.
+        if compiler_name in {'qcc', 'q++', 'qcc.exe', 'q++.exe'}:
+            guess_gcc_or_lcc = 'qcc'
 
         if guess_gcc_or_lcc:
             defines = _get_gnu_compiler_defines(compiler, lang)
@@ -364,14 +375,31 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 popen_exceptions[join_args(compiler)] = 'no pre-processor defines'
                 continue
 
+            extra_args: T.Optional[T.List[str]] = None
+            tmp_source_path: T.Optional[str] = None
             if guess_gcc_or_lcc == 'lcc':
                 version = _get_lcc_version_from_defines(defines)
                 cls = c.ElbrusCCompiler if lang == 'c' else cpp.ElbrusCPPCompiler
+            elif guess_gcc_or_lcc == 'qcc':
+                version = _get_gnu_version_from_defines(defines)
+                cls = c.QccCCompiler if lang == 'c' else cpp.QccCPPCompiler
+                # Unlike gcc, qcc/q++ refuse to run '-Wl,--version' without a
+                # source file ('cc: no files to process'); an empty one
+                # satisfies the driver. Keep the path separately since
+                # guess_nix_linker() mutates extra_args in place.
+                suffix = '.c' if lang == 'c' else '.cpp'
+                with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tf:
+                    tmp_source_path = tf.name
+                extra_args = [tmp_source_path]
             else:
                 version = _get_gnu_version_from_defines(defines)
                 cls = c.GnuCCompiler if lang == 'c' else cpp.GnuCPPCompiler
 
-            linker = guess_nix_linker(env, compiler, cls, version, for_machine)
+            try:
+                linker = guess_nix_linker(env, compiler, cls, version, for_machine, extra_args=extra_args)
+            finally:
+                if tmp_source_path:
+                    os.unlink(tmp_source_path)
 
             return cls(
                 ccache, compiler, version, for_machine,

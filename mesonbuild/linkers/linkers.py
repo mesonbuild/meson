@@ -726,7 +726,9 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         return self._apply_prefix('--out-implib=' + implibname)
 
     def thread_flags(self) -> T.List[str]:
-        if self.environment.machines[self.for_machine].is_haiku():
+        # QNX Neutrino's libc always includes pthreads, so no flag is needed.
+        m = self.environment.machines[self.for_machine]
+        if m.is_haiku() or m.is_qnx():
             return []
         return ['-pthread']
 
