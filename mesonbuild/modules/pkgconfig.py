@@ -21,7 +21,9 @@ from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
 from ..interpreter.primitives import OptionString
 from ..interpreter.type_checking import D_MODULE_VERSIONS_KW, INSTALL_DIR_KW, VARIABLES_KW, NoneType
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken
-from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, TypedArgs, typed_pos_args
+from ..interpreterbase.decorators import (
+    ContainerTypeInfo, KwargInfo, TypedArgs, OptArgInfo,
+)
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
@@ -657,9 +659,9 @@ class PkgConfigModule(NewExtensionModule):
             if cflags_private and not dataonly:
                 ofile.write('Cflags.private: {}\n'.format(' '.join(cflags_private)))
 
-    @typed_pos_args('pkgconfig.generate', optargs=[(build.SharedLibrary, build.StaticLibrary)])
     @TypedArgs(
         'pkgconfig.generate',
+        opt_types=[OptArgInfo((build.SharedLibrary, build.StaticLibrary))],
         kw_types=[
             D_MODULE_VERSIONS_KW.evolve(since='0.43.0'),
             INSTALL_DIR_KW,
