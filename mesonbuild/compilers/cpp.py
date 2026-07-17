@@ -25,6 +25,7 @@ from .mixins.ti import TICompiler
 from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
 from .mixins.gnu import GnuCompiler, GnuCPPStds, gnu_common_warning_args, gnu_cpp_warning_args
+from .mixins.qcc import QccCompiler
 from .mixins.intel import IntelGnuLikeCompiler, IntelLLVMLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler, ClangCPPStds
 from .mixins.elbrus import ElbrusCompiler
@@ -158,7 +159,9 @@ class CPPCompiler(CLikeCompiler, Compiler):
         }
 
         # Currently, remapping is only supported for Clang, Elbrus and GCC
-        assert self.id in frozenset(['clang', 'lcc', 'gcc', 'emscripten', 'armltdclang', 'intel-llvm', 'nvidia_hpc', 'xc32-gcc'])
+        # ('qcc' included: q++'s cc1plus is unmodified GCC, so it's as
+        # GCC-compatible here as plain 'gcc').
+        assert self.id in frozenset(['clang', 'lcc', 'gcc', 'qcc', 'emscripten', 'armltdclang', 'intel-llvm', 'nvidia_hpc', 'xc32-gcc'])
 
         if cpp_std not in CPP_FALLBACKS:
             # 'c++03' and 'c++98' don't have fallback types
@@ -549,6 +552,11 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
 
     def get_cpp_modules_args(self) -> T.List[str]:
         return ['-fmodules', '-fmodules-ts']
+
+
+class QccCPPCompiler(QccCompiler, GnuCPPCompiler):
+
+    """QNX SDP q++, the C++ compiler driver. See mixins/qcc.py."""
 
 
 class PGICPPCompiler(PGICompiler, CPPCompiler):
