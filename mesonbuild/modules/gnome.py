@@ -856,7 +856,7 @@ class GnomeModule(ExtensionModule):
         ret: T.List[str] = []
 
         for lang in langs:
-            link_args = state.environment.coredata.get_external_link_args(MachineChoice.HOST, lang)
+            link_args = T.cast('T.List[str]', state.get_option(f'{lang}_link_args', state.subproject))
             for link_arg in link_args:
                 if link_arg.startswith('-L'):
                     ret.append(link_arg)
@@ -1113,7 +1113,7 @@ class GnomeModule(ExtensionModule):
     def _get_external_args_for_langs(state: 'ModuleState', langs: T.List[str]) -> T.List[str]:
         ret: T.List[str] = []
         for lang in langs:
-            ret += mesonlib.listify(state.environment.coredata.get_external_args(MachineChoice.HOST, lang))
+            ret += mesonlib.listify(state.get_option(f'{lang}_args', state.subproject))
         return ret
 
     @staticmethod
@@ -1204,7 +1204,8 @@ class GnomeModule(ExtensionModule):
         scan_cflags += list(self._get_scanner_cflags(self._get_external_args_for_langs(state, [lc[0] for lc in langs_compilers])))
         scan_internal_ldflags = []
         scan_external_ldflags = []
-        scan_env_ldflags = state.environment.coredata.get_external_link_args(MachineChoice.HOST, 'c')
+        # Copy: the returned list is the stored option value and gets appended to below.
+        scan_env_ldflags = list(T.cast('T.List[str]', state.get_option('c_link_args', state.subproject)))
         for cli_flags, env_flags in (self._get_scanner_ldflags(internal_ldflags), self._get_scanner_ldflags(dep_internal_ldflags)):
             scan_internal_ldflags += cli_flags
             scan_env_ldflags += env_flags
@@ -1618,8 +1619,8 @@ class GnomeModule(ExtensionModule):
         ldflags.extend(internal_ldflags)
         ldflags.extend(external_ldflags)
 
-        cflags.extend(state.environment.coredata.get_external_args(MachineChoice.HOST, 'c'))
-        ldflags.extend(state.environment.coredata.get_external_link_args(MachineChoice.HOST, 'c'))
+        cflags.extend(T.cast('T.List[str]', state.get_option('c_args', state.subproject)))
+        ldflags.extend(T.cast('T.List[str]', state.get_option('c_link_args', state.subproject)))
         compiler = state.environment.coredata.compilers[MachineChoice.HOST]['c']
 
         compiler_flags = self._get_langs_compilers_flags(state, [('c', compiler)])

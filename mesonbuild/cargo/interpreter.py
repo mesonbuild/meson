@@ -32,6 +32,7 @@ from ..mesonlib import (
     PerMachine, unique_list, SubProject,
 )
 from .. import coredata, mlog
+from ..options import OptionKey
 from ..wrap.wrap import PackageDefinition
 
 if T.TYPE_CHECKING:
@@ -712,7 +713,8 @@ class Interpreter:
             machine = MachineChoice.HOST
         rustc = T.cast('RustCompiler', self.environment.coredata.compilers[machine]['rust'])
         cfgs = rustc.get_cfgs().copy()
-        rustflags = self.environment.coredata.get_external_args(machine, 'rust')
+        rustflags = T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
+            OptionKey('rust_args', machine=machine)))
         rustflags_i = iter(rustflags)
         for i in rustflags_i:
             if i == '--cfg':

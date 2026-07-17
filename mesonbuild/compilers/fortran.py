@@ -57,8 +57,11 @@ class FortranCompiler(CLikeCompiler, Compiler):
                              'that example is to see if the compiler has Fortran 2008 Block element.')
 
     def _get_basic_compiler_args(self, mode: CompileCheckMode) -> T.Tuple[T.List[str], T.List[str]]:
-        cargs = self.environment.coredata.get_external_args(self.for_machine, self.language)
-        largs = self.environment.coredata.get_external_link_args(self.for_machine, self.language)
+        optstore = self.environment.coredata.optstore
+        cargs = list(T.cast('T.List[str]', optstore.get_value_for(
+            options.OptionKey(f'{self.language}_args', machine=self.for_machine))))
+        largs = list(T.cast('T.List[str]', optstore.get_value_for(
+            options.OptionKey(f'{self.language}_link_args', machine=self.for_machine))))
         return cargs, largs
 
     def _sanity_check_source_code(self) -> str:
