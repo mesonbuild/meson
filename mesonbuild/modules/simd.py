@@ -8,8 +8,8 @@ import typing as T
 from .. import mlog
 from .. import build
 from ..compilers import Compiler
-from ..interpreter.type_checking import BT_SOURCES_KW, STATIC_LIB_KWS
-from ..interpreterbase.decorators import KwargInfo, typed_pos_args, TypedArgs
+from ..interpreter.type_checking import BT_SOURCES_KW, STATIC_LIB_KWS, STR_PARG
+from ..interpreterbase.decorators import KwargInfo, TypedArgs
 
 from . import ExtensionModule, ModuleInfo
 
@@ -60,9 +60,9 @@ class SimdModule(ExtensionModule):
             'check': self.check,
         })
 
-    @typed_pos_args('simd.check', str)
     @TypedArgs(
         'simd.check',
+        pos_types=[STR_PARG],
         kw_types=[
             KwargInfo('compiler', Compiler, required=True),
             *[BT_SOURCES_KW.evolve(name=iset, default=None) for iset in ISETS],
