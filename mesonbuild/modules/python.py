@@ -9,16 +9,19 @@ import typing as T
 from . import ExtensionModule, ModuleInfo
 from .. import mesonlib
 from .. import mlog
-from ..build import CustomTarget, CustomTargetIndex, BuildTarget, GeneratedList, StructuredSources, ExtractedObjects, SharedModule
+from ..build import SharedModule
 from ..dependencies import NotFoundDependency
 from ..dependencies.detect import get_dep_identifier, find_external_dependency
 from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase
 from ..interpreter import extract_required_kwarg, primitives as P_OBJ
 from ..interpreter.interpreterobjects import ProgramHolder
-from ..interpreter.type_checking import NoneType, DEPENDENCY_KWS, PRESERVE_PATH_KW, REQUIRED_KW, SHARED_MOD_KWS
+from ..interpreter.type_checking import (
+    NoneType, DEPENDENCY_KWS, PRESERVE_PATH_KW, REQUIRED_KW, SHARED_MOD_KWS,
+    STR_PARG, STR_OARG, OBJ_OARG, STR_FILE_VARG, SRC_VARG,
+)
 from ..interpreterbase import (
     noPosargs, ContainerTypeInfo,
-    InvalidArguments, typed_pos_args, TypedArgs, KwargInfo,
+    InvalidArguments, TypedArgs, KwargInfo,
     FeatureNew, disablerIfNotFound, InterpreterObject
 )
 from ..mesonlib import MachineChoice
@@ -144,9 +147,10 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         self.platlib_install_path = os.path.join(prefix, python.platlib)
         self.purelib_install_path = os.path.join(prefix, python.purelib)
 
-    @typed_pos_args('python.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
     @TypedArgs(
         'python.extension_module',
+        pos_types=[STR_PARG],
+        var_types=SRC_VARG,
         kw_types=[
             *_MOD_KWARGS,
             _DEFAULTABLE_SUBDIR_KW,
@@ -316,9 +320,9 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
                 raise mesonlib.MesonException('Python dependency not found')
             return dep
 
-    @typed_pos_args('install_data', varargs=(str, mesonlib.File))
     @TypedArgs(
         'python_installation.install_sources',
+        var_types=STR_FILE_VARG,
         kw_types=[
             _PURE_KW,
             _SUBDIR_KW,
@@ -363,14 +367,16 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
     def language_version_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.version
 
-    @typed_pos_args('python_installation.has_path', str)
-    @TypedArgs('python_installation.has_path')
+    @TypedArgs('python_installation.has_path', pos_types=[STR_PARG])
     @InterpreterObject.method('has_path')
     def has_path_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
         return args[0] in self.paths
 
-    @typed_pos_args('python_installation.get_path', str, optargs=[object])
-    @TypedArgs('python_installation.get_path')
+    @TypedArgs(
+        'python_installation.get_path',
+        pos_types=[STR_PARG],
+        opt_types=[OBJ_OARG],
+    )
     @InterpreterObject.method('get_path')
     def get_path_method(self, args: T.Tuple[str, T.Optional['TYPE_var']], kwargs: 'TYPE_kwargs') -> 'TYPE_var':
         path_name, fallback = args
@@ -381,14 +387,16 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
                 return fallback
             raise InvalidArguments(f'{path_name} is not a valid path name')
 
-    @typed_pos_args('python_installation.has_variable', str)
-    @TypedArgs('python_installation.has_variable')
+    @TypedArgs('python_installation.has_variable', pos_types=[STR_PARG])
     @InterpreterObject.method('has_variable')
     def has_variable_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
         return args[0] in self.variables
 
-    @typed_pos_args('python_installation.get_variable', str, optargs=[object])
-    @TypedArgs('python_installation.get_variable')
+    @TypedArgs(
+        'python_installation.get_variable',
+        pos_types=[STR_PARG],
+        opt_types=[OBJ_OARG],
+    )
     @InterpreterObject.method('get_variable')
     def get_variable_method(self, args: T.Tuple[str, T.Optional['TYPE_var']], kwargs: 'TYPE_kwargs') -> 'TYPE_var':
         var_name, fallback = args
@@ -523,9 +531,9 @@ class PythonModule(ExtensionModule):
         return NonExistingExternalProgram(python.name)
 
     @disablerIfNotFound
-    @typed_pos_args('python.find_installation', optargs=[str])
     @TypedArgs(
         'python.find_installation',
+        opt_types=[STR_OARG],
         kw_types=[
             REQUIRED_KW,
             KwargInfo('disabler', bool, default=False, since='0.49.0'),
