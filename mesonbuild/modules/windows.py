@@ -14,7 +14,7 @@ from . import ModuleReturnValue
 from .. import mesonlib, build
 from .. import mlog
 from ..interpreter.type_checking import DEPEND_FILES_KW, DEPENDS_KW, INCLUDE_DIRECTORIES
-from ..interpreterbase.decorators import ContainerTypeInfo, FeatureNew, KwargInfo, TypedArgs, typed_pos_args
+from ..interpreterbase.decorators import ContainerTypeInfo, FeatureNew, KwargInfo, TypedArgs, VarArgInfo
 from ..mesonlib import MachineChoice, MesonException
 from ..programs import ExternalProgram
 
@@ -106,9 +106,12 @@ class WindowsModule(ExtensionModule):
 
         return self._rescomp
 
-    @typed_pos_args('windows.compile_resources', varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex), min_varargs=1)
     @TypedArgs(
         'windows.compile_resources',
+        var_types=VarArgInfo(
+            (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex),
+            min_args=1,
+        ),
         kw_types=[
             DEPEND_FILES_KW.evolve(since='0.47.0'),
             DEPENDS_KW.evolve(since='0.47.0'),
