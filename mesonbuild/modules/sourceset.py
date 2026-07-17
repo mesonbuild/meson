@@ -9,10 +9,10 @@ from .. import build
 from .. import dependencies
 from .. import mesonlib
 from ..interpreterbase import (
-    noPosargs,
+    noPosargs, VarArgInfo, PosArgInfo,
     InterpreterException, InvalidArguments, InvalidCode, FeatureNew,
 )
-from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, TypedArgs, typed_pos_args
+from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, TypedArgs
 from ..mesonlib import OrderedSet
 
 if T.TYPE_CHECKING:
@@ -130,9 +130,9 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
                 deps.append(x)
         return keys, deps
 
-    @typed_pos_args('sourceset.add', varargs=(str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, dependencies.Dependency))
     @TypedArgs(
         'sourceset.add',
+        var_types=VarArgInfo((str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, dependencies.Dependency)),
         kw_types=[
             _WHEN_KW,
             KwargInfo(
@@ -167,9 +167,9 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
         if_false_sources, if_false_deps = self.check_source_files(if_false)
         self.rules.append(SourceSetRule(keys, dependencies, sources, extra_deps, [], if_false_sources, if_false_deps))
 
-    @typed_pos_args('sourceset.add_all', varargs=SourceSet)
     @TypedArgs(
         'sourceset.add_all',
+        var_types=VarArgInfo(SourceSet),
         kw_types=[
             _WHEN_KW,
             KwargInfo(
@@ -231,8 +231,11 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
         files = self.collect(lambda x: True, True)
         return list(files.deps)
 
-    @typed_pos_args('sourceset.apply', (build.ConfigurationData, dict))
-    @TypedArgs('sourceset.apply', kw_types=[KwargInfo('strict', bool, default=True)])
+    @TypedArgs(
+        'sourceset.apply',
+        pos_types=[PosArgInfo((build.ConfigurationData, dict))],
+        kw_types=[KwargInfo('strict', bool, default=True)],
+    )
     def apply_method(self, state: ModuleState, args: T.Tuple[T.Union[build.ConfigurationData, T.Dict[str, TYPE_var]]], kwargs: ApplyKw) -> SourceFilesObject:
         config_data = args[0]
         self.frozen = True
