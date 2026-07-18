@@ -9,7 +9,7 @@ import typing as T
 
 from .. import options
 from .. import mlog
-from ..mesonlib import MesonException, version_compare, lazy_property
+from ..mesonlib import MesonBugException, MesonException, version_compare, lazy_property
 
 from .compilers import (
     gnu_winlibs,
@@ -70,6 +70,8 @@ class CPPCompiler(CLikeCompiler, Compiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment, linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
+        self._works_with_swift: T.Optional[bool] = None
+
         # If a child ObjCPP class has already set it, don't set it ourselves
         Compiler.__init__(self, ccache, exelist, version, for_machine, env,
                           linker=linker, full_version=full_version)
@@ -90,6 +92,49 @@ class CPPCompiler(CLikeCompiler, Compiler):
 
     def _sanity_check_source_code(self) -> str:
         return '#include <stddef.h>\nclass breakCCompiler;int main(void) { return 0; }\n'
+
+    def detect_works_with_swift(self) -> None:
+        from ..mesonlib import MachineChoice
+        from .swift import SwiftCompiler
+
+        compilers = self.environment.coredata.compilers[self.for_machine]
+
+        try:
+            swiftc = compilers['swift']
+        except KeyError:
+            raise MesonBugException('CPPCompiler.detect_works_with_swift called without a Swift compiler being present')
+
+        assert isinstance(swiftc, SwiftCompiler)
+
+        if not swiftc.supports_cxx_interoperability():
+            self._works_with_swift = False
+            return
+
+        header_name = 'swift-export.h'
+        include_dir = self.environment.get_scratch_dir()
+
+        swiftc.export_cpp_header_for_compat_detection(header_name, include_dir)
+
+        works, _ = self.compiles(f'#include "{header_name}"\nclass breakCCompiler;int main(void) {{ return 0; }}\n',
+                                 extra_args=[
+                                     # On macOS, the Swift header seems to need at least C++11 standard level. Just use
+                                     # whatever the project has defined as the default.
+                                     *self.get_option_compile_args(None, None),
+                                     *self.get_include_args(include_dir, False)],
+                                 disable_cache=True)
+
+        msg = ['C++ compiler', *[mlog.bold(el) for el in self.get_exelist()], 'compiles Swift-exported headers:']
+        verbose = self.for_machine == MachineChoice.HOST or self.environment.is_cross_build()
+        logger_fun = mlog.log if verbose else mlog.debug
+        logger_fun(*msg, mlog.green('YES') if works else mlog.red('NO'))
+
+        self._works_with_swift = works
+
+    def works_with_swift(self) -> bool:
+        if self._works_with_swift is None:
+            raise MesonBugException('Called CPPCompiler.works_with_swift() but compatibility was never checked')
+
+        return self._works_with_swift
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         # -fpermissive allows non-conforming code to compile which is necessary

@@ -3,17 +3,20 @@
 
 from __future__ import annotations
 
+import itertools
 import re
 import subprocess, os.path
 import typing as T
 
 from .. import mlog, options
-from ..mesonlib import first, MesonException, version_compare
+from ..mesonlib import MesonException, version_compare
 from .compilers import Compiler, clike_debug_args, PrefixArgumentLinkerOptionStyle
 
 if T.TYPE_CHECKING:
     from .. import build
+    from ..build import BuildTarget
     from ..compilers.compilers import Language
+    from ..envconfig import MachineInfo
     from ..options import MutableKeyedOptionDictType
     from ..dependencies import Dependency
     from ..environment import Environment
@@ -28,6 +31,12 @@ swift_optimization_args: T.Dict[str, T.List[str]] = {
     '2': ['-O'],
     '3': ['-O'],
     's': ['-O'],
+}
+
+swiftc_color_args: T.Dict[str, T.List[str]] = {
+    'auto': [],
+    'always': ['-color-diagnostics'],
+    'never': ['-no-color-diagnostics'],
 }
 
 class SwiftCompiler(Compiler):
@@ -97,17 +106,33 @@ class SwiftCompiler(Compiler):
     def get_header_import_args(self, headername: str) -> T.List[str]:
         return ['-import-objc-header', headername]
 
+    def get_colorout_args(self, colortype: str) -> T.List[str]:
+        return swiftc_color_args[colortype][:]
+
     def get_warn_args(self, level: str) -> T.List[str]:
         return []
 
     def get_std_exe_link_args(self) -> T.List[str]:
         return ['-emit-executable']
 
+    def get_std_shared_lib_link_args(self) -> T.List[str]:
+        return ['-emit-library']
+
+    def get_target_link_args(self, target: BuildTarget) -> T.List[str]:
+        # Add module name here because swiftc as a linker produces a {module_name}.autolink file which will be
+        # otherwise auto-inferred and not always predictable.
+        return [*self.get_module_args(target.swift_module_name), *super().get_target_link_args(target)]
+
     def get_module_args(self, modname: str) -> T.List[str]:
         return ['-module-name', modname]
 
     def get_mod_gen_args(self) -> T.List[str]:
         return ['-emit-module']
+
+    def get_header_gen_args(self, header_name: str) -> T.List[str]:
+        # Despite these options being named after Objective-C, the header that gets generated from here includes the
+        # support for all C-family languages with enabled interoperability, including C++.
+        return ['-emit-objc-header', '-emit-objc-header-path', header_name]
 
     def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
         return ['-I' + path]
@@ -128,7 +153,7 @@ class SwiftCompiler(Compiler):
 
         return opts
 
-    def get_option_std_args(self, target: build.BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: T.Optional[build.BuildTarget], subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
 
         std = self.get_compileropt_value('std', target, subproject)
@@ -138,14 +163,27 @@ class SwiftCompiler(Compiler):
             args += ['-swift-version', std]
 
         # Pass C compiler -std=... arg to swiftc
-        c_langs: T.List[Language] = ['objc', 'c']
-        if target.uses_swift_cpp_interop():
-            c_langs = ['objcpp', 'cpp', *c_langs]
 
-        c_lang = first(c_langs, lambda x: x in target.compilers)
-        if c_lang is not None:
+        # TODO: What do we do if target is None? (e.g. when called by compiler.compiles())
+        if target is None:
+            return args
+
+        objc_interop = target.uses_swift_objc_interop()
+        cpp_interop = target.uses_swift_cpp_interop()
+
+        def consider(compiler: Language, conditions: bool = True) -> T.Iterable[Language]:
+            return [compiler] if conditions and compiler in target.compilers else []
+
+        try:
+            c_lang = next(itertools.chain(consider('objcpp', objc_interop and cpp_interop),
+                                          consider('cpp', cpp_interop),
+                                          consider('objc', objc_interop),
+                                          consider('c')))
+
             cc = target.compilers[c_lang]
             args.extend(arg for c_arg in cc.get_option_std_args(target, subproject) for arg in ['-Xcc', c_arg])
+        except StopIteration:
+            pass
 
         return args
 
@@ -159,10 +197,23 @@ class SwiftCompiler(Compiler):
         if target is not None and not target.uses_swift_cpp_interop():
             return []
 
-        if version_compare(self.version, '<5.9'):
+        if not self.supports_cxx_interoperability():
             raise MesonException(f'Compiler {self} does not support C++ interoperability')
 
         return ['-cxx-interoperability-mode=default']
+
+    def supports_cxx_interoperability(self) -> bool:
+        return version_compare(self.version, '>=5.9')
+
+    def export_cpp_header_for_compat_detection(self, header_name: str, output_dir: str) -> None:
+        from ..mesonlib import Popen_safe_logged
+
+        if not self.supports_cxx_interoperability():
+            raise MesonException(f'Compiler {self} does not support C++ interoperability')
+
+        swift_command = [*self.get_exelist(), *self.get_header_gen_args(header_name), *self.get_library_args(),
+                         *self.get_module_args('Check'), *self.get_cxx_interoperability_args(), '-']
+        p, _, _ = Popen_safe_logged(swift_command, cwd=output_dir)
 
     def get_library_args(self) -> T.List[str]:
         return ['-parse-as-library']
@@ -200,3 +251,16 @@ class SwiftCompiler(Compiler):
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return swift_optimization_args[optimization_level]
+
+    @classmethod
+    def _unix_args_to_native(cls, args: T.List[str], info: MachineInfo) -> T.List[str]:
+        result: T.List[str] = []
+        for arg in args:
+            if arg == '-pthread':
+                arg = '-lpthread'
+            elif arg.startswith('-isystem'):
+                arg = f'-I{arg.removeprefix('-isystem')}'
+            elif arg.startswith('-idirafter'):
+                arg = f'-I{arg.removeprefix('-idirafter')}'
+            result.append(arg)
+        return result

@@ -1609,6 +1609,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def add_languages_for(self, args: T.List[Language], required: bool, for_machine: MachineChoice) -> bool:
         langs = set(self.compilers[for_machine])
         langs.update(args)
+        new_langs = set()
 
         # Some languages are added only as implementation details of other
         # languages. When that happens, we don't want to add those languages to
@@ -1690,8 +1691,25 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.build.ensure_static_linker(comp)
             if lang not in internal:
                 self.compilers[for_machine][lang] = comp
+                new_langs.add(lang)
+
+        if new_langs:
+            self.did_add_languages_for(for_machine, new_langs)
 
         return success
+
+    def did_add_languages_for(self, for_machine: MachineChoice, new_languages: T.Set[str]):
+        from mesonbuild.compilers.cpp import CPPCompiler
+
+        swift_and_cpp = {'swift', 'cpp'}
+
+        # call this once, after both have been added
+        if all(name in self.compilers[for_machine] for name in swift_and_cpp) and \
+                new_languages.intersection(swift_and_cpp):
+            compilers = self.compilers[for_machine]
+            cpp = compilers['cpp']
+            assert isinstance(cpp, CPPCompiler)
+            cpp.detect_works_with_swift()
 
     def program_from_file_for(self, for_machine: MachineChoice, prognames: T.List[mesonlib.FileOrString]
                               ) -> T.Optional[ExternalProgram]:

@@ -1006,6 +1006,19 @@ class BuildTarget(Target):
             if self.vala_gir is not None:
                 self.outputs.append(self.vala_gir)
                 self.install_tag.append('devel')
+        # TODO: this is for purposes of calling Swift from C++. This check should probably be in the location where the
+        # header export target is generated instead of here, because obviously there is no issue with linking Swift code
+        # with C++ code in and of itself
+        if 'cpp' in self.compilers and \
+                any(t.uses_swift_cpp_interop()
+                    for t in itertools.chain([self], self.link_targets, self.link_whole_targets)):
+            from .compilers.cpp import CPPCompiler
+
+            cpp = self.compilers['cpp']
+            assert isinstance(cpp, CPPCompiler)
+            if not cpp.works_with_swift():
+                raise MesonException(f'target {self.name!r} tries to link Swift objects with C++ objects, '
+                                     'but the C++ and Swift compilers are incompatible')
 
         for compiler in self.compilers.values():
             self.single_compile_base_args[compiler] = self._generate_single_compile_base_args(compiler)
@@ -1752,6 +1765,13 @@ class BuildTarget(Target):
 
     def uses_vala(self) -> bool:
         return 'vala' in self.compilers
+
+    def uses_swift_objc_interop(self) -> bool:
+        # At this point, this is only available on Apple platforms, and enabled unconditionally there.
+        # In the -- perhaps futile -- hope of this changing in the future, let's handle this one like Swift/C++.
+        # (I'll just take a commenter on the Swift forums at their word that you can't build a Swift compiler for
+        # Apple platforms with Obj-C disabled, which simplifies the logic quite a bit here for now)
+        return 'swift' in self.compilers and self.environment.machines[self.for_machine].is_darwin()
 
     def uses_swift_cpp_interop(self) -> bool:
         return self.swift_interoperability_mode == 'cpp' and 'swift' in self.compilers
