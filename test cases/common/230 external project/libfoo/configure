@@ -44,7 +44,7 @@ case $i in
 esac
 done
 
-DEP_ARGS=$(pkg-config --cflags --libs somelib)
+DEP_ARGS=$(${PKG_CONFIG:-pkg-config} --cflags --libs somelib)
 
 cat > Makefile << EOL
 all: libfoo.$LIBEXT
