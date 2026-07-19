@@ -351,6 +351,9 @@ class RustCompiler(Compiler):
 
     @classmethod
     def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
+        flavor = {'link': 'msvc', 'cc': 'gcc'}.get(linker, None)
+        if flavor:
+            return ['-C', f'linker={linker}', '-C', f'linker-flavor={flavor}']
         return ['-C', f'linker={linker}']
 
     def get_options(self) -> MutableKeyedOptionDictType:
