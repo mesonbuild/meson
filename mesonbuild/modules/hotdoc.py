@@ -440,6 +440,10 @@ class HotDocModule(ExtensionModule):
                                          CustomTarget, CustomTargetIndex)),
                 listify=True,
                 default=[],
+                deprecated_values={
+                    CustomTarget: ('0.64.1', 'use `depends` instead'),
+                    CustomTargetIndex: ('0.64.1', 'use `depends` instead'),
+                }
             ),
             KwargInfo(
                 'depends',
@@ -459,9 +463,6 @@ class HotDocModule(ExtensionModule):
     )
     def generate_doc(self, state: ModuleState, args: T.Tuple[str], kwargs: GenerateDocKwargs) -> ModuleReturnValue:
         project_name = args[0]
-        if any(isinstance(x, (CustomTarget, CustomTargetIndex)) for x in kwargs['dependencies']):
-            FeatureDeprecated.single_use('hotdoc.generate_doc dependencies argument with custom_target',
-                                         '0.64.1', state.subproject, 'use `depends`', state.current_node)
         builder = HotdocTargetBuilder(project_name, state, self.hotdoc, self.interpreter, kwargs)
         target, install_script = builder.make_targets()
         targets: T.List[T.Union[HotdocTarget, mesonlib.ExecutableSerialisation]] = [target]
