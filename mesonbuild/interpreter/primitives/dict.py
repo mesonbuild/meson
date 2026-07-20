@@ -13,13 +13,13 @@ from ...interpreterbase import (
     typed_operator,
     noPosargs,
     noArgsFlattening,
-    typed_pos_args,
     TypedArgs,
 
     TYPE_var,
 
     InvalidArguments,
 )
+from ...interpreter.type_checking import STR_PARG, OBJ_OARG
 
 if T.TYPE_CHECKING:
     from ...interpreterbase import TYPE_kwargs
@@ -52,8 +52,7 @@ class DictHolder(ObjectHolder[T.Dict[str, TYPE_var]], IterableObject):
     def _keys_getter(self) -> T.List[str]:
         return sorted(self.held_object)
 
-    @TypedArgs('dict.has_key')
-    @typed_pos_args('dict.has_key', str)
+    @TypedArgs('dict.has_key', pos_types=[STR_PARG])
     @InterpreterObject.method('has_key')
     def has_key_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> bool:
         return args[0] in self.held_object
@@ -72,8 +71,7 @@ class DictHolder(ObjectHolder[T.Dict[str, TYPE_var]], IterableObject):
         return [self.held_object[k] for k in self._keys_getter()]
 
     @noArgsFlattening
-    @TypedArgs('dict.get')
-    @typed_pos_args('dict.get', str, optargs=[object])
+    @TypedArgs('dict.get', pos_types=[STR_PARG], opt_types=[OBJ_OARG])
     @InterpreterObject.method('get')
     def get_method(self, args: T.Tuple[str, T.Optional[TYPE_var]], kwargs: TYPE_kwargs) -> TYPE_var:
         if args[0] in self.held_object:
