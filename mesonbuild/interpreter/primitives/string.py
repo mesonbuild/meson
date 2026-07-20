@@ -100,26 +100,22 @@ class StringHolder(ObjectHolder[str]):
     def replace_method(self, args: T.Tuple[str, str], kwargs: TYPE_kwargs) -> str:
         return self.held_object.replace(args[0], args[1])
 
-    @TypedArgs('str.split', opt_types=[STR_OARG])
+    @TypedArgs('str.split', opt_types=[STR_OARG.evolve(validator=lambda x: 'delimiter must not be an empty string' if not x else None)])
     @InterpreterObject.method('split')
     def split_method(self, args: T.Tuple[T.Optional[str]], kwargs: TYPE_kwargs) -> T.List[str]:
         delimiter = args[0]
-        if delimiter == '':
-            raise InvalidArguments('str.split() delimitier must not be an empty string')
         return self.held_object.split(delimiter)
 
-    @TypedArgs('str.strip', opt_types=[STR_OARG])
+    @TypedArgs('str.strip', opt_types=[STR_OARG.evolve(since='0.43.0')])
     @InterpreterObject.method('strip')
     def strip_method(self, args: T.Tuple[T.Optional[str]], kwargs: TYPE_kwargs) -> str:
-        if args[0]:
-            FeatureNew.single_use('str.strip with a positional argument', '0.43.0', self.subproject, location=self.current_node)
         return self.held_object.strip(args[0])
 
-    @TypedArgs('str.substring', opt_types=[INT_OARG, INT_OARG])
+    @TypedArgs('str.substring', opt_types=[INT_OARG.evolve(default=0), INT_OARG])
     @FeatureNew('str.substring', '0.56.0')
     @InterpreterObject.method('substring')
-    def substring_method(self, args: T.Tuple[T.Optional[int], T.Optional[int]], kwargs: TYPE_kwargs) -> str:
-        start = args[0] if args[0] is not None else 0
+    def substring_method(self, args: T.Tuple[int, T.Optional[int]], kwargs: TYPE_kwargs) -> str:
+        start = args[0]
         end = args[1] if args[1] is not None else len(self.held_object)
         return self.held_object[start:end]
 
@@ -157,11 +153,9 @@ class StringHolder(ObjectHolder[str]):
     def underscorify_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return underscorify(self.held_object)
 
-    @TypedArgs('str.version_compare', var_types=STR_VARG_1)
+    @TypedArgs('str.version_compare', var_types=STR_VARG_1.evolve(variadic_since='1.8.0'))
     @InterpreterObject.method('version_compare')
     def version_compare_method(self, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> bool:
-        if len(args[0]) > 1:
-            FeatureNew.single_use('version_compare() with multiple arguments', '1.8.0', self.subproject, location=self.current_node)
         return version_compare_many(self.held_object, args[0])[0]
 
     @staticmethod
@@ -199,7 +193,13 @@ class MesonVersionString(str):
     pass
 
 class MesonVersionStringHolder(StringHolder):
-    @TypedArgs('str.version_compare', var_types=STR_VARG_1)
+    @TypedArgs(
+        'str.version_compare',
+        var_types=STR_VARG_1.evolve(
+            variadic_since='1.10.0',
+            variadic_since_message='From 1.8.0 - 1.9.* it failed to match str.version_compare',
+        ),
+    )
     @InterpreterObject.method('version_compare')
     def version_compare_method(self, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> bool:
         unsupported = False
@@ -207,10 +207,6 @@ class MesonVersionStringHolder(StringHolder):
             if constraint.strip().startswith('!'):
                 unsupported = True
                 break
-        if len(args[0]) > 1:
-            FeatureNew.single_use('meson.version().version_compare() with multiple arguments', '1.10.0',
-                                  self.subproject, 'From 1.8.0 - 1.9.* it failed to match str.version_compare',
-                                  location=self.current_node)
         if unsupported:
             mlog.debug('meson.version().version_compare() with != constraints',
                        'does not support overriding minimum meson_version checks.')
