@@ -17,8 +17,8 @@ from ..envconfig import ENV_VAR_PROG_MAP
 from ..dependencies import InternalDependency
 from ..dependencies.pkgconfig import PkgConfigInterface
 from ..interpreterbase import FeatureNew
-from ..interpreter.type_checking import ENV_KW, DEPENDS_KW
-from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, TypedArgs, typed_pos_args
+from ..interpreter.type_checking import ENV_KW, DEPENDS_KW, STR_PARG
+from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, TypedArgs
 from ..mesonlib import (EnvironmentException, MesonException, Popen_safe, MachineChoice,
                         get_variable_regex, do_replacement, join_args)
 from ..options import OptionKey
@@ -273,8 +273,7 @@ class ExternalProject(NewExtensionModule):
 
         return [self.target, idir]
 
-    @typed_pos_args('external_project.dependency', str)
-    @TypedArgs('external_project.dependency', kw_types=[KwargInfo('subdir', str, default='')])
+    @TypedArgs('external_project.dependency', pos_types=[STR_PARG], kw_types=[KwargInfo('subdir', str, default='')])
     def dependency_method(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'Dependency') -> InternalDependency:
         libname = args[0]
 
@@ -302,9 +301,9 @@ class ExternalProjectModule(ExtensionModule):
         self.methods.update({'add_project': self.add_project,
                              })
 
-    @typed_pos_args('external_project_mod.add_project', str)
     @TypedArgs(
         'external_project.add_project',
+        pos_types=[STR_PARG],
         kw_types=[
             KwargInfo('configure_options', ContainerTypeInfo(list, str), default=[], listify=True),
             KwargInfo('cross_configure_options', ContainerTypeInfo(list, str), default=['--host=@HOST@'], listify=True),
