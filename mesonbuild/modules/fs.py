@@ -12,9 +12,11 @@ import typing as T
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
 from ..build import BuildTarget, CustomTarget, CustomTargetIndex, InvalidArguments
-from ..interpreter.type_checking import INSTALL_KW, INSTALL_MODE_KW, INSTALL_TAG_KW, \
-    BUILD_SUBDIR_KW, NoneType
-from ..interpreterbase import FeatureNew, KwargInfo, TypedArgs, typed_pos_args
+from ..interpreter.type_checking import (
+    INSTALL_KW, INSTALL_MODE_KW, INSTALL_TAG_KW, BUILD_SUBDIR_KW, STR_PARG,
+    STR_FILE_PARG, STR_OARG, NoneType,
+)
+from ..interpreterbase import FeatureNew, KwargInfo, TypedArgs, PosArgInfo
 from ..mesonlib import File, MesonException, has_path_sep, is_windows, path_is_in_root, relpath
 
 if T.TYPE_CHECKING:
@@ -42,6 +44,9 @@ if T.TYPE_CHECKING:
         install_dir: T.Optional[str]
         install_mode: FileMode
         install_tag: T.Optional[str]
+
+
+_SRC_PARG = PosArgInfo((str, File, CustomTarget, CustomTargetIndex, BuildTarget))
 
 
 class FSModule(ExtensionModule):
@@ -105,15 +110,13 @@ class FSModule(ExtensionModule):
             pass
         return path
 
-    @TypedArgs('fs.expanduser')
+    @TypedArgs('fs.expanduser', pos_types=[STR_PARG])
     @FeatureNew('fs.expanduser', '0.54.0')
-    @typed_pos_args('fs.expanduser', str)
     def expanduser(self, state: ModuleState, args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> str:
         return os.path.expanduser(args[0])
 
-    @TypedArgs('fs.is_absolute')
+    @TypedArgs('fs.is_absolute', pos_types=[STR_FILE_PARG])
     @FeatureNew('fs.is_absolute', '0.54.0')
-    @typed_pos_args('fs.is_absolute', (str, File))
     def is_absolute(self, state: ModuleState, args: T.Tuple[FileOrString], kwargs: T.Dict[str, T.Any]) -> bool:
         path = args[0]
         if isinstance(path, File):
@@ -126,8 +129,7 @@ class FSModule(ExtensionModule):
         return path.startswith(posixsep)
 
     @FeatureNew('fs.as_posix', '0.54.0')
-    @TypedArgs('fs.as_posix')
-    @typed_pos_args('fs.as_posix', str)
+    @TypedArgs('fs.as_posix', pos_types=[STR_PARG])
     def as_posix(self, state: ModuleState, args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> str:
         r"""
         this function assumes you are passing a Windows path, even if on a Unix-like system
@@ -135,30 +137,25 @@ class FSModule(ExtensionModule):
         """
         return args[0].replace(ntsep, posixsep)
 
-    @TypedArgs('fs.exists')
-    @typed_pos_args('fs.exists', str)
+    @TypedArgs('fs.exists', pos_types=[STR_PARG])
     def exists(self, state: ModuleState, args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> bool:
         return os.path.exists(self._resolve_dir(state, args[0]))
 
-    @TypedArgs('fs.is_symlink')
-    @typed_pos_args('fs.is_symlink', (str, File))
+    @TypedArgs('fs.is_symlink', pos_types=[STR_FILE_PARG])
     def is_symlink(self, state: ModuleState, args: T.Tuple[FileOrString], kwargs: T.Dict[str, T.Any]) -> bool:
         if isinstance(args[0], File):
             FeatureNew('fs.is_symlink with file', '0.59.0').use(state.subproject, location=state.current_node)
         return os.path.islink(self._absolute_dir(state, args[0]))
 
-    @TypedArgs('fs.is_file')
-    @typed_pos_args('fs.is_file', str)
+    @TypedArgs('fs.is_file', pos_types=[STR_PARG])
     def is_file(self, state: ModuleState, args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> bool:
         return os.path.isfile(self._resolve_dir(state, args[0]))
 
-    @TypedArgs('fs.is_dir')
-    @typed_pos_args('fs.is_dir', str)
+    @TypedArgs('fs.is_dir', pos_types=[STR_PARG])
     def is_dir(self, state: ModuleState, args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> bool:
         return os.path.isdir(self._resolve_dir(state, args[0]))
 
-    @TypedArgs('fs.hash')
-    @typed_pos_args('fs.hash', (str, File), str)
+    @TypedArgs('fs.hash', pos_types=[STR_FILE_PARG, STR_PARG])
     def hash(self, state: ModuleState, args: T.Tuple[FileOrString, str], kwargs: T.Dict[str, T.Any]) -> str:
         if isinstance(args[0], File):
             FeatureNew('fs.hash with file', '0.59.0').use(state.subproject, location=state.current_node)
@@ -174,8 +171,7 @@ class FSModule(ExtensionModule):
             h.update(f.read())
         return h.hexdigest()
 
-    @TypedArgs('fs.size')
-    @typed_pos_args('fs.size', (str, File))
+    @TypedArgs('fs.size', pos_types=[STR_FILE_PARG])
     def size(self, state: ModuleState, args: T.Tuple[FileOrString], kwargs: T.Dict[str, T.Any]) -> int:
         if isinstance(args[0], File):
             FeatureNew('fs.size with file', '0.59.0').use(state.subproject, location=state.current_node)
@@ -187,8 +183,7 @@ class FSModule(ExtensionModule):
         except ValueError:
             raise MesonException('{} size could not be determined'.format(args[0]))
 
-    @TypedArgs('fs.is_samepath')
-    @typed_pos_args('fs.is_samepath', (str, File), (str, File))
+    @TypedArgs('fs.is_samepath', pos_types=[STR_FILE_PARG, STR_FILE_PARG])
     def is_samepath(self, state: ModuleState, args: T.Tuple[FileOrString, FileOrString], kwargs: T.Dict[str, T.Any]) -> bool:
         if isinstance(args[0], File) or isinstance(args[1], File):
             FeatureNew('fs.is_samepath with file', '0.59.0').use(state.subproject, location=state.current_node)
@@ -203,43 +198,41 @@ class FSModule(ExtensionModule):
         except OSError:
             return False
 
-    @TypedArgs('fs.replace_suffix')
-    @typed_pos_args('fs.replace_suffix', (str, File, CustomTarget, CustomTargetIndex, BuildTarget), str)
+    @TypedArgs('fs.replace_suffix', pos_types=[_SRC_PARG, STR_PARG])
     def replace_suffix(self, state: ModuleState, args: T.Tuple[FilePathTypes, str], kwargs: T.Dict[str, T.Any]) -> str:
         if args[1] and not args[1].startswith('.'):
             raise ValueError(f"Invalid suffix {args[1]!r}")
         path = self._obj_to_pathstr('fs.replace_suffix', args[0], state)
         return os.path.splitext(path)[0] + args[1]
 
-    @TypedArgs('fs.parent')
-    @typed_pos_args('fs.parent', (str, File, CustomTarget, CustomTargetIndex, BuildTarget))
+    @TypedArgs('fs.parent', pos_types=[_SRC_PARG])
     def parent(self, state: ModuleState, args: T.Tuple[FilePathTypes], kwargs: T.Dict[str, T.Any]) -> str:
         path = self._obj_to_pathstr('fs.parent', args[0], state)
         return os.path.split(path)[0] or '.'
 
-    @TypedArgs('fs.name')
-    @typed_pos_args('fs.name', (str, File, CustomTarget, CustomTargetIndex, BuildTarget))
+    @TypedArgs('fs.name', pos_types=[_SRC_PARG])
     def name(self, state: ModuleState, args: T.Tuple[FilePathTypes], kwargs: T.Dict[str, T.Any]) -> str:
         path = self._obj_to_pathstr('fs.name', args[0], state)
         return os.path.basename(path)
 
-    @TypedArgs('fs.stem')
-    @typed_pos_args('fs.stem', (str, File, CustomTarget, CustomTargetIndex, BuildTarget))
+    @TypedArgs('fs.stem', pos_types=[_SRC_PARG])
     @FeatureNew('fs.stem', '0.54.0')
     def stem(self, state: ModuleState, args: T.Tuple[FilePathTypes], kwargs: T.Dict[str, T.Any]) -> str:
         path = self._obj_to_pathstr('fs.name', args[0], state)
         return os.path.splitext(os.path.basename(path))[0]
 
-    @TypedArgs('fs.suffix')
-    @typed_pos_args('fs.suffix', (str, File, CustomTarget, CustomTargetIndex, BuildTarget))
+    @TypedArgs('fs.suffix', pos_types=[_SRC_PARG])
     @FeatureNew('fs.suffix', '1.9.0')
     def suffix(self, state: ModuleState, args: T.Tuple[FilePathTypes], kwargs: T.Dict[str, T.Any]) -> str:
         path = self._obj_to_pathstr('fs.suffix', args[0], state)
         return os.path.splitext(path)[1]
 
     @FeatureNew('fs.read', '0.57.0')
-    @typed_pos_args('fs.read', (str, File))
-    @TypedArgs('fs.read', kw_types=[KwargInfo('encoding', str, default='utf-8')])
+    @TypedArgs(
+        'fs.read',
+        pos_types=[STR_FILE_PARG],
+        kw_types=[KwargInfo('encoding', str, default='utf-8')],
+    )
     def read(self, state: ModuleState, args: T.Tuple[FileOrString], kwargs: ReadKwArgs) -> str:
         """Read a file from the source tree and return its value as a decoded
         string.
@@ -282,9 +275,10 @@ class FSModule(ExtensionModule):
         return data
 
     @FeatureNew('fs.copyfile', '0.64.0')
-    @typed_pos_args('fs.copyfile', (File, str), optargs=[str])
     @TypedArgs(
         'fs.copyfile',
+        pos_types=[STR_FILE_PARG],
+        opt_types=[STR_OARG],
         kw_types=[
             INSTALL_KW,
             INSTALL_MODE_KW,
@@ -328,8 +322,7 @@ class FSModule(ExtensionModule):
         return ModuleReturnValue(ct, [ct])
 
     @FeatureNew('fs.relative_to', '1.3.0')
-    @typed_pos_args('fs.relative_to', (str, File, CustomTarget, CustomTargetIndex, BuildTarget), (str, File, CustomTarget, CustomTargetIndex, BuildTarget))
-    @TypedArgs('fs.relative_to')
+    @TypedArgs('fs.relative_to', pos_types=[_SRC_PARG, _SRC_PARG])
     def relative_to(self, state: ModuleState, args: T.Tuple[FilePathTypes, FilePathTypes], kwargs: TYPE_kwargs) -> str:
         def to_path(arg: FilePathTypes) -> str:
             if isinstance(arg, File):
