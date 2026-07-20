@@ -370,6 +370,24 @@ that specifying any of these disables system-wide search for boost.
 You can set the argument `threading` to `single` to use boost
 libraries that have been compiled for single-threaded use instead.
 
+### Boost Python and Boost Numpy
+
+In order to use these libraries you need to link against the version
+that matches the major/minor version of python you are compiling
+against. They are named `boost_pythonXYY` and `libboost_numpyXYY`
+where `X` is the python major version and `YY` is the minor version.
+
+The best way to ensure that you get the correct versions to match get
+the language version from your python installation.
+
+```meson
+pymod = import('python')
+pyinst = pymod.find_installation()
+pyver = ''.join(pyinst.language_version().split('.'))
+boost_dep = dependency('boost', modules: ['python'+pyver, 'numpy'+pyver])
+pyinst.extension_module('my_mod', 'my_mod.cpp', dependencies: boost_dep)
+```
+
 ## CUDA
 
 *(added 0.53.0)*
