@@ -1341,7 +1341,7 @@ class GnomeModule(ExtensionModule):
     @TypedArgs(
         'gnome.yelp',
         pos_types=[STR_PARG],
-        var_types=STR_VARG,
+        var_types=STR_VARG.evolve(deprecated='0.60.0', deprecated_message='use the "sources" keyeword argument instead'),
         kw_types=[
             KwargInfo(
                 'languages', ContainerTypeInfo(list, str),
@@ -1357,9 +1357,6 @@ class GnomeModule(ExtensionModule):
     def yelp(self, state: 'ModuleState', args: T.Tuple[str, T.List[str]], kwargs: 'Yelp') -> ModuleReturnValue:
         project_id = args[0]
         sources = kwargs['sources']
-        if args[1]:
-            FeatureDeprecated.single_use('gnome.yelp more than one positional argument', '0.60.0',
-                                         state.subproject, 'use the "sources" keyword argument instead.', state.current_node)
         if not sources:
             sources = args[1]
             if not sources:
