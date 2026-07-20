@@ -26,10 +26,12 @@ from .. import mlog
 from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments, LocalProgram
 from ..dependencies import Dependency, InternalDependency
 from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
-from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, ENV_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, DEPENDENCY_SOURCES_KW, in_set_validator
+from ..interpreter.type_checking import (
+    DEPENDS_KW, DEPEND_FILES_KW, ENV_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType,
+    DEPENDENCY_SOURCES_KW, STR_PARG, STR_VARG, in_set_validator,
+)
 from ..interpreterbase import noPosargs, FeatureNew, FeatureDeprecated
-from ..interpreterbase import TypedArgs, KwargInfo, ContainerTypeInfo
-from ..interpreterbase.decorators import typed_pos_args
+from ..interpreterbase import TypedArgs, KwargInfo, ContainerTypeInfo, OptArgInfo, VarArgInfo, PosArgInfo
 from ..mesonlib import (
     InstallScriptFailure, MachineChoice, MesonException, OrderedSet, Popen_safe, join_args, quote_arg
 )
@@ -392,9 +394,12 @@ class GnomeModule(ExtensionModule):
             rv.append(script)
         return ModuleReturnValue(None, rv)
 
-    @typed_pos_args('gnome.compile_resources', str, (str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList))
     @TypedArgs(
         'gnome.compile_resources',
+        pos_types=[
+            STR_PARG,
+            PosArgInfo((str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList)),
+        ],
         kw_types=[
             _BUILD_BY_DEFAULT,
             _EXTRA_ARGS_KW,
@@ -1139,9 +1144,12 @@ class GnomeModule(ExtensionModule):
             [f for f in ldflags if f.startswith(('-Wl,-rpath,'))],
         )
 
-    @typed_pos_args('gnome.generate_gir', varargs=(Executable, build.SharedLibrary, build.StaticLibrary), min_varargs=1)
     @TypedArgs(
         'gnome.generate_gir',
+        var_types=VarArgInfo(
+            (Executable, build.SharedLibrary, build.StaticLibrary),
+            min_args=1,
+        ),
         kw_types=[
             INSTALL_KW,
             _BUILD_BY_DEFAULT.evolve(since='0.40.0'),
@@ -1330,9 +1338,10 @@ class GnomeModule(ExtensionModule):
         self._devenv_prepend('GSETTINGS_SCHEMA_DIR', os.path.join(state.environment.get_build_dir(), state.subdir))
         return ModuleReturnValue(target_g, [target_g])
 
-    @typed_pos_args('gnome.yelp', str, varargs=str)
     @TypedArgs(
         'gnome.yelp',
+        pos_types=[STR_PARG],
+        var_types=STR_VARG,
         kw_types=[
             KwargInfo(
                 'languages', ContainerTypeInfo(list, str),
@@ -1471,9 +1480,9 @@ class GnomeModule(ExtensionModule):
 
         return ModuleReturnValue(None, targets)
 
-    @typed_pos_args('gnome.gtkdoc', str)
     @TypedArgs(
         'gnome.gtkdoc',
+        pos_types=[STR_PARG],
         kw_types=[
             KwargInfo('c_args', ContainerTypeInfo(list, str), since='0.48.0', default=[], listify=True),
             KwargInfo('check', bool, default=False, since='0.52.0'),
@@ -1659,14 +1668,14 @@ class GnomeModule(ExtensionModule):
 
         return args, new_depends
 
-    @TypedArgs('gnome.gtkdoc_html_dir')
-    @typed_pos_args('gnome.gtkdoc_html_dir', str)
+    @TypedArgs('gnome.gtkdoc_html_dir', pos_types=[STR_PARG])
     def gtkdoc_html_dir(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> str:
         return os.path.join('share/gtk-doc/html', args[0])
 
-    @typed_pos_args('gnome.gdbus_codegen', str, optargs=[(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList)])
     @TypedArgs(
         'gnome.gdbus_codegen',
+        pos_types=[STR_PARG],
+        opt_types=[OptArgInfo((str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList))],
         kw_types=[
             _BUILD_BY_DEFAULT.evolve(since='0.40.0'),
             DEPENDENCY_SOURCES_KW.evolve(since='0.46.0'),
@@ -1881,9 +1890,9 @@ class GnomeModule(ExtensionModule):
 
         return ModuleReturnValue(targets, targets)
 
-    @typed_pos_args('gnome.mkenums', str)
     @TypedArgs(
         'gnome.mkenums',
+        pos_types=[STR_PARG],
         kw_types=[
             *_MK_ENUMS_COMMON_KWS,
             DEPENDS_KW,
@@ -1965,9 +1974,9 @@ class GnomeModule(ExtensionModule):
             return ModuleReturnValue(targets, targets)
 
     @FeatureNew('gnome.mkenums_simple', '0.42.0')
-    @typed_pos_args('gnome.mkenums_simple', str)
     @TypedArgs(
         'gnome.mkenums_simple',
+        pos_types=[STR_PARG],
         kw_types=[
             *_MK_ENUMS_COMMON_KWS,
             KwargInfo(
@@ -2128,9 +2137,9 @@ class GnomeModule(ExtensionModule):
             description='Generating GObject enum file {}',
         )
 
-    @typed_pos_args('gnome.genmarshal', str)
     @TypedArgs(
         'gnome.genmarshal',
+        pos_types=[STR_PARG],
         kw_types=[
             DEPEND_FILES_KW.evolve(since='0.61.0'),
             DEPENDS_KW.evolve(since='0.61.0'),
@@ -2278,9 +2287,9 @@ class GnomeModule(ExtensionModule):
                 link_with += self._get_vapi_link_with(dep)
         return link_with
 
-    @typed_pos_args('gnome.generate_vapi', str)
     @TypedArgs(
         'gnome.generate_vapi',
+        pos_types=[STR_PARG],
         kw_types=[
             INSTALL_KW,
             INSTALL_DIR_KW,
