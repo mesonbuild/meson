@@ -565,6 +565,10 @@ class I18nModule(ExtensionModule):
         var_types=VarArgInfo(
             (str, mesonlib.File, build.BuildTarget, build.BothLibraries, build.CustomTarget, build.CustomTargetIndex),
             min_args=1,
+            since_values={
+                build.CustomTarget: '1.10.0',
+                build.CustomTargetIndex: '1.10.0',
+            }
         ),
         kw_types=[
             _ARGS,
@@ -575,11 +579,6 @@ class I18nModule(ExtensionModule):
         ],
     )
     def xgettext(self, state: ModuleState, args: T.Tuple[str, T.List[SourcesType]], kwargs: XgettextProgramT) -> build.CustomTarget:
-        if any(isinstance(a, build.CustomTarget) for a in args[1]):
-            FeatureNew.single_use('i18n.xgettext with custom_target is broken until 1.10', '1.10.0', self.interpreter.subproject, location=self.interpreter.current_node)
-        if any(isinstance(a, build.CustomTargetIndex) for a in args[1]):
-            FeatureNew.single_use('i18n.xgettext with custom_target index', '1.10.0', self.interpreter.subproject, location=self.interpreter.current_node)
-
         toolname = 'xgettext'
         if self.tools[toolname] is None or not self.tools[toolname].found():
             self.tools[toolname] = state.find_program(toolname, required=True, for_machine=mesonlib.MachineChoice.BUILD)
