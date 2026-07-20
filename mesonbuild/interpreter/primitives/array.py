@@ -75,12 +75,13 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
     @typed_pos_args('array.get', int, optargs=[object])
     @InterpreterObject.method('get')
     def get_method(self, args: T.Tuple[int, T.Optional[TYPE_var]], kwargs: TYPE_kwargs) -> TYPE_var:
-        index = args[0]
-        if index < -len(self.held_object) or index >= len(self.held_object):
-            if args[1] is None:
-                raise InvalidArguments(f'Array index {index} is out of bounds for array of size {len(self.held_object)}.')
-            return args[1]
-        return self.held_object[index]
+        index, fallback = args
+        try:
+            return self.held_object[index]
+        except IndexError:
+            if fallback is not None:
+                return fallback
+            raise InvalidArguments(f'Array index {index} is out of bounds for array of size {len(self.held_object)}.')
 
     @FeatureNew('array.slice', '1.10.0')
     @typed_kwargs('array.slice', KwargInfo('step', int, default=1))
