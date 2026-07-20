@@ -16,8 +16,11 @@ from .. import mlog
 from ..dependencies import DependencyMethods, find_external_dependency, Dependency, ExternalLibrary, InternalDependency
 from ..mesonlib import MesonException, File, FileMode, version_compare, Popen_safe
 from ..interpreter import extract_required_kwarg
-from ..interpreter.type_checking import DEPENDENCY_METHOD_KW, INSTALL_DIR_KW, INSTALL_KW, REQUIRED_KW, NoneType
-from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, TypedArgs, typed_pos_args
+from ..interpreter.type_checking import (
+    DEPENDENCY_METHOD_KW, INSTALL_DIR_KW, INSTALL_KW, REQUIRED_KW, STR_PARG,
+    STR_FILE_VARG, NoneType,
+)
+from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, TypedArgs
 from ..programs import NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
@@ -614,9 +617,9 @@ class QtBaseModule(ExtensionModule):
 
         return output
 
-    @typed_pos_args('qt.preprocess', varargs=(str, File))
     @TypedArgs(
         'qt.preprocess',
+        var_types=STR_FILE_VARG,
         kw_types=[
             DEPENDENCY_METHOD_KW,
             KwargInfo('sources', ContainerTypeInfo(list, (File, str)), listify=True, default=[], deprecated='0.59.0'),
@@ -1005,9 +1008,9 @@ class QtBaseModule(ExtensionModule):
         )
 
     @FeatureNew('qt.qml_module', '1.7')
-    @typed_pos_args('qt.qml_module', str)
     @TypedArgs(
         'qt.qml_module',
+        pos_types=[STR_PARG],
         kw_types=[
             KwargInfo('version', str, default='254.254'),
             #qml sources
