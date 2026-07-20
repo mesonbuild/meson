@@ -275,5 +275,6 @@ class CMakeToolchain:
             lang_cmake = language_map.get(lang, lang.upper())
             file_name = f'CMake{lang_cmake}Compiler.cmake'
             vars = vars_by_file.setdefault(file_name, {})
+            vars.pop(f'CMAKE_{lang_cmake}_COMPILER_LOADED', None)
             vars[f'CMAKE_{lang_cmake}_COMPILER_FORCED'] = ['1']
             self.cmakestate.update(lang, vars)
