@@ -14,7 +14,6 @@ from ...interpreterbase import (
     noPosargs,
     noArgsFlattening,
     TypedArgs,
-    typed_pos_args,
     FeatureNew,
 
     TYPE_var,
@@ -22,6 +21,9 @@ from ...interpreterbase import (
     InvalidArguments,
 )
 from ...mparser import PlusAssignmentNode
+from ...interpreter.type_checking import (
+    OBJ_PARG, INT_PARG, OBJ_OARG, INT_OARG,
+)
 
 if T.TYPE_CHECKING:
     from ...interpreterbase import TYPE_kwargs
@@ -48,8 +50,7 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
         return len(self.held_object)
 
     @noArgsFlattening
-    @TypedArgs('array.contains')
-    @typed_pos_args('array.contains', object)
+    @TypedArgs('array.contains', pos_types=[OBJ_PARG])
     @InterpreterObject.method('contains')
     def contains_method(self, args: T.Tuple[object], kwargs: TYPE_kwargs) -> bool:
         def check_contains(el: T.List[TYPE_var]) -> bool:
@@ -70,8 +71,7 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
         return len(self.held_object)
 
     @noArgsFlattening
-    @TypedArgs('array.get')
-    @typed_pos_args('array.get', int, optargs=[object])
+    @TypedArgs('array.get', pos_types=[INT_PARG], opt_types=[OBJ_OARG])
     @InterpreterObject.method('get')
     def get_method(self, args: T.Tuple[int, T.Optional[TYPE_var]], kwargs: TYPE_kwargs) -> TYPE_var:
         index = args[0]
@@ -82,8 +82,11 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
         return self.held_object[index]
 
     @FeatureNew('array.slice', '1.10.0')
-    @TypedArgs('array.slice', kw_types=[KwargInfo('step', int, default=1)])
-    @typed_pos_args('array.slice', optargs=[int, int])
+    @TypedArgs(
+        'array.slice',
+        opt_types=[INT_OARG, INT_OARG],
+        kw_types=[KwargInfo('step', int, default=1)],
+    )
     @InterpreterObject.method('slice')
     def slice_method(self, args: T.Tuple[T.Optional[int], T.Optional[int]], kwargs: T.Dict[str, int]) -> TYPE_var:
         start, stop = args
