@@ -14,10 +14,10 @@ from ..build import CustomTarget, CustomTargetIndex
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase import (
     InvalidArguments, noPosargs, TypedArgs, FeatureDeprecated,
-    ContainerTypeInfo, KwargInfo, typed_pos_args, InterpreterObject
+    ContainerTypeInfo, KwargInfo, InterpreterObject
 )
 from ..interpreter.interpreterobjects import _CustomTargetHolder
-from ..interpreter.type_checking import NoneType
+from ..interpreter.type_checking import STR_PARG, STR_VARG_1, NoneType
 from ..mesonlib import File, MesonException
 from ..programs import ExternalProgram
 from ..options import OptionKey
@@ -419,14 +419,13 @@ class HotDocModule(ExtensionModule):
             'generate_doc': self.generate_doc,
         })
 
-    @TypedArgs('hotdoc.has_extensions')
-    @typed_pos_args('hotdoc.has_extensions', varargs=str, min_varargs=1)
+    @TypedArgs('hotdoc.has_extensions', var_types=STR_VARG_1)
     def has_extensions(self, state: ModuleState, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> bool:
         return self.hotdoc.run_hotdoc([f'--has-extension={extension}' for extension in args[0]]) == 0
 
-    @typed_pos_args('hotdoc.generate_doc', str)
     @TypedArgs(
         'hotdoc.generate_doc',
+        pos_types=[STR_PARG],
         kw_types=[
             KwargInfo('sitemap', file_types, required=True),
             KwargInfo('index', file_types, required=True),
