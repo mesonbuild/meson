@@ -60,10 +60,8 @@ else:
         defaults['objc'] = ['clang']
         defaults['objcpp'] = ['clang++']
     elif platform.system().lower() == 'qnx':
-        # qcc/q++ preferred if present; falls through to cc/gcc/clang
-        # otherwise. See docs/markdown/snippets/qcc-support.md.
-        defaults['c'] = ['qcc', 'cc', 'gcc', 'clang']
-        defaults['cpp'] = ['q++', 'c++', 'g++', 'clang++']
+        defaults['c'] = ['cc', 'gcc', 'clang', 'qcc']
+        defaults['cpp'] = ['c++', 'g++', 'clang++', 'q++']
         defaults['objc'] = ['clang']
         defaults['objcpp'] = ['clang++']
     else:
