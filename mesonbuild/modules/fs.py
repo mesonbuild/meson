@@ -47,6 +47,13 @@ if T.TYPE_CHECKING:
 
 
 _SRC_PARG = PosArgInfo((str, File, CustomTarget, CustomTargetIndex, BuildTarget))
+_SRC_PARG_NEW = _SRC_PARG.evolve(since_values={
+    File: '0.59.0',
+    CustomTarget: '1.4.0',
+    CustomTargetIndex: '1.4.0',
+    BuildTarget: '1.4.0',
+})
+_STR_FILE_PARG = STR_FILE_PARG.evolve(since_values={File: '0.59.0'})
 
 
 class FSModule(ExtensionModule):
@@ -90,10 +97,8 @@ class FSModule(ExtensionModule):
             return obj
 
         if isinstance(obj, File):
-            FeatureNew(f'{feature_new_prefix} with file', '0.59.0').use(state.subproject, location=state.current_node)
             return str(obj)
 
-        FeatureNew(f'{feature_new_prefix} with build_tgt, custom_tgt, and custom_idx', '1.4.0').use(state.subproject, location=state.current_node)
         return state.backend.get_target_filename(obj)
 
     def _resolve_dir(self, state: ModuleState, arg: FileOrString) -> str:
@@ -115,12 +120,11 @@ class FSModule(ExtensionModule):
     def expanduser(self, state: ModuleState, args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> str:
         return os.path.expanduser(args[0])
 
-    @TypedArgs('fs.is_absolute', pos_types=[STR_FILE_PARG])
+    @TypedArgs('fs.is_absolute', pos_types=[_STR_FILE_PARG])
     @FeatureNew('fs.is_absolute', '0.54.0')
     def is_absolute(self, state: ModuleState, args: T.Tuple[FileOrString], kwargs: T.Dict[str, T.Any]) -> bool:
         path = args[0]
         if isinstance(path, File):
-            FeatureNew('fs.is_absolute with file', '0.59.0').use(state.subproject, location=state.current_node)
             path = str(path)
         if is_windows():
             # os.path.isabs was broken for Windows before Python 3.13, so we implement it ourselves
@@ -141,10 +145,8 @@ class FSModule(ExtensionModule):
     def exists(self, state: ModuleState, args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> bool:
         return os.path.exists(self._resolve_dir(state, args[0]))
 
-    @TypedArgs('fs.is_symlink', pos_types=[STR_FILE_PARG])
+    @TypedArgs('fs.is_symlink', pos_types=[_STR_FILE_PARG])
     def is_symlink(self, state: ModuleState, args: T.Tuple[FileOrString], kwargs: T.Dict[str, T.Any]) -> bool:
-        if isinstance(args[0], File):
-            FeatureNew('fs.is_symlink with file', '0.59.0').use(state.subproject, location=state.current_node)
         return os.path.islink(self._absolute_dir(state, args[0]))
 
     @TypedArgs('fs.is_file', pos_types=[STR_PARG])
@@ -155,10 +157,8 @@ class FSModule(ExtensionModule):
     def is_dir(self, state: ModuleState, args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> bool:
         return os.path.isdir(self._resolve_dir(state, args[0]))
 
-    @TypedArgs('fs.hash', pos_types=[STR_FILE_PARG, STR_PARG])
+    @TypedArgs('fs.hash', pos_types=[_STR_FILE_PARG, STR_PARG])
     def hash(self, state: ModuleState, args: T.Tuple[FileOrString, str], kwargs: T.Dict[str, T.Any]) -> str:
-        if isinstance(args[0], File):
-            FeatureNew('fs.hash with file', '0.59.0').use(state.subproject, location=state.current_node)
         file = self._resolve_dir(state, args[0])
         if not os.path.isfile(file):
             raise MesonException(f'{file} is not a file and therefore cannot be hashed')
@@ -171,10 +171,8 @@ class FSModule(ExtensionModule):
             h.update(f.read())
         return h.hexdigest()
 
-    @TypedArgs('fs.size', pos_types=[STR_FILE_PARG])
+    @TypedArgs('fs.size', pos_types=[_STR_FILE_PARG])
     def size(self, state: ModuleState, args: T.Tuple[FileOrString], kwargs: T.Dict[str, T.Any]) -> int:
-        if isinstance(args[0], File):
-            FeatureNew('fs.size with file', '0.59.0').use(state.subproject, location=state.current_node)
         file = self._resolve_dir(state, args[0])
         if not os.path.isfile(file):
             raise MesonException(f'{file} is not a file and therefore cannot be sized')
@@ -183,10 +181,8 @@ class FSModule(ExtensionModule):
         except ValueError:
             raise MesonException('{} size could not be determined'.format(args[0]))
 
-    @TypedArgs('fs.is_samepath', pos_types=[STR_FILE_PARG, STR_FILE_PARG])
+    @TypedArgs('fs.is_samepath', pos_types=[_STR_FILE_PARG, _STR_FILE_PARG])
     def is_samepath(self, state: ModuleState, args: T.Tuple[FileOrString, FileOrString], kwargs: T.Dict[str, T.Any]) -> bool:
-        if isinstance(args[0], File) or isinstance(args[1], File):
-            FeatureNew('fs.is_samepath with file', '0.59.0').use(state.subproject, location=state.current_node)
         file1 = self._resolve_dir(state, args[0])
         file2 = self._resolve_dir(state, args[1])
         if not os.path.exists(file1):
@@ -198,30 +194,30 @@ class FSModule(ExtensionModule):
         except OSError:
             return False
 
-    @TypedArgs('fs.replace_suffix', pos_types=[_SRC_PARG, STR_PARG])
+    @TypedArgs('fs.replace_suffix', pos_types=[_SRC_PARG_NEW, STR_PARG])
     def replace_suffix(self, state: ModuleState, args: T.Tuple[FilePathTypes, str], kwargs: T.Dict[str, T.Any]) -> str:
         if args[1] and not args[1].startswith('.'):
             raise ValueError(f"Invalid suffix {args[1]!r}")
         path = self._obj_to_pathstr('fs.replace_suffix', args[0], state)
         return os.path.splitext(path)[0] + args[1]
 
-    @TypedArgs('fs.parent', pos_types=[_SRC_PARG])
+    @TypedArgs('fs.parent', pos_types=[_SRC_PARG_NEW])
     def parent(self, state: ModuleState, args: T.Tuple[FilePathTypes], kwargs: T.Dict[str, T.Any]) -> str:
         path = self._obj_to_pathstr('fs.parent', args[0], state)
         return os.path.split(path)[0] or '.'
 
-    @TypedArgs('fs.name', pos_types=[_SRC_PARG])
+    @TypedArgs('fs.name', pos_types=[_SRC_PARG_NEW])
     def name(self, state: ModuleState, args: T.Tuple[FilePathTypes], kwargs: T.Dict[str, T.Any]) -> str:
         path = self._obj_to_pathstr('fs.name', args[0], state)
         return os.path.basename(path)
 
-    @TypedArgs('fs.stem', pos_types=[_SRC_PARG])
+    @TypedArgs('fs.stem', pos_types=[_SRC_PARG_NEW])
     @FeatureNew('fs.stem', '0.54.0')
     def stem(self, state: ModuleState, args: T.Tuple[FilePathTypes], kwargs: T.Dict[str, T.Any]) -> str:
         path = self._obj_to_pathstr('fs.name', args[0], state)
         return os.path.splitext(os.path.basename(path))[0]
 
-    @TypedArgs('fs.suffix', pos_types=[_SRC_PARG])
+    @TypedArgs('fs.suffix', pos_types=[_SRC_PARG_NEW])
     @FeatureNew('fs.suffix', '1.9.0')
     def suffix(self, state: ModuleState, args: T.Tuple[FilePathTypes], kwargs: T.Dict[str, T.Any]) -> str:
         path = self._obj_to_pathstr('fs.suffix', args[0], state)
