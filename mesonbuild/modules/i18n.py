@@ -14,10 +14,13 @@ from .. import mesonlib
 from ..options import OptionKey
 from .. import mlog
 from ..interpreter.primitives import OptionString
-from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, INSTALL_TAG_KW, OUTPUT_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, in_set_validator
+from ..interpreter.type_checking import (
+    CT_BUILD_BY_DEFAULT, CT_INPUT_KW, INSTALL_TAG_KW, OUTPUT_KW, INSTALL_DIR_KW,
+    INSTALL_KW, STR_PARG, NoneType, in_set_validator,
+)
 from ..interpreterbase import FeatureNew
 from ..interpreterbase.exceptions import InvalidArguments
-from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, noPosargs, TypedArgs, typed_pos_args
+from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, noPosargs, TypedArgs, VarArgInfo
 from ..programs import ExternalProgram
 from ..scripts.gettext import read_linguas
 
@@ -358,9 +361,9 @@ class I18nModule(ExtensionModule):
 
         return ModuleReturnValue(ct, [ct])
 
-    @typed_pos_args('i18n.gettext', str)
     @TypedArgs(
         'i18n.gettext',
+        pos_types=[STR_PARG],
         kw_types=[
             _ARGS,
             _MSGFMT_ARGS,
@@ -556,9 +559,13 @@ class I18nModule(ExtensionModule):
         return ModuleReturnValue(ct, [ct])
 
     @FeatureNew('i18n.xgettext', '1.8.0')
-    @typed_pos_args('i18n.xgettext', str, varargs=(str, mesonlib.File, build.BuildTarget, build.BothLibraries, build.CustomTarget, build.CustomTargetIndex), min_varargs=1)
     @TypedArgs(
         'i18n.xgettext',
+        pos_types=[STR_PARG],
+        var_types=VarArgInfo(
+            (str, mesonlib.File, build.BuildTarget, build.BothLibraries, build.CustomTarget, build.CustomTargetIndex),
+            min_args=1,
+        ),
         kw_types=[
             _ARGS,
             KwargInfo('recursive', bool, default=False),
