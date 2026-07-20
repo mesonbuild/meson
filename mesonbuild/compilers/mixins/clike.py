@@ -1262,7 +1262,6 @@ class CLikeCompiler(Compiler):
 
     def thread_flags(self) -> T.List[str]:
         # TODO: does this belong here or in GnuLike or maybe PosixLike?
-        # QNX Neutrino's libc always includes pthreads, so no flag is needed.
         if self.info.is_haiku() or self.info.is_darwin() or self.info.is_qnx():
             return []
         if self.info.is_os2():
