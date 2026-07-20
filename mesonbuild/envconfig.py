@@ -411,9 +411,6 @@ class MachineInfo(HoldableObject):
         return self.system == 'fuchsia'
 
     def is_qnx(self) -> bool:
-        """
-        Machine is QNX Neutrino?
-        """
         return self.system == 'qnx'
 
     # Various prefixes and suffixes for import libraries, shared libraries,
