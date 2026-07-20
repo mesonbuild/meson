@@ -7,9 +7,7 @@ from __future__ import annotations
 
 qcc/q++ invoke cc1/cc1plus directly rather than wrapping gcc/g++, so
 compile-phase behavior matches gcc/g++, but several gcc *driver*-level
-conveniences aren't replicated and need explicit handling here. See
-docs/markdown/snippets/qcc-support.md for the full rationale behind each
-override.
+conveniences aren't replicated and need explicit handling here.
 """
 
 import typing as T
@@ -34,11 +32,10 @@ else:
 class QccCompiler(Compiler):
     """Behavioral differences between qcc/q++ and plain gcc/g++.
 
-    Mix in *ahead of* :class:`GnuCCompiler`/:class:`GnuCPPCompiler` (e.g.
-    ``class QccCCompiler(QccCompiler, GnuCCompiler)``) so MRO prefers
+    Mix in *ahead of* :class:`GnuCCompiler`/:class:`GnuCPPCompiler`
+    (e.g. ``class QccCCompiler(QccCompiler, GnuCCompiler)``) so MRO prefers
     these overrides while still inheriting the cc1/cc1plus-level behavior
-    (-std=/-I/-D/-O/-g/warnings/PCH/etc.) that qcc genuinely shares with
-    gcc.
+    (-std=/-I/-D/-O/-g/warnings/PCH/etc.) that qcc genuinely shares with gcc.
     """
 
     id = 'qcc'
@@ -131,17 +128,26 @@ class QccCompiler(Compiler):
             'no qcc-documented equivalent exists.')
 
     def _sanity_check_compile_args(self, sourcename: str, binname: str) -> T.Tuple[T.List[str], T.List[str]]:
-        # The base/CLikeCompiler combination produces a command with '-c'
-        # mixed into an already link-shaped invocation, which qcc's driver
-        # rejects outright. Build a clean, mode-consistent command instead.
-        mode = (CompileCheckMode.COMPILE if self.is_cross and not self.environment.has_exe_wrapper()
-                else CompileCheckMode.LINK)
+        # The base/CLikeCompiler combination produces a command with '-c' mixed into an already link-shaped invocation, 
+        # which qcc's driver rejects outright. 
+        # Build a clean, mode-consistent command instead.
+        if self.is_cross and not self.environment.has_exe_wrapper():
+            mode = CompileCheckMode.COMPILE
+        else:
+            mode = CompileCheckMode.LINK
+
         cargs = list(self.environment.coredata.get_external_args(self.for_machine, self.language))
         args = self.exelist_no_ccache + self.get_always_args()
+
         if mode is CompileCheckMode.COMPILE:
-            return args + self.get_compile_only_args() + self.get_output_args(binname) + [sourcename] + cargs, []
-        largs = list(self.environment.coredata.get_external_link_args(self.for_machine, self.language))
-        return args + self.get_output_args(binname) + [sourcename] + cargs, self.linker_to_compiler_args(largs)
+            command = args + self.get_compile_only_args() + self.get_output_args(binname) + [sourcename] + cargs
+            linker_args: T.List[str] = []
+        else:
+            largs = list(self.environment.coredata.get_external_link_args(self.for_machine, self.language))
+            command = args + self.get_output_args(binname) + [sourcename] + cargs
+            linker_args = self.linker_to_compiler_args(largs)
+
+        return command, linker_args
 
     def sanity_check(self, work_dir: str) -> None:
         try:
