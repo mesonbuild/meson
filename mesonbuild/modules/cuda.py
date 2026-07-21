@@ -7,12 +7,14 @@ import dataclasses
 import re
 import typing as T
 
+from .. import mlog
 from ..mesonlib import listify, version_compare
 from ..compilers.cuda import CudaCompiler
 from ..interpreter.type_checking import NoneType
 
 from . import NewExtensionModule, ModuleInfo
 
+from ..utils.universal import Version
 from ..interpreterbase import (
     ContainerTypeInfo, InvalidArguments, KwargInfo, noKwargs, typed_kwargs, typed_pos_args,
 )
@@ -33,7 +35,7 @@ if T.TYPE_CHECKING:
 DETECTED_KW: KwargInfo[T.Union[None, T.List[str]]] = KwargInfo('detected', (ContainerTypeInfo(list, str), NoneType), listify=True)
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class _CudaVersion:
 
     meson: str
@@ -48,6 +50,12 @@ class _CudaVersion:
 
 # Copied from: https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#id7
 _DRIVER_TABLE_VERSION: T.List[_CudaVersion] = [
+    _CudaVersion('13.3.1', 'unknown', '610.43.02'),
+    _CudaVersion('13.3.0', 'unknown', '610.43.02'),
+    _CudaVersion('13.2.1', 'unknown', '595.58.03'),
+    _CudaVersion('13.2.0', 'unknown', '595.45.04'),
+    _CudaVersion('13.1.1', 'unknown', '590.48.01'),
+    _CudaVersion('13.1.0', 'unknown', '590.44.01'),
     _CudaVersion('13.0.2', 'unknown', '580.95.05'),
     _CudaVersion('13.0.1', 'unknown', '580.82.07'),
     _CudaVersion('13.0.0', 'unknown', '580.65.06'),
@@ -103,6 +111,116 @@ _DRIVER_TABLE_VERSION: T.List[_CudaVersion] = [
     _CudaVersion('7.5.16', '353.66', '352.31'),
     _CudaVersion('7.0.28', '347.62', '346.46'),
 ]
+
+
+@dataclasses.dataclass(slots=True)
+class _IsaDef:
+
+    # half-open range, i.e., support for '2.0'/sm_20 is included in CUDA 3.0 <= cuda_version < 9.0
+    min_cuda_ver: str  # included
+    max_cuda_ver: T.Optional[str]  # excluded; None = still supported
+    common: bool       # considered "common" for when user passes 'Common' arg
+    virt: T.Optional[str] = None   # virtual arch, if it differs from the code arch (sm_21 has no compute_21)
+
+    def cuda_too_old(self, cuda_version: str) -> bool:
+        return version_compare(cuda_version, '<' + self.min_cuda_ver)
+
+    def arch_too_old(self, cuda_version: str) -> bool:
+        return self.max_cuda_ver is not None and version_compare(cuda_version, '>=' + self.max_cuda_ver)
+
+    def supports(self, cuda_version: str) -> bool:
+        return not self.cuda_too_old(cuda_version) and not self.arch_too_old(cuda_version)
+
+# Replicates https://en.wikipedia.org/wiki/CUDA#GPUs_supported
+# a max_cuda_ver of None denotes an arch that is still fully supported as of 2026-07-13
+_MICROISA_RANGES_DEF: T.Mapping[str, _IsaDef] = {
+    ### Fermi
+     '2.0':  _IsaDef( '3.0',  '9.0', False), # GF100/GF110
+     '2.1':  _IsaDef( '3.2',  '9.0', False, virt='2.0'), # GF104/GF106/GF108/GF114/GF116/GF117/GF119
+    ### Kepler
+     '3.0':  _IsaDef( '5.0', '11.0', True),  # GK104/GK106/GK107
+     '3.2':  _IsaDef( '6.0', '11.0', False), # GK20A (Tegra/Jetson K1)
+     '3.5':  _IsaDef( '5.0', '12.0', True),  # GK110/GK208
+     '3.7':  _IsaDef( '6.5', '12.0', False), # GK210 (Tesla K80)
+    ### Maxwell
+     '5.0':  _IsaDef( '6.5', '13.0', True),  # GM107/GM108
+     '5.2':  _IsaDef( '6.5', '13.0', True),  # GM200/GM204/GM206
+     '5.3':  _IsaDef( '6.5', '13.0', False), # GM20B (Tegra/Jetson X1)
+    ### Pascal
+     '6.0':  _IsaDef( '8.0', '13.0', True),  # GP100
+     '6.1':  _IsaDef( '8.0', '13.0', True),  # GP102/GP104/GP106/GP107/GP108
+     '6.2':  _IsaDef( '8.0', '13.0', False), # GP10B (Tegra/Jetson X2)
+    ### Volta
+     '7.0':  _IsaDef( '9.0', '13.0', True),  # GV100
+     '7.2':  _IsaDef('10.0', '13.0', False), # GV10B/GV11B (Tegra/Jetson Xavier)
+    ### Turing
+     '7.5':  _IsaDef('10.0', None,   True),  # TU102/TU104/TU106/TU116/TU117
+    ### Ampere
+     '8.0':  _IsaDef('11.0', None,   True),  # GA100
+     '8.6':  _IsaDef('11.1', None,   True),  # GA102/GA103/GA104/GA106/GA107
+     '8.7':  _IsaDef('11.5', None,   False), # GA10B (Jetson Orin)
+     '8.8':  _IsaDef('13.0', None,   False), # undocumented Ampere variant
+    ### Lovelace
+     '8.9':  _IsaDef('11.8', None,   True),  # AD102/AD103/AD104/AD106/AD107
+    ### Hopper
+     '9.0a': _IsaDef('12.0', None,   False), # GH100 (no minor backcompat)
+     '9.0':  _IsaDef('11.8', None,   True),  # GH100
+    ### Blackwell
+    # CUDA 12.9 added 'X.Yf' specifiers
+    # https://developer.nvidia.com/blog/nvidia-blackwell-and-nvidia-cuda-12-9-introduce-family-specific-architecture-features/
+    '10.0a': _IsaDef('12.8', None,   False), # GB100 (no minor backcompat)
+    '10.0f': _IsaDef('12.9', None,   False), # GB100
+    '10.0':  _IsaDef('12.8', None,   True),  # GB100
+    '10.1a': _IsaDef('12.8', '13.0', False), # GB10B (Jetson Thor) (changed to 11.0 in CUDA 13) (no minor backcompat)
+    '10.1f': _IsaDef('12.9', '13.0', False), # GB10B (Jetson Thor) (changed to 11.0 in CUDA 13)
+    '10.1':  _IsaDef('12.8', '13.0', False), # GB10B (Jetson Thor) (changed to 11.0 in CUDA 13)
+    '10.3a': _IsaDef('12.9', None,   False), # GB110 (no minor backcompat)
+    '10.3f': _IsaDef('12.9', None,   False), # GB110
+    '10.3':  _IsaDef('12.9', None,   True),  # GB110
+    '11.0a': _IsaDef('13.0', None,   False), # GB10B (Jetson Thor) (no minor backcompat)
+    '11.0f': _IsaDef('13.0', None,   False), # GB10B (Jetson Thor)
+    '11.0':  _IsaDef('13.0', None,   False), # GB10B (Jetson Thor)
+    '12.0a': _IsaDef('12.9', None,   False), # GB100/GB202/GB203/GB205/GB206/GB207 (no minor backcompat)
+    '12.0f': _IsaDef('12.9', None,   False), # GB100/GB202/GB203/GB205/GB206/GB207
+    '12.0':  _IsaDef('12.8', None,   True),  # GB100/GB202/GB203/GB205/GB206/GB207
+    '12.1a': _IsaDef('12.9', None,   False), # GB20B (no minor backcompat)
+    '12.1f': _IsaDef('12.9', None,   False), # GB20B
+    '12.1':  _IsaDef('12.9', None,   True),  # GB20B
+}
+
+_FAMILY_TO_MICROISAS: T.Mapping[str, T.FrozenSet[str]] = {
+    'Fermi':         frozenset(['2.0', '2.1']),
+    'Kepler':        frozenset(['3.0', '3.5']),
+    'Kepler+Tegra':  frozenset(['3.2']),
+    'Kepler+Tesla':  frozenset(['3.7']),
+    'Maxwell':       frozenset(['5.0', '5.2']),
+    'Maxwell+Tegra': frozenset(['5.3']),
+    'Pascal':        frozenset(['6.0', '6.1']),
+    'Pascal+Tegra':  frozenset(['6.2']),
+    'Volta':         frozenset(['7.0']),
+    'Xavier':        frozenset(['7.2']),
+    'Turing':        frozenset(['7.5']),
+    'Ampere':        frozenset(['8.0', '8.6']),
+    'Orin':          frozenset(['8.7']),
+    'Lovelace':      frozenset(['8.9']),
+    'Hopper':        frozenset(['9.0']),
+    'Hopper(A)':     frozenset(['9.0a']),
+    'Thor':          frozenset(['10.1', '11.0']),
+    'Thor(A)':       frozenset(['10.1a', '11.0a']),
+    'Blackwell':     frozenset(['10.0', '10.3', '12.0', '12.1']),
+    'Blackwell(A)':  frozenset(['10.0a', '10.3a', '12.0a', '12.1a']),
+}
+
+# reverse lookup for family-specific ('f') pairing checks; '(A)' pseudo-families excluded
+_ISA_TO_FAMILY: T.Mapping[str, str] = {isa: family
+                                       for family, isas in _FAMILY_TO_MICROISAS.items() if not family.endswith('(A)')
+                                       for isa in isas}
+
+# a single micro-ISA, e.g. '8.6', '9.0a' or '10.0f'
+_MICROISA_RE = re.compile(r'[0-9]+\.[0-9][af]?')
+# an output micro-ISA with an optional virtual micro-ISA, e.g. '12.0a' or '8.6(8.0)'
+_ARCH_SPEC_RE = re.compile(rf'({_MICROISA_RE.pattern})(?:\(({_MICROISA_RE.pattern})\))?')
+
 
 class CudaModule(NewExtensionModule):
 
@@ -186,261 +304,210 @@ class CudaModule(NewExtensionModule):
 
         return cuda_version, arch_list, detected
 
-    def _filter_cuda_arch_list(self, cuda_arch_list: T.List[str], lo: str, hi: T.Optional[str], saturate: str) -> T.List[str]:
-        """
-        Filter CUDA arch list (no codenames) for >= low and < hi architecture
-        bounds, and deduplicate.
-        Architectures >= hi are replaced with saturate.
-        """
-
-        filtered_cuda_arch_list = []
-        for arch in cuda_arch_list:
-            if arch:
-                if lo and version_compare(arch, '<' + lo):
-                    continue
-                if hi and version_compare(arch, '>=' + hi):
-                    arch = saturate
-                if arch not in filtered_cuda_arch_list:
-                    filtered_cuda_arch_list.append(arch)
-        return filtered_cuda_arch_list
-
-    def _nvcc_arch_flags(self, cuda_version: str, cuda_arch_list: AutoArch, detected: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+    @staticmethod
+    def _nvcc_arch_flags(cuda_version: str, cuda_arch_list: AutoArch, detected: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
         """
         Using the CUDA Toolkit version and the target architectures, compute
         the NVCC architecture flags.
         """
 
-        # Replicates much of the logic of
-        #     https://github.com/Kitware/CMake/blob/master/Modules/FindCUDA/select_compute_arch.cmake
-        # except that a bug with cuda_arch_list="All" is worked around by
-        # tracking both lower and upper limits on GPU architectures.
+        # arches the current nvcc supports
+        cuda_supported_gpu_architectures: T.Set[str] = set()
+        # arches you get when asking for 'All'
+        cuda_known_gpu_architectures: T.Set[str] = set()
+        # arches you get when asking for 'Common'
+        cuda_common_gpu_architectures: T.Set[str] = set()
+        # maximum common arch (used as the PTX saturation target)
+        cuda_max_arch: str = '1.0'
 
-        cuda_known_gpu_architectures   = []  # noqa: E221
-        cuda_common_gpu_architectures  = ['3.0', '3.5', '5.0']           # noqa: E221
-        cuda_hi_limit_gpu_architecture = None                            # noqa: E221
-        cuda_lo_limit_gpu_architecture = '2.0'                           # noqa: E221
-        cuda_all_gpu_architectures     = ['3.0', '3.2', '3.5', '5.0']    # noqa: E221
+        for arch, definition in _MICROISA_RANGES_DEF.items():
+            if definition.supports(cuda_version):
+                cuda_supported_gpu_architectures.add(arch)
 
-        # Fermi and Kepler support have been dropped since 12.0
-        if version_compare(cuda_version, '<12.0'):
-            cuda_known_gpu_architectures.extend(['Fermi', 'Kepler'])
+                if arch.endswith('f'):
+                    # don't want 'X.Yf' arches as part of any default collection
+                    continue
 
-        # Everything older than Turing is dropped by 13.0
-        if version_compare(cuda_version, '<13.0'):
-            cuda_known_gpu_architectures.append('Maxwell')
+                cuda_known_gpu_architectures.add(arch)
 
-            if version_compare(cuda_version, '<7.0'):
-                cuda_hi_limit_gpu_architecture = '5.2'
+                if arch.endswith('a'):
+                    # don't perform version comparisons on 'X.Ya' arches
+                    continue
 
-            if version_compare(cuda_version, '>=7.0'):
-                cuda_known_gpu_architectures  += ['Kepler+Tegra', 'Kepler+Tesla', 'Maxwell+Tegra']  # noqa: E221
-                cuda_common_gpu_architectures += ['5.2']                                            # noqa: E221
+                if definition.common:
+                    cuda_common_gpu_architectures.add(arch)
 
-                if version_compare(cuda_version, '<8.0'):
-                    cuda_common_gpu_architectures += ['5.2+PTX']  # noqa: E221
-                    cuda_hi_limit_gpu_architecture = '6.0'        # noqa: E221
+                    if Version(arch) > Version(cuda_max_arch):
+                        cuda_max_arch = arch
 
-            if version_compare(cuda_version, '>=8.0'):
-                cuda_known_gpu_architectures  += ['Pascal', 'Pascal+Tegra']  # noqa: E221
-                cuda_common_gpu_architectures += ['6.0', '6.1']              # noqa: E221
-                cuda_all_gpu_architectures    += ['6.0', '6.1', '6.2']       # noqa: E221
-
-                if version_compare(cuda_version, '<9.0'):
-                    cuda_common_gpu_architectures += ['6.1+PTX']  # noqa: E221
-                    cuda_hi_limit_gpu_architecture = '7.0'        # noqa: E221
-
-            if version_compare(cuda_version, '>=9.0'):
-                cuda_known_gpu_architectures  += ['Volta', 'Xavier'] # noqa: E221
-                cuda_common_gpu_architectures += ['7.0']             # noqa: E221
-                cuda_all_gpu_architectures    += ['7.0', '7.2']      # noqa: E221
-                # https://docs.nvidia.com/cuda/archive/9.0/cuda-toolkit-release-notes/index.html#unsupported-features
-                cuda_lo_limit_gpu_architecture = '3.0'               # noqa: E221
-
-                if version_compare(cuda_version, '<10.0'):
-                    cuda_common_gpu_architectures += ['7.2+PTX']  # noqa: E221
-                    cuda_hi_limit_gpu_architecture = '8.0'        # noqa: E221
-
-        if version_compare(cuda_version, '>=10.0'):
-            cuda_known_gpu_architectures  += ['Turing'] # noqa: E221
-            cuda_common_gpu_architectures += ['7.5']    # noqa: E221
-            cuda_all_gpu_architectures    += ['7.5']    # noqa: E221
-
-            if version_compare(cuda_version, '<11.0'):
-                cuda_common_gpu_architectures += ['7.5+PTX']  # noqa: E221
-                cuda_hi_limit_gpu_architecture = '8.0'        # noqa: E221
-
-        # need to account for the fact that Ampere is commonly assumed to include
-        # SM8.0 and SM8.6 even though CUDA 11.0 doesn't support SM8.6
-        cuda_ampere_bin = ['8.0']
-        cuda_ampere_ptx = ['8.0']
-        if version_compare(cuda_version, '>=11.0'):
-            cuda_known_gpu_architectures  += ['Ampere'] # noqa: E221
-            cuda_common_gpu_architectures += ['8.0']    # noqa: E221
-            cuda_all_gpu_architectures    += ['8.0']    # noqa: E221
-            # https://docs.nvidia.com/cuda/archive/11.0/cuda-toolkit-release-notes/index.html#deprecated-features
-            cuda_lo_limit_gpu_architecture = '3.5'      # noqa: E221
-
-            if version_compare(cuda_version, '<11.1'):
-                cuda_common_gpu_architectures += ['8.0+PTX']  # noqa: E221
-                cuda_hi_limit_gpu_architecture = '8.6'        # noqa: E221
-
-        if version_compare(cuda_version, '>=11.1'):
-            cuda_ampere_bin += ['8.6'] # noqa: E221
-            cuda_ampere_ptx  = ['8.6'] # noqa: E221
-
-            cuda_common_gpu_architectures += ['8.6']             # noqa: E221
-            cuda_all_gpu_architectures    += ['8.6']             # noqa: E221
-
-            if version_compare(cuda_version, '<11.8'):
-                cuda_common_gpu_architectures += ['8.6+PTX']  # noqa: E221
-                cuda_hi_limit_gpu_architecture = '8.7'        # noqa: E221
-
-        if version_compare(cuda_version, '>=11.8'):
-            cuda_known_gpu_architectures  += ['Orin', 'Lovelace', 'Hopper']  # noqa: E221
-            cuda_common_gpu_architectures += ['8.9', '9.0', '9.0+PTX']       # noqa: E221
-            cuda_all_gpu_architectures    += ['8.7', '8.9', '9.0']           # noqa: E221
-
-            if version_compare(cuda_version, '<12'):
-                cuda_hi_limit_gpu_architecture = '9.1'        # noqa: E221
-
-        if version_compare(cuda_version, '>=12.0'):
-            # https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#deprecated-features (Current)
-            # https://docs.nvidia.com/cuda/archive/12.0/cuda-toolkit-release-notes/index.html#deprecated-features (Eventual?)
-            cuda_lo_limit_gpu_architecture = '5.0'            # noqa: E221
-
-            if version_compare(cuda_version, '<13'):
-                cuda_hi_limit_gpu_architecture = '10.0'       # noqa: E221
-
-        if version_compare(cuda_version, '>=12.8'):
-            cuda_known_gpu_architectures.append('Blackwell')
-            cuda_common_gpu_architectures.extend(['10.0', '12.0'])
-            cuda_all_gpu_architectures.extend(['10.0', '12.0'])
-
-            if version_compare(cuda_version, '<13'):
-                # Yes, 12.8 and 12.9 support 10.1, but 13.0 doesn't
-                cuda_common_gpu_architectures.append('10.1')
-                cuda_all_gpu_architectures.append('10.1')
-                cuda_hi_limit_gpu_architecture = '12.1'
-
-        if version_compare(cuda_version, '>=12.9'):
-            cuda_common_gpu_architectures.extend(['10.3', '12.1'])
-            cuda_all_gpu_architectures.extend(['10.3', '12.1'])
-
-        if version_compare(cuda_version, '>=13.0'):
-            cuda_common_gpu_architectures.append('11.0')
-            cuda_all_gpu_architectures.append('11.0')
-            cuda_lo_limit_gpu_architecture = '7.5'
-
-            if version_compare(cuda_version, '<14'):
-                cuda_hi_limit_gpu_architecture = '12.1'
+        # need to add '+PTX' for the 'Common' collection
+        cuda_common_gpu_architectures.add(cuda_max_arch + '+PTX')
 
         if not cuda_arch_list:
             cuda_arch_list = 'Auto'
 
+        archs: T.Iterable[str]
         if   cuda_arch_list == 'All':     # noqa: E271
-            cuda_arch_list = cuda_known_gpu_architectures
+            archs = cuda_known_gpu_architectures
         elif cuda_arch_list == 'Common':  # noqa: E271
-            cuda_arch_list = cuda_common_gpu_architectures
+            archs = cuda_common_gpu_architectures
         elif cuda_arch_list == 'Auto':    # noqa: E271
             if detected:
-                if isinstance(detected, list):
-                    cuda_arch_list = detected
-                else:
-                    cuda_arch_list = self._break_arch_string(detected)
-                cuda_arch_list = self._filter_cuda_arch_list(cuda_arch_list,
-                                                             cuda_lo_limit_gpu_architecture,
-                                                             cuda_hi_limit_gpu_architecture,
-                                                             cuda_common_gpu_architectures[-1])
+                # a detected GPU newer than the toolkit supports can still JIT PTX
+                # for the newest common arch -> saturate instead of dropping
+                saturated: T.List[str] = []
+                for arch in detected:
+                    if _MICROISA_RE.fullmatch(arch) and Version(arch) > Version(cuda_max_arch):
+                        saturated.append(cuda_max_arch + '+PTX')
+                    else:
+                        saturated.append(arch)
+                archs = saturated
             else:
-                cuda_arch_list = cuda_common_gpu_architectures
+                archs = cuda_common_gpu_architectures
         elif isinstance(cuda_arch_list, str):
-            cuda_arch_list = self._break_arch_string(cuda_arch_list)
+            archs = CudaModule._break_arch_string(cuda_arch_list)
+        else:
+            archs = cuda_arch_list
 
-        cuda_arch_list = sorted(x for x in set(cuda_arch_list) if x)
+        # shared validation for the real and virtual halves of an 'X.Y(Z.W)' arch
+        def isa_usable(isa: str, kind: str, arch: str) -> bool:
+            isadef = _MICROISA_RANGES_DEF.get(isa, None)
+            if isadef is None:
+                raise InvalidArguments(f'Unknown CUDA {kind} in {arch}!')
+            if isadef.cuda_too_old(cuda_version):
+                mlog.warning(f'CUDA {cuda_version} is too old for architecture {isa}')
+                return False
+            if isadef.arch_too_old(cuda_version):
+                mlog.warning(f'Architecture {isa} is too old for CUDA {cuda_version}')
+                return False
+            assert isa in cuda_supported_gpu_architectures
+            return True
 
-        cuda_arch_bin: T.List[str] = []
-        cuda_arch_ptx: T.List[str] = []
-        for arch_name in cuda_arch_list:
-            arch_bin: T.Optional[T.List[str]]
-            arch_ptx: T.Optional[T.List[str]]
-            add_ptx = arch_name.endswith('+PTX')
+        # nvcc emits one SASS slot per GPU code and refuses to fill the same slot from
+        # both a family-specific and a non family-specific arch ("The same GPU code
+        # (`sm_121`) generated for non family-specific and family-specific GPU arch").
+        # 'X.Yf' occupies the same slot as 'X.Y', while 'X.Ya' is a slot of its own.
+        # slot -> (family-specific?, spec of first request, {(virtual, output), ...})
+        cuda_arch_bin: T.Dict[str, T.Tuple[bool, str, T.Set[T.Tuple[Version, Version]]]] = {}
+        # PTX is embedded per virtual arch and never occupies a SASS slot
+        cuda_arch_ptx: T.Set[Version] = set()
+
+        def add_bin_target(virtarch: str, outarch: str) -> None:
+            slot = outarch.rstrip('f')
+            family_specific = outarch.endswith('f') or virtarch.endswith('f')
+            # remember how the slot was requested (in input syntax), so that a later
+            # conflicting request can name both offenders in its error message
+            spec = outarch if virtarch == outarch else f'{outarch}({virtarch})'
+            if slot not in cuda_arch_bin:
+                cuda_arch_bin[slot] = (family_specific, spec, set())
+            elif cuda_arch_bin[slot][0] != family_specific:
+                specs = ' and '.join(sorted((cuda_arch_bin[slot][1], spec)))
+                gpu_code = 'sm_' + slot.replace('.', '')
+                raise InvalidArguments(f'CUDA archs {specs} generate the same GPU code {gpu_code} from a family-specific and a non family-specific arch!')
+            cuda_arch_bin[slot][2].add((Version(virtarch), Version(outarch)))
+
+        for arch in archs:
+            add_ptx = arch.endswith('+PTX')
             if add_ptx:
-                arch_name = arch_name[:-len('+PTX')]
+                arch = arch[:-len('+PTX')]
 
-            if re.fullmatch('[0-9]+\\.[0-9](\\([0-9]+\\.[0-9]\\))?', arch_name):
-                arch_bin, arch_ptx = [arch_name], [arch_name]
+            if arch in _FAMILY_TO_MICROISAS:
+                # something like 'Maxwell' or 'Ampere'
+                # '(A)' arches have no forward compatibility, so embedding their PTX is meaningless
+                if add_ptx and arch.endswith('(A)'):
+                    raise InvalidArguments(f'CUDA arch {arch} and +PTX are mutually exclusive')
+
+                isas = _FAMILY_TO_MICROISAS[arch]
+                intersection = isas & cuda_supported_gpu_architectures
+                if intersection:
+                    for realarch in sorted(intersection):
+                        virtarch = _MICROISA_RANGES_DEF[realarch].virt or realarch
+                        add_bin_target(virtarch, realarch)
+                    if add_ptx:
+                        # we don't want PTX for things like 'Kepler+Tegra'
+                        maxarch = max(intersection, key=Version)
+                        virtarch = _MICROISA_RANGES_DEF[maxarch].virt or maxarch
+                        cuda_arch_ptx.add(Version(virtarch))
+                elif all(_MICROISA_RANGES_DEF[isa].cuda_too_old(cuda_version) for isa in isas):
+                    mlog.warning(f'CUDA {cuda_version} is too old for {arch}')
+                elif all(_MICROISA_RANGES_DEF[isa].arch_too_old(cuda_version) for isa in isas):
+                    mlog.warning(f'{arch} is too old for CUDA {cuda_version}')
+                else:
+                    mlog.warning(f'{arch} is not supported by CUDA {cuda_version}')
+            elif m := _ARCH_SPEC_RE.fullmatch(arch):
+                # something like '12.0a' or '8.6(8.0)'
+                realarch, virtarch = m.groups()
+
+                # 'X.Ya' arches have no forward compatibility, so embedding their PTX is meaningless
+                if add_ptx and (virtarch or realarch).endswith('a'):
+                    raise InvalidArguments(f'CUDA arch {arch} and +PTX are mutually exclusive')
+
+                # an architecture-specific 'X.Ya' virtual arch can only emit code for exactly 'X.Ya'
+                # (nvcc: "Incompatible code generation requested")
+                if virtarch and virtarch.endswith('a') and virtarch != realarch:
+                    raise InvalidArguments(f'CUDA virtual arch {virtarch} is architecture-specific and can only pair with {virtarch} in {arch}!')
+
+                if not isa_usable(realarch, 'Architecture', arch):
+                    continue
+
+                if virtarch:
+                    if not isa_usable(virtarch, 'Virtual Architecture', arch):
+                        continue
+                    # an ISA carrying a virt override has no virtual form of its own (there is no compute_21)
+                    redirect = _MICROISA_RANGES_DEF[virtarch].virt
+                    if redirect is not None:
+                        raise InvalidArguments(f'CUDA virtual arch {virtarch} does not exist in {arch}, use {redirect} instead!')
+
+                    # nvcc pairing rules for suffixed arches ("Incompatible code generation requested"):
+                    # - a family-specific 'X.Yf' virtual arch pairs only with members of its own
+                    #   family generation that are at least as new as itself
+                    # - a family-specific 'X.Yf' code arch requires a same-generation virtual arch
+                    realbase = realarch.rstrip('af')
+                    realfamily = _ISA_TO_FAMILY.get(realbase, 'unknown')
+                    if virtarch.endswith('f'):
+                        virtbase = virtarch.rstrip('f')
+                        virtfamily = _ISA_TO_FAMILY.get(virtbase, 'unknown')
+                        if (virtbase.split('.')[0] != realbase.split('.')[0]
+                                or virtfamily != realfamily
+                                or Version(realbase) < Version(virtbase)):
+                            raise InvalidArguments(f'CUDA virtual arch {virtarch} ({virtfamily}) is family-specific and cannot pair with {realarch} ({realfamily}) in {arch}!')
+                    elif realarch.endswith('f') and virtarch.split('.')[0] != realbase.split('.')[0]:
+                        virtfamily = _ISA_TO_FAMILY.get(virtarch.rstrip('af'), 'unknown')
+                        raise InvalidArguments(f'CUDA family-specific arch {realarch} ({realfamily}) requires a same-generation virtual arch, not {virtarch} ({virtfamily}), in {arch}!')
+                else:
+                    virtarch = _MICROISA_RANGES_DEF[realarch].virt or realarch
+
+                add_bin_target(virtarch, realarch)
+                if add_ptx:
+                    cuda_arch_ptx.add(Version(virtarch))
             else:
-                arch_bin, arch_ptx = {
-                    'Fermi':         (['2.0', '2.1(2.0)'], []),
-                    'Kepler+Tegra':  (['3.2'],             []),
-                    'Kepler+Tesla':  (['3.7'],             []),
-                    'Kepler':        (['3.0', '3.5'],      ['3.5']),
-                    'Maxwell+Tegra': (['5.3'],             []),
-                    'Maxwell':       (['5.0', '5.2'],      ['5.2']),
-                    'Pascal':        (['6.0', '6.1'],      ['6.1']),
-                    'Pascal+Tegra':  (['6.2'],             []),
-                    'Volta':         (['7.0'],             ['7.0']),
-                    'Xavier':        (['7.2'],             []),
-                    'Turing':        (['7.5'],             ['7.5']),
-                    'Ampere':        (cuda_ampere_bin,     cuda_ampere_ptx),
-                    'Orin':          (['8.7'],             []),
-                    'Lovelace':      (['8.9'],             ['8.9']),
-                    'Hopper':        (['9.0'],             ['9.0']),
-                    'Blackwell':     (['10.0'],            ['10.0']),
-                }.get(arch_name, (None, None))
+                raise InvalidArguments(f'Unknown CUDA Architecture Name {arch}!')
 
-            if arch_bin is None:
-                raise InvalidArguments(f'Unknown CUDA Architecture Name {arch_name}!')
+        # the order we're looking for:
+        # - 12.0a < 12.0f < 12.0
+        #   by always appending 'z' to the Version, the vanilla '12.0' always goes last
+        def version_key(v: Version) -> T.Tuple[T.Union[int, str], ...]:
+            return (*v, 'z')
 
-            cuda_arch_bin += arch_bin
+        bin_pairs: T.List[T.Tuple[Version, Version]] = [pair for _, _, pairs in cuda_arch_bin.values() for pair in pairs]
 
-            if add_ptx:
-                if not arch_ptx:
-                    arch_ptx = arch_bin
-                cuda_arch_ptx += arch_ptx
+        # binary code for each requested arch, with the PTX fallbacks at the end
+        gencode_flags: T.List[str] = []
+        for virtual_target, output_target in sorted(bin_pairs, key=lambda p: (version_key(p[0]), version_key(p[1]))):
+            virt = str(virtual_target).replace('.', '')
+            output = str(output_target).replace('.', '')
+            gencode_flags += ['-gencode', f'arch=compute_{virt},code=sm_{output}']
+        for virtual_target in sorted(cuda_arch_ptx, key=version_key):
+            virt = str(virtual_target).replace('.', '')
+            gencode_flags += ['-gencode', f'arch=compute_{virt},code=compute_{virt}']
 
-        cuda_arch_bin = sorted(set(cuda_arch_bin))
-        cuda_arch_ptx = sorted(set(cuda_arch_ptx))
+        arch_names: T.List[str] = []
+        for _, output_target in sorted(bin_pairs, key=lambda p: version_key(p[1])):
+            arch_names.append('sm_' + str(output_target).replace('.', ''))
+        for virtual_target in sorted(cuda_arch_ptx, key=version_key):
+            arch_names.append('compute_' + str(virtual_target).replace('.', ''))
 
-        nvcc_flags = []
-        nvcc_archs_readable = []
-
-        for arch in cuda_arch_bin:
-            arch, codev = re.fullmatch(
-                '([0-9]+\\.[0-9])(?:\\(([0-9]+\\.[0-9])\\))?', arch).groups()
-
-            if version_compare(arch, '<' + cuda_lo_limit_gpu_architecture):
-                continue
-            if cuda_hi_limit_gpu_architecture and version_compare(arch, '>=' + cuda_hi_limit_gpu_architecture):
-                continue
-
-            if codev:
-                arch = arch.replace('.', '')
-                codev = codev.replace('.', '')
-                nvcc_flags += ['-gencode', 'arch=compute_' + codev + ',code=sm_' + arch]
-                nvcc_archs_readable += ['sm_' + arch]
-            else:
-                arch = arch.replace('.', '')
-                nvcc_flags += ['-gencode', 'arch=compute_' + arch + ',code=sm_' + arch]
-                nvcc_archs_readable += ['sm_' + arch]
-
-        for arch in cuda_arch_ptx:
-            arch, codev = re.fullmatch(
-                '([0-9]+\\.[0-9])(?:\\(([0-9]+\\.[0-9])\\))?', arch).groups()
-
-            if codev:
-                arch = codev
-
-            if version_compare(arch, '<' + cuda_lo_limit_gpu_architecture):
-                continue
-            if cuda_hi_limit_gpu_architecture and version_compare(arch, '>=' + cuda_hi_limit_gpu_architecture):
-                continue
-
-            arch = arch.replace('.', '')
-            nvcc_flags += ['-gencode', 'arch=compute_' + arch + ',code=compute_' + arch]
-            nvcc_archs_readable += ['compute_' + arch]
-
-        return nvcc_flags, nvcc_archs_readable
+        return gencode_flags, arch_names
 
 def initialize(interp: Interpreter) -> CudaModule:
     return CudaModule(interp)

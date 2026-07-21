@@ -30,4 +30,8 @@ extend-ignore =
     A003
 per-file-ignores =
     mesonbuild/mesonlib.py:F401,F403
+    # E131: continuation line unaligned for hanging indent
+    # E201: whitespace after '('
+    # (both due to deliberate column alignment in the CUDA arch table)
+    mesonbuild/modules/cuda.py:E131,E201
 max-line-length = 120
