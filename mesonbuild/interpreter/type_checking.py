@@ -1170,6 +1170,7 @@ STR_FILE_PARG = PosArgInfo((str, File))
 INT_PARG = PosArgInfo(int)
 BOOL_PARG = PosArgInfo(bool)
 OBJ_PARG = PosArgInfo(object)
+ENV_PARG = PosArgInfo((str, list, dict, EnvironmentVariables), validator=_env_validator)
 
 STR_OARG = OptArgInfo(str)
 INT_OARG = OptArgInfo(int)

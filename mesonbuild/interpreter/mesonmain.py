@@ -15,13 +15,16 @@ from .. import mlog
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
 from ..programs import Program, ExternalProgram
-from ..interpreter.type_checking import ENV_KW, ENV_METHOD_KW, ENV_SEPARATOR_KW, env_convertor_with_method
+from ..interpreter.type_checking import (
+    ENV_METHOD_KW, ENV_SEPARATOR_KW, ENV_PARG, env_convertor_with_method,
+)
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated, FeatureBroken,
-                               typed_pos_args,  noArgsFlattening, noPosargs,
-                               TypedArgs, KwargInfo, InterpreterException, InterpreterObject)
+                               noArgsFlattening, noPosargs,
+                               TypedArgs, KwargInfo, InterpreterException, InterpreterObject,
+                               PosArgInfo, VarArgInfo)
 from .decorators import apply_machine_map
 from .primitives import MesonVersionString
-from .type_checking import NATIVE_KW, NoneType
+from .type_checking import NATIVE_KW, STR_PARG, OBJ_OARG, NoneType
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
@@ -47,6 +50,11 @@ if T.TYPE_CHECKING:
     class AddDevenvKW(TypedDict):
         method: Literal['set', 'prepend', 'append']
         separator: str
+
+
+_BUILT_PROG_PARG = PosArgInfo((str, mesonlib.File, Program))
+_BUILT_PROG_VARG = VarArgInfo((str, mesonlib.File, Program))
+_ANY_PROG_PARG = PosArgInfo((str, mesonlib.File, build.Executable, Program))
 
 
 class MesonMain(MesonInterpreterObject):
@@ -112,13 +120,10 @@ class MesonMain(MesonInterpreterObject):
                 '0.55.0', self.interpreter.subproject, location=self.current_node)
         return script_args
 
-    @typed_pos_args(
-        'meson.add_install_script',
-        (str, mesonlib.File, build.Executable, Program),
-        varargs=(str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, Program)
-    )
     @TypedArgs(
         'meson.add_install_script',
+        pos_types=[_ANY_PROG_PARG],
+        var_types=VarArgInfo((str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, Program)),
         kw_types=[
             KwargInfo('skip_if_destdir', bool, default=False, since='0.57.0'),
             KwargInfo('install_tag', (str, NoneType), since='0.60.0'),
@@ -139,12 +144,11 @@ class MesonMain(MesonInterpreterObject):
         script.dry_run = kwargs['dry_run']
         self.build.install_scripts.append(script)
 
-    @typed_pos_args(
+    @TypedArgs(
         'meson.add_postconf_script',
-        (str, mesonlib.File, Program),
-        varargs=(str, mesonlib.File, Program)
+        pos_types=[_ANY_PROG_PARG],
+        var_types=_BUILT_PROG_VARG,
     )
-    @TypedArgs('meson.add_postconf_script')
     @InterpreterObject.method('add_postconf_script')
     def add_postconf_script_method(
             self,
@@ -157,12 +161,11 @@ class MesonMain(MesonInterpreterObject):
         script = self._find_source_script('add_postconf_script', args[0], script_args)
         self.build.postconf_scripts.append(script)
 
-    @typed_pos_args(
+    @TypedArgs(
         'meson.add_dist_script',
-        (str, mesonlib.File, Program),
-        varargs=(str, mesonlib.File, Program)
+        pos_types=[_BUILT_PROG_PARG],
+        var_types=_BUILT_PROG_VARG,
     )
-    @TypedArgs('meson.add_dist_script')
     @FeatureNew('meson.add_dist_script', '0.48.0')
     @InterpreterObject.method('add_dist_script')
     def add_dist_script_method(
@@ -283,8 +286,7 @@ class MesonMain(MesonInterpreterObject):
     def is_cross_build_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
         return self.build.machine_map.host is not self.build.machine_map.build
 
-    @typed_pos_args('meson.get_compiler', str)
-    @TypedArgs('meson.get_compiler', kw_types=[NATIVE_KW])
+    @TypedArgs('meson.get_compiler', pos_types=[STR_PARG], kw_types=[NATIVE_KW])
     @InterpreterObject.method('get_compiler')
     @apply_machine_map
     def get_compiler_method(self, args: T.Tuple[str], kwargs: 'NativeKW') -> 'Compiler':
@@ -320,15 +322,17 @@ class MesonMain(MesonInterpreterObject):
     def is_subproject_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
         return self.interpreter.is_subproject()
 
-    @typed_pos_args('meson.install_dependency_manifest', str)
-    @TypedArgs('meson.install_dependency_manifest')
+    @TypedArgs('meson.install_dependency_manifest', pos_types=[STR_PARG])
     @InterpreterObject.method('install_dependency_manifest')
     def install_dependency_manifest_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> None:
         self.build.dep_manifest_name = args[0]
 
     @FeatureNew('meson.override_find_program', '0.46.0')
-    @typed_pos_args('meson.override_find_program', str, (mesonlib.File, Program, build.Executable))
-    @TypedArgs('meson.override_find_program', kw_types=[NATIVE_KW.evolve(since='1.12.0')])
+    @TypedArgs(
+        'meson.override_find_program',
+        pos_types=[STR_PARG, _ANY_PROG_PARG],
+        kw_types=[NATIVE_KW.evolve(since='1.12.0')],
+    )
     @InterpreterObject.method('override_find_program')
     @apply_machine_map
     def override_find_program_method(self, args: T.Tuple[str, T.Union[mesonlib.File, Program, build.Executable]],
@@ -347,12 +351,12 @@ class MesonMain(MesonInterpreterObject):
 
     @TypedArgs(
         'meson.override_dependency',
+        pos_types=[STR_PARG, PosArgInfo(dependencies.Dependency)],
         kw_types=[
             NATIVE_KW,
             KwargInfo('static', (bool, NoneType), since='0.60.0'),
         ],
     )
-    @typed_pos_args('meson.override_dependency', str, dependencies.Dependency)
     @FeatureNew('meson.override_dependency', '0.54.0')
     @InterpreterObject.method('override_dependency')
     @apply_machine_map
@@ -459,8 +463,11 @@ class MesonMain(MesonInterpreterObject):
 
     @noArgsFlattening
     @FeatureDeprecated('meson.get_cross_property', '0.58.0', 'Use meson.get_external_property() instead')
-    @typed_pos_args('meson.get_cross_property', str, optargs=[object])
-    @TypedArgs('meson.get_cross_property')
+    @TypedArgs(
+        'meson.get_cross_property',
+        pos_types=[STR_PARG],
+        opt_types=[OBJ_OARG],
+    )
     @InterpreterObject.method('get_cross_property')
     def get_cross_property_method(self, args: T.Tuple[str, T.Optional[object]], kwargs: 'TYPE_kwargs') -> object:
         propname, fallback = args
@@ -468,8 +475,12 @@ class MesonMain(MesonInterpreterObject):
 
     @noArgsFlattening
     @FeatureNew('meson.get_external_property', '0.54.0')
-    @typed_pos_args('meson.get_external_property', str, optargs=[object])
-    @TypedArgs('meson.get_external_property', kw_types=[NATIVE_KW])
+    @TypedArgs(
+        'meson.get_external_property',
+        pos_types=[STR_PARG],
+        opt_types=[OBJ_OARG],
+        kw_types=[NATIVE_KW],
+    )
     @InterpreterObject.method('get_external_property')
     @apply_machine_map
     def get_external_property_method(self, args: T.Tuple[str, T.Optional[object]], kwargs: 'NativeKW') -> object:
@@ -477,8 +488,7 @@ class MesonMain(MesonInterpreterObject):
         return self.__get_external_property_impl(propname, fallback, kwargs['native'])
 
     @FeatureNew('meson.has_external_property', '0.58.0')
-    @typed_pos_args('meson.has_external_property', str)
-    @TypedArgs('meson.has_external_property', kw_types=[NATIVE_KW])
+    @TypedArgs('meson.has_external_property', pos_types=[STR_PARG], kw_types=[NATIVE_KW])
     @InterpreterObject.method('has_external_property')
     @apply_machine_map
     def has_external_property_method(self, args: T.Tuple[str], kwargs: 'NativeKW') -> bool:
@@ -486,16 +496,15 @@ class MesonMain(MesonInterpreterObject):
         return prop_name in self.interpreter.environment.properties[kwargs['native']]
 
     @FeatureNew('add_devenv', '0.58.0')
-    @TypedArgs('environment', kw_types=[ENV_METHOD_KW, ENV_SEPARATOR_KW.evolve(since='0.62.0')])
-    @typed_pos_args('add_devenv', (str, list, dict, mesonlib.EnvironmentVariables))
+    @TypedArgs(
+        'environment',
+        pos_types=[ENV_PARG],
+        kw_types=[ENV_METHOD_KW, ENV_SEPARATOR_KW.evolve(since='0.62.0')],
+    )
     @InterpreterObject.method('add_devenv')
     def add_devenv_method(self, args: T.Tuple[T.Union[str, list, dict, mesonlib.EnvironmentVariables]],
                           kwargs: 'AddDevenvKW') -> None:
-        env = args[0]
-        msg = ENV_KW.validator(env)
-        if msg:
-            raise build.InvalidArguments(f'"add_devenv": {msg}')
-        converted = env_convertor_with_method(env, kwargs['method'], kwargs['separator'])
+        converted = env_convertor_with_method(args[0], kwargs['method'], kwargs['separator'])
         assert isinstance(converted, mesonlib.EnvironmentVariables)
         self.build.devenv.append(converted)
 
