@@ -289,12 +289,7 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
                         else:
                             msg = 'not allowed for required positional arguments'
                         raise InvalidArguments(f'default() objects are {msg}')
-
-                    if isinstance(type_, tuple):
-                        shouldbe = 'one of: {}'.format(", ".join(f'"{t.__name__}"' for t in type_))
-                    else:
-                        shouldbe = f'"{type_.__name__}"'
-                    raise InvalidArguments(f'{name} argument {i} was of type "{type(arg).__name__}" but should have been {shouldbe}')
+                    raise InvalidArguments(f'{name} argument {i} was of type "{_raw_description(arg)}" but should have been {_types_description(type_)}')
 
             # Ensure that we're actually passing a tuple.
             # Depending on what kind of function we're calling the length of

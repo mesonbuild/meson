@@ -1192,7 +1192,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 1.0, False], None)
-        self.assertEqual(str(cm.exception), 'foo argument 2 was of type "float" but should have been "int"')
+        self.assertEqual(str(cm.exception), 'foo argument 2 was of type "float" but should have been int')
 
     def test_typed_pos_args_types_wrong_number(self) -> None:
         @typed_pos_args('foo', str, int, bool)
@@ -1235,7 +1235,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 'var', 'args', 0], None)
-        self.assertEqual(str(cm.exception), 'foo argument 4 was of type "int" but should have been "str"')
+        self.assertEqual(str(cm.exception), 'foo argument 4 was of type "int" but should have been str')
 
     def test_typed_pos_args_varargs_invalid_multiple_types(self) -> None:
         @typed_pos_args('foo', str, varargs=(str, list))
@@ -1244,7 +1244,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 'var', 'args', 0], None)
-        self.assertEqual(str(cm.exception), 'foo argument 4 was of type "int" but should have been one of: "str", "list"')
+        self.assertEqual(str(cm.exception), 'foo argument 4 was of type "int" but should have been one of: str, list')
 
     def test_typed_pos_args_max_varargs(self) -> None:
         @typed_pos_args('foo', str, varargs=str, max_varargs=5)
