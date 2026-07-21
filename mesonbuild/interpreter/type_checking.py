@@ -1171,6 +1171,7 @@ INT_PARG = PosArgInfo(int)
 BOOL_PARG = PosArgInfo(bool)
 OBJ_PARG = PosArgInfo(object)
 ENV_PARG = PosArgInfo((str, list, dict, EnvironmentVariables), validator=_env_validator)
+LANG_PARG = STR_PARG.evolve(validator=lambda x: _language_validator([x]))
 
 STR_OARG = OptArgInfo(str)
 INT_OARG = OptArgInfo(int)
