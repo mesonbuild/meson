@@ -64,7 +64,7 @@ def _language_validator(l: T.List[str]) -> T.Optional[str]:
     """
     diff = {a.lower() for a in l}.difference(compilers.all_languages)
     if diff:
-        return f'unknown languages: {", ".join(_quote(diff))}'
+        return f'unknown languages: {", ".join(_quote(diff))}. This may be a typing mistake, or a newer version of Meson is required.'
     return None
 
 
