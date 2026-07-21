@@ -529,6 +529,12 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         SystemDependency.__init__(self, name, environment, kwargs)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
 
+        # Detect missing C compiler early and give a helpful error message
+        if self.link_libpython and not self.clib_compiler:
+            raise DependencyException(
+                'Python dependency requires a C compiler but none was found. '
+                'Add "c" to the project languages, e.g. project(\'foo\', \'c\', \'rust\')')
+
         # For most platforms, match pkg-config behavior. iOS is a special case;
         # check for that first, so that check takes priority over
         # `link_libpython` (which *shouldn't* be set, but just in case)
@@ -565,7 +571,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         if mesonlib.is_windows() and self.get_windows_python_arch().endswith('64') and mesonlib.version_compare(self.version, '<3.12'):
             self.compile_args += ['-DMS_WIN64=']
 
-        if not self.clib_compiler.has_header('Python.h', '', extra_args=self.compile_args)[0]:
+        if self.clib_compiler and not self.clib_compiler.has_header('Python.h', '', extra_args=self.compile_args)[0]:
             self.is_found = False
 
 def python_factory(env: Environment, kwargs: DependencyObjectKWs,
