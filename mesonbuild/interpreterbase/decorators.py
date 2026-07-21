@@ -153,6 +153,44 @@ def typed_operator(operator: MesonOperator,
     return inner
 
 
+def _types_description(types: tuple[type | ContainerTypeInfo, ...] | type | ContainerTypeInfo) -> str:
+    candidates: list[str] = []
+    types_tuple = types if isinstance(types, tuple) else (types, )
+    for t in types_tuple:
+        if isinstance(t, ContainerTypeInfo):
+            candidates.append(t.description())
+        else:
+            candidates.append(t.__name__)
+    shouldbe = 'one of: ' if len(candidates) > 1 else ''
+    shouldbe += ', '.join(candidates)
+    return shouldbe
+
+
+def _raw_description(t: object) -> str:
+    """describe a raw type (ie, one that is not a ContainerTypeInfo)."""
+    if isinstance(t, list):
+        if t:
+            return f"array[{' | '.join(sorted(mesonlib.OrderedSet(type(v).__name__ for v in t)))}]"
+        return 'array[]'
+    elif isinstance(t, dict):
+        if t:
+            return f"dict[{' | '.join(sorted(mesonlib.OrderedSet(type(v).__name__ for v in t.values())))}]"
+        return 'dict[]'
+    return type(t).__name__
+
+
+def _check_value_type(types: tuple[type | ContainerTypeInfo, ...] | type | ContainerTypeInfo,
+                      value: T.Any) -> bool:
+    types_tuple = types if isinstance(types, tuple) else (types, )
+    for t in types_tuple:
+        if isinstance(t, ContainerTypeInfo):
+            if t.check(value):
+                return True
+        elif isinstance(value, t):
+            return True
+    return False
+
+
 def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
                    varargs: T.Optional[T.Union[T.Type, T.Tuple[T.Type, ...]]] = None,
                    optargs: T.Optional[T.List[T.Union[T.Type, T.Tuple[T.Type, ...]]]] = None,
@@ -504,39 +542,6 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
     """
     def inner(f: TV_func) -> TV_func:
 
-        def types_description(types_tuple: T.Tuple[T.Union[T.Type, ContainerTypeInfo], ...]) -> str:
-            candidates = []
-            for t in types_tuple:
-                if isinstance(t, ContainerTypeInfo):
-                    candidates.append(t.description())
-                else:
-                    candidates.append(t.__name__)
-            shouldbe = 'one of: ' if len(candidates) > 1 else ''
-            shouldbe += ', '.join(candidates)
-            return shouldbe
-
-        def raw_description(t: object) -> str:
-            """describe a raw type (ie, one that is not a ContainerTypeInfo)."""
-            if isinstance(t, list):
-                if t:
-                    return f"array[{' | '.join(sorted(mesonlib.OrderedSet(type(v).__name__ for v in t)))}]"
-                return 'array[]'
-            elif isinstance(t, dict):
-                if t:
-                    return f"dict[{' | '.join(sorted(mesonlib.OrderedSet(type(v).__name__ for v in t.values())))}]"
-                return 'dict[]'
-            return type(t).__name__
-
-        def check_value_type(types_tuple: T.Tuple[T.Union[T.Type, ContainerTypeInfo], ...],
-                             value: T.Any) -> bool:
-            for t in types_tuple:
-                if isinstance(t, ContainerTypeInfo):
-                    if t.check(value):
-                        return True
-                elif isinstance(value, t):
-                    return True
-            return False
-
         @wraps(f)
         def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
 
@@ -606,7 +611,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                             value = copy.copy(info.default)
                     if info.listify:
                         kwargs[info.name] = value = mesonlib.listify(value)
-                    if not check_value_type(types_tuple, value):
+                    if not _check_value_type(types_tuple, value):
                         extra_desc: T.List[str] = []
                         if info.extra_types:
                             if isinstance(value, list):
@@ -618,10 +623,10 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                                     if isinstance(value, t):
                                         extra_desc.append(cb(value))
 
-                        shouldbe = types_description(types_tuple)
+                        shouldbe = _types_description(types_tuple)
                         if extra_desc:
                             shouldbe = '{}. {}'.format(shouldbe, '. '.join(extra_desc))
-                        raise InvalidArguments(f'{name} keyword argument {info.name!r} was of type {raw_description(value)} but should have been {shouldbe}')
+                        raise InvalidArguments(f'{name} keyword argument {info.name!r} was of type {_raw_description(value)} but should have been {shouldbe}')
 
                     if info.validator is not None:
                         msg = info.validator(value)
@@ -643,7 +648,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                 else:
                     # set the value to the default, this ensuring all kwargs are present
                     # This both simplifies the typing checking and the usage
-                    assert check_value_type(types_tuple, info.default), f'In function {name} default value of {info.name} is not a valid type, got {type(info.default)} expected {types_description(types_tuple)}'
+                    assert _check_value_type(types_tuple, info.default), f'In function {name} default value of {info.name} is not a valid type, got {type(info.default)} expected {_types_description(types_tuple)}'
                     # Create a shallow copy of the container. This allows mutable
                     # types to be used safely as default values
                     kwargs[info.name] = copy.copy(info.default)
