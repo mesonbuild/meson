@@ -203,7 +203,7 @@ def _shouldbe_format(name: str, argument_type: T.Literal['positional', 'keyword'
     should_be = _types_description(types)
     if extra:
         should_be = f'{should_be}. {extra}'
-    return (f'{name} {argument_type} argument "{argument_name}" was of type '
+    return (f'"{name}" {argument_type} argument "{argument_name}" was of type '
             f'"{_raw_description(argument)}" but should have been {should_be}')
 
 
@@ -277,20 +277,20 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
                 min_args = num_types + min_varargs
                 max_args = num_types + max_varargs
                 if max_varargs == 0 and num_args < min_args:
-                    raise InvalidArguments(f'{name} takes at least {min_args} arguments, but got {num_args}.')
+                    raise InvalidArguments(f'"{name}" takes at least {min_args} arguments, but got {num_args}.')
                 elif max_varargs != 0 and (num_args < min_args or num_args > max_args):
-                    raise InvalidArguments(f'{name} takes between {min_args} and {max_args} arguments, but got {num_args}.')
+                    raise InvalidArguments(f'"{name}" takes between {min_args} and {max_args} arguments, but got {num_args}.')
             elif optargs:
                 if num_args < num_types:
-                    raise InvalidArguments(f'{name} takes at least {num_types} arguments, but got {num_args}.')
+                    raise InvalidArguments(f'"{name}" takes at least {num_types} arguments, but got {num_args}.')
                 elif num_args > num_types + len(optargs):
-                    raise InvalidArguments(f'{name} takes at most {num_types + len(optargs)} arguments, but got {num_args}.')
+                    raise InvalidArguments(f'"{name}" takes at most {num_types + len(optargs)} arguments, but got {num_args}.')
                 # Add the number of positional arguments required
                 if num_args > num_types:
                     diff = num_args - num_types
                     a_types = tuple(list(types) + list(optargs[:diff]))
             elif num_args != num_types:
-                raise InvalidArguments(f'{name} takes exactly {num_types} arguments, but got {num_args}.')
+                raise InvalidArguments(f'"{name}" takes exactly {num_types} arguments, but got {num_args}.')
 
             for i, (arg, type_) in enumerate(itertools.zip_longest(args, a_types, fillvalue=varargs), start=1):
                 if not isinstance(arg, type_):
@@ -594,7 +594,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                 unknowns = set(kwargs).difference(all_names)
                 if unknowns:
                     ustr = ', '.join(kwargs_get_close_matches(unknowns, all_names))
-                    raise InvalidArguments(f'{name} got unknown keyword arguments {ustr}')
+                    raise InvalidArguments(f'"{name}" got unknown keyword arguments {ustr}')
 
             for info in types:
                 types_tuple = info.types if isinstance(info.types, tuple) else (info.types,)
@@ -647,7 +647,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                     if info.validator is not None:
                         msg = info.validator(value)
                         if msg is not None:
-                            raise InvalidArguments(f'{name} keyword argument "{info.name}" {msg}')
+                            raise InvalidArguments(f'"{name}" keyword argument "{info.name}" {msg}')
 
                     if info.feature_validator is not None:
                         for each in info.feature_validator(value):
@@ -660,11 +660,11 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                         emit_feature_change(info.since_values, FeatureNew)
 
                 elif info.required:
-                    raise InvalidArguments(f'{name} is missing required keyword argument "{info.name}"')
+                    raise InvalidArguments(f'"{name}" is missing required keyword argument "{info.name}"')
                 else:
                     # set the value to the default, this ensuring all kwargs are present
                     # This both simplifies the typing checking and the usage
-                    assert _check_value_type(types_tuple, info.default), f'In function {name} default value of {info.name} is not a valid type, got {type(info.default)} expected {_types_description(types_tuple)}'
+                    assert _check_value_type(types_tuple, info.default), f'In function "{name}" default value of {info.name} is not a valid type, got {type(info.default)} expected {_types_description(types_tuple)}'
                     # Create a shallow copy of the container. This allows mutable
                     # types to be used safely as default values
                     kwargs[info.name] = copy.copy(info.default)
