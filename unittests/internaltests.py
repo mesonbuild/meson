@@ -1556,6 +1556,16 @@ class InternalTests(unittest.TestCase):
                       deprecated_values={int: '0.8', ContainerTypeInfo(list, int): '0.9'}),
             KwargInfo('tuple', (ContainerTypeInfo(list, (str, int))), default=[], listify=True,
                       since_values={ContainerTypeInfo(list, str): '1.1', ContainerTypeInfo(list, int): '1.2'}),
+            KwargInfo(
+                'types_tuple_since',
+                (bool, int, str, NoneType),
+                since_values={(bool, int): '1.5'},
+            ),
+            KwargInfo(
+                'types_tuple_deprecated',
+                (bool, int, str, NoneType),
+                deprecated_values={(bool, int): '0.9'},
+            ),
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             pass
@@ -1640,6 +1650,14 @@ class InternalTests(unittest.TestCase):
         with self.subTest('new container default'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {})
             self.assertNotRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '1.1': "testfunc" keyword argument "new_dict" of type "dict".*""")
+
+        with self.subTest('types tuple since'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'types_tuple_since': False})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '1.5': "testfunc" keyword argument "types_tuple_since" of type "bool".*""")
+
+        with self.subTest('types tuple deprecated'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'types_tuple_deprecated': False})
+            self.assertNotRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '0.9': "testfunc" keyword argument "types_tuple_deprecated" of type "bool".*""")
 
     def test_typed_kwarg_evolve(self) -> None:
         k = KwargInfo('foo', str, required=True, default='foo')
