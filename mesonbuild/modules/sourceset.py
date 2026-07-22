@@ -145,6 +145,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
             ContainerTypeInfo(list, (str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, dependencies.Dependency)),
             listify=True,
             default=[],
+            since_values={dependencies.Dependency: '1.11.0'},
         ),
     )
     def add_method(self, state: ModuleState,
@@ -162,9 +163,6 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
         keys, dependencies = self.check_conditions(when)
         sources, extra_deps = self.check_source_files(if_true)
         if_false_sources, if_false_deps = self.check_source_files(if_false)
-        if len(if_false_deps) > 0:
-            FeatureNew.single_use('sourceset.add Dependency in if_false', '1.11.0',
-                                  state.subproject, location=state.current_node)
         self.rules.append(SourceSetRule(keys, dependencies, sources, extra_deps, [], if_false_sources, if_false_deps))
 
     @typed_pos_args('sourceset.add_all', varargs=SourceSet)
