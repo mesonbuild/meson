@@ -30,7 +30,7 @@ if T.TYPE_CHECKING:
         :param d_keys: set of OptionKeys that were passed as -Doption=value
         """
 
-        cmd_line_options: T.Dict[OptionKey, T.Optional[str]]
+        cmd_line_options: dict[OptionKey, str]
         builtin_keys: T.Set[OptionKey]
         d_keys: T.Set[OptionKey]
         cross_file: T.List[str]
@@ -64,7 +64,7 @@ def read_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
 
     # Do a copy because config is not really a dict. options.cmd_line_options
     # overrides values from the file.
-    d: dict[OptionKey, str | None] = {OptionKey.from_string(k): v for k, v in config['options'].items()}
+    d: dict[OptionKey, str] = {OptionKey.from_string(k): v for k, v in config['options'].items()}
     d.update(options.cmd_line_options)
     options.cmd_line_options = d
     options.builtin_keys = set()
@@ -236,6 +236,5 @@ def parse_cmd_line_options(args: SharedCMDOptions) -> None:
     # the buildtype expansion sets their defaults and explicit values for
     # debug/optimization override them.
     bt_key = OptionKey('buildtype')
-    if bt_key in args.cmd_line_options:
-        bt_val = args.cmd_line_options.pop(bt_key)
+    if (bt_val := args.cmd_line_options.pop(bt_key, None)) is not None:
         args.cmd_line_options = {bt_key: bt_val, **args.cmd_line_options}

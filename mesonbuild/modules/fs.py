@@ -313,12 +313,12 @@ class FSModule(ExtensionModule):
             [src],
             [dest],
             state.current_build_project,
+            state.backend,
             build_by_default=True,
             install=kwargs['install'],
             install_dir=[kwargs['install_dir']],
             install_mode=kwargs['install_mode'],
             install_tag=[kwargs['install_tag']],
-            backend=state.backend,
             description='Copying file {}',
             build_subdir=kwargs['build_subdir'],
         )
