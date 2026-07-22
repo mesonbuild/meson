@@ -2395,9 +2395,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         if isinstance(exe, (build.Executable, build.CustomTarget, build.CustomTargetIndex)):
             kwargs.setdefault('depends', []).append(exe.get_target())
 
-        if kwargs['timeout'] <= 0:
-            FeatureNew.single_use('test() timeout <= 0', '0.57.0', self.subproject, location=node)
-
         expected_fail = False
         if kwargs['should_fail'] is not None and kwargs['expected_fail'] is not None:
             raise InvalidArguments("Tried to use both 'should_fail' and 'expected_fail'")
@@ -2435,8 +2432,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                  kwargs: kwtypes.FuncTest | kwtypes.FuncBenchmark, is_base_test: bool) -> None:
         if isinstance(args[1], (build.CustomTarget, build.CustomTargetIndex)):
             FeatureNew.single_use('test with CustomTarget as command', '1.4.0', self.subproject)
-        if any(isinstance(i, ExternalProgram) for i in kwargs['args']):
-            FeatureNew.single_use('test with program in args', '1.6.0', self.subproject)
 
         t: Test = self.make_test(node, args, kwargs)
         if is_base_test:
