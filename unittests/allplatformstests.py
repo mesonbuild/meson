@@ -2642,7 +2642,7 @@ class AllPlatformTests(BasePlatformTests):
         tdir = os.path.join(self.unit_test_dir, '25 non-permitted kwargs')
         with self.assertRaises(subprocess.CalledProcessError) as cm:
             self.init(tdir)
-        self.assertIn('ERROR: compiler.has_header_symbol got unknown keyword arguments "prefixxx"', cm.exception.output)
+        self.assertIn('ERROR: "compiler.has_header_symbol" got unknown keyword arguments "prefixxx"', cm.exception.output)
 
     def _template_test_fresh(self, lang: Language, target_type: str, env: Environment, ninja: list[str]) -> None:
         if is_windows() and lang == 'fortran' and target_type == 'library':

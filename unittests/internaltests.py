@@ -1381,7 +1381,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 1.0, False], None)
-        self.assertEqual(str(cm.exception), 'foo positional argument "2" was of type "float" but should have been "int"')
+        self.assertEqual(str(cm.exception), '"foo" positional argument "2" was of type "float" but should have been "int"')
 
     def test_typed_pos_args_types_wrong_number(self) -> None:
         @typed_pos_args('foo', str, int, bool)
@@ -1390,11 +1390,11 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 1], None)
-        self.assertEqual(str(cm.exception), 'foo takes exactly 3 arguments, but got 2.')
+        self.assertEqual(str(cm.exception), '"foo" takes exactly 3 arguments, but got 2.')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 1, True, True], None)
-        self.assertEqual(str(cm.exception), 'foo takes exactly 3 arguments, but got 4.')
+        self.assertEqual(str(cm.exception), '"foo" takes exactly 3 arguments, but got 4.')
 
     def test_typed_pos_args_varargs(self) -> None:
         @typed_pos_args('foo', str, varargs=str)
@@ -1424,7 +1424,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 'var', 'args', 0], None)
-        self.assertEqual(str(cm.exception), 'foo positional argument "4" was of type "int" but should have been "str"')
+        self.assertEqual(str(cm.exception), '"foo" positional argument "4" was of type "int" but should have been "str"')
 
     def test_typed_pos_args_varargs_invalid_multiple_types(self) -> None:
         @typed_pos_args('foo', str, varargs=(str, list))
@@ -1433,7 +1433,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 'var', 'args', 0], None)
-        self.assertEqual(str(cm.exception), 'foo positional argument "4" was of type "int" but should have been one of: "str", "list"')
+        self.assertEqual(str(cm.exception), '"foo" positional argument "4" was of type "int" but should have been one of: "str", "list"')
 
     def test_typed_pos_args_max_varargs(self) -> None:
         @typed_pos_args('foo', str, varargs=str, max_varargs=5)
@@ -1453,7 +1453,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 'var', 'args'], None)
-        self.assertEqual(str(cm.exception), 'foo takes between 1 and 2 arguments, but got 3.')
+        self.assertEqual(str(cm.exception), '"foo" takes between 1 and 2 arguments, but got 3.')
 
     def test_typed_pos_args_min_varargs(self) -> None:
         @typed_pos_args('foo', varargs=str, max_varargs=2, min_varargs=1)
@@ -1472,7 +1472,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string'], None)
-        self.assertEqual(str(cm.exception), 'foo takes at least 2 arguments, but got 1.')
+        self.assertEqual(str(cm.exception), '"foo" takes at least 2 arguments, but got 1.')
 
     def test_typed_pos_args_min_and_max_varargs_exceeded(self) -> None:
         @typed_pos_args('foo', str, varargs=str, min_varargs=1, max_varargs=2)
@@ -1481,7 +1481,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 'var', 'args', 'bar'], None)
-        self.assertEqual(str(cm.exception), 'foo takes between 2 and 3 arguments, but got 4.')
+        self.assertEqual(str(cm.exception), '"foo" takes between 2 and 3 arguments, but got 4.')
 
     def test_typed_pos_args_min_and_max_varargs_not_met(self) -> None:
         @typed_pos_args('foo', str, varargs=str, min_varargs=1, max_varargs=2)
@@ -1490,7 +1490,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string'], None)
-        self.assertEqual(str(cm.exception), 'foo takes between 2 and 3 arguments, but got 1.')
+        self.assertEqual(str(cm.exception), '"foo" takes between 2 and 3 arguments, but got 1.')
 
     def test_typed_pos_args_variadic_and_optional(self) -> None:
         @typed_pos_args('foo', str, optargs=[str], varargs=str, min_varargs=0)
@@ -1510,7 +1510,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string'], None)
-        self.assertEqual(str(cm.exception), 'foo takes at least 2 arguments, but got 1.')
+        self.assertEqual(str(cm.exception), '"foo" takes at least 2 arguments, but got 1.')
 
     def test_typed_pos_args_min_optargs_max_exceeded(self) -> None:
         @typed_pos_args('foo', str, optargs=[str])
@@ -1519,7 +1519,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', '1', '2'], None)
-        self.assertEqual(str(cm.exception), 'foo takes at most 2 arguments, but got 3.')
+        self.assertEqual(str(cm.exception), '"foo" takes at most 2 arguments, but got 3.')
 
     def test_typed_pos_args_optargs_not_given(self) -> None:
         @typed_pos_args('foo', str, optargs=[str])
@@ -1574,7 +1574,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), [], {})
-        self.assertEqual(str(cm.exception), 'testfunc is missing required keyword argument "input"')
+        self.assertEqual(str(cm.exception), '"testfunc" is missing required keyword argument "input"')
 
     def test_typed_kwarg_missing_optional(self) -> None:
         @typed_kwargs(
@@ -1616,7 +1616,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), [], {'input': {}})
-        self.assertEqual(str(cm.exception), 'testfunc keyword argument "input" was of type "dict[]" but should have been "array[str]"')
+        self.assertEqual(str(cm.exception), '"testfunc" keyword argument "input" was of type "dict[]" but should have been "array[str]"')
 
     def test_typed_kwarg_contained_invalid(self) -> None:
         @typed_kwargs(
@@ -1628,7 +1628,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), [], {'input': {'key': 1, 'bar': 2}})
-        self.assertEqual(str(cm.exception), 'testfunc keyword argument "input" was of type "dict[int]" but should have been "dict[str]"')
+        self.assertEqual(str(cm.exception), '"testfunc" keyword argument "input" was of type "dict[int]" but should have been "dict[str]"')
 
     def test_typed_kwarg_container_listify(self) -> None:
         @typed_kwargs(
@@ -1663,7 +1663,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(MesonException) as cm:
             _(None, mock.Mock(), [], {'input': ['a']})
-        self.assertEqual(str(cm.exception), 'testfunc keyword argument "input" was of type "array[str]" but should have been "array[str]" that has even size')
+        self.assertEqual(str(cm.exception), '"testfunc" keyword argument "input" was of type "array[str]" but should have been "array[str]" that has even size')
 
     def test_typed_kwarg_since(self) -> None:
         @typed_kwargs(
@@ -1711,7 +1711,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(MesonException) as cm:
             _(None, mock.Mock(), tuple(), dict(input='bar'))
-        self.assertEqual(str(cm.exception), "testfunc keyword argument \"input\" invalid!")
+        self.assertEqual(str(cm.exception), "\"testfunc\" keyword argument \"input\" invalid!")
 
     def test_typed_kwarg_convertor(self) -> None:
         @typed_kwargs(
