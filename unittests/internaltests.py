@@ -1381,7 +1381,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 1.0, False], None)
-        self.assertEqual(str(cm.exception), 'foo argument 2 was of type "float" but should have been int')
+        self.assertEqual(str(cm.exception), 'foo positional argument "2" was of type "float" but should have been int')
 
     def test_typed_pos_args_types_wrong_number(self) -> None:
         @typed_pos_args('foo', str, int, bool)
@@ -1424,7 +1424,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 'var', 'args', 0], None)
-        self.assertEqual(str(cm.exception), 'foo argument 4 was of type "int" but should have been str')
+        self.assertEqual(str(cm.exception), 'foo positional argument "4" was of type "int" but should have been str')
 
     def test_typed_pos_args_varargs_invalid_multiple_types(self) -> None:
         @typed_pos_args('foo', str, varargs=(str, list))
@@ -1433,7 +1433,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 'var', 'args', 0], None)
-        self.assertEqual(str(cm.exception), 'foo argument 4 was of type "int" but should have been one of: str, list')
+        self.assertEqual(str(cm.exception), 'foo positional argument "4" was of type "int" but should have been one of: str, list')
 
     def test_typed_pos_args_max_varargs(self) -> None:
         @typed_pos_args('foo', str, varargs=str, max_varargs=5)
@@ -1616,7 +1616,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), [], {'input': {}})
-        self.assertEqual(str(cm.exception), "testfunc keyword argument 'input' was of type dict[] but should have been array[str]")
+        self.assertEqual(str(cm.exception), 'testfunc keyword argument "input" was of type "dict[]" but should have been array[str]')
 
     def test_typed_kwarg_contained_invalid(self) -> None:
         @typed_kwargs(
@@ -1628,7 +1628,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), [], {'input': {'key': 1, 'bar': 2}})
-        self.assertEqual(str(cm.exception), "testfunc keyword argument 'input' was of type dict[int] but should have been dict[str]")
+        self.assertEqual(str(cm.exception), 'testfunc keyword argument "input" was of type "dict[int]" but should have been dict[str]')
 
     def test_typed_kwarg_container_listify(self) -> None:
         @typed_kwargs(
@@ -1663,7 +1663,7 @@ Thread model: posix'''), '21.9.0')
 
         with self.assertRaises(MesonException) as cm:
             _(None, mock.Mock(), [], {'input': ['a']})
-        self.assertEqual(str(cm.exception), "testfunc keyword argument 'input' was of type array[str] but should have been array[str] that has even size")
+        self.assertEqual(str(cm.exception), 'testfunc keyword argument "input" was of type "array[str]" but should have been array[str] that has even size')
 
     def test_typed_kwarg_since(self) -> None:
         @typed_kwargs(

@@ -191,6 +191,17 @@ def _check_value_type(types: tuple[type | ContainerTypeInfo, ...] | type | Conta
     return False
 
 
+def _shouldbe_format(name: str, argument_type: T.Literal['positional', 'keyword'],
+                     argument_name: str, argument: object,
+                     types: tuple[type | ContainerTypeInfo, ...] | type | ContainerTypeInfo,
+                     extra: str | None = None) -> str:
+    should_be = _types_description(types)
+    if extra:
+        should_be = f'{should_be}. {extra}'
+    return (f'{name} {argument_type} argument "{argument_name}" was of type '
+            f'"{_raw_description(argument)}" but should have been {should_be}')
+
+
 def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
                    varargs: T.Optional[T.Union[T.Type, T.Tuple[T.Type, ...]]] = None,
                    optargs: T.Optional[T.List[T.Union[T.Type, T.Tuple[T.Type, ...]]]] = None,
@@ -289,7 +300,7 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
                         else:
                             msg = 'not allowed for required positional arguments'
                         raise InvalidArguments(f'default() objects are {msg}')
-                    raise InvalidArguments(f'{name} argument {i} was of type "{_raw_description(arg)}" but should have been {_types_description(type_)}')
+                    raise InvalidArguments(_shouldbe_format(name, 'positional', str(i), arg, type_))
 
             # Ensure that we're actually passing a tuple.
             # Depending on what kind of function we're calling the length of
@@ -589,6 +600,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                     value = None
 
                 if value is not None:
+                    extra: str | None
                     if info.since:
                         feature_name = info.name + ' arg in ' + name
                         FeatureNew.single_use(feature_name, info.since, subproject, info.since_message, location=node)
@@ -607,8 +619,9 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                     if info.listify:
                         kwargs[info.name] = value = mesonlib.listify(value)
                     if not _check_value_type(types_tuple, value):
-                        extra_desc: T.List[str] = []
+                        extra = None
                         if info.extra_types:
+                            extra_desc: T.List[str] = []
                             if isinstance(value, list):
                                 for (t, cb), v in itertools.product(info.extra_types.items(), value):
                                     if isinstance(v, t):
@@ -617,11 +630,10 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                                 for t, cb in info.extra_types.items():
                                     if isinstance(value, t):
                                         extra_desc.append(cb(value))
+                            extra = '. '.join(extra_desc)
 
-                        shouldbe = _types_description(types_tuple)
-                        if extra_desc:
-                            shouldbe = '{}. {}'.format(shouldbe, '. '.join(extra_desc))
-                        raise InvalidArguments(f'{name} keyword argument {info.name!r} was of type {_raw_description(value)} but should have been {shouldbe}')
+                        raise InvalidArguments(
+                            _shouldbe_format(name, 'keyword', info.name, value, types_tuple, extra))
 
                     if info.validator is not None:
                         msg = info.validator(value)
