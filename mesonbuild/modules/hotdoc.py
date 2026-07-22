@@ -91,7 +91,7 @@ class HotdocTargetBuilder:
                                       '--output', os.path.join(self.builddir, self.subdir, self.name + '-doc')]
 
         self._extra_extension_paths: set[str] = set()
-        self.extra_depends: list[build.BuildTargetTypes] = []
+        self.extra_depends: list[build.BuildTargetProto] = []
         self._subprojects: list[HotdocTarget] = []
 
     def process_known_arg(self, option: str, argname: T.Optional[str] = None, value_processor: T.Optional[T.Callable] = None) -> None:

@@ -3332,7 +3332,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.CustomTarget, build.CustomTargetIndex]]) -> list[T.Union[mesonlib.File, build.CustomTarget, build.CustomTargetIndex]]: ...
 
     @T.overload
-    def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.BuildTargetTypes]]) -> list[T.Union[mesonlib.File, build.BuildTargetTypes]]: ...  # type: ignore[overload-overlap]
+    def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.BuildTargetProto]]) -> list[T.Union[mesonlib.File, build.BuildTargetProto]]: ... # type: ignore[overload-overlap]
 
     @T.overload
     def source_strings_to_files(self, sources: list[T.Union[str, build.TargetSources]]) -> list[build.TargetSources]: ...
@@ -3363,7 +3363,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                     list[str],
                                     list[mesonlib.File | str],
                                     list[mesonlib.File | str | build.CustomTarget | build.CustomTargetIndex],
-                                    list[mesonlib.File | str | build.BuildTargetTypes],
+                                    list[mesonlib.File | str | build.BuildTargetProto],
                                     list[str | build.TargetSources],
                                     list[str | build.TargetSources | build.StructuredSources],
                                     list[kwtypes.CustomTargetInputs],
@@ -3373,7 +3373,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                     list[SourcesVarargsType],
                                 ]
                                 ) -> T.Union[list[mesonlib.File],
-                                             list[mesonlib.File | build.BuildTargetTypes],
+                                             list[mesonlib.File | build.BuildTargetProto],
                                              list[mesonlib.File | build.CustomTarget | build.CustomTargetIndex],
                                              list[build.TargetSources],
                                              list[build.TargetSources | build.StructuredSources],
