@@ -524,11 +524,18 @@ def suite_convertor(suite: T.List[str]) -> T.List[str]:
         return ['']
     return suite
 
+
+def _test_timeout_feature_validator(value: int) -> T.Iterable[FeatureCheckBase]:
+    if value <= 0:
+        yield FeatureNew('test timeout <= 0', '0.57.0')
+
+
 TEST_KWS_NO_ARGS: T.List[KwargInfo] = [
     KwargInfo('should_fail', (bool, NoneType), deprecated='1.11.0', deprecated_message='Use expected_fail instead of should_fail'),
     KwargInfo('expected_fail', (bool, NoneType), since='1.11.0'),
     KwargInfo('expected_exitcode', (int, NoneType), since='1.11.0'),
-    KwargInfo('timeout', int, default=30),
+    KwargInfo('timeout', int, default=30,
+              feature_validator=_test_timeout_feature_validator),
     KwargInfo('workdir', (str, NoneType), default=None,
               validator=lambda x: 'must be an absolute path' if not os.path.isabs(x) else None),
     KwargInfo('protocol', str,
@@ -544,8 +551,13 @@ TEST_KWS_NO_ARGS: T.List[KwargInfo] = [
 ]
 
 TEST_KWS: T.List[KwargInfo] = TEST_KWS_NO_ARGS + [
-    KwargInfo('args', ContainerTypeInfo(list, (str, File, BuildTarget, CustomTarget, CustomTargetIndex, Program)),
-              listify=True, default=[]),
+    KwargInfo(
+        'args',
+        ContainerTypeInfo(list, (str, File, BuildTarget, CustomTarget, CustomTargetIndex, Program)),
+        listify=True,
+        default=[],
+        since_values={ExternalProgram: '1.6.0'},
+    ),
 ]
 
 # Cannot have a default value because we need to check that rust_crate_type and
