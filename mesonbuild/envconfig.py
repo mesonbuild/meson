@@ -465,6 +465,10 @@ class BinaryTable:
         return ExternalProgram('sccache', silent=True)
 
     @staticmethod
+    def detect_kache() -> ExternalProgram:
+        return ExternalProgram('kache', silent=True)
+
+    @staticmethod
     def detect_compiler_cache() -> ExternalProgram:
         # Sccache is "newer" so it is assumed that people would prefer it by default.
         cache = BinaryTable.detect_sccache()
@@ -482,6 +486,9 @@ class BinaryTable:
         elif parts[0] == 'sccache':
             compiler = parts[1:]
             ccache = cls.detect_sccache()
+        elif parts[0] == 'kache':
+            compiler = parts[1:]
+            ccache = cls.detect_kache()
         else:
             compiler = parts
             ccache = None
