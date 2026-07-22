@@ -97,7 +97,8 @@ from .type_checking import (
     TEST_KWS,
     NoneType,
     in_set_validator,
-    env_convertor_with_method
+    env_convertor,
+    env_validator,
 )
 from . import primitives as P_OBJ
 
@@ -3201,13 +3202,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         init = args[0]
         if init is not None:
             FeatureNew.single_use('environment positional arguments', '0.52.0', self.subproject, location=node)
-            msg = ENV_KW.validator(init)
+            msg = env_validator(init)
             if msg:
                 raise InvalidArguments(f'"environment": {msg}')
             if isinstance(init, dict) and any(i for i in init.values() if isinstance(i, list)):
                 FeatureNew.single_use('List of string in dictionary value', '0.62.0', self.subproject, location=node)
             # the validator call above ensured that we have the correct type
-            return env_convertor_with_method(T.cast('FullEnvInitValueType', init), kwargs['method'], kwargs['separator'])
+            return env_convertor(T.cast('FullEnvInitValueType', init), kwargs['method'], kwargs['separator'])
         return EnvironmentVariables()
 
     @typed_pos_args('join_paths', varargs=str, min_varargs=1)

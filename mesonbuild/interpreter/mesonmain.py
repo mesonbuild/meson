@@ -15,13 +15,13 @@ from .. import mlog
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
 from ..programs import Program, ExternalProgram
-from ..interpreter.type_checking import ENV_KW, ENV_METHOD_KW, ENV_SEPARATOR_KW, env_convertor_with_method
+from ..interpreter.type_checking import ENV_KW, ENV_METHOD_KW, ENV_SEPARATOR_KW, env_convertor
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated, FeatureBroken,
                                typed_pos_args,  noArgsFlattening, noPosargs, noKwargs,
                                typed_kwargs, KwargInfo, InterpreterException, InterpreterObject)
 from .decorators import apply_machine_map
 from .primitives import MesonVersionString
-from .type_checking import NATIVE_KW, NoneType
+from .type_checking import NATIVE_KW, NoneType, env_validator
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
@@ -488,10 +488,10 @@ class MesonMain(MesonInterpreterObject):
     def add_devenv_method(self, args: T.Tuple[T.Union[str, list, dict, mesonlib.EnvironmentVariables]],
                           kwargs: 'AddDevenvKW') -> None:
         env = args[0]
-        msg = ENV_KW.validator(env)
+        msg = env_validator(env)
         if msg:
             raise build.InvalidArguments(f'"add_devenv": {msg}')
-        converted = env_convertor_with_method(env, kwargs['method'], kwargs['separator'])
+        converted = env_convertor(env, kwargs['method'], kwargs['separator'])
         assert isinstance(converted, mesonlib.EnvironmentVariables)
         self.build.devenv.append(converted)
 

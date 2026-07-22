@@ -1464,7 +1464,11 @@ class VisualStudioLikeLinkerMixin(DynamicLinkerBase):
         return not self.direct
 
     def get_output_args(self, outputname: str) -> T.List[str]:
-        return self._apply_prefix(['/MACHINE:' + self.machine, '/OUT:' + outputname])
+        args: T.List[str] = []
+        if self.machine:
+            args += ['/MACHINE:' + self.machine]
+        args += ['/OUT:' + outputname]
+        return args
 
     def get_always_args(self) -> T.List[str]:
         parent = super().get_always_args()
