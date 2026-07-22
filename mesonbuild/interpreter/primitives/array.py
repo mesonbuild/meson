@@ -22,12 +22,13 @@ from ...interpreterbase import (
 
     InvalidArguments,
 )
+from ...interpreterbase.baseobjects import InterpreterObjectTypeVar
 from ...mparser import PlusAssignmentNode
 
 if T.TYPE_CHECKING:
     from ...interpreterbase import TYPE_kwargs
 
-class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
+class ArrayHolder(ObjectHolder[T.List[InterpreterObjectTypeVar]], IterableObject):
     # Operators that only require type checks
     TRIVIAL_OPERATORS = {
         MesonOperator.EQUALS: (list, lambda obj, x: obj.held_object == x),
@@ -53,7 +54,7 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
     @typed_pos_args('array.contains', object)
     @InterpreterObject.method('contains')
     def contains_method(self, args: T.Tuple[object], kwargs: TYPE_kwargs) -> bool:
-        def check_contains(el: T.List[TYPE_var]) -> bool:
+        def check_contains(el: T.List[InterpreterObjectTypeVar]) -> bool:
             for element in el:
                 if isinstance(element, list):
                     found = check_contains(element)
