@@ -34,12 +34,15 @@ _TARGET_KWARGS: T.Mapping[str, set[str]] = {
     'shared module': {s.name for s in type_checking.SHARED_MOD_KWS},
     'static library': {s.name for s in type_checking.STATIC_LIB_KWS},
     'both libraries': {s.name for s in type_checking.LIBRARY_KWS},
+    'nsapp': {s.name for s in type_checking.NSAPP_KWS},
+    'nsframework': {s.name for s in type_checking.NSFRAMEWORK_KWS},
+    #'nsbundle': {s.name for s in type_checking.NSBUNDLE_KWS},
 }
 
 # TODO: it would be nice to not have to duplicate this
 BUILD_TARGET_FUNCTIONS = [
     'executable', 'jar', 'library', 'shared_library', 'shared_module',
-    'static_library', 'both_libraries'
+    'static_library', 'both_libraries', 'nsapp', 'nsframework', 'nsbundle'
 ]
 
 class IntrospectionHelper:
