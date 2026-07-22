@@ -243,7 +243,7 @@ class RustCompiler(Compiler):
         # are always part of C/C++ linkers. Rustc probably should not print
         # them, pkg-config for example never specify them.
         # FIXME: https://github.com/rust-lang/rust/issues/55120
-        exclude = {'-lc', '-lgcc_s', '-lkernel32', '-ladvapi32', '/defaultlib:msvcrt'}
+        exclude = {'-lc', '-lgcc_eh', '-lgcc_s', '-lunwind', '-lkernel32', '-ladvapi32', '/defaultlib:msvcrt'}
         result = [i for i in match.group(1).split() if i not in exclude]
         self.native_static_libs[freestanding] = result
         return result

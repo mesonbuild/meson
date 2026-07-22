@@ -2526,16 +2526,9 @@ class StaticLibrary(BuildTarget, StaticTargetProto):
                                        'Replace them with underscores, for example')
             if self.rust_crate_type == 'staticlib':
                 rustc = T.cast('RustCompiler', self.compilers['rust'])
-                if rustc.get_crt_static():
-                    # musl targets need self-contained for libc.a, libunwind.a etc.
-                    link_args = ['-L' + rustc.get_target_libdir() + '/self-contained']
-                else:
-                    # Avoid embedding self-contained libc.a into shared libraries —
-                    # creates a second musl instance with uninitialized __libc state.
-                    link_args = []
                 freestanding = self.environment.coredata.get_option_for_target(self, 'b_freestanding')
                 assert isinstance(freestanding, bool)
-                link_args += rustc.get_native_static_libs(freestanding)
+                link_args = rustc.get_native_static_libs(freestanding)
                 d = dependencies.InternalDependency(version='undefined', link_args=link_args,
                                                     name='_rust_native_static_libs')
                 self.external_deps.append(d)
