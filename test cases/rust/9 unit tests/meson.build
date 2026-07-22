@@ -49,8 +49,12 @@ if rustdoc.found()
 endif
 
 exe = executable('rust_exe', ['test2.rs', 'test.rs'], build_by_default : false)
+rust.test('rust_test_from_exe_xfail', exe, expected_fail : true)
+rust.test('rust_test_from_exe', exe, args: ['--skip', 'test_add_intentional_fail'])
 
-rust.test('rust_test_from_exe', exe, expected_fail : true)
+test2_gen = configure_file(input: 'test2.rs', output: 'main.rs', copy: true)
+exe_ss = executable('rust_exe_ss', structured_sources([test2_gen, 'test.rs']), build_by_default : false)
+rust.test('rust_test_from_exe_ss', exe_ss, args: ['--skip', 'test_add_intentional_fail'])
 
 lib = static_library('rust_static', ['test.rs'], build_by_default : false, rust_abi: 'c')
 rust.test('rust_test_from_static', lib, args: ['--skip', 'test_add_intentional_fail'])
