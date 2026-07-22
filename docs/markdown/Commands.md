@@ -17,6 +17,70 @@ Optional arguments. The most common workflow is to run
 For the full list of all available options for a specific command use
 the following syntax: `meson COMMAND --help`
 
+### check-platforms
+
+{{ check-platforms_usage.inc }}
+
+Check the properties of the specified platform.  The inputs
+are a set of TOML files that define the project, the project's
+platforms and the project's dependencies.
+
+The platforms TOML file is modified when running the project
+specific checks.
+
+**This is an unstable API.**
+
+{{ check-platforms_arguments.inc }}
+
+#### Examples:
+
+Check the properties of the default system platform.
+
+```
+meson check-platforms
+```
+
+Check the properties with a cross-file specified platform.
+
+```
+meson check-platforms --config=/path/to/myproject.toml \
+--project-dir=/path/to/my/target_repo
+--platforms=/path/to/myplatform.toml \
+--dependencies=/path/to/mydeps.toml
+```
+
+### convert
+
+{{ convert_usage.inc }}
+
+Converts the meson project to an another build system. The input
+are a series of TOML files, and the output are files in the target
+build system. Soong and Bazel are supported to varying degrees.
+
+**This is an unstable API.**
+
+{{ convert_arguments.inc }}
+
+#### Examples:
+
+Each project maintains own TOML to define the hermetic transformation.
+
+```
+meson convert --config=/path/to/myproject.toml \
+--project-dir=/path/to/my/target_repo
+--platforms/path/to/myplatform.toml \
+--dependencies=/path/to/mydeps.toml
+--output_dir=/path/to/output-dir
+```
+
+Projects registered in Meson's small hermetic database (such as Mesa3D)
+can use an abbreviated command to perform the conversion.  Users are
+encouraged to add the database.
+
+```
+meson convert android aosp_mesa3d
+```
+
 ### configure
 
 {{ configure_usage.inc }}

@@ -153,3 +153,30 @@ jobs:
           update-alternatives --set i686-w64-mingw32-g++   /usr/bin/i686-w64-mingw32-g++-posix
 
           ./run_tests.py $RUN_TESTS_ARGS -- $MESON_ARGS
+
+  run-convert:
+    name: 'Test build system conversion'
+    runs-on: ubuntu-latest
+    container:
+      image: mesonbuild/ubuntu-rolling
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run convert unit tests
+        shell: bash
+        run: |
+          source /ci/env_vars.sh
+          python3 run_unittests.py ConvertTests
+
+  run-check-platforms:
+    name: 'Test check-plaforms'
+    runs-on: ubuntu-latest
+    container:
+      image: mesonbuild/ubuntu-rolling
+    steps:
+      - name: Run check-platform unit tests
+        shell: bash
+        run: |
+          source /ci/env_vars.sh
+          python3 run_unittests.py CheckPlatformsTests
