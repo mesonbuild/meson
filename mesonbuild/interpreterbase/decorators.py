@@ -41,7 +41,7 @@ if T.TYPE_CHECKING:
 
     MesonVersionTarget = mesonlib.Range[mesonlib.Version] | mesonlib.NoProjectVersion | None
 
-    _FeatureKey: TypeAlias = _T | 'ContainerTypeInfo' | type
+    _FeatureKey: TypeAlias = _T | 'ContainerTypeInfo' | type | tuple[type, ...]
     _FeatureValue: TypeAlias = str | tuple[str, str]
     _FeatureValues: TypeAlias = dict[_FeatureKey, _FeatureValue]
 
@@ -546,9 +546,9 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                             warning = f'of type "{d}"'
                             if extra:
                                 warning = f'{warning} {extra}'
-                    elif isinstance(n, type):
+                    elif isinstance(n, (type, tuple)):
                         if isinstance(value, n):
-                            warning = f'of type "{n.__name__}"'
+                            warning = f'of type "{type(value).__name__}"'
                     elif isinstance(value, list):
                         if n in value:
                             warning = f'value "{n}" in list'
