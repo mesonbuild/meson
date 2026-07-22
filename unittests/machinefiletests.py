@@ -581,9 +581,7 @@ class NativeFileTests(BasePlatformTests):
             elif each['name'] == 'sub:default_library':
                 self.assertEqual(each['value'], 'static')
                 found += 1
-        # FIXME: check that the subproject option has beeb added
-        # into augments.
-        self.assertEqual(found, 2, 'Did not find all two sections')
+        self.assertEqual(found, 3, 'Did not find all three sections')
 
     def test_builtin_options_machinefile_overrides_subproject(self):
         # The buildfile says subproject(... default_library: static), the machinefile overrides it
