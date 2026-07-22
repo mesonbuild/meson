@@ -14,7 +14,7 @@ from ..build import (CustomTarget, BuildTarget,
 from ..options import OptionKey
 from ..dependencies import Dependency, DependencyMethods, InternalDependency
 from ..interpreterbase import Feature
-from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken, FeatureDeprecated
+from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken, FeatureDeprecated, FeatureNew
 from ..mesonlib import (File, FileMode, MachineChoice, has_path_sep, listify, stringlistify,
                         EnvironmentVariables)
 from ..programs import Program, ExternalProgram
@@ -1069,11 +1069,18 @@ def _pkgconfig_define_convertor(x: T.List[str]) -> PkgConfigDefineType:
         return tuple(zip(keys, vals))
     return None
 
-PKGCONFIG_DEFINE_KW: KwargInfo = KwargInfo(
+def _pkgconfig_define_feature_validator(x: list[str]) -> T.Iterable[FeatureCheckBase]:
+    if len(x) > 1:
+        yield FeatureNew(
+            'dependency.get_variable keyword argument "pkgconfig_define" with more than one pair',
+            '1.3.0', 'In previous versions, this silently returned a malformed value.')
+
+PKGCONFIG_DEFINE_KW: KwargInfo[list[str]] = KwargInfo(
     'pkgconfig_define',
     ContainerTypeInfo(list, str, pairs=True),
     default=[],
     convertor=_pkgconfig_define_convertor,
+    feature_validator=_pkgconfig_define_feature_validator,
 )
 
 INCLUDE_TYPE = KwargInfo(
