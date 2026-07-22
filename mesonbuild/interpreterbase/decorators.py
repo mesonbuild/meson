@@ -158,11 +158,16 @@ def _types_description(types: tuple[type | ContainerTypeInfo, ...] | type | Cont
     types_tuple = types if isinstance(types, tuple) else (types, )
     for t in types_tuple:
         if isinstance(t, ContainerTypeInfo):
-            candidates.append(t.description())
+            desc, extra = t.description()
+            if extra:
+                desc = f'"{desc}" {extra}'
+            else:
+                desc = f'"{desc}"'
+            candidates.append(desc)
         else:
-            candidates.append(t.__name__)
+            candidates.append(f'"{t.__name__}"')
     shouldbe = 'one of: ' if len(candidates) > 1 else ''
-    shouldbe += ', '.join(f'"{c}"' for c in candidates)
+    shouldbe += ', '.join(candidates)
     return shouldbe
 
 
@@ -382,10 +387,10 @@ class ContainerTypeInfo:
         iter_ = iter(value.values()) if isinstance(value, dict) else iter(value)
         return any(isinstance(i, self.contains) for i in iter_)
 
-    def description(self) -> str:
+    def description(self) -> tuple[str, str | None]:
         """Human readable description of this container type.
 
-        :return: string to be printed
+        :return: a tuple of: the type as a string, an extra message if there is one
         """
         container = 'dict' if self.container is dict else 'array'
         if isinstance(self.contains, tuple):
@@ -393,11 +398,12 @@ class ContainerTypeInfo:
         else:
             contains = self.contains.__name__
         s = f'{container}[{contains}]'
+        extra: str | None = None
         if self.pairs:
-            s += ' that has even size'
+            extra = 'that has even size'
         if not self.allow_empty:
-            s += ' that cannot be empty'
-        return s
+            extra = 'that cannot be empty'
+        return s, extra
 
 _T = T.TypeVar('_T')
 
@@ -561,10 +567,13 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                     warning: T.Optional[str] = None
                     if isinstance(n, ContainerTypeInfo):
                         if n.check_any(value):
-                            warning = f'of type {n.description()}'
+                            d, extra = n.description()
+                            warning = f'of type "{d}"'
+                            if extra:
+                                warning = f'{warning} {extra}'
                     elif isinstance(n, type):
                         if isinstance(value, n):
-                            warning = f'of type {n.__name__}'
+                            warning = f'of type "{n.__name__}"'
                     elif isinstance(value, list):
                         if n in value:
                             warning = f'value "{n}" in list'
