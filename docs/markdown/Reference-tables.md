@@ -35,6 +35,7 @@ These are return values of the `get_id` (Compiler family) and
 | open64    | The Open64 Fortran Compiler      |                 |
 | pathscale | The Pathscale Fortran compiler   |                 |
 | pgi       | Portland PGI C/C++/Fortran compilers |             |
+| qcc       | QNX SDP qcc/q++ compiler driver  |                 |
 | rustc     | Rust compiler                    |                 |
 | sun       | Sun Fortran compiler             |                 |
 | c2000     | Texas Instruments C/C++ Compiler (C2000) |                 |
