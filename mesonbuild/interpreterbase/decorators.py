@@ -11,12 +11,15 @@ from ._unholder import _unholder
 
 from functools import wraps
 import abc
+import dataclasses
 import itertools
 import copy
 import typing as T
 
+_T = T.TypeVar('_T')
+
 if T.TYPE_CHECKING:
-    from typing_extensions import Protocol, TypeAlias, TypeIs
+    from typing_extensions import Protocol, TypeAlias, TypeIs, Unpack
 
     from .. import mparser
     from ..mesonlib import SubProject
@@ -37,6 +40,24 @@ if T.TYPE_CHECKING:
     CalleeArgs: TypeAlias = T.Tuple[mparser.BaseNode, T.Optional[T.List[TYPE_var]], T.Optional[TYPE_kwargs], SubProject]
 
     MesonVersionTarget = mesonlib.Range[mesonlib.Version] | mesonlib.NoProjectVersion | None
+
+    class _KwargInfoKWs(T.TypedDict, T.Generic[_T], total=False):
+        name: str
+        required: bool
+        listify: bool
+        default: _T | None
+        since: str | None
+        since_message: str | None
+        since_values: dict[_T | ContainerTypeInfo | type, str | tuple[str, str]] | None
+        deprecated: str | None
+        deprecated_message: str | None
+        deprecated_values: dict[_T | ContainerTypeInfo | type, str | tuple[str, str]] | None
+        feature_validator: T.Callable[[_T], T.Iterable[FeatureCheckBase]] | None
+        validator: T.Callable[[T.Any], str | None] | None
+        convertor: T.Callable[[_T], object] | None
+        not_set_warning: str | None
+        extra_types: T.Mapping[type, T.Callable[[object], str]] | None
+        as_default: list[tuple[object, str | tuple[str, str]]] | None
 
 
 def is_module(obj: object) -> TypeIs[ModuleObject]:
@@ -405,14 +426,8 @@ class ContainerTypeInfo:
             extra = 'that cannot be empty'
         return s, extra
 
-_T = T.TypeVar('_T')
 
-class _NULL_T:
-    """Special null type for evolution, this is an implementation detail."""
-
-
-_NULL = _NULL_T()
-
+@dataclasses.dataclass(slots=True, eq=False)
 class KwargInfo(T.Generic[_T]):
 
     """A description of a keyword argument to a meson function
@@ -455,57 +470,32 @@ class KwargInfo(T.Generic[_T]):
         error message
     :param as_default: Extra values to treat as empty values. These are always considered to be broken.
     """
-    def __init__(self, name: str,
-                 types: T.Union[T.Type[_T], T.Tuple[T.Union[T.Type[_T], ContainerTypeInfo], ...], ContainerTypeInfo],
-                 *, required: bool = False, listify: bool = False,
-                 default: T.Optional[_T] = None,
-                 since: T.Optional[str] = None,
-                 since_message: T.Optional[str] = None,
-                 since_values: T.Optional[T.Dict[T.Union[_T, ContainerTypeInfo, type], T.Union[str, T.Tuple[str, str]]]] = None,
-                 deprecated: T.Optional[str] = None,
-                 deprecated_message: T.Optional[str] = None,
-                 deprecated_values: T.Optional[T.Dict[T.Union[_T, ContainerTypeInfo, type], T.Union[str, T.Tuple[str, str]]]] = None,
-                 feature_validator: T.Optional[T.Callable[[_T], T.Iterable[FeatureCheckBase]]] = None,
-                 validator: T.Optional[T.Callable[[T.Any], T.Optional[str]]] = None,
-                 convertor: T.Optional[T.Callable[[_T], object]] = None,
-                 not_set_warning: T.Optional[str] = None,
-                 extra_types: T.Optional[T.Mapping[T.Type, T.Callable[[object], str]]] = None,
-                 as_default: T.Optional[T.List[T.Tuple[object, T.Union[str, T.Tuple[str, str]]]]] = None):
-        self.name = name
-        self.types = types
-        self.required = required
-        self.listify = listify
-        self.default = default
-        self.since = since
-        self.since_message = since_message
-        self.since_values = since_values
-        self.feature_validator = feature_validator
-        self.deprecated = deprecated
-        self.deprecated_message = deprecated_message
-        self.deprecated_values = deprecated_values
-        self.validator = validator
-        self.convertor = convertor
-        self.not_set_warning = not_set_warning
-        self.extra_types = extra_types if extra_types is not None else {}
-        self.as_default = as_default
 
-    def evolve(self, *,
-               name: T.Union[str, _NULL_T] = _NULL,
-               required: T.Union[bool, _NULL_T] = _NULL,
-               listify: T.Union[bool, _NULL_T] = _NULL,
-               default: T.Union[_T, None, _NULL_T] = _NULL,
-               since: T.Union[str, None, _NULL_T] = _NULL,
-               since_message: T.Union[str, None, _NULL_T] = _NULL,
-               since_values: T.Union[T.Dict[T.Union[_T, ContainerTypeInfo, type], T.Union[str, T.Tuple[str, str]]], None, _NULL_T] = _NULL,
-               deprecated: T.Union[str, None, _NULL_T] = _NULL,
-               deprecated_message: T.Union[str, None, _NULL_T] = _NULL,
-               deprecated_values: T.Union[T.Dict[T.Union[_T, ContainerTypeInfo, type], T.Union[str, T.Tuple[str, str]]], None, _NULL_T] = _NULL,
-               feature_validator: T.Union[T.Callable[[_T], T.Iterable[FeatureCheckBase]], None, _NULL_T] = _NULL,
-               validator: T.Union[T.Callable[[_T], T.Optional[str]], None, _NULL_T] = _NULL,
-               convertor: T.Union[T.Callable[[_T], object], None, _NULL_T] = _NULL,
-               extra_types: T.Union[T.Mapping[T.Type, T.Callable[[object], str]], None, _NULL_T] = _NULL,
-               as_default: T.Union[T.List[T.Tuple[object, T.Union[str, T.Tuple[str, str]]]], None, _NULL_T] = _NULL
-               ) -> 'KwargInfo[_T]':
+    name: str
+    types: type[_T] | ContainerTypeInfo | tuple[type[_T] | ContainerTypeInfo, ...]
+    required: bool = dataclasses.field(default=False, kw_only=True)
+    listify: bool = dataclasses.field(default=False, kw_only=True)
+    default: _T | None = dataclasses.field(default=None, kw_only=True)
+    since: str | None = dataclasses.field(default=None, kw_only=True)
+    since_message: str | None = dataclasses.field(default=None, kw_only=True)
+    since_values: dict[_T | ContainerTypeInfo | type, str | tuple[str, str]] | None = \
+        dataclasses.field(default=None, kw_only=True)
+    deprecated: str | None = dataclasses.field(default=None, kw_only=True)
+    deprecated_message: str | None = dataclasses.field(default=None, kw_only=True)
+    deprecated_values: dict[_T | ContainerTypeInfo | type, str | tuple[str, str]] | None = \
+        dataclasses.field(default=None, kw_only=True)
+    feature_validator: T.Callable[[_T], T.Iterable[FeatureCheckBase]] | None = \
+        dataclasses.field(default=None, kw_only=True)
+    validator: T.Callable[[T.Any], str | None] | None = \
+        dataclasses.field(default=None, kw_only=True)
+    convertor: T.Callable[[_T], object] | None = dataclasses.field(default=None, kw_only=True)
+    not_set_warning: str | None = dataclasses.field(default=None, kw_only=True)
+    extra_types: T.Mapping[type, T.Callable[[object], str]] | None = \
+        dataclasses.field(default=None, kw_only=True)
+    as_default: list[tuple[object, str | tuple[str, str]]] | None = \
+        dataclasses.field(default=None, kw_only=True)
+
+    def evolve(self, **kwargs: Unpack[_KwargInfoKWs]) -> KwargInfo[_T]:
         """Create a shallow copy of this KwargInfo, with modifications.
 
         This allows us to create a new copy of a KwargInfo with modifications.
@@ -517,24 +507,7 @@ class KwargInfo(T.Generic[_T]):
         meaning in many of these cases. _NULL itself is never stored, always
         being replaced by either the copy in self, or the provided new version.
         """
-        return type(self)(
-            name if not isinstance(name, _NULL_T) else self.name,
-            self.types,
-            listify=listify if not isinstance(listify, _NULL_T) else self.listify,
-            required=required if not isinstance(required, _NULL_T) else self.required,
-            default=default if not isinstance(default, _NULL_T) else self.default,
-            since=since if not isinstance(since, _NULL_T) else self.since,
-            since_message=since_message if not isinstance(since_message, _NULL_T) else self.since_message,
-            since_values=since_values if not isinstance(since_values, _NULL_T) else self.since_values,
-            deprecated=deprecated if not isinstance(deprecated, _NULL_T) else self.deprecated,
-            deprecated_message=deprecated_message if not isinstance(deprecated_message, _NULL_T) else self.deprecated_message,
-            deprecated_values=deprecated_values if not isinstance(deprecated_values, _NULL_T) else self.deprecated_values,
-            feature_validator=feature_validator if not isinstance(feature_validator, _NULL_T) else self.feature_validator,
-            validator=validator if not isinstance(validator, _NULL_T) else self.validator,
-            convertor=convertor if not isinstance(convertor, _NULL_T) else self.convertor,
-            extra_types=extra_types if not isinstance(extra_types, _NULL_T) else self.extra_types,
-            as_default=as_default if not isinstance(as_default, _NULL_T) else self.as_default,
-        )
+        return dataclasses.replace(self, **kwargs)
 
 
 def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T.Callable[..., T.Any]:
