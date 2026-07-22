@@ -1039,7 +1039,7 @@ BUILD_TARGET_KWS = [
     *_EXCLUSIVE_STATIC_LIB_KWS,
     *EXCLUSIVE_EXECUTABLE_KWS,
     *_SHARED_STATIC_ARGS,
-    _VS_MODULE_DEFS_KW,
+    _VS_MODULE_DEFS_KW.evolve(since='1.12.0'),
     _WIN_SUBSYSTEM_KW.evolve(since='1.12.0'),
     RUST_ABI_KW.evolve(since='1.10.0'),
     *[a.evolve(deprecated='1.3.0', deprecated_message='The use of "jar" in "build_target()" is deprecated, and this argument is only used by jar()')
