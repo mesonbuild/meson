@@ -41,6 +41,10 @@ if T.TYPE_CHECKING:
 
     MesonVersionTarget = mesonlib.Range[mesonlib.Version] | mesonlib.NoProjectVersion | None
 
+    _FeatureKey: TypeAlias = _T | 'ContainerTypeInfo' | type
+    _FeatureValue: TypeAlias = str | tuple[str, str]
+    _FeatureValues: TypeAlias = dict[_FeatureKey, _FeatureValue]
+
     class _KwargInfoKWs(T.TypedDict, T.Generic[_T], total=False):
         name: str
         required: bool
@@ -48,10 +52,10 @@ if T.TYPE_CHECKING:
         default: _T | None
         since: str | None
         since_message: str | None
-        since_values: dict[_T | ContainerTypeInfo | type, str | tuple[str, str]] | None
+        since_values: _FeatureValues | None
         deprecated: str | None
         deprecated_message: str | None
-        deprecated_values: dict[_T | ContainerTypeInfo | type, str | tuple[str, str]] | None
+        deprecated_values: _FeatureValues | None
         feature_validator: T.Callable[[_T], T.Iterable[FeatureCheckBase]] | None
         validator: T.Callable[[T.Any], str | None] | None
         convertor: T.Callable[[_T], object] | None
@@ -478,12 +482,10 @@ class KwargInfo(T.Generic[_T]):
     default: _T | None = dataclasses.field(default=None, kw_only=True)
     since: str | None = dataclasses.field(default=None, kw_only=True)
     since_message: str | None = dataclasses.field(default=None, kw_only=True)
-    since_values: dict[_T | ContainerTypeInfo | type, str | tuple[str, str]] | None = \
-        dataclasses.field(default=None, kw_only=True)
+    since_values: _FeatureValues | None = dataclasses.field(default=None, kw_only=True)
     deprecated: str | None = dataclasses.field(default=None, kw_only=True)
     deprecated_message: str | None = dataclasses.field(default=None, kw_only=True)
-    deprecated_values: dict[_T | ContainerTypeInfo | type, str | tuple[str, str]] | None = \
-        dataclasses.field(default=None, kw_only=True)
+    deprecated_values: _FeatureValues | None = dataclasses.field(default=None, kw_only=True)
     feature_validator: T.Callable[[_T], T.Iterable[FeatureCheckBase]] | None = \
         dataclasses.field(default=None, kw_only=True)
     validator: T.Callable[[T.Any], str | None] | None = \
@@ -530,7 +532,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
         @wraps(f)
         def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
 
-            def emit_feature_change(values: T.Dict[_T, T.Union[str, T.Tuple[str, str]]], feature: T.Union[T.Type['FeatureDeprecated'], T.Type['FeatureNew']]) -> None:
+            def emit_feature_change(values: _FeatureValues, feature: T.Union[T.Type['FeatureDeprecated'], T.Type['FeatureNew']]) -> None:
                 for n, version in values.items():
                     if isinstance(version, tuple):
                         version, msg = version
