@@ -721,6 +721,90 @@ class InternalTests(unittest.TestCase):
             env.machines.host.system = 'windows'
             self._test_all_naming(cc, patterns, 'windows-mingw')
 
+        self._test_find_library_undefined(cc)
+
+    def _test_find_library_undefined(self, cc):
+        '''
+        find_library checks if its argument both exists and can be
+        linked against, but it must tolerate underlinked static
+        libraries.
+
+        https://github.com/mesonbuild/meson/issues/15601
+        '''
+        def create_static_lib_with_undefined(name):
+            src = name.with_suffix('.c')
+            out = name.with_suffix('.o')
+            with src.open('w', encoding='utf-8') as f:
+                f.write('extern int get_cookie();')
+                f.write('int meson_foobar (void) { return get_cookie(); }')
+            # use of x86_64 is hardcoded in run_tests.py:get_fake_env()
+            if is_osx():
+                subprocess.check_call(['clang', '-c', str(src), '-o', str(out), '-arch', 'x86_64'])
+            else:
+                subprocess.check_call(['gcc', '-c', str(src), '-o', str(out)])
+            subprocess.check_call(['ar', 'csr', str(name), str(out)])
+
+        def create_static_lib_empty(name):
+            with name.open('w', encoding='utf-8') as f:
+                f.write("garbage")
+
+        # The test relies on some open-coded toolchain invocations for
+        # library creation in create_static_lib_with_undefined.
+        if is_windows() or is_cygwin():
+            return
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            p1 = Path(tmpdir)
+            create_static_lib_with_undefined(p1 / 'libfoo.a')
+
+            code = 'int meson_foobar (void); int main(void) { return meson_foobar(); }'
+
+            # Check that we always tolerate undefined references in a static
+            # library regardless of the library type.
+            for type in (LibType.STATIC, LibType.PREFER_STATIC, LibType.PREFER_SHARED):
+                found = cc._find_library_real('foo', [tmpdir],
+                                              code,
+                                              type, lib_prefix_warning=True, ignore_system_dirs=False)
+                self.assertEqual(os.path.basename(found[0]), 'libfoo.a')
+
+            # Check that we reject broken static libraries unless we were
+            # told to only find a static library.
+            create_static_lib_empty(p1 / 'libbar.a')
+
+            # We have a broken static library *and* we indicated we want a static
+            # library, so we don't perform a link test.
+            found = cc._find_library_real('bar', [tmpdir],
+                                          code,
+                                          LibType.STATIC, lib_prefix_warning=True, ignore_system_dirs=False)
+            self.assertEqual(os.path.basename(found[0]), 'libbar.a')
+
+            # We have a broken static library we're testing against but we only said
+            # we'd prefer static, not that it must be static: the heuristic
+            # says it likely isn't a special toolchain library, so we perform a
+            # link test.
+            found = cc._find_library_real('bar', [tmpdir],
+                                          code,
+                                          LibType.PREFER_STATIC, lib_prefix_warning=True, ignore_system_dirs=False)
+            self.assertIsNone(found, 'Unexpectedly found a library with PREFER_STATIC, link test expected to reject it')
+
+            # We have a broken static library we're testing against but we only said
+            # we'd prefer shared, not that it must be shared: the heuristic
+            # says it likely isn't a special toolchain library, so we perform a
+            # link test.
+            found = cc._find_library_real('bar', [tmpdir],
+                                          code,
+                                          LibType.PREFER_SHARED, lib_prefix_warning=True, ignore_system_dirs=False)
+            self.assertIsNone(found, 'Unexpectedly found a library with PREFER_SHARED, link test expected to reject it')
+
+            # We asked for a shared library and we only got a broken
+            # static one. We only tolerate them being broken if people
+            # explicitly ask for it w/ static: true, so we perform a link
+            # test.
+            found = cc._find_library_real('bar', [tmpdir],
+                                          code,
+                                          LibType.SHARED, lib_prefix_warning=True, ignore_system_dirs=False)
+            self.assertIsNone(found, "Unexpectedly found a library with SHARED")
+
     @skipIfNoPkgconfig
     def test_pkgconfig_parse_libs(self):
         '''
