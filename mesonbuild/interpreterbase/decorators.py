@@ -162,7 +162,7 @@ def _types_description(types: tuple[type | ContainerTypeInfo, ...] | type | Cont
         else:
             candidates.append(t.__name__)
     shouldbe = 'one of: ' if len(candidates) > 1 else ''
-    shouldbe += ', '.join(candidates)
+    shouldbe += ', '.join(f'"{c}"' for c in candidates)
     return shouldbe
 
 
