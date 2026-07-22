@@ -30,14 +30,16 @@ python3dep = python3.dependency(required: require_bp, embed: true, disabler: tru
 
 # compile python 2/3 modules only if we found a corresponding python version
 if(python2dep.found() and require_bp and not s)
-  bpython2dep = dependency('boost', static: s, modules : ['python'], required: false, disabler: true)
+  py2ver = ''.join(python2.language_version().split('.'))
+  bpython2dep = dependency('boost', static: s, modules : ['python'+py2ver,'numpy'+py2ver], required: false, disabler: true)
 else
   python2dep = disabler()
   bpython2dep = disabler()
 endif
 
 if(python3dep.found() and require_bp and not s)
-  bpython3dep = dependency('boost', static: s, modules : ['python3'])
+  py3ver = ''.join(python2.language_version().split('.'))
+  bpython3dep = dependency('boost', static: s, modules : ['python'+py3ver,'numpy'+py3ver])
 else
   python3dep = disabler()
   bpython3dep = disabler()
