@@ -366,7 +366,12 @@ class CmakeModule(ExtensionModule):
     @noPosargs
     @typed_kwargs(
         'cmake.configure_package_config_file',
-        KwargInfo('configuration', (build.ConfigurationData, dict), required=True),
+        KwargInfo(
+            'configuration',
+            (build.ConfigurationData, dict),
+            required=True,
+            since_values={dict: '0.62.0'},
+        ),
         KwargInfo('input',
                   (str, mesonlib.File, ContainerTypeInfo(list, mesonlib.File)), required=True,
                   validator=lambda x: 'requires exactly one file' if isinstance(x, list) and len(x) != 1 else None,
@@ -394,7 +399,6 @@ class CmakeModule(ExtensionModule):
 
         conf = kwargs['configuration']
         if isinstance(conf, dict):
-            FeatureNew.single_use('cmake.configure_package_config_file dict as configuration', '0.62.0', state.subproject, location=state.current_node)
             conf = build.ConfigurationData(conf)
 
         prefix = state.environment.coredata.optstore.get_value_for(OptionKey('prefix'))
