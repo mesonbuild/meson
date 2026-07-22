@@ -1618,7 +1618,8 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
                  extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
                  dependencies: T.Optional[T.List['Dependency']] = None,
                  mode: CompileCheckMode = CompileCheckMode.COMPILE,
-                 disable_cache: bool = False) -> T.Tuple[bool, bool]:
+                 disable_cache: bool = False,
+                 testname: str = '') -> T.Tuple[bool, bool]:
         """Run a compilation or link test to see if code can be compiled/linked.
 
         :returns:
@@ -1632,7 +1633,8 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
               compiler: T.Optional['Compiler'] = None,
               extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
               dependencies: T.Optional[T.List['Dependency']] = None,
-              disable_cache: bool = False) -> T.Tuple[bool, bool]:
+              disable_cache: bool = False,
+              testname: str = '') -> T.Tuple[bool, bool]:
         if compiler:
             with compiler._build_wrapper(code, dependencies=dependencies, want_output=True) as r:
                 objfile = mesonlib.File.from_absolute_file(r.output_name)
