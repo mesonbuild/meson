@@ -606,7 +606,7 @@ class QtBaseModule(ExtensionModule):
 
         return output
 
-    # We can't use typed_pos_args here, the signature is ambiguous
+    @typed_pos_args('qt.preprocess', varargs=(str, File))
     @typed_kwargs(
         'qt.preprocess',
         DEPENDENCY_METHOD_KW,
@@ -626,27 +626,27 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
         KwargInfo('moc_output_json', bool, default=False, since='1.7.0'),
     )
-    def preprocess(self, state: ModuleState, args: T.List[T.Union[str, File]], kwargs: PreprocessKwArgs) -> ModuleReturnValue:
-        _sources = args[1:]
-        if _sources:
-            FeatureDeprecated.single_use('qt.preprocess positional sources', '0.59', state.subproject, location=state.current_node)
+    def preprocess(self, state: ModuleState, args: tuple[list[str | File]], kwargs: PreprocessKwArgs) -> ModuleReturnValue:
+        if args[0]:
+            _name, *_sources = args[0]
+            if _sources:
+                FeatureDeprecated.single_use('qt.preprocess positional sources', '0.59', state.subproject, location=state.current_node)
+            if not isinstance(_name, str):
+                raise build.InvalidArguments('First argument to qt.preprocess must be a string')
+            name = _name
+        else:
+            _sources = []
+            name = ''
+
         # List is invariant, os we have to cast...
         sources: T.List[str | build.TargetSources] = [*_sources, *kwargs['sources']]
-        for s in sources:
-            if not isinstance(s, (str, File)):
-                raise build.InvalidArguments('Variadic arguments to qt.preprocess must be Strings or Files')
         method = kwargs['method']
 
         if kwargs['qresources']:
             # custom output name set? -> one output file, multiple otherwise
-            rcc_kwargs: ResourceCompilerKwArgs = {'name': '',
+            rcc_kwargs: ResourceCompilerKwArgs = {'name': name,
                                                   'sources': T.cast('T.List[str | TargetSources]', kwargs['qresources']),
                                                   'extra_args': kwargs['rcc_extra_arguments'], 'method': method}
-            if args:
-                name = args[0]
-                if not isinstance(name, str):
-                    raise build.InvalidArguments('First argument to qt.preprocess must be a string')
-                rcc_kwargs['name'] = name
             sources.extend(self._compile_resources_impl(state, rcc_kwargs))
 
         if kwargs['ui_files']:
