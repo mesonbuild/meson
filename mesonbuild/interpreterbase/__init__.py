@@ -44,8 +44,6 @@ __all__ = [
     'FeatureNew',
     'FeatureDeprecated',
     'FeatureBroken',
-    'FeatureNewKwargs',
-    'FeatureDeprecatedKwargs',
 
     'InterpreterBase',
 
@@ -104,8 +102,6 @@ from .decorators import (
     FeatureNew,
     FeatureDeprecated,
     FeatureBroken,
-    FeatureNewKwargs,
-    FeatureDeprecatedKwargs,
 )
 
 from .exceptions import (

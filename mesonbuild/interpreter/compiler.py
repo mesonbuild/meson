@@ -17,7 +17,7 @@ from .. import mlog
 from ..compilers import SUFFIX_TO_LANG, RunResult
 from ..compilers.compilers import CompileCheckMode
 from ..interpreterbase import (ObjectHolder, noPosargs, noKwargs,
-                               FeatureNew, FeatureNewKwargs, disablerIfNotFound,
+                               FeatureNew, disablerIfNotFound,
                                InterpreterException, InterpreterObject)
 from ..interpreterbase.decorators import ContainerTypeInfo, typed_kwargs, KwargInfo, typed_pos_args
 from ..options import OptionKey
@@ -881,12 +881,18 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return self.compiler.get_argument_syntax()
 
     @FeatureNew('compiler.preprocess', '0.64.0')
-    @FeatureNewKwargs('compiler.preprocess', '1.3.2', ['compile_args'], extra_message='compile_args were ignored before this version')
     @typed_pos_args('compiler.preprocess', varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), min_varargs=1)
     @typed_kwargs(
         'compiler.preprocess',
         KwargInfo('output', str, default='@PLAINNAME@.i'),
-        KwargInfo('compile_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo(
+            'compile_args',
+            ContainerTypeInfo(list, str),
+            listify=True,
+            default=[],
+            since='1.3.2',
+            since_message='compile_args were ignored before this version',
+        ),
         _INCLUDE_DIRECTORIES_KW,
         _DEPENDENCIES_KW.evolve(since='1.1.0'),
         _DEPENDS_KW.evolve(since='1.4.0'),
