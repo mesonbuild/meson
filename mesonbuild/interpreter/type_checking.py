@@ -37,12 +37,18 @@ if T.TYPE_CHECKING:
     SourcesVarargsType = T.List[T.Union[str, File, GeneratedTypes, StructuredSources, ExtractedObjects, BuildTarget]]
 
 
+def _quote(x: T.Iterable[str]) -> T.Iterable[str]:
+    if isinstance(x, str):
+        return f'"{x}"'
+    return [f'"{c}"' for c in x]
+
+
 def in_set_validator(choices: T.Set[str]) -> T.Callable[[str], T.Optional[str]]:
     """Check that the choice given was one of the given set."""
 
     def inner(check: str) -> T.Optional[str]:
         if check not in choices:
-            return f"must be one of {', '.join(sorted(choices))}, not {check}"
+            return f"must be one of {', '.join(_quote(sorted(choices)))}, not \"{check}\""
         return None
 
     return inner

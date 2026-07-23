@@ -42,7 +42,7 @@ testcase expect_error('package another-0.1.0 not configured for host machine')
 endtestcase
 
 # failure test cases for dependency()
-testcase expect_error('"package.dependency".*must be one of c, proc-macro, rust.*', how: 're')
+testcase expect_error('"package.dependency".*must be one of "c", "proc-macro", "rust".*', how: 're')
   hello_rs.dependency(rust_abi: 'something else')
 endtestcase
 testcase expect_error('Package hello does not support ABI c')
