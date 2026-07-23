@@ -943,7 +943,39 @@ class GnomeModule(ExtensionModule):
                 cflags += compiler.sanitizer_compile_args(None, sanitize)
                 # These must be first in ldflags
                 if 'address' in sanitize:
-                    internal_ldflags += ['-lasan']
+                    # When using CLANG64 toolchain with MSYS2,
+                    #  libclang_rt.asan_dynamic-x86_64 is used instead of libasan.
+                    # NOTE: x86_64 is assumed as there is standalone CLANGARM64 toolchain for aarch64
+
+                    is_msys_clang64_toolchain = \
+                        mesonlib.is_windows() \
+                        and os.getenv('MSYSTEM') == 'CLANG64' \
+                        and compiler.get_id() == 'clang'
+                    if not is_msys_clang64_toolchain:
+                        internal_ldflags += ['-lasan']
+                    else:
+                        # FIXME: for some reason, Unix-like path to library will not work
+                        # internal_ldflags += \
+                        #     [
+                        #         '-lclang_rt.asan_dynamic-x86_64',
+                        #         f'-L/clang64/lib/clang/{compiler.version.split('.')[0]}/lib/windows',
+                        #     ]
+
+                        # libclang_rt.asan_dynamic-x86_64 is located on the folder
+                        #  "${MSYS_INSTALLATION_PREFIX}/clang64/lib/clang/${CLANG_MAJOR_VERSION}/lib/windows"
+                        # ${MSYS_INSTALLATION_PREFIX} can be resolved via shell command 'cygpath -m /'
+                        # ${CLANG_MAJOR_VERSION} is parsed from compiler instance we use
+
+                        returncode, stdout, stderr = mesonlib.Popen_safe(['cygpath', '-m', '/'])
+                        # TODO: validate result?
+                        msys_prefix = stdout.strip()
+                        clang_major = compiler.version.split('.')[0]
+                        internal_ldflags += \
+                            [
+                                '-lclang_rt.asan_dynamic-x86_64',
+                                f'-L{msys_prefix}/clang64/lib/clang/{clang_major}/lib/windows'
+                            ]
+
                 if 'thread' in sanitize:
                     internal_ldflags += ['-ltsan']
                 if 'undefined' in sanitize:
