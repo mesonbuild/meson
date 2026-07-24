@@ -1044,7 +1044,7 @@ class NinjaBackend(backends.Backend):
         is_unity = self.is_unity(target)
         header_deps = []
         unity_src: list[File] = []
-        unity_deps = [] # Generated sources that must be built before compiling a Unity target.
+        unity_deps: list[File] = [] # Generated sources that must be built before compiling a Unity target.
         header_deps += self.get_generated_headers(target)
 
         if is_unity:
@@ -1146,7 +1146,7 @@ class NinjaBackend(backends.Backend):
             else:
                 transpiled_source_files.append(raw_src)
         for src in transpiled_source_files:
-            o, s = self.generate_single_compile(target, src, True, [], header_deps)
+            o, s = self.generate_single_compile(target, src, True, full_deps=header_deps)
             obj_list.append(o)
 
         # Generate compile targets for all the preexisting sources for this target
@@ -1170,8 +1170,9 @@ class NinjaBackend(backends.Backend):
 
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
-                o, s = self.generate_single_compile(target, src, True, [*unity_deps, *header_deps, *d_generated_deps],
-                                                    fortran_order_deps, fortran_inc_args, unity_src)
+                o, s = self.generate_single_compile(target, src, True, unity_deps,
+                                                    [*header_deps, *d_generated_deps, *fortran_order_deps],
+                                                    fortran_inc_args, unity_src)
                 obj_list.append(o)
                 compiled_sources.append(s)
                 source2object[s] = o
@@ -3243,15 +3244,23 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def generate_single_compile(self, target: build.BuildTarget, src: FileOrString,
                                 is_generated: bool = False,
-                                header_deps: T.Optional[T.List[FileOrString]] = None,
+                                full_deps: list[FileOrString] | list[File] | None = None,
                                 order_deps: T.Optional[T.List[File] | T.List[FileOrString]] = None,
                                 extra_args: T.Optional[T.List[str]] = None,
                                 unity_sources: list[File] | None = None,
                                 ) -> T.Tuple[str, str]:
         """
         Compiles C/C++, ObjC/ObjC++, Fortran, and D sources
+
+        :param target: the target being built
+        :param src: the single source being compiled
+        :param full_deps: dependencies that require a full rebuild of this object, and
+            that the dependency must be built before this object can be built
+        :param order_deps: dependencies that must be built before this target is built
+        :param unity_sources: The list of unity source (if there are any)
+        :returns: a tuple of object file, source file
         """
-        header_deps = header_deps if header_deps is not None else []
+        full_deps = full_deps if full_deps is not None else []
         order_deps = order_deps if order_deps is not None else []
 
         if isinstance(src, str) and src.endswith('.h'):
@@ -3351,12 +3360,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # C++ import std is complicated enough to get its own method.
         istd_args, istd_dep = self.handle_cpp_import_std(target, compiler)
         commands.extend(istd_args)
-        header_deps += istd_dep
+        full_deps += T.cast('list[FileOrString]', istd_dep)
         if extra_args is not None:
             commands.extend(extra_args)
 
         element = NinjaBuildElement(self.all_outputs, rel_obj, compiler_name, rel_src)
-        self.add_header_deps(target, element, header_deps)
+        self.add_full_deps(target, element, full_deps)
         for d in extra_deps:
             element.add_dep(d)
         element.add_orderdep(self.order_deps_to_strings(target, order_deps))
@@ -3487,8 +3496,15 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         priv = self.get_target_private_dir(target)
         return os.path.join(priv, 'depscan.json'), os.path.join(priv, 'depscan.dd')
 
-    def add_header_deps(self, target: build.BuildTarget, ninja_element: NinjaBuildElement, header_deps: T.List[FileOrString]) -> None:
-        for d in header_deps:
+    def add_full_deps(self, target: build.BuildTarget, ninja_element: NinjaBuildElement,
+                      deps: list[mesonlib.FileOrString]) -> None:
+        """Add multiple full dependencies.
+
+        :param target: The Target which the sources come from
+        :param ninja_element: The Ninja build Element being modified
+        :param deps: The dependencies being added
+        """
+        for d in deps:
             if isinstance(d, File):
                 d = d.rel_to_builddir(self.build_to_src)
             elif not self.has_dir_part(d):
@@ -3595,7 +3611,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             elem = NinjaBuildElement(self.all_outputs, objs + [dst], rulename, src)
             if extradep is not None:
                 elem.add_dep(extradep)
-            self.add_header_deps(target, elem, header_deps)
+            self.add_full_deps(target, elem, header_deps)
             elem.add_item('ARGS', commands)
             elem.add_item('DEPFILE', dep)
             self.add_build(elem)
