@@ -291,19 +291,19 @@ class AstInterpreter(InterpreterBase):
             if isinstance(arg, UnknownValue):
                 return UnknownValue()
 
-        if isinstance(obj, str):
-            result = StringHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
-        elif isinstance(obj, bool):
-            result = BooleanHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
-        elif isinstance(obj, int):
-            result = IntegerHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
-        elif isinstance(obj, list):
-            result = ArrayHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
-        elif isinstance(obj, dict):
-            result = DictHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
-        else:
-            return UnknownValue()
-        return result
+        match obj:
+            case str():
+                return StringHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
+            case bool():
+                return BooleanHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
+            case int():
+                return IntegerHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
+            case list():
+                return ArrayHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
+            case dict():
+                return DictHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
+            case _:
+                return UnknownValue()
 
     def method_call(self, node: mparser.MethodNode) -> None:
         invocable = node.source_object
@@ -382,69 +382,71 @@ class AstInterpreter(InterpreterBase):
         self.evaluate_statement(cur.value)
 
     def find_potential_writes(self, node: BaseNode) -> T.Set[str]:
-        if isinstance(node, mparser.ForeachClauseNode):
-            return {el.value for el in node.varnames} | self.find_potential_writes(node.block)
-        elif isinstance(node, mparser.CodeBlockNode):
-            ret = set()
-            for line in node.lines:
-                ret.update(self.find_potential_writes(line))
-            return ret
-        elif isinstance(node, (AssignmentNode, PlusAssignmentNode)):
-            return set([node.var_name.value]) | self.find_potential_writes(node.value)
-        elif isinstance(node, IdNode):
-            return set()
-        elif isinstance(node, ArrayNode):
-            ret = set()
-            for arg in node.args.arguments:
-                ret.update(self.find_potential_writes(arg))
-            return ret
-        elif isinstance(node, mparser.DictNode):
-            ret = set()
-            for k, v in node.args.kwargs.items():
-                ret.update(self.find_potential_writes(k))
-                ret.update(self.find_potential_writes(v))
-            return ret
-        elif isinstance(node, FunctionNode):
-            ret = set()
-            for arg in node.args.arguments:
-                ret.update(self.find_potential_writes(arg))
-            for arg in node.args.kwargs.values():
-                ret.update(self.find_potential_writes(arg))
-            return ret
-        elif isinstance(node, MethodNode):
-            ret = self.find_potential_writes(node.source_object)
-            for arg in node.args.arguments:
-                ret.update(self.find_potential_writes(arg))
-            for arg in node.args.kwargs.values():
-                ret.update(self.find_potential_writes(arg))
-            return ret
-        elif isinstance(node, ArithmeticNode):
-            return self.find_potential_writes(node.left) | self.find_potential_writes(node.right)
-        elif isinstance(node, (mparser.NumberNode, mparser.StringNode, mparser.BreakNode, mparser.BooleanNode, mparser.ContinueNode)):
-            return set()
-        elif isinstance(node, mparser.IfClauseNode):
-            if isinstance(node.elseblock, EmptyNode):
+        match node:
+            case mparser.ForeachClauseNode():
+                return {el.value for el in node.varnames} | self.find_potential_writes(node.block)
+            case mparser.CodeBlockNode():
                 ret = set()
-            else:
-                ret = self.find_potential_writes(node.elseblock.block)
-            for i in node.ifs:
-                ret.update(self.find_potential_writes(i))
-            return ret
-        elif isinstance(node, mparser.IndexNode):
-            return self.find_potential_writes(node.iobject) | self.find_potential_writes(node.index)
-        elif isinstance(node, mparser.IfNode):
-            return self.find_potential_writes(node.condition) | self.find_potential_writes(node.block)
-        elif isinstance(node, (mparser.ComparisonNode, mparser.OrNode, mparser.AndNode)):
-            return self.find_potential_writes(node.left) | self.find_potential_writes(node.right)
-        elif isinstance(node, mparser.NotNode):
-            return self.find_potential_writes(node.value)
-        elif isinstance(node, mparser.TernaryNode):
-            return self.find_potential_writes(node.condition) | self.find_potential_writes(node.trueblock) | self.find_potential_writes(node.falseblock)
-        elif isinstance(node, mparser.UMinusNode):
-            return self.find_potential_writes(node.value)
-        elif isinstance(node, mparser.ParenthesizedNode):
-            return self.find_potential_writes(node.inner)
-        raise mesonlib.MesonBugException('Unhandled node type')
+                for line in node.lines:
+                    ret.update(self.find_potential_writes(line))
+                return ret
+            case AssignmentNode() | PlusAssignmentNode():
+                return set([node.var_name.value]) | self.find_potential_writes(node.value)
+            case IdNode():
+                return set()
+            case ArrayNode():
+                ret = set()
+                for arg in node.args.arguments:
+                    ret.update(self.find_potential_writes(arg))
+                return ret
+            case mparser.DictNode():
+                ret = set()
+                for k, v in node.args.kwargs.items():
+                    ret.update(self.find_potential_writes(k))
+                    ret.update(self.find_potential_writes(v))
+                return ret
+            case FunctionNode():
+                ret = set()
+                for arg in node.args.arguments:
+                    ret.update(self.find_potential_writes(arg))
+                for arg in node.args.kwargs.values():
+                    ret.update(self.find_potential_writes(arg))
+                return ret
+            case MethodNode():
+                ret = self.find_potential_writes(node.source_object)
+                for arg in node.args.arguments:
+                    ret.update(self.find_potential_writes(arg))
+                for arg in node.args.kwargs.values():
+                    ret.update(self.find_potential_writes(arg))
+                return ret
+            case ArithmeticNode():
+                return self.find_potential_writes(node.left) | self.find_potential_writes(node.right)
+            case mparser.NumberNode() | mparser.StringNode() | mparser.BreakNode() | mparser.BooleanNode() | mparser.ContinueNode():
+                return set()
+            case mparser.IfClauseNode():
+                if isinstance(node.elseblock, EmptyNode):
+                    ret = set()
+                else:
+                    ret = self.find_potential_writes(node.elseblock.block)
+                for i in node.ifs:
+                    ret.update(self.find_potential_writes(i))
+                return ret
+            case mparser.IndexNode():
+                return self.find_potential_writes(node.iobject) | self.find_potential_writes(node.index)
+            case mparser.IfNode():
+                return self.find_potential_writes(node.condition) | self.find_potential_writes(node.block)
+            case mparser.ComparisonNode() | mparser.OrNode() | mparser.AndNode():
+                return self.find_potential_writes(node.left) | self.find_potential_writes(node.right)
+            case mparser.NotNode():
+                return self.find_potential_writes(node.value)
+            case mparser.TernaryNode():
+                return self.find_potential_writes(node.condition) | self.find_potential_writes(node.trueblock) | self.find_potential_writes(node.falseblock)
+            case mparser.UMinusNode():
+                return self.find_potential_writes(node.value)
+            case mparser.ParenthesizedNode():
+                return self.find_potential_writes(node.inner)
+            case _:
+                raise mesonlib.MesonBugException('Unhandled node type ' + repr(node))
 
     def evaluate_foreach(self, node: ForeachClauseNode) -> None:
         asses = self.find_potential_writes(node)
@@ -545,117 +547,119 @@ class AstInterpreter(InterpreterBase):
     # ```
     # `node_to_runtime_value` will return `[123, UnknownValue()]`.
     def node_to_runtime_value(self, node: T.Union[UnknownValue, BaseNode, TYPE_var]) -> T.Any:
-        if isinstance(node, (mparser.StringNode, mparser.BooleanNode, mparser.NumberNode)):
-            return node.value
-        elif isinstance(node, mparser.StringNode):
-            if node.is_fstring:
-                return UnknownValue()
-            else:
+        match node:
+            case mparser.StringNode() | mparser.BooleanNode() | mparser.NumberNode():
                 return node.value
-        elif isinstance(node, list):
-            return [self.node_to_runtime_value(x) for x in node]
-        elif isinstance(node, ArrayNode):
-            return [self.node_to_runtime_value(x) for x in node.args.arguments]
-        elif isinstance(node, mparser.DictNode):
-            return {self.node_to_runtime_value(k): self.node_to_runtime_value(v) for k, v in node.args.kwargs.items()}
-        elif isinstance(node, IdNode):
-            assert len(self.dataflow_dag.tgt_to_srcs[node]) == 1
-            val = next(iter(self.dataflow_dag.tgt_to_srcs[node]))
-            return self.node_to_runtime_value(val)
-        elif isinstance(node, (MethodNode, FunctionNode)):
-            funcval = self.funcvals[node]
-            if isinstance(funcval, (dict, str)):
-                return funcval
-            else:
-                return self.node_to_runtime_value(funcval)
-        elif isinstance(node, ArithmeticNode):
-            left = self.node_to_runtime_value(node.left)
-            right = self.node_to_runtime_value(node.right)
-            if isinstance(left, list) and isinstance(right, UnknownValue):
-                return left + [right]
-            if isinstance(right, list) and isinstance(left, UnknownValue):
-                return [left] + right
-            if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
-                return UnknownValue()
-            if node.operation == '+':
-                if isinstance(left, dict) and isinstance(right, dict):
-                    ret = left.copy()
-                    for k, v in right.items():
-                        ret[k] = v
-                    return ret
-                if isinstance(left, list):
-                    if not isinstance(right, list):
-                        right = [right]
-                    return left + right
-                return left + right
-            elif node.operation == '-':
-                return left - right
-            elif node.operation == '*':
-                return left * right
-            elif node.operation == '/':
-                if isinstance(left, int) and isinstance(right, int):
-                    return left // right
-                elif isinstance(left, str) and isinstance(right, str):
-                    return os.path.join(left, right).replace('\\', '/')
-            elif node.operation == '%':
-                if isinstance(left, int) and isinstance(right, int):
-                    return left % right
-        elif isinstance(node, (UnknownValue, IntrospectionBuildTarget, IntrospectionFile, IntrospectionDependency, str, bool, int)):
-            return node
-        elif isinstance(node, mparser.IndexNode):
-            iobject = self.node_to_runtime_value(node.iobject)
-            index = self.node_to_runtime_value(node.index)
-            if isinstance(iobject, UnknownValue) or isinstance(index, UnknownValue):
-                return UnknownValue()
-            return iobject[index]
-        elif isinstance(node, mparser.ComparisonNode):
-            left = self.node_to_runtime_value(node.left)
-            right = self.node_to_runtime_value(node.right)
-            if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
-                return UnknownValue()
-            if node.ctype == '==':
-                return left == right
-            elif node.ctype == '!=':
-                return left != right
-            elif node.ctype == 'in':
-                return left in right
-            elif node.ctype == 'not in':
-                return left not in right
-        elif isinstance(node, mparser.TernaryNode):
-            cond = self.node_to_runtime_value(node.condition)
-            if isinstance(cond, UnknownValue):
-                return UnknownValue()
-            if cond is True:
-                return self.node_to_runtime_value(node.trueblock)
-            if cond is False:
-                return self.node_to_runtime_value(node.falseblock)
-        elif isinstance(node, mparser.OrNode):
-            left = self.node_to_runtime_value(node.left)
-            right = self.node_to_runtime_value(node.right)
-            if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
-                return UnknownValue()
-            return left or right
-        elif isinstance(node, mparser.AndNode):
-            left = self.node_to_runtime_value(node.left)
-            right = self.node_to_runtime_value(node.right)
-            if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
-                return UnknownValue()
-            return left and right
-        elif isinstance(node, mparser.UMinusNode):
-            val = self.node_to_runtime_value(node.value)
-            if isinstance(val, UnknownValue):
-                return val
-            if isinstance(val, (int, float)):
-                return -val
-        elif isinstance(node, mparser.NotNode):
-            val = self.node_to_runtime_value(node.value)
-            if isinstance(val, UnknownValue):
-                return val
-            if isinstance(val, bool):
-                return not val
-        elif isinstance(node, mparser.ParenthesizedNode):
-            return self.node_to_runtime_value(node.inner)
-        raise mesonlib.MesonBugException('Unhandled node type')
+            case mparser.StringNode(is_fstring=f):
+                return UnknownValue() if f else node.value
+            case list():
+                return [self.node_to_runtime_value(x) for x in node]
+            case ArrayNode():
+                return [self.node_to_runtime_value(x) for x in node.args.arguments]
+            case mparser.DictNode():
+                return {self.node_to_runtime_value(k): self.node_to_runtime_value(v) for k, v in node.args.kwargs.items()}
+            case IdNode():
+                assert len(self.dataflow_dag.tgt_to_srcs[node]) == 1
+                val = next(iter(self.dataflow_dag.tgt_to_srcs[node]))
+                return self.node_to_runtime_value(val)
+            case MethodNode() | FunctionNode():
+                funcval = self.funcvals[node]
+                if isinstance(funcval, (dict, str)):
+                    return funcval
+                else:
+                    return self.node_to_runtime_value(funcval)
+            case ArithmeticNode():
+                left = self.node_to_runtime_value(node.left)
+                right = self.node_to_runtime_value(node.right)
+                if isinstance(left, list) and isinstance(right, UnknownValue):
+                    return left + [right]
+                if isinstance(right, list) and isinstance(left, UnknownValue):
+                    return [left] + right
+                if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
+                    return UnknownValue()
+
+                match node.operation:
+                    case '+':
+                        if isinstance(left, dict) and isinstance(right, dict):
+                            ret = left.copy()
+                            for k, v in right.items():
+                                ret[k] = v
+                            return ret
+                        if isinstance(left, list):
+                            if not isinstance(right, list):
+                                right = [right]
+                            return left + right
+                        return left + right
+                    case '-':
+                        return left - right
+                    case '*':
+                        return left * right
+                    case '/':
+                        if isinstance(left, int) and isinstance(right, int):
+                            return left // right
+                        elif isinstance(left, str) and isinstance(right, str):
+                            return os.path.join(left, right).replace('\\', '/')
+                    case '%':
+                        if isinstance(left, int) and isinstance(right, int):
+                            return left % right
+            case UnknownValue() | IntrospectionBuildTarget() | IntrospectionFile() | IntrospectionDependency() | str() | bool() | int():
+                return node
+            case mparser.IndexNode():
+                iobject = self.node_to_runtime_value(node.iobject)
+                index = self.node_to_runtime_value(node.index)
+                if isinstance(iobject, UnknownValue) or isinstance(index, UnknownValue):
+                    return UnknownValue()
+                return iobject[index]
+            case mparser.ComparisonNode():
+                left = self.node_to_runtime_value(node.left)
+                right = self.node_to_runtime_value(node.right)
+                if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
+                    return UnknownValue()
+                match node.ctype:
+                    case '==':
+                        return left == right
+                    case '!=':
+                        return left != right
+                    case 'in':
+                        return left in right
+                    case 'not in':
+                        return left not in right
+            case mparser.TernaryNode():
+                cond = self.node_to_runtime_value(node.condition)
+                if isinstance(cond, UnknownValue):
+                    return UnknownValue()
+                if cond is True:
+                    return self.node_to_runtime_value(node.trueblock)
+                if cond is False:
+                    return self.node_to_runtime_value(node.falseblock)
+            case mparser.OrNode():
+                left = self.node_to_runtime_value(node.left)
+                right = self.node_to_runtime_value(node.right)
+                if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
+                    return UnknownValue()
+                return left or right
+            case mparser.AndNode():
+                left = self.node_to_runtime_value(node.left)
+                right = self.node_to_runtime_value(node.right)
+                if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
+                    return UnknownValue()
+                return left and right
+            case mparser.UMinusNode():
+                val = self.node_to_runtime_value(node.value)
+                if isinstance(val, UnknownValue):
+                    return val
+                if isinstance(val, (int, float)):
+                    return -val
+            case mparser.NotNode():
+                val = self.node_to_runtime_value(node.value)
+                if isinstance(val, UnknownValue):
+                    return val
+                if isinstance(val, bool):
+                    return not val
+            case mparser.ParenthesizedNode():
+                return self.node_to_runtime_value(node.inner)
+            case _:
+                raise mesonlib.MesonBugException('Unhandled node type ' + repr(node))
 
     def assignment(self, node: AssignmentNode) -> None:
         assert isinstance(node, AssignmentNode)
@@ -725,7 +729,7 @@ class AstInterpreter(InterpreterBase):
             elif isinstance(src, UnknownValue):
                 return src
             else:
-                raise TypeError
+                raise mesonlib.MesonBugException('Unexpected type!', src)
 
         rtvals: T.List[T.Any] = flatten([self.node_to_runtime_value(sn) for sn in nodes])
         return [src_to_abs(x) for x in rtvals]
