@@ -90,6 +90,7 @@ class WindowsModule(ExtensionModule):
             raise MesonException('Could not find Windows resource compiler')
 
         for (arg, match, rc_type) in [
+                # Zig >=0.14.1 is also matched by the regex below.
                 ('/?', '^.*Microsoft.*Resource Compiler.*$', ResourceCompilerType.rc),
                 ('/?', 'LLVM Resource Converter.*$', ResourceCompilerType.rc),
                 ('--version', '^.*GNU windres.*$', ResourceCompilerType.windres),
@@ -102,7 +103,15 @@ class WindowsModule(ExtensionModule):
                 self._rescomp = (rescomp, rc_type)
                 break
         else:
-            raise MesonException('Could not determine type of Windows resource compiler')
+            # Zig <0.14.1 prints its info to stderr, so we'll handle it separately.
+            _, _, e = mesonlib.Popen_safe(rescomp.get_command() + ['/?'])
+            # The string below should be indicative of a resinator rc compiler
+            # (which includes zig rc).
+            if re.search('^Supported Win32 RC Options:$', e, re.MULTILINE):
+                mlog.log('Windows resource compiler: Zig <0.14.1/restinator Resource Compiler')
+                self._rescomp = (rescomp, ResourceCompilerType.rc)
+            else:
+                raise MesonException('Could not determine type of Windows resource compiler')
 
         return self._rescomp
 
