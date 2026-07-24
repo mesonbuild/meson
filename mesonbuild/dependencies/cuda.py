@@ -14,6 +14,7 @@ from .. import mlog
 from .base import DependencyException, SystemDependency
 from .detect import packages
 from ..mesonlib import LibType
+from ..interpreterbase import FeatureNew
 
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
@@ -42,7 +43,10 @@ class CudaDependency(SystemDependency):
         super().__init__(name, environment, kwargs)
         self.lib_modules: T.Dict[str, T.List[str]] = {}
         self.requested_modules = kwargs.get('modules', [])
-        if not any(runtime in self.requested_modules for runtime in ['cudart', 'cudart_static']):
+        if 'cudart_none' in self.requested_modules:
+            self.featurechecks.append(FeatureNew('Cuda module cudart_none', '1.10'))
+
+        if not any(runtime in self.requested_modules for runtime in ['cudart', 'cudart_static', 'cudart_none']):
             # By default, we prefer to link the static CUDA runtime, since this is what nvcc also does by default:
             # https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#cudart-none-shared-static-cudart
             req_modules = ['cudart']
@@ -275,6 +279,10 @@ class CudaDependency(SystemDependency):
         all_found = True
 
         for module in self.requested_modules:
+            if module == 'cudart_none':
+                self.lib_modules[module] = []
+                continue
+
             # You should only ever link to libraries inside the cuda tree, nothing outside of it.
             # For instance, there is a
             #
@@ -321,6 +329,7 @@ class CudaDependency(SystemDependency):
         REWRITE_MODULES = {
             'cudart': ['-cudart', 'shared'],
             'cudart_static': ['-cudart', 'static'],
+            'cudart_none': ['-cudart', 'none'],
             'cudadevrt': ['-cudadevrt'],
         }
 
