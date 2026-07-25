@@ -730,7 +730,7 @@ class AstInterpreter(InterpreterBase):
         # BaseNode resolves to Any. :/
         flattened_args: T.List[T.Union[TYPE_var, T.Any]] = []
 
-        # Resolve the contents of args
+        # Resolve the contents of args, compare to interpreterbase's flatten
         for i in args:
             if isinstance(i, BaseNode):
                 resolved = self.node_to_runtime_value(i)
@@ -738,10 +738,11 @@ class AstInterpreter(InterpreterBase):
                     if not isinstance(resolved, list):
                         resolved = [resolved]
                     flattened_args += resolved
-            elif isinstance(i, (str, bool, int, float, UnknownValue, IntrospectionFile)):
+            elif isinstance(i, (str, bool, int, float, dict, UnknownValue, IntrospectionFile,
+                                IntrospectionBuildTarget, IntrospectionDependency)):
                 flattened_args += [i]
             else:
-                raise NotImplementedError
+                raise NotImplementedError(f'flatten_args is missing a case for {type(i)}')
         return flattened_args
 
     def flatten_args_hack(self, args: T.List[TYPE_var]) -> T.List[TYPE_var]:
