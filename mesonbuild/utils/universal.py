@@ -969,9 +969,9 @@ class Version:
 
         # extract numeric and alphabetic sequences
         # numeric sequences are converted from strings to ints
-        self._v = [
+        self._v: T.Tuple[T.Union[int, str], ...] = tuple(
                 int(m.group(1)) if m.group(1) else m.group(2)
-                for m in _VERSION_TOK_RE.finditer(s)]
+                for m in _VERSION_TOK_RE.finditer(s))
 
     def __str__(self) -> str:
         return self._s
@@ -1008,6 +1008,12 @@ class Version:
         if isinstance(other, Version):
             return self._v != other._v
         return NotImplemented
+
+    def __hash__(self) -> int:
+        return hash(self._v)
+
+    def __iter__(self) -> T.Iterator[int | str]:
+        return iter(self._v)
 
     def __cmp(self, other: 'Version', comparator: T.Callable[[T.Any, T.Any], bool]) -> bool:
         # compare each sequence in order

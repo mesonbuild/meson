@@ -24,6 +24,7 @@ import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
 import mesonbuild.envconfig
 import mesonbuild.environment
+import mesonbuild.modules.cuda
 import mesonbuild.modules.gnome
 import mesonbuild.scripts.env2mfile
 from mesonbuild import coredata
@@ -2233,3 +2234,81 @@ class InternalTests(unittest.TestCase):
                 self.assertEqual(actual.compile_args, expected.compile_args)
                 self.assertEqual(actual.link_args, expected.link_args)
                 self.assertEqual(actual.cmake, expected.cmake)
+
+    def test_cuda_module_nvcc_arch_flags(self):
+        def flags(cuda_version, arch_list, detected=None):
+            # swallow the mlog warnings emitted for filtered-out archs
+            with contextlib.redirect_stdout(io.StringIO()):
+                return mesonbuild.modules.cuda.CudaModule._nvcc_arch_flags(cuda_version, arch_list, detected or [])
+
+        # (cuda_version, arch_list, detected, expected gencode flags, expected readable names)
+        cases = [
+            # baseline; also asserted in "test cases/cuda/3 cudamodule/meson.build"
+            ('11.1', '8.6', None, ['-gencode', 'arch=compute_86,code=sm_86'], ['sm_86']),
+            # toolkit too old for the arch -> filtered out with a warning
+            ('11.0', '8.6', None, [], []),
+            # family names only expand to members inside the support window
+            ('11.0', 'Ampere', None, ['-gencode', 'arch=compute_80,code=sm_80'], ['sm_80']),
+            # 'X.Y(Z.W)+PTX' embeds the PTX of the virtual arch, not the real one
+            ('11.1', '8.6(8.0)+PTX', None, ['-gencode', 'arch=compute_80,code=sm_86', '-gencode', 'arch=compute_80,code=compute_80'], ['sm_86', 'compute_80']),
+            # a detected GPU newer than the toolkit saturates to the max common arch + PTX
+            ('10.2', 'Auto', ['8.0'], ['-gencode', 'arch=compute_75,code=sm_75', '-gencode', 'arch=compute_75,code=compute_75'], ['sm_75', 'compute_75']),
+            # sm_21 has no compute_21: both the family and the numeric spelling must fall back to compute_20
+            ('8.0', 'Fermi', None, ['-gencode', 'arch=compute_20,code=sm_20', '-gencode', 'arch=compute_20,code=sm_21'], ['sm_20', 'sm_21']),
+            ('8.0', '2.1', None, ['-gencode', 'arch=compute_20,code=sm_21'], ['sm_21']),
+            # PTX fallbacks go at the end, not interleaved by virtual arch
+            ('12.9', '5.0+PTX;8.6', None, ['-gencode', 'arch=compute_50,code=sm_50', '-gencode', 'arch=compute_86,code=sm_86', '-gencode', 'arch=compute_50,code=compute_50'], ['sm_50', 'sm_86', 'compute_50']),
+            # numeric (not lexicographic) ordering: 10.x < 12.x
+            ('12.9', 'Blackwell', None, ['-gencode', 'arch=compute_100,code=sm_100', '-gencode', 'arch=compute_103,code=sm_103', '-gencode', 'arch=compute_120,code=sm_120', '-gencode', 'arch=compute_121,code=sm_121'], ['sm_100', 'sm_103', 'sm_120', 'sm_121']),
+            ('12.9', 'Thor;Hopper(A)', None, ['-gencode', 'arch=compute_90a,code=sm_90a', '-gencode', 'arch=compute_101,code=sm_101'], ['sm_90a', 'sm_101']),
+            # different code under different CUDA versions
+            ('12.9', 'Thor', None, ['-gencode', 'arch=compute_101,code=sm_101'], ['sm_101']),
+            ('13.0', 'Thor', None, ['-gencode', 'arch=compute_110,code=sm_110'], ['sm_110']),
+            # family-specific virtual arch pairs forward within its family
+            ('12.9', '10.3(10.0f)', None, ['-gencode', 'arch=compute_100f,code=sm_103'], ['sm_103']),
+            # architecture-specific archs self-pair
+            ('12.0', '9.0a', None, ['-gencode', 'arch=compute_90a,code=sm_90a'], ['sm_90a']),
+            # an 'a' code arch may be built from its own plain virtual arch
+            ('12.9', '10.0a(10.0)', None, ['-gencode', 'arch=compute_100,code=sm_100a'], ['sm_100a']),
+        ]
+        for cuda_version, arch_list, detected, expected_flags, expected_readable in cases:
+            with self.subTest(cuda_version=cuda_version, arch_list=arch_list, detected=detected):
+                actual_flags, actual_readable = flags(cuda_version, arch_list, detected)
+                self.assertEqual(actual_flags, expected_flags)
+                self.assertEqual(actual_readable, expected_readable)
+
+    def test_cuda_module_nvcc_arch_flags_invalid(self):
+        def flags(cuda_version, arch_list):
+            with contextlib.redirect_stdout(io.StringIO()):
+                return mesonbuild.modules.cuda.CudaModule._nvcc_arch_flags(cuda_version, arch_list, [])
+
+        # (cuda_version, arch_list, expected error message pattern)
+        cases = [
+            # 'a' archs have no forward compatibility, so embedding their PTX is meaningless
+            ('12.0', '9.0a+PTX', 'mutually exclusive'),
+            ('12.0', 'Hopper(A)+PTX', 'mutually exclusive'),
+            # an 'a' virtual arch can only emit code for exactly itself
+            ('12.9', '10.0(10.0a)', 'architecture-specific'),
+            # there is no compute_21; the error points at the correct virtual arch
+            ('8.0', '2.1(2.1)', r'use 2\.0 instead'),
+            # 'f' virtual archs only pair within their own family generation:
+            # not Thor (carved out of the 10.x family), not other majors, not backwards
+            ('12.9', '10.1(10.0f)', 'family-specific'),
+            ('12.9', '12.0(10.0f)', 'family-specific'),
+            ('12.9', '10.0(10.3f)', 'family-specific'),
+            # an 'f' code arch requires a same-generation virtual arch
+            ('12.9', '10.0f(9.0)', 'same-generation'),
+            # nvcc: "The same GPU code (`sm_121`) generated for non family-specific
+            # and family-specific GPU arch"
+            ('12.9', '12.1f;12.1', r'same GPU code sm_121'),
+            # ... also when the plain arch comes from a named set expansion
+            ('12.9', 'Blackwell;12.1f', r'same GPU code sm_121'),
+            # unknown archs
+            ('12.9', '99.9', 'Unknown CUDA'),
+            ('12.9', '8.6(99.9)', 'Unknown CUDA Virtual'),
+            ('12.9', 'NotAnArch', 'Unknown CUDA Architecture Name'),
+        ]
+        for cuda_version, arch_list, message in cases:
+            with self.subTest(cuda_version=cuda_version, arch_list=arch_list):
+                with self.assertRaisesRegex(InvalidArguments, message):
+                    flags(cuda_version, arch_list)
