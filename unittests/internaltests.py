@@ -38,7 +38,7 @@ from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectH
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_kwargs, ContainerTypeInfo, KwargInfo
 from mesonbuild.mesonlib import (
     LibType, MachineChoice, PerMachine, SimpleABC, Version, is_windows, is_osx,
-    is_cygwin, is_openbsd, search_version, MesonException, python_command,
+    is_cygwin, is_openbsd, search_version, MesonException, EnvironmentException, python_command,
     version_check_to_range,
 )
 from mesonbuild.options import OptionKey
@@ -53,6 +53,13 @@ from run_tests import get_fake_env, get_fake_options
 from .helpers import *
 
 class InternalTests(unittest.TestCase):
+
+    def test_cmake_skip_compiler_test_invalid(self):
+        properties = mesonbuild.envconfig.Properties({'cmake_skip_compiler_test': True})
+        with self.assertRaisesRegex(
+                EnvironmentException,
+                '"True" is not a valid value for cmake_skip_compiler_test'):
+            properties.get_cmake_skip_compiler_test()
 
     def test_machine_info_is_ohos(self):
         def machine(system: str, subsystem: str) -> mesonbuild.envconfig.MachineInfo:

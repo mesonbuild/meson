@@ -222,7 +222,6 @@ class Properties:
         if 'cmake_skip_compiler_test' not in self.properties:
             return CMakeSkipCompilerTest.DEP_ONLY
         raw = self.properties['cmake_skip_compiler_test']
-        assert isinstance(raw, str)
         try:
             return CMakeSkipCompilerTest(raw)
         except ValueError:
