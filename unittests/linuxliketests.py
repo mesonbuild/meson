@@ -35,7 +35,9 @@ from mesonbuild.compilers.c import AppleClangCCompiler, ElbrusCompiler
 from mesonbuild.compilers.cpp import AppleClangCPPCompiler
 from mesonbuild.compilers.objc import AppleClangObjCCompiler
 from mesonbuild.compilers.objcpp import AppleClangObjCPPCompiler
-from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigCLI, PkgConfigInterface
+from mesonbuild.dependencies.pkgconfig import (
+    PkgConfigDependency, PkgConfigCLI, PkgConfigCLIImplementation, PkgConfigInterface,
+)
 from mesonbuild.programs import NonExistingExternalProgram
 import mesonbuild.modules.pkgconfig
 
@@ -180,7 +182,23 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(libhello_nolib.get_variable(pkgconfig='foo'), 'bar')
         self.assertEqual(libhello_nolib.get_variable(pkgconfig='prefix'), self.prefix)
         impl = libhello_nolib.pkgconfig
-        if not isinstance(impl, PkgConfigCLI) or version_compare(impl.pkgbin_version, ">=0.29.1"):
+        if isinstance(impl, PkgConfigCLI) and impl.implementation == PkgConfigCLIImplementation.PKGCONF \
+                and version_compare(impl.pkgbin_version, ">=3.0.4") \
+                and version_compare(impl.pkgbin_version, "<3.0.5"):
+            # pkgconf 3.0.4 (only) unescapes '\ ' when storing a variable's
+            # value (fixing double-escaping when the variable is expanded into a
+            # fragment, see https://github.com/pkgconf/pkgconf/issues/575), so
+            # --variable returns the canonical (unescaped) value instead of
+            # preserving the literal backslash. This was superseded in 3.0.5,
+            # which fixes the double-escaping differently (consuming quoting
+            # after expansion rather than at variable-storage time) and so
+            # restores the literal-backslash behavior below. See
+            # https://github.com/pkgconf/pkgconf/issues/579.
+            self.assertEqual(libhello_nolib.get_variable(pkgconfig='escaped_var'), 'hello world')
+        elif not isinstance(impl, PkgConfigCLI) or (
+                impl.implementation == PkgConfigCLIImplementation.FREEDESKTOP and version_compare(impl.pkgbin_version, ">=0.29.1")) or (
+                impl.implementation == PkgConfigCLIImplementation.PKGCONF and (
+                    version_compare(impl.pkgbin_version, "<3.0.4") or version_compare(impl.pkgbin_version, ">=3.0.5"))):
             self.assertEqual(libhello_nolib.get_variable(pkgconfig='escaped_var'), r'hello\ world')
         self.assertEqual(libhello_nolib.get_variable(pkgconfig='unescaped_var'), 'hello world')
 
