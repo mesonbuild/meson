@@ -18,6 +18,7 @@ then
     exit 1
 fi
 done
+unset IFS
 
 for i in "$@"
 do
