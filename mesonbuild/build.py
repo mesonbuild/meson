@@ -3041,7 +3041,7 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
     command: list[CommandTypes]
 
     def __init__(self,
-                 name: T.Optional[str],
+                 name: str,
                  subdir: str,
                  environment: Environment,
                  command: T.Sequence[CommandTypes],
