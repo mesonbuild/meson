@@ -1169,6 +1169,8 @@ DEPENDENCY_KWS: T.List[KwargInfo] = [
     KwargInfo('version', ContainerTypeInfo(list, str), listify=True, default=[]),
 ]
 
+_TGT_VALUES = (str, File, CustomTarget, CustomTargetIndex, GeneratedList)
+
 STR_PARG = PosArgInfo(str)
 STR_FILE_PARG = PosArgInfo((str, File))
 INT_PARG = PosArgInfo(int)
@@ -1176,7 +1178,7 @@ BOOL_PARG = PosArgInfo(bool)
 OBJ_PARG = PosArgInfo(object)
 ENV_PARG = PosArgInfo((str, list, dict, EnvironmentVariables), validator=_env_validator)
 LANG_PARG = STR_PARG.evolve(validator=lambda x: _language_validator([x]))
-TGT_PARG = PosArgInfo((str, File, CustomTarget, CustomTargetIndex, GeneratedList))
+TGT_PARG = PosArgInfo(ContainerTypeInfo(list, _TGT_VALUES), listify=True)
 
 STR_OARG = OptArgInfo(str)
 INT_OARG = OptArgInfo(int)
@@ -1190,4 +1192,4 @@ INT_VARG = VarArgInfo(int)
 BOOL_VARG = VarArgInfo(bool)
 OBJ_VARG = VarArgInfo(object)
 SRC_VARG = VarArgInfo(SOURCES_VARARGS)
-TGT_VARG = VarArgInfo(TGT_PARG.types)
+TGT_VARG = VarArgInfo(_TGT_VALUES)
