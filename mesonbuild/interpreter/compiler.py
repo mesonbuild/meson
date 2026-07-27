@@ -19,15 +19,18 @@ from ..compilers.compilers import CompileCheckMode
 from ..interpreterbase import (ObjectHolder, noPosargs,
                                FeatureNew, disablerIfNotFound,
                                InterpreterException, InterpreterObject)
-from ..interpreterbase.decorators import ContainerTypeInfo, TypedArgs, KwargInfo, typed_pos_args
+from ..interpreterbase.decorators import ContainerTypeInfo, TypedArgs, KwargInfo
 from ..options import OptionKey
 from .interpreterobjects import (extract_required_kwarg, extract_search_dirs)
-from .type_checking import INCLUDE_DIRECTORIES, REQUIRED_KW, in_set_validator, NoneType
+from .type_checking import (
+    INCLUDE_DIRECTORIES, REQUIRED_KW, TGT_VARG, STR_VARG, STR_VARG_1, STR_PARG,
+    STR_FILE_PARG, in_set_validator, NoneType,
+)
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from ..compilers import Compiler
-    from ..interpreterbase import Feature, TYPE_var, TYPE_kwargs
+    from ..interpreterbase import Feature, TYPE_var, TYPE_kwargs, FeatureCheckBase
     from .kwargs import ExtractRequired, ExtractSearchDirs
     from .interpreter import SourceOutputs
     from ..mlog import TV_LoggableList
@@ -96,6 +99,15 @@ if T.TYPE_CHECKING:
         include_directories: T.List[T.Union[build.IncludeDirs, str]]
         dependencies: T.List[dependencies.Dependency]
         depends: T.List[build.BuildTargetTypes]
+
+
+def _built_file_since_feature_validator(v: str | mesonlib.File) -> T.Iterable[FeatureCheckBase]:
+    if isinstance(v, mesonlib.File) and v.is_built:
+        yield FeatureNew('file created at setup time', '1.2.0',
+                         'It was broken and either errored or returned false')
+
+
+_COMPILES_SRC_PARG = STR_FILE_PARG.evolve(feature_validator=_built_file_since_feature_validator)
 
 
 class _TestMode(enum.Enum):
@@ -251,9 +263,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
         deps = dependencies.get_leaf_external_dependencies(deps)
         return deps, self._dep_msg(deps, compile_only, endl)
 
-    @typed_pos_args('compiler.alignment', str)
     @TypedArgs(
         'compiler.alignment',
+        pos_types=[STR_PARG],
         kw_types=[
             _PREFIX_KW,
             _ARGS_KW,
@@ -272,8 +284,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                  mlog.bold(typename, True), msg, mlog.bold(str(result)), cached_msg)
         return result
 
-    @typed_pos_args('compiler.run', (str, mesonlib.File))
-    @TypedArgs('compiler.run', kw_types=_COMPILES_KWS)
+    @TypedArgs('compiler.run', pos_types=[STR_FILE_PARG], kw_types=_COMPILES_KWS)
     @InterpreterObject.method('run')
     def run_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> 'RunResult':
         if self.compiler.language not in {'d', 'c', 'cpp', 'objc', 'objcpp', 'fortran'}:
@@ -331,8 +342,11 @@ class CompilerHolder(ObjectHolder['Compiler']):
         '''
         return self.compiler.symbols_have_underscore_prefix()
 
-    @typed_pos_args('compiler.has_member', str, str)
-    @TypedArgs('compiler.has_member', kw_types=[_HAS_REQUIRED_KW, *_COMMON_KWS])
+    @TypedArgs(
+        'compiler.has_member',
+        pos_types=[STR_PARG, STR_PARG],
+        kw_types=[_HAS_REQUIRED_KW, *_COMMON_KWS],
+    )
     @InterpreterObject.method('has_member')
     def has_member_method(self, args: T.Tuple[str, str], kwargs: 'HasKW') -> bool:
         typename, membername = args
@@ -355,8 +369,12 @@ class CompilerHolder(ObjectHolder['Compiler']):
                  'has member', mlog.bold(membername, True), msg, hadtxt, cached_msg)
         return had
 
-    @typed_pos_args('compiler.has_members', str, varargs=str, min_varargs=1)
-    @TypedArgs('compiler.has_members', kw_types=[_HAS_REQUIRED_KW, *_COMMON_KWS])
+    @TypedArgs(
+        'compiler.has_members',
+        pos_types=[STR_PARG],
+        var_types=STR_VARG_1,
+        kw_types=[_HAS_REQUIRED_KW, *_COMMON_KWS],
+    )
     @InterpreterObject.method('has_members')
     def has_members_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'HasKW') -> bool:
         typename, membernames = args
@@ -381,8 +399,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                  'has members', members, msg, hadtxt, cached_msg)
         return had
 
-    @typed_pos_args('compiler.has_function', str)
-    @TypedArgs('compiler.has_function', kw_types=[_HAS_REQUIRED_KW, *_COMMON_KWS])
+    @TypedArgs('compiler.has_function', pos_types=[STR_PARG], kw_types=[_HAS_REQUIRED_KW, *_COMMON_KWS])
     @InterpreterObject.method('has_function')
     def has_function_method(self, args: T.Tuple[str], kwargs: 'HasKW') -> bool:
         funcname = args[0]
@@ -405,8 +422,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         mlog.log('Checking for function', mlog.bold(funcname, True), msg, hadtxt, cached_msg)
         return had
 
-    @typed_pos_args('compiler.has_type', str)
-    @TypedArgs('compiler.has_type', kw_types=[_HAS_REQUIRED_KW, *_COMMON_KWS])
+    @TypedArgs('compiler.has_type', pos_types=[STR_PARG], kw_types=[_HAS_REQUIRED_KW, *_COMMON_KWS])
     @InterpreterObject.method('has_type')
     def has_type_method(self, args: T.Tuple[str], kwargs: 'HasKW') -> bool:
         typename = args[0]
@@ -429,9 +445,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return had
 
     @FeatureNew('compiler.compute_int', '0.40.0')
-    @typed_pos_args('compiler.compute_int', str)
     @TypedArgs(
         'compiler.compute_int',
+        pos_types=[STR_PARG],
         kw_types=[
             KwargInfo('low', (int, NoneType)),
             KwargInfo('high', (int, NoneType)),
@@ -450,8 +466,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         mlog.log('Computing int of', mlog.bold(expression, True), msg, res)
         return res
 
-    @typed_pos_args('compiler.sizeof', str)
-    @TypedArgs('compiler.sizeof', kw_types=_COMMON_KWS)
+    @TypedArgs('compiler.sizeof', pos_types=[STR_PARG], kw_types=_COMMON_KWS)
     @InterpreterObject.method('sizeof')
     def sizeof_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> int:
         element = args[0]
@@ -465,8 +480,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return esize
 
     @FeatureNew('compiler.get_define', '0.40.0')
-    @typed_pos_args('compiler.get_define', str)
-    @TypedArgs('compiler.get_define', kw_types=_COMMON_KWS)
+    @TypedArgs('compiler.get_define', pos_types=[STR_PARG], kw_types=_COMMON_KWS)
     @InterpreterObject.method('get_define')
     def get_define_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> str:
         element = args[0]
@@ -480,8 +494,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return value if value is not None else ''
 
     @FeatureNew('compiler.has_define', '1.3.0')
-    @typed_pos_args('compiler.has_define', str)
-    @TypedArgs('compiler.has_define', kw_types=_COMMON_KWS)
+    @TypedArgs('compiler.has_define', pos_types=[STR_PARG], kw_types=_COMMON_KWS)
     @InterpreterObject.method('has_define')
     def has_define_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> bool:
         define_name = args[0]
@@ -495,8 +508,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
         return value is not None
 
-    @typed_pos_args('compiler.compiles', (str, mesonlib.File))
-    @TypedArgs('compiler.compiles', kw_types=_COMPILES_KWS)
+    @TypedArgs('compiler.compiles', pos_types=[_COMPILES_SRC_PARG], kw_types=_COMPILES_KWS)
     @InterpreterObject.method('compiles')
     def compiles_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> bool:
         code = args[0]
@@ -509,9 +521,6 @@ class CompilerHolder(ObjectHolder['Compiler']):
             return False
 
         if isinstance(code, mesonlib.File):
-            if code.is_built:
-                FeatureNew.single_use('compiler.compiles with file created at setup time', '1.2.0', self.subproject,
-                                      'It was broken and either errored or returned false.', self.current_node)
             self.interpreter.add_build_def_file(code)
             code = mesonlib.File.from_absolute_file(
                 code.absolute_path(self.environment.source_dir, self.environment.build_dir))
@@ -532,8 +541,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             mlog.log('Checking if', mlog.bold(testname, True), msg, 'compiles:', h, cached_msg)
         return result
 
-    @typed_pos_args('compiler.links', (str, mesonlib.File))
-    @TypedArgs('compiler.links', kw_types=_COMPILES_KWS)
+    @TypedArgs('compiler.links', pos_types=[_COMPILES_SRC_PARG], kw_types=_COMPILES_KWS)
     @InterpreterObject.method('links')
     def links_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> bool:
         code = args[0]
@@ -547,9 +555,6 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
         compiler = None
         if isinstance(code, mesonlib.File):
-            if code.is_built:
-                FeatureNew.single_use('compiler.links with file created at setup time', '1.2.0', self.subproject,
-                                      'It was broken and either errored or returned false.', self.current_node)
             self.interpreter.add_build_def_file(code)
             code = mesonlib.File.from_absolute_file(
                 code.absolute_path(self.environment.source_dir, self.environment.build_dir))
@@ -584,8 +589,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return result
 
     @FeatureNew('compiler.check_header', '0.47.0')
-    @typed_pos_args('compiler.check_header', str)
-    @TypedArgs('compiler.check_header', kw_types=_HEADER_KWS)
+    @TypedArgs('compiler.check_header', pos_types=[STR_PARG], kw_types=_HEADER_KWS)
     @InterpreterObject.method('check_header')
     def check_header_method(self, args: T.Tuple[str], kwargs: 'HeaderKW') -> bool:
         hname = args[0]
@@ -627,14 +631,12 @@ class CompilerHolder(ObjectHolder['Compiler']):
         mlog.log('Has header', mlog.bold(hname, True), msg, h, cached_msg)
         return haz
 
-    @typed_pos_args('compiler.has_header', str)
-    @TypedArgs('compiler.has_header', kw_types=_HEADER_KWS)
+    @TypedArgs('compiler.has_header', pos_types=[STR_PARG], kw_types=_HEADER_KWS)
     @InterpreterObject.method('has_header')
     def has_header_method(self, args: T.Tuple[str], kwargs: 'HeaderKW') -> bool:
         return self._has_header_impl(args[0], kwargs)
 
-    @typed_pos_args('compiler.has_header_symbol', str, str)
-    @TypedArgs('compiler.has_header_symbol', kw_types=_HEADER_KWS)
+    @TypedArgs('compiler.has_header_symbol', pos_types=[STR_PARG, STR_PARG], kw_types=_HEADER_KWS)
     @InterpreterObject.method('has_header_symbol')
     def has_header_symbol_method(self, args: T.Tuple[str, str], kwargs: 'HeaderKW') -> bool:
         hname, symbol = args
@@ -666,9 +668,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return lib
 
     @disablerIfNotFound
-    @typed_pos_args('compiler.find_library', str)
     @TypedArgs(
         'compiler.find_library',
+        pos_types=[STR_PARG],
         kw_types=[
             REQUIRED_KW,
             KwargInfo('has_headers', ContainerTypeInfo(list, str), listify=True, default=[], since='0.50.0'),
@@ -759,23 +761,21 @@ class CompilerHolder(ObjectHolder['Compiler']):
         mlog.log(*logargs)
         return result
 
-    @typed_pos_args('compiler.has_argument', str)
-    @TypedArgs('compiler.has_argument', kw_types=[_HAS_REQUIRED_KW])
+    @TypedArgs('compiler.has_argument', pos_types=[STR_PARG], kw_types=[_HAS_REQUIRED_KW])
     @InterpreterObject.method('has_argument')
     def has_argument_method(self, args: T.Tuple[str], kwargs: 'HasArgumentKW') -> bool:
         return self._has_argument_impl([args[0]], kwargs=kwargs)
 
-    @typed_pos_args('compiler.has_multi_arguments', varargs=str)
-    @TypedArgs('compiler.has_multi_arguments', kw_types=[_HAS_REQUIRED_KW])
+    @TypedArgs('compiler.has_multi_arguments', var_types=STR_VARG, kw_types=[_HAS_REQUIRED_KW])
     @FeatureNew('compiler.has_multi_arguments', '0.37.0')
     @InterpreterObject.method('has_multi_arguments')
     def has_multi_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'HasArgumentKW') -> bool:
         return self._has_argument_impl(args[0], kwargs=kwargs)
 
     @FeatureNew('compiler.get_supported_arguments', '0.43.0')
-    @typed_pos_args('compiler.get_supported_arguments', varargs=str)
     @TypedArgs(
         'compiler.get_supported_arguments',
+        var_types=STR_VARG,
         kw_types=[
             KwargInfo(
                 'checked',
@@ -802,8 +802,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                 supported_args.append(arg)
         return supported_args
 
-    @typed_pos_args('compiler.first_supported_argument', varargs=str)
-    @TypedArgs('compiler.first_supported_argument')
+    @TypedArgs('compiler.first_supported_argument', var_types=STR_VARG)
     @InterpreterObject.method('first_supported_argument')
     def first_supported_argument_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[str]:
         for arg in args[0]:
@@ -814,22 +813,19 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return []
 
     @FeatureNew('compiler.has_link_argument', '0.46.0')
-    @typed_pos_args('compiler.has_link_argument', str)
-    @TypedArgs('compiler.has_link_argument', kw_types=[_HAS_REQUIRED_KW])
+    @TypedArgs('compiler.has_link_argument', pos_types=[STR_PARG], kw_types=[_HAS_REQUIRED_KW])
     @InterpreterObject.method('has_link_argument')
     def has_link_argument_method(self, args: T.Tuple[str], kwargs: 'HasArgumentKW') -> bool:
         return self._has_argument_impl([args[0]], mode=_TestMode.LINKER, kwargs=kwargs)
 
     @FeatureNew('compiler.has_multi_link_argument', '0.46.0')
-    @typed_pos_args('compiler.has_multi_link_argument', varargs=str)
-    @TypedArgs('compiler.has_multi_link_argument', kw_types=[_HAS_REQUIRED_KW])
+    @TypedArgs('compiler.has_multi_link_argument', var_types=STR_VARG, kw_types=[_HAS_REQUIRED_KW])
     @InterpreterObject.method('has_multi_link_arguments')
     def has_multi_link_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'HasArgumentKW') -> bool:
         return self._has_argument_impl(args[0], mode=_TestMode.LINKER, kwargs=kwargs)
 
     @FeatureNew('compiler.get_supported_link_arguments', '0.46.0')
-    @TypedArgs('compiler.get_supported_link_arguments')
-    @typed_pos_args('compiler.get_supported_link_arguments', varargs=str)
+    @TypedArgs('compiler.get_supported_link_arguments', var_types=STR_VARG)
     @InterpreterObject.method('get_supported_link_arguments')
     def get_supported_link_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[str]:
         supported_args: T.List[str] = []
@@ -839,8 +835,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return supported_args
 
     @FeatureNew('compiler.first_supported_link_argument', '0.46.0')
-    @TypedArgs('compiler.first_supported_link_arguments')
-    @typed_pos_args('compiler.first_supported_link_argument', varargs=str)
+    @TypedArgs('compiler.first_supported_link_arguments', var_types=STR_VARG)
     @InterpreterObject.method('first_supported_link_argument')
     def first_supported_link_argument_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[str]:
         for arg in args[0]:
@@ -873,15 +868,17 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return had
 
     @FeatureNew('compiler.has_function_attribute', '0.48.0')
-    @typed_pos_args('compiler.has_function_attribute', str)
-    @TypedArgs('compiler.has_function_attribute', kw_types=[_HAS_REQUIRED_KW])
+    @TypedArgs(
+        'compiler.has_function_attribute',
+        pos_types=[STR_PARG],
+        kw_types=[_HAS_REQUIRED_KW],
+    )
     @InterpreterObject.method('has_function_attribute')
     def has_func_attribute_method(self, args: T.Tuple[str], kwargs: 'HasArgumentKW') -> bool:
         return self._has_function_attribute_impl(args[0], kwargs)
 
     @FeatureNew('compiler.get_supported_function_attributes', '0.48.0')
-    @TypedArgs('compiler.first_supported_function_attributes')
-    @typed_pos_args('compiler.get_supported_function_attributes', varargs=str)
+    @TypedArgs('compiler.first_supported_function_attributes', var_types=STR_VARG)
     @InterpreterObject.method('get_supported_function_attributes')
     def get_supported_function_attributes_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[str]:
         return [a for a in args[0] if self._has_function_attribute_impl(a)]
@@ -894,9 +891,12 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return self.compiler.get_argument_syntax()
 
     @FeatureNew('compiler.preprocess', '0.64.0')
-    @typed_pos_args('compiler.preprocess', varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), min_varargs=1)
     @TypedArgs(
         'compiler.preprocess',
+        var_types=TGT_VARG.evolve(
+            min_args=1,
+            since_values={(build.CustomTarget, build.CustomTargetIndex, build.GeneratedList): '1.1.0'},
+        ),
         kw_types=[
             KwargInfo('output', str, default='@PLAINNAME@.i'),
             KwargInfo(
@@ -913,13 +913,10 @@ class CompilerHolder(ObjectHolder['Compiler']):
         ],
     )
     @InterpreterObject.method('preprocess')
-    def preprocess_method(self, args: T.Tuple[T.List['mesonlib.FileOrString']], kwargs: 'PreprocessKW') -> T.List[build.CustomTargetIndex]:
+    def preprocess_method(self, args: T.Tuple[T.List[str | build.TargetSources]], kwargs: 'PreprocessKW') -> T.List[build.CustomTargetIndex]:
         compiler = self.compiler.get_preprocessor()
-        _sources: T.List[mesonlib.File] = self.interpreter.source_strings_to_files(args[0])
+        _sources = self.interpreter.source_strings_to_files(args[0])
         sources = T.cast('T.List[SourceOutputs]', _sources)
-        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in sources):
-            FeatureNew.single_use('compiler.preprocess with generated sources', '1.1.0', self.subproject,
-                                  location=self.current_node)
 
         tg_counter = next(self.preprocess_uid[self.interpreter.subdir])
         if tg_counter > 0:
