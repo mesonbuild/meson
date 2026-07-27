@@ -3,15 +3,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
 from ..mesonlib import (EnvironmentVariables, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged, MachineChoice,
                         join_args, MesonException, path_has_root)
 from ..options import OptionKey
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
-from pathlib import PurePath
+from enum import Enum
+from pathlib import Path, PurePath
 from functools import lru_cache
 import re
 import os
@@ -124,6 +123,15 @@ class PkgConfigInterface:
     def list_all(self) -> ImmutableListProtocol[str]:
         '''Return all available pkg-config modules'''
         raise NotImplementedError
+
+class PkgConfigCLIImplementation(str, Enum):
+    FREEDESKTOP = 'pkg-config'
+    '''https://gitlab.freedesktop.org/pkg-config/pkg-config'''
+
+    PKGCONF = 'pkgconf'
+    '''https://github.com/pkgconf/pkgconf'''
+
+    UNKNOWN = 'unknown'
 
 class PkgConfigCLI(PkgConfigInterface):
     '''pkg-config CLI implementation'''
@@ -248,6 +256,12 @@ class PkgConfigCLI(PkgConfigInterface):
             if 'Pure-Perl' in helptext:
                 mlog.log(f'Found pkg-config {command_as_string!r} but it is Strawberry Perl and thus broken. Ignoring...')
                 return None
+            if 'pkgconf' in helptext:
+                self.implementation = PkgConfigCLIImplementation.PKGCONF
+            elif 'pkg-config' in helptext:
+                self.implementation = PkgConfigCLIImplementation.FREEDESKTOP
+            else:
+                self.implementation = PkgConfigCLIImplementation.UNKNOWN
             p, out = Popen_safe(pkgbin.get_command() + ['--version'])[0:2]
             if p.returncode != 0:
                 mlog.warning(f'Found pkg-config {command_as_string!r} but it failed when ran')
