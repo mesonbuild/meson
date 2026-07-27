@@ -1148,6 +1148,10 @@ class Backend:
         We must determine all locations of DLLs that this exe
         links to and return them so they can be used in unit
         tests.
+
+        Note that this analysis is semi-incomplete. It is possible that a DLL
+        could be produced by a build.CustomTarget. Unfortunately, we do not
+        currently have the facilities to know that.
         """
         prospectives: T.Set[build.BuildTargetTypes] = set()
         internal_deps: T.Set[str] = set()
@@ -1157,7 +1161,8 @@ class Backend:
             prospectives.update(target.get_all_link_deps())
 
         for bdep in extra_bdeps:
-            prospectives.add(bdep)
+            if isinstance(bdep, build.SharedLibrary):
+                prospectives.add(bdep)
             if isinstance(bdep, build.BuildTarget):
                 prospectives.update(bdep.get_all_link_deps())
 
