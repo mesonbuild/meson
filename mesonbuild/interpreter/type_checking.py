@@ -1104,12 +1104,16 @@ PKGCONFIG_DEFINE_KW: KwargInfo[list[str]] = KwargInfo(
     feature_validator=_pkgconfig_define_feature_validator,
 )
 
+
+INCLUDE_TYPE_VALIDATOR = in_set_validator({'system', 'non-system', 'preserve'})
+
+
 INCLUDE_TYPE = KwargInfo(
     'include_type',
     str,
     default='preserve',
     since='0.52.0',
-    validator=in_set_validator({'system', 'non-system', 'preserve'})
+    validator=INCLUDE_TYPE_VALIDATOR,
 )
 
 
@@ -1172,6 +1176,7 @@ BOOL_PARG = PosArgInfo(bool)
 OBJ_PARG = PosArgInfo(object)
 ENV_PARG = PosArgInfo((str, list, dict, EnvironmentVariables), validator=_env_validator)
 LANG_PARG = STR_PARG.evolve(validator=lambda x: _language_validator([x]))
+TGT_PARG = PosArgInfo((str, File, CustomTarget, CustomTargetIndex, GeneratedList))
 
 STR_OARG = OptArgInfo(str)
 INT_OARG = OptArgInfo(int)
@@ -1185,4 +1190,4 @@ INT_VARG = VarArgInfo(int)
 BOOL_VARG = VarArgInfo(bool)
 OBJ_VARG = VarArgInfo(object)
 SRC_VARG = VarArgInfo(SOURCES_VARARGS)
-TGT_VARG = VarArgInfo((str, File, CustomTarget, CustomTargetIndex, GeneratedList))
+TGT_VARG = VarArgInfo(TGT_PARG.types)
