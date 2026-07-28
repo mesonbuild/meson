@@ -35,7 +35,7 @@ from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken
 from ..interpreterbase import ObjectHolder, ContextManagerObject, DefaultObject
 from ..interpreterbase import stringifyUserArguments, Feature, FeatureValue
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule, __path__ as modules_path
-from ..optinterpreter import optname_regex
+from ..optinterpreter import OPTNAME_REGEX
 
 from . import interpreterobjects as OBJ
 from . import compiler as compilerOBJ
@@ -1182,7 +1182,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException('Having a colon in option name is forbidden, '
                                        'projects are not allowed to directly access '
                                        'options of other subprojects.')
-        if optname_regex.search(optname.split('.', maxsplit=1)[-1]) is not None:
+        if OPTNAME_REGEX.search(optname.split('.', maxsplit=1)[-1]) is not None:
             raise InterpreterException(f'Invalid option name {optname!r}')
 
         option_object: T.Optional[options.AnyOptionType]
