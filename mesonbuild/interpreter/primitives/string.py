@@ -16,7 +16,6 @@ from ...interpreterbase import (
     FeatureNew,
     typed_operator,
     noArgsFlattening,
-    noPosargs,
     InvalidArguments,
     FeatureBroken,
     TypedArgs,
@@ -83,7 +82,6 @@ class StringHolder(ObjectHolder[str]):
         return re.sub(r'@(\d+)@', arg_replace, self.held_object)
 
     @TypedArgs('str.splitlines')
-    @noPosargs
     @FeatureNew('str.splitlines', '1.2.0')
     @InterpreterObject.method('splitlines')
     def splitlines_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[str]:
@@ -120,7 +118,6 @@ class StringHolder(ObjectHolder[str]):
         return self.held_object[start:end]
 
     @TypedArgs('str.to_int')
-    @noPosargs
     @InterpreterObject.method('to_int')
     def to_int_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> int:
         try:
@@ -136,19 +133,16 @@ class StringHolder(ObjectHolder[str]):
             raise InvalidArguments(f'String {self.held_object!r} cannot be converted to int')
 
     @TypedArgs('str.to_lower')
-    @noPosargs
     @InterpreterObject.method('to_lower')
     def to_lower_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.lower()
 
     @TypedArgs('str.to_upper')
-    @noPosargs
     @InterpreterObject.method('to_upper')
     def to_upper_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.upper()
 
     @TypedArgs('underscorify')
-    @noPosargs
     @InterpreterObject.method('underscorify')
     def underscorify_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return underscorify(self.held_object)

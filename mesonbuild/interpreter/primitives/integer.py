@@ -5,7 +5,7 @@ from __future__ import annotations
 from ...interpreterbase import (
     InterpreterObject, MesonOperator, ObjectHolder,
     FeatureBroken, InvalidArguments, KwargInfo,
-    noPosargs, typed_operator, TypedArgs
+    typed_operator, TypedArgs
 )
 from ..type_checking import in_set_validator
 
@@ -49,13 +49,11 @@ class IntegerHolder(ObjectHolder[int]):
         return super().operator_call(operator, other)
 
     @TypedArgs('int.is_even')
-    @noPosargs
     @InterpreterObject.method('is_even')
     def is_even_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object % 2 == 0
 
     @TypedArgs('int.is_odd')
-    @noPosargs
     @InterpreterObject.method('is_odd')
     def is_odd_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object % 2 != 0
@@ -68,7 +66,6 @@ class IntegerHolder(ObjectHolder[int]):
                       validator=in_set_validator({'dec', 'hex', 'oct', 'bin'})),
         ]
     )
-    @noPosargs
     @InterpreterObject.method('to_string')
     def to_string_method(self, args: T.List[TYPE_var], kwargs: ToStringKw) -> str:
         format_codes = {'hex': 'x', 'oct': 'o', 'bin': 'b', 'dec': 'd'}

@@ -9,7 +9,7 @@ from .. import build
 from .. import dependencies
 from .. import mesonlib
 from ..interpreterbase import (
-    noPosargs, VarArgInfo, PosArgInfo,
+    VarArgInfo, PosArgInfo,
     InterpreterException, InvalidArguments, InvalidCode, FeatureNew,
 )
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, TypedArgs
@@ -215,7 +215,6 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
         return into
 
     @TypedArgs('sourcset.all_sources')
-    @noPosargs
     def all_sources_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs
                            ) -> T.List[str | build.TargetSources]:
         self.frozen = True
@@ -223,7 +222,6 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
         return list(files.sources)
 
     @TypedArgs('sourcset.all_dependencies')
-    @noPosargs
     @FeatureNew('source_set.all_dependencies() method', '0.52.0')
     def all_dependencies_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs
                                 ) -> T.List[dependencies.Dependency]:
@@ -273,13 +271,11 @@ class SourceFilesObject(ModuleObject):
             'dependencies': self.dependencies_method,
         })
 
-    @noPosargs
     @TypedArgs('source_set_files.sources')
     def sources_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs
                        ) -> T.List[str | build.TargetSources]:
         return list(self.files.sources)
 
-    @noPosargs
     @TypedArgs('source_set_files.dependencies')
     def dependencies_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs
                             ) -> T.List[dependencies.Dependency]:
@@ -296,7 +292,6 @@ class SourceSetModule(ExtensionModule):
         })
 
     @TypedArgs('sourcset.source_set')
-    @noPosargs
     def source_set(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> SourceSetImpl:
         return SourceSetImpl(self.interpreter)
 

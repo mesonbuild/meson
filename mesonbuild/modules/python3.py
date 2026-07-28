@@ -10,7 +10,7 @@ from .. import mesonlib
 from . import ExtensionModule, ModuleInfo
 from ..build import SharedModule
 from ..interpreter.type_checking import SHARED_MOD_KWS, STR_PARG, SRC_VARG
-from ..interpreterbase import TypedArgs, noPosargs
+from ..interpreterbase import TypedArgs
 from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
@@ -60,7 +60,6 @@ class Python3Module(ExtensionModule):
         assert isinstance(m, SharedModule), 'for mypy'
         return m
 
-    @noPosargs
     @TypedArgs('python3.find_python')
     def find_python(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> ExternalProgram:
         command = state.environment.lookup_binary_entry(mesonlib.MachineChoice.HOST, 'python3')
@@ -70,7 +69,6 @@ class Python3Module(ExtensionModule):
             py3 = ExternalProgram('python3', mesonlib.python_command, silent=True)
         return py3
 
-    @noPosargs
     @TypedArgs('python3.sysconfig_path')
     def language_version(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return sysconfig.get_python_version()

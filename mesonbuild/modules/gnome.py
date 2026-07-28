@@ -30,7 +30,7 @@ from ..interpreter.type_checking import (
     DEPENDS_KW, DEPEND_FILES_KW, ENV_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType,
     DEPENDENCY_SOURCES_KW, STR_PARG, STR_VARG, in_set_validator,
 )
-from ..interpreterbase import noPosargs, FeatureNew, FeatureDeprecated
+from ..interpreterbase import FeatureNew, FeatureDeprecated
 from ..interpreterbase import TypedArgs, KwargInfo, ContainerTypeInfo, OptArgInfo, VarArgInfo, PosArgInfo
 from ..mesonlib import (
     InstallScriptFailure, MachineChoice, MesonException, OrderedSet, Popen_safe, join_args, quote_arg
@@ -353,7 +353,6 @@ class GnomeModule(ExtensionModule):
             KwargInfo('update_mime_database', bool, default=False, since='0.64.0'),
         ],
     )
-    @noPosargs
     @FeatureNew('gnome.post_install', '0.57.0')
     def post_install(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'PostInstall') -> ModuleReturnValue:
         rv: T.List[InstallScript] = []
@@ -1312,7 +1311,6 @@ class GnomeModule(ExtensionModule):
 
         return ModuleReturnValue(rv, rv)
 
-    @noPosargs
     @TypedArgs('gnome.compile_schemas', kw_types=[_BUILD_BY_DEFAULT.evolve(since='0.40.0'), DEPEND_FILES_KW])
     def compile_schemas(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'CompileSchemas') -> ModuleReturnValue:
         srcdir = os.path.join(state.build_to_src, state.subdir)
