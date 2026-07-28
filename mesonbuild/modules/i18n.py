@@ -20,7 +20,7 @@ from ..interpreter.type_checking import (
 )
 from ..interpreterbase import FeatureNew
 from ..interpreterbase.exceptions import InvalidArguments
-from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, noPosargs, TypedArgs, VarArgInfo
+from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, TypedArgs, VarArgInfo
 from ..programs import ExternalProgram
 from ..scripts.gettext import read_linguas
 
@@ -288,7 +288,6 @@ class I18nModule(ExtensionModule):
         return [path.join(src_dir, d) for d in dirs]
 
     @FeatureNew('i18n.merge_file', '0.37.0')
-    @noPosargs
     @TypedArgs(
         'i18n.merge_file',
         kw_types=[
@@ -487,7 +486,6 @@ class I18nModule(ExtensionModule):
         return ModuleReturnValue([gmotargets, pottarget, updatepotarget], targets)
 
     @FeatureNew('i18n.itstool_join', '0.62.0')
-    @noPosargs
     @TypedArgs(
         'i18n.itstool_join',
         kw_types=[

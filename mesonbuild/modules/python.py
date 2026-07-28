@@ -20,7 +20,7 @@ from ..interpreter.type_checking import (
     STR_PARG, STR_OARG, OBJ_OARG, STR_FILE_VARG, SRC_VARG,
 )
 from ..interpreterbase import (
-    noPosargs, ContainerTypeInfo,
+    ContainerTypeInfo,
     InvalidArguments, TypedArgs, KwargInfo,
     FeatureNew, disablerIfNotFound, InterpreterObject
 )
@@ -297,7 +297,6 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         self.interpreter.coredata.deps[for_machine].put(identifier, dep)
         return dep
 
-    @noPosargs
     @TypedArgs(
         'python_installation.dependency',
         kw_types=[
@@ -343,7 +342,6 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
             mesonlib.FileMode(), rename=None, tag=tag, install_data_type='python',
             preserve_path=kwargs['preserve_path'])
 
-    @noPosargs
     @TypedArgs('python_installation.install_dir', kw_types=[_PURE_KW, _SUBDIR_KW])
     @InterpreterObject.method('get_install_dir')
     def get_install_dir_method(self, args: T.List['TYPE_var'], kwargs: 'PyInstallKw') -> str:
@@ -361,7 +359,6 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
 
         return P_OBJ.OptionString(os.path.join(base, subdir), os.path.join(name, subdir))
 
-    @noPosargs
     @TypedArgs('python_installation.language_version')
     @InterpreterObject.method('language_version')
     def language_version_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
@@ -407,7 +404,6 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
                 return fallback
             raise InvalidArguments(f'{var_name} is not a valid variable name')
 
-    @noPosargs
     @TypedArgs('python_installation.path')
     @FeatureNew('Python module path method', '0.50.0')
     @InterpreterObject.method('path')

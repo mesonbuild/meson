@@ -14,7 +14,7 @@ from ..interpreter.interpreterobjects import extract_required_kwarg
 from ..interpreter.type_checking import NoneType, REQUIRED_KW, DISABLER_KW, NATIVE_KW
 from ..interpreterbase import (
     ContainerTypeInfo, ObjectHolder, KwargInfo, TypedArgs,
-    noPosargs, disablerIfNotFound, InterpreterObject, PosArgInfo,
+    disablerIfNotFound, InterpreterObject, PosArgInfo,
 )
 from ..mesonlib import File, MesonException, Popen_safe, version_compare
 from ..programs import Program, ExternalProgram, NonExistingExternalProgram
@@ -106,13 +106,11 @@ class LexGenerator(_CodeGenerator):
 
 class LexHolder(ObjectHolder[LexGenerator]):
 
-    @noPosargs
     @TypedArgs('codegen.lex.implementation')
     @InterpreterObject.method('implementation')
     def implementation_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.name
 
-    @noPosargs
     @TypedArgs('codegen.lex.found')
     @InterpreterObject.method('found')
     def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
@@ -204,13 +202,11 @@ class YaccGenerator(_CodeGenerator):
 
 class YaccHolder(ObjectHolder[YaccGenerator]):
 
-    @noPosargs
     @TypedArgs('codegen.yacc.implementation')
     @InterpreterObject.method('implementation')
     def implementation_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.name
 
-    @noPosargs
     @TypedArgs('codegen.yacc.found')
     @InterpreterObject.method('found')
     def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
@@ -286,7 +282,6 @@ class CodeGenModule(ExtensionModule):
             'yacc': self.yacc_method,
         })
 
-    @noPosargs
     @TypedArgs(
         'codegen.lex',
         kw_types=[
@@ -367,7 +362,6 @@ class CodeGenModule(ExtensionModule):
         lex_args.extend(['-o', '@OUTPUT0@'])
         return LexGenerator(name, bin, kwargs['native'], T.cast('ImmutableListProtocol[str]', lex_args))
 
-    @noPosargs
     @TypedArgs(
         'codegen.yacc',
         kw_types=[
