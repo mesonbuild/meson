@@ -212,6 +212,7 @@ class OptionInterpreter:
     @TypedArgs(
         'string option',
         kw_types=[KwargInfo('value', str, default='')],
+        process_posargs=False,
     )
     def string_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: StringArgs) -> options.UserOption:
         name, description, yielding, deprecated = args
@@ -228,6 +229,7 @@ class OptionInterpreter:
                 deprecated_values={str: ('1.1.0', 'use a boolean, not a string')},
             ),
         ],
+        process_posargs=False,
     )
     def boolean_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: BooleanArgs) -> options.UserOption:
         name, description, yielding, deprecated = args
@@ -239,6 +241,7 @@ class OptionInterpreter:
             KwargInfo('value', (str, NoneType)),
             KwargInfo('choices', ContainerTypeInfo(list, str, allow_empty=False), required=True),
         ],
+        process_posargs=False,
     )
     def combo_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: ComboArgs) -> options.UserOption:
         choices = kwargs['choices']
@@ -261,6 +264,7 @@ class OptionInterpreter:
             KwargInfo('min', (int, NoneType)),
             KwargInfo('max', (int, NoneType)),
         ],
+        process_posargs=False,
     )
     def integer_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: IntegerArgs) -> options.UserOption:
         name, description, yielding, deprecated = args
@@ -273,6 +277,7 @@ class OptionInterpreter:
             KwargInfo('value', (ContainerTypeInfo(list, str), str, NoneType)),
             KwargInfo('choices', ContainerTypeInfo(list, str), default=[]),
         ],
+        process_posargs=False,
     )
     def string_array_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: StringArrayArgs) -> options.UserOption:
         choices = kwargs['choices']
@@ -294,6 +299,7 @@ class OptionInterpreter:
         kw_types=[
             KwargInfo('value', str, default='auto', validator=in_set_validator({'auto', 'enabled', 'disabled'})),
         ],
+        process_posargs=False,
     )
     def feature_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: FeatureArgs) -> options.UserOption:
         name, description, yielding, deprecated = args
