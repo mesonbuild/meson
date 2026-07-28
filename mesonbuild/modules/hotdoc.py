@@ -13,7 +13,7 @@ from .. import build, mesonlib, mlog
 from ..build import CustomTarget, CustomTargetIndex
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase import (
-    InvalidArguments, noPosargs, TypedArgs, FeatureDeprecated,
+    InvalidArguments, TypedArgs, FeatureDeprecated,
     ContainerTypeInfo, KwargInfo, InterpreterObject
 )
 from ..interpreter.interpreterobjects import _CustomTargetHolder
@@ -373,7 +373,6 @@ class HotdocTargetBuilder:
 
 
 class HotdocTargetHolder(_CustomTargetHolder['HotdocTarget']):
-    @noPosargs
     @TypedArgs('hotdoc_target.config_path')
     @InterpreterObject.method('config_path')
     def config_path_method(self, *args: T.Any, **kwargs: T.Any) -> str:

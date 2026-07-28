@@ -16,7 +16,7 @@ from .. import mesonlib
 from .. import mlog
 from ..compilers import SUFFIX_TO_LANG, RunResult
 from ..compilers.compilers import CompileCheckMode
-from ..interpreterbase import (ObjectHolder, noPosargs,
+from ..interpreterbase import (ObjectHolder,
                                FeatureNew, disablerIfNotFound,
                                InterpreterException, InterpreterObject)
 from ..interpreterbase.decorators import ContainerTypeInfo, TypedArgs, KwargInfo
@@ -122,25 +122,21 @@ class TryRunResultHolder(ObjectHolder['RunResult']):
     def __init__(self, res: 'RunResult', interpreter: 'Interpreter'):
         super().__init__(res, interpreter)
 
-    @noPosargs
     @TypedArgs('run_result.returncode')
     @InterpreterObject.method('returncode')
     def returncode_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> int:
         return self.held_object.returncode
 
-    @noPosargs
     @TypedArgs('run_result.compiled')
     @InterpreterObject.method('compiled')
     def compiled_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
         return self.held_object.compiled
 
-    @noPosargs
     @TypedArgs('run_result.stdout')
     @InterpreterObject.method('stdout')
     def stdout_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.held_object.stdout
 
-    @noPosargs
     @TypedArgs('run_result.stderr')
     @InterpreterObject.method('stderr')
     def stderr_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
@@ -231,13 +227,11 @@ class CompilerHolder(ObjectHolder['Compiler']):
             endl = ''
         return tpl.format(', '.join(names)) + endl
 
-    @noPosargs
     @TypedArgs('compiler.version')
     @InterpreterObject.method('version')
     def version_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.compiler.version
 
-    @noPosargs
     @TypedArgs('compiler.cmd_array')
     @InterpreterObject.method('cmd_array')
     def cmd_array_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> T.List[str]:
@@ -319,20 +313,17 @@ class CompilerHolder(ObjectHolder['Compiler']):
             mlog.log('Checking if', mlog.bold(testname, True), msg, 'runs:', h)
         return result
 
-    @noPosargs
     @TypedArgs('compiler.get_id')
     @InterpreterObject.method('get_id')
     def get_id_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.compiler.get_id()
 
-    @noPosargs
     @TypedArgs('compiler.get_linker_id')
     @FeatureNew('compiler.get_linker_id', '0.53.0')
     @InterpreterObject.method('get_linker_id')
     def get_linker_id_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.compiler.get_linker_id()
 
-    @noPosargs
     @TypedArgs('compiler.symbols_have_underscore_prefix')
     @InterpreterObject.method('symbols_have_underscore_prefix')
     def symbols_have_underscore_prefix_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
@@ -884,7 +875,6 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return [a for a in args[0] if self._has_function_attribute_impl(a)]
 
     @FeatureNew('compiler.get_argument_syntax', '0.49.0')
-    @noPosargs
     @TypedArgs('compiler.get_argument_syntax')
     @InterpreterObject.method('get_argument_syntax')
     def get_argument_syntax_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:

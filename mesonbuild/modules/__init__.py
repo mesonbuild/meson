@@ -11,7 +11,7 @@ import typing as T
 from .. import build, dependencies, mesonlib, mlog
 from ..options import OptionKey
 from ..build import IncludeDirs
-from ..interpreterbase.decorators import TypedArgs, noPosargs
+from ..interpreterbase.decorators import TypedArgs
 from ..mesonlib import relpath, HoldableObject, MachineChoice
 from ..programs import ExternalProgram
 
@@ -229,7 +229,6 @@ class NewExtensionModule(ModuleObject):
             'found': self.found_method,
         })
 
-    @noPosargs
     @TypedArgs('module.found')
     def found_method(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
         return self.found()

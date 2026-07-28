@@ -134,16 +134,6 @@ def get_callee_args(wrapped_args: T.Union[
         kwargs = wrapped_args[-1]
     return node, args, kwargs, subproject
 
-
-def noPosargs(f: TV_func) -> TV_func:
-    @wraps(f)
-    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-        args = get_callee_args(wrapped_args)[1]
-        if args:
-            raise InvalidArguments('Function does not take positional arguments.')
-        return f(*wrapped_args, **wrapped_kwargs)
-    return T.cast('TV_func', wrapped)
-
 def noArgsFlattening(f: TV_func) -> TV_func:
     setattr(f, 'no-args-flattening', True)  # noqa: B010
     return f

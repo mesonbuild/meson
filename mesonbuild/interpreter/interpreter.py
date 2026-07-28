@@ -28,7 +28,7 @@ from ..programs import ExternalProgram, NonExistingExternalProgram, Program
 from ..dependencies import Dependency
 from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, TypedArgs, PosArgInfo, OptArgInfo, VarArgInfo
-from ..interpreterbase import noPosargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
+from ..interpreterbase import noArgsFlattening, noSecondLevelHolderResolving, unholder_return
 from .decorators import apply_machine_map
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
@@ -764,7 +764,6 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_files(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[mesonlib.File]:
         return self.source_strings_to_files(args[0])
 
-    @noPosargs
     @TypedArgs(
         'declare_dependency',
         kw_types=[
@@ -1595,8 +1594,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         args_str = self._stringify_user_arguments(args[0], 'debug')
         mlog.debug('Debug:', *args_str)
 
-    @noPosargs
-    def func_exception(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> T.NoReturn:
+    @TypedArgs('exception')
+    def func_exception(self, node: mparser.BaseNode, args: tuple[()], kwargs: TYPE_kwargs) -> T.NoReturn:
         raise RuntimeError('unit test traceback :)')
 
     @TypedArgs(
@@ -2022,13 +2021,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         return d
 
     @FeatureNew('default', '1.12.0')
-    @noPosargs
     @TypedArgs('default')
     def func_default(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> DefaultObject:
         return DefaultObject()
 
     @FeatureNew('disabler', '0.44.0')
-    @noPosargs
     @TypedArgs('disabler')
     def func_disabler(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> Disabler:
         return Disabler()
@@ -2142,7 +2139,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         # between Jar and BuildTarget types
         return self.build_target(node, args, T.cast('kwtypes.Jar', kwargs), build.Jar)
 
-    @noPosargs
     @TypedArgs(
         'vcs_tag',
         kw_types=[
@@ -2229,7 +2225,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         return tg
 
     @FeatureNew('subdir_done', '0.46.0')
-    @noPosargs
     @TypedArgs('subdir_done')
     def func_subdir_done(self, node: mparser.BaseNode, args: TYPE_var, kwargs: TYPE_kwargs) -> T.NoReturn:
         raise SubdirDoneRequest()
@@ -2870,7 +2865,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InvalidArguments(f'Build subdir "{build_subdir}" in "{target}" contains ..')
             self.create_build_subdir(os.path.join(self.subdir, build_subdir))
 
-    @noPosargs
     @TypedArgs(
         'configure_file',
         kw_types=[

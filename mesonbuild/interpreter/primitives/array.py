@@ -11,7 +11,6 @@ from ...interpreterbase import (
     MesonOperator,
     ObjectHolder,
     typed_operator,
-    noPosargs,
     noArgsFlattening,
     TypedArgs,
     FeatureNew,
@@ -65,7 +64,6 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
         return check_contains(self.held_object)
 
     @TypedArgs('array.length')
-    @noPosargs
     @InterpreterObject.method('length')
     def length_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> int:
         return len(self.held_object)
@@ -115,7 +113,6 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
         except IndexError:
             raise InvalidArguments(f'Index {other} out of bounds of array of size {len(self.held_object)}.')
 
-    @noPosargs
     @TypedArgs('array.flatten')
     @FeatureNew('array.flatten', '1.9.0')
     @InterpreterObject.method('flatten')
