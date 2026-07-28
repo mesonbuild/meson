@@ -436,7 +436,7 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
     def set10_method(self, args: T.Tuple[str, T.Union[int, bool]], kwargs: 'kwargs.ConfigurationDataSet') -> None:
         self.__check_used()
         # bool is a subclass of int, so we need to check for bool explicitly.
-        # We already have typed_pos_args checking that this is either a bool or
+        # We already have TpedArgs checking that this is either a bool or
         # an int.
         if not isinstance(args[1], bool):
             mlog.deprecation('configuration_data.set10 with number. The `set10` '
