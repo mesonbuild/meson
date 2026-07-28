@@ -11,7 +11,6 @@ from ...interpreterbase import (
     ObjectHolder,
     FeatureNew,
     typed_operator,
-    noPosargs,
     noArgsFlattening,
     TypedArgs,
 
@@ -58,13 +57,11 @@ class DictHolder(ObjectHolder[T.Dict[str, TYPE_var]], IterableObject):
         return args[0] in self.held_object
 
     @TypedArgs('dict.keys')
-    @noPosargs
     @InterpreterObject.method('keys')
     def keys_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[str]:
         return self._keys_getter()
 
     @TypedArgs('dict.values')
-    @noPosargs
     @InterpreterObject.method('values')
     @FeatureNew('dict.values', '1.10.0')
     def values_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[TYPE_var]:

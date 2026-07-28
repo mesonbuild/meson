@@ -21,8 +21,6 @@ from ..interpreter.type_checking import (
 from ..interpreterbase import (
     FeatureNew,
 
-    noPosargs,
-
     InvalidArguments,
     InterpreterException,
 
@@ -169,12 +167,10 @@ class CMakeSubproject(ModuleObject):
         info = self._args_to_info(args[0])
         return info['func']
 
-    @noPosargs
     @TypedArgs('cmake.subproject.target_list')
     def target_list(self, state: ModuleState, args: TYPE_var, kwargs: TYPE_kwargs) -> T.List[str]:
         return self.cm_interpreter.target_list()
 
-    @noPosargs
     @TypedArgs('cmake.subproject.found')
     @FeatureNew('CMakeSubproject.found()', '0.53.2')
     def found_method(self, state: ModuleState, args: TYPE_var, kwargs: TYPE_kwargs) -> bool:
@@ -239,7 +235,6 @@ class CMakeSubprojectOptions(ModuleObject):
     def append_link_args(self, state: ModuleState, args: T.Tuple[T.List[str]], kwargs: TargetKW) -> None:
         self._get_opts(kwargs).append_link_args(args[0])
 
-    @noPosargs
     @TypedArgs('cmake.subproject_options.clear')
     def clear(self, state: ModuleState, args: TYPE_var, kwargs: TYPE_kwargs) -> None:
         self.cmake_options.clear()
@@ -303,7 +298,6 @@ class CmakeModule(ExtensionModule):
         self.cmake_detected = True
         return True
 
-    @noPosargs
     @TypedArgs(
         'cmake.write_basic_package_version_file',
         kw_types=[
@@ -373,7 +367,6 @@ class CmakeModule(ExtensionModule):
         shutil.copymode(infile, outfile_tmp)
         mesonlib.replace_if_different(outfile, outfile_tmp)
 
-    @noPosargs
     @TypedArgs(
         'cmake.configure_package_config_file',
         kw_types=[
@@ -476,7 +469,6 @@ class CmakeModule(ExtensionModule):
 
     @FeatureNew('subproject_options', '0.55.0')
     @TypedArgs('cmake.subproject_options')
-    @noPosargs
     def subproject_options(self, state: ModuleState, args: TYPE_var, kwargs: TYPE_kwargs) -> CMakeSubprojectOptions:
         return CMakeSubprojectOptions()
 

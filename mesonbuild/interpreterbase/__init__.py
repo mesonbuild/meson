@@ -29,7 +29,6 @@ __all__ = [
     'Feature',
     'FeatureValue',
 
-    'noPosargs',
     'noArgsFlattening',
     'noSecondLevelHolderResolving',
     'unholder_return',
@@ -88,7 +87,6 @@ from .baseobjects import (
 )
 
 from .decorators import (
-    noPosargs,
     noArgsFlattening,
     noSecondLevelHolderResolving,
     unholder_return,

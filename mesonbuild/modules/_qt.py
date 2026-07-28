@@ -20,7 +20,7 @@ from ..interpreter.type_checking import (
     DEPENDENCY_METHOD_KW, INSTALL_DIR_KW, INSTALL_KW, REQUIRED_KW, STR_PARG,
     STR_FILE_VARG, NoneType,
 )
-from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, TypedArgs
+from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, FeatureNew, TypedArgs
 from ..programs import NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
@@ -382,7 +382,6 @@ class QtBaseModule(ExtensionModule):
         return result
 
     @FeatureNew('qt.has_tools', '0.54.0')
-    @noPosargs
     @TypedArgs(
         'qt.has_tools',
         kw_types=[
@@ -414,7 +413,6 @@ class QtBaseModule(ExtensionModule):
         return True
 
     @FeatureNew('qt.compile_resources', '0.59.0')
-    @noPosargs
     @TypedArgs(
         'qt.compile_resources',
         kw_types=[
@@ -505,7 +503,6 @@ class QtBaseModule(ExtensionModule):
         return targets
 
     @FeatureNew('qt.compile_ui', '0.59.0')
-    @noPosargs
     @TypedArgs(
         'qt.compile_ui',
         kw_types=[
@@ -539,7 +536,6 @@ class QtBaseModule(ExtensionModule):
         return gen.process_files(sources, state.subdir, preserve_path_from)
 
     @FeatureNew('qt.compile_moc', '0.59.0')
-    @noPosargs
     @TypedArgs(
         'qt.compile_moc',
         kw_types=[
@@ -687,7 +683,6 @@ class QtBaseModule(ExtensionModule):
         return ModuleReturnValue(sources, [sources])
 
     @FeatureNew('qt.compile_translations', '0.44.0')
-    @noPosargs
     @TypedArgs(
         'qt.compile_translations',
         kw_types=[

@@ -6,7 +6,6 @@ from ...interpreterbase import (
     InterpreterObject,
     MesonOperator,
     ObjectHolder,
-    noPosargs,
     TypedArgs,
 
     InvalidArguments
@@ -30,7 +29,6 @@ class BooleanHolder(ObjectHolder[bool]):
         return 'bool'
 
     @TypedArgs('bool.to_int')
-    @noPosargs
     @InterpreterObject.method('to_int')
     def to_int_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> int:
         return 1 if self.held_object else 0

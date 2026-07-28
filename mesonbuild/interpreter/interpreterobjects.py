@@ -20,7 +20,7 @@ from ..interpreterbase import (PosArgInfo, OptArgInfo,
                                MesonInterpreterObject, ObjectHolder, MutableInterpreterObject,
                                FeatureNew, FeatureDeprecated,
                                TypedArgs, typed_operator,
-                               noArgsFlattening, noPosargs, unholder_return,
+                               noArgsFlattening, unholder_return,
                                flatten, resolve_second_level_holders, Feature, FeatureValue,
                                InterpreterException, InvalidArguments, InvalidCode)
 from ..interpreter.type_checking import (
@@ -124,26 +124,22 @@ class FeatureOptionHolder(ObjectHolder[Feature]):
             option = option.with_value(FeatureValue(auto_value))
         super().__init__(option, interpreter)
 
-    @noPosargs
     @TypedArgs('feature_option.enabled')
     @InterpreterObject.method('enabled')
     def enabled_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.is_enabled()
 
-    @noPosargs
     @TypedArgs('feature_option.disabled')
     @InterpreterObject.method('disabled')
     def disabled_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.is_disabled()
 
-    @noPosargs
     @TypedArgs('feature_option.allowed')
     @FeatureNew('feature_option.allowed()', '0.59.0')
     @InterpreterObject.method('allowed')
     def allowed_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return not self.held_object.is_disabled()
 
-    @noPosargs
     @TypedArgs('feature_option.auto')
     @InterpreterObject.method('auto')
     def auto_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
@@ -308,19 +304,16 @@ class RunProcess(MesonInterpreterObject):
 
         return p.returncode, o, e
 
-    @noPosargs
     @TypedArgs('run_process.returncode')
     @InterpreterObject.method('returncode')
     def returncode_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> int:
         return self.returncode
 
-    @noPosargs
     @TypedArgs('run_process.stdout')
     @InterpreterObject.method('stdout')
     def stdout_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.stdout
 
-    @noPosargs
     @TypedArgs('run_process.stderr')
     @InterpreterObject.method('stderr')
     def stderr_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
@@ -493,7 +486,6 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
         return self.held_object.values[name]
 
     @FeatureNew('configuration_data.keys()', '0.57.0')
-    @noPosargs
     @TypedArgs('configuration_data.keys')
     @InterpreterObject.method('keys')
     def keys_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[str]:
@@ -526,25 +518,21 @@ class DependencyHolder(ObjectHolder[Dependency]):
             return True
         return self.held_object.found()
 
-    @noPosargs
     @TypedArgs('dependency.type_name')
     @InterpreterObject.method('type_name')
     def type_name_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.type_name
 
-    @noPosargs
     @TypedArgs('dependency.found')
     @InterpreterObject.method('found')
     def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.found()
 
-    @noPosargs
     @TypedArgs('dependency.version')
     @InterpreterObject.method('version')
     def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.get_version()
 
-    @noPosargs
     @TypedArgs('dependency.name')
     @InterpreterObject.method('name')
     def name_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
@@ -586,7 +574,6 @@ class DependencyHolder(ObjectHolder[Dependency]):
         )
 
     @FeatureNew('dependency.partial_dependency', '0.46.0')
-    @noPosargs
     @TypedArgs('dependency.partial_dependency', kw_types=_PARTIAL_DEP_KWARGS)
     @InterpreterObject.method('partial_dependency')
     def partial_dependency_method(self, args: T.List[TYPE_nvar], kwargs: 'kwargs.DependencyMethodPartialDependency') -> Dependency:
@@ -621,7 +608,6 @@ class DependencyHolder(ObjectHolder[Dependency]):
         )
 
     @FeatureNew('dependency.include_type', '0.52.0')
-    @noPosargs
     @TypedArgs('dependency.include_type')
     @InterpreterObject.method('include_type')
     def include_type_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
@@ -638,7 +624,6 @@ class DependencyHolder(ObjectHolder[Dependency]):
 
     @FeatureNew('dependency.as_link_whole', '0.56.0')
     @TypedArgs('dependency.as_link_whole')
-    @noPosargs
     @InterpreterObject.method('as_link_whole')
     def as_link_whole_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> Dependency:
         if not isinstance(self.held_object, InternalDependency):
@@ -647,7 +632,6 @@ class DependencyHolder(ObjectHolder[Dependency]):
         return new_dep
 
     @FeatureNew('dependency.as_static', '1.6.0')
-    @noPosargs
     @TypedArgs(
         'dependency.as_static',
         kw_types=[
@@ -661,7 +645,6 @@ class DependencyHolder(ObjectHolder[Dependency]):
         return self.held_object.get_as_static(kwargs['recursive'])
 
     @FeatureNew('dependency.as_shared', '1.6.0')
-    @noPosargs
     @TypedArgs(
         'dependency.as_shared',
         kw_types=[
@@ -680,13 +663,11 @@ class ProgramHolder(ObjectHolder[_PROG]):
     def __init__(self, ep: _PROG, interpreter: 'Interpreter') -> None:
         super().__init__(ep, interpreter)
 
-    @noPosargs
     @TypedArgs('program.found')
     @InterpreterObject.method('found')
     def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.found()
 
-    @noPosargs
     @TypedArgs('program.path')
     @FeatureDeprecated('Program.path', '0.55.0',
                        'use Program.full_path() instead')
@@ -694,7 +675,6 @@ class ProgramHolder(ObjectHolder[_PROG]):
     def path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self._full_path()
 
-    @noPosargs
     @TypedArgs('program.full_path')
     @FeatureNew('Program.full_path', '0.55.0')
     @InterpreterObject.method('full_path')
@@ -710,7 +690,6 @@ class ProgramHolder(ObjectHolder[_PROG]):
             return self.interpreter.backend.get_target_filename_abs(self.held_object.program)
         return mesonlib.unwrap(self.held_object.get_path())
 
-    @noPosargs
     @TypedArgs('program.cmd_array')
     @FeatureNew('Program.cmd_array', '1.10.0')
     @InterpreterObject.method('cmd_array')
@@ -721,7 +700,6 @@ class ProgramHolder(ObjectHolder[_PROG]):
             return [self._full_path()]
         return self.held_object.get_command()
 
-    @noPosargs
     @TypedArgs('program.version')
     @FeatureNew('Program.version', '0.62.0')
     @InterpreterObject.method('version')
@@ -743,20 +721,17 @@ class ExternalLibraryHolder(ObjectHolder[ExternalLibrary]):
     def __init__(self, el: ExternalLibrary, interpreter: 'Interpreter'):
         super().__init__(el, interpreter)
 
-    @noPosargs
     @TypedArgs('dependency.type_name')
     @InterpreterObject.method('type_name')
     def type_name_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.type_name
 
-    @noPosargs
     @TypedArgs('dependency.found')
     @InterpreterObject.method('found')
     def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.found()
 
     @FeatureNew('dependency.partial_dependency', '0.46.0')
-    @noPosargs
     @TypedArgs('dependency.partial_dependency', kw_types=_PARTIAL_DEP_KWARGS)
     @InterpreterObject.method('partial_dependency')
     def partial_dependency_method(self, args: T.List[TYPE_nvar], kwargs: 'kwargs.DependencyMethodPartialDependency') -> Dependency:
@@ -764,7 +739,6 @@ class ExternalLibraryHolder(ObjectHolder[ExternalLibrary]):
         return pdep
 
     @FeatureNew('dependency.name', '1.5.0')
-    @noPosargs
     @TypedArgs('dependency.name')
     @InterpreterObject.method('name')
     def name_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
@@ -776,31 +750,26 @@ class MachineHolder(ObjectHolder['MachineInfo']):
     def __init__(self, machine_info: 'MachineInfo', interpreter: 'Interpreter'):
         super().__init__(machine_info, interpreter)
 
-    @noPosargs
     @TypedArgs('machine.cpu_family')
     @InterpreterObject.method('cpu_family')
     def cpu_family_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.cpu_family
 
-    @noPosargs
     @TypedArgs('machine.cpu')
     @InterpreterObject.method('cpu')
     def cpu_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.cpu
 
-    @noPosargs
     @TypedArgs('machine.system')
     @InterpreterObject.method('system')
     def system_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.system
 
-    @noPosargs
     @TypedArgs('machine.endian')
     @InterpreterObject.method('endian')
     def endian_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.endian
 
-    @noPosargs
     @TypedArgs('machine.kernel')
     @InterpreterObject.method('kernel')
     def kernel_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
@@ -808,7 +777,6 @@ class MachineHolder(ObjectHolder['MachineInfo']):
             return self.held_object.kernel
         raise InterpreterException('Kernel not defined or could not be autodetected.')
 
-    @noPosargs
     @TypedArgs('machine.subsystem')
     @InterpreterObject.method('subsystem')
     def subsystem_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
@@ -817,7 +785,6 @@ class MachineHolder(ObjectHolder['MachineInfo']):
         raise InterpreterException('Subsystem not defined or could not be autodetected.')
 
 class IncludeDirsHolder(ObjectHolder[build.IncludeDirs]):
-    @noPosargs
     @TypedArgs('inc.to_list')
     @FeatureNew('inc.to_list', '1.12.0')
     @InterpreterObject.method('to_list')
@@ -830,7 +797,6 @@ class FileHolder(ObjectHolder[mesonlib.File]):
     def __init__(self, file: mesonlib.File, interpreter: 'Interpreter'):
         super().__init__(file, interpreter)
 
-    @noPosargs
     @TypedArgs('inc.full_path')
     @FeatureNew('file.full_path', '1.4.0')
     @InterpreterObject.method('full_path')
@@ -929,7 +895,6 @@ class SubprojectHolder(MesonInterpreterObject):
         self.cm_interpreter: T.Optional[CMakeInterpreter] = None
         self.callstack = callstack
 
-    @noPosargs
     @TypedArgs('subproject.found')
     @InterpreterObject.method('found')
     def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
@@ -1022,34 +987,29 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     def is_cross(self) -> bool:
         return not self._target_object.environment.machines.matches_build_machine(self._target_object.for_machine)
 
-    @noPosargs
     @TypedArgs('BuildTarget.found')
     @InterpreterObject.method('found')
     @FeatureNew('BuildTarget.found', '0.59.0')
     def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return True
 
-    @noPosargs
     @TypedArgs('BuildTarget.private_dir_include')
     @InterpreterObject.method('private_dir_include')
     def private_dir_include_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.IncludeDirs:
         return build.IncludeDirs('', [], False, self.interpreter.current_build_project(),
                                  [self.interpreter.backend.get_target_private_dir(self._target_object)])
 
-    @noPosargs
     @TypedArgs('BuildTarget.full_path')
     @InterpreterObject.method('full_path')
     def full_path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.interpreter.backend.get_target_filename_abs(self._target_object)
 
-    @noPosargs
     @TypedArgs('BuildTarget.path')
     @FeatureDeprecated('BuildTarget.path', '0.55.0', 'Use BuildTarget.full_path instead')
     @InterpreterObject.method('path')
     def path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.interpreter.backend.get_target_filename_abs(self._target_object)
 
-    @noPosargs
     @TypedArgs('BuildTarget.outdir')
     @InterpreterObject.method('outdir')
     def outdir_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
@@ -1076,7 +1036,6 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
 
         return tobj.extract_objects(obj_src, is_unity)
 
-    @noPosargs
     @TypedArgs(
         'extract_all_objects',
         kw_types=[
@@ -1095,7 +1054,6 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     def extract_all_objects_method(self, args: T.List[TYPE_nvar], kwargs: 'kwargs.BuildTargeMethodExtractAllObjects') -> build.ExtractedObjects:
         return self._target_object.extract_all_objects(kwargs['recursive'])
 
-    @noPosargs
     @TypedArgs('BuildTarget.extract_all_objects')
     @FeatureDeprecated('BuildTarget.get_id', '1.2.0',
                        'This was never formally documented and does not seem to have a real world use. ' +
@@ -1105,14 +1063,12 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
         return self._target_object.get_id()
 
     @FeatureNew('name', '0.54.0')
-    @noPosargs
     @TypedArgs('BuildTarget.name')
     @InterpreterObject.method('name')
     def name_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self._target_object.name
 
     @FeatureNew('vala_header', '1.10.0')
-    @noPosargs
     @TypedArgs('BuildTarget.vala_header')
     @InterpreterObject.method('vala_header')
     def vala_header_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> mesonlib.File:
@@ -1124,7 +1080,6 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
             self._target_object.vala_header)
 
     @FeatureNew('vala_vapi', '1.10.0')
-    @noPosargs
     @TypedArgs('BuildTarget.vala_vapi')
     @InterpreterObject.method('vala_vapi')
     def vala_vapi_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> mesonlib.File:
@@ -1136,7 +1091,6 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
             self._target_object.vala_vapi)
 
     @FeatureNew('vala_gir', '1.10.0')
-    @noPosargs
     @TypedArgs('BuildTarget.vala_gir')
     @InterpreterObject.method('vala_gir')
     def vala_gir_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> mesonlib.File:
@@ -1167,7 +1121,6 @@ class BothLibrariesHolder(BuildTargetHolder[build.BothLibraries]):
         h2 = self.held_object.static
         return r.format(self.__class__.__name__, h1.get_id(), h1.filename, h2.get_id(), h2.filename)
 
-    @noPosargs
     @TypedArgs('BothLibraries.get_shared_lib')
     @InterpreterObject.method('get_shared_lib')
     def get_shared_lib_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.SharedLibrary:
@@ -1175,7 +1128,6 @@ class BothLibrariesHolder(BuildTargetHolder[build.BothLibraries]):
         lib.both_lib = None
         return lib
 
-    @noPosargs
     @TypedArgs('BothLibraries.get_static_lib')
     @InterpreterObject.method('get_static_lib')
     def get_static_lib_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.StaticLibrary:
@@ -1194,7 +1146,6 @@ class CustomTargetIndexHolder(ObjectHolder[build.CustomTargetIndex]):
         super().__init__(target, interp)
 
     @FeatureNew('custom_target[i].full_path', '0.54.0')
-    @noPosargs
     @TypedArgs('CustomTarget.full_path')
     @InterpreterObject.method('full_path')
     def full_path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
@@ -1211,14 +1162,12 @@ class _CustomTargetHolder(ObjectHolder[_CT]):
         h = self.held_object
         return r.format(self.__class__.__name__, h.get_id(), h.command)
 
-    @noPosargs
     @TypedArgs('CustomTarget.full_path')
     @InterpreterObject.method('full_path')
     def full_path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.interpreter.backend.get_target_filename_abs(self.held_object)
 
     @FeatureNew('custom_target.to_list', '0.54.0')
-    @noPosargs
     @TypedArgs('CustomTarget.full_path')
     @InterpreterObject.method('to_list')
     def to_list_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[build.CustomTargetIndex]:

@@ -27,7 +27,7 @@ from ..interpreter.type_checking import (
 )
 from ..interpreterbase import (
     ContainerTypeInfo, InterpreterException, KwargInfo, TypedArgs,
-    PosArgInfo, OptArgInfo, noPosargs,
+    PosArgInfo, OptArgInfo,
 )
 from ..interpreter.interpreterobjects import Doctest
 from ..mesonlib import (is_parent_path, File, MachineChoice, MesonException, PerMachine)
@@ -180,7 +180,6 @@ class RustWorkspace(ModuleObject):
     def subdir(self) -> str:
         return self.ws.subdir
 
-    @noPosargs
     @TypedArgs('rust_workspace.packages')
     def packages_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns list of package names in workspace."""
@@ -264,49 +263,41 @@ class RustCrate(ModuleObject):
     def cfg(self) -> PackageConfiguration:
         return self.package.cfg[self.for_machine]
 
-    @noPosargs
     @TypedArgs('rust_crate.name')
     def name_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> str:
         """Returns the name of the package."""
         return self.package.manifest.package.name
 
-    @noPosargs
     @TypedArgs('rust_crate.api')
     def api_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> str:
         """Returns the API version of the package."""
         return self.package.manifest.package.api
 
-    @noPosargs
     @TypedArgs('rust_crate.version')
     def version_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> str:
         """Returns the version of the package."""
         return self.package.manifest.package.version
 
-    @noPosargs
     @TypedArgs('rust_crate.all_features')
     def all_features_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns all features for specific package."""
         return sorted(list(self.package.manifest.features.keys()))
 
-    @noPosargs
     @TypedArgs('rust_crate.features')
     def features_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns chosen features for specific package."""
         return sorted(list(self.cfg.features))
 
-    @noPosargs
     @TypedArgs('rust_crate.rust_args')
     def rust_args_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns rustc arguments for this package."""
         return self.package.get_rustc_args(state.environment, state.subdir, self.for_machine)
 
-    @noPosargs
     @TypedArgs('rust_crate.env')
     def env_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.Dict[str, str]:
         """Returns environment variables for this package."""
         return self.package.get_env_dict(state.environment, state.subdir)
 
-    @noPosargs
     @TypedArgs('rust_crate.rust_dependency_map')
     def rust_dependency_map_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.Dict[str, str]:
         """Returns rust dependency mapping for this package."""
@@ -361,7 +352,6 @@ class RustPackage(RustCrate):
 
         return dependencies
 
-    @noPosargs
     @TypedArgs(
         'package.dependencies',
         kw_types=[
@@ -615,7 +605,6 @@ class RustSubproject(RustCrate):
             'dependency': self.dependency_method,
         })
 
-    @noPosargs
     @TypedArgs('package.dependency', kw_types=[_RUST_ABI])
     def dependency_method(self, state: ModuleState, args: T.List, kwargs: FuncDependency) -> Dependency:
         """Returns dependency for the package with the given ABI."""
@@ -854,7 +843,6 @@ class RustModule(ExtensionModule):
         base_target.doctests = doctests
         return ModuleReturnValue(None, [doctests])
 
-    @noPosargs
     @TypedArgs(
         'rust.bindgen',
         kw_types=[
@@ -1070,7 +1058,6 @@ class RustModule(ExtensionModule):
         return ModuleReturnValue(target, [target])
 
     @FeatureNew('rust.compiler_target', '1.11.0')
-    @noPosargs
     @TypedArgs('rust.compiler_target', kw_types=[NATIVE_KW])
     @apply_machine_map
     def compiler_target(self, state: ModuleState, args: T.List, kwargs: '_kwargs.NativeKW') -> str:
@@ -1118,7 +1105,6 @@ class RustModule(ExtensionModule):
         return dep_to_system_dependency(dep, depname)
 
     @FeatureNew('rust.workspace', '1.11.0')
-    @noPosargs
     @TypedArgs(
         'rust.workspace',
         kw_types=[
