@@ -11,8 +11,8 @@ from . import mesonlib
 from .options import OptionKey
 from . import mparser
 from . import mlog
-from .interpreterbase import FeatureNew, FeatureDeprecated, typed_pos_args, ContainerTypeInfo, KwargInfo, TypedArgs
-from .interpreter.type_checking import NoneType, in_set_validator
+from .interpreterbase import FeatureNew, FeatureDeprecated, ContainerTypeInfo, KwargInfo, TypedArgs
+from .interpreter.type_checking import STR_PARG, NoneType, in_set_validator
 
 if T.TYPE_CHECKING:
     from .interpreterbase import TYPE_var, TYPE_kwargs
@@ -63,7 +63,7 @@ class OptionException(mesonlib.MesonException):
     pass
 
 
-optname_regex = re.compile('[^a-zA-Z0-9_-]')
+OPTNAME_REGEX = re.compile('[^a-zA-Z0-9_-]')
 
 
 class OptionInterpreter:
@@ -170,6 +170,11 @@ class OptionInterpreter:
 
     @TypedArgs(
         'option',
+        pos_types=[
+            STR_PARG.evolve(
+                validator=lambda n: 'option names can only contain letters, numbers, and dashes' if OPTNAME_REGEX.search(n) is not None else None
+            ),
+        ],
         kw_types=[
             KwargInfo(
                 'type',
@@ -189,11 +194,8 @@ class OptionInterpreter:
         ],
         unknown_kwargs=True,
     )
-    @typed_pos_args('option', str)
     def func_option(self, args: T.Tuple[str], kwargs: 'FuncOptionArgs') -> None:
         opt_name = args[0]
-        if optname_regex.search(opt_name) is not None:
-            raise OptionException('Option names can only contain letters, numbers or dashes.')
         key = OptionKey.from_string(opt_name).evolve(subproject=self.subproject)
         if self.optionstore.is_reserved_name(key):
             raise OptionException('Option name %s is reserved.' % opt_name)
