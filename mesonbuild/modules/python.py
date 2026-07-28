@@ -411,8 +411,8 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
     @TypedArgs('python_installation.path')
     @FeatureNew('Python module path method', '0.50.0')
     @InterpreterObject.method('path')
-    def path_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
-        return T.cast('str', super().path_method(args, kwargs))
+    def path_method(self, args: tuple, kwargs: 'TYPE_kwargs') -> str:
+        return T.cast('str', super().path_method(list(args), kwargs))
 
 
 class PythonModule(ExtensionModule):

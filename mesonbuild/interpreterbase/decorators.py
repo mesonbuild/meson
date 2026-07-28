@@ -454,11 +454,12 @@ class VarArgInfo(_PosArgInfoBase):
 class TypedArgs:
 
     name: str
-    pos_types: list[PosArgInfo] | None = dataclasses.field(default=None, kw_only=True)
+    pos_types: list[PosArgInfo] = dataclasses.field(default_factory=list, kw_only=True)
     opt_types: list[OptArgInfo] = dataclasses.field(default_factory=list, kw_only=True)
     var_types: VarArgInfo | None = dataclasses.field(default=None, kw_only=True)
     kw_types: list[KwargInfo] = dataclasses.field(default_factory=list, kw_only=True)
     unknown_kwargs: bool = dataclasses.field(default=False, kw_only=True)
+    process_posargs: bool = dataclasses.field(default=True, kw_only=True)
 
     def _emit_feature_change(self, value: object, values: dict[_T, str | tuple[str, str]],
                              feature: type['FeatureDeprecated'] | type['FeatureNew'],
@@ -613,17 +614,14 @@ class TypedArgs:
             if warning:
                 feature.single_use(f'"{self.name}" positional argument "{index}" {warning}', version, subproject, msg, location=node)
 
-    def _process_args(self, node: mparser.BaseNode, args: list[TYPE_var], subproject: SubProject) -> tuple[object, ...] | None:
-        if self.pos_types is None and not (self.opt_types or self.var_types):
-            return None
-
+    def _process_args(self, node: mparser.BaseNode, args: list[TYPE_var], subproject: SubProject) -> tuple[object, ...]:
         assert not (self.opt_types and self.var_types), \
             'Cannot use optional arguments and variadic arguments together due to ambiguity'
 
         nargs = T.cast('list[object]', args).copy()
         num_args = len(args)
-        num_types = len(self.pos_types or [])
-        types: tuple[_PosArgInfoBase, ...] = tuple(self.pos_types or [])
+        num_types = len(self.pos_types)
+        types: tuple[_PosArgInfoBase, ...] = tuple(self.pos_types)
 
         if self.var_types:
             min_args = num_types + self.var_types.min_args
@@ -749,8 +747,8 @@ class TypedArgs:
             assert _kwargs is not None, 'for mypy'
 
             self._process_kwargs(node, _kwargs, subproject)
-            args = self._process_args(node, _args, subproject)
-            if args is not None:
+            if self.process_posargs:
+                args = self._process_args(node, _args, subproject)
                 w = list(wrapped_args)
                 i = w.index(_args)
                 w[i] = args
