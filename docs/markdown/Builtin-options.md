@@ -323,6 +323,11 @@ or compiler being used:
 | fortran_std      | none          | [none, legacy, f95, f2003, f2008, f2018] | Fortran language standard to use |
 | rust_dynamic_std | false         | true, false                              | Whether to link dynamically to the Rust standard library *(Added in 1.9.0)* |
 | rust_nightly     | auto          | enabled, disabled, auto                  | Nightly Rust compiler (enabled=required, disabled=don't use nightly feature, auto=use nightly feature if available) *(Added in 1.10.0)* |
+| rust_panic       | none          | none, unwind, abort                      | Panic strategy (none=use the compiler default) *(Added in 1.12.0)* |
+| rust_overflow_checks | false     | true, false                              | Whether to enable runtime integer overflow checks *(Added in 1.12.0)* |
+| rust_codegen_units | 0           | integer value ≥ 0                        | Number of code generation units to split the crate into (0=use the compiler default) *(Added in 1.12.0)* |
+| rust_incremental | false         | true, false                              | Whether to enable incremental compilation *(Added in 1.12.0)* |
+| rust_incremental_cache_dir |     | filesystem path                          | Directory used to store incremental compilation data (empty=pick a default under the build directory) *(Added in 1.12.0)* |
 | cuda_ccbindir    |               | filesystem path                          | CUDA non-default toolchain directory to use (-ccbin) *(Added in 0.57.1)* |
 
 The default values of `c_winlibs` and `cpp_winlibs` are in

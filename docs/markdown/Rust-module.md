@@ -417,7 +417,7 @@ information.
 #### package.rust_args()
 
 ```meson
-args = pkg.rustc_args()
+args = pkg.rust_args()
 ```
 
 Returns rustc arguments for this package.

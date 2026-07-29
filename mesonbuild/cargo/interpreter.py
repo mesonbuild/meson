@@ -39,9 +39,10 @@ if T.TYPE_CHECKING:
     from .. import mparser
     from typing_extensions import Literal
 
-    from .manifest import Dependency
+    from .manifest import Dependency, Profile
     from ..environment import Environment
     from ..compilers.rust import RustCompiler
+    from ..options import ElementaryOptionValues
 
     RUST_ABI = Literal['rust', 'c', 'proc-macro']
 
@@ -297,6 +298,8 @@ class Interpreter:
         self.packages: T.Dict[PackageKey, PackageState] = {}
         # Map subdir to workspace
         self.workspaces: T.Dict[str, WorkspaceState] = {}
+        # [profile] tables from the top-level Cargo.toml
+        self.profiles: T.Dict[str, Profile] = {}
         # Files that should trigger a reconfigure if modified
         self.build_def_files: T.List[str] = []
         # Cargo packages
@@ -338,9 +341,8 @@ class Interpreter:
             # [patch] only takes effect in the top-level Cargo.toml
             for warning in validate_patch(ws.workspace.patch, ws.packages_to_member):
                 mlog.warning(warning)
-            if ws.workspace.profile:
-                mlog.warning('[profile] entries are not implemented yet')
 
+            self.profiles = ws.workspace.profile
             self._prepare_entry_point(ws)
         return ws
 
@@ -366,6 +368,45 @@ class Interpreter:
         if is_parent_path(self.subprojects_dir, path):
             raise MesonException('argument to package() cannot be a subproject')
         return ws.packages[path]
+
+    def _selected_profile(self, override: T.Optional[ElementaryOptionValues] = None) -> T.Optional[str]:
+        """Resolve the rust_cargo_profile selection to a Cargo profile name.
+           override takes precedence over the rust_cargo_profile option, and
+           comes from a target's own override_options."""
+        optstore = self.environment.coredata.optstore
+        if override is not None:
+            selection = override
+        else:
+            try:
+                selection = optstore.get_value_for('rust_cargo_profile')
+            except KeyError:
+                return None
+
+        assert isinstance(selection, str)
+        if selection == 'none':
+            return None
+        if selection != 'from_buildtype':
+            return selection
+
+        buildtype = optstore.get_value_for('buildtype')
+        if buildtype in {'plain', 'custom'}:
+            return None
+        return 'dev' if buildtype == 'debug' else 'release'
+
+    def get_override_options(self, pkg: PackageState, for_machine: MachineChoice,
+                             profile: str | None = None) -> T.Dict[str, ElementaryOptionValues]:
+        """Return override_options implied by the Cargo manifest: the package
+           edition (rust_std) and the options implied by a [profile], using
+           ``profile`` if not None or otherwise rust_cargo_profile selects."""
+        opts: T.Dict[str, ElementaryOptionValues] = {
+            'rust_std': pkg.manifest.package.edition,
+        }
+        profile_name = self._selected_profile(profile)
+        if profile_name is not None and self.profiles is not None:
+            if (profile_obj := self.profiles.get(profile_name)) is not None:
+                opts.update(profile_obj.to_meson_options(for_machine))
+
+        return opts
 
     def interpret(self, subdir: str, project_root: T.Optional[str] = None) -> mparser.CodeBlockNode:
         filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')

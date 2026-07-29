@@ -23,6 +23,7 @@ if T.TYPE_CHECKING:
 
     from . import raw
     from .raw import EDITION, CRATE_TYPE, LINT_LEVEL
+    from ..options import ElementaryOptionValues
     from ..wrap.wrap import PackageDefinition
 
     # Copied from typeshed. Blarg that they don't expose this
@@ -509,6 +510,79 @@ class Lint:
 
 
 @dataclasses.dataclass
+class Profile:
+
+    """Representation of a Cargo [profile.NAME] entry.
+
+    The polymorphic Cargo values are canonicalized to the types used by the
+    corresponding Meson options.  Cargo's ``lto`` maps onto two options and is
+    therefore split into ``lto`` (b_lto) and ``lto_mode`` (b_lto_mode).  Unset
+    keys are left as None so that those options keep their default value.
+    See https://doc.rust-lang.org/cargo/reference/profiles.html
+    """
+
+    opt_level: T.Optional[str] = None
+    debug: T.Optional[bool] = None
+    strip: T.Optional[bool] = None
+    debug_assertions: T.Optional[bool] = None
+    overflow_checks: T.Optional[bool] = None
+    lto: T.Optional[bool] = None
+    lto_mode: T.Optional[str] = None
+    panic: T.Optional[str] = None
+    incremental: T.Optional[bool] = None
+    codegen_units: T.Optional[int] = None
+    build_override: T.Optional[Profile] = None
+
+    # missing: package, split_debuginfo, inherits, rpath
+
+    @classmethod
+    def from_raw(cls, raw_profile: raw.Profile) -> Self:
+        profile = _raw_to_dataclass(raw_profile, cls, 'Profile entry',
+                                    opt_level=ConvertValue(str),
+                                    codegen_units=ConvertValue(int),
+                                    debug=ConvertValue(lambda v: v if isinstance(v, bool) else v not in {0, '0', 'none'}),
+                                    debug_assertions=ConvertValue(lambda v: v if isinstance(v, bool) else v != 'false'),
+                                    incremental=ConvertValue(lambda v: v if isinstance(v, bool) else v != 'false'),
+                                    strip=ConvertValue(lambda v: v if isinstance(v, bool) else v != 'none'),
+                                    lto=ConvertValue(lambda v: v if isinstance(v, bool) else v != 'off'),
+                                    build_override=ConvertValue(cls.from_raw))
+        # Cargo's single 'lto' key also selects thin vs fat LTO (b_lto_mode).
+        if profile.lto:
+            profile.lto_mode = 'thin' if raw_profile.get('lto') == 'thin' else 'default'
+        return profile
+
+    def to_meson_options(self, for_machine: MachineChoice) -> T.Dict[str, ElementaryOptionValues]:
+        """Map the profile onto Meson option values, only for keys that are set.
+           For the build machine, the [build-override] settings are layered on top
+           (Cargo applies those to build scripts, proc macros and their deps)."""
+        opts: T.Dict[str, ElementaryOptionValues] = {}
+        if self.opt_level is not None:
+            # Meson's 'optimization' has no 'z'; fall back to 's'.
+            opts['optimization'] = 's' if self.opt_level == 'z' else self.opt_level
+        if self.debug is not None:
+            opts['debug'] = self.debug
+        # Meson only handles strip at install time
+        if self.debug_assertions is not None:
+            # note inverted polarity
+            opts['b_ndebug'] = 'false' if self.debug_assertions else 'true'
+        if self.overflow_checks is not None:
+            opts['rust_overflow_checks'] = self.overflow_checks
+        if self.lto is not None:
+            opts['b_lto'] = self.lto
+        if self.lto_mode is not None:
+            opts['b_lto_mode'] = self.lto_mode
+        if self.panic is not None:
+            opts['rust_panic'] = self.panic
+        if self.incremental is not None:
+            opts['rust_incremental'] = self.incremental
+        if self.codegen_units is not None:
+            opts['rust_codegen_units'] = self.codegen_units
+        if for_machine is MachineChoice.BUILD and self.build_override is not None:
+            opts.update(self.build_override.to_meson_options(for_machine))
+        return opts
+
+
+@dataclasses.dataclass
 class Manifest:
 
     """Cargo Manifest definition.
@@ -534,10 +608,11 @@ class Manifest:
     features: T.Dict[str, T.List[str]] = dataclasses.field(default_factory=dict)
     target: T.Dict[str, T.Dict[str, Dependency]] = dataclasses.field(default_factory=dict)
     lints: T.List[Lint] = dataclasses.field(default_factory=list)
+    profile: T.Dict[str, Profile] = dataclasses.field(default_factory=dict)
+
     # Kept in raw form: Meson does not implement [patch], it only validates it
     # for the entry-point crate (see validate_patch).
     patch: object = None
-    profile: object = None
 
     def __post_init__(self) -> None:
         self.features.setdefault('default', [])
@@ -621,7 +696,8 @@ class Manifest:
                                  test=ConvertValue(lambda x: [Test.from_raw(b, pkg) for b in x]),
                                  bench=ConvertValue(lambda x: [Benchmark.from_raw(b, pkg) for b in x]),
                                  example=ConvertValue(lambda x: [Example.from_raw(b, pkg) for b in x]),
-                                 target=ConvertValue(lambda x: {k: dependencies_from_raw(v.get('dependencies', {})) for k, v in x.items()}))
+                                 target=ConvertValue(lambda x: {k: dependencies_from_raw(v.get('dependencies', {})) for k, v in x.items()}),
+                                 profile=ConvertValue(lambda x: {k: Profile.from_raw(v) for k, v in x.items()}))
 
 
 @dataclasses.dataclass
@@ -640,13 +716,13 @@ class Workspace:
     dependencies: T.Dict[str, raw.Dependency] = dataclasses.field(default_factory=dict)
     lints: T.Dict[str, T.Dict[str, raw.LintV]] = dataclasses.field(default_factory=dict)
     metadata: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
+    profile: T.Dict[str, Profile] = dataclasses.field(default_factory=dict)
 
     # A workspace can also have a root package.
     root_package: T.Optional[Manifest] = None
 
     # Top-level [patch] table, kept in raw form (see Manifest.validate_patch).
     patch: object = None
-    profile: object = None
 
     @lazy_property
     def inheritable(self) -> T.Dict[str, object]:
@@ -665,7 +741,7 @@ class Workspace:
             ws.profile = ws.root_package.profile
         else:
             ws.patch = raw.get('patch')
-            ws.profile = raw.get('profile')
+            ws.profile = {k: Profile.from_raw(v) for k, v in raw.get('profile', {}).items()}
 
         ws.members = list(PurePath(m).as_posix() for m in ws.members)
         if ws.default_members:
