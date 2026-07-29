@@ -288,7 +288,8 @@ class FSModule(ExtensionModule):
         INSTALL_KW,
         INSTALL_MODE_KW,
         INSTALL_TAG_KW,
-        KwargInfo('install_dir', (str, NoneType)),
+        KwargInfo('install_dir', (str, NoneType),
+                  convertor=lambda x: [] if x is None else [x]),
         BUILD_SUBDIR_KW.evolve(since='1.12.0'),
     )
     def copyfile(self, state: ModuleState, args: T.Tuple[FileOrString, T.Optional[str]],
@@ -315,7 +316,7 @@ class FSModule(ExtensionModule):
             state.current_build_project,
             build_by_default=True,
             install=kwargs['install'],
-            install_dir=[kwargs['install_dir']],
+            install_dir=[kwargs['install_dir']] if kwargs['install_dir'] is not None else None,
             install_mode=kwargs['install_mode'],
             install_tag=[kwargs['install_tag']],
             backend=state.backend,
