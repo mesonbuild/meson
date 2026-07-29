@@ -3349,6 +3349,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                                 ) -> list[T.Union[build.TargetSources, build.BuildTargetTypes, build.BothLibraries, build.ExtractedObjects]]: ...
 
     @T.overload
+    def source_strings_to_files(self, sources: list[T.Union[str, build.BuildTarget, build.TargetSources]]) -> list[build.BuildTarget | build.TargetSources]: ...  # type: ignore[overload-overlap]
+
+    @T.overload
     def source_strings_to_files(self, sources: list[T.Union[str, build.TargetSources, build.StructuredSources]],
                                 ) -> list[T.Union[build.TargetSources, build.StructuredSources]]: ... # noqa: F811
 
@@ -3366,6 +3369,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                     list[mesonlib.File | str | build.BuildTargetTypes],
                                     list[str | build.TargetSources],
                                     list[str | build.TargetSources | build.StructuredSources],
+                                    list[str | build.TargetSources | build.BuildTarget],
                                     list[kwtypes.CustomTargetInputs],
                                     list[mesonlib.File | str | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes],
                                     list[kwtypes.BuildTargetObjects],
@@ -3377,6 +3381,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                              list[mesonlib.File | build.CustomTarget | build.CustomTargetIndex],
                                              list[build.TargetSources],
                                              list[build.TargetSources | build.StructuredSources],
+                                             list[build.TargetSources | build.BuildTarget],
                                              list[mesonlib.File | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes],
                                              list[build.ObjectTypes | build.GeneratedTypes],
                                              list[CustomTargetSources],

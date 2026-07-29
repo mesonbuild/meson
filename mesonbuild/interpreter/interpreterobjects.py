@@ -1230,7 +1230,7 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
     def __init__(self, gen: build.Generator, interpreter: 'Interpreter'):
         super().__init__(gen, interpreter)
 
-    @typed_pos_args('generator.process', min_varargs=1, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList))
+    @typed_pos_args('generator.process', min_varargs=1, varargs=(str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList))
     @typed_kwargs(
         'generator.process',
         KwargInfo('preserve_path_from', (str, NoneType), since='0.45.0'),
@@ -1240,7 +1240,7 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
     )
     @InterpreterObject.method('process')
     def process_method(self,
-                       args: T.Tuple[T.List[str | build.TargetSources]],
+                       args: T.Tuple[T.List[str | build.BuildTarget | build.TargetSources]],
                        kwargs: 'kwargs.GeneratorProcess') -> build.GeneratedList:
         preserve_path_from = kwargs['preserve_path_from']
         if preserve_path_from is not None:
@@ -1253,6 +1253,11 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
             FeatureNew.single_use(
                 'Calling generator.process with CustomTarget or Index of CustomTarget.',
                 '0.57.0', self.interpreter.subproject)
+
+        if any(isinstance(a, build.BuildTarget) for a in args[0]):
+            FeatureNew.single_use(
+                'Calling generator.process with BuildTarget.',
+                '1.12.0', self.interpreter.subproject)
 
         sources = self.interpreter.source_strings_to_files(args[0])
         gl = self.held_object.process_files(sources, self.interpreter.subdir,
