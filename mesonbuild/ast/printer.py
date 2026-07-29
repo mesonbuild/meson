@@ -156,7 +156,7 @@ class AstPrinter(AstVisitor):
         self.maybe_parentheses(node, node.left, prec > prec_left)
         self.append_padded(node.operator.value, node)
         node.lineno = self.curr_line or node.lineno
-        self.maybe_parentheses(node, node.right, prec > prec_right or (prec == prec_right and node.operation in {'sub', 'div', 'mod'}))
+        self.maybe_parentheses(node, node.right, prec > prec_right or (prec == prec_right and node.operation in {'-', '/', '%'}))
 
     def visit_NotNode(self, node: mparser.NotNode) -> None:
         node.lineno = self.curr_line or node.lineno
