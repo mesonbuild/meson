@@ -183,6 +183,7 @@ class XgettextProgram:
             inputs,
             [name],
             state.current_build_project,
+            state.backend,
             depend_files = depend_files,
             extra_depends = depends,
             install = install,
@@ -347,6 +348,7 @@ class I18nModule(ExtensionModule):
             inputs,
             [kwargs['output']],
             state.current_build_project,
+            state.backend,
             build_by_default=build_by_default,
             install=kwargs['install'],
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] is not None else None,
@@ -444,6 +446,7 @@ class I18nModule(ExtensionModule):
                 [po_file],
                 [f'{packagename}.mo'],
                 state.current_build_project,
+                state.backend,
                 install=install,
                 # We have multiple files all installed as packagename+'.mo' in different install subdirs.
                 # What we really wanted to do, probably, is have a rename: kwarg, but that's not available
@@ -539,6 +542,7 @@ class I18nModule(ExtensionModule):
             inputs,
             [kwargs['output']],
             state.current_build_project,
+            state.backend,
             build_by_default=build_by_default,
             extra_depends=mo_targets,
             install=kwargs['install'],

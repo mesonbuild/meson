@@ -230,6 +230,7 @@ class WindowsModule(ExtensionModule):
                 [src],
                 [output],
                 state.current_build_project,
+                state.backend,
                 depfile=depfile,
                 depfile_type=depfile_type,
                 depend_files=wrc_depend_files,

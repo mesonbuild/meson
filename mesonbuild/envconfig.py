@@ -267,8 +267,8 @@ class Properties:
 @dataclass(unsafe_hash=True)
 class MachineInfo(HoldableObject):
     system: str
-    cpu_family: str | None
-    cpu: str | None
+    cpu_family: str
+    cpu: str
     endian: str
     kernel: T.Optional[str]
     subsystem: T.Optional[str]
@@ -750,8 +750,8 @@ def detect_machine_info(compilers: T.Optional[CompilerDict] = None) -> MachineIn
     system = detect_system()
     return MachineInfo(
         system,
-        detect_cpu_family(compilers) if compilers is not None else None,
-        detect_cpu(compilers) if compilers is not None else None,
+        detect_cpu_family(compilers) if compilers is not None else 'unknown',
+        detect_cpu(compilers) if compilers is not None else 'unknown',
         sys.byteorder,
         detect_kernel(system),
         detect_subsystem(system))
@@ -772,7 +772,7 @@ def machine_info_can_run(machine_info: MachineInfo) -> bool:
     if machine_info.subsystem and machine_info.subsystem != detect_subsystem(system):
         return False
     true_build_cpu_family = detect_cpu_family({})
-    assert machine_info.cpu_family is not None, 'called on incomplete machine_info'
+    assert machine_info.cpu_family != 'unknown', 'called on incomplete machine_info'
     return \
         (machine_info.cpu_family == true_build_cpu_family) or \
         ((true_build_cpu_family == 'x86_64') and (machine_info.cpu_family == 'x86')) or \

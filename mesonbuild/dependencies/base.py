@@ -306,7 +306,8 @@ class InternalDependency(Dependency):
 
     type_name = DependencyTypeName('internal')
 
-    def __init__(self, version: str, incdirs: T.Optional[T.List['IncludeDirs']] = None,
+    def __init__(self, version: str | None,
+                 incdirs: T.Optional[T.List['IncludeDirs']] = None,
                  compile_args: T.Optional[T.List[str]] = None,
                  link_args: T.Optional[T.List[str]] = None,
                  libraries: T.Optional[T.List[LinkableTargetTypes]] = None,

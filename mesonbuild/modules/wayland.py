@@ -83,7 +83,7 @@ class WaylandModule(ExtensionModule):
                 [xml_file],
                 [f'{name}-protocol.c'],
                 state.current_build_project,
-                backend=state.backend,
+                state.backend,
             )
             targets.append(code)
 
@@ -100,7 +100,7 @@ class WaylandModule(ExtensionModule):
                     [xml_file],
                     [f'{name}-{side}-protocol.h'],
                     state.current_build_project,
-                    backend=state.backend,
+                    state.backend,
                 )
                 targets.append(header)
 

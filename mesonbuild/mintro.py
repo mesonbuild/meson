@@ -365,10 +365,10 @@ def list_deps(coredata: cdata.CoreData, builddata: build.Build, backend: backend
 
     return list(result.values())
 
-def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
-    result: T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]] = []
+def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[None, str, int, T.List[str], T.Dict[str, str]]]]:
+    result: T.List[T.Dict[str, T.Union[None, str, int, T.List[str], T.Dict[str, str]]]] = []
     for t in testdata:
-        to: T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]] = {}
+        to: T.Dict[str, T.Union[None, str, int, T.List[str], T.Dict[str, str]]] = {}
         if isinstance(t.fname, str):
             fname = [t.fname]
         else:
@@ -390,11 +390,11 @@ def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict
         result.append(to)
     return result
 
-def list_tests(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+def list_tests(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[None, str, int, T.List[str], T.Dict[str, str]]]]:
     testdata = backend.create_test_serialisation(builddata.get_tests())
     return get_test_list(testdata)
 
-def list_benchmarks(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+def list_benchmarks(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[None, str, int, T.List[str], T.Dict[str, str]]]]:
     benchdata = backend.create_test_serialisation(builddata.get_benchmarks())
     return get_test_list(benchdata)
 
@@ -408,8 +408,8 @@ def list_machines(coredata: cdata.CoreData, builddata: build.Build, backend: bac
         machines[m]['object_suffix'] = machine.get_object_suffix()
     return machines
 
-def list_projinfo(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.Dict[str, T.Union[str, T.List[str], T.List[T.Dict[str, str]]]]:
-    result: T.Dict[str, T.Union[str, T.List[str], T.List[T.Dict[str, str]]]] = {
+def list_projinfo(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.Dict[str, T.Union[None, str, T.List[str], T.List[T.Dict[str, str]]]]:
+    result: T.Dict[str, T.Union[None, str, T.List[str], T.List[T.Dict[str, str]]]] = {
         'version': builddata.project_version,
         'descriptive_name': builddata.project_name,
         'license': builddata.dep_manifest[builddata.project_name].license,
