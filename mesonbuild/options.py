@@ -33,7 +33,7 @@ from .mesonlib import (
 from . import mlog
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, Final, TypeAlias
+    from typing_extensions import Literal, Final, TypeAlias, TypedDict
 
     from .envconfig import MachineInfo
     from .mesonlib import SubProject
@@ -48,6 +48,11 @@ if T.TYPE_CHECKING:
     MutableKeyedOptionDictType: TypeAlias = T.Dict['OptionKey', AnyOptionType]
 
     _OptionKeyTuple: TypeAlias = T.Tuple[T.Optional[str], MachineChoice, str]
+
+    class OptionKeyState(TypedDict):
+        'name': str
+        'subproject': T.Optional[str]
+        'machine': MachineChoice
 
 DEFAULT_YIELDING = False
 
@@ -156,17 +161,17 @@ class OptionKey:
         object.__setattr__(self, 'machine', machine)
         object.__setattr__(self, '_hash', hash((name, subproject, machine)))
 
-    def __setattr__(self, key: str, value: T.Any) -> None:
+    def __setattr__(self, key: str, value: object) -> None:
         raise AttributeError('OptionKey instances do not support mutation.')
 
-    def __getstate__(self) -> T.Dict[str, T.Any]:
+    def __getstate__(self) -> OptionKeyState:
         return {
             'name': self.name,
             'subproject': self.subproject,
             'machine': self.machine,
         }
 
-    def __setstate__(self, state: T.Dict[str, T.Any]) -> None:
+    def __setstate__(self, state: OptionKeyState) -> None:
         # Here, the object is created using __new__()
         self._init(**state)
         _optionkey_cache[self._to_tuple()] = self
@@ -971,7 +976,7 @@ class OptionStore:
                 prefix = prefix[:-1]
         return prefix
 
-    def sanitize_dir_option_value(self, prefix: str, option: OptionKey, value: T.Any) -> T.Any:
+    def sanitize_dir_option_value(self, prefix: str, option: OptionKey, value: ElementaryOptionValues) -> ElementaryOptionValues:
         '''
         If the option is an installation directory option, the value is an
         absolute path and resides within prefix, return the value
@@ -981,19 +986,18 @@ class OptionStore:
         the library directory relative to prefix, even though it really
         should not be relied upon.
         '''
-        try:
-            value = self.pure_path_class(value)
-        except TypeError:
+        if not isinstance(value, str):
             return value
-        if option.name.endswith('dir') and value.is_absolute() and \
+        path = self.pure_path_class(value)
+        if option.name.endswith('dir') and path.is_absolute() and \
            option not in BUILTIN_DIR_NOPREFIX_OPTIONS:
             try:
                 # Try to relativize the path.
-                value = value.relative_to(prefix)
+                path = path.relative_to(prefix)
             except ValueError:
                 # Path is not relative, let’s keep it as is.
                 pass
-            if '..' in value.parts:
+            if '..' in path.parts:
                 raise MesonException(
                     f"The value of the '{option}' option is '{value}' but "
                     "directory options are not allowed to contain '..'.\n"
@@ -1001,7 +1005,7 @@ class OptionStore:
                     "please use an absolute path."
                 )
         # .as_posix() keeps the posix-like file separators Meson uses.
-        return value.as_posix()
+        return path.as_posix()
 
     def set_option(self, key: OptionKey, new_value: ElementaryOptionValues, first_invocation: bool = False) -> bool:
         changed = False
