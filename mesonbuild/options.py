@@ -1142,7 +1142,7 @@ class OptionStore:
             valobj = self.options[optkey]
             new_value = valobj.value
             if new_prefix not in prefix_mapping:
-                new_value = BUILTIN_OPTIONS[optkey].default
+                new_value = valobj.default
             else:
                 if old_prefix in prefix_mapping:
                     # Only reset the value if it has not been changed from the default.
@@ -1276,7 +1276,7 @@ class OptionStore:
             if prefix in prefix_mapping:
                 new_value = prefix_mapping[prefix]
             else:
-                _v = BUILTIN_OPTIONS[optkey].default
+                _v = valobj.default
                 assert isinstance(_v, str), 'for mypy'
                 new_value = _v
             valobj.set_value(new_value)
