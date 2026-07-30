@@ -422,7 +422,7 @@ class _UserIntegerBase(UserOption[_T]):
     def validate_value(self, value: object) -> _T:
         if isinstance(value, str):
             value = T.cast('_T', self.toint(value))
-        if not isinstance(value, int):
+        if isinstance(value, bool) or not isinstance(value, int):
             raise MesonException(f'Value {value!r} for option "{self.name}" is not an integer.')
         if self.min_value is not None and value < self.min_value:
             raise MesonException(f'Value {value} for option "{self.name}" is less than minimum value {self.min_value}.')
