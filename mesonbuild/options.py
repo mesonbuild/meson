@@ -1371,7 +1371,7 @@ class OptionStore:
         for key, valstr in options.items():
             if key.subproject != subproject:
                 if key.subproject in self.subprojects and not self.option_has_value(key, valstr):
-                    mlog.warning('option {key} is set in subproject {subproject} but has already been processed')
+                    mlog.warning(f'option {key} is set in subproject {subproject} but has already been processed')
                     continue
 
                 # Subproject options from project() will be processed when the subproject is found
