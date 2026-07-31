@@ -1139,9 +1139,41 @@ class QtBaseModule(ExtensionModule):
             collected_json = self._moc_json_collect(state, moc_collect_json_kwargs)
             output.append(collected_json)
 
+        # Collect Qt metatype foreign types from dependencies to pass
+        # to qmltyperegistrar. This suppresses warnings like
+        # "QQuickItem is used as base type but cannot be found"
+        # See: https://github.com/mesonbuild/meson/issues/15801
+        foreign_types: T.List[str] = []
+        for dep in kwargs['dependencies']:
+            if not hasattr(dep, 'requested_modules'):
+                continue
+            libdir: T.Optional[str] = None
+            try:
+                libdir = dep.get_variable(pkgconfig='libdir')
+            except Exception:
+                pass
+            if not libdir:
+                try:
+                    libdir = dep.get_variable(configtool='QT_INSTALL_LIBS')
+                except Exception:
+                    pass
+            if not libdir:
+                continue
+            for mod in dep.requested_modules:
+                metatype_path = os.path.join(
+                    libdir, 'qt6', 'metatypes',
+                    f'qt6{mod.lower()}_metatypes.json'
+                )
+                if os.path.isfile(metatype_path):
+                    foreign_types.append(metatype_path)
+
         typeinfo_file: str = ''
         #cmake NO_GENERATE_QMLTYPE disable the whole type registration, not just the .qmltype generation
         if kwargs['generate_qmltype']:
+            registrar_extra_args = list(kwargs['qmltyperegistrar_extra_arguments'])
+            if foreign_types:
+                registrar_extra_args.insert(0, '--foreign-types=' + ','.join(foreign_types))
+
             qmltyperegistrar_kwargs: GenQmlTypeRegistrarKwArgs = {
                 'target_name': target_name,
                 'import_name': module_name,
@@ -1150,7 +1182,7 @@ class QtBaseModule(ExtensionModule):
                 'collected_json': collected_json,
                 'namespace': kwargs['namespace'],
                 'generate_qmltype': True,
-                'extra_args': kwargs['qmltyperegistrar_extra_arguments'],
+                'extra_args': registrar_extra_args,
                 'typeinfo': kwargs['typeinfo'],
                 'method': kwargs['method'],
                 'install': kwargs['install'],
