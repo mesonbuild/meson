@@ -828,7 +828,7 @@ class OptionStore:
             key = key.as_host()
         return key
 
-    def get_pending_value(self, key: T.Union[OptionKey, str], default: T.Optional[ElementaryOptionValues] = None) -> ElementaryOptionValues:
+    def get_pending_value(self, key: OptionKey, default: T.Optional[ElementaryOptionValues] = None) -> ElementaryOptionValues:
         key = self.ensure_and_validate_key(key)
         if key in self.options:
             return self.options[key].value
@@ -837,7 +837,7 @@ class OptionStore:
     def __len__(self) -> int:
         return len(self.options)
 
-    def resolve_option(self, key: 'T.Union[OptionKey, str]') -> AnyOptionType:
+    def resolve_option(self, key: OptionKey) -> AnyOptionType:
         key = self.ensure_and_validate_key(key)
         potential = self.options.get(key, None)
         if self.is_project_option(key):
@@ -1152,7 +1152,7 @@ class OptionStore:
                     new_value = prefix_mapping[new_prefix]
             valobj.set_value(new_value)
 
-    def get_value_object(self, key: T.Union[OptionKey, str]) -> AnyOptionType:
+    def get_value_object(self, key: OptionKey) -> AnyOptionType:
         key = self.ensure_and_validate_key(key)
         return self.options[key]
 
@@ -1163,7 +1163,7 @@ class OptionStore:
         except KeyError:
             pass
 
-    def __contains__(self, key: T.Union[str, OptionKey]) -> bool:
+    def __contains__(self, key: OptionKey) -> bool:
         key = self.ensure_and_validate_key(key)
         return key in self.options
 
