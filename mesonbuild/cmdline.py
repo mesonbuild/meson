@@ -158,7 +158,7 @@ class BuiltinAction(argparse.Action):
             kwargs['nargs'] = 1
             if help_suffix:
                 help_suffix += ', '
-            help_suffix += 'default: ' + str(options.argparse_prefixed_default(option, name=option_key))
+            help_suffix += 'default: ' + str(options.prefixed_default(option, name=option_key))
             if isinstance(option, (options.EnumeratedUserOption, options.UserArrayOption)):
                 kwargs['choices'] = option.choices
 

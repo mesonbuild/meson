@@ -646,13 +646,11 @@ def argparse_name_to_arg(name: str) -> str:
     return '--' + name.replace('_', '-')
 
 
-def argparse_prefixed_default(opt: AnyOptionType, name: OptionKey, prefix: str = '') -> ElementaryOptionValues:
-    if isinstance(opt, (UserComboOption, UserIntegerOption, UserUmaskOption)):
-        return T.cast('ElementaryOptionValues', opt.default)
+def prefixed_default(opt: AnyOptionType, name: OptionKey, prefix: str = '') -> ElementaryOptionValues:
     try:
         return BUILTIN_DIR_NOPREFIX_OPTIONS[name][prefix]
     except KeyError:
-        return T.cast('ElementaryOptionValues', opt.default)
+        return opt.default
 
 
 # Update `docs/markdown/Builtin-options.md` after changing the options below
@@ -942,7 +940,7 @@ class OptionStore:
         # Create a copy of the object, as we're going to mutate it
         opt = copy.copy(opt)
         assert key.subproject is None
-        new_value = argparse_prefixed_default(opt, key, default_prefix())
+        new_value = prefixed_default(opt, key, default_prefix())
         opt.set_value(new_value)
 
         modulename = key.get_module_prefix()
