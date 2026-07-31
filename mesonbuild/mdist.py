@@ -27,8 +27,8 @@ from mesonbuild.mesonlib import (GIT, MesonException, RealPathAction, SimpleABC,
                                  windows_proof_rmtree, setup_vsenv, determine_worker_count, unwrap_err)
 from .options import OptionKey
 from mesonbuild.msetup import add_arguments as msetup_argparse
-from mesonbuild.wrap import wrap
 from mesonbuild import mlog, build, cmdline
+from mesonbuild.wrap.wrap import PackageDefinition
 from .scripts.meson_exe import run_exe
 
 if T.TYPE_CHECKING:
@@ -399,9 +399,23 @@ def run(options: argparse.Namespace) -> int:
     if options.include_subprojects:
         subproject_dir = os.path.join(src_root, b.subproject_dir)
         for sub in set(itertools.chain(b.projects.host, b.projects.build)):
-            if sub:
-                directory = wrap.get_directory(subproject_dir, sub)
-                subprojects[sub] = os.path.join(b.subproject_dir, directory)
+            if not sub:
+                continue
+
+            wrap_fname = os.path.join(subproject_dir, f'{sub}.wrap')
+            if os.path.isfile(wrap_fname):
+                package = PackageDefinition.from_wrap_file(wrap_fname)
+
+                # We do not need to include redirected wraps. The authoritative
+                # subproject will get added as we continue.
+                if package.redirected:
+                    continue
+
+                subdir = package.directory
+            else:
+                subdir = sub
+
+            subprojects[sub] = os.path.join(b.subproject_dir, subdir)
         extra_meson_args.append('-Dwrap_mode=nodownload')
 
     cls: T.Type[Dist]

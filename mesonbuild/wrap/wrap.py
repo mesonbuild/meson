@@ -353,13 +353,6 @@ class PackageDefinition:
     def add_provided_dep(self, name: str) -> None:
         self.provided_deps[name] = None
 
-def get_directory(subdir_root: str, packagename: str) -> str:
-    fname = os.path.join(subdir_root, packagename + '.wrap')
-    if os.path.isfile(fname):
-        wrap = PackageDefinition.from_wrap_file(fname)
-        return wrap.directory
-    return packagename
-
 def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
     '''
     Wrapper to convert GitException to WrapException caught in interpreter.
