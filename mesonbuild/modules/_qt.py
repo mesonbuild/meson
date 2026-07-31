@@ -1081,7 +1081,7 @@ class QtBaseModule(ExtensionModule):
         #same format as the one derived from qmltyperegistrar
         target_name = re.sub(r'[^A-Za-z0-9]', '_', module_name)
 
-        qrc_resouces: T.List[str | build.TargetSources] = []
+        qrc_resources: T.List[str | build.TargetSources] = []
         all_qml: T.List[str | build.TargetSources] = kwargs['qml_sources'] + kwargs['qml_singletons'] + kwargs['qml_internals']
         all_qml_files: T.List[File] = self._source_to_files(state, all_qml)
         all_qml_basename: T.List[str] = [os.path.basename(p.fname) for p in all_qml_files]
@@ -1099,7 +1099,7 @@ class QtBaseModule(ExtensionModule):
             qml_qrc = self._gen_qrc(state, qml_qrc_kwargs)
 
             if not kwargs['cachegen']:
-                qrc_resouces.append(qml_qrc)
+                qrc_resources.append(qml_qrc)
             else:
                 cachegen_kwargs: GenQmlCachegenKwArgs = {
                     'target_name': target_name,
@@ -1185,16 +1185,16 @@ class QtBaseModule(ExtensionModule):
                 'aliases': ['qmldir'],
                 'prefix': module_prefix_full,
             }
-            qrc_resouces.append(self._gen_qrc(state, qmldir_qrc_kwargs))
+            qrc_resources.append(self._gen_qrc(state, qmldir_qrc_kwargs))
 
             if kwargs['install']:
                 self.interpreter.install_data_impl([qmldir_file], module_install_dir,
                                                    FileMode(), ['qmldir'], 'devel')
 
-        if qrc_resouces:
+        if qrc_resources:
             compile_resource_kwargs: ResourceCompilerKwArgs = {
                 'name': target_name,
-                'sources': qrc_resouces,
+                'sources': qrc_resources,
                 'extra_args': kwargs['rcc_extra_arguments'],
                 'method': kwargs['method'],
             }

@@ -92,7 +92,7 @@ docs](https://rust-analyzer.github.io/book/non_cargo_based_projects.html) for
 more information on how to configure that.
 
 ### Clippy
-You can use the "clippy-json" build target as rust-analyer's "check command" to recieve clippy diagnostics in your editor. 
+You can use the "clippy-json" build target as rust-analyer's "check command" to receive clippy diagnostics in your editor. 
 
 Without overriding the check command, the LSP will function in a limited state, only showing certain errors (for example, no borrow checking errors are shown).
 
