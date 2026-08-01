@@ -209,6 +209,7 @@ class MPIConfigToolDependency(ConfigToolDependency):
         # --version (compiler) is not the same as -v/V (MPI wrapper)
         
         p, out = Popen_safe(tool + ['-V'])[:2]
+        first_line = out.split('\n', maxsplit=1)[0]
         valid = p.returncode == returncode
         if valid:
             # Intel OneAPI
