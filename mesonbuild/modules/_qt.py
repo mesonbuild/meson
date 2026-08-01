@@ -953,6 +953,47 @@ class QtBaseModule(ExtensionModule):
         output.append(cacheloader_target)
         return output
 
+    def _collect_foreign_metatypes(
+        self,
+        state: ModuleState,
+        dependencies: T.List[T.Union[Dependency, ExternalLibrary]],
+    ) -> T.List[str]:
+        # Collect Qt6/Qt5 metatypes .json files produced by `qmltyperegistrar
+        # --foreign-types=...` so that base types (e.g. QObject, QQuickItem,
+        # QAbstractTableModel) are resolvable without noisy warnings. Files
+        # are searched for under `<qt-libdir>/qt{6,5}/metatypes/` and only
+        # the ones that actually exist are forwarded. The Qt dependency is
+        # identified by inspecting the docstring of the get_variable method
+        # rather than relying on typed imports, to stay robust across the
+        # PkgConfig and QMake backend implementations.
+        metatype_files: T.List[str] = []
+        for dep in dependencies:
+            # Only real "Dependency" objects expose `get_variable`; an
+            # ExternalLibrary does not and is therefore ignored.
+            if not isinstance(dep, Dependency):
+                continue
+            for qt_version in (6, 5):
+                try:
+                    libdir = dep.get_variable(pkgconfig='libdir', default_value='')
+                except (TypeError, ValueError, AttributeError):
+                    libdir = ''
+                if not libdir:
+                    continue
+                metatypes_dir = os.path.join(libdir, f'qt{qt_version}', 'metatypes')
+                if not os.path.isdir(metatypes_dir):
+                    continue
+                for name in sorted(os.listdir(metatypes_dir)):
+                    if name == 'metatypes.json':
+                        continue
+                    # Match the project's convention "qt6modulename_metatypes.json".
+                    if name.endswith('_metatypes.json'):
+                        metatype_files.append(os.path.join(metatypes_dir, name))
+                # At most one Qt major version is found per dependency, so we
+                # break out of the version loop early.
+                if metatype_files:
+                    break
+        return metatype_files
+
     def _qml_type_registrar(self, state: ModuleState, kwargs: GenQmlTypeRegistrarKwArgs) -> build.CustomTarget:
         self._detect_tools(state, kwargs['method'])
         if not self.tools['qmltyperegistrar'].found():
@@ -1142,6 +1183,17 @@ class QtBaseModule(ExtensionModule):
         typeinfo_file: str = ''
         #cmake NO_GENERATE_QMLTYPE disable the whole type registration, not just the .qmltype generation
         if kwargs['generate_qmltype']:
+            extra_args: T.List[str] = list(kwargs['qmltyperegistrar_extra_arguments'])
+            # Avoid double-appending if the user has already passed `--foreign-types=...`.
+            user_supplied_foreign_types = any(
+                arg.startswith('--foreign-types=') for arg in extra_args
+            )
+            if not user_supplied_foreign_types:
+                foreign_metatypes = self._collect_foreign_metatypes(
+                    state, kwargs['dependencies']
+                )
+                if foreign_metatypes:
+                    extra_args.append('--foreign-types=' + ','.join(foreign_metatypes))
             qmltyperegistrar_kwargs: GenQmlTypeRegistrarKwArgs = {
                 'target_name': target_name,
                 'import_name': module_name,
@@ -1150,7 +1202,7 @@ class QtBaseModule(ExtensionModule):
                 'collected_json': collected_json,
                 'namespace': kwargs['namespace'],
                 'generate_qmltype': True,
-                'extra_args': kwargs['qmltyperegistrar_extra_arguments'],
+                'extra_args': extra_args,
                 'typeinfo': kwargs['typeinfo'],
                 'method': kwargs['method'],
                 'install': kwargs['install'],
