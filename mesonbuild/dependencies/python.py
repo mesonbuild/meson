@@ -348,7 +348,9 @@ class _PythonDependencyBase(_Base):
             return 'x86_64'
         elif self.platform in {'win-arm64'}:
             return 'aarch64'
-        raise DependencyException('Unknown Windows Python platform {self.platform!r}')
+        elif self.platform in {'win-arm32'}:
+            return 'arm'
+        raise DependencyException(f'Unknown Windows Python platform {self.platform!r}')
 
     def get_windows_link_args(self, limited_api: bool, environment: 'Environment') -> T.Optional[T.List[str]]:
         if self.build_config:
