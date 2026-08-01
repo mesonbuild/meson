@@ -73,6 +73,8 @@ def mpi_factory(env: 'Environment',
             elif language == 'fortran':
                 if is_llvm_based:
                     tool_names.append('mpiifx')
+                    # As of oneAPI MPI 2021.17, version query results in an error 
+                    nwargs['returncode_value'] = 1
                 else:
                     tool_names.append('mpiifort')
 
@@ -204,11 +206,23 @@ class MPIConfigToolDependency(ConfigToolDependency):
                 version = None
             return valid, version
 
-        # --version is not the same as -v
+        # --version (compiler) is not the same as -v/V (MPI wrapper)
+        
+        p, out = Popen_safe(tool + ['-V'])[:2]
+        valid = p.returncode == returncode
+        if valid:
+            # Intel OneAPI
+            v = re.search(r'\d+.\d+', first_line)
+            if v:
+                version = v.group(0)
+            else:
+                version = None
+            return valid, version
+        
         p, out = Popen_safe(tool + ['-v'])[:2]
         valid = p.returncode == returncode
         first_line = out.split('\n', maxsplit=1)[0]
-
+        
         # cases like "mpicc for MPICH version 4.2.2"
         v = re.search(r'\d+.\d+.\d+', first_line)
         if v:
