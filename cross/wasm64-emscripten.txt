@@ -2,17 +2,17 @@
 c = 'emcc'
 cpp = 'em++'
 ar = 'emar'
+ranlib = 'emranlib'
 exe_wrapper = 'node'
 
 [built-in options]
-c_args = []
-c_link_args = ['-sEXPORT_ALL=1']
-cpp_args = []
-cpp_link_args = ['-sEXPORT_ALL=1']
+c_args = ['-m64']
+c_link_args = ['-m64']
+cpp_args = ['-m64']
+cpp_link_args = ['-m64']
 
 [host_machine]
-
 system = 'emscripten'
-cpu_family = 'wasm32'
-cpu = 'wasm32'
+cpu_family = 'wasm64'
+cpu = 'wasm64'
 endian = 'little'
