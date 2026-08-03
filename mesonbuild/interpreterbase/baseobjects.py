@@ -19,6 +19,13 @@ if T.TYPE_CHECKING:
     # Object holders need the actual interpreter
     from ..interpreter import Interpreter
 
+    _TV_IntegerObject = T.TypeVar('_TV_IntegerObject', bound='InterpreterObject', contravariant=True)
+    _TV_ARG1 = T.TypeVar('_TV_ARG1', bound='TYPE_var', contravariant=True)
+
+    class FN_Operator(T.Protocol[_TV_IntegerObject, _TV_ARG1]):
+        def __call__(s, self: _TV_IntegerObject, other: _TV_ARG1) -> TYPE_var: ...
+    TV_FN_Operator = T.TypeVar('TV_FN_Operator', bound=FN_Operator)
+
 
 TV_func = T.TypeVar('TV_func', bound=T.Callable[..., T.Any])
 
@@ -28,20 +35,22 @@ TYPE_nvar = T.Union[TYPE_var, mparser.BaseNode]
 TYPE_kwargs = T.Dict[str, TYPE_var]
 TYPE_nkwargs = T.Dict[str, TYPE_nvar]
 TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
+
+HoldableTypes = (HoldableObject, int, bool, str, list, dict)
+TYPE_HoldableTypes = T.Union[TYPE_var, HoldableObject]
+InterpreterObjectTypeVar = T.TypeVar('InterpreterObjectTypeVar', bound=TYPE_HoldableTypes)
+
 TYPE_op_arg = T.TypeVar('TYPE_op_arg', bound='TYPE_var', contravariant=True)
-TYPE_op_func = T.Callable[[TYPE_op_arg, TYPE_op_arg], TYPE_var]
+TYPE_op_func: TypeAlias = T.Union[
+    T.Callable[['InterpreterObject[TYPE_op_arg, InterpreterObjectTypeVar]', TYPE_op_arg], TYPE_op_arg],
+    T.Callable[['InterpreterObject[TYPE_op_arg, InterpreterObjectTypeVar]', TYPE_op_arg], bool]
+]
 TYPE_method_func = T.Callable[['InterpreterObject', T.List[TYPE_var], TYPE_kwargs], TYPE_var]
 
-class InterpreterObject:
-    TRIVIAL_OPERATORS: T.Dict[
-        MesonOperator,
-        T.Tuple[
-            T.Union[T.Type, T.Tuple[T.Type, ...]],
-            TYPE_op_func
-        ]
-    ] = {}
+class InterpreterObject(T.Generic[TYPE_op_arg, InterpreterObjectTypeVar]):
+    TRIVIAL_OPERATORS: dict[MesonOperator, T.Tuple[type[TYPE_op_arg] | type[InterpreterObjectTypeVar] | type[InterpreterObjectTypeVar] | None, TYPE_op_func[TYPE_op_arg, InterpreterObjectTypeVar]]] = {}
 
-    OPERATORS: T.Dict[MesonOperator, TYPE_op_func] = {}
+    OPERATORS: T.Dict[MesonOperator, TYPE_op_func[TYPE_op_arg, InterpreterObjectTypeVar]] = {}
 
     METHODS: T.Dict[
         str,
@@ -90,10 +99,10 @@ class InterpreterObject:
         return decorator
 
     @staticmethod
-    def operator(op: MesonOperator) -> T.Callable[[TV_func], TV_func]:
+    def operator(op: MesonOperator) -> T.Callable[[TV_FN_Operator], TV_FN_Operator]:
         '''Decorator that tags a method as the implementation of an operator
            for the Meson interpreter'''
-        def decorator(f: TV_func) -> TV_func:
+        def decorator(f: TV_FN_Operator) -> TV_FN_Operator:
             f.meson_operator = op    # type: ignore[attr-defined]
             return f
         return decorator
@@ -129,7 +138,7 @@ class InterpreterObject:
             ustr += f' Did you mean "{close_matches[0]}"?'
         raise InvalidCode(ustr)
 
-    def operator_call(self, operator: MesonOperator, other: TYPE_var) -> TYPE_var:
+    def operator_call(self, operator: MesonOperator, other: TYPE_op_arg) -> TYPE_op_arg | bool:
         if operator in self.TRIVIAL_OPERATORS:
             op = self.TRIVIAL_OPERATORS[operator]
             if op[0] is None and other is not None:
@@ -180,11 +189,10 @@ class UndefinedVariable(MesonInterpreterObject):
     '''This class is only used for the rewriter/static introspection tool and
     represents the `value` a meson-variable has if it was never written to.'''
 
-HoldableTypes = (HoldableObject, int, bool, str, list, dict)
-TYPE_HoldableTypes = T.Union[TYPE_var, HoldableObject]
-InterpreterObjectTypeVar = T.TypeVar('InterpreterObjectTypeVar', bound=TYPE_HoldableTypes)
 
-class ObjectHolder(InterpreterObject, T.Generic[InterpreterObjectTypeVar]):
+ContainerObjectTypeVar: TypeAlias = InterpreterObjectTypeVar
+
+class ObjectHolder(InterpreterObject[InterpreterObjectTypeVar, ContainerObjectTypeVar]):
     def __init__(self, obj: InterpreterObjectTypeVar, interpreter: 'Interpreter') -> None:
         super().__init__(subproject=interpreter.subproject)
         # This causes some type checkers to assume that obj is a base

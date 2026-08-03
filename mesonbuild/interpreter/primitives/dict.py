@@ -17,6 +17,7 @@ from ...interpreterbase import (
     typed_pos_args,
 
     TYPE_var,
+    TYPE_elementary,
 
     InvalidArguments,
 )
@@ -24,7 +25,7 @@ from ...interpreterbase import (
 if T.TYPE_CHECKING:
     from ...interpreterbase import TYPE_kwargs
 
-class DictHolder(ObjectHolder[T.Dict[str, TYPE_var]], IterableObject):
+class DictHolder(ObjectHolder[dict[str, TYPE_elementary]], IterableObject):
     # Operators that only require type checks
     TRIVIAL_OPERATORS = {
         # Arithmetic
