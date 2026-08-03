@@ -872,7 +872,7 @@ def load_cargo_lock(filename: str, subproject_dir: str) -> T.Optional[CargoLock]
                 checksum = package.checksum
                 if checksum is None:
                     checksum = cargolock.metadata[f'checksum {package.name} {package.version} ({package.source})']
-                url = f'https://crates.io/api/v1/crates/{package.name}/{package.version}/download'
+                url = f'https://static.crates.io/crates/{package.name}/{package.version}/download'
                 directory = f'{package.name}-{package.version}'
                 name = SubProject(meson_depname)
                 wrap_type = 'file'

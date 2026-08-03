@@ -283,7 +283,7 @@ class CargoLockTest(unittest.TestCase):
             self.assertEqual(wraps['foo-0.1-rs'].directory, 'foo-0.1')
             self.assertEqual(wraps['foo-0.1-rs'].type, 'file')
             self.assertEqual(wraps['foo-0.1-rs'].get('method'), 'cargo')
-            self.assertEqual(wraps['foo-0.1-rs'].get('source_url'), 'https://crates.io/api/v1/crates/foo/0.1/download')
+            self.assertEqual(wraps['foo-0.1-rs'].get('source_url'), 'https://static.crates.io/crates/foo/0.1/download')
             self.assertEqual(wraps['foo-0.1-rs'].get('source_hash'), '8a30b2e23b9e17a9f90641c7ab1549cd9b44f296d3ccbf309d2863cfe398a0cb')
             self.assertEqual(wraps['gtk-rs-core-0.19'].name, 'gtk-rs-core-0.19')
             self.assertEqual(wraps['gtk-rs-core-0.19'].directory, 'gtk-rs-core-0.19')
