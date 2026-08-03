@@ -597,6 +597,12 @@ class PkgConfigModule(NewExtensionModule):
                     if isinstance(l, str):
                         yield l
                     else:
+                        is_build_machine = l.for_machine is mesonlib.MachineChoice.BUILD
+                        is_proc_macro = l.rust_crate_type == 'proc-macro'
+
+                        if isinstance(l, build.BuildTarget) and (is_build_machine or is_proc_macro):
+                            continue
+
                         install_dir: T.Union[str, bool]
                         if uninstalled:
                             install_dir = os.path.dirname(state.backend.get_target_filename_abs(l))
