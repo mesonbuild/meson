@@ -369,3 +369,52 @@ main_exe = executable('main', main_sources, link_with : unityproof_lib)
 
 To link the static library into another library target, you may need to use
 `link_whole` instead of `link_with`.
+
+## Create MSYS2 / MinGW-w64 pacman packages
+
+To create a pacman package of a Meson project for MSYS2's MinGW-w64
+environments (such as UCRT64, CLANG64, or MINGW64), you should use a
+standard `PKGBUILD` configuration.
+
+Here are the important Meson flags to include in your `PKGBUILD`:
+
+- `MSYS2_ARG_CONV_EXCL="--prefix="`: MSYS2 converts Unix paths in
+  arguments to Windows paths automatically. Since Meson requires
+  the literal Unix prefix for the target installation root, you
+  must exclude the `--prefix` argument from this conversion.
+- `--prefix="${MINGW_PREFIX}"`: Installs the files in the correct
+  environment prefix directory (e.g., `/ucrt64`).
+- `--libdir="${MINGW_PREFIX}/lib"`: Ensures libraries are placed
+  inside the environment's `lib` directory.
+- `--buildtype=plain`: Instructs Meson not to add optimization
+  flags (such as `-O2`), allowing the environment's package flags
+  (`CFLAGS`, `CXXFLAGS`, etc.) to be fully respected.
+- `--wrap-mode=nodownload`: Prevents downloading subprojects during
+  the build, enforcing offline packaging.
+
+Example `PKGBUILD` snippet:
+
+```bash
+pkgname=("${MINGW_PACKAGE_PREFIX}-somepackage")
+...
+makedepends=("${MINGW_PACKAGE_PREFIX}-meson" "${MINGW_PACKAGE_PREFIX}-ninja")
+
+build() {
+  mkdir -p "build-${MSYSTEM}"
+  
+  MSYS2_ARG_CONV_EXCL="--prefix=" \
+  meson setup \
+    --prefix="${MINGW_PREFIX}" \
+    --libdir="${MINGW_PREFIX}/lib" \
+    --buildtype=plain \
+    --wrap-mode=nodownload \
+    "build-${MSYSTEM}" \
+    "${_realname}-${pkgver}"
+    
+  meson compile -C "build-${MSYSTEM}"
+}
+
+package() {
+  meson install -C "build-${MSYSTEM}" --destdir "${pkgdir}"
+}
+```

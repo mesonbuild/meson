@@ -734,3 +734,9 @@ It's not necessary to treat preprocessor defines specially in Meson ([GH-6269](h
 
 This simplifies debugging build problems, since you always know that files in
 build directory X must come from the corresponding source directory X.
+
+## How do I create MSYS2 / MinGW-w64 pacman packages with Meson?
+
+You can create package configurations for MSYS2's MinGW-w64
+environments using `PKGBUILD` scripts. Please see the detailed
+snippet and explanation in [Create MSYS2 / MinGW-w64 pacman packages](howtox.md#create-msys2--mingw-w64-pacman-packages).
