@@ -2028,10 +2028,12 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.rust_test_dir, '36 staticlib rlib deps')
         self.init(testdir)
         targets = self.introspect('--targets')
-        executable = next(t for t in targets if t['type'] == 'executable')
-        linker = next(src for src in executable['target_sources'] if 'linker' in src)
-        for param in linker['parameters']:
-            self.assertNotIn('liblib.rlib', param)
+        for t in targets:
+            if t['type'] == 'executable':
+                for src in t['target_sources']:
+                    if 'linker' in src or src['language'] == 'rust':
+                        for param in src['parameters']:
+                            self.assertNotIn('liblib.rlib', param)
 
     def test_sanitizers(self):
         testdir = os.path.join(self.unit_test_dir, '129 sanitizers')
