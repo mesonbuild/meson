@@ -92,6 +92,19 @@ class MetaData:
     warned: bool = False
 
 
+@dataclass
+class _LibDeps:
+
+    '''One pending step of the target graph walk in DependenciesHelper.'''
+
+    source: object
+    link_targets: T.Sequence[build.LinkableTargetTypes]
+    link_whole_targets: T.Sequence[build.StaticTargetTypes]
+    external_deps: T.List[dependencies.Dependency]
+    public: bool
+    private_external_deps: bool = False
+
+
 class DependenciesHelper:
     def __init__(self, state: ModuleState, name: str, metadata: T.Dict[str, MetaData],
                  static: bool) -> None:
@@ -108,16 +121,22 @@ class DependenciesHelper:
         self.version_reqs: T.DefaultDict[str, T.Set[str]] = defaultdict(set)
         self.link_whole_targets: T.List[build.StaticTargetTypes] = []
         self.uninstalled_incdirs: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
+        # Libraries whose recursive dependencies still have to be added.
+        self._dep_stack: T.List[_LibDeps] = []
 
     def add_pub_libs(self, libs: T.List[ANY_DEP]) -> None:
         p_libs, reqs, cflags = self._process_libs(libs, True)
-        self.pub_libs = p_libs + self.pub_libs # prepend to preserve dependencies
+        # Libraries come before their dependencies: appending gives the right
+        # order because the arguments of generate() are added first, and when
+        # _add_recursive_lib_dependencies() provides the dependencies sorted
+        # from ancestors to descendants, they are processed in LIFO order.
+        self.pub_libs += p_libs
         self.pub_reqs += reqs
         self.cflags += cflags
 
     def add_priv_libs(self, libs: T.List[ANY_DEP]) -> None:
         p_libs, reqs, _ = self._process_libs(libs, False)
-        self.priv_libs = p_libs + self.priv_libs
+        self.priv_libs += p_libs
         self.priv_reqs += reqs
 
     def add_pub_reqs(self, reqs: T.List[REQS]) -> None:
@@ -231,7 +250,7 @@ class DependenciesHelper:
 
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
-                    self._add_lib_dependencies(obj.libraries, obj.whole_libraries, obj.ext_deps, public, private_external_deps=True)
+                    self._dep_stack.append(_LibDeps(obj, obj.libraries, obj.whole_libraries, obj.ext_deps, public, private_external_deps=True))
                     self._add_uninstalled_incdirs(obj.get_include_dirs())
             elif isinstance(obj, dependencies.Dependency):
                 if obj.found():
@@ -252,10 +271,11 @@ class DependenciesHelper:
                 # If there is a static library in `Libs:` all its deps must be
                 # public too, otherwise the generated pc file will never be
                 # usable without --static.
-                self._add_lib_dependencies(obj.link_targets,
-                                           obj.link_whole_targets,
-                                           obj.external_deps,
-                                           isinstance(obj, build.StaticLibrary) and public)
+                self._dep_stack.append(_LibDeps(obj,
+                                                obj.link_targets,
+                                                obj.link_whole_targets,
+                                                obj.external_deps,
+                                                isinstance(obj, build.StaticLibrary) and public))
             elif isinstance(obj, (build.CustomTarget, build.CustomTargetIndex)):
                 if not obj.is_linkable_target():
                     raise mesonlib.MesonException('library argument contains a not linkable custom_target.')
@@ -268,42 +288,38 @@ class DependenciesHelper:
 
         return processed_libs, processed_reqs, processed_cflags
 
-    def _add_lib_dependencies(
-            self, link_targets: T.Sequence[build.LinkableTargetTypes],
-            link_whole_targets: T.Sequence[build.StaticTargetTypes],
-            external_deps: T.List[dependencies.Dependency],
-            public: bool,
-            private_external_deps: bool = False) -> None:
-        add_libs = self.add_pub_libs if public else self.add_priv_libs
-        # Recursively add all linked libraries
-        for t in link_targets:
-            # Internal libraries (uninstalled static library) will be promoted
-            # to link_whole, treat them as such here.
-            if t.is_internal():
-                # `is_internal` shouldn't return True for anything but a
-                # StaticLibrary, or a CustomTarget that is a StaticLibrary
-                assert isinstance(t, (build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex)), 'for mypy'
-                self._add_link_whole(t, public)
-            else:
-                add_libs([t])
-        for t in link_whole_targets:
-            self._add_link_whole(t, public)
-        # And finally its external dependencies
-        if private_external_deps:
-            self.add_priv_libs(T.cast('T.List[ANY_DEP]', external_deps))
-        else:
-            add_libs(T.cast('T.List[ANY_DEP]', external_deps))
+    def _add_recursive_lib_dependencies(self) -> None:
+        visited: T.Set[T.Tuple[object, bool, bool]] = set()
+        visited_priv: T.Set[T.Tuple[object, bool, bool]] = set()
 
-    def _add_link_whole(self, t: build.StaticTargetTypes, public: bool) -> None:
-        # Don't include static libraries that we link_whole. But we still need to
-        # include their dependencies: a static library we link_whole
-        # could itself link to a shared library or an installed static library.
-        # Keep track of link_whole_targets so we can remove them from our
-        # lists in case a library is link_with and link_whole at the same time.
-        # See remove_dups() below.
-        self.link_whole_targets.append(t)
-        if isinstance(t, build.BuildTarget):
-            self._add_lib_dependencies(t.link_targets, t.link_whole_targets, t.external_deps, public)
+        while self._dep_stack:
+            step = self._dep_stack.pop()
+            add_libs = self.add_pub_libs if step.public else self.add_priv_libs
+            step_visited = visited if step.public else visited_priv
+            for t, is_link_whole in build.all_dependencies_recurse(step.source, step.link_targets,
+                                                                   step.link_whole_targets, step_visited, True, False):
+                if is_link_whole or t.is_internal():
+                    # Don't include static libraries that we link_whole, nor internal
+                    # ones: an installed static library promotes those to link_whole
+                    # (see StaticLibrary.link()) and thus already contains them.
+                    # Their dependencies come in via all_dependencies_recurse(), but
+                    # link_whole_targets are kept track of so that we can remove them
+                    # from our lists, in case a library is link_with and link_whole at
+                    # the same time. See remove_dups() below.
+                    assert isinstance(t, (build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex))
+                    self.link_whole_targets.append(t)
+                    # These are not passed to _process_libs(), so pick up whatever
+                    # they contribute to Requires.private and Libs.private here.
+                    if isinstance(t, build.BuildTarget):
+                        add_libs(T.cast('T.List[ANY_DEP]', t.get_external_deps()))
+                else:
+                    add_libs([t])
+
+            # And finally its external dependencies
+            if step.private_external_deps:
+                self.add_priv_libs(T.cast('T.List[ANY_DEP]', step.external_deps))
+            else:
+                add_libs(T.cast('T.List[ANY_DEP]', step.external_deps))
 
     def add_version_reqs(self, name: str, version_reqs: T.Optional[T.List[str]]) -> None:
         if version_reqs:
@@ -749,6 +765,7 @@ class PkgConfigModule(NewExtensionModule):
         deps = DependenciesHelper(state, filebase, self._metadata, static)
         deps.add_pub_libs(libraries)
         deps.add_priv_libs(kwargs['libraries_private'])
+        deps._add_recursive_lib_dependencies()
         deps.add_pub_reqs(kwargs['requires'])
         deps.add_priv_reqs(kwargs['requires_private'])
         deps.add_cflags(kwargs['extra_cflags'])
