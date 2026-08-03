@@ -124,19 +124,16 @@ class DependenciesHelper:
         self._dep_stack: T.List[_LibDeps] = []
 
     def add_pub_libs(self, libs: T.List[ANY_DEP]) -> None:
-        p_libs, reqs, cflags = self._process_libs(libs, True)
         # Libraries come before their dependencies: appending gives the right
         # order because the arguments of generate() are added first, and when
         # _add_recursive_lib_dependencies() provides the dependencies sorted
         # from ancestors to descendants, they are processed in LIFO order.
-        self.pub_libs += p_libs
-        self.pub_reqs += reqs
-        self.cflags += cflags
+        self._process_libs(libs, True, self.pub_libs, self.pub_reqs, self.cflags)
 
     def add_priv_libs(self, libs: T.List[ANY_DEP]) -> None:
-        p_libs, reqs, _ = self._process_libs(libs, False)
-        self.priv_libs += p_libs
-        self.priv_reqs += reqs
+        # Cflags of private libraries are not part of the generated file, so
+        # they are thrown away.
+        self._process_libs(libs, False, self.priv_libs, self.priv_reqs, [])
 
     def add_pub_reqs(self, reqs: T.List[REQS]) -> None:
         self.pub_reqs += self._process_reqs(reqs)
@@ -219,12 +216,9 @@ class DependenciesHelper:
             self.uninstalled_incdirs.add(subdir)
 
     def _process_libs(
-            self, libs: T.List[ANY_DEP], public: bool
-            ) -> T.Tuple[T.List[LIBS], T.List[str], T.List[str]]:
-        libs = mesonlib.listify(libs)
-        processed_libs: T.List[LIBS] = []
-        processed_reqs: T.List[str] = []
-        processed_cflags: T.List[str] = []
+            self, libs: T.List[ANY_DEP], public: bool,
+            processed_libs: T.List[LIBS], processed_reqs: T.List[str],
+            processed_cflags: T.List[str]) -> None:
         for obj in libs:
             if (isinstance(obj, (build.CustomTarget, build.CustomTargetIndex, build.SharedLibrary, build.StaticLibrary))
                     and obj.get_id() in self.metadata):
@@ -293,8 +287,6 @@ class DependenciesHelper:
                 processed_libs.append(obj)
             else:
                 raise mesonlib.MesonException(f'library argument of type {type(obj).__name__} not a string, library or dependency object.')
-
-        return processed_libs, processed_reqs, processed_cflags
 
     def _add_recursive_lib_dependencies(self) -> None:
         visited: T.Set[T.Tuple[object, bool, bool]] = set()
