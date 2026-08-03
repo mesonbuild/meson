@@ -102,7 +102,6 @@ class _LibDeps:
     link_whole_targets: T.Sequence[build.StaticTargetTypes]
     external_deps: T.List[dependencies.Dependency]
     public: bool
-    private_external_deps: bool = False
 
 
 class DependenciesHelper:
@@ -250,7 +249,16 @@ class DependenciesHelper:
 
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
-                    self._dep_stack.append(_LibDeps(obj, obj.libraries, obj.whole_libraries, obj.ext_deps, public, private_external_deps=True))
+                    # The external dependencies always go to Libs.private and
+                    # Requires.private to avoid adding many spurious public Requires
+                    # (see commit 0c95d92404cf, "pkgconfig: InternalDependency's ext_deps
+                    # should be private by default").
+                    #
+                    # So, add obj.ext_deps in a separate step, which comes first
+                    # because the stack is popped in LIFO order; the dependencies
+                    # will be added *after* the libraries that need them.
+                    self._dep_stack.append(_LibDeps(obj, [], [], obj.ext_deps, False))
+                    self._dep_stack.append(_LibDeps(obj, obj.libraries, obj.whole_libraries, [], public))
                     self._add_uninstalled_incdirs(obj.get_include_dirs())
             elif isinstance(obj, dependencies.Dependency):
                 if obj.found():
@@ -316,10 +324,7 @@ class DependenciesHelper:
                     add_libs([t])
 
             # And finally its external dependencies
-            if step.private_external_deps:
-                self.add_priv_libs(T.cast('T.List[ANY_DEP]', step.external_deps))
-            else:
-                add_libs(T.cast('T.List[ANY_DEP]', step.external_deps))
+            add_libs(T.cast('T.List[ANY_DEP]', step.external_deps))
 
     def add_version_reqs(self, name: str, version_reqs: T.Optional[T.List[str]]) -> None:
         if version_reqs:
