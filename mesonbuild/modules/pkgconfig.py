@@ -93,10 +93,12 @@ class MetaData:
 
 
 class DependenciesHelper:
-    def __init__(self, state: ModuleState, name: str, metadata: T.Dict[str, MetaData]) -> None:
+    def __init__(self, state: ModuleState, name: str, metadata: T.Dict[str, MetaData],
+                 static: bool) -> None:
         self.state = state
         self.name = name
         self.metadata = metadata
+        self.static = static
         self.pub_libs: T.List[LIBS] = []
         self.pub_reqs: T.List[str] = []
         self.priv_libs: T.List[LIBS] = []
@@ -169,7 +171,7 @@ class DependenciesHelper:
                 FeatureNew.single_use('pkgconfig.generate requirement from internal dependency', '1.9.0',
                                       self.state.subproject, location=self.state.current_node)
                 # Ensure BothLibraries are resolved:
-                if self.pub_libs and isinstance(self.pub_libs[0], build.StaticLibrary):
+                if self.static:
                     obj = obj.get_as_static(recursive=True)
                 else:
                     obj = obj.get_as_shared(recursive=True)
@@ -222,7 +224,7 @@ class DependenciesHelper:
                         raise mesonlib.MesonException('.pc file cannot refer to individual object files.')
 
                     # Ensure BothLibraries are resolved:
-                    if self.pub_libs and isinstance(self.pub_libs[0], build.StaticLibrary):
+                    if self.static:
                         obj = obj.get_as_static(recursive=True)
                     else:
                         obj = obj.get_as_shared(recursive=True)
@@ -742,8 +744,9 @@ class PkgConfigModule(NewExtensionModule):
         libraries = kwargs['libraries'].copy()
         if mainlib:
             libraries.insert(0, mainlib)
+        static = bool(libraries) and isinstance(libraries[0], build.StaticLibrary)
 
-        deps = DependenciesHelper(state, filebase, self._metadata)
+        deps = DependenciesHelper(state, filebase, self._metadata, static)
         deps.add_pub_libs(libraries)
         deps.add_priv_libs(kwargs['libraries_private'])
         deps.add_pub_reqs(kwargs['requires'])
