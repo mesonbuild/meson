@@ -1149,11 +1149,45 @@ class CLikeCompiler(Compiler):
                 for trial in trials:
                     if not os.path.isfile(trial):
                         continue
+
+                    # Check if an argument to find_library is usable:
+                    # * user requested a static library specifically
+                    #   => assume they know what they're doing, no link test
+                    #      as some runtime libraries may be provided in such
+                    #      a way that they must be used together with another
+                    #      library, or require special options.
+                    #
+                    # * user requested a library without `static: true`
+                    #   => build a shared library and link against it. Shared
+                    #      libraries (on ELF platforms) can be underlinked
+                    #      so it's better than an executable, as we'll only fail
+                    #      if it's unusable for another reason.
+
+                    # Don't bother fishing for arguments if we've already
+                    # been told not to perform a test.
+                    if not skip_link_check:
+                        shared_link_args = self.get_std_shared_lib_link_args()
+                        extra_args = [trial] + lcargs + shared_link_args
+
+                        # Try to build the link test as PIC. We don't know if
+                        # the target library is itself PIC: if it's non-PIC,
+                        # PIC is fine, and if it is PIC, then PIC is needed,
+                        # so always use it.
+                        extra_args += self.get_pic_args()
+
+                        # If we were asked specifically for a static library, don't perform
+                        # a link test, because it might be a special toolchain library like
+                        # on RTEMS.
+                        skip_link_check |= (libtype == LibType.STATIC)
+
+                        # Don't bother with a link check if we don't know how to build
+                        # a shared library.
+                        skip_link_check |= (not shared_link_args)
+
                     # When skip_link_check is True (e.g. for pkg-config
                     # libraries which are trusted to be linkable), skip the
                     # potentially expensive link check and just verify that the
                     # file exists.
-                    extra_args = [trial] + lcargs
                     if skip_link_check or self.links(code, extra_args=extra_args, disable_cache=True)[0]:
                         trial_result = trial
                         break
