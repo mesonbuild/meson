@@ -665,7 +665,7 @@ class GnomeModule(ExtensionModule):
         return link_command, new_depends
 
     def _get_dependencies_flags_raw(
-            self, deps: T.Sequence[T.Union['Dependency', build.BuildTargetTypes]],
+            self, deps: T.Sequence[T.Union['Dependency', build.BuildTargetProto]],
             state: 'ModuleState',
             depends: T.Sequence[TargetDepends],
             include_rpath: bool,
@@ -758,7 +758,7 @@ class GnomeModule(ExtensionModule):
         return cflags, internal_ldflags, external_ldflags, gi_includes, depends
 
     def _get_dependencies_flags(
-            self, deps: T.Sequence[T.Union['Dependency', build.BuildTargetTypes]],
+            self, deps: T.Sequence[T.Union['Dependency', build.BuildTargetProto]],
             state: 'ModuleState',
             depends: T.Sequence[TargetDepends],
             include_rpath: bool = False,
@@ -911,8 +911,8 @@ class GnomeModule(ExtensionModule):
 
     @staticmethod
     def _get_gir_targets_deps(girtargets: T.Sequence[build.BuildTarget]
-                              ) -> T.List[T.Union[build.BuildTargetTypes, Dependency]]:
-        ret: T.List[T.Union[build.BuildTargetTypes, Dependency]] = []
+                              ) -> T.List[T.Union[build.BuildTargetProto, Dependency]]:
+        ret: T.List[T.Union[build.BuildTargetProto, Dependency]] = []
         for girtarget in girtargets:
             ret += girtarget.get_all_link_deps()
             ret += girtarget.get_external_deps()
@@ -1071,7 +1071,7 @@ class GnomeModule(ExtensionModule):
     @staticmethod
     def _gather_typelib_includes_and_update_depends(
             state: 'ModuleState',
-            deps: T.Sequence[T.Union[Dependency, build.BuildTargetTypes]],
+            deps: T.Sequence[T.Union[Dependency, build.BuildTargetProto]],
             depends: T.Sequence[TargetDepends]
             ) -> T.Tuple[T.List[str], T.List[TargetDepends]]:
         # Need to recursively add deps on GirTarget sources from our
@@ -2073,7 +2073,7 @@ class GnomeModule(ExtensionModule):
             *,
             install: bool = False,
             install_dir: T.Optional[T.Sequence[T.Union[str, bool]]] = None,
-            depends: T.Optional[T.Sequence[build.BuildTargetTypes]] = None
+            depends: T.Optional[T.Sequence[build.BuildTargetProto]] = None
             ) -> build.CustomTarget:
         real_cmd: CommandList = [self._find_tool(state, 'glib-mkenums')]
         real_cmd.extend(cmd)
@@ -2240,8 +2240,8 @@ class GnomeModule(ExtensionModule):
                 ofile.write(package + '\n')
         return build.Data([mesonlib.File(True, outdir, fname)], install_dir, install_dir, mesonlib.FileMode(), state.subproject, install_tag='devel')
 
-    def _get_vapi_link_with(self, target: CustomTarget) -> T.List[build.LibTypes]:
-        link_with: T.List[build.LibTypes] = []
+    def _get_vapi_link_with(self, target: CustomTarget) -> T.List[build.LinkableProto]:
+        link_with: T.List[build.LinkableProto] = []
         for dep in target.get_target_dependencies():
             if isinstance(dep, build.SharedLibrary):
                 link_with.append(dep)
@@ -2280,7 +2280,7 @@ class GnomeModule(ExtensionModule):
         cmd += ['--metadatadir=' + source_dir]
 
         inputs: T.List[T.Union[mesonlib.File, GirTarget]] = []
-        link_with: T.List[build.LinkableTargetTypes] = []
+        link_with: T.List[build.LinkableProto] = []
         i: CustomTargetInputs
         for i in kwargs['sources']:
             if isinstance(i, str):
