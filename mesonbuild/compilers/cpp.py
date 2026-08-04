@@ -25,7 +25,7 @@ from .mixins.ti import TICompiler
 from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
 from .mixins.gnu import GnuCompiler, GnuCPPStds, gnu_common_warning_args, gnu_cpp_warning_args
-from .mixins.intel import IntelGnuLikeCompiler, IntelLLVMLikeCompiler, IntelVisualStudioLikeCompiler
+from .mixins.intel import IntelGnuLikeCompiler, IntelLLVMLikeCompiler, IntelVisualStudioLikeCompiler, IntelLLVMVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler, ClangCPPStds
 from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
@@ -1005,7 +1005,7 @@ class IntelClCPPCompiler(VisualStudioLikeCPPCompilerMixin, IntelVisualStudioLike
         return IntelVisualStudioLikeCompiler.get_compiler_check_args(self, mode)
 
 
-class IntelLLVMClCPPCompiler(IntelClCPPCompiler):
+class IntelLLVMClCPPCompiler(IntelLLVMVisualStudioLikeCompiler, IntelClCPPCompiler):
 
     id = 'intel-llvm-cl'
 

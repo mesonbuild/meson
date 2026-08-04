@@ -162,3 +162,16 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     def get_pch_base_name(self, header: str) -> str:
         return os.path.basename(header)
+
+
+class IntelLLVMVisualStudioLikeCompiler:
+
+    """Mixin for icx (Intel oneAPI DPC++) on Windows."""
+
+    @classmethod
+    def unix_args_to_native(cls, args: T.List[str]) -> T.List[str]:
+        native = super().unix_args_to_native(args)  # type: ignore[misc]
+        result: T.List[str] = []
+        for arg in native:
+            result.append(arg)
+        return result
