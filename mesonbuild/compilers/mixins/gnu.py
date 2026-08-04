@@ -544,6 +544,7 @@ class GnuCompiler(GnuLikeCompiler):
     _LTO_AUTO_VERSION = '>=10.0'
     _LTO_CACHE_VERSION = '>=15.1'
     _USE_MOLD_VERSION = '>=12.0.1'
+    _USE_WILD_VERSION = '>=16.0.1'
 
     def __init__(self, defines: T.Optional[T.Dict[str, str]]):
         super().__init__()
@@ -646,6 +647,8 @@ class GnuCompiler(GnuLikeCompiler):
     def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
         if linker == 'mold' and mesonlib.version_compare(version, cls._USE_MOLD_VERSION):
             return ['-fuse-ld=mold']
+        elif linker == 'wild' and mesonlib.version_compare(version, cls._USE_WILD_VERSION):
+            return ['-fuse-ld=wild']
         return super().use_linker_args(linker, version)
 
     def get_lto_link_args(self, *, target: T.Optional[BuildTarget] = None, threads: int = 0,

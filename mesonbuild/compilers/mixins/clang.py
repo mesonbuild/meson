@@ -12,7 +12,7 @@ import typing as T
 from ... import mesonlib
 from ... import options
 from ...linkers.linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, \
-    GnuBFDDynamicLinker, GnuGoldDynamicLinker, MoldDynamicLinker, VisualStudioLikeLinkerMixin
+    GnuBFDDynamicLinker, GnuGoldDynamicLinker, MoldDynamicLinker, VisualStudioLikeLinkerMixin, WildDynamicLinker
 from ...options import OptionKey
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
@@ -188,6 +188,8 @@ class ClangCompiler(GnuLikeCompiler):
             return ['-fuse-ld=qcld']
         if linker == 'mold':
             return ['-fuse-ld=mold']
+        if linker == 'wild':
+            return ['--ld-path=wild']
 
         if shutil.which(linker):
             if not shutil.which(linker):
@@ -216,13 +218,16 @@ class ClangCompiler(GnuLikeCompiler):
                              mode: str = 'default') -> T.List[str]:
         args: T.List[str] = []
         if mode == 'thin':
-            # ThinLTO requires the use of gold, lld, ld64, lld-link or mold 1.1+
+            # ThinLTO requires the use of gold, lld, ld64, lld-link, mold 1.1+ or Wild 0.9+
             if isinstance(self.linker, (MoldDynamicLinker)):
                 # https://github.com/rui314/mold/commit/46995bcfc3e3113133620bf16445c5f13cd76a18
                 if not mesonlib.version_compare(self.linker.version, '>=1.1'):
                     raise mesonlib.MesonException("LLVM's ThinLTO requires mold 1.1+")
+            elif isinstance(self.linker, (WildDynamicLinker)):
+                if not mesonlib.version_compare(self.linker.version, '>=0.9'):
+                    raise mesonlib.MesonException("LLVM's ThinLTO requires Wild 0.9+")
             elif not isinstance(self.linker, (AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuBFDDynamicLinker, GnuGoldDynamicLinker)):
-                raise mesonlib.MesonException(f"LLVM's ThinLTO only works with bfd, gold, lld, lld-link, ld64, or mold, not {self.linker.id}")
+                raise mesonlib.MesonException(f"LLVM's ThinLTO only works with bfd, gold, lld, lld-link, ld64, mold or wild, not {self.linker.id}")
             args.append(f'-flto={mode}')
         else:
             assert mode == 'default', 'someone forgot to wire something up'
