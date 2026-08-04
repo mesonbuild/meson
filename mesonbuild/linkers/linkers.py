@@ -1013,6 +1013,12 @@ class MoldDynamicLinker(GnuDynamicLinker):
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
         return self._apply_prefix(['--thinlto-cache-dir=' + path])
 
+class WildDynamicLinker(GnuDynamicLinker):
+
+    id = 'ld.wild'
+
+    def get_thinlto_cache_args(self, path: str) -> T.List[str]:
+        return self._apply_prefix(['-plugin-opt', 'cache-dir=' + path])
 
 class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
 

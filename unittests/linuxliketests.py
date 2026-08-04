@@ -1676,6 +1676,9 @@ class LinuxlikeTests(BasePlatformTests):
     def test_ld_environment_variable_lld(self):
         self._check_ld('ld.lld', 'lld', 'c', 'ld.lld')
 
+    def test_ld_environment_variable_wild(self):
+        self._check_ld('ld.wild', 'wild', 'c', 'ld.wild')
+
     @skip_if_not_language('rust')
     @skipIfNoExecutable('ld.gold')  # need an additional check here because _check_ld checks for gcc
     def test_ld_environment_variable_rust(self):

@@ -5674,7 +5674,7 @@ class AllPlatformTests(BasePlatformTests):
         cc = detect_c_compiler(env, MachineChoice.HOST)
         has_rsp = cc.linker.id in {
             'ld.bfd', 'ld.eld', 'ld.gold', 'ld.lld', 'ld.mold', 'ld.qcld', 'ld.wasm',
-            'link', 'lld-link', 'mwldarm', 'mwldeppc', 'optlink', 'xilink',
+            'link', 'lld-link', 'mwldarm', 'mwldeppc', 'optlink', 'wild', 'xilink',
         }
         self.assertEqual(cc.linker.get_accepts_rsp(), has_rsp)
 
