@@ -81,6 +81,9 @@ class WindowsModule(ExtensionModule):
                 return None
 
             comp = self.detect_compiler(state.environment.coredata.compilers[for_machine])
+            # Pick the resource compiler by toolchain flavour rather than an enumerated
+            # linker-id set: MSVC-style compilers (cl, clang-cl, icl, icx) expect
+            # rc/llvm-rc (.res); GNU-style toolchains use windres.
             if comp.get_argument_syntax() == 'msvc':
                 rescomp = search_programs(['rc', 'llvm-rc'])
             else:

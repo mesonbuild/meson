@@ -505,6 +505,9 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             target = 'x86' if 'IA-32' in err else 'x86_64'
             cls = c.IntelLLVMClCCompiler if lang == 'c' else cpp.IntelLLVMClCPPCompiler
             env.add_lang_args(cls.language, cls, for_machine)
+            # icx must drive linking itself: unlike link.exe it performs SYCL offload
+            # codegen (-fsycl). Forward MSVC linker flags via -Xlinker so -fsycl and
+            # objects stay on the icx driver side. CudaCompiler forwards to nvcc similarly.
             from .compilers import PrefixArgumentLinkerOptionStyle
             linker = linkers.IntelLLVMClDynamicLinker(
                 env, for_machine, [], exelist=compiler,
