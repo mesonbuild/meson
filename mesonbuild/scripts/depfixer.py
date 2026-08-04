@@ -836,7 +836,7 @@ def fix_rpath(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Union
     # on non-mac platforms. That can be expensive on some Windows machines
     # (up to 30ms), which is significant with --only-changed. For details, see:
     # https://github.com/mesonbuild/meson/pull/6612#discussion_r378581401
-    if INSTALL_NAME_TOOL is False:
+    if system == 'darwin' and INSTALL_NAME_TOOL is False:
         INSTALL_NAME_TOOL = bool(shutil.which('install_name_tool'))
     if INSTALL_NAME_TOOL:
         if isinstance(new_rpath, bytes):
