@@ -22,6 +22,7 @@ from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
 from .mixins.gnu import GnuCompiler, GnuCStds
 from .mixins.gnu import gnu_common_warning_args, gnu_c_warning_args
+from .mixins.qcc import QccCompiler
 from .mixins.intel import IntelGnuLikeCompiler, IntelLLVMLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler, ClangCStds
 from .mixins.elbrus import ElbrusCompiler
@@ -278,6 +279,11 @@ class GnuCCompiler(GnuCStds, GnuCompiler, CCompiler):
 
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return ['-fpch-preprocess', '-include', os.path.basename(header)]
+
+
+class QccCCompiler(QccCompiler, GnuCCompiler):
+
+    """QNX SDP qcc, the C compiler driver. See mixins/qcc.py."""
 
 
 class PGICCompiler(PGICompiler, CCompiler):

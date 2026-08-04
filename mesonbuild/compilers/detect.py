@@ -59,6 +59,11 @@ else:
         defaults['cpp'] = ['c++', 'g++', 'l++', 'clang++']
         defaults['objc'] = ['clang']
         defaults['objcpp'] = ['clang++']
+    elif platform.system().lower() == 'qnx':
+        defaults['c'] = ['cc', 'gcc', 'clang', 'qcc']
+        defaults['cpp'] = ['c++', 'g++', 'clang++', 'q++']
+        defaults['objc'] = ['clang']
+        defaults['objcpp'] = ['clang++']
     else:
         defaults['c'] = ['cc', 'gcc', 'clang', 'nvc', 'pgcc', 'icc', 'icx']
         defaults['cpp'] = ['c++', 'g++', 'clang++', 'nvc++', 'pgc++', 'icpc', 'icpx']
@@ -357,6 +362,19 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
         if 'Microchip' in out:
             # this output has "Free Software Foundation" in its version
             guess_gcc_or_lcc = None
+        if compiler_name in {'qcc', 'q++', 'qcc.exe', 'q++.exe'}:
+            # qcc/q++ have no distinguishing banner text, so recognize them
+            # by driver name instead - but only for a target declared/
+            # detected as QNX, so an unrelated binary that happens to be
+            # named qcc/q++ isn't misidentified as the QNX driver.
+            if not env.machines[for_machine].is_qnx():
+                section = 'host_machine' if for_machine is MachineChoice.HOST else 'build_machine'
+                raise EnvironmentException(
+                    f"{compiler_name!r} looks like the QNX qcc/q++ compiler "
+                    f"driver, but the {for_machine.get_lower_case_name()} machine "
+                    f"is not declared as QNX. Set system = 'qnx' in the "
+                    f"[{section}] section of your cross/native file.")
+            guess_gcc_or_lcc = 'qcc'
 
         if guess_gcc_or_lcc:
             defines = _get_gnu_compiler_defines(compiler, lang)
@@ -364,14 +382,22 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 popen_exceptions[join_args(compiler)] = 'no pre-processor defines'
                 continue
 
+            extra_args: T.Optional[T.List[str]] = None
             if guess_gcc_or_lcc == 'lcc':
                 version = _get_lcc_version_from_defines(defines)
                 cls = c.ElbrusCCompiler if lang == 'c' else cpp.ElbrusCPPCompiler
+            elif guess_gcc_or_lcc == 'qcc':
+                version = _get_gnu_version_from_defines(defines)
+                cls = c.QccCCompiler if lang == 'c' else cpp.QccCPPCompiler
+                # Unlike gcc, qcc/q++ refuse to run '-Wl,--version' without a
+                # source file ('cc: no files to process'); the null device
+                # satisfies the driver without needing an actual file on disk.
+                extra_args = [os.devnull]
             else:
                 version = _get_gnu_version_from_defines(defines)
                 cls = c.GnuCCompiler if lang == 'c' else cpp.GnuCPPCompiler
 
-            linker = guess_nix_linker(env, compiler, cls, version, for_machine)
+            linker = guess_nix_linker(env, compiler, cls, version, for_machine, extra_args=extra_args)
 
             return cls(
                 ccache, compiler, version, for_machine,
