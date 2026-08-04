@@ -106,7 +106,6 @@ class BoostLibraryFile():
     # Python libraries are special because of the included
     # minor version in the module name.
     boost_python_libs = ['boost_python', 'boost_numpy']
-    reg_python_mod_split = re.compile(r'(boost_[a-zA-Z]+)([0-9]*)')
 
     reg_abi_tag = re.compile(r'^s?g?y?d?p?n?$')
     reg_ver_tag = re.compile(r'^[0-9_]+$')
@@ -159,9 +158,6 @@ class BoostLibraryFile():
 
         # Process tags
         tags = self.nametags[1:]
-        # Filter out the python version tag and fix modname
-        if self.is_python_lib():
-            tags = self.fix_python_name(tags)
         if not tags:
             return
 
@@ -236,63 +232,19 @@ class BoostLibraryFile():
     def is_python_lib(self) -> bool:
         return any(self.mod_name.startswith(x) for x in BoostLibraryFile.boost_python_libs)
 
-    def fix_python_name(self, tags: T.List[str]) -> T.List[str]:
-        # Handle the boost_python naming madness.
-        # See https://github.com/mesonbuild/meson/issues/4788 for some distro
-        # specific naming variations.
-        other_tags: T.List[str] = []
-
-        # Split the current modname into the base name and the version
-        m_cur = BoostLibraryFile.reg_python_mod_split.match(self.mod_name)
-        cur_name = m_cur.group(1)
-        cur_vers = m_cur.group(2)
-
-        # Update the current version string if the new version string is longer
-        def update_vers(new_vers: str) -> None:
-            nonlocal cur_vers
-            new_vers = new_vers.replace('_', '')
-            new_vers = new_vers.replace('.', '')
-            if not new_vers.isdigit():
-                return
-            if len(new_vers) > len(cur_vers):
-                cur_vers = new_vers
-
-        for i in tags:
-            if i.startswith('py'):
-                update_vers(i[2:])
-            elif i.isdigit():
-                update_vers(i)
-            elif len(i) >= 3 and i[0].isdigit() and i[2].isdigit() and i[1] == '.':
-                update_vers(i)
-            else:
-                other_tags += [i]
-
-        self.mod_name = cur_name + cur_vers
-        return other_tags
-
     def mod_name_matches(self, mod_name: str) -> bool:
         if self.mod_name == mod_name:
             return True
         if not self.is_python_lib():
             return False
 
-        m_cur = BoostLibraryFile.reg_python_mod_split.match(self.mod_name)
-        m_arg = BoostLibraryFile.reg_python_mod_split.match(mod_name)
-
-        if not m_cur or not m_arg:
-            return False
-
-        if m_cur.group(1) != m_arg.group(1):
-            return False
-
-        cur_vers = m_cur.group(2)
-        arg_vers = m_arg.group(2)
-
-        # Always assume python 2 if nothing is specified
-        if not arg_vers:
-            arg_vers = '2'
-
-        return cur_vers.startswith(arg_vers)
+        if mod_name in self.boost_python_libs:
+            mlog.error(
+                "Support for ",  mlog.bold(mod_name), ' without specifying the version was dropped in Meson 1.12. ',
+                "For the correct solution for these libraries, please see ",
+                "https://mesonbuild.com/Dependencies.html#boost-python-and-boost-numpy"
+                )
+        return False
 
     def version_matches(self, version_lib: str) -> bool:
         # If no version tag is present, assume that it fits
