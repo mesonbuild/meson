@@ -265,6 +265,22 @@ class LinuxlikeTests(BasePlatformTests):
             content = f.read()
             self.assertNotIn('-lstat2', content)
 
+    def test_pkgconfig_fibonacci(self):
+        testdir = os.path.join(self.unit_test_dir, '138 pkgconfig fibonacci')
+        self.init(testdir)
+        self.build()
+
+        with open(os.path.join(self.builddir, 'meson-uninstalled/top-uninstalled.pc'), encoding='utf-8') as f:
+            lines = f.readlines()
+
+        libs_line = next(l for l in lines if l.startswith('Libs:'))
+        libs = libs_line.split()
+        num_libs = len(libs) - 2
+        for i in libs[2:]:
+            num_libs -= 1
+            self.assertTrue(i.startswith('-ll'))
+            self.assertEqual(int(i[3:]), num_libs)
+
     @mock.patch.dict(os.environ)
     def test_pkgconfig_uninstalled(self):
         testdir = os.path.join(self.common_test_dir, '44 pkgconfig-gen')
@@ -2014,10 +2030,12 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.rust_test_dir, '36 staticlib rlib deps')
         self.init(testdir)
         targets = self.introspect('--targets')
-        executable = next(t for t in targets if t['type'] == 'executable')
-        linker = next(src for src in executable['target_sources'] if 'linker' in src)
-        for param in linker['parameters']:
-            self.assertNotIn('liblib.rlib', param)
+        for t in targets:
+            if t['type'] == 'executable':
+                for src in t['target_sources']:
+                    if 'linker' in src or src['language'] == 'rust':
+                        for param in src['parameters']:
+                            self.assertNotIn('liblib.rlib', param)
 
     def test_sanitizers(self):
         testdir = os.path.join(self.unit_test_dir, '129 sanitizers')
