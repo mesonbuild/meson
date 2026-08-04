@@ -567,6 +567,10 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
                  full_version: T.Optional[str] = None):
         self.exelist = ccache + exelist
         self.exelist_no_ccache = exelist
+        if exelist and not ccache:
+            *_, first_exe = exelist[0].rsplit('/', maxsplit=1)
+            if first_exe.lower().startswith('ccache'):
+                del self.exelist_no_ccache[0]
         self.file_suffixes = lang_suffixes[self.language]
         self.can_compile_suffixes = set(self.file_suffixes)
         self.default_suffix = self.file_suffixes[0]
