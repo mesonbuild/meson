@@ -190,6 +190,8 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             gnu_cls = linkers.GnuGoldDynamicLinker
         elif o.startswith('mold') or e.startswith('mold'):
             gnu_cls = linkers.MoldDynamicLinker
+        elif o.startswith('Wild') or e.startswith('Wild'):
+            gnu_cls = linkers.WildDynamicLinker
         else:
             gnu_cls = linkers.GnuBFDDynamicLinker
         linker = gnu_cls(compiler, env, for_machine, comp_class.LINKER_OPTION_STYLE, override, version=v)
