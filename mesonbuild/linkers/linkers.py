@@ -1583,6 +1583,11 @@ class IntelLLVMClDynamicLinker(ClangClDynamicLinker):
 
     id = 'icx'
 
+    # Use the driver-style output flag: a bare /OUT: (even via -Xlinker) works,
+    # but -o is the natural spelling for the icx driver and needs no forwarding.
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
+
 
 class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
