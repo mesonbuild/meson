@@ -17,6 +17,9 @@ from ..mesonlib import quiet_git, join_args, determine_worker_count
 from ..mtest import complete_all
 import typing as T
 
+if T.TYPE_CHECKING:
+    from ..compilers.compilers import Language
+
 Info = T.TypeVar("Info")
 
 async def run_with_buffered_output(cmdlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> int:
@@ -110,7 +113,8 @@ def all_clike_files(name: str, srcdir: Path, builddir: Path) -> T.Iterable[Path]
     patterns = parse_pattern_file(srcdir / f'.{name}-ignore')
     ignore = [str(builddir / '*')]
     ignore.extend([str(srcdir / p) for p in patterns])
-    suffixes = set(lang_suffixes['c']).union(set(lang_suffixes['cpp']))
+    langs: tuple[Language, ...] = ('c', 'cpp', 'objc', 'objcpp')
+    suffixes = {s for lang in langs for s in lang_suffixes[lang]}
     suffixes.add('h')
     suffixes = {f'.{s}' for s in suffixes}
     for f in itertools.chain.from_iterable(globs):
