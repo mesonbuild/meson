@@ -989,6 +989,7 @@ class GnomeModule(ExtensionModule):
             girfile: str,
             scan_command: T.Sequence[T.Union['FileOrString', Executable, Program]],
             generated_files: T.Sequence[build.GeneratedTypes],
+            depend_files: T.List[mesonlib.File],
             depends: T.Sequence[TargetDepends],
             env_flags: T.Sequence[str],
             kwargs: GenerateGir) -> GirTarget:
@@ -1029,6 +1030,7 @@ class GnomeModule(ExtensionModule):
             generated_files,
             [girfile],
             state.current_build_project,
+            depend_files=depend_files,
             build_by_default=kwargs['build_by_default'],
             extra_depends=depends,
             install=install,
@@ -1262,10 +1264,16 @@ class GnomeModule(ExtensionModule):
         if kwargs['fatal_warnings']:
             scan_command.append('--warn-error')
 
-        generated_files = [f for f in libsources if isinstance(f, (GeneratedList, CustomTarget, CustomTargetIndex))]
+        generated_files: list[build.GeneratedTypes] = []
+        depend_files: list[mesonlib.File] = []
+        for f in libsources:
+            if isinstance(f, mesonlib.File):
+                depend_files.append(f)
+            elif isinstance(f, (GeneratedList, CustomTarget, CustomTargetIndex)):
+                generated_files.append(f)
 
         scan_target = self._make_gir_target(
-            state, girfile, scan_command, generated_files, depends,
+            state, girfile, scan_command, generated_files, depend_files, depends,
             scan_env_ldflags, kwargs)
 
         typelib_output = f'{ns}-{nsversion}.typelib'
