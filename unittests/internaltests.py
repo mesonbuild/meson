@@ -70,6 +70,98 @@ class InternalTests(unittest.TestCase):
         # A non-Android system with an 'ohos' subsystem is not OHOS either.
         self.assertFalse(machine('linux', 'ohos').is_ohos())
 
+    def test_get_env_for_paths(self):
+        machines = {
+            system: mesonbuild.envconfig.MachineInfo(
+                system=system, cpu_family='x86_64', cpu='x86_64',
+                endian='little', kernel=None, subsystem=None)
+            for system in ('linux', 'windows', 'cygwin', 'darwin')
+        }
+
+        env = get_fake_env()
+
+        # Cross-compiling to Windows from a non-Windows build machine: Wine
+        # is used to run host binaries. 'extra_paths' (PATH-only entries,
+        # e.g. an executable's own directory) must still end up in WINEPATH
+        # too, so that "wine foo.exe" can find any DLLs sitting next to it,
+        # in addition to being in PATH itself (so "foo.exe" can be run
+        # directly via wine-binfmt, and so bash completion works). Callers
+        # such as Backend.get_devenv() rely on this to be able to put
+        # Windows DLL search directories into 'extra_paths' and still have
+        # them reach WINEPATH.
+        with self.subTest('cross-compiling to windows via wine'):
+            env.machines.build = machines['linux']
+            env.machines.host = machines['windows']
+            envvars = env.get_env_for_paths({'/lib/dir'}, {'/dll/dir'}).get_env({})
+            self.assertIn('WINEPATH', envvars)
+            self.assertIn('/lib/dir', envvars['WINEPATH'])
+            self.assertIn('/dll/dir', envvars['WINEPATH'])
+            self.assertIn('PATH', envvars)
+            self.assertIn('/dll/dir', envvars['PATH'])
+            self.assertNotIn('LD_LIBRARY_PATH', envvars)
+            self.assertNotIn('DYLD_LIBRARY_PATH', envvars)
+
+        # Natively building/running on Windows (build == host == windows, so
+        # need_wine is False): there is no WINEPATH, and library_paths is
+        # merged into extra_paths so everything ends up in PATH, since
+        # Windows has no rpath equivalent.
+        with self.subTest('native windows'):
+            env.machines.build = machines['windows']
+            env.machines.host = machines['windows']
+            envvars = env.get_env_for_paths({'/lib/dir'}, {'/dll/dir'}).get_env({})
+            self.assertNotIn('WINEPATH', envvars)
+            self.assertIn('PATH', envvars)
+            self.assertIn('/lib/dir', envvars['PATH'])
+            self.assertIn('/dll/dir', envvars['PATH'])
+
+        # Cygwin behaves like Windows here (no rpath), but is a distinct
+        # 'system' from 'windows', so it needs its own check of the `or
+        # host.is_cygwin()` branch. A Cygwin host also does not trigger
+        # need_wine (Wine cannot run Cygwin binaries), even when
+        # cross-compiling from a non-Windows build machine.
+        with self.subTest('cygwin'):
+            env.machines.build = machines['linux']
+            env.machines.host = machines['cygwin']
+            envvars = env.get_env_for_paths({'/lib/dir'}, {'/dll/dir'}).get_env({})
+            self.assertNotIn('WINEPATH', envvars)
+            self.assertIn('PATH', envvars)
+            self.assertIn('/lib/dir', envvars['PATH'])
+            self.assertIn('/dll/dir', envvars['PATH'])
+
+        # On Darwin, rpath works, so library_paths and extra_paths are kept
+        # separate instead of being merged: library_paths only need
+        # DYLD_LIBRARY_PATH as a fallback and are not also added to PATH.
+        with self.subTest('darwin'):
+            env.machines.build = machines['darwin']
+            env.machines.host = machines['darwin']
+            envvars = env.get_env_for_paths({'/lib/dir'}, {'/dll/dir'}).get_env({})
+            self.assertNotIn('WINEPATH', envvars)
+            self.assertIn('DYLD_LIBRARY_PATH', envvars)
+            self.assertIn('/lib/dir', envvars['DYLD_LIBRARY_PATH'])
+            self.assertNotIn('/dll/dir', envvars['DYLD_LIBRARY_PATH'])
+            self.assertIn('PATH', envvars)
+            self.assertIn('/dll/dir', envvars['PATH'])
+            self.assertNotIn('/lib/dir', envvars['PATH'])
+
+        # On Linux (and other Unix-likes), same shape as Darwin but using
+        # LD_LIBRARY_PATH instead.
+        with self.subTest('linux'):
+            env.machines.build = machines['linux']
+            env.machines.host = machines['linux']
+            envvars = env.get_env_for_paths({'/lib/dir'}, {'/dll/dir'}).get_env({})
+            self.assertNotIn('WINEPATH', envvars)
+            self.assertIn('LD_LIBRARY_PATH', envvars)
+            self.assertIn('/lib/dir', envvars['LD_LIBRARY_PATH'])
+            self.assertNotIn('/dll/dir', envvars['LD_LIBRARY_PATH'])
+            self.assertIn('PATH', envvars)
+            self.assertIn('/dll/dir', envvars['PATH'])
+            self.assertNotIn('/lib/dir', envvars['PATH'])
+
+        # Empty inputs should produce no environment variables at all.
+        with self.subTest('empty paths'):
+            envvars = env.get_env_for_paths(set(), set()).get_env({})
+            self.assertEqual(envvars, {})
+
     def test_version_number(self):
         self.assertEqual(search_version('foobar 1.2.3'), '1.2.3')
         self.assertEqual(search_version('1.2.3'), '1.2.3')
