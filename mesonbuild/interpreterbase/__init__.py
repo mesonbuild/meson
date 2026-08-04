@@ -52,9 +52,7 @@ __all__ = [
     'TV_func',
     'TYPE_elementary',
     'TYPE_var',
-    'TYPE_nvar',
     'TYPE_kwargs',
-    'TYPE_nkwargs',
     'TYPE_key_resolver',
     'TYPE_HoldableTypes',
 
@@ -76,9 +74,7 @@ from .baseobjects import (
     TV_func,
     TYPE_elementary,
     TYPE_var,
-    TYPE_nvar,
     TYPE_kwargs,
-    TYPE_nkwargs,
     TYPE_key_resolver,
     TYPE_HoldableTypes,
 

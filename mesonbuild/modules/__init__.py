@@ -43,7 +43,6 @@ class ModuleState:
         self.subproject = interpreter.subproject
         self.subdir = interpreter.subdir
         self.root_subdir = interpreter.root_subdir
-        self.current_lineno = interpreter.current_node.lineno
         self.environment = interpreter.environment
         self.project_name = interpreter.active_projectname
         self.project_version = interpreter.project_version
