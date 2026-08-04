@@ -173,5 +173,8 @@ class IntelLLVMVisualStudioLikeCompiler:
         native = super().unix_args_to_native(args)  # type: ignore[misc]
         result: T.List[str] = []
         for arg in native:
-            result.append(arg)
+            if arg.startswith('/LIBPATH:'):
+                result += ['-Xlinker', arg]
+            else:
+                result.append(arg)
         return result
