@@ -83,18 +83,18 @@ class BasePlatformTests(TestCase):
         cls.build_command, cls.clean_command, cls.test_command, cls.install_command, \
             cls.uninstall_command = get_backend_commands(cls.backend)
         # Test directories
-        cls.common_test_dir = os.path.join(src_root, 'test cases/common')
-        cls.python_test_dir = os.path.join(src_root, 'test cases/python')
-        cls.rust_test_dir = os.path.join(src_root, 'test cases/rust')
-        cls.vala_test_dir = os.path.join(src_root, 'test cases/vala')
-        cls.framework_test_dir = os.path.join(src_root, 'test cases/frameworks')
-        cls.unit_test_dir = os.path.join(src_root, 'test cases/unit')
-        cls.rewrite_test_dir = os.path.join(src_root, 'test cases/rewrite')
-        cls.linuxlike_test_dir = os.path.join(src_root, 'test cases/linuxlike')
-        cls.objc_test_dir = os.path.join(src_root, 'test cases/objc')
-        cls.objcpp_test_dir = os.path.join(src_root, 'test cases/objcpp')
-        cls.darwin_test_dir = os.path.join(src_root, 'test cases/darwin')
-        cls.fortran_test_dir = os.path.join(src_root, 'test cases/fortran')
+        cls.common_test_dir = os.path.join(src_root, 'test cases', 'common')
+        cls.python_test_dir = os.path.join(src_root, 'test cases', 'python')
+        cls.rust_test_dir = os.path.join(src_root, 'test cases', 'rust')
+        cls.vala_test_dir = os.path.join(src_root, 'test cases', 'vala')
+        cls.framework_test_dir = os.path.join(src_root, 'test cases', 'frameworks')
+        cls.unit_test_dir = os.path.join(src_root, 'test cases', 'unit')
+        cls.rewrite_test_dir = os.path.join(src_root, 'test cases', 'rewrite')
+        cls.linuxlike_test_dir = os.path.join(src_root, 'test cases', 'linuxlike')
+        cls.objc_test_dir = os.path.join(src_root, 'test cases', 'objc')
+        cls.objcpp_test_dir = os.path.join(src_root, 'test cases', 'objcpp')
+        cls.darwin_test_dir = os.path.join(src_root, 'test cases', 'darwin')
+        cls.fortran_test_dir = os.path.join(src_root, 'test cases', 'fortran')
 
         # Misc stuff
         if cls.backend is Backend.ninja:
