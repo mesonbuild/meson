@@ -1577,6 +1577,13 @@ class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
         return ['-WX']
 
 
+class IntelLLVMClDynamicLinker(ClangClDynamicLinker):
+
+    """Intel oneAPI DPC++ (icx) driving the link step on Windows."""
+
+    id = 'icx'
+
+
 class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     """Intel's Xilink.exe."""
