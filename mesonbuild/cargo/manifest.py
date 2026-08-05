@@ -386,9 +386,9 @@ class Library(BuildTarget):
     def from_raw(cls, raw: raw.LibTarget, pkg: Package) -> Self:
         name = raw.get('name', fixup_meson_varname(pkg.name))
         # If proc_macro is True, it takes precedence and sets crate_type to proc-macro
-        proc_macro = raw.get('proc-macro', False)
+        proc_macro = raw.get('proc-macro', False) or raw.get('proc_macro', False)
         return _raw_to_dataclass(raw, cls, f'Library entry {name}',
-                                 ignored_fields=['proc-macro'],
+                                 ignored_fields=['proc-macro', 'proc_macro'],
                                  name=DefaultValue(name),
                                  path=DefaultValue('src/lib.rs'),
                                  edition=DefaultValue(pkg.edition),
