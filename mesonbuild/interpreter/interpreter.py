@@ -31,7 +31,7 @@ from ..interpreterbase import noPosargs, noKwargs, noArgsFlattening, noSecondLev
 from .decorators import apply_machine_map
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
-from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
+from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken
 from ..interpreterbase import ObjectHolder, ContextManagerObject, DefaultObject
 from ..interpreterbase import stringifyUserArguments, Feature, FeatureValue
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule, __path__ as modules_path
@@ -2037,7 +2037,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                  kwargs: kwtypes.Jar) -> build.Jar:
         return self.build_target(node, T.cast('tuple[str, SourcesVarargsType]', args), kwargs, build.Jar)
 
-    @FeatureNewKwargs('build_target', '0.40.0', ['link_whole', 'override_options'])
     @typed_pos_args('build_target', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('build_target', *BUILD_TARGET_KWS)
     def func_build_target(self, node: mparser.BaseNode,
@@ -2395,9 +2394,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         if isinstance(exe, (build.Executable, build.CustomTarget, build.CustomTargetIndex)):
             kwargs.setdefault('depends', []).append(exe.get_target())
 
-        if kwargs['timeout'] <= 0:
-            FeatureNew.single_use('test() timeout <= 0', '0.57.0', self.subproject, location=node)
-
         expected_fail = False
         if kwargs['should_fail'] is not None and kwargs['expected_fail'] is not None:
             raise InvalidArguments("Tried to use both 'should_fail' and 'expected_fail'")
@@ -2435,8 +2431,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                  kwargs: kwtypes.FuncTest | kwtypes.FuncBenchmark, is_base_test: bool) -> None:
         if isinstance(args[1], (build.CustomTarget, build.CustomTargetIndex)):
             FeatureNew.single_use('test with CustomTarget as command', '1.4.0', self.subproject)
-        if any(isinstance(i, ExternalProgram) for i in kwargs['args']):
-            FeatureNew.single_use('test with program in args', '1.6.0', self.subproject)
 
         t: Test = self.make_test(node, args, kwargs)
         if is_base_test:

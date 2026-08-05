@@ -1192,7 +1192,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 1.0, False], None)
-        self.assertEqual(str(cm.exception), 'foo argument 2 was of type "float" but should have been "int"')
+        self.assertEqual(str(cm.exception), '"foo" positional argument "2" was of type "float" but should have been "int"')
 
     def test_typed_pos_args_types_wrong_number(self) -> None:
         @typed_pos_args('foo', str, int, bool)
@@ -1201,11 +1201,11 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 1], None)
-        self.assertEqual(str(cm.exception), 'foo takes exactly 3 arguments, but got 2.')
+        self.assertEqual(str(cm.exception), '"foo" takes exactly 3 arguments, but got 2.')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 1, True, True], None)
-        self.assertEqual(str(cm.exception), 'foo takes exactly 3 arguments, but got 4.')
+        self.assertEqual(str(cm.exception), '"foo" takes exactly 3 arguments, but got 4.')
 
     def test_typed_pos_args_varargs(self) -> None:
         @typed_pos_args('foo', str, varargs=str)
@@ -1235,7 +1235,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 'var', 'args', 0], None)
-        self.assertEqual(str(cm.exception), 'foo argument 4 was of type "int" but should have been "str"')
+        self.assertEqual(str(cm.exception), '"foo" positional argument "4" was of type "int" but should have been "str"')
 
     def test_typed_pos_args_varargs_invalid_multiple_types(self) -> None:
         @typed_pos_args('foo', str, varargs=(str, list))
@@ -1244,7 +1244,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 'var', 'args', 0], None)
-        self.assertEqual(str(cm.exception), 'foo argument 4 was of type "int" but should have been one of: "str", "list"')
+        self.assertEqual(str(cm.exception), '"foo" positional argument "4" was of type "int" but should have been one of: "str", "list"')
 
     def test_typed_pos_args_max_varargs(self) -> None:
         @typed_pos_args('foo', str, varargs=str, max_varargs=5)
@@ -1264,7 +1264,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 'var', 'args'], None)
-        self.assertEqual(str(cm.exception), 'foo takes between 1 and 2 arguments, but got 3.')
+        self.assertEqual(str(cm.exception), '"foo" takes between 1 and 2 arguments, but got 3.')
 
     def test_typed_pos_args_min_varargs(self) -> None:
         @typed_pos_args('foo', varargs=str, max_varargs=2, min_varargs=1)
@@ -1283,7 +1283,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string'], None)
-        self.assertEqual(str(cm.exception), 'foo takes at least 2 arguments, but got 1.')
+        self.assertEqual(str(cm.exception), '"foo" takes at least 2 arguments, but got 1.')
 
     def test_typed_pos_args_min_and_max_varargs_exceeded(self) -> None:
         @typed_pos_args('foo', str, varargs=str, min_varargs=1, max_varargs=2)
@@ -1292,7 +1292,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 'var', 'args', 'bar'], None)
-        self.assertEqual(str(cm.exception), 'foo takes between 2 and 3 arguments, but got 4.')
+        self.assertEqual(str(cm.exception), '"foo" takes between 2 and 3 arguments, but got 4.')
 
     def test_typed_pos_args_min_and_max_varargs_not_met(self) -> None:
         @typed_pos_args('foo', str, varargs=str, min_varargs=1, max_varargs=2)
@@ -1301,7 +1301,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string'], None)
-        self.assertEqual(str(cm.exception), 'foo takes between 2 and 3 arguments, but got 1.')
+        self.assertEqual(str(cm.exception), '"foo" takes between 2 and 3 arguments, but got 1.')
 
     def test_typed_pos_args_variadic_and_optional(self) -> None:
         @typed_pos_args('foo', str, optargs=[str], varargs=str, min_varargs=0)
@@ -1321,7 +1321,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string'], None)
-        self.assertEqual(str(cm.exception), 'foo takes at least 2 arguments, but got 1.')
+        self.assertEqual(str(cm.exception), '"foo" takes at least 2 arguments, but got 1.')
 
     def test_typed_pos_args_min_optargs_max_exceeded(self) -> None:
         @typed_pos_args('foo', str, optargs=[str])
@@ -1330,7 +1330,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', '1', '2'], None)
-        self.assertEqual(str(cm.exception), 'foo takes at most 2 arguments, but got 3.')
+        self.assertEqual(str(cm.exception), '"foo" takes at most 2 arguments, but got 3.')
 
     def test_typed_pos_args_optargs_not_given(self) -> None:
         @typed_pos_args('foo', str, optargs=[str])
@@ -1385,7 +1385,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), [], {})
-        self.assertEqual(str(cm.exception), 'testfunc is missing required keyword argument "input"')
+        self.assertEqual(str(cm.exception), '"testfunc" is missing required keyword argument "input"')
 
     def test_typed_kwarg_missing_optional(self) -> None:
         @typed_kwargs(
@@ -1427,7 +1427,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), [], {'input': {}})
-        self.assertEqual(str(cm.exception), "testfunc keyword argument 'input' was of type dict[] but should have been array[str]")
+        self.assertEqual(str(cm.exception), '"testfunc" keyword argument "input" was of type "dict[]" but should have been "array[str]"')
 
     def test_typed_kwarg_contained_invalid(self) -> None:
         @typed_kwargs(
@@ -1439,7 +1439,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), [], {'input': {'key': 1, 'bar': 2}})
-        self.assertEqual(str(cm.exception), "testfunc keyword argument 'input' was of type dict[int] but should have been dict[str]")
+        self.assertEqual(str(cm.exception), '"testfunc" keyword argument "input" was of type "dict[int]" but should have been "dict[str]"')
 
     def test_typed_kwarg_container_listify(self) -> None:
         @typed_kwargs(
@@ -1474,7 +1474,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(MesonException) as cm:
             _(None, mock.Mock(), [], {'input': ['a']})
-        self.assertEqual(str(cm.exception), "testfunc keyword argument 'input' was of type array[str] but should have been array[str] that has even size")
+        self.assertEqual(str(cm.exception), '"testfunc" keyword argument "input" was of type "array[str]" but should have been "array[str]" that has even size')
 
     def test_typed_kwarg_since(self) -> None:
         @typed_kwargs(
@@ -1522,7 +1522,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(MesonException) as cm:
             _(None, mock.Mock(), tuple(), dict(input='bar'))
-        self.assertEqual(str(cm.exception), "testfunc keyword argument \"input\" invalid!")
+        self.assertEqual(str(cm.exception), "\"testfunc\" keyword argument \"input\" invalid!")
 
     def test_typed_kwarg_convertor(self) -> None:
         @typed_kwargs(
@@ -1556,6 +1556,16 @@ class InternalTests(unittest.TestCase):
                       deprecated_values={int: '0.8', ContainerTypeInfo(list, int): '0.9'}),
             KwargInfo('tuple', (ContainerTypeInfo(list, (str, int))), default=[], listify=True,
                       since_values={ContainerTypeInfo(list, str): '1.1', ContainerTypeInfo(list, int): '1.2'}),
+            KwargInfo(
+                'types_tuple_since',
+                (bool, int, str, NoneType),
+                since_values={(bool, int): '1.5'},
+            ),
+            KwargInfo(
+                'types_tuple_deprecated',
+                (bool, int, str, NoneType),
+                deprecated_values={(bool, int): '0.9'},
+            ),
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             pass
@@ -1586,28 +1596,28 @@ class InternalTests(unittest.TestCase):
 
         with self.subTest('new string type'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'foo': 'foo'})
-            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '>= 1.0'.*introduced in '1.1': "testfunc" keyword argument "foo" of type str.*""")
+            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '>= 1.0'.*introduced in '1.1': "testfunc" keyword argument "foo" of type "str".*""")
 
         with self.subTest('new array of string type'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'foo': ['foo']})
-            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '>= 1.0'.*introduced in '1.2': "testfunc" keyword argument "foo" of type array\[str\].*""")
+            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '>= 1.0'.*introduced in '1.2': "testfunc" keyword argument "foo" of type "array\[str\]".*""")
 
         with self.subTest('new dict of string type'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'foo': {'plop': 'foo'}})
-            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '>= 1.0'.*introduced in '1.3': "testfunc" keyword argument "foo" of type dict\[str\].*""")
+            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '>= 1.0'.*introduced in '1.3': "testfunc" keyword argument "foo" of type "dict\[str\]".*""")
 
         with self.subTest('deprecated int value'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'foo': 1})
-            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*deprecated since '0.8': "testfunc" keyword argument "foo" of type int.*""")
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*deprecated since '0.8': "testfunc" keyword argument "foo" of type "int".*""")
 
         with self.subTest('deprecated array int value'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'foo': [1]})
-            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*deprecated since '0.9': "testfunc" keyword argument "foo" of type array\[int\].*""")
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*deprecated since '0.9': "testfunc" keyword argument "foo" of type "array\[int\]".*""")
 
         with self.subTest('new list[str] value'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'tuple': ['foo', 42]})
-            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '>= 1.0'.*introduced in '1.1': "testfunc" keyword argument "tuple" of type array\[str\].*""")
-            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '>= 1.0'.*introduced in '1.2': "testfunc" keyword argument "tuple" of type array\[int\].*""")
+            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '>= 1.0'.*introduced in '1.1': "testfunc" keyword argument "tuple" of type "array\[str\]".*""")
+            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '>= 1.0'.*introduced in '1.2': "testfunc" keyword argument "tuple" of type "array\[int\]".*""")
 
         with self.subTest('deprecated array string value'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
@@ -1631,15 +1641,23 @@ class InternalTests(unittest.TestCase):
 
         with self.subTest('new container'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'dict': ['a=b']})
-            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '1.9': "testfunc" keyword argument "dict" of type list.*""")
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '1.9': "testfunc" keyword argument "dict" of type "list".*""")
 
         with self.subTest('new container set to default'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'new_dict': {}})
-            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '1.1': "testfunc" keyword argument "new_dict" of type dict.*""")
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '1.1': "testfunc" keyword argument "new_dict" of type "dict".*""")
 
         with self.subTest('new container default'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {})
-            self.assertNotRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '1.1': "testfunc" keyword argument "new_dict" of type dict.*""")
+            self.assertNotRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '1.1': "testfunc" keyword argument "new_dict" of type "dict".*""")
+
+        with self.subTest('types tuple since'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'types_tuple_since': False})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '1.5': "testfunc" keyword argument "types_tuple_since" of type "bool".*""")
+
+        with self.subTest('types tuple deprecated'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'types_tuple_deprecated': False})
+            self.assertNotRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '0.9': "testfunc" keyword argument "types_tuple_deprecated" of type "bool".*""")
 
     def test_typed_kwarg_evolve(self) -> None:
         k = KwargInfo('foo', str, required=True, default='foo')

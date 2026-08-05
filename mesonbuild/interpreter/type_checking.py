@@ -14,7 +14,7 @@ from ..build import (CustomTarget, BuildTarget,
 from ..options import OptionKey
 from ..dependencies import Dependency, DependencyMethods, InternalDependency
 from ..interpreterbase import Feature
-from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken, FeatureDeprecated
+from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken, FeatureDeprecated, FeatureNew
 from ..mesonlib import (File, FileMode, MachineChoice, has_path_sep, listify, stringlistify,
                         EnvironmentVariables)
 from ..programs import Program, ExternalProgram
@@ -37,12 +37,18 @@ if T.TYPE_CHECKING:
     SourcesVarargsType = T.List[T.Union[str, File, GeneratedTypes, StructuredSources, ExtractedObjects, BuildTarget]]
 
 
+def _quote(x: T.Iterable[str]) -> T.Iterable[str]:
+    if isinstance(x, str):
+        return f'"{x}"'
+    return [f'"{c}"' for c in x]
+
+
 def in_set_validator(choices: T.Set[str]) -> T.Callable[[str], T.Optional[str]]:
     """Check that the choice given was one of the given set."""
 
     def inner(check: str) -> T.Optional[str]:
         if check not in choices:
-            return f"must be one of {', '.join(sorted(choices))}, not {check}"
+            return f"must be one of {', '.join(_quote(sorted(choices)))}, not \"{check}\""
         return None
 
     return inner
@@ -55,7 +61,7 @@ def _language_validator(l: T.List[str]) -> T.Optional[str]:
     """
     diff = {a.lower() for a in l}.difference(compilers.all_languages)
     if diff:
-        return f'unknown languages: {", ".join(diff)}'
+        return f'unknown languages: {", ".join(_quote(diff))}'
     return None
 
 
@@ -524,11 +530,18 @@ def suite_convertor(suite: T.List[str]) -> T.List[str]:
         return ['']
     return suite
 
+
+def _test_timeout_feature_validator(value: int) -> T.Iterable[FeatureCheckBase]:
+    if value <= 0:
+        yield FeatureNew('test timeout <= 0', '0.57.0')
+
+
 TEST_KWS_NO_ARGS: T.List[KwargInfo] = [
     KwargInfo('should_fail', (bool, NoneType), deprecated='1.11.0', deprecated_message='Use expected_fail instead of should_fail'),
     KwargInfo('expected_fail', (bool, NoneType), since='1.11.0'),
     KwargInfo('expected_exitcode', (int, NoneType), since='1.11.0'),
-    KwargInfo('timeout', int, default=30),
+    KwargInfo('timeout', int, default=30,
+              feature_validator=_test_timeout_feature_validator),
     KwargInfo('workdir', (str, NoneType), default=None,
               validator=lambda x: 'must be an absolute path' if not os.path.isabs(x) else None),
     KwargInfo('protocol', str,
@@ -544,8 +557,13 @@ TEST_KWS_NO_ARGS: T.List[KwargInfo] = [
 ]
 
 TEST_KWS: T.List[KwargInfo] = TEST_KWS_NO_ARGS + [
-    KwargInfo('args', ContainerTypeInfo(list, (str, File, BuildTarget, CustomTarget, CustomTargetIndex, Program)),
-              listify=True, default=[]),
+    KwargInfo(
+        'args',
+        ContainerTypeInfo(list, (str, File, BuildTarget, CustomTarget, CustomTargetIndex, Program)),
+        listify=True,
+        default=[],
+        since_values={ExternalProgram: '1.6.0'},
+    ),
 ]
 
 # Cannot have a default value because we need to check that rust_crate_type and
@@ -641,7 +659,7 @@ def _bt_install_dir_deprecated(args: T.List[T.Union[str, bool]]) -> T.Iterator[F
 
 # Applies to all build_target like classes
 _ALL_TARGET_KWS: T.List[KwargInfo] = [
-    OVERRIDE_OPTIONS_KW,
+    OVERRIDE_OPTIONS_KW.evolve(since='0.40.0'),
     KwargInfo('build_by_default', bool, default=True, since='0.38.0'),
     DEPENDENCIES_KW,
     KwargInfo(
@@ -784,6 +802,7 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     INCLUDE_DIRECTORIES.evolve(name='d_import_dirs'),
     LINK_ARGS_KW,
     LINK_WHOLE_KW.evolve(
+        since='0.40.0',
         as_default=[('', ('1.11.0', "Replace an empty string with an empty array: `link_whole : ''` -> `link_whole : []`"))],
     ),
     _NAME_PREFIX_KW,
@@ -1068,11 +1087,18 @@ def _pkgconfig_define_convertor(x: T.List[str]) -> PkgConfigDefineType:
         return tuple(zip(keys, vals))
     return None
 
-PKGCONFIG_DEFINE_KW: KwargInfo = KwargInfo(
+def _pkgconfig_define_feature_validator(x: list[str]) -> T.Iterable[FeatureCheckBase]:
+    if len(x) > 1:
+        yield FeatureNew(
+            'dependency.get_variable keyword argument "pkgconfig_define" with more than one pair',
+            '1.3.0', 'In previous versions, this silently returned a malformed value.')
+
+PKGCONFIG_DEFINE_KW: KwargInfo[list[str]] = KwargInfo(
     'pkgconfig_define',
     ContainerTypeInfo(list, str, pairs=True),
     default=[],
     convertor=_pkgconfig_define_convertor,
+    feature_validator=_pkgconfig_define_feature_validator,
 )
 
 INCLUDE_TYPE = KwargInfo(

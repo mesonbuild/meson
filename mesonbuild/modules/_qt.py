@@ -198,6 +198,23 @@ def _list_in_set_validator(choices: T.Set[str]) -> T.Callable[[T.List[str]], T.O
 _MODULE_NAME_PUNCT = r'- {}<>()[\].:;~%?&,+^=|!\/*"\''
 _MODULE_NAME_RE = f'[^{_MODULE_NAME_PUNCT}0-9][^{_MODULE_NAME_PUNCT}]*(\\.[^{_MODULE_NAME_PUNCT}0-9][^{_MODULE_NAME_PUNCT}]*)*'
 
+_SOURCES_EMPTY_KWS: KwargInfo[list[str | File | build.GeneratedTypes]] = KwargInfo(
+    'sources',
+    ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), allow_empty=False),
+    listify=True,
+    default=[],
+    since_values={
+        (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList): '0.60.0',
+    },
+)
+
+_SOURCES_KWS: KwargInfo[list[str | File | build.GeneratedTypes]] = KwargInfo(
+    'sources',
+    ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)),
+    listify=True,
+    default=[],
+)
+
 class QtBaseModule(ExtensionModule):
     _tools_detected = False
     _rcc_supports_depfiles = False
@@ -396,13 +413,8 @@ class QtBaseModule(ExtensionModule):
     @typed_kwargs(
         'qt.compile_resources',
         DEPENDENCY_METHOD_KW,
+        _SOURCES_KWS,
         KwargInfo('name', (str, NoneType)),
-        KwargInfo(
-            'sources',
-            ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), allow_empty=False),
-            listify=True,
-            required=True,
-        ),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
     )
     def compile_resources(self, state: 'ModuleState', args: T.Tuple, kwargs: 'ResourceCompilerKwArgs') -> ModuleReturnValue:
@@ -410,9 +422,6 @@ class QtBaseModule(ExtensionModule):
 
         Uses CustomTargets to generate .cpp files from .qrc files.
         """
-        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in kwargs['sources']):
-            FeatureNew.single_use('qt.compile_resources: custom_target or generator for "sources" keyword argument',
-                                  '0.60.0', state.subproject, location=state.current_node)
         out = self._compile_resources_impl(state, kwargs)
         return ModuleReturnValue(out, [out])
 
@@ -493,20 +502,12 @@ class QtBaseModule(ExtensionModule):
     @typed_kwargs(
         'qt.compile_ui',
         DEPENDENCY_METHOD_KW,
-        KwargInfo(
-            'sources',
-            ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), allow_empty=False),
-            listify=True,
-            required=True,
-        ),
+        _SOURCES_KWS,
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
     )
     def compile_ui(self, state: ModuleState, args: T.Tuple, kwargs: UICompilerKwArgs) -> ModuleReturnValue:
         """Compile UI resources into cpp headers."""
-        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in kwargs['sources']):
-            FeatureNew.single_use('qt.compile_ui: custom_target or generator for "sources" keyword argument',
-                                  '0.60.0', state.subproject, location=state.current_node)
         out = self._compile_ui_impl(state, kwargs)
         return ModuleReturnValue(out, [out])
 
@@ -533,18 +534,8 @@ class QtBaseModule(ExtensionModule):
     @typed_kwargs(
         'qt.compile_moc',
         DEPENDENCY_METHOD_KW,
-        KwargInfo(
-            'sources',
-            ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)),
-            listify=True,
-            default=[],
-        ),
-        KwargInfo(
-            'headers',
-            ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)),
-            listify=True,
-            default=[]
-        ),
+        _SOURCES_EMPTY_KWS,
+        _SOURCES_EMPTY_KWS.evolve(name='headers'),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
@@ -552,17 +543,10 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('output_json', bool, default=False, since='1.7.0'),
     )
     def compile_moc(self, state: ModuleState, args: T.Tuple, kwargs: MocCompilerKwArgs) -> ModuleReturnValue:
-        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in kwargs['headers']):
-            FeatureNew.single_use('qt.compile_moc: custom_target or generator for "headers" keyword argument',
-                                  '0.60.0', state.subproject, location=state.current_node)
-        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in kwargs['sources']):
-            FeatureNew.single_use('qt.compile_moc: custom_target or generator for "sources" keyword argument',
-                                  '0.60.0', state.subproject, location=state.current_node)
         out = self._compile_moc_impl(state, kwargs)
         return ModuleReturnValue(out, [out])
 
     def _compile_moc_impl(self, state: ModuleState, kwargs: MocCompilerKwArgs) -> T.List[build.GeneratedList]:
-        # Avoid the FeatureNew when dispatching from preprocess
         self._detect_tools(state, kwargs['method'])
         if not self.tools['moc'].found():
             err_msg = ("{0} sources specified and couldn't find {1}, "
@@ -622,7 +606,7 @@ class QtBaseModule(ExtensionModule):
 
         return output
 
-    # We can't use typed_pos_args here, the signature is ambiguous
+    @typed_pos_args('qt.preprocess', varargs=(str, File))
     @typed_kwargs(
         'qt.preprocess',
         DEPENDENCY_METHOD_KW,
@@ -642,27 +626,27 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
         KwargInfo('moc_output_json', bool, default=False, since='1.7.0'),
     )
-    def preprocess(self, state: ModuleState, args: T.List[T.Union[str, File]], kwargs: PreprocessKwArgs) -> ModuleReturnValue:
-        _sources = args[1:]
-        if _sources:
-            FeatureDeprecated.single_use('qt.preprocess positional sources', '0.59', state.subproject, location=state.current_node)
+    def preprocess(self, state: ModuleState, args: tuple[list[str | File]], kwargs: PreprocessKwArgs) -> ModuleReturnValue:
+        if args[0]:
+            _name, *_sources = args[0]
+            if _sources:
+                FeatureDeprecated.single_use('qt.preprocess positional sources', '0.59', state.subproject, location=state.current_node)
+            if not isinstance(_name, str):
+                raise build.InvalidArguments('First argument to qt.preprocess must be a string')
+            name = _name
+        else:
+            _sources = []
+            name = ''
+
         # List is invariant, os we have to cast...
         sources: T.List[str | build.TargetSources] = [*_sources, *kwargs['sources']]
-        for s in sources:
-            if not isinstance(s, (str, File)):
-                raise build.InvalidArguments('Variadic arguments to qt.preprocess must be Strings or Files')
         method = kwargs['method']
 
         if kwargs['qresources']:
             # custom output name set? -> one output file, multiple otherwise
-            rcc_kwargs: ResourceCompilerKwArgs = {'name': '',
+            rcc_kwargs: ResourceCompilerKwArgs = {'name': name,
                                                   'sources': T.cast('T.List[str | TargetSources]', kwargs['qresources']),
                                                   'extra_args': kwargs['rcc_extra_arguments'], 'method': method}
-            if args:
-                name = args[0]
-                if not isinstance(name, str):
-                    raise build.InvalidArguments('First argument to qt.preprocess must be a string')
-                rcc_kwargs['name'] = name
             sources.extend(self._compile_resources_impl(state, rcc_kwargs))
 
         if kwargs['ui_files']:
@@ -697,15 +681,12 @@ class QtBaseModule(ExtensionModule):
         DEPENDENCY_METHOD_KW,
         INSTALL_KW,
         INSTALL_DIR_KW,
+        _SOURCES_KWS.evolve(name='ts_files', required=False),
         KwargInfo('qresource', (str, NoneType), since='0.56.0'),
         KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.56.0'),
-        KwargInfo('ts_files', ContainerTypeInfo(list, (str, File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)), listify=True, default=[]),
     )
     def compile_translations(self, state: ModuleState, args: T.Tuple, kwargs: CompileTranslationsKwArgs) -> ModuleReturnValue:
         ts_files = kwargs['ts_files']
-        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in ts_files):
-            FeatureNew.single_use('qt.compile_translations: custom_target or generator for "ts_files" keyword argument',
-                                  '0.60.0', state.subproject, location=state.current_node)
         if kwargs['install'] and not kwargs['install_dir']:
             raise MesonException('qt.compile_translations: "install_dir" keyword argument must be set when "install" is true.')
         qresource = kwargs['qresource']
