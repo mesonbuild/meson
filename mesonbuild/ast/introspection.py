@@ -218,7 +218,8 @@ class IntrospectionInterpreter(AstInterpreter):
             has_fallback=has_fallback,
             conditional=node.condition_level > 0,
             node=node)
-        self.dependencies += [newdep]
+        if not isinstance(name, UnknownValue):
+            self.dependencies += [newdep]
         return newdep
 
     def build_target(self, node: BaseNode, args: T.List[TYPE_var], kwargs_raw: T.Dict[str, TYPE_var], targetclass: T.Type[BuildTarget]) -> T.Union[IntrospectionBuildTarget, UnknownValue]:

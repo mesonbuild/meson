@@ -4139,20 +4139,6 @@ class AllPlatformTests(BasePlatformTests):
                 'has_fallback': True,
                 'conditional': True
             },
-            {
-                'conditional': False,
-                'has_fallback': False,
-                'name': 'unknown',
-                'required': False,
-                'version': 'unknown'
-            },
-            {
-                'conditional': False,
-                'has_fallback': False,
-                'name': 'unknown',
-                'required': False,
-                'version': 'unknown'
-            },
         ]
         self.maxDiff = None
         self.assertListEqual(res_nb, expected)
