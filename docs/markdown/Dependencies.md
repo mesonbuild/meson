@@ -667,6 +667,9 @@ searches for Microsoft MPI. *Since 1.11.0* Intel MPI is also supported.
 *New in 0.54.0* The `config-tool` and `system` method values. Previous
 versions would always try `pkg-config`, then `config-tool`, then `system`.
 
+**Note:** Intel oneAPI MPI wrappers `>= 2021.17` may not be detected correctly due to 
+instabilities in its versioning flag. 
+
 ## NetCDF
 
 *(added 0.50.0)*
