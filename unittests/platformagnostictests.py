@@ -589,6 +589,12 @@ class PlatformAgnosticTests(BasePlatformTests):
                 self.assertEqual(self.getconf('debug', opts), True)
                 self.assertEqual(self.getconf('optimization', opts), '3')
 
+    def test_introspect_dependency_unknown_name(self):
+        testdir = os.path.join(self.unit_test_dir, '139 introspection unknown dep')
+        testfile = os.path.join(testdir, 'meson.build')
+        res = self.introspect_directory(testfile, ['--dependencies'] + self.meson_args)
+        self.assertListEqual(res, [])
+
     def test_setup_mixed_long_short_options(self) -> None:
         """Mixing unity and unity_size as long and short options should work."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '1 trivial'))
