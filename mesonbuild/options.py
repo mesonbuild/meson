@@ -33,7 +33,7 @@ from .mesonlib import (
 from . import mlog
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, Final, TypeAlias
+    from typing_extensions import Literal, Final, TypeAlias, TypedDict
 
     from .envconfig import MachineInfo
     from .mesonlib import SubProject
@@ -48,6 +48,11 @@ if T.TYPE_CHECKING:
     MutableKeyedOptionDictType: TypeAlias = T.Dict['OptionKey', AnyOptionType]
 
     _OptionKeyTuple: TypeAlias = T.Tuple[T.Optional[str], MachineChoice, str]
+
+    class OptionKeyState(TypedDict):
+        'name': str
+        'subproject': T.Optional[str]
+        'machine': MachineChoice
 
 DEFAULT_YIELDING = False
 
@@ -156,17 +161,17 @@ class OptionKey:
         object.__setattr__(self, 'machine', machine)
         object.__setattr__(self, '_hash', hash((name, subproject, machine)))
 
-    def __setattr__(self, key: str, value: T.Any) -> None:
+    def __setattr__(self, key: str, value: object) -> None:
         raise AttributeError('OptionKey instances do not support mutation.')
 
-    def __getstate__(self) -> T.Dict[str, T.Any]:
+    def __getstate__(self) -> OptionKeyState:
         return {
             'name': self.name,
             'subproject': self.subproject,
             'machine': self.machine,
         }
 
-    def __setstate__(self, state: T.Dict[str, T.Any]) -> None:
+    def __setstate__(self, state: OptionKeyState) -> None:
         # Here, the object is created using __new__()
         self._init(**state)
         _optionkey_cache[self._to_tuple()] = self
@@ -417,7 +422,7 @@ class _UserIntegerBase(UserOption[_T]):
     def validate_value(self, value: object) -> _T:
         if isinstance(value, str):
             value = T.cast('_T', self.toint(value))
-        if not isinstance(value, int):
+        if isinstance(value, bool) or not isinstance(value, int):
             raise MesonException(f'Value {value!r} for option "{self.name}" is not an integer.')
         if self.min_value is not None and value < self.min_value:
             raise MesonException(f'Value {value} for option "{self.name}" is less than minimum value {self.min_value}.')
@@ -641,13 +646,11 @@ def argparse_name_to_arg(name: str) -> str:
     return '--' + name.replace('_', '-')
 
 
-def argparse_prefixed_default(opt: AnyOptionType, name: OptionKey, prefix: str = '') -> ElementaryOptionValues:
-    if isinstance(opt, (UserComboOption, UserIntegerOption, UserUmaskOption)):
-        return T.cast('ElementaryOptionValues', opt.default)
+def prefixed_default(opt: AnyOptionType, name: OptionKey, prefix: str = '') -> ElementaryOptionValues:
     try:
         return BUILTIN_DIR_NOPREFIX_OPTIONS[name][prefix]
     except KeyError:
-        return T.cast('ElementaryOptionValues', opt.default)
+        return opt.default
 
 
 # Update `docs/markdown/Builtin-options.md` after changing the options below
@@ -823,7 +826,7 @@ class OptionStore:
             key = key.as_host()
         return key
 
-    def get_pending_value(self, key: T.Union[OptionKey, str], default: T.Optional[ElementaryOptionValues] = None) -> ElementaryOptionValues:
+    def get_pending_value(self, key: OptionKey, default: T.Optional[ElementaryOptionValues] = None) -> ElementaryOptionValues:
         key = self.ensure_and_validate_key(key)
         if key in self.options:
             return self.options[key].value
@@ -832,7 +835,7 @@ class OptionStore:
     def __len__(self) -> int:
         return len(self.options)
 
-    def resolve_option(self, key: 'T.Union[OptionKey, str]') -> AnyOptionType:
+    def resolve_option(self, key: OptionKey) -> AnyOptionType:
         key = self.ensure_and_validate_key(key)
         potential = self.options.get(key, None)
         if self.is_project_option(key):
@@ -937,7 +940,7 @@ class OptionStore:
         # Create a copy of the object, as we're going to mutate it
         opt = copy.copy(opt)
         assert key.subproject is None
-        new_value = argparse_prefixed_default(opt, key, default_prefix())
+        new_value = prefixed_default(opt, key, default_prefix())
         opt.set_value(new_value)
 
         modulename = key.get_module_prefix()
@@ -971,7 +974,7 @@ class OptionStore:
                 prefix = prefix[:-1]
         return prefix
 
-    def sanitize_dir_option_value(self, prefix: str, option: OptionKey, value: T.Any) -> T.Any:
+    def sanitize_dir_option_value(self, prefix: str, option: OptionKey, value: ElementaryOptionValues) -> ElementaryOptionValues:
         '''
         If the option is an installation directory option, the value is an
         absolute path and resides within prefix, return the value
@@ -981,19 +984,18 @@ class OptionStore:
         the library directory relative to prefix, even though it really
         should not be relied upon.
         '''
-        try:
-            value = self.pure_path_class(value)
-        except TypeError:
+        if not isinstance(value, str):
             return value
-        if option.name.endswith('dir') and value.is_absolute() and \
+        path = self.pure_path_class(value)
+        if option.name.endswith('dir') and path.is_absolute() and \
            option not in BUILTIN_DIR_NOPREFIX_OPTIONS:
             try:
                 # Try to relativize the path.
-                value = value.relative_to(prefix)
+                path = path.relative_to(prefix)
             except ValueError:
                 # Path is not relative, let’s keep it as is.
                 pass
-            if '..' in value.parts:
+            if '..' in path.parts:
                 raise MesonException(
                     f"The value of the '{option}' option is '{value}' but "
                     "directory options are not allowed to contain '..'.\n"
@@ -1001,7 +1003,7 @@ class OptionStore:
                     "please use an absolute path."
                 )
         # .as_posix() keeps the posix-like file separators Meson uses.
-        return value.as_posix()
+        return path.as_posix()
 
     def set_option(self, key: OptionKey, new_value: ElementaryOptionValues, first_invocation: bool = False) -> bool:
         changed = False
@@ -1138,7 +1140,7 @@ class OptionStore:
             valobj = self.options[optkey]
             new_value = valobj.value
             if new_prefix not in prefix_mapping:
-                new_value = BUILTIN_OPTIONS[optkey].default
+                new_value = valobj.default
             else:
                 if old_prefix in prefix_mapping:
                     # Only reset the value if it has not been changed from the default.
@@ -1148,7 +1150,7 @@ class OptionStore:
                     new_value = prefix_mapping[new_prefix]
             valobj.set_value(new_value)
 
-    def get_value_object(self, key: T.Union[OptionKey, str]) -> AnyOptionType:
+    def get_value_object(self, key: OptionKey) -> AnyOptionType:
         key = self.ensure_and_validate_key(key)
         return self.options[key]
 
@@ -1159,7 +1161,7 @@ class OptionStore:
         except KeyError:
             pass
 
-    def __contains__(self, key: T.Union[str, OptionKey]) -> bool:
+    def __contains__(self, key: OptionKey) -> bool:
         key = self.ensure_and_validate_key(key)
         return key in self.options
 
@@ -1272,7 +1274,7 @@ class OptionStore:
             if prefix in prefix_mapping:
                 new_value = prefix_mapping[prefix]
             else:
-                _v = BUILTIN_OPTIONS[optkey].default
+                _v = valobj.default
                 assert isinstance(_v, str), 'for mypy'
                 new_value = _v
             valobj.set_value(new_value)
@@ -1371,7 +1373,7 @@ class OptionStore:
         for key, valstr in options.items():
             if key.subproject != subproject:
                 if key.subproject in self.subprojects and not self.option_has_value(key, valstr):
-                    mlog.warning('option {key} is set in subproject {subproject} but has already been processed')
+                    mlog.warning(f'option {key} is set in subproject {subproject} but has already been processed')
                     continue
 
                 # Subproject options from project() will be processed when the subproject is found
