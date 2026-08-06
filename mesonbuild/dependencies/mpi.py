@@ -237,8 +237,8 @@ class MPIConfigToolDependency(ConfigToolDependency):
             return valid, f'{v.group(1)}.{v.group(2)}'
 
         # catch Intel OneAPI >2021.16, others
-        p, out = Popen_safe(tool + ['--help'])[:2]
-        valid = p.returncode == 0
+        p, _ = Popen_safe(tool + ['--help'])[:2]
+        valid = valid or p.returncode == 0
 
         return valid, None
 
