@@ -32,8 +32,8 @@ from .mesonlib import (
 from .options import OptionKey
 
 from .compilers import (
-    is_header, is_object, is_source, clink_langs, sort_clink,
-    is_known_suffix, detect_static_linker, LANGUAGES_USING_LDFLAGS,
+    is_header, is_object, is_source, is_unknown, clink_langs, sort_clink,
+    is_known_suffix, is_separate_compile, detect_static_linker, LANGUAGES_USING_LDFLAGS,
     get_base_compile_args
 )
 from .interpreterbase import FeatureNew, FeatureDeprecated
@@ -937,6 +937,8 @@ class BuildTarget(Target):
 
         self.swift_interoperability_mode = kwargs.get('swift_interoperability_mode', 'c')
         self.swift_module_name = kwargs.get('swift_module_name') or self.name
+        if self.structured_sources:
+            self.process_structured_sources()
         self.missing_languages = self.process_compilers()
         self.single_compile_base_args: T.Dict[Compiler, ImmutableListProtocol[str]] = {}
 
@@ -954,7 +956,7 @@ class BuildTarget(Target):
         self._set_vala_args(kwargs)
 
         if not any([[src for src in self.sources if not is_header(src)], self.generated, self.objects,
-                    self.link_whole_targets, self.structured_sources, kwargs.pop('_allow_no_sources', False)]):
+                    self.link_whole_targets, kwargs.pop('_allow_no_sources', False)]):
             mlog.warning(f'Build target {name} has no sources. '
                          'This was never supposed to be allowed but did because of a bug, '
                          'support will be removed in a future release of Meson')
@@ -1004,19 +1006,10 @@ class BuildTarget(Target):
         if self.uses_rust():
             if self.link_language and self.link_language != 'rust':
                 raise MesonException('cannot build Rust sources with a different link_language')
-            if self.structured_sources:
-                # TODO: the interpreter should be able to generate a better error message?
-                if any((s.endswith('.rs') for s in self.sources)) or \
-                       any(any((s.endswith('.rs') for s in g.get_outputs())) for g in self.generated):
-                    raise MesonException('cannot mix Rust structured sources and unstructured sources')
-
             # relocation-model=pic is rustc's default and Meson does not
             # currently have a way to disable PIC.
             self.pic = True
             self.pie = True
-        else:
-            if self.structured_sources:
-                raise MesonException('structured sources are only supported in Rust targets')
 
         if self.is_linkable_target():
             if self.vala_header is not None:
@@ -1031,6 +1024,54 @@ class BuildTarget(Target):
 
         for compiler in self.compilers.values():
             self.single_compile_base_args[compiler] = self._generate_single_compile_base_args(compiler)
+
+    def lower_structured_sources(self, struct: StructuredSources, subdir: str) -> T.List[GeneratedList]:
+        """Turn structured sources into GeneratedLists."""
+        generator = get_copy_generator(self.environment)
+        genlists = [generator.process_files(files, self.subdir,
+                                            output_subdir=os.path.join(subdir, path))
+                    for path, files in struct.sources.items()]
+        # build the main directory first, so that the first file in the root
+        # directory is used as the main file for Rust structured_sources.
+        genlists.sort(key=lambda g: g.output_subdir)
+        return genlists
+
+    def process_structured_sources(self) -> None:
+        """Turn structured sources into regular sources or GeneratedLists,
+           depending on whether a copy into the build tree is needed."""
+        source_suffixes = set()
+        for s in itertools.chain(self.sources, *(g.get_outputs() for g in self.generated)):
+            assert isinstance(s, (File, str)), 'for mypy'
+            if isinstance(s, File):
+                s = s.fname
+            if is_separate_compile(s):
+                continue
+            suffix = s.split('.')[-1]
+            source_suffixes.add('.' + suffix)
+
+        for v in self.structured_sources.sources.values():
+            for src in v:
+                if isinstance(src, (str, File)):
+                    items = (src,)
+                else:
+                    items = src.get_outputs()
+                for suffix in source_suffixes:
+                    if any(s.endswith(suffix) for s in items):
+                        raise MesonException(f'cannot mix {suffix!r} files in structured and unstructured sources')
+
+        if self.structured_sources.needs_copy():
+            self.generated += self.lower_structured_sources(self.structured_sources, 'structured')
+            return
+
+        # Every entry is a plain source file that is already laid out correctly
+        # in the source tree, so it can be used in place.  Note that backends
+        # drop unknown files when generated but not when they are from the source
+        # tree; since StructuredSources effectively always count as generated,
+        # drop them here.
+        for f in self.structured_sources.as_list():
+            assert isinstance(f, File) and not f.is_built
+            if not is_unknown(f.fname):
+                self.sources.append(f)
 
     def __repr__(self) -> str:
         repr_str = "<{0} {1}: {2}>"
@@ -1177,22 +1218,14 @@ class BuildTarget(Target):
         C/C++ compiler for cython.
         '''
         missing_languages: T.List[Language] = []
-        if not any([self.sources, self.generated, self.objects, self.structured_sources]):
+        if not any([self.sources, self.generated, self.objects]):
             return missing_languages
+
         # Preexisting sources
         sources: T.List['FileOrString'] = list(self.sources)
-        generated = self.generated.copy()
-
-        if self.structured_sources:
-            for v in self.structured_sources.sources.values():
-                for src in v:
-                    if isinstance(src, File):
-                        sources.append(src)
-                    else:
-                        generated.append(src)
 
         # All generated sources
-        for gensrc in generated:
+        for gensrc in self.generated:
             for s in gensrc.get_outputs():
                 # Generated objects can't be compiled, so don't use them for
                 # compiler detection. If our target only has generated objects,
@@ -2046,7 +2079,8 @@ class Generator(HoldableObject):
                  depfile: T.Optional[str] = None,
                  capture: bool = False,
                  depends: T.Optional[T.Sequence[TargetDepends]] = None,
-                 name: str = 'Generator'):
+                 name: str = 'Generator',
+                 description: T.Optional[str] = None):
         self.environment = env
         self.exe = exe
         self.depfile = depfile
@@ -2055,6 +2089,9 @@ class Generator(HoldableObject):
         self.arglist = arguments
         self.outputs = output
         self.name = name
+        # A str.format() template used by the backend for the build progress
+        # message, with '{input}' and '{output}' fields.
+        self.description = description
 
     def __repr__(self) -> str:
         repr_str = "<{0}: {1}>"
@@ -2086,14 +2123,16 @@ class Generator(HoldableObject):
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None,
                       env: T.Optional[EnvironmentVariables] = None,
-                      extra_depends: T.Optional[T.Sequence[TargetDepends]] = None) -> 'GeneratedList':
+                      extra_depends: T.Optional[T.Sequence[TargetDepends]] = None,
+                      output_subdir: str = '') -> 'GeneratedList':
         output = GeneratedList(
             self,
             subdir,
             preserve_path_from,
             extra_args=extra_args if extra_args is not None else [],
             env=env if env is not None else EnvironmentVariables(),
-            extra_depends=list(extra_depends) if extra_depends is not None else [])
+            extra_depends=list(extra_depends) if extra_depends is not None else [],
+            output_subdir=output_subdir)
 
         for e in files:
             if isinstance(e, (CustomTarget, CustomTargetIndex)):
@@ -2132,14 +2171,19 @@ class GeneratedList(HoldableObject):
     extra_args: T.List[str]
     env: T.Optional[EnvironmentVariables]
     extra_depends: T.List[TargetDepends]
+    # An extra directory, relative to the target private dir, that the outputs
+    # are placed in. Used to reproduce the directory layout of structured
+    # sources without baking the path into the (shared) generator's template.
+    output_subdir: str = ''
+
+    depends: set[GeneratedTypes] = field(default_factory=set, init=False)
+    infilelist: list[FileMaybeInTargetPrivateDir] = field(default_factory=list, init=False)
+    outfilelist: list[str] = field(default_factory=list, init=False)
+    outmap: dict[FileMaybeInTargetPrivateDir, list[str]] = field(default_factory=dict, init=False)
+    depend_files: list[File] = field(default_factory=list, init=False)
 
     def __post_init__(self) -> None:
         self.name = self.generator.exe
-        self.depends: T.Set[GeneratedTypes] = set()
-        self.infilelist: T.List[FileMaybeInTargetPrivateDir] = []
-        self.outfilelist: T.List[str] = []
-        self.outmap: T.Dict[FileMaybeInTargetPrivateDir, T.List[str]] = {}
-        self.depend_files: T.List[File] = []
 
         if self.extra_args is None:
             self.extra_args: T.List[str] = []
@@ -2182,6 +2226,8 @@ class GeneratedList(HoldableObject):
         if self.preserve_path_from:
             path_segment = self.get_preserved_path_segment(newfile)
             outfiles = [os.path.join(path_segment, of) for of in outfiles]
+        if self.output_subdir:
+            outfiles = [os.path.join(self.output_subdir, of) for of in outfiles]
         self.outfilelist += outfiles
         self.outmap[newfile] = outfiles
 
@@ -2205,6 +2251,18 @@ class GeneratedList(HoldableObject):
 
     def get_basename(self) -> str:
         return self.generator.name
+
+
+def get_copy_generator(environment: Environment) -> Generator:
+    """Return a shared Generator that copies a file using `meson --internal copy`."""
+    if environment.copy_generator is None:
+        exe = programs.ExternalProgram(
+            'meson', command=environment.get_build_command() + ['--internal', 'copy'],
+            silent=True)
+        environment.copy_generator = Generator(
+            environment, exe, ['@INPUT@', '@OUTPUT@'], ['@PLAINNAME@'],
+            name='copy', description='Copying {input} to {output}')
+    return environment.copy_generator
 
 
 class Executable(BuildTarget, LinkableTarget):
@@ -3380,6 +3438,12 @@ class Jar(BuildTarget):
         self.java_args = self.extra_args['java']
         self.main_class = kwargs.get('main_class', '')
         self.java_resources: T.Optional[StructuredSources] = kwargs.get('java_resources', None)
+        # Resources are always copied into the jar's private directory (so that
+        # `jar -C <privatedir> .` can pick them up); unlike compiled structured
+        # sources they are not added to self.generated.
+        self.java_resource_genlists: T.List[GeneratedList] = []
+        if self.java_resources:
+            self.java_resource_genlists = self.lower_structured_sources(self.java_resources, '')
 
     def _extract_link_with(self, kwargs: BuildTargetKeywordArguments) -> list[LinkableTargetTypes]:
         return kwargs['link_with']
@@ -3393,8 +3457,8 @@ class Jar(BuildTarget):
     def get_java_args(self) -> T.List[str]:
         return self.java_args
 
-    def get_java_resources(self) -> T.Optional[StructuredSources]:
-        return self.java_resources
+    def get_java_resources(self) -> T.List[GeneratedList]:
+        return self.java_resource_genlists
 
     def validate_install(self) -> None:
         # All jar targets are installable.
