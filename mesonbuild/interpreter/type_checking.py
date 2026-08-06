@@ -1011,6 +1011,38 @@ JAR_KWS = [
       for a in _LANGUAGE_KWS],
 ]
 
+_BUNDLE_KWS: T.List[KwargInfo] = [
+    KwargInfo('bundle_resources', (StructuredSources, NoneType)),
+    KwargInfo('bundle_contents', (StructuredSources, NoneType)),
+    KwargInfo('bundle_extra_binaries', ContainerTypeInfo(list, (CustomTarget, CustomTargetIndex, BuildTarget)), listify=True, default=[]),
+    KwargInfo('info_plist', (str, File, CustomTarget, CustomTargetIndex, NoneType), default=None),
+]
+
+_EXCLUSIVE_NSAPP_KWS: T.List[KwargInfo] = [
+    KwargInfo('bundle_layout', (str, NoneType)),
+    KwargInfo('bundle_exe_dir_name', (StructuredSources, NoneType)),
+]
+
+_EXCLUSIVE_NSFRAMEWORK_KWS: T.List[KwargInfo] = [
+    KwargInfo('framework_headers', (StructuredSources, NoneType)),
+]
+
+NSAPP_KWS: T.List[KwargInfo] = [
+    *EXECUTABLE_KWS,
+    *_BUNDLE_KWS,
+    *_EXCLUSIVE_NSAPP_KWS,
+    INCLUDE_DIRECTORIES,
+    DEPENDENCIES_KW,
+]
+
+NSFRAMEWORK_KWS: T.List[KwargInfo] = [
+    *SHARED_LIB_KWS,
+    *_BUNDLE_KWS,
+    *_EXCLUSIVE_NSFRAMEWORK_KWS,
+    INCLUDE_DIRECTORIES,
+    DEPENDENCIES_KW,
+]
+
 _SHARED_STATIC_ARGS: T.List[KwargInfo[T.List[str | File]]] = [
     *[l.evolve(name=l.name.replace('_', '_static_'), since='1.3.0')
       for l in _LANGUAGE_KWS],
@@ -1038,6 +1070,8 @@ BUILD_TARGET_KWS = [
     *_EXCLUSIVE_SHARED_MOD_KWS,
     *_EXCLUSIVE_STATIC_LIB_KWS,
     *EXCLUSIVE_EXECUTABLE_KWS,
+    *_EXCLUSIVE_NSAPP_KWS,
+    *_EXCLUSIVE_NSFRAMEWORK_KWS,
     *_SHARED_STATIC_ARGS,
     _VS_MODULE_DEFS_KW.evolve(since='1.12.0'),
     _WIN_SUBSYSTEM_KW.evolve(since='1.12.0'),
