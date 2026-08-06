@@ -3833,6 +3833,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         for arg in ('version', 'soversion', 'darwin_versions', 'shortname'):
             final[arg] = kwargs[arg]
         final['vs_module_defs'] = self.source_string_to_file(kwargs['vs_module_defs'])
+        final['symbol_list'] = self.source_string_to_file(kwargs['symbol_list'])
 
         for lang in compilers.all_languages - {'java'}:
             deps, args = self.__convert_file_args(kwargs.get(f'{lang}_shared_args', []))  # type: ignore[arg-type]

@@ -276,6 +276,9 @@ class DynamicLinker(metaclass=mesonlib.SimpleABC):
     def export_dynamic_args(self) -> T.List[str]:
         return []
 
+    def exported_symbols_args(self, target_name: str, target_private_dir: str) -> T.List[str]:
+        return []
+
     def import_library_args(self, implibname: str) -> T.List[str]:
         """The name of the outputted import library.
 
@@ -1741,6 +1744,10 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def thread_flags(self) -> T.List[str]:
         return ['-pthread']
+
+    def exported_symbols_args(self, target_name: str, target_private_dir: str) -> T.List[str]:
+        exp_file = os.path.join(target_private_dir, target_name + '.symbols')
+        return self._apply_prefix(['-bE:' + exp_file])
 
 
 class OptlinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):

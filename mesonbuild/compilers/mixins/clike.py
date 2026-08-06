@@ -285,6 +285,9 @@ class CLikeCompiler(Compiler):
         s_args, s_largs = super()._sanity_check_compile_args(sourcename, binname)
         return s_args + cargs, s_largs + largs
 
+    def gen_exported_symbols_args(self, target_name: str, target_private_dir: str) -> T.List[str]:
+        return self.linker.exported_symbols_args(target_name, target_private_dir)
+
     def check_header(self, hname: str, prefix: str, *,
                      extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
                      dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:

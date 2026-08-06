@@ -1181,6 +1181,14 @@ class NinjaBackend(backends.Backend):
 
         if not isinstance(target, build.StaticLibrary):
             final_obj_list = obj_list
+            # In AIX, in projects like glib2 we will first need to combine all object into one that
+            # are used to create a shared object. We then use the combined object to extract symbols to
+            # create an export file. And then pass it as -Wl,-bE:<path_to_export_file> to the shared
+            # library command. The reason is we want to tell AIX Linker that this shared library exports
+            # the symbols in the export file.
+            if isinstance(target, build.SharedLibrary) and self.environment.machines[target.for_machine].is_aix():
+                if target.aix_so_archive:
+                    final_obj_list = self.generate_prelink(target, obj_list)
         elif target.prelink:
             final_obj_list = self.generate_prelink(target, obj_list)
         else:
@@ -1196,7 +1204,15 @@ class NinjaBackend(backends.Backend):
 
         linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
         elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
+
+        # In AIX add dependency of the symbol export file to the shared object.
+        if isinstance(target, build.SharedLibrary) and self.environment.machines[target.for_machine].is_aix():
+            if target.aix_so_archive:
+                symbols_file = self.get_target_shsym_filename(target)
+                elem.add_dep(symbols_file)
+
         self.add_build(elem)
+
         #In AIX, we archive shared libraries. If the instance is a shared library, we add a command to archive the shared library
         #object and create the build element.
         if isinstance(target, build.SharedLibrary) and self.environment.machines[target.for_machine].is_aix():
@@ -2593,7 +2609,7 @@ class NinjaBackend(backends.Backend):
              '$IMPLIB',
              '$out']
         symrule = 'SHSYM'
-        symcmd = args + ['$CROSS']
+        symcmd = args + ['$CROSS', '$SYMBOL_LIST']
         syndesc = 'Generating symbol file $out'
         self.add_rule(NinjaRule(symrule, symcmd, [], syndesc, restat=True))
 
@@ -3610,20 +3626,23 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_shsym(self, target: build.BuildTarget) -> None:
         # On OS/2, an import library is generated after linking a DLL, so
         # if a DLL is used as a target, import library is not generated.
+        # Check if user provided a symbol list file
+        symbol_list_arg = ''
+        if hasattr(target, 'symbol_list') and target.symbol_list is not None:
+            symbol_list_arg = target.symbol_list.absolute_path(self.environment.source_dir, self.environment.build_dir)
         if self.environment.machines[target.for_machine].is_os2():
             target_file = self.get_target_filename_for_linking(target)
         else:
             target_file = self.get_target_filename(target)
         if isinstance(target, build.SharedLibrary) and target.aix_so_archive:
             if self.environment.machines[target.for_machine].is_aix():
-                linker, stdlib_args = target.get_clink_dynamic_linker_and_stdlibs()
-                target.get_outputs()[0] = linker.get_archive_name(target.get_outputs()[0])
-                target_file = target.get_outputs()[0]
-                target_file = os.path.join(self.get_target_dir(target), target_file)
+                target_file = os.path.join(self.get_target_private_dir(target), target.name + '-prelink.o')
         symname = self.get_target_shsym_filename(target)
         elem = NinjaBuildElement(self.all_outputs, symname, 'SHSYM', target_file)
         # The library we will actually link to, which is an import library on Windows (not the DLL)
         elem.add_item('IMPLIB', self.get_target_filename_for_linking(target))
+        if symbol_list_arg:
+            elem.add_item('SYMBOL_LIST', symbol_list_arg)
         if self.environment.is_cross_build():
             elem.add_item('CROSS', '--cross-host=' + self.environment.machines[target.for_machine].system)
         self.add_build(elem)
@@ -3668,6 +3687,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # This is only visited when building for Windows using either GCC or Visual Studio
             if target.import_filename:
                 commands += linker.gen_import_library_args(self.get_import_filename(target))
+            # Add export file option in command for AIX.
+            if self.environment.machines[target.for_machine].is_aix():
+                if not isinstance(target, build.SharedModule):
+                    from ..compilers.mixins.clike import CLikeCompiler
+                    assert isinstance(linker, CLikeCompiler)
+                    commands += linker.gen_exported_symbols_args(target.get_filename(), self.get_target_private_dir_abs(target))
         else:
             raise RuntimeError('Unknown build target type.')
         return commands
@@ -3792,7 +3817,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return guessed_dependencies + absolute_libs
 
     def generate_prelink(self, target: build.BuildTarget, obj_list: T.List[str]) -> T.List[str]:
-        assert isinstance(target, build.StaticLibrary)
+        # Only in AIX allow to call this for shared library.
+        if not self.environment.machines[target.for_machine].is_aix():
+            assert isinstance(target, build.StaticLibrary)
         prelink_name = os.path.join(self.get_target_private_dir(target), target.name + '-prelink.o')
         elem = NinjaBuildElement(self.all_outputs, [prelink_name], 'CUSTOM_COMMAND', obj_list)
 
@@ -3999,6 +4026,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if isinstance(t, build.SharedLibrary):
             if t.uses_rust() and t.rust_crate_type == 'proc-macro':
                 return self.get_target_filename(t)
+            # In ninja 1.13.2 onwards if archive we need to
+            # return archive name to build graph correctly.
+            elif t.aix_so_archive and self.environment.machines[t.for_machine].is_aix():
+                return self.get_target_filename_for_linking(t)
             else:
                 return self.get_target_shsym_filename(t)
         elif isinstance(t, mesonlib.File):
