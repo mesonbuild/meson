@@ -208,7 +208,7 @@ def list_targets(coredata: cdata.CoreData, builddata: build.Build, backend: back
     return tlist
 
 def list_buildoptions(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]:
-    return _list_buildoptions(coredata)
+    return _list_buildoptions(coredata, sorted(coredata.initialized_subprojects - {''}))
 
 def list_buildoptions_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]:
     subprojects = [i['name'] for i in intr.project_data['subprojects']]
@@ -216,7 +216,20 @@ def list_buildoptions_from_source(intr: IntrospectionInterpreter) -> T.List[T.Di
 
 def _list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[str]] = None) -> T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]:
     optlist: T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]] = []
-    subprojects = subprojects or []
+    subprojects = sorted(subprojects or [])
+
+    def add_subproject_keys(opts: options.MutableKeyedOptionDictType,
+                            replicate_non_yielding: bool = False) -> options.MutableKeyedOptionDictType:
+        # Add a row per subproject for options that can differ from the
+        # top-level value there: non-yielding ones (if requested) and any
+        # with a per-subproject value (augment) actually set.
+        ret = dict(opts)
+        for k, v in opts.items():
+            for s in subprojects:
+                sk = k.evolve(subproject=s)
+                if (replicate_non_yielding and not v.yielding) or sk in coredata.optstore.augments:
+                    ret[sk] = v
+        return ret
 
     dir_option_names = set(options.BUILTIN_DIR_OPTIONS)
     test_option_names = {OptionKey('errorlogs'),
@@ -232,13 +245,18 @@ def _list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[
             test_options[k] = v
         elif coredata.optstore.is_builtin_option(k):
             core_options[k] = v
-            if not v.yielding:
-                for s in subprojects:
-                    core_options[k.evolve(subproject=s)] = v
+    core_options = add_subproject_keys(core_options, replicate_non_yielding=True)
 
     def add_keys(opts: T.Union[options.MutableKeyedOptionDictType, options.OptionStore], section: str) -> None:
         for key, opt in sorted(opts.items()):
-            optdict = {'name': str(key), 'value': opt.value, 'section': section,
+            # Replicated per-subproject keys resolve through augments and
+            # yielding to report the value in effect for that subproject.
+            # Project options keep their stored value as before.
+            if key.subproject and not coredata.optstore.is_project_option(key):
+                value = coredata.optstore.get_value_for(key)
+            else:
+                value = opt.value
+            optdict = {'name': str(key), 'value': value, 'section': section,
                        'machine': key.machine.get_lower_case_name() if coredata.optstore.is_per_machine_option(key) else 'any'}
             if isinstance(opt, options.UserStringOption):
                 typestr = 'string'
@@ -269,9 +287,9 @@ def _list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[
 
     add_keys(core_options, 'core')
     add_keys({k: v for k, v in coredata.optstore.items() if coredata.optstore.is_backend_option(k)}, 'backend')
-    add_keys({k: v for k, v in coredata.optstore.items() if coredata.optstore.is_base_option(k)}, 'base')
+    add_keys(add_subproject_keys({k: v for k, v in coredata.optstore.items() if coredata.optstore.is_base_option(k)}), 'base')
     add_keys(
-        {k: v for k, v in sorted(coredata.optstore.items(), key=lambda i: i[0].machine) if coredata.optstore.is_compiler_option(k)},
+        add_subproject_keys({k: v for k, v in sorted(coredata.optstore.items(), key=lambda i: i[0].machine) if coredata.optstore.is_compiler_option(k)}),
         'compiler',
     )
     add_keys(dir_options, 'directory')

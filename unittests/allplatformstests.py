@@ -3636,6 +3636,24 @@ class AllPlatformTests(BasePlatformTests):
         self.assertIn('c_args', optnames)
         self.assertNotIn('build.c_args', optnames)
 
+    def test_introspect_buildoptions_subproject_augments(self):
+        testdir = os.path.join(self.unit_test_dir, '47 reconfigure')
+        self.init(testdir, extra_args=['-Dsub1:c_args=-DAUG', '-Dsub1:werror=true'])
+        res = self.introspect('--buildoptions')
+        opts = {o['name']: o for o in res}
+        self.assertEqual(opts['sub1:c_args']['value'], ['-DAUG'])
+        self.assertEqual(opts['sub1:werror']['value'], True)
+        # Non-yielding builtins get a row per subproject.
+        self.assertIn('sub1:warning_level', opts)
+        # The generated intro file matches the introspect command.
+        infofile = os.path.join(self.builddir, 'meson-info', 'intro-buildoptions.json')
+        with open(infofile, encoding='utf-8') as fp:
+            self.assertListEqual(json.load(fp), res)
+        # Source-only introspection takes the same path and must not crash.
+        testfile = os.path.join(testdir, 'meson.build')
+        res_nb = self.introspect_directory(testfile, ['--buildoptions'] + self.meson_args)
+        self.assertIn('sub1:warning_level', {o['name'] for o in res_nb})
+
     def test_introspect_json_flat(self):
         testdir = os.path.join(self.unit_test_dir, '56 introspection')
         self.init(testdir, extra_args=['-Dlayout=flat'])
