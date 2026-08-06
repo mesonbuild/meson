@@ -30,7 +30,7 @@ from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typ
 from ..interpreterbase import noPosargs, noKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
 from .decorators import apply_machine_map
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
-from ..interpreterbase import Disabler, disablerIfNotFound
+from ..interpreterbase import Disabler, disablerIfNotFound, is_disabled
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject, DefaultObject
 from ..interpreterbase import stringifyUserArguments, Feature, FeatureValue
@@ -151,6 +151,32 @@ def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None])
         elif not isinstance(value[0], mesonlib.File):
             return 'when passed as array must contain a File'
     return None
+
+
+def _handle_vcs_tag_disablers(f: T.Callable[..., T.Any]) -> T.Callable[..., T.Any]:
+    @functools.wraps(f)
+    def wrapper(self: 'Interpreter', node: mparser.BaseNode, args: T.List['TYPE_var'], kwargs: T.Dict[str, 'TYPE_var']) -> T.Any:
+        command_disabled = is_disabled([], {'command': kwargs.get('command')})
+        fallback_disabled = is_disabled([], {'fallback': kwargs.get('fallback')})
+
+        if command_disabled:
+            if 'fallback' not in kwargs or fallback_disabled:
+                return Disabler()
+            # Force vcstagger to use the explicitly provided fallback.
+            kwargs['command'] = [' ']
+        elif fallback_disabled:
+            # A disabled fallback means to use the project version instead.
+            del kwargs['fallback']
+
+        if is_disabled(args, kwargs):
+            return Disabler()
+
+        if kwargs.get('fallback') is True:
+            kwargs['fallback'] = self.project_version
+
+        return f(self, node, args, kwargs)
+
+    return wrapper
 
 
 @dataclasses.dataclass
@@ -2064,6 +2090,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return self.build_target(node, args, T.cast('kwtypes.Jar', kwargs), build.Jar)
 
     @noPosargs
+    @_handle_vcs_tag_disablers
     @typed_kwargs(
         'vcs_tag',
         CT_INPUT_KW.evolve(required=True),
@@ -2083,7 +2110,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         INSTALL_MODE_KW.evolve(since='1.7.0'),
     )
     @apply_machine_map
-    def func_vcs_tag(self, node: mparser.BaseNode, args: T.List['TYPE_var'], kwargs: 'kwtypes.VcsTag') -> build.CustomTarget:
+    def func_vcs_tag(self, node: mparser.BaseNode, args: T.List['TYPE_var'], kwargs: 'kwtypes.VcsTag') -> build.CustomTarget | Disabler:
         if kwargs['fallback'] is None:
             FeatureNew.single_use('Optional fallback in vcs_tag', '0.41.0', self.subproject, location=node)
         fallback = kwargs['fallback'] or self.project_version
