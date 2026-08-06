@@ -128,6 +128,8 @@ def generate_wrapdb_table(output_dir: Path) -> None:
         f.write('| Project | Versions | Provided dependencies | Provided programs |\n')
         f.write('| ------- | -------- | --------------------- | ----------------- |\n')
         for name, info in releases.items():
+            if 'deprecated' in info:
+                continue
             versions = []
             added_tags = set()
             for v in info['versions']:
