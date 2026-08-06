@@ -92,6 +92,10 @@ class CMakeTraceParser:
 
         self.explicit_headers: T.Set[Path] = set()
 
+        # Object dependencies set via set_source_files_properties(... OBJECT_DEPENDS ...),
+        # mapping the source file to the files its compilation depends on
+        self.object_depends: T.Dict[str, T.List[str]] = {}
+
         # T.List of targes that were added with add_custom_command to generate files
         self.custom_targets: T.List[CMakeGeneratorTarget] = []
 
@@ -120,6 +124,7 @@ class CMakeTraceParser:
             'add_custom_target': self._cmake_add_custom_target,
             'set_property': self._cmake_set_property,
             'set_target_properties': self._cmake_set_target_properties,
+            'set_source_files_properties': self._cmake_set_source_files_properties,
             'target_compile_definitions': self._cmake_target_compile_definitions,
             'target_compile_options': self._cmake_target_compile_options,
             'target_include_directories': self._cmake_target_include_directories,
@@ -604,6 +609,33 @@ class CMakeTraceParser:
                     return self._gen_exception('set_target_properties', f'TARGET {i} not found', tline)
 
                 self.targets[i].properties[name] = value
+
+    def _cmake_set_source_files_properties(self, tline: CMakeTraceLine) -> None:
+        # DOC: https://cmake.org/cmake/help/latest/command/set_source_files_properties.html
+        args = list(tline.args)
+
+        sources: T.List[str] = []
+        idx = 0
+        while idx < len(args) and args[idx] != 'PROPERTIES':
+            if args[idx] in {'DIRECTORY', 'TARGET_DIRECTORY'}:
+                # skip the scope arguments
+                idx += 1
+                while idx < len(args) and args[idx] not in {'DIRECTORY', 'TARGET_DIRECTORY', 'PROPERTIES'}:
+                    idx += 1
+                continue
+            sources += args[idx].split(';')
+            idx += 1
+
+        object_depends: T.List[str] = []
+        idx += 1
+        while idx + 1 < len(args):
+            if args[idx] == 'OBJECT_DEPENDS':
+                object_depends += args[idx + 1].split(';')
+            idx += 2
+
+        if object_depends:
+            for i in sources:
+                self.object_depends.setdefault(i, []).extend(object_depends)
 
     def _cmake_add_dependencies(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/add_dependencies.html
