@@ -534,6 +534,9 @@ class ConverterTarget:
         # Filter out object files from the sources
         self.generated = [x for x in self.generated if not any(x.name.endswith('.' + y) for y in obj_suffixes)]
 
+        if not self.sources and not self.generated and self.object_libs:
+            self.pie |= all(x.pie for x in self.object_libs)
+
     def _append_objlib_sources(self, tgt: 'ConverterTarget') -> None:
         self.includes += tgt.includes
         self.sources += tgt.sources
