@@ -1,6 +1,10 @@
-project('introspect buildargs', ['c'], default_options: ['c_std=c99', 'cpp_std=c++14', 'buildtype=release'])
+project(
+  'introspect buildargs',
+  ['c'],
+  default_options: ['c_std=c99', 'cpp_std=c++14', 'buildtype=release', 'projectA:buildtype=release'],
+)
 
-subA = subproject('projectA')
+subA = subproject('projectA', default_options: ['subproj_var=true'])
 
 target_name = 'MAIN'
 target_src = ['main.c']
