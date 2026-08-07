@@ -515,7 +515,8 @@ class CompilerHolder(ObjectHolder['Compiler']):
         deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
         result, cached = self.compiler.compiles(code,
                                                 extra_args=extra_args,
-                                                dependencies=deps)
+                                                dependencies=deps,
+                                                testname=testname)
         if required and not result:
             raise InterpreterException(f'Could not compile {testname}')
 
@@ -566,7 +567,8 @@ class CompilerHolder(ObjectHolder['Compiler']):
         result, cached = self.compiler.links(code,
                                              compiler=compiler,
                                              extra_args=extra_args,
-                                             dependencies=deps)
+                                             dependencies=deps,
+                                             testname=testname)
         if required and not result:
             raise InterpreterException(f'Could not link {testname if testname else "code"}')
 
