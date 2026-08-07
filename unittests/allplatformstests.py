@@ -3619,6 +3619,17 @@ class AllPlatformTests(BasePlatformTests):
         # XXX: These now generate in a different order, is that okay?
         self.assertListEqual(sorted(res_nb, key=lambda x: x['name']), sorted(res_wb, key=lambda x: x['name']))
 
+    def test_introspect_buildoptions_subproject_defaults(self):
+        testdir = os.path.join(self.unit_test_dir, '58 introspect buildoptions')
+        testfile = os.path.join(testdir, 'meson.build')
+        options = {
+            option['name']: option['value']
+            for option in self.introspect_directory(testfile, ['--buildoptions'] + self.meson_args)
+        }
+
+        self.assertEqual(options['projectA:buildtype'], 'release')
+        self.assertTrue(options['projectA:subproj_var'])
+
     def test_meson_configure_from_source_does_not_crash(self):
         testdir = os.path.join(self.unit_test_dir, '58 introspect buildoptions')
         self._run(self.mconf_command + [testdir])

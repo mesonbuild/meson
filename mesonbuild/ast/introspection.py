@@ -23,6 +23,7 @@ if T.TYPE_CHECKING:
     from ..build import BuildTarget, BuildTargetKeywordArguments
     from ..compilers.compilers import Language
     from ..interpreterbase import TYPE_var
+    from ..options import ElementaryOptionValues, OptionDict
     from .visitor import AstVisitor
 
 
@@ -69,7 +70,8 @@ class IntrospectionInterpreter(AstInterpreter):
                  cross_file: T.Optional[str] = None,
                  subproject: SubProject = mesonlib.ROOT_SUBPROJECT,
                  subproject_dir: str = 'subprojects',
-                 env: T.Optional[environment.Environment] = None):
+                 env: T.Optional[environment.Environment] = None,
+                 invoker_method_default_options: T.Optional[OptionDict] = None):
         options = IntrospectionHelper(cross_file)
         env_ = env or environment.Environment(source_root, None, options)
         super().__init__(source_root, subdir, subproject, subproject_dir, env_, visitors=visitors)
@@ -81,6 +83,9 @@ class IntrospectionInterpreter(AstInterpreter):
         self.targets: T.List[IntrospectionBuildTarget] = []
         self.dependencies: T.List[IntrospectionDependency] = []
         self.project_node: FunctionNode = None
+        self.project_default_options: OptionDict = {}
+        self.invoker_method_default_options = invoker_method_default_options or {}
+        self.subproject_default_options: T.Dict[SubProject, OptionDict] = {}
 
         self.funcs.update({
             'add_languages': self.func_add_languages,
@@ -92,8 +97,30 @@ class IntrospectionInterpreter(AstInterpreter):
             'shared_library': self.func_shared_lib,
             'shared_module': self.func_shared_module,
             'static_library': self.func_static_lib,
+            'subproject': self.func_subproject,
             'both_libraries': self.func_both_lib,
         })
+
+    def _get_default_options(self, kwargs: T.Dict[str, TYPE_var]) -> OptionDict:
+        raw_options = self.flatten_kwargs(kwargs).get('default_options', {})
+
+        def has_unknown_value(value: T.Any) -> bool:
+            if isinstance(value, UnknownValue):
+                return True
+            if isinstance(value, list):
+                return any(has_unknown_value(i) for i in value)
+            if isinstance(value, dict):
+                return any(has_unknown_value(k) or has_unknown_value(v) for k, v in value.items())
+            return False
+
+        if has_unknown_value(raw_options):
+            return {}
+        if not isinstance(raw_options, (str, list, dict)):
+            return {}
+        convertor = type_checking.DEFAULT_OPTIONS.convertor
+        assert convertor is not None
+        typed_options = T.cast('T.Union[str, T.List[str], T.Dict[str, ElementaryOptionValues]]', raw_options)
+        return T.cast('OptionDict', convertor(typed_options))
 
     def func_project(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         if self.project_node:
@@ -129,6 +156,21 @@ class IntrospectionInterpreter(AstInterpreter):
         self.project_data = {'descriptive_name': proj_name, 'version': proj_vers, 'license': proj_license, 'license_files': proj_license_files}
 
         self._load_option_file()
+        self.project_default_options = self._get_default_options(kwargs)
+        if self.is_subproject():
+            self.coredata.optstore.initialize_from_subproject_call(
+                self.subproject,
+                self.invoker_method_default_options,
+                self.project_default_options,
+                {},
+                self.environment.options,
+            )
+        else:
+            self.coredata.optstore.initialize_from_top_level_project_call(
+                self.project_default_options,
+                {},
+                self.environment.options,
+            )
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             spdirname = kwargs['subproject_dir']
@@ -137,21 +179,32 @@ class IntrospectionInterpreter(AstInterpreter):
                 self.subproject_dir = spdirname.value
         if not self.is_subproject():
             self.project_data['subprojects'] = []
-            subprojects_dir = os.path.join(self.source_root, self.subproject_dir)
-            if os.path.isdir(subprojects_dir):
-                for i in os.listdir(subprojects_dir):
-                    if os.path.isdir(os.path.join(subprojects_dir, i)):
-                        self.do_subproject(SubProject(i))
 
         self.environment.init_backend_options(self.backend)
 
         self._add_languages(proj_langs, True, MachineChoice.HOST)
         self._add_languages(proj_langs, True, MachineChoice.BUILD)
 
+    def func_subproject(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> UnknownValue:
+        if args and isinstance(args[0], str):
+            dirname = SubProject(args[0])
+            self.subproject_default_options.setdefault(dirname, self._get_default_options(kwargs))
+        return UnknownValue()
+
     def do_subproject(self, dirname: SubProject) -> None:
         subdir = os.path.join(self.environment.source_dir, self.subproject_dir, dirname)
         try:
-            subi = IntrospectionInterpreter(self.source_root, subdir, self.backend, cross_file=self.cross_file, subproject=dirname, subproject_dir=self.subproject_dir, env=self.environment, visitors=self.visitors)
+            subi = IntrospectionInterpreter(
+                self.source_root,
+                subdir,
+                self.backend,
+                cross_file=self.cross_file,
+                subproject=dirname,
+                subproject_dir=self.subproject_dir,
+                env=self.environment,
+                visitors=self.visitors,
+                invoker_method_default_options=self.subproject_default_options.get(dirname),
+            )
             subi.analyze()
             subi.project_data['name'] = dirname
             self.project_data['subprojects'] += [subi.project_data]
@@ -356,6 +409,12 @@ class IntrospectionInterpreter(AstInterpreter):
         self.sanity_check_ast()
         self.parse_project()
         self.run()
+        if not self.is_subproject():
+            subprojects_dir = os.path.join(self.source_root, self.subproject_dir)
+            if os.path.isdir(subprojects_dir):
+                for i in os.listdir(subprojects_dir):
+                    if os.path.isdir(os.path.join(subprojects_dir, i)):
+                        self.do_subproject(SubProject(i))
 
     def extract_subproject_dir(self) -> T.Optional[str]:
         '''Fast path to extract subproject_dir kwarg.
