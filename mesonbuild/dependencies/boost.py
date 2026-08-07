@@ -629,12 +629,29 @@ class BoostDependency(SystemDependency):
         if not self.debug:
             libs = [x for x in libs if not x.debug]
 
-        # Take the abitag from the first library and filter by it. This
-        # ensures that we have a set of libraries that are always compatible.
         if not libs:
             return []
-        abitag = libs[0].abitag
-        libs = [x for x in libs if x.abitag == abitag]
+
+        # Prefer the requested library type, but only when its ABI contains all
+        # requested modules that have a library component. This allows a
+        # complete set of the other type to be used as a fallback.
+        libs.sort(key=lambda x: x.static != self.static)
+        modules = ['boost_' + x for x in self.modules]
+        required_modules = [
+            mod for mod in modules if any(x.mod_name_matches(mod) for x in libs)
+        ]
+        libraries_by_abi: T.Dict[str, T.List[BoostLibraryFile]] = {}
+        for lib in libs:
+            libraries_by_abi.setdefault(lib.abitag, []).append(lib)
+        for abi_libs in libraries_by_abi.values():
+            if all(any(x.mod_name_matches(mod) for x in abi_libs) for mod in required_modules):
+                libs = abi_libs
+                break
+        else:
+            # Preserve the existing best-effort selection when no ABI has all
+            # requested library components. run_check() will report any
+            # genuinely missing modules after checking for header-only ones.
+            libs = next(iter(libraries_by_abi.values()))
 
         # Assume that we are building against the latest Python version
         # and that the other ones are only there for backwards compatibility.
