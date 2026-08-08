@@ -64,6 +64,8 @@ specified. The JSON format for one target is defined as follows:
     "build_by_default": true / false,
     "target_sources": [],
     "extra_files": ["/path/to/file1.hpp", "/path/to/file2.hpp"],
+    "dependencies": ["external-dependency-name"],
+    "depends": ["target1-id", "target2-id"],
     "installed": true / false,
 }
 ```
@@ -76,6 +78,11 @@ corresponding install location is set to `null`.
 The `subproject` key specifies the name of the subproject this target
 was defined in, or `null` if the target was defined in the top level
 project.
+
+The `dependencies` key lists external dependencies used by the target.
+The `depends` key lists the IDs of other targets that must be built before
+this target. Those IDs can be looked up in the same targets introspection
+data.
 
 *(New in 0.56.0)* The `extra_files` key lists all files specified via
 the `extra_files` kwarg of a build target. See

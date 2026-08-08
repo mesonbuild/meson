@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 import copy
-import itertools
 import os
 import xml.dom.minidom
 import xml.etree.ElementTree as ET
@@ -19,7 +18,6 @@ from .. import build
 from .. import mlog
 from .. import compilers
 from .. import mesonlib
-from .. import programs
 from ..mesonlib import (
     File, MesonBugException, MesonException, replace_if_different, version_compare, MachineChoice
 )
@@ -353,69 +351,6 @@ class Vs2010Backend(backends.Backend):
                 return '"%s" -arch=%s -host_arch=%s' % \
                     (script_path, os.environ['VSCMD_ARG_TGT_ARCH'], os.environ['VSCMD_ARG_HOST_ARCH'])
         return ''
-
-    def get_obj_target_deps(self, obj_list: list[build.ObjectTypes]) -> T.Iterable[tuple[str, build.BuildTarget]]:
-        result = {}
-        for o in obj_list:
-            if isinstance(o, build.ExtractedObjects):
-                result[o.target.get_id()] = o.target
-        return result.items()
-
-    def get_target_deps(self, t: T.Mapping[str, build.Target], recursive: bool = False) -> T.Dict[str, build.Target]:
-        all_deps: T.Dict[str, build.Target] = {}
-        for target in t.values():
-            if isinstance(target, build.CustomTargetIndex):
-                # just transfer it to the CustomTarget code
-                target = target.target
-            if isinstance(target, build.CustomTarget):
-                for d in target.get_target_dependencies():
-                    # FIXME: this isn't strictly correct, as the target doesn't
-                    # Get dependencies on non-targets, such as Files
-                    if isinstance(d, build.Target):
-                        all_deps[d.get_id()] = d
-            elif isinstance(target, build.RunTarget):
-                for d in target.get_dependencies():
-                    if isinstance(d, build.LocalProgram):
-                        d = d.program
-                    if isinstance(d, (programs.Program, build.GeneratedList)):
-                        continue
-                    all_deps[d.get_id()] = d.get_target()
-            elif isinstance(target, build.BuildTarget):
-                for ldep in target.link_targets:
-                    all_deps[ldep.get_id()] = ldep.get_target()
-                for ldep in target.link_whole_targets:
-                    all_deps[ldep.get_id()] = ldep.get_target()
-
-                for ldep in target.link_depends:
-                    if isinstance(ldep, File):
-                        # Already built, no target references needed
-                        pass
-                    else:
-                        all_deps[ldep.get_id()] = ldep.get_target()
-
-                for obj_id, objdep in self.get_obj_target_deps(target.objects):
-                    all_deps[obj_id] = objdep
-            else:
-                raise MesonException(f'Unknown target type for target {target}')
-
-            for gendep in target.get_generated_sources():
-                if isinstance(gendep, (build.CustomTarget, build.CustomTargetIndex)):
-                    all_deps[gendep.get_id()] = gendep.get_target()
-                else:
-                    generator = gendep.get_generator()
-                    for d in itertools.chain(generator.depends, gendep.depends, gendep.extra_depends):
-                        if isinstance(d, build.CustomTargetIndex):
-                            all_deps[d.get_id()] = d.target
-                        elif isinstance(d, build.Target):
-                            all_deps[d.get_id()] = d
-                        # FIXME: we don't handle other kinds of deps correctly here, such
-                        # as GeneratedLists, StructuredSources, and generated File.
-
-        if not t or not recursive:
-            return all_deps
-        ret = self.get_target_deps(all_deps, recursive)
-        ret.update(all_deps)
-        return ret
 
     def generate_solution_dirs(self, ofile: T.TextIO, parents: T.Sequence[PurePath]) -> None:
         prj_templ = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
