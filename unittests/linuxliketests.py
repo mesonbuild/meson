@@ -333,6 +333,17 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Db_sanitize=address', '-Db_lundef=false'])
         self.build()
 
+    @skipIfNoExecutable('g-ir-scanner')
+    @skipIfNoPkgconfigDep('gobject-2.0')
+    def test_generate_gir_target_dependencies(self):
+        testdir = os.path.join(self.framework_test_dir, '12 multiple gir')
+        self.init(testdir)
+
+        targets = {target['name']: target for target in self.introspect('--targets')}
+        for gir, library in [('Meson-1.0.gir', 'girlib'),
+                             ('MesonSub-1.0.gir', 'girsubproject')]:
+            self.assertIn(targets[library]['id'], targets[gir]['depends'])
+
     def test_qt5dependency_no_lrelease(self):
         '''
         Test that qt5 detection with qmake works. This can't be an ordinary

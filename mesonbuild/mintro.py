@@ -188,7 +188,7 @@ def list_targets(coredata: cdata.CoreData, builddata: build.Build, backend: back
             'extra_files': [os.path.normpath(os.path.join(src_dir, x.subdir, x.fname)) for x in target.extra_files],
             'subproject': target.subproject or None,
             'dependencies': [d.name for d in getattr(target, 'external_deps', [])],
-            'depends': [lib.get_id() for lib in getattr(target, 'dependencies', [])]
+            'depends': list(backend.get_target_deps({idname: target})),
         }
 
         vs_module_defs = getattr(target, 'vs_module_defs', None)

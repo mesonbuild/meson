@@ -39,7 +39,8 @@ t2 = executable('test@0@'.format('@0@'.format(var2)), sources: ['t2.cpp'], link_
 t3 = executable(var3, 't3.cpp', link_with: [sharedlib, staticlib], dependencies: [dep1])
 
 cus3 = custom_target('custom target test 3', output: 'file4', input: t3,
-                     command: [find_program('cp.py'), '@INPUT@', '@OUTPUT@'])
+                     command: [find_program('cp.py'), '@INPUT@', '@OUTPUT@'],
+                     depends: t1)
 
 ### BEGIN: Test inspired by taisei: https://github.com/taisei-project/taisei/blob/master/meson.build#L293
 systype = '@0@'.format(host_machine.system())

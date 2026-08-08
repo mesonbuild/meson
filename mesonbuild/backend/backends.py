@@ -37,10 +37,11 @@ from ..options import OptionKey
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
     from ..arglist import CompilerArgs
-    from ..build import TargetSources
+    from ..build import ExtractedObjects, TargetSources
     from ..compilers.compilers import Compiler, Language
     from ..environment import Environment
     from ..interpreter import Test
+    from ..interpreter.kwargs import TargetDepends
     from ..linkers import StaticLinker
     from ..mesonlib import InstallScript
     from ..options import ElementaryOptionValues
@@ -495,6 +496,59 @@ class Backend:
     def determine_ext_objs(self, objects: build.ExtractedObjects) -> T.List[str]:
         obj_list, _ = self._flatten_object_list(objects.target, [objects], '')
         return unique_list(obj_list)
+
+    def get_target_deps(self, targets: T.Mapping[str, build.Target], recursive: bool = False) -> T.Dict[str, build.Target]:
+        """Return target dependencies keyed by their introspection IDs."""
+        all_deps: T.Dict[str, build.Target] = {}
+
+        def add_dependency(dep: build.AnyTargetType | TargetDepends | File | ExtractedObjects) -> None:
+            if isinstance(dep, build.LocalProgram):
+                dep = dep.get_target()
+            if isinstance(dep, build.CustomTargetIndex):
+                dep = dep.get_target()
+            if isinstance(dep, build.Target):
+                all_deps[dep.get_id()] = dep
+            elif isinstance(dep, build.ExtractedObjects):
+                all_deps[dep.target.get_id()] = dep.target
+            elif isinstance(dep, build.GeneratedList):
+                generator = dep.get_generator()
+                for nested in chain(generator.depends, dep.depends, dep.extra_depends):
+                    add_dependency(nested)
+
+        for target in targets.values():
+            if isinstance(target, build.CustomTargetIndex):
+                # Just transfer it to the CustomTarget code.
+                target = target.target
+            if isinstance(target, build.CustomTarget):
+                for dep in target.get_target_dependencies():
+                    add_dependency(dep)
+            elif isinstance(target, build.RunTarget):
+                for dep in target.get_dependencies():
+                    add_dependency(dep)
+            elif isinstance(target, build.BuildTarget):
+                for dep in chain(target.link_targets, target.link_whole_targets):
+                    add_dependency(dep)
+
+                if isinstance(target, build.CompileTarget):
+                    for dep in target.depends:
+                        add_dependency(dep)
+
+                for dep in target.link_depends:
+                    add_dependency(dep)
+
+                for obj in target.objects:
+                    add_dependency(obj)
+            else:
+                raise MesonException(f'Unknown target type for target {target}')
+
+            for generated in target.get_generated_sources():
+                add_dependency(generated)
+
+        if not targets or not recursive:
+            return all_deps
+        result = self.get_target_deps(all_deps, recursive)
+        result.update(all_deps)
+        return result
 
     def _flatten_object_list(self, target: build.BuildTarget,
                              objects: T.Sequence[build.ObjectTypes],

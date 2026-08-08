@@ -3851,6 +3851,17 @@ class AllPlatformTests(BasePlatformTests):
             })
 
         with self.subTest('Check targets'):
+            target_ids = {target['name']: target['id'] for target in res['targets']}
+            target_depends = {
+                'sharedTestLib': [],
+                'staticTestLib': [],
+                'custom target test 1': [],
+                'custom target test 2': [target_ids['custom target test 1']],
+                'test1': [target_ids['sharedTestLib']],
+                'test2': [target_ids['staticTestLib']],
+                'test3': [target_ids['sharedTestLib'], target_ids['staticTestLib']],
+                'custom target test 3': [target_ids['test1'], target_ids['test3']],
+            }
             targets_to_find = {
                 'sharedTestLib': ('shared library', True, False, 'sharedlib/meson.build',
                                 [os.path.join(testdir, 'sharedlib', 'shared.cpp')]),
@@ -3877,6 +3888,7 @@ class AllPlatformTests(BasePlatformTests):
                     self.assertEqual(i['build_by_default'], tgt[1])
                     self.assertEqual(i['installed'], tgt[2])
                     self.assertPathEqual(i['defined_in'], os.path.join(testdir, tgt[3]))
+                    self.assertEqual(sorted(i['depends']), sorted(target_depends[i['name']]))
                     targets_to_find.pop(i['name'], None)
                 for j in i['target_sources']:
                     if 'compiler' in j:
@@ -3974,12 +3986,16 @@ class AllPlatformTests(BasePlatformTests):
         res_nb = self.introspect_directory(testfile, ['--targets'] + self.meson_args)
 
         # Account for differences in output
+        # Source introspection cannot resolve target dependencies without
+        # configuring the project.
+        for i in res_nb:
+            del i['depends']
         res_wb = [i for i in res_wb if i['type'] != 'custom']
         for i in res_wb:
             if i['id'] == 'test1@exe':
                 i['build_by_default'] = 'unknown'
             i['filename'] = [os.path.relpath(x, self.builddir) for x in i['filename']]
-            for k in ('install_filename', 'dependencies', 'win_subsystem'):
+            for k in ('install_filename', 'dependencies', 'depends', 'win_subsystem'):
                 if k in i:
                     del i[k]
 
@@ -3997,6 +4013,21 @@ class AllPlatformTests(BasePlatformTests):
 
         self.maxDiff = None
         self.assertListEqual(res_nb, res_wb)
+
+    def test_introspect_compile_target_dependencies(self):
+        testdir = os.path.join(self.common_test_dir, '259 preprocess')
+        self.init(testdir)
+
+        targets = {target['id']: target for target in self.introspect('--targets')}
+        compile_target_ids = {
+            target['id'] for target in targets.values() if target['type'] == 'compile'
+        }
+
+        self.assertSetEqual(
+            set(targets['preprocessor_0@compile']['depends']),
+            {'bar.x@cus', 'foo.h@cus'},
+        )
+        self.assertSetEqual(set(targets['app@exe']['depends']), compile_target_ids)
 
     @skipIfNoExecutable('gettext')
     @skipIfNoExecutable('xgettext')
