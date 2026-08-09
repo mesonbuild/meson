@@ -9,8 +9,16 @@ fs = import('fs')
 qt5_modules = ['Widgets']
 qt6_modules = ['Widgets']
 
+copyfile = find_program('copyfile.py')
+copyfile_gen = generator(copyfile,
+  output: '@BASENAME@Gen.cpp',
+  arguments : ['@INPUT@', '@OUTPUT@'])
+
+manualinclude_cpp_gen = copyfile_gen.process('manualinclude.cpp')
+
 manualinclude_cpp = fs.copyfile('manualinclude.cpp')
 manualinclude_h = fs.copyfile('manualinclude.h')
+
 foreach qt : ['qt4', 'qt5', 'qt6']
   qt_modules = ['Core', 'Gui']
   if qt == 'qt5'
@@ -143,7 +151,7 @@ foreach qt : ['qt4', 'qt5', 'qt6']
 
     manpreprocessed = qtmodule.compile_moc(
       extra_args : ['-DMOC_EXTRA_FLAG'], # This is just a random macro to test `extra_arguments`
-      sources : 'manualinclude.cpp',
+      sources : manualinclude_cpp_gen,
       headers : 'manualinclude.h',
       method : get_option('method'),
       dependencies: mocdep,

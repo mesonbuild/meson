@@ -24,4 +24,4 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-#include"manualinclude.moc"
+#include"manualincludeGen.moc"
