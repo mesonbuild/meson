@@ -52,6 +52,7 @@ else:
 ALL_STDS = ['c89', 'c9x', 'c90', 'c99', 'c1x', 'c11', 'c17', 'c18', 'c2x', 'c23', 'c2y']
 ALL_STDS += [f'gnu{std[1:]}' for std in ALL_STDS]
 ALL_STDS += ['iso9899:1990', 'iso9899:199409', 'iso9899:1999', 'iso9899:2011', 'iso9899:2017', 'iso9899:2018', 'iso9899:2024']
+ALL_STDS += ['clatest']
 
 
 class CCompiler(CLikeCompiler, Compiler):
@@ -422,6 +423,7 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
 
     _C11_VERSION = '>=19.28'
     _C17_VERSION = '>=19.28'
+    _CLATEST_VERSION = '>=19.37'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment, target: str,
@@ -438,6 +440,8 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
             stds += ['c11']
         if version_compare(self.version, self._C17_VERSION):
             stds += ['c17', 'c18']
+        if version_compare(self.version, self._CLATEST_VERSION):
+            stds += ['clatest']
         key = self.form_compileropt_key('std')
         std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
@@ -448,11 +452,13 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
         args = []
         std = self.get_compileropt_value('std', target, subproject)
 
-        # As of MVSC 16.8, /std:c11 and /std:c17 are the only valid C standard options.
+        # MSVC is not strictily conformant to c89 and c99 because the use of microsoft extensions.
         if std in {'c11'}:
             args.append('/std:c11')
         elif std in {'c17', 'c18'}:
             args.append('/std:c17')
+        elif std == 'clatest':
+            args.append('/std:clatest')
         return args
 
 
