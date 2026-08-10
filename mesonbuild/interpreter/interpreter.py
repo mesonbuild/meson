@@ -335,9 +335,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         from .. import cargo
         try:
             self.cargo = cargo.Interpreter(self.environment, self.subdir, self.subproject_dir)
-        except cargo.TomlImplementationMissing as e:
-            # error delayed to actual usage of a Cargo subproject
-            mlog.warning(f'cannot load Cargo.lock: {e}', fatal=False)
+        except cargo.TomlImplementationMissing:
+            # Error delayed to actual usage of a Cargo subproject. The warning
+            # has already been printed by Resolver.load_wraps().
+            pass
 
     def _redetect_machines(self) -> None:
         # Re-initialize machine descriptions. We can do a better job now because we

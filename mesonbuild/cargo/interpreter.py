@@ -301,10 +301,8 @@ class Interpreter:
         self.build_def_files: T.List[str] = []
         # Cargo packages
         filename = os.path.join(self.environment.get_source_dir(), subdir, 'Cargo.lock')
-        subprojects_dir = os.path.join(self.environment.get_source_dir(), subdir, subprojects_dir)
-        self.cargolock = load_cargo_lock(filename, subprojects_dir)
+        self.cargolock = self.environment.wrap_resolver.get_cargo_lock(subdir)
         if self.cargolock:
-            self.environment.wrap_resolver.merge_wraps(self.cargolock.wraps)
             self.build_def_files.append(filename)
 
     @property
