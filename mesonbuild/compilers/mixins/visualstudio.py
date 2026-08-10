@@ -127,6 +127,14 @@ class VisualStudioLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
         # TODO: use ImmutableListProtocol[str] here instead
         return self.always_args.copy()
 
+    def get_compiler_args_for_mode(self, mode: CompileCheckMode) -> T.List[str]:
+        # Linker always-args are intended for link.exe, which Meson invokes as
+        # a separate build step.  Compiler checks link through cl.exe instead,
+        # where unwrapped linker options such as /release are compiler errors.
+        if mode is CompileCheckMode.LINK:
+            return self.get_always_args()
+        return super().get_compiler_args_for_mode(mode)
+
     def get_no_stdinc_args(self) -> T.List[str]:
         return ['/X']
 
