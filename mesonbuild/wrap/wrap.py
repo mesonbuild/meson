@@ -41,6 +41,8 @@ if T.TYPE_CHECKING:
     import http.client
     from typing_extensions import Literal
 
+    from ..cargo.manifest import CargoLock
+
     Method = Literal['meson', 'cmake', 'cargo']
 
 try:
@@ -367,6 +369,7 @@ class Resolver:
 
     def __post_init__(self) -> None:
         self.subdir_root = os.path.join(self.source_dir, self.subdir)
+        self.project_subdir = os.path.relpath(os.path.dirname(self.subdir_root), self.source_dir)
         self.cachedir = os.environ.get('MESON_PACKAGE_CACHE_DIR') or os.path.join(self.subdir_root, 'packagecache')
         self.wraps: T.Dict[str, PackageDefinition] = {}
         self.netrc: T.Optional[netrc] = None
@@ -376,6 +379,7 @@ class Resolver:
         self.wrapdb_provided_deps: T.Dict[str, str] = {}
         self.wrapdb_provided_programs: T.Dict[str, SubProject] = {}
         self.loaded_dirs: T.Set[str] = set()
+        self.cargolocks: T.Dict[str, T.Optional[CargoLock]] = {}
         self.load_wraps()
         self.load_netrc()
         self.load_wrapdb()
@@ -411,7 +415,36 @@ class Resolver:
         # Add provided deps and programs into our lookup tables
         for wrap in self.wraps.values():
             self.add_wrap(wrap)
+        self.get_cargo_lock(self.project_subdir, warn_only=True)
         self.loaded_dirs.add(self.subdir)
+
+    def get_cargo_lock(self, project_subdir: str, warn_only: bool = False) -> T.Optional[CargoLock]:
+        project_subdir = os.path.normpath(os.path.join(self.source_dir, project_subdir))
+        filename = os.path.join(project_subdir, 'Cargo.lock')
+        if filename in self.cargolocks:
+            return self.cargolocks[filename]
+
+        if not os.path.exists(filename):
+            self.cargolocks[filename] = None
+            return None
+
+        from ..cargo.interpreter import load_cargo_lock
+        from ..cargo.toml import TomlImplementationMissing
+        subdir_root = os.path.join(project_subdir, os.path.basename(self.subdir))
+        try:
+            cargolock = load_cargo_lock(filename, subdir_root)
+        except TomlImplementationMissing as e:
+            if not warn_only:
+                raise
+            # Error delayed to the actual usage of a Cargo subproject; do not
+            # cache the failure, so that it can be reported properly then.
+            mlog.warning(f'cannot load Cargo.lock: {e}', fatal=False, once=True)
+            return None
+
+        self.cargolocks[filename] = cargolock
+        if cargolock:
+            self.merge_wraps(cargolock.wraps)
+        return cargolock
 
     def add_wrap(self, wrap: PackageDefinition, ignore_dups: bool = False) -> None:
         for k in wrap.provided_deps.keys():
@@ -478,6 +511,7 @@ class Resolver:
         if self.wrap_mode != WrapMode.nopromote and subdir not in self.loaded_dirs:
             other_resolver = Resolver(self.source_dir, subdir, subproject, self.wrap_mode, self.wrap_frontend, self.allow_insecure, self.silent)
             self.merge_wraps(other_resolver.wraps)
+            self.cargolocks.update(other_resolver.cargolocks)
             self.loaded_dirs.add(subdir)
 
     def get_directory(self, packagename: str) -> str:
