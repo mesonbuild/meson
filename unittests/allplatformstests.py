@@ -1655,6 +1655,26 @@ class AllPlatformTests(BasePlatformTests):
             # fails sometimes.
             pass
 
+    @skipIfNoExecutable('git')
+    @skip_if_not_language('rust')
+    def test_dist_subprojects_cargo(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest('Dist is only supported with Ninja')
+
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                project_dir = os.path.join(tmpdir, 'a')
+                shutil.copytree(os.path.join(self.rust_test_dir, '25 cargo lock'),
+                                project_dir)
+                git_init(project_dir)
+                self.init(project_dir)
+                self._run(self.meson_command + ['dist', '--include-subprojects'], workdir=self.builddir)
+        except PermissionError:
+            # When run under Windows CI, something (virus scanner?)
+            # holds on to the git files so cleaning up the dir
+            # fails sometimes.
+            pass
+
     def create_dummy_subproject(self, project_dir, name):
         path = os.path.join(project_dir, 'subprojects', name)
         os.makedirs(path)
