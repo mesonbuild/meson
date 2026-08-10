@@ -756,6 +756,19 @@ def detect_machine_info(compilers: T.Optional[CompilerDict] = None) -> MachineIn
         detect_kernel(system),
         detect_subsystem(system))
 
+def has_rosetta() -> bool:
+    """Whether Rosetta 2 is installed and able to translate x86_64 binaries.
+
+    oahd is the daemon that services Rosetta 2 translation requests; if it
+    can be reached, the kernel will transparently run x86_64 binaries on
+    this arm64 Mac.
+    """
+    try:
+        p, _, _ = Popen_safe(['/usr/bin/pgrep', '-q', 'oahd'])
+    except OSError:
+        return False
+    return p.returncode == 0
+
 # TODO make this compare two `MachineInfo`s purely. How important is the
 # `detect_cpu_family({})` distinction? It is the one impediment to that.
 def machine_info_can_run(machine_info: MachineInfo) -> bool:
@@ -773,7 +786,11 @@ def machine_info_can_run(machine_info: MachineInfo) -> bool:
         return False
     true_build_cpu_family = detect_cpu_family({})
     assert machine_info.cpu_family is not None, 'called on incomplete machine_info'
-    return \
-        (machine_info.cpu_family == true_build_cpu_family) or \
-        ((true_build_cpu_family == 'x86_64') and (machine_info.cpu_family == 'x86')) or \
-        ((true_build_cpu_family == 'mips64') and (machine_info.cpu_family == 'mips'))
+    if machine_info.cpu_family == true_build_cpu_family or \
+            (true_build_cpu_family == 'x86_64' and machine_info.cpu_family == 'x86') or \
+            (true_build_cpu_family == 'mips64' and machine_info.cpu_family == 'mips'):
+        return True
+    # Apple Silicon Macs can run x86_64 binaries via the Rosetta 2 translator.
+    if system == 'darwin' and true_build_cpu_family == 'aarch64' and machine_info.cpu_family == 'x86_64':
+        return has_rosetta()
+    return False
