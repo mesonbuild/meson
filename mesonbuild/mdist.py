@@ -397,10 +397,10 @@ def run(options: argparse.Namespace) -> int:
     subprojects: T.Dict[SubProject, str] = {}
     extra_meson_args = []
     if options.include_subprojects:
-        subproject_dir = os.path.join(src_root, b.subproject_dir)
+        resolver = wrap.Resolver(src_root, b.subproject_dir, silent=True)
         for sub in set(itertools.chain(b.projects.host, b.projects.build)):
             if sub:
-                directory = wrap.get_directory(subproject_dir, sub)
+                directory = resolver.get_directory(sub)
                 subprojects[sub] = os.path.join(b.subproject_dir, directory)
         extra_meson_args.append('-Dwrap_mode=nodownload')
 

@@ -346,13 +346,6 @@ class PackageDefinition:
     def add_provided_dep(self, name: str) -> None:
         self.provided_deps[name] = None
 
-def get_directory(subdir_root: str, packagename: str) -> str:
-    fname = os.path.join(subdir_root, packagename + '.wrap')
-    if os.path.isfile(fname):
-        wrap = PackageDefinition.from_wrap_file(fname)
-        return wrap.directory
-    return packagename
-
 def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
     '''
     Wrapper to convert GitException to WrapException caught in interpreter.
@@ -486,6 +479,10 @@ class Resolver:
             other_resolver = Resolver(self.source_dir, subdir, subproject, self.wrap_mode, self.wrap_frontend, self.allow_insecure, self.silent)
             self.merge_wraps(other_resolver.wraps)
             self.loaded_dirs.add(subdir)
+
+    def get_directory(self, packagename: str) -> str:
+        wrap = self.wraps.get(packagename)
+        return wrap.directory if wrap else packagename
 
     def find_dep_provider(self, packagename: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
         # Python's ini parser converts all key values to lowercase.
