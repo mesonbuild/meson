@@ -6,6 +6,7 @@ short-description: Release notes for 1.12.0
 # New features
 
 Meson 1.12.0 was released on 10 August 2026
+
 ## Custom dependency for atomic now works on MSVC
 
 `dependency('atomic')` now works on MSVC >=19.35.32124.
@@ -13,21 +14,21 @@ It requires `c_std=c11` or later, otherwise the dependency will return not found
 
 ## Support for CACHEDIR.TAG specification
 
-A CACHEDIR.TAG file (https://bford.info/cachedir/) is now created in the build
+A [CACHEDIR.TAG file](https://bford.info/cachedir/) is now created in the build
 directory as part of the setup and regenerate phases, allowing backup software
 to ignore the whole directory.
 
-## New "clippy-json" Ninja Target For rust-analyzer
+## New `clippy-json` Ninja Target For rust-analyzer
 
-A new `clippy-json` ninja target will now be generated for rust projects.
+A new `clippy-json` ninja target will now be generated for Rust projects.
 
-rust-analyzer supports non-cargo based projects so long as you provide it with a `rust-project.json` file and a custom "check command" to provide compiler errors.  Meson already for some time has generated a `rust-project.json` file for rust-analyzer, but had no way to hook up its rustc/clippy output to rust-analyzer.
+rust-analyzer supports non-Cargo based projects so long as you provide it with a `rust-project.json` file and a custom "check command" to provide compiler errors.  Meson already for some time has generated a `rust-project.json` file for rust-analyzer, but had no way to hook up its rustc/clippy output to rust-analyzer.
 
-To use the new feature, you need to override the rust-analyzer check command as shown [in the rust-analyzer documentation](https://rust-analyzer.github.io/book/non_cargo_based_projects.html), and set it to a `ninja invocation along the lines of `ninja clippy-json -C build`.
+To use the new feature, you need to override the rust-analyzer check command as shown [in the rust-analyzer documentation](https://rust-analyzer.github.io/book/non_cargo_based_projects.html) and set it to a `ninja` invocation along the lines of `ninja clippy-json -C build`.
 
 ## Add a new `default()` function and object
 
-This function and object allow setting a keyword argument to it's default value.
+This function and object allow setting a keyword argument to its default value.
 This is especially useful for cases when a non-default value is wanted in some
 cases but not all.
 
@@ -41,21 +42,21 @@ library(
 
 ## Delay install script errors to install time
 
-Previously, `gnome.post_install` might've caused a configure to fail
+Previously, `gnome.post_install()` might've caused a configure to fail
 due to tools such as `update-desktop-database` not being installed or
-due to an `exe_wrapper` missing when cross-building glib. Those
+due to a missing `exe_wrapper` when cross-building glib. Those
 errors will now be delayed to install time, or not emitted at all
 if installing with `DESTDIR` set, since then they'll be skipped.
 
-## find_program() now respects --force-fallback-for
+## `find_program()` now respects `--force-fallback-for`
 
-If a subproject listed in --force-fallback-for provides a particular
-program (via program_names in its wrapfile), find_program will use the
+If a subproject listed in `--force-fallback-for` provides a particular
+program (via `program_names` in its wrap file), [[find_program]] will use the
 program from the subproject instead of looking it up from the system.
 
 ## `fs.copyfile()` now has a `build_subdir` argument
 
-`fs.copyfile()`'s new `build_subdir` argument allows creating a file
+The new `build_subdir` argument to `fs.copyfile()` allows creating a file
 inside a subdirectory of the current build directory.
 
 ## Added `depends` kwarg to `generator.process()`
@@ -63,9 +64,9 @@ inside a subdirectory of the current build directory.
 The [[generator.process]] method now supports specifying `depends` as a kwarg
 to extend the list of dependencies for generated files.
 
-## Added `msgfmt_args` arg to `i18n.gettext`
+## Added `msgfmt_args` arg to `i18n.gettext()`
 
-`i18n.gettext` now supports the `msgfmt_args` argument.
+`i18n.gettext()` now supports the `msgfmt_args` argument.
 This argument can be used to pass additional arguments to
 `msgfmt` when building the translations.
 
@@ -76,13 +77,13 @@ i18n.gettext('mycatalog',
              msgfmt_args : ['--use-fuzzy'])
 ```
 
-## include_directories object now have a to_list() method
+## `include_directories` object now has a `to_list()` method
 
 The [[@inc]] object returned by [[include_directories]] now has a `to_list()` method that
 returns a list of strings of absolute paths. Unless the include path is a 
 system path, there will be a path for the source root and one for the build root.
 
-```
+```meson
 inc = include_directories('include')
 include_paths = inc.to_list()
 ```
@@ -90,7 +91,7 @@ include_paths = inc.to_list()
 ## Added integer base conversions to `str.to_int()` and `int.to_string()`
 
 Meson strings can now be converted from hexadecimal, octal, and binary
-integer literals with `str.to_int()`. Integers can also be formatted back to
+integer literals with [[str.to_int]]. Integers can also be formatted back to
 strings in those bases with `int.to_string(format:)`.
 
 ```meson
@@ -101,7 +102,7 @@ assert(255.to_string(format: 'hex') == '0xff')
 ## Multiple positional arguments for `meson wrap install`
 
 Previously `meson wrap install` only accepted a single wrap name to install.
-This limitation has now been lifted, and it is now possible to specify
+This limitation has now been lifted and it is now possible to specify
 multiple wrap names for installation. The exit code will be non-zero
 if *any* of the wraps fail to install.
 
@@ -109,11 +110,11 @@ if *any* of the wraps fail to install.
 
 Previously, the `--recursive` option to `meson format` required
 either `--inplace` or `--output`.  With this version, `--check-diff`
-is allowed to.
+is allowed too.
 
-## New option `--subprojects` for `meson format`
+## New `--subprojects` option for `meson format`
 
-A new option `--subprojects`, to be specified together with `--recursive`,
+A new `--subprojects` option, to be specified together with `--recursive`,
 tells `meson format` to also recurse into subprojects.
 
 ## OpenHarmony (OHOS) is now recognized as an Android subsystem
@@ -149,7 +150,6 @@ custom targets internally.
 Tests now allow specifying an external program in
 the `depends` keyword argument.
 
-
 ## Support for Python 3.7, 3.8, and 3.9 dropped
 
 Meson 1.12 is the first version to require Python version 3.10 or greater.
@@ -159,16 +159,16 @@ some LTS releases. See the [FAQ
 entry](FAQ.md#Do-you-at-least-support-my-ancient-python-install) for more
 information.
 
-## More types of generated files allowed by `qt.preprocess`
+## More types of generated files allowed by `qt.preprocess()`
 
-`qt.preprocess` now allows custom target indexes or generators
+`qt.preprocess()` now allows custom target indexes or generators
 in addition to custom targets for `ui_files`, `moc_sources`
 and `moc_headers`.
 
 ## The Rust module includes a basic wrapper for cbindgen
 
-This will correctly track the config.toml, and generate a rust source from the
-marked C files. This handles structured_sources correctly, and also handles
+This will correctly track the `config.toml` and generate a Rust source from the
+marked C files. This handles `structured_sources` correctly and also handles
 depfile generation transparently.
 
 ## Non-default members of Cargo workspaces can now be built
@@ -178,17 +178,17 @@ allows configuring non-default members of a Cargo workspace.  Previously,
 non-default members were never used for dependency resolution and
 could not be built.
 
-## subproject() and meson.override_find_program() now support the native keyword argument
+## `subproject()` and `meson.override_find_program()` now support the `native` keyword argument
 
 Subprojects may now be built for the host or build machine (or both). Therefore,
 in a cross compile setup, build-time dependencies can be built for the machine
 running the build. When a subproject is run for the build machine it will act
 just like a normal build == host setup, except that no targets will be installed.
 
-This necessarily means that `meson.override_find_program()` must differentiate
+This necessarily means that [[meson.override_find_program]] must differentiate
 between programs for the host and those for the build machine, as you may need
-two versions of the same program, which have different outputs based on the
-machine they are for. For backwards compatibility reasons the default is for the
+two versions of the same program which have different outputs based on the
+machine they are for. For backward compatibility the default is for the
 host machine. Inside a native subproject the host and build machine will both be
 the build machine.
 
@@ -219,16 +219,16 @@ Previously, `werror=true` only affected compiler warnings.
 
 ## Added `win_subsystem` to `shared_library()` and `shared_module()`
 
-Synonym for the one found in `executable()`.
+Synonym for the one found in [[executable]].
 
 Mostly useful for setting the subsystem version in PE headers.
-This can affects Windows's ShimEngine, but not SxS lookups. Usually you still
+This can affect Windows's ShimEngine, but not SxS lookups. Usually you still
 want to provide a manifest when targeting modern Windows.
-Sometime also useful for targeting other subsystems.
+Sometimes also useful for targeting other subsystems.
 
 Visual Studio backends now also properly supports setting subsystem versions.
 
-## i18n.xgettext recursive option now includes "private" dependencies
+## `i18n.xgettext()` recursive option now includes "private" dependencies
 
 Suppose we have:
 
@@ -252,4 +252,3 @@ the `recursive: true` option is used, `xgettext` now recursively includes
 translations from all dependencies, including those of dependencies. This is
 more logical, as even if `libA` does not directly link with `libC`, it may
 still need translated strings from `libC`.
-
