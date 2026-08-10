@@ -75,20 +75,44 @@ interpretation is:
 The supported architecture names and their corresponding compute capabilities
 are:
 
-| Name              | Compute Capability |
-|-------------------|--------------------|
-| `'Fermi'`         | 2.0, 2.1(2.0)      |
-| `'Kepler'`        | 3.0, 3.5           |
-| `'Kepler+Tegra'`  | 3.2                |
-| `'Kepler+Tesla'`  | 3.7                |
-| `'Maxwell'`       | 5.0, 5.2           |
-| `'Maxwell+Tegra'` | 5.3                |
-| `'Pascal'`        | 6.0, 6.1           |
-| `'Pascal+Tegra'`  | 6.2                |
-| `'Volta'`         | 7.0                |
-| `'Xavier'`        | 7.2                |
-| `'Turing'`        | 7.5                |
-| `'Ampere'`        | 8.0, 8.6           |
+| Name              | Compute Capability         |
+|-------------------|----------------------------|
+| `'Fermi'`         | 2.0, 2.1(2.0)              |
+| `'Kepler'`        | 3.0, 3.5                   |
+| `'Kepler+Tegra'`  | 3.2                        |
+| `'Kepler+Tesla'`  | 3.7                        |
+| `'Maxwell'`       | 5.0, 5.2                   |
+| `'Maxwell+Tegra'` | 5.3                        |
+| `'Pascal'`        | 6.0, 6.1                   |
+| `'Pascal+Tegra'`  | 6.2                        |
+| `'Volta'`         | 7.0                        |
+| `'Xavier'`        | 7.2                        |
+| `'Turing'`        | 7.5                        |
+| `'Ampere'`        | 8.0, 8.6                   |
+| `'Orin'`          | 8.7                        |
+| `'Lovelace'`      | 8.9                        |
+| `'Hopper'`        | 9.0                        |
+| `'Hopper(A)'`     | 9.0a                       |
+| `'Thor'`          | 10.1, 11.0                 |
+| `'Thor(A)'`       | 10.1a, 11.0a               |
+| `'Blackwell'`     | 10.0, 10.3, 12.0, 12.1     |
+| `'Blackwell(A)'`  | 10.0a, 10.3a, 12.0a, 12.1a |
+
+The `'(A)'` names select the architecture-specific (`a`-suffixed) compute
+capabilities of their family. Code built for these can use
+architecture-specific features, but runs only on exactly that architecture:
+it has no forward compatibility, so it cannot be combined with `+PTX`.
+The family-specific `f`-suffixed compute capabilities introduced with
+CUDA 12.9 (e.g. `10.0f`, which runs on all later members of the same
+family) may be requested explicitly, but are not part of any named set.
+
+*Note:* the `f`-suffixed capabilities only benefit kernels that use
+architecture-conditional features (such as the 5th-generation tensor core
+instructions), which plain compute capabilities cannot express. For all
+other code they gain nothing: a plain capability plus `+PTX` is compatible
+*beyond* the family, and NVCC refuses to combine `X.Yf` with plain `X.Y`
+in the same build. Prefer the plain capabilities unless you know your
+kernels require family-specific features.
 
 
 Examples:
