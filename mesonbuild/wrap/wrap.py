@@ -520,9 +520,11 @@ class Resolver:
             self.cargolocks.update(other_resolver.cargolocks)
             self.loaded_dirs.add(subdir)
 
-    def get_directory(self, packagename: str) -> str:
+    def get_directory(self, packagename: str) -> T.Optional[str]:
         wrap = self.wraps.get(packagename)
-        return wrap.directory if wrap else packagename
+        if wrap:
+            return None if wrap.redirected else wrap.directory
+        return packagename
 
     def find_dep_provider(self, packagename: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
         # Python's ini parser converts all key values to lowercase.
