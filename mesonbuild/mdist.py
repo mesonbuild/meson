@@ -399,8 +399,11 @@ def run(options: argparse.Namespace) -> int:
     if options.include_subprojects:
         resolver = wrap.Resolver(src_root, b.subproject_dir, silent=True)
         for sub in set(itertools.chain(b.projects.host, b.projects.build)):
-            if sub:
-                directory = resolver.get_directory(sub)
+            if not sub:
+                continue
+
+            directory = resolver.get_directory(sub)
+            if directory is not None:
                 subprojects[sub] = os.path.join(b.subproject_dir, directory)
         extra_meson_args.append('-Dwrap_mode=nodownload')
 
