@@ -17,7 +17,7 @@ import zipfile
 from . import mlog
 from .ast import IntrospectionInterpreter
 from .mesonlib import quiet_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
-from .wrap.wrap import (Resolver, WrapException, ALL_TYPES,
+from .wrap.wrap import (Resolver, WrapException, WrapType,
                         parse_patch_url, update_wrap_file, get_releases)
 
 if T.TYPE_CHECKING:
@@ -59,7 +59,7 @@ if T.TYPE_CHECKING:
         apply: bool
         save: bool
 
-ALL_TYPES_STRING = ', '.join(ALL_TYPES)
+ALL_TYPES_STRING = ', '.join(WrapType)
 
 if sys.version_info >= (3, 14):
     tarfile.TarFile.extraction_filter = staticmethod(tarfile.fully_trusted_filter)
@@ -739,7 +739,7 @@ def run(options: 'Arguments') -> int:
         wraps = list(r.wraps.values())
     types = [t.strip() for t in options.types.split(',')] if options.types else []
     for t in types:
-        if t not in ALL_TYPES:
+        if t not in tuple(WrapType):
             raise MesonException(f'Unknown subproject type {t!r}, supported types are: {ALL_TYPES_STRING}')
     tasks: T.List[T.Awaitable[bool]] = []
     task_names: T.List[str] = []
