@@ -442,8 +442,7 @@ class Resolver:
             return None
 
         self.cargolocks[filename] = cargolock
-        if cargolock:
-            self.merge_wraps(cargolock.wraps)
+        self.merge_wraps(cargolock.wraps)
         return cargolock
 
     def add_wrap(self, wrap: PackageDefinition, ignore_dups: bool = False) -> None:
