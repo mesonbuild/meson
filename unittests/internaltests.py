@@ -2330,6 +2330,46 @@ Thread model: posix'''), '21.9.0')
                 self.assertEqual(actual.link_args, expected.link_args)
                 self.assertEqual(actual.cmake, expected.cmake)
 
+    def test_gnome_mkenums_simple_multiline_header_prefix(self):
+        module = object.__new__(mesonbuild.modules.gnome.GnomeModule)
+        module.interpreter = mock.Mock()
+        module.interpreter.source_strings_to_files.return_value = []
+        module._make_mkenum_impl = mock.Mock(side_effect=['c-target', 'h-target'])
+
+        module.mkenums_simple(
+            mock.Mock(subdir=''),
+            ['enums'],
+            {
+                'sources': [],
+                'header_prefix': '#if CONDITION\n#error message\n#endif',
+                'function_prefix': '',
+                'body_prefix': '',
+                'decorator': '',
+                'install_header': False,
+                'install_dir': None,
+                'identifier_prefix': None,
+                'symbol_prefix': None,
+            },
+        )
+
+        header_command = module._make_mkenum_impl.call_args_list[1].args[3]
+        header = header_command[header_command.index('--fhead') + 1]
+        self.assertEqual(
+            header,
+            textwrap.dedent(
+                '''\
+                #pragma once
+
+                #include <glib-object.h>
+                #if CONDITION
+                #error message
+                #endif
+
+                G_BEGIN_DECLS
+                '''
+            ),
+        )
+
     def test_cuda_module_nvcc_arch_flags(self):
         def flags(cuda_version, arch_list, detected=None):
             # swallow the mlog warnings emitted for filtered-out archs

@@ -2034,13 +2034,13 @@ class GnomeModule(ExtensionModule):
 
         h_cmd.append('--fhead')
         h_cmd.append(textwrap.dedent(
-            f'''\
+            '''\
             #pragma once
 
             #include <glib-object.h>
             {header_prefix}
             G_BEGIN_DECLS
-            '''))
+            ''').format(header_prefix=header_prefix))
 
         h_cmd.append('--fprod')
         h_cmd.append(textwrap.dedent(
