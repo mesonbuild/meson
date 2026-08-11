@@ -32,7 +32,7 @@ from ..mesonlib import (
     PerMachine, unique_list, SubProject,
 )
 from .. import coredata, mlog
-from ..wrap.wrap import PackageDefinition
+from ..wrap.wrap import PackageDefinition, WrapType
 
 if T.TYPE_CHECKING:
     from . import raw
@@ -872,7 +872,7 @@ def load_cargo_lock(filename: str, subproject_dir: str) -> CargoLock:
             url = f'https://static.crates.io/crates/{package.name}/{package.version}/download'
             directory = f'{package.name}-{package.version}'
             name = SubProject(meson_depname)
-            wrap_type = 'file'
+            wrap_type = WrapType.FILE
             cfg = {
                 'directory': directory,
                 'source_url': url,
@@ -883,7 +883,7 @@ def load_cargo_lock(filename: str, subproject_dir: str) -> CargoLock:
         elif package.source.startswith('git+'):
             url, revision, directory = _parse_git_url(package.source)
             name = SubProject(directory)
-            wrap_type = 'git'
+            wrap_type = WrapType.GIT
             cfg = {
                 'url': url,
                 'revision': revision,
