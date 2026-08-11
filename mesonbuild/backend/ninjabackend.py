@@ -653,7 +653,7 @@ class NinjaBackend(backends.Backend):
         # 'Note: including file: d:\build\meson-private\incdetect2', however
         # different locales have different messages with a different
         # number of colons. Match up to the drive name 'd:\' or
-        # a relative path '.\'.
+        # a relative path '.\', or no path at all.
         # When used in cross compilation, the path separator is a
         # forward slash rather than a backslash so handle both; i.e.
         # the path is /build/meson-private/incdetect or ./incdetect2.
@@ -661,7 +661,7 @@ class NinjaBackend(backends.Backend):
         # use backslashes, but without the leading drive name, so
         # allow the path to start with any path separator, i.e.
         # \build\meson-private\incdetect2
-        matchre = re.compile(rb"^(.*\s)([a-zA-Z]:[\\/]|\.?[\\/]).*incdetect2$")
+        matchre = re.compile(rb"^(.*\s)([a-zA-Z]:[\\/].*|\.?[\\/].*|)incdetect2$")
 
         def detect_prefix(out: bytes) -> T.TextIO:
             for line in re.split(rb'\r?\n', out):
