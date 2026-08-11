@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import os.path
+
 from .. import mesonlib
 from .. import mlog
 from .common import cmake_is_debug
@@ -88,6 +90,11 @@ def parse_generator_expressions(
             return ';'.join([x for x in tgt.properties['IMPORTED_LOCATION'] if x])
         return ''
 
+    def target_file_dir(arg: str) -> str:
+        res = target_file(arg)
+        dirs = list({os.path.dirname(x) for x in res.split(';')})
+        return ';'.join([x for x in dirs if x])
+
     supported: T.Dict[str, T.Callable[[str], str]] = {
         # Boolean functions
         'BOOL': lambda x: '0' if x.upper() in {'', '0', 'FALSE', 'OFF', 'N', 'NO', 'IGNORE', 'NOTFOUND'} or x.endswith('-NOTFOUND') else '1',
@@ -130,6 +137,7 @@ def parse_generator_expressions(
         'TARGET_NAME_IF_EXISTS': lambda x: x if x in trace.targets else '',
         'TARGET_PROPERTY': target_property,
         'TARGET_FILE': target_file,
+        'TARGET_FILE_DIR': target_file_dir,
     }
 
     # Recursively evaluate generator expressions
