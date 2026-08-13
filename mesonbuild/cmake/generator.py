@@ -78,14 +78,13 @@ def parse_generator_expressions(
             if 'RELEASE' in cfgs:
                 cfg = 'RELEASE'
 
-        if f'IMPORTED_IMPLIB_{cfg}' in tgt.properties:
-            return ';'.join([x for x in tgt.properties[f'IMPORTED_IMPLIB_{cfg}'] if x])
-        elif 'IMPORTED_IMPLIB' in tgt.properties:
-            return ';'.join([x for x in tgt.properties['IMPORTED_IMPLIB'] if x])
-        elif f'IMPORTED_LOCATION_{cfg}' in tgt.properties:
-            return ';'.join([x for x in tgt.properties[f'IMPORTED_LOCATION_{cfg}'] if x])
-        elif 'IMPORTED_LOCATION' in tgt.properties:
-            return ';'.join([x for x in tgt.properties['IMPORTED_LOCATION'] if x])
+        for base in ['IMPORTED_IMPLIB', 'IMPORTED_LOCATION']:
+            for prop in [f'{base}_{cfg}', base]:
+                if prop in tgt.properties:
+                    vals = [x for x in tgt.properties[prop] if x]
+                    if len(vals) > 1:
+                        mlog.warning(f"'$<TARGET_FILE:{arg}>' evaluated to more than one file; only the first one is used.")
+                    return vals[0] if vals else ''
         return ''
 
     supported: T.Dict[str, T.Callable[[str], str]] = {
