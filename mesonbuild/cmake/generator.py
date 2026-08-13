@@ -2,11 +2,12 @@
 # Copyright 2019 The Meson development team
 
 from __future__ import annotations
+import os
+import typing as T
 
 from .. import mesonlib
 from .. import mlog
 from .common import cmake_is_debug
-import typing as T
 
 if T.TYPE_CHECKING:
     from .traceparser import CMakeTraceParser, CMakeTarget
@@ -97,6 +98,14 @@ def parse_generator_expressions(
     def target_linker_file(arg: str) -> str:
         return target_artifact(arg, 'TARGET_LINKER_FILE', True)
 
+    def target_file_name(arg: str) -> str:
+        tgt_file = target_artifact(arg, 'TARGET_FILE_NAME', False)
+        return os.path.basename(tgt_file) if tgt_file else ''
+
+    def target_file_dir(arg: str) -> str:
+        tgt_file = target_artifact(arg, 'TARGET_FILE_DIR', False)
+        return os.path.dirname(tgt_file) if tgt_file else ''
+
     supported: T.Dict[str, T.Callable[[str], str]] = {
         # Boolean functions
         'BOOL': lambda x: '0' if x.upper() in {'', '0', 'FALSE', 'OFF', 'N', 'NO', 'IGNORE', 'NOTFOUND'} or x.endswith('-NOTFOUND') else '1',
@@ -139,6 +148,8 @@ def parse_generator_expressions(
         'TARGET_NAME_IF_EXISTS': lambda x: x if x in trace.targets else '',
         'TARGET_PROPERTY': target_property,
         'TARGET_FILE': target_file,
+        'TARGET_FILE_NAME': target_file_name,
+        'TARGET_FILE_DIR': target_file_dir,
         'TARGET_LINKER_FILE': target_linker_file,
     }
 
