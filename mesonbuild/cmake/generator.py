@@ -83,11 +83,11 @@ def parse_generator_expressions(
         bases = ['IMPORTED_IMPLIB', 'IMPORTED_LOCATION'] if linker_file else ['IMPORTED_LOCATION']
         for base in bases:
             for prop in [f'{base}_{cfg}', base]:
-                if prop in tgt.properties:
-                    vals = [x for x in tgt.properties[prop] if x]
+                vals = [x for x in tgt.properties.get(prop, []) if x]
+                if vals:
                     if len(vals) > 1:
                         mlog.warning(f"'$<{genex}:{arg}>' evaluated to more than one file; only the first one is used.")
-                    return vals[0] if vals else ''
+                    return vals[0]
         mlog.warning(f"Unable to evaluate the cmake expression '$<{genex}:{arg}>'.")
         return ''
 
