@@ -679,6 +679,15 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_output_args(self, outputname: str) -> T.List[str]:
         pass
 
+    def get_image_output_args(self, outputname: str) -> T.List[str]:
+        """Name the image produced by a compile-and-link invocation of the driver.
+
+        Most drivers spell this the same way as object output ('-o'), so the
+        default delegates. MSVC-like drivers distinguish the two ('/Fe' vs
+        '/Fo') and must override this.
+        """
+        return self.get_output_args(outputname)
+
     def get_linker_output_args(self, outputname: str) -> T.List[str]:
         return self.linker.get_output_args(outputname)
 
@@ -959,10 +968,17 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
             commands = self.compiler_args()
             commands.append(srcname)
 
-            # Preprocess mode outputs to stdout, so no output args
-            if mode != CompileCheckMode.PREPROCESS:
-                output = self._get_compile_output(tmpdirname, mode)
-                commands += self.get_output_args(output)
+            match mode:
+                case CompileCheckMode.LINK:
+                    output = self._get_compile_output(tmpdirname, mode)
+                    commands += self.get_image_output_args(output)
+                case CompileCheckMode.COMPILE:
+                    output = self._get_compile_output(tmpdirname, mode)
+                    commands += self.get_output_args(output)
+                case CompileCheckMode.PREPROCESS:
+                    # Preprocess mode outputs to stdout, so no output args
+                    pass
+
             commands.extend(self.get_compiler_args_for_mode(CompileCheckMode(mode)))
 
             # extra_args must be last because it could contain '/link' to
@@ -1442,7 +1458,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         """
         cargs = list(self.environment.coredata.get_external_args(self.for_machine, self.language))
         largs = list(self.environment.coredata.get_external_link_args(self.for_machine, self.language))
-        return self.exelist_no_ccache + self.get_always_args() + self.get_output_args(binname) + [sourcename] + cargs, largs
+        return self.exelist_no_ccache + self.get_always_args() + self.get_image_output_args(binname) + [sourcename] + cargs, largs
 
     @abc.abstractmethod
     def _sanity_check_source_code(self) -> str:
