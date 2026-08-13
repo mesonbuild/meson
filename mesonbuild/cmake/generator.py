@@ -85,6 +85,7 @@ def parse_generator_expressions(
                     if len(vals) > 1:
                         mlog.warning(f"'$<TARGET_FILE:{arg}>' evaluated to more than one file; only the first one is used.")
                     return vals[0] if vals else ''
+        mlog.warning(f"Unable to evaluate the cmake expression '$<{genex}:{arg}>'.")
         return ''
 
     supported: T.Dict[str, T.Callable[[str], str]] = {
