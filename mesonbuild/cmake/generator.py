@@ -56,9 +56,9 @@ def parse_generator_expressions(
         props = trace.targets[args[0]].properties.get(args[1], []) if args[0] in trace.targets else []
         return ';'.join(props)
 
-    def target_file(arg: str) -> str:
+    def target_artifact(arg: str, genex: str, linker_file: bool) -> str:
         if arg not in trace.targets:
-            mlog.warning(f"Unable to evaluate the cmake variable '$<TARGET_FILE:{arg}>'.")
+            mlog.warning(f"Unable to evaluate the cmake expression '$<{genex}:{arg}>'.")
             return ''
         tgt = trace.targets[arg]
 
@@ -78,15 +78,24 @@ def parse_generator_expressions(
             if 'RELEASE' in cfgs:
                 cfg = 'RELEASE'
 
-        for base in ['IMPORTED_IMPLIB', 'IMPORTED_LOCATION']:
+        # TARGET_LINKER_FILE is the import library on DLL platforms, and falls
+        # back to the main artifact (TARGET_FILE) everywhere else.
+        bases = ['IMPORTED_IMPLIB', 'IMPORTED_LOCATION'] if linker_file else ['IMPORTED_LOCATION']
+        for base in bases:
             for prop in [f'{base}_{cfg}', base]:
                 if prop in tgt.properties:
                     vals = [x for x in tgt.properties[prop] if x]
                     if len(vals) > 1:
-                        mlog.warning(f"'$<TARGET_FILE:{arg}>' evaluated to more than one file; only the first one is used.")
+                        mlog.warning(f"'$<{genex}:{arg}>' evaluated to more than one file; only the first one is used.")
                     return vals[0] if vals else ''
         mlog.warning(f"Unable to evaluate the cmake expression '$<{genex}:{arg}>'.")
         return ''
+
+    def target_file(arg: str) -> str:
+        return target_artifact(arg, 'TARGET_FILE', False)
+
+    def target_linker_file(arg: str) -> str:
+        return target_artifact(arg, 'TARGET_LINKER_FILE', True)
 
     supported: T.Dict[str, T.Callable[[str], str]] = {
         # Boolean functions
@@ -130,6 +139,7 @@ def parse_generator_expressions(
         'TARGET_NAME_IF_EXISTS': lambda x: x if x in trace.targets else '',
         'TARGET_PROPERTY': target_property,
         'TARGET_FILE': target_file,
+        'TARGET_LINKER_FILE': target_linker_file,
     }
 
     # Recursively evaluate generator expressions
