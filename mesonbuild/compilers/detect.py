@@ -238,13 +238,13 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             return linkers.ArmarLinker(linker, env)
         if 'DMD32 D Compiler' in out or 'DMD64 D Compiler' in out:
             assert isinstance(compiler, d.DCompiler)
-            return linkers.DLinker(linker, env, compiler.arch)
+            return linkers.DLinker(linker, env, compiler.for_machine, compiler.arch)
         if 'LDC - the LLVM D compiler' in out:
             assert isinstance(compiler, d.DCompiler)
-            return linkers.DLinker(linker, env, compiler.arch, rsp_syntax=compiler.rsp_file_syntax())
+            return linkers.DLinker(linker, env, compiler.for_machine, compiler.arch, rsp_syntax=compiler.rsp_file_syntax())
         if 'GDC' in out and ' based on D ' in out:
             assert isinstance(compiler, d.DCompiler)
-            return linkers.DLinker(linker, env, compiler.arch)
+            return linkers.DLinker(linker, env, compiler.for_machine, compiler.arch)
         if err.startswith('Renesas') and 'rlink' in linker_name:
             return linkers.CcrxLinker(linker, env)
         if out.startswith('GNU ar'):

@@ -440,11 +440,19 @@ class ArmarLinker(ArLikeLinker, StaticLinker):
 
 
 class DLinker(StaticLinker):
-    def __init__(self, exelist: T.List[str], env: Environment, arch: str, *, rsp_syntax: RSPFileSyntax = RSPFileSyntax.GCC):
+    def __init__(self, exelist: T.List[str], env: Environment, for_machine: MachineChoice, arch: str, *, rsp_syntax: RSPFileSyntax = RSPFileSyntax.GCC):
         super().__init__(exelist, env)
         self.id = exelist[0]
         self.arch = arch
         self.__rsp_syntax = rsp_syntax
+        self.__bitness_arg: T.List[str] = []
+        if env.machines[for_machine].is_windows():
+            if self.arch == 'x86_64':
+                self.__bitness_arg = ['-m64']
+            elif self.arch == 'x86_mscoff' and self.id == 'dmd':
+                self.__bitness_arg = ['-m32mscoff']
+            else:
+                self.__bitness_arg = ['-m32']
 
     def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
         return ['-lib']
@@ -453,13 +461,7 @@ class DLinker(StaticLinker):
         return ['-of=' + target]
 
     def get_linker_always_args(self) -> T.List[str]:
-        if mesonlib.is_windows():
-            if self.arch == 'x86_64':
-                return ['-m64']
-            elif self.arch == 'x86_mscoff' and self.id == 'dmd':
-                return ['-m32mscoff']
-            return ['-m32']
-        return []
+        return self.__bitness_arg
 
     def rsp_file_syntax(self) -> RSPFileSyntax:
         return self.__rsp_syntax
@@ -773,8 +775,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         if extra_paths:
             all_paths.update(extra_paths)
 
-        # TODO: should this actually be "for (dragonfly|open)bsd"?
-        if mesonlib.is_dragonflybsd() or mesonlib.is_openbsd():
+        if m.is_dragonflybsd() or m.is_openbsd():
             # This argument instructs the compiler to record the value of
             # ORIGIN in the .dynamic section of the elf. On Linux this is done
             # by default, but is not on dragonfly/openbsd for some reason. Without this
@@ -795,10 +796,9 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
                 paths = paths + ':' + padding
         args.extend(self._apply_prefix(['-rpath', paths]))
 
-        # TODO: should this actually be "for solaris/sunos"?
         # NOTE: Remove the zigcc check once zig support "-rpath-link"
         # See https://github.com/ziglang/zig/issues/18713
-        if mesonlib.is_sunos() or self.id == 'ld.zigcc':
+        if m.is_sunos() or self.id == 'ld.zigcc':
             return (args, rpath_dirs_to_remove)
 
         # Rpaths to use while linking must be absolute. These are not
@@ -1404,9 +1404,10 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def get_std_shared_lib_args(self) -> T.List[str]:
         # PGI -shared is Linux only.
-        if mesonlib.is_windows():
+        m = self.environment.machines[self.for_machine]
+        if m.is_windows():
             return ['-Bdynamic', '-Mmakedll']
-        elif mesonlib.is_linux():
+        elif m.is_linux():
             return ['-shared']
         return []
 
