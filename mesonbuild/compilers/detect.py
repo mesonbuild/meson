@@ -168,6 +168,14 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
     if linker is not None:
         trials = [linker]
     else:
+        # The names below are unprefixed, so when cross compiling they pick up
+        # the build machine's archiver.  That often works because GNU ar is
+        # often built to support multiple ELF or PE objects and LLVM tools are
+        # multi-target, but it may also fail silently.  Warn just to be safe.
+        if not env.machines.matches_build_machine(compiler.for_machine):
+            mlog.warning("No 'ar' binary in the cross file [binaries] section, "
+                         "falling back to the build machine's archiver",
+                         once=True, fatal=False)
         default_linkers = [[l] for l in defaults['static_linker']]
         if compiler.language == 'cuda':
             trials = [defaults['cuda_static_linker']] + default_linkers
