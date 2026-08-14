@@ -13,12 +13,11 @@ import shutil
 import subprocess
 import sys
 import typing as T
-import re
 
 from . import build, tooldetect
 from .backend.backends import InstallData
 from .mesonlib import (InstallScriptFailure, MesonException, Popen_safe, RealPathAction,
-                       is_windows, is_aix, setup_vsenv, path_has_root, pickle_load, is_osx,
+                       is_windows, setup_vsenv, path_has_root, pickle_load, is_osx,
                        unwrap)
 from .options import OptionKey
 from .scripts import depfixer, destdir_join
@@ -754,13 +753,6 @@ class Installer:
 
     def install_targets(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for t in d.targets:
-            # In AIX, we archive our shared libraries.  When we install any package in AIX we need to
-            # install the archive in which the shared library exists. The below code does the same.
-            # We change the .so files having lt_version or so_version to archive file install.
-            # If .so does not exist then it means it is in the archive. Otherwise it is a .so that exists.
-            if is_aix():
-                if not os.path.exists(t.fname) and '.so' in t.fname:
-                    t.fname = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', t.fname.replace('.so', '.a'))
             if not self.should_install(t):
                 continue
             if not os.path.exists(t.fname):
