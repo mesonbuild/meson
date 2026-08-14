@@ -537,6 +537,7 @@ KERNEL_MAPPINGS: T.Mapping[str, str] = {'freebsd': 'freebsd',
                                         'haiku': 'haiku',
                                         'gnu': 'gnu',
                                         'fuchsia': 'fuchsia',
+                                        'aix': 'aix',
                                         }
 
 def detect_windows_arch(compilers: CompilerDict) -> str:

@@ -200,6 +200,7 @@ Native names as returned by the `.kernel()` method.
 | dragonfly | |
 | haiku| |
 | fuchsia             | Google's Fuchsia |
+| aix     | |
 | none                | For e.g. bare metal embedded    |
 
 
