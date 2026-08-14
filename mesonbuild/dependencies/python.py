@@ -250,6 +250,10 @@ class BasicPythonExternalProgram(ExternalProgram):
 class _PythonDependencyBase(_Base):
 
     for_machine: MachineChoice
+    platform: str
+
+    def is_windows_python(self) -> bool:
+        return self.platform.startswith(('win', 'mingw'))
 
     def __init__(self, python_holder: 'BasicPythonExternalProgram', embed: bool):
         self.embed = embed
@@ -295,7 +299,7 @@ class _PythonDependencyBase(_Base):
         # pyconfig.h is shared between regular and free-threaded builds in the
         # Windows installer from python.org, and hence does not define
         # Py_GIL_DISABLED correctly. So do it here:
-        if mesonlib.is_windows() and self.is_freethreaded:
+        if self.is_windows_python() and self.is_freethreaded:
             self.compile_args += ['-DPy_GIL_DISABLED']
 
     def find_libpy(self, environment: 'Environment') -> None:
@@ -538,7 +542,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             self.is_found = True
         elif self.link_libpython:
             # link args
-            if mesonlib.is_windows():
+            if self.is_windows_python():
                 self.find_libpy_windows(environment, limited_api=False)
             else:
                 self.find_libpy(environment)
@@ -562,7 +566,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
         # https://sourceforge.net/p/mingw-w64/mailman/message/30504611/
         # https://github.com/python/cpython/pull/100137
-        if mesonlib.is_windows() and self.get_windows_python_arch().endswith('64') and mesonlib.version_compare(self.version, '<3.12'):
+        if self.is_windows_python() and self.get_windows_python_arch().endswith('64') and mesonlib.version_compare(self.version, '<3.12'):
             self.compile_args += ['-DMS_WIN64=']
 
         if not self.clib_compiler.has_header('Python.h', '', extra_args=self.compile_args)[0]:
