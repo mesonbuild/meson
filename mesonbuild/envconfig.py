@@ -673,6 +673,9 @@ def detect_cpu(compilers: CompilerDict) -> str:
 
     if trial in {'amd64', 'x64', 'i86pc'}:
         trial = 'x86_64'
+    elif trial == 'powerpc':
+        trial = 'ppc'
+
     if trial == 'x86_64':
         # Same check as above for cpu_family
         if any_compiler_has_define(compilers, '__i386__'):
