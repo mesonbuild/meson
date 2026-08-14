@@ -1444,8 +1444,11 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         :return: a tuple of arguments, the first is the executable and compiler
             arguments, the second is linker arguments
         """
-        cargs = list(self.environment.coredata.get_external_args(self.for_machine, self.language))
-        largs = list(self.environment.coredata.get_external_link_args(self.for_machine, self.language))
+        optstore = self.environment.coredata.optstore
+        cargs = list(T.cast('T.List[str]', optstore.get_value_for(
+            OptionKey(f'{self.language}_args', machine=self.for_machine))))
+        largs = list(T.cast('T.List[str]', optstore.get_value_for(
+            OptionKey(f'{self.language}_link_args', machine=self.for_machine))))
         return self.exelist_no_ccache + self.get_always_args() + self.get_output_args(binname) + [sourcename] + cargs, largs
 
     @abc.abstractmethod
@@ -1591,10 +1594,12 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
 
         if mode is CompileCheckMode.COMPILE:
             # Add DFLAGS from the env
-            args += self.environment.coredata.get_external_args(self.for_machine, self.language)
+            args += T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
+                OptionKey(f'{self.language}_args', machine=self.for_machine)))
         elif mode is CompileCheckMode.LINK:
             # Add LDFLAGS from the env
-            args += self.environment.coredata.get_external_link_args(self.for_machine, self.language)
+            args += T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
+                OptionKey(f'{self.language}_link_args', machine=self.for_machine)))
         # extra_args must override all other arguments, so we add them last
         args += extra_args
         return args

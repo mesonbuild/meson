@@ -9,6 +9,7 @@ from ..mesonlib import (
     EnvironmentException,
     Popen_safe, Popen_safe_logged, join_args, search_version
 )
+from ..options import OptionKey
 
 import re
 import shlex
@@ -53,7 +54,8 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     else:
         check_args = comp_class.LINKER_OPTION_STYLE.wrap(['/logo', '--version'])
 
-    check_args += env.coredata.get_external_link_args(for_machine, comp_class.language)
+    check_args += T.cast('T.List[str]', env.coredata.optstore.get_value_for(
+        OptionKey(f'{comp_class.language}_link_args', machine=for_machine)))
 
     override: T.List[str] = []
     value = env.lookup_binary_entry(for_machine, comp_class.language + '_ld')
@@ -123,12 +125,12 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     :extra_args: Any additional arguments required (such as a source file)
     """
     from . import linkers
-    from ..options import OptionKey
     env.add_lang_args(comp_class.language, comp_class, for_machine)
     extra_args = extra_args or []
 
     system = env.machines[for_machine].system
-    ldflags = env.coredata.get_external_link_args(for_machine, comp_class.language)
+    ldflags = T.cast('T.List[str]', env.coredata.optstore.get_value_for(
+        OptionKey(f'{comp_class.language}_link_args', machine=for_machine)))
     extra_args += comp_class._unix_args_to_native(ldflags, env.machines[for_machine])
     check_args = comp_class.LINKER_OPTION_STYLE.wrap(['--version']) + extra_args
 

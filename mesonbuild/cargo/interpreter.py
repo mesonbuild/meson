@@ -32,6 +32,7 @@ from ..mesonlib import (
     PerMachine, unique_list, SubProject,
 )
 from .. import coredata, mlog
+from ..options import OptionKey
 from ..wrap.wrap import PackageDefinition, WrapType
 
 if T.TYPE_CHECKING:
@@ -579,7 +580,7 @@ class Interpreter:
 
         pkg.cfg[machine] = PackageConfiguration(for_machine=machine)
         # Merge target-specific dependencies that are enabled for this machine
-        target_cfgs = self._get_cfgs(machine)
+        target_cfgs = self._get_cfgs(machine, pkg.get_subproject_name())
         for condition, dependencies in pkg.manifest.target.items():
             if eval_cfg(condition, target_cfgs):
                 pkg.manifest.dependencies.update(dependencies)
@@ -705,12 +706,13 @@ class Interpreter:
         return rustc.has_check_cfg
 
     @functools.lru_cache(maxsize=None)
-    def _get_cfgs(self, machine: MachineChoice) -> T.Dict[str, str]:
+    def _get_cfgs(self, machine: MachineChoice, subproject: SubProject) -> T.Dict[str, str]:
         if not self.environment.is_cross_build():
             machine = MachineChoice.HOST
         rustc = T.cast('RustCompiler', self.environment.coredata.compilers[machine]['rust'])
         cfgs = rustc.get_cfgs().copy()
-        rustflags = self.environment.coredata.get_external_args(machine, 'rust')
+        rustflags = T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
+            OptionKey('rust_args', subproject=subproject, machine=machine)))
         rustflags_i = iter(rustflags)
         for i in rustflags_i:
             if i == '--cfg':
