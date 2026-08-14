@@ -282,9 +282,17 @@ class CLikeCompiler(Compiler):
         # Cross-compiling is hard. For example, you might need -nostdlib, or to pass --target, etc.
         mode = CompileCheckMode.COMPILE if self.is_cross and not self.environment.has_exe_wrapper() else CompileCheckMode.LINK
         cargs, b_largs = self._get_basic_compiler_args(mode)
-        largs = self.linker_to_compiler_args(b_largs)
         s_args, s_largs = super()._sanity_check_compile_args(sourcename, binname)
-        return s_args + cargs, s_largs + largs
+        # Base Compiler._sanity_check_compile_args returns raw
+        # language_link_args. MSVC-style linker_to_compiler_args() already
+        # emits a leading /link (even for []). Concatenating the raw list
+        # in front of that existing /link is the 1.12 #16111 bug
+        # (/SUBSYSTEM:CONSOLE /link). Appending it after convert(b_largs)
+        # is also wrong when the cross file already contains /link
+        # (the documented workaround): convert([]) + ['/link', …] becomes
+        # /link /link … and clang-cl forwards the second /link to the linker.
+        # Merge the raw lists and convert once so there is a single /link.
+        return s_args + cargs, self.linker_to_compiler_args(s_largs + b_largs)
 
     def check_header(self, hname: str, prefix: str, *,
                      extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
