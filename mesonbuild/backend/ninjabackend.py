@@ -1199,10 +1199,10 @@ class NinjaBackend(backends.Backend):
         self.add_build(elem)
         #In AIX, we archive shared libraries. If the instance is a shared library, we add a command to archive the shared library
         #object and create the build element.
-        if isinstance(target, build.SharedLibrary) and self.environment.machines[target.for_machine].is_aix():
-            if target.aix_so_archive:
-                elem = NinjaBuildElement(self.all_outputs, linker.get_archive_name(outname), 'AIX_LINKER', [outname])
-                self.add_build(elem)
+        archive_name = self.get_aix_so_archive_name(target, outname)
+        if archive_name is not None:
+            elem = NinjaBuildElement(self.all_outputs, archive_name, 'AIX_LINKER', [outname])
+            self.add_build(elem)
 
     def should_use_dyndeps_for_target(self, target: build.BuildTargetTypes) -> bool:
         if not self.ninja_has_dyndeps:
@@ -3618,12 +3618,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             target_file = self.get_target_filename_for_linking(target)
         else:
             target_file = self.get_target_filename(target)
-        if isinstance(target, build.SharedLibrary) and target.aix_so_archive:
-            if self.environment.machines[target.for_machine].is_aix():
-                linker, stdlib_args = target.get_clink_dynamic_linker_and_stdlibs()
-                target.get_outputs()[0] = linker.get_archive_name(target.get_outputs()[0])
-                target_file = target.get_outputs()[0]
-                target_file = os.path.join(self.get_target_dir(target), target_file)
+        archive_name = self.get_aix_so_archive_name(target, target.get_outputs()[0])
+        if archive_name is not None:
+            target.get_outputs()[0] = archive_name
+            target_file = os.path.join(self.get_target_dir(target), archive_name)
         symname = self.get_target_shsym_filename(target)
         elem = NinjaBuildElement(self.all_outputs, symname, 'SHSYM', target_file)
         # The library we will actually link to, which is an import library on Windows (not the DLL)
@@ -4218,10 +4216,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 # Add the first output of each target to the 'all' target so that
                 # they are all built
                 #Add archive file if shared library in AIX for build all.
-                if isinstance(t, build.SharedLibrary) and t.aix_so_archive:
-                    if self.environment.machines[t.for_machine].is_aix():
-                        linker, stdlib_args = t.get_clink_dynamic_linker_and_stdlibs()
-                        t.get_outputs()[0] = linker.get_archive_name(t.get_outputs()[0])
+                archive_name = self.get_aix_so_archive_name(t, t.get_outputs()[0])
+                if archive_name is not None:
+                    t.get_outputs()[0] = archive_name
                 targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
 
                 # Add an import library if shared library in OS/2 for build all
