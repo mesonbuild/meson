@@ -321,6 +321,17 @@ class Backend:
             filename = t.get_filename()
         return os.path.join(self.get_target_dir(t), filename)
 
+    def get_aix_so_archive_name(self, t: build.AnyTargetType, filename: str) -> T.Optional[str]:
+        '''On AIX shared libraries are stored inside an archive; it is the archive
+        that gets linked against and installed.  Shared modules are not archived.
+        Return the name of the archive, or None if TARGET is not archived.'''
+        if not isinstance(t, build.SharedLibrary) or not t.aix_so_archive:
+            return None
+        if not self.environment.machines[t.for_machine].is_aix():
+            return None
+        linker, _ = t.get_clink_dynamic_linker_and_stdlibs()
+        return linker.get_archive_name(filename)
+
     def get_target_filename_abs(self, target: build.AnyTargetType) -> str:
         return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
 
@@ -362,8 +373,7 @@ class Backend:
         if isinstance(target, build.SharedLibrary):
             link_lib = target.get_import_filename() or target.get_filename()
             # In AIX, if we archive .so, the blibpath must link to archived shared library otherwise to the .so file.
-            if mesonlib.is_aix() and target.aix_so_archive:
-                link_lib = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', link_lib.replace('.so', '.a'))
+            link_lib = self.get_aix_so_archive_name(target, link_lib) or link_lib
             return Path(self.get_target_dir(target), link_lib).as_posix()
         elif isinstance(target, build.StaticLibrary):
             return Path(self.get_target_dir(target), target.get_filename()).as_posix()
@@ -1818,7 +1828,11 @@ class Backend:
                 if first_outdir is not False:
                     tag = t.install_tag[0] or ('devel' if isinstance(t, build.StaticLibrary) else 'runtime')
                     mappings = t.get_link_deps_mapping(d.prefix)
-                    i = TargetInstallData(self.get_target_filename(t), first_outdir,
+                    # In AIX we archive our shared libraries, and it is the archive
+                    # that has to be installed rather than the .so itself.
+                    fname = self.get_target_filename(t)
+                    fname = self.get_aix_so_archive_name(t, fname) or fname
+                    i = TargetInstallData(fname, first_outdir,
                                           first_outdir_name,
                                           should_strip, mappings, t.rpath_dirs_to_remove,
                                           t.install_rpath, install_mode, t.subproject,
