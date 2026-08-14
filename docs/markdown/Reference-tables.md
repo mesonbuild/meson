@@ -202,6 +202,7 @@ Native names as returned by the `.kernel()` method.
 | haiku| |
 | fuchsia             | Google's Fuchsia |
 | aix     | |
+| os400               | IBM i (formerly known as OS/400) |
 | none                | For e.g. bare metal embedded    |
 
 

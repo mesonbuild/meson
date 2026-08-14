@@ -132,6 +132,7 @@ __all__ = [
     'git',
     'has_path_sep',
     'is_aix',
+    'is_os400',
     'is_android',
     'is_ascii_string',
     'is_cygwin',
@@ -810,6 +811,9 @@ def is_aix() -> bool:
 
 def is_os2() -> bool:
     return platform.system().lower() == 'os/2'
+
+def is_os400() -> bool:
+    return platform.system().lower() == 'os400'
 
 @lru_cache(maxsize=None)
 def darwin_get_object_archs(objpath: str) -> 'ImmutableListProtocol[str]':
