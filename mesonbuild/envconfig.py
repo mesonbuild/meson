@@ -727,6 +727,8 @@ def detect_kernel(system: str) -> T.Optional[str]:
                          "Please open a Meson issue with the OS you're running and the value detected for your kernel.")
             return None
         return out
+    elif mesonlib.is_os400():
+        return 'os400'
     return KERNEL_MAPPINGS.get(system, None)
 
 def detect_subsystem(system: str) -> T.Optional[str]:
