@@ -673,7 +673,10 @@ class Backend:
         else:
             if exe_cmd[0].endswith('.jar'):
                 exe_cmd = ['java', '-jar'] + exe_cmd
-            elif exe_cmd[0].endswith('.exe') and not (mesonlib.is_windows() or mesonlib.is_cygwin() or mesonlib.is_wsl() or machine.is_os2()):
+            # We know the executable can run on the build machine; do not wrap
+            # it in mono if the target uses the .exe suffix for all executables,
+            # or if .exe files can be run as is the case for WSL1.
+            elif exe_cmd[0].endswith('.exe') and not (machine.get_exe_suffix() == 'exe' or mesonlib.is_wsl()):
                 exe_cmd = ['mono'] + exe_cmd
             exe_wrapper = None
 
