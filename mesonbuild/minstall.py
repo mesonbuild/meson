@@ -17,7 +17,7 @@ import typing as T
 from . import build, tooldetect
 from .backend.backends import InstallData
 from .mesonlib import (InstallScriptFailure, MesonException, Popen_safe, RealPathAction,
-                       is_windows, setup_vsenv, path_has_root, pickle_load, is_osx,
+                       is_windows, setup_vsenv, path_has_root, pickle_load,
                        unwrap)
 from .options import OptionKey
 from .scripts import depfixer, destdir_join
@@ -620,9 +620,9 @@ class Installer:
                               '-C', os.getcwd(), '--no-rebuild')
             raise
 
-    def do_strip(self, strip_bin: T.List[str], fname: str, outname: str) -> None:
+    def do_strip(self, strip_bin: T.List[str], fname: str, outname: str, system: str) -> None:
         self.log(f'Stripping target {fname!r}.')
-        if is_osx():
+        if system == 'darwin':
             # macOS expects dynamic objects to be stripped with -x maximum.
             # To also strip the debug info, -S must be added.
             # See: https://www.unix.com/man-page/osx/1/strip/
@@ -779,7 +779,7 @@ class Installer:
                     if fname.endswith('.jar'):
                         self.log('Not stripping jar target: {}'.format(os.path.basename(fname)))
                         continue
-                    self.do_strip(d.strip_bin, fname, outname)
+                    self.do_strip(d.strip_bin, fname, outname, t.system)
                 if fname.endswith('.js'):
                     # Emscripten outputs js files and optionally a wasm file.
                     # If one was generated, install it as well.
