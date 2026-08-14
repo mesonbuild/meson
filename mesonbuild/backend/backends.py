@@ -606,6 +606,23 @@ class Backend:
             result.append(self.get_target_private_dir_abs(l))
         return result
 
+    def get_exe_interpreter(self, exe_cmd: T.List[str], for_machine: MachineChoice) -> T.List[str]:
+        """Return the command needed to run exe_cmd, if it is not directly executable."""
+        if exe_cmd[0].endswith('.jar'):
+            return ['java', '-jar']
+        # Wrap the executable in mono in very limited cases:
+        # - the executable can run on the build machine (if not, let the user make
+        #   their own decision, and use e.g. wine to start .NET executables)
+        # - the target does not use the .exe suffix for all executables (if so,
+        #   assume it is able to start .NET executables as well), or at least for
+        #   some as is the case for WSL1.
+        machine = self.environment.machines[for_machine]
+        if exe_cmd[0].endswith('.exe') and \
+                (self.environment.machines.matches_build_machine(for_machine) or not self.environment.need_exe_wrapper()) and \
+                not (machine.get_exe_suffix() == 'exe' or mesonlib.is_wsl()):
+            return ['mono']
+        return []
+
     def get_executable_serialisation(
             self, cmd: T.Iterable[build.CommandTypes],
             workdir: T.Optional[str] = None,
@@ -664,20 +681,17 @@ class Backend:
             extra_paths = []
 
         is_cross_built = not self.environment.machines.matches_build_machine(exe_for_machine)
-        if is_cross_built and self.environment.need_exe_wrapper():
+        interpreter = self.get_exe_interpreter(exe_cmd, exe_for_machine)
+        if interpreter:
+            exe_cmd = interpreter + exe_cmd
+            exe_wrapper = None
+        elif is_cross_built and self.environment.need_exe_wrapper():
             if not self.environment.has_exe_wrapper():
                 msg = 'An exe_wrapper is needed for ' + exe_cmd[0] + ' but was not found. Please define one ' \
                       'in cross file and check the command and/or add it to PATH.'
                 raise MesonException(msg)
             exe_wrapper = self.environment.get_exe_wrapper()
         else:
-            if exe_cmd[0].endswith('.jar'):
-                exe_cmd = ['java', '-jar'] + exe_cmd
-            # We know the executable can run on the build machine; do not wrap
-            # it in mono if the target uses the .exe suffix for all executables,
-            # or if .exe files can be run as is the case for WSL1.
-            elif exe_cmd[0].endswith('.exe') and not (machine.get_exe_suffix() == 'exe' or mesonlib.is_wsl()):
-                exe_cmd = ['mono'] + exe_cmd
             exe_wrapper = None
 
         workdir = workdir or self.environment.get_build_dir()
