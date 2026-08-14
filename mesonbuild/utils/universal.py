@@ -805,7 +805,8 @@ def is_qnx() -> bool:
     return platform.system().lower() == 'qnx'
 
 def is_aix() -> bool:
-    return platform.system().lower() == 'aix'
+    # IBM i (aka os400) runs AIX userspace
+    return platform.system().lower() in {'aix', 'os400'}
 
 def is_os2() -> bool:
     return platform.system().lower() == 'os/2'

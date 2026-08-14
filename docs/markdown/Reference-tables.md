@@ -178,6 +178,7 @@ These are provided by the `.system()` method call.
 | sunos               | illumos and Solaris |
 | os/2                | OS/2 |
 | fuchsia             | Google's Fuchsia |
+| aix                 | IBM AIX or IBM i PASE |
 
 Any string not listed above is not guaranteed to remain stable in
 future releases.
