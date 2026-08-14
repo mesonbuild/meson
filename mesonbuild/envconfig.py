@@ -647,7 +647,7 @@ def detect_cpu_family(compilers: CompilerDict) -> str:
         # report it as 32 bit for simplicity.
         trial = 'parisc'
     elif trial == 'ppc':
-        # AIX always returns powerpc, check here for 64-bit
+        # AIX and OS400 always return powerpc, check here for 64-bit
         if any_compiler_has_define(compilers, '__64BIT__'):
             trial = 'ppc64'
     # MIPS64 is able to run MIPS32 code natively, so there is a chance that
@@ -701,7 +701,7 @@ def detect_cpu(compilers: CompilerDict) -> str:
             else:
                 trial = 'mips64'
     elif trial == 'ppc':
-        # AIX always returns powerpc, check here for 64-bit
+        # AIX and OS400 always return powerpc, check here for 64-bit
         if any_compiler_has_define(compilers, '__64BIT__'):
             trial = 'ppc64'
 
@@ -737,7 +737,11 @@ def detect_subsystem(system: str) -> T.Optional[str]:
 def detect_system() -> str:
     if sys.platform == 'cygwin':
         return 'cygwin'
-    return platform.system().lower()
+    system = platform.system().lower()
+    # OS400 is close to AIX, they'll have the same 'system' value but distinct 'kernel' values
+    if system == 'os400':
+        return 'aix'
+    return system
 
 def detect_msys2_arch() -> T.Optional[str]:
     return os.environ.get('MSYSTEM_CARCH', None)
