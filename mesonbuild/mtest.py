@@ -1290,9 +1290,6 @@ async def read_decode(reader: asyncio.StreamReader,
         if queue:
             await queue.put(None)
 
-def run_with_mono(fname: str) -> bool:
-    return fname.endswith('.exe') and not (is_windows() or is_cygwin() or is_os2())
-
 def check_testdata(objs: T.List[TestSerialisation]) -> T.List[TestSerialisation]:
     if not isinstance(objs, list):
         raise MesonVersionMismatchException('<unknown>', coredata_version)
@@ -1533,14 +1530,9 @@ class SingleTestRunner:
         return self.runobj.console_mode
 
     def _get_test_cmd(self) -> T.Optional[T.List[str]]:
-        testentry = self.test.fname[0]
-        if self.options.no_rebuild and self.test.cmd_is_built and not os.path.isfile(testentry):
-            raise TestException(f'The test program {testentry!r} does not exist. Cannot run tests before building them.')
-        if testentry.endswith('.jar'):
-            return ['java', '-jar'] + self.test.fname
-        elif not self.test.is_cross_built and run_with_mono(testentry):
-            return ['mono'] + self.test.fname
-        elif self.test.cmd_is_exe and self.test.is_cross_built and self.test.needs_exe_wrapper:
+        if self.options.no_rebuild and self.test.cmd_is_built and not os.path.isfile(self.test.exe_fname):
+            raise TestException(f'The test program {self.test.exe_fname!r} does not exist. Cannot run tests before building them.')
+        if self.test.cmd_is_exe and self.test.is_cross_built and self.test.needs_exe_wrapper:
             if self.test.exe_wrapper is None:
                 # Can not run test on cross compiled executable
                 # because there is no execute wrapper.
@@ -1553,7 +1545,9 @@ class SingleTestRunner:
                            'found. Please check the command and/or add it to PATH.')
                     raise TestException(msg.format(self.test.exe_wrapper.name))
                 return self.test.exe_wrapper.get_command() + self.test.fname
-        elif self.test.cmd_is_built and not self.test.cmd_is_exe and is_windows():
+        elif self.test.cmd_is_built and \
+                not (self.test.cmd_is_exe or self.test.cmd_has_interpreter) and \
+                is_windows():
             test_cmd = ExternalProgram._shebang_to_cmd(self.test.fname[0])
             if test_cmd:
                 test_cmd += self.test.fname[1:]

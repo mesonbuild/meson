@@ -219,10 +219,16 @@ class TestSerialisation:
     depends: T.List[str]
     version: str
     verbose: bool
+    # Path of the test program itself.
+    exe_fname: str
 
     def __post_init__(self) -> None:
         if self.exe_wrapper is not None:
             assert isinstance(self.exe_wrapper, programs.ExternalProgram)
+
+    @property
+    def cmd_has_interpreter(self) -> bool:
+        return self.fname[0] != self.exe_fname
 
 
 def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None) -> Backend:
@@ -1296,6 +1302,8 @@ class Backend:
             is_cross = self.environment.is_cross_build(test_for_machine)
             exe_wrapper = self.environment.get_exe_wrapper()
             machine = self.environment.machines[exe.for_machine]
+            exe_fname = cmd[0]
+            cmd = self.get_exe_interpreter(cmd, test_for_machine) + cmd
             if machine.is_windows() or machine.is_cygwin():
                 extra_bdeps: T.List[build.BuildTargetTypes] = []
                 if isinstance(exe, build.CustomTarget):
@@ -1358,7 +1366,7 @@ class Backend:
                                    isinstance(exe, build.Executable),
                                    [x.get_id() for x in depends],
                                    self.environment.coredata.version,
-                                   t.verbose)
+                                   t.verbose, exe_fname)
             arr.append(ts)
         return arr
 
