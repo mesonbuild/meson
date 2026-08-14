@@ -53,6 +53,7 @@ if is_windows():
     defaults['objc'] = ['clang', 'clang-cl', 'gcc']
     defaults['objcpp'] = ['clang++', 'clang-cl', 'g++']
     defaults['cs'] = ['csc', 'mcs']
+    defaults['vs_static_linker'] = ['lib']
 else:
     if platform.machine().lower() == 'e2k':
         defaults['c'] = ['cc', 'gcc', 'lcc', 'clang']
@@ -76,7 +77,6 @@ defaults['vala'] = ['valac']
 defaults['cython'] = ['cython', 'cython3'] # Official name is cython, but Debian renamed it to cython3.
 defaults['static_linker'] = ['ar', 'gar']
 defaults['strip'] = ['strip']
-defaults['vs_static_linker'] = ['lib']
 defaults['clang_cl_static_linker'] = ['llvm-lib']
 defaults['cuda_static_linker'] = ['nvlink']
 defaults['gcc_static_linker'] = ['gcc-ar']
@@ -178,29 +178,30 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
                          once=True, fatal=False)
 
         m = env.machines[compiler.for_machine]
-        default_linkers = [[l] for l in defaults['static_linker']]
+        trials = [[l] for l in defaults['static_linker']]
         if compiler.language == 'cuda':
-            trials = [defaults['cuda_static_linker']] + default_linkers
+            trials = [defaults['cuda_static_linker']] + trials
         elif compiler.get_argument_syntax() == 'msvc':
-            trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker']]
+            trials = [defaults['clang_cl_static_linker']]
+            if 'vs_static_linker' in defaults:
+                trials = [defaults['vs_static_linker']] + trials
         elif m.is_os2() and env.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
-            trials = [defaults['emxomf_static_linker']] + default_linkers
+            trials = [defaults['emxomf_static_linker']] + trials
         elif compiler.id == 'gcc':
             # Use gcc-ar if available; needed for LTO
-            trials = [defaults['gcc_static_linker']] + default_linkers
+            trials = [defaults['gcc_static_linker']] + trials
         elif compiler.id == 'clang':
             # Use llvm-ar if available; needed for LTO
             llvm_ar = defaults['clang_static_linker']
             # Extract the version major of the compiler to use as a suffix
             suffix = compiler.version.split('.')[0]
             # Prefer suffixed llvm-ar first, then unsuffixed then the defaults
-            trials = [[f'{llvm_ar[0]}-{suffix}'], llvm_ar] + default_linkers
-        elif compiler.language == 'd':
+            trials = [[f'{llvm_ar[0]}-{suffix}'], llvm_ar] + trials
+        elif compiler.language == 'd' and m.is_windows():
             # Prefer static linkers over linkers used by D compilers
-            if m.is_windows():
-                trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker'], compiler.get_linker_exelist()]
-            else:
-                trials = default_linkers
+            trials = [defaults['clang_cl_static_linker'], compiler.get_linker_exelist()]
+            if 'vs_static_linker' in defaults:
+                trials = [defaults['vs_static_linker']] + trials
         elif compiler.id == 'intel-cl' and compiler.language == 'c': # why not cpp? Is this a bug?
             # Intel has its own linker that acts like Microsoft's lib
             trials = [['xilib']]
@@ -208,9 +209,10 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             trials = [['ar']]  # For PGI on Windows, "ar" is just a wrapper calling link/lib.
         elif m.is_windows() and compiler.id == 'nasm':
             # This may well be LINK.EXE if it's under a MSVC environment
-            trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker']] + default_linkers
-        else:
-            trials = default_linkers
+            trials = [defaults['clang_cl_static_linker']] + trials
+            if 'vs_static_linker' in defaults:
+                trials = [defaults['vs_static_linker']] + trials
+
     popen_exceptions = {}
     for linker in trials:
         linker_name = os.path.basename(linker[0])
