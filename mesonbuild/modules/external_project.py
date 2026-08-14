@@ -156,13 +156,13 @@ class ExternalProject(NewExtensionModule):
         for lang, compiler in self.env.coredata.compilers[MachineChoice.HOST].items():
             if any(lang not in i for i in (ENV_VAR_PROG_MAP, CFLAGS_MAPPING)):
                 continue
-            cargs = self.env.coredata.get_external_args(MachineChoice.HOST, lang)
+            cargs = self.env.coredata.optstore.get_value_for(OptionKey(f'{lang}_args', self.subproject, MachineChoice.HOST))
             assert isinstance(cargs, list), 'for mypy'
             self.run_env[ENV_VAR_PROG_MAP[lang][0]] = self._quote_and_join(compiler.get_exelist())
             self.run_env[CFLAGS_MAPPING[lang]] = self._quote_and_join(cargs)
             if not link_exelist:
                 link_exelist = compiler.get_linker_exelist()
-                _l = self.env.coredata.get_external_link_args(MachineChoice.HOST, lang)
+                _l = self.env.coredata.optstore.get_value_for(OptionKey(f'{lang}_link_args', self.subproject, MachineChoice.HOST))
                 assert isinstance(_l, list), 'for mypy'
                 link_args = _l
         if link_exelist:

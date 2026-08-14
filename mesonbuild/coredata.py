@@ -9,7 +9,6 @@ import copy
 from . import mlog, options
 import pickle, os, uuid
 import sys
-from functools import lru_cache
 from collections import OrderedDict
 import textwrap
 
@@ -400,17 +399,6 @@ class CoreData:
         if actual_debug != debug:
             result.append(('debug', actual_debug, debug))
         return result
-
-    def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
-        # mypy cannot analyze type of OptionKey
-        key = OptionKey(f'{lang}_args', machine=for_machine)
-        return T.cast('T.List[str]', self.optstore.get_value_for(key))
-
-    @lru_cache(maxsize=None)
-    def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
-        # mypy cannot analyze type of OptionKey
-        linkkey = OptionKey(f'{lang}_link_args', machine=for_machine)
-        return T.cast('T.List[str]', self.optstore.get_value_for(linkkey))
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         if when_building_for == MachineChoice.BUILD:
