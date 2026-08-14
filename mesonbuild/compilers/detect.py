@@ -176,12 +176,14 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             mlog.warning("No 'ar' binary in the cross file [binaries] section, "
                          "falling back to the build machine's archiver",
                          once=True, fatal=False)
+
+        m = env.machines[compiler.for_machine]
         default_linkers = [[l] for l in defaults['static_linker']]
         if compiler.language == 'cuda':
             trials = [defaults['cuda_static_linker']] + default_linkers
         elif compiler.get_argument_syntax() == 'msvc':
             trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker']]
-        elif env.machines[compiler.for_machine].is_os2() and env.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
+        elif m.is_os2() and env.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
             trials = [defaults['emxomf_static_linker']] + default_linkers
         elif compiler.id == 'gcc':
             # Use gcc-ar if available; needed for LTO
@@ -195,16 +197,16 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             trials = [[f'{llvm_ar[0]}-{suffix}'], llvm_ar] + default_linkers
         elif compiler.language == 'd':
             # Prefer static linkers over linkers used by D compilers
-            if is_windows():
+            if m.is_windows():
                 trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker'], compiler.get_linker_exelist()]
             else:
                 trials = default_linkers
         elif compiler.id == 'intel-cl' and compiler.language == 'c': # why not cpp? Is this a bug?
             # Intel has its own linker that acts like Microsoft's lib
             trials = [['xilib']]
-        elif is_windows() and compiler.id == 'pgi': # this handles cpp / nvidia HPC, in addition to just c/fortran
+        elif m.is_windows() and compiler.id == 'pgi': # this handles cpp / nvidia HPC, in addition to just c/fortran
             trials = [['ar']]  # For PGI on Windows, "ar" is just a wrapper calling link/lib.
-        elif is_windows() and compiler.id == 'nasm':
+        elif m.is_windows() and compiler.id == 'nasm':
             # This may well be LINK.EXE if it's under a MSVC environment
             trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker']] + default_linkers
         else:
