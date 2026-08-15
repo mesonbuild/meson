@@ -65,11 +65,13 @@ paths, install_paths = get_install_paths()
 
 def links_against_libpython():
     # on versions supporting python-embed.pc, this is the non-embed lib
-    #
-    # PyPy is not yet up to 3.12 and work is still pending to export the
-    # relevant information (it doesn't automatically provide arbitrary
-    # Makefile vars)
-    if sys.version_info >= (3, 8) and not is_pypy:
+    if is_pypy:
+        # PyPy work is still pending to export the relevant information (it
+        # doesn't automatically provide arbitrary Makefile vars). However,
+        # the only PyPy supported platform that requires linking to libpython
+        # is Windows, thus it is easy enough to hardcode the answer.
+        return sysconfig.get_platform() == "win-amd64"
+    elif sys.version_info >= (3, 8):
         variables = sysconfig.get_config_vars()
         return bool(variables.get('LIBPYTHON', 'yes'))
     else:
