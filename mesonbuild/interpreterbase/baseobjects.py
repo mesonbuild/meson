@@ -36,7 +36,7 @@ class InterpreterObject:
     TRIVIAL_OPERATORS: T.Dict[
         MesonOperator,
         T.Tuple[
-            T.Union[T.Type, T.Tuple[T.Type, ...]],
+            T.Type | T.Tuple[T.Type, ...] | None,
             TYPE_op_func
         ]
     ] = {}

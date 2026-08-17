@@ -406,7 +406,7 @@ class KwargInfo(T.Generic[_T]):
     :param as_default: Extra values to treat as empty values. These are always considered to be broken.
     """
     def __init__(self, name: str,
-                 types: T.Union[T.Type[_T], T.Tuple[T.Union[T.Type[_T], ContainerTypeInfo], ...], ContainerTypeInfo],
+                 types: T.Union[T.Type[None], T.Type[_T], T.Tuple[T.Union[T.Type[None], T.Type[_T], ContainerTypeInfo], ...], ContainerTypeInfo],
                  *, required: bool = False, listify: bool = False,
                  default: T.Optional[_T] = None,
                  since: T.Optional[str] = None,
