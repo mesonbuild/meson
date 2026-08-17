@@ -1555,7 +1555,7 @@ class SingleTestRunner:
                 return self.test.exe_wrapper.get_command() + self.test.fname
         elif self.test.cmd_is_built and not self.test.cmd_is_exe and is_windows():
             test_cmd = ExternalProgram._shebang_to_cmd(self.test.fname[0])
-            if test_cmd is not None:
+            if test_cmd:
                 test_cmd += self.test.fname[1:]
             return test_cmd
         return self.test.fname
