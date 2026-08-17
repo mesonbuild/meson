@@ -191,6 +191,18 @@ class CargoCfgTest(unittest.TestCase):
             with self.subTest():
                 self.assertListEqual(list(cfg.lexer(data)), expected)
 
+    def test_parse_invalid(self) -> None:
+        cases = [
+            'all(unix,)',
+            'any(',
+            'not(',
+            ''
+        ]
+        for data in cases:
+            with self.subTest():
+                with self.assertRaises(MesonException):
+                    cfg.parse(iter(cfg.lexer(data)))
+
     def test_parse(self) -> None:
         cases = [
             ('target_os = "windows"', cfg.Equal(cfg.Identifier("target_os"), cfg.String("windows"))),
