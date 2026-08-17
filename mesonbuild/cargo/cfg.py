@@ -185,7 +185,14 @@ def parse(ast: _LEX_STREAM) -> IR:
     :return: An mparser Node to be used as a conditional
     """
     ast_i: _LEX_STREAM_AH = lookahead(ast)
-    return _parse(ast_i)
+    try:
+        ir = _parse(ast_i)
+    except StopIteration:
+        raise MesonException('malformed cfg expression')
+
+    if next(ast_i, None) is not None:
+        raise MesonException('trailing text after cfg expression')
+    return ir
 
 
 def _eval_cfg(ir: IR, cfgs: T.Dict[str, str]) -> bool:
