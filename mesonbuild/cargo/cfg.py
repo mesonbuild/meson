@@ -158,6 +158,7 @@ def _parse(ast: _LEX_STREAM_AH) -> IR:
         (token, value), n_stream = next(ast)
         assert token is TokenType.LPAREN
         if n_stream and n_stream[0] == TokenType.RPAREN:
+            (token, value), _ = next(ast)
             return type_(args)
         while True:
             args.append(_parse(ast))
