@@ -136,6 +136,10 @@ class Not(IR):
 
 
 def _parse(ast: _LEX_STREAM_AH) -> IR:
+    def assertToken(t: TokenType, expected: str) -> None:
+        if token is not t:
+            raise MesonException(f'expected {expected}')
+
     (token, value), n_stream = next(ast)
     if n_stream is not None:
         ntoken, _ = n_stream
@@ -148,7 +152,7 @@ def _parse(ast: _LEX_STREAM_AH) -> IR:
         if ntoken is TokenType.EQUAL:
             next(ast)
             (token, value), _ = next(ast)
-            assert token is TokenType.STRING
+            assertToken(TokenType.STRING, 'string')
             assert value is not None
             return Equal(id_, String(value))
         return id_
@@ -156,7 +160,7 @@ def _parse(ast: _LEX_STREAM_AH) -> IR:
         type_ = All if token is TokenType.ALL else Any
         args: T.List[IR] = []
         (token, value), n_stream = next(ast)
-        assert token is TokenType.LPAREN
+        assertToken(TokenType.LPAREN, '"("')
         if n_stream and n_stream[0] == TokenType.RPAREN:
             (token, value), _ = next(ast)
             return type_(args)
@@ -165,15 +169,15 @@ def _parse(ast: _LEX_STREAM_AH) -> IR:
             (token, value), _ = next(ast)
             if token is TokenType.RPAREN:
                 break
-            assert token is TokenType.COMMA
+            assertToken(TokenType.COMMA, '")" or ","')
         return type_(args)
     elif token in {TokenType.NOT, TokenType.CFG}:
         is_not = token is TokenType.NOT
         (token, value), _ = next(ast)
-        assert token is TokenType.LPAREN
+        assertToken(TokenType.LPAREN, '"("')
         arg = _parse(ast)
         (token, value), _ = next(ast)
-        assert token is TokenType.RPAREN
+        assertToken(TokenType.RPAREN, '")"')
         return Not(arg) if is_not else arg
     else:
         raise MesonException(f'Unhandled Cargo token:{token} {value}')

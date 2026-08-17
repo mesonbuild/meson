@@ -196,6 +196,8 @@ class CargoCfgTest(unittest.TestCase):
             'all(unix,)',
             'any(',
             'not(',
+            'not(all(unix,))',
+            'not(any)',
             ''
         ]
         for data in cases:
