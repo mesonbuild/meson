@@ -699,12 +699,6 @@ class Interpreter:
             else:
                 self._enable_feature(pkg, f, machine)
 
-    def has_check_cfg(self, machine: MachineChoice) -> bool:
-        if not self.environment.is_cross_build():
-            machine = MachineChoice.HOST
-        rustc = T.cast('RustCompiler', self.environment.coredata.compilers[machine]['rust'])
-        return rustc.has_check_cfg
-
     @functools.lru_cache(maxsize=None)
     def _get_cfgs(self, machine: MachineChoice, subproject: SubProject) -> T.Dict[str, str]:
         if not self.environment.is_cross_build():
