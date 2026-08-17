@@ -26,7 +26,7 @@ import enum
 import typing as T
 
 
-from ..mesonlib import MesonBugException, lookahead
+from ..mesonlib import MesonBugException, MesonException, lookahead
 
 if T.TYPE_CHECKING:
     _T = T.TypeVar('_T')
@@ -175,7 +175,7 @@ def _parse(ast: _LEX_STREAM_AH) -> IR:
         assert token is TokenType.RPAREN
         return Not(arg) if is_not else arg
     else:
-        raise MesonBugException(f'Unhandled Cargo token:{token} {value}')
+        raise MesonException(f'Unhandled Cargo token:{token} {value}')
 
 
 def parse(ast: _LEX_STREAM) -> IR:
