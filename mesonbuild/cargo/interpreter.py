@@ -192,9 +192,6 @@ class PackageState:
 
     def get_rustc_args(self, environment: Environment, subdir: str, machine: MachineChoice) -> T.List[str]:
         """Get rustc arguments for this package."""
-        if not environment.is_cross_build():
-            machine = MachineChoice.HOST
-
         rustc = T.cast('RustCompiler', environment.coredata.compilers[machine]['rust'])
         cfg = self.cfg[machine]
 
@@ -701,8 +698,6 @@ class Interpreter:
 
     @functools.lru_cache(maxsize=None)
     def _get_cfgs(self, machine: MachineChoice, subproject: SubProject) -> T.Dict[str, str]:
-        if not self.environment.is_cross_build():
-            machine = MachineChoice.HOST
         rustc = T.cast('RustCompiler', self.environment.coredata.compilers[machine]['rust'])
         cfgs = rustc.get_cfgs().copy()
         rustflags = T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
