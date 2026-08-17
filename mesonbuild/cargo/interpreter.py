@@ -576,10 +576,12 @@ class Interpreter:
             return  # Already prepared for this machine
 
         pkg.cfg[machine] = PackageConfiguration(for_machine=machine)
+
         # Merge target-specific dependencies that are enabled for this machine
+        rustc = T.cast('RustCompiler', self.environment.coredata.compilers[machine]['rust'])
         target_cfgs = self._get_cfgs(machine, pkg.get_subproject_name())
         for condition, dependencies in pkg.manifest.target.items():
-            if eval_cfg(condition, target_cfgs):
+            if condition == rustc.get_target_triple() or eval_cfg(condition, target_cfgs):
                 pkg.manifest.dependencies.update(dependencies)
 
         # If you specify the optional dependency with the dep: prefix anywhere in the [features]
