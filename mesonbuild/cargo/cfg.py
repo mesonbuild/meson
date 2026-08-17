@@ -46,7 +46,6 @@ class TokenType(enum.Enum):
     NOT = enum.auto()
     COMMA = enum.auto()
     EQUAL = enum.auto()
-    CFG = enum.auto()
 
 
 def lexer(raw: str) -> _LEX_STREAM:
@@ -71,8 +70,6 @@ def lexer(raw: str) -> _LEX_STREAM:
                 yield (TokenType.ALL, None)
             elif val == 'not':
                 yield (TokenType.NOT, None)
-            elif val == 'cfg':
-                yield (TokenType.CFG, None)
             elif val:
                 yield (TokenType.IDENTIFIER, val)
 
@@ -171,14 +168,13 @@ def _parse(ast: _LEX_STREAM_AH) -> IR:
                 break
             assertToken(TokenType.COMMA, '")" or ","')
         return type_(args)
-    elif token in {TokenType.NOT, TokenType.CFG}:
-        is_not = token is TokenType.NOT
+    elif token is TokenType.NOT:
         (token, value), _ = next(ast)
         assertToken(TokenType.LPAREN, '"("')
         arg = _parse(ast)
         (token, value), _ = next(ast)
         assertToken(TokenType.RPAREN, '")"')
-        return Not(arg) if is_not else arg
+        return Not(arg)
     else:
         raise MesonException(f'Unhandled Cargo token:{token} {value}')
 
@@ -216,4 +212,6 @@ def _eval_cfg(ir: IR, cfgs: T.Dict[str, str]) -> bool:
 
 
 def eval_cfg(raw: str, cfgs: T.Dict[str, str]) -> bool:
-    return _eval_cfg(parse(lexer(raw)), cfgs)
+    if raw.startswith('cfg(') and raw.endswith(')'):
+        return _eval_cfg(parse(lexer(raw[4:-1])), cfgs)
+    return False
