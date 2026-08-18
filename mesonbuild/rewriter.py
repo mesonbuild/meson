@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
-from .ast.interpreter import IntrospectionBuildTarget, IntrospectionDependency, _symbol
+from .ast.interpreter import IntrospectionBuildTarget, IntrospectionDependency, IntrospectionFile, _symbol
 from .interpreterbase import UnknownValue
 from mesonbuild.mesonlib import MesonException, pathname_sort_key, relpath, setup_vsenv
 from . import mlog, environment
@@ -759,7 +759,6 @@ class Rewriter:
             tgt_function.args.kwargs[extra_files_idnode] = new_extra_files_node
 
         newfiles_relto = self.get_relto(target.node, chosen)
-        old_src_list: T.List[T.Any] = self.interpreter.flatten_args(list(old))
 
         if op == 'src_add':
             name = 'Source'
@@ -769,7 +768,9 @@ class Rewriter:
         to_append = []
         added = []
 
-        old_src_list = [(target_dir_abs / x).resolve() if isinstance(x, str) else x.to_abs_path(source_root_abs) for x in old_src_list if not isinstance(x, UnknownValue)]
+        old_src_list = [(target_dir_abs / x).resolve() if isinstance(x, str) else x.to_abs_path(source_root_abs)
+                        for x in self.interpreter.flatten_args(list(old))
+                        if isinstance(x, (str, IntrospectionFile))]
         for _newf in sorted(set(newfiles)):
             newf = Path(_newf)
             if os.path.isabs(newf):
