@@ -8,3 +8,6 @@ project(
 )
 
 dep1 = dependency('zlib', required: false, default_options: {'foo': 'bar'})
+
+# a dict can also be a positional argument; it must not be flattened away
+conf = configuration_data({'foo': 'bar'})
