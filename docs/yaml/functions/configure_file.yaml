@@ -160,6 +160,17 @@ kwargs:
       When specified, macro guards will be used instead of '#pragma once'. The
       macro guard name will be the specified name.
 
+  strict:
+    type: bool
+    default: false
+    since: 1.13.0
+    description: |
+      If `true`, configuration fails when any key in the
+      `configuration:` object is unused by the input template
+      (`@KEY@`, `#mesondefine`, `#cmakedefine`, or `${KEY}`).
+      Has no effect when `input:` is omitted, because every key
+      is written to the output.
+
   build_subdir:
     type: str
     since: 1.10.0
