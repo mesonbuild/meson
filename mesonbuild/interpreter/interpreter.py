@@ -2789,6 +2789,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                   validator=in_set_validator({'c', 'json', 'nasm'})),
         KwargInfo('macro_name', (str, NoneType), default=None, since='1.3.0'),
         KwargInfo('build_subdir', str, default='', since='1.10.0'),
+        KwargInfo('strict', bool, default=False, since='1.13.0'),
     )
     @apply_machine_map
     def func_configure_file(self, node: mparser.BaseNode, args: T.List[TYPE_var],
@@ -2811,6 +2812,9 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if kwargs['capture'] and not kwargs['command']:
             raise InvalidArguments('configure_file: "capture" keyword requires "command" keyword.')
+
+        if kwargs['strict'] and kwargs['configuration'] is None:
+            raise InvalidArguments('configure_file: "strict" keyword requires "configuration" keyword.')
 
         install_mode = self._warn_kwarg_install_mode_sticky(kwargs['install_mode'])
 
@@ -2870,9 +2874,14 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InterpreterException('At most one input file can given in configuration mode')
             if inputs:
                 file_encoding = kwargs['encoding']
-                missing_variables, confdata_useless = \
+                missing_variables, confdata_useless, unused_variables = \
                     mesonlib.do_conf_file(inputs_abs[0], ofile_abs, conf,
                                           fmt, file_encoding, self.subproject)
+                if kwargs['strict'] and unused_variables:
+                    unused_list = ", ".join(repr(u) for u in sorted(unused_variables))
+                    raise InterpreterException(
+                        f"configure_file: strict mode: configuration data key(s) {unused_list} "
+                        f"were not used in the input file '{inputs[0]}'.")
                 if missing_variables:
                     var_list = ", ".join(repr(m) for m in sorted(missing_variables))
                     mlog.warning(
