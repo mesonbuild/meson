@@ -341,6 +341,7 @@ class ConfigureFile(TypedDict):
     macro_name: T.Optional[str]
     build_subdir: str
     copy: bool
+    strict: bool
 
 
 class Subproject(ExtractRequired):
