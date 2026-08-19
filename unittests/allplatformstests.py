@@ -154,7 +154,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_do_conf_file_by_format(self):
         def conf_str(in_data, confdata, vformat):
-            (result, missing_variables, confdata_useless) = do_conf_str('configuration_file', in_data, confdata, variable_format = vformat)
+            (result, missing_variables, confdata_useless, unused_variables) = do_conf_str('configuration_file', in_data, confdata, variable_format = vformat)
             return '\n'.join(result)
 
         def check_meson_format(confdata, result):
@@ -231,6 +231,54 @@ class AllPlatformTests(BasePlatformTests):
         #   Dict value in confdata
         confdata.values = {'VAR': (['value'], 'description')}
         self.assertRaises(MesonException, conf_str, ['#mesondefine VAR'], confdata, 'meson')
+
+    def test_do_conf_unused_keys(self):
+        confdata = ConfigurationData()
+        confdata.values = {'USED': ('yes', None), 'UNUSED': ('no', None)}
+
+        result, missing, useless, unused = do_conf_str(
+            'configuration_file', ['@USED@\n'], confdata, variable_format='meson')
+        self.assertEqual(unused, {'UNUSED'})
+
+        result, missing, useless, unused = do_conf_str(
+            'configuration_file', ['@USED@ @UNUSED@\n'], confdata, variable_format='meson')
+        self.assertEqual(unused, set())
+
+        result, missing, useless, unused = do_conf_str(
+            'configuration_file', ['#mesondefine USED\n'], confdata, variable_format='meson')
+        self.assertEqual(unused, {'UNUSED'})
+
+        result, missing, useless, unused = do_conf_str(
+            'configuration_file', ['#cmakedefine USED\n'], confdata, variable_format='cmake')
+        self.assertEqual(unused, {'UNUSED'})
+
+    def test_configure_file_strict_kwarg(self):
+        with tempfile.TemporaryDirectory() as srcdir:
+            with open(os.path.join(srcdir, 'meson.build'), 'w', encoding='utf-8') as f:
+                f.write(textwrap.dedent("""\
+                    project('strictconf')
+                    c = configuration_data()
+                    c.set('USED', '1')
+                    c.set('UNUSED', '2')
+                    configure_file(input: 'cfg.h.in', output: 'cfg.h',
+                                   configuration: c, strict: true)
+                    """))
+            with open(os.path.join(srcdir, 'cfg.h.in'), 'w', encoding='utf-8') as f:
+                f.write('#mesondefine USED\n')
+            out = self.init(srcdir, allow_fail=True)
+            self.assertTrue(
+                'UNUSED' in out and 'strict' in out,
+                'expected strict unused-key error, got:\n' + out)
+            self.wipe()
+            with open(os.path.join(srcdir, 'meson.build'), 'w', encoding='utf-8') as f:
+                f.write(textwrap.dedent("""\
+                    project('strictconf')
+                    c = configuration_data()
+                    c.set('USED', '1')
+                    configure_file(input: 'cfg.h.in', output: 'cfg.h',
+                                   configuration: c, strict: true)
+                    """))
+            self.init(srcdir)
 
     def test_cmake_configuration(self):
         if self.backend is not Backend.ninja:
