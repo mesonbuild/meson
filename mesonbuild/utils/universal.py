@@ -1463,7 +1463,8 @@ def do_replacement(regex: T.Pattern[str], line: str,
         raise MesonException('Invalid variable format')
 
 def do_replacement_meson(regex: T.Pattern[str], line: str,
-                         confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
+                         confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData'],
+                         used: T.Optional[T.Set[str]] = None) -> T.Tuple[str, T.Set[str]]:
     missing_variables: T.Set[str] = set()
 
     def variable_replace(match: T.Match[str]) -> str:
@@ -1479,6 +1480,8 @@ def do_replacement_meson(regex: T.Pattern[str], line: str,
             varname = match.group('variable')
             var_str = ''
             if varname in confdata:
+                if used is not None:
+                    used.add(varname)
                 var, _ = confdata.get(varname)
                 if isinstance(var, str):
                     var_str = var
@@ -1497,7 +1500,8 @@ def do_replacement_meson(regex: T.Pattern[str], line: str,
     return re.sub(regex, variable_replace, line), missing_variables
 
 def do_replacement_cmake(line: str, at_only: bool,
-                         confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
+                         confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData'],
+                         used: T.Optional[T.Set[str]] = None) -> T.Tuple[str, T.Set[str]]:
     missing_variables: T.Set[str] = set()
 
     character_regex = re.compile(r'''
@@ -1507,6 +1511,8 @@ def do_replacement_cmake(line: str, at_only: bool,
     def variable_get(varname: str) -> str:
         var_str = ''
         if varname in confdata:
+            if used is not None:
+                used.add(varname)
             var, _ = confdata.get(varname)
             if isinstance(var, str):
                 var_str = var
@@ -1584,7 +1590,8 @@ def do_replacement_cmake(line: str, at_only: bool,
     return parse_line(line), missing_variables
 
 def do_define_meson(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
-                    subproject: T.Optional[SubProject] = None) -> str:
+                    subproject: T.Optional[SubProject] = None,
+                    used: T.Optional[T.Set[str]] = None) -> str:
 
     arr = line.split()
     if len(arr) != 2:
@@ -1596,9 +1603,12 @@ def do_define_meson(regex: T.Pattern[str], line: str, confdata: 'ConfigurationDa
     except KeyError:
         return '/* #undef %s */\n' % varname
 
+    if used is not None:
+        used.add(varname)
+
     if isinstance(v, str):
         result = f'#define {varname} {v}'.strip() + '\n'
-        result, _ = do_replacement_meson(regex, result, confdata)
+        result, _ = do_replacement_meson(regex, result, confdata, used)
         return result
     elif isinstance(v, bool):
         if v:
@@ -1611,7 +1621,8 @@ def do_define_meson(regex: T.Pattern[str], line: str, confdata: 'ConfigurationDa
         raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
 
 def do_define_cmake(line: str, confdata: 'ConfigurationData', at_only: bool,
-                    subproject: T.Optional[SubProject] = None) -> str:
+                    subproject: T.Optional[SubProject] = None,
+                    used: T.Optional[T.Set[str]] = None) -> str:
     cmake_bool_define = 'cmakedefine01' in line
 
     def get_cmake_define(line: str, confdata: 'ConfigurationData') -> str:
@@ -1625,6 +1636,8 @@ def do_define_cmake(line: str, confdata: 'ConfigurationData', at_only: bool,
         for token in arr[2:]:
             try:
                 v, _ = confdata.get(token)
+                if used is not None:
+                    used.add(token)
                 define_value += [str(v)]
             except KeyError:
                 define_value += [token]
@@ -1645,12 +1658,15 @@ def do_define_cmake(line: str, confdata: 'ConfigurationData', at_only: bool,
         else:
             return '/* #undef %s */\n' % varname
 
+    if used is not None:
+        used.add(varname)
+
     if not cmake_bool_define and not v:
         return '/* #undef %s */\n' % varname
 
     result = get_cmake_define(line, confdata)
     result = f'#define {varname} {result}'.strip() + '\n'
-    result, _ = do_replacement_cmake(result, at_only, confdata)
+    result, _ = do_replacement_cmake(result, at_only, confdata, used)
     return result
 
 def get_variable_regex(variable_format: Literal['meson', 'cmake', 'cmake@'] = 'meson') -> T.Pattern[str]:
@@ -1676,7 +1692,7 @@ def get_variable_regex(variable_format: Literal['meson', 'cmake', 'cmake@'] = 'm
 
 def do_conf_str(src: str, data: T.List[str], confdata: 'ConfigurationData',
                 variable_format: Literal['meson', 'cmake', 'cmake@'],
-                subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
+                subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool, T.Set[str]]:
     if variable_format == 'meson':
         return do_conf_str_meson(src, data, confdata, subproject)
     elif variable_format in {'cmake', 'cmake@'}:
@@ -1685,7 +1701,7 @@ def do_conf_str(src: str, data: T.List[str], confdata: 'ConfigurationData',
         raise MesonException('Invalid variable format')
 
 def do_conf_str_meson(src: str, data: T.List[str], confdata: 'ConfigurationData',
-                      subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
+                      subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool, T.Set[str]]:
 
     regex = get_variable_regex('meson')
 
@@ -1693,26 +1709,28 @@ def do_conf_str_meson(src: str, data: T.List[str], confdata: 'ConfigurationData'
 
     result: T.List[str] = []
     missing_variables: T.Set[str] = set()
+    used_variables: T.Set[str] = set()
     # Detect when the configuration data is empty and no tokens were found
     # during substitution so we can warn the user to use the `copy:` kwarg.
     confdata_useless = not confdata.keys()
     for line in data:
         if line.lstrip().startswith(search_token):
             confdata_useless = False
-            line = do_define_meson(regex, line, confdata, subproject)
+            line = do_define_meson(regex, line, confdata, subproject, used_variables)
         else:
             if re.search(r'#\s*cmakedefine', line):
                 raise MesonException(f'Format error in {src}: saw "{line.strip()}" when format set to "meson"')
-            line, missing = do_replacement_meson(regex, line, confdata)
+            line, missing = do_replacement_meson(regex, line, confdata, used_variables)
             missing_variables.update(missing)
             if missing:
                 confdata_useless = False
         result.append(line)
 
-    return result, missing_variables, confdata_useless
+    unused_variables = set(confdata.keys()) - used_variables
+    return result, missing_variables, confdata_useless, unused_variables
 
 def do_conf_str_cmake(src: str, data: T.List[str], confdata: 'ConfigurationData', at_only: bool,
-                      subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
+                      subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool, T.Set[str]]:
 
     variable_format: Literal['cmake', 'cmake@'] = 'cmake'
     if at_only:
@@ -1722,6 +1740,7 @@ def do_conf_str_cmake(src: str, data: T.List[str], confdata: 'ConfigurationData'
 
     result: T.List[str] = []
     missing_variables: T.Set[str] = set()
+    used_variables: T.Set[str] = set()
     # Detect when the configuration data is empty and no tokens were found
     # during substitution so we can warn the user to use the `copy:` kwarg.
     confdata_useless = not confdata.keys()
@@ -1732,28 +1751,29 @@ def do_conf_str_cmake(src: str, data: T.List[str], confdata: 'ConfigurationData'
                 from ..interpreterbase.decorators import FeatureNew
                 FeatureNew.single_use('whitespace between `#` and `cmakedefine`', '1.9.0', subproject)
             confdata_useless = False
-            line = do_define_cmake(line, confdata, at_only, subproject)
+            line = do_define_cmake(line, confdata, at_only, subproject, used_variables)
         else:
             if '#mesondefine' in line:
                 raise MesonException(f'Format error in {src}: saw "{line.strip()}" when format set to "{variable_format}"')
-            line, missing = do_replacement_cmake(line, at_only, confdata)
+            line, missing = do_replacement_cmake(line, at_only, confdata, used_variables)
             missing_variables.update(missing)
             if missing:
                 confdata_useless = False
         result.append(line)
 
-    return result, missing_variables, confdata_useless
+    unused_variables = set(confdata.keys()) - used_variables
+    return result, missing_variables, confdata_useless, unused_variables
 
 def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData',
                  variable_format: Literal['meson', 'cmake', 'cmake@'],
-                 encoding: str = 'utf-8', subproject: T.Optional[SubProject] = None) -> T.Tuple[T.Set[str], bool]:
+                 encoding: str = 'utf-8', subproject: T.Optional[SubProject] = None) -> T.Tuple[T.Set[str], bool, T.Set[str]]:
     try:
         with open(src, encoding=encoding, newline='') as f:
             data = f.readlines()
     except Exception as e:
         raise MesonException(f'Could not read input file {src}: {e!s}')
 
-    (result, missing_variables, confdata_useless) = do_conf_str(src, data, confdata, variable_format, subproject)
+    (result, missing_variables, confdata_useless, unused_variables) = do_conf_str(src, data, confdata, variable_format, subproject)
     dst_tmp = dst + '~'
     try:
         with open(dst_tmp, 'w', encoding=encoding, newline='') as f:
@@ -1762,7 +1782,7 @@ def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData',
         raise MesonException(f'Could not write output file {dst}: {e!s}')
     shutil.copymode(src, dst_tmp)
     replace_if_different(dst, dst_tmp)
-    return missing_variables, confdata_useless
+    return missing_variables, confdata_useless, unused_variables
 
 CONF_C_PRELUDE = '''/*
  * Autogenerated by the Meson build system.
