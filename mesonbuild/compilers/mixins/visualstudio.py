@@ -160,6 +160,9 @@ class VisualStudioLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
     def get_compile_only_args(self) -> T.List[str]:
         return ['/c']
 
+    def get_syntax_only_args(self) -> T.Optional[T.List[str]]:
+        return ['/Zs']
+
     def get_no_optimization_args(self) -> T.List[str]:
         return ['/Od', '/Oi-']
 

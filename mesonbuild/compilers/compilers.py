@@ -1271,6 +1271,9 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_compile_only_args(self) -> T.List[str]:
         return []
 
+    def get_syntax_only_args(self) -> T.Optional[T.List[str]]:
+        return None
+
     def get_preprocess_only_args(self) -> T.List[str]:
         raise EnvironmentException('This compiler does not have a preprocessor')
 

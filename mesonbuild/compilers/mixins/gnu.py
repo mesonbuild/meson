@@ -505,6 +505,9 @@ class GnuLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
     def get_compile_only_args(self) -> T.List[str]:
         return ['-c']
 
+    def get_syntax_only_args(self) -> T.Optional[T.List[str]]:
+        return ['-fsyntax-only']
+
     def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
         if not path:
             path = '.'

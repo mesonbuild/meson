@@ -4105,6 +4105,20 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem.add_item('pool', 'console')
         self.add_build(elem)
 
+    def generate_check_syntax(self) -> None:
+        if 'check-syntax' in self.all_outputs:
+            return
+        supported_langs = {'c', 'cpp', 'objc', 'objcpp'}
+        if not any(self.have_language(lang) for lang in supported_langs):
+            return
+
+        cmd = self.environment.get_build_command() + \
+            ['--internal', 'check_syntax', self.environment.build_dir]
+        elem = self.create_phony_target('check-syntax', 'CUSTOM_COMMAND', 'PHONY')
+        elem.add_item('COMMAND', cmd)
+        elem.add_item('pool', 'console')
+        self.add_build(elem)
+
     def generate_rustdoc(self) -> None:
         if 'rustdoc' in self.all_outputs or not self.have_language('rust'):
             return
@@ -4197,6 +4211,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.generate_clippy_json_prereq()
         self.generate_clippy_json()
         self.generate_rustdoc()
+        self.generate_check_syntax()
         self.generate_tags('etags', 'TAGS')
         self.generate_tags('ctags', 'ctags')
         self.generate_tags('cscope', 'cscope')
