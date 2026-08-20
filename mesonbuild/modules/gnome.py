@@ -26,10 +26,12 @@ from .. import mlog
 from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments, LocalProgram
 from ..dependencies import Dependency, InternalDependency
 from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
-from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, ENV_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, DEPENDENCY_SOURCES_KW, in_set_validator
-from ..interpreterbase import noPosargs, noKwargs, FeatureNew, FeatureDeprecated
-from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
-from ..interpreterbase.decorators import typed_pos_args
+from ..interpreter.type_checking import (
+    DEPENDS_KW, DEPEND_FILES_KW, ENV_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType,
+    DEPENDENCY_SOURCES_KW, STR_PARG, STR_VARG, in_set_validator,
+)
+from ..interpreterbase import FeatureNew, FeatureDeprecated
+from ..interpreterbase import TypedArgs, KwargInfo, ContainerTypeInfo, OptArgInfo, VarArgInfo, PosArgInfo
 from ..mesonlib import (
     InstallScriptFailure, MachineChoice, MesonException, OrderedSet, Popen_safe, join_args, quote_arg
 )
@@ -341,15 +343,16 @@ class GnomeModule(ExtensionModule):
             mlog.warning(f'Meson will be unable to run {name}, installation without DESTDIR will fail', fatal=False)
             return InstallScriptFailure(name, str(e))
 
-    @typed_kwargs(
+    @TypedArgs(
         'gnome.post_install',
-        KwargInfo('glib_compile_schemas', bool, default=False),
-        KwargInfo('gio_querymodules', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('gtk_update_icon_cache', bool, default=False),
-        KwargInfo('update_desktop_database', bool, default=False, since='0.59.0'),
-        KwargInfo('update_mime_database', bool, default=False, since='0.64.0'),
+        kw_types=[
+            KwargInfo('glib_compile_schemas', bool, default=False),
+            KwargInfo('gio_querymodules', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('gtk_update_icon_cache', bool, default=False),
+            KwargInfo('update_desktop_database', bool, default=False, since='0.59.0'),
+            KwargInfo('update_mime_database', bool, default=False, since='0.64.0'),
+        ],
     )
-    @noPosargs
     @FeatureNew('gnome.post_install', '0.57.0')
     def post_install(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'PostInstall') -> ModuleReturnValue:
         rv: T.List[InstallScript] = []
@@ -390,19 +393,24 @@ class GnomeModule(ExtensionModule):
             rv.append(script)
         return ModuleReturnValue(None, rv)
 
-    @typed_pos_args('gnome.compile_resources', str, (str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList))
-    @typed_kwargs(
+    @TypedArgs(
         'gnome.compile_resources',
-        _BUILD_BY_DEFAULT,
-        _EXTRA_ARGS_KW,
-        INSTALL_KW,
-        INSTALL_KW.evolve(name='install_header', since='0.37.0'),
-        INSTALL_DIR_KW,
-        KwargInfo('c_name', (str, NoneType)),
-        KwargInfo('dependencies', ContainerTypeInfo(list, (mesonlib.File, CustomTarget, CustomTargetIndex)), default=[], listify=True),
-        KwargInfo('export', bool, default=False, since='0.37.0'),
-        KwargInfo('gresource_bundle', bool, default=False, since='0.37.0'),
-        KwargInfo('source_dir', ContainerTypeInfo(list, str), default=[], listify=True),
+        pos_types=[
+            STR_PARG,
+            PosArgInfo((str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList)),
+        ],
+        kw_types=[
+            _BUILD_BY_DEFAULT,
+            _EXTRA_ARGS_KW,
+            INSTALL_KW,
+            INSTALL_KW.evolve(name='install_header', since='0.37.0'),
+            INSTALL_DIR_KW,
+            KwargInfo('c_name', (str, NoneType)),
+            KwargInfo('dependencies', ContainerTypeInfo(list, (mesonlib.File, CustomTarget, CustomTargetIndex)), default=[], listify=True),
+            KwargInfo('export', bool, default=False, since='0.37.0'),
+            KwargInfo('gresource_bundle', bool, default=False, since='0.37.0'),
+            KwargInfo('source_dir', ContainerTypeInfo(list, str), default=[], listify=True),
+        ],
     )
     def compile_resources(self, state: 'ModuleState', args: T.Tuple[str, CustomTargetInputs],
                           kwargs: 'CompileResources') -> 'ModuleReturnValue':
@@ -1135,34 +1143,39 @@ class GnomeModule(ExtensionModule):
             [f for f in ldflags if f.startswith(('-Wl,-rpath,'))],
         )
 
-    @typed_pos_args('gnome.generate_gir', varargs=(Executable, build.SharedLibrary, build.StaticLibrary), min_varargs=1)
-    @typed_kwargs(
+    @TypedArgs(
         'gnome.generate_gir',
-        INSTALL_KW,
-        _BUILD_BY_DEFAULT.evolve(since='0.40.0'),
-        _EXTRA_ARGS_KW,
-        ENV_KW.evolve(since='1.2.0'),
-        KwargInfo('dependencies', ContainerTypeInfo(list, Dependency), default=[], listify=True),
-        KwargInfo('doc_format', (str, NoneType), since='1.8.0'),
-        KwargInfo('export_packages', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('fatal_warnings', bool, default=False, since='0.55.0'),
-        KwargInfo('header', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('identifier_prefix', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('include_directories', ContainerTypeInfo(list, (str, build.IncludeDirs)), default=[], listify=True),
-        KwargInfo('includes', ContainerTypeInfo(list, (str, GirTarget)), default=[], listify=True),
-        KwargInfo('install_gir', (bool, NoneType), since='0.61.0'),
-        KwargInfo('install_dir_gir', (str, bool, NoneType),
-                  deprecated_values={False: ('0.61.0', 'Use install_gir to disable installation')},
-                  validator=lambda x: 'as boolean can only be false' if x is True else None),
-        KwargInfo('install_typelib', (bool, NoneType), since='0.61.0'),
-        KwargInfo('install_dir_typelib', (str, bool, NoneType),
-                  deprecated_values={False: ('0.61.0', 'Use install_typelib to disable installation')},
-                  validator=lambda x: 'as boolean can only be false' if x is True else None),
-        KwargInfo('link_with', ContainerTypeInfo(list, (build.SharedLibrary, build.StaticLibrary)), default=[], listify=True),
-        KwargInfo('namespace', str, required=True),
-        KwargInfo('nsversion', str, required=True),
-        KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File, GeneratedList, CustomTarget, CustomTargetIndex)), default=[], listify=True),
-        KwargInfo('symbol_prefix', ContainerTypeInfo(list, str), default=[], listify=True),
+        var_types=VarArgInfo(
+            (Executable, build.SharedLibrary, build.StaticLibrary),
+            min_args=1,
+        ),
+        kw_types=[
+            INSTALL_KW,
+            _BUILD_BY_DEFAULT.evolve(since='0.40.0'),
+            _EXTRA_ARGS_KW,
+            ENV_KW.evolve(since='1.2.0'),
+            KwargInfo('dependencies', ContainerTypeInfo(list, Dependency), default=[], listify=True),
+            KwargInfo('doc_format', (str, NoneType), since='1.8.0'),
+            KwargInfo('export_packages', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('fatal_warnings', bool, default=False, since='0.55.0'),
+            KwargInfo('header', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('identifier_prefix', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('include_directories', ContainerTypeInfo(list, (str, build.IncludeDirs)), default=[], listify=True),
+            KwargInfo('includes', ContainerTypeInfo(list, (str, GirTarget)), default=[], listify=True),
+            KwargInfo('install_gir', (bool, NoneType), since='0.61.0'),
+            KwargInfo('install_dir_gir', (str, bool, NoneType),
+                      deprecated_values={False: ('0.61.0', 'Use install_gir to disable installation')},
+                      validator=lambda x: 'as boolean can only be false' if x is True else None),
+            KwargInfo('install_typelib', (bool, NoneType), since='0.61.0'),
+            KwargInfo('install_dir_typelib', (str, bool, NoneType),
+                      deprecated_values={False: ('0.61.0', 'Use install_typelib to disable installation')},
+                      validator=lambda x: 'as boolean can only be false' if x is True else None),
+            KwargInfo('link_with', ContainerTypeInfo(list, (build.SharedLibrary, build.StaticLibrary)), default=[], listify=True),
+            KwargInfo('namespace', str, required=True),
+            KwargInfo('nsversion', str, required=True),
+            KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File, GeneratedList, CustomTarget, CustomTargetIndex)), default=[], listify=True),
+            KwargInfo('symbol_prefix', ContainerTypeInfo(list, str), default=[], listify=True),
+        ],
     )
     def generate_gir(self, state: 'ModuleState', args: T.Tuple[T.List[T.Union[Executable, build.SharedLibrary, build.StaticLibrary]]],
                      kwargs: 'GenerateGir') -> ModuleReturnValue:
@@ -1294,8 +1307,7 @@ class GnomeModule(ExtensionModule):
 
         return ModuleReturnValue(rv, rv)
 
-    @noPosargs
-    @typed_kwargs('gnome.compile_schemas', _BUILD_BY_DEFAULT.evolve(since='0.40.0'), DEPEND_FILES_KW)
+    @TypedArgs('gnome.compile_schemas', kw_types=[_BUILD_BY_DEFAULT.evolve(since='0.40.0'), DEPEND_FILES_KW])
     def compile_schemas(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'CompileSchemas') -> ModuleReturnValue:
         srcdir = os.path.join(state.build_to_src, state.subdir)
         outdir = state.subdir
@@ -1320,25 +1332,25 @@ class GnomeModule(ExtensionModule):
         self._devenv_prepend('GSETTINGS_SCHEMA_DIR', os.path.join(state.environment.get_build_dir(), state.subdir))
         return ModuleReturnValue(target_g, [target_g])
 
-    @typed_pos_args('gnome.yelp', str, varargs=str)
-    @typed_kwargs(
+    @TypedArgs(
         'gnome.yelp',
-        KwargInfo(
-            'languages', ContainerTypeInfo(list, str),
-            listify=True, default=[],
-            deprecated='0.43.0',
-            deprecated_message='Use a LINGUAS file in the source directory instead',
-        ),
-        KwargInfo('media', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('sources', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('symlink_media', bool, default=True),
+        pos_types=[STR_PARG],
+        var_types=STR_VARG.evolve(deprecated='0.60.0', deprecated_message='use the "sources" keyeword argument instead'),
+        kw_types=[
+            KwargInfo(
+                'languages', ContainerTypeInfo(list, str),
+                listify=True, default=[],
+                deprecated='0.43.0',
+                deprecated_message='Use a LINGUAS file in the source directory instead',
+            ),
+            KwargInfo('media', ContainerTypeInfo(list, str), listify=True, default=[]),
+            KwargInfo('sources', ContainerTypeInfo(list, str), listify=True, default=[]),
+            KwargInfo('symlink_media', bool, default=True),
+        ],
     )
     def yelp(self, state: 'ModuleState', args: T.Tuple[str, T.List[str]], kwargs: 'Yelp') -> ModuleReturnValue:
         project_id = args[0]
         sources = kwargs['sources']
-        if args[1]:
-            FeatureDeprecated.single_use('gnome.yelp more than one positional argument', '0.60.0',
-                                         state.subproject, 'use the "sources" keyword argument instead.', state.current_node)
         if not sources:
             sources = args[1]
             if not sources:
@@ -1459,39 +1471,41 @@ class GnomeModule(ExtensionModule):
 
         return ModuleReturnValue(None, targets)
 
-    @typed_pos_args('gnome.gtkdoc', str)
-    @typed_kwargs(
+    @TypedArgs(
         'gnome.gtkdoc',
-        KwargInfo('c_args', ContainerTypeInfo(list, str), since='0.48.0', default=[], listify=True),
-        KwargInfo('check', bool, default=False, since='0.52.0'),
-        KwargInfo('content_files', ContainerTypeInfo(list, (str, mesonlib.File, GeneratedList, CustomTarget, CustomTargetIndex)), default=[], listify=True),
-        KwargInfo(
-            'dependencies',
-            ContainerTypeInfo(list, (Dependency, build.SharedLibrary, build.StaticLibrary)),
-            listify=True, default=[]),
-        KwargInfo('expand_content_files', ContainerTypeInfo(list, (str, mesonlib.File)), default=[], listify=True),
-        KwargInfo('fixxref_args', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('gobject_typesfile', ContainerTypeInfo(list, (str, mesonlib.File)), default=[], listify=True),
-        KwargInfo('html_args', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('html_assets', ContainerTypeInfo(list, (str, mesonlib.File)), default=[], listify=True),
-        KwargInfo('ignore_headers', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo(
-            'include_directories',
-            ContainerTypeInfo(list, (str, build.IncludeDirs)),
-            listify=True, default=[]),
-        KwargInfo('install', bool, default=True),
-        KwargInfo('install_dir', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('main_sgml', (str, NoneType)),
-        KwargInfo('main_xml', (str, NoneType)),
-        KwargInfo('mkdb_args', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo(
-            'mode', str, default='auto', since='0.37.0',
-            validator=in_set_validator({'xml', 'sgml', 'none', 'auto'})),
-        KwargInfo('module_version', str, default='', since='0.48.0'),
-        KwargInfo('namespace', str, default='', since='0.37.0'),
-        KwargInfo('scan_args', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('scanobjs_args', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('src_dir', ContainerTypeInfo(list, (str, build.IncludeDirs)), listify=True, required=True),
+        pos_types=[STR_PARG],
+        kw_types=[
+            KwargInfo('c_args', ContainerTypeInfo(list, str), since='0.48.0', default=[], listify=True),
+            KwargInfo('check', bool, default=False, since='0.52.0'),
+            KwargInfo('content_files', ContainerTypeInfo(list, (str, mesonlib.File, GeneratedList, CustomTarget, CustomTargetIndex)), default=[], listify=True),
+            KwargInfo(
+                'dependencies',
+                ContainerTypeInfo(list, (Dependency, build.SharedLibrary, build.StaticLibrary)),
+                listify=True, default=[]),
+            KwargInfo('expand_content_files', ContainerTypeInfo(list, (str, mesonlib.File)), default=[], listify=True),
+            KwargInfo('fixxref_args', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('gobject_typesfile', ContainerTypeInfo(list, (str, mesonlib.File)), default=[], listify=True),
+            KwargInfo('html_args', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('html_assets', ContainerTypeInfo(list, (str, mesonlib.File)), default=[], listify=True),
+            KwargInfo('ignore_headers', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo(
+                'include_directories',
+                ContainerTypeInfo(list, (str, build.IncludeDirs)),
+                listify=True, default=[]),
+            KwargInfo('install', bool, default=True),
+            KwargInfo('install_dir', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('main_sgml', (str, NoneType)),
+            KwargInfo('main_xml', (str, NoneType)),
+            KwargInfo('mkdb_args', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo(
+                'mode', str, default='auto', since='0.37.0',
+                validator=in_set_validator({'xml', 'sgml', 'none', 'auto'})),
+            KwargInfo('module_version', str, default='', since='0.48.0'),
+            KwargInfo('namespace', str, default='', since='0.37.0'),
+            KwargInfo('scan_args', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('scanobjs_args', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('src_dir', ContainerTypeInfo(list, (str, build.IncludeDirs)), listify=True, required=True),
+        ],
     )
     def gtkdoc(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'GtkDoc') -> ModuleReturnValue:
         modulename = args[0]
@@ -1645,34 +1659,36 @@ class GnomeModule(ExtensionModule):
 
         return args, new_depends
 
-    @noKwargs
-    @typed_pos_args('gnome.gtkdoc_html_dir', str)
+    @TypedArgs('gnome.gtkdoc_html_dir', pos_types=[STR_PARG])
     def gtkdoc_html_dir(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> str:
         return os.path.join('share/gtk-doc/html', args[0])
 
-    @typed_pos_args('gnome.gdbus_codegen', str, optargs=[(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList)])
-    @typed_kwargs(
+    @TypedArgs(
         'gnome.gdbus_codegen',
-        _BUILD_BY_DEFAULT.evolve(since='0.40.0'),
-        DEPENDENCY_SOURCES_KW.evolve(since='0.46.0'),
-        KwargInfo('extra_args', ContainerTypeInfo(list, str), since='0.47.0', default=[], listify=True),
-        KwargInfo('interface_prefix', (str, NoneType)),
-        KwargInfo('namespace', (str, NoneType)),
-        KwargInfo('object_manager', bool, default=False),
-        KwargInfo(
-            'annotations', ContainerTypeInfo(list, (list, str)),
-            default=[],
-            validator=annotations_validator,
-            convertor=lambda x: [x] if x and isinstance(x[0], str) else x,
-        ),
-        KwargInfo('install_header', bool, default=False, since='0.46.0'),
-        KwargInfo('docbook', (str, NoneType)),
-        KwargInfo('rst', (str, NoneType), since='1.9.0'),
-        KwargInfo('markdown', (str, NoneType), since='1.9.0'),
-        KwargInfo(
-            'autocleanup', str, default='default', since='0.47.0',
-            validator=in_set_validator({'all', 'none', 'objects'})),
-        INSTALL_DIR_KW.evolve(since='0.46.0')
+        pos_types=[STR_PARG],
+        opt_types=[OptArgInfo((str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList))],
+        kw_types=[
+            _BUILD_BY_DEFAULT.evolve(since='0.40.0'),
+            DEPENDENCY_SOURCES_KW.evolve(since='0.46.0'),
+            KwargInfo('extra_args', ContainerTypeInfo(list, str), since='0.47.0', default=[], listify=True),
+            KwargInfo('interface_prefix', (str, NoneType)),
+            KwargInfo('namespace', (str, NoneType)),
+            KwargInfo('object_manager', bool, default=False),
+            KwargInfo(
+                'annotations', ContainerTypeInfo(list, (list, str)),
+                default=[],
+                validator=annotations_validator,
+                convertor=lambda x: [x] if x and isinstance(x[0], str) else x,
+            ),
+            KwargInfo('install_header', bool, default=False, since='0.46.0'),
+            KwargInfo('docbook', (str, NoneType)),
+            KwargInfo('rst', (str, NoneType), since='1.9.0'),
+            KwargInfo('markdown', (str, NoneType), since='1.9.0'),
+            KwargInfo(
+                'autocleanup', str, default='default', since='0.47.0',
+                validator=in_set_validator({'all', 'none', 'objects'})),
+            INSTALL_DIR_KW.evolve(since='0.46.0')
+        ],
     )
     def gdbus_codegen(self, state: 'ModuleState', args: T.Tuple[str, T.Optional[str | build.TargetSources]],
                       kwargs: 'GdbusCodegen') -> ModuleReturnValue:
@@ -1865,28 +1881,30 @@ class GnomeModule(ExtensionModule):
 
         return ModuleReturnValue(targets, targets)
 
-    @typed_pos_args('gnome.mkenums', str)
-    @typed_kwargs(
+    @TypedArgs(
         'gnome.mkenums',
-        *_MK_ENUMS_COMMON_KWS,
-        DEPENDS_KW,
-        KwargInfo(
-            'sources',
-            ContainerTypeInfo(list, (str, mesonlib.File, CustomTarget, CustomTargetIndex,
-                                     GeneratedList)),
-            listify=True,
-            required=True,
-        ),
-        KwargInfo('c_template', (str, mesonlib.File, NoneType)),
-        KwargInfo('h_template', (str, mesonlib.File, NoneType)),
-        KwargInfo('comments', (str, NoneType)),
-        KwargInfo('eprod', (str, NoneType)),
-        KwargInfo('fhead', (str, NoneType)),
-        KwargInfo('fprod', (str, NoneType)),
-        KwargInfo('ftail', (str, NoneType)),
-        KwargInfo('vhead', (str, NoneType)),
-        KwargInfo('vprod', (str, NoneType)),
-        KwargInfo('vtail', (str, NoneType)),
+        pos_types=[STR_PARG],
+        kw_types=[
+            *_MK_ENUMS_COMMON_KWS,
+            DEPENDS_KW,
+            KwargInfo(
+                'sources',
+                ContainerTypeInfo(list, (str, mesonlib.File, CustomTarget, CustomTargetIndex,
+                                         GeneratedList)),
+                listify=True,
+                required=True,
+            ),
+            KwargInfo('c_template', (str, mesonlib.File, NoneType)),
+            KwargInfo('h_template', (str, mesonlib.File, NoneType)),
+            KwargInfo('comments', (str, NoneType)),
+            KwargInfo('eprod', (str, NoneType)),
+            KwargInfo('fhead', (str, NoneType)),
+            KwargInfo('fprod', (str, NoneType)),
+            KwargInfo('ftail', (str, NoneType)),
+            KwargInfo('vhead', (str, NoneType)),
+            KwargInfo('vprod', (str, NoneType)),
+            KwargInfo('vtail', (str, NoneType)),
+        ],
     )
     def mkenums(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'MkEnums') -> ModuleReturnValue:
         basename = args[0]
@@ -1947,20 +1965,22 @@ class GnomeModule(ExtensionModule):
             return ModuleReturnValue(targets, targets)
 
     @FeatureNew('gnome.mkenums_simple', '0.42.0')
-    @typed_pos_args('gnome.mkenums_simple', str)
-    @typed_kwargs(
+    @TypedArgs(
         'gnome.mkenums_simple',
-        *_MK_ENUMS_COMMON_KWS,
-        KwargInfo(
-            'sources',
-            ContainerTypeInfo(list, (str, mesonlib.File)),
-            listify=True,
-            required=True,
-        ),
-        KwargInfo('header_prefix', str, default=''),
-        KwargInfo('function_prefix', str, default=''),
-        KwargInfo('body_prefix', str, default=''),
-        KwargInfo('decorator', str, default=''),
+        pos_types=[STR_PARG],
+        kw_types=[
+            *_MK_ENUMS_COMMON_KWS,
+            KwargInfo(
+                'sources',
+                ContainerTypeInfo(list, (str, mesonlib.File)),
+                listify=True,
+                required=True,
+            ),
+            KwargInfo('header_prefix', str, default=''),
+            KwargInfo('function_prefix', str, default=''),
+            KwargInfo('body_prefix', str, default=''),
+            KwargInfo('decorator', str, default=''),
+        ],
     )
     def mkenums_simple(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'MkEnumsSimple') -> ModuleReturnValue:
         hdr_filename = f'{args[0]}.h'
@@ -2108,24 +2128,24 @@ class GnomeModule(ExtensionModule):
             description='Generating GObject enum file {}',
         )
 
-    @typed_pos_args('gnome.genmarshal', str)
-    @typed_kwargs(
+    @TypedArgs(
         'gnome.genmarshal',
-        DEPEND_FILES_KW.evolve(since='0.61.0'),
-        DEPENDS_KW.evolve(since='0.61.0'),
-        INSTALL_KW.evolve(name='install_header'),
-        INSTALL_DIR_KW,
-        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('internal', bool, default=False),
-        KwargInfo('nostdinc', bool, default=False),
-        KwargInfo('prefix', (str, NoneType)),
-        KwargInfo('skip_source', bool, default=False),
-        KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList), allow_empty=False), listify=True, required=True,
-                  since_values={ContainerTypeInfo(list, (CustomTarget, CustomTargetIndex, GeneratedList), allow_empty=False): '1.12.0'},
-
-                  ),
-        KwargInfo('stdinc', bool, default=False),
-        KwargInfo('valist_marshallers', bool, default=False),
+        pos_types=[STR_PARG],
+        kw_types=[
+            DEPEND_FILES_KW.evolve(since='0.61.0'),
+            DEPENDS_KW.evolve(since='0.61.0'),
+            INSTALL_KW.evolve(name='install_header'),
+            INSTALL_DIR_KW,
+            KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+            KwargInfo('internal', bool, default=False),
+            KwargInfo('nostdinc', bool, default=False),
+            KwargInfo('prefix', (str, NoneType)),
+            KwargInfo('skip_source', bool, default=False),
+            KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList), allow_empty=False), listify=True, required=True,
+                      since_values={ContainerTypeInfo(list, (CustomTarget, CustomTargetIndex, GeneratedList), allow_empty=False): '1.12.0'}),
+            KwargInfo('stdinc', bool, default=False),
+            KwargInfo('valist_marshallers', bool, default=False),
+        ]
     )
     def genmarshal(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'GenMarshal') -> ModuleReturnValue:
         output = args[0]
@@ -2258,22 +2278,24 @@ class GnomeModule(ExtensionModule):
                 link_with += self._get_vapi_link_with(dep)
         return link_with
 
-    @typed_pos_args('gnome.generate_vapi', str)
-    @typed_kwargs(
+    @TypedArgs(
         'gnome.generate_vapi',
-        INSTALL_KW,
-        INSTALL_DIR_KW,
-        KwargInfo(
-            'sources',
-            ContainerTypeInfo(list, (str, mesonlib.File, GirTarget), allow_empty=False),
-            listify=True,
-            required=True,
-            since_values={ContainerTypeInfo(list, (mesonlib.File), allow_empty=False): '1.12.0'},
-        ),
-        KwargInfo('vapi_dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('metadata_dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('gir_dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('packages', ContainerTypeInfo(list, (str, InternalDependency)), listify=True, default=[]),
+        pos_types=[STR_PARG],
+        kw_types=[
+            INSTALL_KW,
+            INSTALL_DIR_KW,
+            KwargInfo(
+                'sources',
+                ContainerTypeInfo(list, (str, mesonlib.File, GirTarget), allow_empty=False),
+                listify=True,
+                required=True,
+                since_values={ContainerTypeInfo(list, (mesonlib.File), allow_empty=False): '1.12.0'},
+            ),
+            KwargInfo('vapi_dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
+            KwargInfo('metadata_dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
+            KwargInfo('gir_dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
+            KwargInfo('packages', ContainerTypeInfo(list, (str, InternalDependency)), listify=True, default=[]),
+        ],
     )
     def generate_vapi(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'GenerateVapi') -> ModuleReturnValue:
         created_values: T.List[T.Union[Dependency, build.Data]] = []

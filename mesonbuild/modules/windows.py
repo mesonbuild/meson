@@ -14,7 +14,7 @@ from . import ModuleReturnValue
 from .. import mesonlib, build
 from .. import mlog
 from ..interpreter.type_checking import DEPEND_FILES_KW, DEPENDS_KW, INCLUDE_DIRECTORIES
-from ..interpreterbase.decorators import ContainerTypeInfo, FeatureNew, KwargInfo, typed_kwargs, typed_pos_args
+from ..interpreterbase.decorators import ContainerTypeInfo, FeatureNew, KwargInfo, TypedArgs, VarArgInfo
 from ..mesonlib import MachineChoice, MesonException
 from ..programs import ExternalProgram
 
@@ -106,14 +106,19 @@ class WindowsModule(ExtensionModule):
 
         return self._rescomp
 
-    @typed_pos_args('windows.compile_resources', varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex), min_varargs=1)
-    @typed_kwargs(
+    @TypedArgs(
         'windows.compile_resources',
-        DEPEND_FILES_KW.evolve(since='0.47.0'),
-        DEPENDS_KW.evolve(since='0.47.0'),
-        INCLUDE_DIRECTORIES,
-        KwargInfo('implicit_include_directories', bool, default=False, since='1.11.0'),
-        KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
+        var_types=VarArgInfo(
+            (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex),
+            min_args=1,
+        ),
+        kw_types=[
+            DEPEND_FILES_KW.evolve(since='0.47.0'),
+            DEPENDS_KW.evolve(since='0.47.0'),
+            INCLUDE_DIRECTORIES,
+            KwargInfo('implicit_include_directories', bool, default=False, since='1.11.0'),
+            KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
+        ],
     )
     def compile_resources(self, state: 'ModuleState',
                           args: T.Tuple[T.List[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]]],

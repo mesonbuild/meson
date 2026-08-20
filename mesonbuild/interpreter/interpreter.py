@@ -26,8 +26,8 @@ from ..options import OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram, Program
 from ..dependencies import Dependency
 from ..depfile import DepFile
-from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
-from ..interpreterbase import noPosargs, noKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
+from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, TypedArgs, PosArgInfo, OptArgInfo, VarArgInfo
+from ..interpreterbase import noArgsFlattening, noSecondLevelHolderResolving, unholder_return
 from .decorators import apply_machine_map
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
@@ -35,7 +35,7 @@ from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken
 from ..interpreterbase import ObjectHolder, ContextManagerObject, DefaultObject
 from ..interpreterbase import stringifyUserArguments, Feature, FeatureValue
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule, __path__ as modules_path
-from ..optinterpreter import optname_regex
+from ..optinterpreter import OPTNAME_REGEX
 
 from . import interpreterobjects as OBJ
 from . import compiler as compilerOBJ
@@ -91,10 +91,22 @@ from .type_checking import (
     SHARED_LIB_KWS,
     SHARED_MOD_KWS,
     DEPENDENCY_SOURCES_KW,
-    SOURCES_VARARGS,
     STATIC_LIB_KWS,
     VARIABLES_KW,
     TEST_KWS,
+    BOOL_PARG,
+    INT_OARG,
+    INT_PARG,
+    OBJ_OARG,
+    OBJ_PARG,
+    OBJ_VARG,
+    SRC_VARG,
+    STR_FILE_VARG,
+    STR_OARG,
+    STR_PARG,
+    STR_VARG,
+    STR_VARG_1,
+    TGT_PARG,
     NoneType,
     in_set_validator,
     env_convertor_with_method
@@ -143,6 +155,9 @@ if T.TYPE_CHECKING:
     ProgramVersionFunc = T.Callable[[Program], str]
 
     TestClass = T.TypeVar('TestClass', bound=Test)
+
+_TEST_PARG = PosArgInfo((build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex))
+_RUN_CMD_TYPES = (build.Executable, Program, compilers.Compiler, mesonlib.File, str)
 
 def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None]) -> T.Optional[str]:
     if isinstance(value, list):
@@ -627,11 +642,13 @@ class Interpreter(InterpreterBase, HoldableObject):
                 dep = df.lookup(kwargs, force_fallback=True)
                 self.build.stdlibs[for_machine][l] = dep
 
-    @typed_pos_args('import', str)
-    @typed_kwargs(
+    @TypedArgs(
         'import',
-        REQUIRED_KW.evolve(since='0.59.0'),
-        DISABLER_KW.evolve(since='0.59.0'),
+        pos_types=[STR_PARG],
+        kw_types=[
+            REQUIRED_KW.evolve(since='0.59.0'),
+            DISABLER_KW.evolve(since='0.59.0'),
+        ],
     )
     @disablerIfNotFound
     def func_import(self, node: mparser.BaseNode, args: T.Tuple[str],
@@ -716,27 +733,27 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.modules[real_modname] = ext_module
         return ext_module
 
-    @typed_pos_args('files', varargs=str)
-    @noKwargs
+    @TypedArgs('files', var_types=STR_VARG)
     def func_files(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[mesonlib.File]:
         return self.source_strings_to_files(args[0])
 
-    @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'declare_dependency',
-        KwargInfo('compile_args', ContainerTypeInfo(list, str), listify=True, default=[]),
-        INCLUDE_DIRECTORIES.evolve(name='d_import_dirs', since='0.62.0'),
-        D_MODULE_VERSIONS_KW.evolve(since='0.62.0'),
-        LINK_ARGS_KW,
-        DEPENDENCIES_KW,
-        INCLUDE_DIRECTORIES.evolve(since_values={ContainerTypeInfo(list, str): '0.50.0'}),
-        LINK_WITH_KW,
-        LINK_WHOLE_KW.evolve(since='0.46.0'),
-        DEPENDENCY_SOURCES_KW,
-        KwargInfo('extra_files', ContainerTypeInfo(list, (mesonlib.File, str)), listify=True, default=[], since='1.2.0'),
-        VARIABLES_KW.evolve(since='0.54.0', since_values={list: '0.56.0'}),
-        KwargInfo('version', (str, NoneType)),
-        KwargInfo('objects', ContainerTypeInfo(list, build.ExtractedObjects), listify=True, default=[], since='1.1.0'),
+        kw_types=[
+            KwargInfo('compile_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+            INCLUDE_DIRECTORIES.evolve(name='d_import_dirs', since='0.62.0'),
+            D_MODULE_VERSIONS_KW.evolve(since='0.62.0'),
+            LINK_ARGS_KW,
+            DEPENDENCIES_KW,
+            INCLUDE_DIRECTORIES.evolve(since_values={ContainerTypeInfo(list, str): '0.50.0'}),
+            LINK_WITH_KW,
+            LINK_WHOLE_KW.evolve(since='0.46.0'),
+            DEPENDENCY_SOURCES_KW,
+            KwargInfo('extra_files', ContainerTypeInfo(list, (mesonlib.File, str)), listify=True, default=[], since='1.2.0'),
+            VARIABLES_KW.evolve(since='0.54.0', since_values={list: '0.56.0'}),
+            KwargInfo('version', (str, NoneType)),
+            KwargInfo('objects', ContainerTypeInfo(list, build.ExtractedObjects), listify=True, default=[], since='1.1.0'),
+        ],
     )
     def func_declare_dependency(self, node: mparser.BaseNode, args: T.List[TYPE_var],
                                 kwargs: kwtypes.FuncDeclareDependency) -> dependencies.Dependency:
@@ -774,13 +791,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                                               objects)
         return dep
 
-    @typed_pos_args('assert', bool, optargs=[str])
-    @noKwargs
+    @TypedArgs('assert', pos_types=[BOOL_PARG], opt_types=[STR_OARG.evolve(optional_since='0.53.0')])
     def func_assert(self, node: mparser.FunctionNode, args: T.Tuple[bool, T.Optional[str]],
                     kwargs: 'TYPE_kwargs') -> None:
         value, message = args
-        if message is None:
-            FeatureNew.single_use('assert function without message argument', '0.53.0', self.subproject, location=node)
 
         if not value:
             if message is None:
@@ -792,16 +806,16 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     # Executables aren't actually accepted, but we allow them here to allow for
     # better error messages when overridden
-    @typed_pos_args(
+    @TypedArgs(
         'run_command',
-        (build.Executable, Program, compilers.Compiler, mesonlib.File, str),
-        varargs=(build.Executable, Program, compilers.Compiler, mesonlib.File, str))
-    @typed_kwargs(
-        'run_command',
-        KwargInfo('check', (bool, NoneType), since='0.47.0'),
-        KwargInfo('capture', bool, default=True, since='0.47.0'),
-        KwargInfo('console', bool, default=False, since='1.11.0'),
-        ENV_KW.evolve(since='0.50.0'),
+        pos_types=[PosArgInfo(_RUN_CMD_TYPES)],
+        var_types=VarArgInfo(_RUN_CMD_TYPES),
+        kw_types=[
+            KwargInfo('check', (bool, NoneType), since='0.47.0'),
+            KwargInfo('capture', bool, default=True, since='0.47.0'),
+            KwargInfo('console', bool, default=False, since='1.11.0'),
+            ENV_KW.evolve(since='0.50.0'),
+        ],
     )
     def func_run_command(self, node: mparser.BaseNode,
                          args: T.Tuple[T.Union[build.Executable, Program, compilers.Compiler, mesonlib.File, str],
@@ -891,13 +905,15 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_option(self, nodes: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> T.NoReturn:
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
 
-    @typed_pos_args('subproject', str)
-    @typed_kwargs(
+    @TypedArgs(
         'subproject',
-        REQUIRED_KW,
-        NATIVE_KW.evolve(since='1.12.0'),
-        DEFAULT_OPTIONS.evolve(since='0.38.0'),
-        KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True),
+        pos_types=[STR_PARG],
+        kw_types=[
+            REQUIRED_KW,
+            NATIVE_KW.evolve(since='1.12.0'),
+            DEFAULT_OPTIONS.evolve(since='0.38.0'),
+            KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True),
+        ],
     )
     def func_subproject(self, nodes: mparser.BaseNode, args: T.Tuple[SubProject], kwargs: kwtypes.Subproject) -> SubprojectHolder:
         # note that this does not use @apply_machine_map.  'for_machine'
@@ -1156,8 +1172,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 relaxations={InterpreterRuleRelaxation.CARGO_SUBDIR} if ast is not None else None,
                 cargo=cargo_int)
 
-    @typed_pos_args('get_option', str)
-    @noKwargs
+    @TypedArgs('get_option', pos_types=[STR_PARG])
     def func_get_option(self, node: mparser.BaseNode, args: T.Tuple[str],
                         kwargs: TYPE_kwargs) -> T.Union[options.UserOption, 'TYPE_var']:
         optname = args[0]
@@ -1166,7 +1181,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException('Having a colon in option name is forbidden, '
                                        'projects are not allowed to directly access '
                                        'options of other subprojects.')
-        if optname_regex.search(optname.split('.', maxsplit=1)[-1]) is not None:
+        if OPTNAME_REGEX.search(optname.split('.', maxsplit=1)[-1]) is not None:
             raise InterpreterException(f'Invalid option name {optname!r}')
 
         option_object: T.Optional[options.AnyOptionType]
@@ -1202,18 +1217,14 @@ class Interpreter(InterpreterBase, HoldableObject):
             return P_OBJ.OptionString(value, f'{{{optname}}}')
         return value
 
-    @typed_pos_args('configuration_data', optargs=[dict])
-    @noKwargs
-    def func_configuration_data(self, node: mparser.BaseNode, args: T.Tuple[T.Optional[T.Dict[str, T.Any]]],
+    @TypedArgs(
+        'configuration_data',
+        opt_types=[OptArgInfo(ContainerTypeInfo(dict, (str, int, bool)), since='0.49.0')],
+    )
+    def func_configuration_data(self, node: mparser.BaseNode,
+                                args: T.Tuple[T.Optional[T.Dict[str, str | int | bool]]],
                                 kwargs: 'TYPE_kwargs') -> build.ConfigurationData:
-        initial_values = args[0]
-        if initial_values is not None:
-            FeatureNew.single_use('configuration_data dictionary', '0.49.0', self.subproject, location=node)
-            for k, v in initial_values.items():
-                if not isinstance(v, (str, int, bool)):
-                    raise InvalidArguments(
-                        f'"configuration_data": initial value dictionary key "{k!r}"" must be "str | int | bool", not "{v!r}"')
-        return build.ConfigurationData(initial_values)
+        return build.ConfigurationData(args[0])
 
     @functools.lru_cache(None)
     def set_backend(self) -> None:
@@ -1260,21 +1271,24 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         return valid
 
-    @typed_pos_args('project', str, varargs=str)
-    @typed_kwargs(
+    @TypedArgs(
         'project',
-        DEFAULT_OPTIONS,
-        KwargInfo('meson_version', (str, NoneType)),
-        KwargInfo(
-            'version',
-            (str, mesonlib.File, list),
-            default='undefined',
-            validator=_project_version_validator,
-            convertor=lambda x: x[0] if isinstance(x, list) else x,
-        ),
-        KwargInfo('license', (ContainerTypeInfo(list, str), NoneType), default=None, listify=True),
-        KwargInfo('license_files', ContainerTypeInfo(list, str), default=[], listify=True, since='1.1.0'),
-        KwargInfo('subproject_dir', str, default='subprojects'),
+        pos_types=[STR_PARG],
+        var_types=STR_VARG,
+        kw_types=[
+            DEFAULT_OPTIONS,
+            KwargInfo('meson_version', (str, NoneType)),
+            KwargInfo(
+                'version',
+                (str, mesonlib.File, list),
+                default='undefined',
+                validator=_project_version_validator,
+                convertor=lambda x: x[0] if isinstance(x, list) else x,
+            ),
+            KwargInfo('license', (ContainerTypeInfo(list, str), NoneType), default=None, listify=True),
+            KwargInfo('license_files', ContainerTypeInfo(list, str), default=[], listify=True, since='1.1.0'),
+            KwargInfo('subproject_dir', str, default='subprojects'),
+        ],
     )
     def func_project(self, node: mparser.FunctionNode, args: T.Tuple[str, T.List[str]], kwargs: 'kwtypes.Project') -> None:
         proj_name, proj_langs_ = args
@@ -1405,17 +1419,19 @@ class Interpreter(InterpreterBase, HoldableObject):
         if not self.is_subproject():
             self.check_stdlibs()
 
-    @typed_kwargs(
+    @TypedArgs(
         'add_languages',
-        KwargInfo(
-            'native',
-            (bool, NoneType),
-            since='0.54.0',
-            convertor=lambda x: {None: None, True: MachineChoice.BUILD, False: MachineChoice.HOST}[x],
-        ),
-        REQUIRED_KW,
+        var_types=STR_VARG,
+        kw_types=[
+            KwargInfo(
+                'native',
+                (bool, NoneType),
+                since='0.54.0',
+                convertor=lambda x: {None: None, True: MachineChoice.BUILD, False: MachineChoice.HOST}[x],
+            ),
+            REQUIRED_KW,
+        ],
     )
-    @typed_pos_args('add_languages', varargs=str)
     def func_add_languages(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddLanguages') -> bool:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         for_machine = kwargs['native']
@@ -1449,11 +1465,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InvalidArguments(f'{func_name}(): {str(e)}')
 
     @noArgsFlattening
-    @noKwargs
-    def func_message(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> None:
-        if len(args) > 1:
-            FeatureNew.single_use('message with more than one argument', '0.54.0', self.subproject, location=node)
-        args_str = self._stringify_user_arguments(args, 'message')
+    @TypedArgs('message', var_types=OBJ_VARG.evolve(variadic_since='0.54.0'))
+    def func_message(self, node: mparser.BaseNode, args: tuple[list[TYPE_var]], kwargs: TYPE_kwargs) -> None:
+        args_str = self._stringify_user_arguments(args[0], 'message')
         self.message_impl(args_str)
 
     def message_impl(self, args: mlog.TV_LoggableList | list[str]) -> None:
@@ -1461,12 +1475,15 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @noArgsFlattening
     @FeatureNew('summary', '0.53.0')
-    @typed_pos_args('summary', (str, dict), optargs=[object])
-    @typed_kwargs(
+    @TypedArgs(
         'summary',
-        KwargInfo('section', str, default=''),
-        KwargInfo('bool_yn', bool, default=False),
-        KwargInfo('list_sep', (str, NoneType), since='0.54.0')
+        pos_types=[PosArgInfo((str, dict))],
+        opt_types=[OBJ_OARG],
+        kw_types=[
+            KwargInfo('section', str, default=''),
+            KwargInfo('bool_yn', bool, default=False),
+            KwargInfo('list_sep', (str, NoneType), since='0.54.0')
+        ],
     )
     def func_summary(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, T.Dict[str, T.Any]], T.Optional[T.Any]],
                      kwargs: 'kwtypes.Summary') -> None:
@@ -1532,37 +1549,34 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @noArgsFlattening
     @FeatureNew('warning', '0.44.0')
-    @noKwargs
-    def func_warning(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> None:
-        if len(args) > 1:
-            FeatureNew.single_use('warning with more than one argument', '0.54.0', self.subproject, location=node)
-        args_str = self._stringify_user_arguments(args, 'warning')
+    @TypedArgs('warning', var_types=OBJ_VARG.evolve(variadic_since='0.54.0'))
+    def func_warning(self, node: mparser.BaseNode, args: tuple[list[TYPE_var]], kwargs: TYPE_kwargs) -> None:
+        args_str = self._stringify_user_arguments(args[0], 'warning')
         mlog.warning(*args_str, location=node)
 
     @noArgsFlattening
-    @noKwargs
-    def func_error(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> T.NoReturn:
-        if len(args) > 1:
-            FeatureNew.single_use('error with more than one argument', '0.58.0', self.subproject, location=node)
-        args_str = self._stringify_user_arguments(args, 'error')
+    @TypedArgs('error', var_types=OBJ_VARG.evolve(variadic_since='0.54.0'))
+    def func_error(self, node: mparser.BaseNode, args: tuple[list[TYPE_var]], kwargs: TYPE_kwargs) -> T.NoReturn:
+        args_str = self._stringify_user_arguments(args[0], 'error')
         raise InterpreterException('Problem encountered: ' + ' '.join(args_str))
 
     @noArgsFlattening
     @FeatureNew('debug', '0.63.0')
-    @noKwargs
-    def func_debug(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> None:
-        args_str = self._stringify_user_arguments(args, 'debug')
+    @TypedArgs('debug', var_types=OBJ_VARG)
+    def func_debug(self, node: mparser.BaseNode, args: tuple[list[TYPE_var]], kwargs: TYPE_kwargs) -> None:
+        args_str = self._stringify_user_arguments(args[0], 'debug')
         mlog.debug('Debug:', *args_str)
 
-    @noKwargs
-    @noPosargs
-    def func_exception(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> T.NoReturn:
+    @TypedArgs('exception')
+    def func_exception(self, node: mparser.BaseNode, args: tuple[()], kwargs: TYPE_kwargs) -> T.NoReturn:
         raise RuntimeError('unit test traceback :)')
 
-    @typed_pos_args('expect_error', str)
-    @typed_kwargs(
+    @TypedArgs(
         'expect_error',
-        KwargInfo('how', str, default='literal', validator=in_set_validator({'literal', 're'})),
+        pos_types=[STR_PARG],
+        kw_types=[
+            KwargInfo('how', str, default='literal', validator=in_set_validator({'literal', 're'})),
+        ],
     )
     def func_expect_error(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: kwtypes.FuncExpectError) -> ContextManagerObject:
         class ExpectErrorObject(ContextManagerObject):
@@ -1895,16 +1909,18 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.do_subproject(fallback, sp_kwargs)
         return self.program_from_overrides(args, for_machine, extra_info)
 
-    @typed_pos_args('find_program', varargs=(str, mesonlib.File), min_varargs=1)
-    @typed_kwargs(
+    @TypedArgs(
         'find_program',
-        DISABLER_KW.evolve(since='0.49.0'),
-        NATIVE_KW,
-        REQUIRED_KW,
-        KwargInfo('dirs', ContainerTypeInfo(list, str), default=[], listify=True, since='0.53.0'),
-        KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True, since='0.52.0'),
-        KwargInfo('version_argument', str, default='', since='1.5.0'),
-        DEFAULT_OPTIONS.evolve(since='1.3.0')
+        var_types=STR_FILE_VARG.evolve(min_args=1),
+        kw_types=[
+            DISABLER_KW.evolve(since='0.49.0'),
+            NATIVE_KW,
+            REQUIRED_KW,
+            KwargInfo('dirs', ContainerTypeInfo(list, str), default=[], listify=True, since='0.53.0'),
+            KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True, since='0.52.0'),
+            KwargInfo('version_argument', str, default='', since='1.5.0'),
+            DEFAULT_OPTIONS.evolve(since='1.3.0')
+        ],
     )
     @disablerIfNotFound
     @apply_machine_map
@@ -1923,8 +1939,11 @@ class Interpreter(InterpreterBase, HoldableObject):
                                       search_dirs=search_dirs)
 
     # When adding kwargs, please check if they make sense in dependencies.get_dep_identifier()
-    @typed_pos_args('dependency', varargs=str, min_varargs=1)
-    @typed_kwargs('dependency', *DEPENDENCY_KWS)
+    @TypedArgs(
+        'dependency',
+        var_types=STR_VARG_1,
+        kw_types=DEPENDENCY_KWS
+    )
     @disablerIfNotFound
     @apply_machine_map
     def func_dependency(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]], kwargs: kwtypes.FuncDependency) -> Dependency:
@@ -1975,40 +1994,54 @@ class Interpreter(InterpreterBase, HoldableObject):
         return d
 
     @FeatureNew('default', '1.12.0')
-    @noKwargs
-    @noPosargs
+    @TypedArgs('default')
     def func_default(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> DefaultObject:
         return DefaultObject()
 
     @FeatureNew('disabler', '0.44.0')
-    @noKwargs
-    @noPosargs
+    @TypedArgs('disabler')
     def func_disabler(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: TYPE_kwargs) -> Disabler:
         return Disabler()
 
-    @typed_pos_args('executable', str, varargs=SOURCES_VARARGS)
-    @typed_kwargs('executable', *EXECUTABLE_KWS)
+    @TypedArgs(
+        'executable',
+        pos_types=[STR_PARG],
+        var_types=SRC_VARG,
+        kw_types=EXECUTABLE_KWS,
+    )
     def func_executable(self, node: mparser.BaseNode,
                         args: T.Tuple[str, SourcesVarargsType],
                         kwargs: kwtypes.Executable) -> T.Union[build.Executable, build.SharedLibrary]:
         return self.build_target(node, args, kwargs, build.Executable)
 
-    @typed_pos_args('static_library', str, varargs=SOURCES_VARARGS)
-    @typed_kwargs('static_library', *STATIC_LIB_KWS)
+    @TypedArgs(
+        'static_library',
+        pos_types=[STR_PARG],
+        var_types=SRC_VARG,
+        kw_types=STATIC_LIB_KWS,
+    )
     def func_static_lib(self, node: mparser.BaseNode,
                         args: T.Tuple[str, SourcesVarargsType],
                         kwargs: kwtypes.StaticLibrary) -> build.StaticLibrary:
         return self.build_target(node, args, kwargs, build.StaticLibrary)
 
-    @typed_pos_args('shared_library', str, varargs=SOURCES_VARARGS)
-    @typed_kwargs('shared_library', *SHARED_LIB_KWS)
+    @TypedArgs(
+        'shared_library',
+        pos_types=[STR_PARG],
+        var_types=SRC_VARG,
+        kw_types=SHARED_LIB_KWS,
+    )
     def func_shared_lib(self, node: mparser.BaseNode,
                         args: T.Tuple[str, SourcesVarargsType],
                         kwargs: kwtypes.SharedLibrary) -> build.SharedLibrary:
         return self.build_target(node, args, kwargs, build.SharedLibrary)
 
-    @typed_pos_args('both_libraries', str, varargs=SOURCES_VARARGS)
-    @typed_kwargs('both_libraries', *LIBRARY_KWS)
+    @TypedArgs(
+        'both_libraries',
+        pos_types=[STR_PARG],
+        var_types=SRC_VARG,
+        kw_types=LIBRARY_KWS
+    )
     @noSecondLevelHolderResolving
     def func_both_lib(self, node: mparser.BaseNode,
                       args: T.Tuple[str, SourcesVarargsType],
@@ -2016,30 +2049,46 @@ class Interpreter(InterpreterBase, HoldableObject):
         return self.build_both_libraries(node, args, kwargs)
 
     @FeatureNew('shared_module', '0.37.0')
-    @typed_pos_args('shared_module', str, varargs=SOURCES_VARARGS)
-    @typed_kwargs('shared_module', *SHARED_MOD_KWS)
+    @TypedArgs(
+        'shared_module',
+        pos_types=[STR_PARG],
+        var_types=SRC_VARG,
+        kw_types=SHARED_MOD_KWS
+    )
     def func_shared_module(self, node: mparser.BaseNode,
                            args: T.Tuple[str, SourcesVarargsType],
                            kwargs: kwtypes.SharedModule) -> build.SharedModule:
         return self.build_target(node, args, kwargs, build.SharedModule)
 
-    @typed_pos_args('library', str, varargs=SOURCES_VARARGS)
-    @typed_kwargs('library', *LIBRARY_KWS)
+    @TypedArgs(
+        'library',
+        pos_types=[STR_PARG],
+        var_types=SRC_VARG,
+        kw_types=LIBRARY_KWS
+    )
     @noSecondLevelHolderResolving
     def func_library(self, node: mparser.BaseNode,
                      args: T.Tuple[str, SourcesVarargsType],
                      kwargs: kwtypes.Library) -> build.StaticLibrary | build.SharedLibrary | build.BothLibraries:
         return self.build_library(node, args, kwargs)
 
-    @typed_pos_args('jar', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.ExtractedObjects, build.BuildTarget))
-    @typed_kwargs('jar', *JAR_KWS)
+    @TypedArgs(
+        'jar',
+        pos_types=[STR_PARG],
+        var_types=VarArgInfo((str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.ExtractedObjects, build.BuildTarget)),
+        kw_types=JAR_KWS,
+    )
     def func_jar(self, node: mparser.BaseNode,
                  args: T.Tuple[str, T.List[str | build.TargetSources]],
                  kwargs: kwtypes.Jar) -> build.Jar:
         return self.build_target(node, T.cast('tuple[str, SourcesVarargsType]', args), kwargs, build.Jar)
 
-    @typed_pos_args('build_target', str, varargs=SOURCES_VARARGS)
-    @typed_kwargs('build_target', *BUILD_TARGET_KWS)
+    @TypedArgs(
+        'build_target',
+        pos_types=[STR_PARG],
+        var_types=SRC_VARG,
+        kw_types=BUILD_TARGET_KWS,
+    )
     def func_build_target(self, node: mparser.BaseNode,
                           args: T.Tuple[str, SourcesVarargsType],
                           kwargs: kwtypes.BuildTargetFunc,
@@ -2063,24 +2112,25 @@ class Interpreter(InterpreterBase, HoldableObject):
         # between Jar and BuildTarget types
         return self.build_target(node, args, T.cast('kwtypes.Jar', kwargs), build.Jar)
 
-    @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'vcs_tag',
-        CT_INPUT_KW.evolve(required=True),
-        MULTI_OUTPUT_KW,
-        # Cannot use the COMMAND_KW because command is allowed to be empty
-        KwargInfo(
-            'command',
-            ContainerTypeInfo(list, (str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, Program, mesonlib.File)),
-            listify=True,
-            default=[],
-        ),
-        KwargInfo('fallback', (str, NoneType)),
-        KwargInfo('replace_string', str, default='@VCS_TAG@'),
-        INSTALL_KW.evolve(since='1.7.0'),
-        INSTALL_DIR_KW.evolve(since='1.7.0'),
-        INSTALL_TAG_KW.evolve(since='1.7.0'),
-        INSTALL_MODE_KW.evolve(since='1.7.0'),
+        kw_types=[
+            CT_INPUT_KW.evolve(required=True),
+            MULTI_OUTPUT_KW,
+            # Cannot use the COMMAND_KW because command is allowed to be empty
+            KwargInfo(
+                'command',
+                ContainerTypeInfo(list, (str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, Program, mesonlib.File)),
+                listify=True,
+                default=[],
+            ),
+            KwargInfo('fallback', (str, NoneType)),
+            KwargInfo('replace_string', str, default='@VCS_TAG@'),
+            INSTALL_KW.evolve(since='1.7.0'),
+            INSTALL_DIR_KW.evolve(since='1.7.0'),
+            INSTALL_TAG_KW.evolve(since='1.7.0'),
+            INSTALL_MODE_KW.evolve(since='1.7.0'),
+        ],
     )
     @apply_machine_map
     def func_vcs_tag(self, node: mparser.BaseNode, args: T.List['TYPE_var'], kwargs: 'kwtypes.VcsTag') -> build.CustomTarget:
@@ -2148,15 +2198,14 @@ class Interpreter(InterpreterBase, HoldableObject):
         return tg
 
     @FeatureNew('subdir_done', '0.46.0')
-    @noPosargs
-    @noKwargs
+    @TypedArgs('subdir_done')
     def func_subdir_done(self, node: mparser.BaseNode, args: TYPE_var, kwargs: TYPE_kwargs) -> T.NoReturn:
         raise SubdirDoneRequest()
 
     def _validate_custom_target_outputs(self, has_multi_in: bool, outputs: T.Iterable[str], name: str) -> None:
         """Checks for additional invalid values in a custom_target output.
 
-        This cannot be done with typed_kwargs because it requires the number of
+        This cannot be done with TypedArgs because it requires the number of
         inputs.
         """
         inregex: T.List[str] = ['@PLAINNAME[0-9]+@', '@BASENAME[0-9]+@']
@@ -2171,27 +2220,29 @@ class Interpreter(InterpreterBase, HoldableObject):
                     f'{match} in output', '1.5.0',
                     self.subproject)
 
-    @typed_pos_args('custom_target', optargs=[str])
-    @typed_kwargs(
+    @TypedArgs(
         'custom_target',
-        COMMAND_KW,
-        CT_BUILD_ALWAYS,
-        CT_BUILD_ALWAYS_STALE,
-        CT_BUILD_BY_DEFAULT,
-        CT_INPUT_KW,
-        CT_INSTALL_DIR_KW,
-        CT_INSTALL_TAG_KW,
-        MULTI_OUTPUT_KW,
-        DEPENDS_KW,
-        DEPEND_FILES_KW,
-        DEPFILE_KW,
-        ENV_KW.evolve(since='0.57.0'),
-        INSTALL_KW,
-        INSTALL_MODE_KW.evolve(since='0.47.0'),
-        KwargInfo('feed', bool, default=False, since='0.59.0'),
-        KwargInfo('capture', bool, default=False),
-        KwargInfo('console', bool, default=False, since='0.48.0'),
-        KwargInfo('build_subdir', str, default='', since='1.10.0'),
+        opt_types=[STR_OARG.evolve(optional_since='0.60.0', default='')],
+        kw_types=[
+            COMMAND_KW,
+            CT_BUILD_ALWAYS,
+            CT_BUILD_ALWAYS_STALE,
+            CT_BUILD_BY_DEFAULT,
+            CT_INPUT_KW,
+            CT_INSTALL_DIR_KW,
+            CT_INSTALL_TAG_KW,
+            MULTI_OUTPUT_KW,
+            DEPENDS_KW,
+            DEPEND_FILES_KW,
+            DEPFILE_KW,
+            ENV_KW.evolve(since='0.57.0'),
+            INSTALL_KW,
+            INSTALL_MODE_KW.evolve(since='0.47.0'),
+            KwargInfo('feed', bool, default=False, since='0.59.0'),
+            KwargInfo('capture', bool, default=False),
+            KwargInfo('console', bool, default=False, since='0.48.0'),
+            KwargInfo('build_subdir', str, default='', since='1.10.0'),
+        ],
     )
     @apply_machine_map
     def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[str],
@@ -2224,14 +2275,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         if build_always_stale is None:
             build_always_stale = False
 
+        # name will default to first output, but we cannot do that yet because
+        # they could need substitutions (e.g. @BASENAME@) first. CustomTarget()
+        # will take care of setting a proper default but name must be an empty
+        # string in the meantime.
         name = args[0]
-        if name is None:
-            # name will default to first output, but we cannot do that yet because
-            # they could need substitutions (e.g. @BASENAME@) first. CustomTarget()
-            # will take care of setting a proper default but name must be an empty
-            # string in the meantime.
-            FeatureNew.single_use('custom_target() with no name argument', '0.60.0', self.subproject, location=node)
-            name = ''
         inputs = self.source_strings_to_files(kwargs['input'])
         command = kwargs['command']
         if command and isinstance(command[0], str):
@@ -2290,12 +2338,14 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.add_target(tg.name, tg)
         return tg
 
-    @typed_pos_args('run_target', str)
-    @typed_kwargs(
+    @TypedArgs(
         'run_target',
-        COMMAND_KW,
-        DEPENDS_KW,
-        ENV_KW.evolve(since='0.57.0'),
+        pos_types=[STR_PARG],
+        kw_types=[
+            COMMAND_KW,
+            DEPENDS_KW,
+            ENV_KW.evolve(since='0.57.0'),
+        ]
     )
     def func_run_target(self, node: mparser.FunctionNode, args: T.Tuple[str],
                         kwargs: 'kwtypes.RunTarget') -> build.RunTarget:
@@ -2317,13 +2367,18 @@ class Interpreter(InterpreterBase, HoldableObject):
         return tg
 
     @FeatureNew('alias_target', '0.52.0')
-    @typed_pos_args('alias_target', str, varargs=(build.Target, build.BothLibraries), min_varargs=1)
-    @noKwargs
+    @TypedArgs(
+        'alias_target',
+        pos_types=[STR_PARG],
+        var_types=VarArgInfo(
+            (build.Target, build.BothLibraries),
+            min_args=1,
+            since_values={build.RunTarget: '0.60.0'},
+        ),
+    )
     def func_alias_target(self, node: mparser.BaseNode, args: T.Tuple[str, T.List[T.Union[build.Target, build.BothLibraries]]],
                           kwargs: TYPE_kwargs) -> build.AliasTarget:
         name, deps = args
-        if any(isinstance(d, build.RunTarget) for d in deps):
-            FeatureNew.single_use('alias_target that depends on run_targets', '0.60.0', self.subproject)
         real_deps: T.List[build.Target] = []
         for d in deps:
             if isinstance(d, build.BothLibraries):
@@ -2336,14 +2391,16 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.add_target(name, tg)
         return tg
 
-    @typed_pos_args('generator', (build.Executable, Program))
-    @typed_kwargs(
+    @TypedArgs(
         'generator',
-        KwargInfo('arguments', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
-        KwargInfo('output', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
-        DEPFILE_KW,
-        DEPENDS_KW,
-        KwargInfo('capture', bool, default=False, since='0.43.0'),
+        pos_types=[PosArgInfo((build.Executable, Program))],
+        kw_types=[
+            KwargInfo('arguments', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
+            KwargInfo('output', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
+            DEPFILE_KW,
+            DEPENDS_KW,
+            KwargInfo('capture', bool, default=False, since='0.43.0'),
+        ]
     )
     def func_generator(self, node: mparser.FunctionNode,
                        args: T.Tuple[T.Union[build.Executable, Program]],
@@ -2364,15 +2421,21 @@ class Interpreter(InterpreterBase, HoldableObject):
             exe_prg = args[0]
         return build.Generator(self.environment, exe_prg, **kwargs)
 
-    @typed_pos_args('benchmark', str, (build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex))
-    @typed_kwargs('benchmark', *TEST_KWS)
+    @TypedArgs(
+        'benchmark',
+        pos_types=[STR_PARG, _TEST_PARG],
+        kw_types=TEST_KWS,
+    )
     def func_benchmark(self, node: mparser.BaseNode,
                        args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
                        kwargs: 'kwtypes.FuncBenchmark') -> None:
         self.add_test(node, args, kwargs, False)
 
-    @typed_pos_args('test', str, (build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex))
-    @typed_kwargs('test', *TEST_KWS, KwargInfo('is_parallel', bool, default=True))
+    @TypedArgs(
+        'test',
+        pos_types=[STR_PARG, _TEST_PARG],
+        kw_types=[*TEST_KWS, KwargInfo('is_parallel', bool, default=True)]
+    )
     def func_test(self, node: mparser.BaseNode,
                   args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
                   kwargs: 'kwtypes.FuncTest') -> None:
@@ -2441,15 +2504,17 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.build.benchmarks.append(t)
             mlog.debug('Adding benchmark', mlog.bold(t.name, True))
 
-    @typed_pos_args('install_headers', varargs=(str, mesonlib.File))
-    @typed_kwargs(
+    @TypedArgs(
         'install_headers',
-        PRESERVE_PATH_KW,
-        KwargInfo('subdir', (str, NoneType)),
-        INSTALL_MODE_KW.evolve(since='0.47.0'),
-        INSTALL_DIR_KW,
-        INSTALL_FOLLOW_SYMLINKS,
-        INSTALL_TAG_KW.evolve(since='1.11.0'),
+        var_types=STR_FILE_VARG,
+        kw_types=[
+            PRESERVE_PATH_KW,
+            KwargInfo('subdir', (str, NoneType)),
+            INSTALL_MODE_KW.evolve(since='0.47.0'),
+            INSTALL_DIR_KW,
+            INSTALL_FOLLOW_SYMLINKS,
+            INSTALL_TAG_KW.evolve(since='1.11.0'),
+        ],
     )
     def func_install_headers(self, node: mparser.BaseNode,
                              args: T.Tuple[T.List['mesonlib.FileOrString']],
@@ -2485,13 +2550,15 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         return ret_headers
 
-    @typed_pos_args('install_man', varargs=(str, mesonlib.File))
-    @typed_kwargs(
+    @TypedArgs(
         'install_man',
-        KwargInfo('locale', (str, NoneType), since='0.58.0'),
-        INSTALL_MODE_KW.evolve(since='0.47.0'),
-        INSTALL_DIR_KW,
-        INSTALL_TAG_KW.evolve(since='1.11.0')
+        var_types=STR_FILE_VARG,
+        kw_types=[
+            KwargInfo('locale', (str, NoneType), since='0.58.0'),
+            INSTALL_MODE_KW.evolve(since='0.47.0'),
+            INSTALL_DIR_KW,
+            INSTALL_TAG_KW.evolve(since='1.11.0')
+        ],
     )
     def func_install_man(self, node: mparser.BaseNode,
                          args: T.Tuple[T.List['mesonlib.FileOrString']],
@@ -2516,10 +2583,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         return m
 
     @FeatureNew('install_emptydir', '0.60.0')
-    @typed_kwargs(
+    @TypedArgs(
         'install_emptydir',
-        INSTALL_MODE_KW,
-        KwargInfo('install_tag', (str, NoneType), since='0.62.0')
+        pos_types=[STR_PARG],
+        kw_types=[
+            INSTALL_MODE_KW,
+            KwargInfo('install_tag', (str, NoneType), since='0.62.0')
+        ],
     )
     def func_install_emptydir(self, node: mparser.BaseNode, args: T.Tuple[str],
                               kwargs: kwtypes.FuncInstallEmptyDir) -> build.EmptyDir:
@@ -2529,12 +2599,14 @@ class Interpreter(InterpreterBase, HoldableObject):
         return d
 
     @FeatureNew('install_symlink', '0.61.0')
-    @typed_pos_args('symlink_name', str)
-    @typed_kwargs(
+    @TypedArgs(
         'install_symlink',
-        KwargInfo('pointing_to', str, required=True),
-        KwargInfo('install_dir', str, required=True),
-        INSTALL_TAG_KW,
+        pos_types=[STR_PARG],
+        kw_types=[
+            KwargInfo('pointing_to', str, required=True),
+            KwargInfo('install_dir', str, required=True),
+            INSTALL_TAG_KW,
+        ],
     )
     def func_install_symlink(self, node: mparser.BaseNode,
                              args: T.Tuple[str],
@@ -2548,19 +2620,19 @@ class Interpreter(InterpreterBase, HoldableObject):
         return l
 
     @FeatureNew('structured_sources', '0.62.0')
-    @typed_pos_args('structured_sources', object, optargs=[dict])
-    @noKwargs
+    @TypedArgs(
+        'structured_sources',
+        pos_types=[TGT_PARG],
+        opt_types=[OptArgInfo(dict)],  # TODO: ContainerType cannot represent dict[str, list[...Ts]]
+    )
     @noArgsFlattening
     def func_structured_sources(
             self, node: mparser.BaseNode,
-            args: T.Tuple[object, T.Optional[T.Dict[str, object]]],
+            args: T.Tuple[list[str | mesonlib.File | build.GeneratedTypes], T.Optional[T.Dict[str, object]]],
             kwargs: 'TYPE_kwargs') -> build.StructuredSources:
-        valid_types = (str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)
         sources: T.DefaultDict[str, T.List[T.Union[build.TargetSources]]] = collections.defaultdict(list)
 
-        for arg in mesonlib.listify(args[0]):
-            if not isinstance(arg, valid_types):
-                raise InvalidArguments(f'structured_sources: type "{type(arg)}" is not valid')
+        for arg in args[0]:
             if isinstance(arg, str):
                 arg = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, arg)
             sources[''].append(arg)
@@ -2569,24 +2641,26 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InvalidArguments('structured_sources: keys to dictionary argument may not be an empty string.')
             for k, v in args[1].items():
                 for arg in mesonlib.listify(v):
-                    if not isinstance(arg, valid_types):
+                    if not isinstance(arg, (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)):
                         raise InvalidArguments(f'structured_sources: type "{type(arg)}" is not valid')
                     if isinstance(arg, str):
                         arg = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, arg)
                     sources[k].append(arg)
         return build.StructuredSources(sources)
 
-    @typed_pos_args('subdir', str)
-    @typed_kwargs(
+    @TypedArgs(
         'subdir',
-        KwargInfo(
-            'if_found',
-            ContainerTypeInfo(list, object),
-            validator=lambda a: 'Objects must have a found() method' if not all(hasattr(x, 'found') for x in a) else None,
-            since='0.44.0',
-            default=[],
-            listify=True,
-        ),
+        pos_types=[STR_PARG],
+        kw_types=[
+            KwargInfo(
+                'if_found',
+                ContainerTypeInfo(list, object),
+                validator=lambda a: 'Objects must have a found() method' if not all(hasattr(x, 'found') for x in a) else None,
+                since='0.44.0',
+                default=[],
+                listify=True,
+            ),
+        ],
     )
     def func_subdir(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'kwtypes.Subdir') -> None:
         mesonlib.check_direntry_issues(args)
@@ -2633,16 +2707,18 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             return mode
 
-    @typed_pos_args('install_data', varargs=(str, mesonlib.File))
-    @typed_kwargs(
+    @TypedArgs(
         'install_data',
-        KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File)), listify=True, default=[]),
-        KwargInfo('rename', ContainerTypeInfo(list, str), default=[], listify=True, since='0.46.0'),
-        INSTALL_MODE_KW.evolve(since='0.38.0'),
-        INSTALL_TAG_KW.evolve(since='0.60.0'),
-        INSTALL_DIR_KW,
-        PRESERVE_PATH_KW.evolve(since='0.64.0'),
-        INSTALL_FOLLOW_SYMLINKS,
+        var_types=STR_FILE_VARG,
+        kw_types=[
+            KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File)), listify=True, default=[]),
+            KwargInfo('rename', ContainerTypeInfo(list, str), default=[], listify=True, since='0.46.0'),
+            INSTALL_MODE_KW.evolve(since='0.38.0'),
+            INSTALL_TAG_KW.evolve(since='0.60.0'),
+            INSTALL_DIR_KW,
+            PRESERVE_PATH_KW.evolve(since='0.64.0'),
+            INSTALL_FOLLOW_SYMLINKS,
+        ],
     )
     def func_install_data(self, node: mparser.BaseNode,
                           args: T.Tuple[T.List['mesonlib.FileOrString']],
@@ -2699,20 +2775,26 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.build.data.extend(ret_data)
         return ret_data
 
-    @typed_pos_args('install_subdir', str)
-    @typed_kwargs(
+    @TypedArgs(
         'install_subdir',
-        KwargInfo('install_dir', str, required=True),
-        KwargInfo('strip_directory', bool, default=False),
-        KwargInfo('exclude_files', ContainerTypeInfo(list, str),
-                  default=[], listify=True, since='0.42.0',
-                  validator=lambda x: 'cannot be absolute' if any(path_has_root(d) for d in x) else None),
-        KwargInfo('exclude_directories', ContainerTypeInfo(list, str),
-                  default=[], listify=True, since='0.42.0',
-                  validator=lambda x: 'cannot be absolute' if any(path_has_root(d) for d in x) else None),
-        INSTALL_MODE_KW.evolve(since='0.38.0'),
-        INSTALL_TAG_KW.evolve(since='0.60.0'),
-        INSTALL_FOLLOW_SYMLINKS,
+        pos_types=[STR_PARG],
+        kw_types=[
+            KwargInfo('install_dir', str, required=True),
+            KwargInfo('strip_directory', bool, default=False),
+            KwargInfo(
+                'exclude_files', ContainerTypeInfo(list, str),
+                default=[], listify=True, since='0.42.0',
+                validator=lambda x: 'cannot be absolute' if any(path_has_root(d) for d in x) else None,
+            ),
+            KwargInfo(
+                'exclude_directories', ContainerTypeInfo(list, str),
+                default=[], listify=True, since='0.42.0',
+                validator=lambda x: 'cannot be absolute' if any(path_has_root(d) for d in x) else None,
+            ),
+            INSTALL_MODE_KW.evolve(since='0.38.0'),
+            INSTALL_TAG_KW.evolve(since='0.60.0'),
+            INSTALL_FOLLOW_SYMLINKS,
+        ],
     )
     def func_install_subdir(self, node: mparser.BaseNode, args: T.Tuple[str],
                             kwargs: 'kwtypes.FuncInstallSubdir') -> build.InstallDir:
@@ -2752,43 +2834,58 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InvalidArguments(f'Build subdir "{build_subdir}" in "{target}" contains ..')
             self.create_build_subdir(os.path.join(self.subdir, build_subdir))
 
-    @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'configure_file',
-        DEPFILE_KW.evolve(since='0.52.0'),
-        INSTALL_MODE_KW.evolve(since='0.47.0,'),
-        INSTALL_TAG_KW.evolve(since='0.60.0'),
-        KwargInfo('capture', bool, default=False, since='0.41.0'),
-        KwargInfo(
-            'command',
-            (ContainerTypeInfo(list, (build.Executable, Program, compilers.Compiler, mesonlib.File, str), allow_empty=False), NoneType),
-            listify=True,
-        ),
-        KwargInfo(
-            'configuration',
-            (ContainerTypeInfo(dict, (str, int, bool)), build.ConfigurationData, NoneType),
-        ),
-        KwargInfo(
-            'copy', bool, default=False, since='0.47.0',
-        ),
-        KwargInfo('encoding', str, default='utf-8', since='0.47.0'),
-        KwargInfo('format', str, default='meson', since='0.46.0',
-                  validator=in_set_validator({'meson', 'cmake', 'cmake@'})),
-        KwargInfo(
-            'input',
-            ContainerTypeInfo(list, (mesonlib.File, str)),
-            listify=True,
-            default=[],
-        ),
-        # Cannot use shared implementation until None backwards compat is dropped
-        KwargInfo('install', (bool, NoneType), since='0.50.0'),
-        KwargInfo('install_dir', (str, bool), default='',
-                  validator=lambda x: 'must be `false` if boolean' if x is True else None),
-        OUTPUT_KW,
-        KwargInfo('output_format', str, default='c', since='0.47.0', since_values={'json': '1.3.0'},
-                  validator=in_set_validator({'c', 'json', 'nasm'})),
-        KwargInfo('macro_name', (str, NoneType), default=None, since='1.3.0'),
-        KwargInfo('build_subdir', str, default='', since='1.10.0'),
+        kw_types=[
+            DEPFILE_KW.evolve(since='0.52.0'),
+            INSTALL_MODE_KW.evolve(since='0.47.0,'),
+            INSTALL_TAG_KW.evolve(since='0.60.0'),
+            KwargInfo('capture', bool, default=False, since='0.41.0'),
+            KwargInfo(
+                'command',
+                (ContainerTypeInfo(list, (build.Executable, Program, compilers.Compiler, mesonlib.File, str), allow_empty=False), NoneType),
+                listify=True,
+            ),
+            KwargInfo(
+                'configuration',
+                (ContainerTypeInfo(dict, (str, int, bool)), build.ConfigurationData, NoneType),
+            ),
+            KwargInfo(
+                'copy', bool, default=False, since='0.47.0',
+            ),
+            KwargInfo('encoding', str, default='utf-8', since='0.47.0'),
+            KwargInfo(
+                'format',
+                str,
+                default='meson',
+                since='0.46.0',
+                validator=in_set_validator({'meson', 'cmake', 'cmake@'})),
+            KwargInfo(
+                'input',
+                ContainerTypeInfo(list, (mesonlib.File, str)),
+                listify=True,
+                default=[],
+            ),
+            # Cannot use shared implementation until None backwards compat is dropped
+            KwargInfo('install', (bool, NoneType), since='0.50.0'),
+            KwargInfo(
+                'install_dir',
+                (str, bool),
+                default='',
+                validator=lambda x: 'must be `false` if boolean' if x is True else None
+            ),
+            OUTPUT_KW,
+            KwargInfo(
+                'output_format',
+                str,
+                default='c',
+                since='0.47.0',
+                since_values={'json': '1.3.0'},
+                validator=in_set_validator({'c', 'json', 'nasm'}),
+            ),
+            KwargInfo('macro_name', (str, NoneType), default=None, since='1.3.0'),
+            KwargInfo('build_subdir', str, default='', since='1.10.0'),
+        ],
     )
     @apply_machine_map
     def func_configure_file(self, node: mparser.BaseNode, args: T.List[TYPE_var],
@@ -2971,8 +3068,11 @@ class Interpreter(InterpreterBase, HoldableObject):
                 result.append(self.build_incdir_object([p]))
         return result
 
-    @typed_pos_args('include_directories', varargs=str)
-    @typed_kwargs('include_directories', KwargInfo('is_system', bool, default=False))
+    @TypedArgs(
+        'include_directories',
+        var_types=STR_VARG,
+        kw_types=[KwargInfo('is_system', bool, default=False)]
+    )
     def func_include_directories(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]],
                                  kwargs: 'kwtypes.FuncIncludeDirectories') -> build.IncludeDirs:
         return self.build_incdir_object(args[0], kwargs['is_system'])
@@ -3044,15 +3144,17 @@ class Interpreter(InterpreterBase, HoldableObject):
         i = build.IncludeDirs(self.subdir, incdir_strings, is_system, self.current_build_project())
         return i
 
-    @typed_pos_args('add_test_setup', str)
-    @typed_kwargs(
+    @TypedArgs(
         'add_test_setup',
-        KwargInfo('exe_wrapper', ContainerTypeInfo(list, (str, ExternalProgram)), listify=True, default=[]),
-        KwargInfo('gdb', bool, default=False),
-        KwargInfo('timeout_multiplier', int, default=1),
-        KwargInfo('exclude_suites', ContainerTypeInfo(list, str), listify=True, default=[], since='0.57.0'),
-        KwargInfo('is_default', bool, default=False, since='0.49.0'),
-        ENV_KW,
+        pos_types=[STR_PARG],
+        kw_types=[
+            KwargInfo('exe_wrapper', ContainerTypeInfo(list, (str, ExternalProgram)), listify=True, default=[]),
+            KwargInfo('gdb', bool, default=False),
+            KwargInfo('timeout_multiplier', int, default=1),
+            KwargInfo('exclude_suites', ContainerTypeInfo(list, str), listify=True, default=[], since='0.57.0'),
+            KwargInfo('is_default', bool, default=False, since='0.49.0'),
+            ENV_KW,
+        ],
     )
     def func_add_test_setup(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'kwtypes.AddTestSetup') -> None:
         setup_name = args[0]
@@ -3082,24 +3184,38 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper, kwargs['gdb'], timeout_multiplier, kwargs['env'],
                                                              kwargs['exclude_suites'])
 
-    @typed_pos_args('add_global_arguments', varargs=str)
-    @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
+    @TypedArgs(
+        'add_global_arguments',
+        var_types=STR_VARG,
+        kw_types=[NATIVE_KW, LANGUAGE_KW]
+    )
     def func_add_global_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
         self._add_global_arguments(node, self.build.global_args[kwargs['native']], args[0], kwargs)
 
-    @typed_pos_args('add_global_link_arguments', varargs=str)
-    @typed_kwargs('add_global_link_arguments', NATIVE_KW, LANGUAGE_KW)
+    @TypedArgs(
+        'add_global_link_arguments',
+        var_types=STR_VARG,
+        kw_types=[NATIVE_KW, LANGUAGE_KW],
+    )
     def func_add_global_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
         self._add_global_arguments(node, self.build.global_link_args[kwargs['native']], args[0], kwargs)
 
-    @typed_pos_args('add_project_arguments', varargs=str)
-    @typed_kwargs('add_project_arguments', NATIVE_KW, LANGUAGE_KW)
+    @TypedArgs(
+        'add_project_arguments',
+        var_types=STR_VARG,
+        kw_types=[NATIVE_KW, LANGUAGE_KW],
+    )
+    @apply_machine_map
     def func_add_project_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
         self._add_project_arguments(node, self.current_build_project().project_args[kwargs['native']],
                                     args[0], kwargs)
 
-    @typed_pos_args('add_project_link_arguments', varargs=str)
-    @typed_kwargs('add_project_link_arguments', NATIVE_KW, LANGUAGE_KW)
+    @TypedArgs(
+        'add_project_link_arguments',
+        var_types=STR_VARG,
+        kw_types=[NATIVE_KW, LANGUAGE_KW],
+    )
+    @apply_machine_map
     def func_add_project_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
         self._add_project_arguments(node, self.current_build_project().project_link_args[kwargs['native']],
                                     args[0], kwargs)
@@ -3109,8 +3225,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         return self.build.projects[for_machine][self.subproject]
 
     @FeatureNew('add_project_dependencies', '0.63.0')
-    @typed_pos_args('add_project_dependencies', varargs=dependencies.Dependency)
-    @typed_kwargs('add_project_dependencies', NATIVE_KW, LANGUAGE_KW)
+    @TypedArgs(
+        'add_project_dependencies',
+        var_types=VarArgInfo(dependencies.Dependency),
+        kw_types=[NATIVE_KW, LANGUAGE_KW],
+    )
+    @apply_machine_map
     def func_add_project_dependencies(self, node: mparser.FunctionNode, args: T.Tuple[T.List[dependencies.Dependency]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
         for_machine = kwargs['native']
         for lang in kwargs['language']:
@@ -3188,13 +3308,15 @@ class Interpreter(InterpreterBase, HoldableObject):
             argsdict[lang] = argsdict.get(lang, []) + args
 
     @noArgsFlattening
-    @typed_pos_args('environment', optargs=[(str, list, dict)])
-    @typed_kwargs('environment', ENV_METHOD_KW, ENV_SEPARATOR_KW.evolve(since='0.62.0'))
+    @TypedArgs(
+        'environment',
+        opt_types=[OptArgInfo((str, list, dict), since='0.52.0')],
+        kw_types=[ENV_METHOD_KW, ENV_SEPARATOR_KW.evolve(since='0.62.0')],
+    )
     def func_environment(self, node: mparser.FunctionNode, args: T.Tuple[T.Union[None, str, T.List['TYPE_var'], T.Dict[str, 'TYPE_var']]],
                          kwargs: kwtypes.FuncEnvironment) -> EnvironmentVariables:
         init = args[0]
         if init is not None:
-            FeatureNew.single_use('environment positional arguments', '0.52.0', self.subproject, location=node)
             msg = ENV_KW.validator(init)
             if msg:
                 raise InvalidArguments(f'"environment": {msg}')
@@ -3204,8 +3326,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             return env_convertor_with_method(T.cast('FullEnvInitValueType', init), kwargs['method'], kwargs['separator'])
         return EnvironmentVariables()
 
-    @typed_pos_args('join_paths', varargs=str, min_varargs=1)
-    @noKwargs
+    @TypedArgs('join_paths', var_types=STR_VARG_1)
     def func_join_paths(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> str:
         parts = args[0]
         other = os.path.join('', *parts[1:]).replace('\\', '/')
@@ -4056,18 +4177,23 @@ class Interpreter(InterpreterBase, HoldableObject):
     def is_subproject(self) -> bool:
         return self.subproject != ''
 
-    @typed_pos_args('set_variable', str, (object, DefaultObject))
-    @noKwargs
+    @TypedArgs(
+        'set_variable',
+        pos_types=[
+            STR_PARG.evolve(validator=lambda x: f'Invalid variable name: "{x}"' if mparser.IDENT_RE.fullmatch(x) is None else None),
+            PosArgInfo((object, DefaultObject)),
+        ],
+    )
     @noArgsFlattening
     @noSecondLevelHolderResolving
     def func_set_variable(self, node: mparser.BaseNode, args: T.Tuple[str, TYPE_var | InterpreterObject], kwargs: 'TYPE_kwargs') -> None:
-        varname, value = args
-        if mparser.IDENT_RE.fullmatch(varname) is None:
-            raise InvalidCode('Invalid variable name: ' + varname)
-        self.set_variable(varname, value, holderify=True)
+        self.set_variable(*args, holderify=True)
 
-    @typed_pos_args('get_variable', (str, Disabler, DefaultObject), optargs=[object])
-    @noKwargs
+    @TypedArgs(
+        'get_variable',
+        pos_types=[PosArgInfo((str, Disabler, DefaultObject))],
+        opt_types=[OBJ_OARG],
+    )
     @noArgsFlattening
     @unholder_return
     def func_get_variable(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, Disabler], T.Optional[TYPE_var | InterpreterObject]],
@@ -4088,14 +4214,12 @@ class Interpreter(InterpreterBase, HoldableObject):
             ustr += f' Did you mean "{close_matches[0]}"?'
         raise InterpreterException(ustr)
 
-    @typed_pos_args('is_variable', str)
-    @noKwargs
+    @TypedArgs('is_variable', pos_types=[STR_PARG])
     def func_is_variable(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
         return args[0] in self.variables
 
     @FeatureNew('unset_variable', '0.60.0')
-    @typed_pos_args('unset_variable', str)
-    @noKwargs
+    @TypedArgs('unset_variable', pos_types=[STR_PARG])
     def func_unset_variable(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> None:
         varname = args[0]
         try:
@@ -4109,14 +4233,16 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException(ustr)
 
     @FeatureNew('is_disabler', '0.52.0')
-    @typed_pos_args('is_disabler', object)
-    @noKwargs
+    @TypedArgs('is_disabler', pos_types=[OBJ_PARG])
     def func_is_disabler(self, node: mparser.BaseNode, args: T.Tuple[object], kwargs: 'TYPE_kwargs') -> bool:
         return isinstance(args[0], Disabler)
 
-    @noKwargs
     @FeatureNew('range', '0.58.0')
-    @typed_pos_args('range', int, optargs=[int, int])
+    @TypedArgs(
+        'range',
+        pos_types=[INT_PARG],
+        opt_types=[INT_OARG, INT_OARG],
+    )
     def func_range(self, node: mparser.BaseNode, args: T.Tuple[int, T.Optional[int], T.Optional[int]],
                    kwargs: TYPE_kwargs) -> P_OBJ.RangeHolder:
         start, stop, step = args

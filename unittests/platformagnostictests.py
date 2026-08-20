@@ -18,6 +18,7 @@ from .baseplatformtests import BasePlatformTests
 from .helpers import *
 from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command, windows_proof_rmtree
 from mesonbuild.mformat import Formatter, match_path
+from mesonbuild.interpreterbase import InvalidArguments
 from mesonbuild.optinterpreter import OptionInterpreter, OptionException
 from mesonbuild.options import OptionStore
 from run_tests import Backend
@@ -62,7 +63,7 @@ class PlatformAgnosticTests(BasePlatformTests):
                                interp.process, fname)
 
         fname = write_file("option('foo.bar', type: 'string')")
-        self.assertRaisesRegex(OptionException, 'Option names can only contain letters, numbers or dashes.',
+        self.assertRaisesRegex(InvalidArguments, r'.*option names can only contain letters, numbers, and dashes$',
                                interp.process, fname)
 
         # platlib is allowed, only python.platlib is reserved.

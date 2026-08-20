@@ -1200,7 +1200,11 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         for t in test_cases:
             # Jenkins screws us over by automatically sorting test cases by name
             # and getting it wrong by not doing logical number sorting.
-            (testnum, testbase) = t.path.name.split(' ', 1)
+            try:
+                (testnum, testbase) = t.path.name.split(' ', 1)
+            except Exception:
+                mlog.warning('Found invalid test directory:', t.path)
+                continue
             testname = '%.3d %s' % (int(testnum), testbase)
             if t.name:
                 testname += f' ({t.name})'
