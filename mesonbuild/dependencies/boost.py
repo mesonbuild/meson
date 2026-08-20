@@ -8,6 +8,7 @@ import dataclasses
 import functools
 import typing as T
 from pathlib import Path
+from sys import version_info
 
 from .. import mlog
 from .. import mesonlib
@@ -103,10 +104,6 @@ class BoostIncludeDir():
 
 @functools.total_ordering
 class BoostLibraryFile():
-    # Python libraries are special because of the included
-    # minor version in the module name.
-    boost_python_libs = ['boost_python', 'boost_numpy']
-
     reg_abi_tag = re.compile(r'^s?g?y?d?p?n?$')
     reg_ver_tag = re.compile(r'^[0-9_]+$')
 
@@ -155,6 +152,16 @@ class BoostLibraryFile():
         # boost_.lib is the dll import library
         if self.basename.startswith('boost_') and self.nvsuffix == 'lib':
             self.static = False
+
+        # Python libraries are special because of the included
+        # minor version in the module name.
+        self.python_version : tuple[int,int] | None = None
+        for bpl in BoostDependency.boost_python_libs:
+            if self.mod_name.startswith(bpl):
+                python_version_str = self.mod_name[len(bpl):]
+                if not python_version_str.isdigit():
+                    continue
+                self.python_version = (int(python_version_str[:1]), int(python_version_str[1:]))
 
         # Process tags
         tags = self.nametags[1:]
@@ -229,23 +236,6 @@ class BoostLibraryFile():
     def is_boost(self) -> bool:
         return any(self.name.startswith(x) for x in ['libboost_', 'boost_'])
 
-    def is_python_lib(self) -> bool:
-        return any(self.mod_name.startswith(x) for x in BoostLibraryFile.boost_python_libs)
-
-    def mod_name_matches(self, mod_name: str) -> bool:
-        if self.mod_name == mod_name:
-            return True
-        if not self.is_python_lib():
-            return False
-
-        if mod_name in self.boost_python_libs:
-            mlog.error(
-                "Support for ",  mlog.bold(mod_name), ' without specifying the version was dropped in Meson 1.12. ',
-                "For the correct solution for these libraries, please see ",
-                "https://mesonbuild.com/Dependencies.html#boost-python-and-boost-numpy"
-                )
-        return False
-
     def version_matches(self, version_lib: str) -> bool:
         # If no version tag is present, assume that it fits
         if not self.version_lib or not version_lib:
@@ -292,6 +282,14 @@ class BoostLibraryFile():
         return [self.path.as_posix()]
 
 class BoostDependency(SystemDependency):
+
+    boost_python_libs :list[str]= ['boost_python', 'boost_numpy']
+    @staticmethod
+    def is_python_lib(mod_name: str) -> bool:
+        """Checks if this is a python library that might need version detection.
+        """
+        return any(mod_name.startswith(x) for x in BoostDependency.boost_python_libs)
+    
     def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs) -> None:
         kwargs['language'] = 'cpp'
         super().__init__(name, environment, kwargs)
@@ -388,6 +386,35 @@ class BoostDependency(SystemDependency):
 
         self.check_and_set_roots(paths, use_system=False)
 
+    @staticmethod
+    def find_python_lib(mod_name:str, f_libs : list[BoostLibraryFile]) -> BoostLibraryFile|None:
+        """
+        If a python lib is specified without its version this will sort through the python libs for the best lib to use.
+        """
+        
+        mlog.warning(
+            "Support for ",  mlog.bold(mod_name), ' without specifying the version will be dropped in a future version of ',
+            "meson. For the correct solution for these libraries, please see ",
+            "https://mesonbuild.com/Dependencies.html#boost-python-and-boost-numpy"
+            )
+        pylibs = [lib for lib in f_libs if lib.mod_name.startswith(mod_name)]
+
+        if len(pylibs) == 0:
+            return None
+        elif len(pylibs) == 1:
+            # if only one is found go with that one
+            return pylibs[0]
+
+        # if one of the libs matches the current interperter got with that one
+        for lib in pylibs:
+            if lib.python_version[0]==version_info[0] and lib.python_version[1]==version_info[1]:
+                return lib
+
+        # if nothing else works just go with the most recent version
+        pylibs.sort(key= lambda x: x.python_version)
+        return pylibs[-1]
+            
+
     def run_check(self, inc_dirs: T.List[BoostIncludeDir], lib_dirs: T.List[Path]) -> bool:
         mlog.debug('  - potential library dirs: {}'.format([x.as_posix() for x in lib_dirs]))
         mlog.debug('  - potential include dirs: {}'.format([x.path.as_posix() for x in inc_dirs]))
@@ -425,10 +452,17 @@ class BoostDependency(SystemDependency):
             for mod in modules:
                 found = False
                 for l in f_libs:
-                    if l.mod_name_matches(mod):
+                    if l.mod_name == mod:
                         selected_modules += [l]
                         found = True
                         break
+
+                if not found and self.is_python_lib(mod):
+                    pymod = self.find_python_lib(mod,f_libs)
+                    if pymod:
+                        selected_modules += [pymod]
+                        found = True
+                        
                 if not found:
                     not_found_as_libs += [mod]
 
@@ -587,19 +621,6 @@ class BoostDependency(SystemDependency):
             return []
         abitag = libs[0].abitag
         libs = [x for x in libs if x.abitag == abitag]
-
-        # Assume that we are building against the latest Python version
-        # and that the other ones are only there for backwards compatibility.
-        # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1141440
-        no_python_libs = []
-        python_libs = []
-        for l in libs:
-            if l.is_python_lib():
-                python_libs.append(l)
-            else:
-                no_python_libs.append(l)
-        sorted_pylibs = sorted(python_libs, key=lambda l: l.name, reverse=True)
-        libs = no_python_libs + sorted_pylibs[:1]
 
         return libs
 
