@@ -155,7 +155,7 @@ class BoostLibraryFile():
 
         # Python libraries are special because of the included
         # minor version in the module name.
-        self.python_version : tuple[int,int] | None = None
+        self.python_version: tuple[int, int] | None = None
         for bpl in BoostDependency.boost_python_libs:
             if self.mod_name.startswith(bpl):
                 python_version_str = self.mod_name[len(bpl):]
@@ -283,13 +283,14 @@ class BoostLibraryFile():
 
 class BoostDependency(SystemDependency):
 
-    boost_python_libs :list[str]= ['boost_python', 'boost_numpy']
+    boost_python_libs: list[str] = ['boost_python', 'boost_numpy']
+
     @staticmethod
     def is_python_lib(mod_name: str) -> bool:
         """Checks if this is a python library that might need version detection.
         """
         return any(mod_name.startswith(x) for x in BoostDependency.boost_python_libs)
-    
+
     def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs) -> None:
         kwargs['language'] = 'cpp'
         super().__init__(name, environment, kwargs)
@@ -387,11 +388,11 @@ class BoostDependency(SystemDependency):
         self.check_and_set_roots(paths, use_system=False)
 
     @staticmethod
-    def find_python_lib(mod_name:str, f_libs : list[BoostLibraryFile]) -> BoostLibraryFile|None:
+    def find_python_lib(mod_name: str, f_libs: list[BoostLibraryFile]) -> BoostLibraryFile | None:
         """
         If a python lib is specified without its version this will sort through the python libs for the best lib to use.
         """
-        
+
         mlog.warning(
             "Support for ",  mlog.bold(mod_name), ' without specifying the version will be dropped in a future version of ',
             "meson. For the correct solution for these libraries, please see ",
@@ -407,13 +408,12 @@ class BoostDependency(SystemDependency):
 
         # if one of the libs matches the current interperter got with that one
         for lib in pylibs:
-            if lib.python_version[0]==version_info[0] and lib.python_version[1]==version_info[1]:
+            if lib.python_version[0] == version_info[0] and lib.python_version[1] == version_info[1]:
                 return lib
 
         # if nothing else works just go with the most recent version
         pylibs.sort(key= lambda x: x.python_version)
         return pylibs[-1]
-            
 
     def run_check(self, inc_dirs: T.List[BoostIncludeDir], lib_dirs: T.List[Path]) -> bool:
         mlog.debug('  - potential library dirs: {}'.format([x.as_posix() for x in lib_dirs]))
@@ -458,11 +458,11 @@ class BoostDependency(SystemDependency):
                         break
 
                 if not found and self.is_python_lib(mod):
-                    pymod = self.find_python_lib(mod,f_libs)
+                    pymod = self.find_python_lib(mod, f_libs)
                     if pymod:
                         selected_modules += [pymod]
                         found = True
-                        
+
                 if not found:
                     not_found_as_libs += [mod]
 
