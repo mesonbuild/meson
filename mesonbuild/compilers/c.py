@@ -347,13 +347,9 @@ class ElbrusCCompiler(ElbrusCompiler, CCompiler):
         std_opt.set_versions(stds)
         return opts
 
-    # Elbrus C compiler does not have lchmod, but there is only linker warning, not compiler error.
-    # So we should explicitly fail at this case.
     def has_function(self, funcname: str, prefix: str, *,
                      extra_args: T.Optional[T.List[str]] = None,
                      dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
-        if funcname == 'lchmod':
-            return False, False
         return super().has_function(funcname, prefix, extra_args=extra_args, dependencies=dependencies)
 
 
