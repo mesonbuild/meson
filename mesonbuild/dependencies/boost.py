@@ -155,6 +155,8 @@ class BoostLibraryFile():
 
         # Python libraries are special because of the included
         # minor version in the module name.
+        # Circa 2019-2020 some distros incorrectly renamed boost_python library files,
+        # meson used to support this but it has been removed
         self.python_version: tuple[int, int] | None = None
         for bpl in BoostDependency.boost_python_libs:
             if self.mod_name.startswith(bpl):

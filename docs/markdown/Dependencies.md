@@ -381,11 +381,10 @@ The best way to ensure that you get the correct versions to match get
 the language version from your python installation.
 
 ```meson
-pymod = import('python')
-pyinst = pymod.find_installation()
-pyver = ''.join(pyinst.language_version().split('.'))
+py = import('python').find_installation()
+pyver = ''.join(py.language_version().split('.'))
 boost_dep = dependency('boost', modules: ['python'+pyver, 'numpy'+pyver])
-pyinst.extension_module('my_mod', 'my_mod.cpp', dependencies: boost_dep)
+py.extension_module('my_mod', 'my_mod.cpp', dependencies: boost_dep)
 ```
 
 ## CUDA

@@ -23,13 +23,24 @@ assert(not notfound.found())
 
 require_bp = host_machine.system() in ['linux', 'darwin']
 pymod = import('python')
+python2 = pymod.find_installation('python2', required: false                           , disabler: true)
 python3 = pymod.find_installation('python3', required: require_bp , disabler: true)
+python2dep = python2.dependency(required: false                           , embed: true, disabler: true)
 python3dep = python3.dependency(required: require_bp, embed: true, disabler: true)
+
+# compile python 2/3 modules only if we found a corresponding python version
+if(python2dep.found() and require_bp and not s)
+  bpython2dep = dependency('boost', static: s, modules : ['python'], required: false, disabler: true)
+else
+  python2dep = disabler()
+  bpython2dep = disabler()
+endif
 
 py3ver = ''.join(python3.language_version().split('.'))
 if(python3dep.found() and require_bp and not s)
   bpython3dep = dependency('boost', static: s, modules : ['python'+py3ver,'numpy'+py3ver])
 else
+  python3dep = disabler()
   bpython3dep = disabler()
 endif
 
@@ -39,6 +50,7 @@ nomodexe = executable('nomod', 'nomod.cpp', dependencies : nomoddep)
 extralibexe = executable('extralibexe', 'extralib.cpp', dependencies : extralibdep)
 
 # python modules are shared libraries
+python2module = python2.extension_module('python2_module', ['python_module.cpp'], dependencies: [python2dep, bpython2dep], cpp_args: ['-DMOD_NAME=python2_module'])
 python3module = python3.extension_module('python3_module', ['python_module.cpp'], dependencies: [python3dep, bpython3dep], cpp_args: ['-DMOD_NAME=python3_module'])
 
 
@@ -52,6 +64,8 @@ if host_machine.system() != 'darwin' or s
 endif
 
 # explicitly use the correct python interpreter so that we don't have to provide two different python scripts that have different shebang lines
+python2interpreter = find_program(python2.path(), required: false, disabler: true)
+test('Boost Python2', python2interpreter, args: ['./test_python_module.py', meson.current_build_dir()], workdir: meson.current_source_dir(), depends: python2module)
 python3interpreter = find_program(python3.path(), required: false, disabler: true)
 test('Boost Python3', python3interpreter, args: ['./test_python_module.py', meson.current_build_dir()], workdir: meson.current_source_dir(), depends: python3module)
 
