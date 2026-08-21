@@ -19,6 +19,17 @@ long = 'abcde'
 prefix = 'abc'
 suffix = 'cde'
 
+testcase expect_error('''unsupported hash type invalid-method''')
+  long.hash('invalid-method')
+endtestcase
+
+assert(long.hash('md5') == 'ab56b4d92b40713acc5af89985d4b786')
+assert(long.hash('sha1') == '03de6c570bfe24bfc328ccd7ca46b76eadaf4334')
+assert(long.hash('sha224') == 'bdd03d560993e675516ba5a50638b6531ac2ac3d5847c61916cfced6')
+assert(long.hash('sha256') == '36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c')
+assert(long.hash('sha3_224') == '6acfaab70afd8439cea3616b41088bd81c939b272548f6409cf30e57')
+assert(long.hash('sha3_256') == 'd716ec61e18904a8f58679b71cb065d4d5db72e0e0c3f155a4feff7add0e58eb')
+
 assert(long[0] == 'a')
 assert(long[2] == 'c')
 
