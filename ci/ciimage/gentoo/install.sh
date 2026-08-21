@@ -115,7 +115,7 @@ cat <<-EOF > /etc/portage/package.use/ci
 	x11-libs/libxkbcommon X
 	dev-lang/rust clippy rustfmt
 	dev-lang/rust-bin clippy rustfmt
-	dev-libs/boost python
+	dev-libs/boost python numpy
 	sci-libs/hdf5 cxx
 
 	# slimmed binpkg, nomesa
