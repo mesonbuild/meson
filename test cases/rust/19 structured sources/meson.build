@@ -58,3 +58,7 @@ m_src2 = configure_file(
 executable('gen-no-copy', structured_sources([m_src, m_src2]))
 
 executable('gen-no-copy-with-non-rust', structured_sources(['empty.file', m_src, m_src2]))
+
+testcase expect_error('cannot mix \'.rs\' files in structured and unstructured sources')
+    executable('bad', structured_sources([m_src]), m_src2)
+endtestcase
