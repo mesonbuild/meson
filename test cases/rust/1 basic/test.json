@@ -1,4 +1,12 @@
 {
+  "matrix": {
+    "options": {
+      "rust_incremental": [
+        { "val": true },
+        { "val": false }
+      ]
+    }
+  },
   "installed": [
     {"type": "exe", "file": "usr/bin/rust-program"},
     {"type": "pdb", "file": "usr/bin/rust-program"},

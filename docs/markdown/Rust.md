@@ -127,6 +127,40 @@ Furthermore, these arguments are only included when creating binary or
 shared library crates.  Likewise, methods such as `has_link_argument()`
 wrap the arguments being tested with `-Clink-arg=`.
 
+## Interaction between `rust_panic=abort` and testing
+
+Cargo and Meson build tests differently.  `cargo test` recompiles the whole
+dependency tree from scratch using the dedicated `test` profile, so the test
+build is wholly independent from the artifacts produced by `cargo build`.
+Meson instead reuses the libraries that were already built and only compiles an
+additional test-harness binary out of the crate's own sources.
+
+Each approach has tradeoffs.  Rebuilding everything lets the `test` profile
+differ arbitrarily from the `dev` profile, but it is slow and, in the common
+case where the two profiles are essentially the same, it duplicates a lot of
+work for no benefit.  Reusing the libraries is much faster and detects bugs
+caused by e.g. compiler optimizations; but it requires the test harness and
+the libraries it links against to be ABI compatible.
+
+This has a consequence for the `rust_panic` option, and therefore for the
+`panic` key of a Cargo `[profile]`.  Rust's test harness relies on catching
+panics in order to report failures, so it must be compiled with the default
+`unwind` strategy; `rust.test()` and `rust.doctest()` honor this by resetting
+`rust_panic` to `none` for the harness even when the rest of the build uses
+`rust_panic=abort`.  The harness recompiles the crate's own sources with
+`unwind`, but `rustc` refuses to link it against a dependency that was compiled
+with `-Cpanic=abort`:
+
+```
+error: the linked panic runtime `panic_unwind` is not compiled with this crate's panic strategy `abort`
+```
+
+As a result, a crate built with `rust_panic=abort` is effectively
+untestable unless it has no dependencies.  Therefore, `rust_panic=abort`
+is only recommended if you are building a simple `cdylib` or `staticlib`
+with most or all of your dependencies in subprojects.  In that case,
+you can test the dependencies by building the subprojects on their own.
+
 ## Cargo interaction
 
 *Since 1.11.0*
