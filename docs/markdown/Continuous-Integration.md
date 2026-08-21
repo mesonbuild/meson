@@ -267,9 +267,9 @@ jobs:
         meson_version: ["1.2.0", "1.3.0", "1.4.0"]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.x'
       - name: Install dependencies
@@ -281,7 +281,7 @@ jobs:
       - name: Run Tests
         run: meson test -C builddir/ -v
       - name: Upload Test Log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: ${{ matrix.os }}_Meson_Testlog

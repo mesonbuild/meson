@@ -73,7 +73,7 @@ jobs:
       MESON_CI_JOBNAME_UPDATE: linux-arch-gcc-pypy
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Run tests
       run: |
         source /ci/env_vars.sh
@@ -127,7 +127,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run tests
         shell: bash
