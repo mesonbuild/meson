@@ -27,7 +27,11 @@ python3 = pymod.find_installation('python3', required: require_bp , disabler: tr
 python3dep = python3.dependency(required: require_bp, embed: true, disabler: true)
 
 py3ver = ''.join(python3.language_version().split('.'))
-bpython3dep = dependency('boost', static: s, modules : ['python'+py3ver,'numpy'+py3ver])
+if(python3dep.found() and require_bp and not s)
+  bpython3dep = dependency('boost', static: s, modules : ['python'+py3ver,'numpy'+py3ver])
+else
+  bpython3dep = disabler()
+endif
 
 linkexe = executable('linkedexe', 'linkexe.cc', dependencies : linkdep)
 unitexe = executable('utf', 'unit_test.cpp', dependencies: testdep)

@@ -289,7 +289,7 @@ class BoostDependency(SystemDependency):
     def is_unversioned_python_lib(mod_name: str) -> bool:
         """Checks if this is an unversioned python module that might need version detection.
         """
-        if mod_name[-1] in ('2', '3'):
+        if mod_name[-1] in set(('2', '3')):
             return mod_name[:-1] in BoostDependency.boost_python_libs
         else:
             return mod_name in BoostDependency.boost_python_libs
