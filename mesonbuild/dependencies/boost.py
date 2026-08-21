@@ -411,7 +411,7 @@ class BoostDependency(SystemDependency):
 
         # if one of the libs matches the current interperter got with that one
         for lib in pylibs:
-            if lib.python_version[0] == version_info[0] and lib.python_version[1] == version_info[1]:
+            if lib.python_version == version_info[:2]:
                 return lib
 
         # if nothing else works just go with the most recent version
