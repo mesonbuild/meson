@@ -90,6 +90,12 @@ class ClangCompiler(GnuLikeCompiler):
         # All Clang backends can also do LLVM IR
         self.can_compile_suffixes.add('ll')
 
+    def get_always_args(self) -> T.List[str]:
+        # Force clang to fail in sanity checks if an unknwon warning option is
+        # user
+        myargs: T.List[str] = ['-Werror=unknown-warning-option']
+        return super().get_always_args() + myargs
+
     def get_crt_compile_args(self, crt_val: str) -> T.List[str]:
         if not isinstance(self.linker, VisualStudioLikeLinkerMixin):
             return []
