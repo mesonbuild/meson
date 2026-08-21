@@ -286,10 +286,13 @@ class BoostDependency(SystemDependency):
     boost_python_libs: list[str] = ['boost_python', 'boost_numpy']
 
     @staticmethod
-    def is_python_lib(mod_name: str) -> bool:
-        """Checks if this is a python library that might need version detection.
+    def is_unversioned_python_lib(mod_name: str) -> bool:
+        """Checks if this is an unversioned python module that might need version detection.
         """
-        return any(mod_name.startswith(x) for x in BoostDependency.boost_python_libs)
+        if mod_name[-1] in ('2', '3'):
+            return mod_name[:-1] in BoostDependency.boost_python_libs
+        else:
+            return mod_name in BoostDependency.boost_python_libs
 
     def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs) -> None:
         kwargs['language'] = 'cpp'
@@ -457,7 +460,7 @@ class BoostDependency(SystemDependency):
                         found = True
                         break
 
-                if not found and self.is_python_lib(mod):
+                if not found and self.is_unversioned_python_lib(mod):
                     pymod = self.find_python_lib(mod, f_libs)
                     if pymod:
                         selected_modules += [pymod]
