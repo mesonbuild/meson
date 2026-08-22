@@ -47,8 +47,8 @@ from mesonbuild.compilers.mixins.clang import ClangCompiler
 from mesonbuild.compilers.mixins.elbrus import ElbrusCompiler
 from mesonbuild.compilers.mixins.gnu import GnuCompiler
 from mesonbuild.compilers.mixins.intel import IntelGnuLikeCompiler
-from mesonbuild.compilers.c import VisualStudioCCompiler, ClangClCCompiler
-from mesonbuild.compilers.cpp import VisualStudioCPPCompiler, ClangClCPPCompiler
+from mesonbuild.compilers.c import VisualStudioCCompiler, ClangClCCompiler, IntelLLVMClCCompiler
+from mesonbuild.compilers.cpp import VisualStudioCPPCompiler, ClangClCPPCompiler, IntelLLVMClCPPCompiler
 from mesonbuild.compilers import (
     detect_static_linker, detect_c_compiler, compiler_from_language,
     detect_compiler_for
@@ -1175,6 +1175,7 @@ class AllPlatformTests(BasePlatformTests):
         intel = IntelGnuLikeCompiler
         msvc = (VisualStudioCCompiler, VisualStudioCPPCompiler)
         clangcl = (ClangClCCompiler, ClangClCPPCompiler)
+        intelllvmcl = (IntelLLVMClCCompiler, IntelLLVMClCPPCompiler)
         ar = linkers.ArLinker
         lib = linkers.VisualStudioLinker
         langs = [('c', 'CC'), ('cpp', 'CXX')]
@@ -1217,6 +1218,14 @@ class AllPlatformTests(BasePlatformTests):
                     elif 'clang' in ebase:
                         self.assertIsInstance(ecc, clang)
                         self.assertIsInstance(elinker, ar)
+                    elif ebase.startswith(('icx', 'icpx')):
+                        # oneAPI DPC++ (icx/icpx): clang-cl-like on Windows,
+                        # clang-like on other platforms.
+                        if is_windows():
+                            self.assertIsInstance(ecc, intelllvmcl)
+                            self.assertIsInstance(elinker, lib)
+                        else:
+                            self.assertIsInstance(elinker, ar)
                     elif ebase.startswith('ic'):
                         self.assertIsInstance(ecc, intel)
                         self.assertIsInstance(elinker, ar)
@@ -1267,7 +1276,12 @@ class AllPlatformTests(BasePlatformTests):
                         self.assertIsInstance(cc.linker, (linkers.SolarisDynamicLinker, linkers.GnuLikeDynamicLinkerMixin))
                     else:
                         self.assertIsInstance(cc.linker, linkers.GnuLikeDynamicLinkerMixin)
-                if isinstance(cc, intel):
+                if isinstance(cc, intelllvmcl):
+                    # oneAPI DPC++ on Windows: msvc-style compiler that drives
+                    # the link step itself (for SYCL offload generation).
+                    self.assertIsInstance(linker, lib)
+                    self.assertIsInstance(cc.linker, linkers.IntelLLVMClDynamicLinker)
+                elif isinstance(cc, intel):
                     self.assertIsInstance(linker, ar)
                     if is_osx():
                         self.assertIsInstance(cc.linker, linkers.AppleDynamicLinker)
@@ -2024,7 +2038,14 @@ class AllPlatformTests(BasePlatformTests):
     def build_shared_lib(self, compiler, source, objectfile, outfile, impfile, extra_args=None):
         if extra_args is None:
             extra_args = []
-        if compiler.get_argument_syntax() == 'msvc':
+        if compiler.get_linker_id() == 'icx':
+            # icx drives the link itself and its clang-cl frontend drops bare
+            # MSVC linker flags; forward them to the underlying linker with
+            # -Xlinker and use the driver-style -o for output.
+            link_cmd = compiler.get_linker_exelist() + [
+                '-Xlinker', '/NOLOGO', '-Xlinker', '/DLL', '-Xlinker', '/DEBUG',
+                '-Xlinker', '/IMPLIB:' + impfile, '-o', outfile, objectfile]
+        elif compiler.get_argument_syntax() == 'msvc':
             link_cmd = compiler.get_linker_exelist() + [
                 '/NOLOGO', '/DLL', '/DEBUG', '/IMPLIB:' + impfile,
                 '/OUT:' + outfile, objectfile]
@@ -2874,7 +2895,7 @@ class AllPlatformTests(BasePlatformTests):
         extra_args = None
         libdir_flags = ['-L']
         env = get_fake_env(testdirlib, self.builddir, self.prefix)
-        if detect_c_compiler(env, MachineChoice.HOST).get_id() in {'msvc', 'clang-cl', 'intel-cl'}:
+        if detect_c_compiler(env, MachineChoice.HOST).get_id() in {'msvc', 'clang-cl', 'intel-cl', 'intel-llvm-cl'}:
             # msvc-like compiler, also test it with msvc-specific flags
             libdir_flags += ['/LIBPATH:', '-LIBPATH:']
         else:

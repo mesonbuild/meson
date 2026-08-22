@@ -1797,7 +1797,7 @@ class BuildTarget(Target):
         else:
             compiler, _ = self.get_clink_dynamic_linker_and_stdlibs()
         # Mixing many languages with MSVC is not supported yet so ignore stdlibs.
-        return bool(compiler) and compiler.get_linker_id() in {'link', 'lld-link', 'xilink', 'optlink'}
+        return bool(compiler) and compiler.get_linker_id() in {'link', 'lld-link', 'xilink', 'optlink', 'icx'}
 
     def check_module_linking(self) -> None:
         '''

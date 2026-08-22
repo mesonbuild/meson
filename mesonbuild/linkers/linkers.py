@@ -1584,6 +1584,18 @@ class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
         return ['-WX']
 
 
+class IntelLLVMClDynamicLinker(ClangClDynamicLinker):
+
+    """Intel oneAPI DPC++ (icx) driving the link step on Windows."""
+
+    id = 'icx'
+
+    # Use the driver-style output flag: a bare /OUT: (even via -Xlinker) works,
+    # but -o is the natural spelling for the icx driver and needs no forwarding.
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
+
+
 class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     """Intel's Xilink.exe."""

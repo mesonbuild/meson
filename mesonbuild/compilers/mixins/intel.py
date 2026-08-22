@@ -162,3 +162,25 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     def get_pch_base_name(self, header: str) -> str:
         return os.path.basename(header)
+
+
+class IntelLLVMVisualStudioLikeCompiler:
+
+    """Mixin for icx (Intel oneAPI DPC++) on Windows.
+
+    unix_args_to_native emits some MSVC linker flags directly, bypassing the
+    linker's -Xlinker prefix. icx's clang-cl frontend silently drops the ones
+    it does not recognise, so wrap linker-only flags (currently /LIBPATH: from
+    -L) in -Xlinker; .lib names and include dirs are left as-is.
+    """
+
+    @classmethod
+    def unix_args_to_native(cls, args: T.List[str]) -> T.List[str]:
+        native = super().unix_args_to_native(args)  # type: ignore[misc]
+        result: T.List[str] = []
+        for arg in native:
+            if arg.startswith('/LIBPATH:'):
+                result += ['-Xlinker', arg]
+            else:
+                result.append(arg)
+        return result
