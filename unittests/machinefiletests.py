@@ -93,6 +93,30 @@ class MachineFileStoreTests(TestCase):
         finally:
             os.unlink(fname)
 
+class SubprojectsUpdateTests(TestCase):
+
+    def test_subprojects_update_relpath_cross_mount(self):
+        """msubprojects.run() must not crash with an unhandled ValueError
+        when os.path.relpath() cannot compute a relative path (as happens
+        on Windows when the source directory is on a different mount/UNC
+        share than the current working directory)."""
+        import mesonbuild.msubprojects as msubprojects
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            options = mock.Mock()
+            options.sourcedir = tmpdir
+            options.allow_insecure = False
+
+            def raising_relpath(*args, **kwargs):
+                raise ValueError("path is on mount 'Z:', start on mount 'C:'")
+
+            with mock.patch('os.path.relpath', side_effect=raising_relpath):
+                # No meson.build in tmpdir, so run() should reach the
+                # "does not seem to be a Meson source directory" error
+                # path and return 1, rather than raising ValueError.
+                result = msubprojects.run(options)
+            self.assertEqual(result, 1)
+
 class NativeFileTests(BasePlatformTests):
 
     def setUp(self):
