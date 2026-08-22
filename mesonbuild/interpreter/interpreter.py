@@ -291,6 +291,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         super().__init__(_build.environment.get_source_dir(), subdir, subproject, subproject_dir, _build.environment)
         self.active_projectname = ''
         self.build = _build
+        self.n_targets = 0
         if backend is not None:
             self.backend = backend
         self.cargo = cargo
@@ -3220,7 +3221,9 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def run(self) -> None:
         super().run()
-        mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
+        mlog.log('Build targets in project:', mlog.bold(str(self.n_targets)))
+        if not self.is_subproject() and self.n_targets != len(self.build.targets):
+            mlog.log('Total number of targets:', mlog.bold(str(len(self.build.targets))))
         FeatureNew.report(self.subproject)
         FeatureDeprecated.report(self.subproject)
         FeatureBroken.report(self.subproject)
@@ -3458,6 +3461,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                     To define a target that builds in that directory you must define it
                     in the meson.build file in that directory.
             '''))
+
+        # Keep track of the number of targets added by the (sub)project
+        # being interpreted. For informational purposes only.
+        self.n_targets += 1
 
         # Make sure build_subdir doesn't exist in the source tree and
         # doesn't contain ..
