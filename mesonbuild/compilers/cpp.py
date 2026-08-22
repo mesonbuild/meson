@@ -550,6 +550,10 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
     def get_cpp_modules_args(self) -> T.List[str]:
         return ['-fmodules', '-fmodules-ts']
 
+    def get_embed_args(self, path: str) -> list[str]:
+        # Requires C23 or C++26 standard and GCC 15
+        return [f'--embed-dir={path}']
+
 
 class PGICPPCompiler(PGICompiler, CPPCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
