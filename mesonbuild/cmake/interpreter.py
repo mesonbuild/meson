@@ -238,6 +238,7 @@ class ConverterTarget:
         self.generated: T.List[Path] = []
         self.generated_ctgt: T.List[CustomTargetReference] = []
         self.includes: T.List[Path] = []
+        self.public_includes: T.List[Path] = []
         self.sys_includes: T.List[Path] = []
         self.link_with: T.List[T.Union[ConverterTarget, ConverterCustomTarget]] = []
         self.object_libs: T.List[ConverterTarget] = []
@@ -371,7 +372,8 @@ class ConverterTarget:
             self.soversion = trace.targets[self.cmake_name].properties.get('SOVERSION', [None])[0]
 
             rtgt = resolve_cmake_trace_targets(self.cmake_name, trace, self.env, clib_compiler=self.clib_compiler)
-            self.includes += [Path(x) for x in rtgt.include_directories]
+            self.public_includes += [Path(x) for x in rtgt.include_directories]
+            self.includes += [Path(x) for x in rtgt.private_include_directories]
             self.link_flags += rtgt.link_flags
             self.public_link_flags += rtgt.public_link_flags
             self.public_compile_opts += rtgt.public_compile_opts
@@ -1171,6 +1173,7 @@ class CMakeInterpreter:
 
             # Determine the variable names
             inc_var = f'{tgt.name}_inc'
+            public_inc_var = f'{tgt.name}_public_inc'
             dir_var = f'{tgt.name}_dir'
             sys_var = f'{tgt.name}_sys'
             src_var = f'{tgt.name}_src'
@@ -1229,10 +1232,12 @@ class CMakeInterpreter:
                 generated += dependencies
 
             # Generate the function nodes
-            dir_node = assign(dir_var, function('include_directories', tgt.includes))
+            dir_node = assign(dir_var, function('include_directories', tgt.includes + tgt.public_includes))
+            public_dir_node = assign(public_inc_var, function('include_directories', tgt.public_includes))
             sys_node = assign(sys_var, function('include_directories', tgt.sys_includes, {'is_system': True}))
             inc_node = assign(inc_var, array([id_node(dir_var), id_node(sys_var)]))
-            node_list = [dir_node, sys_node, inc_node]
+            node_list = [dir_node, public_dir_node, sys_node, inc_node]
+            dep_kwargs['include_directories'] = id_node(public_inc_var)
             if tgt_func == 'header_only':
                 del dep_kwargs['link_with']
                 dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
