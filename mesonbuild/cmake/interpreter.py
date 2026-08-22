@@ -382,6 +382,21 @@ class ConverterTarget:
         elif self.type.upper() not in ['EXECUTABLE', 'OBJECT_LIBRARY']:
             mlog.warning('CMake: Target', mlog.bold(self.cmake_name), 'not found in CMake trace. This can lead to build errors')
 
+        # Handle set_source_files_properties(... OBJECT_DEPENDS ...): compiling a
+        # source may depend on (usually generated) files. Attach these at the target
+        # level so the generating custom targets are built first.
+        if trace.object_depends:
+            src_keys = set()
+            for x in self.sources + self.generated:
+                p = x if x.is_absolute() else self.src_dir / x
+                src_keys.add(p.resolve().as_posix())
+            for src, deps in trace.object_depends.items():
+                src_path = Path(src)
+                if not src_path.is_absolute():
+                    continue
+                if src_path.resolve().as_posix() in src_keys:
+                    self.depends_raw += deps
+
         temp = []
         for cmd in self.link_libraries:
             # Let meson handle this arcane magic
@@ -502,7 +517,14 @@ class ConverterTarget:
         for arg in self.depends_raw:
             dep_tgt = output_target_map.target(arg)
             if dep_tgt:
-                self.depends.append(dep_tgt)
+                if dep_tgt not in self.depends:
+                    self.depends.append(dep_tgt)
+                continue
+            # File-level dependencies (e.g. from OBJECT_DEPENDS) resolve to the
+            # custom target generating the file
+            gen = output_target_map.generated(Path(arg))
+            if gen and gen not in self.depends:
+                self.depends.append(gen)
 
     def process_object_libs(self, obj_target_list: T.List['ConverterTarget'], linker_workaround: bool) -> None:
         # Try to detect the object library(s) from the generated input sources
@@ -1130,12 +1152,24 @@ class CMakeInterpreter:
                 if i.name not in processed:
                     process_target(i)
                 objec_libs += [extract_tgt(i)]
-            for i in tgt.depends:
-                if not isinstance(i, ConverterCustomTarget):
+            # CMake guarantees that all dependencies of a target -- including those
+            # of linked and add_dependencies targets, transitively -- are built
+            # before any of the target's sources compile (the ninja backend emits
+            # cmake_object_order_depends_target_* edges for this). Collect all
+            # reachable custom targets so their generated files exist in time.
+            dep_stack = list(tgt.depends)
+            visited_deps: T.Set[str] = set()
+            while dep_stack:
+                i = dep_stack.pop(0)
+                if i.name in visited_deps:
                     continue
-                if i.name not in processed:
-                    process_custom_target(i)
-                dependencies += [extract_tgt(i)]
+                visited_deps.add(i.name)
+                if isinstance(i, ConverterCustomTarget):
+                    if i.name not in processed:
+                        process_custom_target(i)
+                    dependencies += [extract_tgt(i)]
+                elif isinstance(i, ConverterTarget):
+                    dep_stack += i.depends
 
             # Generate the source list and handle generated sources
             sources += tgt.sources
