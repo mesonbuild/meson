@@ -11,6 +11,7 @@ import json
 import operator
 import os
 import pickle
+import shutil
 import stat
 import subprocess
 import tempfile
@@ -29,8 +30,8 @@ import mesonbuild.modules.gnome
 import mesonbuild.scripts.depfixer
 import mesonbuild.scripts.env2mfile
 from mesonbuild import coredata
-from mesonbuild.compilers.c import ClangCCompiler, GnuCCompiler
-from mesonbuild.compilers.compilers import ManyInOneLinkerOptionStyle
+from mesonbuild.compilers.c import ClangCCompiler, ClangClCCompiler, GnuCCompiler, VisualStudioCCompiler
+from mesonbuild.compilers.compilers import CompileCheckMode, ManyInOneLinkerOptionStyle
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
@@ -2529,3 +2530,119 @@ Thread model: posix'''), '21.9.0')
                 mesonbuild.scripts.depfixer.fix_rpath(
                     fname, set(), '', '', {}, system='linux', verbose=False)
                 mock_fix_darwin.assert_not_called()
+
+    def _msvc_c_compiler(self, cls, *, is_cross, link_args=None, exelist=None):
+        env = get_fake_env()
+        env.add_lang_args('c', cls, MachineChoice.HOST)
+        env.coredata.optstore.set_option(
+            OptionKey('c_link_args', machine=MachineChoice.HOST),
+            link_args if link_args is not None else ['/SUBSYSTEM:CONSOLE'])
+        if cls is ClangClCCompiler:
+            linker = linkers.ClangClDynamicLinker(env, MachineChoice.HOST, [])
+            cc = cls(exelist or ['clang-cl'], '21.1.4', MachineChoice.HOST, env,
+                     'x86_64', linker=linker)
+        else:
+            linker = linkers.MSVCDynamicLinker(env, MachineChoice.HOST, [])
+            cc = cls([], exelist or ['cl'], '19.40', MachineChoice.HOST, env,
+                     'x64', linker=linker)
+        cc.is_cross = is_cross
+        return cc
+
+    def test_msvc_sanity_check_link_args_meet_existing_slash_link(self) -> None:
+        """#16111: raw c_link_args must join the /link convert() already emits.
+
+        1.12 prepended language_link_args in front of convert(b_largs).
+        convert([]) is already ['/link'] for cl and clang-cl, so
+        /SUBSYSTEM:CONSOLE /link is a compiler input.
+
+        The documented workaround puts /link in the cross file. Appending
+        those raw args after convert([]) yields /link /link ...; clang-cl
+        forwards the second /link to the linker. Merge + convert once
+        collapses that to a single /link.
+
+        clang-cl only treats lowercase /link (and -link) as the separator;
+        /LINK is an input file. Meson emits /link. We do not have cl.exe
+        here; cl coverage is the constructed command line.
+        """
+        for cls in (VisualStudioCCompiler, ClangClCCompiler):
+            with self.subTest(compiler=cls.__name__):
+                self.assertEqual(
+                    self._msvc_c_compiler(cls, is_cross=False).linker_to_compiler_args([]),
+                    ['/link'])
+
+                for is_cross, link_args in (
+                        (True, ['/SUBSYSTEM:CONSOLE']),
+                        (False, ['/SUBSYSTEM:CONSOLE']),
+                        (True, ['/link', '/SUBSYSTEM:CONSOLE']),
+                ):
+                    with self.subTest(is_cross=is_cross, link_args=link_args):
+                        cc = self._msvc_c_compiler(cls, is_cross=is_cross, link_args=link_args)
+                        cmd, largs = cc._sanity_check_compile_args('s.c', 's.exe')
+                        self.assertEqual(largs.count('/link'), 1, largs)
+                        self.assertLess(largs.index('/link'), largs.index('/SUBSYSTEM:CONSOLE'), largs)
+                        self.assertNotIn('/SUBSYSTEM:CONSOLE', cmd)
+
+                wrapped = list(self._msvc_c_compiler(
+                    cls, is_cross=False).build_wrapper_args(None, None, CompileCheckMode.LINK))
+                self.assertEqual(wrapped.count('/link'), 1, wrapped)
+                self.assertLess(wrapped.index('/link'), wrapped.index('/SUBSYSTEM:CONSOLE'), wrapped)
+
+    def test_gnu_sanity_check_still_forwards_c_link_args(self) -> None:
+        env = get_fake_env()
+        env.add_lang_args('c', GnuCCompiler, MachineChoice.HOST)
+        env.coredata.optstore.set_option(
+            OptionKey('c_link_args', machine=MachineChoice.HOST),
+            ['-Wl,--as-needed'])
+        linker = linkers.GnuBFDDynamicLinker(
+            [], env, MachineChoice.HOST, ManyInOneLinkerOptionStyle('-Wl,', ','), [])
+        cc = GnuCCompiler([], [], 'fake', MachineChoice.HOST, env, linker=linker)
+        _, largs = cc._sanity_check_compile_args('sanity.c', 'sanity.exe')
+        self.assertIn('-Wl,--as-needed', largs)
+        self.assertNotIn('/link', largs)
+
+    def test_msvc_sanity_check_driver_rejects_subsystem_before_slash_link(self) -> None:
+        """End-to-end: a driver that rejects /SUBSYSTEM before /link.
+
+        Used for both cl and clang-cl. Real clang-cl is used when present
+        (compile-only; this Mac has no link.exe).
+        """
+        script = textwrap.dedent("""\
+            import sys
+            args = sys.argv[1:]
+            if '/?' in args or '--version' in args:
+                print('CL.EXE COMPATIBILITY OPTIONS:')
+                raise SystemExit(0)
+            link_at = args.index('/link') if '/link' in args else len(args)
+            for arg in args[:link_at]:
+                if arg.upper().startswith('/SUBSYSTEM:'):
+                    print(f"clang-cl: error: no such file or directory: '{arg}'",
+                          file=sys.stderr)
+                    raise SystemExit(1)
+            raise SystemExit(0)
+            """)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fake = os.path.join(tmpdir, 'driver.py')
+            with open(fake, 'w', encoding='utf-8') as f:
+                f.write(script)
+            for cls in (VisualStudioCCompiler, ClangClCCompiler):
+                with self.subTest(compiler=cls.__name__):
+                    cc = self._msvc_c_compiler(
+                        cls, is_cross=True, exelist=[*python_command, fake])
+                    cc.sanity_check(tmpdir)
+
+        clang_cl = shutil.which('clang-cl')
+        if clang_cl is None:
+            for candidate in ('/opt/homebrew/opt/llvm/bin/clang-cl',
+                              '/usr/local/opt/llvm/bin/clang-cl'):
+                if os.path.isfile(candidate):
+                    clang_cl = candidate
+                    break
+        if clang_cl is None:
+            return
+        out = subprocess.check_output(
+            [clang_cl, '/?'], text=True, encoding='utf-8', stderr=subprocess.STDOUT)
+        if 'CL.EXE COMPATIBILITY' not in out:
+            return
+        cc = self._msvc_c_compiler(ClangClCCompiler, is_cross=True, exelist=[clang_cl])
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cc.sanity_check(tmpdir)
