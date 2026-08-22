@@ -30,7 +30,7 @@ import mesonbuild.scripts.depfixer
 import mesonbuild.scripts.env2mfile
 from mesonbuild import coredata
 from mesonbuild.compilers.c import ClangCCompiler, GnuCCompiler
-from mesonbuild.compilers.compilers import ManyInOneLinkerOptionStyle
+from mesonbuild.compilers.compilers import CompileCheckMode, ManyInOneLinkerOptionStyle
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
@@ -397,6 +397,13 @@ Thread model: posix'''), '21.9.0')
 
         a = cc.compiler_args(cc.get_always_args())
         self.assertEqual(a.to_native(copy=True), ['/nologo', '/utf-8', '/Zc:__cplusplus'])
+
+        # Linker always-args must not leak into cl.exe compiler checks. In
+        # particular, link.exe accepts /release while cl.exe rejects it.
+        self.assertEqual(
+            cc.get_compiler_args_for_mode(CompileCheckMode.LINK),
+            ['/nologo', '/utf-8', '/Zc:__cplusplus'],
+        )
 
         # Ensure /source-charset: removes /utf-8
         a.append('/source-charset:utf-8')
