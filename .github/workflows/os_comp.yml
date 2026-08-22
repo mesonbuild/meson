@@ -10,7 +10,7 @@ on:
       - master
       # Stable branches such as 0.56 or 1.0
       - '[0-9]+.[0-9]+'
-    paths:
+    paths: &shared_paths
       - "mesonbuild/**"
       - "test cases/**"
       - "unittests/**"
@@ -18,13 +18,7 @@ on:
       - ".github/workflows/os_comp.yml"
       - "run*tests.py"
   pull_request:
-    paths:
-      - "mesonbuild/**"
-      - "test cases/**"
-      - "unittests/**"
-      - ".github/workflows/images.yml"
-      - ".github/workflows/os_comp.yml"
-      - "run*tests.py"
+    paths: *shared_paths
 
 permissions:
   contents: read
