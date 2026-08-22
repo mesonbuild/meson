@@ -407,7 +407,7 @@ class PythonModule(ExtensionModule):
 
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
-        self.installations: T.Dict[str, MaybePythonProg] = {}
+        self.installations: T.Dict[T.Tuple[str, ...], MaybePythonProg] = {}
         self.methods.update({
             'find_installation': self.find_installation,
         })
@@ -480,7 +480,7 @@ class PythonModule(ExtensionModule):
         else:
             return None
 
-    def _find_installation_impl(self, state: 'ModuleState', display_name: str, name_or_path: str, required: bool) -> MaybePythonProg:
+    def _find_installation_impl(self, state: 'ModuleState', display_name: str, name_or_path: T.Union[str, T.List[str], None], required: bool) -> MaybePythonProg:
         build_config = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.build_config'))
         assert isinstance(build_config, str), 'for mypy'
 
@@ -490,19 +490,19 @@ class PythonModule(ExtensionModule):
             tmp_python = ExternalProgram.from_entry(display_name, name_or_path)
             python = PythonExternalProgram(display_name, ext_prog=tmp_python, build_config_path=build_config)
 
+            program_name = name_or_path if isinstance(name_or_path, str) else name_or_path[0]
             if not python.found() and mesonlib.is_windows():
-                pythonpath = self._get_win_pythonpath(name_or_path)
+                pythonpath = self._get_win_pythonpath(program_name)
                 if pythonpath is not None:
-                    name_or_path = pythonpath
-                    python = PythonExternalProgram(name_or_path)
+                    python = PythonExternalProgram(pythonpath)
 
             # Last ditch effort, python2 or python3 can be named python
             # on various platforms, let's not give up just yet, if an executable
             # named python is available and has a compatible version, let's use
             # it
-            if not python.found() and name_or_path in {'python2', 'python3'}:
+            if not python.found() and program_name in {'python2', 'python3'}:
                 tmp_python = ExternalProgram.from_entry(display_name, 'python')
-                python = PythonExternalProgram(name_or_path, ext_prog=tmp_python, build_config_path=build_config)
+                python = PythonExternalProgram(program_name, ext_prog=tmp_python, build_config_path=build_config)
 
         if python.found():
             if python.sanity(state):
@@ -530,27 +530,27 @@ class PythonModule(ExtensionModule):
         feature_check = FeatureNew('Passing "feature" option to find_installation', '0.48.0')
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, feature_check)
 
-        # FIXME: this code is *full* of sharp corners. It assumes that it's
-        # going to get a string value (or now a list of length 1), of `python2`
-        # or `python3` which is completely nonsense.  On windows the value could
+        # FIXME: this code is *full* of sharp corners. On windows the value could
         # easily be `['py', '-3']`, or `['py', '-3.7']` to get a very specific
         # version of python. On Linux we might want a python that's not in
         # $PATH, or that uses a wrapper of some kind.
         np: T.List[str] = state.environment.lookup_binary_entry(MachineChoice.HOST, 'python') or []
         fallback = args[0]
         display_name = fallback or 'python'
-        if not np and fallback is not None:
+        if not np and fallback:
             np = [fallback]
-        name_or_path = np[0] if np else None
+
+        prog_label = ' '.join(np) if np else 'python'
+        cache_key = tuple(np)
 
         if disabled:
-            mlog.log('Program', name_or_path or 'python', 'found:', mlog.red('NO'), '(disabled by:', mlog.bold(feature), ')')
+            mlog.log('Program', prog_label, 'found:', mlog.red('NO'), '(disabled by:', mlog.bold(feature), ')')
             return NonExistingExternalProgram()
 
-        python = self.installations.get(name_or_path)
+        python = self.installations.get(cache_key)
         if not python:
-            python = self._find_installation_impl(state, display_name, name_or_path, required)
-            self.installations[name_or_path] = python
+            python = self._find_installation_impl(state, display_name, np, required)
+            self.installations[cache_key] = python
 
         want_modules = kwargs['modules']
         found_modules: T.List[str] = []
@@ -581,11 +581,11 @@ class PythonModule(ExtensionModule):
 
         if not python.found():
             if required:
-                raise mesonlib.MesonException('{} not found'.format(name_or_path or 'python'))
+                raise mesonlib.MesonException('{} not found'.format(prog_label))
             return NonExistingExternalProgram(python.name)
         elif missing_modules:
             if required:
-                raise mesonlib.MesonException('{} is missing modules: {}'.format(name_or_path or 'python', ', '.join(missing_modules)))
+                raise mesonlib.MesonException('{} is missing modules: {}'.format(prog_label, ', '.join(missing_modules)))
             return NonExistingExternalProgram(python.name)
         else:
             assert isinstance(python, PythonExternalProgram), 'for mypy'

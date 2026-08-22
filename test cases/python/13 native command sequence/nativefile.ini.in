@@ -1,0 +1,2 @@
+[binaries]
+python = ['/usr/bin/env', 'PYTHONPATH=@MESON_TEST_ROOT@/lib', 'python3']
