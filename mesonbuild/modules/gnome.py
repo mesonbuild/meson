@@ -1273,6 +1273,21 @@ class GnomeModule(ExtensionModule):
             elif isinstance(f, (GeneratedList, CustomTarget, CustomTargetIndex)):
                 generated_files.append(f)
 
+        machine = state.environment.machines[MachineChoice.HOST]
+        libs: T.Set[build.SharedLibrary] = set()
+        for d in deps:
+            if isinstance(d, build.SharedLibrary):
+                libs.add(d)
+        env_build_dir = state.environment.get_build_dir()
+        libs_paths: T.Set[str] = set(os.path.join(env_build_dir, l.get_builddir()) for l in libs)
+        if libs_paths:
+            if machine.is_windows() or machine.is_cygwin():
+                kwargs['env'].prepend('PATH', list(libs_paths), ';')
+            else:
+                kwargs['env'].prepend('LD_LIBRARY_PATH', list(libs_paths), ':')
+                if machine.is_darwin():
+                    kwargs['env'].prepend('DYLD_LIBRARY_PATH', list(libs_paths), ':')
+
         scan_target = self._make_gir_target(
             state, girfile, scan_command, generated_files, depend_files, depends,
             scan_env_ldflags, kwargs)
