@@ -26,9 +26,15 @@ dnf -y upgrade
 
 # Install deps
 dnf -y install "${pkgs[@]}"
-# HACK: build hotdoc from git repo since current sdist is broken on modern compilers
-# change back to 'hotdoc' once it's fixed
-install_python_packages git+https://github.com/hotdoc/hotdoc
+
+# HACK: hotdoc's bootstrap theme misuses depend_files for its less_include_path
+# option, which Meson >=1.12 treats as a sandbox violation:
+# https://github.com/hotdoc/hotdoc/issues/328
+#
+# Pin meson <1.12 for hotdoc's own build and install without build isolation so
+# pip doesn't pull a newer meson into an ephemeral build env.
+install_python_packages "meson>=1.0,<1.12" meson-python ninja
+python3 -m pip install --no-build-isolation hotdoc==0.18.3
 
 # HACK: uninstall npm after building hotdoc, remove when we remove npm
 dnf -y remove nodejs-npm

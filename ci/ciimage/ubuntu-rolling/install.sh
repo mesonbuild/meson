@@ -49,9 +49,14 @@ eatmydata apt-get -y build-dep meson
 eatmydata apt-get -y install "${pkgs[@]}" "${transitivepkgs[@]}"
 eatmydata apt-get -y install --no-install-recommends wine  # Wine is special
 
-# HACK: build hotdoc from git repo since current sdist is broken on modern compilers
-# change back to 'hotdoc' once it's fixed
-install_python_packages git+https://github.com/hotdoc/hotdoc
+# HACK: hotdoc's bootstrap theme misuses depend_files for its less_include_path
+# option, which Meson >=1.12 treats as a sandbox violation:
+# https://github.com/hotdoc/hotdoc/issues/328
+#
+# Pin meson <1.12 for hotdoc's own build and install without build isolation so
+# pip doesn't pull a newer meson into an ephemeral build env.
+install_python_packages "meson>=1.0,<1.12" meson-python ninja
+python3 -m pip install --no-build-isolation hotdoc==0.18.3
 
 # Lower ulimit before running dub, otherwise there's a very high chance it will OOM.
 # See: https://github.com/dlang/phobos/pull/9048 and https://github.com/dlang/phobos/pull/8990
