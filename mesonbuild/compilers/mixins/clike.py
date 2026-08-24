@@ -282,8 +282,17 @@ class CLikeCompiler(Compiler):
         # Cross-compiling is hard. For example, you might need -nostdlib, or to pass --target, etc.
         mode = CompileCheckMode.COMPILE if self.is_cross and not self.environment.has_exe_wrapper() else CompileCheckMode.LINK
         cargs, b_largs = self._get_basic_compiler_args(mode)
-        largs = self.linker_to_compiler_args(b_largs)
         s_args, s_largs = super()._sanity_check_compile_args(sourcename, binname)
+        if mode is CompileCheckMode.COMPILE:
+            # We aren't linking in this invocation (and can't run the result
+            # without an exe wrapper anyway), so don't pass any link-only
+            # arguments to a compile-only command. Some compilers add fixed
+            # flags (e.g. MSVC-style compilers always prepend /link) even
+            # when there is nothing to link, which would otherwise end up
+            # unused/misplaced in a compile-only invocation.
+            return s_args + cargs, []
+
+        largs = self.linker_to_compiler_args(b_largs)
         return s_args + cargs, s_largs + largs
 
     def check_header(self, hname: str, prefix: str, *,
