@@ -149,7 +149,7 @@ class FeatureOptionHolder(ObjectHolder[Feature]):
             return self.held_object
 
         if self.held_object.is_enabled():
-            err_msg = f'Feature {self.held_object.name} cannot be enabled'
+            err_msg = f'Feature {self.held_object.name} cannot be disabled'
             if message:
                 err_msg += f': {message}'
             raise InterpreterException(err_msg)
@@ -187,7 +187,7 @@ class FeatureOptionHolder(ObjectHolder[Feature]):
             return self.held_object
 
         if self.held_object.is_disabled():
-            err_msg = f'Feature {self.held_object.name} cannot be disabled'
+            err_msg = f'Feature {self.held_object.name} cannot be enabled'
             if kwargs['error_message']:
                 err_msg += f': {kwargs["error_message"]}'
             raise InterpreterException(err_msg)
