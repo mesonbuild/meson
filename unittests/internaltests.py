@@ -28,7 +28,7 @@ import mesonbuild.modules.gnome
 import mesonbuild.scripts.env2mfile
 from mesonbuild import coredata
 from mesonbuild.compilers.c import ClangCCompiler, GnuCCompiler
-from mesonbuild.compilers.compilers import ManyInOneLinkerOptionStyle
+from mesonbuild.compilers.compilers import Compiler, ManyInOneLinkerOptionStyle
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
@@ -309,6 +309,25 @@ class InternalTests(unittest.TestCase):
         # See: https://ninja-build.org/manual.html#_deps
         a = cc.compiler_args(cc.get_show_dep_args())
         self.assertEqual(a.to_native(copy=True), ['/showIncludes'])
+
+
+    def test_clike_sanity_check_drops_link_only_args_when_compile_only(self):
+        # When cross-compiling without an exe wrapper, CLikeCompiler's sanity
+        # check only compiles and never links because we can't run the
+        # executable. Therefore, it doesn't make sense for link-only arguments
+        # to be added on the command line. Some compilers warn about unused
+        # command line arguments.
+        env = get_fake_env()
+        linker = linkers.MoldDynamicLinker([], env, MachineChoice.HOST, '-Wl,', [])
+        cc = ClangCCompiler([], [], '14.0.0', MachineChoice.HOST, env, linker=linker)
+        cc.is_cross = True
+
+        with mock.patch.object(env, 'has_exe_wrapper', return_value=False), \
+             mock.patch.object(cc, '_get_basic_compiler_args', return_value=([], ['-fake-cross-link-arg'])), \
+             mock.patch.object(Compiler, '_sanity_check_compile_args', return_value=([], ['-Lfake-ldflags-arg'])):
+            _, largs = cc._sanity_check_compile_args('foo.c', 'foo.exe')
+
+        self.assertEqual(largs, [])
 
 
     def test_msvc_unix_args_to_native(self):
