@@ -638,7 +638,7 @@ class ExtractedObjects(HoldableObject):
     srclist: T.List[File] = field(default_factory=list)
     genlist: T.List['GeneratedTypes'] = field(default_factory=list)
     objlist: T.List[ObjectTypes] = field(default_factory=list)
-    recursive: bool = True
+    recursive: bool = False
     pch: bool = False
 
     def __repr__(self) -> str:
