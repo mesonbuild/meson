@@ -523,8 +523,7 @@ class Backend:
             _, od = self.flatten_object_list(t)
             stack.extendleft(od)
 
-        stack.extendleft(target.link_targets)
-        stack.extendleft(target.link_whole_targets)
+        add_linked_targets(target)
         while stack:
             t = stack.pop()
             if t in seen or not isinstance(t, build.BuildTarget):
