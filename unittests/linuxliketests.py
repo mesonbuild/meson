@@ -9,6 +9,7 @@ import textwrap
 import os
 import shutil
 import hashlib
+import zipfile
 from unittest import mock, skipUnless, SkipTest
 from glob import glob
 from pathlib import Path
@@ -2068,6 +2069,49 @@ class LinuxlikeTests(BasePlatformTests):
                     if 'linker' in src or src['language'] == 'rust':
                         for param in src['parameters']:
                             self.assertNotIn('liblib.rlib', param)
+
+    @skip_if_not_language('java')
+    def test_jar_install_reproducible(self):
+        '''
+        Test that a jar without a Class-Path manifest attribute is installed
+        unmodified, so that its manifest keeps the timestamp from build time
+        instead of getting stamped with the time of installation.
+        See https://reproducible-builds.org/ for why this is good.
+        '''
+        testdir = os.path.join(self.java_test_dir, '1 basic')
+        self.init(testdir)
+        self.build()
+        self.install()
+        built = Path(self.builddir, 'myprog.jar').read_bytes()
+        installed = Path(self.installdir, 'usr/bin/myprog.jar').read_bytes()
+        self.assertEqual(built, installed)
+
+    @skip_if_not_language('java')
+    def test_jar_install_strips_classpath(self):
+        '''
+        Test that installing a jar that links with other jars strips the
+        Class-Path attribute from its manifest while preserving the other
+        attributes, the entry order and the entry timestamps.
+        '''
+        testdir = os.path.join(self.java_test_dir, '7 linking')
+        self.init(testdir)
+        self.build()
+        self.install()
+        with zipfile.ZipFile(os.path.join(self.builddir, 'myprog.jar')) as jar:
+            manifest = jar.read('META-INF/MANIFEST.MF').decode('utf-8')
+            self.assertIn('Class-Path:', manifest)
+            built_infos = [(i.filename, i.date_time) for i in jar.infolist()]
+            built_contents = {i.filename: jar.read(i) for i in jar.infolist()}
+        with zipfile.ZipFile(os.path.join(self.installdir, 'usr', 'bin', 'myprog.jar')) as jar:
+            manifest = jar.read('META-INF/MANIFEST.MF').decode('utf-8')
+            self.assertNotIn('Class-Path:', manifest)
+            self.assertIn('Main-Class:', manifest)
+            # Entry order and mtimes must be preserved from the built jar
+            installed_infos = [(i.filename, i.date_time) for i in jar.infolist()]
+            self.assertEqual(installed_infos, built_infos)
+            for info in jar.infolist():
+                if info.filename != 'META-INF/MANIFEST.MF':
+                    self.assertEqual(jar.read(info), built_contents[info.filename])
 
     def test_sanitizers(self):
         testdir = os.path.join(self.unit_test_dir, '129 sanitizers')

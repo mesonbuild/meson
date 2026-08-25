@@ -1,0 +1,6 @@
+{
+  "installed": [
+    {"type": "file", "file": "usr/bin/myprog.jar"},
+    {"type": "file", "file": "usr/bin/simplelib.jar"}
+  ]
+}
