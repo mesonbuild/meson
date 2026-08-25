@@ -2677,15 +2677,16 @@ class NinjaBackend(backends.Backend):
         minimum version is bumped to 1.10.'''
         return self.ninja_has_dyndeps
 
-    def get_fortran_order_deps(self, deps: T.List[build.BuildTarget]) -> T.List[File]:
+    def get_fortran_order_deps(self, deps: T.Iterable[build.BuildTarget]) -> T.List[File]:
         # We don't need this order dep if we're using dyndeps, as the
         # depscanner will handle this for us, which produces a better dependency
         # graph
         if self.use_dyndeps_for_fortran():
             return []
 
-        return [File(True, *os.path.split(self.get_target_filename(t))) for t in deps
-                if t.uses_fortran()]
+        files: T.List[str] = [self.get_target_filename(t) for t in deps if t.uses_fortran()]
+        files.sort()
+        return [File(True, *os.path.split(f)) for f in files]
 
     def generate_fortran_dep_hack(self, crstr: str) -> None:
         if self.use_dyndeps_for_fortran():
