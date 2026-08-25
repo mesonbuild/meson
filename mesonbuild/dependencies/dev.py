@@ -588,6 +588,8 @@ class JNISystemDependency(SystemDependency):
 
         self.java_home = environment.properties[self.for_machine].get_java_home()
         if not self.java_home:
+            self.java_home = self.__detect_java_home_from_compiler()
+        if not self.java_home:
             self.java_home = pathlib.Path(shutil.which(self.javac.get_exe())).resolve().parents[1]
             if m.is_darwin():
                 problem_java_prefix = pathlib.Path('/System/Library/Frameworks/JavaVM.framework/Versions')
@@ -642,6 +644,30 @@ class JNISystemDependency(SystemDependency):
                     self.link_args.extend(jawt)
 
         self.is_found = True
+
+    def __detect_java_home_from_compiler(self) -> T.Optional[pathlib.Path]:
+        '''
+        Ask the compiler for its home directory by parsing the `java.home`
+        system property.
+
+        This is necessary because not every OS wires `javac` up as a plain
+        symlink (or chain of symlinks) pointing directly at the real JDK
+        installation.
+        '''
+        try:
+            p, _, e = mesonlib.Popen_safe(self.javac.exelist + ['-J-XshowSettings:properties', '-version'])
+        except (OSError, subprocess.SubprocessError):
+            return None
+        if p.returncode != 0:
+            return None
+        # -XshowSettings writes to stderr, not stdout.
+        for line in e.splitlines():
+            name, separator, value = line.partition('=')
+            if separator and name.strip() == 'java.home':
+                value = value.strip()
+                if value:
+                    return pathlib.Path(value)
+        return None
 
     @staticmethod
     def __cpu_translate(cpu: str) -> str:
