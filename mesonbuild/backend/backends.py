@@ -518,15 +518,14 @@ class Backend:
 
     def flatten_object_list(self, target: build.BuildTarget, proj_dir_to_build_root: str = ''
                             ) -> T.Tuple[T.List[str], T.List[build.BuildTarget]]:
-        obj_list, deps = self._flatten_object_list(target, target.get_objects(), proj_dir_to_build_root)
+        obj_list, deps = self._flatten_object_list(target.get_objects(), proj_dir_to_build_root)
         return unique_list(obj_list), deps
 
     def determine_ext_objs(self, objects: build.ExtractedObjects) -> T.List[str]:
-        obj_list, _ = self._flatten_object_list(objects.target, [objects], '')
+        obj_list, _ = self._flatten_object_list([objects], '')
         return unique_list(obj_list)
 
-    def _flatten_object_list(self, target: build.BuildTarget,
-                             objects: T.Sequence[build.ObjectTypes],
+    def _flatten_object_list(self, objects: T.Sequence[build.ObjectTypes],
                              proj_dir_to_build_root: str) -> T.Tuple[T.List[str], T.List[build.BuildTarget]]:
         obj_list: T.List[str] = []
         deps: T.List[build.BuildTarget] = []
@@ -542,7 +541,7 @@ class Backend:
                     obj_list.append(obj.rel_to_builddir(o))
             elif isinstance(obj, build.ExtractedObjects):
                 if obj.recursive:
-                    objs, d = self._flatten_object_list(obj.target, obj.objlist, proj_dir_to_build_root)
+                    objs, d = self._flatten_object_list(obj.objlist, proj_dir_to_build_root)
                     obj_list.extend(objs)
                     deps.extend(d)
                 new_objs = self._determine_ext_objs(obj)
