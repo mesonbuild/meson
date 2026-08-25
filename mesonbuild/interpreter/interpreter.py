@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import io, sys, traceback
 import dataclasses
 import functools
@@ -267,6 +268,7 @@ class InterpreterRuleRelaxation(Enum):
 
     ALLOW_BUILD_DIR_FILE_REFERENCES = 1
     CARGO_SUBDIR = 2
+    ALLOW_SANDBOX_VIOLATION = 4
 
 implicit_check_false_warning = """You should add the boolean check kwarg to the run_command call.
          It currently defaults to false,
@@ -329,6 +331,19 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def __getnewargs_ex__(self) -> T.Tuple[T.Tuple[object], T.Dict[str, object]]:
         raise MesonBugException('This class is unpicklable')
+
+    @contextlib.contextmanager
+    def relaxing(self, relaxation: InterpreterRuleRelaxation, feature: FeatureCheckBase) -> T.Iterator[None]:
+        '''Temporarily add a rule relaxation to the interpreter, with a
+           warning if it is encountered.'''
+        if relaxation in self.relaxations:
+            yield
+        else:
+            try:
+                self.relaxations[relaxation] = feature
+                yield
+            finally:
+                del self.relaxations[relaxation]
 
     def relaxed(self, relaxation: InterpreterRuleRelaxation) -> bool:
         '''Check if a relaxation is in place, and if so whether it should warn
@@ -2272,6 +2287,10 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         self._validate_custom_target_outputs(len(inputs) > 1, kwargs['output'], "custom_target")
 
+        with self.relaxing(InterpreterRuleRelaxation.ALLOW_SANDBOX_VIOLATION,
+                           FeatureBroken('grabbing custom target depend_files from outside the current project', '1.12.0')):
+            depend_files = self.source_strings_to_files(kwargs['depend_files'])
+
         tg = build.CustomTarget(
             name,
             self.subdir,
@@ -2284,7 +2303,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build_by_default=build_by_default,
             capture=kwargs['capture'],
             console=kwargs['console'],
-            depend_files=self.source_strings_to_files(kwargs['depend_files']),
+            depend_files=depend_files,
             depfile=kwargs['depfile'],
             extra_depends=kwargs['depends'],
             env=kwargs['env'],
@@ -3426,8 +3445,11 @@ class Interpreter(InterpreterBase, HoldableObject):
                         results.append(mesonlib.File.from_built_relative(rel))
                     else:
                         results.append(mesonlib.File.from_built_file(self.subdir, s))
-                else:
-                    results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
+                    continue
+                except SandboxViolationError:
+                    if not self.relaxed(InterpreterRuleRelaxation.ALLOW_SANDBOX_VIOLATION):
+                        raise
+                results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
             elif isinstance(s, (mesonlib.File, build.GeneratedList, Program,
                                 build.BuildTarget, build.CustomTargetIndex, build.CustomTarget,
                                 build.ExtractedObjects, build.StructuredSources)):
