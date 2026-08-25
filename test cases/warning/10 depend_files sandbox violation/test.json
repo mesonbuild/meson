@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "sub| test cases/warning/10 depend_files sandbox violation/subprojects/sub/meson.build:3: DEPRECATION: Project uses feature that was always broken, and is now deprecated since '1.12.0': grabbing custom target depend_files from outside the current project."
+    }
+  ]
+}
