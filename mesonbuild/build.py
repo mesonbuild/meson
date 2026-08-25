@@ -1369,39 +1369,6 @@ class BuildTarget(Target):
                 stack.extendleft((t2 for t2 in t.link_whole_targets if t2 not in nonresults))
         return list(result)
 
-    @lru_cache(maxsize=None)
-    def get_all_linked_targets(self) -> ImmutableListProtocol[BuildTargetTypes]:
-        """Get all targets that have been linked with this one.
-
-        This is useful for cases where we need to analyze these links, such as
-        for module information.
-
-        This includes static libraries and static libraries linked with static
-        libraries. This differs from :method:`get_all_link_deps` in that it does
-        add static libs, and differs from `:method:`get_dependencies`, which
-        does not look for targets that are not directly linked, such as those
-        that are added with `link_whole`.
-
-        :returns: An immutable list of BuildTargets
-        """
-        result: OrderedSet[BuildTargetTypes] = OrderedSet()
-        stack: T.Deque[BuildTargetTypes] = deque()
-        stack.extendleft(self.link_targets)
-        stack.extendleft(self.link_whole_targets)
-        while stack:
-            t = stack.pop()
-            if t in result:
-                continue
-            if isinstance(t, CustomTargetIndex):
-                stack.appendleft(t.target)
-                continue
-            if isinstance(t, BuildTarget):
-                result.add(t)
-                stack.extendleft(t.link_targets)
-                stack.extendleft(t.link_whole_targets)
-        assert self not in result, 'should not have self'
-        return list(result)
-
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         return self.get_transitive_link_deps_mapping(prefix)
 
@@ -2985,9 +2952,6 @@ class CustomTargetBase(LinkableTarget, metaclass=SimpleABC):
 
     def get_internal_static_libraries_recurse(self, result: OrderedSet[StaticTargetTypes]) -> None:
         pass
-
-    def get_all_linked_targets(self) -> ImmutableListProtocol[BuildTargetTypes]:
-        return []
 
     def get(self, lib_type: _LibraryType, recursive: bool = False) -> LinkableTargetTypes:
         """Base case used by BothLibraries"""

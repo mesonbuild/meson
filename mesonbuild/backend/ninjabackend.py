@@ -1121,7 +1121,7 @@ class NinjaBackend(backends.Backend):
             # add the private directories of all transitive dependencies, which
             # are needed for their mod files
             fc = target.compilers['fortran']
-            for t in target.get_all_linked_targets():
+            for t in self.get_all_linked_targets(target):
                 fortran_inc_args.extend(fc.get_include_args(
                     self.get_target_private_dir(t), False))
 
@@ -1269,7 +1269,7 @@ class NinjaBackend(backends.Backend):
         self.add_build(elem)
 
         infiles: T.Set[str] = set()
-        for t in target.get_all_linked_targets():
+        for t in self.get_all_linked_targets(target):
             if self.should_use_dyndeps_for_target(t):
                 assert isinstance(t, build.BuildTarget)
                 infiles.add(self.get_dep_scan_file_for(t)[0])

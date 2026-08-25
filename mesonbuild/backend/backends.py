@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass, InitVar
 from functools import lru_cache
 from itertools import chain
@@ -503,6 +504,29 @@ class Backend:
     def relpath(todir: str | os.PathLike[str], fromdir: str | os.PathLike[str]) -> str:
         return os.path.relpath(os.path.join('dummyprefixdir', todir),
                                os.path.join('dummyprefixdir', fromdir))
+
+    def get_all_linked_targets(self, target: build.BuildTarget) -> T.Iterator[build.BuildTargetTypes]:
+        """Get all targets that have been linked with this one, including internal and
+        indirect static libraries unlike :method:`build.BuildTarget.get_all_link_deps`
+        and :method:`build.all_dependencies_recurse`.
+
+        This is useful for cases where we need to analyze these links, such as
+        for module information.
+        """
+        seen: T.Set[build.BuildTarget] = set()
+
+        stack: T.Deque[build.BuildTargetTypes] = deque()
+        stack.extendleft(target.link_targets)
+        stack.extendleft(target.link_whole_targets)
+        while stack:
+            t = stack.pop()
+            if t in seen or not isinstance(t, build.BuildTarget):
+                continue
+            seen.add(t)
+            stack.extendleft(t.link_targets)
+            stack.extendleft(t.link_whole_targets)
+            yield t
+        assert target not in seen, 'should not have self'
 
     def flatten_object_list(self, target: build.BuildTarget, proj_dir_to_build_root: str = ''
                             ) -> T.Tuple[T.List[str], T.List[build.BuildTarget]]:
