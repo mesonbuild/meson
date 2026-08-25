@@ -534,7 +534,7 @@ class Backend:
         assert target not in seen, 'should not have self'
 
     def flatten_object_list(self, target: build.BuildTarget, proj_dir_to_build_root: str = ''
-                            ) -> T.Tuple[T.List[str], T.List[build.BuildTarget]]:
+                            ) -> T.Tuple[T.List[str], T.Iterable[build.BuildTarget]]:
         obj_list, deps = self._flatten_object_list(target.get_objects(), proj_dir_to_build_root)
         return unique_list(obj_list), deps
 
@@ -596,34 +596,58 @@ class Backend:
         return result
 
     def _flatten_object_list(self, objects: T.Sequence[build.ObjectTypes],
-                             proj_dir_to_build_root: str) -> T.Tuple[T.List[str], T.List[build.BuildTarget]]:
-        obj_list: T.List[str] = []
-        deps: T.List[build.BuildTarget] = []
+                             proj_dir_to_build_root: str) -> T.Tuple[T.List[str], T.Iterable[build.BuildTarget]]:
+        # The same target can be reached through multiple ExtractObjects, so
+        # ensure each distinct target is visited exactly once.
+        seen: T.Set[build.BuildTarget] = set()
+        deps: OrderedSet[build.BuildTarget] = OrderedSet()
+        result: T.Dict[build.BuildTarget, T.List[str]] = {}
+
+        def visit_dfs(o: build.ExtractedObjects) -> T.Iterator[build.BuildTarget]:
+            t = o.target
+            deps.add(t)
+            if o.recursive:
+                if t in seen:
+                    return
+                seen.add(t)
+                for obj in t.get_objects():
+                    if isinstance(obj, build.ExtractedObjects):
+                        yield from visit_dfs(obj)
+                yield t
+
+        def flatten_one(objs: T.Sequence[build.ObjectTypes]) -> T.List[str]:
+            obj_list: T.List[str] = []
+            for obj in objs:
+                if isinstance(obj, mesonlib.File):
+                    if obj.is_built:
+                        o = os.path.join(proj_dir_to_build_root,
+                                         obj.rel_to_builddir(self.build_to_src))
+                        obj_list.append(o)
+                    else:
+                        o = os.path.join(proj_dir_to_build_root,
+                                         self.build_to_src)
+                        obj_list.append(obj.rel_to_builddir(o))
+                elif isinstance(obj, build.ExtractedObjects):
+                    # Whatever obj.target recursively depends on has already
+                    # been yielded and flattened.
+                    if obj.recursive:
+                        obj_list.extend(result[obj.target])
+                    new_objs = self._determine_ext_objs(obj)
+                    if proj_dir_to_build_root:
+                        for o in new_objs:
+                            obj_list.append(os.path.join(proj_dir_to_build_root, o))
+                    else:
+                        obj_list.extend(new_objs)
+                else:
+                    raise MesonBugException('Unknown data type in object list.')
+            return obj_list
+
         for obj in objects:
-            if isinstance(obj, mesonlib.File):
-                if obj.is_built:
-                    o = os.path.join(proj_dir_to_build_root,
-                                     obj.rel_to_builddir(self.build_to_src))
-                    obj_list.append(o)
-                else:
-                    o = os.path.join(proj_dir_to_build_root,
-                                     self.build_to_src)
-                    obj_list.append(obj.rel_to_builddir(o))
-            elif isinstance(obj, build.ExtractedObjects):
-                if obj.recursive:
-                    objs, d = self._flatten_object_list(obj.objlist, proj_dir_to_build_root)
-                    obj_list.extend(objs)
-                    deps.extend(d)
-                new_objs = self._determine_ext_objs(obj)
-                if proj_dir_to_build_root:
-                    for o in new_objs:
-                        obj_list.append(os.path.join(proj_dir_to_build_root, o))
-                else:
-                    obj_list.extend(new_objs)
-                deps.append(obj.target)
-            else:
-                raise MesonException('Unknown data type in object list.')
-        return obj_list, deps
+            if isinstance(obj, build.ExtractedObjects):
+                for t in visit_dfs(obj):
+                    result[t] = flatten_one(t.get_objects())
+
+        return flatten_one(objects), deps
 
     @staticmethod
     def is_swift_target(target: build.BuildTargetTypes) -> bool:
