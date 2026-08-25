@@ -11,6 +11,7 @@ import struct
 import shutil
 import subprocess
 import typing as T
+import zipfile
 
 from ..mesonlib import OrderedSet, generate_list, Popen_safe
 
@@ -790,20 +791,48 @@ def fix_darwin(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: str, f
         raise SystemExit(err)
 
 def fix_jar(fname: str) -> None:
-    subprocess.check_call(['jar', 'xf', fname, 'META-INF/MANIFEST.MF'])
-    with open('META-INF/MANIFEST.MF', 'r+', encoding='utf-8') as f:
-        lines = f.readlines()
-        f.seek(0)
+    with zipfile.ZipFile(fname) as jar:
+        try:
+            manifest = jar.read('META-INF/MANIFEST.MF').decode('utf-8')
+        except KeyError:
+            return
+        lines = manifest.splitlines(keepends=True)
+        stripped = []
+        in_classpath = False
         for line in lines:
-            if not line.startswith('Class-Path:'):
-                f.write(line)
-        f.truncate()
-    # jar -um doesn't allow removing existing attributes.  Use -uM instead,
-    # which a) removes the existing manifest from the jar and b) disables
-    # special-casing for the manifest file, so we can re-add it as a normal
-    # archive member.  This puts the manifest at the end of the jar rather
-    # than the beginning, but the spec doesn't forbid that.
-    subprocess.check_call(['jar', 'ufM', fname, 'META-INF/MANIFEST.MF'])
+            if line.startswith('Class-Path:'):
+                in_classpath = True
+            elif in_classpath and line.startswith(' '):
+                # continuation of the Class-Path attribute value
+                pass
+            else:
+                in_classpath = False
+                stripped.append(line)
+        if stripped == lines:
+            # No Class-Path attribute to remove. Leave the jar alone:
+            # rewriting it would only replace the manifest's timestamp
+            # with the current time, hurting build reproducibility.
+            return
+        entries = [(info, jar.read(info)) for info in jar.infolist()]
+        comment = jar.comment
+    # Use a temp file so that an interrupted or failed rewrite does not leave a corrupt jar
+    tmpname = fname + '.tmp'
+    try:
+        with zipfile.ZipFile(tmpname, 'w') as jar:
+            jar.comment = comment
+            for info, data in entries:
+                if info.filename == 'META-INF/MANIFEST.MF':
+                    data = ''.join(stripped).encode('utf-8')
+                # Passing the original ZipInfo keeps all metadata
+                # (mtime, permissions, compression),
+                # for deterministic build results
+                jar.writestr(info, data)
+        shutil.copystat(fname, tmpname)
+    except BaseException:
+        if os.path.exists(tmpname):
+            os.unlink(tmpname)
+        raise
+    os.replace(tmpname, fname)
 
 def fix_rpath(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Union[str, bytes], final_path: str, install_name_mappings: T.Dict[str, str], system: str, verbose: bool = True) -> None:
     global INSTALL_NAME_TOOL  # pylint: disable=global-statement
