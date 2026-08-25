@@ -508,14 +508,21 @@ class Backend:
     def get_all_linked_targets(self, target: build.BuildTarget) -> T.Iterator[build.BuildTargetTypes]:
         """Get all targets that have been linked with this one, including internal and
         indirect static libraries unlike :method:`build.BuildTarget.get_all_link_deps`
-        and :method:`build.all_dependencies_recurse`.
+        and :method:`build.all_dependencies_recurse`, and targets whose objects
+        are borrowed by this one or any returned target.
 
         This is useful for cases where we need to analyze these links, such as
         for module information.
         """
         seen: T.Set[build.BuildTarget] = set()
-
         stack: T.Deque[build.BuildTargetTypes] = deque()
+
+        def add_linked_targets(t: build.BuildTarget) -> None:
+            stack.extendleft(t.link_targets)
+            stack.extendleft(t.link_whole_targets)
+            _, od = self.flatten_object_list(t)
+            stack.extendleft(od)
+
         stack.extendleft(target.link_targets)
         stack.extendleft(target.link_whole_targets)
         while stack:
@@ -523,8 +530,7 @@ class Backend:
             if t in seen or not isinstance(t, build.BuildTarget):
                 continue
             seen.add(t)
-            stack.extendleft(t.link_targets)
-            stack.extendleft(t.link_whole_targets)
+            add_linked_targets(t)
             yield t
         assert target not in seen, 'should not have self'
 
