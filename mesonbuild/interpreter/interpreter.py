@@ -122,6 +122,7 @@ if T.TYPE_CHECKING:
     from . import kwargs as kwtypes
     from ..backend.backends import Backend
     from ..compilers.compilers import CompilerDict, Language
+    from ..interpreterbase import FeatureCheckBase
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
     from ..options import OptionDict
     from ..mesonlib import InstallScript, SubProject
@@ -284,7 +285,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 subproject_dir: str = 'subprojects',
                 invoker_method_default_options: T.Optional[OptionDict] = None,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
-                relaxations: T.Optional[T.Set[InterpreterRuleRelaxation]] = None,
+                relaxations: T.Optional[T.Dict[InterpreterRuleRelaxation, T.Optional[FeatureCheckBase]]] = None,
                 user_defined_options: T.Optional[SharedCMDOptions] = None,
                 cargo: T.Optional[cargo.Interpreter] = None,
             ) -> None:
@@ -296,7 +297,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.cargo = cargo
         self.summary: T.Dict[str, 'Summary'] = {}
         self.modules: T.Dict[str, NewExtensionModule] = {}
-        self.relaxations = relaxations or set()
+        self.relaxations = relaxations or {}
         if ast is None:
             self.load_root_meson_file()
         else:
@@ -327,6 +328,16 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def __getnewargs_ex__(self) -> T.Tuple[T.Tuple[object], T.Dict[str, object]]:
         raise MesonBugException('This class is unpicklable')
+
+    def relaxed(self, relaxation: InterpreterRuleRelaxation) -> bool:
+        '''Check if a relaxation is in place, and if so whether it should warn
+           as a broken or deprecated feature.'''
+        if relaxation not in self.relaxations:
+            return False
+        feature = self.relaxations[relaxation]
+        if feature is not None:
+            feature.use(self.subproject, location=self.current_node)
+        return True
 
     def load_root_cargo_lock_file(self) -> None:
         cargo_lock = os.path.join(self.source_root, self.subdir, 'Cargo.lock')
@@ -1054,7 +1065,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                              kwargs: kwtypes.DoSubproject,
                              ast: T.Optional[mparser.CodeBlockNode] = None,
                              build_def_files: T.Optional[T.List[str]] = None,
-                             relaxations: T.Optional[T.Set[InterpreterRuleRelaxation]] = None,
+                             relaxations: T.Optional[T.Dict[InterpreterRuleRelaxation, T.Optional[FeatureCheckBase]]] = None,
                              cargo: T.Optional[cargo.Interpreter] = None) -> SubprojectHolder:
         for_machine = kwargs['for_machine']
         if for_machine is MachineChoice.BUILD:
@@ -1125,7 +1136,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     kwargs, ast,
                     [str(f) for f in cm_int.bs_files],
                     relaxations={
-                        InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFERENCES,
+                        InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFERENCES: None,
                     }
             )
             result.cm_interpreter = cm_int
@@ -1153,7 +1164,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
             return self._do_subproject_meson(
                 subp_name, subdir, default_options, kwargs, ast,
-                relaxations={InterpreterRuleRelaxation.CARGO_SUBDIR} if ast is not None else None,
+                relaxations={InterpreterRuleRelaxation.CARGO_SUBDIR: None} if ast is not None else None,
                 cargo=cargo_int)
 
     @typed_pos_args('get_option', str)
@@ -2616,7 +2627,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         self.create_build_subdir(subdir)
 
-        if InterpreterRuleRelaxation.CARGO_SUBDIR in self.relaxations and \
+        if self.relaxed(InterpreterRuleRelaxation.CARGO_SUBDIR) and \
            os.path.exists(os.path.join(self.environment.get_source_dir(), subdir, 'Cargo.toml')):
             codeblock = self.cargo.interpret(subdir, self.root_subdir)
             self._save_ast(subdir, codeblock)
@@ -3400,7 +3411,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     self.validate_within_subproject(self.subdir, s)
                 except BuiltFileByNameError as e:
                     # In Meson 2.0 this should just raise
-                    if InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFERENCES not in self.relaxations:
+                    if not self.relaxed(InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFERENCES):
                         #raise
                         mlog.warning(str(e), location=self.current_node)
                     if path_has_root(s):
