@@ -56,6 +56,17 @@ jobs:
             ifort: false
 
     steps:
+      - name: Disable Windows Defender
+        shell: pwsh
+        run: |
+          Set-MpPreference -DisableRealtimeMonitoring $true
+          Set-MpPreference -DisableBehaviorMonitoring $true
+          Set-MpPreference -DisableIOAVProtection $true
+          Set-MpPreference -DisableScriptScanning $true
+          Set-MpPreference -DisableArchiveScanning $true
+          Set-MpPreference -MAPSReporting Disabled
+          Set-MpPreference -SubmitSamplesConsent NeverSend
+
       - uses: actions/checkout@v6
 
       - name: Setup Python
