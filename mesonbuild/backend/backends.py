@@ -321,7 +321,7 @@ class Backend:
                          f'Using the first one. Consider using `{t.name}[0]`.')
         return os.path.join(self.get_target_dir(t), t.get_filename())
 
-    def get_aix_so_archive_name(self, t: build.AnyTargetType, filename: str) -> T.Optional[str]:
+    def get_aix_so_archive_name(self, t: build.AnyTargetProto, filename: str) -> T.Optional[str]:
         '''On AIX shared libraries are stored inside an archive; it is the archive
         that gets linked against and installed.  Shared modules are not archived.
         Return the name of the archive, or None if TARGET is not archived.'''
@@ -365,7 +365,7 @@ class Backend:
                 curdir = '.'
         return compiler.get_include_args(curdir, False)
 
-    def get_target_filename_for_linking(self, target: build.AnyTargetType) -> T.Optional[str]:
+    def get_target_filename_for_linking(self, target: build.AnyTargetProto) -> T.Optional[str]:
         # On some platforms (msvc for instance), the file that is used for
         # dynamic linking is not the same as the dynamic library itself. This
         # file is called an import library, and we want to link against that.
@@ -402,19 +402,18 @@ class Backend:
                 dirname = os.path.join(dirname, build_subdir)
         return dirname
 
-    def get_target_dir(self, target: build.AnyTargetType) -> str:
+    def get_target_dir(self, target: build.AnyTargetProto) -> str:
         return self.get_target_dir_cached(target.get_target())
 
     def get_target_dir_relative_to(self,
-                                   t: T.Union[build.Target, build.CustomTargetIndex],
-                                   o: T.Union[build.Target, build.CustomTargetIndex],
-                                   ) -> str:
+                                   t: build.AnyTargetProto,
+                                   o: build.AnyTargetProto) -> str:
         '''Get a target dir relative to another target's directory'''
         target_dir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(t))
         othert_dir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(o))
         return os.path.relpath(target_dir, othert_dir)
 
-    def get_target_source_dir(self, target: build.Target) -> str:
+    def get_target_source_dir(self, target: build.AnyTargetProto) -> str:
         # if target dir is empty, avoid extraneous trailing / from os.path.join()
         target_dir = self.get_target_dir(target)
         if target_dir:
@@ -539,7 +538,7 @@ class Backend:
         """Return target dependencies keyed by their introspection IDs."""
         all_deps: T.Dict[str, build.Target] = {}
 
-        def add_dependency(dep: build.AnyTargetType | TargetDepends | File | ExtractedObjects) -> None:
+        def add_dependency(dep: build.AnyTargetProto | TargetDepends | File | ExtractedObjects) -> None:
             if isinstance(dep, build.LocalProgram):
                 dep = dep.get_target()
             if isinstance(dep, build.CustomTargetIndex):
@@ -1415,7 +1414,7 @@ class Backend:
     def write_test_serialisation(self, tests: T.List['Test'], datafile: T.BinaryIO) -> None:
         pickle.dump(self.create_test_serialisation(tests), datafile)
 
-    def construct_target_rel_paths(self, t: build.BuildTargetTypes, workdir: T.Optional[str]) -> T.List[str]:
+    def construct_target_rel_paths(self, t: build.AnyTargetProto, workdir: T.Optional[str]) -> T.List[str]:
         target_dir = self.get_target_dir(t)
         # ensure that test executables can be run when passed as arguments
         if isinstance(t, build.Executable) and workdir is None:
@@ -1531,7 +1530,7 @@ class Backend:
             newargs.append(arg)
         return newargs
 
-    def get_build_by_default_targets(self) -> dict[str, build.Target]:
+    def get_build_by_default_targets(self) -> dict[str, build.AnyTargetProto]:
         return {k: v for k, v in self.build.targets.items() if v.build_by_default}
 
     def get_testlike_targets(self, benchmark: bool = False) -> T.Iterable[T.Union[build.BuildTarget, build.CustomTarget]]:
@@ -1600,7 +1599,7 @@ class Backend:
             srcs += fname
         return srcs
 
-    def get_paths_for_dep_outputs(self, target: build.Target, dep_targets: T.Iterable[build.Target | build.GeneratedList | build.CustomTargetIndex | programs.Program]) -> T.List[str]:
+    def get_paths_for_dep_outputs(self, target: build.AnyTargetProto, dep_targets: T.Iterable[build.AnyTargetProto | build.GeneratedList | programs.Program]) -> T.List[str]:
         """Return a list of strings with the paths to all the outputs of all targets in
            dep_targets."""
         deps = []
@@ -1627,7 +1626,7 @@ class Backend:
                 deps.append(i.rel_to_builddir(self.build_to_src))
         return deps
 
-    def get_custom_target_output_dir(self, target: build.AnyTargetType) -> str:
+    def get_custom_target_output_dir(self, target: build.AnyTargetProto) -> str:
         # The XCode backend is special. A target foo/bar does
         # not go to ${BUILDDIR}/foo/bar but instead to
         # ${BUILDDIR}/${BUILDTYPE}/foo/bar.

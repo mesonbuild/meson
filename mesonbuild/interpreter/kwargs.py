@@ -201,7 +201,7 @@ class FuncAddLanguages(ExtractRequired):
 class RunTarget(TypedDict):
 
     command: T.List[build.CommandTypes]
-    depends: T.List[build.AnyTargetType | Program]
+    depends: T.List[build.AnyTargetProto | Program]
     env: EnvironmentVariables
 
 
