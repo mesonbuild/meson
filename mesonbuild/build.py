@@ -2926,12 +2926,6 @@ def flatten_command(cmd: T.Iterable[CommandTypes],
             final_cmd.extend(c)
             depend_files.extend(df)
             dependencies.extend(d)
-        elif isinstance(c, list):
-            # TODO: is this case even reachable?
-            c, df, d = flatten_command(c, subproject)
-            final_cmd.extend(c)
-            depend_files.extend(df)
-            dependencies.extend(d)
         else:
             raise InvalidArguments(f'Argument {c!r} in "command" is invalid')
     return final_cmd, depend_files, dependencies
