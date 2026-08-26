@@ -2901,10 +2901,9 @@ def flatten_command(cmd: T.Iterable[CommandTypes],
         if isinstance(c, LocalProgram):
             c = c.program
         if isinstance(c, str):
-            final_cmd.append(c)
+            pass
         elif isinstance(c, File):
             depend_files.append(c)
-            final_cmd.append(c)
         elif isinstance(c, programs.Program):
             if not c.found():
                 raise InvalidArguments('Tried to use not-found external program in "command"')
@@ -2914,17 +2913,15 @@ def flatten_command(cmd: T.Iterable[CommandTypes],
                 # Can only add a dependency on an external program which we
                 # know the absolute path of
                 depend_files.append(File.from_absolute_file(path))
-            # Do NOT flatten -- it is needed for later parsing
-            final_cmd.append(c)
+            # Add c, not path -- it is needed for later parsing
         elif isinstance(c, (BuildTarget, CustomTarget)):
             dependencies.append(c)
-            final_cmd.append(c)
         elif isinstance(c, CustomTargetIndex):
             FeatureNew.single_use('CustomTargetIndex for command argument', '0.60', subproject)
             dependencies.append(c.target)
-            final_cmd.append(c)
         else:
-            raise InvalidArguments(f'Argument {c!r} in "command" is invalid')
+            raise MesonBugException(f'Argument {c!r} in "command" is invalid')
+        final_cmd.append(c)
     return final_cmd, depend_files, dependencies
 
 
