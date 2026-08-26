@@ -147,7 +147,7 @@ class DependenciesHelper:
         data = self.metadata[obj.get_id()]
         if data.warned:
             return
-        mlog.deprecation('Library', mlog.bold(obj.name), 'was passed to the '
+        mlog.deprecation('Library', mlog.bold(str(obj)), 'was passed to the '
                          '"libraries" keyword argument of a previous call '
                          'to generate() method instead of first positional '
                          'argument.', 'Adding', mlog.bold(data.display_name),
