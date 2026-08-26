@@ -1592,7 +1592,7 @@ class Backend:
             elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
                 fname = [os.path.join(self.get_custom_target_output_dir(i), p) for p in i.get_outputs()]
             elif isinstance(i, build.GeneratedList):
-                assert not isinstance(target, build.RunTarget)
+                assert isinstance(target, build.CustomTarget)
                 fname = [os.path.join(self.get_target_private_dir(target), p) for p in i.get_outputs()]
             elif isinstance(i, build.ExtractedObjects):
                 fname = self.determine_ext_objs(i)
@@ -1712,7 +1712,7 @@ class Backend:
                 if '@CURRENT_SOURCE_DIR@' in i:
                     i = i.replace('@CURRENT_SOURCE_DIR@', os.path.join(source_root, target.get_subdir()))
                 if '@DEPFILE@' in i:
-                    assert not isinstance(target, build.RunTarget)
+                    assert isinstance(target, build.CustomTarget)
                     if target.depfile is None:
                         msg = f'Custom target {target.name!r} has @DEPFILE@ but no depfile ' \
                               'keyword argument.'
@@ -1720,7 +1720,7 @@ class Backend:
                     dfilename = os.path.join(outdir, target.depfile)
                     i = i.replace('@DEPFILE@', dfilename)
                 if '@PRIVATE_DIR@' in i:
-                    assert not isinstance(target, build.RunTarget)
+                    assert isinstance(target, build.CustomTarget)
                     pdir = self.get_target_private_dir_abs(target)
                     os.makedirs(pdir, exist_ok=True)
                     if not target.absolute_paths:
