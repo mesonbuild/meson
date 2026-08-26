@@ -3409,6 +3409,9 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     def __repr__(self) -> str:
         return '<CustomTargetIndex: {!r}[{}]>'.format(self.target, self.output)
 
+    def __str__(self) -> str:
+        return self.name
+
     def get_outputs(self) -> T.List[str]:
         return [self.output]
 
