@@ -1591,9 +1591,7 @@ class Backend:
         for i in target.get_sources():
             if isinstance(i, build.LocalProgram):
                 i = i.program
-            if isinstance(i, str):
-                fname = [os.path.join(self.build_to_src, target.subdir, i)]
-            elif isinstance(i, build.BuildTarget):
+            if isinstance(i, build.BuildTarget):
                 fname = [self.get_target_filename(i)]
             elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
                 fname = [os.path.join(self.get_custom_target_output_dir(i), p) for p in i.get_outputs()]
