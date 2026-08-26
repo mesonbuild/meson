@@ -3254,7 +3254,7 @@ class RunTarget(Target):
     def __init__(self, name: str,
                  command: T.Sequence[CommandTypes],
                  # the RunTarget case is used by gnome.yelp()
-                 dependencies: T.Sequence[Target | CustomTargetIndex | GeneratedList | programs.Program],
+                 dependencies: T.Sequence[AnyTargetType | programs.Program],
                  subdir: str,
                  environment: Environment,
                  build_project: BuildProject,
@@ -3273,7 +3273,7 @@ class RunTarget(Target):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command[0])
 
-    def get_dependencies(self) -> T.List[Target | CustomTargetIndex | GeneratedList | programs.Program]:
+    def get_dependencies(self) -> T.List[AnyTargetType | programs.Program]:
         return self.dependencies
 
     def get_generated_sources(self) -> T.List[GeneratedTypes]:
