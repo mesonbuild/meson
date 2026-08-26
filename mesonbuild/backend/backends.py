@@ -1697,7 +1697,7 @@ class Backend:
             if isinstance(i, build.BuildTarget):
                 cmd += self.build_target_to_cmd_array(i)
                 continue
-            elif isinstance(i, build.CustomTarget):
+            elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
                 # GIR scanner will attempt to execute this binary but
                 # it assumes that it is in path, so always give it a full path.
                 tmp = i.get_outputs()[0]
@@ -2139,7 +2139,7 @@ class Backend:
                         compiler += [k.absolute_path(self.source_dir, self.build_dir)]
                     elif isinstance(k, str):
                         compiler += [k]
-                    elif isinstance(k, (build.BuildTarget, build.CustomTarget)):
+                    elif isinstance(k, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                         compiler += k.get_outputs()
                     elif isinstance(k, programs.Program):
                         compiler += k.get_command()

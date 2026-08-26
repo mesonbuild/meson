@@ -2892,9 +2892,9 @@ class BothLibraries(SecondLevelHolder, LinkableTarget):
 
 
 def flatten_command(cmd: T.Iterable[CommandTypes],
-                    subproject: SubProject) -> tuple[list[str | File | BuildTarget | CustomTarget | programs.Program],
+                    subproject: SubProject) -> tuple[list[CommandTypes],
                                                      list[File], list[BuildTarget | CustomTarget]]:
-    final_cmd: list[str | File | programs.Program | BuildTarget | CustomTarget] = []
+    final_cmd: list[CommandTypes] = []
     depend_files: list[File] = []
     dependencies: list[BuildTarget | CustomTarget] = []
     for c in cmd:
@@ -2922,10 +2922,7 @@ def flatten_command(cmd: T.Iterable[CommandTypes],
         elif isinstance(c, CustomTargetIndex):
             FeatureNew.single_use('CustomTargetIndex for command argument', '0.60', subproject)
             dependencies.append(c.target)
-            c, df, d = flatten_command([File.from_built_file(c.get_subdir(), c.get_filename())], subproject)
-            final_cmd.extend(c)
-            depend_files.extend(df)
-            dependencies.extend(d)
+            final_cmd.append(c)
         else:
             raise InvalidArguments(f'Argument {c!r} in "command" is invalid')
     return final_cmd, depend_files, dependencies
