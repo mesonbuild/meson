@@ -316,16 +316,10 @@ class Backend:
         raise RuntimeError(f'generate is not implemented in {type(self).__name__}')
 
     def get_target_filename(self, t: build.BuildTargetTypes, *, warn_multi_output: bool = True) -> str:
-        if isinstance(t, build.CustomTarget):
-            if warn_multi_output and len(t.get_outputs()) != 1:
-                mlog.warning(f'custom_target {t.name!r} has more than one output! '
-                             f'Using the first one. Consider using `{t.name}[0]`.')
-            filename = t.get_outputs()[0]
-        elif isinstance(t, build.CustomTargetIndex):
-            filename = t.get_outputs()[0]
-        else:
-            filename = t.get_filename()
-        return os.path.join(self.get_target_dir(t), filename)
+        if isinstance(t, build.CustomTarget) and warn_multi_output and len(t.get_outputs()) != 1:
+            mlog.warning(f'custom_target {t.name!r} has more than one output! '
+                         f'Using the first one. Consider using `{t.name}[0]`.')
+        return os.path.join(self.get_target_dir(t), t.get_filename())
 
     def get_aix_so_archive_name(self, t: build.AnyTargetType, filename: str) -> T.Optional[str]:
         '''On AIX shared libraries are stored inside an archive; it is the archive
