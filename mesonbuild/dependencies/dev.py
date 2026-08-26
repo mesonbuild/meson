@@ -662,9 +662,8 @@ class JNISystemDependency(SystemDependency):
             return None
         # -XshowSettings writes to stderr, not stdout.
         for line in e.splitlines():
-            line = line.strip()
-            if line.startswith('java.home'):
-                _, _, value = line.partition('=')
+            name, separator, value = line.partition('=')
+            if separator and name.strip() == 'java.home':
                 value = value.strip()
                 if value:
                     return pathlib.Path(value)
