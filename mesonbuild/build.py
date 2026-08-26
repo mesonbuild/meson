@@ -113,6 +113,16 @@ if T.TYPE_CHECKING:
     class StaticTargetProto(LibTargetProto, Protocol):
         def extract_all_objects(self, recursive: bool = True) -> ExtractedObjects: ...
 
+    class CommandTargetProto(AnyTargetProto, Protocol):
+        @property
+        def command(self) -> list[CommandTypes]: ...
+        @property
+        def absolute_paths(self) -> bool: ...
+        @property
+        def depend_files(self) -> T.List[File]: ...
+
+        def get_sources(self) -> T.Sequence[CustomTargetSources]: ...
+
     class DFeatures(TypedDict):
 
         unittest: bool
@@ -210,6 +220,7 @@ else:
     LinkableTargetProto = object
     LibTargetProto = object
     StaticTargetProto = object
+    CommandTargetProto = object
 
 
 _T = T.TypeVar('_T')
@@ -3016,9 +3027,11 @@ class CustomTargetBase(StaticTargetProto, metaclass=SimpleABC):
         return False
 
 
-class CustomTarget(Target, CustomTargetBase):
+class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
 
     typename = 'custom'
+    absolute_paths: bool
+    command: list[CommandTypes]
 
     def __init__(self,
                  name: T.Optional[str],
@@ -3307,9 +3320,11 @@ class CompileTarget(BuildTarget):
     def is_linkable_output(self, output: str) -> bool:
         return False
 
-class RunTarget(Target):
+class RunTarget(Target, CommandTargetProto):
 
     typename = 'run'
+    absolute_paths: bool = False
+    command: list[CommandTypes]
 
     def __init__(self, name: str,
                  command: T.Sequence[CommandTypes],
@@ -3325,7 +3340,6 @@ class RunTarget(Target):
         self.dependencies = list(dependencies)
         self.command, self.depend_files, d = flatten_command(command, build_project.subproject)
         self.dependencies.extend(d)
-        self.absolute_paths = False
         self.env = env
         self.default_env = default_env
 

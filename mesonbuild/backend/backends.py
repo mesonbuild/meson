@@ -1570,7 +1570,7 @@ class Backend:
             libs.extend(self.get_custom_target_provided_by_generated_source(t))
         return libs
 
-    def get_custom_target_sources(self, target: build.RunTarget | build.CustomTarget) -> T.List[str]:
+    def get_custom_target_sources(self, target: build.CommandTargetProto) -> T.List[str]:
         '''
         Custom target sources can be of various object types; strings, File,
         BuildTarget, even other CustomTargets.
@@ -1667,7 +1667,7 @@ class Backend:
         return incs
 
     def eval_custom_target_command(
-            self, target: build.RunTarget | build.CustomTarget, absolute_outputs: bool = False) -> \
+            self, target: build.CommandTargetProto, absolute_outputs: bool = False) -> \
             T.Tuple[T.List[str], T.List[str], T.List[str | programs.Program]]:
         # We want the outputs to be absolute only when using the VS backend
         # XXX: Maybe allow the vs backend to use relative paths too?
