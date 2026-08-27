@@ -254,7 +254,12 @@ class DependenciesHelper:
                     # because the stack is popped in LIFO order; the dependencies
                     # will be added *after* the libraries that need them.
                     self._dep_stack.append(_LibDeps(obj, [], [], obj.ext_deps, False))
-                    self._dep_stack.append(_LibDeps(obj, obj.libraries, obj.whole_libraries, [], public))
+                    # get_as_static()/get_as_shared() above already resolved away
+                    # any BothLibraries, but the InternalDependency type can't
+                    # express that in the type of obj.libraries/obj.whole_libraries
+                    libraries = T.cast('T.List[build.LinkableTargetProto]', obj.libraries)
+                    whole_libraries = T.cast('T.List[build.StaticTargetProto]', obj.whole_libraries)
+                    self._dep_stack.append(_LibDeps(obj, libraries, whole_libraries, [], public))
                     self._add_uninstalled_incdirs(obj.get_include_dirs())
             elif isinstance(obj, dependencies.Dependency):
                 if obj.found():
