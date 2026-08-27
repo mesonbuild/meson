@@ -1607,8 +1607,8 @@ class BuildTarget(Target, BuildTargetProto):
                 self.extra_files.extend(f for f in dep.extra_files if f not in self.extra_files)
                 self.add_include_dirs(dep.get_include_dirs())
                 self.objects.extend(dep.objects)
-                self.link_targets.extend(dep.libraries)
-                self.link_whole_targets.extend(dep.whole_libraries)
+                self.link_targets.extend(self._extract_link_with(dep.libraries))
+                self.link_whole_targets.extend(self._extract_link_whole(dep.whole_libraries))
                 if dep.get_compile_args() or dep.get_link_args():
                     # Those parts that are external.
                     extpart = type(dep)(dep.version,

@@ -28,8 +28,8 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
     from ..build import (
-        IncludeDirs, LinkableTargetProto,
-        ExtractedObjects, TargetSources, StaticTargetProto,
+        IncludeDirs, LinkableTypes,
+        ExtractedObjects, TargetSources, StaticTypes,
     )
     from ..interpreter.type_checking import PkgConfigDefineType
 
@@ -309,8 +309,8 @@ class InternalDependency(Dependency):
     def __init__(self, version: str, incdirs: T.Optional[T.List['IncludeDirs']] = None,
                  compile_args: T.Optional[T.List[str]] = None,
                  link_args: T.Optional[T.List[str]] = None,
-                 libraries: T.Optional[T.List[LinkableTargetProto]] = None,
-                 whole_libraries: T.Optional[T.List[StaticTargetProto]] = None,
+                 libraries: T.Optional[T.Sequence[LinkableTypes]] = None,
+                 whole_libraries: T.Optional[T.Sequence[StaticTypes]] = None,
                  sources: T.Optional[T.Sequence[TargetSources]] = None,
                  extra_files: T.Optional[T.Sequence[mesonlib.File]] = None,
                  ext_deps: T.Optional[T.List[Dependency]] = None, variables: T.Optional[T.Dict[str, str]] = None,
@@ -324,8 +324,8 @@ class InternalDependency(Dependency):
         self.include_directories = incdirs or []
         self.compile_args = compile_args or []
         self.link_args = link_args or []
-        self.libraries = libraries or []
-        self.whole_libraries = whole_libraries or []
+        self.libraries = list(libraries or [])
+        self.whole_libraries = list(whole_libraries or [])
         self.sources = list(sources or [])
         self.extra_files = list(extra_files or [])
         self.ext_deps = ext_deps or []
@@ -409,7 +409,7 @@ class InternalDependency(Dependency):
                                      'CustomTarget or CustomTargetIndex which is a shared library')
 
         # Mypy doesn't understand that the above is a TypeGuard
-        new_dep.whole_libraries += T.cast('T.List[StaticTargetProto]', new_dep.libraries)
+        new_dep.whole_libraries += T.cast('T.List[StaticTypes]', new_dep.libraries)
         new_dep.libraries = []
         return new_dep
 
