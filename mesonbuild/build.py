@@ -103,7 +103,7 @@ if T.TYPE_CHECKING:
     def _assert_BuildTargetProto(x: BuildTargetTypes) -> BuildTargetProto: return x
 
     class LinkableTargetProto(BuildTargetProto, Protocol):
-        def get(self, lib_type: _LibraryType) -> LinkableTargetProto: ...
+        def get(self, lib_type: _LibraryType, recursive: bool = False) -> LinkableTargetProto: ...
 
     class DFeatures(TypedDict):
 
@@ -2319,7 +2319,7 @@ class Executable(BuildTarget, LinkableTargetProto):
                 name += '_' + self.suffix
             self.debug_filename = name + '.pdb'
 
-    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LinkableTargetProto:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> Self:
         """Base case used by BothLibraries"""
         return self
 
@@ -2471,7 +2471,7 @@ class StaticLibrary(BuildTarget, LinkableTargetProto):
         self.both_lib = copy.copy(shared_library)
         self.both_lib.both_lib = None
 
-    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LinkableTargetProto:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> T.Union[SharedLibrary, StaticLibrary]:
         result = self
         if lib_type == 'shared':
             result = self.both_lib or self
@@ -2835,7 +2835,7 @@ class SharedLibrary(BuildTarget, LinkableTargetProto):
         self.both_lib = copy.copy(static_library)
         self.both_lib.both_lib = None
 
-    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LinkableTargetProto:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> T.Union[SharedLibrary, StaticLibrary]:
         result = self
         if lib_type == 'static':
             result = self.both_lib or self
@@ -2907,12 +2907,16 @@ class BothLibraries(SecondLevelHolder):
     def __repr__(self) -> str:
         return f'<BothLibraries: static={repr(self.static)}; shared={repr(self.shared)}>'
 
-    def get(self, lib_type: _LibraryType) -> T.Union[StaticLibrary, SharedLibrary]:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> T.Union[StaticLibrary, SharedLibrary]:
         if lib_type == 'static':
-            return self.static
-        if lib_type == 'shared':
-            return self.shared
-        return self.get_default_object()
+            result = self.static
+        elif lib_type == 'shared':
+            result = self.shared
+        else:
+            result = self.get_default_object()
+        if recursive:
+            return result.get(lib_type, True)
+        return result
 
     def get_default_object(self) -> T.Union[StaticLibrary, SharedLibrary]:
         if self._preferred_library == 'shared':
@@ -2981,7 +2985,7 @@ class CustomTargetBase(LinkableTargetProto, metaclass=SimpleABC):
     def get_internal_static_libraries_recurse(self, result: OrderedSet[StaticTargetTypes]) -> None:
         pass
 
-    def get(self, lib_type: _LibraryType, recursive: bool = False) -> LinkableTargetProto:
+    def get(self, lib_type: _LibraryType, recursive: bool = False) -> Self:
         """Base case used by BothLibraries"""
         assert isinstance(self, (CustomTarget, CustomTargetIndex))
         return self
