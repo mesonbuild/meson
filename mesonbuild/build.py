@@ -991,8 +991,8 @@ class BuildTarget(Target):
         # we have to call process_compilers() first and we need to process libraries
         # from link_with and link_whole first.
         # See https://github.com/mesonbuild/meson/pull/11957#issuecomment-1629243208.
-        link_targets = self._extract_link_with(kwargs)
-        link_whole_targets = self._extract_link_whole(kwargs)
+        link_targets = self._extract_link_with(kwargs.get('link_with', []))
+        link_whole_targets = self._extract_link_whole(kwargs.get('link_whole', []))
         self.link_targets.clear()
         self.link_whole_targets.clear()
         self.link(link_targets)
@@ -1815,11 +1815,11 @@ class BuildTarget(Target):
         assert isinstance(bl_type, str), 'for mypy'
         return T.cast('_LibraryType', bl_type)
 
-    def _extract_link_with(self, kwargs: BuildTargetKeywordArguments) -> list[LinkableTargetTypes]:
+    def _extract_link_with(self, link_with: list[LinkableTargetTypes]) -> list[LinkableTargetTypes]:
         bl_type = self._default_library_type()
 
         lib_list: list[LinkableTargetTypes] = []
-        for lib in itertools.chain(kwargs.get('link_with', []), self.link_targets):
+        for lib in itertools.chain(link_with, self.link_targets):
             if isinstance(lib, (CustomTarget, CustomTargetIndex)):
                 lib_list.append(lib)
             elif isinstance(lib, Jar):
@@ -1829,9 +1829,9 @@ class BuildTarget(Target):
                 lib_list.append(lib.get(bl_type))
         return lib_list
 
-    def _extract_link_whole(self, kwargs: BuildTargetKeywordArguments) -> list[StaticTargetTypes]:
+    def _extract_link_whole(self, link_whole: list[StaticTargetTypes]) -> list[StaticTargetTypes]:
         lib_list: list[StaticTargetTypes] = []
-        for lib in itertools.chain(kwargs.get('link_whole', []), self.link_whole_targets):
+        for lib in itertools.chain(link_whole, self.link_whole_targets):
             if isinstance(lib, BothLibraries):
                 lib = lib.get('static')
                 if not isinstance(lib, StaticLibrary):
@@ -3334,8 +3334,8 @@ class Jar(BuildTarget):
         self.main_class = kwargs.get('main_class', '')
         self.java_resources: T.Optional[StructuredSources] = kwargs.get('java_resources', None)
 
-    def _extract_link_with(self, kwargs: BuildTargetKeywordArguments) -> list[LinkableTargetTypes]:
-        return kwargs['link_with']
+    def _extract_link_with(self, link_with: list[LinkableTargetTypes]) -> list[LinkableTargetTypes]:
+        return link_with
 
     def get_main_class(self) -> str:
         return self.main_class
