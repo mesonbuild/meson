@@ -4045,6 +4045,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if targetclass is not build.Jar:
             self.check_for_jar_sources(sources, targetclass)
+            self.check_for_jar_link_with(kwargs.get('link_with', []), targetclass)
 
         target: build.BuildTarget
         if targetclass is build.Executable:
@@ -4097,6 +4098,12 @@ class Interpreter(InterpreterBase, HoldableObject):
                 self.check_for_jar_sources(s.as_list(), targetclass)
             elif isinstance(s, (build.GeneratedList, build.CustomTarget, build.CustomTargetIndex)):
                 self.check_for_jar_sources(s.get_outputs(), targetclass)
+
+    def check_for_jar_link_with(self, link_with: T.Sequence[object], targetclass: T.Type[build.BuildTarget]) -> None:
+        for t in link_with:
+            if isinstance(t, build.Jar):
+                raise InvalidArguments(f'Build target of type "{targetclass.typename}" cannot link with jar target "{t.name}". '
+                                       f'Jar targets can only be linked into other jar targets.')
 
     def is_subproject(self) -> bool:
         return self.subproject != ''
