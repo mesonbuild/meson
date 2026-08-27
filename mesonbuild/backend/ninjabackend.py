@@ -314,8 +314,7 @@ class NinjaRule:
                                      element.elems) >= rsp_threshold
 
 class NinjaBuildElement:
-
-    rule: NinjaRule
+    rule: mesonlib.late_property[NinjaRule] = mesonlib.late_property()
 
     def __init__(self, all_outputs: T.Set[str], outfilenames: ListifiedStr, rulename: str, infilenames: ListifiedStr, implicit_outs: T.Optional[T.List[str]] = None):
         self.implicit_outfilenames = implicit_outs or []
