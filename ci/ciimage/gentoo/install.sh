@@ -44,8 +44,6 @@ pkgs_stable=(
   media-libs/libsdl2
   dev-cpp/gtest
   sci-libs/hdf5
-  dev-qt/linguist-tools
-  dev-qt/qtwidgets:5
   llvm-core/llvm
   dev-qt/qtdeclarative:6
   dev-qt/qttools
