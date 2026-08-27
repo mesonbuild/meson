@@ -30,7 +30,7 @@ if T.TYPE_CHECKING:
     from .. import mparser
     from ..interpreter import Interpreter
 
-    ANY_DEP = T.Union[dependencies.Dependency, build.LinkableTargetTypes, str]
+    ANY_DEP = T.Union[dependencies.Dependency, build.LinkableTargetProto, str]
     REQS = T.Union[dependencies.Dependency, build.LibTypes, str]
     LIBS = T.Union[build.LibTypes, str]
 
@@ -98,7 +98,7 @@ class _LibDeps:
     '''One pending step of the target graph walk in DependenciesHelper.'''
 
     source: object
-    link_targets: T.Sequence[build.LinkableTargetTypes]
+    link_targets: T.Sequence[build.LinkableTargetProto]
     link_whole_targets: T.Sequence[build.StaticTargetTypes]
     external_deps: T.List[dependencies.Dependency]
     public: bool
