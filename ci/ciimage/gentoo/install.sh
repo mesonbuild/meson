@@ -193,6 +193,6 @@ echo "export VAPIGEN=/usr/bin/vapigen-${VALA_VER}" >> /ci/env_vars.sh
 # We don't need cache files that are side artifacts of installing packages.
 # We also don't need the gentoo tree -- the official docker image doesn't
 # either, and expects you to use emerge-webrsync once you need it.
-rm -rf /var/cache/binpkgs
+rm -rf /var/cache/binpkgs /var/cache/binhost
 rm -rf /var/cache/distfiles
 rm -rf /var/db/repos/gentoo
