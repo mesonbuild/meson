@@ -2040,6 +2040,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=SRC_VARG,
         kw_types=EXECUTABLE_KWS,
     )
+    @noSecondLevelHolderResolving
     def func_executable(self, node: mparser.BaseNode,
                         args: T.Tuple[str, SourcesVarargsType],
                         kwargs: kwtypes.Executable) -> T.Union[build.Executable, build.SharedLibrary]:
@@ -2051,6 +2052,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=SRC_VARG,
         kw_types=STATIC_LIB_KWS,
     )
+    @noSecondLevelHolderResolving
     def func_static_lib(self, node: mparser.BaseNode,
                         args: T.Tuple[str, SourcesVarargsType],
                         kwargs: kwtypes.StaticLibrary) -> build.StaticLibrary:
@@ -2062,6 +2064,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=SRC_VARG,
         kw_types=SHARED_LIB_KWS,
     )
+    @noSecondLevelHolderResolving
     def func_shared_lib(self, node: mparser.BaseNode,
                         args: T.Tuple[str, SourcesVarargsType],
                         kwargs: kwtypes.SharedLibrary) -> build.SharedLibrary:
@@ -2086,6 +2089,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=SRC_VARG,
         kw_types=SHARED_MOD_KWS
     )
+    @noSecondLevelHolderResolving
     def func_shared_module(self, node: mparser.BaseNode,
                            args: T.Tuple[str, SourcesVarargsType],
                            kwargs: kwtypes.SharedModule) -> build.SharedModule:
@@ -2109,6 +2113,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=VarArgInfo((str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.ExtractedObjects, build.BuildTarget)),
         kw_types=JAR_KWS,
     )
+    @noSecondLevelHolderResolving
     def func_jar(self, node: mparser.BaseNode,
                  args: T.Tuple[str, T.List[str | build.TargetSources]],
                  kwargs: kwtypes.Jar) -> build.Jar:
@@ -2120,6 +2125,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=SRC_VARG,
         kw_types=BUILD_TARGET_KWS,
     )
+    @noSecondLevelHolderResolving
     def func_build_target(self, node: mparser.BaseNode,
                           args: T.Tuple[str, SourcesVarargsType],
                           kwargs: kwtypes.BuildTargetFunc,
