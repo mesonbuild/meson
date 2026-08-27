@@ -103,10 +103,7 @@ class MesonMain(MesonInterpreterObject):
         return es
 
     def _process_script_args(
-            self, name: str, args: T.Sequence[T.Union[
-                str, mesonlib.File, build.BuildTarget, build.CustomTarget,
-                build.CustomTargetIndex, Program,
-            ]]) -> T.List[str]:
+            self, name: str, args: T.Sequence[build.CommandTypes]) -> T.List[str]:
         script_args = []  # T.List[str]
         for a in args:
             if isinstance(a, str):
