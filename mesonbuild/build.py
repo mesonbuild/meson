@@ -1822,6 +1822,9 @@ class BuildTarget(Target):
         for lib in itertools.chain(kwargs.get('link_with', []), self.link_targets):
             if isinstance(lib, (CustomTarget, CustomTargetIndex)):
                 lib_list.append(lib)
+            elif isinstance(lib, Jar):
+                raise MesonBugException(f'Build target of type "{self.typename}" cannot link with jar target "{lib.name}". '
+                                        f'Jar targets can only be linked into other jar targets.')
             else:
                 lib_list.append(lib.get(bl_type))
         return lib_list
