@@ -666,7 +666,13 @@ class JNISystemDependency(SystemDependency):
             if separator and name.strip() == 'java.home':
                 value = value.strip()
                 if value:
-                    return pathlib.Path(value)
+                    home = pathlib.Path(value)
+                    # Pre-JDK9 (JEP 220), java.home points at the JRE directory
+                    # bundled inside the JDK, not the JDK root itself, so we
+                    # must go up one level.
+                    if version_compare(self.version, '<= 1.8.0'):
+                        home = home.parent
+                    return home
         return None
 
     @staticmethod
