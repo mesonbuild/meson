@@ -1892,8 +1892,10 @@ class BuildTarget(Target, BuildTargetProto):
             elif isinstance(lib, Jar):
                 raise MesonBugException(f'Build target of type "{self.typename}" cannot link with jar target "{lib.name}". '
                                         f'Jar targets can only be linked into other jar targets.')
-            else:
+            elif isinstance(lib, BothLibraries):
                 lib_list.append(lib.get(bl_type))
+            else:
+                lib_list.append(lib)
         return lib_list
 
     def _extract_link_whole(self, link_whole: T.Sequence[StaticTypes]) -> list[StaticTargetProto]:
