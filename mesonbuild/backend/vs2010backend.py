@@ -1633,8 +1633,10 @@ class Vs2010Backend(backends.Backend):
         elif isinstance(target, build.CompileTarget):
             self.gen_compile_target_vcxproj(target, ofname, guid)
             return True
+        elif isinstance(target, build.Jar):
+            raise MesonException(f'Visual Studio backend does not support jar targets such as {target.get_basename()}')
         else:
-            raise MesonException(f'Unknown target type for {target.get_basename()}')
+            raise MesonBugException(f'Unknown target type for {target.get_basename()}')
 
         (sources, headers, objects, _languages) = self.split_sources(target.sources)
         if self.is_unity(target):
