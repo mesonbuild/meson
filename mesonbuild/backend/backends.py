@@ -561,9 +561,6 @@ class Backend:
                     add_dependency(nested)
 
         for target in targets.values():
-            if isinstance(target, build.CustomTargetIndex):
-                # Just transfer it to the CustomTarget code.
-                target = target.target
             if isinstance(target, build.CustomTarget):
                 for dep in target.get_target_dependencies():
                     add_dependency(dep)
