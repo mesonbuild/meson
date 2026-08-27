@@ -1625,7 +1625,7 @@ def do_define_meson(regex: T.Pattern[str], line: str, confdata: 'ConfigurationDa
     elif isinstance(v, int):
         return '#define %s %d\n' % (varname, v)
     else:
-        raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
+        raise MesonBugException('#mesondefine argument "%s" is of unknown type.' % varname)
 
 def do_define_cmake(line: str, confdata: 'ConfigurationData', at_only: bool,
                     subproject: T.Optional[SubProject] = None) -> str:
@@ -1825,7 +1825,7 @@ def _dump_c_header(ofile: T.TextIO,
         elif isinstance(v, (int, str)):
             ofile.write(f'{prefix}define {k} {v}\n\n')
         else:
-            raise MesonException('Unknown data type in configuration file entry: ' + k)
+            raise MesonBugException('Unknown data type in configuration file entry: ' + k)
     if output_format == 'c' and macro_name:
         ofile.write('#endif\n')
 
