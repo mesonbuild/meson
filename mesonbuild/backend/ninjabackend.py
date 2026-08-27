@@ -2277,7 +2277,14 @@ class NinjaBackend(backends.Backend):
         if has_rust_shared_deps:
             args += ['-C', 'prefer-dynamic']
         if has_shared_deps or has_rust_shared_deps:
-            args += self.get_build_rpath_args(target, rustc)
+            # rustc's sysroot is only needed to find Rust dylibs (and a
+            # dynamically linked libstd) from rustup installations. A program
+            # that links libstd statically must not carry the toolchain's
+            # library directory in its runpath, and the entry also cannot be
+            # removed at install time, which makes 'meson install' fail when
+            # install_rpath is longer than the build-time rpath.
+            extra_paths = [rustc.get_target_libdir()] if has_rust_shared_deps else None
+            args += self.get_build_rpath_args(target, rustc, extra_paths)
 
         return deps, project_deps, args
 
@@ -3815,7 +3822,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(elem)
         return obj_list
 
-    def get_build_rpath_args(self, target: build.BuildTarget, linker: T.Union[Compiler, StaticLinker]) -> T.List[str]:
+    def get_build_rpath_args(self, target: build.BuildTarget, linker: T.Union[Compiler, StaticLinker],
+                             extra_paths: T.Optional[T.List[str]] = None) -> T.List[str]:
         if has_path_sep(target.name):
             # Target names really should not have slashes in them, but
             # unfortunately we did not check for that and some downstream projects
@@ -3827,7 +3835,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         (rpath_args, target.rpath_dirs_to_remove) = (
             linker.build_rpath_args(self.environment.get_build_dir(),
                                     target_slashname_workaround_dir,
-                                    target))
+                                    target, extra_paths))
         return rpath_args
 
     def generate_link(self, target: build.BuildTarget, outname: str, obj_list: T.List[str],

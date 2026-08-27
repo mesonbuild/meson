@@ -377,9 +377,8 @@ class RustCompiler(Compiler):
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
                          extra_paths: T.Optional[T.List[str]] = None
                          ) -> T.Tuple[T.List[str], T.Set[bytes]]:
-        # add rustc's sysroot to account for rustup installations
         args, to_remove = super().build_rpath_args(
-            build_dir, from_dir, target, [self.get_target_libdir()])
+            build_dir, from_dir, target, extra_paths)
         return rustc_link_args(args), to_remove
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
