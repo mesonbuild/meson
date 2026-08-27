@@ -572,7 +572,7 @@ class Backend:
                 for obj in target.objects:
                     add_dependency(obj)
             else:
-                raise MesonException(f'Unknown target type for target {target}')
+                raise MesonBugException(f'Unknown target type for target {target}')
 
             for generated in target.get_generated_sources():
                 add_dependency(generated)
@@ -1365,7 +1365,7 @@ class Backend:
                 elif isinstance(a, programs.ExternalProgram):
                     cmd_args.extend(a.get_command())
                 else:
-                    raise MesonException('Bad object in test command.')
+                    raise MesonBugException('Bad object in test command.')
 
             # set LD_LIBRARY_PATH for
             # a) dependencies, as relying on rpath is not very safe:
