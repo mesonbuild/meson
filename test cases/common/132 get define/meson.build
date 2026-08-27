@@ -46,7 +46,7 @@ foreach lang : ['c', 'cpp']
     error('Invalid number of items in system_define array, this is a bug in the test!')
   endif
 
-  if cc.find_library('z', required : false).found()
+  if cc.find_library('z', required : false).found() and cc.has_header('zlib.h')
     # When a C file containing #include <foo.h> is pre-processed and foo.h is
     # found in the compiler's default search path, GCC inserts an extra comment
     # between the delimiter and the define which causes a parsing error.
