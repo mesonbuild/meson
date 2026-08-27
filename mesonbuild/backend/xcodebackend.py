@@ -1306,8 +1306,12 @@ class XCodeBackend(backends.Backend):
                 typestr = 'com.apple.product-type.library.static'
             elif isinstance(t, build.SharedLibrary):
                 typestr = 'com.apple.product-type.library.dynamic'
+            elif isinstance(t, build.Jar):
+                raise MesonException(f'XCode backend does not support jar targets such as {tname}')
+            elif isinstance(t, build.CompileTarget):
+                raise MesonException(f'XCode backend does not support compiler.preprocess() such as {tname}')
             else:
-                raise MesonException('Unknown target type for %s' % tname)
+                raise MesonBugException('Unknown target type for %s' % tname)
             ntarget_dict.add_item('productType', f'"{typestr}"')
 
     def generate_pbx_project(self, objects_dict: PbxDict) -> None:
