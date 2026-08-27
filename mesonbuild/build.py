@@ -1506,7 +1506,7 @@ class BuildTarget(Target, BuildTargetProto):
                     raise MesonException(f'Tried to extract unknown source {target.get_basename()}.')
                 obj_gen.append(src)
             else:
-                raise MesonException(f'Object extraction arguments must be strings, Files or targets (got {type(src).__name__}).')
+                raise MesonBugException(f'Object extraction arguments must be strings, Files or targets (got {type(src).__name__}).')
         eobjs = ExtractedObjects(self, obj_src, obj_gen)
         if is_unity:
             eobjs.check_unity_compatible()
