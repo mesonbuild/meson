@@ -276,10 +276,15 @@ class CLikeCompiler(Compiler):
     def gen_import_library_args(self, implibname: str) -> T.List[str]:
         return self.linker.import_library_args(implibname)
 
+    def _sanity_check_mode(self) -> CompileCheckMode:
+        # Cross-compiling is hard. For example, you might need -nostdlib, or to pass --target, etc.
+        if self.is_cross and not self.environment.has_exe_wrapper():
+            return CompileCheckMode.COMPILE
+        return CompileCheckMode.LINK
+
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
-        # Cross-compiling is hard. For example, you might need -nostdlib, or to pass --target, etc.
-        mode = CompileCheckMode.COMPILE if self.is_cross and not self.environment.has_exe_wrapper() else CompileCheckMode.LINK
+        mode = self._sanity_check_mode()
         cargs, b_largs = self._get_basic_compiler_args(mode)
         s_args, s_largs = super()._sanity_check_compile_args(sourcename, binname)
         if mode is CompileCheckMode.COMPILE:

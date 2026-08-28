@@ -110,6 +110,11 @@ class ValaCompiler(Compiler):
     def _sanity_check_source_code(self) -> str:
         return 'public static int main() { return 0; }'
 
+    def _sanity_check_mode(self) -> CompileCheckMode:
+        # the sanity check only transpiles, the generated source is compiled
+        # and linked by _transpiled_sanity_check_compile_args()
+        return CompileCheckMode.COMPILE
+
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
         args, largs = super()._sanity_check_compile_args(sourcename, binname)
