@@ -138,7 +138,7 @@ def get_llvm_tool_names(tool: str) -> T.Iterable[str]:
     # devel version. Please note that the development snapshot in Debian does
     # not have a distinct name. Do not move it to the beginning of the list
     # unless it becomes a stable release.
-    suffixes = [
+    suffixes = (
         '', # base (no suffix)
         '-23.1', '23.1',
         '-23', '23',
@@ -173,7 +173,7 @@ def get_llvm_tool_names(tool: str) -> T.Iterable[str]:
         '-3.5', '35',
         #'-20',    # Debian development snapshot
         '-devel', # FreeBSD development snapshot
-    ]
+    )
     names: T.List[str] = []
     for suffix in suffixes:
         names.append(tool + suffix)
