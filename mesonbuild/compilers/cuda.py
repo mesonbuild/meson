@@ -540,22 +540,18 @@ class CudaCompiler(Compiler):
 
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
+        args, largs = super()._sanity_check_compile_args(sourcename, binname)
+
         # Disable warnings, compile with statically-linked runtime for minimum
         # reliance on the system.
-        flags = ['-w', '-cudart', 'static', sourcename]
+        args += ['-w', '-cudart', 'static']
 
         # Use the -ccbin option, if available, even during sanity checking.
         # Otherwise, on systems where CUDA does not support the default compiler,
         # NVCC becomes unusable.
-        flags += self._get_ccbin_args(None, '')
+        args += self._get_ccbin_args(None, '')
 
-        # If cross-compiling, we can't run the sanity check, only compile it.
-        mode = self._sanity_check_mode()
-        if mode is CompileCheckMode.COMPILE:
-            flags += self.get_compile_only_args()
-        flags += self.get_output_args(binname)
-
-        return self.exelist + flags, []
+        return args, largs
 
     def has_header_symbol(self, hname: str, symbol: str, prefix: str, *,
                           extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
