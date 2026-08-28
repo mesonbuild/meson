@@ -1428,6 +1428,10 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         """
         return compiler._sanity_check_compile_args(sourcename, binname)
 
+    def _sanity_check_mode(self) -> CompileCheckMode:
+        """Whether the sanity check links a binary, or only compiles one."""
+        return CompileCheckMode.LINK
+
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
         """Get arguments to run compiler for sanity check.
@@ -1440,9 +1444,14 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         :return: a tuple of arguments, the first is the executable and compiler
             arguments, the second is linker arguments
         """
+        mode = self._sanity_check_mode()
+
         cargs = list(self.environment.coredata.get_external_args(self.for_machine, self.language))
+        cargs = self.exelist_no_ccache + self.get_always_args() + self.get_output_args(binname) + [sourcename] + cargs
+        if mode is CompileCheckMode.COMPILE:
+            return cargs, []
         largs = list(self.environment.coredata.get_external_link_args(self.for_machine, self.language))
-        return self.exelist_no_ccache + self.get_always_args() + self.get_output_args(binname) + [sourcename] + cargs, largs
+        return cargs, largs
 
     @abc.abstractmethod
     def _sanity_check_source_code(self) -> str:
