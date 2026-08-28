@@ -1459,7 +1459,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         """
         mode = self._sanity_check_mode()
         cargs = self.exelist_no_ccache \
-            + self.get_always_args() \
+            + self.get_compiler_args_for_mode(mode) \
             + self.get_compiler_check_args(CompileCheckMode.COMPILE) \
             + self.get_output_args(binname) \
             + [sourcename] \
