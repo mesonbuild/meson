@@ -9,7 +9,7 @@ import typing as T
 
 from .. import mlog, options
 from ..mesonlib import first, MesonException, version_compare
-from .compilers import Compiler, clike_debug_args, PrefixArgumentLinkerOptionStyle
+from .compilers import Compiler, CompileCheckMode, clike_debug_args, PrefixArgumentLinkerOptionStyle
 
 if T.TYPE_CHECKING:
     from .. import build
@@ -175,21 +175,16 @@ class SwiftCompiler(Compiler):
 
         return parameter_list
 
+    def _sanity_check_mode(self) -> CompileCheckMode:
+        if self.is_cross and not self.environment.has_exe_wrapper():
+            return CompileCheckMode.COMPILE
+        return CompileCheckMode.LINK
+
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
-        args = self.exelist.copy()
-        largs: T.List[str] = []
-
-        # TODO: I can't test this, but it doesn't seem right
-        if self.is_cross:
-            args.extend(self.get_compile_only_args())
-        else:
-            largs.extend(self.get_external_link_args())
-        args.extend(self.get_output_args(binname))
-        args.append(sourcename)
-
-        largs.extend(self.get_std_exe_link_args())
-
+        args, largs = super()._sanity_check_compile_args(sourcename, binname)
+        if self._sanity_check_mode() is CompileCheckMode.LINK:
+            largs.extend(self.get_std_exe_link_args())
         return args, largs
 
     def _sanity_check_source_code(self) -> str:
