@@ -10,7 +10,7 @@ import typing as T
 from .. import options
 from .. import mlog
 from ..mesonlib import version_compare, EnvironmentException
-from .compilers import Compiler
+from .compilers import CompileCheckMode, Compiler
 
 if T.TYPE_CHECKING:
     from ..options import MutableKeyedOptionDictType
@@ -88,6 +88,11 @@ class CythonCompiler(Compiler):
         largs.extend(compiler.get_std_shared_lib_link_args())
         largs.extend(compiler.get_allow_undefined_link_args())
         return args, largs
+
+    def _sanity_check_mode(self) -> CompileCheckMode:
+        # the sanity check only transpiles, the generated source is compiled
+        # and linked by _transpiled_sanity_check_compile_args()
+        return CompileCheckMode.COMPILE
 
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
