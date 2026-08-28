@@ -171,7 +171,6 @@ def get_llvm_tool_names(tool: str) -> T.Iterable[str]:
         '-3.7', '37',
         '-3.6', '36',
         '-3.5', '35',
-        #'-20',    # Debian development snapshot
         '-devel', # FreeBSD development snapshot
     )
     names: T.List[str] = []
