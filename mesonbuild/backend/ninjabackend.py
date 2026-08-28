@@ -360,6 +360,9 @@ class NinjaBuildElement:
         if name == 'DEPFILE':
             self.elems[name + '_UNQUOTED'] = elems
 
+    def remove_item(self, name: str) -> None:
+        del self.elems[name]
+
     @mesonlib.lazy_property
     def _should_use_rspfile(self) -> bool:
         # 'phony' is a rule built-in to ninja
@@ -3390,7 +3393,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                     result += c
                 return result
             element.add_item('CUDA_ESCAPED_TARGET', quote_make_target(rel_obj))
+        element.add_item('ARGS', commands)
+
+        # NinjaRule.should_use_rspfile counts element.elems too, which will
+        # exceed the RSP threshold only after added
         if self.ninja.should_use_rspfile(element) and compiler.rsp_file_syntax() == RSPFileSyntax.NASM:
+            element.remove_item('ARGS')
             exe = compiler.get_exelist()
             # Add to commands the args created by generate_compile_rule_for().
             # commands remain separate from exelist because they must stay
@@ -3409,8 +3417,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             cmd_type = f' (wrapped by meson {reason})' if reason else ''
             element.add_item('COMMAND', meson_exe_cmd)
             element.add_item('description', f'Compiling {compiler.get_display_language()} object {rel_obj}{cmd_type}')
-        else:
-            element.add_item('ARGS', commands)
 
         self.add_dependency_scanner_entries_to_element(target, compiler, element, src)
         self.add_build(element)
