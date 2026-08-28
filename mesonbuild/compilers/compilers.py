@@ -1433,6 +1433,9 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
 
     def _sanity_check_mode(self) -> CompileCheckMode:
         """Whether the sanity check links a binary, or only compiles one."""
+        # Cross-compiling is hard. For example, you might need -nostdlib, or to pass --target, etc.
+        if self.is_cross and not self.environment.has_exe_wrapper():
+            return CompileCheckMode.COMPILE
         return CompileCheckMode.LINK
 
     def get_external_compile_args(self) -> T.List[str]:
