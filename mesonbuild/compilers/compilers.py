@@ -1466,7 +1466,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
             + self.get_external_compile_args()
         if mode is CompileCheckMode.COMPILE:
             return cargs, []
-        largs = self.get_external_link_args()
+        largs = self.get_linker_always_args() + self.get_external_link_args()
         return cargs, largs
 
     @abc.abstractmethod
