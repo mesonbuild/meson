@@ -25,7 +25,6 @@ from pathlib import Path
 from ... import arglist
 from ... import mesonlib
 from ... import mlog
-from ...options import OptionKey
 from ...linkers.linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
 from ...mesonlib import LibType
 from .. import compilers
@@ -356,10 +355,7 @@ class CLikeCompiler(Compiler):
                 pass
 
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS and CPPFLAGS from the env
-        sys_args = T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
-            OptionKey(f'{self.language}_args', machine=self.for_machine)))
-        if isinstance(sys_args, str):
-            sys_args = [sys_args]
+        sys_args = self.get_external_compile_args()
         # Apparently it is a thing to inject linker flags both
         # via CFLAGS _and_ LDFLAGS, even though the former are
         # also used during linking. These flags can break
@@ -375,8 +371,7 @@ class CLikeCompiler(Compiler):
                 cargs += self.use_linker_args(ld_value[0], self.version)
 
             # Add LDFLAGS from the env
-            sys_ld_args = T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
-                OptionKey(f'{self.language}_link_args', machine=self.for_machine)))
+            sys_ld_args = self.get_external_link_args()
             # CFLAGS and CXXFLAGS go to both linking and compiling, but we want them
             # to only appear on the command line once. Remove dupes.
             largs += [x for x in sys_ld_args if x not in cleaned_sys_args]
@@ -1255,8 +1250,7 @@ class CLikeCompiler(Compiler):
         commands = self.get_exelist(ccache=False) + ['-v', '-E', '-']
         commands += self.get_always_args()
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
-        commands += T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
-            OptionKey(f'{self.language}_args', machine=self.for_machine)))
+        commands += self.get_external_compile_args()
         mlog.debug('Finding framework path by running: ', ' '.join(commands), '\n')
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
