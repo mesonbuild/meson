@@ -28,7 +28,7 @@ from .mixins.gnu import GnuCompiler, GnuCPPStds, gnu_common_warning_args, gnu_cp
 from .mixins.intel import IntelGnuLikeCompiler, IntelLLVMLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler, ClangCPPStds
 from .mixins.elbrus import ElbrusCompiler
-from .mixins.pgi import PGICompiler
+from .mixins.pgi import PGICompiler, PGIDependencyMixin
 from .mixins.emscripten import EmscriptenMixin
 from .mixins.metrowerks import MetrowerksCompiler
 from .mixins.metrowerks import mwccarm_instruction_set_args, mwcceppc_instruction_set_args
@@ -551,7 +551,7 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
         return ['-fmodules', '-fmodules-ts']
 
 
-class PGICPPCompiler(PGICompiler, CPPCompiler):
+class PGICPPCompiler(PGIDependencyMixin, PGICompiler, CPPCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment, linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
@@ -560,7 +560,7 @@ class PGICPPCompiler(PGICompiler, CPPCompiler):
         PGICompiler.__init__(self)
 
 
-class NvidiaHPC_CPPCompiler(PGICompiler, CPPCompiler):
+class NvidiaHPC_CPPCompiler(PGIDependencyMixin, PGICompiler, CPPCompiler):
 
     id = 'nvidia_hpc'
 

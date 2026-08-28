@@ -2771,9 +2771,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # See also: https://github.com/ninja-build/ninja/pull/2275
             restat = True
         rule = self.compiler_to_rule_name(compiler)
-        if langname == 'cuda':
-            # for cuda, we manually escape target name ($out) as $CUDA_ESCAPED_TARGET because nvcc doesn't support `-MQ` flag
-            depargs = NinjaCommandArg.list(compiler.get_dependency_gen_args('$CUDA_ESCAPED_TARGET', '$DEPFILE'), Quoting.none)
+        if compiler.needs_escaped_depfile_target():
+            # -MT does not escape the target for Make, so we escape $out
+            # ourselves as $ESCAPED_DEPFILE_TARGET (see generate_single_compile)
+            depargs = NinjaCommandArg.list(compiler.get_dependency_gen_args('$ESCAPED_DEPFILE_TARGET', '$DEPFILE'), Quoting.none)
         else:
             depargs = NinjaCommandArg.list(compiler.get_dependency_gen_args('$out', '$DEPFILE'), Quoting.none)
         command = compiler.get_exelist()
@@ -3368,8 +3369,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 element.add_dep(i)
         if dep_file:
             element.add_item('DEPFILE', dep_file)
-        if compiler.get_language() == 'cuda':
-            # for cuda, we manually escape target name ($out) as $CUDA_ESCAPED_TARGET because nvcc doesn't support `-MQ` flag
+        if compiler.needs_escaped_depfile_target():
             def quote_make_target(targetName: str) -> str:
                 # this escape implementation is taken from llvm
                 result = ''
@@ -3389,7 +3389,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                         result += '\\'
                     result += c
                 return result
-            element.add_item('CUDA_ESCAPED_TARGET', quote_make_target(rel_obj))
+            element.add_item('ESCAPED_DEPFILE_TARGET', quote_make_target(rel_obj))
         if self.ninja.should_use_rspfile(element) and compiler.rsp_file_syntax() == RSPFileSyntax.NASM:
             exe = compiler.get_exelist()
             # Add to commands the args created by generate_compile_rule_for().

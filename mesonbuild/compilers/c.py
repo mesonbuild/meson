@@ -25,7 +25,7 @@ from .mixins.gnu import gnu_common_warning_args, gnu_c_warning_args
 from .mixins.intel import IntelGnuLikeCompiler, IntelLLVMLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler, ClangCStds
 from .mixins.elbrus import ElbrusCompiler
-from .mixins.pgi import PGICompiler
+from .mixins.pgi import PGICompiler, PGIDependencyMixin
 from .mixins.emscripten import EmscriptenMixin
 from .mixins.metrowerks import MetrowerksCompiler
 from .mixins.metrowerks import mwccarm_instruction_set_args, mwcceppc_instruction_set_args
@@ -281,7 +281,7 @@ class GnuCCompiler(GnuCStds, GnuCompiler, CCompiler):
         return ['-fpch-preprocess', '-include', os.path.basename(header)]
 
 
-class PGICCompiler(PGICompiler, CCompiler):
+class PGICCompiler(PGIDependencyMixin, PGICompiler, CCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment, linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
@@ -290,7 +290,7 @@ class PGICCompiler(PGICompiler, CCompiler):
         PGICompiler.__init__(self)
 
 
-class NvidiaHPC_CCompiler(PGICompiler, CCompiler):
+class NvidiaHPC_CCompiler(PGIDependencyMixin, PGICompiler, CCompiler):
 
     id = 'nvidia_hpc'
 

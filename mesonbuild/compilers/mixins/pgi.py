@@ -22,6 +22,24 @@ else:
     Compiler = object
 
 
+class PGIDependencyMixin(Compiler):
+
+    """Dependency file generation for the NVHPC/PGI C and C++ compilers.
+
+    Deliberately not mixed into the Fortran compilers: nvfortran accepts
+    -MD/-MT/-MF and exits 0, but writes no depfile. NVHPC's own help describes
+    -M as "Print dependencies to stdout in C++".
+    """
+
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        # -MT, not -MQ: nvc's -MQ ignores its argument and writes the literal
+        # string "mttarget" as the target, in both the -MQ x and -MQ=x forms.
+        return ['-MD', '-MT', outtarget, '-MF', outfile]
+
+    def needs_escaped_depfile_target(self) -> bool:
+        return True
+
+
 class PGICompiler(Compiler):
 
     id = 'pgi'

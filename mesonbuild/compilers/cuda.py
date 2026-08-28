@@ -711,6 +711,9 @@ class CudaCompiler(Compiler):
     def get_output_args(self, target: str) -> T.List[str]:
         return ['-o', target]
 
+    def needs_escaped_depfile_target(self) -> bool:
+        return True
+
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         if version_compare(self.version, '>= 10.2'):
             # According to nvcc Documentation, `-MD` option is added after 10.2

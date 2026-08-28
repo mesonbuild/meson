@@ -1503,6 +1503,11 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return []
 
+    def needs_escaped_depfile_target(self) -> bool:
+        # True for compilers that support -MT but not -MQ, since -MT does not
+        # escape the target for Make and the backend must do it instead.
+        return False
+
     def get_std_exe_link_args(self) -> T.List[str]:
         # TODO: is this a linker property?
         return []
