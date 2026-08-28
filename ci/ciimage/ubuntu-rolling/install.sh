@@ -17,7 +17,7 @@ pkgs=(
   llvm lcov
   dub ldc
   mingw-w64 mingw-w64-tools libz-mingw-w64-dev
-  libclang-dev
+  libclang-dev libclang-rt-dev
   libgcrypt20-dev
   libgpgme-dev
   libhdf5-dev
