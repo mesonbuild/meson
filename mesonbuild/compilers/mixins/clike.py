@@ -368,6 +368,8 @@ class CLikeCompiler(Compiler):
         cargs += cleaned_sys_args
 
         if mode is CompileCheckMode.LINK:
+            largs += self.get_linker_always_args()
+
             ld_value = self.environment.lookup_binary_entry(self.for_machine, self.language + '_ld')
             if ld_value is not None:
                 cargs += self.use_linker_args(ld_value[0], self.version)
@@ -1133,7 +1135,7 @@ class CLikeCompiler(Compiler):
         if ((not extra_dirs and libtype is LibType.PREFER_SHARED) or
                 libname in self.internal_libs):
             cargs = ['-l' + libname]
-            largs = self.get_linker_always_args() + self.get_allow_undefined_link_args()
+            largs = self.get_allow_undefined_link_args()
             extra_args = cargs + self.linker_to_compiler_args(largs)
 
             if self.links(code, extra_args=extra_args, disable_cache=True)[0]:
@@ -1155,7 +1157,7 @@ class CLikeCompiler(Compiler):
         except (mesonlib.MesonException, KeyError): # TODO evaluate if catching KeyError is wanted here
             elf_class = 0
         # Search in the specified dirs, and then in the system libraries
-        largs = self.get_linker_always_args() + self.get_allow_undefined_link_args()
+        largs = self.get_allow_undefined_link_args()
         lcargs = self.linker_to_compiler_args(largs)
         for d in itertools.chain(extra_dirs, [] if ignore_system_dirs else self.get_library_dirs(elf_class)):
             for p in patterns:
