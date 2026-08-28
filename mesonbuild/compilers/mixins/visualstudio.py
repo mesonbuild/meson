@@ -171,7 +171,8 @@ class VisualStudioLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
     def get_output_args(self, outputname: str) -> T.List[str]:
         if self.mode == 'PREPROCESSOR':
             return ['/Fi' + outputname]
-        if outputname.endswith('.exe'):
+        # hack: this list is not exhaustive
+        if outputname.endswith(('.exe', '.dll')):
             return ['/Fe' + outputname]
         return ['/Fo' + outputname]
 
