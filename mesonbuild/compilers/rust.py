@@ -163,12 +163,10 @@ class RustCompiler(Compiler):
     def needs_static_linker(self) -> bool:
         return False
 
-    def _sanity_check_compile_args(self, sourcename: str, binname: str
-                                   ) -> T.Tuple[T.List[str], T.List[str]]:
-        cmdlist, largs = super()._sanity_check_compile_args(sourcename, binname)
-        if self.info.kernel == 'none' and 'ld.' in self.get_linker_id():
-            largs.extend(rustc_link_args(['-nostartfiles']))
-        return cmdlist, largs
+    def _sanity_check_mode(self) -> CompileCheckMode:
+        if self.is_cross and not self.environment.has_exe_wrapper():
+            return CompileCheckMode.COMPILE
+        return CompileCheckMode.LINK
 
     def _sanity_check_source_code(self) -> str:
         if self.info.kernel != 'none':
