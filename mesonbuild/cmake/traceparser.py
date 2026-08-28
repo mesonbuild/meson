@@ -437,7 +437,7 @@ class CMakeTraceParser:
 
         for i in args:
             if i in magic_keys:
-                if i == 'OUTPUT':
+                if i in {'OUTPUT', 'BYPRODUCTS'}:
                     fn = handle_output
                 elif i == 'DEPENDS':
                     fn = handle_depends
