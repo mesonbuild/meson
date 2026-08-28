@@ -1116,6 +1116,9 @@ class CLikeCompiler(Compiler):
     def _find_library_real(self, libname: str, extra_dirs: T.List[str], code: str, libtype: LibType,
                            lib_prefix_warning: bool, ignore_system_dirs: bool,
                            skip_link_check: bool = False) -> T.Optional[T.List[str]]:
+        largs = self.get_allow_undefined_link_args()
+        lcargs = self.linker_to_compiler_args(largs)
+
         # First try if we can just add the library as -l.
         # Gcc + co seem to prefer builtin lib dirs to -L dirs.
         # Only try to find std libs if no extra dirs specified.
@@ -1124,10 +1127,7 @@ class CLikeCompiler(Compiler):
         if ((not extra_dirs and libtype is LibType.PREFER_SHARED) or
                 libname in self.internal_libs):
             cargs = ['-l' + libname]
-            largs = self.get_allow_undefined_link_args()
-            extra_args = cargs + self.linker_to_compiler_args(largs)
-
-            if self.links(code, extra_args=extra_args, disable_cache=True)[0]:
+            if self.links(code, extra_args=cargs + lcargs, disable_cache=True)[0]:
                 return cargs
             # Don't do a manual search for internal libs
             if libname in self.internal_libs:
@@ -1146,8 +1146,6 @@ class CLikeCompiler(Compiler):
         except (mesonlib.MesonException, KeyError): # TODO evaluate if catching KeyError is wanted here
             elf_class = 0
         # Search in the specified dirs, and then in the system libraries
-        largs = self.get_allow_undefined_link_args()
-        lcargs = self.linker_to_compiler_args(largs)
         for d in itertools.chain(extra_dirs, [] if ignore_system_dirs else self.get_library_dirs(elf_class)):
             for p in patterns:
                 trials = self._get_trials_from_pattern(p, d, libname)
