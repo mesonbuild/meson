@@ -163,11 +163,6 @@ class RustCompiler(Compiler):
     def needs_static_linker(self) -> bool:
         return False
 
-    def _sanity_check_mode(self) -> CompileCheckMode:
-        if self.is_cross and not self.environment.has_exe_wrapper():
-            return CompileCheckMode.COMPILE
-        return CompileCheckMode.LINK
-
     def _sanity_check_source_code(self) -> str:
         if self.info.kernel != 'none':
             return textwrap.dedent(

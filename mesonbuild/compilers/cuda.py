@@ -528,16 +528,6 @@ class CudaCompiler(Compiler):
             }
             '''
 
-    def _sanity_check_mode(self) -> CompileCheckMode:
-        # Linking cross built apps is painful. You can't really
-        # tell if you should use -nostdlib or not and for example
-        # on OSX the compiler binary is the same but you need
-        # a ton of compiler flags to differentiate between
-        # arm and x86_64. So just compile.
-        if self.is_cross and not self.environment.has_exe_wrapper():
-            return CompileCheckMode.COMPILE
-        return CompileCheckMode.LINK
-
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
         args, largs = super()._sanity_check_compile_args(sourcename, binname)
