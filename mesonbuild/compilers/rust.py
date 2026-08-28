@@ -165,12 +165,9 @@ class RustCompiler(Compiler):
 
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
-        cmdlist = self.exelist.copy()
-        largs: T.List[str] = []
+        cmdlist, largs = super()._sanity_check_compile_args(sourcename, binname)
         if self.info.kernel == 'none' and 'ld.' in self.get_linker_id():
             largs.extend(rustc_link_args(['-nostartfiles']))
-        cmdlist.extend(self.get_output_args(binname))
-        cmdlist.append(sourcename)
         return cmdlist, largs
 
     def _sanity_check_source_code(self) -> str:
