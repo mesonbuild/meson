@@ -1432,6 +1432,10 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         """
         return compiler._sanity_check_compile_args(sourcename, binname)
 
+    def _sanity_check_mode(self) -> CompileCheckMode:
+        """Whether the sanity check links a binary, or only compiles one."""
+        return CompileCheckMode.LINK
+
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
         """Get arguments to run compiler for sanity check.
@@ -1444,17 +1448,22 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         :return: a tuple of arguments, the first is the executable and compiler
             arguments, the second is linker arguments
         """
+        mode = self._sanity_check_mode()
+
         optstore = self.environment.coredata.optstore
         cargs = list(T.cast('T.List[str]', optstore.get_value_for(
             OptionKey(f'{self.language}_args', machine=self.for_machine))))
-        largs = list(T.cast('T.List[str]', optstore.get_value_for(
-            OptionKey(f'{self.language}_link_args', machine=self.for_machine))))
-        return self.exelist_no_ccache \
+        cargs = self.exelist_no_ccache \
             + self.get_always_args() \
             + self.get_compiler_check_args(CompileCheckMode.COMPILE) \
             + self.get_output_args(binname) \
             + [sourcename] \
-            + cargs, largs
+            + cargs
+        if mode is CompileCheckMode.COMPILE:
+            return cargs, []
+        largs = list(T.cast('T.List[str]', optstore.get_value_for(
+            OptionKey(f'{self.language}_link_args', machine=self.for_machine))))
+        return cargs, largs
 
     @abc.abstractmethod
     def _sanity_check_source_code(self) -> str:
