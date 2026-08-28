@@ -28,7 +28,7 @@ import mesonbuild.modules.gnome
 import mesonbuild.scripts.env2mfile
 from mesonbuild import coredata
 from mesonbuild.compilers.c import ClangCCompiler, GnuCCompiler
-from mesonbuild.compilers.compilers import Compiler, ManyInOneLinkerOptionStyle
+from mesonbuild.compilers.compilers import Compiler, CompileCheckMode, ManyInOneLinkerOptionStyle
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
@@ -361,6 +361,22 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(ClangClCompiler.unix_args_to_native(['-isystem', 'foo']), ['/clang:-isystemfoo'])
         self.assertEqual(ClangClCompiler.unix_args_to_native(['-idirafter', 'foo']), ['/clang:-idirafterfoo'])
         self.assertEqual(ClangClCompiler.unix_args_to_native(['-iquote', 'foo']), ['/clang:-iquotefoo'])
+
+    def _fake_gnu_cc(self, cflags='-DCFLAG', ldflags='-Wl,-O1',
+                     linker_cls=linkers.GnuBFDDynamicLinker):
+        with mock.patch.dict(os.environ, {'CFLAGS': cflags, 'LDFLAGS': ldflags}):
+            env = get_fake_env()
+        env.add_lang_args('c', GnuCCompiler, MachineChoice.HOST)
+        linker = linker_cls([], env, MachineChoice.HOST,
+                            ManyInOneLinkerOptionStyle('-Wl,', ','), [])
+        return GnuCCompiler([], [], 'fake', MachineChoice.HOST, env, linker=linker)
+
+    def test_compiler_check_args_os2(self):
+        # the linker's always args (-Zomf on OS/2) must reach link mode checks
+        cc = self._fake_gnu_cc(linker_cls=linkers.OS2OmfDynamicLinker)
+        args = cc.build_wrapper_args(None, None, CompileCheckMode.LINK)
+        self.assertEqual(list(args).count('-Zomf'), 1, args)
+        self.assertNotIn('-Zomf', cc.build_wrapper_args(None, None, CompileCheckMode.COMPILE))
 
     def test_compiler_args_class_gnuld(self):
         ## Test --start/end-group
