@@ -44,9 +44,6 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def get_always_args(self) -> T.List[str]:
         return ['/nologo']
 
-    def get_linker_always_args(self) -> T.List[str]:
-        return ['/nologo']
-
     def get_output_args(self, fname: str) -> T.List[str]:
         return ['-out:' + fname]
 
