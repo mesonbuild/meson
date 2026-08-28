@@ -132,7 +132,7 @@ def detect_ninja_command_and_version(version: str = '1.8.2', log: bool = False) 
             return (prog.command, found)
     return None
 
-def get_llvm_tool_names(tool: str) -> T.List[str]:
+def get_llvm_tool_names(tool: str) -> T.Iterable[str]:
     # Ordered list of possible suffixes of LLVM executables to try. Start with
     # base, then try newest back to oldest (3.5 is arbitrary), and finally the
     # devel version. Please note that the development snapshot in Debian does
