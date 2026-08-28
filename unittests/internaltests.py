@@ -371,6 +371,14 @@ class InternalTests(unittest.TestCase):
                             ManyInOneLinkerOptionStyle('-Wl,', ','), [])
         return GnuCCompiler([], [], 'fake', MachineChoice.HOST, env, linker=linker)
 
+    def test_sanity_check_args_gnu(self):
+        cc = self._fake_gnu_cc()
+        args, largs = cc._sanity_check_compile_args('t.c', 't.exe')
+        # external args must reach the probe, but only once
+        self.assertEqual(args.count('-DCFLAG'), 1, args)
+        self.assertEqual((args + largs).count('-Wl,-O1'), 1, (args, largs))
+        self.assertIn('-Wl,-O1', largs)
+
     def test_compiler_check_args_os2(self):
         # the linker's always args (-Zomf on OS/2) must reach link mode checks
         cc = self._fake_gnu_cc(linker_cls=linkers.OS2OmfDynamicLinker)

@@ -284,9 +284,13 @@ class CLikeCompiler(Compiler):
 
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
+        # _get_basic_compiler_args() already adds c_args/c_link_args (or
+        # similar).  Calling super()._sanity_check_compile_args() would
+        # duplicate them and, for MSVC-like compilers, place the link
+        # arguments before the /link that linker_to_compiler_args() inserts.
         mode = self._sanity_check_mode()
-        cargs, b_largs = self._get_basic_compiler_args(mode)
-        s_args, s_largs = super()._sanity_check_compile_args(sourcename, binname)
+        b_cargs, b_largs = self._get_basic_compiler_args(mode)
+        cargs = self.exelist_no_ccache + self.get_output_args(binname) + [sourcename] + b_cargs
         if mode is CompileCheckMode.COMPILE:
             # We aren't linking in this invocation (and can't run the result
             # without an exe wrapper anyway), so don't pass any link-only
@@ -294,10 +298,10 @@ class CLikeCompiler(Compiler):
             # flags (e.g. MSVC-style compilers always prepend /link) even
             # when there is nothing to link, which would otherwise end up
             # unused/misplaced in a compile-only invocation.
-            return s_args + cargs, []
+            return cargs, []
 
         largs = self.linker_to_compiler_args(b_largs)
-        return s_args + cargs, s_largs + largs
+        return cargs, largs
 
     def check_header(self, hname: str, prefix: str, *,
                      extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
