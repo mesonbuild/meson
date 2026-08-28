@@ -505,6 +505,29 @@ Thread model: posix'''), '21.9.0')
                             ManyInOneLinkerOptionStyle('-Wl,', ','), [])
         return GnuCCompiler([], [], 'fake', MachineChoice.HOST, env, linker=linker)
 
+    def assertAfterLink(self, args: T.List[str], flag: str) -> None:
+        '''Assert that a linker-only flag is passed exactly once, after /link.'''
+        self.assertEqual(args.count(flag), 1, f'{flag} not passed exactly once in {args}')
+        self.assertIn('/link', args)
+        self.assertLess(args.index('/link'), args.index(flag), f'{flag} passed before /link in {args}')
+
+    def test_sanity_check_args_msvc(self):
+        cc = self._fake_msvc_cc()
+        args, largs = cc._sanity_check_compile_args('t.c', 't.exe')
+        # external link args are passed once, and after /link
+        self.assertAfterLink(largs, '/SUBSYSTEM:CONSOLE')
+        self.assertNotIn('/SUBSYSTEM:CONSOLE', args)
+        # so are the linker's own always args
+        self.assertAfterLink(largs, '/release')
+        self.assertNotIn('/release', args)
+        # external compile args are passed to the compiler, not to the linker
+        self.assertNotIn('-DCFLAG', largs)
+        self.assertEqual(args.count('-DCFLAG'), 1, args)
+        # linking, so name the executable with /Fe even if it is not a .exe
+        self.assertIn('/Fet.exe', args)
+        dll_args, _ = cc._sanity_check_compile_args('t.c', 't.dll')
+        self.assertIn('/Fet.dll', dll_args)
+
     def test_sanity_check_args_gnu(self):
         cc = self._fake_gnu_cc()
         args, largs = cc._sanity_check_compile_args('t.c', 't.exe')
@@ -512,6 +535,16 @@ Thread model: posix'''), '21.9.0')
         self.assertEqual(args.count('-DCFLAG'), 1, args)
         self.assertEqual((args + largs).count('-Wl,-O1'), 1, (args, largs))
         self.assertIn('-Wl,-O1', largs)
+
+    def test_compiler_check_args_msvc(self):
+        cc = self._fake_msvc_cc()
+        args = cc.build_wrapper_args(None, None, CompileCheckMode.LINK).to_native()
+        # linker-only flags belong after /link, not on the compiler command line
+        self.assertAfterLink(args, '/release')
+        self.assertAfterLink(args, '/SUBSYSTEM:CONSOLE')
+        args = cc.build_wrapper_args(None, None, CompileCheckMode.COMPILE).to_native()
+        self.assertNotIn('/release', args)
+        self.assertNotIn('/link', args)
 
     def test_compiler_check_args_os2(self):
         # the linker's always args (-Zomf on OS/2) must reach link mode checks
@@ -525,7 +558,7 @@ Thread model: posix'''), '21.9.0')
 
         def fake_links(code, *, extra_args=None, **kwargs):
             args = cc.build_wrapper_args(extra_args, None, CompileCheckMode.LINK).to_native()
-            self.assertIn('/release', args)
+            self.assertAfterLink(args, '/release')
             return (True, False)
 
         with mock.patch.object(cc, 'links', fake_links):

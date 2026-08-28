@@ -909,7 +909,6 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
             args += self.get_preprocess_only_args()
         else:
             assert mode is CompileCheckMode.LINK
-            args += self.get_linker_always_args()
         return args
 
     def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> CompilerArgs:
@@ -1611,6 +1610,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
             args += T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
                 OptionKey(f'{self.language}_args', machine=self.for_machine)))
         elif mode is CompileCheckMode.LINK:
+            args += self.get_linker_always_args()
             # Add LDFLAGS from the env
             args += T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
                 OptionKey(f'{self.language}_link_args', machine=self.for_machine)))
