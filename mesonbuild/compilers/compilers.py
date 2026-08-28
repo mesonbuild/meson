@@ -1435,6 +1435,16 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         """Whether the sanity check links a binary, or only compiles one."""
         return CompileCheckMode.LINK
 
+    def get_external_compile_args(self) -> T.List[str]:
+        optstore = self.environment.coredata.optstore
+        return list(T.cast('T.List[str]', optstore.get_value_for(
+            OptionKey(f'{self.language}_args', machine=self.for_machine))))
+
+    def get_external_link_args(self) -> T.List[str]:
+        optstore = self.environment.coredata.optstore
+        return list(T.cast('T.List[str]', optstore.get_value_for(
+            OptionKey(f'{self.language}_link_args', machine=self.for_machine))))
+
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
         """Get arguments to run compiler for sanity check.
@@ -1448,20 +1458,15 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
             arguments, the second is linker arguments
         """
         mode = self._sanity_check_mode()
-
-        optstore = self.environment.coredata.optstore
-        cargs = list(T.cast('T.List[str]', optstore.get_value_for(
-            OptionKey(f'{self.language}_args', machine=self.for_machine))))
         cargs = self.exelist_no_ccache \
             + self.get_always_args() \
             + self.get_compiler_check_args(CompileCheckMode.COMPILE) \
             + self.get_output_args(binname) \
             + [sourcename] \
-            + cargs
+            + self.get_external_compile_args()
         if mode is CompileCheckMode.COMPILE:
             return cargs, []
-        largs = list(T.cast('T.List[str]', optstore.get_value_for(
-            OptionKey(f'{self.language}_link_args', machine=self.for_machine))))
+        largs = self.get_external_link_args()
         return cargs, largs
 
     @abc.abstractmethod
@@ -1607,13 +1612,11 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
 
         if mode is CompileCheckMode.COMPILE:
             # Add DFLAGS from the env
-            args += T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
-                OptionKey(f'{self.language}_args', machine=self.for_machine)))
+            args += self.get_external_compile_args()
         elif mode is CompileCheckMode.LINK:
             args += self.get_linker_always_args()
             # Add LDFLAGS from the env
-            args += T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
-                OptionKey(f'{self.language}_link_args', machine=self.for_machine)))
+            args += self.get_external_link_args()
         # extra_args must override all other arguments, so we add them last
         args += extra_args
         return args

@@ -184,8 +184,7 @@ class SwiftCompiler(Compiler):
         if self.is_cross:
             args.extend(self.get_compile_only_args())
         else:
-            largs.extend(T.cast('T.List[str]', self.environment.coredata.optstore.get_value_for(
-                options.OptionKey(f'{self.language}_link_args', machine=self.for_machine))))
+            largs.extend(self.get_external_link_args())
         args.extend(self.get_output_args(binname))
         args.append(sourcename)
 
