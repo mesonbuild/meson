@@ -76,6 +76,7 @@ gnome.generate_gir(
   namespace : 'Meson',
   symbol_prefix : 'meson',
   identifier_prefix : 'Meson',
+  include_directories: meson.current_source_dir() / 'dep1' / 'dep4',
   includes : ['GObject-2.0', 'MesonDep1-1.0'],
   dependencies : girs_deps,
   doc_format: 'gtk-doc-markdown',
@@ -84,7 +85,7 @@ gnome.generate_gir(
 )
 
 test('gobject introspection/c', girexe)
-gir_paths = ':'.join([girlib.outdir(), dep1lib.outdir(), dep2lib.outdir(), dep3lib.outdir()])
+gir_paths = ':'.join([girlib.outdir(), dep1lib.outdir(), dep2lib.outdir(), dep3lib.outdir(), dep1lib.outdir() / 'dep4'])
 envdata = environment()
 envdata.append('GI_TYPELIB_PATH', gir_paths, separator : ':')
 envdata.append('LD_LIBRARY_PATH', gir_paths)
