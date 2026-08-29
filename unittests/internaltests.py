@@ -528,6 +528,18 @@ Thread model: posix'''), '21.9.0')
         dll_args, _ = cc._sanity_check_compile_args('t.c', 't.dll')
         self.assertIn('/Fet.dll', dll_args)
 
+    def test_sanity_check_args_msvc_compile_only(self):
+        cc = self._fake_msvc_cc()
+        cc.is_cross = True
+        with mock.patch.object(cc.environment, 'has_exe_wrapper', lambda: False):
+            args, largs = cc._sanity_check_compile_args('t.c', 't.exe')
+        # not linking: no linker arguments at all, and the output is an object
+        self.assertEqual(largs, [])
+        self.assertNotIn('/link', args)
+        self.assertNotIn('/SUBSYSTEM:CONSOLE', args)
+        self.assertIn('/Fot.exe', args)
+        self.assertIn(cc.get_compile_only_args()[0], args)
+
     def test_sanity_check_args_gnu(self):
         cc = self._fake_gnu_cc()
         args, largs = cc._sanity_check_compile_args('t.c', 't.exe')

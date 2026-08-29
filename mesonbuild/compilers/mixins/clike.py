@@ -286,7 +286,7 @@ class CLikeCompiler(Compiler):
         b_cargs, b_largs = self._get_basic_compiler_args(mode)
         cargs = self.exelist_no_ccache + \
             self.get_compiler_check_args(CompileCheckMode.COMPILE) + \
-            self.get_output_args(binname) + \
+            self.get_output_args_for_mode(binname, mode) + \
             [sourcename] + \
             b_cargs
         if mode is CompileCheckMode.COMPILE:

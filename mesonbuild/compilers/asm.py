@@ -3,9 +3,9 @@ from __future__ import annotations
 import os
 import typing as T
 
-from ..mesonlib import EnvironmentException, get_meson_command
+from ..mesonlib import EnvironmentException, MesonException, get_meson_command
 from ..options import OptionKey
-from .compilers import Compiler
+from .compilers import Compiler, CompileCheckMode
 from ..linkers import RSPFileSyntax
 from ..linkers.linkers import VisualStudioLikeLinkerMixin
 from .mixins.metrowerks import MetrowerksCompiler, mwasmarm_instruction_set_args, mwasmeppc_instruction_set_args
@@ -213,6 +213,11 @@ class MasmCompiler(ASMCompiler):
 
     def get_output_args(self, outputname: str) -> T.List[str]:
         return ['/Fo', outputname]
+
+    def get_output_args_for_mode(self, outputname: str, mode: CompileCheckMode) -> T.List[str]:
+        if mode != CompileCheckMode.COMPILE:
+            raise MesonException("Linker support for MASM is not implemented")
+        return self.get_output_args(outputname)
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return []
