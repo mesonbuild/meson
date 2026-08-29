@@ -11,7 +11,8 @@ from .. import mesonlib
 from ..arglist import CompilerArgs
 from ..linkers import RSPFileSyntax
 from ..mesonlib import (
-    EnvironmentException, MesonBugException, version_compare, is_windows
+    EnvironmentException, MesonBugException, version_compare, is_windows,
+    is_lib_filename
 )
 from ..options import OptionKey
 
@@ -285,16 +286,15 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
                     dcargs.append(arg)
                     continue
 
-                # Make sure static library files are passed properly to the linker.
-                if arg.endswith('.a') or arg.endswith('.lib'):
-                    if len(suffix) > 0 and not suffix.startswith('-'):
-                        dcargs.append('-L=' + suffix)
-                        continue
+                # Make sure library files are passed properly to the linker.
+                if is_lib_filename(suffix):
+                    dcargs.append('-L=' + suffix)
+                    continue
 
                 dcargs.append('-L=' + arg)
                 continue
-            elif not arg.startswith('-') and arg.endswith(('.a', '.lib')):
-                # ensure static libraries are passed through to the linker
+            elif not arg.startswith('-') and is_lib_filename(arg):
+                # ensure libraries are passed through to the linker
                 dcargs.append('-L=' + arg)
                 continue
             else:
