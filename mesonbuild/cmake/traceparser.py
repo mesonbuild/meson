@@ -655,7 +655,7 @@ class CMakeTraceParser:
         if ignore is None:
             ignore = ['BEFORE']
 
-        args = list(tline.args)
+        args = self._flatten_args(list(tline.args))
 
         if len(args) < 1:
             return self._gen_exception(func, 'requires at least one argument', tline)
@@ -677,10 +677,10 @@ class CMakeTraceParser:
                 continue
 
             if mode in {'INTERFACE', 'LINK_INTERFACE_LIBRARIES', 'PUBLIC', 'LINK_PUBLIC'}:
-                interface += i.split(';')
+                interface += [i]
 
             if mode in {'PUBLIC', 'PRIVATE', 'LINK_PRIVATE'}:
-                private += i.split(';')
+                private += [i]
 
         if paths:
             interface = self._guess_files(interface)
