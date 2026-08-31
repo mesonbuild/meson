@@ -71,3 +71,4 @@ endif
 assert(mytarget_disabled, 'Disabled custom target should not be found.')
 
 subdir('depfile')
+subdir('outputdepfile')

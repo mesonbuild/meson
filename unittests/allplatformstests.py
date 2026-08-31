@@ -5652,6 +5652,48 @@ class AllPlatformTests(BasePlatformTests):
             self.assertIn('Generating file.txt with a custom command', out)
             self.assertIn('Generating subdir/file.txt with a custom command', out)
 
+    def test_custom_target_depfile_output_substitution(self):
+        '''depfile: '@OUTPUT@.d' in a subdirectory must not double the path.
+
+        https://github.com/mesonbuild/meson/issues/14140
+        '''
+        testdir = os.path.join(self.common_test_dir, '49 custom target')
+        self.init(testdir)
+        self.build()
+        output = os.path.join(self.builddir, 'outputdepfile', 'out.dat')
+        self.assertPathExists(output)
+        self.assertPathDoesNotExist(os.path.join(self.builddir, 'outputdepfile', 'outputdepfile', 'out.dat.d'))
+        with open(output + '.path', encoding='utf-8') as f:
+            depfile_arg = f.read().strip().replace('\\', '/')
+        # Ninja passes a builddir-relative path; Visual Studio uses an
+        # absolute path. Either is fine so long as the subdirectory is
+        # not doubled (issue #14140).
+        self.assertTrue(
+            depfile_arg == 'outputdepfile/out.dat.d'
+            or depfile_arg.endswith('/outputdepfile/out.dat.d'),
+            depfile_arg)
+        self.assertNotIn('outputdepfile/outputdepfile/', depfile_arg)
+
+        placed = os.path.join(self.builddir, 'outputdepfile', 'placed', 'out.dat')
+        self.assertPathExists(placed)
+        self.assertPathDoesNotExist(os.path.join(
+            self.builddir, 'outputdepfile', 'placed', 'outputdepfile', 'placed', 'out.dat.d'))
+        with open(placed + '.path', encoding='utf-8') as f:
+            placed_arg = f.read().strip().replace('\\', '/')
+        self.assertTrue(
+            placed_arg == 'outputdepfile/placed/out.dat.d'
+            or placed_arg.endswith('/outputdepfile/placed/out.dat.d'),
+            placed_arg)
+        self.assertNotIn('placed/outputdepfile/placed/', placed_arg)
+        if self.backend is Backend.ninja:
+            with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as f:
+                contents = f.read().replace('\\', '/')
+            self.assertIn('outputdepfile/out.dat.d', contents)
+            self.assertNotIn('outputdepfile/outputdepfile/out.dat.d', contents)
+            self.assertIn('outputdepfile/placed/out.dat.d', contents)
+            self.assertNotIn('outputdepfile/placed/outputdepfile/placed/out.dat.d', contents)
+            self.assertNotIn('@OUTPUT@.d', contents)
+
     def test_symlinked_subproject(self):
         testdir = os.path.join(self.unit_test_dir, '107 subproject symlink')
         subproject_dir = os.path.join(testdir, 'subprojects')

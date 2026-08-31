@@ -1723,7 +1723,7 @@ class Backend:
                         msg = f'Custom target {target.name!r} has @DEPFILE@ but no depfile ' \
                               'keyword argument.'
                         raise MesonException(msg)
-                    dfilename = os.path.join(outdir, target.depfile)
+                    dfilename = os.path.join(outdir, target.get_dep_outname(inputs, target.get_outputs()))
                     i = i.replace('@DEPFILE@', dfilename)
                 if '@PRIVATE_DIR@' in i:
                     assert not isinstance(target, build.RunTarget)
