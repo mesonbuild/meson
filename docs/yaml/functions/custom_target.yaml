@@ -50,7 +50,10 @@ description: |
     this may be an absolute or a relative to current workdir path.
 
   *(since 0.47.0)* The `depfile` keyword argument also accepts the
-  `@BASENAME@` and `@PLAINNAME@` substitutions.
+  `@BASENAME@` and `@PLAINNAME@` substitutions. `@OUTPUT@` and
+  `@OUTPUT0@`, `@OUTPUT1@`, `...` are substituted with the output
+  filename (without the target subdirectory), so `depfile: '@OUTPUT@.d'`
+  is written next to the output file.
 
   The returned object also has methods that are documented in [[@custom_tgt]].
 
@@ -186,7 +189,9 @@ kwargs:
       in any one of these files triggers a recompilation.
 
       *(since 0.47.0)* the `@BASENAME@` and `@PLAINNAME@` substitutions
-      are also accepted.
+      are also accepted. `@OUTPUT@` / `@OUTPUT0@` `...` are substituted
+      with the output filename so the depfile is not placed in a doubled
+      subdirectory path.
 
   input:
     type: array[str | file | program]
