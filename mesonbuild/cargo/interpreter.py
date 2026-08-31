@@ -178,18 +178,6 @@ class PackageState:
 
         return args
 
-    def get_env_args(self, rustc: RustCompiler, environment: Environment, subdir: str) -> T.List[str]:
-        """Get environment variable arguments for rustc."""
-        enable_env_set_args = rustc.enable_env_set_args()
-        if enable_env_set_args is None:
-            return []
-
-        env_dict = self.get_env_dict(environment, subdir)
-        env_args = list(enable_env_set_args)
-        for k, v in env_dict.items():
-            env_args.extend(['--env-set', f'{k}={v}'])
-        return env_args
-
     def get_rustc_args(self, environment: Environment, subdir: str, machine: MachineChoice) -> T.List[str]:
         """Get rustc arguments for this package."""
         rustc = T.cast('RustCompiler', environment.coredata.compilers[machine]['rust'])
@@ -198,7 +186,6 @@ class PackageState:
         args: T.List[str] = []
         args.extend(self.get_lint_args(rustc))
         args.extend(cfg.get_features_args())
-        args.extend(self.get_env_args(rustc, environment, subdir))
         return args
 
     def supported_abis(self) -> T.Set[RUST_ABI]:

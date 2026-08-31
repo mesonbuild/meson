@@ -567,15 +567,6 @@ class RustCompiler(Compiler):
                                    full_version=self.full_version,
                                    linker=self.linker, rustc=self)
 
-    def enable_env_set_args(self) -> T.Optional[T.List[str]]:
-        '''Extra arguments to enable --env-set support in rustc.
-        Returns None if not supported.
-        '''
-        if version_compare(self.version, '>= 1.76') and self.allow_nightly:
-            return ['-Z', 'unstable-options']
-        return None
-
-
 class ClippyRustCompiler(RustCompiler):
 
     """Clippy is a linter that wraps Rustc.
