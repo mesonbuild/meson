@@ -143,6 +143,7 @@ add_custom_target(args_test_cmd
   COMMAND args_test ${ARGS_TEST}
 )
 add_custom_target(macro_name_cmd COMMAND macro_name)
+add_custom_target(backslash_cmd COMMAND ${CMAKE_COMMAND} -E echo "\\1")
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   message(STATUS "Running the -include test case on macro_name")
