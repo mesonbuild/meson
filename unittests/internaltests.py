@@ -33,7 +33,7 @@ from mesonbuild.compilers import Compiler
 from mesonbuild.compilers.c import ClangCCompiler, ClangClCCompiler, GnuCCompiler, VisualStudioCCompiler
 from mesonbuild.compilers.compilers import CompileCheckMode, ManyInOneLinkerOptionStyle
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler
-from mesonbuild.compilers.d import DmdDCompiler
+from mesonbuild.compilers.d import DmdDCompiler, LLVMDCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
 from mesonbuild.compilers.mixins.visualstudio import MSVCCompiler, ClangClCompiler
 from mesonbuild.linkers import linkers
@@ -488,6 +488,23 @@ Thread model: posix'''), '21.9.0')
         self.assertEqual(ClangClCompiler.unix_args_to_native(['-isystem', 'foo']), ['/clang:-isystemfoo'])
         self.assertEqual(ClangClCompiler.unix_args_to_native(['-idirafter', 'foo']), ['/clang:-idirafterfoo'])
         self.assertEqual(ClangClCompiler.unix_args_to_native(['-iquote', 'foo']), ['/clang:-iquotefoo'])
+
+    def test_d_unix_args_to_native(self):
+        env = get_fake_env()
+        linker = linkers.GnuBFDDynamicLinker([], env, MachineChoice.HOST, ManyInOneLinkerOptionStyle('-Wl,', ','), [])
+        dmd = DmdDCompiler([], 'fake', MachineChoice.HOST, env, 'arch', linker=linker)
+        ldc = LLVMDCompiler([], 'fake', MachineChoice.HOST, env, 'arch', linker=linker)
+
+        for comp in (dmd, ldc):
+            with self.subTest(compiler=comp.id):
+                self.assertEqual(
+                    comp.unix_args_to_native(['/usr/lib/libfoo.so', 'libbar.so', 'libbaz.a', 'libqux.lib']),
+                    ['-L=/usr/lib/libfoo.so', '-L=libbar.so', '-L=libbaz.a', '-L=libqux.lib']
+                )
+                self.assertEqual(
+                    comp.unix_args_to_native(['-lfoo', '-L/usr/local/lib', '-pthread', '-Wl,-rpath=/foo']),
+                    ['-L=-lfoo', '-L=-L/usr/local/lib', '-L=-rpath=/foo']
+                )
 
     def _fake_msvc_cc(self, cflags='-DCFLAG', ldflags='/SUBSYSTEM:CONSOLE'):
         with mock.patch.dict(os.environ, {'CFLAGS': cflags, 'LDFLAGS': ldflags}):
