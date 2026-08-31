@@ -176,6 +176,7 @@ __all__ = [
     'get_meson_command',
     'set_meson_command',
     'split_args',
+    'split_args_protecting',
     'stringlistify',
     'underscorify',
     'substitute_values',
@@ -1455,6 +1456,55 @@ else:
 
 def join_args(args: T.Iterable[str]) -> str:
     return ' '.join([quote_arg(x) for x in args])
+
+
+def split_args_protecting(cmd: str, protect: T.Iterable[str]) -> T.List[str]:
+    """Split *cmd* like :func:`split_args`, keeping *protect* substrings intact.
+
+    Tools such as llvm-config on Windows print unquoted paths that contain
+    spaces (``C:\\Program Files\\LLVM\\lib``). :func:`split_args` then treats
+    those spaces as argument separators. Each protected path is replaced with
+    a space-free token, the string is split, and the original paths are
+    restored so each remains a single argument.
+    """
+    paths = sorted({p for p in protect if p}, key=len, reverse=True)
+    if not paths or not cmd:
+        return split_args(cmd) if cmd else []
+
+    variants: T.List[str] = []
+    seen: T.Set[str] = set()
+    for path in paths:
+        for variant in (path, path.replace('\\', '/'), path.replace('/', '\\')):
+            if variant and variant not in seen:
+                seen.add(variant)
+                variants.append(variant)
+    variants.sort(key=len, reverse=True)
+
+    token_map: T.List[T.Tuple[str, str]] = []
+    rewritten = cmd
+    for i, variant in enumerate(variants):
+        if variant not in rewritten:
+            continue
+        placeholder = f'__MESON_PROTECT_{i}__'
+        rewritten = rewritten.replace(variant, placeholder)
+        token_map.append((placeholder, variant))
+    if not token_map:
+        return split_args(cmd)
+
+    # POSIX shlex.split treats backslash as escape. A protected directory
+    # followed by \file (Windows llvm-config) would lose that separator.
+    bs_token = '__MESON_BS__'
+    rewritten = rewritten.replace('\\', bs_token)
+    return [
+        _restore_protected_args(part, token_map).replace(bs_token, '\\')
+        for part in split_args(rewritten)
+    ]
+
+
+def _restore_protected_args(part: str, token_map: T.List[T.Tuple[str, str]]) -> str:
+    for placeholder, variant in token_map:
+        part = part.replace(placeholder, variant)
+    return part
 
 
 def do_replacement(regex: T.Pattern[str], line: str,
