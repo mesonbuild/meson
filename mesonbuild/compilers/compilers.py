@@ -909,7 +909,6 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
             args += self.get_preprocess_only_args()
         else:
             assert mode is CompileCheckMode.LINK
-            args += self.get_linker_always_args()
         return args
 
     def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> CompilerArgs:
@@ -1428,6 +1427,16 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         """
         return compiler._sanity_check_compile_args(sourcename, binname)
 
+    def _sanity_check_mode(self) -> CompileCheckMode:
+        """Whether the sanity check links a binary, or only compiles one."""
+        return CompileCheckMode.LINK
+
+    def get_external_compile_args(self) -> T.List[str]:
+        return list(self.environment.coredata.get_external_args(self.for_machine, self.language))
+
+    def get_external_link_args(self) -> T.List[str]:
+        return list(self.environment.coredata.get_external_link_args(self.for_machine, self.language))
+
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
         """Get arguments to run compiler for sanity check.
@@ -1440,9 +1449,13 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         :return: a tuple of arguments, the first is the executable and compiler
             arguments, the second is linker arguments
         """
-        cargs = list(self.environment.coredata.get_external_args(self.for_machine, self.language))
-        largs = list(self.environment.coredata.get_external_link_args(self.for_machine, self.language))
-        return self.exelist_no_ccache + self.get_always_args() + self.get_output_args(binname) + [sourcename] + cargs, largs
+        mode = self._sanity_check_mode()
+        cargs = self.exelist_no_ccache + self.get_always_args() + self.get_output_args(binname) + [sourcename] + \
+            self.get_external_compile_args()
+        if mode is CompileCheckMode.COMPILE:
+            return cargs, []
+        largs = self.get_external_link_args()
+        return cargs, largs
 
     @abc.abstractmethod
     def _sanity_check_source_code(self) -> str:
@@ -1587,10 +1600,11 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
 
         if mode is CompileCheckMode.COMPILE:
             # Add DFLAGS from the env
-            args += self.environment.coredata.get_external_args(self.for_machine, self.language)
+            args += self.get_external_compile_args()
         elif mode is CompileCheckMode.LINK:
+            args += self.get_linker_always_args()
             # Add LDFLAGS from the env
-            args += self.environment.coredata.get_external_link_args(self.for_machine, self.language)
+            args += self.get_external_link_args()
         # extra_args must override all other arguments, so we add them last
         args += extra_args
         return args

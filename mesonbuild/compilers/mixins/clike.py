@@ -276,14 +276,32 @@ class CLikeCompiler(Compiler):
     def gen_import_library_args(self, implibname: str) -> T.List[str]:
         return self.linker.import_library_args(implibname)
 
+    def _sanity_check_mode(self) -> CompileCheckMode:
+        # Cross-compiling is hard. For example, you might need -nostdlib, or to pass --target, etc.
+        if self.is_cross and not self.environment.has_exe_wrapper():
+            return CompileCheckMode.COMPILE
+        return CompileCheckMode.LINK
+
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
-        # Cross-compiling is hard. For example, you might need -nostdlib, or to pass --target, etc.
-        mode = CompileCheckMode.COMPILE if self.is_cross and not self.environment.has_exe_wrapper() else CompileCheckMode.LINK
-        cargs, b_largs = self._get_basic_compiler_args(mode)
+        # _get_basic_compiler_args() already adds c_args/c_link_args (or
+        # similar).  Calling super()._sanity_check_compile_args() would
+        # duplicate them and, for MSVC-like compilers, place the link
+        # arguments before the /link that linker_to_compiler_args() inserts.
+        mode = self._sanity_check_mode()
+        b_cargs, b_largs = self._get_basic_compiler_args(mode)
+        cargs = self.exelist_no_ccache + self.get_output_args(binname) + [sourcename] + b_cargs
+        if mode is CompileCheckMode.COMPILE:
+            # We aren't linking in this invocation (and can't run the result
+            # without an exe wrapper anyway), so don't pass any link-only
+            # arguments to a compile-only command. Some compilers add fixed
+            # flags (e.g. MSVC-style compilers always prepend /link) even
+            # when there is nothing to link, which would otherwise end up
+            # unused/misplaced in a compile-only invocation.
+            return cargs, []
+
         largs = self.linker_to_compiler_args(b_largs)
-        s_args, s_largs = super()._sanity_check_compile_args(sourcename, binname)
-        return s_args + cargs, s_largs + largs
+        return cargs, largs
 
     def check_header(self, hname: str, prefix: str, *,
                      extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
@@ -339,9 +357,7 @@ class CLikeCompiler(Compiler):
                 pass
 
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS and CPPFLAGS from the env
-        sys_args = self.environment.coredata.get_external_args(self.for_machine, self.language)
-        if isinstance(sys_args, str):
-            sys_args = [sys_args]
+        sys_args = self.get_external_compile_args()
         # Apparently it is a thing to inject linker flags both
         # via CFLAGS _and_ LDFLAGS, even though the former are
         # also used during linking. These flags can break
@@ -350,12 +366,14 @@ class CLikeCompiler(Compiler):
         cargs += cleaned_sys_args
 
         if mode is CompileCheckMode.LINK:
+            largs += self.get_linker_always_args()
+
             ld_value = self.environment.lookup_binary_entry(self.for_machine, self.language + '_ld')
             if ld_value is not None:
                 cargs += self.use_linker_args(ld_value[0], self.version)
 
             # Add LDFLAGS from the env
-            sys_ld_args = self.environment.coredata.get_external_link_args(self.for_machine, self.language)
+            sys_ld_args = self.get_external_link_args()
             # CFLAGS and CXXFLAGS go to both linking and compiling, but we want them
             # to only appear on the command line once. Remove dupes.
             largs += [x for x in sys_ld_args if x not in cleaned_sys_args]
@@ -1115,7 +1133,7 @@ class CLikeCompiler(Compiler):
         if ((not extra_dirs and libtype is LibType.PREFER_SHARED) or
                 libname in self.internal_libs):
             cargs = ['-l' + libname]
-            largs = self.get_linker_always_args() + self.get_allow_undefined_link_args()
+            largs = self.get_allow_undefined_link_args()
             extra_args = cargs + self.linker_to_compiler_args(largs)
 
             if self.links(code, extra_args=extra_args, disable_cache=True)[0]:
@@ -1137,7 +1155,7 @@ class CLikeCompiler(Compiler):
         except (mesonlib.MesonException, KeyError): # TODO evaluate if catching KeyError is wanted here
             elf_class = 0
         # Search in the specified dirs, and then in the system libraries
-        largs = self.get_linker_always_args() + self.get_allow_undefined_link_args()
+        largs = self.get_allow_undefined_link_args()
         lcargs = self.linker_to_compiler_args(largs)
         for d in itertools.chain(extra_dirs, [] if ignore_system_dirs else self.get_library_dirs(elf_class)):
             for p in patterns:
@@ -1202,7 +1220,7 @@ class CLikeCompiler(Compiler):
         commands = self.get_exelist(ccache=False) + ['-v', '-E', '-']
         commands += self.get_always_args()
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
-        commands += self.environment.coredata.get_external_args(self.for_machine, self.language)
+        commands += self.get_external_compile_args()
         mlog.debug('Finding framework path by running: ', ' '.join(commands), '\n')
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
