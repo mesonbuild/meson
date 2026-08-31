@@ -34,10 +34,10 @@ macro(add_custom_command)
   _add_custom_command(${ARGV})
 endmacro()
 
-macro(add_custom_target)
+function(add_custom_target)
   meson_ps_inspect_vars()
   _add_custom_target(${ARGV})
-endmacro()
+endfunction()
 
 macro(set_property)
   meson_ps_inspect_vars()
