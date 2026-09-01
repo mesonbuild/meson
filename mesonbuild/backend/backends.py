@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from collections import deque
-from dataclasses import dataclass, InitVar
+from dataclasses import dataclass, field, InitVar
 from functools import lru_cache
 from itertools import chain
 from pathlib import Path
@@ -129,15 +129,15 @@ class InstallData:
     mesonintrospect: T.List[str]
     version: str
 
-    def __post_init__(self) -> None:
-        self.targets: T.List[TargetInstallData] = []
-        self.headers: T.List[InstallDataBase] = []
-        self.man: T.List[InstallDataBase] = []
-        self.emptydir: T.List[InstallEmptyDir] = []
-        self.data: T.List[InstallDataBase] = []
-        self.symlinks: T.List[InstallSymlinkData] = []
-        self.install_scripts: T.List[InstallScript] = []
-        self.install_subdirs: T.List[SubdirInstallData] = []
+    # Additional fields that are not part of the public initializer
+    targets: list[TargetInstallData] = field(default_factory=list, init=False)
+    headers: list[InstallDataBase] = field(default_factory=list, init=False)
+    man: list[InstallDataBase] = field(default_factory=list, init=False)
+    emptydir: list[InstallEmptyDir] = field(default_factory=list, init=False)
+    data: list[InstallDataBase] = field(default_factory=list, init=False)
+    symlinks: list[InstallSymlinkData] = field(default_factory=list, init=False)
+    install_scripts: list[InstallScript] = field(default_factory=list, init=False)
+    install_subdirs: list[SubdirInstallData] = field(default_factory=list, init=False)
 
 @dataclass(eq=False)
 class TargetInstallData:
@@ -154,6 +154,7 @@ class TargetInstallData:
     optional: bool = False
     tag: T.Optional[str] = None
     can_strip: bool = False
+    out_name: str = field(init=False)
 
     def __post_init__(self, outdir_name: T.Optional[str]) -> None:
         if outdir_name is None:
