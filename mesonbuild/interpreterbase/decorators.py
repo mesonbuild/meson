@@ -425,7 +425,7 @@ class KwargInfo(T.Generic[_T]):
 
     """A description of a keyword argument to a meson function
 
-    This is used to describe a value to the :func:typed_kwargs function.
+    This is used to describe a value to the :func:TypedArgs function.
 
     :param name: the name of the parameter
     :param types: A type or tuple of types that are allowed, or a :class:ContainerType
@@ -435,7 +435,7 @@ class KwargInfo(T.Generic[_T]):
         a container, but internally we only want to work with containers
     :param default: A default value to use if this isn't set. defaults to None,
         this may be safely set to a mutable type, as long as that type does not
-        itself contain mutable types, typed_kwargs will copy the default
+        itself contain mutable types, TypedArgs will copy the default
     :param since: Meson version in which this argument has been added. defaults to None
     :param since_message: An extra message to pass to FeatureNew when since is triggered
     :param deprecated: Meson version in which this argument has been deprecated. defaults to None
@@ -667,9 +667,9 @@ class TypedArgs:
                     warning = f'of type "{d}"'
                     if extra:
                         warning = f'{warning} {extra}'
-            elif isinstance(n, type):
+            elif isinstance(n, (type, tuple)):
                 if isinstance(value, n):
-                    warning = f'of type {n.__name__}'
+                    warning = f'of type "{type(value).__name__}"'
             elif isinstance(value, list):
                 if n in value:
                     warning = f'value "{n}" in list'
@@ -747,7 +747,7 @@ class TypedArgs:
                     if info.validator is not None:
                         msg = info.validator(value)
                         if msg is not None:
-                            raise InvalidArguments(f'{self.name} keyword argument "{info.name}" {msg}')
+                            raise InvalidArguments(f'"{self.name}" keyword argument "{info.name}" {msg}')
 
                     if info.feature_validator is not None:
                         for each in info.feature_validator(value):
@@ -760,7 +760,7 @@ class TypedArgs:
                         self._emit_feature_change(value, info.since_values, FeatureNew, subproject, node, info)
 
                 elif info.required:
-                    raise InvalidArguments(f'{self.name} is missing required keyword argument "{info.name}"')
+                    raise InvalidArguments(f'"{self.name}" is missing required keyword argument "{info.name}"')
                 else:
                     # set the value to the default, this ensuring all kwargs are present
                     # This both simplifies the typing checking and the usage

@@ -14,7 +14,7 @@ from .. import mlog
 from ..build import BuildTarget, CustomTarget, CustomTargetIndex, InvalidArguments
 from ..interpreter.type_checking import INSTALL_KW, INSTALL_MODE_KW, INSTALL_TAG_KW, \
     BUILD_SUBDIR_KW, NoneType
-from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_args, noKwargs
+from ..interpreterbase import FeatureNew, KwargInfo, TypedArgs, typed_pos_args, noKwargs
 from ..mesonlib import File, MesonException, has_path_sep, is_windows, path_is_in_root, relpath
 
 if T.TYPE_CHECKING:
@@ -239,7 +239,7 @@ class FSModule(ExtensionModule):
 
     @FeatureNew('fs.read', '0.57.0')
     @typed_pos_args('fs.read', (str, File))
-    @typed_kwargs('fs.read', KwargInfo('encoding', str, default='utf-8'))
+    @TypedArgs('fs.read', kw_types=[KwargInfo('encoding', str, default='utf-8')])
     def read(self, state: ModuleState, args: T.Tuple[FileOrString], kwargs: ReadKwArgs) -> str:
         """Read a file from the source tree and return its value as a decoded
         string.
@@ -283,13 +283,15 @@ class FSModule(ExtensionModule):
 
     @FeatureNew('fs.copyfile', '0.64.0')
     @typed_pos_args('fs.copyfile', (File, str), optargs=[str])
-    @typed_kwargs(
+    @TypedArgs(
         'fs.copyfile',
-        INSTALL_KW,
-        INSTALL_MODE_KW,
-        INSTALL_TAG_KW,
-        KwargInfo('install_dir', (str, NoneType)),
-        BUILD_SUBDIR_KW.evolve(since='1.12.0'),
+        kw_types=[
+            INSTALL_KW,
+            INSTALL_MODE_KW,
+            INSTALL_TAG_KW,
+            KwargInfo('install_dir', (str, NoneType)),
+            BUILD_SUBDIR_KW.evolve(since='1.12.0'),
+        ],
     )
     def copyfile(self, state: ModuleState, args: T.Tuple[FileOrString, T.Optional[str]],
                  kwargs: CopyKw) -> ModuleReturnValue:

@@ -13,7 +13,7 @@ from ..build import (
     GeneratedList, SharedModule, StructuredSources
 )
 from ..interpreter.type_checking import SHARED_MOD_KWS
-from ..interpreterbase import typed_kwargs, typed_pos_args, noPosargs, noKwargs
+from ..interpreterbase import TypedArgs, typed_pos_args, noPosargs, noKwargs
 from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
@@ -41,7 +41,7 @@ class Python3Module(ExtensionModule):
         })
 
     @typed_pos_args('python3.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
-    @typed_kwargs('python3.extension_module', *_MOD_KWARGS)
+    @TypedArgs('python3.extension_module', kw_types=_MOD_KWARGS)
     def extension_module(self, state: ModuleState, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: SharedModuleKW) -> SharedModule:
         host_system = state.environment.machines.host.system
         if host_system == 'darwin':
