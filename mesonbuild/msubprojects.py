@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, InitVar
+from dataclasses import dataclass, field, InitVar
 import sys, os, subprocess
 import argparse
 import asyncio
@@ -119,14 +119,17 @@ class Runner:
     repo_dir: str
     options: 'Arguments'
 
+    wrap_resolver: Resolver = field(init=False)
+    run_method: T.Callable[[], bool] = field(init=False)
+    log_queue: list[tuple[mlog.TV_LoggableList, T.Any]] = field(default_factory=list, init=False)
+
     def __post_init__(self, r: Resolver) -> None:
         # FIXME: Do a copy because Resolver.resolve() is stateful method that
         # cannot be called from multiple threads.
         self.wrap_resolver = copy.copy(r)
         self.wrap_resolver.dirname = os.path.join(r.subdir_root, self.wrap.directory)
         self.wrap_resolver.wrap = self.wrap
-        self.run_method: T.Callable[[], bool] = self.options.subprojects_func.__get__(self)
-        self.log_queue: T.List[T.Tuple[mlog.TV_LoggableList, T.Any]] = []
+        self.run_method = self.options.subprojects_func.__get__(self)
 
     def log(self, *args: mlog.TV_Loggable, **kwargs: T.Any) -> None:
         self.log_queue.append((list(args), kwargs))
