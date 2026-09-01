@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from .. import mlog
 import contextlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import urllib.request
 import urllib.error
 import urllib.parse
@@ -374,19 +374,27 @@ class Resolver:
     allow_insecure: bool = False
     silent: bool = False
 
+    subdir_root: str = field(init=False)
+    project_subdir: str = field(init=False)
+    cachedir: str = field(init=False)
+    wrap: PackageDefinition = field(init=False)
+    directory: str = field(init=False)
+    dirname: str = field(init=False)
+
+    wraps: dict[str, PackageDefinition] = field(default_factory=dict, init=False)
+    netrc: netrc | None = field(default=None, init=False)
+    provided_deps: dict[str, PackageDefinition] = field(default_factory=dict, init=False)
+    provided_programs: dict[str, PackageDefinition] = field(default_factory=dict, init=False)
+    wrapdb: dict[str, T.Any] = field(default_factory=dict, init=False)
+    wrapdb_provided_deps: dict[str, str] = field(default_factory=dict, init=False)
+    wrapdb_provided_programs: dict[str, SubProject] = field(default_factory=dict, init=False)
+    loaded_dirs: set[str] = field(default_factory=set, init=False)
+    cargolocks: dict[str, CargoLock | None] = field(default_factory=dict, init=False)
+
     def __post_init__(self) -> None:
         self.subdir_root = os.path.join(self.source_dir, self.subdir)
         self.project_subdir = os.path.relpath(os.path.dirname(self.subdir_root), self.source_dir)
         self.cachedir = os.environ.get('MESON_PACKAGE_CACHE_DIR') or os.path.join(self.subdir_root, 'packagecache')
-        self.wraps: T.Dict[str, PackageDefinition] = {}
-        self.netrc: T.Optional[netrc] = None
-        self.provided_deps: T.Dict[str, PackageDefinition] = {}
-        self.provided_programs: T.Dict[str, PackageDefinition] = {}
-        self.wrapdb: T.Dict[str, T.Any] = {}
-        self.wrapdb_provided_deps: T.Dict[str, str] = {}
-        self.wrapdb_provided_programs: T.Dict[str, SubProject] = {}
-        self.loaded_dirs: T.Set[str] = set()
-        self.cargolocks: T.Dict[str, T.Optional[CargoLock]] = {}
         self.load_wraps()
         self.load_netrc()
         self.load_wrapdb()
