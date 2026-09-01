@@ -19,7 +19,7 @@ import typing as T
 from pathlib import Path
 
 from . import NewExtensionModule, ModuleInfo
-from ..interpreterbase import KwargInfo, typed_kwargs, typed_pos_args
+from ..interpreterbase import KwargInfo, TypedArgs, typed_pos_args
 from ..interpreter.type_checking import NoneType
 from .. import mesonlib
 
@@ -45,12 +45,16 @@ class SnippetsModule(NewExtensionModule):
             'symbol_visibility_header': self.symbol_visibility_header_method,
         })
 
-    @typed_kwargs('snippets.symbol_visibility_header',
-                  KwargInfo('namespace', (str, NoneType)),
-                  KwargInfo('api', (str, NoneType)),
-                  KwargInfo('compilation', (str, NoneType)),
-                  KwargInfo('static_compilation', (str, NoneType)),
-                  KwargInfo('static_only', (bool, NoneType)))
+    @TypedArgs(
+        'snippets.symbol_visibility_header',
+        kw_types=[
+            KwargInfo('namespace', (str, NoneType)),
+            KwargInfo('api', (str, NoneType)),
+            KwargInfo('compilation', (str, NoneType)),
+            KwargInfo('static_compilation', (str, NoneType)),
+            KwargInfo('static_only', (bool, NoneType)),
+        ],
+    )
     @typed_pos_args('snippets.symbol_visibility_header', str)
     def symbol_visibility_header_method(self, state: ModuleState, args: T.Tuple[str], kwargs: 'SymbolVisibilityHeaderKW') -> mesonlib.File:
         header_name = args[0]
