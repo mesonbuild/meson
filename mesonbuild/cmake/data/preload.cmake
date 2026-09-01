@@ -29,20 +29,20 @@ endmacro()
 
 # Override some system functions with custom code and forward the args
 # to the original function
-macro(add_custom_command)
+function(add_custom_command)
   meson_ps_inspect_vars()
   _add_custom_command(${ARGV})
-endmacro()
+endfunction()
 
 function(add_custom_target)
   meson_ps_inspect_vars()
   _add_custom_target(${ARGV})
 endfunction()
 
-macro(set_property)
+function(set_property)
   meson_ps_inspect_vars()
   _set_property(${ARGV})
-endmacro()
+endfunction()
 
 function(set_source_files_properties)
   set(FILES)
