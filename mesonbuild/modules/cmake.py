@@ -25,7 +25,7 @@ from ..interpreterbase import (
     InterpreterException,
 
     typed_pos_args,
-    typed_kwargs,
+    TypedArgs,
     KwargInfo,
     ContainerTypeInfo,
 )
@@ -135,7 +135,7 @@ class CMakeSubproject(ModuleObject):
         return self.subp.get_variable(args, kwargs)
 
     @typed_pos_args('cmake.subproject.dependency', str)
-    @typed_kwargs('cmake.subproject.dependency', INCLUDE_TYPE.evolve(since='0.56.0'))
+    @TypedArgs('cmake.subproject.dependency', kw_types=[INCLUDE_TYPE.evolve(since='0.56.0')])
     def dependency(self, state: ModuleState, args: T.Tuple[str], kwargs: DependencyKW) -> dependencies.Dependency:
         info = self._args_to_info(args[0])
         if info['func'] == 'executable':
@@ -212,22 +212,22 @@ class CMakeSubprojectOptions(ModuleObject):
         self.cmake_options += cmake_defines_to_args(args[0])
 
     @typed_pos_args('subproject_options.set_override_option', str, str)
-    @typed_kwargs('subproject_options.set_override_option', _TARGET_KW)
+    @TypedArgs('subproject_options.set_override_option', kw_types=[_TARGET_KW])
     def set_override_option(self, state: ModuleState, args: T.Tuple[str, str], kwargs: TargetKW) -> None:
         self._get_opts(kwargs).set_opt(args[0], args[1])
 
     @typed_pos_args('subproject_options.set_install', bool)
-    @typed_kwargs('subproject_options.set_install', _TARGET_KW)
+    @TypedArgs('subproject_options.set_install', kw_types=[_TARGET_KW])
     def set_install(self, state: ModuleState, args: T.Tuple[bool], kwargs: TargetKW) -> None:
         self._get_opts(kwargs).set_install(args[0])
 
     @typed_pos_args('subproject_options.append_compile_args', str, varargs=str, min_varargs=1)
-    @typed_kwargs('subproject_options.append_compile_args', _TARGET_KW)
+    @TypedArgs('subproject_options.append_compile_args', kw_types=[_TARGET_KW])
     def append_compile_args(self, state: ModuleState, args: T.Tuple[str, T.List[str]], kwargs: TargetKW) -> None:
         self._get_opts(kwargs).append_args(args[0], args[1])
 
     @typed_pos_args('subproject_options.append_link_args', varargs=str, min_varargs=1)
-    @typed_kwargs('subproject_options.append_link_args', _TARGET_KW)
+    @TypedArgs('subproject_options.append_link_args', kw_types=[_TARGET_KW])
     def append_link_args(self, state: ModuleState, args: T.Tuple[T.List[str]], kwargs: TargetKW) -> None:
         self._get_opts(kwargs).append_link_args(args[0])
 
@@ -296,13 +296,15 @@ class CmakeModule(ExtensionModule):
         return True
 
     @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'cmake.write_basic_package_version_file',
-        KwargInfo('arch_independent', bool, default=False, since='0.62.0'),
-        KwargInfo('compatibility', str, default='AnyNewerVersion', validator=in_set_validator(set(COMPATIBILITIES))),
-        KwargInfo('name', str, required=True),
-        KwargInfo('version', str, required=True),
-        INSTALL_DIR_KW,
+        kw_types=[
+            KwargInfo('arch_independent', bool, default=False, since='0.62.0'),
+            KwargInfo('compatibility', str, default='AnyNewerVersion', validator=in_set_validator(set(COMPATIBILITIES))),
+            KwargInfo('name', str, required=True),
+            KwargInfo('version', str, required=True),
+            INSTALL_DIR_KW,
+        ],
     )
     def write_basic_package_version_file(self, state: ModuleState, args: TYPE_var, kwargs: 'WriteBasicPackageVersionFile') -> ModuleReturnValue:
         arch_independent = kwargs['arch_independent']
@@ -364,20 +366,24 @@ class CmakeModule(ExtensionModule):
         mesonlib.replace_if_different(outfile, outfile_tmp)
 
     @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'cmake.configure_package_config_file',
-        KwargInfo(
-            'configuration',
-            (build.ConfigurationData, dict),
-            required=True,
-            since_values={dict: '0.62.0'},
-        ),
-        KwargInfo('input',
-                  (str, mesonlib.File, ContainerTypeInfo(list, mesonlib.File)), required=True,
-                  validator=lambda x: 'requires exactly one file' if isinstance(x, list) and len(x) != 1 else None,
-                  convertor=lambda x: x[0] if isinstance(x, list) else x),
-        KwargInfo('name', str, required=True),
-        INSTALL_DIR_KW,
+        kw_types=[
+            KwargInfo(
+                'configuration',
+                (build.ConfigurationData, dict),
+                required=True,
+                since_values={dict: '0.62.0'},
+            ),
+            KwargInfo(
+                'input',
+                (str, mesonlib.File, ContainerTypeInfo(list, mesonlib.File)), required=True,
+                validator=lambda x: 'requires exactly one file' if isinstance(x, list) and len(x) != 1 else None,
+                convertor=lambda x: x[0] if isinstance(x, list) else x,
+            ),
+            KwargInfo('name', str, required=True),
+            INSTALL_DIR_KW,
+        ]
     )
     def configure_package_config_file(self, state: ModuleState, args: TYPE_var, kwargs: 'ConfigurePackageConfigFile') -> build.Data:
         inputfile = kwargs['input']
@@ -427,19 +433,21 @@ class CmakeModule(ExtensionModule):
 
     @FeatureNew('subproject', '0.51.0')
     @typed_pos_args('cmake.subproject', str)
-    @typed_kwargs(
+    @TypedArgs(
         'cmake.subproject',
-        REQUIRED_KW,
-        NATIVE_KW.evolve(since='1.12.0'),
-        KwargInfo('options', (CMakeSubprojectOptions, NoneType), since='0.55.0'),
-        KwargInfo(
-            'cmake_options',
-            ContainerTypeInfo(list, str),
-            default=[],
-            listify=True,
-            deprecated='0.55.0',
-            deprecated_message='Use options instead',
-        ),
+        kw_types=[
+            REQUIRED_KW,
+            NATIVE_KW.evolve(since='1.12.0'),
+            KwargInfo('options', (CMakeSubprojectOptions, NoneType), since='0.55.0'),
+            KwargInfo(
+                'cmake_options',
+                ContainerTypeInfo(list, str),
+                default=[],
+                listify=True,
+                deprecated='0.55.0',
+                deprecated_message='Use options instead',
+            ),
+        ],
     )
     def subproject(self, state: ModuleState, args: T.Tuple[str], kwargs_: Subproject) -> T.Union[SubprojectHolder, CMakeSubproject]:
         if kwargs_['cmake_options'] and kwargs_['options'] is not None:

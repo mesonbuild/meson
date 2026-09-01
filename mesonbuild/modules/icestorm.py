@@ -9,7 +9,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import build
 from .. import mesonlib
 from ..interpreter.type_checking import CT_INPUT_KW
-from ..interpreterbase.decorators import KwargInfo, typed_kwargs, typed_pos_args
+from ..interpreterbase.decorators import KwargInfo, TypedArgs, typed_pos_args
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
@@ -44,14 +44,16 @@ class IceStormModule(ExtensionModule):
     @typed_pos_args('icestorm.project', str,
                     varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex,
                              build.GeneratedList))
-    @typed_kwargs(
+    @TypedArgs(
         'icestorm.project',
-        CT_INPUT_KW.evolve(name='sources'),
-        KwargInfo(
-            'constraint_file',
-            (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList),
-            required=True,
-        )
+        kw_types=[
+            CT_INPUT_KW.evolve(name='sources'),
+            KwargInfo(
+                'constraint_file',
+                (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList),
+                required=True,
+            )
+        ],
     )
     def project(self, state: ModuleState,
                 args: T.Tuple[str, T.List[str | build.TargetSources]],
