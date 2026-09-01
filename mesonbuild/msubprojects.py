@@ -111,7 +111,7 @@ class Logger:
             self.print_progress()
 
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class Runner:
     logger: Logger
     r: InitVar[Resolver]

@@ -364,7 +364,7 @@ def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
     except mesonlib.GitException as e:
         raise WrapException(str(e))
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class Resolver:
     source_dir: str
     subdir: str

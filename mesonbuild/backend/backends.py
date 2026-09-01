@@ -71,7 +71,7 @@ if T.TYPE_CHECKING:
 # Assembly files cannot be unitified and neither can LLVM IR files
 LANGS_CANT_UNITY: T.FrozenSet[Language] = frozenset({'d', 'fortran', 'vala', 'rust'})
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class RegenInfo:
     source_dir: str
     build_dir: str
@@ -107,7 +107,7 @@ class TestProtocol(enum.Enum):
         return 'tap'
 
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class CleanTrees:
     '''
     Directories outputted by custom targets that have to be manually cleaned
@@ -116,7 +116,7 @@ class CleanTrees:
     build_dir: str
     trees: T.List[str]
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class InstallData:
     source_dir: str
     build_dir: str
@@ -139,7 +139,7 @@ class InstallData:
     install_scripts: list[InstallScript] = field(default_factory=list, init=False)
     install_subdirs: list[SubdirInstallData] = field(default_factory=list, init=False)
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class TargetInstallData:
     fname: str
     outdir: str
@@ -161,14 +161,14 @@ class TargetInstallData:
             outdir_name = os.path.join('{prefix}', self.outdir)
         self.out_name = os.path.join(outdir_name, os.path.basename(self.fname))
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class InstallEmptyDir:
     path: str
     install_mode: 'FileMode'
     subproject: str
     tag: T.Optional[str] = None
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class InstallDataBase:
     path: str
     install_path: str
@@ -179,7 +179,7 @@ class InstallDataBase:
     data_type: T.Optional[str] = None
     follow_symlinks: T.Optional[bool] = None
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class InstallSymlinkData:
     target: str
     name: str
@@ -197,7 +197,7 @@ class SubdirInstallData(InstallDataBase):
         self.exclude = exclude
 
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class TestSerialisation:
     name: str
     project_name: str

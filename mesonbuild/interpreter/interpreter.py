@@ -155,7 +155,7 @@ def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None])
     return None
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class SandboxViolationError(InterpreterException):
 
     """Exception raised when trying to use files outside of this project
@@ -177,7 +177,7 @@ class SandboxViolationError(InterpreterException):
         return f'Sandbox violation: Tried to grab {self.inputtype} {self.name} from {msg}.'
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class BuiltFileByNameError(InterpreterException):
 
     name: str

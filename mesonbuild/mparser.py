@@ -77,7 +77,7 @@ class BlockParseException(ParseException):
 
 TV_TokenTypes = T.TypeVar('TV_TokenTypes', int, str, bool)
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class Token(T.Generic[TV_TokenTypes]):
     tid: str
     filename: str
@@ -270,7 +270,7 @@ class BaseNode:
             self.whitespaces.append(token)
 
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class WhitespaceNode(BaseNode):
 
     value: str
@@ -285,7 +285,7 @@ class WhitespaceNode(BaseNode):
     def append(self, token: Token[str]) -> None:
         self.value += token.value
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class ElementaryNode(T.Generic[TV_TokenTypes], BaseNode):
 
     value: TV_TokenTypes
@@ -302,7 +302,7 @@ class BooleanNode(ElementaryNode[bool]):
 class IdNode(ElementaryNode[str]):
     pass
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class NumberNode(ElementaryNode[int]):
 
     raw_value: str = field(hash=False)
@@ -313,7 +313,7 @@ class NumberNode(ElementaryNode[int]):
         self.value = int(token.value, base=0)
         self.bytespan = token.bytespan
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class StringNode(ElementaryNode[str]):
 
     raw_value: str = field(hash=False)
@@ -342,7 +342,7 @@ class BreakNode(ElementaryNode):
 class SymbolNode(ElementaryNode[str]):
     pass
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class ArgumentNode(BaseNode):
 
     arguments: T.List[BaseNode] = field(hash=False)
@@ -401,7 +401,7 @@ class ArgumentNode(BaseNode):
     def __len__(self) -> int:
         return self.num_args() + self.num_kwargs()
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class ArrayNode(BaseNode):
 
     lbracket: SymbolNode
@@ -414,7 +414,7 @@ class ArrayNode(BaseNode):
         self.args = args
         self.rbracket = rbracket
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class DictNode(BaseNode):
 
     lcurl: SymbolNode
@@ -430,7 +430,7 @@ class DictNode(BaseNode):
 class EmptyNode(BaseNode):
     pass
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class BinaryOperatorNode(BaseNode):
 
     left: BaseNode
@@ -449,7 +449,7 @@ class OrNode(BinaryOperatorNode):
 class AndNode(BinaryOperatorNode):
     pass
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class ComparisonNode(BinaryOperatorNode):
 
     ctype: COMPARISONS
@@ -458,7 +458,7 @@ class ComparisonNode(BinaryOperatorNode):
         super().__init__(left, operator, right)
         self.ctype = ctype
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class ArithmeticNode(BinaryOperatorNode):
 
     operation: ARITH_OPERATORS
@@ -467,7 +467,7 @@ class ArithmeticNode(BinaryOperatorNode):
         super().__init__(left, operator, right)
         self.operation = operation
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class UnaryOperatorNode(BaseNode):
 
     operator: SymbolNode
@@ -484,7 +484,7 @@ class NotNode(UnaryOperatorNode):
 class UMinusNode(UnaryOperatorNode):
     pass
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class CodeBlockNode(BaseNode):
 
     pre_whitespaces: T.Optional[WhitespaceNode] = field(hash=False)
@@ -503,7 +503,7 @@ class CodeBlockNode(BaseNode):
         else:
             self.pre_whitespaces.append(token)
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class IndexNode(BaseNode):
 
     iobject: BaseNode
@@ -518,7 +518,7 @@ class IndexNode(BaseNode):
         self.index = index
         self.rbracket = rbracket
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class MethodNode(BaseNode):
 
     source_object: BaseNode
@@ -537,7 +537,7 @@ class MethodNode(BaseNode):
         self.args = args
         self.rpar = rpar
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class FunctionNode(BaseNode):
 
     func_name: IdNode
@@ -552,7 +552,7 @@ class FunctionNode(BaseNode):
         self.args = args
         self.rpar = rpar
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class AssignmentNode(BaseNode):
 
     var_name: IdNode
@@ -568,7 +568,7 @@ class AssignmentNode(BaseNode):
 class PlusAssignmentNode(AssignmentNode):
     pass
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class ForeachClauseNode(BaseNode):
 
     foreach_: SymbolNode = field(hash=False)
@@ -590,7 +590,7 @@ class ForeachClauseNode(BaseNode):
         self.endforeach = endforeach
 
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class IfNode(BaseNode):
 
     if_: SymbolNode
@@ -603,7 +603,7 @@ class IfNode(BaseNode):
         self.condition = condition
         self.block = block
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class ElseNode(BaseNode):
 
     else_: SymbolNode
@@ -614,7 +614,7 @@ class ElseNode(BaseNode):
         self.else_ = else_
         self.block = block
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class IfClauseNode(BaseNode):
 
     ifs: T.List[IfNode] = field(hash=False)
@@ -626,7 +626,7 @@ class IfClauseNode(BaseNode):
         self.ifs = []
         self.elseblock = EmptyNode(linenode.lineno, linenode.colno, linenode.filename)
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class TestCaseClauseNode(BaseNode):
 
     testcase: SymbolNode
@@ -641,7 +641,7 @@ class TestCaseClauseNode(BaseNode):
         self.block = block
         self.endtestcase = endtestcase
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class TernaryNode(BaseNode):
 
     condition: BaseNode
@@ -659,7 +659,7 @@ class TernaryNode(BaseNode):
         self.falseblock = falseblock
 
 
-@dataclass(unsafe_hash=True)
+@dataclass(slots=True, unsafe_hash=True)
 class ParenthesizedNode(BaseNode):
 
     lpar: SymbolNode = field(hash=False)

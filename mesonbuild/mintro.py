@@ -474,7 +474,7 @@ def load_info_file(infodir: str, kind: T.Optional[str] = None) -> T.Any:
     with open(get_info_file(infodir, kind), encoding='utf-8') as fp:
         return json.load(fp)
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class IntroCommand:
     desc: str
     func: T.Optional[T.Callable[[cdata.CoreData, build.Build, backends.Backend], T.Union[dict, list]]] = None

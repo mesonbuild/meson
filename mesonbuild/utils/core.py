@@ -154,7 +154,7 @@ class EnvironmentVariables(HoldableObject):
         return env
 
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class ExecutableSerialisation:
 
     cmd_args: T.List[str]

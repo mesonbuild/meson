@@ -202,7 +202,7 @@ class MutableModuleObject(ModuleObject):
     pass
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class ModuleInfo:
 
     """Metadata about a Module."""

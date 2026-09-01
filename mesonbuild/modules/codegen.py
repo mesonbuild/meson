@@ -82,7 +82,7 @@ def is_subset_validator(choices: T.Set[str]) -> T.Callable[[T.List[str]], T.Opti
     return inner
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class _CodeGenerator(HoldableObject):
 
     name: str
@@ -97,7 +97,7 @@ class _CodeGenerator(HoldableObject):
         return self.program.found()
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class LexGenerator(_CodeGenerator):
     pass
 
@@ -193,7 +193,7 @@ class LexHolder(ObjectHolder[LexGenerator]):
         return target
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class YaccGenerator(_CodeGenerator):
     pass
 

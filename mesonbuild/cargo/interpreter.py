@@ -59,7 +59,7 @@ def _extra_deps_varname() -> str:
     return 'extra_deps'
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class PackageConfiguration:
     """Configuration for a package during dependency resolution."""
     for_machine: MachineChoice
@@ -251,13 +251,13 @@ class PackageState:
             return _dependency_name(package_name, self.manifest.package.api)
         raise MesonException(f'Package {package_name} does not support rust or proc-macro ABI')
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(slots=True, frozen=True)
 class PackageKey:
     package_name: str
     api: str
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class WorkspaceState:
     workspace: Workspace
     subdir: str

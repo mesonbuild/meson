@@ -78,7 +78,7 @@ if T.TYPE_CHECKING:
 #     2.4 Ensure that all libraries have the same boost tag (and are thus compatible)
 #   3. Select the libraries matching the requested modules
 
-@dataclasses.dataclass(eq=False, order=False)
+@dataclasses.dataclass(slots=True, eq=False, order=False)
 class UnknownFileException(Exception):
     path: Path
 
