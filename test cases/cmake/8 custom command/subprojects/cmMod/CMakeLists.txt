@@ -139,6 +139,11 @@ set(ARGS_TEST ${ARGS_TEST} arg2)
 
 add_executable(macro_name macro_name.cpp)
 add_executable(args_test args_test.cpp)
+add_custom_command(
+  OUTPUT backslash.txt
+  COMMAND ${CMAKE_COMMAND} -E echo "\\1"
+)
+set_property(TARGET macro_name PROPERTY MESON_TEST_BACKSLASH "\\1")
 add_custom_target(args_test_cmd
   COMMAND args_test ${ARGS_TEST}
 )
