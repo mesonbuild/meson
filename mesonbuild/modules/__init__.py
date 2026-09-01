@@ -159,7 +159,7 @@ class ModuleState:
         # typed_* takes a list, and gives a tuple to func_test. Violating that constraint
         # makes the universe (or at least use of this function) implode
         real_args = list(args)
-        # TODO: Use interpreter internal API, but we need to go through @typed_kwargs
+        # TODO: Use interpreter internal API, but we need to go through @TypedArgs
         self._interpreter.func_test(self.current_node, real_args, kwargs)
 
     def get_option(self, name: str, subproject: str = '',

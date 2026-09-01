@@ -18,7 +18,7 @@ from ..dependencies import InternalDependency
 from ..dependencies.pkgconfig import PkgConfigInterface
 from ..interpreterbase import FeatureNew
 from ..interpreter.type_checking import ENV_KW, DEPENDS_KW
-from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
+from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, TypedArgs, typed_pos_args
 from ..mesonlib import (EnvironmentException, MesonException, Popen_safe, MachineChoice,
                         get_variable_regex, do_replacement, join_args)
 from ..options import OptionKey
@@ -274,7 +274,7 @@ class ExternalProject(NewExtensionModule):
         return [self.target, idir]
 
     @typed_pos_args('external_project.dependency', str)
-    @typed_kwargs('external_project.dependency', KwargInfo('subdir', str, default=''))
+    @TypedArgs('external_project.dependency', kw_types=[KwargInfo('subdir', str, default='')])
     def dependency_method(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'Dependency') -> InternalDependency:
         libname = args[0]
 
@@ -303,13 +303,15 @@ class ExternalProjectModule(ExtensionModule):
                              })
 
     @typed_pos_args('external_project_mod.add_project', str)
-    @typed_kwargs(
+    @TypedArgs(
         'external_project.add_project',
-        KwargInfo('configure_options', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('cross_configure_options', ContainerTypeInfo(list, str), default=['--host=@HOST@'], listify=True),
-        KwargInfo('verbose', bool, default=False),
-        ENV_KW,
-        DEPENDS_KW.evolve(since='0.63.0'),
+        kw_types=[
+            KwargInfo('configure_options', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('cross_configure_options', ContainerTypeInfo(list, str), default=['--host=@HOST@'], listify=True),
+            KwargInfo('verbose', bool, default=False),
+            ENV_KW,
+            DEPENDS_KW.evolve(since='0.63.0'),
+        ]
     )
     def add_project(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'AddProject') -> ModuleReturnValue:
         configure_command = args[0]

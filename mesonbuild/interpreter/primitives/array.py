@@ -14,7 +14,7 @@ from ...interpreterbase import (
     noKwargs,
     noPosargs,
     noArgsFlattening,
-    typed_kwargs,
+    TypedArgs,
     typed_pos_args,
     FeatureNew,
 
@@ -83,7 +83,7 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
         return self.held_object[index]
 
     @FeatureNew('array.slice', '1.10.0')
-    @typed_kwargs('array.slice', KwargInfo('step', int, default=1))
+    @TypedArgs('array.slice', kw_types=[KwargInfo('step', int, default=1)])
     @typed_pos_args('array.slice', optargs=[int, int])
     @InterpreterObject.method('slice')
     def slice_method(self, args: T.Tuple[T.Optional[int], T.Optional[int]], kwargs: T.Dict[str, int]) -> TYPE_var:

@@ -19,7 +19,7 @@ from ..interpreterbase import (
                                ContainerTypeInfo, KwargInfo, InterpreterObject, MesonOperator,
                                MesonInterpreterObject, ObjectHolder, MutableInterpreterObject,
                                FeatureNew, FeatureDeprecated,
-                               typed_pos_args, typed_kwargs, typed_operator,
+                               typed_pos_args, TypedArgs, typed_operator,
                                noArgsFlattening, noPosargs, noKwargs, unholder_return,
                                flatten, resolve_second_level_holders, Feature, FeatureValue,
                                InterpreterException, InvalidArguments, InvalidCode)
@@ -157,9 +157,9 @@ class FeatureOptionHolder(ObjectHolder[Feature]):
 
     @FeatureNew('feature_option.require()', '0.59.0')
     @typed_pos_args('feature_option.require', bool)
-    @typed_kwargs(
+    @TypedArgs(
         'feature_option.require',
-        _ERROR_MSG_KW,
+        kw_types=[_ERROR_MSG_KW],
     )
     @InterpreterObject.method('require')
     def require_method(self, args: T.Tuple[bool], kwargs: 'kwargs.FeatureOptionRequire') -> Feature:
@@ -167,9 +167,9 @@ class FeatureOptionHolder(ObjectHolder[Feature]):
 
     @FeatureNew('feature_option.disable_if()', '1.1.0')
     @typed_pos_args('feature_option.disable_if', bool)
-    @typed_kwargs(
+    @TypedArgs(
         'feature_option.disable_if',
-        _ERROR_MSG_KW,
+        kw_types=[_ERROR_MSG_KW],
     )
     @InterpreterObject.method('disable_if')
     def disable_if_method(self, args: T.Tuple[bool], kwargs: 'kwargs.FeatureOptionRequire') -> Feature:
@@ -177,9 +177,9 @@ class FeatureOptionHolder(ObjectHolder[Feature]):
 
     @FeatureNew('feature_option.enable_if()', '1.1.0')
     @typed_pos_args('feature_option.enable_if', bool)
-    @typed_kwargs(
+    @TypedArgs(
         'feature_option.enable_if',
-        _ERROR_MSG_KW,
+        kw_types=[_ERROR_MSG_KW],
     )
     @InterpreterObject.method('enable_if')
     def enable_if_method(self, args: T.Tuple[bool], kwargs: 'kwargs.FeatureOptionRequire') -> Feature:
@@ -343,7 +343,7 @@ class EnvironmentVariablesHolder(ObjectHolder[mesonlib.EnvironmentVariables], Mu
             FeatureNew(m, '0.58.0').use(self.subproject, self.current_node)
 
     @typed_pos_args('environment.set', str, varargs=str, min_varargs=1)
-    @typed_kwargs('environment.set', ENV_SEPARATOR_KW)
+    @TypedArgs('environment.set', kw_types=[ENV_SEPARATOR_KW])
     @InterpreterObject.method('set')
     def set_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'EnvironmentSeparatorKW') -> None:
         name, values = args
@@ -357,7 +357,7 @@ class EnvironmentVariablesHolder(ObjectHolder[mesonlib.EnvironmentVariables], Mu
         self.held_object.unset(args[0])
 
     @typed_pos_args('environment.append', str, varargs=str, min_varargs=1)
-    @typed_kwargs('environment.append', ENV_SEPARATOR_KW)
+    @TypedArgs('environment.append', kw_types=[ENV_SEPARATOR_KW])
     @InterpreterObject.method('append')
     def append_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'EnvironmentSeparatorKW') -> None:
         name, values = args
@@ -365,7 +365,7 @@ class EnvironmentVariablesHolder(ObjectHolder[mesonlib.EnvironmentVariables], Mu
         self.held_object.append(name, values, kwargs['separator'])
 
     @typed_pos_args('environment.prepend', str, varargs=str, min_varargs=1)
-    @typed_kwargs('environment.prepend', ENV_SEPARATOR_KW)
+    @TypedArgs('environment.prepend', kw_types=[ENV_SEPARATOR_KW])
     @InterpreterObject.method('prepend')
     def prepend_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'EnvironmentSeparatorKW') -> None:
         name, values = args
@@ -392,14 +392,14 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
             raise InterpreterException("Can not set values on configuration object that has been used.")
 
     @typed_pos_args('configuration_data.set', str, (str, int, bool))
-    @typed_kwargs('configuration_data.set', _CONF_DATA_SET_KWS)
+    @TypedArgs('configuration_data.set', kw_types=[_CONF_DATA_SET_KWS])
     @InterpreterObject.method('set')
     def set_method(self, args: T.Tuple[str, T.Union[str, int, bool]], kwargs: 'kwargs.ConfigurationDataSet') -> None:
         self.__check_used()
         self.held_object.values[args[0]] = (args[1], kwargs['description'])
 
     @typed_pos_args('configuration_data.set_quoted', str, str)
-    @typed_kwargs('configuration_data.set_quoted', _CONF_DATA_SET_KWS)
+    @TypedArgs('configuration_data.set_quoted', kw_types=[_CONF_DATA_SET_KWS])
     @InterpreterObject.method('set_quoted')
     def set_quoted_method(self, args: T.Tuple[str, str], kwargs: 'kwargs.ConfigurationDataSet') -> None:
         self.__check_used()
@@ -407,7 +407,7 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
         self.held_object.values[args[0]] = (f'"{escaped_val}"', kwargs['description'])
 
     @typed_pos_args('configuration_data.set10', str, (int, bool))
-    @typed_kwargs('configuration_data.set10', _CONF_DATA_SET_KWS)
+    @TypedArgs('configuration_data.set10', kw_types=[_CONF_DATA_SET_KWS])
     @InterpreterObject.method('set10')
     def set10_method(self, args: T.Tuple[str, T.Union[int, bool]], kwargs: 'kwargs.ConfigurationDataSet') -> None:
         self.__check_used()
@@ -525,10 +525,12 @@ class DependencyHolder(ObjectHolder[Dependency]):
     @FeatureDeprecated('dependency.get_pkgconfig_variable', '0.56.0',
                        'use dependency.get_variable(pkgconfig : ...) instead')
     @typed_pos_args('dependency.get_pkgconfig_variable', str)
-    @typed_kwargs(
+    @TypedArgs(
         'dependency.get_pkgconfig_variable',
-        KwargInfo('default', str, default=''),
-        PKGCONFIG_DEFINE_KW.evolve(name='define_variable')
+        kw_types=[
+            KwargInfo('default', str, default=''),
+            PKGCONFIG_DEFINE_KW.evolve(name='define_variable')
+        ],
     )
     @InterpreterObject.method('get_pkgconfig_variable')
     def pkgconfig_method(self, args: T.Tuple[str], kwargs: 'kwargs.DependencyPkgConfigVar') -> str:
@@ -558,7 +560,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
 
     @FeatureNew('dependency.partial_dependency', '0.46.0')
     @noPosargs
-    @typed_kwargs('dependency.partial_dependency', *_PARTIAL_DEP_KWARGS)
+    @TypedArgs('dependency.partial_dependency', kw_types=_PARTIAL_DEP_KWARGS)
     @InterpreterObject.method('partial_dependency')
     def partial_dependency_method(self, args: T.List[TYPE_nvar], kwargs: 'kwargs.DependencyMethodPartialDependency') -> Dependency:
         pdep = self.held_object.get_partial_dependency(**kwargs)
@@ -566,15 +568,17 @@ class DependencyHolder(ObjectHolder[Dependency]):
 
     @FeatureNew('dependency.get_variable', '0.51.0')
     @typed_pos_args('dependency.get_variable', optargs=[str])
-    @typed_kwargs(
+    @TypedArgs(
         'dependency.get_variable',
-        KwargInfo('cmake', (str, NoneType)),
-        KwargInfo('pkgconfig', (str, NoneType)),
-        KwargInfo('configtool', (str, NoneType)),
-        KwargInfo('internal', (str, NoneType), since='0.54.0'),
-        KwargInfo('system', (str, NoneType), since='1.6.0'),
-        KwargInfo('default_value', (str, NoneType)),
-        PKGCONFIG_DEFINE_KW,
+        kw_types=[
+            KwargInfo('cmake', (str, NoneType)),
+            KwargInfo('pkgconfig', (str, NoneType)),
+            KwargInfo('configtool', (str, NoneType)),
+            KwargInfo('internal', (str, NoneType), since='0.54.0'),
+            KwargInfo('system', (str, NoneType), since='1.6.0'),
+            KwargInfo('default_value', (str, NoneType)),
+            PKGCONFIG_DEFINE_KW,
+        ],
     )
     @InterpreterObject.method('get_variable')
     def variable_method(self, args: T.Tuple[T.Optional[str]], kwargs: 'kwargs.DependencyGetVariable') -> str:
@@ -626,9 +630,11 @@ class DependencyHolder(ObjectHolder[Dependency]):
 
     @FeatureNew('dependency.as_static', '1.6.0')
     @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'dependency.as_static',
-        KwargInfo('recursive', bool, default=False),
+        kw_types=[
+            KwargInfo('recursive', bool, default=False),
+        ],
     )
     @InterpreterObject.method('as_static')
     def as_static_method(self, args: T.List[TYPE_var], kwargs: InternalDependencyAsKW) -> Dependency:
@@ -638,9 +644,11 @@ class DependencyHolder(ObjectHolder[Dependency]):
 
     @FeatureNew('dependency.as_shared', '1.6.0')
     @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'dependency.as_shared',
-        KwargInfo('recursive', bool, default=False),
+        kw_types=[
+            KwargInfo('recursive', bool, default=False),
+        ],
     )
     @InterpreterObject.method('as_shared')
     def as_shared_method(self, args: T.List[TYPE_var], kwargs: InternalDependencyAsKW) -> Dependency:
@@ -731,7 +739,7 @@ class ExternalLibraryHolder(ObjectHolder[ExternalLibrary]):
 
     @FeatureNew('dependency.partial_dependency', '0.46.0')
     @noPosargs
-    @typed_kwargs('dependency.partial_dependency', *_PARTIAL_DEP_KWARGS)
+    @TypedArgs('dependency.partial_dependency', kw_types=_PARTIAL_DEP_KWARGS)
     @InterpreterObject.method('partial_dependency')
     def partial_dependency_method(self, args: T.List[TYPE_nvar], kwargs: 'kwargs.DependencyMethodPartialDependency') -> Dependency:
         pdep = self.held_object.get_partial_dependency(**kwargs)
@@ -1053,17 +1061,19 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
         return tobj.extract_objects(obj_src, is_unity)
 
     @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'extract_all_objects',
-        KwargInfo(
-            'recursive', bool, default=False, since='0.46.0',
-            not_set_warning=textwrap.dedent('''\
-                extract_all_objects called without setting recursive
-                keyword argument. Meson currently defaults to
-                non-recursive to maintain backward compatibility but
-                the default will be changed in meson 2.0.
-            ''')
-        )
+        kw_types=[
+            KwargInfo(
+                'recursive', bool, default=False, since='0.46.0',
+                not_set_warning=textwrap.dedent('''\
+                    extract_all_objects called without setting recursive
+                    keyword argument. Meson currently defaults to
+                    non-recursive to maintain backward compatibility but
+                    the default will be changed in meson 2.0.
+                ''')
+            ),
+        ],
     )
     @InterpreterObject.method('extract_all_objects')
     def extract_all_objects_method(self, args: T.List[TYPE_nvar], kwargs: 'kwargs.BuildTargeMethodExtractAllObjects') -> build.ExtractedObjects:
@@ -1224,12 +1234,14 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
         super().__init__(gen, interpreter)
 
     @typed_pos_args('generator.process', min_varargs=1, varargs=(str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList))
-    @typed_kwargs(
+    @TypedArgs(
         'generator.process',
-        KwargInfo('preserve_path_from', (str, NoneType), since='0.45.0'),
-        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
-        ENV_KW.evolve(since='1.3.0'),
-        KwargInfo('depends', ContainerTypeInfo(list, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)), listify=True, default=[], since='1.12.0'),
+        kw_types=[
+            KwargInfo('preserve_path_from', (str, NoneType), since='0.45.0'),
+            KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+            ENV_KW.evolve(since='1.3.0'),
+            KwargInfo('depends', ContainerTypeInfo(list, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)), listify=True, default=[], since='1.12.0'),
+        ],
     )
     @InterpreterObject.method('process')
     def process_method(self,
