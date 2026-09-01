@@ -2719,6 +2719,8 @@ class lazy_property(T.Generic[_T]):
     This works by shadowing itself with the calculated value, in the instance.
     Due to Python's MRO that means that the calculated value will be found
     before this property, speeding up subsequent lookups.
+
+    NOTE: Does not work correctly with slotted classes
     """
     def __init__(self, func: T.Callable[[T.Any], _T]) -> None:
         self.__name: T.Optional[str] = None
