@@ -589,11 +589,19 @@ class AstInterpreter(InterpreterBase):
                     if not isinstance(right, list):
                         right = [right]
                     return left + right
-                return left + right
+                if isinstance(left, str) and isinstance(right, str):
+                    return left + right
+                if (isinstance(left, int) and not isinstance(left, bool)
+                        and isinstance(right, int) and not isinstance(right, bool)):
+                    return left + right
             elif node.operation == '-':
-                return left - right
+                if (isinstance(left, int) and not isinstance(left, bool)
+                        and isinstance(right, int) and not isinstance(right, bool)):
+                    return left - right
             elif node.operation == '*':
-                return left * right
+                if (isinstance(left, int) and not isinstance(left, bool)
+                        and isinstance(right, int) and not isinstance(right, bool)):
+                    return left * right
             elif node.operation == '/':
                 if isinstance(left, int) and isinstance(right, int):
                     return left // right
@@ -602,6 +610,7 @@ class AstInterpreter(InterpreterBase):
             elif node.operation == '%':
                 if isinstance(left, int) and isinstance(right, int):
                     return left % right
+            raise mesonlib.MesonException(f'invalid types for binary {node.operation}')
         elif isinstance(node, (UnknownValue, IntrospectionBuildTarget, IntrospectionFile, IntrospectionDependency, str, bool, int)):
             return node
         elif isinstance(node, mparser.IndexNode):
@@ -609,7 +618,12 @@ class AstInterpreter(InterpreterBase):
             index = self.node_to_runtime_value(node.index)
             if isinstance(iobject, UnknownValue) or isinstance(index, UnknownValue):
                 return UnknownValue()
-            return iobject[index]
+            if (isinstance(iobject, (str, list)) and isinstance(index, int)
+                    and not isinstance(index, bool)):
+                return iobject[index]
+            if isinstance(iobject, dict) and isinstance(index, str):
+                return iobject[index]
+            raise mesonlib.MesonException('invalid types for indexing')
         elif isinstance(node, mparser.ComparisonNode):
             left = self.node_to_runtime_value(node.left)
             right = self.node_to_runtime_value(node.right)
@@ -620,9 +634,16 @@ class AstInterpreter(InterpreterBase):
             elif node.ctype == '!=':
                 return left != right
             elif node.ctype == 'in':
-                return left in right
+                if isinstance(right, list):
+                    return left in right
+                if isinstance(left, str) and isinstance(right, (str, dict)):
+                    return left in right
             elif node.ctype == 'not in':
-                return left not in right
+                if isinstance(right, list):
+                    return left not in right
+                if isinstance(left, str) and isinstance(right, (str, dict)):
+                    return left not in right
+            raise mesonlib.MesonException(f'invalid types for "{node.ctype}"')
         elif isinstance(node, mparser.TernaryNode):
             cond = self.node_to_runtime_value(node.condition)
             if isinstance(cond, UnknownValue):
