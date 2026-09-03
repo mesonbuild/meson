@@ -275,11 +275,11 @@ class NinjaRule:
             outfile.write('\n')
 
     def _length_estimate(self, infiles: str, outfiles: str,
-                         elems: T.List[T.Tuple[str, T.List[str]]]) -> int:
+                         elems: T.Dict[str, T.List[str]]) -> int:
         # determine variables
         # this order of actions only approximates ninja's scoping rules, as
         # documented at: https://ninja-build.org/manual.html#ref_scope
-        ninja_vars = dict(elems)
+        ninja_vars = elems.copy()
         if self.deps is not None:
             ninja_vars['deps'] = [self.deps]
         if self.depfile is not None:
@@ -330,7 +330,7 @@ class NinjaBuildElement:
             self.infilenames = infilenames
         self.deps: T.Set[str] = set()
         self.orderdeps: T.Set[str] = set()
-        self.elems: T.List[T.Tuple[str, T.List[str]]] = []
+        self.elems: T.Dict[str, T.List[str]] = {}
         self.all_outputs = all_outputs
         self.output_errors = ''
 
@@ -347,16 +347,18 @@ class NinjaBuildElement:
             self.orderdeps.add(dep)
 
     def add_item(self, name: str, elems: T.Union[ListifiedStr, CompilerArgs]) -> None:
+        if name in self.elems:
+            raise MesonBugException(f'Item {name!r} added to a NinjaBuildElement more than once')
         # Always convert from GCC-style argument naming to the naming used by the
         # current compiler. Also filter system include paths, deduplicate, etc.
         if isinstance(elems, CompilerArgs):
             elems = elems.to_native()
         if isinstance(elems, str):
             elems = [elems]
-        self.elems.append((name, elems))
+        self.elems[name] = elems
 
         if name == 'DEPFILE':
-            self.elems.append((name + '_UNQUOTED', elems))
+            self.elems[name + '_UNQUOTED'] = elems
 
     @mesonlib.lazy_property
     def _should_use_rspfile(self) -> bool:
@@ -420,8 +422,7 @@ class NinjaBuildElement:
         else:
             qf = quote_func
 
-        for e in self.elems:
-            (name, elems) = e
+        for name, elems in self.elems.items():
             should_quote = name not in raw_names
             line = f' {name} = '
             newelems = []
