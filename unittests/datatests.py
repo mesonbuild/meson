@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest import mock
 
 import mesonbuild.mlog
+import mesonbuild.mparser
 import mesonbuild.depfile
 import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
@@ -248,3 +249,13 @@ class DataTests(unittest.TestCase):
         interp = Interpreter(FakeBuild(env))
         astint = AstInterpreter('.', '', '', '', env)
         self.assertEqual(set(interp.funcs.keys()), set(astint.funcs.keys()))
+
+    def test_ast_interpreter_unsupported_operators(self):
+        env = get_fake_env()
+        astint = AstInterpreter('.', '', '', '', env)
+
+        for code in ["'text' - 1", 'true * 2', '1[0]', '1 in 2']:
+            with self.subTest(code=code):
+                block = mesonbuild.mparser.Parser(code, 'meson.build').parse()
+                with self.assertRaises(mesonbuild.mesonlib.MesonException):
+                    astint.node_to_runtime_value(block.lines[0])
