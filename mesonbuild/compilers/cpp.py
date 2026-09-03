@@ -159,8 +159,6 @@ class CPPCompiler(CLikeCompiler, Compiler):
         }
 
         # Currently, remapping is only supported for Clang, Elbrus and GCC
-        # ('qcc' included: q++'s cc1plus is unmodified GCC, so it's as
-        # GCC-compatible here as plain 'gcc').
         assert self.id in frozenset(['clang', 'lcc', 'gcc', 'qcc', 'emscripten', 'armltdclang', 'intel-llvm', 'nvidia_hpc', 'xc32-gcc'])
 
         if cpp_std not in CPP_FALLBACKS:

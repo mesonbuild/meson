@@ -18,26 +18,12 @@ from ...options import OptionKey
 
 if T.TYPE_CHECKING:
     from ...build import BuildTarget
-    # QccCCompiler/QccCPPCompiler both inherit CLikeCompiler, and
-    # _sanity_check_compile_args() below needs CLikeCompiler-only methods
-    # (linker_to_compiler_args()).
     from .clike import CLikeCompiler as Compiler
 else:
-    # This is a bit clever, for mypy we pretend that this mixin descends from
-    # Compiler, so we get all of the methods and attributes defined for us,
-    # but for runtime we make it descend from object (which all classes
-    # normally do). This gives us DRYer type checking, with no runtime impact.
     Compiler = object
 
 
 class QccCompiler(Compiler):
-    """Behavioral differences between qcc/q++ and plain gcc/g++.
-
-    Mix in *ahead of* :class:`GnuCCompiler`/:class:`GnuCPPCompiler`
-    (e.g. ``class QccCCompiler(QccCompiler, GnuCCompiler)``) so MRO prefers
-    these overrides while still inheriting the cc1/cc1plus-level behavior
-    (-std=/-I/-D/-O/-g/warnings/PCH/etc.) that qcc genuinely shares with gcc.
-    """
 
     id = 'qcc'
 
@@ -57,29 +43,18 @@ class QccCompiler(Compiler):
         # '-flto-incremental=' (b_thinlto_cache) is rejected by cc1 as
         # unrecognized; plain LTO is unaffected and needs no override.
         raise EnvironmentException(
-            "ThinLTO incremental caching (b_thinlto_cache) is not supported "
-            "for the 'qcc' compiler family: '-flto-incremental=' is rejected "
-            "by cc1 as an unrecognized option. Plain link-time optimization "
-            "(b_lto without b_thinlto_cache) is unaffected and works "
-            'normally; please disable b_thinlto_cache for this target/build.')
+            "The 'qcc' compiler family does not support ThinLTO incremental caching (b_thinlto_cache)")
 
     def get_coverage_args(self) -> T.List[str]:
-        # '--coverage' isn't a documented qcc option; use its GCC expansion.
         return ['-fprofile-arcs', '-ftest-coverage']
 
     def get_coverage_link_args(self) -> T.List[str]:
-        # qcc/q++ reject '--coverage' at link time too; same expansion.
         return ['-fprofile-arcs', '-ftest-coverage']
 
     def get_profile_generate_args(self) -> T.List[str]:
-        # qcc's driver doesn't auto-link the gcov runtime for
-        # '-fprofile-generate' the way gcc's driver does. Used at both
-        # compile and link time. '-fprofile-use' needs no such fix.
         return ['-fprofile-generate', '-fprofile-arcs']
 
     def openmp_link_flags(self) -> T.List[str]:
-        # qcc's driver doesn't auto-link libgomp for '-fopenmp' like gcc's
-        # driver does.
         return self.openmp_flags() + ['-lgomp']
 
     # Maps a '-fsanitize=' value to its runtime library. No 'thread' entry:
