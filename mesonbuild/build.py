@@ -2345,13 +2345,6 @@ class StaticLibrary(BuildTarget, LinkableTarget):
                                        'periods or dashes in the library name due to a limitation of rustc. '
                                        'Replace them with underscores, for example')
             if self.rust_crate_type == 'staticlib':
-                # FIXME: In the case of no-std we should not add those libraries,
-                # but we have no way to know currently.
-
-                # XXX:
-                #  In the case of no-std, we are likely in a bare metal case
-                #  and thus, machine_info kernel should be set to 'none'.
-                #  In that case, native_static_libs list is empty.
                 rustc = T.cast('RustCompiler', self.compilers['rust'])
                 if rustc.get_crt_static():
                     # musl targets need self-contained for libc.a, libunwind.a etc.
@@ -2360,7 +2353,9 @@ class StaticLibrary(BuildTarget, LinkableTarget):
                     # Avoid embedding self-contained libc.a into shared libraries —
                     # creates a second musl instance with uninitialized __libc state.
                     link_args = []
-                link_args += rustc.native_static_libs
+                freestanding = self.environment.coredata.get_option_for_target(self, 'b_freestanding')
+                assert isinstance(freestanding, bool)
+                link_args += rustc.get_native_static_libs(freestanding)
                 d = dependencies.InternalDependency(version='undefined', link_args=link_args,
                                                     name='_rust_native_static_libs')
                 self.external_deps.append(d)
