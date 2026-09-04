@@ -3,12 +3,12 @@
 # Copyright © 2024 Intel Corporation
 
 from __future__ import annotations
-import typing as T
+
 import configparser
 import os
+import typing as T
 
 from . import mparser
-
 from .cmdline import CmdLineFileParser
 from .mesonlib import MesonException
 

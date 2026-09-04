@@ -1,26 +1,27 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2021 The Meson development team
 
-from abc import ABCMeta, abstractmethod
-from pathlib import Path
 import re
 import typing as T
-
-from .model import (
-    NamedObject,
-    FeatureCheck,
-    ArgBase,
-    PosArg,
-    DataTypeInfo,
-    Type,
-    Function,
-    Method,
-    Object,
-    ObjectType,
-    ReferenceManual,
-)
+from abc import ABCMeta, abstractmethod
+from pathlib import Path
 
 from mesonbuild import mlog
+
+from .model import (
+    ArgBase,
+    DataTypeInfo,
+    FeatureCheck,
+    Function,
+    Method,
+    NamedObject,
+    Object,
+    ObjectType,
+    PosArg,
+    ReferenceManual,
+    Type,
+)
+
 
 class _Resolver:
     def __init__(self) -> None:

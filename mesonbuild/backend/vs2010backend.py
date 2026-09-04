@@ -3,27 +3,29 @@
 # Copyright © 2023-2024 Intel Corporation
 
 from __future__ import annotations
+
 import copy
 import os
+import re
+import typing as T
+import uuid
 import xml.dom.minidom
 import xml.etree.ElementTree as ET
-import uuid
-import typing as T
-from pathlib import Path, PurePath, PureWindowsPath
-import re
 from collections import Counter
+from pathlib import Path, PurePath, PureWindowsPath
 
-from . import backends
-from .. import build
-from .. import mlog
-from .. import compilers
-from .. import mesonlib
+from .. import build, compilers, coredata, mesonlib, mlog
+from ..environment import Environment, build_filename
 from ..mesonlib import (
-    File, MesonBugException, MesonException, replace_if_different, version_compare, MachineChoice
+    File,
+    MachineChoice,
+    MesonBugException,
+    MesonException,
+    replace_if_different,
+    version_compare,
 )
 from ..options import OptionKey
-from ..environment import Environment, build_filename
-from .. import coredata
+from . import backends
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypeAlias

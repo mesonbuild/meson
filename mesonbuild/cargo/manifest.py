@@ -13,18 +13,17 @@ import re
 import typing as T
 from pathlib import PurePath
 
-
-from . import version
-from ..mesonlib import MesonException, lazy_property, MachineChoice
 from .. import mlog
+from ..mesonlib import MachineChoice, MesonException, lazy_property
+from . import version
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol, Self
 
-    from . import raw
-    from .raw import EDITION, CRATE_TYPE, LINT_LEVEL
     from ..options import ElementaryOptionValues
     from ..wrap.wrap import PackageDefinition
+    from . import raw
+    from .raw import CRATE_TYPE, EDITION, LINT_LEVEL
 
     # Copied from typeshed. Blarg that they don't expose this
     class DataclassInstance(Protocol):

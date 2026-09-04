@@ -2,33 +2,29 @@
 # Copyright 2015-2022 The Meson development team
 
 from __future__ import annotations
-from collections import defaultdict
-from dataclasses import dataclass
-from pathlib import PurePath, PurePosixPath
+
 import itertools
 import os
 import typing as T
+from collections import defaultdict
+from dataclasses import dataclass
+from pathlib import PurePath, PurePosixPath
 
-from . import NewExtensionModule, ModuleInfo
-from . import ModuleReturnValue
-from .. import build
-from .. import dependencies
-from .. import mesonlib
-from ..options import OptionKey
-from .. import mlog
-from ..options import BUILTIN_DIR_OPTIONS
+from .. import build, dependencies, mesonlib, mlog
 from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
 from ..interpreter.primitives import OptionString
 from ..interpreter.type_checking import D_MODULE_VERSIONS_KW, INSTALL_DIR_KW, VARIABLES_KW, NoneType
-from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken
+from ..interpreterbase import FeatureBroken, FeatureDeprecated, FeatureNew
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
+from ..options import BUILTIN_DIR_OPTIONS, OptionKey
+from . import ModuleInfo, ModuleReturnValue, NewExtensionModule
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
-    from . import ModuleState
     from .. import mparser
     from ..interpreter import Interpreter
+    from . import ModuleState
 
     ANY_DEP = T.Union[dependencies.Dependency, build.LinkableTargetTypes, str]
     REQS = T.Union[dependencies.Dependency, build.LibTypes, str]

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import os
-import subprocess
 import shutil
+import subprocess
 from glob import glob
 
 assert os.getcwd() == '/home/jpakkane'

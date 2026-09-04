@@ -4,42 +4,44 @@
 
 from __future__ import annotations
 
+import collections
 import dataclasses
 import itertools
 import os
 import re
 import typing as T
-import collections
-
-from . import cmdline
-from . import coredata
-from . import mesonlib
-from . import machinefile
-from . import options
-
-from .mesonlib import (
-    MesonException, MachineChoice, Popen_safe, PerMachine,
-    PerMachineDefaultable, PerThreeMachineDefaultable, split_args,
-    MesonBugException, ThreeMachineChoice
-)
-from .options import OptionKey
-from . import mlog
-from .programs import ExternalProgram
-
-from .envconfig import (
-    BinaryTable, MachineInfo, Properties, CMakeVariables,
-    detect_machine_info, machine_info_can_run
-)
-from . import compilers
 
 from mesonbuild import envconfig
 
-if T.TYPE_CHECKING:
-    from .compilers.compilers import Compiler, CompilerDict, Language
-    from .options import OptionDict, ElementaryOptionValues
-    from .wrap.wrap import Resolver
+from . import cmdline, compilers, coredata, machinefile, mesonlib, mlog, options
+from .envconfig import (
+    BinaryTable,
+    CMakeVariables,
+    MachineInfo,
+    Properties,
+    detect_machine_info,
+    machine_info_can_run,
+)
+from .mesonlib import (
+    MachineChoice,
+    MesonBugException,
+    MesonException,
+    PerMachine,
+    PerMachineDefaultable,
+    PerThreeMachineDefaultable,
+    Popen_safe,
+    ThreeMachineChoice,
+    split_args,
+)
+from .options import OptionKey
+from .programs import ExternalProgram
 
+if T.TYPE_CHECKING:
     import enum
+
+    from .compilers.compilers import Compiler, CompilerDict, Language
+    from .options import ElementaryOptionValues, OptionDict
+    from .wrap.wrap import Resolver
 
 
 NON_LANG_ENV_OPTIONS = [

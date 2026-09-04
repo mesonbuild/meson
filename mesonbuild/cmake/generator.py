@@ -2,15 +2,15 @@
 # Copyright 2019 The Meson development team
 
 from __future__ import annotations
+
 import os
 import typing as T
 
-from .. import mesonlib
-from .. import mlog
+from .. import mesonlib, mlog
 from .common import cmake_is_debug
 
 if T.TYPE_CHECKING:
-    from .traceparser import CMakeTraceParser, CMakeTarget
+    from .traceparser import CMakeTarget, CMakeTraceParser
 
 def parse_generator_expressions(
             raw: str,

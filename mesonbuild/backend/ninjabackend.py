@@ -4,12 +4,6 @@
 
 from __future__ import annotations
 
-from collections import defaultdict, OrderedDict
-from dataclasses import dataclass
-from enum import Enum, unique
-from functools import lru_cache
-from pathlib import PurePath, Path
-from textwrap import dedent
 import dataclasses
 import itertools
 import json
@@ -18,25 +12,38 @@ import pickle
 import re
 import subprocess
 import typing as T
+from collections import OrderedDict, defaultdict
+from dataclasses import dataclass
+from enum import Enum, unique
+from functools import lru_cache
+from pathlib import Path, PurePath
+from textwrap import dedent
 
-from . import backends
-from .. import modules
-from .. import mesonlib
-from .. import build
-from .. import mlog
-from .. import compilers
-from .. import tooldetect
+from .. import build, compilers, mesonlib, mlog, modules, tooldetect
 from ..arglist import CompilerArgs
+from ..build import GeneratedList, InvalidArguments
 from ..compilers import Compiler, is_library
 from ..linkers import ArLikeLinker, RSPFileSyntax, StaticLinker
 from ..mesonlib import (
-    File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
-    ProgressBar, quote_arg, unique_list
+    File,
+    LibType,
+    MachineChoice,
+    MesonBugException,
+    MesonException,
+    OrderedSet,
+    PerMachine,
+    ProgressBar,
+    get_compiler_for_source,
+    has_path_sep,
+    is_parent_path,
+    lookbehind,
+    path_has_root,
+    quote_arg,
+    unique_list,
 )
-from ..mesonlib import get_compiler_for_source, has_path_sep, is_parent_path, lookbehind, path_has_root
 from ..options import OptionKey
+from . import backends
 from .backends import CleanTrees
-from ..build import GeneratedList, InvalidArguments
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
@@ -48,7 +55,11 @@ if T.TYPE_CHECKING:
     from ..compilers.rust import RustCompiler
     from ..compilers.swift import SwiftCompiler
     from ..mesonlib import FileOrString
-    from .backends import TargetIntrospectionData, CompilerIntrospectionData, LinkerIntrospectionData
+    from .backends import (
+        CompilerIntrospectionData,
+        LinkerIntrospectionData,
+        TargetIntrospectionData,
+    )
 
     CommandArgTypes = T.TypeVar('CommandArgTypes', 'NinjaCommandArg', str, 'NinjaCommandArg | str')
     CommandArgs = T.List[CommandArgTypes]

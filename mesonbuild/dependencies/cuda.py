@@ -4,22 +4,21 @@
 from __future__ import annotations
 
 import glob
-import re
 import os
+import re
 import typing as T
 from pathlib import Path
 
-from .. import mesonlib
-from .. import mlog
+from .. import mesonlib, mlog
+from ..mesonlib import LibType
 from .base import DependencyException, SystemDependency
 from .detect import packages
-from ..mesonlib import LibType
 
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
-    from ..environment import Environment
-    from ..compilers.compilers import Language, CompilerDict
+    from ..compilers.compilers import CompilerDict, Language
     from ..envconfig import MachineInfo
+    from ..environment import Environment
     from .base import DependencyObjectKWs
 
     TV_ResultTuple = T.Tuple[T.Optional[str], T.Optional[str], bool]

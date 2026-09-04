@@ -3,13 +3,9 @@
 
 from __future__ import annotations
 
-from collections import deque
-from dataclasses import dataclass, InitVar
-from functools import lru_cache
-from itertools import chain
-from pathlib import Path
 import copy
 import enum
+import hashlib
 import json
 import os
 import pickle
@@ -17,25 +13,33 @@ import re
 import shlex
 import shutil
 import typing as T
-import hashlib
+from collections import deque
+from dataclasses import InitVar, dataclass
+from functools import lru_cache
+from itertools import chain
+from pathlib import Path
 
-from .. import build
-from .. import dependencies
-from .. import programs
-from .. import mesonlib
-from .. import mlog
-from .. import compilers
+from .. import build, compilers, dependencies, mesonlib, mlog, programs
 from ..compilers import detect
 from ..mesonlib import (
-    File, MachineChoice, MesonException, MesonBugException, OrderedSet,
-    ExecutableSerialisation, FileMode, InstallScriptFailure,
-    classify_unity_sources, get_compiler_for_source,
-    get_rsp_threshold, unique_list
+    ExecutableSerialisation,
+    File,
+    FileMode,
+    InstallScriptFailure,
+    MachineChoice,
+    MesonBugException,
+    MesonException,
+    OrderedSet,
+    classify_unity_sources,
+    get_compiler_for_source,
+    get_rsp_threshold,
+    unique_list,
 )
 from ..options import OptionKey
 
-
 if T.TYPE_CHECKING:
+    from typing_extensions import Literal, NotRequired, TypeAlias, TypedDict
+
     from .._typing import ImmutableListProtocol
     from ..arglist import CompilerArgs
     from ..build import ExtractedObjects, TargetSources
@@ -46,8 +50,6 @@ if T.TYPE_CHECKING:
     from ..linkers import StaticLinker
     from ..mesonlib import InstallScript
     from ..options import ElementaryOptionValues
-
-    from typing_extensions import Literal, TypedDict, NotRequired, TypeAlias
 
     class CompilerIntrospectionData(TypedDict):
 

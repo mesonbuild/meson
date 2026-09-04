@@ -3,17 +3,16 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-import sys
 import os
-import subprocess
-import shutil
 import pathlib
 import shlex
+import shutil
+import subprocess
+import sys
 import typing as T
+from dataclasses import dataclass, field
 
-from .. import envconfig
-from .. import mlog
+from .. import envconfig, mlog
 from ..compilers import compilers
 from ..compilers.detect import defaults as compiler_names
 

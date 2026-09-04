@@ -4,19 +4,22 @@
 
 # Work around some pathlib bugs...
 # ruff: disable[E402]
-from mesonbuild import _pathlib
 import sys
+
+from mesonbuild import _pathlib
+
 sys.modules['pathlib'] = _pathlib
 
-import time
-import subprocess
-import os
-import unittest
 import importlib
+import os
+import subprocess
+import time
 import typing as T
+import unittest
 
 import mesonbuild.coredata
 from mesonbuild.mesonlib import python_command, setup_vsenv
+
 # ruff: enable[E402]
 
 
@@ -100,11 +103,11 @@ def main():
     setup_backend()
 
     try:
-        import pytest # noqa: F401
+        import pytest  # noqa: F401
         pytest_args = []
         try:
             # Need pytest-xdist for `-n` arg
-            import xdist # noqa: F401
+            import xdist  # noqa: F401
             # Don't use pytest-xdist when running single unit tests since it wastes
             # time spawning a lot of processes to distribute tests to in that case.
             if not running_single_tests(sys.argv, cases):
@@ -118,7 +121,7 @@ def main():
         pytest_args += convert_args(sys.argv[1:])
         # Always disable pytest-cov because we use a custom setup
         try:
-            import pytest_cov # noqa: F401
+            import pytest_cov  # noqa: F401
             print('Disabling pytest-cov')
             pytest_args += ['-p' 'no:cov']
         except ImportError:

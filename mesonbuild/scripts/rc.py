@@ -9,7 +9,6 @@ import subprocess
 import sys
 import typing as T
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--rc', nargs='+', required=True)
 parser.add_argument('--cl', nargs='+', required=True)

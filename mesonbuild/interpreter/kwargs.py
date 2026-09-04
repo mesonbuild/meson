@@ -8,18 +8,17 @@ from __future__ import annotations
 
 import typing as T
 
-from typing_extensions import TypedDict, Literal, Protocol, NotRequired
+from typing_extensions import Literal, NotRequired, Protocol, TypedDict
 
-from .. import build
-from .. import options
+from .. import build, options
 from ..compilers import Compiler
 from ..compilers.compilers import Language
 from ..dependencies.base import Dependency, DependencyMethods, IncludeType
 from ..interpreterbase import Feature
-from ..mesonlib import EnvironmentVariables, MachineChoice, File, FileMode, FileOrString
-from ..options import OptionKey
+from ..mesonlib import EnvironmentVariables, File, FileMode, FileOrString, MachineChoice
 from ..modules.cmake import CMakeSubprojectOptions
-from ..programs import Program, ExternalProgram
+from ..options import OptionKey
+from ..programs import ExternalProgram, Program
 from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
 TargetDepends = T.Union[build.CustomTarget, build.CustomTargetIndex, build.BuildTarget, build.GeneratedList, Program]

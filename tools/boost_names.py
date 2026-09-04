@@ -11,11 +11,11 @@ Run the tool in the boost directory and append the stdout to the misc.py:
 boost/$ path/to/meson/tools/boost_names.py >> path/to/meson/dependencies/misc.py
 """
 
-import sys
+import functools
 import json
 import re
+import sys
 import textwrap
-import functools
 import typing as T
 from pathlib import Path
 

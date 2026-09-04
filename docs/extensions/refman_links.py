@@ -1,18 +1,17 @@
-from pathlib import Path
-from json import loads
 import os
 import re
+import typing as T
+from json import loads
+from pathlib import Path
 
 from hotdoc.core.exceptions import HotdocSourceException
 from hotdoc.core.extension import Extension
-from hotdoc.core.tree import Page
-from hotdoc.core.project import Project
-from hotdoc.core.symbols import FunctionSymbol, Link, MethodSymbol, ClassSymbol
-from hotdoc.run_hotdoc import Application
 from hotdoc.core.formatter import Formatter
-from hotdoc.utils.loggable import Logger, warn, info
-
-import typing as T
+from hotdoc.core.project import Project
+from hotdoc.core.symbols import ClassSymbol, FunctionSymbol, Link, MethodSymbol
+from hotdoc.core.tree import Page
+from hotdoc.run_hotdoc import Application
+from hotdoc.utils.loggable import Logger, info, warn
 
 if T.TYPE_CHECKING:
     import argparse

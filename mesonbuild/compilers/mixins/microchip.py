@@ -8,9 +8,9 @@ from __future__ import annotations
 import os
 import typing as T
 
-from .gnu import GnuCStds, GnuCPPStds
-from ..compilers import Compiler
 from ...mesonlib import EnvironmentException, version_compare
+from ..compilers import Compiler
+from .gnu import GnuCPPStds, GnuCStds
 
 if T.TYPE_CHECKING:
     from ...build import BuildTarget

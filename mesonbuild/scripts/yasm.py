@@ -4,6 +4,7 @@ import argparse
 import subprocess
 import typing as T
 
+
 def run(args: T.List[str]) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--depfile')

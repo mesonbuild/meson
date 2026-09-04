@@ -12,8 +12,8 @@ from ...mesonlib import EnvironmentException
 from ...options import OptionKey
 
 if T.TYPE_CHECKING:
+    from ...compilers.compilers import CompileCheckMode, Compiler
     from ...envconfig import MachineInfo
-    from ...compilers.compilers import Compiler, CompileCheckMode
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
     # Compiler, so we get all of the methods and attributes defined for us, but

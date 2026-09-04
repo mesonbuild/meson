@@ -14,10 +14,14 @@ import re
 import subprocess
 import typing as T
 
-from ... import mesonlib
-from ... import mlog
+from mesonbuild.compilers.compilers import (
+    CompileCheckMode,
+    ManyInOneLinkerOptionStyle,
+    PrefixArgumentLinkerOptionStyle,
+)
+
+from ... import mesonlib, mlog
 from ...options import OptionKey, UserStdOption
-from mesonbuild.compilers.compilers import CompileCheckMode, ManyInOneLinkerOptionStyle, PrefixArgumentLinkerOptionStyle
 
 if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol

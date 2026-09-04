@@ -3,19 +3,19 @@
 
 from __future__ import annotations
 
-from . import coredata as cdata
-from .mesonlib import MachineChoice
-from .options import OptionKey
-import typing as T
-
 import os.path
 import pprint
 import textwrap
+import typing as T
+
+from . import coredata as cdata
+from .mesonlib import MachineChoice
+from .options import OptionKey
 
 if T.TYPE_CHECKING:
     import argparse
 
-    from .import dependencies
+    from . import dependencies
     from .compilers.compilers import CompilerDict
     from .dependencies.detect import TV_DepID
 

@@ -4,18 +4,18 @@
 
 from __future__ import annotations
 
+import sys
+
 # Work around some pathlib bugs...
 from mesonbuild import _pathlib
-import sys
+
 sys.modules['pathlib'] = _pathlib
 
 # ruff: disable[E402]
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, CancelledError, as_completed
-from enum import Enum
-from io import StringIO
-from pathlib import Path, PurePath
 import argparse
+import collections
 import functools
+import importlib.util
 import itertools
 import json
 import multiprocessing
@@ -28,8 +28,10 @@ import subprocess
 import tempfile
 import time
 import typing as T
-import collections
-import importlib.util
+from concurrent.futures import CancelledError, ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from enum import Enum
+from io import StringIO
+from pathlib import Path, PurePath
 
 # use lxml, if available, otherwise fallback to xml.etree
 try:
@@ -43,30 +45,31 @@ except ImportError:
 
     import xml.etree.ElementTree as ET  # type: ignore
 
-from mesonbuild import build
-from mesonbuild import environment
-from mesonbuild import compilers
-from mesonbuild import mesonlib
-from mesonbuild import mlog
-from mesonbuild import mtest
-from mesonbuild.compilers import detect_compiler_for
+from mesonbuild import build, compilers, environment, mesonlib, mlog, mtest
 from mesonbuild.build import ConfigurationData
-from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWinProof, setup_vsenv
-from mesonbuild.mlog import blue, bold, cyan, green, red, yellow, normal_green
+from mesonbuild.compilers import detect_compiler_for
 from mesonbuild.coredata import version as meson_version
-from mesonbuild.options import backendlist
+from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWinProof, setup_vsenv
+from mesonbuild.mlog import blue, bold, cyan, green, normal_green, red, yellow
 from mesonbuild.modules.python import PythonExternalProgram
+from mesonbuild.options import backendlist
 from run_tests import (
-    get_fake_options, run_configure, get_meson_script, get_backend_commands,
-    get_backend_args_for_dir, Backend,
-    guess_backend, handle_meson_skip_test,
+    Backend,
+    get_backend_args_for_dir,
+    get_backend_commands,
+    get_fake_options,
+    get_meson_script,
+    guess_backend,
+    handle_meson_skip_test,
+    run_configure,
 )
+
 # ruff: enable[E402]
 
 
 if T.TYPE_CHECKING:
-    from types import FrameType
     from concurrent.futures import Future
+    from types import FrameType
 
     from mesonbuild._typing import Protocol
     from mesonbuild.compilers.compilers import Compiler, Language

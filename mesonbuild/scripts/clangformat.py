@@ -4,14 +4,15 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import sys
+import typing as T
+from pathlib import Path
 
-from .run_tool import run_clang_tool, run_with_buffered_output
-from ..tooldetect import detect_clangformat
 from ..mesonlib import version_compare
 from ..programs import ExternalProgram
-import typing as T
+from ..tooldetect import detect_clangformat
+from .run_tool import run_clang_tool, run_with_buffered_output
+
 
 async def run_clang_format(fname: Path, exelist: T.List[str], options: argparse.Namespace, cformat_ver: T.Optional[str]) -> int:
     clangformat_10 = False

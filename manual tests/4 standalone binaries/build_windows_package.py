@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import os
-import urllib.request
 import shutil
 import subprocess
+import urllib.request
 from glob import glob
 
 sdl_url = 'http://libsdl.org/release/SDL2-devel-2.0.3-VC.zip'

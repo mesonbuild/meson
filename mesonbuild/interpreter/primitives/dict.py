@@ -5,20 +5,18 @@ from __future__ import annotations
 import typing as T
 
 from ...interpreterbase import (
+    FeatureNew,
     InterpreterObject,
+    InvalidArguments,
     IterableObject,
     MesonOperator,
     ObjectHolder,
-    FeatureNew,
-    typed_operator,
+    TYPE_var,
+    noArgsFlattening,
     noKwargs,
     noPosargs,
-    noArgsFlattening,
+    typed_operator,
     typed_pos_args,
-
-    TYPE_var,
-
-    InvalidArguments,
 )
 
 if T.TYPE_CHECKING:

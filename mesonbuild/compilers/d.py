@@ -11,28 +11,29 @@ from .. import mesonlib
 from ..arglist import CompilerArgs
 from ..linkers import RSPFileSyntax
 from ..mesonlib import (
-    EnvironmentException, MesonBugException, version_compare, is_windows,
-    is_lib_filename
+    EnvironmentException,
+    MesonBugException,
+    is_lib_filename,
+    is_windows,
+    version_compare,
 )
 from ..options import OptionKey
-
 from .compilers import (
-    clike_debug_args,
-    Compiler,
     CompileCheckMode,
+    Compiler,
     SimplePrefixLinkerOptionStyle,
+    clike_debug_args,
 )
-from .mixins.gnu import GnuCompiler
-from .mixins.gnu import gnu_common_warning_args
+from .mixins.gnu import GnuCompiler, gnu_common_warning_args
 
 if T.TYPE_CHECKING:
-    from . import compilers
     from ..build import DFeatures
     from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
+    from . import compilers
 
     CompilerMixinBase = Compiler
 else:

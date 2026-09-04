@@ -9,22 +9,21 @@ import json
 import os
 import typing as T
 
-
-from . import ExtensionModule, ModuleInfo
 from .. import mlog
 from ..build import InvalidArguments
 from ..dependencies import Dependency
 from ..dependencies.dub import DubDependency
 from ..interpreterbase import typed_pos_args
-from ..mesonlib import Popen_safe, MesonException, listify
+from ..mesonlib import MesonException, Popen_safe, listify
+from . import ExtensionModule, ModuleInfo
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypeAlias
 
-    from . import ModuleState
     from ..interpreter.interpreter import Interpreter
     from ..interpreterbase.baseobjects import TYPE_kwargs
     from ..programs import Program
+    from . import ModuleState
 
     _JSONTypes: TypeAlias = T.Union[str, int, bool, None, T.List['_JSONTypes'], T.Dict[str, '_JSONTypes']]
 

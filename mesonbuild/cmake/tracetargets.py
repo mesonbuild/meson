@@ -2,19 +2,19 @@
 # Copyright 2021 The Meson development team
 from __future__ import annotations
 
-from .common import cmake_is_debug
-from .. import mlog
-from ..mesonlib import Version
-
-from pathlib import Path
 import re
 import typing as T
+from pathlib import Path
+
+from .. import mlog
+from ..mesonlib import Version
+from .common import cmake_is_debug
 
 if T.TYPE_CHECKING:
-    from .traceparser import CMakeTraceParser
-    from ..environment import Environment
     from ..compilers import Compiler
     from ..dependencies import MissingCompiler
+    from ..environment import Environment
+    from .traceparser import CMakeTraceParser
 
 # Small duplication of ExtraFramework to parse full
 # framework paths as exposed by CMake

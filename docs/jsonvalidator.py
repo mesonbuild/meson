@@ -5,10 +5,9 @@
 
 import argparse
 import json
-from pathlib import Path
-from copy import deepcopy
-
 import typing as T
+from copy import deepcopy
+from pathlib import Path
 
 T_None = type(None)
 

@@ -6,32 +6,39 @@
 # Custom logic for several other packages are in separate files.
 
 from __future__ import annotations
+
+import collections
 import copy
 import dataclasses
-import os
-import collections
 import itertools
+import os
 import typing as T
 import uuid
 from enum import Enum
 
-from .. import mlog, mesonlib
+from .. import mesonlib, mlog
 from ..compilers import clib_langs
-from ..mesonlib import LibType, MachineChoice, MesonException, HoldableObject, version_compare_many
+from ..mesonlib import HoldableObject, LibType, MachineChoice, MesonException, version_compare_many
 from ..options import OptionKey
+
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, Required, Self, TypedDict, TypeAlias
+    from typing_extensions import Literal, Required, Self, TypeAlias, TypedDict
 
-    from ..compilers.compilers import Language, Compiler
-    from ..environment import Environment
-    from ..interpreterbase import FeatureCheckBase
     from ..build import (
-        CustomTarget, IncludeDirs, CustomTargetIndex, LinkableTargetTypes,
-        StaticLibrary, ExtractedObjects, TargetSources
+        CustomTarget,
+        CustomTargetIndex,
+        ExtractedObjects,
+        IncludeDirs,
+        LinkableTargetTypes,
+        StaticLibrary,
+        TargetSources,
     )
+    from ..compilers.compilers import Compiler, Language
+    from ..environment import Environment
     from ..interpreter.type_checking import PkgConfigDefineType
+    from ..interpreterbase import FeatureCheckBase
 
     IncludeType: TypeAlias = Literal['system', 'non-system', 'preserve']
 
@@ -398,7 +405,7 @@ class InternalDependency(Dependency):
         raise DependencyException(f'Could not get an internal variable and no default provided for {self!r}')
 
     def generate_link_whole_dependency(self) -> Dependency:
-        from ..build import SharedLibrary, CustomTarget, CustomTargetIndex
+        from ..build import CustomTarget, CustomTargetIndex, SharedLibrary
         new_dep = copy.deepcopy(self)
         for x in new_dep.libraries:
             if isinstance(x, SharedLibrary):

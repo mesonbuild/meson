@@ -3,13 +3,13 @@
 
 from __future__ import annotations
 
-import os
 import argparse
+import os
 import subprocess
 import typing as T
 
-from .meson_exe import run_exe
 from ..utils.core import ExecutableSerialisation
+from .meson_exe import run_exe
 
 parser = argparse.ArgumentParser()
 parser.add_argument('command')

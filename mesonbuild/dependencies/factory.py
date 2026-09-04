@@ -8,9 +8,14 @@ import functools
 import typing as T
 
 from ..mesonlib import MachineChoice
-from .base import DependencyCandidate, DependencyException, DependencyMethods
-from .base import process_method_kw
-from .base import BuiltinDependency, SystemDependency
+from .base import (
+    BuiltinDependency,
+    DependencyCandidate,
+    DependencyException,
+    DependencyMethods,
+    SystemDependency,
+    process_method_kw,
+)
 from .cmake import CMakeDependency
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
@@ -18,9 +23,9 @@ from .pkgconfig import PkgConfigDependency
 if T.TYPE_CHECKING:
     from typing_extensions import TypeAlias
 
-    from .base import DependencyObjectKWs, ExternalDependency, DepType
-    from .configtool import ConfigToolDependency
     from ..environment import Environment
+    from .base import DependencyObjectKWs, DepType, ExternalDependency
+    from .configtool import ConfigToolDependency
 
     # TODO: remove this?
     DependencyGenerator: TypeAlias = DependencyCandidate[ExternalDependency]

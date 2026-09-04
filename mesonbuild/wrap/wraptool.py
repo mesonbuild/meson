@@ -3,16 +3,22 @@
 
 from __future__ import annotations
 
-import sys
-import os
 import configparser
+import os
 import shutil
+import sys
 import typing as T
-
 from glob import glob
-from .wrap import (open_wrapdburl, read_and_decompress, WrapException, get_releases,
-                   get_releases_data, parse_patch_url)
+
 from .. import mesonlib, msubprojects
+from .wrap import (
+    WrapException,
+    get_releases,
+    get_releases_data,
+    open_wrapdburl,
+    parse_patch_url,
+    read_and_decompress,
+)
 
 if T.TYPE_CHECKING:
     import argparse

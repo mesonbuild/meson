@@ -3,19 +3,20 @@
 
 from __future__ import annotations
 
+import functools
+import typing as T
+from pathlib import Path
+
+from .. import mlog
 from ..mesonlib import MesonException
 from ..options import OptionKey
 from ..tooldetect import detect_ninja
-from .. import mlog
-from pathlib import Path
-import functools
-import typing as T
 
 if T.TYPE_CHECKING:
+    from .._typing import ImmutableListProtocol
     from ..compilers.compilers import Language
     from ..environment import Environment
     from ..interpreterbase import TYPE_var
-    from .._typing import ImmutableListProtocol
 
 language_map: T.Mapping[Language, str] = {
     'c': 'C',

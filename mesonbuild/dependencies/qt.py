@@ -7,26 +7,25 @@
 from __future__ import annotations
 
 import abc
-import re
 import os
-from pathlib import Path
+import re
 import typing as T
+from pathlib import Path
 
+from .. import mesonlib, mlog
+from ..options import OptionKey
 from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
 from .detect import packages
+from .factory import DependencyFactory
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
-from .factory import DependencyFactory
-from .. import mlog
-from .. import mesonlib
-from ..options import OptionKey
 
 if T.TYPE_CHECKING:
     from ..compilers.compilers import Compiler
+    from ..dependencies import MissingCompiler
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..dependencies import MissingCompiler
     from .base import DependencyObjectKWs
 
 

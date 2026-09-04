@@ -5,20 +5,19 @@ from __future__ import annotations
 
 import typing as T
 
-from .. import mlog
-from .. import build
+from .. import build, mlog
 from ..compilers import Compiler
 from ..interpreter.type_checking import BT_SOURCES_KW, STATIC_LIB_KWS
-from ..interpreterbase.decorators import KwargInfo, typed_pos_args, typed_kwargs
-
+from ..interpreterbase.decorators import KwargInfo, typed_kwargs, typed_pos_args
 from . import ExtensionModule, ModuleInfo
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
-    from . import ModuleState
-    from ..interpreter import Interpreter, kwargs as kwtypes
+    from ..interpreter import Interpreter
+    from ..interpreter import kwargs as kwtypes
     from ..interpreter.type_checking import SourcesVarargsType
+    from . import ModuleState
 
     class CheckKw(kwtypes.StaticLibrary):
 

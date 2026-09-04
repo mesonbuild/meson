@@ -2,21 +2,20 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
-from ...interpreterbase import (
-    InterpreterObject,
-    MesonOperator,
-    ObjectHolder,
-    typed_pos_args,
-    noKwargs,
-    noPosargs,
-
-    InvalidArguments
-)
-
 import typing as T
 
+from ...interpreterbase import (
+    InterpreterObject,
+    InvalidArguments,
+    MesonOperator,
+    ObjectHolder,
+    noKwargs,
+    noPosargs,
+    typed_pos_args,
+)
+
 if T.TYPE_CHECKING:
-    from ...interpreterbase import TYPE_var, TYPE_kwargs
+    from ...interpreterbase import TYPE_kwargs, TYPE_var
 
 class BooleanHolder(ObjectHolder[bool]):
     TRIVIAL_OPERATORS = {

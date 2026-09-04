@@ -3,16 +3,18 @@
 
 from __future__ import annotations
 
-import subprocess
+import os
 import shutil
+import subprocess
 import tempfile
-from ..cmdline import get_cmd_line_file, CmdLineFileParser
-from ..tooldetect import detect_ninja, detect_scanbuild
-from ..mesonlib import windows_proof_rmtree, determine_worker_count
-from pathlib import Path
 import typing as T
 from ast import literal_eval
-import os
+from pathlib import Path
+
+from ..cmdline import CmdLineFileParser, get_cmd_line_file
+from ..mesonlib import determine_worker_count, windows_proof_rmtree
+from ..tooldetect import detect_ninja, detect_scanbuild
+
 
 def scanbuild(exelist: T.List[str], srcdir: Path, blddir: Path, privdir: Path, logdir: Path, subprojdir: Path, args: T.List[str]) -> int:
     # In case of problems leave the temp directory around

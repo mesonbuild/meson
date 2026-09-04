@@ -3,19 +3,22 @@
 # Copyright © 2019-2025 Intel Corporation
 
 from __future__ import annotations
-from collections import OrderedDict
-from itertools import chain
+
 import copy
 import dataclasses
 import itertools
 import os
 import pathlib
-
 import typing as T
+from collections import OrderedDict
+from itertools import chain
 
+from . import mlog
 from .mesonlib import (
     HoldableObject,
-    default_prefix,
+    MachineChoice,
+    MesonBugException,
+    MesonException,
     default_datadir,
     default_includedir,
     default_infodir,
@@ -23,21 +26,18 @@ from .mesonlib import (
     default_libexecdir,
     default_localedir,
     default_mandir,
+    default_prefix,
     default_sbindir,
     default_sysconfdir,
-    MesonException,
-    MesonBugException,
     listify_array_value,
-    MachineChoice,
 )
-from . import mlog
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, Final, TypeAlias, TypedDict
+    from typing_extensions import Final, Literal, TypeAlias, TypedDict
 
+    from .compilers.compilers import Language
     from .envconfig import MachineInfo
     from .mesonlib import SubProject
-    from .compilers.compilers import Language
 
     DeprecatedType: TypeAlias = T.Union[bool, str, T.Dict[str, str], T.List[str]]
     AnyOptionType: TypeAlias = T.Union[

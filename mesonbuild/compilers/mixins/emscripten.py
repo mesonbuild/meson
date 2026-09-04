@@ -8,11 +8,11 @@ from __future__ import annotations
 import os.path
 import typing as T
 
-from ... import options
-from ... import mesonlib
-from ...options import OptionKey
-from ...mesonlib import LibType
 from mesonbuild.compilers.compilers import CompileCheckMode
+
+from ... import mesonlib, options
+from ...mesonlib import LibType
+from ...options import OptionKey
 
 if T.TYPE_CHECKING:
     from ...compilers.compilers import Compiler

@@ -5,59 +5,55 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
+import itertools
 import os
 import sys
 import typing as T
 from collections import defaultdict
 from dataclasses import dataclass
-import itertools
 from pathlib import Path
 
-from .. import mparser, mesonlib, mlog
-from .. import environment
-
+from .. import environment, mesonlib, mlog, mparser
+from ..interpreter import (
+    ArrayHolder,
+    BooleanHolder,
+    DictHolder,
+    IntegerHolder,
+    StringHolder,
+)
 from ..interpreterbase import (
-    MesonInterpreterObject,
-    InterpreterBase,
-    InvalidArguments,
     BreakRequest,
     ContinueRequest,
     Disabler,
+    InterpreterBase,
+    InterpreterObject,
+    InvalidArguments,
+    MesonInterpreterObject,
+    UndefinedVariable,
+    UnknownValue,
     default_resolve_key,
     is_disabled,
-    UnknownValue,
-    UndefinedVariable,
-    InterpreterObject,
 )
-
-from ..interpreter import (
-    StringHolder,
-    BooleanHolder,
-    IntegerHolder,
-    ArrayHolder,
-    DictHolder,
-)
-
 from ..mparser import (
     ArithmeticNode,
     ArrayNode,
     AssignmentNode,
     BaseNode,
     EmptyNode,
+    FunctionNode,
     IdNode,
     MethodNode,
     NotNode,
     PlusAssignmentNode,
-    TernaryNode,
     SymbolNode,
+    TernaryNode,
     Token,
-    FunctionNode,
 )
 
 if T.TYPE_CHECKING:
-    from .visitor import AstVisitor
     from ..interpreter import Interpreter
-    from ..interpreterbase import TYPE_var, TYPE_kwargs
+    from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from ..mesonlib import HoldableObject, SubProject
     from ..mparser import (
         AndNode,
         ComparisonNode,
@@ -68,7 +64,7 @@ if T.TYPE_CHECKING:
         TestCaseClauseNode,
         UMinusNode,
     )
-    from ..mesonlib import HoldableObject, SubProject
+    from .visitor import AstVisitor
 
     TYPE_ivar = T.Union[str, int, bool, 'HoldableObject', 'MesonInterpreterObject',
                         'UnknownValue', 'IntrospectionBuildTarget', 'IntrospectionFile',

@@ -13,7 +13,8 @@ import re
 import typing as T
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict, NotRequired
+    from typing_extensions import Literal, NotRequired, TypedDict
+
     from ..backend.ninjabackend import TargetDependencyScannerInfo
 
     Require = TypedDict(

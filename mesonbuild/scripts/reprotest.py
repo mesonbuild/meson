@@ -3,17 +3,18 @@
 
 from __future__ import annotations
 
-import sys
 import os
-import subprocess
-import shutil
 import pathlib
+import shutil
+import subprocess
+import sys
 import typing as T
 
 if T.TYPE_CHECKING:
     import argparse
 
 from ..mesonlib import get_meson_command
+
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/

@@ -7,16 +7,20 @@ from __future__ import annotations
 import re
 import typing as T
 
-from .. import mesonlib
-from .. import mlog
-from .base import DependencyCandidate, DependencyException, DependencyMethods
-from .base import BuiltinDependency, SystemDependency
+from .. import mesonlib, mlog
+from ..options import OptionKey
+from .base import (
+    BuiltinDependency,
+    DependencyCandidate,
+    DependencyException,
+    DependencyMethods,
+    SystemDependency,
+)
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import DependencyFactory, factory_methods
 from .pkgconfig import PkgConfigDependency
-from ..options import OptionKey
 
 if T.TYPE_CHECKING:
     from ..environment import Environment

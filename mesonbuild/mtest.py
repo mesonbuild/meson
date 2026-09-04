@@ -4,11 +4,6 @@
 # A tool to run tests in many different ways.
 from __future__ import annotations
 
-from pathlib import Path
-from collections import deque
-from contextlib import suppress
-from copy import deepcopy
-from fnmatch import fnmatch
 import argparse
 import asyncio
 import datetime
@@ -19,26 +14,36 @@ import pickle
 import platform
 import random
 import re
+import shlex
 import signal
 import subprocess
-import shlex
 import sys
 import time
 import typing as T
 import unicodedata
 import xml.etree.ElementTree as et
+from collections import deque
+from contextlib import suppress
+from copy import deepcopy
+from fnmatch import fnmatch
+from pathlib import Path
 
-from . import build
-from . import tooldetect
-from . import mlog
+from . import build, mlog, tooldetect
+from .backend.backends import TestProtocol, TestSerialisation
 from .coredata import MesonVersionMismatchException, major_versions_differ
 from .coredata import version as coredata_version
-from .mesonlib import (MesonException, OrderedSet, RealPathAction,
-                       get_wine_shortpath, join_args, split_args, setup_vsenv,
-                       determine_worker_count)
+from .mesonlib import (
+    MesonException,
+    OrderedSet,
+    RealPathAction,
+    determine_worker_count,
+    get_wine_shortpath,
+    join_args,
+    setup_vsenv,
+    split_args,
+)
 from .options import OptionKey
 from .programs import ExternalProgram
-from .backend.backends import TestProtocol, TestSerialisation
 
 if T.TYPE_CHECKING:
     TYPE_TAPResult = T.Union['TAPParser.Test',

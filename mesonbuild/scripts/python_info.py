@@ -16,6 +16,7 @@ import json
 import os
 import sysconfig
 
+
 def get_distutils_paths(scheme=None, prefix=None):
     import distutils.dist
     distribution = distutils.dist.Distribution()

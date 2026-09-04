@@ -15,6 +15,7 @@ import os
 import re
 from pathlib import Path
 
+
 def check_file(file: Path) -> None:
     lines = file.read_bytes().split(b'\n')
     tabdetector = re.compile(br' *\t')

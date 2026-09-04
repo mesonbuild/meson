@@ -2,6 +2,7 @@
 # Copyright © 2020-2025 Intel Corporation
 
 from __future__ import annotations
+
 import itertools
 import os
 import re
@@ -10,44 +11,86 @@ import typing as T
 
 from mesonbuild.interpreterbase.decorators import FeatureNew
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo, ModuleObject
 from .. import mesonlib, mlog
-from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
-                     CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary, StaticLibrary,
-                     SharedModule)
+from ..build import (
+    BothLibraries,
+    BuildTarget,
+    CustomTarget,
+    CustomTargetIndex,
+    Executable,
+    ExtractedObjects,
+    GeneratedList,
+    InvalidArguments,
+    Jar,
+    SharedLibrary,
+    SharedModule,
+    StaticLibrary,
+    StructuredSources,
+)
 from ..compilers.compilers import are_asserts_disabled_for_subproject, lang_suffixes
-from ..compilers.rust import parse_target, RustSystemDependency
+from ..compilers.rust import RustSystemDependency, parse_target
 from ..dependencies import Dependency
 from ..interpreter.decorators import apply_machine_map
-from ..interpreter.type_checking import (
-    DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
-    OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NATIVE_KW, NoneType, in_set_validator,
-    EXECUTABLE_KWS, LIBRARY_KWS, SHARED_MOD_KWS, _BASE_LANG_KW, DEPEND_FILES_KW, INSTALL_DIR_KW, INSTALL_KW,
-)
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs
 from ..interpreter.interpreterobjects import Doctest
-from ..mesonlib import (is_parent_path, File, MachineChoice, MesonException, PerMachine)
+from ..interpreter.type_checking import (
+    _BASE_LANG_KW,
+    DEPEND_FILES_KW,
+    DEPENDENCIES_KW,
+    EXECUTABLE_KWS,
+    INCLUDE_DIRECTORIES,
+    INSTALL_DIR_KW,
+    INSTALL_KW,
+    LIBRARY_KWS,
+    LINK_WHOLE_KW,
+    LINK_WITH_KW,
+    NATIVE_KW,
+    OUTPUT_KW,
+    SHARED_LIB_KWS,
+    SHARED_MOD_KWS,
+    SOURCES_VARARGS,
+    TEST_KWS,
+    TEST_KWS_NO_ARGS,
+    NoneType,
+    in_set_validator,
+)
+from ..interpreterbase import (
+    ContainerTypeInfo,
+    InterpreterException,
+    KwargInfo,
+    noKwargs,
+    noPosargs,
+    typed_kwargs,
+    typed_pos_args,
+)
+from ..mesonlib import File, MachineChoice, MesonException, PerMachine, is_parent_path
 from ..programs import ExternalProgram, NonExistingExternalProgram
+from . import ExtensionModule, ModuleInfo, ModuleObject, ModuleReturnValue
 
 if T.TYPE_CHECKING:
-    from . import ModuleState
+    from typing_extensions import Literal, TypedDict
+
     from .. import cargo
-    from ..build import ExecutableKeywordArguments, GeneratedTypes, IncludeDirs, LinkableTargetTypes, CommandTypes
+    from ..build import (
+        CommandTypes,
+        ExecutableKeywordArguments,
+        GeneratedTypes,
+        IncludeDirs,
+        LinkableTargetTypes,
+    )
     from ..cargo.interpreter import RUST_ABI, PackageConfiguration
     from ..compilers.compilers import Language
     from ..compilers.rust import RustCompiler
     from ..dependencies import ExternalLibrary
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
-    from ..interpreter.kwargs import TargetDepends
     from ..interpreter.interpreter import SourceOutputs
     from ..interpreter.interpreterobjects import Test
+    from ..interpreter.kwargs import TargetDepends
+    from ..interpreter.type_checking import SourcesVarargsType
     from ..interpreterbase import TYPE_kwargs
     from ..programs import Program
-    from ..interpreter.type_checking import SourcesVarargsType
     from ..utils.universal import FileOrString
-
-    from typing_extensions import Literal, TypedDict
+    from . import ModuleState
 
     ArgsType = T.TypeVar('ArgsType')
 

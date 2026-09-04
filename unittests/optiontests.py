@@ -1,15 +1,19 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2024 Meson project contributors
 
-from mesonbuild.options import (
-	OptionStore, OptionKey, UserStringOption, UserStringArrayOption,
-    UserComboOption, UserBooleanOption,
-)
-from mesonbuild.envconfig import MachineInfo
-from mesonbuild.utils.universal import MesonException, MachineChoice
-
 import os
 import unittest
+
+from mesonbuild.envconfig import MachineInfo
+from mesonbuild.options import (
+    OptionKey,
+    OptionStore,
+    UserBooleanOption,
+    UserComboOption,
+    UserStringArrayOption,
+    UserStringOption,
+)
+from mesonbuild.utils.universal import MachineChoice, MesonException
 
 
 def make_machine(system: str) -> MachineInfo:

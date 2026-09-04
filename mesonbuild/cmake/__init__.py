@@ -20,9 +20,16 @@ __all__ = [
     'resolve_cmake_trace_targets',
 ]
 
-from .common import CMakeException, TargetOptions, cmake_defines_to_args, language_map, check_cmake_args, cmake_is_debug
+from .common import (
+    CMakeException,
+    TargetOptions,
+    check_cmake_args,
+    cmake_defines_to_args,
+    cmake_is_debug,
+    language_map,
+)
 from .executor import CMakeExecutor
 from .interpreter import CMakeInterpreter
-from .toolchain import CMakeToolchain, CMakeExecScope
+from .toolchain import CMakeExecScope, CMakeToolchain
 from .traceparser import CMakeTarget, CMakeTraceParser
 from .tracetargets import resolve_cmake_trace_targets

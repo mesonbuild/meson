@@ -3,17 +3,18 @@
 
 from __future__ import annotations
 
-from mesonbuild import tooldetect, mesonlib
-
 import argparse
-import re
-import sys
 import os
-import subprocess
 import pathlib
-import stat
+import re
 import shutil
+import stat
+import subprocess
+import sys
 import typing as T
+
+from mesonbuild import mesonlib, tooldetect
+
 
 def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build_root: str, log_dir: str, use_llvm_cov: bool,
              gcovr_exe: str, llvm_cov_exe: str) -> int:

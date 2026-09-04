@@ -3,27 +3,20 @@
 
 from __future__ import annotations
 
-import subprocess
-import re
 import os
 import platform
-import unittest
+import re
+import subprocess
 import typing as T
+import unittest
 
-from mesonbuild.mesonlib import (
-    MachineChoice, is_osx, version_compare
-)
-from mesonbuild.compilers import (
-    detect_c_compiler
-)
-
-
-from run_tests import (
-    get_fake_env
-)
+from mesonbuild.compilers import detect_c_compiler
+from mesonbuild.mesonlib import MachineChoice, is_osx, version_compare
+from run_tests import get_fake_env
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import skip_if_not_language, skipIfNoPkgconfig
+
 
 @unittest.skipUnless(is_osx(), "requires Darwin")
 class DarwinTests(BasePlatformTests):

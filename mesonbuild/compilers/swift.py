@@ -3,23 +3,23 @@
 
 from __future__ import annotations
 
+import os.path
 import re
 import subprocess
-import os.path
 import typing as T
 
 from .. import mlog, options
-from ..mesonlib import first, MesonException, version_compare
-from .compilers import Compiler, CompileCheckMode, clike_debug_args, PrefixArgumentLinkerOptionStyle
+from ..mesonlib import MesonException, first, version_compare
+from .compilers import CompileCheckMode, Compiler, PrefixArgumentLinkerOptionStyle, clike_debug_args
 
 if T.TYPE_CHECKING:
     from .. import build
     from ..compilers.compilers import Language
-    from ..options import MutableKeyedOptionDictType
     from ..dependencies import Dependency
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
+    from ..options import MutableKeyedOptionDictType
 
 swift_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],

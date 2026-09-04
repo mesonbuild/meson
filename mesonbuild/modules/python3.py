@@ -7,21 +7,26 @@ import sysconfig
 import typing as T
 
 from .. import mesonlib
-from . import ExtensionModule, ModuleInfo
 from ..build import (
-    BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects,
-    GeneratedList, SharedModule, StructuredSources
+    BuildTarget,
+    CustomTarget,
+    CustomTargetIndex,
+    ExtractedObjects,
+    GeneratedList,
+    SharedModule,
+    StructuredSources,
 )
 from ..interpreter.type_checking import SHARED_MOD_KWS
-from ..interpreterbase import typed_kwargs, typed_pos_args, noPosargs, noKwargs
+from ..interpreterbase import noKwargs, noPosargs, typed_kwargs, typed_pos_args
 from ..programs import ExternalProgram
+from . import ExtensionModule, ModuleInfo
 
 if T.TYPE_CHECKING:
-    from . import ModuleState
     from ..interpreter.interpreter import BuildTargetSource, Interpreter
     from ..interpreter.kwargs import SharedModule as SharedModuleKW
-    from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..interpreter.type_checking import SourcesVarargsType
+    from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from . import ModuleState
 
 
 _MOD_KWARGS = [k for k in SHARED_MOD_KWS if k.name not in {'name_prefix', 'name_suffix'}]

@@ -6,10 +6,10 @@
   Generates release notes for new releases of Meson build system
 '''
 import argparse
-import subprocess
+import datetime
 import re
 import shutil
-import datetime
+import subprocess
 from pathlib import Path
 
 RELNOTE_TEMPLATE = '''---

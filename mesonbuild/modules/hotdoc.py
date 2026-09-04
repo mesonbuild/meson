@@ -9,29 +9,36 @@ import os
 import subprocess
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import build, mesonlib, mlog
 from ..build import CustomTarget, CustomTargetIndex
 from ..dependencies import Dependency, InternalDependency
-from ..interpreterbase import (
-    InvalidArguments, noPosargs, noKwargs, typed_kwargs, FeatureDeprecated,
-    ContainerTypeInfo, KwargInfo, typed_pos_args, InterpreterObject
-)
 from ..interpreter.interpreterobjects import _CustomTargetHolder
 from ..interpreter.type_checking import NoneType
+from ..interpreterbase import (
+    ContainerTypeInfo,
+    FeatureDeprecated,
+    InterpreterObject,
+    InvalidArguments,
+    KwargInfo,
+    noKwargs,
+    noPosargs,
+    typed_kwargs,
+    typed_pos_args,
+)
 from ..mesonlib import File, MesonException
-from ..programs import ExternalProgram
 from ..options import OptionKey
+from ..programs import ExternalProgram
+from . import ExtensionModule, ModuleInfo, ModuleReturnValue
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
-    from . import ModuleState
     from ..build import BuildProject
     from ..environment import Environment
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import TargetDepends
     from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from . import ModuleState
 
     _T = T.TypeVar('_T')
 

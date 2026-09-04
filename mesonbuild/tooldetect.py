@@ -8,10 +8,8 @@ import os
 import shutil
 import typing as T
 
-from . import coredata
-from . import mesonlib
-from . import mlog
-from .mesonlib import MachineChoice, Popen_safe, search_version, quote_arg, split_args
+from . import coredata, mesonlib, mlog
+from .mesonlib import MachineChoice, Popen_safe, quote_arg, search_version, split_args
 from .programs import ExternalProgram
 
 

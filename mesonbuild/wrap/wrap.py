@@ -3,43 +3,48 @@
 
 from __future__ import annotations
 
-from .. import mlog
+import configparser
 import contextlib
-from dataclasses import dataclass
-import urllib.request
-import urllib.error
-import urllib.parse
-import os
+import gzip
 import hashlib
+import json
+import os
 import shutil
-import tempfile
 import stat
 import subprocess
 import sys
-import configparser
+import tempfile
+import textwrap
 import time
 import typing as T
-import textwrap
-import json
-import gzip
-
+import urllib.error
+import urllib.parse
+import urllib.request
 from base64 import b64encode
+from dataclasses import dataclass
 from enum import Enum
+from functools import lru_cache
 from netrc import netrc
 from pathlib import Path, PurePath
-from functools import lru_cache
 
-from . import WrapMode
-from .. import coredata
-from ..mesonlib import (
-    DirectoryLock, DirectoryLockAction, quiet_git, GIT, ProgressBar, MesonException,
-    windows_proof_rmtree, Popen_safe, SubProject,
-)
+from .. import coredata, mesonlib, mlog
 from ..interpreterbase import FeatureNew
-from .. import mesonlib
+from ..mesonlib import (
+    GIT,
+    DirectoryLock,
+    DirectoryLockAction,
+    MesonException,
+    Popen_safe,
+    ProgressBar,
+    SubProject,
+    quiet_git,
+    windows_proof_rmtree,
+)
+from . import WrapMode
 
 if T.TYPE_CHECKING:
     import http.client
+
     from typing_extensions import Literal
 
     from ..cargo.manifest import CargoLock
@@ -64,8 +69,8 @@ if sys.version_info >= (3, 14):
 @lru_cache(maxsize=None)
 def patch_command() -> T.Optional[str]:
     if mesonlib.is_windows():
-        from ..programs import ExternalProgram
         from ..mesonlib import version_compare
+        from ..programs import ExternalProgram
         _exclude_paths: T.List[str] = []
         while True:
             _patch = ExternalProgram('patch', silent=True, exclude_paths=_exclude_paths)

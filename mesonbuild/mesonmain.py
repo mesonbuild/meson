@@ -3,23 +3,25 @@
 
 from __future__ import annotations
 
-# Work around some pathlib bugs...
-
-from . import _pathlib
 import sys
+
+# Work around some pathlib bugs...
+from . import _pathlib
+
 sys.modules['pathlib'] = _pathlib
 
 # This file is an entry point for all commands, including scripts. Include the
 # strict minimum python modules for performance reasons.
 # ruff: disable[E402]
+import argparse
+import importlib
 import os.path
 import platform
-import importlib
-import argparse
 import typing as T
 
-from .utils.core import MesonException, MesonBugException
 from . import mlog
+from .utils.core import MesonBugException, MesonException
+
 # ruff: enable[E402]
 
 if T.TYPE_CHECKING:
@@ -74,10 +76,25 @@ def errorhandler(e: Exception, command: str) -> int:
 class CommandLineParser:
     def __init__(self) -> None:
         # only import these once we do full argparse processing
-        from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv, mformat
+        import shutil
+
+        from . import (
+            mcompile,
+            mconf,
+            mdevenv,
+            mdist,
+            mformat,
+            minit,
+            minstall,
+            mintro,
+            msetup,
+            msubprojects,
+            mtest,
+            munstable_coredata,
+            rewriter,
+        )
         from .scripts import env2mfile, reprotest
         from .wrap import wraptool
-        import shutil
 
         self.term_width = shutil.get_terminal_size().columns
         self.formatter = lambda prog: argparse.HelpFormatter(prog, max_help_position=int(self.term_width / 2), width=self.term_width)
@@ -247,8 +264,9 @@ def set_meson_command(mainfile: str) -> None:
     mesonlib.set_meson_command(mainfile)
 
 def validate_original_args(args: list[str]) -> None:
-    import mesonbuild.options
     import itertools
+
+    import mesonbuild.options
 
     def has_startswith(coll: list[str], target: str) -> bool:
         for entry in coll:

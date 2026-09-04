@@ -4,16 +4,17 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
 import collections
 import enum
 import os
 import typing as T
+from functools import lru_cache
+
 from mesonbuild.utils.universal import is_lib_filename
 
 if T.TYPE_CHECKING:
-    from .linkers import StaticLinker
     from .compilers import Compiler
+    from .linkers import StaticLinker
 
 # execinfo is a compiler lib on BSD
 UNIXY_COMPILER_INTERNAL_LIBS = ['m', 'c', 'pthread', 'dl', 'rt', 'execinfo']

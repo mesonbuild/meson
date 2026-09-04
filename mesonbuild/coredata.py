@@ -5,35 +5,35 @@
 from __future__ import annotations
 
 import copy
+import enum
+import os
+import pickle
+import sys
+import textwrap
+import typing as T
+import uuid
+from collections import OrderedDict
 
 from . import mlog, options
-import pickle
-import os
-import uuid
-import sys
-from collections import OrderedDict
-import textwrap
-
-from .mesonlib import (
-    MesonException, MachineChoice, PerMachine,
-    PerMachineDefaultable,
-    pickle_load
-)
-
+from .mesonlib import MachineChoice, MesonException, PerMachine, PerMachineDefaultable, pickle_load
 from .options import OptionKey
-
-import enum
-import typing as T
 
 if T.TYPE_CHECKING:
     from . import dependencies
-    from .compilers.compilers import Compiler, CompilerDict, CompileResult, RunResult, CompileCheckMode, Language
+    from .build import BuildTarget
+    from .cmake.traceparser import CMakeCacheEntry
+    from .cmdline import SharedCMDOptions
+    from .compilers.compilers import (
+        CompileCheckMode,
+        Compiler,
+        CompilerDict,
+        CompileResult,
+        Language,
+        RunResult,
+    )
     from .dependencies.detect import TV_DepID
     from .mesonlib import FileOrString, SubProject
-    from .cmake.traceparser import CMakeCacheEntry
     from .options import ElementaryOptionValues, MutableKeyedOptionDictType
-    from .build import BuildTarget
-    from .cmdline import SharedCMDOptions
 
     OptionDictType = T.Dict[str, options.AnyOptionType]
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], CompileCheckMode]

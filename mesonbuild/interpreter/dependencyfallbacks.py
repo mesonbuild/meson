@@ -4,25 +4,29 @@
 
 from __future__ import annotations
 
-from .. import mlog
-from .. import dependencies
-from .. import build
-from ..wrap import WrapMode
-from ..mesonlib import stringlistify, version_compare_many, SubProject
-from ..options import OptionKey
-from ..dependencies import Dependency, DependencyException, NotFoundDependency
-from ..interpreterbase import (MesonInterpreterObject, FeatureNew,
-                               InterpreterException, InvalidArguments)
-
 import typing as T
+
+from .. import build, dependencies, mlog
+from ..dependencies import Dependency, DependencyException, NotFoundDependency
+from ..interpreterbase import (
+    FeatureNew,
+    InterpreterException,
+    InvalidArguments,
+    MesonInterpreterObject,
+)
+from ..mesonlib import SubProject, stringlistify, version_compare_many
+from ..options import OptionKey
+from ..wrap import WrapMode
+
 if T.TYPE_CHECKING:
     from typing_extensions import TypeAlias
-    from .interpreter import Interpreter
-    from .kwargs import DoSubproject
+
     from ..dependencies.base import DependencyObjectKWs
-    from ..options import ElementaryOptionValues, OptionDict
-    from .interpreterobjects import SubprojectHolder
     from ..mesonlib import MachineChoice
+    from ..options import ElementaryOptionValues, OptionDict
+    from .interpreter import Interpreter
+    from .interpreterobjects import SubprojectHolder
+    from .kwargs import DoSubproject
 
     CandidateType: TypeAlias = T.Tuple[T.Callable[[DependencyObjectKWs, str, DoSubproject], T.Optional[Dependency]], str]
 

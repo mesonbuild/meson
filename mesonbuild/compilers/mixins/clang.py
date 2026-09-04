@@ -9,18 +9,25 @@ import os
 import shutil
 import typing as T
 
-from ... import mesonlib
-from ... import options
-from ...linkers.linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, \
-    GnuBFDDynamicLinker, GnuGoldDynamicLinker, MoldDynamicLinker, VisualStudioLikeLinkerMixin, WildDynamicLinker
+from ... import mesonlib, options
+from ...linkers.linkers import (
+    AppleDynamicLinker,
+    ClangClDynamicLinker,
+    GnuBFDDynamicLinker,
+    GnuGoldDynamicLinker,
+    LLVMDynamicLinker,
+    MoldDynamicLinker,
+    VisualStudioLikeLinkerMixin,
+    WildDynamicLinker,
+)
 from ...options import OptionKey
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 
 if T.TYPE_CHECKING:
-    from ...options import MutableKeyedOptionDictType
-    from ...dependencies import Dependency  # noqa: F401
     from ...build import BuildTarget
+    from ...dependencies import Dependency  # noqa: F401
+    from ...options import MutableKeyedOptionDictType
     from ..compilers import Compiler
 
     CompilerMixinBase = Compiler

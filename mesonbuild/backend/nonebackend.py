@@ -2,11 +2,12 @@
 # Copyright 2022 The Meson development team
 
 from __future__ import annotations
+
 import typing as T
 
-from .backends import Backend
 from .. import mlog
 from ..mesonlib import MesonBugException
+from .backends import Backend
 
 
 class NoneBackend(Backend):

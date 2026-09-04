@@ -6,19 +6,19 @@ from __future__ import annotations
 
 import abc
 import os
-import typing as T
 import re
+import typing as T
 
-from .base import ArLikeLinker, RSPFileSyntax
 from .. import mesonlib
-from ..mesonlib import EnvironmentException, MesonException, path_has_root
 from ..arglist import CompilerArgs
+from ..mesonlib import EnvironmentException, MesonException, path_has_root
+from .base import ArLikeLinker, RSPFileSyntax
 
 if T.TYPE_CHECKING:
-    from ..environment import Environment
-    from ..mesonlib import MachineChoice
     from ..build import BuildTarget
     from ..compilers.compilers import LinkerOptionStyle
+    from ..environment import Environment
+    from ..mesonlib import MachineChoice
 
 
 class StaticLinker:

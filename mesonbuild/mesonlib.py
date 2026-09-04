@@ -7,7 +7,6 @@
 # ruff: noqa: F403
 
 from .utils.core import *
-from .utils.vsenv import *
-
-from .utils.universal import *
 from .utils.platform import *
+from .utils.universal import *
+from .utils.vsenv import *

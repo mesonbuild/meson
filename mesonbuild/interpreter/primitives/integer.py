@@ -2,19 +2,26 @@
 # Copyright 2021 The Meson development team
 from __future__ import annotations
 
+import typing as T
+
 from ...interpreterbase import (
-    InterpreterObject, MesonOperator, ObjectHolder,
-    FeatureBroken, InvalidArguments, KwargInfo,
-    noKwargs, noPosargs, typed_operator, typed_kwargs
+    FeatureBroken,
+    InterpreterObject,
+    InvalidArguments,
+    KwargInfo,
+    MesonOperator,
+    ObjectHolder,
+    noKwargs,
+    noPosargs,
+    typed_kwargs,
+    typed_operator,
 )
 from ..type_checking import in_set_validator
-
-import typing as T
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
-    from ...interpreterbase import TYPE_var, TYPE_kwargs
+    from ...interpreterbase import TYPE_kwargs, TYPE_var
 
     class ToStringKw(TypedDict):
         fill: int

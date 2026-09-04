@@ -6,17 +6,18 @@
 # or an interpreter-based tool
 
 from __future__ import annotations
+
 import os
 import typing as T
 
 from .. import compilers, environment, mesonlib
-from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary, BuildProject
+from ..build import BuildProject, Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
-from ..interpreterbase import InvalidArguments, UnknownValue, Feature
 from ..interpreter import type_checking
+from ..interpreterbase import Feature, InvalidArguments, UnknownValue
 from ..mesonlib import MachineChoice, SubProject
+from ..mparser import ArrayNode, BaseNode, ElementaryNode, FunctionNode, IdNode, StringNode
 from ..options import OptionKey
-from ..mparser import BaseNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
 from .interpreter import AstInterpreter, IntrospectionBuildTarget, IntrospectionDependency
 
 if T.TYPE_CHECKING:

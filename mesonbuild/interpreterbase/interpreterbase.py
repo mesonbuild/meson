@@ -5,20 +5,29 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
-from .. import environment, mparser, mesonlib
+import copy
+import hashlib
+import os
+import pathlib
+import re
+import textwrap
+import typing as T
 
+from .. import environment, mesonlib, mlog, mparser
+from . import operator
+from ._unholder import _unholder
 from .baseobjects import (
+    ContextManagerObject,
+    DefaultObject,
+    HoldableTypes,
     InterpreterObject,
+    IterableObject,
     MesonInterpreterObject,
     MutableInterpreterObject,
     ObjectHolder,
-    IterableObject,
-    ContextManagerObject,
-    DefaultObject,
-
-    HoldableTypes,
 )
-
+from .decorators import FeatureNew
+from .disabler import Disabler, is_disabled
 from .exceptions import (
     BreakRequest,
     ContinueRequest,
@@ -27,28 +36,19 @@ from .exceptions import (
     InvalidCode,
     SubdirDoneRequest,
 )
-
-from .. import mlog
-from . import operator
-from .decorators import FeatureNew
-from .disabler import Disabler, is_disabled
-from .helpers import default_resolve_key, flatten, resolve_second_level_holders, stringifyUserArguments
+from .helpers import (
+    default_resolve_key,
+    flatten,
+    resolve_second_level_holders,
+    stringifyUserArguments,
+)
 from .operator import MesonOperator
-from ._unholder import _unholder
-
-import os
-import copy
-import hashlib
-import re
-import pathlib
-import typing as T
-import textwrap
 
 if T.TYPE_CHECKING:
-    from .baseobjects import InterpreterObjectTypeVar, TYPE_kwargs, TYPE_var
     from ..ast import AstVisitor
     from ..interpreter import Interpreter
     from ..mesonlib import SubProject
+    from .baseobjects import InterpreterObjectTypeVar, TYPE_kwargs, TYPE_var
 
     HolderMapType = T.Dict[
         T.Union[

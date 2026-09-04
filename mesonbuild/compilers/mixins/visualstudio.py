@@ -11,11 +11,11 @@ from __future__ import annotations
 import os
 import typing as T
 
-from ... import arglist
-from ... import mesonlib
 from mesonbuild.compilers.compilers import CompileCheckMode
-from ...options import OptionKey
 from mesonbuild.linkers.linkers import ClangClDynamicLinker, MSVCDynamicLinker
+
+from ... import arglist, mesonlib
+from ...options import OptionKey
 
 if T.TYPE_CHECKING:
     from ...build import BuildTarget

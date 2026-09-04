@@ -3,16 +3,16 @@
 
 from __future__ import annotations
 
-import subprocess as S
-from threading import Thread
-import typing as T
-import re
 import os
+import re
+import subprocess as S
+import typing as T
+from threading import Thread
 
 from .. import mlog
-from ..mesonlib import PerMachine, Popen_safe, version_compare, is_windows
+from ..mesonlib import PerMachine, Popen_safe, is_windows, version_compare
 from ..options import OptionKey
-from ..programs import find_external_program, NonExistingExternalProgram
+from ..programs import NonExistingExternalProgram, find_external_program
 
 if T.TYPE_CHECKING:
     from pathlib import Path

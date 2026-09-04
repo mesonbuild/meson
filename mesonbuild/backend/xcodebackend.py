@@ -4,22 +4,19 @@
 from __future__ import annotations
 
 import functools
-import uuid
-import os
 import operator
+import os
 import re
 import typing as T
+import uuid
 
-from . import backends
-from .. import build
-from .. import compilers
-from .. import mesonlib
-from .. import mlog
+from .. import build, compilers, mesonlib, mlog
 from ..arglist import CompilerArgs
 from ..dependencies.platform import AppleFrameworks
-from ..mesonlib import MesonBugException, MesonException
 from ..linkers import StaticLinker
+from ..mesonlib import MesonBugException, MesonException
 from ..options import OptionKey
+from . import backends
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget

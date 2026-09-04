@@ -4,16 +4,17 @@
 from __future__ import annotations
 
 import argparse
-import subprocess
-from pathlib import Path
-import tempfile
 import os
 import shutil
+import subprocess
 import sys
-
-from .run_tool import run_with_buffered_output, run_clang_tool_on_sources
-from ..tooldetect import detect_clangtidy, detect_clangapply
+import tempfile
 import typing as T
+from pathlib import Path
+
+from ..tooldetect import detect_clangapply, detect_clangtidy
+from .run_tool import run_clang_tool_on_sources, run_with_buffered_output
+
 
 async def run_clang_tidy(fname: Path, tidyexe: list, builddir: Path, fixesdir: T.Optional[Path]) -> int:
     args = []

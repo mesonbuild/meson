@@ -3,38 +3,38 @@
 
 from __future__ import annotations
 
-import textwrap
-import typing as T
 import functools
 import os
-
-from .. import options
-from .. import mesonlib
-from .compilers import (
-    clike_debug_args,
-    Compiler,
-    CompileCheckMode,
-    ManyInOneLinkerOptionStyle,
-)
-from .mixins.clike import CLikeCompiler
-from .mixins.gnu import GnuCompiler,  gnu_optimization_args
-from .mixins.intel import IntelGnuLikeCompiler, IntelLLVMLikeCompiler, IntelVisualStudioLikeCompiler
-from .mixins.clang import ClangCompiler
-from .mixins.elbrus import ElbrusCompiler
-from .mixins.pgi import PGICompiler
+import textwrap
+import typing as T
 
 from mesonbuild.mesonlib import (
-    version_compare, MesonException,
     LibType,
+    MesonException,
+    version_compare,
 )
 
+from .. import mesonlib, options
+from .compilers import (
+    CompileCheckMode,
+    Compiler,
+    ManyInOneLinkerOptionStyle,
+    clike_debug_args,
+)
+from .mixins.clang import ClangCompiler
+from .mixins.clike import CLikeCompiler
+from .mixins.elbrus import ElbrusCompiler
+from .mixins.gnu import GnuCompiler, gnu_optimization_args
+from .mixins.intel import IntelGnuLikeCompiler, IntelLLVMLikeCompiler, IntelVisualStudioLikeCompiler
+from .mixins.pgi import PGICompiler
+
 if T.TYPE_CHECKING:
-    from ..options import MutableKeyedOptionDictType
+    from ..build import BuildTarget
     from ..dependencies import Dependency
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
-    from ..build import BuildTarget
+    from ..options import MutableKeyedOptionDictType
 
 
 class FortranCompiler(CLikeCompiler, Compiler):

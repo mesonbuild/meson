@@ -2,13 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright © 2024 Intel Corporation
 
-from pathlib import Path
 import argparse
 import concurrent.futures
 import os
 import subprocess
 import sys
 import typing as T
+from pathlib import Path
 
 from mesonbuild.mesonlib import version_compare
 

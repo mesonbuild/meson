@@ -2,31 +2,29 @@
 # Copyright 2021 The Meson development team
 from __future__ import annotations
 
-import re
 import os
-
+import re
 import typing as T
 
 from ... import mlog
-from ...mesonlib import version_check_to_range, version_compare_many, underscorify
 from ...interpreterbase import (
+    FeatureBroken,
+    FeatureNew,
     InterpreterObject,
+    InvalidArguments,
     MesonOperator,
     ObjectHolder,
-    FeatureNew,
-    typed_operator,
     noArgsFlattening,
     noKwargs,
     noPosargs,
-    typed_pos_args,
-    InvalidArguments,
-    FeatureBroken,
     stringifyUserArguments,
+    typed_operator,
+    typed_pos_args,
 )
-
+from ...mesonlib import underscorify, version_check_to_range, version_compare_many
 
 if T.TYPE_CHECKING:
-    from ...interpreterbase import TYPE_var, TYPE_kwargs
+    from ...interpreterbase import TYPE_kwargs, TYPE_var
 
 class StringHolder(ObjectHolder[str]):
     TRIVIAL_OPERATORS = {

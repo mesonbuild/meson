@@ -6,42 +6,64 @@ from __future__ import annotations
 import copy
 import json
 import os
-import shutil
 import re
+import shutil
 import typing as T
 
-from . import ExtensionModule, ModuleInfo
-from .. import mesonlib
-from .. import mlog
-from ..build import CustomTarget, CustomTargetIndex, BuildTarget, GeneratedList, StructuredSources, ExtractedObjects, SharedModule
+from .. import mesonlib, mlog
+from ..build import (
+    BuildTarget,
+    CustomTarget,
+    CustomTargetIndex,
+    ExtractedObjects,
+    GeneratedList,
+    SharedModule,
+    StructuredSources,
+)
 from ..dependencies import NotFoundDependency
-from ..dependencies.detect import get_dep_identifier, find_external_dependency
-from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase
-from ..interpreter import extract_required_kwarg, primitives as P_OBJ
+from ..dependencies.detect import find_external_dependency, get_dep_identifier
+from ..dependencies.python import BasicPythonExternalProgram, _PythonDependencyBase, python_factory
+from ..interpreter import extract_required_kwarg
+from ..interpreter import primitives as P_OBJ
 from ..interpreter.interpreterobjects import ProgramHolder
-from ..interpreter.type_checking import NoneType, DEPENDENCY_KWS, PRESERVE_PATH_KW, REQUIRED_KW, SHARED_MOD_KWS
+from ..interpreter.type_checking import (
+    DEPENDENCY_KWS,
+    PRESERVE_PATH_KW,
+    REQUIRED_KW,
+    SHARED_MOD_KWS,
+    NoneType,
+)
 from ..interpreterbase import (
-    noPosargs, noKwargs, ContainerTypeInfo,
-    InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
-    FeatureNew, disablerIfNotFound, InterpreterObject
+    ContainerTypeInfo,
+    FeatureNew,
+    InterpreterObject,
+    InvalidArguments,
+    KwargInfo,
+    disablerIfNotFound,
+    noKwargs,
+    noPosargs,
+    typed_kwargs,
+    typed_pos_args,
 )
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram
+from . import ExtensionModule, ModuleInfo
 
 _T = T.TypeVar('_T')
 
 if T.TYPE_CHECKING:
-    from typing_extensions import TypedDict, NotRequired
+    from typing_extensions import NotRequired, TypedDict
 
-    from . import ModuleState
     from ..build import Build, Data
     from ..dependencies.base import Dependency, DependencyObjectKWs
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import BuildTargetSource
-    from ..interpreter.kwargs import ExtractRequired, SharedModule as SharedModuleKw, FuncDependency
+    from ..interpreter.kwargs import ExtractRequired, FuncDependency
+    from ..interpreter.kwargs import SharedModule as SharedModuleKw
     from ..interpreter.type_checking import SourcesVarargsType
-    from ..interpreterbase.baseobjects import TYPE_var, TYPE_kwargs
+    from ..interpreterbase.baseobjects import TYPE_kwargs, TYPE_var
+    from . import ModuleState
 
     class PyInstallKw(TypedDict):
 

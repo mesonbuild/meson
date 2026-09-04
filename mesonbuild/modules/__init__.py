@@ -4,26 +4,27 @@
 # This file contains the base representation for import('modname')
 
 from __future__ import annotations
+
 import dataclasses
 import os.path
 import typing as T
 
 from .. import build, dependencies, mesonlib, mlog
-from ..options import OptionKey
 from ..build import IncludeDirs
 from ..interpreterbase.decorators import noKwargs, noPosargs
-from ..mesonlib import relpath, HoldableObject, MachineChoice
+from ..mesonlib import HoldableObject, MachineChoice, relpath
+from ..options import OptionKey
 from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from ..compilers.compilers import Language
+    from ..dependencies import Dependency
     from ..dependencies.base import DependencyObjectKWs
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import ProgramVersionFunc
-    from ..interpreterbase import TYPE_var, TYPE_kwargs
-    from ..programs import Program
-    from ..dependencies import Dependency
+    from ..interpreterbase import TYPE_kwargs, TYPE_var
     from ..options import ElementaryOptionValues
+    from ..programs import Program
 
 class ModuleState:
     """Object passed to all module methods.

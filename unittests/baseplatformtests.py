@@ -3,37 +3,45 @@
 # Copyright © 2024 Intel Corporation
 
 from __future__ import annotations
-from pathlib import PurePath
-from unittest import mock, TestCase, SkipTest
-import json
+
 import io
+import json
 import os
 import re
+import shutil
 import subprocess
 import sys
-import shutil
 import tempfile
 import typing as T
+from pathlib import PurePath
+from unittest import SkipTest, TestCase, mock
 
-import mesonbuild.mlog
-import mesonbuild.depfile
+import mesonbuild.compilers
+import mesonbuild.coredata
 import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
-import mesonbuild.compilers
+import mesonbuild.depfile
 import mesonbuild.envconfig
 import mesonbuild.environment
-import mesonbuild.coredata
+import mesonbuild.mlog
 import mesonbuild.modules.gnome
-from mesonbuild.mesonlib import (
-    is_windows, is_cygwin, join_args, split_args, windows_proof_rmtree, python_command
-)
 import mesonbuild.modules.pkgconfig
-
-
+from mesonbuild.mesonlib import (
+    is_cygwin,
+    is_windows,
+    join_args,
+    python_command,
+    split_args,
+    windows_proof_rmtree,
+)
 from run_tests import (
-    Backend, get_backend_commands,
-    get_builddir_target_args, get_meson_script, run_configure_inprocess,
-    run_mtest_inprocess, handle_meson_skip_test,
+    Backend,
+    get_backend_commands,
+    get_builddir_target_args,
+    get_meson_script,
+    handle_meson_skip_test,
+    run_configure_inprocess,
+    run_mtest_inprocess,
 )
 
 if T.TYPE_CHECKING:

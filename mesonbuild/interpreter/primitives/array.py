@@ -5,22 +5,20 @@ from __future__ import annotations
 import typing as T
 
 from ...interpreterbase import (
+    FeatureNew,
     InterpreterObject,
+    InvalidArguments,
     IterableObject,
     KwargInfo,
     MesonOperator,
     ObjectHolder,
-    typed_operator,
+    TYPE_var,
+    noArgsFlattening,
     noKwargs,
     noPosargs,
-    noArgsFlattening,
     typed_kwargs,
+    typed_operator,
     typed_pos_args,
-    FeatureNew,
-
-    TYPE_var,
-
-    InvalidArguments,
 )
 from ...mparser import PlusAssignmentNode
 

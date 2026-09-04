@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import cProfile as profile
 import datetime
 import glob
 import json
@@ -14,18 +15,18 @@ import shutil
 import sys
 import tempfile
 import time
-import cProfile as profile
-from pathlib import Path
 import typing as T
+from pathlib import Path
 
 from . import build, cmdline, coredata, environment, interpreter, mesonlib, mintro, mlog
 from .dependencies import Dependency
-from .mesonlib import MesonException, MachineChoice
 from .interpreterbase import ObjectHolder
+from .mesonlib import MachineChoice, MesonException
 from .options import OptionKey
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
+
     from .cmdline import SharedCMDOptions
     from .interpreter import SubprojectHolder
     from .mesonlib import PerMachine

@@ -5,21 +5,21 @@
 
 from __future__ import annotations
 
-import os
 import json
+import os
 import re
-import sys
 import shutil
+import sys
 import typing as T
 from collections import defaultdict
 from pathlib import Path
 
-from . import mlog
-from . import mesonlib
-from .options import OptionKey
-from .mesonlib import MesonException, RealPathAction, join_args, listify_array_value, setup_vsenv
-from mesonbuild.tooldetect import detect_ninja
 from mesonbuild import build
+from mesonbuild.tooldetect import detect_ninja
+
+from . import mesonlib, mlog
+from .mesonlib import MesonException, RealPathAction, join_args, listify_array_value, setup_vsenv
+from .options import OptionKey
 
 if T.TYPE_CHECKING:
     import argparse

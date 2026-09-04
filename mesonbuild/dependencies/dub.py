@@ -3,17 +3,18 @@
 
 from __future__ import annotations
 
-from .base import ExternalDependency, DependencyException, DependencyTypeName
-from .pkgconfig import PkgConfigDependency
-from ..mesonlib import (Popen_safe, join_args, version_compare, version_compare_many)
+import json
+import os
+import re
+import typing as T
+from enum import Enum
+
+from .. import mlog
+from ..mesonlib import Popen_safe, join_args, version_compare, version_compare_many
 from ..options import OptionKey
 from ..programs import ExternalProgram
-from .. import mlog
-from enum import Enum
-import re
-import os
-import json
-import typing as T
+from .base import DependencyException, DependencyTypeName, ExternalDependency
+from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict

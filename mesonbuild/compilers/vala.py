@@ -6,18 +6,17 @@ from __future__ import annotations
 import os.path
 import typing as T
 
-from .. import mlog
-from .. import mesonlib
-from ..mesonlib import version_compare, LibType
+from .. import mesonlib, mlog
+from ..mesonlib import LibType, version_compare
 from ..options import OptionKey
 from .compilers import CompileCheckMode, Compiler
 
 if T.TYPE_CHECKING:
     from ..arglist import CompilerArgs
+    from ..build import BuildTarget
+    from ..dependencies import Dependency
     from ..environment import Environment
     from ..mesonlib import MachineChoice
-    from ..dependencies import Dependency
-    from ..build import BuildTarget
 
 class ValaCompiler(Compiler):
 

@@ -5,8 +5,9 @@
 # or an interpreter-based tool
 from __future__ import annotations
 
-from .visitor import AstVisitor, FullAstVisitor
 import typing as T
+
+from .visitor import AstVisitor, FullAstVisitor
 
 if T.TYPE_CHECKING:
     from .. import mparser

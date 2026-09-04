@@ -1,29 +1,28 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2021 The Meson development team
 
-from .generatorbase import GeneratorBase
-import re
 import json
+import re
+import typing as T
+from pathlib import Path
+from textwrap import dedent
 
+from mesonbuild import mlog
+
+from .generatorbase import GeneratorBase
 from .model import (
-    ReferenceManual,
+    ArgBase,
+    DataTypeInfo,
     Function,
+    Kwarg,
     Method,
     Object,
     ObjectType,
-    Type,
-    DataTypeInfo,
-    ArgBase,
     PosArg,
+    ReferenceManual,
+    Type,
     VarArgs,
-    Kwarg,
 )
-
-from pathlib import Path
-from textwrap import dedent
-import typing as T
-
-from mesonbuild import mlog
 
 PlaceholderTypes = T.Union[None, str, bool]
 FunctionDictType = T.Dict[

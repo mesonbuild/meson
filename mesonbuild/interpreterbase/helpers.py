@@ -2,20 +2,19 @@
 # Copyright 2013-2021 The Meson development team
 
 from __future__ import annotations
+
+import collections.abc
+import typing as T
 from dataclasses import dataclass
 from enum import Enum
 
 from .. import mesonlib, mparser
-from .exceptions import InterpreterException, InvalidArguments
 from ..mesonlib import HoldableObject
-
-
-import collections.abc
-import typing as T
+from .exceptions import InterpreterException, InvalidArguments
 
 if T.TYPE_CHECKING:
-    from .baseobjects import TYPE_var, TYPE_kwargs
     from ..mesonlib import SubProject
+    from .baseobjects import TYPE_kwargs, TYPE_var
 
 
 def flatten(args: T.Union['TYPE_var', T.List['TYPE_var']]) -> T.List['TYPE_var']:

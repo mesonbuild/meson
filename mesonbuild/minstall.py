@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from glob import glob
 import argparse
 import errno
 import os
@@ -13,15 +12,25 @@ import shutil
 import subprocess
 import sys
 import typing as T
+from glob import glob
 
 from . import build, tooldetect
 from .backend.backends import InstallData
-from .mesonlib import (InstallScriptFailure, MesonException, Popen_safe, RealPathAction,
-                       is_windows, setup_vsenv, path_has_root, pickle_load,
-                       unwrap)
+from .mesonlib import (
+    InstallScriptFailure,
+    MesonException,
+    Popen_safe,
+    RealPathAction,
+    is_windows,
+    path_has_root,
+    pickle_load,
+    setup_vsenv,
+    unwrap,
+)
 from .options import OptionKey
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
+
 main_file: str | None
 try:
     from __main__ import __file__ as main_file
@@ -32,10 +41,12 @@ except ImportError:
 
 if T.TYPE_CHECKING:
     from .backend.backends import (
-            InstallDataBase, InstallEmptyDir,
-            InstallSymlinkData, TargetInstallData
+        InstallDataBase,
+        InstallEmptyDir,
+        InstallSymlinkData,
+        TargetInstallData,
     )
-    from .mesonlib import FileMode, EnvironOrDict, ExecutableSerialisation, InstallScript
+    from .mesonlib import EnvironOrDict, ExecutableSerialisation, FileMode, InstallScript
 
     try:
         from typing import Protocol

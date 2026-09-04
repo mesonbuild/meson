@@ -4,12 +4,14 @@
 """Convert Cargo versions into Meson compatible ones."""
 
 from __future__ import annotations
-from functools import lru_cache
+
 import operator
 import re
 import typing as T
+from functools import lru_cache
 
 from ..mesonlib import MesonException
+
 
 def _api_of(version: str) -> str:
     # x.y.z -> x

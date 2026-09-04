@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2021 The Meson development team
 
+import typing as T
 from dataclasses import dataclass, field
 from enum import Enum
-import typing as T
+
 
 # Utils
 @dataclass

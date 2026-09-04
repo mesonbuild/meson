@@ -18,8 +18,8 @@ from ...mesonlib import EnvironmentException, MesonException, is_windows
 from ..compilers import CompileCheckMode
 
 if T.TYPE_CHECKING:
-    from ...compilers.compilers import Compiler
     from ...build import BuildTarget
+    from ...compilers.compilers import Compiler
     from ...options import OptionStore
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from

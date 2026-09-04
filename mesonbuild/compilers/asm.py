@@ -3,12 +3,16 @@ from __future__ import annotations
 import os
 import typing as T
 
-from ..mesonlib import EnvironmentException, MesonException, get_meson_command
-from ..options import OptionKey
-from .compilers import Compiler, CompileCheckMode
 from ..linkers import RSPFileSyntax
 from ..linkers.linkers import VisualStudioLikeLinkerMixin
-from .mixins.metrowerks import MetrowerksCompiler, mwasmarm_instruction_set_args, mwasmeppc_instruction_set_args
+from ..mesonlib import EnvironmentException, MesonException, get_meson_command
+from ..options import OptionKey
+from .compilers import CompileCheckMode, Compiler
+from .mixins.metrowerks import (
+    MetrowerksCompiler,
+    mwasmarm_instruction_set_args,
+    mwasmeppc_instruction_set_args,
+)
 from .mixins.ti import TICompiler
 
 if T.TYPE_CHECKING:

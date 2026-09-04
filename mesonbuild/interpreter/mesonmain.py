@@ -7,18 +7,30 @@ import copy
 import os
 import typing as T
 
-from .. import mesonlib
-from .. import dependencies
-from .. import build, cmdline
-from .. import mlog
-
+from .. import build, cmdline, dependencies, mesonlib, mlog
+from ..interpreter.type_checking import (
+    ENV_KW,
+    ENV_METHOD_KW,
+    ENV_SEPARATOR_KW,
+    env_convertor_with_method,
+)
+from ..interpreterbase import (
+    FeatureBroken,
+    FeatureDeprecated,
+    FeatureNew,
+    InterpreterException,
+    InterpreterObject,
+    KwargInfo,
+    MesonInterpreterObject,
+    noArgsFlattening,
+    noKwargs,
+    noPosargs,
+    typed_kwargs,
+    typed_pos_args,
+)
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
-from ..programs import Program, ExternalProgram
-from ..interpreter.type_checking import ENV_KW, ENV_METHOD_KW, ENV_SEPARATOR_KW, env_convertor_with_method
-from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated, FeatureBroken,
-                               typed_pos_args,  noArgsFlattening, noPosargs, noKwargs,
-                               typed_kwargs, KwargInfo, InterpreterException, InterpreterObject)
+from ..programs import ExternalProgram, Program
 from .decorators import apply_machine_map
 from .primitives import MesonVersionString
 from .type_checking import NATIVE_KW, NoneType

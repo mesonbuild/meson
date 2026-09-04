@@ -15,10 +15,10 @@ import os
 import typing as T
 
 from ... import mesonlib
+from ...options import OptionKey
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 from .visualstudio import VisualStudioLikeCompiler
-from ...options import OptionKey
 
 # XXX: avoid circular dependencies
 # TODO: this belongs in a posix compiler class

@@ -5,38 +5,38 @@
 
 from __future__ import annotations
 
+import sys
+
 # Work around some pathlib bugs...
 from mesonbuild import _pathlib
-import sys
+
 sys.modules['pathlib'] = _pathlib
 
 # ruff: disable[E402]
+import argparse
 import os
+import platform
 import shutil
 import subprocess
-import platform
-import argparse
 import traceback
-from io import StringIO
+import typing as T
 from enum import Enum
 from glob import glob
+from io import StringIO
 from pathlib import Path
 from unittest import mock
-import typing as T
 
+from mesonbuild import mesonlib, mesonmain, mlog, mtest
 from mesonbuild.compilers.c import CCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
-from mesonbuild.dependencies.pkgconfig import PkgConfigInterface
-from mesonbuild import mesonlib
-from mesonbuild import mesonmain
-from mesonbuild import mtest
-from mesonbuild import mlog
-from mesonbuild.environment import Environment
-from mesonbuild.envconfig import detect_machine_info
-from mesonbuild.tooldetect import detect_ninja
 from mesonbuild.coredata import version as meson_version
-from mesonbuild.options import backendlist
+from mesonbuild.dependencies.pkgconfig import PkgConfigInterface
+from mesonbuild.envconfig import detect_machine_info
+from mesonbuild.environment import Environment
 from mesonbuild.mesonlib import setup_vsenv
+from mesonbuild.options import backendlist
+from mesonbuild.tooldetect import detect_ninja
+
 # ruff: enable[E402]
 
 if T.TYPE_CHECKING:
@@ -221,8 +221,8 @@ def get_backend_args_for_dir(backend: Backend, builddir: str) -> T.List[str]:
     return []
 
 def find_vcxproj_with_target(builddir, target):
-    import re
     import fnmatch
+    import re
     t, ext = os.path.splitext(target)
     if ext:
         p = fr'<TargetName>{t}</TargetName>\s*<TargetExt>\{ext}</TargetExt>'

@@ -2,23 +2,24 @@
 # Copyright 2022 Mark Bolhuis <mark@bolhuis.dev>
 
 from __future__ import annotations
+
 import os
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from ..build import CustomTarget
 from ..interpreter.type_checking import NoneType, in_set_validator
-from ..interpreterbase import typed_pos_args, typed_kwargs, KwargInfo, FeatureNew
+from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_args
 from ..mesonlib import File, MesonException
+from . import ExtensionModule, ModuleInfo, ModuleReturnValue
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
-    from . import ModuleState
     from ..dependencies import Dependency
     from ..interpreter import Interpreter
-    from ..programs import CommandList, Program
     from ..mesonlib import FileOrString
+    from ..programs import CommandList, Program
+    from . import ModuleState
 
     class ScanXML(TypedDict):
 

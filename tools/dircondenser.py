@@ -19,12 +19,12 @@ to this:
 This directory must be run from source root as it touches run_unittests.py.
 '''
 
-import typing as T
 import os
-import sys
 import subprocess
-
+import sys
+import typing as T
 from glob import glob
+
 
 def get_entries() -> T.List[T.Tuple[int, str]]:
     entries = []

@@ -2,21 +2,26 @@
 # Copyright © 2024 Intel Corporation
 
 from __future__ import annotations
-import subprocess
-import os
-import shutil
-import unittest
+
 import functools
+import os
 import re
+import shutil
+import subprocess
 import typing as T
+import unittest
 import zipfile
-from pathlib import Path
 from contextlib import contextmanager
+from pathlib import Path
 from unittest import mock
 
 from mesonbuild.compilers import compiler_from_language
 from mesonbuild.mesonlib import (
-    MachineChoice, is_osx, is_cygwin, OrderedSet, EnvironmentException,
+    EnvironmentException,
+    MachineChoice,
+    OrderedSet,
+    is_cygwin,
+    is_osx,
 )
 from mesonbuild.options import OptionKey
 from run_tests import get_fake_env

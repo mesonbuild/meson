@@ -11,6 +11,7 @@ import subprocess
 import sys
 import typing as T
 
+
 def run(args: T.List[str]) -> int:
     dirname = args[0]
     command = args[1:]

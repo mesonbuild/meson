@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+import argparse
 import os
 import shutil
 import subprocess
+import typing as T
 
 from . import destdir_join
-
-import argparse
-import typing as T
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--install')

@@ -5,10 +5,11 @@
 # platform-specific (generally speaking).
 from __future__ import annotations
 
-from .base import DependencyTypeName, ExternalDependency, DependencyException
-from .detect import packages
-from ..mesonlib import MesonException
 import typing as T
+
+from ..mesonlib import MesonException
+from .base import DependencyException, DependencyTypeName, ExternalDependency
+from .detect import packages
 
 if T.TYPE_CHECKING:
     from ..environment import Environment

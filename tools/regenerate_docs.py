@@ -7,12 +7,12 @@ Regenerate markdown docs by using `meson.py` from the root dir
 '''
 
 import argparse
+import json
 import os
 import re
 import subprocess
 import sys
 import textwrap
-import json
 import typing as T
 from pathlib import Path
 from urllib.request import urlopen

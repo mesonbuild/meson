@@ -3,6 +3,7 @@ import os
 import mesonbuild.compilers
 from mesonbuild.mesonlib import setup_vsenv
 
+
 def unset_envs():
     # For unit tests we must fully control all command lines
     # so that there are no unexpected changes coming from the

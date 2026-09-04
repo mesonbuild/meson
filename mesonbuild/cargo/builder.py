@@ -8,6 +8,7 @@ build descriptions easier.
 """
 
 from __future__ import annotations
+
 import dataclasses
 import typing as T
 

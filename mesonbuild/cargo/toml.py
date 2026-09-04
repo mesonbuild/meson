@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import importlib
-import shutil
 import json
+import shutil
 import typing as T
 
 from ..mesonlib import MesonException, Popen_safe
+
 if T.TYPE_CHECKING:
     from types import ModuleType
 

@@ -3,47 +3,34 @@
 
 from __future__ import annotations
 
-import subprocess
-import tempfile
-import textwrap
+import functools
 import os
 import shutil
-import functools
-import threading
+import subprocess
 import sys
-from itertools import chain
-from unittest import mock, skipIf, SkipTest, TestCase
-from pathlib import Path, PurePath
+import tempfile
+import textwrap
+import threading
 import typing as T
+from itertools import chain
+from pathlib import Path, PurePath
+from unittest import SkipTest, TestCase, mock, skipIf
 
-import mesonbuild.mlog
-import mesonbuild.depfile
+import mesonbuild.coredata
 import mesonbuild.dependencies.factory
+import mesonbuild.depfile
 import mesonbuild.envconfig
 import mesonbuild.environment
-import mesonbuild.coredata
+import mesonbuild.mlog
 import mesonbuild.modules.gnome
-from mesonbuild import mesonlib
-from mesonbuild import machinefile
-
-from mesonbuild.mesonlib import (
-    MachineChoice, is_windows, is_osx, is_cygwin, is_haiku, is_sunos
-)
-from mesonbuild.compilers import (
-    detect_swift_compiler, compiler_from_language
-)
 import mesonbuild.modules.pkgconfig
-
-
-from run_tests import (
-    Backend,
-    get_fake_env
-)
+from mesonbuild import machinefile, mesonlib
+from mesonbuild.compilers import compiler_from_language, detect_swift_compiler
+from mesonbuild.mesonlib import MachineChoice, is_cygwin, is_haiku, is_osx, is_sunos, is_windows
+from run_tests import Backend, get_fake_env
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import (
-    skip_if_not_language, skipIfNoExecutable, get_classpath, skip_if_env_set
-)
+from .helpers import get_classpath, skip_if_env_set, skip_if_not_language, skipIfNoExecutable
 
 if T.TYPE_CHECKING:
     from mesonbuild.compilers import Compiler

@@ -3,21 +3,21 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import os
 import typing as T
+from pathlib import Path
 
 from ..options import OptionKey
 from .base import DependencyCandidate, DependencyException, DependencyMethods
 from .cmake import CMakeDependency
 from .detect import packages
-from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
+from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from .factory import DependencyGenerator
     from .base import DependencyObjectKWs
+    from .factory import DependencyGenerator
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})

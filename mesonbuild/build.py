@@ -2,54 +2,73 @@
 # Copyright 2012-2017 The Meson development team
 
 from __future__ import annotations
-from collections import defaultdict, deque, OrderedDict
-from dataclasses import dataclass, field
-from functools import lru_cache
+
 import abc
 import copy
 import hashlib
 import itertools
-import pathlib
 import os
+import pathlib
 import pickle
 import re
 import textwrap
 import typing as T
+from collections import OrderedDict, defaultdict, deque
+from dataclasses import dataclass, field
+from functools import lru_cache
 
-from . import coredata
-from . import dependencies
-from . import mlog
-from . import programs
+from . import coredata, dependencies, mlog, programs
+from .compilers import (
+    LANGUAGES_USING_LDFLAGS,
+    clink_langs,
+    detect_static_linker,
+    get_base_compile_args,
+    is_header,
+    is_known_suffix,
+    is_object,
+    is_source,
+    sort_clink,
+)
 from .environment import MachineMap
+from .interpreterbase import FeatureDeprecated, FeatureNew
 from .mesonlib import (
-    HoldableObject, SecondLevelHolder, SimpleABC, SubProject,
-    File, MesonException, MachineChoice, ThreeMachineChoice, PerMachine,
-    OrderedSet, classify_unity_sources, ROOT_SUBPROJECT,
-    get_filenames_templates_dict, substitute_values, has_path_sep,
-    is_parent_path, relpath, PerMachineDefaultable,
-    MesonBugException, EnvironmentVariables, pickle_load, lazy_property,
+    ROOT_SUBPROJECT,
+    EnvironmentVariables,
+    File,
+    HoldableObject,
+    MachineChoice,
+    MesonBugException,
+    MesonException,
+    OrderedSet,
+    PerMachine,
+    PerMachineDefaultable,
+    SecondLevelHolder,
+    SimpleABC,
+    SubProject,
+    ThreeMachineChoice,
+    classify_unity_sources,
+    get_filenames_templates_dict,
+    has_path_sep,
+    is_parent_path,
+    lazy_property,
+    pickle_load,
+    relpath,
+    substitute_values,
     unwrap,
 )
 from .options import OptionKey
 
-from .compilers import (
-    is_header, is_object, is_source, clink_langs, sort_clink,
-    is_known_suffix, detect_static_linker, LANGUAGES_USING_LDFLAGS,
-    get_base_compile_args
-)
-from .interpreterbase import FeatureNew, FeatureDeprecated
-
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Self, TypeAlias, TypedDict
 
-    from .arglist import CompilerArgs
-    from .environment import Environment
     from ._typing import ImmutableListProtocol
+    from .arglist import CompilerArgs
     from .backend.backends import Backend
     from .compilers.compilers import Compiler, CompilerDict, Language
     from .compilers.rust import RustCompiler
-    from .interpreter.interpreter import CustomTargetSources, SourceOutputs, Interpreter
-    from .interpreter.interpreterobjects import Test, Doctest
+    from .environment import Environment
+    from .interpreter.interpreter import CustomTargetSources, Interpreter, SourceOutputs
+    from .interpreter.interpreterobjects import Doctest, Test
     from .interpreter.kwargs import TargetDepends
     from .linkers import StaticLinker
     from .mesonlib import ExecutableSerialisation, FileMode, FileOrString, InstallScript

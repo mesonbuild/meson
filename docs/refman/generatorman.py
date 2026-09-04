@@ -1,17 +1,16 @@
 import re
+import typing as T
 from pathlib import Path
 
 from .generatorbase import GeneratorBase
 from .model import (
-    ReferenceManual,
     Function,
+    Kwarg,
     Object,
     PosArg,
+    ReferenceManual,
     VarArgs,
-    Kwarg,
 )
-
-import typing as T
 
 
 class ManPage:

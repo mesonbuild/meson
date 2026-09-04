@@ -2,35 +2,43 @@
 # Copyright © 2024-2025 Intel Corporation
 
 from __future__ import annotations
+
 import dataclasses
 import os
 import typing as T
 
-from . import ExtensionModule, ModuleInfo
+from .. import mlog
 from ..build import CustomTarget, CustomTargetIndex, GeneratedList
 from ..compilers.compilers import lang_suffixes
 from ..interpreter.decorators import apply_machine_map
 from ..interpreter.interpreterobjects import extract_required_kwarg
-from ..interpreter.type_checking import NoneType, REQUIRED_KW, DISABLER_KW, NATIVE_KW
+from ..interpreter.type_checking import DISABLER_KW, NATIVE_KW, REQUIRED_KW, NoneType
 from ..interpreterbase import (
-    ContainerTypeInfo, ObjectHolder, KwargInfo, typed_pos_args, typed_kwargs,
-    noPosargs, noKwargs, disablerIfNotFound, InterpreterObject
+    ContainerTypeInfo,
+    InterpreterObject,
+    KwargInfo,
+    ObjectHolder,
+    disablerIfNotFound,
+    noKwargs,
+    noPosargs,
+    typed_kwargs,
+    typed_pos_args,
 )
 from ..mesonlib import File, MesonException, Popen_safe, version_compare
-from ..programs import Program, ExternalProgram, NonExistingExternalProgram
+from ..programs import ExternalProgram, NonExistingExternalProgram, Program
 from ..utils.core import HoldableObject
-from .. import mlog
+from . import ExtensionModule, ModuleInfo
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
-    from . import ModuleState
     from .._typing import ImmutableListProtocol
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import ExtractRequired
-    from ..interpreterbase import TYPE_var, TYPE_kwargs
+    from ..interpreterbase import TYPE_kwargs, TYPE_var
     from ..mesonlib import MachineChoice
     from ..programs import CommandList
+    from . import ModuleState
 
     LexImpls = Literal['lex', 'flex', 'reflex', 'win_flex']
     YaccImpls = Literal['yacc', 'byacc', 'bison', 'win_bison']

@@ -3,34 +3,41 @@
 
 from __future__ import annotations
 
-from ..mesonlib import (
-    MesonException, EnvironmentException, MachineChoice, join_args,
-    search_version, is_windows, Popen_safe, Popen_safe_logged, version_compare, windows_proof_rm,
-    unwrap,
-)
-from ..programs import ExternalProgram
-from ..envconfig import BinaryTable, detect_cpu_family
-from .. import mlog
-
-from ..linkers import guess_win_linker, guess_nix_linker
-
-import subprocess
+import os
 import platform
 import re
 import shutil
+import subprocess
 import tempfile
-import os
 import typing as T
 
+from .. import mlog
+from ..envconfig import BinaryTable, detect_cpu_family
+from ..linkers import guess_nix_linker, guess_win_linker
+from ..mesonlib import (
+    EnvironmentException,
+    MachineChoice,
+    MesonException,
+    Popen_safe,
+    Popen_safe_logged,
+    is_windows,
+    join_args,
+    search_version,
+    unwrap,
+    version_compare,
+    windows_proof_rm,
+)
+from ..programs import ExternalProgram
+
 if T.TYPE_CHECKING:
-    from .compilers import Language, Compiler, CompilerDict
+    from ..environment import Environment
+    from ..linkers.linkers import DynamicLinker, StaticLinker
     from .asm import ASMCompiler
     from .c import CCompiler
+    from .compilers import Compiler, CompilerDict, Language
     from .cpp import CPPCompiler
     from .fortran import FortranCompiler
     from .rust import RustCompiler
-    from ..linkers.linkers import StaticLinker, DynamicLinker
-    from ..environment import Environment
 
 
 # Default compilers and linkers
@@ -162,9 +169,9 @@ def _handle_exceptions(
 # ===============
 
 def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker:
-    from . import d
     from ..linkers import linkers
     from ..options import OptionKey
+    from . import d
     linker = env.lookup_binary_entry(compiler.for_machine, 'ar')
     if linker is not None:
         trials = [linker]
@@ -300,8 +307,8 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
     the compiler (GCC or Clang usually) as their shared linker, to find
     the linker they need.
     """
-    from . import c, cpp
     from ..linkers import linkers
+    from . import c, cpp
     popen_exceptions: T.Dict[str, T.Union[Exception, str]] = {}
     compilers, ccache_exe = _get_compilers(env, lang, for_machine)
     ccache = ccache_exe.get_command() if (ccache_exe and ccache_exe.found()) else []
@@ -697,9 +704,9 @@ def detect_cpp_compiler(env: 'Environment', for_machine: MachineChoice) -> Compi
     return _detect_c_or_cpp_compiler(env, 'cpp', for_machine)
 
 def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
-    from .cuda import CudaCompiler, Phase
-    from ..options import OptionKey
     from ..linkers.linkers import CudaLinker
+    from ..options import OptionKey
+    from .cuda import CudaCompiler, Phase
     popen_exceptions = {}
     compilers, ccache_exe = _get_compilers(env, 'cuda', for_machine)
     ccache = ccache_exe.get_command() if (ccache_exe and ccache_exe.found()) else []
@@ -749,8 +756,8 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     raise EnvironmentException(f'Unknown compiler {compilers}')
 
 def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
-    from . import fortran
     from ..linkers import linkers
+    from . import fortran
     popen_exceptions: T.Dict[str, T.Union[Exception, str]] = {}
     compilers, ccache = _get_compilers(env, 'fortran', for_machine)
     cls: T.Type[FortranCompiler]
@@ -1089,8 +1096,8 @@ def detect_vala_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     raise EnvironmentException('Unknown compiler: ' + join_args(exelist))
 
 def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> RustCompiler:
-    from . import rust
     from ..linkers import linkers
+    from . import rust
     popen_exceptions: T.Dict[str, Exception] = {}
     compilers, _ = _get_compilers(env, 'rust', for_machine)
     override = env.lookup_binary_entry(for_machine, 'rust_ld')
@@ -1360,7 +1367,12 @@ def detect_swift_compiler(env: 'Environment', for_machine: MachineChoice) -> Com
     raise EnvironmentException('Unknown compiler: ' + join_args(exelist))
 
 def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
-    from .asm import NasmCompiler, YasmCompiler, MetrowerksAsmCompilerARM, MetrowerksAsmCompilerEmbeddedPowerPC
+    from .asm import (
+        MetrowerksAsmCompilerARM,
+        MetrowerksAsmCompilerEmbeddedPowerPC,
+        NasmCompiler,
+        YasmCompiler,
+    )
 
     # When cross compiling and nasm is not defined in the cross file we can
     # fallback to the build machine nasm.
@@ -1414,7 +1426,7 @@ def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
 
     info = env.machines[for_machine]
 
-    from .asm import MasmCompiler, MasmARMCompiler
+    from .asm import MasmARMCompiler, MasmCompiler
     comp_class: T.Type[ASMCompiler]
     if info.cpu_family == 'x86':
         comp = ['ml']

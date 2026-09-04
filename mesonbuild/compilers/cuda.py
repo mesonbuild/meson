@@ -10,15 +10,20 @@ import typing as T
 
 from .. import options
 from ..mesonlib import LibType, version_compare
-from .compilers import Compiler, CompileCheckMode, CrossNoRunException, SimplePrefixLinkerOptionStyle
+from .compilers import (
+    CompileCheckMode,
+    Compiler,
+    CrossNoRunException,
+    SimplePrefixLinkerOptionStyle,
+)
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
-    from ..options import MutableKeyedOptionDictType
     from ..dependencies import Dependency
     from ..environment import Environment  # noqa: F401
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
+    from ..options import MutableKeyedOptionDictType
 
 
 cuda_optimization_args: T.Dict[str, T.List[str]] = {

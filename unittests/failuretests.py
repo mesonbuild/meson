@@ -2,30 +2,31 @@
 # Copyright 2016-2021 The Meson development team
 
 from __future__ import annotations
-import subprocess
-import tempfile
+
 import os
 import shutil
-import unittest
+import subprocess
+import tempfile
 import typing as T
+import unittest
 from contextlib import contextmanager
 
+from mesonbuild.compilers import detect_objc_compiler, detect_objcpp_compiler
 from mesonbuild.mesonlib import (
-    MachineChoice, is_windows, is_osx, windows_proof_rmtree, windows_proof_rm
+    EnvironmentException,
+    MachineChoice,
+    MesonException,
+    is_osx,
+    is_windows,
+    windows_proof_rm,
+    windows_proof_rmtree,
 )
-from mesonbuild.compilers import (
-    detect_objc_compiler, detect_objcpp_compiler
-)
-from mesonbuild.mesonlib import EnvironmentException, MesonException
 from mesonbuild.programs import ExternalProgram
-
-
-from run_tests import (
-    get_fake_env
-)
+from run_tests import get_fake_env
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import skipIfNoPkgconfigDep
+
 
 @contextmanager
 def no_pkgconfig():

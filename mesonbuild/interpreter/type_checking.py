@@ -4,22 +4,48 @@
 """Helpers for strict type checking."""
 
 from __future__ import annotations
+
 import itertools
 import os
 import re
 import typing as T
 
 from .. import compilers
-from ..build import (CustomTarget, BuildTarget,
-                     CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs, LocalProgram,
-                     BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources)
-from ..options import OptionKey
+from ..build import (
+    BothLibraries,
+    BuildTarget,
+    CustomTarget,
+    CustomTargetIndex,
+    Executable,
+    ExtractedObjects,
+    GeneratedList,
+    IncludeDirs,
+    Jar,
+    LocalProgram,
+    SharedLibrary,
+    StaticLibrary,
+    StructuredSources,
+)
 from ..dependencies import Dependency, DependencyMethods, InternalDependency
 from ..interpreterbase import Feature
-from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken, FeatureDeprecated, FeatureNew
-from ..mesonlib import (File, FileMode, MachineChoice, has_path_sep, listify, stringlistify,
-                        EnvironmentVariables)
-from ..programs import Program, ExternalProgram
+from ..interpreterbase.decorators import (
+    ContainerTypeInfo,
+    FeatureBroken,
+    FeatureDeprecated,
+    FeatureNew,
+    KwargInfo,
+)
+from ..mesonlib import (
+    EnvironmentVariables,
+    File,
+    FileMode,
+    MachineChoice,
+    has_path_sep,
+    listify,
+    stringlistify,
+)
+from ..options import OptionKey
+from ..programs import ExternalProgram, Program
 
 # Helper definition for type checks that are `Optional[T]`
 NoneType: T.Type[None] = type(None)
@@ -27,12 +53,12 @@ NoneType: T.Type[None] = type(None)
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
-    from .kwargs import CustomTargetInputs
-    from ..build import ObjectTypes, GeneratedTypes, CommandTypes, TargetSources
+    from ..build import CommandTypes, GeneratedTypes, ObjectTypes, TargetSources
     from ..interpreterbase import TYPE_var
-    from ..options import ElementaryOptionValues
-    from ..mesonlib import EnvInitValueType
     from ..interpreterbase.decorators import FeatureCheckBase
+    from ..mesonlib import EnvInitValueType
+    from ..options import ElementaryOptionValues
+    from .kwargs import CustomTargetInputs
 
     FullEnvInitValueType = T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], EnvInitValueType, str, None]
     PkgConfigDefineType = T.Optional[T.Tuple[T.Tuple[str, str], ...]]

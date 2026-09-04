@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
-import json
 import argparse
-import stat
-import textwrap
+import json
 import shutil
+import stat
 import subprocess
-from tempfile import TemporaryDirectory
-from pathlib import Path
+import textwrap
 import typing as T
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 image_namespace = 'mesonbuild'
 

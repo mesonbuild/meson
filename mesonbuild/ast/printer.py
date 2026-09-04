@@ -5,12 +5,12 @@
 # or an interpreter-based tool
 from __future__ import annotations
 
-from .. import mparser
-from .visitor import AstVisitor, FullAstVisitor
-from ..mesonlib import MesonBugException
-
 import re
 import typing as T
+
+from .. import mparser
+from ..mesonlib import MesonBugException
+from .visitor import AstVisitor, FullAstVisitor
 
 
 # Also known as "order of operations" or "binding power".

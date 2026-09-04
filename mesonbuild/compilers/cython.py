@@ -4,17 +4,17 @@
 """Abstraction for Cython language compilers."""
 
 from __future__ import annotations
+
 import os
 import typing as T
 
-from .. import options
-from .. import mlog
-from ..mesonlib import version_compare, EnvironmentException
+from .. import mlog, options
+from ..mesonlib import EnvironmentException, version_compare
 from .compilers import CompileCheckMode, Compiler
 
 if T.TYPE_CHECKING:
-    from ..options import MutableKeyedOptionDictType
     from ..build import BuildTarget
+    from ..options import MutableKeyedOptionDictType
 
 
 class CythonCompiler(Compiler):

@@ -7,44 +7,45 @@ from __future__ import annotations
 import os.path
 import typing as T
 
-from .. import options
-from ..options import OptionKey
-from .. import mlog
+from .. import mlog, options
 from ..mesonlib import MesonException, version_compare
+from ..options import OptionKey
 from .c_function_attributes import C_FUNC_ATTRIBUTES
-from .mixins.apple import AppleCompilerMixin, AppleCStdsMixin
-from .mixins.clike import CLikeCompiler
-from .mixins.ccrx import CcrxCompiler
-from .mixins.microchip import Xc16Compiler, Xc32Compiler, Xc32CStds
-from .mixins.compcert import CompCertCompiler
-from .mixins.sdcc import SdccCompiler
-from .mixins.ti import TICompiler
-from .mixins.arm import ArmCompiler, ArmclangCompiler
-from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
-from .mixins.gnu import GnuCompiler, GnuCStds
-from .mixins.gnu import gnu_common_warning_args, gnu_c_warning_args
-from .mixins.intel import IntelGnuLikeCompiler, IntelLLVMLikeCompiler, IntelVisualStudioLikeCompiler
-from .mixins.clang import ClangCompiler, ClangCStds
-from .mixins.elbrus import ElbrusCompiler
-from .mixins.pgi import PGICompiler
-from .mixins.emscripten import EmscriptenMixin
-from .mixins.metrowerks import MetrowerksCompiler
-from .mixins.metrowerks import mwccarm_instruction_set_args, mwcceppc_instruction_set_args
-from .mixins.tasking import TaskingCompiler
 from .compilers import (
+    Compiler,
     gnu_winlibs,
     msvc_winlibs,
-    Compiler,
 )
+from .mixins.apple import AppleCompilerMixin, AppleCStdsMixin
+from .mixins.arm import ArmclangCompiler, ArmCompiler
+from .mixins.ccrx import CcrxCompiler
+from .mixins.clang import ClangCompiler, ClangCStds
+from .mixins.clike import CLikeCompiler
+from .mixins.compcert import CompCertCompiler
+from .mixins.elbrus import ElbrusCompiler
+from .mixins.emscripten import EmscriptenMixin
+from .mixins.gnu import GnuCompiler, GnuCStds, gnu_c_warning_args, gnu_common_warning_args
+from .mixins.intel import IntelGnuLikeCompiler, IntelLLVMLikeCompiler, IntelVisualStudioLikeCompiler
+from .mixins.metrowerks import (
+    MetrowerksCompiler,
+    mwccarm_instruction_set_args,
+    mwcceppc_instruction_set_args,
+)
+from .mixins.microchip import Xc16Compiler, Xc32Compiler, Xc32CStds
+from .mixins.pgi import PGICompiler
+from .mixins.sdcc import SdccCompiler
+from .mixins.tasking import TaskingCompiler
+from .mixins.ti import TICompiler
+from .mixins.visualstudio import ClangClCompiler, MSVCCompiler
 
 if T.TYPE_CHECKING:
-    from ..options import MutableKeyedOptionDictType
+    from ..build import BuildTarget
     from ..dependencies import Dependency
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
+    from ..options import MutableKeyedOptionDictType
     from .compilers import CompileCheckMode
-    from ..build import BuildTarget
 
     CompilerMixinBase = Compiler
 else:

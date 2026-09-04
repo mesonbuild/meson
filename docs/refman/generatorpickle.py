@@ -3,8 +3,10 @@
 
 import pickle
 from pathlib import Path
+
 from .generatorbase import GeneratorBase
 from .model import ReferenceManual
+
 
 class GeneratorPickle(GeneratorBase):
     def __init__(self, manual: ReferenceManual, outpath: Path) -> None:

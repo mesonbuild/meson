@@ -1,21 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
+import os
 import subprocess
 import tempfile
 import textwrap
-import os
-from pathlib import Path
 import typing as T
+from pathlib import Path
 
-from mesonbuild.mesonlib import (
-    version_compare, git, search_version
-)
-
-
+from mesonbuild.mesonlib import git, search_version, version_compare
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import skipIfNoExecutable
+
 
 class SubprojectsCommandTests(BasePlatformTests):
     def setUp(self):

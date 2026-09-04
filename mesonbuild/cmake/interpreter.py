@@ -5,52 +5,63 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
-from functools import lru_cache
-from os import environ
-from pathlib import Path
 import itertools
 import re
 import typing as T
+from functools import lru_cache
+from os import environ
+from pathlib import Path
 
-from .common import CMakeException, CMakeTarget, language_map, cmake_get_generator_args, check_cmake_args
-from .fileapi import CMakeFileAPI
-from .executor import CMakeExecutor
-from .toolchain import CMakeToolchain, CMakeExecScope
-from .traceparser import CMakeTraceParser
-from .tracetargets import resolve_cmake_trace_targets
-from .. import mlog, mesonlib
-from .. import options
-from ..mesonlib import MachineChoice, OrderedSet, path_is_in_root, relative_to_if_possible
-from ..options import OptionKey
-from ..mesondata import DataFile
-from ..compilers.compilers import assembler_suffixes, lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
-from ..programs import ExternalProgram
+from .. import mesonlib, mlog, options
+from ..compilers.compilers import (
+    assembler_suffixes,
+    header_suffixes,
+    is_header,
+    lang_suffixes,
+    lib_suffixes,
+    obj_suffixes,
+)
 from ..coredata import FORBIDDEN_TARGET_NAMES
+from ..mesondata import DataFile
+from ..mesonlib import MachineChoice, OrderedSet, path_is_in_root, relative_to_if_possible
 from ..mparser import (
-    Token,
+    ArgumentNode,
+    ArrayNode,
+    AssignmentNode,
     BaseNode,
+    BooleanNode,
     CodeBlockNode,
     FunctionNode,
-    ArrayNode,
-    ArgumentNode,
-    AssignmentNode,
-    BooleanNode,
-    StringNode,
     IdNode,
     IndexNode,
     MethodNode,
     NumberNode,
+    StringNode,
     SymbolNode,
+    Token,
 )
-
+from ..options import OptionKey
+from ..programs import ExternalProgram
+from .common import (
+    CMakeException,
+    CMakeTarget,
+    check_cmake_args,
+    cmake_get_generator_args,
+    language_map,
+)
+from .executor import CMakeExecutor
+from .fileapi import CMakeFileAPI
+from .toolchain import CMakeExecScope, CMakeToolchain
+from .traceparser import CMakeTraceParser
+from .tracetargets import resolve_cmake_trace_targets
 
 if T.TYPE_CHECKING:
-    from ..compilers.compilers import Language
-    from .common import CMakeConfiguration, TargetOptions
-    from .traceparser import CMakeGeneratorTarget
     from .._typing import ImmutableListProtocol
     from ..backend.backends import Backend
+    from ..compilers.compilers import Language
     from ..environment import Environment
+    from .common import CMakeConfiguration, TargetOptions
+    from .traceparser import CMakeGeneratorTarget
 
     TYPE_mixed = T.Union[str, int, bool, Path, BaseNode]
     TYPE_mixed_list = T.Union[TYPE_mixed, T.Sequence[TYPE_mixed]]

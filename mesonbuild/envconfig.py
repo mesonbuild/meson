@@ -3,24 +3,23 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-import typing as T
-from enum import Enum
 import os
 import platform
 import sys
-
-from . import mesonlib
-from .mesonlib import EnvironmentException, HoldableObject, lazy_property, Popen_safe
-from .programs import ExternalProgram
-from . import mlog
+import typing as T
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path, PurePath, PurePosixPath, PureWindowsPath
 
+from . import mesonlib, mlog
+from .mesonlib import EnvironmentException, HoldableObject, Popen_safe, lazy_property
+from .programs import ExternalProgram
+
 if T.TYPE_CHECKING:
-    from .options import ElementaryOptionValues
+    from ._typing import ImmutableListProtocol
     from .compilers.compilers import CompilerDict
     from .compilers.mixins.visualstudio import VisualStudioLikeCompiler
-    from ._typing import ImmutableListProtocol
+    from .options import ElementaryOptionValues
 
 
 # These classes contains all the data pulled from configuration files (native

@@ -7,48 +7,80 @@ functionality such as gobject-introspection, gresources and gtk-doc'''
 from __future__ import annotations
 
 import copy
-import itertools
-import pathlib
 import functools
+import itertools
 import os
+import pathlib
 import subprocess
 import textwrap
 import typing as T
 
-from . import (
-    ExtensionModule, GirTarget, GResourceHeaderTarget, GResourceTarget, ModuleInfo,
-    ModuleReturnValue, TypelibTarget, VapiTarget,
+from .. import build, interpreter, mesonlib, mlog
+from ..build import (
+    CustomTarget,
+    CustomTargetIndex,
+    Executable,
+    GeneratedList,
+    InvalidArguments,
+    LocalProgram,
 )
-from .. import build
-from .. import interpreter
-from .. import mesonlib
-from .. import mlog
-from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments, LocalProgram
 from ..dependencies import Dependency, InternalDependency
 from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
-from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, ENV_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, DEPENDENCY_SOURCES_KW, in_set_validator
-from ..interpreterbase import noPosargs, noKwargs, FeatureNew, FeatureDeprecated
-from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
+from ..interpreter.type_checking import (
+    DEPEND_FILES_KW,
+    DEPENDENCY_SOURCES_KW,
+    DEPENDS_KW,
+    ENV_KW,
+    INSTALL_DIR_KW,
+    INSTALL_KW,
+    NoneType,
+    in_set_validator,
+)
+from ..interpreterbase import (
+    ContainerTypeInfo,
+    FeatureDeprecated,
+    FeatureNew,
+    KwargInfo,
+    noKwargs,
+    noPosargs,
+    typed_kwargs,
+)
 from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import (
-    InstallScriptFailure, MachineChoice, MesonException, OrderedSet, Popen_safe, join_args, quote_arg
+    InstallScriptFailure,
+    MachineChoice,
+    MesonException,
+    OrderedSet,
+    Popen_safe,
+    join_args,
+    quote_arg,
 )
 from ..options import OptionKey
 from ..scripts.gettext import read_linguas
+from . import (
+    ExtensionModule,
+    GirTarget,
+    GResourceHeaderTarget,
+    GResourceTarget,
+    ModuleInfo,
+    ModuleReturnValue,
+    TypelibTarget,
+    VapiTarget,
+)
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
-    from . import ModuleState
     from ..build import BuildTarget
     from ..compilers import Compiler
     from ..compilers.compilers import Language
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import CustomTargetSources
     from ..interpreter.kwargs import CustomTargetInputs, TargetDepends
-    from ..interpreterbase import TYPE_var, TYPE_kwargs
+    from ..interpreterbase import TYPE_kwargs, TYPE_var
     from ..mesonlib import EnvironmentVariables, FileOrString, InstallScript
-    from ..programs import Program, CommandList, CommandListEntry
+    from ..programs import CommandList, CommandListEntry, Program
+    from . import ModuleState
 
     class PostInstall(TypedDict):
         glib_compile_schemas: bool

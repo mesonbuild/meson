@@ -3,34 +3,47 @@
 
 from __future__ import annotations
 
-from os import path
-from pathlib import Path
 import shlex
 import typing as T
+from os import path
+from pathlib import Path
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo
-from .. import build
-from .. import mesonlib
-from ..options import OptionKey
-from .. import mlog
+from .. import build, mesonlib, mlog
 from ..interpreter.primitives import OptionString
-from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, INSTALL_TAG_KW, OUTPUT_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, in_set_validator
+from ..interpreter.type_checking import (
+    CT_BUILD_BY_DEFAULT,
+    CT_INPUT_KW,
+    INSTALL_DIR_KW,
+    INSTALL_KW,
+    INSTALL_TAG_KW,
+    OUTPUT_KW,
+    NoneType,
+    in_set_validator,
+)
 from ..interpreterbase import FeatureNew
+from ..interpreterbase.decorators import (
+    ContainerTypeInfo,
+    KwargInfo,
+    noPosargs,
+    typed_kwargs,
+    typed_pos_args,
+)
 from ..interpreterbase.exceptions import InvalidArguments
-from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, noPosargs, typed_kwargs, typed_pos_args
+from ..options import OptionKey
 from ..programs import ExternalProgram
 from ..scripts.gettext import read_linguas
+from . import ExtensionModule, ModuleInfo, ModuleReturnValue
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
-    from . import ModuleState
     from ..build import CommandTypes, Target
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import CustomTargetSources
     from ..interpreter.kwargs import CustomTargetInputs
     from ..interpreterbase import TYPE_var
     from ..programs import Program
+    from . import ModuleState
 
     class MergeFile(TypedDict):
 

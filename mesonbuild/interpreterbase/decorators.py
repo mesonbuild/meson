@@ -3,18 +3,18 @@
 
 from __future__ import annotations
 
-from .. import coredata, mesonlib, mlog
-from .disabler import Disabler
-from .baseobjects import DefaultObject
-from .exceptions import InterpreterException, InvalidArguments
-from ._unholder import _unholder
-
-from functools import wraps
 import abc
+import copy
 import dataclasses
 import itertools
-import copy
 import typing as T
+from functools import wraps
+
+from .. import coredata, mesonlib, mlog
+from ._unholder import _unholder
+from .baseobjects import DefaultObject
+from .disabler import Disabler
+from .exceptions import InterpreterException, InvalidArguments
 
 _T = T.TypeVar('_T')
 
@@ -26,7 +26,7 @@ if T.TYPE_CHECKING:
     from ..modules import ModuleObject, ModuleState
     from ..mparser import FunctionNode
     from ..optinterpreter import OptionInterpreter
-    from .baseobjects import InterpreterObject, ObjectHolder, TV_func, TYPE_var, TYPE_kwargs
+    from .baseobjects import InterpreterObject, ObjectHolder, TV_func, TYPE_kwargs, TYPE_var
     from .interpreterbase import InterpreterBase
     from .operator import MesonOperator
 

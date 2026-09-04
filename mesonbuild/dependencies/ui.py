@@ -10,13 +10,15 @@ import re
 import subprocess
 import typing as T
 
-from .. import mlog
-from .. import mesonlib
-from ..mesonlib import (
-    Popen_safe, version_compare_many
+from .. import mesonlib, mlog
+from ..mesonlib import Popen_safe, version_compare_many
+from .base import (
+    DependencyCandidate,
+    DependencyException,
+    DependencyMethods,
+    DependencyTypeName,
+    SystemDependency,
 )
-
-from .base import DependencyCandidate, DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .detect import packages

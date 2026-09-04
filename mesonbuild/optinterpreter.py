@@ -6,18 +6,23 @@ from __future__ import annotations
 import re
 import typing as T
 
-from . import options
-from . import mesonlib
-from .options import OptionKey
-from . import mparser
-from . import mlog
-from .interpreterbase import FeatureNew, FeatureDeprecated, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo
+from . import mesonlib, mlog, mparser, options
 from .interpreter.type_checking import NoneType, in_set_validator
+from .interpreterbase import (
+    ContainerTypeInfo,
+    FeatureDeprecated,
+    FeatureNew,
+    KwargInfo,
+    typed_kwargs,
+    typed_pos_args,
+)
+from .options import OptionKey
 
 if T.TYPE_CHECKING:
-    from .interpreterbase import TYPE_var, TYPE_kwargs
+    from typing_extensions import Literal, NotRequired, TypeAlias, TypedDict
+
+    from .interpreterbase import TYPE_kwargs, TYPE_var
     from .mesonlib import SubProject
-    from typing_extensions import TypeAlias, TypedDict, Literal, NotRequired
     from .options import OptionStore
 
     _DEPRECATED_ARGS = T.Union[bool, str, T.Dict[str, str], T.List[str]]

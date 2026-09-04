@@ -3,12 +3,12 @@
 # Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
-from pathlib import Path
 
 import abc
 import os
 import re
 import typing as T
+from pathlib import Path
 
 from ..mesonlib import SimpleABC
 

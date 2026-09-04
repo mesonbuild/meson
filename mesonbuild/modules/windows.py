@@ -8,23 +8,26 @@ import os
 import re
 import typing as T
 
-
-from . import ExtensionModule, ModuleInfo
-from . import ModuleReturnValue
-from .. import mesonlib, build
-from .. import mlog
+from .. import build, mesonlib, mlog
 from ..interpreter.type_checking import DEPEND_FILES_KW, DEPENDS_KW, INCLUDE_DIRECTORIES
-from ..interpreterbase.decorators import ContainerTypeInfo, FeatureNew, KwargInfo, typed_kwargs, typed_pos_args
+from ..interpreterbase.decorators import (
+    ContainerTypeInfo,
+    FeatureNew,
+    KwargInfo,
+    typed_kwargs,
+    typed_pos_args,
+)
 from ..mesonlib import MachineChoice, MesonException
 from ..programs import ExternalProgram
+from . import ExtensionModule, ModuleInfo, ModuleReturnValue
 
 if T.TYPE_CHECKING:
-    from . import ModuleState
-    from ..compilers.compilers import Language, Compiler
+    from typing_extensions import Literal, TypedDict
+
+    from ..compilers.compilers import Compiler, Language
     from ..interpreter import Interpreter
     from ..programs import CommandList
-
-    from typing_extensions import Literal, TypedDict
+    from . import ModuleState
 
     class CompileResources(TypedDict):
 

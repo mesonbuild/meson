@@ -8,12 +8,13 @@ This is now just a wrapper around run_project_tests.py with specific arguments
 '''
 
 import argparse
-import subprocess
-from mesonbuild import mesonlib
-from mesonbuild.coredata import version as meson_version
-from pathlib import Path
 import json
 import os
+import subprocess
+from pathlib import Path
+
+from mesonbuild import mesonlib
+from mesonbuild.coredata import version as meson_version
 
 
 def runtests(cross_file, failfast, cross_only, test_list, env=None):

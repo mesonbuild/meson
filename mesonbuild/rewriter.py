@@ -9,21 +9,49 @@
 # - reindent?
 from __future__ import annotations
 
-from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
-from .ast.interpreter import IntrospectionBuildTarget, IntrospectionDependency, IntrospectionFile, _symbol
-from .interpreterbase import UnknownValue
-from mesonbuild.mesonlib import MesonException, pathname_sort_key, relpath, setup_vsenv
-from . import mlog, environment
-from functools import wraps
-from .mparser import Token, ArrayNode, ArgumentNode, ArithmeticNode, AssignmentNode, BaseNode, StringNode, BooleanNode, DictNode, ElementaryNode, IdNode, FunctionNode, PlusAssignmentNode
-from .mintro import IntrospectionEncoder
+import codecs
 import json
 import os
 import re
 import sys
-import codecs
 import typing as T
+from functools import wraps
 from pathlib import Path
+
+from mesonbuild.mesonlib import MesonException, pathname_sort_key, relpath, setup_vsenv
+
+from . import environment, mlog
+from .ast import (
+    BUILD_TARGET_FUNCTIONS,
+    AstConditionLevel,
+    AstIDGenerator,
+    AstIndentationGenerator,
+    AstPrinter,
+    IntrospectionInterpreter,
+)
+from .ast.interpreter import (
+    IntrospectionBuildTarget,
+    IntrospectionDependency,
+    IntrospectionFile,
+    _symbol,
+)
+from .interpreterbase import UnknownValue
+from .mintro import IntrospectionEncoder
+from .mparser import (
+    ArgumentNode,
+    ArithmeticNode,
+    ArrayNode,
+    AssignmentNode,
+    BaseNode,
+    BooleanNode,
+    DictNode,
+    ElementaryNode,
+    FunctionNode,
+    IdNode,
+    PlusAssignmentNode,
+    StringNode,
+    Token,
+)
 
 if T.TYPE_CHECKING:
     import argparse

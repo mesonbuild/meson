@@ -3,14 +3,14 @@
 # Copyright 2018 The Meson development team
 
 import os
-import tempfile
-import unittest
 import subprocess
 import sysconfig
+import tempfile
+import unittest
 from pathlib import Path
 
-from mesonbuild.mesonlib import windows_proof_rmtree, python_command, is_windows
 from mesonbuild.coredata import version as meson_version
+from mesonbuild.mesonlib import is_windows, python_command, windows_proof_rmtree
 
 scheme = None
 

@@ -3,11 +3,12 @@
 
 from __future__ import annotations
 
-import sys
 import os
-import subprocess
 import re
+import subprocess
+import sys
 import typing as T
+
 
 def config_vcs_tag(infile: str, outfile: str, fallback: str, source_dir: str, replace_string: str, regex_selector: str, cmd: T.List[str]) -> None:
     try:

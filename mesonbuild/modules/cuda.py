@@ -8,23 +8,26 @@ import re
 import typing as T
 
 from .. import mlog
-from ..mesonlib import listify, version_compare
 from ..compilers.cuda import CudaCompiler
 from ..interpreter.type_checking import NoneType
-
-from . import NewExtensionModule, ModuleInfo
-
-from ..utils.universal import Version
 from ..interpreterbase import (
-    ContainerTypeInfo, InvalidArguments, KwargInfo, noKwargs, typed_kwargs, typed_pos_args,
+    ContainerTypeInfo,
+    InvalidArguments,
+    KwargInfo,
+    noKwargs,
+    typed_kwargs,
+    typed_pos_args,
 )
+from ..mesonlib import listify, version_compare
+from ..utils.universal import Version
+from . import ModuleInfo, NewExtensionModule
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
-    from . import ModuleState
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var
+    from . import ModuleState
 
     class ArchFlagsKwargs(TypedDict):
         detected: T.Optional[T.List[str]]

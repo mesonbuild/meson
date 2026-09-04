@@ -1,9 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
-from configparser import ConfigParser
-from pathlib import Path
-from unittest import mock
 import argparse
 import contextlib
 import io
@@ -17,42 +14,66 @@ import tempfile
 import textwrap
 import typing as T
 import unittest
+from configparser import ConfigParser
+from pathlib import Path
+from unittest import mock
 
-import mesonbuild.mlog
-import mesonbuild.depfile
 import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
+import mesonbuild.depfile
 import mesonbuild.envconfig
 import mesonbuild.environment
+import mesonbuild.mlog
 import mesonbuild.modules.cuda
 import mesonbuild.modules.gnome
+import mesonbuild.modules.pkgconfig
 import mesonbuild.scripts.depfixer
 import mesonbuild.scripts.env2mfile
 from mesonbuild import coredata
 from mesonbuild.compilers import Compiler
-from mesonbuild.compilers.c import ClangCCompiler, ClangClCCompiler, GnuCCompiler, VisualStudioCCompiler
+from mesonbuild.compilers.c import (
+    ClangCCompiler,
+    ClangClCCompiler,
+    GnuCCompiler,
+    VisualStudioCCompiler,
+)
 from mesonbuild.compilers.compilers import CompileCheckMode, ManyInOneLinkerOptionStyle
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler, LLVMDCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
-from mesonbuild.compilers.mixins.visualstudio import MSVCCompiler, ClangClCompiler
+from mesonbuild.compilers.mixins.visualstudio import ClangClCompiler, MSVCCompiler
+from mesonbuild.dependencies.pkgconfig import PkgConfigCLI, PkgConfigDependency, PkgConfigInterface
+from mesonbuild.interpreter.type_checking import NoneType, in_set_validator
+from mesonbuild.interpreterbase import (
+    ContainerTypeInfo,
+    InvalidArguments,
+    KwargInfo,
+    ObjectHolder,
+    typed_kwargs,
+    typed_pos_args,
+)
 from mesonbuild.linkers import linkers
-from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectHolder
-from mesonbuild.interpreterbase import typed_kwargs, ContainerTypeInfo, KwargInfo
 from mesonbuild.mesonlib import (
-    LibType, MachineChoice, SimpleABC, Version, is_windows, is_osx,
-    is_cygwin, is_openbsd, search_version, MesonException, EnvironmentException, python_command,
+    EnvironmentException,
+    LibType,
+    MachineChoice,
+    MesonException,
+    SimpleABC,
+    Version,
+    is_cygwin,
+    is_openbsd,
+    is_osx,
+    is_windows,
+    python_command,
+    search_version,
     version_check_to_range,
 )
 from mesonbuild.options import OptionKey
-from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
-from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface, PkgConfigCLI
 from mesonbuild.programs import ExternalProgram
-import mesonbuild.modules.pkgconfig
-
 from run_tests import get_fake_env, get_fake_options
 
 from .helpers import IS_CI, chdir, skipIfNoPkgconfig
+
 
 class InternalTests(unittest.TestCase):
 
@@ -1475,11 +1496,13 @@ Thread model: posix'''), '21.9.0')
     def test_validate_json(self) -> None:
         """Validate the json schema for the test cases."""
         try:
-            from fastjsonschema import compile, JsonSchemaValueException as JsonSchemaFailure
+            from fastjsonschema import JsonSchemaValueException as JsonSchemaFailure
+            from fastjsonschema import compile
             fast = True
         except ImportError:
             try:
-                from jsonschema import validate, ValidationError as JsonSchemaFailure
+                from jsonschema import ValidationError as JsonSchemaFailure
+                from jsonschema import validate
                 fast = False
             except ImportError:
                 if IS_CI:

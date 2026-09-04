@@ -21,10 +21,10 @@ so you could have examples like:
 """
 
 from __future__ import annotations
+
 import dataclasses
 import enum
 import typing as T
-
 
 from ..mesonlib import MesonBugException, MesonException, lookahead
 

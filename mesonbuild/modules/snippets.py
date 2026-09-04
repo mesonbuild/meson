@@ -13,18 +13,19 @@
 # limitations under the License.
 
 from __future__ import annotations
+
 import textwrap
 import typing as T
-
 from pathlib import Path
 
-from . import NewExtensionModule, ModuleInfo
-from ..interpreterbase import KwargInfo, typed_kwargs, typed_pos_args
-from ..interpreter.type_checking import NoneType
 from .. import mesonlib
+from ..interpreter.type_checking import NoneType
+from ..interpreterbase import KwargInfo, typed_kwargs, typed_pos_args
+from . import ModuleInfo, NewExtensionModule
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
+
     from . import ModuleState
 
     class SymbolVisibilityHeaderKW(TypedDict):

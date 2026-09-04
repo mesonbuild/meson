@@ -2,10 +2,10 @@
 # Copyright 2021 The Meson development team
 
 
-from abc import ABCMeta, abstractmethod
 import typing as T
+from abc import ABCMeta, abstractmethod
 
-from .model import ReferenceManual, Function, Method, Object, ObjectType, NamedObject
+from .model import Function, Method, NamedObject, Object, ObjectType, ReferenceManual
 
 _N = T.TypeVar('_N', bound=NamedObject)
 

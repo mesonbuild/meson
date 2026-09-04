@@ -2,18 +2,19 @@
 # Copyright © 2022-2023 Intel Corporation
 
 from __future__ import annotations
-import unittest
+
 import os
 import tempfile
 import textwrap
 import typing as T
+import unittest
 
 from mesonbuild.cargo import cfg
 from mesonbuild.cargo.cfg import TokenType
 from mesonbuild.cargo.interpreter import load_cargo_lock
 from mesonbuild.cargo.manifest import Dependency, Manifest, Package, Workspace, validate_patch
 from mesonbuild.cargo.toml import load_toml
-from mesonbuild.cargo.version import api, cargo_parse, SemVer
+from mesonbuild.cargo.version import SemVer, api, cargo_parse
 from mesonbuild.mesonlib import MachineChoice, MesonException
 
 

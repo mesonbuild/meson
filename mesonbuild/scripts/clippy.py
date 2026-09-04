@@ -2,16 +2,17 @@
 # Copyright 2024 The Meson development team
 
 from __future__ import annotations
-from collections import defaultdict
+
 import os
+import subprocess
 import tempfile
 import typing as T
-import subprocess
+from collections import defaultdict
 
-from .run_tool import run_tool_on_targets, run_with_buffered_output
 from .. import build, mlog
 from ..mesonlib import MachineChoice, PerMachine
 from ..tooldetect import detect_ninja
+from .run_tool import run_tool_on_targets, run_with_buffered_output
 
 if T.TYPE_CHECKING:
     from ..compilers.rust import RustCompiler

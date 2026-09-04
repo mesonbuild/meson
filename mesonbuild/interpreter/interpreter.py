@@ -4,54 +4,109 @@
 
 from __future__ import annotations
 
+import collections
 import contextlib
-import io
-import sys
-import traceback
 import dataclasses
 import functools
+import importlib
+import io
+import itertools
+import os
+import re
+import shutil
+import stat
+import sys
+import textwrap
+import traceback
+import typing as T
+import uuid
+from enum import Enum
+from pathlib import Path
 
-from .. import mparser
-from .. import environment
-from .. import coredata
-from .. import dependencies
-from .. import mlog
-from .. import options
-from .. import build
-from .. import compilers
-from .. import envconfig
-from ..wrap import wrap, WrapMode
-from .. import mesonlib
-from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException, HoldableObject,
-                        FileMode, InstallScriptFailure, MachineChoice, PerMachine, PerMachineDefaultable, is_parent_path,
-                        listify, has_path_sep, path_has_root, path_is_in_root)
-from ..options import OptionKey
-from ..programs import ExternalProgram, NonExistingExternalProgram, Program
+from .. import (
+    build,
+    compilers,
+    coredata,
+    dependencies,
+    envconfig,
+    environment,
+    mesonlib,
+    mlog,
+    mparser,
+    options,
+)
 from ..dependencies import Dependency
 from ..depfile import DepFile
-from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
-from ..interpreterbase import noPosargs, noKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
-from .decorators import apply_machine_map
-from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
-from ..interpreterbase import Disabler, disablerIfNotFound
-from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken
-from ..interpreterbase import ObjectHolder, ContextManagerObject, DefaultObject
-from ..interpreterbase import stringifyUserArguments, Feature, FeatureValue
-from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule, __path__ as modules_path
+from ..interpreterbase import (
+    ContainerTypeInfo,
+    ContextManagerObject,
+    DefaultObject,
+    Disabler,
+    Feature,
+    FeatureBroken,
+    FeatureDeprecated,
+    FeatureNew,
+    FeatureValue,
+    InterpreterBase,
+    InterpreterException,
+    InvalidArguments,
+    InvalidCode,
+    KwargInfo,
+    ObjectHolder,
+    SubdirDoneRequest,
+    disablerIfNotFound,
+    noArgsFlattening,
+    noKwargs,
+    noPosargs,
+    noSecondLevelHolderResolving,
+    stringifyUserArguments,
+    typed_kwargs,
+    typed_pos_args,
+    unholder_return,
+)
+from ..mesonlib import (
+    EnvironmentVariables,
+    ExecutableSerialisation,
+    FileMode,
+    HoldableObject,
+    InstallScriptFailure,
+    MachineChoice,
+    MesonBugException,
+    MesonException,
+    PerMachine,
+    PerMachineDefaultable,
+    has_path_sep,
+    is_parent_path,
+    listify,
+    path_has_root,
+    path_is_in_root,
+)
+from ..modules import (
+    ExtensionModule,
+    ModuleObject,
+    MutableModuleObject,
+    NewExtensionModule,
+    NotFoundExtensionModule,
+)
+from ..modules import __path__ as modules_path
 from ..optinterpreter import optname_regex
-
-from . import interpreterobjects as OBJ
+from ..options import OptionKey
+from ..programs import ExternalProgram, NonExistingExternalProgram, Program
+from ..wrap import WrapMode, wrap
 from . import compiler as compilerOBJ
-from .mesonmain import MesonMain
+from . import interpreterobjects as OBJ
+from . import primitives as P_OBJ
+from .decorators import apply_machine_map
 from .dependencyfallbacks import DependencyFallbacksHolder
 from .interpreterobjects import (
+    NullSubprojectInterpreter,
+    RunProcess,
     SubprojectHolder,
     Test,
-    RunProcess,
     extract_required_kwarg,
     extract_search_dirs,
-    NullSubprojectInterpreter,
 )
+from .mesonmain import MesonMain
 from .type_checking import (
     BUILD_TARGET_KWS,
     COMMAND_KW,
@@ -60,77 +115,64 @@ from .type_checking import (
     CT_BUILD_BY_DEFAULT,
     CT_INPUT_KW,
     CT_INSTALL_DIR_KW,
-    EXCLUSIVE_EXECUTABLE_KWS,
-    EXECUTABLE_KWS,
-    JAR_KWS,
-    LIBRARY_KWS,
-    MULTI_OUTPUT_KW,
-    OUTPUT_KW,
+    CT_INSTALL_TAG_KW,
+    D_MODULE_VERSIONS_KW,
     DEFAULT_OPTIONS,
+    DEPEND_FILES_KW,
     DEPENDENCIES_KW,
     DEPENDENCY_KWS,
+    DEPENDENCY_SOURCES_KW,
     DEPENDS_KW,
-    DEPEND_FILES_KW,
     DEPFILE_KW,
     DISABLER_KW,
-    D_MODULE_VERSIONS_KW,
     ENV_KW,
     ENV_METHOD_KW,
     ENV_SEPARATOR_KW,
+    EXCLUSIVE_EXECUTABLE_KWS,
+    EXECUTABLE_KWS,
     INCLUDE_DIRECTORIES,
-    INSTALL_KW,
     INSTALL_DIR_KW,
-    INSTALL_MODE_KW,
     INSTALL_FOLLOW_SYMLINKS,
-    LINK_ARGS_KW,
-    LINK_WITH_KW,
-    LINK_WHOLE_KW,
-    CT_INSTALL_TAG_KW,
+    INSTALL_KW,
+    INSTALL_MODE_KW,
     INSTALL_TAG_KW,
+    JAR_KWS,
     LANGUAGE_KW,
+    LIBRARY_KWS,
+    LINK_ARGS_KW,
+    LINK_WHOLE_KW,
+    LINK_WITH_KW,
+    MULTI_OUTPUT_KW,
     NATIVE_KW,
+    OUTPUT_KW,
     PRESERVE_PATH_KW,
     REQUIRED_KW,
     SHARED_LIB_KWS,
     SHARED_MOD_KWS,
-    DEPENDENCY_SOURCES_KW,
     SOURCES_VARARGS,
     STATIC_LIB_KWS,
-    VARIABLES_KW,
     TEST_KWS,
+    VARIABLES_KW,
     NoneType,
+    env_convertor_with_method,
     in_set_validator,
-    env_convertor_with_method
 )
-from . import primitives as P_OBJ
-
-from pathlib import Path
-from enum import Enum
-import os
-import shutil
-import uuid
-import re
-import stat
-import collections
-import typing as T
-import textwrap
-import importlib
-import itertools
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
     import types
 
+    from typing_extensions import Literal
+
     from .. import cargo
-    from . import kwargs as kwtypes
     from ..backend.backends import Backend
+    from ..cmdline import SharedCMDOptions
     from ..compilers.compilers import CompilerDict, Language
     from ..interpreterbase import FeatureCheckBase
-    from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
-    from ..options import OptionDict
+    from ..interpreterbase.baseobjects import InterpreterObject, TYPE_kwargs, TYPE_var
     from ..mesonlib import InstallScript, SubProject
-    from ..cmdline import SharedCMDOptions
-    from .type_checking import SourcesVarargsType, FullEnvInitValueType
+    from ..options import OptionDict
+    from . import kwargs as kwtypes
+    from .type_checking import FullEnvInitValueType, SourcesVarargsType
 
     # Input source types passed to Targets
     SourceInputs = T.Union[str, build.TargetSources, build.BuildTarget,

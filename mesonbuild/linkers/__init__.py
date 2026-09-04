@@ -4,8 +4,8 @@
 from .base import ArLikeLinker, RSPFileSyntax
 from .detect import (
     defaults,
-    guess_win_linker,
     guess_nix_linker,
+    guess_win_linker,
 )
 from .linkers import StaticLinker
 

@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2021 The Meson development team
 
-from pathlib import Path
 import pickle
+from pathlib import Path
 
 from .loaderbase import LoaderBase
 from .model import ReferenceManual
+
 
 class LoaderPickle(LoaderBase):
     def __init__(self, in_file: Path) -> None:

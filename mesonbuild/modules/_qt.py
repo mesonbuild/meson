@@ -5,32 +5,51 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import typing as T
 import xml.etree.ElementTree as ET
-import re
 
-from . import ModuleReturnValue, ExtensionModule
-from .. import build
-from .. import mlog
-from ..dependencies import DependencyMethods, find_external_dependency, Dependency, ExternalLibrary, InternalDependency
-from ..mesonlib import MesonException, File, FileMode, version_compare, Popen_safe
+from .. import build, mlog
+from ..dependencies import (
+    Dependency,
+    DependencyMethods,
+    ExternalLibrary,
+    InternalDependency,
+    find_external_dependency,
+)
 from ..interpreter import extract_required_kwarg
-from ..interpreter.type_checking import DEPENDENCY_METHOD_KW, INSTALL_DIR_KW, INSTALL_KW, REQUIRED_KW, NoneType
-from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, typed_kwargs, typed_pos_args
+from ..interpreter.type_checking import (
+    DEPENDENCY_METHOD_KW,
+    INSTALL_DIR_KW,
+    INSTALL_KW,
+    REQUIRED_KW,
+    NoneType,
+)
+from ..interpreterbase import (
+    ContainerTypeInfo,
+    FeatureDeprecated,
+    FeatureNew,
+    KwargInfo,
+    noPosargs,
+    typed_kwargs,
+    typed_pos_args,
+)
+from ..mesonlib import File, FileMode, MesonException, Popen_safe, version_compare
 from ..programs import NonExistingExternalProgram
+from . import ExtensionModule, ModuleReturnValue
 
 if T.TYPE_CHECKING:
-    from . import ModuleState
+    from typing_extensions import Literal
+
     from ..build import TargetSources
-    from ..dependencies.qt import QtPkgConfigDependency, QmakeQtDependency
     from ..dependencies.base import DependencyObjectKWs
-    from ..interpreter import Interpreter
-    from ..interpreter import kwargs
+    from ..dependencies.qt import QmakeQtDependency, QtPkgConfigDependency
+    from ..interpreter import Interpreter, kwargs
     from ..interpreter.interpreter import CustomTargetSources
     from ..mesonlib import FileOrString
     from ..programs import CommandList, Program
-    from typing_extensions import Literal
+    from . import ModuleState
 
     QtDependencyType = T.Union[QtPkgConfigDependency, QmakeQtDependency]
 

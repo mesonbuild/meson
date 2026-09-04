@@ -1,24 +1,24 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2021 The Meson development team
 
+import typing as T
+from pathlib import Path
+
+from mesonbuild import mesonlib, mlog
+
 from .loaderbase import LoaderBase
 from .model import (
-    Type,
-    PosArg,
-    VarArgs,
-    Kwarg,
     Function,
+    Kwarg,
     Method,
-    ObjectType,
     Object,
+    ObjectType,
+    PosArg,
     ReferenceManual,
+    Type,
+    VarArgs,
 )
 
-from mesonbuild import mlog
-from mesonbuild import mesonlib
-
-from pathlib import Path
-import typing as T
 
 class Template:
     d_feature_check: T.Dict[str, T.Any] = {}
@@ -30,7 +30,17 @@ class Template:
 
 class StrictTemplate(Template):
     def __init__(self) -> None:
-        from strictyaml import Map, MapPattern, Optional, Str, Seq, Int, Bool, EmptyList, OrValidator # type: ignore[import-untyped]
+        from strictyaml import (  # type: ignore[import-untyped]
+            Bool,
+            EmptyList,
+            Int,
+            Map,
+            MapPattern,
+            Optional,
+            OrValidator,
+            Seq,
+            Str,
+        )
 
         d_named_object = {
             'name': Str(),

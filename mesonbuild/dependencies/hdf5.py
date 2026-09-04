@@ -6,20 +6,20 @@ from __future__ import annotations
 
 import os
 import re
+import typing as T
 from pathlib import Path
 
 from ..mesonlib import OrderedSet, join_args
 from .base import DependencyCandidate, DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
 from .detect import packages
-from .pkgconfig import PkgConfigDependency, PkgConfigInterface
 from .factory import factory_methods
-import typing as T
+from .pkgconfig import PkgConfigDependency, PkgConfigInterface
 
 if T.TYPE_CHECKING:
-    from .factory import DependencyGenerator
     from ..environment import Environment
     from .base import DependencyObjectKWs
+    from .factory import DependencyGenerator
 
 
 class HDF5PkgConfigDependency(PkgConfigDependency):

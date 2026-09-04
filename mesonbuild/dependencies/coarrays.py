@@ -5,16 +5,16 @@ from __future__ import annotations
 
 import typing as T
 
-from .base import DependencyCandidate, DependencyMethods, detect_compiler, SystemDependency
+from .base import DependencyCandidate, DependencyMethods, SystemDependency, detect_compiler
 from .cmake import CMakeDependency
 from .detect import packages
-from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
+from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
-    from . factory import DependencyGenerator
     from ..environment import Environment
     from .base import DependencyObjectKWs
+    from .factory import DependencyGenerator
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE, DependencyMethods.SYSTEM})

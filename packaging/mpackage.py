@@ -5,12 +5,12 @@
 # This script only works on Jussi's private release machine.
 
 import os
-import sys
-import subprocess
+import pathlib
 import shutil
+import subprocess
+import sys
 import tarfile
 from glob import glob
-import pathlib
 
 assert(os.getcwd() == '/home/jpakkane')
 

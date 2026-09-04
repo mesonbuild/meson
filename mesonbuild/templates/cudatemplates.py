@@ -3,6 +3,7 @@
 # Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
+
 import typing as T
 
 from mesonbuild.templates.sampleimpl import FileHeaderImpl

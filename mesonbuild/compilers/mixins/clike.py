@@ -11,30 +11,32 @@ standalone, they only work through inheritance.
 from __future__ import annotations
 
 import collections
+import copy
 import functools
 import glob
 import itertools
 import os
 import re
 import subprocess
-import copy
 import typing as T
 from pathlib import Path
 
-from ... import arglist
-from ... import mesonlib
-from ... import mlog
-from ...linkers.linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
+from ... import arglist, mesonlib, mlog
+from ...linkers.linkers import (
+    CompCertDynamicLinker,
+    GnuLikeDynamicLinkerMixin,
+    SolarisDynamicLinker,
+)
 from ...mesonlib import LibType
 from .. import compilers
 from ..compilers import CompileCheckMode
 from .visualstudio import VisualStudioLikeCompiler
 
 if T.TYPE_CHECKING:
-    from ...dependencies import Dependency
     from ..._typing import ImmutableListProtocol
-    from ...environment import Environment
     from ...compilers.compilers import Compiler
+    from ...dependencies import Dependency
+    from ...environment import Environment
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
     # Compiler, so we get all of the methods and attributes defined for us, but

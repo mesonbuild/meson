@@ -1,45 +1,64 @@
 from __future__ import annotations
+
+import copy
 import os
 import shlex
 import subprocess
-import copy
+import sys
 import textwrap
 import threading
-import sys
-
+import typing as T
 from pathlib import Path, PurePath
 
-from .. import mesonlib
-from .. import build
-from .. import mlog
-
-from ..modules import ModuleReturnValue, ModuleObject, ModuleState, ExtensionModule, NewExtensionModule
+from .. import build, mesonlib, mlog
 from ..backend.backends import TestProtocol
-from ..interpreterbase import (
-                               ContainerTypeInfo, KwargInfo, InterpreterObject, MesonOperator,
-                               MesonInterpreterObject, ObjectHolder, MutableInterpreterObject,
-                               FeatureNew, FeatureDeprecated,
-                               typed_pos_args, typed_kwargs, typed_operator,
-                               noArgsFlattening, noPosargs, noKwargs, unholder_return,
-                               flatten, resolve_second_level_holders, Feature, FeatureValue,
-                               InterpreterException, InvalidArguments, InvalidCode)
-from ..interpreter.type_checking import NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
+from ..interpreter.type_checking import ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW, NoneType
+from ..interpreterbase import (
+    ContainerTypeInfo,
+    Feature,
+    FeatureDeprecated,
+    FeatureNew,
+    FeatureValue,
+    InterpreterException,
+    InterpreterObject,
+    InvalidArguments,
+    InvalidCode,
+    KwargInfo,
+    MesonInterpreterObject,
+    MesonOperator,
+    MutableInterpreterObject,
+    ObjectHolder,
+    flatten,
+    noArgsFlattening,
+    noKwargs,
+    noPosargs,
+    resolve_second_level_holders,
+    typed_kwargs,
+    typed_operator,
+    typed_pos_args,
+    unholder_return,
+)
+from ..mesonlib import File, HoldableObject, MachineChoice, MesonException, listify
+from ..modules import (
+    ExtensionModule,
+    ModuleObject,
+    ModuleReturnValue,
+    ModuleState,
+    NewExtensionModule,
+)
 from ..programs import Program
-from ..mesonlib import File, HoldableObject, listify, MachineChoice, MesonException
-
-import typing as T
 
 if T.TYPE_CHECKING:
-    from . import kwargs
+    from typing_extensions import Literal, TypedDict
+
     from ..cmake.interpreter import CMakeInterpreter
     from ..dependencies.base import IncludeType
     from ..envconfig import MachineInfo
-    from ..interpreterbase import FeatureCheckBase, TYPE_var, TYPE_kwargs
+    from ..interpreterbase import FeatureCheckBase, TYPE_kwargs, TYPE_var
     from ..mesonlib import SubProject
+    from . import kwargs
     from .interpreter import Interpreter
-
-    from typing_extensions import Literal, TypedDict
 
     class EnvironmentSeparatorKW(TypedDict):
 

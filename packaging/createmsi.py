@@ -7,13 +7,13 @@ This script is for generating MSI packages
 for Windows users.
 '''
 
-import subprocess
-import shutil
-import uuid
-import sys
 import os
-from glob import glob
+import shutil
+import subprocess
+import sys
+import uuid
 import xml.etree.ElementTree as ET
+from glob import glob
 
 sys.path.append(os.getcwd())
 from mesonbuild import coredata

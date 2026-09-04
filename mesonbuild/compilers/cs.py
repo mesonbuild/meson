@@ -8,7 +8,6 @@ import textwrap
 import typing as T
 
 from ..linkers import RSPFileSyntax
-
 from .compilers import Compiler
 from .mixins.islinker import BasicLinkerIsCompilerMixin
 

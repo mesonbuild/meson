@@ -4,19 +4,24 @@
 from __future__ import annotations
 
 import collections
-import importlib
 import enum
+import importlib
 import typing as T
 
-from .base import DependencyCandidate, ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
-
-from ..mesonlib import listify, PerMachine, MesonBugException, MesonException
 from .. import mlog
+from ..mesonlib import MesonBugException, MesonException, PerMachine, listify
+from .base import (
+    DependencyCandidate,
+    DependencyException,
+    DependencyMethods,
+    ExternalDependency,
+    NotFoundDependency,
+)
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from .factory import DependencyFactory, DependencyGenerator, WrappedFactoryFunc
     from .base import DependencyObjectKWs
+    from .factory import DependencyFactory, DependencyGenerator, WrappedFactoryFunc
 
     TV_DepIDEntry = T.Union[str, bool, int, None, T.Tuple[str, ...]]
     TV_DepID = T.Tuple[T.Tuple[str, TV_DepIDEntry], ...]

@@ -9,13 +9,13 @@ import itertools
 import json
 import signal
 import sys
+import typing as T
 from pathlib import Path
 
 from .. import mlog
 from ..compilers import lang_suffixes
-from ..mesonlib import quiet_git, join_args, determine_worker_count
+from ..mesonlib import determine_worker_count, join_args, quiet_git
 from ..mtest import complete_all
-import typing as T
 
 if T.TYPE_CHECKING:
     from ..compilers.compilers import Language

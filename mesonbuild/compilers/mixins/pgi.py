@@ -5,12 +5,12 @@
 
 from __future__ import annotations
 
-import typing as T
 import os
+import typing as T
 from pathlib import Path
 
-from ..compilers import clike_debug_args, clike_optimization_args
 from ...options import OptionKey
+from ..compilers import clike_debug_args, clike_optimization_args
 
 if T.TYPE_CHECKING:
     from ...compilers.compilers import Compiler

@@ -6,7 +6,6 @@ from __future__ import annotations
 import typing as T
 
 from ..options import OptionKey, UserStdOption
-
 from .c import ALL_STDS
 from .compilers import Compiler
 from .mixins.apple import AppleCStdsMixin
@@ -15,10 +14,10 @@ from .mixins.clike import CLikeCompiler
 from .mixins.gnu import GnuCompiler, GnuCStds, gnu_common_warning_args, gnu_objc_warning_args
 
 if T.TYPE_CHECKING:
+    from ..build import BuildTarget
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
-    from ..build import BuildTarget
     from ..options import MutableKeyedOptionDictType
 
 

@@ -7,14 +7,13 @@ from __future__ import annotations
 
 import functools
 import os
-import typing as T
-import subprocess
 import re
+import subprocess
+import typing as T
 
-from .gnu import GnuLikeCompiler
-from .gnu import gnu_optimization_args
 from ...mesonlib import Popen_safe
 from ...options import OptionKey
+from .gnu import GnuLikeCompiler, gnu_optimization_args
 
 if T.TYPE_CHECKING:
     from ...build import BuildTarget

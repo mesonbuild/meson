@@ -8,28 +8,35 @@ import json
 import operator
 import os
 import textwrap
-from pathlib import Path
 import typing as T
+from pathlib import Path
 
 from .. import mesonlib, mlog
-from .base import process_method_kw, DependencyCandidate, DependencyException, DependencyMethods, ExternalDependency, SystemDependency
+from ..envconfig import detect_cpu_family
+from ..mesonlib import MachineChoice, path_is_in_root
+from ..options import OptionKey
+from ..programs import ExternalProgram
+from ..scripts import destdir_join
+from .base import (
+    DependencyCandidate,
+    DependencyException,
+    DependencyMethods,
+    ExternalDependency,
+    SystemDependency,
+    process_method_kw,
+)
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import DependencyFactory
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
-from ..envconfig import detect_cpu_family
-from ..mesonlib import MachineChoice, path_is_in_root
-from ..programs import ExternalProgram
-from ..options import OptionKey
-from ..scripts import destdir_join
 
 if T.TYPE_CHECKING:
     from typing_extensions import Final, TypedDict
 
-    from .factory import DependencyGenerator
     from ..environment import Environment
     from .base import DependencyObjectKWs
+    from .factory import DependencyGenerator
 
     class PythonIntrospectionDict(TypedDict):
 

@@ -5,37 +5,39 @@
 """A library of random helper functionality."""
 
 from __future__ import annotations
-from pathlib import Path
+
+import abc
 import argparse
 import ast
-import copy
-import enum
-import sys
-import stat
-import time
-import abc
-import multiprocessing
-import platform
-import subprocess
-import operator
-import os
-import shlex
-import shutil
-import re
 import collections
-from functools import lru_cache, wraps
-from itertools import tee
-from tempfile import TemporaryDirectory, NamedTemporaryFile
-import typing as T
-import textwrap
-import pickle
+import copy
+import dataclasses
+import enum
 import errno
 import json
-import dataclasses
+import multiprocessing
+import operator
+import os
+import pickle
+import platform
+import re
+import shlex
+import shutil
+import stat
+import subprocess
+import sys
+import textwrap
+import time
+import typing as T
+from functools import lru_cache, wraps
 from glob import glob
+from itertools import tee
+from pathlib import Path
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from mesonbuild import mlog
-from .core import MesonException, MesonBugException, HoldableObject, ExecutableSerialisation
+
+from .core import ExecutableSerialisation, HoldableObject, MesonBugException, MesonException
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Protocol, Self
@@ -43,8 +45,8 @@ if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
     from ..build import ConfigurationData
     from ..cmdline import StrOrBytesPath
-    from ..environment import Environment
     from ..compilers.compilers import Compiler
+    from ..environment import Environment
 
     class _EnvPickleLoadable(Protocol):
 
@@ -2678,8 +2680,8 @@ def pickle_load(filename: str, object_name: str, object_type: T.Type[_PL], sugge
     else:
         version = T.cast('_EnvPickleLoadable', obj).environment.coredata.version
 
+    from ..coredata import MesonVersionMismatchException, major_versions_differ
     from ..coredata import version as coredata_version
-    from ..coredata import major_versions_differ, MesonVersionMismatchException
     if major_versions_differ(version, coredata_version):
         raise MesonVersionMismatchException(version, coredata_version, extra_msg)
     return obj

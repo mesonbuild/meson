@@ -7,6 +7,7 @@ See: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p1689r5.html
 """
 
 from __future__ import annotations
+
 import json
 import re
 import textwrap

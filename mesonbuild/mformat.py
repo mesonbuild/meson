@@ -5,22 +5,23 @@ from __future__ import annotations
 
 import difflib
 import re
+import sys
 import typing as T
 from configparser import ConfigParser, MissingSectionHeaderError, ParsingError
 from copy import deepcopy
-from dataclasses import dataclass, field, fields, asdict
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
-import sys
 
 from . import mparser
-from .mesonlib import MesonException, pathname_sort_key
 from .ast.postprocess import AstConditionLevel
 from .ast.printer import RawPrinter
 from .ast.visitor import FullAstVisitor
 from .environment import build_filename
+from .mesonlib import MesonException, pathname_sort_key
 
 if T.TYPE_CHECKING:
     import argparse
+
     from typing_extensions import Literal
 
 

@@ -10,17 +10,24 @@ project files and don't need this info."""
 
 from __future__ import annotations
 
-from contextlib import redirect_stdout
 import dataclasses
 import itertools
 import json
 import os
-from pathlib import Path, PurePath
 import sys
 import typing as T
+from contextlib import redirect_stdout
+from pathlib import Path, PurePath
 
-from . import build, environment, mesonlib, options, coredata as cdata
-from .ast import IntrospectionInterpreter, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
+from . import build, environment, mesonlib, options
+from . import coredata as cdata
+from .ast import (
+    AstConditionLevel,
+    AstIDGenerator,
+    AstIndentationGenerator,
+    AstJSONPrinter,
+    IntrospectionInterpreter,
+)
 from .backend import backends
 from .interpreterbase import UnknownValue
 from .options import OptionKey

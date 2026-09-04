@@ -10,40 +10,50 @@ port will be required.
 """
 
 from __future__ import annotations
+
+import collections
 import dataclasses
 import functools
 import itertools
 import os
 import pathlib
-import collections
-import urllib.parse
 import typing as T
+import urllib.parse
 from pathlib import PurePath
 
-from . import builder, version
-from .cfg import eval_cfg
-from .toml import load_toml
-from .manifest import (
-    Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname,
-    validate_patch,
-)
-from ..mesonlib import (
-    is_parent_path, lazy_property, MesonException, MachineChoice,
-    PerMachine, unique_list, SubProject,
-)
 from .. import coredata, mlog
+from ..mesonlib import (
+    MachineChoice,
+    MesonException,
+    PerMachine,
+    SubProject,
+    is_parent_path,
+    lazy_property,
+    unique_list,
+)
 from ..options import OptionKey
 from ..wrap.wrap import PackageDefinition, WrapType
+from . import builder, version
+from .cfg import eval_cfg
+from .manifest import (
+    CargoLock,
+    CargoLockPackage,
+    Manifest,
+    Workspace,
+    fixup_meson_varname,
+    validate_patch,
+)
+from .toml import load_toml
 
 if T.TYPE_CHECKING:
-    from . import raw
-    from .. import mparser
     from typing_extensions import Literal
 
-    from .manifest import Dependency, Profile
-    from ..environment import Environment
+    from .. import mparser
     from ..compilers.rust import RustCompiler
+    from ..environment import Environment
     from ..options import ElementaryOptionValues
+    from . import raw
+    from .manifest import Dependency, Profile
 
     RUST_ABI = Literal['rust', 'c', 'proc-macro']
 

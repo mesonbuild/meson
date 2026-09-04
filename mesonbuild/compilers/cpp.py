@@ -7,40 +7,41 @@ import functools
 import os.path
 import typing as T
 
-from .. import options
-from .. import mlog
-from ..mesonlib import MesonException, version_compare, lazy_property
-
+from .. import mlog, options
+from ..mesonlib import MesonException, lazy_property, version_compare
+from .c_function_attributes import C_FUNC_ATTRIBUTES, CXX_FUNC_ATTRIBUTES
 from .compilers import (
+    CompileCheckMode,
+    Compiler,
     gnu_winlibs,
     msvc_winlibs,
-    Compiler,
-    CompileCheckMode,
 )
-from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
 from .mixins.apple import AppleCompilerMixin, AppleCPPStdsMixin
-from .mixins.clike import CLikeCompiler
+from .mixins.arm import ArmclangCompiler, ArmCompiler
 from .mixins.ccrx import CcrxCompiler
-from .mixins.ti import TICompiler
-from .mixins.arm import ArmCompiler, ArmclangCompiler
-from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
+from .mixins.clang import ClangCompiler, ClangCPPStds
+from .mixins.clike import CLikeCompiler
+from .mixins.elbrus import ElbrusCompiler
+from .mixins.emscripten import EmscriptenMixin
 from .mixins.gnu import GnuCompiler, GnuCPPStds, gnu_common_warning_args, gnu_cpp_warning_args
 from .mixins.intel import IntelGnuLikeCompiler, IntelLLVMLikeCompiler, IntelVisualStudioLikeCompiler
-from .mixins.clang import ClangCompiler, ClangCPPStds
-from .mixins.elbrus import ElbrusCompiler
-from .mixins.pgi import PGICompiler
-from .mixins.emscripten import EmscriptenMixin
-from .mixins.metrowerks import MetrowerksCompiler
-from .mixins.metrowerks import mwccarm_instruction_set_args, mwcceppc_instruction_set_args
+from .mixins.metrowerks import (
+    MetrowerksCompiler,
+    mwccarm_instruction_set_args,
+    mwcceppc_instruction_set_args,
+)
 from .mixins.microchip import Xc32Compiler, Xc32CPPStds
+from .mixins.pgi import PGICompiler
+from .mixins.ti import TICompiler
+from .mixins.visualstudio import ClangClCompiler, MSVCCompiler
 
 if T.TYPE_CHECKING:
-    from ..options import MutableKeyedOptionDictType
+    from ..build import BuildTarget
     from ..dependencies import Dependency
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
-    from ..build import BuildTarget
+    from ..options import MutableKeyedOptionDictType
     CompilerMixinBase = CLikeCompiler
 else:
     CompilerMixinBase = object

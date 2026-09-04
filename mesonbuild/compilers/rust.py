@@ -7,27 +7,33 @@ from __future__ import annotations
 import argparse
 import functools
 import os.path
-import textwrap
 import re
+import textwrap
 import typing as T
 
 from .. import options
 from ..dependencies import InternalDependency
-from ..mesonlib import EnvironmentException, MesonException, Popen_safe, Popen_safe_logged, version_compare
 from ..linkers.linkers import VisualStudioLikeLinkerMixin
+from ..mesonlib import (
+    EnvironmentException,
+    MesonException,
+    Popen_safe,
+    Popen_safe_logged,
+    version_compare,
+)
 from ..options import OptionKey
-from .compilers import Compiler, CompileCheckMode, clike_debug_args, is_library
+from .compilers import CompileCheckMode, Compiler, clike_debug_args, is_library
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Protocol
+
     from .. import build
-    from ..options import MutableKeyedOptionDictType
+    from ..build import BuildTarget
+    from ..dependencies import Dependency
     from ..environment import Environment  # noqa: F401
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
-    from ..dependencies import Dependency
-    from ..build import BuildTarget
-
-    from typing_extensions import Protocol
+    from ..options import MutableKeyedOptionDictType
 
     class TargetParse(Protocol):
         target: T.Optional[str]

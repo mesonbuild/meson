@@ -3,23 +3,33 @@
 # Copyright © 2024-2025 Intel Corporation
 
 from __future__ import annotations
+
 import json
 import os
 import pickle
+import shutil
 import subprocess
 import tempfile
 import textwrap
-import shutil
-from unittest import skipIf, SkipTest
 from pathlib import Path
+from unittest import SkipTest, skipIf
 
-from .baseplatformtests import BasePlatformTests
-from .helpers import skip_if_not_language, IS_CI
-from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command, windows_proof_rmtree
+from mesonbuild.mesonlib import (
+    EnvironmentVariables,
+    ExecutableSerialisation,
+    MesonException,
+    is_linux,
+    python_command,
+    windows_proof_rmtree,
+)
 from mesonbuild.mformat import Formatter, match_path
-from mesonbuild.optinterpreter import OptionInterpreter, OptionException
+from mesonbuild.optinterpreter import OptionException, OptionInterpreter
 from mesonbuild.options import OptionStore
 from run_tests import Backend
+
+from .baseplatformtests import BasePlatformTests
+from .helpers import IS_CI, skip_if_not_language
+
 
 @skipIf(IS_CI and not is_linux(), "Run only on fast platforms")
 class PlatformAgnosticTests(BasePlatformTests):

@@ -3,21 +3,30 @@
 
 from __future__ import annotations
 
+import functools
 import glob
 import os
-import re
 import pathlib
+import re
 import shutil
 import subprocess
 import typing as T
-import functools
 
 from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 
 from .. import mesonlib, mlog
+from ..mesonlib import search_version, version_compare, version_compare_many
 from ..tooldetect import get_llvm_tool_names
-from ..mesonlib import version_compare, version_compare_many, search_version
-from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyCandidate
+from .base import (
+    DependencyCandidate,
+    DependencyException,
+    DependencyMethods,
+    ExternalDependency,
+    SystemDependency,
+    detect_compiler,
+    strip_system_includedirs,
+    strip_system_libdirs,
+)
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
@@ -26,11 +35,11 @@ from .misc import threads_factory
 from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
+    from ..compilers import Compiler
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..compilers import Compiler
-    from ..mesonlib import MachineChoice
     from ..interpreter.type_checking import PkgConfigDefineType
+    from ..mesonlib import MachineChoice
     from .base import DependencyObjectKWs
 
 

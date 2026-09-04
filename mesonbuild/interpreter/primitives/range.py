@@ -6,10 +6,10 @@ import typing as T
 
 from ...interpreterbase import (
     InterpreterObject,
+    InvalidArguments,
     IterableObject,
     MesonInterpreterObject,
     MesonOperator,
-    InvalidArguments,
 )
 
 if T.TYPE_CHECKING:

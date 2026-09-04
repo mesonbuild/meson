@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2014 Jussi Pakkanen
 
+import argparse
+import re
+import sys
 import typing as T
 from pathlib import Path
-import sys
-import re
-import argparse
 
 
 class Token:

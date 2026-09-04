@@ -4,30 +4,24 @@
 
 from __future__ import annotations
 
-import itertools
+import collections
 import hashlib
-import shutil
+import itertools
 import os
+import shutil
 import textwrap
 import typing as T
-import collections
 
-from . import build
-from . import cmdline
-from . import coredata
-from . import options
-from . import environment
-from . import mesonlib
-from . import mintro
-from . import mlog
+from . import build, cmdline, coredata, environment, mesonlib, mintro, mlog, options
 from .ast import AstIDGenerator, IntrospectionInterpreter
 from .mesonlib import MachineChoice, unwrap
-from .options import OptionKey
 from .optinterpreter import OptionInterpreter
+from .options import OptionKey
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Protocol
     import argparse
+
+    from typing_extensions import Protocol
 
     class CMDOptions(cmdline.SharedCMDOptions, Protocol):
 
