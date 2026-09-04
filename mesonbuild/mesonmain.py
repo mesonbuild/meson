@@ -11,6 +11,7 @@ sys.modules['pathlib'] = _pathlib
 
 # This file is an entry point for all commands, including scripts. Include the
 # strict minimum python modules for performance reasons.
+# ruff: disable[E402]
 import os.path
 import platform
 import importlib
@@ -19,6 +20,7 @@ import typing as T
 
 from .utils.core import MesonException, MesonBugException
 from . import mlog
+# ruff: enable[E402]
 
 if T.TYPE_CHECKING:
 

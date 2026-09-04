@@ -9,6 +9,7 @@ from mesonbuild import _pathlib
 import sys
 sys.modules['pathlib'] = _pathlib
 
+# ruff: disable[E402]
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, CancelledError, as_completed
 from enum import Enum
 from io import StringIO
@@ -60,6 +61,7 @@ from run_tests import (
     get_backend_args_for_dir, Backend,
     guess_backend, handle_meson_skip_test,
 )
+# ruff: enable[E402]
 
 
 if T.TYPE_CHECKING:

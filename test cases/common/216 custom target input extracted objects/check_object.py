@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import sys, os
+import sys
+import os
 
 if __name__ == '__main__':
     if len(sys.argv) < 4:

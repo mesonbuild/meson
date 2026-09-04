@@ -193,8 +193,13 @@ class CMakeTraceParser:
                 fn(l)
 
         # Evaluate generator expressions
-        strlist_gen:  T.Callable[[T.List[str]], T.List[str]] = lambda strlist: parse_generator_expressions(';'.join(strlist), self).split(';') if strlist else []
-        pathlist_gen: T.Callable[[T.List[str]], T.List[Path]] = lambda strlist: [Path(x) for x in parse_generator_expressions(';'.join(strlist), self).split(';')] if strlist else []
+        def strlist_gen(strlist: list[str]) -> list[str]:
+            return parse_generator_expressions(';'.join(strlist), self).split(';') if strlist else []
+
+        def pathlist_gen(strlist: list[str]) -> list[Path]:
+            if strlist:
+                return [Path(x) for x in parse_generator_expressions(';'.join(strlist), self).split(';')]
+            return []
 
         self.vars = {k: strlist_gen(v) for k, v in self.vars.items()}
         self.vars_by_file = {
@@ -210,8 +215,12 @@ class CMakeTraceParser:
             for k, v in self.cache.items()
         }
 
+        def tgtlist_gen(strlist: list[str], target: CMakeTarget) -> list[str]:
+            if strlist:
+                return parse_generator_expressions(';'.join(strlist), self, context_tgt=target).split(';')
+            return []
+
         for tgt in self.targets.values():
-            tgtlist_gen: T.Callable[[T.List[str], CMakeTarget], T.List[str]] = lambda strlist, t: parse_generator_expressions(';'.join(strlist), self, context_tgt=t).split(';') if strlist else []
             tgt.name = parse_generator_expressions(tgt.name, self, context_tgt=tgt)
             tgt.type = parse_generator_expressions(tgt.type, self, context_tgt=tgt)
             tgt.properties = {
@@ -690,7 +699,7 @@ class CMakeTraceParser:
         private = [x for x in private if x]
 
         for j in [(private_prop, private), (interface_prop, interface)]:
-            if not j[0] in self.targets[target].properties:
+            if j[0] not in self.targets[target].properties:
                 self.targets[target].properties[j[0]] = []
 
             self.targets[target].properties[j[0]] += j[1]

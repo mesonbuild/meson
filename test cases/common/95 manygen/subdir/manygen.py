@@ -4,7 +4,8 @@
 # Generates a static library, object file, source
 # file and a header file.
 
-import sys, os
+import sys
+import os
 import subprocess
 
 with open(sys.argv[1]) as f:

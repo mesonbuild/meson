@@ -2,8 +2,6 @@
 # Copyright 2019 The Meson development team
 # Copyright © 2023 Intel Corporation
 
-from __future__ import annotations
-
 """Mixins for compilers that *are* linkers.
 
 While many compilers (such as gcc and clang) are used by meson to dispatch
@@ -11,6 +9,8 @@ linker commands and other (like MSVC) are not, a few (such as DMD) actually
 are both the linker and compiler in one binary. This module provides mixin
 classes for those cases.
 """
+
+from __future__ import annotations
 
 import typing as T
 

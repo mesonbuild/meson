@@ -21,7 +21,7 @@ meson_exe = Path(sys.argv[0]).resolve()
 if (meson_exe.parent / 'mesonbuild').is_dir():
     sys.path.insert(0, str(meson_exe.parent))
 
-from mesonbuild import mesonmain
+from mesonbuild import mesonmain  # noqa: E402
 
 if __name__ == '__main__':
     sys.exit(mesonmain.main())

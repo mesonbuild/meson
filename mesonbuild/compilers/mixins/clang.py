@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2019-2022 The meson development team
 
-from __future__ import annotations
-
 """Abstractions for the LLVM/Clang compiler family."""
+
+from __future__ import annotations
 
 import os
 import shutil

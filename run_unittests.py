@@ -3,6 +3,7 @@
 # Copyright 2016-2021 The Meson development team
 
 # Work around some pathlib bugs...
+# ruff: disable[E402]
 from mesonbuild import _pathlib
 import sys
 sys.modules['pathlib'] = _pathlib
@@ -16,6 +17,7 @@ import typing as T
 
 import mesonbuild.coredata
 from mesonbuild.mesonlib import python_command, setup_vsenv
+# ruff: enable[E402]
 
 
 def convert_args(argv):

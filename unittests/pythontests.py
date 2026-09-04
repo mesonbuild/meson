@@ -1,7 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
-import glob, os, pathlib, shutil, subprocess, sys, unittest
+import glob
+import os
+import pathlib
+import shutil
+import subprocess
+import sys
+import unittest
 
 from run_tests import (
     Backend

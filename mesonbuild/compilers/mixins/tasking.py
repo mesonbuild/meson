@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2023 The Meson development team
-from __future__ import annotations
 
 """Representations specific to the TASKING embedded C/C++ compiler family."""
+
+from __future__ import annotations
 
 import os
 import typing as T
@@ -119,7 +120,7 @@ class TaskingCompiler(Compiler):
         # In case of LTO or prelinking the object suffix has to be .mil
         use_lto = self.environment.coredata.get_option_for_target(target, 'b_lto')
         if use_lto or (isinstance(target, StaticLibrary) and target.prelink):
-            if not source.rsplit('.', 1)[1] in lang_suffixes['c']:
+            if source.rsplit('.', 1)[1] not in lang_suffixes['c']:
                 if isinstance(target, StaticLibrary) and not target.prelink:
                     raise EnvironmentException('Tried using MIL linking for a static library with a assembly file. This can only be done if the static library is prelinked or disable \'b_lto\'.')
             else:

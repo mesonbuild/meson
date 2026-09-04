@@ -3,7 +3,8 @@
 # Copyright 2016 The Meson development team
 
 
-import os, sys
+import os
+import sys
 
 if sys.version_info < (3, 10):
     raise SystemExit('ERROR: Tried to install Meson with an unsupported Python version: \n{}'

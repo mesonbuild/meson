@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-import sys, os, subprocess
+import sys
+import os
+import subprocess
 
 def generate(infile, outfile, fallback):
     workdir = os.path.split(infile)[0]

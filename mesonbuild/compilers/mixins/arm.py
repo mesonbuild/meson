@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2020 Meson development team
 
-from __future__ import annotations
-
 """Representations specific to the arm family of compilers."""
+
+from __future__ import annotations
 
 import os
 import typing as T

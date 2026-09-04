@@ -3,7 +3,11 @@
 
 from __future__ import annotations
 
-import copy, json, os, shutil, re
+import copy
+import json
+import os
+import shutil
+import re
 import typing as T
 
 from . import ExtensionModule, ModuleInfo

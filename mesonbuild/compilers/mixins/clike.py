@@ -1,15 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2023 The Meson development team
 
-from __future__ import annotations
-
-
 """Mixin classes to be shared between C and C++ compilers.
 
 Without this we'll end up with awful diamond inheritance problems. The goal
 of this is to have mixin's, which are classes that are designed *not* to be
 standalone, they only work through inheritance.
 """
+
+from __future__ import annotations
 
 import collections
 import functools

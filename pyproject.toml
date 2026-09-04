@@ -7,4 +7,13 @@ build-backend = "setuptools.build_meta"
   target-version = "py310"
 
   [tool.ruff.lint]
-    select = ["F"]
+    select = ["E", "F"]
+
+    exclude = [
+      "test cases/**",
+    ]
+
+    ignore = [
+      "E501",  # line-too-long. Worth fixing. Also, there's like 4000 violations
+      "E741",  # Ambiguous variable. Might be worth fixing, but doesn't like one letter variables in short loops
+    ]

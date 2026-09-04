@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import os.path, sys
+import os.path
+import sys
 
 invert = False
 for path in sys.argv[1:]:

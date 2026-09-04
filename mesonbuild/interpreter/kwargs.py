@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright © 2021-2025 Intel Corporation
 # Copyright © 2021-2025 Intel Corporation
-from __future__ import annotations
 
 """Keyword Argument type annotations."""
+
+from __future__ import annotations
 
 import typing as T
 

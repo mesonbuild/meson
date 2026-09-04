@@ -1,14 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2014-2016 The Meson development team
 
-from __future__ import annotations
-
 """This is a helper script for IDE developers. It allows you to
 extract information such as list of targets, files, compiler flags,
 tests and so on. All output is in JSON for simple parsing.
 
 Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
+
+from __future__ import annotations
 
 from contextlib import redirect_stdout
 import dataclasses

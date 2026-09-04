@@ -121,7 +121,9 @@ class CudaDependency(SystemDependency):
     def _find_matching_toolkit(self, paths: T.List[TV_ResultTuple], version_reqs: T.List[str], nvcc_version: T.Optional[str]) -> TV_ResultTuple:
         # keep the default paths order intact, sort the rest in the descending order
         # according to the toolkit version
-        part_func: T.Callable[[TV_ResultTuple], bool] = lambda t: not t[2]
+        def part_func(v: TV_ResultTuple) -> bool:
+            return not v[2]
+
         defaults_it, rest_it = mesonlib.partition(part_func, paths)
         defaults = list(defaults_it)
         paths = defaults + sorted(rest_it, key=lambda t: mesonlib.Version(t[1]), reverse=True)

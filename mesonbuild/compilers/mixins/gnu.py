@@ -2,9 +2,9 @@
 # Copyright 2019-2022 The meson development team
 # Copyright © 2023-2025 Intel Corporation
 
-from __future__ import annotations
-
 """Provides mixins for GNU compilers and GNU-like compilers."""
+
+from __future__ import annotations
 
 import abc
 import functools

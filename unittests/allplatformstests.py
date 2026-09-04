@@ -13,7 +13,8 @@ import os
 import shutil
 import platform
 import pickle
-import zipfile, tarfile
+import zipfile
+import tarfile
 import sys
 import sysconfig
 from unittest import mock, SkipTest, skipIf, skipUnless
@@ -74,6 +75,7 @@ from .helpers import (
 )
 
 if T.TYPE_CHECKING:
+    from mesonbuild.build import BuildTarget
     from mesonbuild.compilers.compilers import Language
     from mesonbuild.environment import Environment
 
@@ -5285,7 +5287,7 @@ class AllPlatformTests(BasePlatformTests):
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
 
-        def output_name(name, type_):
+        def output_name(name: str, type_: type[BuildTarget]) -> str:
             target = type_(name=name, subdir='',
                            orig_for_machine=MachineChoice.HOST, sources=[],
                            structured_sources=None,
@@ -5295,9 +5297,14 @@ class AllPlatformTests(BasePlatformTests):
             target.process_compilers_late()
             return target.filename
 
-        shared_lib_name = lambda name: output_name(name, SharedLibrary)
-        static_lib_name = lambda name: output_name(name, StaticLibrary)
-        exe_name = lambda name: output_name(name, Executable)
+        def shared_lib_name(name: str) -> str:
+            return output_name(name, SharedLibrary)
+
+        def static_lib_name(name: str) -> str:
+            return output_name(name, StaticLibrary)
+
+        def exe_name(name: str) -> str:
+            return output_name(name, Executable)
 
         expected = {
             'targets': {
@@ -5526,7 +5533,9 @@ class AllPlatformTests(BasePlatformTests):
             }
         }
 
-        fix_path = lambda path: os.path.sep.join(path.split('/'))
+        def fix_path(path: str) -> str:
+            return os.path.sep.join(path.split('/'))
+
         expected_fixed = {
             data_type: {
                 fix_path(source): {

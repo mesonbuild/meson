@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, InitVar
-import sys, os, subprocess
+import sys
+import os
+import subprocess
 import argparse
 import asyncio
 import fnmatch

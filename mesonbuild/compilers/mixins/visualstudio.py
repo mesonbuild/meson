@@ -2,11 +2,11 @@
 # Copyright 2019 The meson development team
 # Copyright © 2023 Intel Corporation
 
-from __future__ import annotations
-
 """Abstractions to simplify compilers that implement an MSVC compatible
 interface.
 """
+
+from __future__ import annotations
 
 import os
 import typing as T

@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2020 The Meson development team
 
-from __future__ import annotations
-
 """Representations and logic for External and Internal Programs."""
+
+from __future__ import annotations
 
 import functools
 import os

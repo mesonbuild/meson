@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2020 The Meson development team
 
-from __future__ import annotations
-
 """Entrypoint script for backend agnostic compile."""
+
+from __future__ import annotations
 
 import os
 import json

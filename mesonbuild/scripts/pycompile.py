@@ -6,7 +6,10 @@
 # type: ignore
 # pylint: disable=deprecated-module
 
-import json, os, subprocess, sys
+import json
+import os
+import subprocess
+import sys
 from compileall import compile_file
 
 quiet = int(os.environ.get('MESON_INSTALL_QUIET', 0))

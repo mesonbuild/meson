@@ -3,7 +3,9 @@
 # Copyright 2017-2021 The Meson development team
 
 import subprocess
-import shutil, sys, os
+import shutil
+import sys
+import os
 from glob import glob
 
 import xml.etree.ElementTree as ET

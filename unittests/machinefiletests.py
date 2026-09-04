@@ -45,6 +45,10 @@ from .helpers import (
     skip_if_not_language, skipIfNoExecutable, get_classpath, skip_if_env_set
 )
 
+if T.TYPE_CHECKING:
+    from mesonbuild.compilers import Compiler
+
+
 @functools.lru_cache()
 def is_real_gnu_compiler(path):
     '''
@@ -180,7 +184,8 @@ class NativeFileTests(BasePlatformTests):
         with more than one implementation, such as C, C++, ObjC, ObjC++, and D.
         """
         env = get_fake_env()
-        getter = lambda: compiler_from_language(env, lang, for_machine)
+        def getter() -> Compiler | None:
+            return compiler_from_language(env, lang, for_machine)
         cc = getter()
         binary, newid = cb(cc)
         env.binaries[for_machine].binaries[lang] = binary

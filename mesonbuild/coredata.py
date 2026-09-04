@@ -7,7 +7,9 @@ from __future__ import annotations
 import copy
 
 from . import mlog, options
-import pickle, os, uuid
+import pickle
+import os
+import uuid
 import sys
 from collections import OrderedDict
 import textwrap

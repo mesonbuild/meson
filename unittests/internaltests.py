@@ -1481,7 +1481,7 @@ Thread model: posix'''), '21.9.0')
             try:
                 from jsonschema import validate, ValidationError as JsonSchemaFailure
                 fast = False
-            except:
+            except ImportError:
                 if IS_CI:
                     raise
                 raise unittest.SkipTest('neither Python fastjsonschema nor jsonschema module not found.')
@@ -1492,7 +1492,7 @@ Thread model: posix'''), '21.9.0')
         if fast:
             schema_validator = compile(data)
         else:
-            schema_validator = lambda x: validate(x, schema=data)
+            schema_validator = lambda x: validate(x, schema=data)  # noqa: E731
 
         errors: T.List[T.Tuple[Path, Exception]] = []
         for p in Path('test cases').glob('**/test.json'):

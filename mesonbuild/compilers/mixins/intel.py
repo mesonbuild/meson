@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The meson development team
 
-from __future__ import annotations
-
 """Abstractions for the Intel Compiler families.
 
 Intel provides both a posix/gcc-like compiler (ICC) for MacOS and Linux,
@@ -10,6 +8,8 @@ with Meson mixin IntelGnuLikeCompiler.
 For Windows, the Intel msvc-like compiler (ICL) Meson mixin
 is IntelVisualStudioLikeCompiler.
 """
+
+from __future__ import annotations
 
 import os
 import typing as T

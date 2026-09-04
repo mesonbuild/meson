@@ -17,7 +17,11 @@ from . import mlog, environment
 from functools import wraps
 from .mparser import Token, ArrayNode, ArgumentNode, ArithmeticNode, AssignmentNode, BaseNode, StringNode, BooleanNode, DictNode, ElementaryNode, IdNode, FunctionNode, PlusAssignmentNode
 from .mintro import IntrospectionEncoder
-import json, os, re, sys, codecs
+import json
+import os
+import re
+import sys
+import codecs
 import typing as T
 from pathlib import Path
 

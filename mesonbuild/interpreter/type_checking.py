@@ -4,7 +4,9 @@
 """Helpers for strict type checking."""
 
 from __future__ import annotations
-import itertools, os, re
+import itertools
+import os
+import re
 import typing as T
 
 from .. import compilers

@@ -5,7 +5,14 @@ from __future__ import annotations
 
 from mesonbuild import tooldetect, mesonlib
 
-import argparse, re, sys, os, subprocess, pathlib, stat, shutil
+import argparse
+import re
+import sys
+import os
+import subprocess
+import pathlib
+import stat
+import shutil
 import typing as T
 
 def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build_root: str, log_dir: str, use_llvm_cov: bool,

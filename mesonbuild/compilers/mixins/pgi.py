@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The meson development team
 
-from __future__ import annotations
-
 """Abstractions for the PGI family of compilers."""
+
+from __future__ import annotations
 
 import typing as T
 import os

@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The meson development team
 
-from __future__ import annotations
-
 """Provides a mixin for shared code between C and C++ Emscripten compilers."""
+
+from __future__ import annotations
 
 import os.path
 import typing as T

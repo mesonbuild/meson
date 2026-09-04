@@ -42,9 +42,6 @@ from mesonbuild.dependencies.pkgconfig import (
 from mesonbuild.programs import NonExistingExternalProgram
 import mesonbuild.modules.pkgconfig
 
-PKG_CONFIG = os.environ.get('PKG_CONFIG', 'pkg-config')
-
-
 from run_tests import (
     get_fake_env, Backend,
 )
@@ -58,6 +55,8 @@ from .helpers import (
 
 if T.TYPE_CHECKING:
     from mesonbuild.compilers import Compiler
+
+PKG_CONFIG = os.environ.get('PKG_CONFIG', 'pkg-config')
 
 
 def _prepend_pkg_config_path(path: str) -> str:
@@ -615,7 +614,7 @@ class LinuxlikeTests(BasePlatformTests):
             skiplist = frozenset([
                 ('intel', 'c++03'),
                 ('intel', 'gnu++03')])
-            if v != 'none' and not (compiler.get_id(), v) in skiplist:
+            if v != 'none' and (compiler.get_id(), v) not in skiplist:
                 cmd_std = f" -std={v} "
                 self.assertIn(cmd_std, cmd)
             try:

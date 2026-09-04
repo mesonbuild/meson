@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright 2025 The Meson development team
-
-from __future__ import annotations
+# Copyright 2025-2026 The Meson development team
 
 """Representations specific to the Small Device C Compiler (SDCC)."""
+
+from __future__ import annotations
 
 import os
 import typing as T

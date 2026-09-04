@@ -9,7 +9,7 @@ root = Path(__file__).absolute().parents[1]
 sys.path.insert(0, str(root))
 
 # Now run the actual code
-from refman.main import main
+from refman.main import main  # noqa: E402
 
 if __name__ == '__main__':
     raise SystemExit(main())

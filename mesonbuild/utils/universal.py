@@ -15,7 +15,13 @@ import stat
 import time
 import abc
 import multiprocessing
-import platform, subprocess, operator, os, shlex, shutil, re
+import platform
+import subprocess
+import operator
+import os
+import shlex
+import shutil
+import re
 import collections
 from functools import lru_cache, wraps
 from itertools import tee
@@ -26,6 +32,7 @@ import pickle
 import errno
 import json
 import dataclasses
+from glob import glob
 
 from mesonbuild import mlog
 from .core import MesonException, MesonBugException, HoldableObject, ExecutableSerialisation
@@ -207,9 +214,6 @@ class NoProjectVersion:
 # interpreter
 # {subproject: project_meson_version}
 project_meson_versions: T.Dict[str, T.Union[Range[Version], NoProjectVersion]] = {}
-
-
-from glob import glob
 
 if getattr(sys, 'frozen', False):
     # Using e.g. a PyInstaller bundle, such as the MSI installed executable.
@@ -1795,11 +1799,16 @@ def _dump_c_header(ofile: T.TextIO,
         else:
             prelude = CONF_C_PRELUDE.format('#pragma once')
         prefix = '#'
-        format_desc = lambda desc: f'/* {desc} */\n'
+
+        def format_desc(desc: str) -> str:
+            return f'/* {desc} */\n'
+
     else:  # nasm
         prelude = CONF_NASM_PRELUDE
         prefix = '%'
-        format_desc = lambda desc: '; ' + '\n; '.join(desc.splitlines()) + '\n'
+
+        def format_desc(desc: str) -> str:
+            return '; ' + '\n; '.join(desc.splitlines()) + '\n'
 
     ofile.write(prelude)
     for k in sorted(cdata.keys()):

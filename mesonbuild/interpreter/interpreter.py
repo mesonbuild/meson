@@ -5,7 +5,9 @@
 from __future__ import annotations
 
 import contextlib
-import io, sys, traceback
+import io
+import sys
+import traceback
 import dataclasses
 import functools
 

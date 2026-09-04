@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright © 2023-2025 Intel Corporation
 
-from __future__ import annotations
-
 """Abstractions for the Elbrus family of compilers."""
+
+from __future__ import annotations
 
 import functools
 import os

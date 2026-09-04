@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2018 The Meson development team
 
-from __future__ import annotations
-
 '''This module provides helper functions for generating documentation using hotdoc'''
 
-import os, subprocess
+from __future__ import annotations
+
+import os
+import subprocess
 import typing as T
 
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo

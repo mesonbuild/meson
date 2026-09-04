@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-import collections, importlib
+import collections
+import importlib
 import enum
 import typing as T
 

@@ -236,9 +236,12 @@ def returncode_to_status(retcode: int) -> str:
     return f'(exit status {retcode} or {hex(retcode)})'
 
 # TODO for Windows
-sh_quote: T.Callable[[str], str] = lambda x: x
+sh_quote: T.Callable[[str], str]
 if not is_windows():
     sh_quote = shlex.quote
+else:
+    def sh_quote(x: str) -> str:
+        return x
 
 def env_tuple_to_str(env: T.Iterable[T.Tuple[str, str]]) -> str:
     return ''.join(["{}={} ".format(k, sh_quote(v)) for k, v in env])
@@ -1252,8 +1255,9 @@ TestRun.PROTOCOL_TO_CLASS[TestProtocol.RUST] = TestRunRust
 def replace_unencodable_xml_chars(original_str: str) -> str:
     # [1:-1] is needed for removing `'` characters from both start and end
     # of the string
-    replacement_lambda = lambda illegal_chr: repr(illegal_chr.group())[1:-1]
-    return UNENCODABLE_XML_CHRS_RE.sub(replacement_lambda, original_str)
+    return UNENCODABLE_XML_CHRS_RE.sub(
+        lambda illegal_chr: repr(illegal_chr.group())[1:-1],
+        original_str)
 
 def decode(stream: T.Union[None, bytes]) -> str:
     if stream is None:

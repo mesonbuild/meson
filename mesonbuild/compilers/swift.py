@@ -4,7 +4,8 @@
 from __future__ import annotations
 
 import re
-import subprocess, os.path
+import subprocess
+import os.path
 import typing as T
 
 from .. import mlog, options

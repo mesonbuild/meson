@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import sys, subprocess
+import sys
+import subprocess
 
 if sys.platform == 'win32':
     cmd = ['xcopy', '/?']

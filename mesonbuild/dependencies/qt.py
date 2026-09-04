@@ -2,9 +2,9 @@
 # Copyright 2013-2017 The Meson development team
 # Copyright © 2021-2025 Intel Corporation
 
-from __future__ import annotations
-
 """Dependency finders for the Qt framework."""
+
+from __future__ import annotations
 
 import abc
 import re

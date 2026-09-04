@@ -3,7 +3,11 @@
 
 from __future__ import annotations
 
-import functools, json, operator, os, textwrap
+import functools
+import json
+import operator
+import os
+import textwrap
 from pathlib import Path
 import typing as T
 

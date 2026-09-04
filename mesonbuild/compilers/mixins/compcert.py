@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2019 The Meson development team
 
-from __future__ import annotations
-
 """Representations specific to the CompCert C compiler family."""
+
+from __future__ import annotations
 
 import os
 import re

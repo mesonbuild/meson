@@ -8,7 +8,8 @@ from functools import lru_cache
 import abc
 import copy
 import hashlib
-import itertools, pathlib
+import itertools
+import pathlib
 import os
 import pickle
 import re

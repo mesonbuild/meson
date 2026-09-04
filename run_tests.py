@@ -10,6 +10,7 @@ from mesonbuild import _pathlib
 import sys
 sys.modules['pathlib'] = _pathlib
 
+# ruff: disable[E402]
 import os
 import shutil
 import subprocess
@@ -36,6 +37,7 @@ from mesonbuild.tooldetect import detect_ninja
 from mesonbuild.coredata import version as meson_version
 from mesonbuild.options import backendlist
 from mesonbuild.mesonlib import setup_vsenv
+# ruff: enable[E402]
 
 if T.TYPE_CHECKING:
     from mesonbuild.coredata import SharedCMDOptions
@@ -219,7 +221,8 @@ def get_backend_args_for_dir(backend: Backend, builddir: str) -> T.List[str]:
     return []
 
 def find_vcxproj_with_target(builddir, target):
-    import re, fnmatch
+    import re
+    import fnmatch
     t, ext = os.path.splitext(target)
     if ext:
         p = fr'<TargetName>{t}</TargetName>\s*<TargetExt>\{ext}</TargetExt>'
