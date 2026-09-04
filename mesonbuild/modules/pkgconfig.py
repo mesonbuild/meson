@@ -625,7 +625,7 @@ class PkgConfigModule(NewExtensionModule):
                             if custom_install_dir:
                                 Lflag = f'-r{self._escape(self._make_relative(prefix, install_dir, pure_path_class))}/{l.filename}'
                             else:
-                                Lflag = '-r${libdir}/%s' % l.filename
+                                Lflag = f'-r${{libdir}}/{l.filename}'
                         else:
                             if custom_install_dir:
                                 Lflag = f'-L{self._escape(self._make_relative(prefix, install_dir, pure_path_class))}'

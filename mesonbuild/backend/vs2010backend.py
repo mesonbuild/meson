@@ -360,8 +360,7 @@ class Vs2010Backend(backends.Backend):
         if 'VS150COMNTOOLS' in os.environ and has_arch_values:
             script_path = os.environ['VS150COMNTOOLS'] + 'VsDevCmd.bat'
             if os.path.exists(script_path):
-                return '"%s" -arch=%s -host_arch=%s' % \
-                    (script_path, os.environ['VSCMD_ARG_TGT_ARCH'], os.environ['VSCMD_ARG_HOST_ARCH'])
+                return '"{}" -arch={} -host_arch={}'.format(script_path, os.environ['VSCMD_ARG_TGT_ARCH'], os.environ['VSCMD_ARG_HOST_ARCH'])
         return ''
 
     def generate_solution_dirs(self, ofile: T.TextIO, parents: T.Sequence[PurePath]) -> None:
@@ -392,8 +391,8 @@ class Vs2010Backend(backends.Backend):
         # Note using the utf-8 BOM requires the blank line, otherwise Visual Studio Version Selector fails.
         # Without the BOM, VSVS fails if there is a blank line.
         with open(sln_filename_tmp, 'w', encoding='utf-8-sig') as ofile:
-            ofile.write('\nMicrosoft Visual Studio Solution File, Format Version %s\n' % self.sln_file_version)
-            ofile.write('# Visual Studio %s\n' % self.sln_version_comment)
+            ofile.write(f'\nMicrosoft Visual Studio Solution File, Format Version {self.sln_file_version}\n')
+            ofile.write(f'# Visual Studio {self.sln_version_comment}\n')
             prj_templ = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
             for prj in projlist:
                 if self.environment.coredata.optstore.get_value_for(OptionKey('layout')) == 'mirror':
@@ -443,21 +442,15 @@ class Vs2010Backend(backends.Backend):
                         'preSolution\n')
             multi_config_buildtype_list = coredata.get_genvs_default_buildtype_list() if self.gen_lite else [self.buildtype]
             for buildtype in multi_config_buildtype_list:
-                ofile.write('\t\t%s|%s = %s|%s\n' %
-                            (buildtype, self.platform, buildtype,
-                             self.platform))
+                ofile.write(f'\t\t{buildtype}|{self.platform} = {buildtype}|{self.platform}\n')
             ofile.write('\tEndGlobalSection\n')
             ofile.write('\tGlobalSection(ProjectConfigurationPlatforms) = '
                         'postSolution\n')
             # REGEN project (multi-)configurations
             for buildtype in multi_config_buildtype_list:
-                ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
-                            (self.environment.coredata.regen_guid, buildtype,
-                                self.platform, buildtype, self.platform))
+                ofile.write(f'\t\t{{{self.environment.coredata.regen_guid}}}.{buildtype}|{self.platform}.ActiveCfg = {buildtype}|{self.platform}\n')
                 if not self.gen_lite: # With a 'genvslite'-generated solution, the regen (i.e. reconfigure) utility is only intended to run when the user explicitly builds this proj.
-                    ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' %
-                                (self.environment.coredata.regen_guid, buildtype,
-                                    self.platform, buildtype, self.platform))
+                    ofile.write(f'\t\t{{{self.environment.coredata.regen_guid}}}.{buildtype}|{self.platform}.Build.0 = {buildtype}|{self.platform}\n')
             # Create the solution configuration
             for project_index, p in enumerate(projlist):
                 if p[3] is MachineChoice.BUILD:
@@ -466,9 +459,7 @@ class Vs2010Backend(backends.Backend):
                     config_platform = self.platform
                 # Add to the list of projects in this solution
                 for buildtype in multi_config_buildtype_list:
-                    ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
-                                (p[2], buildtype, self.platform,
-                                 buildtype, config_platform))
+                    ofile.write(f'\t\t{{{p[2]}}}.{buildtype}|{self.platform}.ActiveCfg = {buildtype}|{config_platform}\n')
                     # If we're building the solution with Visual Studio's build system, enable building of buildable
                     # projects.  However, if we're building with meson (via --genvslite), then, since each project's
                     # 'build' action just ends up doing the same 'meson compile ...' we don't want the 'solution build'
@@ -479,17 +470,11 @@ class Vs2010Backend(backends.Backend):
                     if (not self.gen_lite or project_index == 0) and \
                        p[0] in default_projlist and \
                        not isinstance(self.build.targets[p[0]], build.RunTarget):
-                        ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' %
-                                    (p[2], buildtype, self.platform,
-                                     buildtype, config_platform))
+                        ofile.write(f'\t\t{{{p[2]}}}.{buildtype}|{self.platform}.Build.0 = {buildtype}|{config_platform}\n')
             # RUN_TESTS and RUN_INSTALL project (multi-)configurations
             for buildtype in multi_config_buildtype_list:
-                ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
-                            (self.environment.coredata.test_guid, buildtype,
-                             self.platform, buildtype, self.platform))
-                ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
-                            (self.environment.coredata.install_guid, buildtype,
-                             self.platform, buildtype, self.platform))
+                ofile.write(f'\t\t{{{self.environment.coredata.test_guid}}}.{buildtype}|{self.platform}.ActiveCfg = {buildtype}|{self.platform}\n')
+                ofile.write(f'\t\t{{{self.environment.coredata.install_guid}}}.{buildtype}|{self.platform}.ActiveCfg = {buildtype}|{self.platform}\n')
             ofile.write('\tEndGlobalSection\n')
             ofile.write('\tGlobalSection(SolutionProperties) = preSolution\n')
             ofile.write('\t\tHideSolutionNode = FALSE\n')
@@ -564,12 +549,12 @@ class Vs2010Backend(backends.Backend):
         return os.sep.join(['..'] * len(directories))
 
     def quote_arguments(self, arr: list[str]) -> list[str]:
-        return ['"%s"' % i for i in arr]
+        return [f'"{i}"' for i in arr]
 
     def add_project_reference(self, root: ET.Element, include: str, projid: str, link_outputs: bool = False) -> None:
         ig = ET.SubElement(root, 'ItemGroup')
         pref = ET.SubElement(ig, 'ProjectReference', Include=include)
-        ET.SubElement(pref, 'Project').text = '{%s}' % projid
+        ET.SubElement(pref, 'Project').text = f'{{{projid}}}'
         if not link_outputs:
             # Do not link in generated .lib files from dependencies automatically.
             # We only use the dependencies for ordering and link in the generated
@@ -615,7 +600,7 @@ class Vs2010Backend(backends.Backend):
         # Globals
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
-        guidelem.text = '{%s}' % guid
+        guidelem.text = f'{{{guid}}}'
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = self.platform + 'Proj'
 
@@ -2040,7 +2025,7 @@ class Vs2010Backend(backends.Backend):
             if self.environment.coredata.optstore.get_value_for(OptionKey('errorlogs')):
                 test_command += ['--print-errorlogs']
             self.serialize_tests()
-            self.add_custom_build(root, 'run_tests', '"%s"' % ('" "'.join(test_command)))
+            self.add_custom_build(root, 'run_tests', '"{}"'.format('" "'.join(test_command)))
 
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.add_regen_dependency(root)
@@ -2086,7 +2071,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(midl, 'InterfaceIdentifierFilename').text = '%(Filename)_i.c'
             ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
             install_command = self.environment.get_build_command() + ['install', '--no-rebuild']
-            self.add_custom_build(root, 'run_install', '"%s"' % ('" "'.join(install_command)))
+            self.add_custom_build(root, 'run_install', '"{}"'.format('" "'.join(install_command)))
 
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.add_regen_dependency(root)

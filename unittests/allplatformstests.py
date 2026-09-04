@@ -817,7 +817,7 @@ class AllPlatformTests(BasePlatformTests):
         line_number = 0
         i = 1
         while line_number < len(lines) and i < 100001:
-            print('---> %s' % lines[line_number])
+            print(f'---> {lines[line_number]}')
             if f'# Iteration {i} to stdout' in lines[line_number]:
                 i += 1
             line_number += 1

@@ -1672,12 +1672,12 @@ class GnomeModule(ExtensionModule):
         ldflags.extend(compiler_flags[1])
         ldflags.extend(compiler_flags[2])
         if compiler:
-            args += ['--cc=%s' % join_args(compiler.get_exelist())]
-            args += ['--ld=%s' % join_args(compiler.get_linker_exelist())]
+            args += [f'--cc={join_args(compiler.get_exelist())}']
+            args += [f'--ld={join_args(compiler.get_linker_exelist())}']
         if cflags:
-            args += ['--cflags=%s' % join_args(cflags)]
+            args += [f'--cflags={join_args(cflags)}']
         if ldflags:
-            args += ['--ldflags=%s' % join_args(ldflags)]
+            args += [f'--ldflags={join_args(ldflags)}']
 
         return args, new_depends
 
@@ -2018,8 +2018,8 @@ class GnomeModule(ExtensionModule):
         # instead, but that seems like much more work, nice as it would be.
         fhead = ''
         if body_prefix != '':
-            fhead += '%s\n' % body_prefix
-        fhead += '#include "%s"\n' % hdr_filename
+            fhead += f'{body_prefix}\n'
+        fhead += f'#include "{hdr_filename}"\n'
         for hdr in self.interpreter.source_strings_to_files(kwargs['sources']):
             hdr_path = os.path.relpath(hdr.relative_name(), state.subdir)
             fhead += f'#include "{hdr_path}"\n'

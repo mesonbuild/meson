@@ -422,14 +422,14 @@ class DCompiler(Compiler):
         res: list[str] = []
         unittest_arg = d_feature_args[self.id]['unittest']
         if not unittest_arg:
-            raise EnvironmentException('D compiler %s does not support the "unittest" feature.' % self.name_string())
+            raise EnvironmentException(f'D compiler {self.name_string()} does not support the "unittest" feature.')
         if kwargs['unittest']:
             res.append(unittest_arg)
 
         debug_level = -1
         debug_arg = d_feature_args[self.id]['debug']
         if not debug_arg:
-            raise EnvironmentException('D compiler %s does not support conditional debug identifiers.' % self.name_string())
+            raise EnvironmentException(f'D compiler {self.name_string()} does not support conditional debug identifiers.')
 
         # Parse all debug identifiers and the largest debug level identifier
         for d in kwargs['debug']:
@@ -446,7 +446,7 @@ class DCompiler(Compiler):
         version_level = -1
         version_arg = d_feature_args[self.id]['version']
         if not version_arg:
-            raise EnvironmentException('D compiler %s does not support conditional version identifiers.' % self.name_string())
+            raise EnvironmentException(f'D compiler {self.name_string()} does not support conditional version identifiers.')
 
         # Parse all version identifiers and the largest version level identifier
         for v in kwargs['versions']:
@@ -462,7 +462,7 @@ class DCompiler(Compiler):
 
         import_dir_arg = d_feature_args[self.id]['import_dir']
         if not import_dir_arg:
-            raise EnvironmentException('D compiler %s does not support the "string import directories" feature.' % self.name_string())
+            raise EnvironmentException(f'D compiler {self.name_string()} does not support the "string import directories" feature.')
         for idir_obj in kwargs['import_dirs']:
             res.extend(f'{import_dir_arg}{i}' for i in idir_obj.rel_string_list(build_to_src))
 

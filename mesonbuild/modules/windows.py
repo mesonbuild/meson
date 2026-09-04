@@ -103,7 +103,7 @@ class WindowsModule(ExtensionModule):
             p, o, e = mesonlib.Popen_safe(rescomp.get_command() + [arg])
             m = re.search(match, o, re.MULTILINE)
             if m:
-                mlog.log('Windows resource compiler: %s' % m.group())
+                mlog.log(f'Windows resource compiler: {m.group()}')
                 self._rescomp = (rescomp, rc_type)
                 break
         else:

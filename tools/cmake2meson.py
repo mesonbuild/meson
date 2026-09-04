@@ -159,11 +159,11 @@ class Converter:
             end = ''
         for i in args:
             if i.tid == 'id':
-                res.append("'%s'" % i.value)
+                res.append(f"'{i.value}'")
             elif i.tid == 'varexp':
-                res.append('%s' % i.value.lower())
+                res.append(f'{i.value.lower()}')
             elif i.tid == 'string':
-                res.append("'%s'" % i.value)
+                res.append(f"'{i.value}'")
             else:
                 raise ValueError(f'Unknown arg type {i.tid}')
         if len(res) > 1:
@@ -183,11 +183,11 @@ class Converter:
             line = "subdir('" + t.args[0].value + "')"
         elif t.name == 'pkg_search_module' or t.name == 'pkg_search_modules':
             varname = t.args[0].value.lower()
-            mods = ["dependency('%s')" % i.value for i in t.args[1:]]
+            mods = [f"dependency('{i.value}')" for i in t.args[1:]]
             if len(mods) == 1:
                 line = f'{varname} = {mods[0]}'
             else:
-                line = '{} = [{}]'.format(varname, ', '.join(["'%s'" % i for i in mods]))
+                line = '{} = [{}]'.format(varname, ', '.join([f"'{i}'" for i in mods]))
         elif t.name == 'find_package':
             line = f"{t.args[0].value}_dep = dependency('{t.args[0].value}')"
         elif t.name == 'find_library':
@@ -206,7 +206,7 @@ class Converter:
                 args = t.args
             line = f'{t.args[0].value}_lib = {libcmd}({self.convert_args(args, False)})'
         elif t.name == 'add_test':
-            line = 'test(%s)' % self.convert_args(t.args, False)
+            line = f'test({self.convert_args(t.args, False)})'
         elif t.name == 'option':
             optname = t.args[0].value
             description = t.args[1].value
@@ -224,7 +224,7 @@ class Converter:
                 if l == 'cxx':
                     l = 'cpp'
                 args.append(l)
-            args = ["'%s'" % i for i in args]
+            args = [f"'{i}'" for i in args]
             line = 'project(' + ', '.join(args) + ", default_options : ['default_library=static'])"
         elif t.name == 'set':
             varname = t.args[0].value.lower()
@@ -232,7 +232,7 @@ class Converter:
         elif t.name == 'if':
             postincrement = 1
             try:
-                line = 'if %s' % self.convert_args(t.args, False)
+                line = f'if {self.convert_args(t.args, False)}'
             except AttributeError:  # complex if statements
                 line = t.name
                 for arg in t.args:
@@ -241,7 +241,7 @@ class Converter:
             preincrement = -1
             postincrement = 1
             try:
-                line = 'elif %s' % self.convert_args(t.args, False)
+                line = f'elif {self.convert_args(t.args, False)}'
             except AttributeError:  # complex if statements
                 line = t.name
                 for arg in t.args:
@@ -303,7 +303,7 @@ class Converter:
                         typestr = ' type : \'boolean\','
                     else:
                         typestr = ' type : \'string\','
-                    defaultstr = ' value : %s,' % default
+                    defaultstr = f' value : {default},'
                 line = f"option({optname!r},{typestr}{defaultstr} description : '{description}')\n"
                 optfile.write(line)
 

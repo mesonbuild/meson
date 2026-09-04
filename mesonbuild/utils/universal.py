@@ -1602,13 +1602,13 @@ def do_define_meson(regex: T.Pattern[str], line: str, confdata: ConfigurationDat
 
     arr = line.split()
     if len(arr) != 2:
-        raise MesonException('#mesondefine does not contain exactly two tokens: %s' % line.strip())
+        raise MesonException(f'#mesondefine does not contain exactly two tokens: {line.strip()}')
 
     varname = arr[1]
     try:
         v, _ = confdata.get(varname)
     except KeyError:
-        return '/* #undef %s */\n' % varname
+        return f'/* #undef {varname} */\n'
 
     if isinstance(v, str):
         result = f'#define {varname} {v}'.strip() + '\n'
@@ -1616,13 +1616,13 @@ def do_define_meson(regex: T.Pattern[str], line: str, confdata: ConfigurationDat
         return result
     elif isinstance(v, bool):
         if v:
-            return '#define %s\n' % varname
+            return f'#define {varname}\n'
         else:
-            return '#undef %s\n' % varname
+            return f'#undef {varname}\n'
     elif isinstance(v, int):
         return '#define %s %d\n' % (varname, v)
     else:
-        raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
+        raise MesonException(f'#mesondefine argument "{varname}" is of unknown type.')
 
 def do_define_cmake(line: str, confdata: ConfigurationData, at_only: bool,
                     subproject: SubProject | None = None) -> str:
@@ -1655,12 +1655,12 @@ def do_define_cmake(line: str, confdata: ConfigurationData, at_only: bool,
         v, _ = confdata.get(varname)
     except KeyError:
         if cmake_bool_define:
-            return '#define %s 0\n' % varname
+            return f'#define {varname} 0\n'
         else:
-            return '/* #undef %s */\n' % varname
+            return f'/* #undef {varname} */\n'
 
     if not cmake_bool_define and not v:
-        return '/* #undef %s */\n' % varname
+        return f'/* #undef {varname} */\n'
 
     result = get_cmake_define(line, confdata)
     result = f'#define {varname} {result}'.strip() + '\n'

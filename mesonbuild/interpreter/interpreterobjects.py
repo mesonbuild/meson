@@ -291,7 +291,7 @@ class RunProcess(MesonInterpreterObject):
         try:
             p = subprocess.Popen(command_array, stdin=stdin, stdout=stdout, stderr=stderr, env=child_env, cwd=cwd)
         except FileNotFoundError:
-            raise InterpreterException('Could not execute command `%s`.' % mesonlib.join_args(command_array))
+            raise InterpreterException(f'Could not execute command `{mesonlib.join_args(command_array)}`.')
 
         o_list: list = []
         e_list: list = []

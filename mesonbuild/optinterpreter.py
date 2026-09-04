@@ -201,7 +201,7 @@ class OptionInterpreter:
             raise OptionException('Option names can only contain letters, numbers or dashes.')
         key = OptionKey.from_string(opt_name).evolve(subproject=self.subproject)
         if self.optionstore.is_reserved_name(key):
-            raise OptionException('Option name %s is reserved.' % opt_name)
+            raise OptionException(f'Option name {opt_name} is reserved.')
 
         opt_type = kwargs['type']
         parser = self.option_types[opt_type]

@@ -785,7 +785,7 @@ class TextLogfileBuilder(TestFileLogger):
         self.file.write('test:         ' + result.name + '\n')
         starttime_str = time.strftime("%H:%M:%S", time.gmtime(result.starttime))
         self.file.write('start time:   ' + starttime_str + '\n')
-        self.file.write('duration:     ' + '%.2fs' % result.duration + '\n')
+        self.file.write('duration:     ' + f'{result.duration:.2f}s' + '\n')
         self.file.write('result:       ' + result.get_exit_status() + '\n')
         if result.cmdline:
             self.file.write('command:      ' + result.cmdline + '\n')

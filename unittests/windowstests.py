@@ -260,7 +260,7 @@ class WindowsTests(BasePlatformTests):
             # Check this has actually built the appropriate exes
             exe_path = str(os.path.join(self.builddir+'_debug', 'genvslite.exe'))
             self.assertTrue(os.path.exists(exe_path))
-            rc = subprocess.run([exe_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            rc = subprocess.run([exe_path], capture_output=True)
             self.assertEqual(rc.returncode, 0, rc.stdout + rc.stderr)
             output_debug = rc.stdout
             self.assertEqual(output_debug, b'Debug\r\n' )

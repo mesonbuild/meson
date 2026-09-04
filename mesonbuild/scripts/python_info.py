@@ -44,10 +44,7 @@ def get_distutils_paths(scheme=None, prefix=None):
 # So we may end up falling back.
 
 def get_install_paths():
-    if sys.version_info >= (3, 10):
-        scheme = sysconfig.get_default_scheme()
-    else:
-        scheme = sysconfig._get_default_scheme()
+    scheme = sysconfig.get_default_scheme()
 
     if sys.version_info >= (3, 10, 3):
         if 'deb_system' in sysconfig.get_scheme_names():
@@ -74,36 +71,23 @@ def links_against_libpython():
         # the only PyPy supported platform that requires linking to libpython
         # is Windows, thus it is easy enough to hardcode the answer.
         return sysconfig.get_platform() == "win-amd64"
-    elif sys.version_info >= (3, 8):
+    else:
         variables = sysconfig.get_config_vars()
         return bool(variables.get('LIBPYTHON', 'yes'))
-    else:
-        from distutils.core import Distribution, Extension
-        cmd = Distribution().get_command_obj('build_ext')
-        cmd.ensure_finalized()
-        return bool(cmd.get_libraries(Extension('dummy', [])))
 
 variables = sysconfig.get_config_vars()
 variables.update({'base_prefix': getattr(sys, 'base_prefix', sys.prefix)})
 
 is_pypy = '__pypy__' in sys.builtin_module_names
 
-if sys.version_info < (3, 0):
-    suffix = variables.get('SO')
-elif sys.version_info < (3, 8, 7):
-    # https://bugs.python.org/issue?@action=redirect&bpo=39825
-    from distutils.sysconfig import get_config_var
-    suffix = get_config_var('EXT_SUFFIX')
-else:
-    suffix = variables.get('EXT_SUFFIX')
+suffix = variables.get('EXT_SUFFIX')
 
 limited_api_suffix = None
-if sys.version_info >= (3, 2):
-    try:
-        from importlib.machinery import EXTENSION_SUFFIXES
-        limited_api_suffix = EXTENSION_SUFFIXES[1]
-    except Exception:
-        pass
+try:
+    from importlib.machinery import EXTENSION_SUFFIXES
+    limited_api_suffix = EXTENSION_SUFFIXES[1]
+except Exception:
+    pass
 
 # pypy supports modules targeting the limited api but
 # does not use a special suffix to distinguish them:

@@ -443,7 +443,7 @@ def validate_install(test: TestDef, installdir: Path, env: environment.Environme
     return ret_msg
 
 def log_text_file(logfile: T.TextIO, testdir: Path, result: TestResult) -> None:
-    logfile.write('%s\nstdout\n\n---\n' % testdir.as_posix())
+    logfile.write(f'{testdir.as_posix()}\nstdout\n\n---\n')
     logfile.write(result.stdo)
     logfile.write('\n\n---\n\nstderr\n\n---\n')
     logfile.write(result.stde)
@@ -1298,7 +1298,7 @@ def _run_tests(all_tests: list[tuple[str, list[TestDef], bool]],
 
         if result:
             testcase_time = result.conftime + result.buildtime + result.testtime
-            current_test.set('time', '%.3f' % testcase_time)
+            current_test.set('time', f'{testcase_time:.3f}')
 
         # skip
         if is_skipped and skip_as_expected:
@@ -1393,9 +1393,9 @@ def _run_tests(all_tests: list[tuple[str, list[TestDef], bool]],
     safe_print = default_print
 
     print()
-    print("Total configuration time: %.2fs" % conf_time)
-    print("Total build time:         %.2fs" % build_time)
-    print("Total test time:          %.2fs" % test_time)
+    print(f"Total configuration time: {conf_time:.2f}s")
+    print(f"Total build time:         {build_time:.2f}s")
+    print(f"Total test time:          {test_time:.2f}s")
     ET.ElementTree(element=junit_root).write(xmlname, xml_declaration=True, encoding='UTF-8')
 
     # validate the JUnit XML output against the JUnit schema, if possible

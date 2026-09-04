@@ -58,10 +58,10 @@ def stringifyUserArguments(args: TYPE_var, subproject: SubProject, quote: bool =
     elif isinstance(args, int):
         return str(args)
     elif isinstance(args, list):
-        return '[%s]' % ', '.join([stringifyUserArguments(x, subproject, True) for x in args])
+        return '[{}]'.format(', '.join([stringifyUserArguments(x, subproject, True) for x in args]))
     elif isinstance(args, dict):
         l = [f'{stringifyUserArguments(k, subproject, True)} : {stringifyUserArguments(v, subproject, True)}' for k, v in args.items()]
-        return '{%s}' % ', '.join(l)
+        return '{{{}}}'.format(', '.join(l))
     elif isinstance(args, Feature):
         from .decorators import FeatureNew
         FeatureNew.single_use('User option in string format', '1.3.0', subproject)

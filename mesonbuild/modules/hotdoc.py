@@ -129,7 +129,7 @@ class HotdocTargetBuilder:
                 escaped_value = []
                 for e in value:
                     if isinstance(e, str) and e.startswith('-'):
-                        escaped_value += [' %s' % e]
+                        escaped_value += [f' {e}']
                     else:
                         escaped_value += [e]
                 if option:

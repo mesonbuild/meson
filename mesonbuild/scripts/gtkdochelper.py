@@ -91,7 +91,7 @@ def build_gtkdoc(source_root: str, build_root: str, doc_subdir: str, src_subdirs
                  gobject_typesfile: str, scanobjs_args: list[str], run: str, ld: str, cc: str, ldflags: str, cflags: str,
                  html_assets: list[str], content_files: list[str], ignore_headers: list[str], namespace: str,
                  expand_content_files: list[str], mode: str, options: argparse.Namespace) -> None:
-    print("Building documentation for %s" % module)
+    print(f"Building documentation for {module}")
 
     src_dir_args = []
     for src_dir in src_subdirs:
@@ -203,7 +203,7 @@ def build_gtkdoc(source_root: str, build_root: str, doc_subdir: str, src_subdirs
     if main_file:
         mkhtml_cmd.append('../' + main_file)
     else:
-        mkhtml_cmd.append('%s-docs.xml' % module)
+        mkhtml_cmd.append(f'{module}-docs.xml')
     # html gen must be run in the HTML dir
     gtkdoc_run_check(mkhtml_cmd, htmldir)
 

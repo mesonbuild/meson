@@ -52,7 +52,7 @@ def run(args: list[str]) -> int:
 
     exelist = detect_scanbuild()
     if not exelist:
-        print('Could not execute scan-build "%s"' % ' '.join(exelist))
+        print('Could not execute scan-build "{}"'.format(' '.join(exelist)))
         return 1
 
     return scanbuild(exelist, srcdir, bldpath, privdir, logdir, subprojdir, meson_cmd)
