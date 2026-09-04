@@ -507,13 +507,13 @@ class Installer:
             exclude_dirs = {os.path.normpath(x) for x in exclude_dirs}
         else:
             exclude_files = exclude_dirs = set()
-        for root, dirs, files in os.walk(src_dir):
+        for root, dirs, files in os.walk(src_dir, followlinks=bool(follow_symlinks)):
             assert os.path.isabs(root)
             for d in dirs[:]:
                 abs_src = os.path.join(root, d)
                 filepart = os.path.relpath(abs_src, start=src_dir)
                 abs_dst = os.path.join(dst_dir, filepart)
-                if os.path.islink(abs_src):
+                if not follow_symlinks and os.path.islink(abs_src):
                     files.append(d)
                     continue
                 # Remove these so they aren't visited by os.walk at all.
