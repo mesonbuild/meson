@@ -316,13 +316,13 @@ gnu_lang_map = {
 }
 
 @functools.lru_cache(maxsize=None)
-def gnulike_default_include_dirs(compiler: T.Tuple[str, ...], lang: str) -> 'ImmutableListProtocol[str]':
+def gnulike_default_include_dirs(compiler: T.Tuple[str, ...], lang: str, verbosity_arg: str = '-v') -> 'ImmutableListProtocol[str]':
     if lang not in gnu_lang_map:
         return []
     lang = gnu_lang_map[lang]
     env = os.environ.copy()
     env["LC_ALL"] = 'C'
-    cmd = list(compiler) + [f'-x{lang}', '-E', '-v', '-']
+    cmd = list(compiler) + [f'-x{lang}', '-E', verbosity_arg, '-']
     _, stdout, _ = mesonlib.Popen_safe(cmd, stderr=subprocess.STDOUT, env=env)
     parse_state = 0
     paths: T.List[str] = []
