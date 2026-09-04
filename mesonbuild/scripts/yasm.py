@@ -15,7 +15,7 @@ def run(args: list[str]) -> int:
         return returncode
 
     # Capture and write depfile
-    ret = subprocess.run(yasm_cmd + ['-M'], capture_output=True)
+    ret = subprocess.run(yasm_cmd + ['-M'], capture_output=True, check=False)
     if ret.returncode != 0:
         return ret.returncode
     with open(options.depfile, 'wb') as f:

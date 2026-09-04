@@ -270,7 +270,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         with p.open('wb') as f:
             pickle.dump(es, f)
         cmd = self.meson_command + ['--internal', 'test_loaded_modules', '--unpickle', str(p)]
-        p = subprocess.run(cmd, stdout=subprocess.PIPE)
+        p = subprocess.run(cmd, stdout=subprocess.PIPE, check=True)
         all_modules = json.loads(p.stdout.splitlines()[0])
         meson_modules = [m for m in all_modules if m.startswith('mesonbuild')]
         expected_meson_modules = [

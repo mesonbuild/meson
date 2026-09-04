@@ -32,7 +32,7 @@ class RewriterTests(BasePlatformTests):
         if isinstance(args, str):
             args = [args]
         command = self.rewrite_command + ['--verbose', '--skip', '--sourcedir', directory] + args
-        p = subprocess.run(command, capture_output=True, encoding='utf-8', text=True, timeout=60)
+        p = subprocess.run(command, capture_output=True, encoding='utf-8', text=True, timeout=60, check=False)
         print('STDOUT:')
         print(p.stdout)
         print('STDERR:')

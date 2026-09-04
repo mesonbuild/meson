@@ -875,7 +875,7 @@ def rebuild_all(wd: str, backend: str) -> bool:
             return None, None
 
     env, preexec_fn = drop_privileges()
-    ret = subprocess.run(ninja + ['-C', wd], env=env, preexec_fn=preexec_fn).returncode
+    ret = subprocess.run(ninja + ['-C', wd], env=env, preexec_fn=preexec_fn, check=False).returncode
     if ret != 0:
         print(f'Could not rebuild {wd}')
         return False

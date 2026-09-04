@@ -189,7 +189,7 @@ def run(options: Arguments) -> int:
             shutil.rmtree(options.builddir)
         print('Building...')
         cmd = mesonlib.get_meson_command() + ['setup', options.builddir]
-        ret = subprocess.run(cmd)
+        ret = subprocess.run(cmd, check=False)
         if ret.returncode:
             raise SystemExit
 
@@ -201,7 +201,7 @@ def run(options: Arguments) -> int:
 
         ninja = mesonlib.unwrap_err(detect_ninja(), 'Could not detect ninja and it is required')
         cmd = ninja + ['-C', options.builddir]
-        ret = subprocess.run(cmd)
+        ret = subprocess.run(cmd, check=False)
         if ret.returncode:
             raise SystemExit
     return 0

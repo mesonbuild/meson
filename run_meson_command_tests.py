@@ -46,7 +46,7 @@ def get_pybindir():
     return sysconfig.get_path('scripts', vars={'base': ''}).strip('\\/')
 
 def has_python_module(module: str) -> bool:
-    result = subprocess.run(python_command + ['-c', f'import {module}'])
+    result = subprocess.run(python_command + ['-c', f'import {module}'], check=False)
     return result.returncode == 0
 
 
@@ -89,7 +89,8 @@ class CommandTests(unittest.TestCase):
                            encoding='utf-8',
                            text=True,
                            cwd=workdir,
-                           timeout=60 * 5)
+                           timeout=60 * 5,
+                           check=False)
         print(p.stdout)
         if p.returncode != 0:
             raise subprocess.CalledProcessError(p.returncode, command)

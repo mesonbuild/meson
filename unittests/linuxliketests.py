@@ -1869,7 +1869,8 @@ class LinuxlikeTests(BasePlatformTests):
         p = subprocess.run([ar, 't', outlib],
                            stdout=subprocess.PIPE,
                            stderr=subprocess.DEVNULL,
-                           encoding='utf-8', text=True, timeout=1)
+                           encoding='utf-8', text=True, timeout=1,
+                           check=True)
         obj_files = p.stdout.strip().split('\n')
         self.assertTrue(any(o.endswith('-prelink.o') for o in obj_files))
 

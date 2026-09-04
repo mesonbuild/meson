@@ -604,7 +604,7 @@ class JNISystemDependency(SystemDependency):
                 problem_java_prefix = pathlib.Path('/System/Library/Frameworks/JavaVM.framework/Versions')
                 if problem_java_prefix in self.java_home.parents:
                     res = subprocess.run(['/usr/libexec/java_home', '--failfast', '--arch', m.cpu_family],
-                                         stdout=subprocess.PIPE)
+                                         stdout=subprocess.PIPE, check=False)
                     if res.returncode != 0:
                         msg = 'JAVA_HOME could not be discovered on the system. Please set it explicitly.'
                         if self.required:

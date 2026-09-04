@@ -59,7 +59,9 @@ def run(args: list[str]) -> int:
     tidyret = run_clang_tool_on_sources('clang-tidy', srcdir, builddir, run_clang_tidy, tidyexe, builddir, fixesdir)
     if fixesdir is not None:
         print('Applying fix-its...')
-        applyret = subprocess.run(applyexe + ['-format', '-style=file', '-ignore-insert-conflict', fixesdir]).returncode
+        applyret = subprocess.run(
+            applyexe + ['-format', '-style=file', '-ignore-insert-conflict', fixesdir],
+            check=False).returncode
 
     if tidyret != 0:
         print('Errors encountered while running clang-tidy', file=sys.stderr)

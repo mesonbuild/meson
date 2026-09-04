@@ -11,7 +11,7 @@ from pathlib import Path
 def ls_as_bytestream() -> bytes:
     if os.path.exists('.git'):
         return subprocess.run(['git', 'ls-tree', '-r', '--name-only', 'HEAD'],
-                              stdout=subprocess.PIPE).stdout
+                              stdout=subprocess.PIPE, check=False).stdout
 
     files = [str(p) for p in Path('.').glob('**/*')
              if not p.is_dir() and
@@ -21,17 +21,17 @@ def ls_as_bytestream() -> bytes:
 
 def cscope() -> int:
     ls = b'\n'.join([b'"%s"' % f for f in ls_as_bytestream().split()])
-    return subprocess.run(['cscope', '-v', '-b', '-i-'], input=ls).returncode
+    return subprocess.run(['cscope', '-v', '-b', '-i-'], input=ls, check=False).returncode
 
 
 def ctags() -> int:
     ls = ls_as_bytestream()
-    return subprocess.run(['ctags', '-L-'], input=ls).returncode
+    return subprocess.run(['ctags', '-L-'], input=ls, check=False).returncode
 
 
 def etags() -> int:
     ls = ls_as_bytestream()
-    return subprocess.run(['etags', '-'], input=ls).returncode
+    return subprocess.run(['etags', '-'], input=ls, check=False).returncode
 
 
 def run(args: list[str]) -> int:

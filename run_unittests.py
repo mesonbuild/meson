@@ -125,7 +125,7 @@ def main():
             pytest_args += ['-p' 'no:cov']
         except ImportError:
             pass
-        return subprocess.run(python_command + ['-m', 'pytest'] + pytest_args).returncode
+        return subprocess.run(python_command + ['-m', 'pytest'] + pytest_args, check=False).returncode
     except ImportError:
         print('pytest not found, using unittest instead')
     # Fallback to plain unittest.

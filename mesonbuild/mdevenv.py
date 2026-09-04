@@ -174,7 +174,7 @@ def write_gdb_script(privatedir: Path, install_data: InstallData, workdir: Path)
 def macos_sip_enabled() -> bool:
     if not is_osx():
         return False
-    ret = subprocess.run(["csrutil", "status"], text=True, capture_output=True, encoding='utf-8')
+    ret = subprocess.run(["csrutil", "status"], text=True, capture_output=True, encoding='utf-8', check=False)
     if not ret.stdout:
         return True
     return 'enabled' in ret.stdout
@@ -273,7 +273,7 @@ def run(options: argparse.Namespace) -> int:
         if is_windows():
             # execvpe doesn't return exit code on Windows
             # see https://github.com/python/cpython/issues/63323
-            result = subprocess.run(args, env=devenv, cwd=workdir)
+            result = subprocess.run(args, env=devenv, cwd=workdir, check=False)
             sys.exit(result.returncode)
         else:
             os.chdir(workdir)

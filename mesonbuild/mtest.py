@@ -1407,7 +1407,7 @@ class TestSubprocess:
         p = self._process
         try:
             if is_windows():
-                subprocess.run(['taskkill', '/F', '/T', '/PID', str(p.pid)])
+                subprocess.run(['taskkill', '/F', '/T', '/PID', str(p.pid)], check=False)
             else:
                 # Send a termination signal to the process group that setsid()
                 # created - giving it a chance to perform any cleanup.
@@ -1740,10 +1740,12 @@ class TestHarness:
             # happen before rebuild_deps(), because we need the correct list of
             # tests and their dependencies to compute
             if not self.options.no_rebuild:
-                teststdo = subprocess.run(self.ninja + ['-n', 'build.ninja'], capture_output=True).stdout
+                teststdo = subprocess.run(self.ninja + ['-n', 'build.ninja'], capture_output=True,
+                                          check=False).stdout
                 if b'ninja: no work to do.' not in teststdo and b'samu: nothing to do' not in teststdo:
                     stdo = sys.stderr if self.options.list else sys.stdout
-                    ret = subprocess.run(self.ninja + ['build.ninja'], stdout=stdo.fileno())
+                    ret = subprocess.run(self.ninja + ['build.ninja'], stdout=stdo.fileno(),
+                                         check=False)
                     if ret.returncode != 0:
                         raise TestException(f'Could not configure {self.options.wd!r}')
 
@@ -2285,7 +2287,7 @@ def rebuild_deps(ninja: list[str], wd: str, tests: list[TestSerialisation], benc
         # deps then ninja falls back to 'all'.
         return True
 
-    ret = subprocess.run(ninja + ['-C', wd] + sorted(targets)).returncode
+    ret = subprocess.run(ninja + ['-C', wd] + sorted(targets), check=False).returncode
     if ret != 0:
         print(f'Could not rebuild {wd}')
         return False

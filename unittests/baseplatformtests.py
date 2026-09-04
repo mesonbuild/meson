@@ -201,7 +201,8 @@ class BasePlatformTests(TestCase):
                               stderr=subprocess.STDOUT if stderr else subprocess.PIPE,
                               env=env,
                               encoding='utf-8',
-                              text=True, cwd=workdir, timeout=60 * 5)
+                              text=True, cwd=workdir, timeout=60 * 5,
+                              check=False)
         print('$', join_args(command))
         print('stdout:')
         print(proc.stdout)

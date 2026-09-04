@@ -81,7 +81,7 @@ def run(args: list[str]) -> int:
     # Build as much of the project as possible, or else
     # we get errors about missing libraries in the build directory and
     # other related errors.
-    subprocess.run(detect_ninja() + ['clippy-json-prereq', '-k0'])
+    subprocess.run(detect_ninja() + ['clippy-json-prereq', '-k0'], check=False)
 
     with tempfile.TemporaryDirectory() as d:
         return run_tool_on_targets(ClippyDriver(build_data, d, args[1:]))

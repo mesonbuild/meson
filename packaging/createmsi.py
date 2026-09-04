@@ -309,14 +309,14 @@ def is_nuget_source_active():
     '''
        Check if nuget source is active
     '''
-    result = subprocess.run(['dotnet', 'nuget', 'list', 'source', '--format', 'Short'], stdout=subprocess.PIPE)
+    result = subprocess.run(['dotnet', 'nuget', 'list', 'source', '--format', 'Short'], stdout=subprocess.PIPE, check=False)
     return f'E {NUGET_INDEX}' in result.stdout.decode('utf-8')
 
 def is_wixext_installed():
     '''
        Check if wix extension is installed
     '''
-    result = subprocess.run(['wix', 'extension', 'list'], stdout=subprocess.PIPE)
+    result = subprocess.run(['wix', 'extension', 'list'], stdout=subprocess.PIPE, check=False)
     return WIXEXT_TOOL in result.stdout.decode('utf-8')
 
 def install_wix():

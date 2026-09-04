@@ -101,7 +101,8 @@ def main() -> int:
             cwd=root,
             capture_output=True,
             text=True,
-            env=env
+            env=env,
+            check=False,
         )
 
         return (result.returncode, version, result.stdout + result.stderr)

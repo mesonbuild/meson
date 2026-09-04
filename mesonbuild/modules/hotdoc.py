@@ -76,7 +76,8 @@ file_types = (str, File, CustomTarget, CustomTargetIndex)
 
 class HotdocExternalProgram(ExternalProgram):
     def run_hotdoc(self, cmd: list[str]) -> int:
-        return subprocess.run(self.get_command() + cmd, stdout=subprocess.DEVNULL).returncode
+        return subprocess.run(self.get_command() + cmd, stdout=subprocess.DEVNULL,
+                              check=False).returncode
 
 
 class HotdocTargetBuilder:

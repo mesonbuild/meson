@@ -3245,7 +3245,8 @@ class AllPlatformTests(BasePlatformTests):
                 pc = subprocess.run(self.setup_command,
                                     cwd=srcdir,
                                     stdout=subprocess.PIPE,
-                                    stderr=subprocess.DEVNULL)
+                                    stderr=subprocess.DEVNULL,
+                                    check=False)
                 self.assertIn(b'Must specify at least one directory name', pc.stdout)
                 with tempfile.TemporaryDirectory(dir=srcdir) as builddir:
                     subprocess.run(self.setup_command,
@@ -5067,7 +5068,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertIn('export TEST_C', o)
 
         cmd = self.meson_command + ['devenv', '-C', self.builddir] + python_command + ['-c', 'import sys; sys.exit(42)']
-        result = subprocess.run(cmd, encoding='utf-8')
+        result = subprocess.run(cmd, encoding='utf-8', check=False)
         self.assertEqual(result.returncode, 42)
 
     @skipIfNoExecutable('clang-format')
