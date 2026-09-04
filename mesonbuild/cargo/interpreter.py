@@ -551,6 +551,8 @@ class Interpreter:
             self.environment.wrap_resolver.wraps[subp_name].type is not None
 
         ws = self._get_workspace(manifest, subdir, None, downloaded=downloaded)
+        if package_name not in ws.packages_to_member:
+            raise MesonException(f'{subdir}/Cargo.toml does not provide package "{package_name}"')
         member = ws.packages_to_member[package_name]
         pkg = self._require_workspace_member(ws, member)
         pkg.subproject_name = subp_name
