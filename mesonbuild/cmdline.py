@@ -18,7 +18,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Protocol
 
     # typeshed
-    StrOrBytesPath = T.Union[str, bytes, os.PathLike[str], os.PathLike[bytes]]
+    StrOrBytesPath: T.TypeAlias = str | bytes | os.PathLike[str] | os.PathLike[bytes]
 
     class SharedCMDOptions(Protocol):
         """Representation of command line options from Meson setup, configure,

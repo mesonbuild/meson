@@ -27,8 +27,8 @@ if T.TYPE_CHECKING:
     from ._typing import SizedStringProtocol, StringProtocol
     from .mparser import BaseNode
 
-    TV_Loggable = T.Union[str, 'AnsiDecorator', StringProtocol]
-    TV_LoggableList = list[TV_Loggable]
+    TV_Loggable: T.TypeAlias = 'str | AnsiDecorator | StringProtocol'
+    TV_LoggableList: T.TypeAlias = list[TV_Loggable]
 
 def is_windows() -> bool:
     platname = platform.system().lower()

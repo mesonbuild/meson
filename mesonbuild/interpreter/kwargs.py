@@ -22,10 +22,9 @@ from ..options import OptionKey
 from ..programs import ExternalProgram, Program
 from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
-TargetDepends = T.Union[build.CustomTarget, build.CustomTargetIndex, build.BuildTarget, build.GeneratedList, Program]
-CustomTargetInputs = T.Union[str, build.BuildTarget, build.GeneratedTypes,
-                             build.ExtractedObjects, Program, File]
-BuildTargetObjects = T.Union[str, File, build.ExtractedObjects, build.GeneratedTypes]
+TargetDepends: T.TypeAlias = build.CustomTarget | build.CustomTargetIndex | build.BuildTarget | build.GeneratedList | Program
+CustomTargetInputs: T.TypeAlias = str | build.BuildTarget | build.GeneratedTypes | build.ExtractedObjects | Program | File
+BuildTargetObjects: T.TypeAlias = str | File | build.ExtractedObjects | build.GeneratedTypes
 RustAbi = Literal['rust', 'c']
 
 class NativeKW(TypedDict):

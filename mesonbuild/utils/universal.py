@@ -688,7 +688,7 @@ class PerThreeMachine(PerMachine[_T]):
 
 
 @dataclasses.dataclass(eq=False, order=False)
-class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
+class PerMachineDefaultable(PerMachine[_T | None]):
     """Extends `PerMachine` with the ability to default from `None`s.
     """
 
@@ -720,7 +720,7 @@ class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
 
 
 @dataclasses.dataclass(eq=False, order=False)
-class PerThreeMachineDefaultable(PerMachineDefaultable[T.Optional[_T]], PerThreeMachine[T.Optional[_T]]):
+class PerThreeMachineDefaultable(PerMachineDefaultable[_T | None], PerThreeMachine[_T | None]):
     """Extends `PerThreeMachine` with the ability to default from `None`s.
     """
 
@@ -747,7 +747,7 @@ class InstallScriptFailure:
 
     subproject = ROOT_SUBPROJECT
 
-InstallScript = T.Union[ExecutableSerialisation, InstallScriptFailure]
+InstallScript: T.TypeAlias = ExecutableSerialisation | InstallScriptFailure
 
 _PLATFORM_SYSTEM_LOWER = platform.system().lower()
 _PLATFORM_RELEASE_LOWER = platform.release().lower()
@@ -1620,7 +1620,7 @@ def do_define_meson(regex: T.Pattern[str], line: str, confdata: ConfigurationDat
         else:
             return f'#undef {varname}\n'
     elif isinstance(v, int):
-        return '#define %s %d\n' % (varname, v)
+        return f'#define {varname} {v}\n'
     else:
         raise MesonException(f'#mesondefine argument "{varname}" is of unknown type.')
 

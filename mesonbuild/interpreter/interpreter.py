@@ -174,18 +174,18 @@ if T.TYPE_CHECKING:
     from .type_checking import FullEnvInitValueType, SourcesVarargsType
 
     # Input source types passed to Targets
-    SourceInputs = T.Union[str, build.TargetSources, build.BuildTarget,
-                           build.BothLibraries, build.ExtractedObjects]
+    SourceInputs: T.TypeAlias = \
+        str | build.TargetSources | build.BuildTarget | build.BothLibraries | build.ExtractedObjects
     # Input source types passed to the build.Target classes
-    SourceOutputs = T.Union[build.TargetSources, build.BuildTarget,
-                            build.ExtractedObjects, build.StructuredSources]
+    SourceOutputs: T.TypeAlias = \
+        build.TargetSources | build.BuildTarget | build.ExtractedObjects | build.StructuredSources
     # Sources for custom targets, which can also include ExternalProgram
-    CustomTargetSources = T.Union[build.TargetSources, build.BuildTarget,
-                                  build.ExtractedObjects, Program]
+    CustomTargetSources: T.TypeAlias = \
+        build.TargetSources | build.BuildTarget | build.ExtractedObjects | Program
 
-    BuildTargetSource = T.Union[str, build.TargetSources, build.StructuredSources]
+    BuildTargetSource: T.TypeAlias = str | build.TargetSources | build.StructuredSources
 
-    ProgramVersionFunc = T.Callable[[Program], str]
+    ProgramVersionFunc: T.TypeAlias = T.Callable[[Program], str]
 
     TestClass = T.TypeVar('TestClass', bound=Test)
 

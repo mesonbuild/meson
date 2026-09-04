@@ -24,7 +24,7 @@ from .model import (
     VarArgs,
 )
 
-PlaceholderTypes = T.Union[None, str, bool]
+PlaceholderTypes: T.TypeAlias = None | str | bool
 FunctionDictType = dict[
     str,
     PlaceholderTypes | dict[str, PlaceholderTypes] | dict[str, dict[str, PlaceholderTypes]] | dict[str, list[dict[str, PlaceholderTypes]]] | list[dict[str, PlaceholderTypes]] | list[str]

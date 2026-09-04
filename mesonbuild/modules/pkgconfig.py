@@ -26,9 +26,9 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from . import ModuleState
 
-    ANY_DEP = T.Union[dependencies.Dependency, build.LinkableTargetTypes, str]
-    REQS = T.Union[dependencies.Dependency, build.LibTypes, str]
-    LIBS = T.Union[build.LibTypes, str]
+    ANY_DEP: T.TypeAlias = dependencies.Dependency | build.LinkableTargetTypes | str
+    REQS: T.TypeAlias = dependencies.Dependency | build.LibTypes | str
+    LIBS: T.TypeAlias = build.LibTypes | str
 
     class GenerateKw(TypedDict):
 

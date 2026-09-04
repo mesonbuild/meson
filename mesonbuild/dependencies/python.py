@@ -247,7 +247,7 @@ class BasicPythonExternalProgram(ExternalProgram):
             info = json.loads(stdout)
         except json.JSONDecodeError:
             info = None
-            mlog.debug('Could not introspect Python (%s): exit code %d' % (str(p.args), p.returncode))
+            mlog.debug(f'Could not introspect Python ({p.args!s}): exit code {p.returncode}')
             mlog.debug('Program stdout:\n')
             mlog.debug(stdout)
             mlog.debug('Program stderr:\n')

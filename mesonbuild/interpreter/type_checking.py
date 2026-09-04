@@ -60,9 +60,9 @@ if T.TYPE_CHECKING:
     from ..options import ElementaryOptionValues
     from .kwargs import CustomTargetInputs
 
-    FullEnvInitValueType = T.Union[EnvironmentVariables, list[str], list[list[str]], EnvInitValueType, str, None]
-    PkgConfigDefineType = T.Optional[tuple[tuple[str, str], ...]]
-    SourcesVarargsType = list[str | File | GeneratedTypes | StructuredSources | ExtractedObjects | BuildTarget]
+    FullEnvInitValueType: T.TypeAlias = EnvironmentVariables | list[str] | list[list[str]] | EnvInitValueType | str | None
+    PkgConfigDefineType: T.TypeAlias = tuple[tuple[str, str], ...] | None
+    SourcesVarargsType: T.TypeAlias = list[str | File | GeneratedTypes | StructuredSources | ExtractedObjects | BuildTarget]
 
 
 def _quote(x: T.Iterable[str]) -> T.Iterable[str]:

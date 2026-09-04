@@ -46,12 +46,8 @@ from .options import OptionKey
 from .programs import ExternalProgram
 
 if T.TYPE_CHECKING:
-    TYPE_TAPResult = T.Union['TAPParser.Test',
-                             'TAPParser.Error',
-                             'TAPParser.Version',
-                             'TAPParser.Plan',
-                             'TAPParser.UnknownLine',
-                             'TAPParser.Bailout']
+    TYPE_TAPResult: T.TypeAlias = \
+        'TAPParser.Test | TAPParser.Error | TAPParser.Version | TAPParser.Plan | TAPParser.UnknownLine | TAPParser.Bailout'
 
 
 # GNU autotools interprets a return code of 77 from tests it executes to

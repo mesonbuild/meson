@@ -72,7 +72,7 @@ class Lexer:
                         raise ValueError(f'lex: unknown element {tid}')
                     break
             if not matched:
-                raise ValueError('Lexer got confused line %d column %d' % (lineno, col))
+                raise ValueError(f'Lexer got confused line {lineno} column {col}')
 
 class Parser:
     def __init__(self, code: str) -> None:

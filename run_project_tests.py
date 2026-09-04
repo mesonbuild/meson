@@ -1166,7 +1166,7 @@ class LogRunFuture:
     def cancel(self) -> None:
         pass
 
-RunFutureUnion = T.Union[TestRunFuture, LogRunFuture]
+RunFutureUnion: T.TypeAlias = TestRunFuture | LogRunFuture
 
 def _run_tests(all_tests: list[tuple[str, list[TestDef], bool]],
                log_name_base: str,
@@ -1206,7 +1206,7 @@ def _run_tests(all_tests: list[tuple[str, list[TestDef], bool]],
             # Jenkins screws us over by automatically sorting test cases by name
             # and getting it wrong by not doing logical number sorting.
             (testnum, testbase) = t.path.name.split(' ', 1)
-            testname = '%.3d %s' % (int(testnum), testbase)
+            testname = f'{int(testnum):03d} {testbase}'
             if t.name:
                 testname += f' ({t.name})'
             should_fail = ''

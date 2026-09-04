@@ -10,7 +10,7 @@ import shutil
 import typing as T
 from pathlib import Path
 
-PathLike = T.Union[Path,str]
+PathLike: T.TypeAlias = Path | str
 
 def copy_files(files: list[str], input_dir: PathLike, output_dir: PathLike) -> None:
     if not input_dir:

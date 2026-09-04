@@ -84,7 +84,7 @@ Dependency = TypedDict(
 """An entry in the *dependencies sections."""
 
 
-DependencyV = T.Union[Dependency, str]
+DependencyV: T.TypeAlias = Dependency | str
 """A Dependency entry, either a string or a Dependency Dict."""
 
 
@@ -140,7 +140,7 @@ dictionaries that point to Lint.
 """
 
 
-LintV = T.Union[Lint, str]
+LintV: T.TypeAlias = Lint | str
 """A Lint entry, either a string or a Lint Dict."""
 
 

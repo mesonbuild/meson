@@ -27,7 +27,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import SubProject
     from .options import OptionStore
 
-    _DEPRECATED_ARGS = T.Union[bool, str, dict[str, str], list[str]]
+    _DEPRECATED_ARGS: T.TypeAlias = bool | str | dict[str, str] | list[str]
 
     ParserFuncT: TypeAlias = T.Callable[[tuple[str, str, bool, _DEPRECATED_ARGS], TYPE_kwargs], options.AnyOptionType]
 

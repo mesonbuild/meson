@@ -23,9 +23,9 @@ if T.TYPE_CHECKING:
     from .base import DependencyObjectKWs
     from .factory import DependencyFactory, DependencyGenerator, WrappedFactoryFunc
 
-    TV_DepIDEntry = T.Union[str, bool, int, None, tuple[str, ...]]
-    TV_DepID = tuple[tuple[str, TV_DepIDEntry], ...]
-    PackageTypes = T.Union[type[ExternalDependency], DependencyFactory, DependencyCandidate, WrappedFactoryFunc]
+    TV_DepIDEntry: T.TypeAlias = str | bool | int | None | tuple[str, ...]
+    TV_DepID: T.TypeAlias = tuple[tuple[str, TV_DepIDEntry], ...]
+    PackageTypes: T.TypeAlias = type[ExternalDependency] | DependencyFactory | DependencyCandidate | WrappedFactoryFunc
     # Workaround for older python
     DependencyPackagesType = collections.UserDict[str, PackageTypes]
 else:

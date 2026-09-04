@@ -55,8 +55,8 @@ def main() -> int:
     if opts.clear:
         print('\x1bc', end='', flush=True)
 
-    to_check = [] # type: T.List[str]
-    additional_to_check = [] # type: T.List[str]
+    to_check: list[str] = []
+    additional_to_check: list[str] = []
     if opts.files:
         for f in opts.files:
             if f.startswith(MESONBUILD):

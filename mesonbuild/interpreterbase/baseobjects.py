@@ -14,21 +14,19 @@ from .helpers import flatten, resolve_second_level_holders
 from .operator import MesonOperator
 
 if T.TYPE_CHECKING:
-    from typing import TypeAlias
-
     # Object holders need the actual interpreter
     from ..interpreter import Interpreter
 
 
 TV_func = T.TypeVar('TV_func', bound=T.Callable[..., T.Any])
 
-TYPE_elementary: TypeAlias = str | int | bool | T.Sequence['TYPE_elementary'] | dict[str, 'TYPE_elementary']
-TYPE_var: TypeAlias = T.Union[TYPE_elementary, HoldableObject, 'MesonInterpreterObject', T.Sequence['TYPE_var'], dict[str, 'TYPE_var']]
-TYPE_kwargs = dict[str, TYPE_var]
-TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
+TYPE_elementary: T.TypeAlias = str | int | bool | T.Sequence['TYPE_elementary'] | dict[str, 'TYPE_elementary']
+TYPE_var: T.TypeAlias = T.Union[TYPE_elementary, HoldableObject, 'MesonInterpreterObject', T.Sequence['TYPE_var'], dict[str, 'TYPE_var']]
+TYPE_kwargs: T.TypeAlias = dict[str, TYPE_var]
+TYPE_key_resolver: T.TypeAlias = T.Callable[[mparser.BaseNode], str]
 TYPE_op_arg = T.TypeVar('TYPE_op_arg', bound='TYPE_var', contravariant=True)
-TYPE_op_func = T.Callable[[TYPE_op_arg, TYPE_op_arg], TYPE_var]
-TYPE_method_func = T.Callable[['InterpreterObject', list[TYPE_var], TYPE_kwargs], TYPE_var]
+TYPE_op_func: T.TypeAlias = T.Callable[[TYPE_op_arg, TYPE_op_arg], TYPE_var]
+TYPE_method_func: T.TypeAlias = T.Callable[['InterpreterObject', list[TYPE_var], TYPE_kwargs], TYPE_var]
 
 class InterpreterObject:
     TRIVIAL_OPERATORS: dict[
@@ -179,7 +177,7 @@ class UndefinedVariable(MesonInterpreterObject):
     represents the `value` a meson-variable has if it was never written to.'''
 
 HoldableTypes = (HoldableObject, int, bool, str, list, dict)
-TYPE_HoldableTypes = T.Union[TYPE_var, HoldableObject]
+TYPE_HoldableTypes: T.TypeAlias = TYPE_var | HoldableObject
 InterpreterObjectTypeVar = T.TypeVar('InterpreterObjectTypeVar', bound=TYPE_HoldableTypes)
 
 class ObjectHolder(InterpreterObject, T.Generic[InterpreterObjectTypeVar]):

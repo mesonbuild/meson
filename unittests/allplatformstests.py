@@ -932,7 +932,7 @@ class AllPlatformTests(BasePlatformTests):
     def assertFailedTestCount(self, failure_count, command):
         try:
             self._run(command)
-            self.assertEqual(0, failure_count, 'Expected %d tests to fail.' % failure_count)
+            self.assertEqual(0, failure_count, f'Expected {failure_count} tests to fail.')
         except subprocess.CalledProcessError:
             actual_fails = 0
             with open(os.path.join(self.logdir, 'testlog.json'), encoding='utf-8') as f:

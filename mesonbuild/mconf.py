@@ -30,7 +30,7 @@ if T.TYPE_CHECKING:
         pager: bool
 
     # cannot be TV_Loggable, because non-ansidecorators do direct string concat
-    LOGLINE = T.Union[str, mlog.AnsiDecorator]
+    LOGLINE: T.TypeAlias = str | mlog.AnsiDecorator
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/

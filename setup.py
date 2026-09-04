@@ -6,9 +6,11 @@
 import os
 import sys
 
+# ruff: disable[UP036]
 if sys.version_info < (3, 10):
     raise SystemExit(f'ERROR: Tried to install Meson with an unsupported Python version: \n{sys.version}'
                      '\nMeson requires Python 3.10.0 or greater')
+# ruff: enable[UP036]
 
 from setuptools import setup
 

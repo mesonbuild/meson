@@ -51,7 +51,7 @@ if T.TYPE_CHECKING:
     from ..programs import CommandList, Program
     from . import ModuleState
 
-    QtDependencyType = T.Union[QtPkgConfigDependency, QmakeQtDependency]
+    QtDependencyType: T.TypeAlias = QtPkgConfigDependency | QmakeQtDependency
 
     from typing_extensions import TypedDict
 

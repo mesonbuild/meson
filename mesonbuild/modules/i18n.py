@@ -89,7 +89,7 @@ if T.TYPE_CHECKING:
         install_dir: str | None
         install_tag: str | None
 
-    SourcesType = T.Union[str, mesonlib.File, build.BuildTargetTypes, build.BothLibraries]
+    SourcesType: T.TypeAlias = str | mesonlib.File | build.BuildTargetTypes | build.BothLibraries
 
 
 _ARGS: KwargInfo[list[str]] = KwargInfo(

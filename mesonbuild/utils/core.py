@@ -24,9 +24,9 @@ if T.TYPE_CHECKING:
     from ..mparser import BaseNode
     from .universal import SubProject
 
-    EnvironOrDict = T.Union[dict[str, str], os._Environ[str]]
+    EnvironOrDict: T.TypeAlias = dict[str, str] | os._Environ[str]
 
-    EnvInitValueType = dict[str, str | list[str]]
+    EnvInitValueType: T.TypeAlias = dict[str, str | list[str]]
 
 
 class MesonException(Exception):

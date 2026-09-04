@@ -66,11 +66,15 @@ if T.TYPE_CHECKING:
     )
     from .visitor import AstVisitor
 
-    TYPE_ivar = T.Union[str, int, bool, 'HoldableObject', 'MesonInterpreterObject',
-                        'UnknownValue', 'IntrospectionBuildTarget', 'IntrospectionFile',
-                        'IntrospectionDependency', list['TYPE_ivar'], dict[str | UnknownValue, 'TYPE_ivar']]
-    TYPE_nvar = T.Union[TYPE_ivar, mparser.BaseNode]
-    TYPE_nkwargs = dict[str, TYPE_nvar]
+    # Union just makes this more readable than `|`. That's probably an indication
+    # that this union is too complicated.
+    TYPE_ivar: T.TypeAlias = T.Union[  # noqa: UP007
+        str, int, bool, 'HoldableObject', 'MesonInterpreterObject',
+        'UnknownValue', 'IntrospectionBuildTarget', 'IntrospectionFile',
+        'IntrospectionDependency', list['TYPE_ivar'],
+        dict[str | UnknownValue, 'TYPE_ivar']]
+    TYPE_nvar: T.TypeAlias = TYPE_ivar | mparser.BaseNode
+    TYPE_nkwargs: T.TypeAlias = dict[str, TYPE_nvar]
 
 _T = T.TypeVar('_T')
 _V = T.TypeVar('_V')

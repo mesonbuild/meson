@@ -63,9 +63,9 @@ if T.TYPE_CHECKING:
     from .common import CMakeConfiguration, TargetOptions
     from .traceparser import CMakeGeneratorTarget
 
-    TYPE_mixed = T.Union[str, int, bool, Path, BaseNode]
-    TYPE_mixed_list = T.Union[TYPE_mixed, T.Sequence[TYPE_mixed]]
-    TYPE_mixed_kwargs = dict[str, TYPE_mixed_list]
+    TYPE_mixed: T.TypeAlias = str | int | bool | Path | BaseNode
+    TYPE_mixed_list: T.TypeAlias = TYPE_mixed | T.Sequence[TYPE_mixed]
+    TYPE_mixed_kwargs: T.TypeAlias = dict[str, TYPE_mixed_list]
 
 # Disable all warnings automatically enabled with --trace and friends
 # See https://cmake.org/cmake/help/latest/variable/CMAKE_POLICY_WARNING_CMPNNNN.html

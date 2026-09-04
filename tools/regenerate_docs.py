@@ -17,7 +17,7 @@ import typing as T
 from pathlib import Path
 from urllib.request import urlopen
 
-PathLike = T.Union[Path,str]
+PathLike: T.TypeAlias = Path | str
 
 def _get_meson_output(root_dir: Path, args: list) -> str:
     env = os.environ.copy()

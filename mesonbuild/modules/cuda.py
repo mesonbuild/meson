@@ -32,7 +32,7 @@ if T.TYPE_CHECKING:
     class ArchFlagsKwargs(TypedDict):
         detected: list[str] | None
 
-    AutoArch = T.Union[str, list[str]]
+    AutoArch: T.TypeAlias = str | list[str]
 
 
 DETECTED_KW: KwargInfo[None | list[str]] = KwargInfo('detected', (ContainerTypeInfo(list, str), NoneType), listify=True)

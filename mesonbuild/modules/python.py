@@ -85,7 +85,7 @@ if T.TYPE_CHECKING:
         limited_api: str
         subdir: NotRequired[str | None]
 
-    MaybePythonProg = T.Union[NonExistingExternalProgram, 'PythonExternalProgram']
+    MaybePythonProg: T.TypeAlias = 'NonExistingExternalProgram | PythonExternalProgram'
 
 
 _MOD_KWARGS = [k for k in SHARED_MOD_KWS if
