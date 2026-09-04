@@ -1266,7 +1266,7 @@ class Backend:
                     results.add(bindir)
                     continue
 
-            results.update(filter(None, map(cls.search_dll_path, dep.link_args)))  # pylint: disable=bad-builtin
+            results.update(filter(None, map(cls.search_dll_path, dep.link_args)))
 
         for i in chain(target.link_targets, target.link_whole_targets):
             if isinstance(i, build.BuildTarget):

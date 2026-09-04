@@ -98,7 +98,7 @@ class DubDependency(ExternalDependency):
                 raise DependencyException('DUB not found.')
             return
 
-        (self.dubbin, dubver) = DubDependency.class_dubbin  # pylint: disable=unpacking-non-sequence
+        (self.dubbin, dubver) = DubDependency.class_dubbin
 
         assert isinstance(self.dubbin, ExternalProgram)
 

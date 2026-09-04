@@ -4,7 +4,6 @@
 # ignore all lints for this file, since it is run by python2 as well
 
 # type: ignore
-# pylint: disable=deprecated-module
 
 import json
 import os

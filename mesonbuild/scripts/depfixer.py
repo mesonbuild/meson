@@ -834,7 +834,7 @@ def fix_jar(fname: str) -> None:
     os.replace(tmpname, fname)
 
 def fix_rpath(fname: str, rpath_dirs_to_remove: set[bytes], new_rpath: str | bytes, final_path: str, install_name_mappings: dict[str, str], system: str, verbose: bool = True) -> None:
-    global INSTALL_NAME_TOOL  # pylint: disable=global-statement
+    global INSTALL_NAME_TOOL
     # Static libraries, import libraries, debug information, headers, etc
     # never have rpaths
     # DLLs and EXE currently do not need runtime path fixing

@@ -175,9 +175,6 @@ def set_chown(path: str, user: str | int | None = None,
     assert user is not None or group is not None, 'ensure that calls to chown are valid'
 
     if sys.version_info >= (3, 13):
-        # pylint: disable=unexpected-keyword-arg
-        # cannot handle sys.version_info, https://github.com/pylint-dev/pylint/issues/9622
-        #
         # Mypy does not understand that the assert above ensures that user,
         # group is either `None, int | str` or `int | str, None`, so we need to
         # ignore the warning

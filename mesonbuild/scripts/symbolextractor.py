@@ -345,7 +345,7 @@ def gen_symbols(options: Arguments) -> None:
         dummy_syms(options.outfilename)
 
 def run(args: list[str]) -> int:
-    global TOOL_WARNING_FILE  # pylint: disable=global-statement
+    global TOOL_WARNING_FILE
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--cross-host', default=None, dest='cross_host',

@@ -1192,7 +1192,7 @@ class OptionStore:
         # Pylint seems to think that it is faster to build a set object
         # and all related work just to test whether a string has one of two
         # values. It is not, thank you very much.
-        if prefix in ('b', 'backend'): # pylint: disable=R6201
+        if prefix in ('b', 'backend'):
             return True
         if prefix in self.all_languages:
             return True

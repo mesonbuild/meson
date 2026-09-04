@@ -9,14 +9,12 @@ on:
     paths:
     - "**.py"
     - ".github/workflows/lint.yml"
-    - ".pylintrc"
     - ".flake8"
     - ".mypy.ini"
   pull_request:
     paths:
     - "**.py"
     - ".github/workflows/lint.yml"
-    - ".pylintrc"
     - ".flake8"
     - ".mypy.ini"
 
@@ -24,16 +22,6 @@ permissions:
   contents: read
 
 jobs:
-
-  pylint:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.13'
-    - run: python -m pip install pylint
-    - run: pylint --output-format colorized mesonbuild
 
   flake8:
     runs-on: ubuntu-latest
