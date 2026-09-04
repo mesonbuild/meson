@@ -1113,7 +1113,7 @@ class AllPlatformTests(BasePlatformTests):
         for target in targets:
             for target_sources in target["target_sources"]:
                 for generated_source in target_sources.get("generated_sources", []):
-                    if generated_source.endswith(".pyx.c") or generated_source.endswith("pyx.cpp"):
+                    if generated_source.endswith((".pyx.c", "pyx.cpp")):
                         found = True
                         parts = os.path.normpath(generated_source).split(os.sep)
                         parent = parts[-2]

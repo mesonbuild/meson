@@ -277,7 +277,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
                 if suffix in link_flags_with_arg:
                     link_expect_arg = True
 
-                if suffix.startswith('-') or suffix.startswith('@'):
+                if suffix.startswith(('-', '@')):
                     # this is not search path
                     dcargs.append(arg)
                     continue

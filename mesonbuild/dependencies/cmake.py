@@ -306,9 +306,9 @@ class CMakeDependency(ExternalDependency):
         # Check PATH
         system_env: list[str] = []
         for i in os.environ.get('PATH', '').split(os.pathsep):
-            if i.endswith('/bin') or i.endswith('\\bin'):
+            if i.endswith(('/bin', '\\bin')):
                 i = i[:-4]
-            if i.endswith('/sbin') or i.endswith('\\sbin'):
+            if i.endswith(('/sbin', '\\sbin')):
                 i = i[:-5]
             system_env += [i]
 

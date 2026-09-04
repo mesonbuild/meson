@@ -254,9 +254,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
                 i = cls.include_arg_to_native('-idirafter', i[10:])
             # cl.exe does not allow specifying both, so remove /utf-8 that we
             # added automatically in the case the user overrides it manually.
-            elif (i.startswith('/source-charset:')
-                    or i.startswith('/execution-charset:')
-                    or i == '/validate-charset-'):
+            elif (i.startswith(('/source-charset:', '/execution-charset:')) or i == '/validate-charset-'):
                 try:
                     result.remove('/utf-8')
                 except ValueError:

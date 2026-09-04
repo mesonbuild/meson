@@ -1733,7 +1733,7 @@ class XCodeBackend(backends.Backend):
                     outputs = self.generator_outputs[target_name, generator_id]
                     generator_id += 1
                     for o_abs in outputs:
-                        if o_abs.endswith('.o') or o_abs.endswith('.obj'):
+                        if o_abs.endswith(('.o', '.obj')):
                             ldargs += [r'\"' + o_abs + r'\"']
                 else:
                     if isinstance(o, build.CustomTarget):

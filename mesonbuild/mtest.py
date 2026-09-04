@@ -1901,7 +1901,7 @@ class TestHarness:
 
         summary = []
         for result, count in results.items():
-            if count > 0 or result.startswith('Ok:') or result.startswith('Fail:'):
+            if count > 0 or result.startswith(('Ok:', 'Fail:')):
                 summary.append(result + f'{count:<4}')
 
         return '\n{}\n'.format('\n'.join(summary))

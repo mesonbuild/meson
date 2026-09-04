@@ -243,7 +243,7 @@ class ClangCompiler(GnuLikeCompiler):
 
     def linker_to_compiler_args(self, args: list[str]) -> list[str]:
         if isinstance(self.linker, VisualStudioLikeLinkerMixin):
-            return [flag if flag.startswith('-Wl,') or flag.startswith('-fuse-ld=') else f'-Wl,{flag}' for flag in args]
+            return [flag if flag.startswith(('-Wl,', '-fuse-ld=')) else f'-Wl,{flag}' for flag in args]
         else:
             return args
 

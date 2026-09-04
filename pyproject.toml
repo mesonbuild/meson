@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
   target-version = "py310"
 
   [tool.ruff.lint]
-    select = ["E", "F", "FA", "I", "ISC", "PLC", "PLE", "PLW", "UP"]
+    select = ["E", "F", "FA", "I", "ISC", "PLC", "PLE", "PLW", "PIE", "UP"]
 
     exclude = [
       "test cases/**",
