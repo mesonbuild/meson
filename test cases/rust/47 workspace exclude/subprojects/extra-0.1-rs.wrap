@@ -1,0 +1,6 @@
+[wrap-file]
+directory=extra
+method=cargo
+
+[provide]
+dependency_names=extra-0.1-rs

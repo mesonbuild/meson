@@ -1,0 +1,8 @@
+[workspace]
+members = [".", "subprojects/extra"]
+exclude = ["subprojects/extra"]
+
+[package]
+name = "exclude_test"
+version = "0.1.0"
+edition = "2021"

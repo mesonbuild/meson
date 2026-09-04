@@ -668,6 +668,7 @@ class Workspace:
             ws.profile = raw.get('profile')
 
         ws.members = list(PurePath(m).as_posix() for m in ws.members)
+        ws.exclude = list(PurePath(e).as_posix() for e in ws.exclude)
         if ws.default_members:
             ws.default_members = list(PurePath(m).as_posix() for m in ws.default_members)
         else:

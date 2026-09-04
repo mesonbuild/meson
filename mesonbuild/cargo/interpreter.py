@@ -280,6 +280,8 @@ class Interpreter:
         self.manifests: T.Dict[str, T.Union[Manifest, Workspace]] = {}
         # Map of cargo package (name + api) to its state
         self.packages: T.Dict[PackageKey, PackageState] = {}
+        # Package names excluded from all workspaces
+        self.excluded_packages: T.Set[str] = set()
         # Map subdir to workspace
         self.workspaces: T.Dict[str, WorkspaceState] = {}
         # Files that should trigger a reconfigure if modified
@@ -411,6 +413,8 @@ class Interpreter:
         def _process_member(member: str) -> None:
             if member in processed_members:
                 return
+            if member in ws.workspace.exclude:
+                return
             pkg = ws.packages[member]
             # Process dependencies for all configured machines
             found = False
@@ -471,15 +475,28 @@ class Interpreter:
         if workspace.root_package:
             self._add_workspace_member(workspace.root_package, ws, '.')
 
+        # Validate and build the set of excluded members
+        excluded: T.Set[str] = set()
+        for e in workspace.exclude:
+            if not is_parent_path(self.subprojects_dir, e) or \
+                    len(pathlib.PurePath(e).parts) != 2:
+                raise MesonException(
+                    f'workspace exclude path "{e}" must reside under "{self.subprojects_dir}/"')
+            excluded.add(e)
         if extra_members is not None:
             for m in extra_members:
                 m = PurePath(m).as_posix()
+                if m in excluded:
+                    raise MesonException(f'{m} is excluded from workspace {subdir}/Cargo.toml')
                 if m not in workspace.members:
                     l = ', '.join(sorted(list(workspace.members)))
                     raise MesonException(f'{m} is not a workspace member for {subdir}/Cargo.toml (valid members are {l})')
                 if m not in workspace.default_members:
                     workspace.default_members.append(m)
+        workspace.default_members = [m for m in workspace.default_members if m not in excluded]
         for m in workspace.members:
+            if m in excluded:
+                continue
             self._load_workspace_member(ws, m)
         self.workspaces[subdir] = ws
         return ws
@@ -517,6 +534,8 @@ class Interpreter:
         return None
 
     def resolve_package(self, package_name: str, api: str) -> T.Optional[PackageState]:
+        if package_name in self.excluded_packages:
+            return None
         cargo_pkg = self._resolve_package(package_name, version.cargo_parse(api))
         if not cargo_pkg:
             return None
@@ -596,8 +615,24 @@ class Interpreter:
             if is_parent_path(self.subprojects_dir, dep_member):
                 if len(pathlib.PurePath(dep_member).parts) != 2:
                     raise MesonException('found "{self.subprojects_dir}" in path but it is not a valid subproject path')
-            self._load_workspace_member(ws, dep_member)
-            dep_pkg = self._require_workspace_member(ws, dep_member)
+            if dep_member in ws.workspace.exclude:
+                # Excluded members are not workspace members; load the manifest
+                # so the dependency graph can still be resolved, but do not
+                # register it on the workspace object.
+                m_subdir = os.path.join(ws.subdir, dep_member)
+                manifest_, _ = self._load_manifest(m_subdir, ws.workspace, dep_member)
+                assert isinstance(manifest_, Manifest)
+                key = PackageKey(manifest_.package.name, manifest_.package.api)
+                if key in self.packages:
+                    dep_pkg = self.packages[key]
+                else:
+                    dep_pkg = PackageState(manifest_, ws_subdir=ws.subdir,
+                                           ws_member=dep_member, downloaded=ws.downloaded)
+                    self.packages[key] = dep_pkg
+                self.excluded_packages.add(manifest_.package.name)
+            else:
+                self._load_workspace_member(ws, dep_member)
+                dep_pkg = self._require_workspace_member(ws, dep_member)
         elif dep.git:
             _, _, directory = _parse_git_url(dep.git, dep.branch)
             dep_pkg = self._fetch_package_from_subproject(dep.package, directory)

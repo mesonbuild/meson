@@ -1,0 +1,8 @@
+[workspace]
+members = [".", "other"]
+exclude = ["other"]
+
+[package]
+name = "exclude-outside-test"
+version = "0.1.0"
+edition = "2021"

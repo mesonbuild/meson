@@ -495,6 +495,50 @@ class CargoTomlTest(unittest.TestCase):
         self.assertEqual(dep.api, '1')
         self.assertEqual(sorted(set(dep.features)), ['full', 'parse'])
 
+    def test_cargo_toml_ws_exclude(self) -> None:
+        ws_toml = textwrap.dedent('''\
+            [workspace]
+            resolver = "2"
+            members = [".", "subprojects/extra"]
+            exclude = ["subprojects/extra"]
+
+            [package]
+            name = "myproject"
+            version = "0.1.0"
+            edition = "2021"
+        ''')
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, 'Cargo.toml')
+            with open(fname, 'w', encoding='utf-8') as f:
+                f.write(ws_toml)
+            workspace_toml = load_toml(fname)
+            workspace = Workspace.from_raw(workspace_toml, tmpdir)
+
+        self.assertEqual(workspace.exclude, ['subprojects/extra'])
+        self.assertIn('.', workspace.members)
+        self.assertIn('subprojects/extra', workspace.members)
+
+    def test_cargo_toml_ws_exclude_normalized(self) -> None:
+        ws_toml = textwrap.dedent('''\
+            [workspace]
+            resolver = "2"
+            members = ["subprojects\\\\foo", "subprojects/bar"]
+            exclude = ["subprojects\\\\foo"]
+
+            [package]
+            name = "myproject"
+            version = "0.1.0"
+            edition = "2021"
+        ''')
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, 'Cargo.toml')
+            with open(fname, 'w', encoding='utf-8') as f:
+                f.write(ws_toml)
+            workspace_toml = load_toml(fname)
+            workspace = Workspace.from_raw(workspace_toml, tmpdir)
+
+        self.assertEqual(workspace.exclude, ['subprojects/foo'])
+
     def test_cargo_toml_package(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             fname = os.path.join(tmpdir, 'Cargo.toml')
