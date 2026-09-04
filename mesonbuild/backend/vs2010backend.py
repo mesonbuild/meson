@@ -2125,7 +2125,8 @@ class Vs2010Backend(backends.Backend):
         i = 0
         file = prefix
         while os.path.exists(file):
-            file = '%s%d' % (prefix, i)
+            file = f'{prefix}{i}'
+            i += 1
         return file
 
     def generate_debug_information(self, link: ET.Element) -> None:
