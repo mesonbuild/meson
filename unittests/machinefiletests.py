@@ -41,7 +41,9 @@ from run_tests import (
 )
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import *
+from .helpers import (
+    skip_if_not_language, skipIfNoExecutable, get_classpath, skip_if_env_set
+)
 
 @functools.lru_cache()
 def is_real_gnu_compiler(path):
@@ -314,7 +316,7 @@ class NativeFileTests(BasePlatformTests):
             self.helper_for_compiler('objc', cb)
         except mesonlib.EnvironmentException as e:
             if 'GCC was not built with support for objective-c' in str(e):
-                raise unittest.SkipTest("GCC doesn't support objective-c, test cannot run")
+                raise SkipTest("GCC doesn't support objective-c, test cannot run")
             raise
 
     @skip_if_not_language('objcpp')
@@ -332,7 +334,7 @@ class NativeFileTests(BasePlatformTests):
             self.helper_for_compiler('objcpp', cb)
         except mesonlib.EnvironmentException as e:
             if 'GCC was not built with support for objective-c++' in str(e):
-                raise unittest.SkipTest("G++ doesn't support objective-c++, test cannot run")
+                raise SkipTest("G++ doesn't support objective-c++, test cannot run")
             raise
 
     @skip_if_not_language('d')

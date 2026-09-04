@@ -15,7 +15,7 @@ from mesonbuild.mesonlib import (
 
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import *
+from .helpers import skipIfNoExecutable
 
 class SubprojectsCommandTests(BasePlatformTests):
     def setUp(self):

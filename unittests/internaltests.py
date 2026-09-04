@@ -53,7 +53,7 @@ from mesonbuild import utils
 
 from run_tests import get_fake_env, get_fake_options
 
-from .helpers import *
+from .helpers import IS_CI, chdir, skipIfNoPkgconfig
 
 class InternalTests(unittest.TestCase):
 
@@ -1080,7 +1080,6 @@ Thread model: posix'''), '21.9.0')
             return
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            pkgbin = ExternalProgram('pkg-config', command=['pkg-config'], silent=True)
             env = get_fake_env()
             compiler = detect_c_compiler(env, MachineChoice.HOST)
             env.coredata.compilers.host = {'c': compiler}

@@ -33,7 +33,9 @@ from run_tests import (
 )
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import *
+from .helpers import (
+    get_path_without_cmd, skip_if_not_base_option, IS_CI, skip_if_not_language,
+)
 
 @skipUnless(is_windows() or is_cygwin(), "requires Windows (or Windows via Cygwin)")
 class WindowsTests(BasePlatformTests):
@@ -459,7 +461,7 @@ class WindowsTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Dtest-failure=true'])
         self.assertRaises(subprocess.CalledProcessError, self.build)
 
-    @unittest.skipIf(is_cygwin(), "Needs visual studio")
+    @skipIf(is_cygwin(), "Needs visual studio")
     def test_vsenv_option(self):
         if self.backend is not Backend.ninja:
             raise SkipTest('Only ninja backend is valid for test')
