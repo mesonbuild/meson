@@ -384,7 +384,7 @@ class PkgConfigDependency(ExternalDependency):
             return args.copy()
         converted = []
         for arg in args:
-            pargs: tuple[str, ...] = tuple()
+            pargs: tuple[str, ...] = ()
             # Library search path
             if arg.startswith('-L/'):
                 pargs = PurePath(arg[2:]).parts

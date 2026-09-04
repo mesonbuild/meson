@@ -67,7 +67,7 @@ class SimdModule(ExtensionModule):
     def check(self, state: ModuleState, args: tuple[str], kwargs: CheckKw) -> list[list[build.StaticLibrary] | build.ConfigurationData]:
         result: list[build.StaticLibrary] = []
 
-        local_kwargs = set((*ISETS, 'compiler'))
+        local_kwargs = {*ISETS, 'compiler'}
         static_lib_kwargs = T.cast('kwtypes.StaticLibrary', {k: v for k, v in kwargs.items() if k not in local_kwargs})
 
         prefix = args[0]

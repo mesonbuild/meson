@@ -1993,7 +1993,7 @@ class NinjaBackend(backends.Backend):
         self.add_build(elem)
 
     def __generate_sources_structure(self, root: Path, structured_sources: build.StructuredSources,
-                                     main_file_ext: str | tuple[str, ...] = tuple(),
+                                     main_file_ext: str | tuple[str, ...] = (),
                                      ) -> tuple[list[str], str | None]:
         first_file: str | None = None
         orderdeps: list[str] = []

@@ -241,7 +241,7 @@ class CMakeDependency(ExternalDependency):
         try:
             return tuple((x, str(x).lower()) for x in os.listdir(path))
         except OSError:
-            return tuple()
+            return ()
 
     @staticmethod
     @functools.cache

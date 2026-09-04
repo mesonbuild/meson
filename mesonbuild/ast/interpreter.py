@@ -396,7 +396,7 @@ class AstInterpreter(InterpreterBase):
                 ret.update(self.find_potential_writes(line))
             return ret
         elif isinstance(node, (AssignmentNode, PlusAssignmentNode)):
-            return set([node.var_name.value]) | self.find_potential_writes(node.value)
+            return {node.var_name.value} | self.find_potential_writes(node.value)
         elif isinstance(node, IdNode):
             return set()
         elif isinstance(node, ArrayNode):

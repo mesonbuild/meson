@@ -424,7 +424,7 @@ def list_projinfo(coredata: cdata.CoreData, builddata: build.Build, backend: bac
         'subproject_dir': builddata.subproject_dir,
     }
     subprojects = []
-    seen = set([''])
+    seen = {''}
     for k, build_proj in itertools.chain(builddata.projects.host.items(),
                                          builddata.projects.build.items()):
         if k in seen:

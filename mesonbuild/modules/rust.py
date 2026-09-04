@@ -314,13 +314,13 @@ class RustCrate(ModuleObject):
     @noKwargs
     def all_features_method(self, state: ModuleState, args: list, kwargs: TYPE_kwargs) -> list[str]:
         """Returns all features for specific package."""
-        return sorted(list(self.package.manifest.features.keys()))
+        return sorted(self.package.manifest.features.keys())
 
     @noPosargs
     @noKwargs
     def features_method(self, state: ModuleState, args: list, kwargs: TYPE_kwargs) -> list[str]:
         """Returns chosen features for specific package."""
-        return sorted(list(self.cfg.features))
+        return sorted(self.cfg.features)
 
     @noPosargs
     @noKwargs

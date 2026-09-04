@@ -479,8 +479,8 @@ class Resolver:
         except FileNotFoundError:
             return
         for name, info in self.wrapdb.items():
-            self.wrapdb_provided_deps.update({i: name for i in info.get('dependency_names', [])})
-            self.wrapdb_provided_programs.update({i: name for i in info.get('program_names', [])})
+            self.wrapdb_provided_deps.update(dict.fromkeys(info.get('dependency_names', []), name))
+            self.wrapdb_provided_programs.update(dict.fromkeys(info.get('program_names', []), name))
 
     def get_from_wrapdb(self, subp_name: str) -> PackageDefinition | None:
         info = self.wrapdb.get(subp_name)

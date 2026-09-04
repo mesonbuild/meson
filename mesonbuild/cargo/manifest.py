@@ -117,7 +117,7 @@ class DictMergeValue(ConvertValue):
         assert isinstance(out, list) # for mypy
         assert isinstance(self.default, dict) # for mypy
 
-        explicit: set[str] = set(self.merge_key(x) for x in out)
+        explicit: set[str] = {self.merge_key(x) for x in out}
         out_d: dict[str, object] = {self.out_key(x): x for x in out}
         for v in self.default.values():
             if self.merge_key(v) not in explicit:
@@ -742,9 +742,9 @@ class Workspace:
             ws.patch = raw.get('patch')
             ws.profile = {k: Profile.from_raw(v) for k, v in raw.get('profile', {}).items()}
 
-        ws.members = list(PurePath(m).as_posix() for m in ws.members)
+        ws.members = [PurePath(m).as_posix() for m in ws.members]
         if ws.default_members:
-            ws.default_members = list(PurePath(m).as_posix() for m in ws.default_members)
+            ws.default_members = [PurePath(m).as_posix() for m in ws.default_members]
         else:
             ws.default_members = ['.'] if ws.root_package else list(ws.members)
 

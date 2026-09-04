@@ -423,7 +423,7 @@ def validate_install(test: TestDef, installdir: Path, env: environment.Environme
             expected_raw += i.get_paths(c_compiler, env, installdir)
         except RuntimeError as err:
             ret_msg += f'Expected path error: {err}\n'
-    expected = {x: False for x in expected_raw}
+    expected = dict.fromkeys(expected_raw, False)
     found = [x.relative_to(installdir) for x in installdir.rglob('*') if x.is_file() or x.is_symlink()]
     # Mark all found files as found and detect unexpected files
     for fname in found:
@@ -944,7 +944,7 @@ def load_test_json(t: TestDef, c: TestCategory) -> list[TestDef]:
             opt_tuple = [(x[0], x[1]) for x in i]
             for j in matrix['exclude']:
                 ex_list = [(k, v) for k, v in j.items()]
-                if all([x in opt_tuple for x in ex_list]):
+                if all(x in opt_tuple for x in ex_list):
                     exclude = True
                     break
 
@@ -956,8 +956,8 @@ def load_test_json(t: TestDef, c: TestCategory) -> list[TestDef]:
     for i in opt_list:
         name = ' '.join([f'{x[0]}={x[1]}' for x in i if x[1] is not None])
         opts = [f'-D{x[0]}={x[1]}' for x in i if x[1] is not None]
-        skip = any([x[2] for x in i])
-        skip_expected = any([x[3] for x in i])
+        skip = any(x[2] for x in i)
+        skip_expected = any(x[3] for x in i)
         test = TestDef(t.path, name, opts, skip or t.skip, c)
         test.env.update(env)
         test.installed_files = installed

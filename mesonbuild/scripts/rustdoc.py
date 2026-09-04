@@ -97,9 +97,9 @@ def get_nonwrap_subprojects(build_data: build.Build) -> set[str]:
         build_data.environment.get_source_dir(),
         build_data.subproject_dir,
         wrap_mode=WrapMode.nodownload)
-    return set(sp
-               for sp in build_data.environment.coredata.initialized_subprojects
-               if sp and (sp not in wrap_resolver.wraps or wrap_resolver.wraps[sp].type is None))
+    return {sp
+            for sp in build_data.environment.coredata.initialized_subprojects
+            if sp and (sp not in wrap_resolver.wraps or wrap_resolver.wraps[sp].type is None)}
 
 def run(args: list[str]) -> int:
     os.chdir(args[0])

@@ -1133,7 +1133,7 @@ def list_to_dict_for_delete(args: list[str]) -> dict[str, str | None]:
         mlog.deprecation('Even-numbered arguments are all blank; '
                          'ignoring these for compatibility with Meson < 1.10')
         args = args[::2]
-    return {a: None for a in args}
+    return dict.fromkeys(args)
 
 def generate_target(options: argparse.Namespace) -> list[dict[str, T.Any]]:
     return [{

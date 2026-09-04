@@ -526,7 +526,7 @@ class Interpreter:
             for m in extra_members:
                 m = PurePath(m).as_posix()
                 if m not in workspace.members:
-                    l = ', '.join(sorted(list(workspace.members)))
+                    l = ', '.join(sorted(workspace.members))
                     raise MesonException(f'{m} is not a workspace member for {subdir}/Cargo.toml (valid members are {l})')
                 if m not in workspace.default_members:
                     workspace.default_members.append(m)
@@ -624,9 +624,9 @@ class Interpreter:
 
         # If you specify the optional dependency with the dep: prefix anywhere in the [features]
         # table, that disables the implicit feature.
-        deps = set(feature[4:]
-                   for feature in itertools.chain.from_iterable(pkg.manifest.features.values())
-                   if feature.startswith('dep:'))
+        deps = {feature[4:]
+                for feature in itertools.chain.from_iterable(pkg.manifest.features.values())
+                if feature.startswith('dep:')}
         for name, dep in itertools.chain(pkg.manifest.dependencies.items(),
                                          pkg.manifest.dev_dependencies.items(),
                                          pkg.manifest.build_dependencies.items()):
