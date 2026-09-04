@@ -455,11 +455,14 @@ class ClangClCompiler(VisualStudioLikeCompiler):
 
         self.base_options.update(
             {OptionKey('b_lto_threads'), OptionKey('b_lto'), OptionKey('b_lto_mode'), OptionKey('b_thinlto_cache'),
-             OptionKey('b_thinlto_cache_dir')})
+             OptionKey('b_thinlto_cache_dir'), OptionKey('b_freestanding')})
 
         # Assembly
         self.can_compile_suffixes.add('s')
         self.can_compile_suffixes.add('sx')
+
+    def get_freestanding_args(self, freestanding: bool) -> T.List[str]:
+        return ['/clang:-ffreestanding'] if freestanding else []
 
     def sanitizer_compile_args(self, target: T.Optional[BuildTarget], value: T.List[str]) -> T.List[str]:
         if not value:

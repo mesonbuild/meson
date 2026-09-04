@@ -759,6 +759,7 @@ COMPILER_BASE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
         UserBooleanOption('b_coverage', 'Enable coverage tracking.', False),
         UserComboOption(
             'b_colorout', 'Use colored output', 'always', choices=['auto', 'always', 'never']),
+        UserBooleanOption('b_freestanding', 'Build without a hosted standard library', False),
         UserComboOption(
             'b_ndebug', 'Disable asserts', 'false', choices=['true', 'false', 'if-release']),
         UserBooleanOption('b_staticpic', 'Build static libraries as position independent', True),
