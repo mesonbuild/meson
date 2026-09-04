@@ -6,7 +6,6 @@ from __future__ import annotations
 import os
 import tempfile
 import textwrap
-import typing as T
 import unittest
 
 from mesonbuild.cargo import cfg
@@ -24,7 +23,7 @@ class CargoVersionTest(unittest.TestCase):
         # Each case is (cargo_requirement, accepted_versions, rejected_versions).
         # The conversion from Cargo to Meson constraints is opaque, so probe the
         # resulting predicate on versions around the boundaries.
-        cases: T.List[T.Tuple[str, T.List[str], T.List[str]]] = [
+        cases: list[tuple[str, list[str], list[str]]] = [
             # Basic comparison requirements
             ('>= 1', ['1', '1.0', '1.5', '2'], ['0.9']),
             ('> 1', ['1.0.1', '1.5', '2'], ['0.9', '1']),
@@ -132,7 +131,7 @@ class CargoVersionTest(unittest.TestCase):
         self.assertEqual(SemVer('1.2.3-rc.1+exp.sha'), SemVer('1.2.3-rc.1'))
 
     def test_api(self) -> None:
-        cases: T.List[T.Tuple[str, str]] = [
+        cases: list[tuple[str, str]] = [
             # Plain versions
             ('1.2.3', '1'),
             ('0.4.5', '0.4'),
@@ -149,7 +148,7 @@ class CargoVersionTest(unittest.TestCase):
 class CargoCfgTest(unittest.TestCase):
 
     def test_lex(self) -> None:
-        cases: T.List[T.Tuple[str, T.List[T.Tuple[TokenType, T.Optional[str]]]]] = [
+        cases: list[tuple[str, list[tuple[TokenType, str | None]]]] = [
             ('"unix"', [(TokenType.STRING, 'unix')]),
             ('unix', [(TokenType.IDENTIFIER, 'unix')]),
             ('not(unix)', [

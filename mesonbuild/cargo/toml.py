@@ -13,8 +13,8 @@ if T.TYPE_CHECKING:
 
 # tomllib is present in python 3.11, before that it is a pypi module called tomli,
 # we try to import tomllib, then tomli,
-tomllib: T.Optional[ModuleType] = None
-toml2json: T.Optional[str] = None
+tomllib: ModuleType | None = None
+toml2json: str | None = None
 for t in ['tomllib', 'tomli']:
     try:
         tomllib = importlib.import_module(t)
@@ -36,7 +36,7 @@ class CargoTomlError(MesonException):
     """Exception for TOML parsing errors, keeping proper location info."""
 
 
-def load_toml(filename: str) -> T.Dict[str, object]:
+def load_toml(filename: str) -> dict[str, object]:
     if tomllib:
         try:
             with open(filename, 'rb') as f:
@@ -58,4 +58,4 @@ def load_toml(filename: str) -> T.Dict[str, object]:
         raw = json.loads(out)
 
     # tomllib.load() returns T.Dict[str, T.Any] but not other implementations.
-    return T.cast('T.Dict[str, object]', raw)
+    return T.cast('dict[str, object]', raw)

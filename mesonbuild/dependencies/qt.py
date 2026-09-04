@@ -29,7 +29,7 @@ if T.TYPE_CHECKING:
     from .base import DependencyObjectKWs
 
 
-def _qt_get_private_includes(mod_inc_dir: str, module: str, mod_version: str) -> T.List[str]:
+def _qt_get_private_includes(mod_inc_dir: str, module: str, mod_version: str) -> list[str]:
     # usually Qt5 puts private headers in /QT_INSTALL_HEADERS/module/VERSION/module/private
     # except for at least QtWebkit and Enginio where the module version doesn't match Qt version
     # as an example with Qt 5.10.1 on linux you would get:
@@ -55,7 +55,7 @@ def _qt_get_private_includes(mod_inc_dir: str, module: str, mod_version: str) ->
     return [private_dir, Path(private_dir, f'Qt{module}').as_posix()]
 
 
-def get_qmake_host_bins(qvars: T.Dict[str, str]) -> str:
+def get_qmake_host_bins(qvars: dict[str, str]) -> str:
     # Prefer QT_HOST_BINS (qt5, correct for cross and native compiling)
     # but fall back to QT_INSTALL_BINS (qt4)
     if 'QT_HOST_BINS' in qvars:
@@ -63,13 +63,13 @@ def get_qmake_host_bins(qvars: T.Dict[str, str]) -> str:
     return qvars['QT_INSTALL_BINS']
 
 
-def get_qmake_host_libexecs(qvars: T.Dict[str, str]) -> T.Optional[str]:
+def get_qmake_host_libexecs(qvars: dict[str, str]) -> str | None:
     if 'QT_HOST_LIBEXECS' in qvars:
         return qvars['QT_HOST_LIBEXECS']
     return qvars.get('QT_INSTALL_LIBEXECS')
 
 
-def _get_modules_lib_suffix(version: str, info: 'MachineInfo', is_debug: bool) -> str:
+def _get_modules_lib_suffix(version: str, info: MachineInfo, is_debug: bool) -> str:
     """Get the module suffix based on platform and debug type."""
     suffix = ''
     if info.is_windows():
@@ -97,12 +97,12 @@ def _get_modules_lib_suffix(version: str, info: 'MachineInfo', is_debug: bool) -
 
 
 class QtExtraFrameworkDependency(ExtraFrameworkDependency):
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs, qvars: T.Dict[str, str]):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs, qvars: dict[str, str]):
         super().__init__(name, env, kwargs)
         self.mod_name = name[2:]
         self.qt_extra_include_directory = qvars['QT_INSTALL_HEADERS']
 
-    def get_compile_args(self, with_private_headers: bool = False, qt_version: str = "0") -> T.List[str]:
+    def get_compile_args(self, with_private_headers: bool = False, qt_version: str = "0") -> list[str]:
         if self.found():
             mod_inc_dir = os.path.join(self.framework_path, 'Headers')
             args = ['-I' + mod_inc_dir]
@@ -118,10 +118,10 @@ class _QtBase:
 
     """Mixin class for shared components between PkgConfig and Qmake."""
 
-    link_args: T.List[str]
-    clib_compiler: T.Union['MissingCompiler', 'Compiler']
-    env: 'Environment'
-    libexecdir: T.Optional[str] = None
+    link_args: list[str]
+    clib_compiler: MissingCompiler | Compiler
+    env: Environment
+    libexecdir: str | None = None
     version: str
 
     def __init__(self, name: str, kwargs: DependencyObjectKWs):
@@ -143,7 +143,7 @@ class _QtBase:
         if not isinstance(self.qtmain, bool):
             raise DependencyException('"main" argument must be a boolean')
 
-    def _link_with_qt_winmain(self, is_debug: bool, libdir: T.Union[str, T.List[str]]) -> bool:
+    def _link_with_qt_winmain(self, is_debug: bool, libdir: str | list[str]) -> bool:
         libdir = mesonlib.listify(libdir)  # TODO: shouldn't be necessary
         base_name = self.get_qt_winmain_base_name(is_debug)
         qt_winmain = self.clib_compiler.find_library(base_name, libdir)
@@ -155,7 +155,7 @@ class _QtBase:
     def get_qt_winmain_base_name(self, is_debug: bool) -> str:
         return 'qtmaind' if is_debug else 'qtmain'
 
-    def get_exe_args(self, compiler: 'Compiler') -> T.List[str]:
+    def get_exe_args(self, compiler: Compiler) -> list[str]:
         # Originally this was -fPIE but nowadays the default
         # for upstream and distros seems to be -reduce-relocations
         # which requires -fPIC. This may cause a performance
@@ -167,7 +167,7 @@ class _QtBase:
     def log_details(self) -> str:
         return f'modules: {", ".join(sorted(self.requested_modules))}'
 
-    def _get_common_defines(self) -> T.List[str]:
+    def _get_common_defines(self) -> list[str]:
         is_debug = self.env.coredata.optstore.get_value_for('debug')
         return ['-DQT_DEBUG' if is_debug else '-DQT_NO_DEBUG']
 
@@ -175,7 +175,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=mesonlib.Sim
 
     """Specialization of the PkgConfigDependency for Qt."""
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
         _QtBase.__init__(self, name, kwargs)
 
         # Always use QtCore as the "main" dependency, since it has the extra
@@ -244,16 +244,16 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=mesonlib.Sim
 
     @staticmethod
     @abc.abstractmethod
-    def get_pkgconfig_host_bins(core: PkgConfigDependency) -> T.Optional[str]:
+    def get_pkgconfig_host_bins(core: PkgConfigDependency) -> str | None:
         pass
 
     @staticmethod
     @abc.abstractmethod
-    def get_pkgconfig_host_libexecs(core: PkgConfigDependency) -> T.Optional[str]:
+    def get_pkgconfig_host_libexecs(core: PkgConfigDependency) -> str | None:
         pass
 
     @abc.abstractmethod
-    def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
+    def get_private_includes(self, mod_inc_dir: str, module: str) -> list[str]:
         pass
 
     def log_info(self) -> str:
@@ -267,7 +267,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=mesonlib.Simple
     version: str
     version_arg = '-v'
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
         _QtBase.__init__(self, name, kwargs)
         self.tool_name = f'qmake{self.qtver}'
         self.tools = [f'qmake{self.qtver}', f'qmake-{self.name}', 'qmake']
@@ -289,7 +289,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=mesonlib.Simple
 
         # Query library path, header path, and binary path
         stdo = self.get_config_value(['-query'], 'args')
-        qvars: T.Dict[str, str] = {}
+        qvars: dict[str, str] = {}
         for line in stdo:
             line = line.strip()
             if line == '':
@@ -359,14 +359,14 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=mesonlib.Simple
             return m.group(0).rstrip('.')
         return version
 
-    def get_variable_args(self, variable_name: str) -> T.List[str]:
+    def get_variable_args(self, variable_name: str) -> list[str]:
         return ['-query', f'{variable_name}']
 
     @abc.abstractmethod
-    def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
+    def get_private_includes(self, mod_inc_dir: str, module: str) -> list[str]:
         pass
 
-    def _framework_detect(self, qvars: T.Dict[str, str], modules: T.List[str], kwargs: DependencyObjectKWs) -> bool:
+    def _framework_detect(self, qvars: dict[str, str], modules: list[str], kwargs: DependencyObjectKWs) -> bool:
         libdir = qvars['QT_INSTALL_LIBS']
 
         # ExtraFrameworkDependency doesn't support any methods
@@ -403,26 +403,26 @@ class Qt6WinMainMixin:
 
 class Qt4ConfigToolDependency(QmakeQtDependency):
 
-    def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
+    def get_private_includes(self, mod_inc_dir: str, module: str) -> list[str]:
         return []
 
 
 class Qt5ConfigToolDependency(QmakeQtDependency):
 
-    def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
+    def get_private_includes(self, mod_inc_dir: str, module: str) -> list[str]:
         return _qt_get_private_includes(mod_inc_dir, module, self.version)
 
 
 class Qt6ConfigToolDependency(Qt6WinMainMixin, QmakeQtDependency):
 
-    def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
+    def get_private_includes(self, mod_inc_dir: str, module: str) -> list[str]:
         return _qt_get_private_includes(mod_inc_dir, module, self.version)
 
 
 class Qt4PkgConfigDependency(QtPkgConfigDependency):
 
     @staticmethod
-    def get_pkgconfig_host_bins(core: PkgConfigDependency) -> T.Optional[str]:
+    def get_pkgconfig_host_bins(core: PkgConfigDependency) -> str | None:
         # Only return one bins dir, because the tools are generally all in one
         # directory for Qt4, in Qt5, they must all be in one directory. Return
         # the first one found among the bin variables, in case one tool is not
@@ -435,7 +435,7 @@ class Qt4PkgConfigDependency(QtPkgConfigDependency):
                 pass
         return None
 
-    def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
+    def get_private_includes(self, mod_inc_dir: str, module: str) -> list[str]:
         return []
 
     @staticmethod
@@ -453,13 +453,13 @@ class Qt5PkgConfigDependency(QtPkgConfigDependency):
     def get_pkgconfig_host_libexecs(core: PkgConfigDependency) -> str:
         return None
 
-    def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
+    def get_private_includes(self, mod_inc_dir: str, module: str) -> list[str]:
         return _qt_get_private_includes(mod_inc_dir, module, self.version)
 
 
 class Qt6PkgConfigDependency(Qt6WinMainMixin, QtPkgConfigDependency):
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, env, kwargs)
         if not self.libexecdir:
             mlog.debug(f'detected Qt6 {self.version} pkg-config dependency does not '
@@ -475,7 +475,7 @@ class Qt6PkgConfigDependency(Qt6WinMainMixin, QtPkgConfigDependency):
         # Qt6 pkg-config for Qt defines libexecdir from 6.3+
         return core.get_variable(pkgconfig='libexecdir')
 
-    def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
+    def get_private_includes(self, mod_inc_dir: str, module: str) -> list[str]:
         return _qt_get_private_includes(mod_inc_dir, module, self.version)
 
 

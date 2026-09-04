@@ -45,7 +45,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('devcmd', nargs=argparse.REMAINDER, metavar='command',
                         help='Command to run in developer environment (default: interactive shell)')
 
-def get_windows_shell() -> T.Optional[str]:
+def get_windows_shell() -> str | None:
     mesonbuild = Path(__file__).parent
     script = mesonbuild / 'scripts' / 'cmd_or_ps.ps1'
     for shell in POWERSHELL_EXES:
@@ -57,7 +57,7 @@ def get_windows_shell() -> T.Optional[str]:
             pass
     return None
 
-def reduce_winepath(env: T.Dict[str, str]) -> None:
+def reduce_winepath(env: dict[str, str]) -> None:
     winepath = env.get('WINEPATH')
     if not winepath:
         return
@@ -67,7 +67,7 @@ def reduce_winepath(env: T.Dict[str, str]) -> None:
     env['WINEPATH'] = get_wine_shortpath([winecmd], winepath.split(';'))
     mlog.log('Meson detected wine and has set WINEPATH accordingly')
 
-def get_env(b: build.Build, dump_fmt: T.Optional[str]) -> T.Tuple[T.Dict[str, str], T.Set[str]]:
+def get_env(b: build.Build, dump_fmt: str | None) -> tuple[dict[str, str], set[str]]:
     extra_env = EnvironmentVariables()
     extra_env.set('MESON_DEVENV', ['1'])
     extra_env.set('MESON_PROJECT_NAME', [b.project_name])
@@ -99,7 +99,7 @@ def get_env(b: build.Build, dump_fmt: T.Optional[str]) -> T.Tuple[T.Dict[str, st
 
     return env, varnames
 
-def bash_completion_files(b: build.Build, install_data: 'InstallData') -> T.List[str]:
+def bash_completion_files(b: build.Build, install_data: InstallData) -> list[str]:
     from .dependencies.pkgconfig import PkgConfigDependency
     result = []
     dep = PkgConfigDependency('bash-completion', b.environment,
@@ -130,7 +130,7 @@ def add_gdb_auto_load(autoload_path: Path, gdb_helper: str, fname: Path) -> None
     except (FileExistsError, shutil.SameFileError):
         pass
 
-def write_gdb_script(privatedir: Path, install_data: 'InstallData', workdir: Path) -> None:
+def write_gdb_script(privatedir: Path, install_data: InstallData, workdir: Path) -> None:
     if not shutil.which('gdb'):
         return
     bdir = privatedir.parent
@@ -179,7 +179,7 @@ def macos_sip_enabled() -> bool:
         return True
     return 'enabled' in ret.stdout
 
-def dump(devenv: T.Dict[str, str], varnames: T.Set[str], dump_format: T.Optional[str], output: T.Optional[T.TextIO] = None) -> None:
+def dump(devenv: dict[str, str], varnames: set[str], dump_format: str | None, output: T.TextIO | None = None) -> None:
     for name in varnames:
         print(f'{name}="{devenv[name]}"', file=output)
         if dump_format == 'export':

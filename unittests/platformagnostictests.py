@@ -110,7 +110,7 @@ class PlatformAgnosticTests(BasePlatformTests):
             self.new_builddir()
             self.init(testdir, extra_args=[f'-Dglib-version={run["version"]}'])
             try:
-                with open(os.path.join(self.builddir, 'meson-info', 'intro-targets.json'), 'r', encoding='utf-8') as tgt_intro:
+                with open(os.path.join(self.builddir, 'meson-info', 'intro-targets.json'), encoding='utf-8') as tgt_intro:
                     intro = json.load(tgt_intro)
                     target = list(filter(lambda tgt: tgt['name'] == 'vala-tgt', intro))
                     self.assertLength(target, 1)
@@ -468,7 +468,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         """Removing an options without reconfiguring should still give an error."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
         self.init(testdir)
-        with open(os.path.join(testdir, 'meson_options.txt'), 'r', encoding='utf-8') as f:
+        with open(os.path.join(testdir, 'meson_options.txt'), encoding='utf-8') as f:
             opts = f.readlines()
         with open(os.path.join(testdir, 'meson_options.txt'), 'w', encoding='utf-8') as f:
             for line in opts:
@@ -493,7 +493,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         """Changing the constraints of an option without reconfiguring should work."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
         self.init(testdir)
-        with open(os.path.join(testdir, 'meson_options.txt'), 'r', encoding='utf-8') as f:
+        with open(os.path.join(testdir, 'meson_options.txt'), encoding='utf-8') as f:
             opts = f.readlines()
         with open(os.path.join(testdir, 'meson_options.txt'), 'w', encoding='utf-8') as f:
             for line in opts:
@@ -508,7 +508,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         """Changing from a meson_options.txt to meson.options should still be detected."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
         self.init(testdir)
-        with open(os.path.join(testdir, 'meson_options.txt'), 'r', encoding='utf-8') as f:
+        with open(os.path.join(testdir, 'meson_options.txt'), encoding='utf-8') as f:
             opts = f.readlines()
         with open(os.path.join(testdir, 'meson_options.txt'), 'w', encoding='utf-8') as f:
             for line in opts:

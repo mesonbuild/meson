@@ -38,15 +38,15 @@ class ConfigToolDependency(ExternalDependency):
         Because some tools are stupid and don't return 0
     """
 
-    tools: T.Optional[T.List[str]] = None
-    tool_name: T.Optional[str] = None
+    tools: list[str] | None = None
+    tool_name: str | None = None
     version_arg = '--version'
-    skip_version: T.Optional[str] = None
+    skip_version: str | None = None
     allow_default_for_cross = False
     __strip_version = re.compile(r'^[0-9][0-9.]+')
     type_name = DependencyTypeName('config-tool')
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, exclude_paths: T.Optional[T.List[str]] = None):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs, exclude_paths: list[str] | None = None):
         super().__init__(name, environment, kwargs)
         # You may want to overwrite the class version in some cases
         self.tools = listify(kwargs.get('tools', self.tools))
@@ -73,7 +73,7 @@ class ConfigToolDependency(ExternalDependency):
             return m.group(0).rstrip('.')
         return version
 
-    def _check_and_get_version(self, tool: T.List[str], returncode: int) -> T.Tuple[bool, T.Union[str, None]]:
+    def _check_and_get_version(self, tool: list[str], returncode: int) -> tuple[bool, str | None]:
         """Check whether a command is valid and get its version"""
         p, out = Popen_safe(tool + [self.version_arg])[:2]
         valid = True
@@ -88,13 +88,13 @@ class ConfigToolDependency(ExternalDependency):
         version = self._sanitize_version(out.strip())
         return valid, version
 
-    def find_config(self, versions: T.List[str], returncode: int = 0, exclude_paths: T.Optional[T.List[str]] = None) \
-            -> T.Tuple[T.Optional[T.List[str]], T.Optional[str]]:
+    def find_config(self, versions: list[str], returncode: int = 0, exclude_paths: list[str] | None = None) \
+            -> tuple[list[str] | None, str | None]:
         """Helper method that searches for config tool binaries in PATH and
         returns the one that best matches the given version requirements.
         """
         exclude_paths = [] if exclude_paths is None else exclude_paths
-        best_match: T.Tuple[T.Optional[T.List[str]], T.Optional[str]] = (None, None)
+        best_match: tuple[list[str] | None, str | None] = (None, None)
         for potential_bin in find_external_program(
                 self.env, self.for_machine, self.tool_name,
                 self.tool_name, self.tools, exclude_paths=exclude_paths,
@@ -122,17 +122,17 @@ class ConfigToolDependency(ExternalDependency):
                 if not is_found:
                     tool = None
             if best_match[1]:
-                if version_compare(version, '> {}'.format(best_match[1])):
+                if version_compare(version, f'> {best_match[1]}'):
                     best_match = (tool, version)
             else:
                 best_match = (tool, version)
 
         return best_match
 
-    def report_config(self, version: T.Optional[str], req_version: T.List[str]) -> bool:
+    def report_config(self, version: str | None, req_version: list[str]) -> bool:
         """Helper method to print messages about the tool."""
 
-        found_msg: T.List[T.Union[str, mlog.AnsiDecorator]] = [mlog.bold(self.tool_name), 'found:']
+        found_msg: list[str | mlog.AnsiDecorator] = [mlog.bold(self.tool_name), 'found:']
 
         if self.config is None:
             found_msg.append(mlog.red('NO'))
@@ -147,7 +147,7 @@ class ConfigToolDependency(ExternalDependency):
 
         return self.config is not None
 
-    def get_config_value(self, args: T.List[str], stage: str, required: bool = False) -> T.List[str]:
+    def get_config_value(self, args: list[str], stage: str, required: bool = False) -> list[str]:
         p, out, err = Popen_safe_logged(self.config + args)
         if p.returncode != 0:
             if self.required or required:
@@ -155,12 +155,12 @@ class ConfigToolDependency(ExternalDependency):
             return []
         return split_args(out)
 
-    def get_variable_args(self, variable_name: str) -> T.List[str]:
+    def get_variable_args(self, variable_name: str) -> list[str]:
         return [f'--{variable_name}']
 
-    def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
-                     configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
-                     system: T.Optional[str] = None, default_value: T.Optional[str] = None,
+    def get_variable(self, *, cmake: str | None = None, pkgconfig: str | None = None,
+                     configtool: str | None = None, internal: str | None = None,
+                     system: str | None = None, default_value: str | None = None,
                      pkgconfig_define: PkgConfigDefineType = None) -> str:
         if configtool:
             p, out, _ = Popen_safe(self.config + self.get_variable_args(configtool))

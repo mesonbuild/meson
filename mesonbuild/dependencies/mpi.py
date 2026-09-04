@@ -28,9 +28,9 @@ if T.TYPE_CHECKING:
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
-def mpi_factory(env: 'Environment',
+def mpi_factory(env: Environment,
                 kwargs: DependencyObjectKWs,
-                methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
+                methods: list[DependencyMethods]) -> list[DependencyGenerator]:
     language = kwargs.get('language') or 'c'
     if language not in {'c', 'cpp', 'fortran'}:
         # OpenMPI doesn't work without any other languages
@@ -38,7 +38,7 @@ def mpi_factory(env: 'Environment',
 
     for_machine = kwargs['native']
 
-    candidates: T.List['DependencyGenerator'] = []
+    candidates: list[DependencyGenerator] = []
     compiler = detect_compiler('mpi', env, for_machine, language)
     if not compiler:
         return []
@@ -121,7 +121,7 @@ packages['mpi'] = mpi_factory
 class MPIConfigToolDependency(ConfigToolDependency):
     """Wrapper around mpicc, Intel's mpiicc and friends."""
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, env, kwargs)
         if not self.is_found:
             return
@@ -149,13 +149,13 @@ class MPIConfigToolDependency(ConfigToolDependency):
         self.compile_args = self._filter_compile_args(c_args)
         self.link_args = self._filter_link_args(l_args)
 
-    def _filter_compile_args(self, args: T.List[str]) -> T.List[str]:
+    def _filter_compile_args(self, args: list[str]) -> list[str]:
         """
         MPI wrappers return a bunch of garbage args.
         Drop -O2 and everything that is not needed.
         """
         result = []
-        multi_args: T.Tuple[str, ...] = ('-I', )
+        multi_args: tuple[str, ...] = ('-I', )
         if self.language == 'fortran':
             fc = self.env.coredata.compilers[self.for_machine]['fortran']
             multi_args += fc.get_module_incdir_args()
@@ -173,7 +173,7 @@ class MPIConfigToolDependency(ConfigToolDependency):
                 result.append(f)
         return result
 
-    def _filter_link_args(self, args: T.List[str]) -> T.List[str]:
+    def _filter_link_args(self, args: list[str]) -> list[str]:
         """
         MPI wrappers return a bunch of garbage args.
         Drop -O2 and everything that is not needed.
@@ -198,7 +198,7 @@ class MPIConfigToolDependency(ConfigToolDependency):
                     f == '-pthread' or
                     (f.startswith('-W') and f != '-Wall' and not f.startswith('-Werror')))
 
-    def _check_and_get_version(self, tool: T.List[str], returncode: int) -> T.Tuple[bool, T.Union[str, None]]:
+    def _check_and_get_version(self, tool: list[str], returncode: int) -> tuple[bool, str | None]:
         p, out = Popen_safe(tool + ['--showme:version'])[:2]
         valid = p.returncode == returncode
         if valid:
@@ -237,7 +237,7 @@ class MSMPIDependency(SystemDependency):
 
     """The Microsoft MPI."""
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, env, kwargs)
         # MSMPI only supports the C API
         if self.language not in {'c', 'fortran', None}:

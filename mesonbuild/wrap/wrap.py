@@ -23,7 +23,7 @@ import urllib.request
 from base64 import b64encode
 from dataclasses import dataclass
 from enum import Enum
-from functools import lru_cache
+from functools import cache
 from netrc import netrc
 from pathlib import Path, PurePath
 
@@ -44,8 +44,7 @@ from . import WrapMode
 
 if T.TYPE_CHECKING:
     import http.client
-
-    from typing_extensions import Literal
+    from typing import Literal
 
     from ..cargo.manifest import CargoLock
 
@@ -66,12 +65,12 @@ if sys.version_info >= (3, 14):
     import tarfile
     tarfile.TarFile.extraction_filter = staticmethod(tarfile.fully_trusted_filter)
 
-@lru_cache(maxsize=None)
-def patch_command() -> T.Optional[str]:
+@cache
+def patch_command() -> str | None:
     if mesonlib.is_windows():
         from ..mesonlib import version_compare
         from ..programs import ExternalProgram
-        _exclude_paths: T.List[str] = []
+        _exclude_paths: list[str] = []
         while True:
             _patch = ExternalProgram('patch', silent=True, exclude_paths=_exclude_paths)
             if not _patch.found():
@@ -90,8 +89,8 @@ truststore_message = '''
     correct SSL certificates, install https://truststore.readthedocs.io/ and
     try again.'''
 
-@lru_cache(maxsize=None)
-def ssl_truststore() -> T.Optional[ssl.SSLContext]:
+@cache
+def ssl_truststore() -> ssl.SSLContext | None:
     """ Provide a default context=None for urlopen, but use truststore if installed. """
     try:
         import truststore
@@ -166,10 +165,10 @@ def get_releases_data(allow_insecure: bool) -> bytes:
     url = open_wrapdburl('https://wrapdb.mesonbuild.com/v2/releases.json', allow_insecure, True, True)
     return read_and_decompress(url)
 
-@lru_cache(maxsize=None)
-def get_releases(allow_insecure: bool) -> T.Dict[str, T.Any]:
+@cache
+def get_releases(allow_insecure: bool) -> dict[str, T.Any]:
     data = get_releases_data(allow_insecure)
-    return T.cast('T.Dict[str, T.Any]', json.loads(data.decode()))
+    return T.cast('dict[str, T.Any]', json.loads(data.decode()))
 
 def update_wrap_file(wrapfile: str, name: str, new_version: str, new_revision: str, allow_insecure: bool) -> None:
     url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{name}_{new_version}-{new_revision}/{name}.wrap',
@@ -177,7 +176,7 @@ def update_wrap_file(wrapfile: str, name: str, new_version: str, new_revision: s
     with open(wrapfile, 'wb') as f:
         f.write(read_and_decompress(url))
 
-def parse_patch_url(patch_url: str) -> T.Tuple[str, str]:
+def parse_patch_url(patch_url: str) -> tuple[str, str]:
     u = urllib.parse.urlparse(patch_url)
     if u.netloc != 'wrapdb.mesonbuild.com':
         raise WrapException(f'URL {patch_url} does not seems to be a wrapdb patch')
@@ -210,16 +209,16 @@ class WrapNotFoundException(WrapException):
     pass
 
 class PackageDefinition:
-    def __init__(self, name: SubProject, subprojects_dir: str, type_: T.Optional[WrapType] = None, values: T.Optional[T.Dict[str, str]] = None):
+    def __init__(self, name: SubProject, subprojects_dir: str, type_: WrapType | None = None, values: dict[str, str] | None = None):
         self.name = name
         self.subprojects_dir = subprojects_dir
         self.type = type_
         self.values = values or {}
-        self.provided_deps: T.Dict[str, T.Optional[str]] = {}
-        self.provided_programs: T.List[str] = []
-        self.diff_files: T.List[Path] = []
-        self.wrapfile_hash: T.Optional[str] = None
-        self.original_filename: T.Optional[str] = None
+        self.provided_deps: dict[str, str | None] = {}
+        self.provided_programs: list[str] = []
+        self.diff_files: list[Path] = []
+        self.wrapfile_hash: str | None = None
+        self.original_filename: str | None = None
         self.redirected: bool = False
         self.filesdir = os.path.join(self.subprojects_dir, 'packagefiles')
         self.directory = self.values.get('directory', self.name)
@@ -237,7 +236,7 @@ class PackageDefinition:
         self.provided_deps[self.name.lower()] = None
 
     @staticmethod
-    def from_values(name: SubProject, subprojects_dir: str, type_: WrapType, values: T.Dict[str, str]) -> PackageDefinition:
+    def from_values(name: SubProject, subprojects_dir: str, type_: WrapType, values: dict[str, str]) -> PackageDefinition:
         return PackageDefinition(name, subprojects_dir, type_, values)
 
     @staticmethod
@@ -295,13 +294,13 @@ class PackageDefinition:
             else:
                 mlog.deprecation(f'WrapDB v1 is deprecated, updated using `meson wrap update {name}`')
 
-        with open(filename, 'r', encoding='utf-8') as file:
+        with open(filename, encoding='utf-8') as file:
             wrap.wrapfile_hash = hashlib.sha256(file.read().encode('utf-8')).hexdigest()
 
         return wrap
 
     @staticmethod
-    def _parse_wrap(filename: str) -> T.Tuple[configparser.ConfigParser, WrapType, T.Dict[str, str]]:
+    def _parse_wrap(filename: str) -> tuple[configparser.ConfigParser, WrapType, dict[str, str]]:
         try:
             config = configparser.ConfigParser(interpolation=None)
             config.read(filename, encoding='utf-8')
@@ -360,7 +359,7 @@ class PackageDefinition:
     def add_provided_dep(self, name: str) -> None:
         self.provided_deps[name] = None
 
-def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
+def verbose_git(cmd: list[str], workingdir: str, check: bool = False) -> bool:
     '''
     Wrapper to convert GitException to WrapException caught in interpreter.
     '''
@@ -383,15 +382,15 @@ class Resolver:
         self.subdir_root = os.path.join(self.source_dir, self.subdir)
         self.project_subdir = os.path.relpath(os.path.dirname(self.subdir_root), self.source_dir)
         self.cachedir = os.environ.get('MESON_PACKAGE_CACHE_DIR') or os.path.join(self.subdir_root, 'packagecache')
-        self.wraps: T.Dict[str, PackageDefinition] = {}
-        self.netrc: T.Optional[netrc] = None
-        self.provided_deps: T.Dict[str, PackageDefinition] = {}
-        self.provided_programs: T.Dict[str, PackageDefinition] = {}
-        self.wrapdb: T.Dict[str, T.Any] = {}
-        self.wrapdb_provided_deps: T.Dict[str, str] = {}
-        self.wrapdb_provided_programs: T.Dict[str, SubProject] = {}
-        self.loaded_dirs: T.Set[str] = set()
-        self.cargolocks: T.Dict[str, T.Optional[CargoLock]] = {}
+        self.wraps: dict[str, PackageDefinition] = {}
+        self.netrc: netrc | None = None
+        self.provided_deps: dict[str, PackageDefinition] = {}
+        self.provided_programs: dict[str, PackageDefinition] = {}
+        self.wrapdb: dict[str, T.Any] = {}
+        self.wrapdb_provided_deps: dict[str, str] = {}
+        self.wrapdb_provided_programs: dict[str, SubProject] = {}
+        self.loaded_dirs: set[str] = set()
+        self.cargolocks: dict[str, CargoLock | None] = {}
         self.load_wraps()
         self.load_netrc()
         self.load_wrapdb()
@@ -430,7 +429,7 @@ class Resolver:
         self.get_cargo_lock(self.project_subdir, warn_only=True)
         self.loaded_dirs.add(self.subdir)
 
-    def get_cargo_lock(self, project_subdir: str, warn_only: bool = False) -> T.Optional[CargoLock]:
+    def get_cargo_lock(self, project_subdir: str, warn_only: bool = False) -> CargoLock | None:
         project_subdir = os.path.normpath(os.path.join(self.source_dir, project_subdir))
         filename = os.path.join(project_subdir, 'Cargo.lock')
         if filename in self.cargolocks:
@@ -483,7 +482,7 @@ class Resolver:
             self.wrapdb_provided_deps.update({i: name for i in info.get('dependency_names', [])})
             self.wrapdb_provided_programs.update({i: name for i in info.get('program_names', [])})
 
-    def get_from_wrapdb(self, subp_name: str) -> T.Optional[PackageDefinition]:
+    def get_from_wrapdb(self, subp_name: str) -> PackageDefinition | None:
         info = self.wrapdb.get(subp_name)
         if not info:
             return None
@@ -500,7 +499,7 @@ class Resolver:
         self.add_wrap(wrap)
         return wrap
 
-    def merge_wraps(self, wraps: T.Dict[str, PackageDefinition]) -> None:
+    def merge_wraps(self, wraps: dict[str, PackageDefinition]) -> None:
         for k, v in wraps.items():
             prev_wrap = self.wraps.get(v.directory)
             if prev_wrap and prev_wrap.type is None and v.type is not None:
@@ -525,13 +524,13 @@ class Resolver:
             self.cargolocks.update(other_resolver.cargolocks)
             self.loaded_dirs.add(subdir)
 
-    def get_directory(self, packagename: str) -> T.Optional[str]:
+    def get_directory(self, packagename: str) -> str | None:
         wrap = self.wraps.get(packagename)
         if wrap:
             return None if wrap.redirected else wrap.directory
         return packagename
 
-    def find_dep_provider(self, packagename: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
+    def find_dep_provider(self, packagename: str) -> tuple[str | None, str | None]:
         # Python's ini parser converts all key values to lowercase.
         # Thus the query name must also be in lower case.
         packagename = packagename.lower()
@@ -542,11 +541,11 @@ class Resolver:
         wrap_name = self.wrapdb_provided_deps.get(packagename)
         return wrap_name, None
 
-    def get_varname(self, subp_name: str, depname: str) -> T.Optional[str]:
+    def get_varname(self, subp_name: str, depname: str) -> str | None:
         wrap = self.wraps.get(subp_name)
         return wrap.provided_deps.get(depname) if wrap else None
 
-    def find_program_provider(self, names: list[str | mesonlib.File]) -> T.Optional[SubProject]:
+    def find_program_provider(self, names: list[str | mesonlib.File]) -> SubProject | None:
         for name in names:
             # A File is always a local program, i.e., a script file in the source tree
             if isinstance(name, mesonlib.File):
@@ -559,7 +558,7 @@ class Resolver:
                 return wrap_name
         return None
 
-    def _resolve(self, packagename: str, force_method: T.Optional[Method] = None) -> T.Tuple[str, Method]:
+    def _resolve(self, packagename: str, force_method: Method | None = None) -> tuple[str, Method]:
         wrap = self.wraps.get(packagename)
         if wrap is None:
             wrap = self.get_from_wrapdb(packagename)
@@ -594,14 +593,14 @@ class Resolver:
                         '''))
 
         # Map each supported method to a file that must exist at the root of source tree.
-        methods_map: T.Dict[Method, str] = {
+        methods_map: dict[Method, str] = {
             'meson': 'meson.build',
             'cmake': 'CMakeLists.txt',
             'cargo': 'Cargo.toml',
         }
 
         # Check if this wrap forces a specific method, use meson otherwise.
-        method = T.cast('T.Optional[Method]', self.wrap.values.get('method', force_method))
+        method = T.cast('Method | None', self.wrap.values.get('method', force_method))
         if method and method not in methods_map:
             allowed_methods = ', '.join(methods_map.keys())
             raise WrapException(f'Wrap method {method!r} is not supported, must be one of: {allowed_methods}')
@@ -662,7 +661,7 @@ class Resolver:
         self.wrap.update_hash_cache(self.dirname)
         return rel_path, method
 
-    def resolve(self, packagename: str, force_method: T.Optional[Method] = None) -> T.Tuple[str, Method]:
+    def resolve(self, packagename: str, force_method: Method | None = None) -> tuple[str, Method]:
         try:
             with DirectoryLock(self.subdir_root, '.wraplock',
                                DirectoryLockAction.WAIT,
@@ -737,7 +736,7 @@ class Resolver:
         revno = self.wrap.get('revision')
         checkout_cmd = ['-c', 'advice.detachedHead=false', 'checkout', revno, '--']
         is_shallow = False
-        depth_option: T.List[str] = []
+        depth_option: list[str] = []
         if self.wrap.values.get('depth', '') != '':
             is_shallow = True
             depth_option = ['--depth', self.wrap.values.get('depth')]
@@ -778,7 +777,7 @@ class Resolver:
         # Retrieve original hash, if it exists.
         hashfile = self.wrap.get_hashfile(self.dirname)
         if os.path.isfile(hashfile):
-            with open(hashfile, 'r', encoding='utf-8') as file:
+            with open(hashfile, encoding='utf-8') as file:
                 expected_hash = file.read().strip()
         else:
             # If stored hash doesn't exist then don't warn.
@@ -813,7 +812,7 @@ class Resolver:
         subprocess.check_call([svn, 'checkout', '-r', revno, self.wrap.get('url'),
                                self.directory], cwd=self.subdir_root)
 
-    def get_netrc_credentials(self, netloc: str) -> T.Optional[T.Tuple[str, str]]:
+    def get_netrc_credentials(self, netloc: str) -> tuple[str, str] | None:
         if self.netrc is None or netloc not in self.netrc.hosts:
             return None
 
@@ -823,7 +822,7 @@ class Resolver:
 
         return login, password
 
-    def get_data(self, urlstring: str) -> T.Tuple[str, str]:
+    def get_data(self, urlstring: str) -> tuple[str, str]:
         blocksize = 10 * 1024
         h = hashlib.sha256()
         tmpfile = tempfile.NamedTemporaryFile(mode='wb', dir=self.cachedir, delete=False)
@@ -921,7 +920,7 @@ class Resolver:
         if dhash != expected:
             raise WrapException(f'Incorrect hash for {what}:\n {expected} expected\n {dhash} actual.')
 
-    def get_data_with_backoff(self, urlstring: str) -> T.Tuple[str, str]:
+    def get_data_with_backoff(self, urlstring: str) -> tuple[str, str]:
         delays = [1, 2, 4, 8, 16]
         for d in delays:
             try:

@@ -37,9 +37,9 @@ if T.TYPE_CHECKING:
         """Typing information for command line arguments."""
 
         case: pathlib.Path
-        subtests: T.List[int]
+        subtests: list[int]
         backend: str
-        extra_args: T.List[str]
+        extra_args: list[str]
         quick: bool
 
 

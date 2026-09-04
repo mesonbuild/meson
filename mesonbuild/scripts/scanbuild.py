@@ -7,7 +7,6 @@ import os
 import shutil
 import subprocess
 import tempfile
-import typing as T
 from ast import literal_eval
 from pathlib import Path
 
@@ -16,7 +15,7 @@ from ..mesonlib import determine_worker_count, windows_proof_rmtree
 from ..tooldetect import detect_ninja, detect_scanbuild
 
 
-def scanbuild(exelist: T.List[str], srcdir: Path, blddir: Path, privdir: Path, logdir: Path, subprojdir: Path, args: T.List[str]) -> int:
+def scanbuild(exelist: list[str], srcdir: Path, blddir: Path, privdir: Path, logdir: Path, subprojdir: Path, args: list[str]) -> int:
     # In case of problems leave the temp directory around
     # so it can be debugged.
     scandir = tempfile.mkdtemp(dir=str(privdir))
@@ -30,7 +29,7 @@ def scanbuild(exelist: T.List[str], srcdir: Path, blddir: Path, privdir: Path, l
         windows_proof_rmtree(scandir)
     return rc
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     srcdir = Path(args[0])
     bldpath = Path(args[1])
     subprojdir = srcdir / Path(args[2])

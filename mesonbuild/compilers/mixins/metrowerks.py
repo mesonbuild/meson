@@ -21,7 +21,7 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-mwccarm_instruction_set_args: T.Dict[str, T.List[str]] = {
+mwccarm_instruction_set_args: dict[str, list[str]] = {
     'generic': ['-proc', 'generic'],
     'v4': ['-proc', 'v4'],
     'v4t': ['-proc', 'v4t'],
@@ -53,7 +53,7 @@ mwccarm_instruction_set_args: T.Dict[str, T.List[str]] = {
     'pxa263': ['-proc', 'pxa263']
 }
 
-mwcceppc_instruction_set_args: T.Dict[str, T.List[str]] = {
+mwcceppc_instruction_set_args: dict[str, list[str]] = {
     'generic': ['-proc', 'generic'],
     '401': ['-proc', '401'],
     '403': ['-proc', '403'],
@@ -81,7 +81,7 @@ mwcceppc_instruction_set_args: T.Dict[str, T.List[str]] = {
     'gekko': ['-proc', 'gekko'],
 }
 
-mwasmarm_instruction_set_args: T.Dict[str, T.List[str]] = {
+mwasmarm_instruction_set_args: dict[str, list[str]] = {
     'arm4': ['-proc', 'arm4'],
     'arm4t': ['-proc', 'arm4t'],
     'arm4xm': ['-proc', 'arm4xm'],
@@ -96,7 +96,7 @@ mwasmarm_instruction_set_args: T.Dict[str, T.List[str]] = {
     'xscale': ['-proc', 'xscale']
 }
 
-mwasmeppc_instruction_set_args: T.Dict[str, T.List[str]] = {
+mwasmeppc_instruction_set_args: dict[str, list[str]] = {
     '401': ['-proc', '401'],
     '403': ['-proc', '403'],
     '505': ['-proc', '505'],
@@ -149,7 +149,7 @@ mwasmeppc_instruction_set_args: T.Dict[str, T.List[str]] = {
     'generic': ['-proc', 'generic'],
 }
 
-mwcc_optimization_args: T.Dict[str, T.List[str]] = {
+mwcc_optimization_args: dict[str, list[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-Op'],
@@ -159,7 +159,7 @@ mwcc_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-Os']
 }
 
-mwcc_debug_args: T.Dict[bool, T.List[str]] = {
+mwcc_debug_args: dict[bool, list[str]] = {
     False: [],
     True: ['-g']
 }
@@ -179,67 +179,67 @@ class MetrowerksCompiler(Compiler):
         self.base_options = {
             OptionKey(o) for o in ['b_pch', 'b_ndebug']}
 
-        self.warn_args: T.Dict[str, T.List[str]] = {
+        self.warn_args: dict[str, list[str]] = {
             '0': ['-warnings', 'off'],
             '1': [],
             '2': ['-warnings', 'on,nocmdline'],
             '3': ['-warnings', 'on,all'],
             'everything': ['-warnings', 'on,full']}
 
-    def depfile_for_object(self, objfile: str) -> T.Optional[str]:
+    def depfile_for_object(self, objfile: str) -> str | None:
         # Earlier versions of these compilers do not support specifying
         # a custom name for a depfile, and can only generate '<input_file>.d'
         return os.path.splitext(objfile)[0] + '.' + self.get_depfile_suffix()
 
-    def get_always_args(self) -> T.List[str]:
+    def get_always_args(self) -> list[str]:
         return ['-gccinc']
 
-    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> list[str]:
         return []
 
-    def get_compile_only_args(self) -> T.List[str]:
+    def get_compile_only_args(self) -> list[str]:
         return ['-c']
 
-    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+    def get_debug_args(self, is_debug: bool) -> list[str]:
         return mwcc_debug_args[is_debug]
 
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> list[str]:
         # Check comment in depfile_for_object()
         return ['-gccdep', '-MD']
 
     def get_depfile_suffix(self) -> str:
         return 'd'
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, is_system: bool) -> list[str]:
         if not path:
             path = '.'
         return ['-I' + path]
 
-    def get_no_optimization_args(self) -> T.List[str]:
+    def get_no_optimization_args(self) -> list[str]:
         return ['-opt', 'off']
 
-    def get_no_stdinc_args(self) -> T.List[str]:
+    def get_no_stdinc_args(self) -> list[str]:
         return ['-nostdinc']
 
-    def get_no_stdlib_link_args(self) -> T.List[str]:
+    def get_no_stdlib_link_args(self) -> list[str]:
         return ['-nostdlib']
 
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> list[str]:
         return mwcc_optimization_args[optimization_level]
 
-    def get_output_args(self, outputname: str) -> T.List[str]:
+    def get_output_args(self, outputname: str) -> list[str]:
         return ['-o', outputname]
 
-    def get_pic_args(self) -> T.List[str]:
+    def get_pic_args(self) -> list[str]:
         return ['-pic']
 
-    def get_preprocess_only_args(self) -> T.List[str]:
+    def get_preprocess_only_args(self) -> list[str]:
         return ['-E']
 
-    def get_preprocess_to_file_args(self) -> T.List[str]:
+    def get_preprocess_to_file_args(self) -> list[str]:
         return ['-P']
 
-    def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
+    def get_pch_use_args(self, pch_dir: str, header: str) -> list[str]:
         return ['-prefix', self.get_pch_name(header)]
 
     def get_pch_name(self, name: str) -> str:
@@ -248,15 +248,15 @@ class MetrowerksCompiler(Compiler):
     def get_pch_suffix(self) -> str:
         return 'mch'
 
-    def get_warn_args(self, level: str) -> T.List[str]:
+    def get_warn_args(self, level: str) -> list[str]:
         return self.warn_args[level]
 
-    def get_werror_args(self) -> T.List[str]:
+    def get_werror_args(self) -> list[str]:
         return ['-w', 'error']
 
     @classmethod
-    def _unix_args_to_native(cls, args: T.List[str], info: MachineInfo) -> T.List[str]:
-        result: T.List[str] = []
+    def _unix_args_to_native(cls, args: list[str], info: MachineInfo) -> list[str]:
+        result: list[str] = []
         for i in args:
             if i.startswith('-D'):
                 i = '-D' + i[2:]
@@ -271,7 +271,7 @@ class MetrowerksCompiler(Compiler):
             result.append(i)
         return result
 
-    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
+    def compute_parameters_with_absolute_paths(self, parameter_list: list[str], build_dir: str) -> list[str]:
         for idx, i in enumerate(parameter_list):
             if i[:2] == '-I':
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))

@@ -18,15 +18,15 @@ class KeyvalModule(ExtensionModule):
 
     INFO = ModuleInfo('keyval', '0.55.0', stabilized='0.56.0')
 
-    def __init__(self, interp: 'Interpreter'):
+    def __init__(self, interp: Interpreter):
         super().__init__(interp)
         self.methods.update({
             'load': self.load,
         })
 
     @staticmethod
-    def _load_file(path_to_config: str) -> T.Dict[str, str]:
-        result: T.Dict[str, str] = {}
+    def _load_file(path_to_config: str) -> dict[str, str]:
+        result: dict[str, str] = {}
         try:
             with open(path_to_config, encoding='utf-8') as f:
                 for line in f:
@@ -46,7 +46,7 @@ class KeyvalModule(ExtensionModule):
 
     @noKwargs
     @typed_pos_args('keyval.load', (str, mesonlib.File))
-    def load(self, state: 'ModuleState', args: T.Tuple['mesonlib.FileOrString'], kwargs: T.Dict[str, T.Any]) -> T.Dict[str, str]:
+    def load(self, state: ModuleState, args: tuple[mesonlib.FileOrString], kwargs: dict[str, T.Any]) -> dict[str, str]:
         s = args[0]
         is_built = False
         if isinstance(s, mesonlib.File):
@@ -61,5 +61,5 @@ class KeyvalModule(ExtensionModule):
         return self._load_file(s)
 
 
-def initialize(interp: 'Interpreter') -> KeyvalModule:
+def initialize(interp: Interpreter) -> KeyvalModule:
     return KeyvalModule(interp)

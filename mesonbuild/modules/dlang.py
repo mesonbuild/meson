@@ -18,21 +18,21 @@ from ..mesonlib import MesonException, Popen_safe, listify
 from . import ExtensionModule, ModuleInfo
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypeAlias
+    from typing import Literal, TypeAlias
 
     from ..interpreter.interpreter import Interpreter
     from ..interpreterbase.baseobjects import TYPE_kwargs
     from ..programs import Program
     from . import ModuleState
 
-    _JSONTypes: TypeAlias = T.Union[str, int, bool, None, T.List['_JSONTypes'], T.Dict[str, '_JSONTypes']]
+    _JSONTypes: TypeAlias = str | int | bool | None | list['_JSONTypes'] | dict[str, '_JSONTypes']
 
 
 class DlangModule(ExtensionModule):
-    class_dubbin: T.Union[Program, Literal[False], None] = None
+    class_dubbin: Program | Literal[False] | None = None
     init_dub = False
 
-    dubbin: T.Union[Program, Literal[False], None]
+    dubbin: Program | Literal[False] | None
 
     INFO = ModuleInfo('dlang', '0.48.0')
 
@@ -60,11 +60,11 @@ class DlangModule(ExtensionModule):
                 raise MesonException('DUB not found.')
 
     @typed_pos_args('dlang.generate_dub_file', str, str)
-    def generate_dub_file(self, state: ModuleState, args: T.Tuple[str, str], kwargs: TYPE_kwargs) -> None:
+    def generate_dub_file(self, state: ModuleState, args: tuple[str, str], kwargs: TYPE_kwargs) -> None:
         if not DlangModule.init_dub:
             self._init_dub(state)
 
-        config: T.Dict[str, _JSONTypes] = {
+        config: dict[str, _JSONTypes] = {
             'name': args[0]
         }
 
@@ -85,7 +85,7 @@ class DlangModule(ExtensionModule):
         for key, value in kwargs.items():
             if key == 'dependencies':
                 values = listify(value, flatten=False)
-                data: T.Dict[str, _JSONTypes] = {}
+                data: dict[str, _JSONTypes] = {}
                 for dep in values:
                     if isinstance(dep, Dependency):
                         name = dep.get_name()
@@ -114,12 +114,12 @@ class DlangModule(ExtensionModule):
         with open(config_path, 'w', encoding='utf-8') as ofile:
             ofile.write(json.dumps(config, indent=4, ensure_ascii=False))
 
-    def _call_dubbin(self, args: T.List[str], env: T.Optional[T.Mapping[str, str]] = None) -> T.Tuple[int, str]:
+    def _call_dubbin(self, args: list[str], env: T.Mapping[str, str] | None = None) -> tuple[int, str]:
         assert self.dubbin is not None and self.dubbin is not False, 'for mypy'
         p, out = Popen_safe(self.dubbin.get_command() + args, env=env)[0:2]
         return p.returncode, out.strip()
 
-    def check_dub(self, state: ModuleState) -> T.Union[Program, Literal[False]]:
+    def check_dub(self, state: ModuleState) -> Program | Literal[False]:
         dubbin = state.find_program('dub', silent=True)
         if dubbin.found():
             try:
@@ -131,7 +131,7 @@ class DlangModule(ExtensionModule):
                     # searched for it and not found it
                 else:
                     mlog.log('Found DUB:', mlog.green('YES'), ':', mlog.bold(dubbin.get_path() or ''),
-                             '({})'.format(out.strip()))
+                             f'({out.strip()})')
                     return dubbin
             except (FileNotFoundError, PermissionError):
                 pass

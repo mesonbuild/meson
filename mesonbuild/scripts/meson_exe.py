@@ -9,7 +9,6 @@ import os
 import pickle
 import subprocess
 import sys
-import typing as T
 
 from ..utils.core import ExecutableSerialisation
 
@@ -21,11 +20,11 @@ def buildparser() -> argparse.ArgumentParser:
     parser.add_argument('--feed')
     return parser
 
-def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]] = None) -> int:
+def run_exe(exe: ExecutableSerialisation, extra_env: dict[str, str] | None = None) -> int:
     if exe.exe_wrapper:
         if not exe.exe_wrapper.found():
-            raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found '
-                                 'wrapper {!r}'.format(exe.cmd_args[0], exe.exe_wrapper.get_path()))
+            raise AssertionError(f'BUG: Can\'t run cross-compiled exe {exe.cmd_args[0]!r} with not-found '
+                                 f'wrapper {exe.exe_wrapper.get_path()!r}')
         cmd_args = exe.exe_wrapper.get_command() + exe.cmd_args
     else:
         cmd_args = exe.cmd_args
@@ -95,7 +94,7 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]
 
     return 0
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     parser = buildparser()
     options, cmd_args = parser.parse_known_args(args)
     # argparse supports double dash to separate options and positional arguments,

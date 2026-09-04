@@ -106,8 +106,8 @@ class Parser:
         self.expect('rparen')
         return Statement(cur.value, args)
 
-    def arguments(self) -> T.List[T.Union[Token, T.Any]]:
-        args: T.List[T.Union[Token, T.Any]] = []
+    def arguments(self) -> list[Token | T.Any]:
+        args: list[Token | T.Any] = []
         if self.accept('lparen'):
             args.append(self.arguments())
             self.expect('rparen')
@@ -127,7 +127,7 @@ class Parser:
         while not self.accept('eof'):
             yield(self.statement())
 
-def token_or_group(arg: T.Union[Token, T.List[Token]]) -> str:
+def token_or_group(arg: Token | list[Token]) -> str:
     if isinstance(arg, Token):
         return ' ' + arg.value
     elif isinstance(arg, list):
@@ -147,9 +147,9 @@ class Converter:
         self.cmake_root = Path(cmake_root).expanduser()
         self.indent_unit = '  '
         self.indent_level = 0
-        self.options: T.List[T.Tuple[str, str, T.Optional[str]]] = []
+        self.options: list[tuple[str, str, str | None]] = []
 
-    def convert_args(self, args: T.List[Token], as_array: bool = True) -> str:
+    def convert_args(self, args: list[Token], as_array: bool = True) -> str:
         res = []
         if as_array:
             start = '['
@@ -185,15 +185,15 @@ class Converter:
             varname = t.args[0].value.lower()
             mods = ["dependency('%s')" % i.value for i in t.args[1:]]
             if len(mods) == 1:
-                line = '{} = {}'.format(varname, mods[0])
+                line = f'{varname} = {mods[0]}'
             else:
                 line = '{} = [{}]'.format(varname, ', '.join(["'%s'" % i for i in mods]))
         elif t.name == 'find_package':
-            line = "{}_dep = dependency('{}')".format(t.args[0].value, t.args[0].value)
+            line = f"{t.args[0].value}_dep = dependency('{t.args[0].value}')"
         elif t.name == 'find_library':
-            line = "{} = find_library('{}')".format(t.args[0].value.lower(), t.args[0].value)
+            line = f"{t.args[0].value.lower()} = find_library('{t.args[0].value}')"
         elif t.name == 'add_executable':
-            line = '{}_exe = executable({})'.format(t.args[0].value, self.convert_args(t.args, False))
+            line = f'{t.args[0].value}_exe = executable({self.convert_args(t.args, False)})'
         elif t.name == 'add_library':
             if t.args[1].value == 'SHARED':
                 libcmd = 'shared_library'
@@ -204,7 +204,7 @@ class Converter:
             else:
                 libcmd = 'library'
                 args = t.args
-            line = '{}_lib = {}({})'.format(t.args[0].value, libcmd, self.convert_args(args, False))
+            line = f'{t.args[0].value}_lib = {libcmd}({self.convert_args(args, False)})'
         elif t.name == 'add_test':
             line = 'test(%s)' % self.convert_args(t.args, False)
         elif t.name == 'option':
@@ -228,7 +228,7 @@ class Converter:
             line = 'project(' + ', '.join(args) + ", default_options : ['default_library=static'])"
         elif t.name == 'set':
             varname = t.args[0].value.lower()
-            line = '{} = {}\n'.format(varname, self.convert_args(t.args[1:]))
+            line = f'{varname} = {self.convert_args(t.args[1:])}\n'
         elif t.name == 'if':
             postincrement = 1
             try:
@@ -254,7 +254,7 @@ class Converter:
             preincrement = -1
             line = 'endif'
         else:
-            line = '''# {}({})'''.format(t.name, self.convert_args(t.args))
+            line = f'''# {t.name}({self.convert_args(t.args)})'''
         self.indent_level += preincrement
         indent = self.indent_level * self.indent_unit
         outfile.write(indent)
@@ -304,10 +304,7 @@ class Converter:
                     else:
                         typestr = ' type : \'string\','
                     defaultstr = ' value : %s,' % default
-                line = "option({!r},{}{} description : '{}')\n".format(optname,
-                                                                 typestr,
-                                                                 defaultstr,
-                                                                 description)
+                line = f"option({optname!r},{typestr}{defaultstr} description : '{description}')\n"
                 optfile.write(line)
 
 if __name__ == '__main__':

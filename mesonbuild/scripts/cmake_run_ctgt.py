@@ -5,12 +5,11 @@ import argparse
 import shutil
 import subprocess
 import sys
-import typing as T
 from pathlib import Path
 
 
-def run(argsv: T.List[str]) -> int:
-    commands: T.List[T.List[str]] = [[]]
+def run(argsv: list[str]) -> int:
+    commands: list[list[str]] = [[]]
     SEPARATOR = ';;;'
 
     # Generate CMD parameters

@@ -12,8 +12,8 @@ import typing as T
 from ...mesonlib import MesonException
 
 
-@functools.lru_cache(maxsize=None)
-def _get_libomp_prefix() -> T.Optional[str]:
+@functools.cache
+def _get_libomp_prefix() -> str | None:
     """Call `brew --prefix libomp` once and cache it. Returns None if unavailable."""
     try:
         return subprocess.run(
@@ -60,7 +60,7 @@ class AppleCompilerMixin(Compiler):
         # Older versions of mypy can't figure this out
         info: MachineInfo
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self) -> list[str]:
         """Flags required to compile with OpenMP on Apple.
 
         The Apple Clang Compiler doesn't have builtin support for OpenMP, it
@@ -72,14 +72,14 @@ class AppleCompilerMixin(Compiler):
         root = _get_homebrew_libomp_root(self.info.cpu_family, self.is_cross)
         return self.__BASE_OMP_FLAGS + [f'-I{root}/include']
 
-    def openmp_link_flags(self) -> T.List[str]:
+    def openmp_link_flags(self) -> list[str]:
         root = _get_homebrew_libomp_root(self.info.cpu_family, self.is_cross)
         link = self.find_library('omp', [f'{root}/lib'])
         if not link:
             raise MesonException("Couldn't find libomp")
         return self.__BASE_OMP_FLAGS + link
 
-    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+    def get_prelink_args(self, prelink_name: str, obj_list: list[str]) -> tuple[list[str], list[str]]:
         # The objects are prelinked through the compiler, which injects -lSystem
         return [prelink_name], ['-nostdlib', '-r', '-o', prelink_name] + obj_list
 

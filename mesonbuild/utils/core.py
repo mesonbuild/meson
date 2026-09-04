@@ -11,29 +11,29 @@ as possible for performance reasons.
 
 from __future__ import annotations
 
+import builtins
 import os
 import typing as T
 from dataclasses import dataclass
 
 if T.TYPE_CHECKING:
     from hashlib import _Hash
-
-    from typing_extensions import Literal
+    from typing import Literal
 
     from .. import programs
     from ..mparser import BaseNode
     from .universal import SubProject
 
-    EnvironOrDict = T.Union[T.Dict[str, str], os._Environ[str]]
+    EnvironOrDict = T.Union[dict[str, str], os._Environ[str]]
 
-    EnvInitValueType = T.Dict[str, T.Union[str, T.List[str]]]
+    EnvInitValueType = dict[str, str | list[str]]
 
 
 class MesonException(Exception):
     '''Exceptions thrown by Meson'''
 
-    def __init__(self, *args: object, file: T.Optional[str] = None,
-                 lineno: T.Optional[int] = None, colno: T.Optional[int] = None):
+    def __init__(self, *args: object, file: str | None = None,
+                 lineno: int | None = None, colno: int | None = None):
         super().__init__(*args)
         self.file = file
         self.lineno = lineno
@@ -51,8 +51,8 @@ class MesonException(Exception):
 class MesonBugException(MesonException):
     '''Exceptions thrown when there is a clear Meson bug that should be reported'''
 
-    def __init__(self, msg: str, file: T.Optional[str] = None,
-                 lineno: T.Optional[int] = None, colno: T.Optional[int] = None):
+    def __init__(self, msg: str, file: str | None = None,
+                 lineno: int | None = None, colno: int | None = None):
         super().__init__(msg + '\n\n    This is a Meson bug and should be reported!',
                          file=file, lineno=lineno, colno=colno)
 
@@ -65,12 +65,12 @@ class HoldableObject:
         return super().__new__(cls)
 
 class EnvironmentVariables(HoldableObject):
-    def __init__(self, values: T.Optional[EnvInitValueType] = None,
+    def __init__(self, values: EnvInitValueType | None = None,
                  init_method: Literal['set', 'prepend', 'append'] = 'set', separator: str = os.pathsep) -> None:
-        self.envvars: T.List[T.Tuple[T.Callable[[T.Dict[str, str], str, T.List[str], str, T.Optional[str]], str], str, T.List[str], str]] = []
+        self.envvars: list[tuple[T.Callable[[dict[str, str], str, list[str], str, str | None], str], str, list[str], str]] = []
         # The set of all env vars we have operations for. Only used for self.has_name()
-        self.varnames: T.Set[str] = set()
-        self.unset_vars: T.Set[str] = set()
+        self.varnames: set[str] = set()
+        self.unset_vars: set[str] = set()
         self.can_use_env = True
 
         if values:
@@ -94,7 +94,7 @@ class EnvironmentVariables(HoldableObject):
     def has_name(self, name: str) -> bool:
         return name in self.varnames
 
-    def get_names(self) -> T.Set[str]:
+    def get_names(self) -> builtins.set[str]:
         return self.varnames
 
     def merge(self, other: EnvironmentVariables) -> None:
@@ -107,7 +107,7 @@ class EnvironmentVariables(HoldableObject):
             self.can_use_env = False
             self.unset_vars.update(other.unset_vars)
 
-    def set(self, name: str, values: T.List[str], separator: str = os.pathsep) -> None:
+    def set(self, name: str, values: list[str], separator: str = os.pathsep) -> None:
         if name in self.unset_vars:
             raise MesonException(f'You cannot set the already unset variable {name!r}')
         self.varnames.add(name)
@@ -119,14 +119,14 @@ class EnvironmentVariables(HoldableObject):
             raise MesonException(f'You cannot unset the {name!r} variable because it is already set')
         self.unset_vars.add(name)
 
-    def append(self, name: str, values: T.List[str], separator: str = os.pathsep) -> None:
+    def append(self, name: str, values: list[str], separator: str = os.pathsep) -> None:
         self.can_use_env = False
         if name in self.unset_vars:
             raise MesonException(f'You cannot append to unset variable {name!r}')
         self.varnames.add(name)
         self.envvars.append((self._append, name, values, separator))
 
-    def prepend(self, name: str, values: T.List[str], separator: str = os.pathsep) -> None:
+    def prepend(self, name: str, values: list[str], separator: str = os.pathsep) -> None:
         self.can_use_env = False
         if name in self.unset_vars:
             raise MesonException(f'You cannot prepend to unset variable {name!r}')
@@ -134,20 +134,20 @@ class EnvironmentVariables(HoldableObject):
         self.envvars.append((self._prepend, name, values, separator))
 
     @staticmethod
-    def _set(env: T.Dict[str, str], name: str, values: T.List[str], separator: str, default_value: T.Optional[str]) -> str:
+    def _set(env: dict[str, str], name: str, values: list[str], separator: str, default_value: str | None) -> str:
         return separator.join(values)
 
     @staticmethod
-    def _append(env: T.Dict[str, str], name: str, values: T.List[str], separator: str, default_value: T.Optional[str]) -> str:
+    def _append(env: dict[str, str], name: str, values: list[str], separator: str, default_value: str | None) -> str:
         curr = env.get(name, default_value)
         return separator.join(values if curr is None else [curr] + values)
 
     @staticmethod
-    def _prepend(env: T.Dict[str, str], name: str, values: T.List[str], separator: str, default_value: T.Optional[str]) -> str:
+    def _prepend(env: dict[str, str], name: str, values: list[str], separator: str, default_value: str | None) -> str:
         curr = env.get(name, default_value)
         return separator.join(values if curr is None else values + [curr])
 
-    def get_env(self, full_env: EnvironOrDict, default_fmt: T.Optional[str] = None) -> T.Dict[str, str]:
+    def get_env(self, full_env: EnvironOrDict, default_fmt: str | None = None) -> dict[str, str]:
         env = full_env.copy()
         for method, name, values, separator in self.envvars:
             default_value = default_fmt.format(name) if default_fmt else None
@@ -160,16 +160,16 @@ class EnvironmentVariables(HoldableObject):
 @dataclass(eq=False)
 class ExecutableSerialisation:
 
-    cmd_args: T.List[str]
-    env: T.Optional[EnvironmentVariables] = None
-    exe_wrapper: T.Optional['programs.ExternalProgram'] = None
-    workdir: T.Optional[str] = None
-    extra_paths: T.Optional[T.List] = None
-    capture: T.Optional[str] = None
-    feed: T.Optional[str] = None
-    tag: T.Optional[str] = None
+    cmd_args: list[str]
+    env: EnvironmentVariables | None = None
+    exe_wrapper: programs.ExternalProgram | None = None
+    workdir: str | None = None
+    extra_paths: list | None = None
+    capture: str | None = None
+    feed: str | None = None
+    tag: str | None = None
     verbose: bool = False
-    installdir_map: T.Optional[T.Dict[str, str]] = None
+    installdir_map: dict[str, str] | None = None
 
     def __post_init__(self) -> None:
         self.pickled = False

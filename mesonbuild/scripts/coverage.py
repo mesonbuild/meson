@@ -11,12 +11,11 @@ import shutil
 import stat
 import subprocess
 import sys
-import typing as T
 
 from mesonbuild import mesonlib, tooldetect
 
 
-def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build_root: str, log_dir: str, use_llvm_cov: bool,
+def coverage(outputs: list[str], source_root: str, subproject_root: str, build_root: str, log_dir: str, use_llvm_cov: bool,
              gcovr_exe: str, llvm_cov_exe: str) -> int:
     outfiles = []
     exitcode = 0
@@ -194,7 +193,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
 
     return exitcode
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     if not os.path.isfile('build.ninja'):
         print('Coverage currently only works with the Ninja backend.')
         return 1

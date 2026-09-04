@@ -30,11 +30,11 @@ if T.TYPE_CHECKING:
         :param d_keys: set of OptionKeys that were passed as -Doption=value
         """
 
-        cmd_line_options: T.Dict[OptionKey, T.Optional[str]]
-        builtin_keys: T.Set[OptionKey]
-        d_keys: T.Set[OptionKey]
-        cross_file: T.List[str]
-        native_file: T.List[str]
+        cmd_line_options: dict[OptionKey, str | None]
+        builtin_keys: set[OptionKey]
+        d_keys: set[OptionKey]
+        cross_file: list[str]
+        native_file: list[str]
 
 
 class CmdLineFileParser(configparser.ConfigParser):
@@ -43,7 +43,7 @@ class CmdLineFileParser(configparser.ConfigParser):
         # storing subproject options like "subproject:option=value"
         super().__init__(delimiters=['='], interpolation=None)
 
-    def read(self, filenames: T.Union['StrOrBytesPath', T.Iterable['StrOrBytesPath']], encoding: T.Optional[str] = 'utf-8') -> T.List[str]:
+    def read(self, filenames: StrOrBytesPath | T.Iterable[StrOrBytesPath], encoding: str | None = 'utf-8') -> list[str]:
         return super().read(filenames, encoding)
 
     def optionxform(self, optionstr: str) -> str:
@@ -82,7 +82,7 @@ def write_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
 
-    properties: T.Dict[str, T.List[str]] = {}
+    properties: dict[str, list[str]] = {}
     if options.cross_file:
         properties['cross_file'] = options.cross_file
     if options.native_file:
@@ -113,7 +113,7 @@ def update_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
         config.write(f)
 
 def format_cmd_line_options(options: SharedCMDOptions) -> str:
-    cmdline = ['-D{}={}'.format(str(k), v) for k, v in options.cmd_line_options.items()]
+    cmdline = [f'-D{str(k)}={v}' for k, v in options.cmd_line_options.items()]
     if options.cross_file:
         cmdline += [f'--cross-file={f}' for f in options.cross_file]
     if options.native_file:
@@ -126,12 +126,12 @@ class KeyNoneAction(argparse.Action):
     Custom argparse Action that stores values in a dictionary as keys with value None.
     """
 
-    def __init__(self, option_strings: str, dest: str, nargs: T.Optional[T.Union[int, str]] = None, **kwargs: T.Any) -> None:
+    def __init__(self, option_strings: str, dest: str, nargs: int | str | None = None, **kwargs: T.Any) -> None:
         assert nargs is None or nargs == 1
         super().__init__(option_strings, dest, nargs=1, **kwargs)
 
     def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace,
-                 arg: T.List[str], option_string: str | None = None) -> None: # type: ignore[override]
+                 arg: list[str], option_string: str | None = None) -> None: # type: ignore[override]
         current_dict = getattr(namespace, self.dest)
         if current_dict is None:
             current_dict = {}
@@ -168,7 +168,7 @@ class BuiltinAction(argparse.Action):
                          help=f'{h}{help_suffix}.', **kwargs)
 
     def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace,
-                 arg: T.Optional[T.List[str]], option_string: str | None = None) -> None: # type: ignore[override]
+                 arg: list[str] | None, option_string: str | None = None) -> None: # type: ignore[override]
         current_dict = getattr(namespace, self.dest)
         if current_dict is None:
             current_dict = {}
@@ -184,12 +184,12 @@ class KeyValueAction(argparse.Action):
     Custom argparse Action that parses KEY=VAL arguments and stores them in a dictionary.
     """
 
-    def __init__(self, option_strings: str, dest: str, nargs: T.Optional[T.Union[int, str]] = None, **kwargs: T.Any) -> None:
+    def __init__(self, option_strings: str, dest: str, nargs: int | str | None = None, **kwargs: T.Any) -> None:
         assert nargs is None or nargs == 1
         super().__init__(option_strings, dest, nargs=1, **kwargs)
 
     def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace,
-                 arg: T.List[str], option_string: str | None = None) -> None: # type: ignore[override]
+                 arg: list[str], option_string: str | None = None) -> None: # type: ignore[override]
         current_dict = getattr(namespace, self.dest)
         if current_dict is None:
             current_dict = {}

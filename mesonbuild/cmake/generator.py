@@ -14,9 +14,9 @@ if T.TYPE_CHECKING:
 
 def parse_generator_expressions(
             raw: str,
-            trace: 'CMakeTraceParser',
+            trace: CMakeTraceParser,
             *,
-            context_tgt: T.Optional['CMakeTarget'] = None,
+            context_tgt: CMakeTarget | None = None,
         ) -> str:
     '''Parse CMake generator expressions
 
@@ -44,7 +44,7 @@ def parse_generator_expressions(
         if col_pos < 0:
             return '0'
         else:
-            return '1' if mesonlib.version_compare(arg[:col_pos], '{}{}'.format(op, arg[col_pos + 1:])) else '0'
+            return '1' if mesonlib.version_compare(arg[:col_pos], f'{op}{arg[col_pos + 1:]}') else '0'
 
     def target_property(arg: str) -> str:
         # We can't really support this since we don't have any context
@@ -106,7 +106,7 @@ def parse_generator_expressions(
         tgt_file = target_artifact(arg, 'TARGET_FILE_DIR', False)
         return os.path.dirname(tgt_file) if tgt_file else ''
 
-    supported: T.Dict[str, T.Callable[[str], str]] = {
+    supported: dict[str, T.Callable[[str], str]] = {
         # Boolean functions
         'BOOL': lambda x: '0' if x.upper() in {'', '0', 'FALSE', 'OFF', 'N', 'NO', 'IGNORE', 'NOTFOUND'} or x.endswith('-NOTFOUND') else '1',
         'AND': lambda x: '1' if all(y == '1' for y in x.split(',')) else '0',

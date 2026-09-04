@@ -33,7 +33,7 @@ class ModuleState:
     needed so modules does not touch any other part of Meson internal APIs.
     """
 
-    def __init__(self, interpreter: 'Interpreter') -> None:
+    def __init__(self, interpreter: Interpreter) -> None:
         # Keep it private, it should be accessed only through methods.
         self._interpreter = interpreter
 
@@ -61,11 +61,11 @@ class ModuleState:
         self.machine_map = interpreter.build.machine_map
         self.current_build_project = interpreter.current_build_project()
 
-    def get_include_args(self, include_dirs: T.Iterable[T.Union[str, build.IncludeDirs]], implicit: bool = False, prefix: str = '-I') -> T.List[str]:
+    def get_include_args(self, include_dirs: T.Iterable[str | build.IncludeDirs], implicit: bool = False, prefix: str = '-I') -> list[str]:
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
 
-        dirs_str: T.List[str] = []
+        dirs_str: list[str] = []
         for dirs in include_dirs:
             if isinstance(dirs, str):
                 dirs_str += [f'{prefix}{dirs}']
@@ -79,10 +79,10 @@ class ModuleState:
             dirs_str.append(f'{prefix}{source_cur_dir}')
         return dirs_str
 
-    def find_program(self, prog: T.Union[mesonlib.FileOrString, T.List[mesonlib.FileOrString]],
+    def find_program(self, prog: mesonlib.FileOrString | list[mesonlib.FileOrString],
                      required: bool = True,
-                     version_func: T.Optional[ProgramVersionFunc] = None,
-                     wanted: T.Union[str, T.List[str]] = '', silent: bool = False,
+                     version_func: ProgramVersionFunc | None = None,
+                     wanted: str | list[str] = '', silent: bool = False,
                      for_machine: MachineChoice = MachineChoice.HOST) -> Program:
         if not isinstance(prog, list):
             prog = [prog]
@@ -90,7 +90,7 @@ class ModuleState:
                                                    wanted=wanted, silent=silent, for_machine=for_machine)
 
     def find_tool(self, name: str, depname: str, varname: str, required: bool = True,
-                  wanted: T.Optional[str] = None, native: bool = True) -> Program:
+                  wanted: str | None = None, native: bool = True) -> Program:
         # Look in overrides in case it's built as subproject
         for_machine = MachineChoice.BUILD if native else MachineChoice.HOST
         progobj = self._interpreter.program_from_overrides([name], for_machine, [])
@@ -117,7 +117,7 @@ class ModuleState:
         # Normal program lookup
         return self.find_program(name, required=required, wanted=wanted)
 
-    def override_dependency(self, depname: str, dep: Dependency, static: T.Optional[bool] = None,
+    def override_dependency(self, depname: str, dep: Dependency, static: bool | None = None,
                             for_machine: MachineChoice = MachineChoice.HOST) -> None:
         kwargs: DependencyObjectKWs = {'native': for_machine}
         if static is not None:
@@ -139,8 +139,8 @@ class ModuleState:
             raise mesonlib.MesonException(f'dependency "{depname}" was not overridden for the {for_machine}')
 
     def dependency(self, depname: str, native: bool = False, required: bool = True,
-                   wanted: T.Optional[T.Union[str, T.List[str]]] = None) -> 'Dependency':
-        kwargs: T.Dict[str, object] = {'native': native, 'required': required}
+                   wanted: str | list[str] | None = None) -> Dependency:
+        kwargs: dict[str, object] = {'native': native, 'required': required}
         if wanted:
             kwargs['version'] = wanted
         # FIXME: Even if we fix the function, mypy still can't figure out what's
@@ -148,10 +148,10 @@ class ModuleState:
         # implementations of meson functions anyway.
         return self._interpreter.func_dependency(self.current_node, [depname], kwargs) # type: ignore
 
-    def test(self, args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File]],
-             workdir: T.Optional[str] = None,
-             env: T.Union[T.List[str], T.Dict[str, str], str] = None,
-             depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]] = None) -> None:
+    def test(self, args: tuple[str, build.Executable | build.Jar | Program | mesonlib.File],
+             workdir: str | None = None,
+             env: list[str] | dict[str, str] | str = None,
+             depends: list[build.CustomTarget | build.BuildTarget] = None) -> None:
         kwargs = {'workdir': workdir,
                   'env': env,
                   'depends': depends,
@@ -168,11 +168,11 @@ class ModuleState:
 
     def is_user_defined_option(self, name: str, subproject: str = '',
                                machine: MachineChoice = MachineChoice.HOST,
-                               lang: T.Optional[str] = None) -> bool:
+                               lang: str | None = None) -> bool:
         key = OptionKey(name, subproject, machine)
         return key in self._interpreter.user_defined_options.cmd_line_options
 
-    def process_include_dirs(self, dirs: T.Iterable[T.Union[str, IncludeDirs]]) -> T.Iterable[IncludeDirs]:
+    def process_include_dirs(self, dirs: T.Iterable[str | IncludeDirs]) -> T.Iterable[IncludeDirs]:
         """Convert raw include directory arguments to only IncludeDirs
 
         :param dirs: An iterable of strings and IncludeDirs
@@ -192,9 +192,9 @@ class ModuleObject(HoldableObject):
     """Base class for all objects returned by modules
     """
     def __init__(self) -> None:
-        self.methods: T.Dict[
+        self.methods: dict[
             str,
-            T.Callable[[ModuleState, T.List['TYPE_var'], 'TYPE_kwargs'], T.Union[ModuleReturnValue, 'TYPE_var']]
+            T.Callable[[ModuleState, list[TYPE_var], TYPE_kwargs], ModuleReturnValue | TYPE_var]
         ] = {}
 
 
@@ -208,10 +208,10 @@ class ModuleInfo:
     """Metadata about a Module."""
 
     name: str
-    added: T.Optional[str] = None
-    deprecated: T.Optional[str] = None
+    added: str | None = None
+    deprecated: str | None = None
     unstable: bool = False
-    stabilized: T.Optional[str] = None
+    stabilized: str | None = None
 
 
 class NewExtensionModule(ModuleObject):
@@ -231,7 +231,7 @@ class NewExtensionModule(ModuleObject):
 
     @noPosargs
     @noKwargs
-    def found_method(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
+    def found_method(self, state: ModuleState, args: list[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.found()
 
     @staticmethod
@@ -245,7 +245,7 @@ class NewExtensionModule(ModuleObject):
 # ModuleState instead. Modules should stop using this class and instead use
 # ModuleObject base class.
 class ExtensionModule(NewExtensionModule):
-    def __init__(self, interpreter: 'Interpreter') -> None:
+    def __init__(self, interpreter: Interpreter) -> None:
         super().__init__()
         self.interpreter = interpreter
 
@@ -275,14 +275,14 @@ def is_module_library(fname: mesonlib.FileOrString) -> bool:
 
 
 class ModuleReturnValue:
-    def __init__(self, return_value: T.Optional[TYPE_var],
-                 new_objects: T.Sequence[T.Union[TYPE_var, mesonlib.InstallScript]]) -> None:
+    def __init__(self, return_value: TYPE_var | None,
+                 new_objects: T.Sequence[TYPE_var | mesonlib.InstallScript]) -> None:
         self.return_value = return_value
         assert isinstance(new_objects, list)
-        self.new_objects: T.List[T.Union[TYPE_var, mesonlib.InstallScript]] = new_objects
+        self.new_objects: list[TYPE_var | mesonlib.InstallScript] = new_objects
 
 class GResourceTarget(build.CustomTarget):
-    source_dirs: T.List[str] = []
+    source_dirs: list[str] = []
 
 class GResourceHeaderTarget(build.CustomTarget):
     pass

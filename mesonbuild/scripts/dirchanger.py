@@ -9,10 +9,9 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-import typing as T
 
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     dirname = args[0]
     command = args[1:]
 

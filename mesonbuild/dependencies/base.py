@@ -24,7 +24,9 @@ from ..options import OptionKey
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, Required, Self, TypeAlias, TypedDict
+    from typing import Literal, TypeAlias
+
+    from typing_extensions import Required, Self, TypedDict
 
     from ..build import (
         CustomTarget,
@@ -50,30 +52,30 @@ if T.TYPE_CHECKING:
         it is expected to be clean.
         """
 
-        cmake_args: T.List[str]
-        cmake_module_path: T.List[str]
+        cmake_args: list[str]
+        cmake_module_path: list[str]
         cmake_package_version: str
-        components: T.List[str]
+        components: list[str]
         include_type: IncludeType
-        language: T.Optional[Language]
+        language: Language | None
         main: bool
         method: DependencyMethods
-        modules: T.List[str]
+        modules: list[str]
         native: Required[MachineChoice]
-        optional_modules: T.List[str]
+        optional_modules: list[str]
         private_headers: bool
         required: bool
-        static: T.Optional[bool]
-        version: T.List[str]
+        static: bool | None
+        version: list[str]
 
         # Only in the python dependency
         embed: bool
 
         # Only passed internally, not part of the DSL API
-        paths: T.List[str]
+        paths: list[str]
         returncode_value: int
         silent: bool
-        tools: T.List[str]
+        tools: list[str]
         version_arg: str
         build_config: str
 
@@ -98,10 +100,10 @@ class MissingCompiler(_MissingCompilerBase):
         def __init__(self) -> None:
             pass
 
-        def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        def get_optimization_args(self, optimization_level: str) -> list[str]:
             return []
 
-        def get_output_args(self, outputname: str) -> T.List[str]:
+        def get_output_args(self, outputname: str) -> list[str]:
             return []
 
         def _sanity_check_source_code(self) -> str:
@@ -147,22 +149,22 @@ class Dependency(HoldableObject):
         # The purpose is to allow the name to be changed, but still have a proper comparison
         self._id = uuid.uuid4().int
         self.name = f'dep{self._id}'
-        self.version:  T.Optional[str] = None
-        self.language: T.Optional[Language] = kwargs.get('language') # None means C-like
+        self.version:  str | None = None
+        self.language: Language | None = kwargs.get('language') # None means C-like
         self.is_found = False
-        self.compile_args: T.List[str] = []
-        self.link_args:    T.List[str] = []
+        self.compile_args: list[str] = []
+        self.link_args:    list[str] = []
         # Raw -L and -l arguments without manual library searching
         # If None, self.link_args will be used
-        self.raw_link_args: T.Optional[T.List[str]] = None
-        self.sources: T.List[TargetSources] = []
-        self.extra_files: T.List[mesonlib.File] = []
+        self.raw_link_args: list[str] | None = None
+        self.sources: list[TargetSources] = []
+        self.extra_files: list[mesonlib.File] = []
         self.include_type = kwargs.get('include_type', 'preserve')
-        self.ext_deps: T.List[Dependency] = []
-        self.d_features: T.DefaultDict[str, T.List[T.Any]] = collections.defaultdict(list)
-        self.featurechecks: T.List['FeatureCheckBase'] = []
-        self.feature_since: T.Optional[T.Tuple[str, str]] = None
-        self.meson_variables: T.List[str] = []
+        self.ext_deps: list[Dependency] = []
+        self.d_features: collections.defaultdict[str, list[T.Any]] = collections.defaultdict(list)
+        self.featurechecks: list[FeatureCheckBase] = []
+        self.feature_since: tuple[str, str] | None = None
+        self.meson_variables: list[str] = []
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Dependency):
@@ -183,14 +185,14 @@ class Dependency(HoldableObject):
             return False
         return self.name != f'dep{self._id}'
 
-    def summary_value(self) -> T.Union[str, mlog.AnsiDecorator, mlog.AnsiText]:
+    def summary_value(self) -> str | mlog.AnsiDecorator | mlog.AnsiText:
         if not self.found():
             return mlog.red('NO')
         if not self.version:
             return mlog.green('YES')
         return mlog.AnsiText(mlog.green('YES'), ' ', mlog.cyan(self.version))
 
-    def get_compile_args(self) -> T.List[str]:
+    def get_compile_args(self) -> list[str]:
         if self.include_type == 'system':
             converted = []
             for i in self.compile_args:
@@ -209,17 +211,17 @@ class Dependency(HoldableObject):
             return converted
         return self.compile_args
 
-    def get_all_compile_args(self) -> T.List[str]:
+    def get_all_compile_args(self) -> list[str]:
         """Get the compile arguments from this dependency and its sub dependencies."""
         return list(itertools.chain(self.get_compile_args(),
                                     *(d.get_all_compile_args() for d in self.ext_deps)))
 
-    def get_link_args(self, language: T.Optional[Language] = None, raw: bool = False) -> T.List[str]:
+    def get_link_args(self, language: Language | None = None, raw: bool = False) -> list[str]:
         if raw and self.raw_link_args is not None:
             return self.raw_link_args
         return self.link_args
 
-    def get_all_link_args(self) -> T.List[str]:
+    def get_all_link_args(self) -> list[str]:
         """Get the link arguments from this dependency and its sub dependencies."""
         return list(itertools.chain(self.get_link_args(),
                                     *(d.get_all_link_args() for d in self.ext_deps)))
@@ -227,12 +229,12 @@ class Dependency(HoldableObject):
     def found(self) -> bool:
         return self.is_found
 
-    def get_sources(self) -> T.List[TargetSources]:
+    def get_sources(self) -> list[TargetSources]:
         """Source files that need to be added to the target.
         As an example, gtest-all.cc when using GTest."""
         return self.sources
 
-    def get_extra_files(self) -> T.List[mesonlib.File]:
+    def get_extra_files(self) -> list[mesonlib.File]:
         """Mostly for introspection and IDEs"""
         return self.extra_files
 
@@ -245,18 +247,18 @@ class Dependency(HoldableObject):
         else:
             return 'unknown'
 
-    def get_include_dirs(self) -> T.List['IncludeDirs']:
+    def get_include_dirs(self) -> list[IncludeDirs]:
         return []
 
     def get_include_type(self) -> str:
         return self.include_type
 
-    def get_exe_args(self, compiler: 'Compiler') -> T.List[str]:
+    def get_exe_args(self, compiler: Compiler) -> list[str]:
         return []
 
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
-                               includes: bool = False, sources: bool = False) -> 'Dependency':
+                               includes: bool = False, sources: bool = False) -> Dependency:
         """Create a new dependency that contains part of the parent dependency.
 
         The following options can be inherited:
@@ -272,7 +274,7 @@ class Dependency(HoldableObject):
         """
         raise RuntimeError('Unreachable code in partial_dependency called')
 
-    def _add_sub_dependency(self, deplist: T.Iterable[T.Callable[[], 'Dependency']]) -> bool:
+    def _add_sub_dependency(self, deplist: T.Iterable[T.Callable[[], Dependency]]) -> bool:
         """Add an internal dependency from a list of possible dependencies.
 
         This method is intended to make it easier to add additional
@@ -288,15 +290,15 @@ class Dependency(HoldableObject):
                 return True
         return False
 
-    def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
-                     configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
-                     system: T.Optional[str] = None, default_value: T.Optional[str] = None,
+    def get_variable(self, *, cmake: str | None = None, pkgconfig: str | None = None,
+                     configtool: str | None = None, internal: str | None = None,
+                     system: str | None = None, default_value: str | None = None,
                      pkgconfig_define: PkgConfigDefineType = None) -> str:
         if default_value is not None:
             return default_value
         raise DependencyException(f'No default provided for dependency {self!r}, which is not pkg-config, cmake, or config-tool based.')
 
-    def generate_system_dependency(self, include_type: IncludeType) -> 'Dependency':
+    def generate_system_dependency(self, include_type: IncludeType) -> Dependency:
         new_dep = copy.deepcopy(self)
         new_dep.include_type = include_type
         return new_dep
@@ -313,18 +315,18 @@ class InternalDependency(Dependency):
 
     type_name = DependencyTypeName('internal')
 
-    def __init__(self, version: str, incdirs: T.Optional[T.List['IncludeDirs']] = None,
-                 compile_args: T.Optional[T.List[str]] = None,
-                 link_args: T.Optional[T.List[str]] = None,
-                 libraries: T.Optional[T.List[LinkableTargetTypes]] = None,
-                 whole_libraries: T.Optional[T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]] = None,
-                 sources: T.Optional[T.Sequence[TargetSources]] = None,
-                 extra_files: T.Optional[T.Sequence[mesonlib.File]] = None,
-                 ext_deps: T.Optional[T.List[Dependency]] = None, variables: T.Optional[T.Dict[str, str]] = None,
-                 d_module_versions: T.Optional[T.List[T.Union[str, int]]] = None,
-                 d_import_dirs: T.Optional[T.List['IncludeDirs']] = None,
-                 objects: T.Optional[T.List['ExtractedObjects']] = None,
-                 name: T.Optional[str] = None):
+    def __init__(self, version: str, incdirs: list[IncludeDirs] | None = None,
+                 compile_args: list[str] | None = None,
+                 link_args: list[str] | None = None,
+                 libraries: list[LinkableTargetTypes] | None = None,
+                 whole_libraries: list[StaticLibrary | CustomTarget | CustomTargetIndex] | None = None,
+                 sources: T.Sequence[TargetSources] | None = None,
+                 extra_files: T.Sequence[mesonlib.File] | None = None,
+                 ext_deps: list[Dependency] | None = None, variables: dict[str, str] | None = None,
+                 d_module_versions: list[str | int] | None = None,
+                 d_import_dirs: list[IncludeDirs] | None = None,
+                 objects: list[ExtractedObjects] | None = None,
+                 name: str | None = None):
         super().__init__({'native': MachineChoice.HOST})  # TODO: does the native key actually matter
         self.version = version
         self.is_found = True
@@ -345,7 +347,7 @@ class InternalDependency(Dependency):
         if name:
             self.name = name
 
-    def __deepcopy__(self, memo: T.Dict[int, 'InternalDependency']) -> 'InternalDependency':
+    def __deepcopy__(self, memo: dict[int, InternalDependency]) -> InternalDependency:
         result = self.__class__.__new__(self.__class__)
         assert isinstance(result, InternalDependency)
         memo[id(self)] = result
@@ -387,7 +389,7 @@ class InternalDependency(Dependency):
             final_link_args, final_libraries, final_whole_libraries,
             final_sources, final_extra_files, final_deps, self.variables, [], [], [], self.name)
 
-    def get_include_dirs(self) -> T.List['IncludeDirs']:
+    def get_include_dirs(self) -> list[IncludeDirs]:
         from ..build import IncludeDirs
         ids = self.include_directories
         if self.include_type != 'preserve':
@@ -395,9 +397,9 @@ class InternalDependency(Dependency):
             ids = [IncludeDirs(x.curdir, x.incdirs, is_system, x.build_project, x.extra_build_dirs) for x in ids]
         return ids
 
-    def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
-                     configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
-                     system: T.Optional[str] = None, default_value: T.Optional[str] = None,
+    def get_variable(self, *, cmake: str | None = None, pkgconfig: str | None = None,
+                     configtool: str | None = None, internal: str | None = None,
+                     system: str | None = None, default_value: str | None = None,
                      pkgconfig_define: PkgConfigDefineType = None) -> str:
         val = self.variables.get(internal, default_value)
         if val is not None:
@@ -416,7 +418,7 @@ class InternalDependency(Dependency):
                                      'CustomTarget or CustomTargetIndex which is a shared library')
 
         # Mypy doesn't understand that the above is a TypeGuard
-        new_dep.whole_libraries += T.cast('T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]',
+        new_dep.whole_libraries += T.cast('list[StaticLibrary | CustomTarget | CustomTargetIndex]',
                                           new_dep.libraries)
         new_dep.libraries = []
         return new_dep
@@ -436,7 +438,7 @@ class InternalDependency(Dependency):
         return new_dep
 
 class ExternalDependency(Dependency):
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs):
         Dependency.__init__(self, kwargs)
         self.env = environment
         self.name = name
@@ -453,7 +455,7 @@ class ExternalDependency(Dependency):
         self.for_machine = kwargs['native']
         self.clib_compiler = detect_compiler(self.name, environment, self.for_machine, self.language)
 
-    def get_compiler(self) -> T.Union['MissingCompiler', 'Compiler']:
+    def get_compiler(self) -> MissingCompiler | Compiler:
         return self.clib_compiler
 
     def get_partial_dependency(self, *, compile_args: bool = False,
@@ -527,7 +529,7 @@ class NotFoundDependency(Dependency):
 
     type_name = DependencyTypeName('not-found')
 
-    def __init__(self, name: str, environment: 'Environment') -> None:
+    def __init__(self, name: str, environment: Environment) -> None:
         super().__init__({'native': MachineChoice.HOST})  # TODO: does this actually matter?
         self.env = environment
         self.name = name
@@ -535,7 +537,7 @@ class NotFoundDependency(Dependency):
 
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
-                               includes: bool = False, sources: bool = False) -> 'NotFoundDependency':
+                               includes: bool = False, sources: bool = False) -> NotFoundDependency:
         new = copy.copy(self)
         new._id = uuid.uuid4().int
         return new
@@ -545,7 +547,7 @@ class ExternalLibrary(ExternalDependency):
 
     type_name = DependencyTypeName('library')
 
-    def __init__(self, name: str, link_args: T.List[str], environment: 'Environment',
+    def __init__(self, name: str, link_args: list[str], environment: Environment,
                  language: Language, for_machine: MachineChoice, silent: bool = False) -> None:
         super().__init__(name, environment, {'language': language, 'native': for_machine})
         self.is_found = False
@@ -558,7 +560,7 @@ class ExternalLibrary(ExternalDependency):
             else:
                 mlog.log('Library', mlog.bold(name), 'found:', mlog.red('NO'))
 
-    def get_link_args(self, language: T.Optional[Language] = None, raw: bool = False) -> T.List[str]:
+    def get_link_args(self, language: Language | None = None, raw: bool = False) -> list[str]:
         '''
         External libraries detected using a compiler must only be used with
         compatible code. For instance, Vala libraries (.vapi files) cannot be
@@ -575,7 +577,7 @@ class ExternalLibrary(ExternalDependency):
 
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
-                               includes: bool = False, sources: bool = False) -> 'ExternalLibrary':
+                               includes: bool = False, sources: bool = False) -> ExternalLibrary:
         # External library only has link_args, so ignore the rest of the
         # interface.
         new = copy.copy(self)
@@ -585,7 +587,7 @@ class ExternalLibrary(ExternalDependency):
         return new
 
 
-def get_leaf_external_dependencies(deps: T.List[Dependency]) -> T.List[Dependency]:
+def get_leaf_external_dependencies(deps: list[Dependency]) -> list[Dependency]:
     if not deps:
         # Ensure that we always return a new instance
         return deps.copy()
@@ -601,7 +603,7 @@ def get_leaf_external_dependencies(deps: T.List[Dependency]) -> T.List[Dependenc
     return final_deps
 
 
-def sort_libpaths(libpaths: T.List[str], refpaths: T.List[str]) -> T.List[str]:
+def sort_libpaths(libpaths: list[str], refpaths: list[str]) -> list[str]:
     """Sort <libpaths> according to <refpaths>
 
     It is intended to be used to sort -L flags returned by pkg-config.
@@ -610,8 +612,8 @@ def sort_libpaths(libpaths: T.List[str], refpaths: T.List[str]) -> T.List[str]:
     if len(refpaths) == 0:
         return list(libpaths)
 
-    def key_func(libpath: str) -> T.Tuple[int, int]:
-        common_lengths: T.List[int] = []
+    def key_func(libpath: str) -> tuple[int, int]:
+        common_lengths: list[int] = []
         for refpath in refpaths:
             try:
                 common_path: str = os.path.commonpath([libpath, refpath])
@@ -624,7 +626,7 @@ def sort_libpaths(libpaths: T.List[str], refpaths: T.List[str]) -> T.List[str]:
         return (max_index, reversed_max_length)
     return sorted(libpaths, key=key_func)
 
-def strip_system_libdirs(environment: 'Environment', for_machine: MachineChoice, link_args: T.List[str]) -> T.List[str]:
+def strip_system_libdirs(environment: Environment, for_machine: MachineChoice, link_args: list[str]) -> list[str]:
     """Remove -L<system path> arguments.
 
     leaving these in will break builds where a user has a version of a library
@@ -634,7 +636,7 @@ def strip_system_libdirs(environment: 'Environment', for_machine: MachineChoice,
     exclude = {f'-L{p}' for p in environment.get_compiler_system_lib_dirs(for_machine)}
     return [l for l in link_args if l not in exclude]
 
-def strip_system_includedirs(environment: 'Environment', for_machine: MachineChoice, include_args: T.List[str]) -> T.List[str]:
+def strip_system_includedirs(environment: Environment, for_machine: MachineChoice, include_args: list[str]) -> list[str]:
     """Remove -I<system path> arguments.
 
     leaving these in will break builds where user want dependencies with system
@@ -645,26 +647,24 @@ def strip_system_includedirs(environment: 'Environment', for_machine: MachineCho
     exclude = {f'-I{p}' for p in environment.get_compiler_system_include_dirs(for_machine)}
     return [i for i in include_args if i not in exclude]
 
-def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: DependencyObjectKWs) -> T.List[DependencyMethods]:
+def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: DependencyObjectKWs) -> list[DependencyMethods]:
     method = kwargs.get('method', DependencyMethods.AUTO)
 
     # Set the detection method. If the method is set to auto, use any available method.
     # If method is set to a specific string, allow only that detection method.
     if method == DependencyMethods.AUTO:
         # annotated for https://github.com/python/mypy/issues/19894
-        methods: T.List[DependencyMethods] = list(possible)
+        methods: list[DependencyMethods] = list(possible)
     elif method in possible:
         methods = [method]
     else:
         raise DependencyException(
-            'Unsupported detection method: {}, allowed methods are {}'.format(
-                method.value,
-                mlog.format_list([x.value for x in [DependencyMethods.AUTO] + list(possible)])))
+            f'Unsupported detection method: {method.value}, allowed methods are {mlog.format_list([x.value for x in [DependencyMethods.AUTO] + list(possible)])}')
 
     return methods
 
-def detect_compiler(name: str, env: 'Environment', for_machine: MachineChoice,
-                    language: T.Optional[Language]) -> T.Union['MissingCompiler', 'Compiler']:
+def detect_compiler(name: str, env: Environment, for_machine: MachineChoice,
+                    language: Language | None) -> MissingCompiler | Compiler:
     """Given a language and environment find the compiler used."""
     compilers = env.coredata.compilers[for_machine]
 
@@ -680,7 +680,7 @@ def detect_compiler(name: str, env: 'Environment', for_machine: MachineChoice,
         # https://github.com/python/mypy/issues/18826
         # However, we need to support versions of mypy that cannot deduce the
         # tuple.
-        for lang in T.cast('T.Tuple[Language, ...]', clib_langs):
+        for lang in T.cast('tuple[Language, ...]', clib_langs):
             try:
                 return compilers[lang]
             except KeyError:
@@ -705,11 +705,11 @@ class BuiltinDependency(ExternalDependency):
 @dataclasses.dataclass
 class DependencyCandidate(T.Generic[DepType]):
 
-    callable: T.Union[T.Type[DepType], T.Callable[[str, Environment, DependencyObjectKWs], DepType]]
+    callable: type[DepType] | T.Callable[[str, Environment, DependencyObjectKWs], DepType]
     name: str
     method: str
-    modules: T.Optional[T.List[str]] = None
-    arguments: T.Optional[T.Tuple[Environment, DependencyObjectKWs]] = dataclasses.field(default=None)
+    modules: list[str] | None = None
+    arguments: tuple[Environment, DependencyObjectKWs] | None = dataclasses.field(default=None)
 
     def __call__(self) -> DepType:
         if self.arguments is None:
@@ -720,9 +720,9 @@ class DependencyCandidate(T.Generic[DepType]):
         return self.callable(self.name, env, kwargs)
 
     @classmethod
-    def from_dependency(cls, name: str, dep: T.Type[DepType],
-                        args: T.Optional[T.Tuple[Environment, DependencyObjectKWs]] = None,
-                        modules: T.Optional[T.List[str]] = None,
+    def from_dependency(cls, name: str, dep: type[DepType],
+                        args: tuple[Environment, DependencyObjectKWs] | None = None,
+                        modules: list[str] | None = None,
                         ) -> DependencyCandidate[DepType]:
         tried = str(dep.type_name)
 

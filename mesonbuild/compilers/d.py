@@ -39,7 +39,7 @@ if T.TYPE_CHECKING:
 else:
     CompilerMixinBase = object
 
-d_feature_args: T.Dict[str, T.Dict[str, str]] = {
+d_feature_args: dict[str, dict[str, str]] = {
     'gcc':  {
         'unittest': '-funittest',
         'debug': '-fdebug',
@@ -60,7 +60,7 @@ d_feature_args: T.Dict[str, T.Dict[str, str]] = {
     }
 }
 
-ldc_optimization_args: T.Dict[str, T.List[str]] = {
+ldc_optimization_args: dict[str, list[str]] = {
     'plain': [],
     '0': [],
     'g': [],
@@ -70,7 +70,7 @@ ldc_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-Oz'],
 }
 
-dmd_optimization_args: T.Dict[str, T.List[str]] = {
+dmd_optimization_args: dict[str, list[str]] = {
     'plain': [],
     '0': [],
     'g': [],
@@ -80,7 +80,7 @@ dmd_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-O'],
 }
 
-gdc_optimization_args: T.Dict[str, T.List[str]] = {
+gdc_optimization_args: dict[str, list[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-Og'],
@@ -99,7 +99,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
     sharing between them as makes sense.
     """
 
-    def __init__(self, dmd_frontend_version: T.Optional[str]):
+    def __init__(self, dmd_frontend_version: str | None):
         if dmd_frontend_version is None:
             self._dmd_has_depfile = False
         else:
@@ -107,25 +107,25 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
             self._dmd_has_depfile = version_compare(dmd_frontend_version, ">=2.095.0")
 
     if T.TYPE_CHECKING:
-        mscrt_args: T.Dict[str, T.List[str]] = {}
+        mscrt_args: dict[str, list[str]] = {}
 
-        def _get_target_arch_args(self) -> T.List[str]: ...
+        def _get_target_arch_args(self) -> list[str]: ...
 
     LINKER_OPTION_STYLE = SimplePrefixLinkerOptionStyle('-L=')
 
-    def get_output_args(self, outputname: str) -> T.List[str]:
+    def get_output_args(self, outputname: str) -> list[str]:
         return ['-of=' + outputname]
 
-    def get_linker_output_args(self, outputname: str) -> T.List[str]:
+    def get_linker_output_args(self, outputname: str) -> list[str]:
         return ['-of=' + outputname]
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, is_system: bool) -> list[str]:
         if path == "":
             path = "."
         return ['-I=' + path]
 
-    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
-                                               build_dir: str) -> T.List[str]:
+    def compute_parameters_with_absolute_paths(self, parameter_list: list[str],
+                                               build_dir: str) -> list[str]:
         for idx, i in enumerate(parameter_list):
             if i[:3] == '-I=':
                 parameter_list[idx] = i[:3] + os.path.normpath(os.path.join(build_dir, i[3:]))
@@ -138,52 +138,52 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
         return parameter_list
 
-    def get_warn_args(self, level: str) -> T.List[str]:
+    def get_warn_args(self, level: str) -> list[str]:
         return ['-wi']
 
-    def get_werror_args(self) -> T.List[str]:
+    def get_werror_args(self) -> list[str]:
         return ['-w']
 
-    def get_coverage_args(self) -> T.List[str]:
+    def get_coverage_args(self) -> list[str]:
         return ['-cov']
 
-    def get_coverage_link_args(self) -> T.List[str]:
+    def get_coverage_link_args(self) -> list[str]:
         return []
 
-    def get_preprocess_only_args(self) -> T.List[str]:
+    def get_preprocess_only_args(self) -> list[str]:
         return ['-E']
 
-    def get_compile_only_args(self) -> T.List[str]:
+    def get_compile_only_args(self) -> list[str]:
         return ['-c']
 
     def get_depfile_suffix(self) -> str:
         return 'deps'
 
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> list[str]:
         if self._dmd_has_depfile:
             return [f'-makedeps={outfile}']
         return []
 
-    def get_pic_args(self) -> T.List[str]:
+    def get_pic_args(self) -> list[str]:
         if self.info.is_windows():
             return []
         return ['-fPIC']
 
-    def get_optimization_link_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_link_args(self, optimization_level: str) -> list[str]:
         if optimization_level != 'plain':
             return self._get_target_arch_args()
         return []
 
-    def gen_import_library_args(self, implibname: str) -> T.List[str]:
+    def gen_import_library_args(self, implibname: str) -> list[str]:
         return self.linker.import_library_args(implibname)
 
     @classmethod
-    def _translate_args_to_nongnu(cls, args: T.List[str], info: MachineInfo, link_id: str) -> T.List[str]:
+    def _translate_args_to_nongnu(cls, args: list[str], info: MachineInfo, link_id: str) -> list[str]:
         # Translate common arguments to flags the LDC/DMD compilers
         # can understand.
         # The flags might have been added by pkg-config files,
         # and are therefore out of the user's control.
-        dcargs: T.List[str] = []
+        dcargs: list[str] = []
         # whether we hit a linker argument that expect another arg
         # see the comment in the "-L" section
         link_expect_arg = False
@@ -192,7 +192,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         ]
         for arg in args:
             # Translate OS specific arguments first.
-            osargs: T.List[str] = []
+            osargs: list[str] = []
             if info.is_windows():
                 osargs = cls.translate_arg_to_windows(arg)
             elif info.is_darwin():
@@ -304,8 +304,8 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         return dcargs
 
     @classmethod
-    def translate_arg_to_windows(cls, arg: str) -> T.List[str]:
-        args: T.List[str] = []
+    def translate_arg_to_windows(cls, arg: str) -> list[str]:
+        args: list[str] = []
         if arg.startswith('-Wl,'):
             # Translate linker arguments here.
             linkargs = arg[arg.index(',') + 1:].split(',')
@@ -330,30 +330,30 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         return args
 
     @classmethod
-    def _translate_arg_to_osx(cls, arg: str) -> T.List[str]:
-        args: T.List[str] = []
+    def _translate_arg_to_osx(cls, arg: str) -> list[str]:
+        args: list[str] = []
         if arg.startswith('-install_name'):
             args.append('-L=' + arg)
         return args
 
     @classmethod
-    def _unix_args_to_native(cls, args: T.List[str], info: MachineInfo, link_id: str = '') -> T.List[str]:
+    def _unix_args_to_native(cls, args: list[str], info: MachineInfo, link_id: str = '') -> list[str]:
         return cls._translate_args_to_nongnu(args, info, link_id)
 
-    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+    def get_debug_args(self, is_debug: bool) -> list[str]:
         ddebug_args = []
         if is_debug:
             ddebug_args = [d_feature_args[self.id]['debug']]
 
         return clike_debug_args[is_debug] + ddebug_args
 
-    def _get_crt_args(self, crt_val: str) -> T.List[str]:
+    def _get_crt_args(self, crt_val: str) -> list[str]:
         if not self.info.is_windows():
             return []
         return self.mscrt_args[self.get_crt_val(crt_val)]
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str, soversion: str,
-                        darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+                        darwin_versions: tuple[str, str]) -> list[str]:
         sargs = super().get_soname_args(prefix, shlib_name, suffix, soversion, darwin_versions)
 
         if not all(arg.startswith(self.LINKER_OPTION_STYLE.prefix) for arg in sargs):
@@ -361,7 +361,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
         return sargs
 
-    def get_allow_undefined_link_args(self) -> T.List[str]:
+    def get_allow_undefined_link_args(self) -> list[str]:
         args = self.linker.get_allow_undefined_args()
         if self.info.is_darwin():
             # On macOS we're passing these options to the C compiler, but
@@ -389,10 +389,10 @@ class DCompiler(Compiler):
 
     language = 'd'
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+    def __init__(self, exelist: list[str], version: str, for_machine: MachineChoice,
                  env: Environment, arch: str, *,
-                 linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None):
+                 linker: DynamicLinker | None = None,
+                 full_version: str | None = None):
         super().__init__([], exelist, version, for_machine, env, linker=linker,
                          full_version=full_version)
         self.arch = arch
@@ -401,7 +401,7 @@ class DCompiler(Compiler):
         return 'void main() { }'
 
     def _sanity_check_compile_args(self, sourcename: str, binname: str
-                                   ) -> T.Tuple[T.List[str], T.List[str]]:
+                                   ) -> tuple[list[str], list[str]]:
         args, largs = super()._sanity_check_compile_args(sourcename, binname)
         largs = self.unix_args_to_native(largs)
         largs.extend(self._get_target_arch_args())
@@ -413,13 +413,13 @@ class DCompiler(Compiler):
     def get_depfile_suffix(self) -> str:
         return 'deps'
 
-    def get_pic_args(self) -> T.List[str]:
+    def get_pic_args(self) -> list[str]:
         if self.info.is_windows():
             return []
         return ['-fPIC']
 
-    def get_feature_args(self, kwargs: DFeatures, build_to_src: str) -> T.List[str]:
-        res: T.List[str] = []
+    def get_feature_args(self, kwargs: DFeatures, build_to_src: str) -> list[str]:
+        res: list[str] = []
         unittest_arg = d_feature_args[self.id]['unittest']
         if not unittest_arg:
             raise EnvironmentException('D compiler %s does not support the "unittest" feature.' % self.name_string())
@@ -468,18 +468,18 @@ class DCompiler(Compiler):
 
         return res
 
-    def get_optimization_link_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_link_args(self, optimization_level: str) -> list[str]:
         if optimization_level != 'plain':
             return self._get_target_arch_args()
         return []
 
-    def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> DCompilerArgs:
+    def compiler_args(self, args: T.Iterable[str] | None = None) -> DCompilerArgs:
         return DCompilerArgs(self, args)
 
-    def has_multi_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
+    def has_multi_arguments(self, args: list[str]) -> tuple[bool, bool]:
         return self.compiles('int i;\n', extra_args=args)
 
-    def _get_target_arch_args(self) -> T.List[str]:
+    def _get_target_arch_args(self) -> list[str]:
         # LDC2 on Windows targets to current OS architecture, but
         # it should follow the target specified by the MSVC toolchain.
         if self.info.is_windows():
@@ -490,13 +490,13 @@ class DCompiler(Compiler):
             return ['-m32']
         return []
 
-    def get_crt_compile_args(self, crt_val: str) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str) -> list[str]:
         return []
 
-    def get_crt_link_args(self, crt_val: str) -> T.List[str]:
+    def get_crt_link_args(self, crt_val: str) -> list[str]:
         return []
 
-    def _get_compile_extra_args(self, extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None) -> T.List[str]:
+    def _get_compile_extra_args(self, extra_args: list[str] | T.Callable[[CompileCheckMode], list[str]] | None = None) -> list[str]:
         args = self._get_target_arch_args()
         if extra_args:
             if callable(extra_args):
@@ -507,17 +507,17 @@ class DCompiler(Compiler):
                 args.append(extra_args)
         return args
 
-    def run(self, code: 'mesonlib.FileOrString',
-            extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None,
-            dependencies: T.Optional[T.List['Dependency']] = None,
-            run_env: T.Optional[T.Dict[str, str]] = None,
-            run_cwd: T.Optional[str] = None) -> compilers.RunResult:
+    def run(self, code: mesonlib.FileOrString,
+            extra_args: list[str] | T.Callable[[CompileCheckMode], list[str]] | None = None,
+            dependencies: list[Dependency] | None = None,
+            run_env: dict[str, str] | None = None,
+            run_cwd: str | None = None) -> compilers.RunResult:
         extra_args = self._get_compile_extra_args(extra_args)
         return super().run(code, extra_args, dependencies, run_env, run_cwd)
 
     def sizeof(self, typename: str, prefix: str, *,
-               extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
-               dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[int, bool]:
+               extra_args: None | list[str] | T.Callable[[CompileCheckMode], list[str]] = None,
+               dependencies: list[Dependency] | None = None) -> tuple[int, bool]:
         if extra_args is None:
             extra_args = []
         t = f'''
@@ -536,8 +536,8 @@ class DCompiler(Compiler):
         return int(res.stdout), res.cached
 
     def alignment(self, typename: str, prefix: str, *,
-                  extra_args: T.Optional[T.List[str]] = None,
-                  dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[int, bool]:
+                  extra_args: list[str] | None = None,
+                  dependencies: list[Dependency] | None = None) -> tuple[int, bool]:
         if extra_args is None:
             extra_args = []
         t = f'''
@@ -558,9 +558,9 @@ class DCompiler(Compiler):
         return align, res.cached
 
     def has_header(self, hname: str, prefix: str, *,
-                   extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
-                   dependencies: T.Optional[T.List['Dependency']] = None,
-                   disable_cache: bool = False) -> T.Tuple[bool, bool]:
+                   extra_args: None | list[str] | T.Callable[[CompileCheckMode], list[str]] = None,
+                   dependencies: list[Dependency] | None = None,
+                   disable_cache: bool = False) -> tuple[bool, bool]:
 
         extra_args = self._get_compile_extra_args(extra_args)
         code = f'''{prefix}
@@ -575,10 +575,10 @@ class GnuDCompiler(GnuCompiler, DCompiler):
     LINKER_OPTION_STYLE = GnuCompiler.LINKER_OPTION_STYLE
     id = 'gcc'
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+    def __init__(self, exelist: list[str], version: str, for_machine: MachineChoice,
                  env: Environment, arch: str, *,
-                 linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None):
+                 linker: DynamicLinker | None = None,
+                 full_version: str | None = None):
         DCompiler.__init__(self, exelist, version, for_machine, env, arch,
                            linker=linker, full_version=full_version)
         GnuCompiler.__init__(self, {})
@@ -600,40 +600,40 @@ class GnuDCompiler(GnuCompiler, DCompiler):
         # (and some backported versions)
         self._has_deps_support = version_compare(self.version, '>=7.1')
 
-    def get_colorout_args(self, colortype: str) -> T.List[str]:
+    def get_colorout_args(self, colortype: str) -> list[str]:
         if self._has_color_support:
             super().get_colorout_args(colortype)
         return []
 
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> list[str]:
         if self._has_deps_support:
             return super().get_dependency_gen_args(outtarget, outfile)
         return []
 
-    def get_warn_args(self, level: str) -> T.List[str]:
+    def get_warn_args(self, level: str) -> list[str]:
         return self.warn_args[level]
 
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> list[str]:
         return gdc_optimization_args[optimization_level]
 
-    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
-                                               build_dir: str) -> T.List[str]:
+    def compute_parameters_with_absolute_paths(self, parameter_list: list[str],
+                                               build_dir: str) -> list[str]:
         for idx, i in enumerate(parameter_list):
             if i[:2] == '-I' or i[:2] == '-L':
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
 
         return parameter_list
 
-    def get_allow_undefined_link_args(self) -> T.List[str]:
+    def get_allow_undefined_link_args(self) -> list[str]:
         return self.linker.get_allow_undefined_args()
 
-    def get_linker_always_args(self) -> T.List[str]:
+    def get_linker_always_args(self) -> list[str]:
         args = super().get_linker_always_args()
         if self.info.is_windows():
             return args
         return args + ['-shared-libphobos']
 
-    def get_assert_args(self, disable: bool) -> T.List[str]:
+    def get_assert_args(self, disable: bool) -> list[str]:
         if disable:
             return ['-frelease']
         return []
@@ -644,7 +644,7 @@ class GnuDCompiler(GnuCompiler, DCompiler):
 # the common features between LDC and DMD.
 # We need the complete version text because the match is not on first line
 # of version_output
-def find_ldc_dmd_frontend_version(version_output: T.Optional[str]) -> T.Optional[str]:
+def find_ldc_dmd_frontend_version(version_output: str | None) -> str | None:
     if version_output is None:
         return None
     version_regex = re.search(r'DMD v(\d+\.\d+\.\d+)', version_output)
@@ -656,53 +656,53 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
 
     id = 'llvm'
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+    def __init__(self, exelist: list[str], version: str, for_machine: MachineChoice,
                  env: Environment, arch: str, *,
-                 linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None,
-                 version_output: T.Optional[str] = None):
+                 linker: DynamicLinker | None = None,
+                 full_version: str | None = None,
+                 version_output: str | None = None):
         DCompiler.__init__(self, exelist, version, for_machine, env, arch,
                            linker=linker, full_version=full_version)
         DmdLikeCompilerMixin.__init__(self, dmd_frontend_version=find_ldc_dmd_frontend_version(version_output))
         self.base_options = {OptionKey(o) for o in ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']}
 
-    def get_colorout_args(self, colortype: str) -> T.List[str]:
+    def get_colorout_args(self, colortype: str) -> list[str]:
         if colortype == 'always':
             return ['-enable-color']
         return []
 
-    def get_warn_args(self, level: str) -> T.List[str]:
+    def get_warn_args(self, level: str) -> list[str]:
         if level in {'2', '3'}:
             return ['-wi', '-dw']
         elif level == '1':
             return ['-wi']
         return []
 
-    def get_pic_args(self) -> T.List[str]:
+    def get_pic_args(self) -> list[str]:
         return ['-relocation-model=pic']
 
-    def get_crt_link_args(self, crt_val: str) -> T.List[str]:
+    def get_crt_link_args(self, crt_val: str) -> list[str]:
         return self._get_crt_args(crt_val)
 
-    def unix_args_to_native(self, args: T.List[str]) -> T.List[str]:
+    def unix_args_to_native(self, args: list[str]) -> list[str]:
         return self._unix_args_to_native(args, self.info, self.linker.id)
 
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> list[str]:
         if optimization_level != 'plain':
             return self._get_target_arch_args() + ldc_optimization_args[optimization_level]
         return ldc_optimization_args[optimization_level]
 
     @classmethod
-    def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
+    def use_linker_args(cls, linker: str, version: str) -> list[str]:
         return [f'-linker={linker}']
 
-    def get_linker_always_args(self) -> T.List[str]:
+    def get_linker_always_args(self) -> list[str]:
         args = super().get_linker_always_args()
         if self.info.is_windows():
             return args
         return args + ['-link-defaultlib-shared']
 
-    def get_assert_args(self, disable: bool) -> T.List[str]:
+    def get_assert_args(self, disable: bool) -> list[str]:
         if disable:
             return ['--release']
         return []
@@ -718,21 +718,21 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
 
     id = 'dmd'
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+    def __init__(self, exelist: list[str], version: str, for_machine: MachineChoice,
                  env: Environment, arch: str, *,
-                 linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None):
+                 linker: DynamicLinker | None = None,
+                 full_version: str | None = None):
         DCompiler.__init__(self, exelist, version, for_machine, env, arch,
                            linker=linker, full_version=full_version)
         DmdLikeCompilerMixin.__init__(self, version)
         self.base_options = {OptionKey(o) for o in ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']}
 
-    def get_colorout_args(self, colortype: str) -> T.List[str]:
+    def get_colorout_args(self, colortype: str) -> list[str]:
         if colortype == 'always':
             return ['-color=on']
         return []
 
-    def get_std_exe_link_args(self) -> T.List[str]:
+    def get_std_exe_link_args(self) -> list[str]:
         if self.info.is_windows():
             # DMD links against D runtime only when main symbol is found,
             # so these needs to be inserted when linking static D libraries.
@@ -743,7 +743,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
             return ['phobos.lib']
         return []
 
-    def get_std_shared_lib_link_args(self) -> T.List[str]:
+    def get_std_shared_lib_link_args(self) -> list[str]:
         libname = 'libphobos2.so'
         if self.info.is_windows():
             if self.arch == 'x86_64':
@@ -754,7 +754,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
                 libname = 'phobos.lib'
         return ['-shared', '-defaultlib=' + libname]
 
-    def _get_target_arch_args(self) -> T.List[str]:
+    def _get_target_arch_args(self) -> list[str]:
         # DMD32 and DMD64 on 64-bit Windows defaults to 32-bit (OMF).
         # Force the target to 64-bit in order to stay consistent
         # across the different platforms.
@@ -766,13 +766,13 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
             return ['-m32']
         return []
 
-    def get_crt_compile_args(self, crt_val: str) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str) -> list[str]:
         return self._get_crt_args(crt_val)
 
-    def unix_args_to_native(self, args: T.List[str]) -> T.List[str]:
+    def unix_args_to_native(self, args: list[str]) -> list[str]:
         return self._unix_args_to_native(args, self.info, self.linker.id)
 
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> list[str]:
         if optimization_level != 'plain':
             return self._get_target_arch_args() + dmd_optimization_args[optimization_level]
         return dmd_optimization_args[optimization_level]
@@ -780,13 +780,13 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
     def can_linker_accept_rsp(self) -> bool:
         return False
 
-    def get_linker_always_args(self) -> T.List[str]:
+    def get_linker_always_args(self) -> list[str]:
         args = super().get_linker_always_args()
         if self.info.is_windows():
             return args
         return args + ['-defaultlib=phobos2', '-debuglib=phobos2']
 
-    def get_assert_args(self, disable: bool) -> T.List[str]:
+    def get_assert_args(self, disable: bool) -> list[str]:
         if disable:
             return ['-release']
         return []

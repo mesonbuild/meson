@@ -7,7 +7,6 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
-import typing as T
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--rc', nargs='+', required=True)
@@ -15,7 +14,7 @@ parser.add_argument('--cl', nargs='+', required=True)
 parser.add_argument('--Xarg', action='append')
 
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     options, rc_args = parser.parse_known_args(args)
     target = rc_args[-1] if rc_args else None
 

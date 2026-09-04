@@ -37,7 +37,7 @@ class ElbrusCompiler(GnuLikeCompiler):
 
     # FIXME: use _build_wrapper to call this so that linker flags from the env
     # get applied
-    def get_library_dirs(self, elf_class: T.Optional[int] = None) -> T.List[str]:
+    def get_library_dirs(self, elf_class: int | None = None) -> list[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         stdo = Popen_safe(self.get_exelist(ccache=False) + ['--print-search-dirs'], env=os_env)[1]
@@ -48,7 +48,7 @@ class ElbrusCompiler(GnuLikeCompiler):
                 return [os.path.realpath(p) for p in libstr.split(':') if os.path.exists(p)]
         return []
 
-    def get_program_dirs(self) -> T.List[str]:
+    def get_program_dirs(self) -> list[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         stdo = Popen_safe(self.get_exelist(ccache=False) + ['--print-search-dirs'], env=os_env)[1]
@@ -59,30 +59,30 @@ class ElbrusCompiler(GnuLikeCompiler):
                 return [os.path.realpath(p) for p in libstr.split(':')]
         return []
 
-    @functools.lru_cache(maxsize=None)
-    def get_default_include_dirs(self) -> T.List[str]:
+    @functools.cache
+    def get_default_include_dirs(self) -> list[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         p = subprocess.Popen(self.get_exelist(ccache=False) + ['-xc', '-E', '-v', '-'], env=os_env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stderr = p.stderr.read().decode('utf-8', errors='replace')
-        includes: T.List[str] = []
+        includes: list[str] = []
         for line in stderr.split('\n'):
             if line.lstrip().startswith('--sys_include'):
                 includes.append(re.sub(r'\s*\\$', '', re.sub(r'^\s*--sys_include\s*', '', line)))
         return includes
 
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> list[str]:
         return gnu_optimization_args[optimization_level]
 
-    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+    def get_prelink_args(self, prelink_name: str, obj_list: list[str]) -> tuple[list[str], list[str]]:
         return [prelink_name], ['-r', '-nodefaultlibs', '-nostartfiles', '-o', prelink_name] + obj_list
 
     def get_pch_suffix(self) -> str:
         # Actually it's not supported for now, but probably will be supported in future
         return 'pch'
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args: T.List[str] = []
+    def get_option_std_args(self, target: BuildTarget, subproject: str | None = None) -> list[str]:
+        args: list[str] = []
         key = OptionKey(f'{self.language}_std', subproject=subproject, machine=self.for_machine)
         if target:
             std = self.environment.coredata.get_option_for_target(target, key)
@@ -93,9 +93,9 @@ class ElbrusCompiler(GnuLikeCompiler):
             args.append('-std=' + std)
         return args
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self) -> list[str]:
         return ['-fopenmp']
 
     @classmethod
-    def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
+    def use_linker_args(cls, linker: str, version: str) -> list[str]:
         return []

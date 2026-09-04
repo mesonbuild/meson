@@ -26,7 +26,7 @@ class GeneratorBase(metaclass=ABCMeta):
         return brief.strip()
 
     @staticmethod
-    def sorted_and_filtered(raw: T.List[_N]) -> T.List[_N]:
+    def sorted_and_filtered(raw: list[_N]) -> list[_N]:
         def key_fn(fn: NamedObject) -> str:
             if isinstance(fn, Method):
                 return f'1_{fn.obj.name}.{fn.name}'
@@ -39,28 +39,28 @@ class GeneratorBase(metaclass=ABCMeta):
         return version
 
     @property
-    def functions(self) -> T.List[Function]:
+    def functions(self) -> list[Function]:
         return GeneratorBase.sorted_and_filtered(self.manual.functions)
 
     @property
-    def objects(self) -> T.List[Object]:
+    def objects(self) -> list[Object]:
         return GeneratorBase.sorted_and_filtered(self.manual.objects)
 
     @property
-    def elementary(self) -> T.List[Object]:
+    def elementary(self) -> list[Object]:
         return [x for x in self.objects if x.obj_type == ObjectType.ELEMENTARY]
 
     @property
-    def builtins(self) -> T.List[Object]:
+    def builtins(self) -> list[Object]:
         return [x for x in self.objects if x.obj_type == ObjectType.BUILTIN]
 
     @property
-    def returned(self) -> T.List[Object]:
+    def returned(self) -> list[Object]:
         return [x for x in self.objects if x.obj_type == ObjectType.RETURNED and x.defined_by_module is None]
 
     @property
-    def modules(self) -> T.List[Object]:
+    def modules(self) -> list[Object]:
         return [x for x in self.objects if x.obj_type == ObjectType.MODULE]
 
-    def extract_returned_by_module(self, module: Object) -> T.List[Object]:
+    def extract_returned_by_module(self, module: Object) -> list[Object]:
         return [x for x in self.objects if x.obj_type == ObjectType.RETURNED and x.defined_by_module is module]

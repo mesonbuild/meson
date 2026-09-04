@@ -9,7 +9,7 @@ import sys
 # Python that would error on f-string syntax for example.
 if sys.version_info < (3, 10):
     print('Meson works correctly only with python 3.10+.')
-    print('You have python {}.'.format(sys.version))
+    print(f'You have python {sys.version}.')
     print('Please update your environment')
     sys.exit(1)
 

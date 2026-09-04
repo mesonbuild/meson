@@ -58,7 +58,7 @@ blacklist_cmake_defs = [
     'MESON_CMAKE_ROOT',
 ]
 
-def cmake_is_debug(env: 'Environment') -> bool:
+def cmake_is_debug(env: Environment) -> bool:
     if OptionKey('b_vscrt') in env.coredata.optstore:
         is_debug = env.coredata.optstore.get_value_for('buildtype') == 'debug'
         if env.coredata.optstore.get_value_for('b_vscrt') in {'mdd', 'mtd'}:
@@ -82,7 +82,7 @@ class CMakeBuildFile:
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__}: {self.file}; cmake={self.is_cmake}; temp={self.is_temp}>'
 
-def _flags_to_list(raw: str) -> T.List[str]:
+def _flags_to_list(raw: str) -> list[str]:
     # Convert a raw commandline string into a list of strings
     res = []
     curr = ''
@@ -111,7 +111,7 @@ def _flags_to_list(raw: str) -> T.List[str]:
     res = [r for r in res if len(r) > 0]
     return res
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _cmake_get_generator_args(backend_name: str) -> ImmutableListProtocol[str]:
     assert backend_name in backend_generator_map
     args = ['-G', backend_generator_map[backend_name]]
@@ -122,13 +122,13 @@ def _cmake_get_generator_args(backend_name: str) -> ImmutableListProtocol[str]:
             args += [f'-DCMAKE_MAKE_PROGRAM={ninja[0]}']
     return args
 
-def cmake_get_generator_args(env: 'Environment') -> T.List[str]:
+def cmake_get_generator_args(env: Environment) -> list[str]:
     backend_name = env.coredata.optstore.get_value_for(OptionKey('backend'))
     assert isinstance(backend_name, str)
     return list(_cmake_get_generator_args(backend_name))
 
-def cmake_defines_to_args(raw: T.List[T.Dict[str, TYPE_var]], permissive: bool = False) -> T.List[str]:
-    res: T.List[str] = []
+def cmake_defines_to_args(raw: list[dict[str, TYPE_var]], permissive: bool = False) -> list[str]:
+    res: list[str] = []
 
     for i in raw:
         for key, val in i.items():
@@ -143,13 +143,13 @@ def cmake_defines_to_args(raw: T.List[T.Dict[str, TYPE_var]], permissive: bool =
                 val_str = 'ON' if val else 'OFF'
                 res += [f'-D{key}={val_str}']
             else:
-                raise MesonException('Type "{}" of "{}" is not supported as for a CMake define value'.format(type(val).__name__, key))
+                raise MesonException(f'Type "{type(val).__name__}" of "{key}" is not supported as for a CMake define value')
 
     return res
 
 # TODO: this function will become obsolete once the `cmake_args` kwarg is dropped
-def check_cmake_args(args: T.List[str]) -> T.List[str]:
-    res: T.List[str] = []
+def check_cmake_args(args: list[str]) -> list[str]:
+    res: list[str] = []
     dis = ['-D' + x for x in blacklist_cmake_defs]
     assert dis  # Ensure that dis is not empty.
     for i in args:
@@ -170,7 +170,7 @@ class CMakeInclude:
         return f'<CMakeInclude: {self.path} -- isSystem = {self.isSystem}>'
 
 class CMakeFileGroup:
-    def __init__(self, data: T.Dict[str, T.Any]) -> None:
+    def __init__(self, data: dict[str, T.Any]) -> None:
         self.defines: str = data.get('defines', '')
         self.flags = _flags_to_list(data.get('compileFlags', ''))
         self.is_generated: bool = data.get('isGenerated', False)
@@ -178,7 +178,7 @@ class CMakeFileGroup:
         self.sources = [Path(x) for x in data.get('sources', [])]
 
         # Fix the include directories
-        self.includes: T.List[CMakeInclude] = []
+        self.includes: list[CMakeInclude] = []
         for i in data.get('includePath', []):
             if isinstance(i, dict) and 'path' in i:
                 isSystem = i.get('isSystem', False)
@@ -200,7 +200,7 @@ class CMakeFileGroup:
                 mlog.log(i.as_posix())
 
 class CMakeTarget:
-    def __init__(self, data: T.Dict[str, T.Any]) -> None:
+    def __init__(self, data: dict[str, T.Any]) -> None:
         self.artifacts = [Path(x) for x in data.get('artifacts', [])]
         self.src_dir = Path(data.get('sourceDirectory', ''))
         self.build_dir = Path(data.get('buildDirectory', ''))
@@ -215,7 +215,7 @@ class CMakeTarget:
         # self.link_path = Path(data.get('linkPath', ''))
         self.type: str = data.get('type', 'EXECUTABLE')
         # self.is_generator_provided: bool = data.get('isGeneratorProvided', False)
-        self.files: T.List[CMakeFileGroup] = []
+        self.files: list[CMakeFileGroup] = []
 
         for i in data.get('fileGroups', []):
             self.files += [CMakeFileGroup(i)]
@@ -241,11 +241,11 @@ class CMakeTarget:
                 i.log()
 
 class CMakeProject:
-    def __init__(self, data: T.Dict[str, T.Any]) -> None:
+    def __init__(self, data: dict[str, T.Any]) -> None:
         self.src_dir = Path(data.get('sourceDirectory', ''))
         self.build_dir = Path(data.get('buildDirectory', ''))
         self.name: str = data.get('name', '')
-        self.targets: T.List[CMakeTarget] = []
+        self.targets: list[CMakeTarget] = []
 
         for i in data.get('targets', []):
             self.targets += [CMakeTarget(i)]
@@ -260,9 +260,9 @@ class CMakeProject:
                 i.log()
 
 class CMakeConfiguration:
-    def __init__(self, data: T.Dict[str, T.Any]) -> None:
+    def __init__(self, data: dict[str, T.Any]) -> None:
         self.name: str = data.get('name', '')
-        self.projects: T.List[CMakeProject] = []
+        self.projects: list[CMakeProject] = []
         for i in data.get('projects', []):
             self.projects += [CMakeProject(i)]
 
@@ -275,27 +275,27 @@ class CMakeConfiguration:
 
 class SingleTargetOptions:
     def __init__(self) -> None:
-        self.opts: T.Dict[str, str] = {}
-        self.lang_args: T.Dict[str, T.List[str]] = {}
-        self.link_args: T.List[str] = []
+        self.opts: dict[str, str] = {}
+        self.lang_args: dict[str, list[str]] = {}
+        self.link_args: list[str] = []
         self.install = 'preserve'
 
     def set_opt(self, opt: str, val: str) -> None:
         self.opts[opt] = val
 
-    def append_args(self, lang: str, args: T.List[str]) -> None:
+    def append_args(self, lang: str, args: list[str]) -> None:
         if lang not in self.lang_args:
             self.lang_args[lang] = []
         self.lang_args[lang] += args
 
-    def append_link_args(self, args: T.List[str]) -> None:
+    def append_link_args(self, args: list[str]) -> None:
         self.link_args += args
 
     def set_install(self, install: bool) -> None:
         self.install = 'true' if install else 'false'
 
-    def get_override_options(self, initial: T.List[str]) -> T.List[str]:
-        res: T.List[str] = []
+    def get_override_options(self, initial: list[str]) -> list[str]:
+        res: list[str] = []
         for i in initial:
             opt = i[:i.find('=')]
             if opt not in self.opts:
@@ -303,12 +303,12 @@ class SingleTargetOptions:
         res += [f'{k}={v}' for k, v in self.opts.items()]
         return res
 
-    def get_compile_args(self, lang: str, initial: T.List[str]) -> T.List[str]:
+    def get_compile_args(self, lang: str, initial: list[str]) -> list[str]:
         if lang in self.lang_args:
             return initial + self.lang_args[lang]
         return initial
 
-    def get_link_args(self, initial: T.List[str]) -> T.List[str]:
+    def get_link_args(self, initial: list[str]) -> list[str]:
         return initial + self.link_args
 
     def get_install(self, initial: bool) -> bool:
@@ -317,26 +317,26 @@ class SingleTargetOptions:
 class TargetOptions:
     def __init__(self) -> None:
         self.global_options = SingleTargetOptions()
-        self.target_options: T.Dict[str, SingleTargetOptions] = {}
+        self.target_options: dict[str, SingleTargetOptions] = {}
 
     def __getitem__(self, tgt: str) -> SingleTargetOptions:
         if tgt not in self.target_options:
             self.target_options[tgt] = SingleTargetOptions()
         return self.target_options[tgt]
 
-    def get_override_options(self, tgt: str, initial: T.List[str]) -> T.List[str]:
+    def get_override_options(self, tgt: str, initial: list[str]) -> list[str]:
         initial = self.global_options.get_override_options(initial)
         if tgt in self.target_options:
             initial = self.target_options[tgt].get_override_options(initial)
         return initial
 
-    def get_compile_args(self, tgt: str, lang: str, initial: T.List[str]) -> T.List[str]:
+    def get_compile_args(self, tgt: str, lang: str, initial: list[str]) -> list[str]:
         initial = self.global_options.get_compile_args(lang, initial)
         if tgt in self.target_options:
             initial = self.target_options[tgt].get_compile_args(lang, initial)
         return initial
 
-    def get_link_args(self, tgt: str, initial: T.List[str]) -> T.List[str]:
+    def get_link_args(self, tgt: str, initial: list[str]) -> list[str]:
         initial = self.global_options.get_link_args(initial)
         if tgt in self.target_options:
             initial = self.target_options[tgt].get_link_args(initial)

@@ -35,10 +35,10 @@ if T.TYPE_CHECKING:
     from .mesonlib import FileOrString, SubProject
     from .options import ElementaryOptionValues, MutableKeyedOptionDictType
 
-    OptionDictType = T.Dict[str, options.AnyOptionType]
-    CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], CompileCheckMode]
+    OptionDictType = dict[str, options.AnyOptionType]
+    CompilerCheckCacheKey = tuple[tuple[str, ...], str, FileOrString, tuple[str, ...], CompileCheckMode]
     # code, args
-    RunCheckCacheKey = T.Tuple[str, T.Tuple[str, ...]]
+    RunCheckCacheKey = tuple[str, tuple[str, ...]]
 
 # Check major_versions_differ() if changing versioning scheme.
 #
@@ -80,7 +80,7 @@ class DependencyCacheType(enum.Enum):
     CMAKE = 2
 
     @classmethod
-    def from_type(cls, dep: 'dependencies.Dependency') -> 'DependencyCacheType':
+    def from_type(cls, dep: dependencies.Dependency) -> DependencyCacheType:
         # As more types gain search overrides they'll need to be added here
         if dep.type_name == 'pkgconfig':
             return cls.PKG_CONFIG
@@ -93,18 +93,18 @@ class DependencySubCache:
 
     def __init__(self, type_: DependencyCacheType):
         self.types = [type_]
-        self.__cache: T.Dict[T.Tuple[str, ...], 'dependencies.Dependency'] = {}
+        self.__cache: dict[tuple[str, ...], dependencies.Dependency] = {}
 
-    def __getitem__(self, key: T.Tuple[str, ...]) -> 'dependencies.Dependency':
+    def __getitem__(self, key: tuple[str, ...]) -> dependencies.Dependency:
         return self.__cache[key]
 
-    def __setitem__(self, key: T.Tuple[str, ...], value: 'dependencies.Dependency') -> None:
+    def __setitem__(self, key: tuple[str, ...], value: dependencies.Dependency) -> None:
         self.__cache[key] = value
 
-    def __contains__(self, key: T.Tuple[str, ...]) -> bool:
+    def __contains__(self, key: tuple[str, ...]) -> bool:
         return key in self.__cache
 
-    def values(self) -> T.Iterable['dependencies.Dependency']:
+    def values(self) -> T.Iterable[dependencies.Dependency]:
         return self.__cache.values()
 
 
@@ -122,26 +122,26 @@ class DependencyCache:
         self.__pkg_conf_key = options.OptionKey('pkg_config_path', machine=for_machine)
         self.__cmake_key = options.OptionKey('cmake_prefix_path', machine=for_machine)
 
-    def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[str, ...]:
-        data: T.Dict[DependencyCacheType, T.List[str]] = {
-            DependencyCacheType.PKG_CONFIG: T.cast('T.List[str]', self.__builtins.get_value_for(self.__pkg_conf_key)),
-            DependencyCacheType.CMAKE: T.cast('T.List[str]', self.__builtins.get_value_for(self.__cmake_key)),
+    def __calculate_subkey(self, type_: DependencyCacheType) -> tuple[str, ...]:
+        data: dict[DependencyCacheType, list[str]] = {
+            DependencyCacheType.PKG_CONFIG: T.cast('list[str]', self.__builtins.get_value_for(self.__pkg_conf_key)),
+            DependencyCacheType.CMAKE: T.cast('list[str]', self.__builtins.get_value_for(self.__cmake_key)),
             DependencyCacheType.OTHER: [],
         }
         assert type_ in data, 'Someone forgot to update subkey calculations for a new type'
         return tuple(data[type_])
 
-    def __iter__(self) -> T.Iterator['TV_DepID']:
+    def __iter__(self) -> T.Iterator[TV_DepID]:
         return self.keys()
 
-    def put(self, key: 'TV_DepID', dep: 'dependencies.Dependency') -> None:
+    def put(self, key: TV_DepID, dep: dependencies.Dependency) -> None:
         t = DependencyCacheType.from_type(dep)
         if key not in self.__cache:
             self.__cache[key] = DependencySubCache(t)
         subkey = self.__calculate_subkey(t)
         self.__cache[key][subkey] = dep
 
-    def get(self, key: 'TV_DepID') -> T.Optional['dependencies.Dependency']:
+    def get(self, key: TV_DepID) -> dependencies.Dependency | None:
         """Get a value from the cache.
 
         If there is no cache entry then None will be returned.
@@ -159,16 +159,16 @@ class DependencyCache:
                 pass
         return None
 
-    def values(self) -> T.Iterator['dependencies.Dependency']:
+    def values(self) -> T.Iterator[dependencies.Dependency]:
         for c in self.__cache.values():
             yield from c.values()
 
-    def keys(self) -> T.Iterator['TV_DepID']:
+    def keys(self) -> T.Iterator[TV_DepID]:
         return iter(self.__cache.keys())
 
-    def items(self) -> T.Iterator[T.Tuple['TV_DepID', T.List['dependencies.Dependency']]]:
+    def items(self) -> T.Iterator[tuple[TV_DepID, list[dependencies.Dependency]]]:
         for k, v in self.__cache.items():
-            vs: T.List[dependencies.Dependency] = []
+            vs: list[dependencies.Dependency] = []
             for t in v.types:
                 subkey = self.__calculate_subkey(t)
                 if subkey in v:
@@ -187,22 +187,22 @@ class CMakeStateCache:
     """
 
     def __init__(self) -> None:
-        self.__cache: T.Dict[str, T.Dict[str, T.List[str]]] = {}
-        self.cmake_cache: T.Dict[str, 'CMakeCacheEntry'] = {}
+        self.__cache: dict[str, dict[str, list[str]]] = {}
+        self.cmake_cache: dict[str, CMakeCacheEntry] = {}
 
-    def __iter__(self) -> T.Iterator[T.Tuple[str, T.Dict[str, T.List[str]]]]:
+    def __iter__(self) -> T.Iterator[tuple[str, dict[str, list[str]]]]:
         return iter(self.__cache.items())
 
-    def items(self) -> T.Iterator[T.Tuple[str, T.Dict[str, T.List[str]]]]:
+    def items(self) -> T.Iterator[tuple[str, dict[str, list[str]]]]:
         return iter(self.__cache.items())
 
-    def update(self, language: str, variables: T.Dict[str, T.List[str]]) -> None:
+    def update(self, language: str, variables: dict[str, list[str]]) -> None:
         if language not in self.__cache:
             self.__cache[language] = {}
         self.__cache[language].update(variables)
 
     @property
-    def languages(self) -> T.Set[str]:
+    def languages(self) -> set[str]:
         return set(self.__cache.keys())
 
 
@@ -215,7 +215,7 @@ _V = T.TypeVar('_V')
 
 class CoreData:
 
-    def __init__(self, cmd_options: SharedCMDOptions, scratch_dir: str, meson_command: T.List[str]):
+    def __init__(self, cmd_options: SharedCMDOptions, scratch_dir: str, meson_command: list[str]):
         self.lang_guids = {
             'default': '8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942',
             'c': '8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942',
@@ -228,7 +228,7 @@ class CoreData:
         self.regen_guid = str(uuid.uuid4()).upper()
         self.install_guid = str(uuid.uuid4()).upper()
         self.meson_command = meson_command
-        self.target_guids: T.Dict[str, str] = {}
+        self.target_guids: dict[str, str] = {}
         self.version = version
         self.cross_files = self.__load_config_files(cmd_options, scratch_dir, 'cross')
         self.compilers: PerMachine[CompilerDict] = PerMachine(OrderedDict(), OrderedDict())
@@ -237,12 +237,12 @@ class CoreData:
         # Stores the (name, hash) of the options file, The name will be either
         # "meson_options.txt" or "meson.options".
         # This is used by mconf to reload the option file if it's changed.
-        self.options_files: T.Dict[SubProject, T.Optional[T.Tuple[str, str]]] = {}
+        self.options_files: dict[SubProject, tuple[str, str] | None] = {}
 
         # Set of subprojects that have already been initialized once, this is
         # required to be stored and reloaded with the coredata, as we don't
         # want to overwrite options for such subprojects.
-        self.initialized_subprojects: T.Set[str] = set()
+        self.initialized_subprojects: set[str] = set()
 
         # For host == build configurations these caches should be the same.
         self.deps: PerMachine[DependencyCache] = PerMachineDefaultable.default(
@@ -250,8 +250,8 @@ class CoreData:
             DependencyCache(self.optstore, MachineChoice.BUILD),
             DependencyCache(self.optstore, MachineChoice.HOST))
 
-        self.compiler_check_cache: T.Dict['CompilerCheckCacheKey', 'CompileResult'] = OrderedDict()
-        self.run_check_cache: T.Dict['RunCheckCacheKey', 'RunResult'] = OrderedDict()
+        self.compiler_check_cache: dict[CompilerCheckCacheKey, CompileResult] = OrderedDict()
+        self.run_check_cache: dict[RunCheckCacheKey, RunResult] = OrderedDict()
 
         # CMake cache
         self.cmake_cache: PerMachine[CMakeStateCache] = PerMachine(CMakeStateCache(), CMakeStateCache())
@@ -262,7 +262,7 @@ class CoreData:
         self.optstore.init_builtins()
 
     @staticmethod
-    def __load_config_files(cmd_options: SharedCMDOptions, scratch_dir: str, ftype: str) -> T.List[str]:
+    def __load_config_files(cmd_options: SharedCMDOptions, scratch_dir: str, ftype: str) -> list[str]:
         # Need to try and make the passed filenames absolute because when the
         # files are parsed later we'll have chdir()d.
         if ftype == 'cross':
@@ -273,9 +273,9 @@ class CoreData:
         if not filenames:
             return []
 
-        found_invalid: T.List[str] = []
-        missing: T.List[str] = []
-        real: T.List[str] = []
+        found_invalid: list[str] = []
+        missing: list[str] = []
+        real: list[str] = []
         for i, f in enumerate(filenames):
             f = os.path.expanduser(os.path.expandvars(f))
             if os.path.exists(f):
@@ -340,7 +340,7 @@ class CoreData:
                 'Default project to execute in Visual Studio',
                 ''))
 
-    def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
+    def get_option_for_target(self, target: BuildTarget, key: str | OptionKey) -> ElementaryOptionValues:
         if isinstance(key, str):
             assert ':' not in key
             newkey = OptionKey(key, target.subproject)
@@ -371,8 +371,8 @@ class CoreData:
         self.compiler_check_cache.clear()
         self.run_check_cache.clear()
 
-    def get_nondefault_buildtype_args(self) -> T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]]:
-        result: T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]] = []
+    def get_nondefault_buildtype_args(self) -> list[tuple[str, str, str] | tuple[str, bool, bool]]:
+        result: list[tuple[str, str, str] | tuple[str, bool, bool]] = []
         value = self.optstore.get_value_for('buildtype')
         if value == 'plain':
             opt = 'plain'

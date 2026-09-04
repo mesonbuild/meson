@@ -20,7 +20,7 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-ti_optimization_args: T.Dict[str, T.List[str]] = {
+ti_optimization_args: dict[str, list[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-Ooff'],
@@ -30,7 +30,7 @@ ti_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-O4']
 }
 
-ti_debug_args: T.Dict[bool, T.List[str]] = {
+ti_debug_args: dict[bool, list[str]] = {
     False: [],
     True: ['-g']
 }
@@ -51,15 +51,15 @@ class TICompiler(Compiler):
         self.can_compile_suffixes.add('asm')    # Assembly
         self.can_compile_suffixes.add('cla')    # Control Law Accelerator (CLA) used in C2000
 
-        default_warn_args: T.List[str] = []
-        self.warn_args: T.Dict[str, T.List[str]] = {
+        default_warn_args: list[str] = []
+        self.warn_args: dict[str, list[str]] = {
             '0': [],
             '1': default_warn_args,
             '2': default_warn_args + [],
             '3': default_warn_args + [],
             'everything': default_warn_args + []}
 
-    def get_pic_args(self) -> T.List[str]:
+    def get_pic_args(self) -> list[str]:
         # PIC support is not enabled by default for TI compilers,
         # if users want to use it, they need to add the required arguments explicitly
         return []
@@ -67,47 +67,47 @@ class TICompiler(Compiler):
     def get_pch_suffix(self) -> str:
         return 'pch'
 
-    def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
+    def get_pch_use_args(self, pch_dir: str, header: str) -> list[str]:
         return []
 
-    def thread_flags(self) -> T.List[str]:
+    def thread_flags(self) -> list[str]:
         return []
 
-    def get_coverage_args(self) -> T.List[str]:
+    def get_coverage_args(self) -> list[str]:
         return []
 
-    def get_no_stdinc_args(self) -> T.List[str]:
+    def get_no_stdinc_args(self) -> list[str]:
         return []
 
-    def get_no_stdlib_link_args(self) -> T.List[str]:
+    def get_no_stdlib_link_args(self) -> list[str]:
         return []
 
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> list[str]:
         return ti_optimization_args[optimization_level]
 
-    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+    def get_debug_args(self, is_debug: bool) -> list[str]:
         return ti_debug_args[is_debug]
 
-    def get_compile_only_args(self) -> T.List[str]:
+    def get_compile_only_args(self) -> list[str]:
         return []
 
-    def get_no_optimization_args(self) -> T.List[str]:
+    def get_no_optimization_args(self) -> list[str]:
         return ['-Ooff']
 
-    def get_output_args(self, outputname: str) -> T.List[str]:
+    def get_output_args(self, outputname: str) -> list[str]:
         return [f'--output_file={outputname}']
 
-    def get_werror_args(self) -> T.List[str]:
+    def get_werror_args(self) -> list[str]:
         return ['--emit_warnings_as_errors']
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, is_system: bool) -> list[str]:
         if path == '':
             path = '.'
         return ['-I' + path]
 
     @classmethod
-    def _unix_args_to_native(cls, args: T.List[str], info: MachineInfo) -> T.List[str]:
-        result: T.List[str] = []
+    def _unix_args_to_native(cls, args: list[str], info: MachineInfo) -> list[str]:
+        result: list[str] = []
         for i in args:
             if i.startswith('-Wl,-rpath='):
                 continue
@@ -118,7 +118,7 @@ class TICompiler(Compiler):
             result.append(i)
         return result
 
-    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
+    def compute_parameters_with_absolute_paths(self, parameter_list: list[str], build_dir: str) -> list[str]:
         for idx, i in enumerate(parameter_list):
             if i[:15] == '--include_path=':
                 parameter_list[idx] = i[:15] + os.path.normpath(os.path.join(build_dir, i[15:]))
@@ -127,5 +127,5 @@ class TICompiler(Compiler):
 
         return parameter_list
 
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> list[str]:
         return ['--preproc_with_compile', f'--preproc_dependency={outfile}']

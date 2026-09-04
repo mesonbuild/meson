@@ -25,8 +25,8 @@ class RefmanLinksExtension(Extension):
     def __init__(self, app: Application, project: Project):
         self.project: Project
         super().__init__(app, project)
-        self._data_file: T.Optional[Path] = None
-        self._data: T.Dict[str, str] = {}
+        self._data_file: Path | None = None
+        self._data: dict[str, str] = {}
 
     @staticmethod
     def add_arguments(parser: 'argparse.ArgumentParser'):
@@ -42,7 +42,7 @@ class RefmanLinksExtension(Extension):
             default=None,
         )
 
-    def parse_config(self, config: T.Dict[str, T.Any]) -> None:
+    def parse_config(self, config: dict[str, T.Any]) -> None:
         super().parse_config(config)
         self._data_file = config.get('refman_data_file')
 
@@ -135,11 +135,11 @@ class RefmanLinksExtension(Extension):
 
     def create_symbol(self, *args, **kwargs):
         kwargs['language'] = 'meson'
-        return super(RefmanLinksExtension, self).create_symbol(*args, **kwargs)
+        return super().create_symbol(*args, **kwargs)
 
     @staticmethod
-    def get_dependencies() -> T.List[T.Type[Extension]]:
+    def get_dependencies() -> list[type[Extension]]:
         return []  # In case this extension has dependencies on other extensions
 
-def get_extension_classes() -> T.List[T.Type[Extension]]:
+def get_extension_classes() -> list[type[Extension]]:
     return [RefmanLinksExtension]

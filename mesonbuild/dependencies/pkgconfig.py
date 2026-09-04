@@ -8,7 +8,7 @@ import re
 import shlex
 import typing as T
 from enum import Enum
-from functools import lru_cache
+from functools import cache
 from pathlib import Path, PurePath
 
 from .. import mlog
@@ -28,7 +28,7 @@ from ..programs import ExternalProgram, find_external_program
 from .base import DependencyException, DependencyTypeName, ExternalDependency, sort_libpaths
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing import Literal
 
     from .._typing import ImmutableListProtocol
     from ..environment import Environment
@@ -40,9 +40,9 @@ class PkgConfigInterface:
     '''Base class wrapping a pkg-config implementation'''
 
     # keyed on machine and extra_paths
-    class_impl: PerMachine[T.Dict[T.Optional[T.Tuple[str, ...]], T.Union[Literal[False], T.Optional[PkgConfigInterface]]]] = PerMachine({}, {})
-    class_cli_impl: PerMachine[T.Dict[T.Optional[T.Tuple[str, ...]], T.Union[Literal[False], T.Optional[PkgConfigCLI]]]] = PerMachine({}, {})
-    pkg_bin_per_machine: PerMachine[T.Optional[ExternalProgram]] = PerMachine(None, None)
+    class_impl: PerMachine[dict[tuple[str, ...] | None, Literal[False] | PkgConfigInterface | None]] = PerMachine({}, {})
+    class_cli_impl: PerMachine[dict[tuple[str, ...] | None, Literal[False] | PkgConfigCLI | None]] = PerMachine({}, {})
+    pkg_bin_per_machine: PerMachine[ExternalProgram | None] = PerMachine(None, None)
 
     @staticmethod
     def set_program_override(pkg_bin: ExternalProgram, for_machine: MachineChoice) -> None:
@@ -53,7 +53,7 @@ class PkgConfigInterface:
 
     @staticmethod
     def instance(env: Environment, for_machine: MachineChoice, silent: bool,
-                 extra_paths: T.Optional[T.List[str]] = None) -> T.Optional[PkgConfigInterface]:
+                 extra_paths: list[str] | None = None) -> PkgConfigInterface | None:
         '''Return a pkg-config implementation singleton'''
         extra_paths_key = tuple(extra_paths) if extra_paths is not None else None
         impl = PkgConfigInterface.class_impl[for_machine].get(extra_paths_key, False)
@@ -68,13 +68,13 @@ class PkgConfigInterface:
 
     @staticmethod
     def _cli(env: Environment, for_machine: MachineChoice,
-             extra_paths: T.Optional[T.List[str]] = None,
-             silent: bool = False) -> T.Optional[PkgConfigCLI]:
+             extra_paths: list[str] | None = None,
+             silent: bool = False) -> PkgConfigCLI | None:
         '''Return the CLI pkg-config implementation singleton
         Even when we use another implementation internally, external tools might
         still need the CLI implementation.
         '''
-        impl: T.Union[Literal[False], T.Optional[PkgConfigInterface]] # Help confused mypy
+        impl: Literal[False] | PkgConfigInterface | None # Help confused mypy
         impl = PkgConfigInterface.instance(env, for_machine, silent)
         if impl and not isinstance(impl, PkgConfigCLI):
             extra_paths_key = tuple(extra_paths) if extra_paths is not None else None
@@ -84,11 +84,11 @@ class PkgConfigInterface:
                 if not impl.found():
                     impl = None
                 PkgConfigInterface.class_cli_impl[for_machine][extra_paths_key] = impl
-        return T.cast('T.Optional[PkgConfigCLI]', impl) # Trust me, mypy
+        return T.cast('PkgConfigCLI | None', impl) # Trust me, mypy
 
     @staticmethod
     def get_env(env: Environment, for_machine: MachineChoice, uninstalled: bool = False,
-                extra_paths: T.Optional[T.List[str]] = None) -> EnvironmentVariables:
+                extra_paths: list[str] | None = None) -> EnvironmentVariables:
         cli = PkgConfigInterface._cli(env, for_machine, extra_paths)
         return cli._get_env(uninstalled) if cli else EnvironmentVariables()
 
@@ -106,7 +106,7 @@ class PkgConfigInterface:
         '''Return whether pkg-config is supported'''
         raise NotImplementedError
 
-    def version(self, name: str) -> T.Optional[str]:
+    def version(self, name: str) -> str | None:
         '''Return module version or None if not found'''
         raise NotImplementedError
 
@@ -126,7 +126,7 @@ class PkgConfigInterface:
         raise NotImplementedError
 
     def variable(self, name: str, variable_name: str,
-                 define_variable: PkgConfigDefineType) -> T.Optional[str]:
+                 define_variable: PkgConfigDefineType) -> str | None:
         '''Return module variable or None if variable is not defined'''
         raise NotImplementedError
 
@@ -147,8 +147,8 @@ class PkgConfigCLI(PkgConfigInterface):
     '''pkg-config CLI implementation'''
 
     def __init__(self, env: Environment, for_machine: MachineChoice, silent: bool,
-                 pkgbin: T.Optional[ExternalProgram] = None,
-                 extra_paths: T.Optional[T.List[str]] = None) -> None:
+                 pkgbin: ExternalProgram | None = None,
+                 extra_paths: list[str] | None = None) -> None:
         super().__init__(env, for_machine)
         self._detect_pkgbin(pkgbin)
         if self.pkgbin and not silent:
@@ -158,28 +158,28 @@ class PkgConfigCLI(PkgConfigInterface):
     def found(self) -> bool:
         return bool(self.pkgbin)
 
-    @lru_cache(maxsize=None)
-    def version(self, name: str) -> T.Optional[str]:
+    @cache
+    def version(self, name: str) -> str | None:
         mlog.debug(f'Determining dependency {name!r} with pkg-config executable {self.pkgbin.get_path()!r}')
         ret, version, _ = self._call_pkgbin(['--modversion', name])
         return version if ret == 0 else None
 
     @staticmethod
-    def _define_variable_args(define_variable: PkgConfigDefineType) -> T.List[str]:
+    def _define_variable_args(define_variable: PkgConfigDefineType) -> list[str]:
         ret = []
         if define_variable:
             for pair in define_variable:
                 ret.append('--define-variable=' + '='.join(pair))
         return ret
 
-    @lru_cache(maxsize=None)
+    @cache
     def cflags(self, name: str, static: bool = False, allow_system: bool = False,
                define_variable: PkgConfigDefineType = None) -> ImmutableListProtocol[str]:
         env = None
         if allow_system:
             env = os.environ.copy()
             env['PKG_CONFIG_ALLOW_SYSTEM_CFLAGS'] = '1'
-        args: T.List[str] = []
+        args: list[str] = []
         args += self._define_variable_args(define_variable)
         if static:
             args.append('--static')
@@ -189,14 +189,14 @@ class PkgConfigCLI(PkgConfigInterface):
             raise DependencyException(f'Could not generate cflags for {name}:\n{err}\n')
         return self._split_args(out)
 
-    @lru_cache(maxsize=None)
+    @cache
     def libs(self, name: str, static: bool = False, allow_system: bool = False,
              define_variable: PkgConfigDefineType = None) -> ImmutableListProtocol[str]:
         env = None
         if allow_system:
             env = os.environ.copy()
             env['PKG_CONFIG_ALLOW_SYSTEM_LIBS'] = '1'
-        args: T.List[str] = []
+        args: list[str] = []
         args += self._define_variable_args(define_variable)
         if static:
             args.append('--static')
@@ -206,10 +206,10 @@ class PkgConfigCLI(PkgConfigInterface):
             raise DependencyException(f'Could not generate libs for {name}:\n{err}\n')
         return self._split_args(out)
 
-    @lru_cache(maxsize=None)
+    @cache
     def variable(self, name: str, variable_name: str,
-                 define_variable: PkgConfigDefineType) -> T.Optional[str]:
-        args: T.List[str] = []
+                 define_variable: PkgConfigDefineType) -> str | None:
+        args: list[str] = []
         args += self._define_variable_args(define_variable)
         args += ['--variable=' + variable_name, name]
         ret, out, err = self._call_pkgbin(args)
@@ -225,7 +225,7 @@ class PkgConfigCLI(PkgConfigInterface):
         mlog.debug(f'Got pkg-config variable {variable_name} : {variable}')
         return variable
 
-    @lru_cache(maxsize=None)
+    @cache
     def list_all(self) -> ImmutableListProtocol[str]:
         ret, out, err = self._call_pkgbin(['--list-all'])
         if ret != 0:
@@ -233,12 +233,12 @@ class PkgConfigCLI(PkgConfigInterface):
         return [i.split(' ', 1)[0] for i in out.splitlines()]
 
     @staticmethod
-    def _split_args(cmd: str) -> T.List[str]:
+    def _split_args(cmd: str) -> list[str]:
         # pkg-config paths follow Unix conventions, even on Windows; split the
         # output using shlex.split rather than mesonlib.split_args
         return shlex.split(cmd)
 
-    def _detect_pkgbin(self, pkgbin: T.Optional[ExternalProgram] = None) -> None:
+    def _detect_pkgbin(self, pkgbin: ExternalProgram | None = None) -> None:
         def validate(potential_pkgbin: ExternalProgram) -> bool:
             version_if_ok = self._check_pkgconfig(potential_pkgbin)
             if version_if_ok:
@@ -256,7 +256,7 @@ class PkgConfigCLI(PkgConfigInterface):
                 return
         self.pkgbin = None
 
-    def _check_pkgconfig(self, pkgbin: ExternalProgram) -> T.Optional[str]:
+    def _check_pkgconfig(self, pkgbin: ExternalProgram) -> str | None:
         if not pkgbin.found():
             mlog.log(f'Did not find pkg-config by name {pkgbin.name!r}')
             return None
@@ -292,7 +292,7 @@ class PkgConfigCLI(PkgConfigInterface):
         key = OptionKey('pkg_config_path', machine=self.for_machine)
         pathlist = self.env.coredata.optstore.get_value_for(key)
         assert isinstance(pathlist, list)
-        extra_paths: T.List[str] = pathlist + self.extra_paths
+        extra_paths: list[str] = pathlist + self.extra_paths
         if uninstalled:
             bpath = self.env.get_build_dir()
             if bpath is not None:
@@ -310,7 +310,7 @@ class PkgConfigCLI(PkgConfigInterface):
         env.set('PKG_CONFIG', [join_args(self.pkgbin.get_command())])
         return env
 
-    def _setup_env(self, env: EnvironOrDict, uninstalled: bool = False) -> T.Dict[str, str]:
+    def _setup_env(self, env: EnvironOrDict, uninstalled: bool = False) -> dict[str, str]:
         envvars = self._get_env(uninstalled)
         env = envvars.get_env(env)
         # Dump all PKG_CONFIG environment variables
@@ -319,7 +319,7 @@ class PkgConfigCLI(PkgConfigInterface):
                 mlog.debug(f'env[{key}]: {value}')
         return env
 
-    def _call_pkgbin(self, args: T.List[str], env: T.Optional[EnvironOrDict] = None) -> T.Tuple[int, str, str]:
+    def _call_pkgbin(self, args: list[str], env: EnvironOrDict | None = None) -> tuple[int, str, str]:
         assert isinstance(self.pkgbin, ExternalProgram)
         env = env or os.environ
         env = self._setup_env(env)
@@ -333,7 +333,7 @@ class PkgConfigDependency(ExternalDependency):
     type_name = DependencyTypeName('pkgconfig')
 
     def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs,
-                 extra_paths: T.Optional[T.List[str]] = None) -> None:
+                 extra_paths: list[str] | None = None) -> None:
         super().__init__(name, environment, kwargs)
         self.is_libtool = False
         self.extra_paths = extra_paths or []
@@ -373,7 +373,7 @@ class PkgConfigDependency(ExternalDependency):
         return s.format(self.__class__.__name__, self.name, self.is_found,
                         self.version_reqs)
 
-    def _convert_mingw_paths(self, args: ImmutableListProtocol[str]) -> T.List[str]:
+    def _convert_mingw_paths(self, args: ImmutableListProtocol[str]) -> list[str]:
         '''
         Both MSVC and native Python on Windows cannot handle MinGW-esque /c/foo
         paths so convert them to C:/foo. We cannot resolve other paths starting
@@ -384,7 +384,7 @@ class PkgConfigDependency(ExternalDependency):
             return args.copy()
         converted = []
         for arg in args:
-            pargs: T.Tuple[str, ...] = tuple()
+            pargs: tuple[str, ...] = tuple()
             # Library search path
             if arg.startswith('-L/'):
                 pargs = PurePath(arg[2:]).parts
@@ -413,7 +413,7 @@ class PkgConfigDependency(ExternalDependency):
         cflags = self.pkgconfig.cflags(self.name, self.static, allow_system)
         self.compile_args = self._convert_mingw_paths(cflags)
 
-    def _search_libs(self, libs_in: ImmutableListProtocol[str], raw_libs_in: ImmutableListProtocol[str]) -> T.Tuple[T.List[str], T.List[str]]:
+    def _search_libs(self, libs_in: ImmutableListProtocol[str], raw_libs_in: ImmutableListProtocol[str]) -> tuple[list[str], list[str]]:
         '''
         @libs_in: PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 pkg-config --libs
         @raw_libs_in: pkg-config --libs
@@ -457,7 +457,7 @@ class PkgConfigDependency(ExternalDependency):
         #
         # Only prefix_libpaths are reordered here because there should not be
         # too many system_libpaths to cause library version issues.
-        pkg_config_path: T.List[str] = self.env.coredata.optstore.get_value_for(OptionKey('pkg_config_path', machine=self.for_machine)) # type: ignore[assignment]
+        pkg_config_path: list[str] = self.env.coredata.optstore.get_value_for(OptionKey('pkg_config_path', machine=self.for_machine)) # type: ignore[assignment]
         pkg_config_path = self._convert_mingw_paths(pkg_config_path)
         prefix_libpaths = OrderedSet(sort_libpaths(list(prefix_libpaths), pkg_config_path))
         system_libpaths: OrderedSet[str] = OrderedSet()
@@ -502,8 +502,8 @@ class PkgConfigDependency(ExternalDependency):
                     if lib in libs_notfound:
                         continue
                     else:
-                        mlog.warning('Library {!r} not found for dependency {!r}, may '
-                                     'not be successfully linked'.format(libfilename, self.name))
+                        mlog.warning(f'Library {libfilename!r} not found for dependency {self.name!r}, may '
+                                     'not be successfully linked')
                     libs_notfound.append(lib)
                 else:
                     lib = foundname
@@ -543,8 +543,8 @@ class PkgConfigDependency(ExternalDependency):
                     if lib in libs_notfound:
                         continue
                     if self.static:
-                        mlog.warning('Static library {!r} not found for dependency {!r}, may '
-                                     'not be statically linked'.format(lib[2:], self.name))
+                        mlog.warning(f'Static library {lib[2:]!r} not found for dependency {self.name!r}, may '
+                                     'not be statically linked')
                     libs_notfound.append(lib)
             elif lib.endswith(".la"):
                 shared_libname = self.extract_libtool_shlib(lib)
@@ -578,7 +578,7 @@ class PkgConfigDependency(ExternalDependency):
         raw_libs = self.pkgconfig.libs(self.name, self.static, allow_system=False)
         self.link_args, self.raw_link_args = self._search_libs(libs, raw_libs)
 
-    def extract_field(self, la_file: str, fieldname: str) -> T.Optional[str]:
+    def extract_field(self, la_file: str, fieldname: str) -> str | None:
         with open(la_file, encoding='utf-8') as f:
             for line in f:
                 arr = line.strip().split('=', 1)
@@ -586,13 +586,13 @@ class PkgConfigDependency(ExternalDependency):
                     return arr[1][1:-1]
         return None
 
-    def extract_dlname_field(self, la_file: str) -> T.Optional[str]:
+    def extract_dlname_field(self, la_file: str) -> str | None:
         return self.extract_field(la_file, 'dlname')
 
-    def extract_libdir_field(self, la_file: str) -> T.Optional[str]:
+    def extract_libdir_field(self, la_file: str) -> str | None:
         return self.extract_field(la_file, 'libdir')
 
-    def extract_libtool_shlib(self, la_file: str) -> T.Optional[str]:
+    def extract_libtool_shlib(self, la_file: str) -> str | None:
         '''
         Returns the path to the shared library
         corresponding to this .la file
@@ -613,9 +613,9 @@ class PkgConfigDependency(ExternalDependency):
         # a path rather than the raw dlname
         return os.path.basename(dlname)
 
-    def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
-                     configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
-                     system: T.Optional[str] = None, default_value: T.Optional[str] = None,
+    def get_variable(self, *, cmake: str | None = None, pkgconfig: str | None = None,
+                     configtool: str | None = None, internal: str | None = None,
+                     system: str | None = None, default_value: str | None = None,
                      pkgconfig_define: PkgConfigDefineType = None) -> str:
         if pkgconfig:
             try:

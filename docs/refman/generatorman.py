@@ -79,7 +79,7 @@ class GeneratorMan(GeneratorBase):
         super().__init__(manual)
         self.out = out
         self.enable_modules = enable_modules
-        self.links: T.List[str] = []
+        self.links: list[str] = []
 
     def generate_description(self, page: ManPage, desc: str) -> None:
         def italicise(match: T.Match[str]) -> str:
@@ -198,8 +198,8 @@ class GeneratorMan(GeneratorBase):
             page.line(prefix + sig + suffix)
 
     def base_info(
-        self, x: T.Union[PosArg, VarArgs, Kwarg, Function, Object]
-    ) -> T.List[str]:
+        self, x: PosArg | VarArgs | Kwarg | Function | Object
+    ) -> list[str]:
         info = []
         if x.deprecated:
             info += [ManPage.bold("deprecated") + f" since {x.deprecated}"]
@@ -211,7 +211,7 @@ class GeneratorMan(GeneratorBase):
     def generate_function_arg(
         self,
         page: ManPage,
-        arg: T.Union[PosArg, VarArgs, Kwarg],
+        arg: PosArg | VarArgs | Kwarg,
         isOptarg: bool = False,
     ) -> None:
         required = (
@@ -247,7 +247,7 @@ class GeneratorMan(GeneratorBase):
         self,
         page: ManPage,
         name: str,
-        args: T.Sequence[T.Union[PosArg, VarArgs, Kwarg]],
+        args: T.Sequence[PosArg | VarArgs | Kwarg],
         isOptarg: bool = False,
     ) -> None:
         if not args:
@@ -260,7 +260,7 @@ class GeneratorMan(GeneratorBase):
         page.unindent()
 
     def generate_sub_sub_section(
-        self, page: ManPage, name: str, text: T.List[str], process: bool = True
+        self, page: ManPage, name: str, text: list[str], process: bool = True
     ) -> None:
         page.line(ManPage.bold(name))
         page.indent()

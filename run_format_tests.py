@@ -21,9 +21,9 @@ def check_file(file: Path) -> None:
     tabdetector = re.compile(br' *\t')
     for i, line in enumerate(lines):
         if re.match(tabdetector, line):
-            raise SystemExit("File {} contains a tab indent on line {:d}. Only spaces are permitted.".format(file, i + 1))
+            raise SystemExit(f"File {file} contains a tab indent on line {i + 1:d}. Only spaces are permitted.")
         if line.endswith(b'\r'):
-            raise SystemExit("File {} contains DOS line ending on line {:d}. Only unix-style line endings are permitted.".format(file, i + 1))
+            raise SystemExit(f"File {file} contains DOS line ending on line {i + 1:d}. Only unix-style line endings are permitted.")
 
 def check_format() -> None:
     check_suffixes = {'.c',

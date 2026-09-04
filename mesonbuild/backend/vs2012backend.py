@@ -15,7 +15,7 @@ class Vs2012Backend(Vs2010Backend):
 
     name = 'vs2012'
 
-    def __init__(self, build: T.Optional[Build]):
+    def __init__(self, build: Build | None):
         super().__init__(build)
         self.vs_version = '2012'
         self.sln_file_version = '12.00'

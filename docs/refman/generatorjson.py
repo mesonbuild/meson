@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import re
-import typing as T
 from pathlib import Path
 
 from . import jsonschema as J
@@ -26,7 +25,7 @@ class GeneratorJSON(GeneratorBase):
         self.out = out
         self.enable_modules = enable_modules
 
-    def _generate_type(self, typ: Type) -> T.List[J.Type]:
+    def _generate_type(self, typ: Type) -> list[J.Type]:
         return [
             {
                 'obj': x.data_type.name,
@@ -39,7 +38,7 @@ class GeneratorJSON(GeneratorBase):
         # Remove all whitespaces
         return re.sub(r'[ \n\r\t]', '', typ.raw)
 
-    def _generate_arg(self, arg: T.Union[PosArg, VarArgs, Kwarg], isOptarg: bool = False) -> J.Argument:
+    def _generate_arg(self, arg: PosArg | VarArgs | Kwarg, isOptarg: bool = False) -> J.Argument:
         return {
             'name': arg.name,
             'description': arg.description,

@@ -36,7 +36,7 @@ if T.TYPE_CHECKING:
     from mesonbuild.compilers import Compiler
 
 
-@functools.lru_cache()
+@functools.lru_cache
 def is_real_gnu_compiler(path):
     '''
     Check if the gcc we have is a real gcc and not a macOS wrapper around clang
@@ -94,7 +94,7 @@ class NativeFileTests(BasePlatformTests):
         self.current_config = 0
         self.current_wrapper = 0
 
-    def helper_create_native_file(self, values: T.Dict[str, T.Dict[str, T.Union[str, int, float, bool, T.Sequence[T.Union[str, int, float, bool]]]]]) -> str:
+    def helper_create_native_file(self, values: dict[str, dict[str, str | int | float | bool | T.Sequence[str | int | float | bool]]]) -> str:
         """Create a config file as a temporary file.
 
         values should be a nested dictionary structure of {section: {key:
@@ -102,7 +102,7 @@ class NativeFileTests(BasePlatformTests):
         """
         filename = os.path.join(self.builddir, f'generated{self.current_config}.config')
         self.current_config += 1
-        with open(filename, 'wt', encoding='utf-8') as f:
+        with open(filename, 'w', encoding='utf-8') as f:
             for section, entries in values.items():
                 f.write(f'[{section}]\n')
                 for k, v in entries.items():
@@ -124,26 +124,26 @@ class NativeFileTests(BasePlatformTests):
         else:
             chbang = '#!/usr/bin/env python3'
 
-        with open(filename, 'wt', encoding='utf-8') as f:
-            f.write(textwrap.dedent('''\
-                {}
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(textwrap.dedent(f'''\
+                {chbang}
                 import argparse
                 import subprocess
                 import sys
 
                 def main():
                     parser = argparse.ArgumentParser()
-                '''.format(chbang)))
+                '''))
             for name in chain(extra_args, kwargs):
-                f.write('    parser.add_argument("-{0}", "--{0}", action="store_true")\n'.format(name))
+                f.write(f'    parser.add_argument("-{name}", "--{name}", action="store_true")\n')
             f.write('    args, extra_args = parser.parse_known_args()\n')
             for name, value in chain(extra_args.items(), kwargs.items()):
                 f.write(f'    if args.{name}:\n')
                 f.write('        print("{}", file=sys.{})\n'.format(value, kwargs.get('outfile', 'stdout')))
                 f.write('        sys.exit(0)\n')
-            f.write(textwrap.dedent('''
+            f.write(textwrap.dedent(f'''
                     ret = subprocess.run(
-                        ["{}"] + extra_args,
+                        ["{binary}"] + extra_args,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE)
                     print(ret.stdout.decode('utf-8'))
@@ -152,7 +152,7 @@ class NativeFileTests(BasePlatformTests):
 
                 if __name__ == '__main__':
                     main()
-                '''.format(binary)))
+                '''))
 
         if not is_windows():
             os.chmod(filename, 0o755)
@@ -162,7 +162,7 @@ class NativeFileTests(BasePlatformTests):
         # invoke python files itself, so instead we generate a .bat file, which
         # invokes our python wrapper
         batfile = os.path.join(self.builddir, f'binary_wrapper{self.current_wrapper}.bat')
-        with open(batfile, 'wt', encoding='utf-8') as f:
+        with open(batfile, 'w', encoding='utf-8') as f:
             f.write(fr'@{sys.executable} {filename} %*')
         return batfile
 
@@ -679,10 +679,10 @@ class NativeFileTests(BasePlatformTests):
         })
 
         self.init(testcase, extra_args=['--native-file', config])
-        targets: T.List[T.Dict[str, T.Any]] = self.introspect('--targets')
+        targets: list[dict[str, T.Any]] = self.introspect('--targets')
         for t in targets:
             if t['id'].startswith('rustmod-bindgen'):
-                args: T.List[str] = t['target_sources'][0]['compiler']
+                args: list[str] = t['target_sources'][0]['compiler']
                 self.assertIn('sentinel', args, msg="Did not find machine file value")
                 cargs_start = args.index('--')
                 sent_arg = args.index('sentinel')
@@ -706,7 +706,7 @@ class CrossFileTests(BasePlatformTests):
         self.current_wrapper = 0
 
     def _cross_file_generator(self, *, needs_exe_wrapper: bool = False,
-                              exe_wrapper: T.Optional[T.List[str]] = None) -> str:
+                              exe_wrapper: list[str] | None = None) -> str:
         if is_windows():
             raise SkipTest('Cannot run this test on non-mingw/non-cygwin windows')
 
@@ -830,7 +830,7 @@ class CrossFileTests(BasePlatformTests):
                         self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
                         self.wipe()
 
-    def helper_create_cross_file(self, values: T.Dict[str, T.Dict[str, T.Any]]) -> str:
+    def helper_create_cross_file(self, values: dict[str, dict[str, T.Any]]) -> str:
         """Create a config file as a temporary file.
 
         values should be a nested dictionary structure of {section: {key:
@@ -838,7 +838,7 @@ class CrossFileTests(BasePlatformTests):
         """
         filename = os.path.join(self.builddir, f'generated{self.current_config}.config')
         self.current_config += 1
-        with open(filename, 'wt', encoding='utf-8') as f:
+        with open(filename, 'w', encoding='utf-8') as f:
             for section, entries in values.items():
                 f.write(f'[{section}]\n')
                 for k, v in entries.items():
@@ -1068,7 +1068,7 @@ class CrossFileTests(BasePlatformTests):
     def test_bindgen_finds_target_in_clang_options(self) -> None:
         testcase = os.path.join(self.unit_test_dir, '135 minimal bindgen')
 
-        def check_target(include: T.Optional[str], exclude: T.Optional[str] = None) -> None:
+        def check_target(include: str | None, exclude: str | None = None) -> None:
             configuration = self.introspect('--targets')
             for each in configuration:
                 if each['name'].startswith('rustmod-bindgen'):
@@ -1088,7 +1088,7 @@ class CrossFileTests(BasePlatformTests):
 
         rustc = shutil.which('rustc')
         assert rustc is not None, 'Should have skipped'
-        build_tuple = subprocess.run([rustc, '--print', 'host-tuple'], universal_newlines=True, check=True, capture_output=True).stdout.strip()
+        build_tuple = subprocess.run([rustc, '--print', 'host-tuple'], text=True, check=True, capture_output=True).stdout.strip()
         host_tuple = 'aarch64-unknown-linux-gnu'
 
         with self.subTest('properties only'):

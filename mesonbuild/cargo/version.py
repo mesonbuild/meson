@@ -8,7 +8,7 @@ from __future__ import annotations
 import operator
 import re
 import typing as T
-from functools import lru_cache
+from functools import cache
 
 from ..mesonlib import MesonException
 
@@ -56,7 +56,7 @@ def api(cargo_ver: str) -> str:
         major version (or ``"0.x"`` / ``"0"`` for 0.x.y / 0.0.x versions).
         Raise exception if constraints disagree on the API.
     """
-    apis: T.Set[str] = set()
+    apis: set[str] = set()
     for op, ver in split(cargo_ver):
         if op in {'>=', '=', '^', '~'}:
             apis.add(_api_of(ver))
@@ -194,7 +194,7 @@ class SemVer:
         return SemVer(v)
 
 
-@lru_cache(maxsize=None)
+@cache
 def cargo_parse(cargo_ver: str) -> T.Callable[[str], bool]:
     """Return a function that checks a Version against a Cargo version
        requirement.

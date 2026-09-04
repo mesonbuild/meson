@@ -25,18 +25,18 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
 
     language = 'objcpp'
 
-    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
+    def __init__(self, ccache: list[str], exelist: list[str], version: str, for_machine: MachineChoice,
                  env: Environment,
-                 linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None):
+                 linker: DynamicLinker | None = None,
+                 full_version: str | None = None):
         Compiler.__init__(self, ccache, exelist, version, for_machine, env,
                           full_version=full_version, linker=linker)
         CLikeCompiler.__init__(self)
 
-    def get_no_stdinc_args(self) -> T.List[str]:
+    def get_no_stdinc_args(self) -> list[str]:
         return ['-nostdinc++']
 
-    def get_no_stdlib_link_args(self) -> T.List[str]:
+    def get_no_stdlib_link_args(self) -> list[str]:
         return ['-nostdlib++']
 
     def form_compileropt_key(self, basename: str) -> OptionKey:
@@ -66,11 +66,11 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
 
 
 class GnuObjCPPCompiler(GnuCPPStds, GnuCompiler, ObjCPPCompiler):
-    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
+    def __init__(self, ccache: list[str], exelist: list[str], version: str, for_machine: MachineChoice,
                  env: Environment,
-                 defines: T.Optional[T.Dict[str, str]] = None,
-                 linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None):
+                 defines: dict[str, str] | None = None,
+                 linker: DynamicLinker | None = None,
+                 full_version: str | None = None):
         ObjCPPCompiler.__init__(self, ccache, exelist, version, for_machine,
                                 env, linker=linker, full_version=full_version)
         GnuCompiler.__init__(self, defines)
@@ -83,8 +83,8 @@ class GnuObjCPPCompiler(GnuCPPStds, GnuCompiler, ObjCPPCompiler):
                                          self.supported_warn_args(gnu_common_warning_args) +
                                          self.supported_warn_args(gnu_objc_warning_args))}
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args: T.List[str] = []
+    def get_option_std_args(self, target: BuildTarget, subproject: str | None = None) -> list[str]:
+        args: list[str] = []
         key = OptionKey('cpp_std', subproject=subproject, machine=self.for_machine)
         if target:
             std = self.environment.coredata.get_option_for_target(target, key)
@@ -97,11 +97,11 @@ class GnuObjCPPCompiler(GnuCPPStds, GnuCompiler, ObjCPPCompiler):
 
 class ClangObjCPPCompiler(ClangCPPStds, ClangCompiler, ObjCPPCompiler):
 
-    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
+    def __init__(self, ccache: list[str], exelist: list[str], version: str, for_machine: MachineChoice,
                  env: Environment,
-                 defines: T.Optional[T.Dict[str, str]] = None,
-                 linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None):
+                 defines: dict[str, str] | None = None,
+                 linker: DynamicLinker | None = None,
+                 full_version: str | None = None):
         ObjCPPCompiler.__init__(self, ccache, exelist, version, for_machine,
                                 env, linker=linker, full_version=full_version)
         ClangCompiler.__init__(self, defines)
@@ -112,7 +112,7 @@ class ClangObjCPPCompiler(ClangCPPStds, ClangCompiler, ObjCPPCompiler):
                           '3': default_warn_args + ['-Wextra', '-Wpedantic'],
                           'everything': ['-Weverything']}
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, subproject: str | None = None) -> list[str]:
         args = []
         key = OptionKey('cpp_std', machine=self.for_machine)
         std = self.get_compileropt_value(key, target, subproject)

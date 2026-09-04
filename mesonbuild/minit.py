@@ -24,12 +24,13 @@ from mesonbuild.tooldetect import detect_ninja
 
 if T.TYPE_CHECKING:
     import argparse
+    from typing import Literal
 
-    from typing_extensions import Literal, Protocol
+    from typing_extensions import Protocol
 
     class Arguments(Protocol):
 
-        srcfiles: T.List[Path]
+        srcfiles: list[Path]
         wd: str
         name: str
         executable: str
@@ -95,7 +96,7 @@ def autodetect_options(options: Arguments, sample: bool = False) -> None:
         # The rest of the autodetection is not applicable to generating sample projects.
         return
     if not options.srcfiles:
-        srcfiles: T.List[Path] = []
+        srcfiles: list[Path] = []
         for f in (f for f in Path().iterdir() if f.is_file()):
             if f.suffix in LANG_SUFFIXES:
                 srcfiles.append(f)
@@ -145,7 +146,7 @@ def autodetect_options(options: Arguments, sample: bool = False) -> None:
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
-def add_arguments(parser: 'argparse.ArgumentParser') -> None:
+def add_arguments(parser: argparse.ArgumentParser) -> None:
     '''
     Here we add args for that the user can passed when making a new
     Meson project.

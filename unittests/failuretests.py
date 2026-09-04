@@ -79,12 +79,12 @@ class FailureTests(BasePlatformTests):
         windows_proof_rmtree(self.srcdir)
 
     def assertMesonRaises(self, contents: str,
-                          match: T.Union[str, T.Pattern[str]], *,
-                          extra_args: T.Optional[T.List[str]] = None,
-                          langs: T.Optional[T.List[str]] = None,
-                          meson_version: T.Optional[str] = None,
-                          options: T.Optional[str] = None,
-                          override_envvars: T.Optional[T.MutableMapping[str, str]] = None) -> None:
+                          match: str | T.Pattern[str], *,
+                          extra_args: list[str] | None = None,
+                          langs: list[str] | None = None,
+                          meson_version: str | None = None,
+                          options: str | None = None,
+                          override_envvars: T.MutableMapping[str, str] | None = None) -> None:
         '''
         Assert that running meson configure on the specified @contents raises
         a error message matching regex @match.

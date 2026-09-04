@@ -45,7 +45,9 @@ from run_tests import (
 )
 
 if T.TYPE_CHECKING:
-    from typing_extensions import TypeAlias, TypedDict
+    from typing import TypeAlias
+
+    from typing_extensions import TypedDict
 
     class CompDbEntry(TypedDict):
 
@@ -57,7 +59,7 @@ if T.TYPE_CHECKING:
         file: str
         output: str
 
-    CompDB: TypeAlias = T.List[CompDbEntry]
+    CompDB: TypeAlias = list[CompDbEntry]
 
 
 # magic attribute used by unittest.result.TestResult._is_relevant_tb_level
@@ -168,7 +170,7 @@ class BasePlatformTests(TestCase):
         log = os.path.join(self.logdir, 'meson-log.txt')
         return open(log, encoding='utf-8')
 
-    def _get_meson_log(self) -> T.Optional[str]:
+    def _get_meson_log(self) -> str | None:
         try:
             with self._open_meson_log() as f:
                 return f.read()
@@ -181,7 +183,7 @@ class BasePlatformTests(TestCase):
         if log:
             print(log)
 
-    def _run(self, command, *, workdir=None, override_envvars: T.Optional[T.Mapping[str, str]] = None, stderr=True):
+    def _run(self, command, *, workdir=None, override_envvars: T.Mapping[str, str] | None = None, stderr=True):
         '''
         Run a command while printing the stdout and stderr to stdout,
         and also return a copy of it
@@ -217,7 +219,7 @@ class BasePlatformTests(TestCase):
              extra_args=None,
              default_args=True,
              inprocess=False,
-             override_envvars: T.Optional[T.Mapping[str, str]] = None,
+             override_envvars: T.Mapping[str, str] | None = None,
              workdir=None,
              allow_fail: bool = False) -> str:
         """Call `meson setup`

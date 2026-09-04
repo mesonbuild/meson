@@ -26,7 +26,7 @@ if T.TYPE_CHECKING:
     from ..options import MutableKeyedOptionDictType
 
 
-cuda_optimization_args: T.Dict[str, T.List[str]] = {
+cuda_optimization_args: dict[str, list[str]] = {
     'plain': [],
     '0': ['-G'],
     'g': ['-O0'],
@@ -36,7 +36,7 @@ cuda_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-O3']
 }
 
-cuda_debug_args: T.Dict[bool, T.List[str]] = {
+cuda_debug_args: dict[bool, list[str]] = {
     False: [],
     True: ['-g']
 }
@@ -181,10 +181,10 @@ class CudaCompiler(Compiler):
 
     id = 'nvcc'
 
-    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
+    def __init__(self, ccache: list[str], exelist: list[str], version: str, for_machine: MachineChoice,
                  host_compiler: Compiler, env: Environment,
-                 linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None):
+                 linker: DynamicLinker | None = None,
+                 full_version: str | None = None):
         self.detected_cc = ''
         super().__init__(ccache, exelist, version, for_machine, env, linker=linker, full_version=full_version)
         self.host_compiler = host_compiler
@@ -259,7 +259,7 @@ class CudaCompiler(Compiler):
             return r'\,'.join(l)
 
     @classmethod
-    def _merge_flags(cls, flags: T.List[str]) -> T.List[str]:
+    def _merge_flags(cls, flags: list[str]) -> list[str]:
         r"""
         The flags to NVCC gets exceedingly verbose and unreadable when too many of them
         are shielded with -Xcompiler. Merge consecutive -Xcompiler-wrapped arguments
@@ -308,7 +308,7 @@ class CudaCompiler(Compiler):
         return xflags
 
     @classmethod
-    def to_host_flags_base(cls, flags: T.List[str], phase: Phase = Phase.COMPILER, default_include_dirs: T.Optional[T.List[str]] = None) -> T.List[str]:
+    def to_host_flags_base(cls, flags: list[str], phase: Phase = Phase.COMPILER, default_include_dirs: list[str] | None = None) -> list[str]:
         """
         Translate generic "GCC-speak" plus particular "NVCC-speak" flags to NVCC flags.
 
@@ -489,13 +489,13 @@ class CudaCompiler(Compiler):
 
         return cls._merge_flags(xflags)
 
-    def _to_host_flags(self, flags: T.List[str], phase: Phase = Phase.COMPILER) -> T.List[str]:
+    def _to_host_flags(self, flags: list[str], phase: Phase = Phase.COMPILER) -> list[str]:
         return self.to_host_flags_base(flags, phase, self.host_compiler.get_default_include_dirs())
 
     def needs_static_linker(self) -> bool:
         return False
 
-    def thread_link_flags(self) -> T.List[str]:
+    def thread_link_flags(self) -> list[str]:
         return self._to_host_flags(self.host_compiler.thread_link_flags(), Phase.LINKER)
 
     def init_from_options(self) -> None:
@@ -534,7 +534,7 @@ class CudaCompiler(Compiler):
             '''
 
     def _sanity_check_compile_args(self, sourcename: str, binname: str
-                                   ) -> T.Tuple[T.List[str], T.List[str]]:
+                                   ) -> tuple[list[str], list[str]]:
         args, largs = super()._sanity_check_compile_args(sourcename, binname)
 
         # Disable warnings, compile with statically-linked runtime for minimum
@@ -549,8 +549,8 @@ class CudaCompiler(Compiler):
         return args, largs
 
     def has_header_symbol(self, hname: str, symbol: str, prefix: str, *,
-                          extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
-                          dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                          extra_args: None | list[str] | T.Callable[[CompileCheckMode], list[str]] = None,
+                          dependencies: list[Dependency] | None = None) -> tuple[bool, bool]:
         if extra_args is None:
             extra_args = []
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
@@ -580,7 +580,7 @@ class CudaCompiler(Compiler):
     _CPP17_VERSION = '>=11.0'
     _CPP20_VERSION = '>=12.0'
 
-    def get_options(self) -> 'MutableKeyedOptionDictType':
+    def get_options(self) -> MutableKeyedOptionDictType:
         cpp_stds = ['none', 'c++03', 'c++11']
         if version_compare(self.version, self._CPP14_VERSION):
             cpp_stds += ['c++14']
@@ -606,7 +606,7 @@ class CudaCompiler(Compiler):
 
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_compile_args(self, target: BuildTarget, subproject: str | None = None) -> list[str]:
         args = self._get_ccbin_args(target, subproject)
 
         try:
@@ -615,7 +615,7 @@ class CudaCompiler(Compiler):
             host_compiler_args = []
         return args + self._to_host_flags(host_compiler_args)
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, subproject: str | None = None) -> list[str]:
         # On Windows, the version of the C++ standard used by nvcc is dictated by
         # the combination of CUDA version and MSVC version; the --std= is thus ignored
         # and attempting to use it will result in a warning: https://stackoverflow.com/a/51272091/741027
@@ -631,84 +631,84 @@ class CudaCompiler(Compiler):
             host_compiler_args = []
         return self._to_host_flags(host_compiler_args)
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: BuildTarget, subproject: str | None = None) -> list[str]:
         args = self._get_ccbin_args(target, subproject)
         return args + self._to_host_flags(self.host_compiler.get_option_link_args(target, subproject), Phase.LINKER)
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str, soversion: str,
-                        darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+                        darwin_versions: tuple[str, str]) -> list[str]:
         return self._to_host_flags(self.host_compiler.get_soname_args(
             prefix, shlib_name, suffix, soversion, darwin_versions), Phase.LINKER)
 
-    def get_compile_only_args(self) -> T.List[str]:
+    def get_compile_only_args(self) -> list[str]:
         return ['-c']
 
-    def get_no_optimization_args(self) -> T.List[str]:
+    def get_no_optimization_args(self) -> list[str]:
         return ['-O0']
 
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> list[str]:
         # alternatively, consider simply redirecting this to the host compiler, which would
         # give us more control over options like "optimize for space" (which nvcc doesn't support):
         # return self._to_host_flags(self.host_compiler.get_optimization_args(optimization_level))
         return cuda_optimization_args[optimization_level]
 
-    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], value: T.List[str]) -> T.List[str]:
+    def sanitizer_compile_args(self, target: BuildTarget | None, value: list[str]) -> list[str]:
         return self._to_host_flags(self.host_compiler.sanitizer_compile_args(target, value))
 
-    def sanitizer_link_args(self, target: T.Optional[BuildTarget], value: T.List[str]) -> T.List[str]:
+    def sanitizer_link_args(self, target: BuildTarget | None, value: list[str]) -> list[str]:
         return self._to_host_flags(self.host_compiler.sanitizer_link_args(target, value))
 
-    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+    def get_debug_args(self, is_debug: bool) -> list[str]:
         return cuda_debug_args[is_debug]
 
-    def get_werror_args(self) -> T.List[str]:
+    def get_werror_args(self) -> list[str]:
         device_werror_args = ['-Werror=cross-execution-space-call,deprecated-declarations,reorder']
         return device_werror_args + self.host_werror_args
 
-    def get_warn_args(self, level: str) -> T.List[str]:
+    def get_warn_args(self, level: str) -> list[str]:
         return self.warn_args[level]
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, is_system: bool) -> list[str]:
         if path == '':
             path = '.'
         return ['-isystem=' + path] if is_system else ['-I' + path]
 
-    def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> T.List[str]:
+    def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> list[str]:
         return self._to_host_flags(self.host_compiler.get_compile_debugfile_args(rel_obj, pch))
 
-    def get_link_debugfile_args(self, targetfile: str) -> T.List[str]:
+    def get_link_debugfile_args(self, targetfile: str) -> list[str]:
         return self._to_host_flags(self.host_compiler.get_link_debugfile_args(targetfile), Phase.LINKER)
 
     def get_depfile_suffix(self) -> str:
         return 'd'
 
-    def get_optimization_link_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_link_args(self, optimization_level: str) -> list[str]:
         return self._to_host_flags(self.host_compiler.get_optimization_link_args(optimization_level), Phase.LINKER)
 
-    def get_linker_fatal_warnings(self) -> T.List[str]:
+    def get_linker_fatal_warnings(self) -> list[str]:
         return self._to_host_flags(self.host_compiler.get_linker_fatal_warnings(), Phase.LINKER)
 
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: T.Optional[T.List[str]] = None
-                         ) -> T.Tuple[T.List[str], T.Set[bytes]]:
+                         extra_paths: list[str] | None = None
+                         ) -> tuple[list[str], set[bytes]]:
         (rpath_args, rpath_dirs_to_remove) = self.host_compiler.build_rpath_args(
             build_dir, from_dir, target, extra_paths)
         return (self._to_host_flags(rpath_args, Phase.LINKER), rpath_dirs_to_remove)
 
-    def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:
+    def linker_to_compiler_args(self, args: list[str]) -> list[str]:
         return args
 
-    def get_pic_args(self) -> T.List[str]:
+    def get_pic_args(self) -> list[str]:
         return self._to_host_flags(self.host_compiler.get_pic_args())
 
-    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
-                                               build_dir: str) -> T.List[str]:
+    def compute_parameters_with_absolute_paths(self, parameter_list: list[str],
+                                               build_dir: str) -> list[str]:
         return []
 
-    def get_output_args(self, target: str) -> T.List[str]:
+    def get_output_args(self, target: str) -> list[str]:
         return ['-o', target]
 
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> list[str]:
         if version_compare(self.version, '>= 10.2'):
             # According to nvcc Documentation, `-MD` option is added after 10.2
             # Reference: [CUDA 10.1](https://docs.nvidia.com/cuda/archive/10.1/cuda-compiler-driver-nvcc/index.html#options-for-specifying-compilation-phase-generate-nonsystem-dependencies)
@@ -717,18 +717,18 @@ class CudaCompiler(Compiler):
         else:
             return []
 
-    def get_std_exe_link_args(self) -> T.List[str]:
+    def get_std_exe_link_args(self) -> list[str]:
         return self._to_host_flags(self.host_compiler.get_std_exe_link_args(), Phase.LINKER)
 
-    def find_library(self, libname: str, extra_dirs: T.List[str], libtype: LibType = LibType.PREFER_SHARED,
+    def find_library(self, libname: str, extra_dirs: list[str], libtype: LibType = LibType.PREFER_SHARED,
                      lib_prefix_warning: bool = True, ignore_system_dirs: bool = False,
-                     skip_link_check: bool = False) -> T.Optional[T.List[str]]:
+                     skip_link_check: bool = False) -> list[str] | None:
         return self.host_compiler.find_library(libname, extra_dirs, libtype, lib_prefix_warning, ignore_system_dirs, skip_link_check)
 
-    def get_crt_compile_args(self, crt_val: str) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str) -> list[str]:
         return self._to_host_flags(self.host_compiler.get_crt_compile_args(crt_val))
 
-    def get_crt_link_args(self, crt_val: str) -> T.List[str]:
+    def get_crt_link_args(self, crt_val: str) -> list[str]:
         # nvcc defaults to static, release version of msvc runtime and provides no
         # native option to override it; override it with /NODEFAULTLIB
         host_link_arg_overrides = []
@@ -737,17 +737,17 @@ class CudaCompiler(Compiler):
             host_link_arg_overrides += ['/NODEFAULTLIB:LIBCMT.lib']
         return self._to_host_flags(host_link_arg_overrides + self.host_compiler.get_crt_link_args(crt_val), Phase.LINKER)
 
-    def get_target_link_args(self, target: 'BuildTarget') -> T.List[str]:
+    def get_target_link_args(self, target: BuildTarget) -> list[str]:
         return self._to_host_flags(super().get_target_link_args(target), Phase.LINKER)
 
-    def get_dependency_compile_args(self, dep: 'Dependency') -> T.List[str]:
+    def get_dependency_compile_args(self, dep: Dependency) -> list[str]:
         return self._to_host_flags(super().get_dependency_compile_args(dep))
 
-    def get_dependency_link_args(self, dep: 'Dependency') -> T.List[str]:
+    def get_dependency_link_args(self, dep: Dependency) -> list[str]:
         return self._to_host_flags(super().get_dependency_link_args(dep), Phase.LINKER)
 
-    def _get_ccbin_args(self, target: 'T.Optional[BuildTarget]',
-                        subproject: T.Optional[str] = None) -> T.List[str]:
+    def _get_ccbin_args(self, target: BuildTarget | None,
+                        subproject: str | None = None) -> list[str]:
         key = self.form_compileropt_key('ccbindir').evolve(subproject=subproject)
         if target:
             ccbindir = self.environment.coredata.get_option_for_target(target, key)
@@ -758,13 +758,13 @@ class CudaCompiler(Compiler):
         else:
             return []
 
-    def get_profile_generate_args(self) -> T.List[str]:
+    def get_profile_generate_args(self) -> list[str]:
         return ['-Xcompiler=' + x for x in self.host_compiler.get_profile_generate_args()]
 
-    def get_profile_use_args(self) -> T.List[str]:
+    def get_profile_use_args(self) -> list[str]:
         return ['-Xcompiler=' + x for x in self.host_compiler.get_profile_use_args()]
 
-    def get_assert_args(self, disable: bool) -> T.List[str]:
+    def get_assert_args(self, disable: bool) -> list[str]:
         cccl_macros = []
         if not disable and self.debug_macros_available:
             # https://github.com/NVIDIA/cccl/pull/2382
@@ -772,11 +772,11 @@ class CudaCompiler(Compiler):
 
         return self.host_compiler.get_assert_args(disable) + cccl_macros
 
-    def has_multi_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
+    def has_multi_arguments(self, args: list[str]) -> tuple[bool, bool]:
         args = self._to_host_flags(args)
         return self.compiles('int main(void) { return 0; }', extra_args=args, mode=CompileCheckMode.COMPILE)
 
-    def has_multi_link_arguments(self, args: T.List[str], to_host_args: bool = True) -> T.Tuple[bool, bool]:
+    def has_multi_link_arguments(self, args: list[str], to_host_args: bool = True) -> tuple[bool, bool]:
         if to_host_args:
             args = self._to_host_flags(args, phase=Phase.LINKER)
         args = ['-Xnvlink='+self._shield_nvcc_list_arg(s) for s in self.linker.fatal_warnings()] + args

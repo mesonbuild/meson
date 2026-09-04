@@ -16,7 +16,7 @@ if T.TYPE_CHECKING:
     from ...mesonlib import SubProject
 
 class RangeHolder(MesonInterpreterObject, IterableObject):
-    def __init__(self, start: int, stop: int, step: int, *, subproject: 'SubProject') -> None:
+    def __init__(self, start: int, stop: int, step: int, *, subproject: SubProject) -> None:
         super().__init__(subproject=subproject)
         self.range = range(start, stop, step)
 

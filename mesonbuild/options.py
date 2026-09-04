@@ -33,25 +33,24 @@ from .mesonlib import (
 )
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Final, Literal, TypeAlias, TypedDict
+    from typing import Final, Literal, TypeAlias
+
+    from typing_extensions import TypedDict
 
     from .compilers.compilers import Language
     from .envconfig import MachineInfo
     from .mesonlib import SubProject
 
-    DeprecatedType: TypeAlias = T.Union[bool, str, T.Dict[str, str], T.List[str]]
-    AnyOptionType: TypeAlias = T.Union[
-        'UserBooleanOption', 'UserComboOption', 'UserFeatureOption',
-        'UserIntegerOption', 'UserStdOption', 'UserStringArrayOption',
-        'UserStringOption', 'UserUmaskOption']
-    ElementaryOptionValues: TypeAlias = T.Union[str, int, bool, T.List[str]]
-    MutableKeyedOptionDictType: TypeAlias = T.Dict['OptionKey', AnyOptionType]
+    DeprecatedType: TypeAlias = bool | str | dict[str, str] | list[str]
+    AnyOptionType: TypeAlias = 'UserBooleanOption' | 'UserComboOption' | 'UserFeatureOption' | 'UserIntegerOption' | 'UserStdOption' | 'UserStringArrayOption' | 'UserStringOption' | 'UserUmaskOption'
+    ElementaryOptionValues: TypeAlias = str | int | bool | list[str]
+    MutableKeyedOptionDictType: TypeAlias = dict['OptionKey', AnyOptionType]
 
-    _OptionKeyTuple: TypeAlias = T.Tuple[T.Optional[str], MachineChoice, str]
+    _OptionKeyTuple: TypeAlias = tuple[str | None, MachineChoice, str]
 
     class OptionKeyState(TypedDict):
         name: str
-        subproject: T.Optional[str]
+        subproject: str | None
         machine: MachineChoice
 
 DEFAULT_YIELDING = False
@@ -108,7 +107,7 @@ _BUILTIN_NAMES = {
 }
 
 _BAD_VALUE = 'Qwert Zuiopü'
-_optionkey_cache: T.Dict[_OptionKeyTuple, OptionKey] = {}
+_optionkey_cache: dict[_OptionKeyTuple, OptionKey] = {}
 
 
 class OptionKey:
@@ -123,13 +122,13 @@ class OptionKey:
     __slots__ = ('name', 'subproject', 'machine', '_hash')
 
     name: str
-    subproject: T.Optional[str]  # None is global, empty string means top level project
+    subproject: str | None  # None is global, empty string means top level project
     machine: MachineChoice
     _hash: int
 
     def __new__(cls,
                 name: str = '',
-                subproject: T.Optional[str] = None,
+                subproject: str | None = None,
                 machine: MachineChoice = MachineChoice.HOST) -> OptionKey:
         """The use of the __new__ method allows to add a transparent cache
         to the OptionKey object creation, without breaking its API.
@@ -146,7 +145,7 @@ class OptionKey:
             _optionkey_cache[tuple_] = instance
             return instance
 
-    def _init(self, name: str, subproject: T.Optional[str], machine: MachineChoice) -> None:
+    def _init(self, name: str, subproject: str | None, machine: MachineChoice) -> None:
         # We don't use the __init__ method, because it would be called after __new__
         # while we need __new__ to initialise the object before populating the cache.
 
@@ -240,7 +239,7 @@ class OptionKey:
         return f'OptionKey({self.name!r}, {self.subproject!r}, {self.machine!r})'
 
     @classmethod
-    def from_string(cls, raw: str) -> 'OptionKey':
+    def from_string(cls, raw: str) -> OptionKey:
         """Parse the raw command line format into a three part tuple.
 
         This takes strings like `mysubproject:build.myoption` and Creates an
@@ -269,9 +268,9 @@ class OptionKey:
         return cls(opt, subproject, for_machine)
 
     def evolve(self,
-               name: T.Optional[str] = None,
-               subproject: T.Optional[str] = _BAD_VALUE,
-               machine: T.Optional[MachineChoice] = None) -> 'OptionKey':
+               name: str | None = None,
+               subproject: str | None = _BAD_VALUE,
+               machine: MachineChoice | None = None) -> OptionKey:
         """Create a new copy of this key, but with altered members.
 
         For example:
@@ -307,7 +306,7 @@ class OptionKey:
     def has_module_prefix(self) -> bool:
         return '.' in self.name
 
-    def get_module_prefix(self) -> T.Optional[str]:
+    def get_module_prefix(self) -> str | None:
         if self.has_module_prefix():
             return self.name.split('.', 1)[0]
         return None
@@ -316,7 +315,7 @@ class OptionKey:
         return self.machine is MachineChoice.BUILD
 
 if T.TYPE_CHECKING:
-    OptionDict: TypeAlias = T.Dict[OptionKey, ElementaryOptionValues]
+    OptionDict: TypeAlias = dict[OptionKey, ElementaryOptionValues]
 
 @dataclasses.dataclass
 class UserOption(T.Generic[_T], HoldableObject):
@@ -327,14 +326,14 @@ class UserOption(T.Generic[_T], HoldableObject):
     yielding: bool = DEFAULT_YIELDING
     deprecated: DeprecatedType = False
     readonly: bool = dataclasses.field(default=False)
-    parent: T.Optional[UserOption] = None
+    parent: UserOption | None = None
 
     def __post_init__(self, value_: _T) -> None:
         self.value = self.validate_value(value_)
         # Final isn't technically allowed in a __post_init__ method
         self.default: Final[_T] = self.value  # type: ignore[misc]
 
-    def listify(self, value: ElementaryOptionValues) -> T.List[str]:
+    def listify(self, value: ElementaryOptionValues) -> list[str]:
         if isinstance(value, list):
             return value
         if isinstance(value, bool):
@@ -347,7 +346,7 @@ class UserOption(T.Generic[_T], HoldableObject):
         assert isinstance(self.value, (str, int, bool, list))
         return self.value
 
-    def printable_choices(self) -> T.Optional[T.List[str]]:
+    def printable_choices(self) -> list[str] | None:
         return None
 
     # Check that the input is a valid value and return the
@@ -366,9 +365,9 @@ class EnumeratedUserOption(UserOption[_T]):
 
     """A generic UserOption that has enumerated values."""
 
-    choices: T.List[_T] = dataclasses.field(default_factory=list)
+    choices: list[_T] = dataclasses.field(default_factory=list)
 
-    def printable_choices(self) -> T.Optional[T.List[str]]:
+    def printable_choices(self) -> list[str] | None:
         return [str(c) for c in self.choices]
 
 
@@ -382,7 +381,7 @@ class UserStringOption(UserOption[str]):
 @dataclasses.dataclass
 class UserBooleanOption(EnumeratedUserOption[bool]):
 
-    choices: T.List[bool] = dataclasses.field(default_factory=lambda: [True, False])
+    choices: list[bool] = dataclasses.field(default_factory=lambda: [True, False])
 
     def __bool__(self) -> bool:
         return self.value
@@ -401,22 +400,22 @@ class UserBooleanOption(EnumeratedUserOption[bool]):
 
 class _UserIntegerBase(UserOption[_T]):
 
-    min_value: T.Optional[int]
-    max_value: T.Optional[int]
+    min_value: int | None
+    max_value: int | None
 
     if T.TYPE_CHECKING:
         def toint(self, v: str) -> int: ...
 
     def __post_init__(self, value_: _T) -> None:
         super().__post_init__(value_)
-        choices: T.List[str] = []
+        choices: list[str] = []
         if self.min_value is not None:
             choices.append(f'>= {self.min_value!s}')
         if self.max_value is not None:
             choices.append(f'<= {self.max_value!s}')
         self.__choices: str = ', '.join(choices)
 
-    def printable_choices(self) -> T.Optional[T.List[str]]:
+    def printable_choices(self) -> list[str] | None:
         return [self.__choices]
 
     def validate_value(self, value: object) -> _T:
@@ -434,8 +433,8 @@ class _UserIntegerBase(UserOption[_T]):
 @dataclasses.dataclass
 class UserIntegerOption(_UserIntegerBase[int]):
 
-    min_value: T.Optional[int] = None
-    max_value: T.Optional[int] = None
+    min_value: int | None = None
+    max_value: int | None = None
 
     def toint(self, valuestring: str) -> int:
         try:
@@ -455,15 +454,15 @@ class OctalInt(int):
 @dataclasses.dataclass
 class UserUmaskOption(_UserIntegerBase[T.Union["Literal['preserve']", OctalInt]]):
 
-    min_value: T.Optional[int] = dataclasses.field(default=0, init=False)
-    max_value: T.Optional[int] = dataclasses.field(default=0o777, init=False)
+    min_value: int | None = dataclasses.field(default=0, init=False)
+    max_value: int | None = dataclasses.field(default=0o777, init=False)
 
     def printable_value(self) -> str:
         if isinstance(self.value, int):
             return format(self.value, '04o')
         return self.value
 
-    def validate_value(self, value: object) -> T.Union[Literal['preserve'], OctalInt]:
+    def validate_value(self, value: object) -> Literal['preserve'] | OctalInt:
         if value == 'preserve':
             return 'preserve'
         return OctalInt(super().validate_value(value))
@@ -487,27 +486,26 @@ class UserComboOption(EnumeratedUserOption[str]):
             else:
                 _type = 'string'
             optionsstring = ', '.join([f'"{item}"' for item in self.choices])
-            raise MesonException('Value "{}" (of type "{}") for option "{}" is not one of the choices.'
-                                 ' Possible choices are (as string): {}.'.format(
-                                     value, _type, self.name, optionsstring))
+            raise MesonException(f'Value "{value}" (of type "{_type}") for option "{self.name}" is not one of the choices.'
+                                 f' Possible choices are (as string): {optionsstring}.')
 
         assert isinstance(value, str), 'for mypy'
         return value
 
 @dataclasses.dataclass
-class UserArrayOption(UserOption[T.List[_T]]):
+class UserArrayOption(UserOption[list[_T]]):
 
-    value_: dataclasses.InitVar[T.Union[_T, T.List[_T]]]
-    choices: T.Optional[T.List[_T]] = None
+    value_: dataclasses.InitVar[_T | list[_T]]
+    choices: list[_T] | None = None
     split_args: bool = False
     allow_dups: bool = False
 
-    def extend_value(self, value: T.Union[str, T.List[str]]) -> None:
+    def extend_value(self, value: str | list[str]) -> None:
         """Extend the value with an additional value."""
         new = self.validate_value(value)
         self.set_value(self.value + new)
 
-    def printable_choices(self) -> T.Optional[T.List[str]]:
+    def printable_choices(self) -> list[str] | None:
         if self.choices is None:
             return None
         return [str(c) for c in self.choices]
@@ -516,13 +514,13 @@ class UserArrayOption(UserOption[T.List[_T]]):
 @dataclasses.dataclass
 class UserStringArrayOption(UserArrayOption[str]):
 
-    def listify(self, value: object) -> T.List[str]:
+    def listify(self, value: object) -> list[str]:
         try:
             return listify_array_value(value, self.split_args)
         except MesonException as e:
             raise MesonException(f'error in option "{self.name}": {e!s}')
 
-    def validate_value(self, value: object) -> T.List[str]:
+    def validate_value(self, value: object) -> list[str]:
         newvalue = self.listify(value)
 
         if not self.allow_dups and len(set(newvalue)) != len(newvalue):
@@ -548,7 +546,7 @@ class UserStringArrayOption(UserArrayOption[str]):
 @dataclasses.dataclass
 class UserFeatureOption(UserComboOption):
 
-    choices: T.List[str] = dataclasses.field(
+    choices: list[str] = dataclasses.field(
         # Ensure we get a copy with the lambda
         default_factory=lambda: ['enabled', 'disabled', 'auto'], init=False)
 
@@ -592,15 +590,15 @@ class UserStdOption(UserComboOption):
     options because we want to print a warning if ALL values are deprecated, not
     if SOME values are deprecated.
     '''
-    def __init__(self, lang: str, all_stds: T.List[str]) -> None:
+    def __init__(self, lang: str, all_stds: list[str]) -> None:
         self.lang = lang.lower()
         self.all_stds = ['none'] + all_stds
         # Map a deprecated std to its replacement. e.g. gnu11 -> c11.
-        self.deprecated_stds: T.Dict[str, str] = {}
+        self.deprecated_stds: dict[str, str] = {}
         opt_name = 'cpp_std' if lang == 'c++' else f'{lang}_std'
         super().__init__(opt_name, f'{lang} language standard to use', 'none', choices=['none'])
 
-    def set_versions(self, versions: T.List[str], gnu: bool = False, gnu_deprecated: bool = False) -> None:
+    def set_versions(self, versions: list[str], gnu: bool = False, gnu_deprecated: bool = False) -> None:
         assert all(std in self.all_stds for std in versions)
         self.choices += versions
         if gnu:
@@ -676,7 +674,7 @@ BUILTIN_DIR_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
 }
 
 BUILTIN_CORE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
-    OptionKey(o.name): o for o in T.cast('T.List[AnyOptionType]', [
+    OptionKey(o.name): o for o in T.cast('list[AnyOptionType]', [
         UserFeatureOption('auto_features', "Override value of all 'auto' features", 'auto'),
         UserComboOption('backend', 'Backend to use', 'ninja', choices=backendlist, readonly=True),
         UserComboOption(
@@ -733,7 +731,7 @@ BUILTIN_OPTIONS_PER_MACHINE: T.Mapping[OptionKey, AnyOptionType] = {
 
 # Special prefix-dependent defaults for installation directories that reside in
 # a path outside of the prefix in FHS and common usage.
-BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
+BUILTIN_DIR_NOPREFIX_OPTIONS: dict[OptionKey, dict[str, str]] = {
     OptionKey('sysconfdir'):     {'/usr': '/etc'},
     OptionKey('localstatedir'):  {'/usr': '/var',     '/usr/local': '/var/local'},
     OptionKey('sharedstatedir'): {'/usr': '/var/lib', '/usr/local': '/var/local/lib'},
@@ -744,7 +742,7 @@ BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
 MSCRT_VALS = ['none', 'md', 'mdd', 'mt', 'mtd']
 
 COMPILER_BASE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
-    OptionKey(o.name): o for o in T.cast('T.List[AnyOptionType]', [
+    OptionKey(o.name): o for o in T.cast('list[AnyOptionType]', [
         UserBooleanOption('b_pch', 'Use precompiled headers', True),
         UserBooleanOption('b_lto', 'Use link time optimization', False),
         UserIntegerOption('b_lto_threads', 'Use multiple threads for Link Time Optimization', 0),
@@ -779,10 +777,10 @@ class OptionStore:
                           }
 
     def __init__(self, is_cross: bool) -> None:
-        self.options: T.Dict['OptionKey', 'AnyOptionType'] = {}
-        self.subprojects: T.Set[str] = set()
-        self.project_options: T.Set[OptionKey] = set()
-        self.module_options: T.Set[OptionKey] = set()
+        self.options: dict[OptionKey, AnyOptionType] = {}
+        self.subprojects: set[str] = set()
+        self.project_options: set[OptionKey] = set()
+        self.module_options: set[OptionKey] = set()
         from .compilers import all_languages
         self.all_languages = set(all_languages)
         self.augments: OptionDict = {}
@@ -794,7 +792,7 @@ class OptionStore:
         # Subproject options from toplevel project()
         self.pending_subproject_options: OptionDict = {}
         # Class for host-aware path handling
-        self.pure_path_class: T.Type[pathlib.PurePath] = pathlib.PurePath
+        self.pure_path_class: type[pathlib.PurePath] = pathlib.PurePath
 
     def set_host_machine(self, machine: MachineInfo) -> None:
         """Use the given MachineInfo for host-aware path handling."""
@@ -809,7 +807,7 @@ class OptionStore:
             return True
         return path_obj.is_absolute()
 
-    def ensure_and_validate_key(self, key: T.Union[OptionKey, str]) -> OptionKey:
+    def ensure_and_validate_key(self, key: OptionKey | str) -> OptionKey:
         if isinstance(key, str):
             return OptionKey(key)
         # FIXME. When not cross building all "build" options need to fall back
@@ -826,7 +824,7 @@ class OptionStore:
             key = key.as_host()
         return key
 
-    def get_pending_value(self, key: OptionKey, default: T.Optional[ElementaryOptionValues] = None) -> ElementaryOptionValues:
+    def get_pending_value(self, key: OptionKey, default: ElementaryOptionValues | None = None) -> ElementaryOptionValues:
         key = self.ensure_and_validate_key(key)
         if key in self.options:
             return self.options[key].value
@@ -852,7 +850,7 @@ class OptionStore:
                 return self.options[parent_key]
         return potential
 
-    def get_option_and_value_for(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
+    def get_option_and_value_for(self, key: OptionKey) -> tuple[AnyOptionType, ElementaryOptionValues]:
         key = self.ensure_and_validate_key(key)
         option_object = self.resolve_option(key)
         computed_value = option_object.value
@@ -867,7 +865,7 @@ class OptionStore:
         option_object, current_value = self.get_option_and_value_for(key)
         return option_object.validate_value(value) == current_value
 
-    def get_value_for(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
+    def get_value_for(self, name: OptionKey | str, subproject: str | None = None) -> ElementaryOptionValues:
         if isinstance(name, str):
             key = OptionKey(name, subproject)
         else:
@@ -876,7 +874,7 @@ class OptionStore:
         _, resolved_value = self.get_option_and_value_for(key)
         return resolved_value
 
-    def add_system_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
+    def add_system_option(self, key: OptionKey | str, valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
         if '.' in key.name:
             raise MesonException(f'Internal error: non-module option has a period in its name {key.name}.')
@@ -898,13 +896,13 @@ class OptionStore:
         if pval is not None:
             self.set_option(key, pval)
 
-    def add_compiler_option(self, language: Language, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
+    def add_compiler_option(self, language: Language, key: OptionKey | str, valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
         if not key.name.startswith(language + '_'):
             raise MesonException(f'Internal error: all compiler option names must start with language prefix. ({key.name} vs {language}_)')
         self.add_system_option(key, valobj)
 
-    def add_project_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
+    def add_project_option(self, key: OptionKey | str, valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
         assert key.subproject is not None
         if key in self.options:
@@ -927,7 +925,7 @@ class OptionStore:
         self.project_options.add(key)
         assert key not in self.pending_options
 
-    def add_module_option(self, modulename: str, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
+    def add_module_option(self, modulename: str, key: OptionKey | str, valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
         if key.name.startswith('build.'):
             raise MesonException('FATAL internal error: somebody goofed option handling.')
@@ -1107,7 +1105,7 @@ class OptionStore:
         else:
             raise MesonException(f'Unknown option: "{o}".')
 
-    def set_from_configure_command(self, D_args: T.Dict[OptionKey, T.Optional[str]]) -> bool:
+    def set_from_configure_command(self, D_args: dict[OptionKey, str | None]) -> bool:
         dirty = False
         for key, valstr in D_args.items():
             if valstr is not None:
@@ -1174,7 +1172,7 @@ class OptionStore:
     def values(self) -> T.ValuesView[AnyOptionType]:
         return self.options.values()
 
-    def items(self) -> T.ItemsView['OptionKey', 'AnyOptionType']:
+    def items(self) -> T.ItemsView[OptionKey, AnyOptionType]:
         return self.options.items()
 
     def is_project_option(self, key: OptionKey) -> bool:
@@ -1232,7 +1230,7 @@ class OptionStore:
     def is_module_option(self, key: OptionKey) -> bool:
         return key in self.module_options
 
-    def prefix_split_options(self, coll: dict[OptionKey, _T]) -> T.Tuple[str | None, dict[OptionKey, _T]]:
+    def prefix_split_options(self, coll: dict[OptionKey, _T]) -> tuple[str | None, dict[OptionKey, _T]]:
         prefix = None
         others_d: dict[OptionKey, _T] = {}
         for k, v in coll.items():
@@ -1248,7 +1246,7 @@ class OptionStore:
                             project_default_options: OptionDict,
                             cmd_line_options: dict[OptionKey, str | None],
                             machine_file_options: OptionDict) \
-            -> T.Tuple[OptionDict, dict[OptionKey, str | None], OptionDict]:
+            -> tuple[OptionDict, dict[OptionKey, str | None], OptionDict]:
         # Copy to avoid later mutation
         nopref_machine_file_options = copy.copy(machine_file_options)
 

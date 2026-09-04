@@ -542,7 +542,7 @@ Thread model: posix'''), '21.9.0')
                             ManyInOneLinkerOptionStyle('-Wl,', ','), [])
         return GnuCCompiler([], [], 'fake', MachineChoice.HOST, env, linker=linker)
 
-    def assertAfterLink(self, args: T.List[str], flag: str) -> None:
+    def assertAfterLink(self, args: list[str], flag: str) -> None:
         '''Assert that a linker-only flag is passed exactly once, after /link.'''
         self.assertEqual(args.count(flag), 1, f'{flag} not passed exactly once in {args}')
         self.assertIn('/link', args)
@@ -1509,7 +1509,7 @@ Thread model: posix'''), '21.9.0')
                     raise
                 raise unittest.SkipTest('neither Python fastjsonschema nor jsonschema module not found.')
 
-        with open('data/test.schema.json', 'r', encoding='utf-8') as f:
+        with open('data/test.schema.json', encoding='utf-8') as f:
             data = json.loads(f.read())
 
         if fast:
@@ -1517,7 +1517,7 @@ Thread model: posix'''), '21.9.0')
         else:
             schema_validator = lambda x: validate(x, schema=data)  # noqa: E731
 
-        errors: T.List[T.Tuple[Path, Exception]] = []
+        errors: list[tuple[Path, Exception]] = []
         for p in Path('test cases').glob('**/test.json'):
             try:
                 schema_validator(json.loads(p.read_text(encoding='utf-8')))
@@ -1532,7 +1532,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_types(self) -> None:
         @typed_pos_args('foo', str, int, bool)
-        def _(obj, node, args: T.Tuple[str, int, bool], kwargs) -> None:
+        def _(obj, node, args: tuple[str, int, bool], kwargs) -> None:
             self.assertIsInstance(args, tuple)
             self.assertIsInstance(args[0], str)
             self.assertIsInstance(args[1], int)
@@ -1542,7 +1542,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_types_invalid(self) -> None:
         @typed_pos_args('foo', str, int, bool)
-        def _(obj, node, args: T.Tuple[str, int, bool], kwargs) -> None:
+        def _(obj, node, args: tuple[str, int, bool], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1551,7 +1551,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_types_wrong_number(self) -> None:
         @typed_pos_args('foo', str, int, bool)
-        def _(obj, node, args: T.Tuple[str, int, bool], kwargs) -> None:
+        def _(obj, node, args: tuple[str, int, bool], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1564,7 +1564,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_varargs(self) -> None:
         @typed_pos_args('foo', str, varargs=str)
-        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, list[str]], kwargs) -> None:
             self.assertIsInstance(args, tuple)
             self.assertIsInstance(args[0], str)
             self.assertIsInstance(args[1], list)
@@ -1575,7 +1575,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_varargs_not_given(self) -> None:
         @typed_pos_args('foo', str, varargs=str)
-        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, list[str]], kwargs) -> None:
             self.assertIsInstance(args, tuple)
             self.assertIsInstance(args[0], str)
             self.assertIsInstance(args[1], list)
@@ -1585,7 +1585,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_varargs_invalid(self) -> None:
         @typed_pos_args('foo', str, varargs=str)
-        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, list[str]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1594,7 +1594,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_varargs_invalid_multiple_types(self) -> None:
         @typed_pos_args('foo', str, varargs=(str, list))
-        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, list[str]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1603,7 +1603,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_max_varargs(self) -> None:
         @typed_pos_args('foo', str, varargs=str, max_varargs=5)
-        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, list[str]], kwargs) -> None:
             self.assertIsInstance(args, tuple)
             self.assertIsInstance(args[0], str)
             self.assertIsInstance(args[1], list)
@@ -1614,7 +1614,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_max_varargs_exceeded(self) -> None:
         @typed_pos_args('foo', str, varargs=str, max_varargs=1)
-        def _(obj, node, args: T.Tuple[str, T.Tuple[str, ...]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, tuple[str, ...]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1623,7 +1623,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_min_varargs(self) -> None:
         @typed_pos_args('foo', varargs=str, max_varargs=2, min_varargs=1)
-        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, list[str]], kwargs) -> None:
             self.assertIsInstance(args, tuple)
             self.assertIsInstance(args[0], list)
             self.assertIsInstance(args[0][0], str)
@@ -1633,7 +1633,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_min_varargs_not_met(self) -> None:
         @typed_pos_args('foo', str, varargs=str, min_varargs=1)
-        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, list[str]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1642,7 +1642,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_min_and_max_varargs_exceeded(self) -> None:
         @typed_pos_args('foo', str, varargs=str, min_varargs=1, max_varargs=2)
-        def _(obj, node, args: T.Tuple[str, T.Tuple[str, ...]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, tuple[str, ...]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1651,7 +1651,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_min_and_max_varargs_not_met(self) -> None:
         @typed_pos_args('foo', str, varargs=str, min_varargs=1, max_varargs=2)
-        def _(obj, node, args: T.Tuple[str, T.Tuple[str, ...]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, tuple[str, ...]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1660,7 +1660,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_variadic_and_optional(self) -> None:
         @typed_pos_args('foo', str, optargs=[str], varargs=str, min_varargs=0)
-        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, list[str]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(AssertionError) as cm:
@@ -1671,7 +1671,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_min_optargs_not_met(self) -> None:
         @typed_pos_args('foo', str, str, optargs=[str])
-        def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, str | None], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1680,7 +1680,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_min_optargs_max_exceeded(self) -> None:
         @typed_pos_args('foo', str, optargs=[str])
-        def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, str | None], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1689,7 +1689,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_optargs_not_given(self) -> None:
         @typed_pos_args('foo', str, optargs=[str])
-        def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, str | None], kwargs) -> None:
             self.assertEqual(len(args), 2)
             self.assertIsInstance(args[0], str)
             self.assertEqual(args[0], 'string')
@@ -1699,7 +1699,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_optargs_some_given(self) -> None:
         @typed_pos_args('foo', str, optargs=[str, int])
-        def _(obj, node, args: T.Tuple[str, T.Optional[str], T.Optional[int]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, str | None, int | None], kwargs) -> None:
             self.assertEqual(len(args), 3)
             self.assertIsInstance(args[0], str)
             self.assertEqual(args[0], 'string')
@@ -1711,7 +1711,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_optargs_all_given(self) -> None:
         @typed_pos_args('foo', str, optargs=[str])
-        def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, str | None], kwargs) -> None:
             self.assertEqual(len(args), 2)
             self.assertIsInstance(args[0], str)
             self.assertEqual(args[0], 'string')
@@ -1724,7 +1724,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', str, default='')
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             self.assertIsInstance(kwargs['input'], str)
             self.assertEqual(kwargs['input'], 'foo')
 
@@ -1735,7 +1735,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', str, required=True),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             self.assertTrue(False)  # should be unreachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1747,7 +1747,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', (str, type(None))),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.Optional[str]]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str | None]) -> None:
             self.assertIsNone(kwargs['input'])
 
         _(None, mock.Mock(), [], {})
@@ -1757,7 +1757,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', str, default='default'),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             self.assertEqual(kwargs['input'], 'default')
 
         _(None, mock.Mock(), [], {})
@@ -1767,7 +1767,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(list, str), default=[], required=True),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, list[str]]) -> None:
             self.assertEqual(kwargs['input'], ['str'])
 
         _(None, mock.Mock(), [], {'input': ['str']})
@@ -1777,7 +1777,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(list, str), required=True),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, list[str]]) -> None:
             self.assertTrue(False)  # should be unreachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1789,7 +1789,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(dict, str), required=True),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.Dict[str, str]]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, dict[str, str]]) -> None:
             self.assertTrue(False)  # should be unreachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1801,18 +1801,18 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(list, str), default=[], listify=True),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, list[str]]) -> None:
             self.assertEqual(kwargs['input'], ['str'])
 
         _(None, mock.Mock(), [], {'input': 'str'})
 
     def test_typed_kwarg_container_default_copy(self) -> None:
-        default: T.List[str] = []
+        default: list[str] = []
         @typed_kwargs(
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=default),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, list[str]]) -> None:
             self.assertIsNot(kwargs['input'], default)
 
         _(None, mock.Mock(), [], {})
@@ -1822,7 +1822,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(list, str, pairs=True), listify=True),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, list[str]]) -> None:
             self.assertEqual(kwargs['input'], ['a', 'b'])
 
         _(None, mock.Mock(), [], {'input': ['a', 'b']})
@@ -1837,7 +1837,7 @@ Thread model: posix'''), '21.9.0')
             KwargInfo('input', str, since='1.0', since_message='It\'s awesome, use it',
                       deprecated='2.0', deprecated_message='It\'s terrible, don\'t use it')
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             self.assertIsInstance(kwargs['input'], str)
             self.assertEqual(kwargs['input'], 'foo')
 
@@ -1869,7 +1869,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', str, default='', validator=lambda x: 'invalid!' if x != 'foo' else None)
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             pass
 
         # Should be valid
@@ -1884,7 +1884,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('native', bool, default=False, convertor=lambda n: MachineChoice.BUILD if n else MachineChoice.HOST)
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, MachineChoice]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, MachineChoice]) -> None:
             assert isinstance(kwargs['native'], MachineChoice)
 
         _(None, mock.Mock(), tuple(), dict(native=True))
@@ -1922,7 +1922,7 @@ Thread model: posix'''), '21.9.0')
                 deprecated_values={(bool, int): '0.9'},
             ),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             pass
 
         with self.subTest('deprecated array string value'), mock.patch('sys.stdout', io.StringIO()) as out:
@@ -2033,7 +2033,7 @@ Thread model: posix'''), '21.9.0')
             KwargInfo('str_default', (str, ContainerTypeInfo(list, str)), default=''),
             KwargInfo('list_default', (str, ContainerTypeInfo(list, str)), default=['']),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             self.assertEqual(kwargs['no_default'], None)
             self.assertEqual(kwargs['str_default'], '')
             self.assertEqual(kwargs['list_default'], [''])
@@ -2044,7 +2044,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('invalid_default', (str, ContainerTypeInfo(list, str), NoneType), default=42),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             pass
         self.assertRaises(AssertionError, _, None, mock.Mock(), [], {})
 
@@ -2053,7 +2053,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', (str, ContainerTypeInfo(list, str))),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             self.assertEqual(kwargs['input'], args[0])
         _(None, mock.Mock(), [''], {'input': ''})
         _(None, mock.Mock(), [['']], {'input': ['']})
@@ -2226,7 +2226,7 @@ Thread model: posix'''), '21.9.0')
 
         # For testing purposes, behave as though all cross-programs
         # exist in /usr/bin
-        def locate_path(program: str) -> T.List[str]:
+        def locate_path(program: str) -> list[str]:
             if os.path.isabs(program):
                 return [program]
             return ['/usr/bin/' + program]
@@ -2234,7 +2234,7 @@ Thread model: posix'''), '21.9.0')
         def expected_compilers(
             gnu_tuple: str,
             gcc_suffix: str = '',
-        ) -> T.Dict[str, T.List[str]]:
+        ) -> dict[str, list[str]]:
             return {
                 'c': [f'/usr/bin/{gnu_tuple}-gcc{gcc_suffix}'],
                 'cpp': [f'/usr/bin/{gnu_tuple}-g++{gcc_suffix}'],
@@ -2243,7 +2243,7 @@ Thread model: posix'''), '21.9.0')
                 'vala': [f'/usr/bin/{gnu_tuple}-valac'],
             }
 
-        def expected_binaries(gnu_tuple: str) -> T.Dict[str, T.List[str]]:
+        def expected_binaries(gnu_tuple: str) -> dict[str, list[str]]:
             return {
                 'ar': [f'/usr/bin/{gnu_tuple}-ar'],
                 'strip': [f'/usr/bin/{gnu_tuple}-strip'],

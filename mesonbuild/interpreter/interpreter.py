@@ -160,8 +160,7 @@ from .type_checking import (
 
 if T.TYPE_CHECKING:
     import types
-
-    from typing_extensions import Literal
+    from typing import Literal
 
     from .. import cargo
     from ..backend.backends import Backend
@@ -190,7 +189,7 @@ if T.TYPE_CHECKING:
 
     TestClass = T.TypeVar('TestClass', bound=Test)
 
-def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None]) -> T.Optional[str]:
+def _project_version_validator(value: list | str | mesonlib.File | None) -> str | None:
     if isinstance(value, list):
         if len(value) != 1:
             return 'when passed as array must have a length of 1'
@@ -238,8 +237,8 @@ class Summary:
         self.sections: collections.defaultdict[str, dict[str, tuple[mlog.TV_LoggableList, str | None]]] = collections.defaultdict(dict)
         self.max_key_len = 0
 
-    def add_section(self, section: str, values: T.Dict[str, mlog.TV_Loggable | mlog.TV_LoggableList], bool_yn: bool,
-                    list_sep: T.Optional[str], subproject: SubProject) -> None:
+    def add_section(self, section: str, values: dict[str, mlog.TV_Loggable | mlog.TV_LoggableList], bool_yn: bool,
+                    list_sep: str | None, subproject: SubProject) -> None:
         for k, v in values.items():
             if k in self.sections[section]:
                 raise InterpreterException(f'Summary section {section!r} already have key {k!r}')
@@ -325,15 +324,15 @@ class Interpreter(InterpreterBase, HoldableObject):
     def __init__(
                 self,
                 _build: build.Build,
-                backend: T.Optional[Backend] = None,
+                backend: Backend | None = None,
                 subproject: SubProject = mesonlib.ROOT_SUBPROJECT,
                 subdir: str = '',
                 subproject_dir: str = 'subprojects',
-                invoker_method_default_options: T.Optional[OptionDict] = None,
-                ast: T.Optional[mparser.CodeBlockNode] = None,
-                relaxations: T.Optional[T.Dict[InterpreterRuleRelaxation, T.Optional[FeatureCheckBase]]] = None,
-                user_defined_options: T.Optional[SharedCMDOptions] = None,
-                cargo: T.Optional[cargo.Interpreter] = None,
+                invoker_method_default_options: OptionDict | None = None,
+                ast: mparser.CodeBlockNode | None = None,
+                relaxations: dict[InterpreterRuleRelaxation, FeatureCheckBase | None] | None = None,
+                user_defined_options: SharedCMDOptions | None = None,
+                cargo: cargo.Interpreter | None = None,
             ) -> None:
         super().__init__(_build.environment.get_source_dir(), subdir, subproject, subproject_dir, _build.environment)
         self.active_projectname = ''
@@ -342,8 +341,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         if backend is not None:
             self.backend = backend
         self.cargo = cargo
-        self.summary: T.Dict[str, 'Summary'] = {}
-        self.modules: T.Dict[str, NewExtensionModule] = {}
+        self.summary: dict[str, Summary] = {}
+        self.modules: dict[str, NewExtensionModule] = {}
         self.relaxations = relaxations or {}
         if ast is None:
             self.load_root_meson_file()
@@ -351,13 +350,13 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.ast = ast
         self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(self.build, self)})
-        self.validated_cache: T.Set[str] = set()
+        self.validated_cache: set[str] = set()
         self.project_args_frozen = False
         self.global_args_frozen = False  # implies self.project_args_frozen
-        self.subprojects: PerMachine[T.Dict[str, SubprojectHolder]] = PerMachineDefaultable.default(
+        self.subprojects: PerMachine[dict[str, SubprojectHolder]] = PerMachineDefaultable.default(
             self.environment.is_cross_build(), {}, {})
-        self.subproject_stack: T.List[T.Tuple[str, MachineChoice]] = []
-        self.configure_file_outputs: T.Dict[str, int] = {}
+        self.subproject_stack: list[tuple[str, MachineChoice]] = []
+        self.configure_file_outputs: dict[str, int] = {}
         # Passed from the outside, only used in subprojects.
         if invoker_method_default_options:
             assert isinstance(invoker_method_default_options, dict)
@@ -373,7 +372,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.parse_project()
         self._redetect_machines()
 
-    def __getnewargs_ex__(self) -> T.Tuple[T.Tuple[object], T.Dict[str, object]]:
+    def __getnewargs_ex__(self) -> tuple[tuple[object], dict[str, object]]:
         raise MesonBugException('This class is unpicklable')
 
     @contextlib.contextmanager
@@ -574,7 +573,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             MutableModuleObject: OBJ.MutableModuleObjectHolder,
         })
 
-    def append_holder_map(self, held_type: T.Type[mesonlib.HoldableObject], holder_type: T.Type[ObjectHolder]) -> None:
+    def append_holder_map(self, held_type: type[mesonlib.HoldableObject], holder_type: type[ObjectHolder]) -> None:
         '''
             Adds one additional mapping to the `holder_map`.
 
@@ -633,7 +632,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if isinstance(val, mparser.StringNode):
                     self.handle_meson_version(val.value, val)
 
-    def get_build_def_files(self) -> T.List[str]:
+    def get_build_def_files(self) -> list[str]:
         if self.cargo:
             self.build_def_files.update(self.cargo.get_build_def_files())
         return list(self.build_def_files)
@@ -675,7 +674,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if f not in self.build_def_files:
             self.build_def_files.add(f)
 
-    def get_variables(self) -> T.Dict[str, InterpreterObject]:
+    def get_variables(self) -> dict[str, InterpreterObject]:
         return self.variables
 
     def check_stdlibs(self) -> None:
@@ -705,8 +704,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         DISABLER_KW.evolve(since='0.59.0'),
     )
     @disablerIfNotFound
-    def func_import(self, node: mparser.BaseNode, args: T.Tuple[str],
-                    kwargs: 'kwtypes.FuncImportModule') -> T.Union[ExtensionModule, NewExtensionModule, NotFoundExtensionModule]:
+    def func_import(self, node: mparser.BaseNode, args: tuple[str],
+                    kwargs: kwtypes.FuncImportModule) -> ExtensionModule | NewExtensionModule | NotFoundExtensionModule:
         modname = args[0]
         disabled, required, _ = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
@@ -789,7 +788,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @typed_pos_args('files', varargs=str)
     @noKwargs
-    def func_files(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[mesonlib.File]:
+    def func_files(self, node: mparser.FunctionNode, args: tuple[list[str]], kwargs: TYPE_kwargs) -> list[mesonlib.File]:
         return self.source_strings_to_files(args[0])
 
     @noPosargs
@@ -809,7 +808,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('version', (str, NoneType)),
         KwargInfo('objects', ContainerTypeInfo(list, build.ExtractedObjects), listify=True, default=[], since='1.1.0'),
     )
-    def func_declare_dependency(self, node: mparser.BaseNode, args: T.List[TYPE_var],
+    def func_declare_dependency(self, node: mparser.BaseNode, args: list[TYPE_var],
                                 kwargs: kwtypes.FuncDeclareDependency) -> dependencies.Dependency:
         deps = kwargs['dependencies']
         incs = self.extract_incdirs(kwargs['include_directories'])
@@ -847,8 +846,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @typed_pos_args('assert', bool, optargs=[str])
     @noKwargs
-    def func_assert(self, node: mparser.FunctionNode, args: T.Tuple[bool, T.Optional[str]],
-                    kwargs: 'TYPE_kwargs') -> None:
+    def func_assert(self, node: mparser.FunctionNode, args: tuple[bool, str | None],
+                    kwargs: TYPE_kwargs) -> None:
         value, message = args
         if message is None:
             FeatureNew.single_use('assert function without message argument', '0.53.0', self.subproject, location=node)
@@ -875,12 +874,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         ENV_KW.evolve(since='0.50.0'),
     )
     def func_run_command(self, node: mparser.BaseNode,
-                         args: T.Tuple[T.Union[build.Executable, Program, compilers.Compiler, mesonlib.File, str],
-                                       T.List[T.Union[build.Executable, Program, compilers.Compiler, mesonlib.File, str]]],
-                         kwargs: 'kwtypes.RunCommand') -> RunProcess:
+                         args: tuple[build.Executable | Program | compilers.Compiler | mesonlib.File | str,
+                                     list[build.Executable | Program | compilers.Compiler | mesonlib.File | str]],
+                         kwargs: kwtypes.RunCommand) -> RunProcess:
         return self.run_command_impl(args, kwargs)
 
-    def _compiled_exe_error(self, cmd: T.Union[Program, build.Executable]) -> T.NoReturn:
+    def _compiled_exe_error(self, cmd: Program | build.Executable) -> T.NoReturn:
         descr = cmd.name if isinstance(cmd, build.Executable) else cmd.description()
         for for_machine in MachineChoice:
             for name, exe in self.build.find_overrides[for_machine].items():
@@ -889,9 +888,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         raise InterpreterException(f'Program {descr!r} is a compiled executable and therefore cannot be used during configuration')
 
     def run_command_impl(self,
-                         args: T.Tuple[T.Union[build.Executable, Program, compilers.Compiler, mesonlib.File, str],
-                                       T.List[T.Union[build.Executable, Program, compilers.Compiler, mesonlib.File, str]]],
-                         kwargs: 'kwtypes.RunCommand',
+                         args: tuple[build.Executable | Program | compilers.Compiler | mesonlib.File | str,
+                                     list[build.Executable | Program | compilers.Compiler | mesonlib.File | str]],
+                         kwargs: kwtypes.RunCommand,
                          in_builddir: bool = False) -> RunProcess:
         cmd, cargs = args
         env = kwargs['env']
@@ -903,7 +902,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             mlog.warning(implicit_check_false_warning, once=True)
             check = False
 
-        expanded_args: T.List[str] = []
+        expanded_args: list[str] = []
         if isinstance(cmd, build.Executable):
             self._compiled_exe_error(cmd)
         elif isinstance(cmd, Program):
@@ -970,7 +969,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         DEFAULT_OPTIONS.evolve(since='0.38.0'),
         KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True),
     )
-    def func_subproject(self, nodes: mparser.BaseNode, args: T.Tuple[SubProject], kwargs: kwtypes.Subproject) -> SubprojectHolder:
+    def func_subproject(self, nodes: mparser.BaseNode, args: tuple[SubProject], kwargs: kwtypes.Subproject) -> SubprojectHolder:
         # note that this does not use @apply_machine_map.  'for_machine'
         # is only used by _do_subproject_meson to decide between
         # Build.copy() and Build.copy_for_build_machine(), and copying
@@ -987,8 +986,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         }
         return self.do_subproject(args[0], kw)
 
-    def disabled_subproject(self, subp_name: SubProject, disabled_feature: T.Optional[str] = None,
-                            exception: T.Optional[Exception] = None,
+    def disabled_subproject(self, subp_name: SubProject, disabled_feature: str | None = None,
+                            exception: Exception | None = None,
                             for_machine: MachineChoice = MachineChoice.HOST) -> SubprojectHolder:
         sub = SubprojectHolder(NullSubprojectInterpreter(), os.path.join(self.subproject_dir, subp_name),
                                disabled_feature=disabled_feature, exception=exception)
@@ -999,7 +998,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
 
     @staticmethod
-    def format_subproject_stack(stack: T.List[T.Tuple[str, MachineChoice]], join: str = ' => ') -> str:
+    def format_subproject_stack(stack: list[tuple[str, MachineChoice]], join: str = ' => ') -> str:
         prefix = ''
         result = ''
         for_build = False
@@ -1011,8 +1010,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             prefix = join
         return result
 
-    def do_subproject(self, subp_name: SubProject, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None,
-                      forced_options: T.Optional[OptionDict] = None) -> SubprojectHolder:
+    def do_subproject(self, subp_name: SubProject, kwargs: kwtypes.DoSubproject, force_method: wrap.Method | None = None,
+                      forced_options: OptionDict | None = None) -> SubprojectHolder:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         kwargs.setdefault('for_machine', MachineChoice.HOST)
         for_machine = self.build.machine_map[kwargs['for_machine']]
@@ -1085,8 +1084,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         m.extend(['for machine:', mlog.bold(for_machine.get_lower_case_name())])
         mlog.log(*m, '\n', nested=False)
 
-        methods_map: T.Dict[wrap.Method, T.Callable[[SubProject, str, OptionDict, kwtypes.DoSubproject],
-                                                    SubprojectHolder]] = {
+        methods_map: dict[wrap.Method, T.Callable[[SubProject, str, OptionDict, kwtypes.DoSubproject],
+                                                  SubprojectHolder]] = {
             'meson': self._do_subproject_meson,
             'cmake': self._do_subproject_cmake,
             'cargo': self._do_subproject_cargo,
@@ -1123,10 +1122,10 @@ class Interpreter(InterpreterBase, HoldableObject):
     def _do_subproject_meson(self, subp_name: SubProject, subdir: str,
                              default_options: OptionDict,
                              kwargs: kwtypes.DoSubproject,
-                             ast: T.Optional[mparser.CodeBlockNode] = None,
-                             build_def_files: T.Optional[T.List[str]] = None,
-                             relaxations: T.Optional[T.Dict[InterpreterRuleRelaxation, T.Optional[FeatureCheckBase]]] = None,
-                             cargo: T.Optional[cargo.Interpreter] = None) -> SubprojectHolder:
+                             ast: mparser.CodeBlockNode | None = None,
+                             build_def_files: list[str] | None = None,
+                             relaxations: dict[InterpreterRuleRelaxation, FeatureCheckBase | None] | None = None,
+                             cargo: cargo.Interpreter | None = None) -> SubprojectHolder:
         for_machine = kwargs['for_machine']
         if for_machine is MachineChoice.BUILD:
             new_build = self.build.copy_for_build_machine()
@@ -1229,8 +1228,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @typed_pos_args('get_option', str)
     @noKwargs
-    def func_get_option(self, node: mparser.BaseNode, args: T.Tuple[str],
-                        kwargs: TYPE_kwargs) -> T.Union[options.UserOption, 'TYPE_var']:
+    def func_get_option(self, node: mparser.BaseNode, args: tuple[str],
+                        kwargs: TYPE_kwargs) -> options.UserOption | TYPE_var:
         optname = args[0]
 
         if ':' in optname:
@@ -1240,7 +1239,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if optname_regex.search(optname.split('.', maxsplit=1)[-1]) is not None:
             raise InterpreterException(f'Invalid option name {optname!r}')
 
-        option_object: T.Optional[options.AnyOptionType]
+        option_object: options.AnyOptionType | None
 
         try:
             optkey = options.OptionKey.from_string(optname).evolve(subproject=self.subproject)
@@ -1275,8 +1274,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @typed_pos_args('configuration_data', optargs=[dict])
     @noKwargs
-    def func_configuration_data(self, node: mparser.BaseNode, args: T.Tuple[T.Optional[T.Dict[str, T.Any]]],
-                                kwargs: 'TYPE_kwargs') -> build.ConfigurationData:
+    def func_configuration_data(self, node: mparser.BaseNode, args: tuple[dict[str, T.Any] | None],
+                                kwargs: TYPE_kwargs) -> build.ConfigurationData:
         initial_values = args[0]
         if initial_values is not None:
             FeatureNew.single_use('configuration_data dictionary', '0.49.0', self.subproject, location=node)
@@ -1310,8 +1309,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         self.environment.init_backend_options(backend_name)
 
-    def _validate_languages(self, langs: T.List[str], required: bool, node: mparser.BaseNode) -> T.List[Language]:
-        valid: T.List[Language] = []
+    def _validate_languages(self, langs: list[str], required: bool, node: mparser.BaseNode) -> list[Language]:
+        valid: list[Language] = []
 
         for lang in langs:
             lang = lang.lower()
@@ -1347,7 +1346,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('license_files', ContainerTypeInfo(list, str), default=[], listify=True, since='1.1.0'),
         KwargInfo('subproject_dir', str, default='subprojects'),
     )
-    def func_project(self, node: mparser.FunctionNode, args: T.Tuple[str, T.List[str]], kwargs: 'kwtypes.Project') -> None:
+    def func_project(self, node: mparser.FunctionNode, args: tuple[str, list[str]], kwargs: kwtypes.Project) -> None:
         proj_name, proj_langs_ = args
         if ':' in proj_name:
             raise InvalidArguments(f"Project name {proj_name!r} must not contain ':'")
@@ -1464,7 +1463,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         build_project = build.BuildProject(proj_name, self.project_version, self.subproject, self.build.for_machine, for_machine)
         self.build.projects[for_machine][self.subproject] = build_project
 
-        extra_args: T.List[mlog.TV_Loggable] = []
+        extra_args: list[mlog.TV_Loggable] = []
         if self.is_subproject() and for_machine is MachineChoice.BUILD:
             extra_args.append('(for build machine)')
         mlog.log('Project name:', mlog.bold(proj_name), *extra_args)
@@ -1487,7 +1486,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         REQUIRED_KW,
     )
     @typed_pos_args('add_languages', varargs=str)
-    def func_add_languages(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddLanguages') -> bool:
+    def func_add_languages(self, node: mparser.FunctionNode, args: tuple[list[str]], kwargs: kwtypes.FuncAddLanguages) -> bool:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         for_machine = kwargs['native']
 
@@ -1513,7 +1512,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             success &= self.add_languages(langs, False, MachineChoice.BUILD)
             return success
 
-    def _stringify_user_arguments(self, args: T.List[TYPE_var], func_name: str) -> list[str]:
+    def _stringify_user_arguments(self, args: list[TYPE_var], func_name: str) -> list[str]:
         try:
             return [stringifyUserArguments(i, self.subproject) for i in args]
         except InvalidArguments as e:
@@ -1539,8 +1538,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('bool_yn', bool, default=False),
         KwargInfo('list_sep', (str, NoneType), since='0.54.0')
     )
-    def func_summary(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, T.Dict[str, T.Any]], T.Optional[T.Any]],
-                     kwargs: 'kwtypes.Summary') -> None:
+    def func_summary(self, node: mparser.BaseNode, args: tuple[str | dict[str, T.Any], T.Any | None],
+                     kwargs: kwtypes.Summary) -> None:
         if args[1] is None:
             if not isinstance(args[0], dict):
                 raise InterpreterException('Summary first argument must be dictionary.')
@@ -1635,7 +1634,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         'expect_error',
         KwargInfo('how', str, default='literal', validator=in_set_validator({'literal', 're'})),
     )
-    def func_expect_error(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: kwtypes.FuncExpectError) -> ContextManagerObject:
+    def func_expect_error(self, node: mparser.BaseNode, args: tuple[str], kwargs: kwtypes.FuncExpectError) -> ContextManagerObject:
         class ExpectErrorObject(ContextManagerObject):
             def __init__(self, msg: str, how: str, subproject: SubProject) -> None:
                 super().__init__(subproject)
@@ -1663,7 +1662,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 return False
         return ExpectErrorObject(args[0], kwargs['how'], self.subproject)
 
-    def add_languages(self, args: T.List[Language], required: bool, for_machine: MachineChoice) -> bool:
+    def add_languages(self, args: list[Language], required: bool, for_machine: MachineChoice) -> bool:
         success = self.add_languages_for(args, required, for_machine)
         self._redetect_machines()
         return success
@@ -1678,7 +1677,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             return False
         return should
 
-    def add_languages_for(self, args: T.List[Language], required: bool, for_machine: MachineChoice) -> bool:
+    def add_languages_for(self, args: list[Language], required: bool, for_machine: MachineChoice) -> bool:
         langs = set(self.compilers[for_machine])
         langs.update(args)
 
@@ -1687,7 +1686,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # the project enabled languages, as they are implementation details, not
         # something the user explicitly asked for, and we don't want to be
         # forced to keep them forever if the implementation changes.
-        internal: T.Set[Language] = set()
+        internal: set[Language] = set()
 
         if 'vala' in langs and 'c' not in langs:
             FeatureNew.single_use('Adding Vala language without C', '0.59.0', self.subproject, location=self.current_node)
@@ -1744,7 +1743,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                         raise
                 if lang == 'cuda' and hasattr(self.backend, 'allow_thin_archives'):
                     # see NinjaBackend.__init__() why we need to disable thin archives for cuda
-                    mlog.debug('added cuda as language, disabling thin archives for {}, since nvcc/nvlink cannot handle thin archives natively'.format(for_machine))
+                    mlog.debug(f'added cuda as language, disabling thin archives for {for_machine}, since nvcc/nvlink cannot handle thin archives natively')
                     self.backend.allow_thin_archives[for_machine] = False
             else:
                 # update new values from commandline, if it applies
@@ -1765,8 +1764,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         return success
 
-    def program_from_file_for(self, for_machine: MachineChoice, prognames: T.List[mesonlib.FileOrString]
-                              ) -> T.Optional[ExternalProgram]:
+    def program_from_file_for(self, for_machine: MachineChoice, prognames: list[mesonlib.FileOrString]
+                              ) -> ExternalProgram | None:
         for p in prognames:
             if isinstance(p, mesonlib.File):
                 continue # Always points to a local (i.e. self generated) file.
@@ -1779,8 +1778,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                 return prog
         return None
 
-    def program_from_system(self, args: T.List[mesonlib.FileOrString], search_dirs: T.Optional[T.List[str]],
-                            extra_info: T.List[mlog.TV_Loggable]) -> T.Optional[ExternalProgram]:
+    def program_from_system(self, args: list[mesonlib.FileOrString], search_dirs: list[str] | None,
+                            extra_info: list[mlog.TV_Loggable]) -> ExternalProgram | None:
         # Search for scripts relative to current subdir.
         # Do not cache found programs because find_program('foobar')
         # might give different results when run from different source dirs.
@@ -1808,10 +1807,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                 return extprog
         return None
 
-    def program_from_overrides(self, command_names: T.List[mesonlib.FileOrString],
+    def program_from_overrides(self, command_names: list[mesonlib.FileOrString],
                                for_machine: MachineChoice,
-                               extra_info: T.List['mlog.TV_Loggable']
-                               ) -> T.Optional[Program]:
+                               extra_info: list[mlog.TV_Loggable]
+                               ) -> Program | None:
         for name in command_names:
             if not isinstance(name, str):
                 continue
@@ -1821,7 +1820,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 return exe
         return None
 
-    def store_name_lookups(self, command_names: T.List[mesonlib.FileOrString], for_machine: MachineChoice) -> None:
+    def store_name_lookups(self, command_names: list[mesonlib.FileOrString], for_machine: MachineChoice) -> None:
         for name in command_names:
             if isinstance(name, str):
                 self.build.searched_programs[for_machine].add(name)
@@ -1836,25 +1835,25 @@ class Interpreter(InterpreterBase, HoldableObject):
             from ..dependencies.pkgconfig import PkgConfigInterface
             PkgConfigInterface.set_program_override(exe, for_machine)
 
-    def notfound_program(self, args: T.List[mesonlib.FileOrString]) -> ExternalProgram:
+    def notfound_program(self, args: list[mesonlib.FileOrString]) -> ExternalProgram:
         return NonExistingExternalProgram(' '.join(
             [a if isinstance(a, str) else a.absolute_path(self.environment.source_dir, self.environment.build_dir)
              for a in args]))
 
     # TODO update modules to always pass `for_machine`. It is bad-form to assume
     # the host machine.
-    def find_program_impl(self, args: T.List[mesonlib.FileOrString],
+    def find_program_impl(self, args: list[mesonlib.FileOrString],
                           for_machine: MachineChoice = MachineChoice.HOST,
-                          default_options: T.Optional[OptionDict] = None,
+                          default_options: OptionDict | None = None,
                           required: bool = True, silent: bool = True,
-                          wanted: T.Union[str, T.List[str]] = '',
-                          search_dirs: T.Optional[T.List[str]] = None,
-                          version_arg: T.Optional[str] = '',
-                          version_func: T.Optional[ProgramVersionFunc] = None
+                          wanted: str | list[str] = '',
+                          search_dirs: list[str] | None = None,
+                          version_arg: str | None = '',
+                          version_func: ProgramVersionFunc | None = None
                           ) -> Program:
         args = mesonlib.listify(args)
 
-        extra_info: T.List[mlog.TV_Loggable] = []
+        extra_info: list[mlog.TV_Loggable] = []
         progobj = self.program_lookup(args, for_machine, default_options, required, search_dirs, wanted, version_arg, version_func, extra_info)
         if progobj is None or not self.check_program_version(progobj, wanted, version_func, for_machine, extra_info):
             progobj = self.notfound_program(args)
@@ -1873,15 +1872,15 @@ class Interpreter(InterpreterBase, HoldableObject):
             mlog.log('Program', mlog.bold(progobj.name), 'found:', mlog.green('YES'), *extra_info)
         return progobj
 
-    def program_lookup(self, args: T.List[mesonlib.FileOrString], for_machine: MachineChoice,
-                       default_options: T.Optional[OptionDict],
+    def program_lookup(self, args: list[mesonlib.FileOrString], for_machine: MachineChoice,
+                       default_options: OptionDict | None,
                        required: bool,
-                       search_dirs: T.Optional[T.List[str]],
-                       wanted: T.Union[str, T.List[str]],
-                       version_arg: T.Optional[str],
-                       version_func: T.Optional[ProgramVersionFunc],
-                       extra_info: T.List[mlog.TV_Loggable]
-                       ) -> T.Optional[Program]:
+                       search_dirs: list[str] | None,
+                       wanted: str | list[str],
+                       version_arg: str | None,
+                       version_func: ProgramVersionFunc | None,
+                       extra_info: list[mlog.TV_Loggable]
+                       ) -> Program | None:
         progobj = self.program_from_overrides(args, for_machine, extra_info)
         if progobj:
             return progobj
@@ -1924,10 +1923,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         return progobj
 
     def check_program_version(self, progobj: Program,
-                              wanted: T.Union[str, T.List[str]],
-                              version_func: T.Optional[ProgramVersionFunc],
+                              wanted: str | list[str],
+                              version_func: ProgramVersionFunc | None,
                               for_machine: MachineChoice,
-                              extra_info: T.List[mlog.TV_Loggable]) -> bool:
+                              extra_info: list[mlog.TV_Loggable]) -> bool:
         if wanted:
             if version_func:
                 version = version_func(progobj)
@@ -1948,11 +1947,11 @@ class Interpreter(InterpreterBase, HoldableObject):
             extra_info.insert(0, mlog.normal_cyan(version))
         return True
 
-    def find_program_fallback(self, fallback: SubProject, args: T.List[mesonlib.FileOrString],
+    def find_program_fallback(self, fallback: SubProject, args: list[mesonlib.FileOrString],
                               for_machine: MachineChoice,
                               default_options: OptionDict,
-                              required: bool, extra_info: T.List[mlog.TV_Loggable],
-                              ) -> T.Optional[Program]:
+                              required: bool, extra_info: list[mlog.TV_Loggable],
+                              ) -> Program | None:
         mlog.log('Fallback to subproject', mlog.bold(fallback), 'which provides program',
                  mlog.bold(' '.join(str(a) for a in args)))
         sp_kwargs: kwtypes.DoSubproject = {
@@ -1979,8 +1978,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     )
     @disablerIfNotFound
     @apply_machine_map
-    def func_find_program(self, node: mparser.BaseNode, args: T.Tuple[T.List[mesonlib.FileOrString]],
-                          kwargs: 'kwtypes.FindProgram',
+    def func_find_program(self, node: mparser.BaseNode, args: tuple[list[mesonlib.FileOrString]],
+                          kwargs: kwtypes.FindProgram,
                           ) -> Program:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
@@ -1998,7 +1997,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs('dependency', *DEPENDENCY_KWS)
     @disablerIfNotFound
     @apply_machine_map
-    def func_dependency(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]], kwargs: kwtypes.FuncDependency) -> Dependency:
+    def func_dependency(self, node: mparser.BaseNode, args: tuple[list[str]], kwargs: kwtypes.FuncDependency) -> Dependency:
         # Replace '' by empty list of names
         names = [n for n in args[0] if n]
         if len(names) > 1:
@@ -2060,21 +2059,21 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('executable', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('executable', *EXECUTABLE_KWS)
     def func_executable(self, node: mparser.BaseNode,
-                        args: T.Tuple[str, SourcesVarargsType],
-                        kwargs: kwtypes.Executable) -> T.Union[build.Executable, build.SharedLibrary]:
+                        args: tuple[str, SourcesVarargsType],
+                        kwargs: kwtypes.Executable) -> build.Executable | build.SharedLibrary:
         return self.build_target(node, args, kwargs, build.Executable)
 
     @typed_pos_args('static_library', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('static_library', *STATIC_LIB_KWS)
     def func_static_lib(self, node: mparser.BaseNode,
-                        args: T.Tuple[str, SourcesVarargsType],
+                        args: tuple[str, SourcesVarargsType],
                         kwargs: kwtypes.StaticLibrary) -> build.StaticLibrary:
         return self.build_target(node, args, kwargs, build.StaticLibrary)
 
     @typed_pos_args('shared_library', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('shared_library', *SHARED_LIB_KWS)
     def func_shared_lib(self, node: mparser.BaseNode,
-                        args: T.Tuple[str, SourcesVarargsType],
+                        args: tuple[str, SourcesVarargsType],
                         kwargs: kwtypes.SharedLibrary) -> build.SharedLibrary:
         return self.build_target(node, args, kwargs, build.SharedLibrary)
 
@@ -2082,7 +2081,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs('both_libraries', *LIBRARY_KWS)
     @noSecondLevelHolderResolving
     def func_both_lib(self, node: mparser.BaseNode,
-                      args: T.Tuple[str, SourcesVarargsType],
+                      args: tuple[str, SourcesVarargsType],
                       kwargs: kwtypes.Library) -> build.BothLibraries:
         return self.build_both_libraries(node, args, kwargs)
 
@@ -2090,7 +2089,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('shared_module', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('shared_module', *SHARED_MOD_KWS)
     def func_shared_module(self, node: mparser.BaseNode,
-                           args: T.Tuple[str, SourcesVarargsType],
+                           args: tuple[str, SourcesVarargsType],
                            kwargs: kwtypes.SharedModule) -> build.SharedModule:
         return self.build_target(node, args, kwargs, build.SharedModule)
 
@@ -2098,24 +2097,23 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs('library', *LIBRARY_KWS)
     @noSecondLevelHolderResolving
     def func_library(self, node: mparser.BaseNode,
-                     args: T.Tuple[str, SourcesVarargsType],
+                     args: tuple[str, SourcesVarargsType],
                      kwargs: kwtypes.Library) -> build.StaticLibrary | build.SharedLibrary | build.BothLibraries:
         return self.build_library(node, args, kwargs)
 
     @typed_pos_args('jar', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.ExtractedObjects, build.BuildTarget))
     @typed_kwargs('jar', *JAR_KWS)
     def func_jar(self, node: mparser.BaseNode,
-                 args: T.Tuple[str, T.List[str | build.TargetSources]],
+                 args: tuple[str, list[str | build.TargetSources]],
                  kwargs: kwtypes.Jar) -> build.Jar:
         return self.build_target(node, T.cast('tuple[str, SourcesVarargsType]', args), kwargs, build.Jar)
 
     @typed_pos_args('build_target', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('build_target', *BUILD_TARGET_KWS)
     def func_build_target(self, node: mparser.BaseNode,
-                          args: T.Tuple[str, SourcesVarargsType],
+                          args: tuple[str, SourcesVarargsType],
                           kwargs: kwtypes.BuildTargetFunc,
-                          ) -> T.Union[build.Executable, build.StaticLibrary, build.SharedLibrary,
-                                       build.SharedModule, build.BothLibraries, build.Jar]:
+                          ) -> build.Executable | build.StaticLibrary | build.SharedLibrary | build.SharedModule | build.BothLibraries | build.Jar:
         target_type = kwargs['target_type']
 
         if target_type == 'executable':
@@ -2154,7 +2152,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         INSTALL_MODE_KW.evolve(since='1.7.0'),
     )
     @apply_machine_map
-    def func_vcs_tag(self, node: mparser.BaseNode, args: T.List['TYPE_var'], kwargs: 'kwtypes.VcsTag') -> build.CustomTarget:
+    def func_vcs_tag(self, node: mparser.BaseNode, args: list[TYPE_var], kwargs: kwtypes.VcsTag) -> build.CustomTarget:
         if kwargs['fallback'] is None:
             FeatureNew.single_use('Optional fallback in vcs_tag', '0.41.0', self.subproject, location=node)
         fallback = kwargs['fallback'] or self.project_version
@@ -2174,7 +2172,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             vcs = mesonlib.detect_vcs(source_dir)
             if vcs:
-                mlog.log('Found {} repository at {}'.format(vcs.name, vcs.wc_dir))
+                mlog.log(f'Found {vcs.name} repository at {vcs.wc_dir}')
                 vcs_cmd = vcs.get_rev
                 regex_selector = vcs.rev_regex
             else:
@@ -2195,8 +2193,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         install = kwargs['install']
         install_mode = self._warn_kwarg_install_mode_sticky(kwargs['install_mode'])
-        install_dir: T.List[T.Union[str, Literal[False]]] = [] if kwargs['install_dir'] is None else [kwargs['install_dir']]
-        install_tag: T.List[T.Optional[str]] = [] if kwargs['install_tag'] is None else [kwargs['install_tag']]
+        install_dir: list[str | Literal[False]] = [] if kwargs['install_dir'] is None else [kwargs['install_dir']]
+        install_tag: list[str | None] = [] if kwargs['install_tag'] is None else [kwargs['install_tag']]
         if install and not install_dir:
             raise InvalidArguments('vcs_tag: "install_dir" keyword argument must be set when "install" is true.')
 
@@ -2230,7 +2228,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         This cannot be done with typed_kwargs because it requires the number of
         inputs.
         """
-        inregex: T.List[str] = ['@PLAINNAME[0-9]+@', '@BASENAME[0-9]+@']
+        inregex: list[str] = ['@PLAINNAME[0-9]+@', '@BASENAME[0-9]+@']
         from ..utils.universal import iter_regexin_iter
         for out in outputs:
             match = iter_regexin_iter(inregex, [out])
@@ -2265,8 +2263,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('build_subdir', str, default='', since='1.10.0'),
     )
     @apply_machine_map
-    def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[str],
-                           kwargs: 'kwtypes.CustomTarget') -> build.CustomTarget:
+    def func_custom_target(self, node: mparser.FunctionNode, args: tuple[str],
+                           kwargs: kwtypes.CustomTarget) -> build.CustomTarget:
         if kwargs['depfile'] and ('@BASENAME@' in kwargs['depfile'] or '@PLAINNAME@' in kwargs['depfile']):
             FeatureNew.single_use('substitutions in custom_target depfile', '0.47.0', self.subproject, location=node)
         install_mode = self._warn_kwarg_install_mode_sticky(kwargs['install_mode'])
@@ -2372,8 +2370,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         DEPENDS_KW,
         ENV_KW.evolve(since='0.57.0'),
     )
-    def func_run_target(self, node: mparser.FunctionNode, args: T.Tuple[str],
-                        kwargs: 'kwtypes.RunTarget') -> build.RunTarget:
+    def func_run_target(self, node: mparser.FunctionNode, args: tuple[str],
+                        kwargs: kwtypes.RunTarget) -> build.RunTarget:
         all_args = kwargs['command'].copy()
 
         for i in listify(all_args):
@@ -2394,12 +2392,12 @@ class Interpreter(InterpreterBase, HoldableObject):
     @FeatureNew('alias_target', '0.52.0')
     @typed_pos_args('alias_target', str, varargs=(build.Target, build.BothLibraries), min_varargs=1)
     @noKwargs
-    def func_alias_target(self, node: mparser.BaseNode, args: T.Tuple[str, T.List[T.Union[build.Target, build.BothLibraries]]],
+    def func_alias_target(self, node: mparser.BaseNode, args: tuple[str, list[build.Target | build.BothLibraries]],
                           kwargs: TYPE_kwargs) -> build.AliasTarget:
         name, deps = args
         if any(isinstance(d, build.RunTarget) for d in deps):
             FeatureNew.single_use('alias_target that depends on run_targets', '0.60.0', self.subproject)
-        real_deps: T.List[build.Target] = []
+        real_deps: list[build.Target] = []
         for d in deps:
             if isinstance(d, build.BothLibraries):
                 real_deps.append(d.shared)
@@ -2421,8 +2419,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('capture', bool, default=False, since='0.43.0'),
     )
     def func_generator(self, node: mparser.FunctionNode,
-                       args: T.Tuple[T.Union[build.Executable, Program]],
-                       kwargs: 'kwtypes.FuncGenerator') -> build.Generator:
+                       args: tuple[build.Executable | Program],
+                       kwargs: kwtypes.FuncGenerator) -> build.Generator:
         for rule in kwargs['output']:
             if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule:
                 raise InvalidArguments('Every element of "output" must contain @BASENAME@ or @PLAINNAME@.')
@@ -2442,21 +2440,21 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('benchmark', str, (build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex))
     @typed_kwargs('benchmark', *TEST_KWS)
     def func_benchmark(self, node: mparser.BaseNode,
-                       args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
-                       kwargs: 'kwtypes.FuncBenchmark') -> None:
+                       args: tuple[str, build.Executable | build.Jar | Program | mesonlib.File | build.CustomTarget | build.CustomTargetIndex],
+                       kwargs: kwtypes.FuncBenchmark) -> None:
         self.add_test(node, args, kwargs, False)
 
     @typed_pos_args('test', str, (build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex))
     @typed_kwargs('test', *TEST_KWS, KwargInfo('is_parallel', bool, default=True))
     def func_test(self, node: mparser.BaseNode,
-                  args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
-                  kwargs: 'kwtypes.FuncTest') -> None:
+                  args: tuple[str, build.Executable | build.Jar | Program | mesonlib.File | build.CustomTarget | build.CustomTargetIndex],
+                  kwargs: kwtypes.FuncTest) -> None:
         self.add_test(node, args, kwargs, True)
 
     def make_test(self, node: mparser.BaseNode,
-                  args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
+                  args: tuple[str, build.Executable | build.Jar | Program | mesonlib.File | build.CustomTarget | build.CustomTargetIndex],
                   kwargs: kwtypes.FuncTest | kwtypes.FuncBenchmark,
-                  klass: T.Type[TestClass] = Test) -> TestClass:  # type: ignore[assignment]
+                  klass: type[TestClass] = Test) -> TestClass:  # type: ignore[assignment]
         name = args[0]
         if ':' in name:
             mlog.deprecation(f'":" is not allowed in test name "{name}", it has been replaced with "_"',
@@ -2480,7 +2478,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         prj = self.subproject if self.is_subproject() else self.build.project_name
 
-        suite: T.List[str] = []
+        suite: list[str] = []
         for s in kwargs['suite']:
             if s:
                 s = ':' + s
@@ -2503,7 +2501,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                      kwargs['verbose'])
 
     def add_test(self, node: mparser.BaseNode,
-                 args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
+                 args: tuple[str, build.Executable | build.Jar | Program | mesonlib.File | build.CustomTarget | build.CustomTargetIndex],
                  kwargs: kwtypes.FuncTest | kwtypes.FuncBenchmark, is_base_test: bool) -> None:
         if isinstance(args[1], (build.CustomTarget, build.CustomTargetIndex)):
             FeatureNew.single_use('test with CustomTarget as command', '1.4.0', self.subproject)
@@ -2527,8 +2525,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         INSTALL_TAG_KW.evolve(since='1.11.0'),
     )
     def func_install_headers(self, node: mparser.BaseNode,
-                             args: T.Tuple[T.List['mesonlib.FileOrString']],
-                             kwargs: 'kwtypes.FuncInstallHeaders') -> list[build.Headers]:
+                             args: tuple[list[mesonlib.FileOrString]],
+                             kwargs: kwtypes.FuncInstallHeaders) -> list[build.Headers]:
         install_mode = self._warn_kwarg_install_mode_sticky(kwargs['install_mode'])
         source_files = self.source_strings_to_files(args[0])
         install_subdir = kwargs['subdir']
@@ -2569,8 +2567,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         INSTALL_TAG_KW.evolve(since='1.11.0')
     )
     def func_install_man(self, node: mparser.BaseNode,
-                         args: T.Tuple[T.List['mesonlib.FileOrString']],
-                         kwargs: 'kwtypes.FuncInstallMan') -> build.Man:
+                         args: tuple[list[mesonlib.FileOrString]],
+                         kwargs: kwtypes.FuncInstallMan) -> build.Man:
         install_mode = self._warn_kwarg_install_mode_sticky(kwargs['install_mode'])
         # We just need to narrow this, because the input is limited to files and
         # Strings as inputs, so only Files will be returned
@@ -2596,7 +2594,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         INSTALL_MODE_KW,
         KwargInfo('install_tag', (str, NoneType), since='0.62.0')
     )
-    def func_install_emptydir(self, node: mparser.BaseNode, args: T.Tuple[str],
+    def func_install_emptydir(self, node: mparser.BaseNode, args: tuple[str],
                               kwargs: kwtypes.FuncInstallEmptyDir) -> build.EmptyDir:
         d = build.EmptyDir(args[0], kwargs['install_mode'], self.subproject, kwargs['install_tag'])
         if not self.is_internal_machine(MachineChoice.HOST):
@@ -2612,7 +2610,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         INSTALL_TAG_KW,
     )
     def func_install_symlink(self, node: mparser.BaseNode,
-                             args: T.Tuple[str],
+                             args: tuple[str],
                              kwargs: kwtypes.FuncInstallSymlink) -> build.SymlinkData:
         name = args[0] # Validation while creating the SymlinkData object
         target = kwargs['pointing_to']
@@ -2628,10 +2626,10 @@ class Interpreter(InterpreterBase, HoldableObject):
     @noArgsFlattening
     def func_structured_sources(
             self, node: mparser.BaseNode,
-            args: T.Tuple[object, T.Optional[T.Dict[str, object]]],
-            kwargs: 'TYPE_kwargs') -> build.StructuredSources:
+            args: tuple[object, dict[str, object] | None],
+            kwargs: TYPE_kwargs) -> build.StructuredSources:
         valid_types = (str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)
-        sources: T.DefaultDict[str, T.List[T.Union[build.TargetSources]]] = collections.defaultdict(list)
+        sources: collections.defaultdict[str, list[build.TargetSources]] = collections.defaultdict(list)
 
         for arg in mesonlib.listify(args[0]):
             if not isinstance(arg, valid_types):
@@ -2663,7 +2661,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             listify=True,
         ),
     )
-    def func_subdir(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'kwtypes.Subdir') -> None:
+    def func_subdir(self, node: mparser.BaseNode, args: tuple[str], kwargs: kwtypes.Subdir) -> None:
         mesonlib.check_direntry_issues(args)
         if '..' in args[0]:
             raise InvalidArguments('Subdir contains ..')
@@ -2720,8 +2718,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         INSTALL_FOLLOW_SYMLINKS,
     )
     def func_install_data(self, node: mparser.BaseNode,
-                          args: T.Tuple[T.List['mesonlib.FileOrString']],
-                          kwargs: 'kwtypes.FuncInstallData') -> list[build.Data]:
+                          args: tuple[list[mesonlib.FileOrString]],
+                          kwargs: kwtypes.FuncInstallData) -> list[build.Data]:
         sources = self.source_strings_to_files(args[0] + kwargs['sources'])
         rename = kwargs['rename'] or None
         if rename:
@@ -2748,12 +2746,12 @@ class Interpreter(InterpreterBase, HoldableObject):
                                       preserve_path=kwargs['preserve_path'],
                                       follow_symlinks=kwargs['follow_symlinks'])
 
-    def install_data_impl(self, sources: T.List[mesonlib.File], install_dir: str,
-                          install_mode: FileMode, rename: T.Optional[T.List[str]],
-                          tag: T.Optional[str],
-                          install_data_type: T.Optional[str] = None,
+    def install_data_impl(self, sources: list[mesonlib.File], install_dir: str,
+                          install_mode: FileMode, rename: list[str] | None,
+                          tag: str | None,
+                          install_data_type: str | None = None,
                           preserve_path: bool = False,
-                          follow_symlinks: T.Optional[bool] = None) -> list[build.Data]:
+                          follow_symlinks: bool | None = None) -> list[build.Data]:
         install_dir_name = install_dir.optname if isinstance(install_dir, P_OBJ.OptionString) else install_dir
         dirs = collections.defaultdict(list)
         if preserve_path:
@@ -2789,8 +2787,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         INSTALL_TAG_KW.evolve(since='0.60.0'),
         INSTALL_FOLLOW_SYMLINKS,
     )
-    def func_install_subdir(self, node: mparser.BaseNode, args: T.Tuple[str],
-                            kwargs: 'kwtypes.FuncInstallSubdir') -> build.InstallDir:
+    def func_install_subdir(self, node: mparser.BaseNode, args: tuple[str],
+                            kwargs: kwtypes.FuncInstallSubdir) -> build.InstallDir:
         exclude = (set(kwargs['exclude_files']), set(kwargs['exclude_directories']))
 
         srcdir = os.path.join(self.environment.source_dir, self.subdir, args[0])
@@ -2866,7 +2864,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('build_subdir', str, default='', since='1.10.0'),
     )
     @apply_machine_map
-    def func_configure_file(self, node: mparser.BaseNode, args: T.List[TYPE_var],
+    def func_configure_file(self, node: mparser.BaseNode, args: list[TYPE_var],
                             kwargs: kwtypes.ConfigureFile) -> mesonlib.File:
         actions = sorted(x for x in ('configuration', 'command', 'copy')
                          if kwargs[x] not in [None, False])  # type: ignore[literal-required]
@@ -2921,7 +2919,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if ofile_rpath in self.configure_file_outputs:
             mesonbuildfile = os.path.join(self.subdir, 'meson.build')
             current_call = f"{mesonbuildfile}:{self.current_node.lineno}"
-            first_call = "{}:{}".format(mesonbuildfile, self.configure_file_outputs[ofile_rpath])
+            first_call = f"{mesonbuildfile}:{self.configure_file_outputs[ofile_rpath]}"
             mlog.warning('Output file', mlog.bold(ofile_rpath, True), 'for configure_file() at', current_call, 'overwrites configure_file() output at', first_call)
         else:
             self.configure_file_outputs[ofile_rpath] = self.current_node.lineno
@@ -3029,10 +3027,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                                               install_tag=install_tag, data_type='configure'))
         return mesonlib.File.from_built_file(self.subdir, output)
 
-    def extract_incdirs(self, prospectives: T.List[T.Union[str, build.IncludeDirs]],
+    def extract_incdirs(self, prospectives: list[str | build.IncludeDirs],
                         is_d_import_dirs: bool = False
-                        ) -> T.List[build.IncludeDirs]:
-        result: T.List[build.IncludeDirs] = []
+                        ) -> list[build.IncludeDirs]:
+        result: list[build.IncludeDirs] = []
         for p in prospectives:
             if isinstance(p, build.IncludeDirs):
                 result.append(p)
@@ -3048,11 +3046,11 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @typed_pos_args('include_directories', varargs=str)
     @typed_kwargs('include_directories', KwargInfo('is_system', bool, default=False))
-    def func_include_directories(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]],
-                                 kwargs: 'kwtypes.FuncIncludeDirectories') -> build.IncludeDirs:
+    def func_include_directories(self, node: mparser.BaseNode, args: tuple[list[str]],
+                                 kwargs: kwtypes.FuncIncludeDirectories) -> build.IncludeDirs:
         return self.build_incdir_object(args[0], kwargs['is_system'])
 
-    def build_incdir_object(self, incdir_strings: T.List[str], is_system: bool = False) -> build.IncludeDirs:
+    def build_incdir_object(self, incdir_strings: list[str], is_system: bool = False) -> build.IncludeDirs:
         if not isinstance(is_system, bool):
             raise InvalidArguments('Is_system must be boolean.')
         src_root = self.environment.get_source_dir()
@@ -3129,14 +3127,14 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('is_default', bool, default=False, since='0.49.0'),
         ENV_KW,
     )
-    def func_add_test_setup(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'kwtypes.AddTestSetup') -> None:
+    def func_add_test_setup(self, node: mparser.BaseNode, args: tuple[str], kwargs: kwtypes.AddTestSetup) -> None:
         setup_name = args[0]
         if re.fullmatch('([_a-zA-Z][_0-9a-zA-Z]*:)?[_a-zA-Z][_0-9a-zA-Z]*', setup_name) is None:
             raise InterpreterException('Setup name may only contain alphanumeric characters.')
         if ":" not in setup_name:
             setup_name = f'{(self.subproject if self.subproject else self.build.project_name)}:{setup_name}'
 
-        exe_wrapper: T.List[str] = []
+        exe_wrapper: list[str] = []
         for i in kwargs['exe_wrapper']:
             if isinstance(i, str):
                 exe_wrapper.append(i)
@@ -3159,23 +3157,23 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @typed_pos_args('add_global_arguments', varargs=str)
     @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
-    def func_add_global_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
+    def func_add_global_arguments(self, node: mparser.FunctionNode, args: tuple[list[str]], kwargs: kwtypes.FuncAddProjectArgs) -> None:
         self._add_global_arguments(node, self.build.global_args[kwargs['native']], args[0], kwargs)
 
     @typed_pos_args('add_global_link_arguments', varargs=str)
     @typed_kwargs('add_global_link_arguments', NATIVE_KW, LANGUAGE_KW)
-    def func_add_global_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
+    def func_add_global_link_arguments(self, node: mparser.FunctionNode, args: tuple[list[str]], kwargs: kwtypes.FuncAddProjectArgs) -> None:
         self._add_global_arguments(node, self.build.global_link_args[kwargs['native']], args[0], kwargs)
 
     @typed_pos_args('add_project_arguments', varargs=str)
     @typed_kwargs('add_project_arguments', NATIVE_KW, LANGUAGE_KW)
-    def func_add_project_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
+    def func_add_project_arguments(self, node: mparser.FunctionNode, args: tuple[list[str]], kwargs: kwtypes.FuncAddProjectArgs) -> None:
         self._add_project_arguments(node, self.current_build_project().project_args[kwargs['native']],
                                     args[0], kwargs)
 
     @typed_pos_args('add_project_link_arguments', varargs=str)
     @typed_kwargs('add_project_link_arguments', NATIVE_KW, LANGUAGE_KW)
-    def func_add_project_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
+    def func_add_project_link_arguments(self, node: mparser.FunctionNode, args: tuple[list[str]], kwargs: kwtypes.FuncAddProjectArgs) -> None:
         self._add_project_arguments(node, self.current_build_project().project_link_args[kwargs['native']],
                                     args[0], kwargs)
 
@@ -3186,7 +3184,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @FeatureNew('add_project_dependencies', '0.63.0')
     @typed_pos_args('add_project_dependencies', varargs=dependencies.Dependency)
     @typed_kwargs('add_project_dependencies', NATIVE_KW, LANGUAGE_KW)
-    def func_add_project_dependencies(self, node: mparser.FunctionNode, args: T.Tuple[T.List[dependencies.Dependency]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
+    def func_add_project_dependencies(self, node: mparser.FunctionNode, args: tuple[list[dependencies.Dependency]], kwargs: kwtypes.FuncAddProjectArgs) -> None:
         for_machine = kwargs['native']
         for lang in kwargs['language']:
             if lang not in self.compilers[for_machine]:
@@ -3205,7 +3203,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             self._add_project_arguments(node, self.current_build_project().project_link_args[for_machine],
                                         d.get_link_args(), kwargs)
 
-    def _warn_about_builtin_args(self, args: T.List[str]) -> None:
+    def _warn_about_builtin_args(self, args: list[str]) -> None:
         # -Wpedantic is deliberately not included, since some people want to use it but not use -Wextra
         # see e.g.
         # https://github.com/mesonbuild/meson/issues/3275#issuecomment-641354956
@@ -3233,8 +3231,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                 mlog.warning(f'Consider using the built-in option for language standard version instead of using "{arg}".',
                              location=self.current_node)
 
-    def _add_global_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[Language, T.List[str]],
-                              args: T.List[str], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
+    def _add_global_arguments(self, node: mparser.FunctionNode, argsdict: dict[Language, list[str]],
+                              args: list[str], kwargs: kwtypes.FuncAddProjectArgs) -> None:
         if self.is_subproject():
             msg = f'Function \'{node.func_name.value}\' cannot be used in subprojects because ' \
                   'there is no way to make that reliable.\nPlease only call ' \
@@ -3246,12 +3244,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         frozen = self.project_args_frozen or self.global_args_frozen
         self._add_arguments(node, argsdict, frozen, args, kwargs)
 
-    def _add_project_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[Language, T.List[str]],
-                               args: T.List[str], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
+    def _add_project_arguments(self, node: mparser.FunctionNode, argsdict: dict[Language, list[str]],
+                               args: list[str], kwargs: kwtypes.FuncAddProjectArgs) -> None:
         self._add_arguments(node, argsdict, self.project_args_frozen, args, kwargs)
 
-    def _add_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[Language, T.List[str]],
-                       args_frozen: bool, args: T.List[str], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
+    def _add_arguments(self, node: mparser.FunctionNode, argsdict: dict[Language, list[str]],
+                       args_frozen: bool, args: list[str], kwargs: kwtypes.FuncAddProjectArgs) -> None:
         if args_frozen:
             msg = f'Tried to use \'{node.func_name.value}\' after a build target has been declared.\n' \
                   'This is not permitted. Please declare all arguments before your targets.'
@@ -3265,7 +3263,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @noArgsFlattening
     @typed_pos_args('environment', optargs=[(str, list, dict)])
     @typed_kwargs('environment', ENV_METHOD_KW, ENV_SEPARATOR_KW.evolve(since='0.62.0'))
-    def func_environment(self, node: mparser.FunctionNode, args: T.Tuple[T.Union[None, str, T.List['TYPE_var'], T.Dict[str, 'TYPE_var']]],
+    def func_environment(self, node: mparser.FunctionNode, args: tuple[None | str | list[TYPE_var] | dict[str, TYPE_var]],
                          kwargs: kwtypes.FuncEnvironment) -> EnvironmentVariables:
         init = args[0]
         if init is not None:
@@ -3281,7 +3279,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @typed_pos_args('join_paths', varargs=str, min_varargs=1)
     @noKwargs
-    def func_join_paths(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> str:
+    def func_join_paths(self, node: mparser.BaseNode, args: tuple[list[str]], kwargs: TYPE_kwargs) -> str:
         parts = args[0]
         other = os.path.join('', *parts[1:]).replace('\\', '/')
         ret = os.path.join(*parts).replace('\\', '/')
@@ -3342,7 +3340,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         builddir = self.environment.build_dir
         if isinstance(fname, P_OBJ.DependencyVariableString):
             def validate_installable_file(fpath: Path) -> bool:
-                installablefiles: T.Set[Path] = set()
+                installablefiles: set[Path] = set()
                 for d in self.build.data:
                     for s in d.sources:
                         installablefiles.add(Path(s.absolute_path(srcdir, builddir)))
@@ -3397,66 +3395,44 @@ class Interpreter(InterpreterBase, HoldableObject):
     def source_strings_to_files(self, sources: list[str]) -> list[mesonlib.File]: ...
 
     @T.overload
-    def source_strings_to_files(self, sources: list['mesonlib.FileOrString']) -> list['mesonlib.File']: ...
+    def source_strings_to_files(self, sources: list[mesonlib.FileOrString]) -> list[mesonlib.File]: ...
 
     @T.overload
-    def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.CustomTarget, build.CustomTargetIndex]]) -> list[T.Union[mesonlib.File, build.CustomTarget, build.CustomTargetIndex]]: ...
+    def source_strings_to_files(self, sources: list[mesonlib.FileOrString | build.CustomTarget | build.CustomTargetIndex]) -> list[mesonlib.File | build.CustomTarget | build.CustomTargetIndex]: ...
 
     @T.overload
-    def source_strings_to_files(self, sources: list[T.Union[mesonlib.FileOrString, build.BuildTargetTypes]]) -> list[T.Union[mesonlib.File, build.BuildTargetTypes]]: ...  # type: ignore[overload-overlap]
+    def source_strings_to_files(self, sources: list[mesonlib.FileOrString | build.BuildTargetTypes]) -> list[mesonlib.File | build.BuildTargetTypes]: ...  # type: ignore[overload-overlap]
 
     @T.overload
-    def source_strings_to_files(self, sources: list[T.Union[str, build.TargetSources]]) -> list[build.TargetSources]: ...
+    def source_strings_to_files(self, sources: list[str | build.TargetSources]) -> list[build.TargetSources]: ...
 
     @T.overload
-    def source_strings_to_files(self, sources: list[kwtypes.CustomTargetInputs]) -> list['CustomTargetSources']: ...  # type: ignore[overload-overlap]
+    def source_strings_to_files(self, sources: list[kwtypes.CustomTargetInputs]) -> list[CustomTargetSources]: ...  # type: ignore[overload-overlap]
 
     @T.overload
     def source_strings_to_files(self, sources: list[kwtypes.BuildTargetObjects],  # type: ignore[overload-overlap]
-                                ) -> list[T.Union[build.ObjectTypes, build.GeneratedTypes]]: ...
+                                ) -> list[build.ObjectTypes | build.GeneratedTypes]: ...
 
     @T.overload
-    def source_strings_to_files(self, sources: list[T.Union[str, build.TargetSources, build.BuildTargetTypes, build.BothLibraries, build.ExtractedObjects]],  # type: ignore[overload-overlap]
-                                ) -> list[T.Union[build.TargetSources, build.BuildTargetTypes, build.BothLibraries, build.ExtractedObjects]]: ...
+    def source_strings_to_files(self, sources: list[str | build.TargetSources | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects],  # type: ignore[overload-overlap]
+                                ) -> list[build.TargetSources | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects]: ...
 
     @T.overload
-    def source_strings_to_files(self, sources: list[T.Union[str, build.BuildTarget, build.TargetSources]]) -> list[build.BuildTarget | build.TargetSources]: ...  # type: ignore[overload-overlap]
+    def source_strings_to_files(self, sources: list[str | build.BuildTarget | build.TargetSources]) -> list[build.BuildTarget | build.TargetSources]: ...  # type: ignore[overload-overlap]
 
     @T.overload
-    def source_strings_to_files(self, sources: list[T.Union[str, build.TargetSources, build.StructuredSources]],
-                                ) -> list[T.Union[build.TargetSources, build.StructuredSources]]: ... # noqa: F811
+    def source_strings_to_files(self, sources: list[str | build.TargetSources | build.StructuredSources],
+                                ) -> list[build.TargetSources | build.StructuredSources]: ... # noqa: F811
 
     @T.overload
-    def source_strings_to_files(self, sources: list[SourcesVarargsType]) -> list['SourceOutputs']: ...
+    def source_strings_to_files(self, sources: list[SourcesVarargsType]) -> list[SourceOutputs]: ...
 
     @T.overload
-    def source_strings_to_files(self, sources: list['SourceInputs']) -> list['SourceOutputs']: ...  # type: ignore[overload-cannot-match]
+    def source_strings_to_files(self, sources: list[SourceInputs]) -> list[SourceOutputs]: ...  # type: ignore[overload-cannot-match]
 
     def source_strings_to_files(self,
-                                sources: T.Union[
-                                    list[str],
-                                    list[mesonlib.File | str],
-                                    list[mesonlib.File | str | build.CustomTarget | build.CustomTargetIndex],
-                                    list[mesonlib.File | str | build.BuildTargetTypes],
-                                    list[str | build.TargetSources],
-                                    list[str | build.TargetSources | build.StructuredSources],
-                                    list[str | build.TargetSources | build.BuildTarget],
-                                    list[kwtypes.CustomTargetInputs],
-                                    list[mesonlib.File | str | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes],
-                                    list[kwtypes.BuildTargetObjects],
-                                    list[SourceInputs],
-                                    list[SourcesVarargsType],
-                                ]
-                                ) -> T.Union[list[mesonlib.File],
-                                             list[mesonlib.File | build.BuildTargetTypes],
-                                             list[mesonlib.File | build.CustomTarget | build.CustomTargetIndex],
-                                             list[build.TargetSources],
-                                             list[build.TargetSources | build.StructuredSources],
-                                             list[build.TargetSources | build.BuildTarget],
-                                             list[mesonlib.File | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes],
-                                             list[build.ObjectTypes | build.GeneratedTypes],
-                                             list[CustomTargetSources],
-                                             list[SourceOutputs]]:
+                                sources: list[str] | list[mesonlib.File | str] | list[mesonlib.File | str | build.CustomTarget | build.CustomTargetIndex] | list[mesonlib.File | str | build.BuildTargetTypes] | list[str | build.TargetSources] | list[str | build.TargetSources | build.StructuredSources] | list[str | build.TargetSources | build.BuildTarget] | list[kwtypes.CustomTargetInputs] | list[mesonlib.File | str | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes] | list[kwtypes.BuildTargetObjects] | list[SourceInputs] | list[SourcesVarargsType]
+                                ) -> list[mesonlib.File] | list[mesonlib.File | build.BuildTargetTypes] | list[mesonlib.File | build.CustomTarget | build.CustomTargetIndex] | list[build.TargetSources] | list[build.TargetSources | build.StructuredSources] | list[build.TargetSources | build.BuildTarget] | list[mesonlib.File | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes] | list[build.ObjectTypes | build.GeneratedTypes] | list[CustomTargetSources] | list[SourceOutputs]:
         """Lower inputs to a list of Targets and Files, replacing any strings.
 
         :param sources: A raw (Meson DSL) list of inputs (targets, files, and
@@ -3588,7 +3564,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.coredata.target_guids[idname] = str(uuid.uuid4()).upper()
 
     @FeatureNew('both_libraries', '0.46.0')
-    def build_both_libraries(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library) -> build.BothLibraries:
+    def build_both_libraries(self, node: mparser.BaseNode, args: tuple[str, SourcesVarargsType], kwargs: kwtypes.Library) -> build.BothLibraries:
         shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary, shared_library_only=False)
         static_lib = self.build_target(node, args, kwargs, build.StaticLibrary)
         preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_both_libraries', subproject=self.subproject))
@@ -3637,7 +3613,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         return build.BothLibraries(shared_lib, static_lib, preferred_library)
 
-    def build_library(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library) -> build.SharedLibrary | build.BothLibraries | build.StaticLibrary:
+    def build_library(self, node: mparser.BaseNode, args: tuple[str, SourcesVarargsType], kwargs: kwtypes.Library) -> build.SharedLibrary | build.BothLibraries | build.StaticLibrary:
         default_library = self.coredata.optstore.get_value_for(OptionKey('default_library', subproject=self.subproject))
         assert isinstance(default_library, str), 'for mypy'
         if default_library == 'shared':
@@ -3653,7 +3629,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             raise InterpreterException(f'Unknown default_library value: {default_library}.')
 
-    def __convert_file_args(self, raw: T.List[mesonlib.FileOrString]) -> T.Tuple[T.List[mesonlib.File], T.List[str]]:
+    def __convert_file_args(self, raw: list[mesonlib.FileOrString]) -> tuple[list[mesonlib.File], list[str]]:
         """Convert raw target arguments from File | str to File.
 
         This removes files from the command line and replaces them with string
@@ -3662,8 +3638,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         :param raw: the raw arguments
         :return: A tuple of file dependencies and raw arguments
         """
-        depend_files: T.List[mesonlib.File] = []
-        args: T.List[str] = []
+        depend_files: list[mesonlib.File] = []
+        args: list[str] = []
         build_to_source = mesonlib.relpath(self.environment.get_source_dir(),
                                            self.environment.get_build_dir())
 
@@ -3677,7 +3653,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return depend_files, args
 
     def __process_language_args(self, kwargs: kwtypes.BaseBuildTarget,
-                                ) -> T.Tuple[T.DefaultDict[Language, T.List[str]], T.List[mesonlib.File]]:
+                                ) -> tuple[collections.defaultdict[Language, list[str]], list[mesonlib.File]]:
         """Convert split language args into a combined dictionary.
 
         The Meson DSL takes arguments in the form `<lang>_args : args`, but in the
@@ -3685,8 +3661,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         This function extracts the arguments from the DSL format and prepares
         them for the IR.
         """
-        deps: T.List[mesonlib.File] = []
-        new_args: T.DefaultDict[Language, T.List[str]] = collections.defaultdict(list)
+        deps: list[mesonlib.File] = []
+        new_args: collections.defaultdict[Language, list[str]] = collections.defaultdict(list)
 
         for l in compilers.all_languages:
             deps, args = self.__convert_file_args(kwargs[f'{l}_args'])  # type: ignore[literal-required]
@@ -3695,11 +3671,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         return new_args, deps
 
     @staticmethod
-    def _handle_rust_abi(abi: T.Optional[Literal['c', 'rust']],
-                         crate_type: T.Optional[build.RustCrateType],
+    def _handle_rust_abi(abi: Literal['c', 'rust'] | None,
+                         crate_type: build.RustCrateType | None,
                          default_rust_type: build.RustCrateType,
                          default_c_type: build.RustCrateType, typename: str,
-                         extra_valid_types: T.Optional[T.Set[build.RustCrateType]] = None,
+                         extra_valid_types: set[build.RustCrateType] | None = None,
                          ) -> build.RustCrateType:
         """Handle the interactions between the rust_abi and rust_crate_type keyword arguments.
 
@@ -3765,7 +3741,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         final['depend_files'] = []
 
         # Check for non-existant PCH files
-        missing: T.List[str] = []
+        missing: list[str] = []
         for each in itertools.chain(kwargs['c_pch'] or [], kwargs['cpp_pch'] or []):
             if each is not None:
                 if not os.path.isfile(os.path.join(self.environment.source_dir, self.subdir, each)):
@@ -3990,31 +3966,31 @@ class Interpreter(InterpreterBase, HoldableObject):
         return final
 
     @T.overload
-    def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
-                     kwargs: kwtypes.Executable, targetclass: T.Type[build.Executable]) -> build.Executable: ...
+    def build_target(self, node: mparser.BaseNode, args: tuple[str, SourcesVarargsType],
+                     kwargs: kwtypes.Executable, targetclass: type[build.Executable]) -> build.Executable: ...
 
     @T.overload
-    def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
-                     kwargs: kwtypes.StaticLibrary, targetclass: T.Type[build.StaticLibrary]) -> build.StaticLibrary: ...
+    def build_target(self, node: mparser.BaseNode, args: tuple[str, SourcesVarargsType],
+                     kwargs: kwtypes.StaticLibrary, targetclass: type[build.StaticLibrary]) -> build.StaticLibrary: ...
 
     @T.overload
-    def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
-                     kwargs: kwtypes.SharedModule, targetclass: T.Type[build.SharedModule]) -> build.SharedModule: ...
+    def build_target(self, node: mparser.BaseNode, args: tuple[str, SourcesVarargsType],
+                     kwargs: kwtypes.SharedModule, targetclass: type[build.SharedModule]) -> build.SharedModule: ...
 
     @T.overload
-    def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
-                     kwargs: kwtypes.SharedLibrary, targetclass: T.Type[build.SharedLibrary],
+    def build_target(self, node: mparser.BaseNode, args: tuple[str, SourcesVarargsType],
+                     kwargs: kwtypes.SharedLibrary, targetclass: type[build.SharedLibrary],
                      shared_library_only: bool = True) -> build.SharedLibrary: ...
 
     @T.overload
-    def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
-                     kwargs: kwtypes.Jar, targetclass: T.Type[build.Jar]) -> build.Jar: ...
+    def build_target(self, node: mparser.BaseNode, args: tuple[str, SourcesVarargsType],
+                     kwargs: kwtypes.Jar, targetclass: type[build.Jar]) -> build.Jar: ...
 
-    def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
-                     kwargs: T.Union[kwtypes.Executable, kwtypes.StaticLibrary, kwtypes.SharedLibrary, kwtypes.SharedModule, kwtypes.Jar],
-                     targetclass: T.Type[T.Union[build.Executable, build.StaticLibrary, build.SharedModule, build.SharedLibrary, build.Jar]],
+    def build_target(self, node: mparser.BaseNode, args: tuple[str, SourcesVarargsType],
+                     kwargs: kwtypes.Executable | kwtypes.StaticLibrary | kwtypes.SharedLibrary | kwtypes.SharedModule | kwtypes.Jar,
+                     targetclass: type[build.Executable | build.StaticLibrary | build.SharedModule | build.SharedLibrary | build.Jar],
                      shared_library_only: bool = True
-                     ) -> T.Union[build.Executable, build.StaticLibrary, build.SharedModule, build.SharedLibrary, build.Jar]:
+                     ) -> build.Executable | build.StaticLibrary | build.SharedModule | build.SharedLibrary | build.Jar:
         if targetclass not in {build.Executable, build.SharedLibrary, build.SharedModule, build.StaticLibrary, build.Jar}:
             mlog.debug('Unknown target type:', str(targetclass))
             raise RuntimeError('Unreachable code')
@@ -4056,8 +4032,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         objs = self.source_strings_to_files(kwargs['objects'])
 
-        srcs: T.List[SourceOutputs] = []
-        struct: T.Optional[build.StructuredSources] = build.StructuredSources()
+        srcs: list[SourceOutputs] = []
+        struct: build.StructuredSources | None = build.StructuredSources()
         for s in sources:
             if isinstance(s, build.StructuredSources):
                 struct = struct + s
@@ -4071,9 +4047,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             # i.e, don't allow:
             # [structured_sources('foo/bar.rs'), structured_sources('bar/bar.rs')]
             for v in struct.sources.values():
-                outputs: T.Set[str] = set()
+                outputs: set[str] = set()
                 for f in v:
-                    o: T.List[str]
+                    o: list[str]
                     if isinstance(f, str):
                         o = [os.path.basename(f)]
                     elif isinstance(f, mesonlib.File):
@@ -4132,8 +4108,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             if dep:
                 target.add_deps([dep])
 
-    def check_for_jar_sources(self, sources: T.Union[T.List[str], T.Sequence[T.Union[build.TargetSources, build.StructuredSources]]],
-                              targetclass: T.Type[build.BuildTarget]) -> None:
+    def check_for_jar_sources(self, sources: list[str] | T.Sequence[build.TargetSources | build.StructuredSources],
+                              targetclass: type[build.BuildTarget]) -> None:
         for s in sources:
             if isinstance(s, (str, mesonlib.File)) and compilers.is_java(s):
                 raise InvalidArguments(f'Build target of type "{targetclass.typename}" cannot build java source: "{s}". Use "{build.Jar.typename}" instead.')
@@ -4149,7 +4125,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @noKwargs
     @noArgsFlattening
     @noSecondLevelHolderResolving
-    def func_set_variable(self, node: mparser.BaseNode, args: T.Tuple[str, TYPE_var | InterpreterObject], kwargs: 'TYPE_kwargs') -> None:
+    def func_set_variable(self, node: mparser.BaseNode, args: tuple[str, TYPE_var | InterpreterObject], kwargs: TYPE_kwargs) -> None:
         varname, value = args
         if mparser.IDENT_RE.fullmatch(varname) is None:
             raise InvalidCode('Invalid variable name: ' + varname)
@@ -4159,8 +4135,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     @noKwargs
     @noArgsFlattening
     @unholder_return
-    def func_get_variable(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, Disabler], T.Optional[TYPE_var | InterpreterObject]],
-                          kwargs: 'TYPE_kwargs') -> TYPE_var | InterpreterObject:
+    def func_get_variable(self, node: mparser.BaseNode, args: tuple[str | Disabler, TYPE_var | InterpreterObject | None],
+                          kwargs: TYPE_kwargs) -> TYPE_var | InterpreterObject:
         varname, fallback = args
         if isinstance(varname, Disabler):
             return varname
@@ -4179,13 +4155,13 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @typed_pos_args('is_variable', str)
     @noKwargs
-    def func_is_variable(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
+    def func_is_variable(self, node: mparser.BaseNode, args: tuple[str], kwargs: TYPE_kwargs) -> bool:
         return args[0] in self.variables
 
     @FeatureNew('unset_variable', '0.60.0')
     @typed_pos_args('unset_variable', str)
     @noKwargs
-    def func_unset_variable(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> None:
+    def func_unset_variable(self, node: mparser.BaseNode, args: tuple[str], kwargs: TYPE_kwargs) -> None:
         varname = args[0]
         try:
             del self.variables[varname]
@@ -4200,13 +4176,13 @@ class Interpreter(InterpreterBase, HoldableObject):
     @FeatureNew('is_disabler', '0.52.0')
     @typed_pos_args('is_disabler', object)
     @noKwargs
-    def func_is_disabler(self, node: mparser.BaseNode, args: T.Tuple[object], kwargs: 'TYPE_kwargs') -> bool:
+    def func_is_disabler(self, node: mparser.BaseNode, args: tuple[object], kwargs: TYPE_kwargs) -> bool:
         return isinstance(args[0], Disabler)
 
     @noKwargs
     @FeatureNew('range', '0.58.0')
     @typed_pos_args('range', int, optargs=[int, int])
-    def func_range(self, node: mparser.BaseNode, args: T.Tuple[int, T.Optional[int], T.Optional[int]],
+    def func_range(self, node: mparser.BaseNode, args: tuple[int, int | None, int | None],
                    kwargs: TYPE_kwargs) -> P_OBJ.RangeHolder:
         start, stop, step = args
         # Just like Python's range, we allow range(stop), range(start, stop), or

@@ -20,7 +20,7 @@ class Vs2017Backend(Vs2010Backend):
 
     name = 'vs2017'
 
-    def __init__(self, build: T.Optional[Build]):
+    def __init__(self, build: Build | None):
         super().__init__(build)
         self.vs_version = '2017'
         self.sln_file_version = '12.00'
@@ -51,7 +51,7 @@ class Vs2017Backend(Vs2010Backend):
         # valid values for vs2017 is 'false', 'true', 'DebugFastLink', 'DebugFull'
         ET.SubElement(link, 'GenerateDebugInformation').text = 'DebugFull'
 
-    def generate_lang_standard_info(self, file_args: T.Dict[Language, CompilerArgs], clconf: ET.Element) -> None:
+    def generate_lang_standard_info(self, file_args: dict[Language, CompilerArgs], clconf: ET.Element) -> None:
         if 'cpp' in file_args:
             optargs = [x for x in file_args['cpp'] if x.startswith('/std:c++')]
             if optargs:

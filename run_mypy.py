@@ -7,7 +7,6 @@ import concurrent.futures
 import os
 import subprocess
 import sys
-import typing as T
 from pathlib import Path
 
 from mesonbuild.mesonlib import version_compare
@@ -87,7 +86,7 @@ def main() -> int:
     else:
         versions = ['default']
 
-    def run_mypy_version(version: str) -> T.Tuple[int, str, str]:
+    def run_mypy_version(version: str) -> tuple[int, str, str]:
         if version == 'default':
             cmd = command + args + to_check + additional_to_check
         else:

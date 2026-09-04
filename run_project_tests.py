@@ -84,12 +84,12 @@ if T.TYPE_CHECKING:
 
         """Typing information for command line arguments."""
 
-        extra_args: T.List[str]
+        extra_args: list[str]
         backend: str
         num_workers: int
         failfast: bool
         no_unittests: bool
-        only: T.List[str]
+        only: list[str]
         v: bool
 
 ALL_TESTS = ['cmake', 'common', 'native', 'warning-meson', 'failing-meson', 'failing-build', 'failing-test',
@@ -111,7 +111,7 @@ class BuildStep(Enum):
 verbose_output = False
 
 class TestResult(BaseException):
-    def __init__(self, cicmds: T.List[str]) -> None:
+    def __init__(self, cicmds: list[str]) -> None:
         self.msg    = ''  # empty msg indicates test success
         self.stdo   = ''
         self.stde   = ''
@@ -140,7 +140,7 @@ python = PythonExternalProgram(sys.executable)
 python.sanity()
 
 class InstalledFile:
-    def __init__(self, raw: T.Dict[str, str]):
+    def __init__(self, raw: dict[str, str]):
         self.path = raw['file']
         self.typ = raw['type']
         self.platform = raw.get('platform', None)
@@ -153,7 +153,7 @@ class InstalledFile:
             # split on '' will return [''], we want an empty list though
             self.version = []
 
-    def get_path(self, compiler: compilers.Compiler, env: environment.Environment) -> T.Optional[Path]:
+    def get_path(self, compiler: compilers.Compiler, env: environment.Environment) -> Path | None:
         p = Path(self.path)
         canonical_compiler = compiler.get_id()
         if ((canonical_compiler in ['clang-cl', 'intel-cl']) or
@@ -219,7 +219,7 @@ class InstalledFile:
                 if len(self.version) > 1:
                     return None
                 if self.version:
-                    p = p.with_name('{}-{}'.format(p.name, self.version[0]))
+                    p = p.with_name(f'{p.name}-{self.version[0]}')
                 return p.with_suffix('.dll')
 
             p = p.with_name(f'lib{p.name}')
@@ -231,7 +231,7 @@ class InstalledFile:
                 # pathlib.Path.with_suffix replaces, not appends
                 suffix = '.dylib'
                 if self.version:
-                    suffix = '.{}{}'.format(self.version[0], suffix)
+                    suffix = f'.{self.version[0]}{suffix}'
             else:
                 # pathlib.Path.with_suffix replaces, not appends
                 suffix = '.so'
@@ -245,7 +245,7 @@ class InstalledFile:
                 return p.with_suffix('.exe')
         elif self.typ == 'pdb':
             if self.version:
-                p = p.with_name('{}-{}'.format(p.name, self.version[0]))
+                p = p.with_name(f'{p.name}-{self.version[0]}')
             return p.with_suffix('.pdb') if has_pdb else None
         elif self.typ in {'implib', 'implibempty'}:
             if env.machines.host.is_windows() and canonical_compiler == 'msvc':
@@ -264,7 +264,7 @@ class InstalledFile:
 
         return p
 
-    def get_paths(self, compiler: compilers.Compiler, env: environment.Environment, installdir: Path) -> T.List[Path]:
+    def get_paths(self, compiler: compilers.Compiler, env: environment.Environment, installdir: Path) -> list[Path]:
         p = self.get_path(compiler, env)
         if not p:
             return []
@@ -285,25 +285,25 @@ class InstalledFile:
 
 @functools.total_ordering
 class TestDef:
-    def __init__(self, path: Path, name: T.Optional[str], args: T.List[str], skip: bool, category: TestCategory):
+    def __init__(self, path: Path, name: str | None, args: list[str], skip: bool, category: TestCategory):
         self.category = category.category
         self.path: Path = path
         self.name = name  # matrix instance name or None
         self.args = args
         self.skip = skip
         self.env = os.environ.copy()
-        self.installed_files: T.List[InstalledFile] = []
-        self.do_not_set_opts: T.List[str] = []
-        self.stdout: T.List[T.Dict[str, str]] = []
+        self.installed_files: list[InstalledFile] = []
+        self.do_not_set_opts: list[str] = []
+        self.stdout: list[dict[str, str]] = []
         self.skip_category = category.skip
         self.skip_expected = False
-        self.cleanup: T.List[str] = []
+        self.cleanup: list[str] = []
 
         # Always print a stack trace for Meson exceptions
         self.env['MESON_FORCE_BACKTRACE'] = '1'
 
     def __repr__(self) -> str:
-        return '<{}: {:<48} [{}: {}] -- {}>'.format(type(self).__name__, str(self.path), self.name, self.args, self.skip)
+        return f'<{type(self).__name__}: {str(self.path):<48} [{self.name}: {self.args}] -- {self.skip}>'
 
     def display_name(self) -> mlog.TV_LoggableList:
         # Remove the redundant 'test cases' part
@@ -321,8 +321,8 @@ class TestDef:
             return (s_id, self.path, self.name or '') < (o_id, other.path, other.name or '')
         return NotImplemented
 
-failing_testcases: T.List[str] = []
-failing_logs: T.List[str] = []
+failing_testcases: list[str] = []
+failing_logs: list[str] = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 under_ci = 'CI' in os.environ
 raw_ci_jobname = os.environ.get('MESON_CI_JOBNAME', None)
@@ -330,18 +330,18 @@ ci_jobname = raw_ci_jobname if raw_ci_jobname != 'thirdparty' else None
 do_debug = under_ci or print_debug
 no_meson_log_msg = 'No meson-log.txt found.'
 
-compiler_id_map: T.Dict[str, str]  = {}
-all_compilers: mesonlib.PerMachine[T.Dict[Language, T.Optional[compilers.Compiler]]] = mesonlib.PerMachine({}, {})
-tool_vers_map:   T.Dict[str, str]  = {}
+compiler_id_map: dict[str, str]  = {}
+all_compilers: mesonlib.PerMachine[dict[Language, compilers.Compiler | None]] = mesonlib.PerMachine({}, {})
+tool_vers_map:   dict[str, str]  = {}
 
-compile_commands:   T.List[str]
-clean_commands:     T.List[str]
-test_commands:      T.List[str]
-install_commands:   T.List[str]
-uninstall_commands: T.List[str]
+compile_commands:   list[str]
+clean_commands:     list[str]
+test_commands:      list[str]
+install_commands:   list[str]
+uninstall_commands: list[str]
 
-backend:      'Backend'
-backend_flags: T.List[str]
+backend:      Backend
+backend_flags: list[str]
 
 stop: bool = False
 is_worker_process: bool = False
@@ -357,7 +357,7 @@ class StopException(Exception):
     def __init__(self) -> None:
         super().__init__('Stopped by user')
 
-def stop_handler(signal: int, frame: T.Optional['FrameType']) -> None:
+def stop_handler(signal: int, frame: FrameType | None) -> None:
     global stop
     stop = True
 signal.signal(signal.SIGINT, stop_handler)
@@ -411,7 +411,7 @@ def platform_fix_name(fname: str, canonical_compiler: str, env: environment.Envi
 
 def validate_install(test: TestDef, installdir: Path, env: environment.Environment) -> str:
     ret_msg = ''
-    expected_raw: T.List[Path] = []
+    expected_raw: list[Path] = []
     c_compiler = all_compilers.host.get('c')
 
     # We cannot do validation without a C compiler for the host
@@ -461,7 +461,7 @@ def log_text_file(logfile: T.TextIO, testdir: Path, result: TestResult) -> None:
             print(sanitized_err, file=sys.stderr)
 
 
-def _run_ci_include(args: T.List[str]) -> str:
+def _run_ci_include(args: list[str]) -> str:
     if not args:
         return 'At least one parameter required'
 
@@ -469,13 +469,13 @@ def _run_ci_include(args: T.List[str]) -> str:
     try:
         return mlog.ci_fold_file(args[0], header, force=True)
     except Exception:
-        return 'Failed to open {}\n'.format(args[0])
+        return f'Failed to open {args[0]}\n'
 
 ci_commands = {
     'ci_include': _run_ci_include
 }
 
-def run_ci_commands(raw_log: str) -> T.List[str]:
+def run_ci_commands(raw_log: str) -> list[str]:
     res = []
     for l in raw_log.splitlines():
         if not l.startswith('!meson_ci!/'):
@@ -483,7 +483,7 @@ def run_ci_commands(raw_log: str) -> T.List[str]:
         cmd = shlex.split(l[11:])
         if not cmd or cmd[0] not in ci_commands:
             continue
-        res += ['CI COMMAND {}:\n{}'.format(cmd[0], ci_commands[cmd[0]](cmd[1:]))]
+        res += [f'CI COMMAND {cmd[0]}:\n{ci_commands[cmd[0]](cmd[1:])}']
     return res
 
 class OutputMatch:
@@ -497,10 +497,10 @@ class OutputMatch:
             return bool(re.match(self.expected, actual))
         return self.expected == actual
 
-def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) -> str:
+def _compare_output(expected: list[dict[str, str]], output: str, desc: str) -> str:
     if expected:
-        matches:   T.List[OutputMatch] = []
-        nomatches: T.List[OutputMatch] = []
+        matches:   list[OutputMatch] = []
+        nomatches: list[OutputMatch] = []
         for item in expected:
             how = item.get('match', 'literal')
             expected_line = item.get('line')
@@ -585,7 +585,7 @@ def clear_internal_caches() -> None:
     PkgConfigInterface.pkg_bin_per_machine = PerMachine(None, None)
 
 
-def run_test_inprocess(testdir: str) -> T.Tuple[int, str, str, str]:
+def run_test_inprocess(testdir: str) -> tuple[int, str, str, str]:
     old_stdout = sys.stdout
     sys.stdout = mystdout = StringIO()
     old_stderr = sys.stderr
@@ -630,7 +630,7 @@ def format_parameter_file(file_basename: str, test: TestDef, test_build_dir: str
 
     return destination
 
-def detect_parameter_files(test: TestDef, test_build_dir: str) -> T.Tuple[Path, Path]:
+def detect_parameter_files(test: TestDef, test_build_dir: str) -> tuple[Path, Path]:
     nativefile = test.path / 'nativefile.ini'
     crossfile = test.path / 'crossfile.ini'
 
@@ -645,22 +645,22 @@ def detect_parameter_files(test: TestDef, test_build_dir: str) -> T.Tuple[Path, 
 # In previous python versions the global variables are lost in ProcessPoolExecutor.
 # So, we use this tuple to restore some of them
 class GlobalState(T.NamedTuple):
-    compile_commands:   T.List[str]
-    clean_commands:     T.List[str]
-    test_commands:      T.List[str]
-    install_commands:   T.List[str]
-    uninstall_commands: T.List[str]
+    compile_commands:   list[str]
+    clean_commands:     list[str]
+    test_commands:      list[str]
+    install_commands:   list[str]
+    uninstall_commands: list[str]
 
-    backend:      'Backend'
-    backend_flags: T.List[str]
+    backend:      Backend
+    backend_flags: list[str]
 
-    all_compilers: mesonlib.PerMachine[T.Dict[Language, T.Optional[compilers.Compiler]]] = mesonlib.PerMachine({}, {})
+    all_compilers: mesonlib.PerMachine[dict[Language, compilers.Compiler | None]] = mesonlib.PerMachine({}, {})
 
 def run_test(test: TestDef,
-             extra_args: T.List[str],
+             extra_args: list[str],
              should_fail: str,
              use_tmp: bool,
-             state: T.Optional[GlobalState] = None) -> T.Optional[TestResult]:
+             state: GlobalState | None = None) -> TestResult | None:
     # Unpack the global state
     global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, all_compilers
     if state is not None:
@@ -685,7 +685,7 @@ def run_test(test: TestDef,
 def _run_test(test: TestDef,
               test_build_dir: str,
               install_dir: str,
-              extra_args: T.List[str],
+              extra_args: list[str],
               should_fail: str) -> TestResult:
     gen_start = time.time()
     # Configure in-process
@@ -816,7 +816,7 @@ def _run_test(test: TestDef,
 
 # processing of test.json 'skip_*' keys, which can appear at top level, or in
 # matrix:
-def _skip_keys(test_def: T.Dict) -> T.Tuple[bool, bool]:
+def _skip_keys(test_def: dict) -> tuple[bool, bool]:
     skip_expected = False
 
     # Test is expected to skip if MESON_CI_JOBNAME contains any of the list of
@@ -845,15 +845,15 @@ def _skip_keys(test_def: T.Dict) -> T.Tuple[bool, bool]:
     return (skip, skip_expected)
 
 
-def load_test_json(t: TestDef, c: TestCategory) -> T.List[TestDef]:
-    all_tests: T.List[TestDef] = []
+def load_test_json(t: TestDef, c: TestCategory) -> list[TestDef]:
+    all_tests: list[TestDef] = []
     test_def = {}
     test_def_file = t.path / 'test.json'
     if test_def_file.is_file():
         test_def = json.loads(test_def_file.read_text(encoding='utf-8'))
 
     # Handle additional environment variables
-    env: T.Dict[str, str] = {}
+    env: dict[str, str] = {}
     if 'env' in test_def:
         assert isinstance(test_def['env'], dict)
         env = test_def['env']
@@ -863,7 +863,7 @@ def load_test_json(t: TestDef, c: TestCategory) -> T.List[TestDef]:
             env[key] = val
 
     # Handle installed files
-    installed: T.List[InstalledFile] = []
+    installed: list[InstalledFile] = []
     if 'installed' in test_def:
         installed = [InstalledFile(x) for x in test_def['installed']]
 
@@ -873,7 +873,7 @@ def load_test_json(t: TestDef, c: TestCategory) -> T.List[TestDef]:
         raise RuntimeError(f"{test_def_file} must contain a non-empty stdout key")
 
     # Handle the do_not_set_opts list
-    do_not_set_opts: T.List[str] = test_def.get('do_not_set_opts', [])
+    do_not_set_opts: list[str] = test_def.get('do_not_set_opts', [])
 
     (t.skip, t.skip_expected) = _skip_keys(test_def)
 
@@ -897,15 +897,15 @@ def load_test_json(t: TestDef, c: TestCategory) -> T.List[TestDef]:
         t.cleanup = cleanup
         return [t]
 
-    new_opt_list: T.List[T.List[T.Tuple[str, str, bool, bool]]]
+    new_opt_list: list[list[tuple[str, str, bool, bool]]]
 
     # 'matrix; entry is present, so build multiple tests from matrix definition
-    opt_list: T.List[T.List[T.Tuple[str, str, bool, bool]]] = []
+    opt_list: list[list[tuple[str, str, bool, bool]]] = []
     matrix = test_def['matrix']
     assert "options" in matrix
     for key, val in matrix["options"].items():
         assert isinstance(val, list)
-        tmp_opts: T.List[T.Tuple[str, str, bool, bool]] = []
+        tmp_opts: list[tuple[str, str, bool, bool]] = []
         for i in val:
             assert isinstance(i, dict)
             assert "val" in i
@@ -971,8 +971,8 @@ def load_test_json(t: TestDef, c: TestCategory) -> T.List[TestDef]:
     return all_tests
 
 
-def gather_tests(testdir: Path, category: TestCategory, only: T.List[str]) -> T.List[TestDef]:
-    all_tests: T.List[TestDef] = []
+def gather_tests(testdir: Path, category: TestCategory, only: list[str]) -> list[TestDef]:
+    all_tests: list[TestDef] = []
     for t in testdir.iterdir():
         # Filter non-tests files (dot files, etc)
         if not t.is_dir() or t.name.startswith('.'):
@@ -1042,7 +1042,7 @@ class TestCategory:
         self.skip = skip                          # skip condition
         self.stdout_mandatory = stdout_mandatory  # expected stdout is mandatory for tests in this category
 
-def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List[T.Tuple[str, T.List[TestDef], bool]]:
+def detect_tests_to_run(only: dict[str, list[str]], use_tmp: bool) -> list[tuple[str, list[TestDef], bool]]:
     """
     Parameters
     ----------
@@ -1105,12 +1105,12 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
     gathered_tests = [(t.category, gather_tests(Path('test cases', t.subdir), t, only[t.category]), t.skip) for t in all_tests]
     return gathered_tests
 
-def run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
+def run_tests(all_tests: list[tuple[str, list[TestDef], bool]],
               log_name_base: str,
               failfast: bool,
-              extra_args: T.List[str],
+              extra_args: list[str],
               use_tmp: bool,
-              num_workers: int) -> T.Tuple[int, int, int]:
+              num_workers: int) -> tuple[int, int, int]:
     txtname = log_name_base + '.txt'
     with open(txtname, 'w', encoding='utf-8', errors='ignore') as lf:
         return _run_tests(all_tests, log_name_base, failfast, extra_args, use_tmp, num_workers, lf)
@@ -1131,7 +1131,7 @@ def default_print(*args: mlog.TV_Loggable, sep: str = ' ') -> None:
 safe_print = default_print
 
 class TestRunFuture:
-    def __init__(self, name: str, testdef: TestDef, future: T.Optional['Future[T.Optional[TestResult]]']) -> None:
+    def __init__(self, name: str, testdef: TestDef, future: Future[TestResult | None] | None) -> None:
         super().__init__()
         self.name = name
         self.testdef = testdef
@@ -1139,7 +1139,7 @@ class TestRunFuture:
         self.status = TestStatus.RUNNING if self.future is not None else TestStatus.SKIP
 
     @property
-    def result(self) -> T.Optional[TestResult]:
+    def result(self) -> TestResult | None:
         return self.future.result() if self.future else None
 
     def log(self) -> None:
@@ -1168,13 +1168,13 @@ class LogRunFuture:
 
 RunFutureUnion = T.Union[TestRunFuture, LogRunFuture]
 
-def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
+def _run_tests(all_tests: list[tuple[str, list[TestDef], bool]],
                log_name_base: str,
                failfast: bool,
-               extra_args: T.List[str],
+               extra_args: list[str],
                use_tmp: bool,
                num_workers: int,
-               logfile: T.TextIO) -> T.Tuple[int, int, int]:
+               logfile: T.TextIO) -> tuple[int, int, int]:
     xmlname = log_name_base + '.xml'
     junit_root = ET.Element('testsuites')
     conf_time:  float = 0
@@ -1190,7 +1190,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     state = GlobalState(compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, all_compilers)
     executor = ProcessPoolExecutor(max_workers=num_workers)
 
-    futures: T.List[RunFutureUnion] = []
+    futures: list[RunFutureUnion] = []
 
     # First, collect and start all tests and also queue log messages
     for name, test_cases, skipped in all_tests:
@@ -1405,7 +1405,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 
     return passing_tests, failing_tests, skipped_tests
 
-def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None:
+def check_meson_commands_work(use_tmpdir: bool, extra_args: list[str]) -> None:
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
     meson_commands = mesonlib.python_command + [get_meson_script()]
     with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmpdir else '.') as build_dir:
@@ -1435,7 +1435,7 @@ def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None
                 raise RuntimeError(f'Failed to install {testdir!r}:\n{e}\n{o}')
 
 
-def detect_system_compiler(options: 'CompilerArgumentType') -> None:
+def detect_system_compiler(options: CompilerArgumentType) -> None:
     fake_opts = get_fake_options('/')
     if options.cross_file:
         fake_opts.cross_file = [options.cross_file]
@@ -1448,10 +1448,10 @@ def detect_system_compiler(options: 'CompilerArgumentType') -> None:
 
     with tempfile.TemporaryDirectory(prefix='b_', dir=None if options.use_tmpdir else '.') as d:
         env = environment.Environment('', d, fake_opts)
-        futures: T.Dict[T.Tuple[Language, MachineChoice], Future[T.Tuple[Language, MachineChoice, T.Optional[Compiler]]]] = {}
+        futures: dict[tuple[Language, MachineChoice], Future[tuple[Language, MachineChoice, Compiler | None]]] = {}
 
-        def find_compiler(lang: Language, machine: MachineChoice) -> T.Callable[[], T.Tuple[Language, MachineChoice, T.Optional[Compiler]]]:
-            def inner() -> T.Tuple[Language, MachineChoice, T.Optional[Compiler]]:
+        def find_compiler(lang: Language, machine: MachineChoice) -> T.Callable[[], tuple[Language, MachineChoice, Compiler | None]]:
+            def inner() -> tuple[Language, MachineChoice, Compiler | None]:
                 # Vala and Cython need to have a working C compiler before they can be detected
                 if lang in {'vala', 'cython'}:
                     if futures[('c', machine)].result()[2] is None:
@@ -1494,12 +1494,12 @@ def print_compilers(machine: MachineChoice) -> None:
 
 class ToolInfo(T.NamedTuple):
     tool: str
-    args: T.List[str]
+    args: list[str]
     regex: T.Pattern
     match_group: int
 
 def detect_tools(report: bool = True) -> None:
-    tools: T.List[ToolInfo] = [
+    tools: list[ToolInfo] = [
         ToolInfo(
             'ninja',
             ['--version'],
@@ -1534,7 +1534,7 @@ def detect_tools(report: bool = True) -> None:
             m = t.regex.match(i)
             if m is not None:
                 tool_vers_map[t.tool] = m.group(t.match_group)
-                return '{} ({})'.format(exe, m.group(t.match_group))
+                return f'{exe} ({m.group(t.match_group)})'
 
         return f'{exe} (unknown)'
 
@@ -1552,11 +1552,11 @@ def detect_tools(report: bool = True) -> None:
         print('{0:<{2}}: {1}'.format(tool.tool, get_version(tool), max_width))
     print()
 
-symlink_test_dir1: T.Optional[Path] = None
-symlink_test_dir2: T.Optional[Path] = None
-symlink_file1: T.Optional[Path] = None
-symlink_file2: T.Optional[Path] = None
-symlink_file3: T.Optional[Path] = None
+symlink_test_dir1: Path | None = None
+symlink_test_dir2: Path | None = None
+symlink_file1: Path | None = None
+symlink_file2: Path | None = None
+symlink_file3: Path | None = None
 
 def scan_test_data_symlinks() -> None:
     global symlink_test_dir1, symlink_test_dir2, symlink_file1, symlink_file2, symlink_file3

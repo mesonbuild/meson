@@ -48,10 +48,10 @@ from ..options import OptionKey
 from ..programs import ExternalProgram, Program
 
 # Helper definition for type checks that are `Optional[T]`
-NoneType: T.Type[None] = type(None)
+NoneType: type[None] = type(None)
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing import Literal
 
     from ..build import CommandTypes, GeneratedTypes, ObjectTypes, TargetSources
     from ..interpreterbase import TYPE_var
@@ -60,9 +60,9 @@ if T.TYPE_CHECKING:
     from ..options import ElementaryOptionValues
     from .kwargs import CustomTargetInputs
 
-    FullEnvInitValueType = T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], EnvInitValueType, str, None]
-    PkgConfigDefineType = T.Optional[T.Tuple[T.Tuple[str, str], ...]]
-    SourcesVarargsType = T.List[T.Union[str, File, GeneratedTypes, StructuredSources, ExtractedObjects, BuildTarget]]
+    FullEnvInitValueType = T.Union[EnvironmentVariables, list[str], list[list[str]], EnvInitValueType, str, None]
+    PkgConfigDefineType = T.Optional[tuple[tuple[str, str], ...]]
+    SourcesVarargsType = list[str | File | GeneratedTypes | StructuredSources | ExtractedObjects | BuildTarget]
 
 
 def _quote(x: T.Iterable[str]) -> T.Iterable[str]:
@@ -71,10 +71,10 @@ def _quote(x: T.Iterable[str]) -> T.Iterable[str]:
     return [f'"{c}"' for c in x]
 
 
-def in_set_validator(choices: T.Set[str]) -> T.Callable[[str], T.Optional[str]]:
+def in_set_validator(choices: set[str]) -> T.Callable[[str], str | None]:
     """Check that the choice given was one of the given set."""
 
-    def inner(check: str) -> T.Optional[str]:
+    def inner(check: str) -> str | None:
         if check not in choices:
             return f"must be one of {', '.join(_quote(sorted(choices)))}, not \"{check}\""
         return None
@@ -82,7 +82,7 @@ def in_set_validator(choices: T.Set[str]) -> T.Callable[[str], T.Optional[str]]:
     return inner
 
 
-def _language_validator(l: T.List[str]) -> T.Optional[str]:
+def _language_validator(l: list[str]) -> str | None:
     """Validate language keyword argument.
 
     Particularly for functions like `add_compiler()`, and `add_*_args()`
@@ -93,7 +93,7 @@ def _language_validator(l: T.List[str]) -> T.Optional[str]:
     return None
 
 
-def _install_mode_validator(mode: T.List[T.Union[str, bool, int]]) -> T.Optional[str]:
+def _install_mode_validator(mode: list[str | bool | int]) -> str | None:
     """Validate the `install_mode` keyword argument.
 
     This is a rather odd thing, it's a scalar, or an array of 3 values in the form:
@@ -135,7 +135,7 @@ def _install_mode_validator(mode: T.List[T.Union[str, bool, int]]) -> T.Optional
     return None
 
 
-def _install_mode_convertor(mode: T.Optional[T.List[T.Union[str, bool, int]]]) -> FileMode:
+def _install_mode_convertor(mode: list[str | bool | int] | None) -> FileMode:
     """Convert the DSL form of the `install_mode` keyword argument to `FileMode`"""
 
     if not mode:
@@ -151,7 +151,7 @@ def _install_mode_convertor(mode: T.Optional[T.List[T.Union[str, bool, int]]]) -
     return FileMode(m1, *rest)
 
 
-def _lower_strlist(input: T.List[str]) -> T.List[str]:
+def _lower_strlist(input: list[str]) -> list[str]:
     """Lower a list of strings.
 
     mypy (but not pyright) gets confused about using a lambda as the convertor function
@@ -159,14 +159,14 @@ def _lower_strlist(input: T.List[str]) -> T.List[str]:
     return [i.lower() for i in input]
 
 
-def _validate_shlib_version(val: T.Optional[str]) -> T.Optional[str]:
+def _validate_shlib_version(val: str | None) -> str | None:
     if val is not None and not re.fullmatch(r'[0-9]+(\.[0-9]+){0,2}', val):
         return (f'Invalid Shared library version "{val}". '
                 'Must be of the form X.Y.Z where all three are numbers. Y and Z are optional.')
     return None
 
 
-def variables_validator(contents: T.Union[str, T.List[str], T.Dict[str, str]]) -> T.Optional[str]:
+def variables_validator(contents: str | list[str] | dict[str, str]) -> str | None:
     if isinstance(contents, str):
         contents = [contents]
     if isinstance(contents, dict):
@@ -187,7 +187,7 @@ def variables_validator(contents: T.Union[str, T.List[str], T.Dict[str, str]]) -
     return None
 
 
-def variables_convertor(contents: T.Union[str, T.List[str], T.Dict[str, str]]) -> T.Dict[str, str]:
+def variables_convertor(contents: str | list[str] | dict[str, str]) -> dict[str, str]:
     if isinstance(contents, str):
         contents = [contents]
     if isinstance(contents, dict):
@@ -211,7 +211,7 @@ LANGUAGE_KW = KwargInfo(
     validator=_language_validator,
     convertor=_lower_strlist)
 
-INSTALL_MODE_KW: KwargInfo[T.List[T.Union[str, bool, int]]] = KwargInfo(
+INSTALL_MODE_KW: KwargInfo[list[str | bool | int]] = KwargInfo(
     'install_mode',
     ContainerTypeInfo(list, (str, bool, int)),
     listify=True,
@@ -220,7 +220,7 @@ INSTALL_MODE_KW: KwargInfo[T.List[T.Union[str, bool, int]]] = KwargInfo(
     convertor=_install_mode_convertor,
 )
 
-REQUIRED_KW: KwargInfo[T.Union[bool, Feature]] = KwargInfo(
+REQUIRED_KW: KwargInfo[bool | Feature] = KwargInfo(
     'required',
     (bool, Feature),
     default=True,
@@ -229,9 +229,9 @@ REQUIRED_KW: KwargInfo[T.Union[bool, Feature]] = KwargInfo(
 
 DISABLER_KW: KwargInfo[bool] = KwargInfo('disabler', bool, default=False)
 
-def _env_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Dict[str, 'TYPE_var'], str, None],
-                   only_dict_str: bool = True) -> T.Optional[str]:
-    def _splitter(v: str) -> T.Optional[str]:
+def _env_validator(value: EnvironmentVariables | list[TYPE_var] | dict[str, TYPE_var] | str | None,
+                   only_dict_str: bool = True) -> str | None:
+    def _splitter(v: str) -> str | None:
         split = v.split('=', 1)
         if len(split) == 1:
             return f'"{v}" is not two string values separated by an "="'
@@ -263,11 +263,11 @@ def _env_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Di
     # we're okay at this point
     return None
 
-def _options_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Dict[str, 'TYPE_var'], str, None]) -> T.Optional[str]:
+def _options_validator(value: EnvironmentVariables | list[TYPE_var] | dict[str, TYPE_var] | str | None) -> str | None:
     # Reusing the env validator is a little overkill, but nicer than duplicating the code
     return _env_validator(value, only_dict_str=False)
 
-def split_equal_string(input: str) -> T.Tuple[str, str]:
+def split_equal_string(input: str) -> tuple[str, str]:
     """Split a string in the form `x=y`
 
     This assumes that the string has already been validated to split properly.
@@ -293,20 +293,20 @@ def env_convertor_with_method(value: FullEnvInitValueType,
 def _env_convertor(value: FullEnvInitValueType) -> EnvironmentVariables:
     return env_convertor_with_method(value)
 
-ENV_KW: KwargInfo[T.Union[EnvironmentVariables, T.List, T.Dict, str, None]] = KwargInfo(
+ENV_KW: KwargInfo[EnvironmentVariables | list | dict | str | None] = KwargInfo(
     'env',
     (EnvironmentVariables, list, dict, str, NoneType),
     validator=_env_validator,
     convertor=_env_convertor,
 )
 
-DEPFILE_KW: KwargInfo[T.Optional[str]] = KwargInfo(
+DEPFILE_KW: KwargInfo[str | None] = KwargInfo(
     'depfile',
     (str, type(None)),
     validator=lambda x: 'Depfile must be a plain filename with a subdirectory' if has_path_sep(x) else None
 )
 
-DEPENDS_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex, Program]]] = KwargInfo(
+DEPENDS_KW: KwargInfo[list[BuildTarget | CustomTarget | CustomTargetIndex | Program]] = KwargInfo(
     'depends',
     ContainerTypeInfo(list, (BuildTarget, CustomTarget, CustomTargetIndex, Program)),
     listify=True,
@@ -314,14 +314,14 @@ DEPENDS_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget, CustomTargetInde
     since_values={CustomTargetIndex: '1.5.0', ExternalProgram: '1.12.0'},
 )
 
-DEPEND_FILES_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
+DEPEND_FILES_KW: KwargInfo[list[str | File]] = KwargInfo(
     'depend_files',
     ContainerTypeInfo(list, (File, str)),
     listify=True,
     default=[],
 )
 
-COMMAND_KW: KwargInfo[T.List[T.Union[str, CommandTypes, Program, File]]] = KwargInfo(
+COMMAND_KW: KwargInfo[list[str | CommandTypes | Program | File]] = KwargInfo(
     'command',
     ContainerTypeInfo(list, (str, BuildTarget, CustomTarget, CustomTargetIndex, Program, File), allow_empty=False),
     required=True,
@@ -330,17 +330,17 @@ COMMAND_KW: KwargInfo[T.List[T.Union[str, CommandTypes, Program, File]]] = Kwarg
 )
 
 
-def _override_options_convertor(raw: T.Union[str, T.List[str], T.Dict[str, ElementaryOptionValues]]) -> T.Dict[str, ElementaryOptionValues]:
+def _override_options_convertor(raw: str | list[str] | dict[str, ElementaryOptionValues]) -> dict[str, ElementaryOptionValues]:
     if isinstance(raw, dict):
         return raw
     raw = stringlistify(raw)
-    output: T.Dict[str, ElementaryOptionValues] = {}
+    output: dict[str, ElementaryOptionValues] = {}
     for each in raw:
         k, v = split_equal_string(each)
         output[k] = v
     return output
 
-OVERRIDE_OPTIONS_KW: KwargInfo[T.Union[str, T.List[str], T.Dict[str, ElementaryOptionValues]]] = KwargInfo(
+OVERRIDE_OPTIONS_KW: KwargInfo[str | list[str] | dict[str, ElementaryOptionValues]] = KwargInfo(
     'override_options',
     (str, ContainerTypeInfo(list, str), ContainerTypeInfo(dict, (str, int, bool, list))),
     default={},
@@ -350,7 +350,7 @@ OVERRIDE_OPTIONS_KW: KwargInfo[T.Union[str, T.List[str], T.Dict[str, ElementaryO
 )
 
 
-def _output_validator(outputs: T.List[str]) -> T.Optional[str]:
+def _output_validator(outputs: list[str]) -> str | None:
     output_set = set(outputs)
     if len(output_set) != len(outputs):
         seen = set()
@@ -370,7 +370,7 @@ def _output_validator(outputs: T.List[str]) -> T.Optional[str]:
 
     return None
 
-MULTI_OUTPUT_KW: KwargInfo[T.List[str]] = KwargInfo(
+MULTI_OUTPUT_KW: KwargInfo[list[str]] = KwargInfo(
     'output',
     ContainerTypeInfo(list, str, allow_empty=False),
     listify=True,
@@ -386,8 +386,8 @@ OUTPUT_KW: KwargInfo[str] = KwargInfo(
     validator=lambda x: _output_validator([x])
 )
 
-def _local_program_convertor(raw: T.List[T.Union[str, File, BuildTarget, GeneratedTypes, ExtractedObjects, Program]]) -> T.List[CustomTargetInputs]:
-    result: T.List[CustomTargetInputs] = []
+def _local_program_convertor(raw: list[str | File | BuildTarget | GeneratedTypes | ExtractedObjects | Program]) -> list[CustomTargetInputs]:
+    result: list[CustomTargetInputs] = []
     for i in raw:
         if isinstance(i, LocalProgram):
             result.append(i.get_target())
@@ -395,7 +395,7 @@ def _local_program_convertor(raw: T.List[T.Union[str, File, BuildTarget, Generat
             result.append(i)
     return result
 
-CT_INPUT_KW: KwargInfo[T.List[T.Union[str, File, BuildTarget, GeneratedTypes, ExtractedObjects, Program]]] = KwargInfo(
+CT_INPUT_KW: KwargInfo[list[str | File | BuildTarget | GeneratedTypes | ExtractedObjects | Program]] = KwargInfo(
     'input',
     ContainerTypeInfo(list, (str, File, BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects, GeneratedList, Program)),
     listify=True,
@@ -404,7 +404,7 @@ CT_INPUT_KW: KwargInfo[T.List[T.Union[str, File, BuildTarget, GeneratedTypes, Ex
     since_values={ExternalProgram: '1.12.0'},
 )
 
-CT_INSTALL_TAG_KW: KwargInfo[T.List[T.Union[str, bool]]] = KwargInfo(
+CT_INSTALL_TAG_KW: KwargInfo[list[str | bool]] = KwargInfo(
     'install_tag',
     ContainerTypeInfo(list, (str, bool)),
     listify=True,
@@ -413,9 +413,9 @@ CT_INSTALL_TAG_KW: KwargInfo[T.List[T.Union[str, bool]]] = KwargInfo(
     convertor=lambda x: [y if isinstance(y, str) else None for y in x],
 )
 
-INSTALL_TAG_KW: KwargInfo[T.Optional[str]] = KwargInfo('install_tag', (str, NoneType))
+INSTALL_TAG_KW: KwargInfo[str | None] = KwargInfo('install_tag', (str, NoneType))
 
-INSTALL_FOLLOW_SYMLINKS: KwargInfo[T.Optional[bool]] = KwargInfo(
+INSTALL_FOLLOW_SYMLINKS: KwargInfo[bool | None] = KwargInfo(
     'follow_symlinks',
     (bool, NoneType),
     since='1.3.0',
@@ -423,7 +423,7 @@ INSTALL_FOLLOW_SYMLINKS: KwargInfo[T.Optional[bool]] = KwargInfo(
 
 INSTALL_KW = KwargInfo('install', bool, default=False)
 
-CT_INSTALL_DIR_KW: KwargInfo[T.List[T.Union[str, Literal[False]]]] = KwargInfo(
+CT_INSTALL_DIR_KW: KwargInfo[list[str | Literal[False]]] = KwargInfo(
     'install_dir',
     ContainerTypeInfo(list, (str, bool)),
     listify=True,
@@ -431,29 +431,29 @@ CT_INSTALL_DIR_KW: KwargInfo[T.List[T.Union[str, Literal[False]]]] = KwargInfo(
     validator=lambda x: 'must be `false` if boolean' if True in x else None,
 )
 
-CT_BUILD_BY_DEFAULT: KwargInfo[T.Optional[bool]] = KwargInfo('build_by_default', (bool, type(None)), since='0.40.0')
+CT_BUILD_BY_DEFAULT: KwargInfo[bool | None] = KwargInfo('build_by_default', (bool, type(None)), since='0.40.0')
 
-CT_BUILD_ALWAYS: KwargInfo[T.Optional[bool]] = KwargInfo(
+CT_BUILD_ALWAYS: KwargInfo[bool | None] = KwargInfo(
     'build_always', (bool, NoneType),
     deprecated='0.47.0',
     deprecated_message='combine build_by_default and build_always_stale instead.',
 )
 
-CT_BUILD_ALWAYS_STALE: KwargInfo[T.Optional[bool]] = KwargInfo(
+CT_BUILD_ALWAYS_STALE: KwargInfo[bool | None] = KwargInfo(
     'build_always_stale', (bool, NoneType),
     since='0.47.0',
 )
 
-INSTALL_DIR_KW: KwargInfo[T.Optional[str]] = KwargInfo('install_dir', (str, NoneType))
+INSTALL_DIR_KW: KwargInfo[str | None] = KwargInfo('install_dir', (str, NoneType))
 
-INCLUDE_DIRECTORIES: KwargInfo[T.List[T.Union[str, IncludeDirs]]] = KwargInfo(
+INCLUDE_DIRECTORIES: KwargInfo[list[str | IncludeDirs]] = KwargInfo(
     'include_directories',
     ContainerTypeInfo(list, (str, IncludeDirs)),
     listify=True,
     default=[],
 )
 
-def _default_options_convertor(raw: T.Union[str, T.List[str], T.Dict[str, ElementaryOptionValues]]) -> T.Dict[OptionKey, ElementaryOptionValues]:
+def _default_options_convertor(raw: str | list[str] | dict[str, ElementaryOptionValues]) -> dict[OptionKey, ElementaryOptionValues]:
     d = _override_options_convertor(raw)
     return {OptionKey.from_string(k): v for k, v in d.items()}
 
@@ -466,7 +466,7 @@ ENV_METHOD_KW = KwargInfo('method', str, default='set', since='0.62.0',
 
 ENV_SEPARATOR_KW = KwargInfo('separator', str, default=os.pathsep)
 
-DEPENDENCIES_KW: KwargInfo[T.List[Dependency]] = KwargInfo(
+DEPENDENCIES_KW: KwargInfo[list[Dependency]] = KwargInfo(
     'dependencies',
     # InternalDependency is a subclass of Dependency, but we want to
     # print it in error messages
@@ -479,7 +479,7 @@ DEPENDENCIES_KW: KwargInfo[T.List[Dependency]] = KwargInfo(
     as_default=[('', ('1.11.1', "Replace an empty string with an empty array: `dependencies : ''` -> `dependencies : []`"))],
 )
 
-D_MODULE_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
+D_MODULE_VERSIONS_KW: KwargInfo[list[str | int]] = KwargInfo(
     'd_module_versions',
     ContainerTypeInfo(list, (str, int)),
     listify=True,
@@ -488,17 +488,15 @@ D_MODULE_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
 
 _LINK_WITH_ERROR = 'Dependency and external_library objects must go in the "dependencies" keyword argument'
 
-def _link_with_validator(values: T.List[T.Union[BothLibraries, SharedLibrary, StaticLibrary,
-                                                CustomTarget, CustomTargetIndex, Jar, Executable,
-                                                ]]
-                         ) -> T.Optional[str]:
+def _link_with_validator(values: list[BothLibraries | SharedLibrary | StaticLibrary | CustomTarget | CustomTargetIndex | Jar | Executable]
+                         ) -> str | None:
     for value in values:
         if not value.is_linkable_target():
             return f'Link target "{value!s}" is not linkable'
     return None
 
 # Allow Dependency for the better error message? But then in other cases it will list this as one of the allowed types!
-LINK_WITH_KW: KwargInfo[T.List[T.Union[BothLibraries, SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex, Jar, Executable]]] = KwargInfo(
+LINK_WITH_KW: KwargInfo[list[BothLibraries | SharedLibrary | StaticLibrary | CustomTarget | CustomTargetIndex | Jar | Executable]] = KwargInfo(
     'link_with',
     ContainerTypeInfo(list, (BothLibraries, SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex, Jar, Executable)),
     listify=True,
@@ -507,7 +505,7 @@ LINK_WITH_KW: KwargInfo[T.List[T.Union[BothLibraries, SharedLibrary, StaticLibra
     validator=_link_with_validator,
 )
 
-def link_whole_validator(values: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]) -> T.Optional[str]:
+def link_whole_validator(values: list[StaticLibrary | CustomTarget | CustomTargetIndex]) -> str | None:
     for l in values:
         if isinstance(l, (CustomTarget, CustomTargetIndex)) and l.links_dynamically():
             return f'{type(l).__name__} returning a shared library is not allowed'
@@ -515,7 +513,7 @@ def link_whole_validator(values: T.List[T.Union[StaticLibrary, CustomTarget, Cus
             return f'Link target "{l!s}" is not linkable'
     return None
 
-LINK_WHOLE_KW: KwargInfo[T.List[T.Union[BothLibraries, StaticLibrary, CustomTarget, CustomTargetIndex]]] = KwargInfo(
+LINK_WHOLE_KW: KwargInfo[list[BothLibraries | StaticLibrary | CustomTarget | CustomTargetIndex]] = KwargInfo(
     'link_whole',
     ContainerTypeInfo(list, (BothLibraries, StaticLibrary, CustomTarget, CustomTargetIndex)),
     listify=True,
@@ -524,7 +522,7 @@ LINK_WHOLE_KW: KwargInfo[T.List[T.Union[BothLibraries, StaticLibrary, CustomTarg
     extra_types={Dependency: lambda _: _LINK_WITH_ERROR}
 )
 
-DEPENDENCY_SOURCES_KW: KwargInfo[T.List[str | TargetSources]] = KwargInfo(
+DEPENDENCY_SOURCES_KW: KwargInfo[list[str | TargetSources]] = KwargInfo(
     'sources',
     ContainerTypeInfo(list, (str, File, CustomTarget, CustomTargetIndex, GeneratedList)),
     listify=True,
@@ -540,7 +538,7 @@ BT_SOURCES_KW: KwargInfo[SourcesVarargsType] = KwargInfo(
     default=[],
 )
 
-VARIABLES_KW: KwargInfo[T.Dict[str, str]] = KwargInfo(
+VARIABLES_KW: KwargInfo[dict[str, str]] = KwargInfo(
     'variables',
     # str is listified by validator/convertor, cannot use listify=True here because
     # that would listify dict too.
@@ -552,7 +550,7 @@ VARIABLES_KW: KwargInfo[T.Dict[str, str]] = KwargInfo(
 
 PRESERVE_PATH_KW: KwargInfo[bool] = KwargInfo('preserve_path', bool, default=False, since='0.63.0')
 
-def suite_convertor(suite: T.List[str]) -> T.List[str]:
+def suite_convertor(suite: list[str]) -> list[str]:
     # Ensure we always have at least one suite.
     if not suite:
         return ['']
@@ -564,7 +562,7 @@ def _test_timeout_feature_validator(value: int) -> T.Iterable[FeatureCheckBase]:
         yield FeatureNew('test timeout <= 0', '0.57.0')
 
 
-TEST_KWS_NO_ARGS: T.List[KwargInfo] = [
+TEST_KWS_NO_ARGS: list[KwargInfo] = [
     KwargInfo('should_fail', (bool, NoneType), deprecated='1.11.0', deprecated_message='Use expected_fail instead of should_fail'),
     KwargInfo('expected_fail', (bool, NoneType), since='1.11.0'),
     KwargInfo('expected_exitcode', (int, NoneType), since='1.11.0'),
@@ -584,7 +582,7 @@ TEST_KWS_NO_ARGS: T.List[KwargInfo] = [
     KwargInfo('verbose', bool, default=False, since='0.62.0'),
 ]
 
-TEST_KWS: T.List[KwargInfo] = TEST_KWS_NO_ARGS + [
+TEST_KWS: list[KwargInfo] = TEST_KWS_NO_ARGS + [
     KwargInfo(
         'args',
         ContainerTypeInfo(list, (str, File, BuildTarget, CustomTarget, CustomTargetIndex, Program)),
@@ -596,7 +594,7 @@ TEST_KWS: T.List[KwargInfo] = TEST_KWS_NO_ARGS + [
 
 # Cannot have a default value because we need to check that rust_crate_type and
 # rust_abi are mutually exclusive.
-RUST_CRATE_TYPE_KW: KwargInfo[T.Union[str, None]] = KwargInfo(
+RUST_CRATE_TYPE_KW: KwargInfo[str | None] = KwargInfo(
     'rust_crate_type', (str, NoneType),
     since='0.42.0',
     since_values={'proc-macro': '0.62.0'},
@@ -604,26 +602,26 @@ RUST_CRATE_TYPE_KW: KwargInfo[T.Union[str, None]] = KwargInfo(
     deprecated_message='Use rust_abi or rust.proc_macro() instead.',
     validator=in_set_validator({'bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro'}))
 
-RUST_ABI_KW: KwargInfo[T.Union[str, None]] = KwargInfo(
+RUST_ABI_KW: KwargInfo[str | None] = KwargInfo(
     'rust_abi', (str, NoneType),
     since='1.3.0',
     validator=in_set_validator({'rust', 'c'}))
 
 # this is implicitly an extra link_depends and thus shares the same type
-_VS_MODULE_DEFS_KW: KwargInfo[T.Optional[T.Union[str, File, CustomTarget, CustomTargetIndex]]] = KwargInfo(
+_VS_MODULE_DEFS_KW: KwargInfo[str | File | CustomTarget | CustomTargetIndex | None] = KwargInfo(
     'vs_module_defs',
     (str, File, CustomTarget, CustomTargetIndex, NoneType),
     since_values={CustomTargetIndex: '1.3.0'}
 )
 
-_BASE_LANG_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
+_BASE_LANG_KW: KwargInfo[list[str | File]] = KwargInfo(
     'UNKNOWN',
     ContainerTypeInfo(list, (str, File)),
     listify=True,
     default=[],
 )
 
-_LANGUAGE_KWS: T.List[KwargInfo[T.List[str | File]]] = [
+_LANGUAGE_KWS: list[KwargInfo[list[str | File]]] = [
     _BASE_LANG_KW.evolve(name=f'{lang}_args')
     for lang in compilers.all_languages - {'rust', 'vala', 'java'}
 ]
@@ -633,7 +631,7 @@ _LANGUAGE_KWS.append(KwargInfo(
 _LANGUAGE_KWS.append(_BASE_LANG_KW.evolve(name='rust_args', since='0.41.0'))
 
 # We need this deprecated values more than the non-deprecated values. So we'll evolve them out elsewhere.
-_JAVA_LANG_KW: KwargInfo[T.List[str | File]] = _BASE_LANG_KW.evolve(
+_JAVA_LANG_KW: KwargInfo[list[str | File]] = _BASE_LANG_KW.evolve(
     name='java_args',
     deprecated='1.3.0',
     deprecated_message='This does not, and never has, done anything. It should be removed'
@@ -646,8 +644,8 @@ BUILD_SUBDIR_KW: KwargInfo[str] = KwargInfo(
     since='1.10.0'
 )
 
-def _objects_validator(vals: T.List[ObjectTypes]) -> T.Optional[str]:
-    non_objects: T.List[str] = []
+def _objects_validator(vals: list[ObjectTypes]) -> str | None:
+    non_objects: list[str] = []
 
     for val in vals:
         if isinstance(val, (str, File, ExtractedObjects)):
@@ -672,21 +670,21 @@ def _target_install_convertor(val: object) -> bool:
     return bool(val)
 
 
-def _extra_files_validator(args: T.List[T.Union[File, str]]) -> T.Optional[str]:
+def _extra_files_validator(args: list[File | str]) -> str | None:
     generated = [a for a in args if isinstance(a, File) and a.is_built]
     if generated:
         return 'extra_files contains generated files: {}'.format(', '.join(f"{f.fname}" for f in generated))
     return None
 
 
-def _bt_install_dir_deprecated(args: T.List[T.Union[str, bool]]) -> T.Iterator[FeatureCheckBase]:
+def _bt_install_dir_deprecated(args: list[str | bool]) -> T.Iterator[FeatureCheckBase]:
     if len(args) > 1:
         yield FeatureDeprecated('passing more than one argument to install_dir', '1.11.0',
                                 'use the install_vala_* arguments instead')
 
 
 # Applies to all build_target like classes
-_ALL_TARGET_KWS: T.List[KwargInfo] = [
+_ALL_TARGET_KWS: list[KwargInfo] = [
     OVERRIDE_OPTIONS_KW.evolve(since='0.40.0'),
     KwargInfo('build_by_default', bool, default=True, since='0.38.0'),
     DEPENDENCIES_KW,
@@ -735,19 +733,19 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
 ]
 
 
-def _name_validator(arg: T.Optional[T.Union[str, T.List]]) -> T.Optional[str]:
+def _name_validator(arg: str | list | None) -> str | None:
     if isinstance(arg, list) and arg:
         return 'must be empty when passed as an array to signify the default value.'
     return None
 
 
-def _name_suffix_validator(arg: T.Optional[T.Union[str, T.List]]) -> T.Optional[str]:
+def _name_suffix_validator(arg: str | list | None) -> str | None:
     if arg == '':
         return 'must not be a empty string. An empty array may be passed if you want Meson to use the default behavior.'
     return _name_validator(arg)
 
 
-_NAME_PREFIX_KW: KwargInfo[T.Optional[T.Union[str, T.List]]] = KwargInfo(
+_NAME_PREFIX_KW: KwargInfo[str | list | None] = KwargInfo(
     'name_prefix',
     (str, NoneType, list),
     validator=_name_validator,
@@ -756,7 +754,7 @@ _NAME_PREFIX_KW: KwargInfo[T.Optional[T.Union[str, T.List]]] = KwargInfo(
 )
 
 
-def _pch_validator(args: T.List[str]) -> T.Optional[str]:
+def _pch_validator(args: list[str]) -> str | None:
     num_args = len(args)
     if num_args == 1:
         if not compilers.is_header(args[0]):
@@ -782,12 +780,12 @@ def _pch_validator(args: T.List[str]) -> T.Optional[str]:
     return None
 
 
-def _pch_feature_validator(args: T.List[str]) -> T.Iterable[FeatureCheckBase]:
+def _pch_feature_validator(args: list[str]) -> T.Iterable[FeatureCheckBase]:
     if len(args) > 1:
         yield FeatureDeprecated('PCH source files', '0.50.0', 'Only a single header file should be used.')
 
 
-def _pch_convertor(args: T.List[str]) -> T.Optional[T.Tuple[str, T.Optional[str]]]:
+def _pch_convertor(args: list[str]) -> tuple[str, str | None] | None:
     num_args = len(args)
 
     if num_args == 1:
@@ -802,7 +800,7 @@ def _pch_convertor(args: T.List[str]) -> T.Optional[T.Tuple[str, T.Optional[str]
     return None
 
 
-_PCH_ARGS: KwargInfo[T.List[str]] = KwargInfo(
+_PCH_ARGS: KwargInfo[list[str]] = KwargInfo(
     'pch',
     ContainerTypeInfo(list, str),
     listify=True,
@@ -813,7 +811,7 @@ _PCH_ARGS: KwargInfo[T.List[str]] = KwargInfo(
 )
 
 
-LINK_ARGS_KW: KwargInfo[T.List[str]] = KwargInfo(
+LINK_ARGS_KW: KwargInfo[list[str]] = KwargInfo(
     'link_args',
     ContainerTypeInfo(list, str),
     default=[],
@@ -823,7 +821,7 @@ LINK_ARGS_KW: KwargInfo[T.List[str]] = KwargInfo(
 
 
 # Applies to all build_target classes except jar
-_BUILD_TARGET_KWS: T.List[KwargInfo] = [
+_BUILD_TARGET_KWS: list[KwargInfo] = [
     *_ALL_TARGET_KWS,
     *_LANGUAGE_KWS,
     BT_SOURCES_KW,
@@ -873,7 +871,7 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
         (str, NoneType),
         # Yes, neither mypy no pyright can figure out that `set[literal[str]]``
         # is a subset of `set[str]`
-        validator=in_set_validator(T.cast('T.Set[str]', compilers.all_languages)),
+        validator=in_set_validator(T.cast('set[str]', compilers.all_languages)),
         since='0.51.0',
     ),
     KwargInfo('vala_gir', (str, NoneType)),
@@ -891,13 +889,13 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     KwargInfo('install_vala_vapi', (str, bool, NoneType), since='1.11.0'),
 ]
 
-def _validate_win_subsystem(value: T.Optional[str]) -> T.Optional[str]:
+def _validate_win_subsystem(value: str | None) -> str | None:
     if value is not None:
         if re.fullmatch(r'(boot_application|console|efi_application|efi_boot_service_driver|efi_rom|efi_runtime_driver|native|posix|windows)(,\d+(\.\d+)?)?', value) is None:
             return f'Invalid value for win_subsystem: {value}.'
     return None
 
-_WIN_SUBSYSTEM_KW: KwargInfo[T.Optional[str]] = KwargInfo(
+_WIN_SUBSYSTEM_KW: KwargInfo[str | None] = KwargInfo(
         'win_subsystem',
         (str, NoneType),
         convertor=lambda x: x.lower() if isinstance(x, str) else None,
@@ -905,7 +903,7 @@ _WIN_SUBSYSTEM_KW: KwargInfo[T.Optional[str]] = KwargInfo(
 )
 
 
-def _validate_darwin_versions(darwin_versions: T.List[T.Union[str, int]]) -> T.Optional[str]:
+def _validate_darwin_versions(darwin_versions: list[str | int]) -> str | None:
     if len(darwin_versions) > 2:
         return f"Must contain between 0 and 2 elements, not {len(darwin_versions)}"
     if len(darwin_versions) == 1:
@@ -928,7 +926,7 @@ def _validate_darwin_versions(darwin_versions: T.List[T.Union[str, int]]) -> T.O
     return None
 
 
-def _convert_darwin_versions(val: T.List[T.Union[str, int]]) -> T.Optional[T.Tuple[str, str]]:
+def _convert_darwin_versions(val: list[str | int]) -> tuple[str, str] | None:
     if not val:
         return None
     elif len(val) == 1:
@@ -937,7 +935,7 @@ def _convert_darwin_versions(val: T.List[T.Union[str, int]]) -> T.Optional[T.Tup
     return (str(val[0]), str(val[1]))
 
 
-_DARWIN_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
+_DARWIN_VERSIONS_KW: KwargInfo[list[str | int]] = KwargInfo(
     'darwin_versions',
     ContainerTypeInfo(list, (str, int)),
     default=[],
@@ -949,7 +947,7 @@ _DARWIN_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
 
 # Arguments exclusive to Executable. These are separated to make integrating
 # them into build_target easier
-EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
+EXCLUSIVE_EXECUTABLE_KWS: list[KwargInfo] = [
     KwargInfo('export_dynamic', (bool, NoneType), since='0.45.0'),
     KwargInfo('gui_app', (bool, NoneType), deprecated='0.56.0', deprecated_message="Use 'win_subsystem' instead"),
     KwargInfo(
@@ -979,13 +977,13 @@ EXECUTABLE_KWS = [
 ]
 
 # Arguments exclusive to library types
-_EXCLUSIVE_LIB_KWS: T.List[KwargInfo] = [
+_EXCLUSIVE_LIB_KWS: list[KwargInfo] = [
     RUST_ABI_KW,
 ]
 
 # Arguments exclusive to StaticLibrary. These are separated to make integrating
 # them into build_target easier
-_EXCLUSIVE_STATIC_LIB_KWS: T.List[KwargInfo] = [
+_EXCLUSIVE_STATIC_LIB_KWS: list[KwargInfo] = [
     KwargInfo('prelink', bool, default=False, since='0.57.0'),
     KwargInfo('pic', (bool, NoneType), since='0.36.0'),
 ]
@@ -998,14 +996,14 @@ STATIC_LIB_KWS = [
     _JAVA_LANG_KW,
 ]
 
-def _shortname_validator(shortname: T.Optional[str]) -> T.Optional[str]:
+def _shortname_validator(shortname: str | None) -> str | None:
     if shortname is not None and len(shortname) > 8:
         return 'must have a maximum of 8 characters'
     return None
 
 # Arguments exclusive to SharedLibrary. These are separated to make integrating
 # them into build_target easier
-_EXCLUSIVE_SHARED_LIB_KWS: T.List[KwargInfo] = [
+_EXCLUSIVE_SHARED_LIB_KWS: list[KwargInfo] = [
     _DARWIN_VERSIONS_KW,
     KwargInfo('soversion', (str, int, NoneType), convertor=lambda x: str(x) if x is not None else None),
     KwargInfo('version', (str, NoneType), validator=_validate_shlib_version),
@@ -1013,7 +1011,7 @@ _EXCLUSIVE_SHARED_LIB_KWS: T.List[KwargInfo] = [
 ]
 
 # The total list of arguments used by SharedLibrary
-SHARED_LIB_KWS: T.List[KwargInfo] = [
+SHARED_LIB_KWS: list[KwargInfo] = [
     *_BUILD_TARGET_KWS,
     *_EXCLUSIVE_SHARED_LIB_KWS,
     *_EXCLUSIVE_LIB_KWS,
@@ -1024,7 +1022,7 @@ SHARED_LIB_KWS: T.List[KwargInfo] = [
 
 # Arguments exclusive to SharedModule. These are separated to make integrating
 # them into build_target easier
-_EXCLUSIVE_SHARED_MOD_KWS: T.List[KwargInfo] = []
+_EXCLUSIVE_SHARED_MOD_KWS: list[KwargInfo] = []
 
 # The total list of arguments used by SharedModule
 SHARED_MOD_KWS = [
@@ -1038,7 +1036,7 @@ SHARED_MOD_KWS = [
 
 # Arguments exclusive to JAR. These are separated to make integrating
 # them into build_target easier
-_EXCLUSIVE_JAR_KWS: T.List[KwargInfo] = [
+_EXCLUSIVE_JAR_KWS: list[KwargInfo] = [
     KwargInfo('main_class', str, default=''),
     KwargInfo('java_resources', (StructuredSources, NoneType), since='0.62.0'),
     _JAVA_LANG_KW.evolve(deprecated=None, deprecated_message=None),
@@ -1058,7 +1056,7 @@ JAR_KWS = [
       for a in _LANGUAGE_KWS],
 ]
 
-_SHARED_STATIC_ARGS: T.List[KwargInfo[T.List[str | File]]] = [
+_SHARED_STATIC_ARGS: list[KwargInfo[list[str | File]]] = [
     *[l.evolve(name=l.name.replace('_', '_static_'), since='1.3.0')
       for l in _LANGUAGE_KWS],
     *[l.evolve(name=l.name.replace('_', '_shared_'), since='1.3.0')
@@ -1108,7 +1106,7 @@ BUILD_TARGET_KWS = [
     )
 ]
 
-def _pkgconfig_define_convertor(x: T.List[str]) -> PkgConfigDefineType:
+def _pkgconfig_define_convertor(x: list[str]) -> PkgConfigDefineType:
     if x:
         keys = itertools.islice(x, 0, None, 2)
         vals = itertools.islice(x, 1, None, 2)
@@ -1166,7 +1164,7 @@ DEPENDENCY_METHOD_KW = KwargInfo(
 )
 
 
-DEPENDENCY_KWS: T.List[KwargInfo] = [
+DEPENDENCY_KWS: list[KwargInfo] = [
     DEFAULT_OPTIONS.evolve(since='0.38.0'),
     DEPENDENCY_METHOD_KW,
     DISABLER_KW.evolve(since='0.49.0'),

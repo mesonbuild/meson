@@ -23,7 +23,7 @@ if T.TYPE_CHECKING:
     from .sampleimpl import ClassImpl, FileHeaderImpl, FileImpl, SampleImpl
 
 
-_IMPL: T.Mapping[str, T.Union[T.Type[ClassImpl], T.Type[FileHeaderImpl], T.Type[FileImpl]]] = {
+_IMPL: T.Mapping[str, type[ClassImpl] | type[FileHeaderImpl] | type[FileImpl]] = {
     'c': CProject,
     'cpp': CppProject,
     'cs': CSharpProject,

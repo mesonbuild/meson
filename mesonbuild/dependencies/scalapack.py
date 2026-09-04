@@ -21,10 +21,10 @@ if T.TYPE_CHECKING:
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
-def scalapack_factory(env: 'Environment',
+def scalapack_factory(env: Environment,
                       kwargs: DependencyObjectKWs,
-                      methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
-    candidates: T.List['DependencyGenerator'] = []
+                      methods: list[DependencyMethods]) -> list[DependencyGenerator]:
+    candidates: list[DependencyGenerator] = []
 
     if DependencyMethods.PKGCONFIG in methods:
         static_opt = kwargs['static'] if kwargs.get('static') is not None else env.coredata.optstore.get_value_for(OptionKey('prefer_static'))
@@ -53,7 +53,7 @@ class MKLPkgConfigDependency(PkgConfigDependency):
     bunch of fixups to make it work correctly.
     """
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
         _m = os.environ.get('MKLROOT')
         self.__mklroot = Path(_m).resolve() if _m else None
 

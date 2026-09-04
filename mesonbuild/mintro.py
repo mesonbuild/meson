@@ -49,15 +49,15 @@ def get_meson_info_file(info_dir: str) -> str:
 def get_meson_introspection_version() -> str:
     return '1.0.0'
 
-def get_meson_introspection_required_version() -> T.List[str]:
+def get_meson_introspection_required_version() -> list[str]:
     return ['>=1.0', '<2.0']
 
-def dump_ast(intr: IntrospectionInterpreter) -> T.Dict[str, T.Any]:
+def dump_ast(intr: IntrospectionInterpreter) -> dict[str, T.Any]:
     printer = AstJSONPrinter()
     intr.ast.accept(printer)
     return printer.result
 
-def list_installed(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.Dict[str, str]:
+def list_installed(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> dict[str, str]:
     res = {}
     installdata = backend.create_install_data()
     for t in installdata.targets:
@@ -76,9 +76,9 @@ def list_installed(coredata: cdata.CoreData, builddata: build.Build, backend: ba
         res[basename] = os.path.join(installdata.prefix, s.install_path, basename)
     return res
 
-def list_install_plan(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.Dict[str, T.Dict[str, T.Dict[str, T.Union[str, T.List[str], None]]]]:
+def list_install_plan(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> dict[str, dict[str, dict[str, str | list[str] | None]]]:
     installdata = backend.create_install_data()
-    plan: T.Dict[str, T.Dict[str, T.Dict[str, T.Union[str, T.List[str], None]]]] = {
+    plan: dict[str, dict[str, dict[str, str | list[str] | None]]] = {
         'targets': {
             os.path.join(installdata.build_dir, target.fname): {
                 'destination': target.out_name,
@@ -125,8 +125,8 @@ def get_target_dir(coredata: cdata.CoreData, subdir: str) -> str:
     else:
         return subdir
 
-def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, object]]:
-    tlist: T.List[T.Dict[str, object]] = []
+def list_targets_from_source(intr: IntrospectionInterpreter) -> list[dict[str, object]]:
+    tlist: list[dict[str, object]] = []
     root_dir = Path(intr.source_root).resolve()
 
     for i in intr.targets:
@@ -158,8 +158,8 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
 
     return tlist
 
-def list_targets(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Any]:
-    tlist: T.List[T.Any] = []
+def list_targets(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> list[T.Any]:
+    tlist: list[T.Any] = []
     build_dir = builddata.environment.get_build_dir()
     src_dir = builddata.environment.get_source_dir()
 
@@ -214,15 +214,15 @@ def list_targets(coredata: cdata.CoreData, builddata: build.Build, backend: back
         tlist.append(t)
     return tlist
 
-def list_buildoptions(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]:
+def list_buildoptions(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> list[dict[str, str | bool | int | list[str]]]:
     return _list_buildoptions(coredata)
 
-def list_buildoptions_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]:
+def list_buildoptions_from_source(intr: IntrospectionInterpreter) -> list[dict[str, str | bool | int | list[str]]]:
     subprojects = [i['name'] for i in intr.project_data['subprojects']]
     return _list_buildoptions(intr.coredata, subprojects)
 
-def _list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[str]] = None) -> T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]:
-    optlist: T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]] = []
+def _list_buildoptions(coredata: cdata.CoreData, subprojects: list[str] | None = None) -> list[dict[str, str | bool | int | list[str]]]:
+    optlist: list[dict[str, str | bool | int | list[str]]] = []
     subprojects = subprojects or []
 
     dir_option_names = set(options.BUILTIN_DIR_OPTIONS)
@@ -243,7 +243,7 @@ def _list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[
                 for s in subprojects:
                     core_options[k.evolve(subproject=s)] = v
 
-    def add_keys(opts: T.Union[options.MutableKeyedOptionDictType, options.OptionStore], section: str) -> None:
+    def add_keys(opts: options.MutableKeyedOptionDictType | options.OptionStore, section: str) -> None:
         for key, opt in sorted(opts.items()):
             optdict = {'name': str(key), 'value': opt.value, 'section': section,
                        'machine': key.machine.get_lower_case_name() if coredata.optstore.is_per_machine_option(key) else 'any'}
@@ -294,22 +294,22 @@ def _list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[
     add_keys(test_options, 'test')
     return optlist
 
-def find_buildsystem_files_list(src_dir: str) -> T.List[str]:
+def find_buildsystem_files_list(src_dir: str) -> list[str]:
     build_files = frozenset({'meson.build', 'meson.options', 'meson_options.txt'})
     # I feel dirty about this. But only slightly.
-    filelist: T.List[str] = []
+    filelist: list[str] = []
     for root, _, files in os.walk(src_dir):
         filelist.extend(os.path.relpath(os.path.join(root, f), src_dir)
                         for f in build_files.intersection(files))
     return filelist
 
-def list_buildsystem_files(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[str]:
+def list_buildsystem_files(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> list[str]:
     src_dir = builddata.environment.get_source_dir()
     filelist = [PurePath(src_dir, x).as_posix() for x in builddata.def_files]
     return filelist
 
-def list_compilers(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.Dict[str, T.Dict[str, T.Dict[str, str]]]:
-    compilers: T.Dict[str, T.Dict[str, T.Dict[str, str]]] = {}
+def list_compilers(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> dict[str, dict[str, dict[str, str]]]:
+    compilers: dict[str, dict[str, dict[str, str]]] = {}
     for machine in ('host', 'build'):
         compilers[machine] = {}
         for language, compiler in getattr(coredata.compilers, machine).items():
@@ -325,8 +325,8 @@ def list_compilers(coredata: cdata.CoreData, builddata: build.Build, backend: ba
             }
     return compilers
 
-def list_deps_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[str, bool, T.List[str], UnknownValue]]]:
-    result: T.List[T.Dict[str, T.Union[str, bool, T.List[str], UnknownValue]]] = []
+def list_deps_from_source(intr: IntrospectionInterpreter) -> list[dict[str, str | bool | list[str] | UnknownValue]]:
+    result: list[dict[str, str | bool | list[str] | UnknownValue]] = []
     for i in intr.dependencies:
         result += [{
             'name': i.name,
@@ -337,10 +337,10 @@ def list_deps_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, 
         }]
     return result
 
-def list_deps(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[str, T.List[str]]]]:
-    result: T.Dict[str, T.Dict[str, T.Union[str, T.List[str]]]] = {}
+def list_deps(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> list[dict[str, str | list[str]]]:
+    result: dict[str, dict[str, str | list[str]]] = {}
 
-    def _src_to_str(src_file: T.Union[str, build.TargetSources, build.StructuredSources]) -> T.List[str]:
+    def _src_to_str(src_file: str | build.TargetSources | build.StructuredSources) -> list[str]:
         if isinstance(src_file, str):
             return [src_file]
         if isinstance(src_file, mesonlib.File):
@@ -351,7 +351,7 @@ def list_deps(coredata: cdata.CoreData, builddata: build.Build, backend: backend
             return [f for s in src_file.as_list() for f in _src_to_str(s)]
         raise mesonlib.MesonBugException(f'Invalid file type {type(src_file)}.')
 
-    def _create_result(d: Dependency) -> T.Dict[str, T.Any]:
+    def _create_result(d: Dependency) -> dict[str, T.Any]:
         return {
             'name': d.name,
             'type': d.type_name,
@@ -372,10 +372,10 @@ def list_deps(coredata: cdata.CoreData, builddata: build.Build, backend: backend
 
     return list(result.values())
 
-def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
-    result: T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]] = []
+def get_test_list(testdata: list[backends.TestSerialisation]) -> list[dict[str, str | int | list[str] | dict[str, str]]]:
+    result: list[dict[str, str | int | list[str] | dict[str, str]]] = []
     for t in testdata:
-        to: T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]] = {}
+        to: dict[str, str | int | list[str] | dict[str, str]] = {}
         if isinstance(t.fname, str):
             fname = [t.fname]
         else:
@@ -397,16 +397,16 @@ def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict
         result.append(to)
     return result
 
-def list_tests(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+def list_tests(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> list[dict[str, str | int | list[str] | dict[str, str]]]:
     testdata = backend.create_test_serialisation(builddata.get_tests())
     return get_test_list(testdata)
 
-def list_benchmarks(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+def list_benchmarks(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> list[dict[str, str | int | list[str] | dict[str, str]]]:
     benchdata = backend.create_test_serialisation(builddata.get_benchmarks())
     return get_test_list(benchdata)
 
-def list_machines(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.Dict[str, T.Dict[str, T.Union[str, bool]]]:
-    machines: T.Dict[str, T.Dict[str, T.Union[str, bool]]] = {}
+def list_machines(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> dict[str, dict[str, str | bool]]:
+    machines: dict[str, dict[str, str | bool]] = {}
     for m in ('host', 'build', 'target'):
         machine = getattr(builddata.environment.machines, m)
         machines[m] = dataclasses.asdict(machine)
@@ -415,8 +415,8 @@ def list_machines(coredata: cdata.CoreData, builddata: build.Build, backend: bac
         machines[m]['object_suffix'] = machine.get_object_suffix()
     return machines
 
-def list_projinfo(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.Dict[str, T.Union[str, T.List[str], T.List[T.Dict[str, str]]]]:
-    result: T.Dict[str, T.Union[str, T.List[str], T.List[T.Dict[str, str]]]] = {
+def list_projinfo(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> dict[str, str | list[str] | list[dict[str, str]]]:
+    result: dict[str, str | list[str] | list[dict[str, str]]] = {
         'version': builddata.project_version,
         'descriptive_name': builddata.project_name,
         'license': builddata.dep_manifest[builddata.project_name].license,
@@ -430,7 +430,7 @@ def list_projinfo(coredata: cdata.CoreData, builddata: build.Build, backend: bac
         if k in seen:
             continue
         seen.add(k)
-        c: T.Dict[str, str] = {
+        c: dict[str, str] = {
             'name': k,
             'version': build_proj.version,
             'descriptive_name': build_proj.name,
@@ -439,7 +439,7 @@ def list_projinfo(coredata: cdata.CoreData, builddata: build.Build, backend: bac
     result['subprojects'] = subprojects
     return result
 
-def list_projinfo_from_source(intr: IntrospectionInterpreter) -> T.Dict[str, T.Union[str, T.List[T.Dict[str, str]]]]:
+def list_projinfo_from_source(intr: IntrospectionInterpreter) -> dict[str, str | list[dict[str, str]]]:
     sourcedir = intr.source_root
     files = find_buildsystem_files_list(sourcedir)
     files = [os.path.normpath(x) for x in files]
@@ -453,7 +453,7 @@ def list_projinfo_from_source(intr: IntrospectionInterpreter) -> T.Dict[str, T.U
     intr.project_data['subproject_dir'] = intr.subproject_dir
     return intr.project_data
 
-def print_results(options: argparse.Namespace, results: T.Sequence[T.Tuple[str, T.Union[dict, T.List[T.Any]]]], indent: T.Optional[int]) -> int:
+def print_results(options: argparse.Namespace, results: T.Sequence[tuple[str, dict | list[T.Any]]], indent: int | None) -> int:
     if not results and not options.force_dict:
         print('No command specified')
         return 1
@@ -467,25 +467,25 @@ def print_results(options: argparse.Namespace, results: T.Sequence[T.Tuple[str, 
         print(json.dumps(out, indent=indent, cls=IntrospectionEncoder))
     return 0
 
-def get_infodir(builddir: T.Optional[str] = None) -> str:
+def get_infodir(builddir: str | None = None) -> str:
     infodir = 'meson-info'
     if builddir is not None:
         infodir = os.path.join(builddir, infodir)
     return infodir
 
-def get_info_file(infodir: str, kind: T.Optional[str] = None) -> str:
+def get_info_file(infodir: str, kind: str | None = None) -> str:
     return os.path.join(infodir,
                         'meson-info.json' if not kind else f'intro-{kind}.json')
 
-def load_info_file(infodir: str, kind: T.Optional[str] = None) -> T.Any:
+def load_info_file(infodir: str, kind: str | None = None) -> T.Any:
     with open(get_info_file(infodir, kind), encoding='utf-8') as fp:
         return json.load(fp)
 
 @dataclasses.dataclass
 class IntroCommand:
     desc: str
-    func: T.Optional[T.Callable[[cdata.CoreData, build.Build, backends.Backend], T.Union[dict, list]]] = None
-    no_bd: T.Optional[T.Callable[[IntrospectionInterpreter], T.Union[dict, list]]] = None
+    func: T.Callable[[cdata.CoreData, build.Build, backends.Backend], dict | list] | None = None
+    no_bd: T.Callable[[IntrospectionInterpreter], dict | list] | None = None
 
     def __post_init__(self) -> None:
         self.desc += '.'
@@ -529,7 +529,7 @@ def run(options: argparse.Namespace) -> int:
     if options.builddir is not None:
         datadir = os.path.join(options.builddir, datadir)
     indent = 4 if options.indent else None
-    results: T.List[T.Tuple[str, T.Union[dict, T.List[T.Any]]]] = []
+    results: list[tuple[str, dict | list[T.Any]]] = []
 
     # TODO: This if clause is undocumented.
     if os.path.basename(options.builddir) == environment.build_filename:
@@ -554,9 +554,9 @@ def run(options: argparse.Namespace) -> int:
             print('Current directory is not a meson build directory.\n'
                   'Please specify a valid build dir or change the working directory to it.')
         else:
-            print('Introspection file {} does not exist.\n'
+            print(f'Introspection file {get_info_file(infodir)} does not exist.\n'
                   'It is also possible that the build directory was generated with an old\n'
-                  'meson version. Please regenerate it in this case.'.format(get_info_file(infodir)))
+                  'meson version. Please regenerate it in this case.')
         return 1
 
     vers_to_check = get_meson_introspection_required_version()
@@ -576,14 +576,14 @@ def run(options: argparse.Namespace) -> int:
         try:
             results += [(i, load_info_file(infodir, i))]
         except FileNotFoundError:
-            print('Introspection file {} does not exist.'.format(get_info_file(infodir, i)))
+            print(f'Introspection file {get_info_file(infodir, i)} does not exist.')
             return 1
 
     return print_results(options, results, indent)
 
-updated_introspection_files: T.List[str] = []
+updated_introspection_files: list[str] = []
 
-def write_intro_info(intro_info: T.Sequence[T.Tuple[str, T.Union[dict, T.List[T.Any]]]], info_dir: str) -> None:
+def write_intro_info(intro_info: T.Sequence[tuple[str, dict | list[T.Any]]], info_dir: str) -> None:
     for kind, data in intro_info:
         out_file = os.path.join(info_dir, f'intro-{kind}.json')
         tmp_file = os.path.join(info_dir, 'tmp_dump.json')
@@ -595,7 +595,7 @@ def write_intro_info(intro_info: T.Sequence[T.Tuple[str, T.Union[dict, T.List[T.
 
 def generate_introspection_file(builddata: build.Build, backend: backends.Backend) -> None:
     coredata = builddata.environment.get_coredata()
-    intro_info: T.List[T.Tuple[str, T.Union[dict, T.List[T.Any]]]] = []
+    intro_info: list[tuple[str, dict | list[T.Any]]] = []
 
     for key, val in INTRO_TYPES.items():
         if not val.func:
@@ -611,7 +611,7 @@ def update_build_options(coredata: cdata.CoreData, info_dir: str) -> None:
 
     write_intro_info(intro_info, info_dir)
 
-def split_version_string(version: str) -> T.Dict[str, T.Union[str, int]]:
+def split_version_string(version: str) -> dict[str, str | int]:
     vers_list = version.split('.')
     return {
         'full': version,

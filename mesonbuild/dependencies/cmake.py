@@ -35,20 +35,20 @@ if T.TYPE_CHECKING:
     from .base import DependencyObjectKWs
 
 class CMakeInfo(T.NamedTuple):
-    module_paths: T.List[str]
+    module_paths: list[str]
     cmake_root: str
-    archs: T.List[str]
-    common_paths: T.List[str]
+    archs: list[str]
+    common_paths: list[str]
 
 class CMakeDependency(ExternalDependency):
     # The class's copy of the CMake path. Avoids having to search for it
     # multiple times in the same Meson invocation.
-    class_cmakeinfo: PerMachine[T.Optional[CMakeInfo]] = PerMachine(None, None)
+    class_cmakeinfo: PerMachine[CMakeInfo | None] = PerMachine(None, None)
     # Version string for the minimum CMake version
     class_cmake_version = '>=3.4'
     # CMake generators to try (empty for no generator)
     class_cmake_generators = ['', 'Ninja', 'Unix Makefiles', 'Visual Studio 10 2010']
-    class_working_generator: T.Optional[str] = None
+    class_working_generator: str | None = None
 
     type_name = DependencyTypeName('cmake')
 
@@ -58,10 +58,10 @@ class CMakeDependency(ExternalDependency):
     def _main_cmake_file(self) -> str:
         return 'CMakeLists.txt'
 
-    def _extra_cmake_opts(self) -> T.List[str]:
+    def _extra_cmake_opts(self) -> list[str]:
         return []
 
-    def _map_module_list(self, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]]) -> T.List[T.Tuple[str, bool]]:
+    def _map_module_list(self, modules: list[tuple[str, bool]], components: list[tuple[str, bool]]) -> list[tuple[str, bool]]:
         # Map the input module list to something else
         # This function will only be executed AFTER the initial CMake
         # interpreter pass has completed. Thus variables defined in the
@@ -70,7 +70,7 @@ class CMakeDependency(ExternalDependency):
         # Both the modules and components inputs contain the original lists.
         return modules
 
-    def _map_component_list(self, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]]) -> T.List[T.Tuple[str, bool]]:
+    def _map_component_list(self, modules: list[tuple[str, bool]], components: list[tuple[str, bool]]) -> list[tuple[str, bool]]:
         # Map the input components list to something else. This
         # function will be executed BEFORE the initial CMake interpreter
         # pass. Thus variables from the CMakeLists.txt can NOT be accessed.
@@ -83,16 +83,16 @@ class CMakeDependency(ExternalDependency):
         # one module
         return module
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, force_use_global_compilers: bool = False) -> None:
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs, force_use_global_compilers: bool = False) -> None:
         super().__init__(name, environment, kwargs)
         self.is_libtool = False
 
         # Gather a list of all languages to support
-        self.language_list: T.List[Language]
+        self.language_list: list[Language]
         language = kwargs.get('language')
         if language is None or force_use_global_compilers:
             compilers = environment.coredata.compilers[self.for_machine]
-            candidates: T.List[Language] = ['c', 'cpp', 'fortran', 'objc', 'objcpp']
+            candidates: list[Language] = ['c', 'cpp', 'fortran', 'objc', 'objcpp']
             self.language_list = [x for x in candidates if x in compilers]
         else:
             self.language_list = [language]
@@ -108,7 +108,7 @@ class CMakeDependency(ExternalDependency):
         self.cmake_root_dir = environment.scratch_dir
 
         # T.List of successfully found modules
-        self.found_modules: T.List[str] = []
+        self.found_modules: list[str] = []
 
         # Store a copy of the CMake path on the object itself so it is
         # stored in the pickled coredata and recovered.
@@ -149,7 +149,7 @@ class CMakeDependency(ExternalDependency):
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__} {self.name}: {self.is_found} {self.version_reqs}>'
 
-    def _get_cmake_info(self, cm_args: T.List[str]) -> T.Optional[CMakeInfo]:
+    def _get_cmake_info(self, cm_args: list[str]) -> CMakeInfo | None:
         mlog.debug("Extracting basic cmake information")
 
         # Try different CMake generators since specifying no generator may fail
@@ -193,7 +193,7 @@ class CMakeDependency(ExternalDependency):
         except MesonException:
             return None
 
-        def process_paths(l: T.List[str]) -> T.Set[str]:
+        def process_paths(l: list[str]) -> set[str]:
             if is_windows():
                 # Cannot split on ':' on Windows because its in the drive letter
                 tmp = [x.split(os.pathsep) for x in l]
@@ -209,7 +209,7 @@ class CMakeDependency(ExternalDependency):
         root_paths = sorted(root_paths_set)
         root_paths = [x for x in root_paths if os.path.isdir(x)]
         module_paths_set = process_paths(temp_parser.get_cmake_var('MESON_PATHS_LIST'))
-        rooted_paths: T.List[str] = []
+        rooted_paths: list[str] = []
         for j in [Path(x) for x in root_paths]:
             for p in [Path(x) for x in module_paths_set]:
                 rooted_paths.append(str(j / p.relative_to(p.anchor)))
@@ -236,22 +236,22 @@ class CMakeDependency(ExternalDependency):
         return res
 
     @staticmethod
-    @functools.lru_cache(maxsize=None)
-    def _cached_listdir(path: str) -> T.Tuple[T.Tuple[str, str], ...]:
+    @functools.cache
+    def _cached_listdir(path: str) -> tuple[tuple[str, str], ...]:
         try:
             return tuple((x, str(x).lower()) for x in os.listdir(path))
         except OSError:
             return tuple()
 
     @staticmethod
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _cached_isdir(path: str) -> bool:
         try:
             return os.path.isdir(path)
         except OSError:
             return False
 
-    def _preliminary_find_check(self, name: str, module_path: T.List[str], prefix_path: T.List[str], machine: 'MachineInfo') -> bool:
+    def _preliminary_find_check(self, name: str, module_path: list[str], prefix_path: list[str], machine: MachineInfo) -> bool:
         lname = str(name).lower()
 
         # Checks <path>, <path>/cmake, <path>/CMake
@@ -304,7 +304,7 @@ class CMakeDependency(ExternalDependency):
                 return True
 
         # Check PATH
-        system_env: T.List[str] = []
+        system_env: list[str] = []
         for i in os.environ.get('PATH', '').split(os.pathsep):
             if i.endswith('/bin') or i.endswith('\\bin'):
                 i = i[:-4]
@@ -348,15 +348,15 @@ class CMakeDependency(ExternalDependency):
 
         return False
 
-    def _detect_dep(self, name: str, package_version: str, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]], args: T.List[str]) -> None:
+    def _detect_dep(self, name: str, package_version: str, modules: list[tuple[str, bool]], components: list[tuple[str, bool]], args: list[str]) -> None:
         # Detect a dependency with CMake using the '--find-package' mode
         # and the trace output (stderr)
         #
         # When the trace output is enabled CMake prints all functions with
         # parameters to stderr as they are executed. Since CMake 3.4.0
         # variables ("${VAR}") are also replaced in the trace output.
-        mlog.debug('\nDetermining dependency {!r} with CMake executable '
-                   '{!r}'.format(name, self.cmakebin.executable_path()))
+        mlog.debug(f'\nDetermining dependency {name!r} with CMake executable '
+                   f'{self.cmakebin.executable_path()!r}')
 
         # Try different CMake generators since specifying no generator may fail
         # in cygwin for some reason
@@ -423,12 +423,12 @@ class CMakeDependency(ExternalDependency):
             not_found_message = self.traceparser.get_cmake_var('PACKAGE_NOT_FOUND_MESSAGE')
             if len(not_found_message) > 0:
                 mlog.notice(
-                    'CMake reported that the package {} was not found with the following reason:\n'
-                    '{}'.format(name, not_found_message[0]), fatal=False)
+                    f'CMake reported that the package {name} was not found with the following reason:\n'
+                    f'{not_found_message[0]}', fatal=False)
             else:
                 mlog.debug(
-                    'CMake reported that the package {} was not found, '
-                    'even though Meson\'s preliminary check succeeded.'.format(name))
+                    f'CMake reported that the package {name} was not found, '
+                    'even though Meson\'s preliminary check succeeded.')
             raise self._gen_exception('PACKAGE_FOUND is false')
 
         # Try to detect the version
@@ -457,7 +457,7 @@ class CMakeDependency(ExternalDependency):
         # Failed to guess a target --> try the old-style method
         if len(modules) == 0:
             # Warn when there might be matching imported targets but no automatic match was used
-            partial_modules: T.List[CMakeTarget] = []
+            partial_modules: list[CMakeTarget] = []
             for k, v in self.traceparser.targets.items():
                 tg = k.lower()
                 lname = name.lower()
@@ -495,7 +495,7 @@ class CMakeDependency(ExternalDependency):
             # - https://github.com/mesonbuild/meson/issues/9197
             # - https://gitlab.freedesktop.org/libnice/libnice/-/issues/140
             # - https://cmake.org/cmake/help/latest/command/target_link_libraries.html#overview  (the last point in the section)
-            libs: T.List[str] = []
+            libs: list[str] = []
             cfg_matches = True
             is_debug = cmake_is_debug(self.env)
             cm_tag_map = {'debug': is_debug, 'optimized': not is_debug, 'general': True}
@@ -527,9 +527,9 @@ class CMakeDependency(ExternalDependency):
 
             # Even the old-style approach failed. Nothing else we can do here
             self.is_found = False
-            raise self._gen_exception('CMake: failed to guess a CMake target for {}.\n'
+            raise self._gen_exception(f'CMake: failed to guess a CMake target for {name}.\n'
                                       'Try to explicitly specify one or more targets with the "modules" property.\n'
-                                      'Valid targets are:\n{}'.format(name, list(self.traceparser.targets.keys())))
+                                      f'Valid targets are:\n{list(self.traceparser.targets.keys())}')
 
         # Set dependencies with CMake targets
         # recognise arguments we should pass directly to the linker
@@ -542,9 +542,9 @@ class CMakeDependency(ExternalDependency):
                 if not required:
                     mlog.warning('CMake: Optional module', mlog.bold(self._original_module_name(i)), 'for', mlog.bold(name), 'was not found')
                     continue
-                raise self._gen_exception('CMake: invalid module {} for {}.\n'
+                raise self._gen_exception(f'CMake: invalid module {self._original_module_name(i)} for {name}.\n'
                                           'Try to explicitly specify one or more targets with the "modules" property.\n'
-                                          'Valid targets are:\n{}'.format(self._original_module_name(i), name, list(self.traceparser.targets.keys())))
+                                          f'Valid targets are:\n{list(self.traceparser.targets.keys())}')
 
             if not autodetected_module_list:
                 self.found_modules += [i]
@@ -613,9 +613,9 @@ class CMakeDependency(ExternalDependency):
         return build_dir
 
     def _call_cmake(self,
-                    args: T.List[str],
+                    args: list[str],
                     cmake_file: str,
-                    env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, T.Optional[str], T.Optional[str]]:
+                    env: dict[str, str] | None = None) -> tuple[int, str | None, str | None]:
         build_dir = self._setup_cmake_dir(cmake_file)
         return self.cmakebin.call(args, build_dir, env=env)
 
@@ -626,9 +626,9 @@ class CMakeDependency(ExternalDependency):
             return 'modules: ' + ', '.join(modules)
         return ''
 
-    def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
-                     configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
-                     system: T.Optional[str] = None, default_value: T.Optional[str] = None,
+    def get_variable(self, *, cmake: str | None = None, pkgconfig: str | None = None,
+                     configtool: str | None = None, internal: str | None = None,
+                     system: str | None = None, default_value: str | None = None,
                      pkgconfig_define: PkgConfigDefineType = None) -> str:
         if cmake and self.traceparser is not None:
             try:
@@ -651,9 +651,9 @@ class CMakeDependency(ExternalDependency):
         raise DependencyException(f'Could not get cmake variable and no default provided for {self!r}')
 
 
-def sort_link_args(args: T.List[str]) -> T.List[str]:
+def sort_link_args(args: list[str]) -> list[str]:
     itr = iter(args)
-    result: T.Set[T.Union[T.Tuple[str], T.Tuple[str, str]]] = set()
+    result: set[tuple[str] | tuple[str, str]] = set()
 
     while True:
         try:

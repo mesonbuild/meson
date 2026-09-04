@@ -26,7 +26,7 @@ class TestModule(NewExtensionModule):
 
     @noKwargs
     @noPosargs
-    def print_hello(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> None:
+    def print_hello(self, state: ModuleState, args: list[TYPE_var], kwargs: TYPE_kwargs) -> None:
         print('Hello from a Meson module')
 
 

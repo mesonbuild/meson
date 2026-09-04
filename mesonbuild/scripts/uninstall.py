@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import os
-import typing as T
 
 logfile = 'meson-logs/install-log.txt'
 
@@ -30,7 +29,7 @@ def do_uninstall(log: str) -> None:
     print('Failed:', failures)
     print('\nRemember that files created by custom scripts have not been removed.')
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     if args:
         print('Weird error.')
         return 1

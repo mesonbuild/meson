@@ -16,16 +16,16 @@ from .run_tool import run_tool_on_targets, run_with_buffered_output
 if T.TYPE_CHECKING:
     from ..compilers.rust import RustCompiler
 
-async def run_and_confirm_success(cmdlist: T.List[str], environ: T.Dict[str, str], crate: str) -> int:
+async def run_and_confirm_success(cmdlist: list[str], environ: dict[str, str], crate: str) -> int:
     returncode = await run_with_buffered_output(cmdlist, environ)
     if returncode == 0:
         print(mlog.green('Generated'), os.path.join('doc', crate))
     return returncode
 
 class Rustdoc:
-    def __init__(self, build: build.Build, tempdir: str, subprojects: T.Set[str]) -> None:
-        self.tools: PerMachine[T.List[str]] = PerMachine([], [])
-        self.warned: T.DefaultDict[str, bool] = defaultdict(lambda: False)
+    def __init__(self, build: build.Build, tempdir: str, subprojects: set[str]) -> None:
+        self.tools: PerMachine[list[str]] = PerMachine([], [])
+        self.warned: defaultdict[str, bool] = defaultdict(lambda: False)
         self.tempdir = tempdir
         self.subprojects = subprojects
         for machine in MachineChoice:
@@ -40,7 +40,7 @@ class Rustdoc:
         mlog.warning(f'rustdoc not found for {machine} machine')
         self.warned[machine] = True
 
-    def __call__(self, target: T.Dict[str, T.Any]) -> T.Iterable[T.Coroutine[None, None, int]]:
+    def __call__(self, target: dict[str, T.Any]) -> T.Iterable[T.Coroutine[None, None, int]]:
         if target['subproject'] is not None and target['subproject'] not in self.subprojects:
             return
 
@@ -92,7 +92,7 @@ class Rustdoc:
                 else:
                     print(mlog.yellow('Skipping'), target['name'], '(no crate name)')
 
-def get_nonwrap_subprojects(build_data: build.Build) -> T.Set[str]:
+def get_nonwrap_subprojects(build_data: build.Build) -> set[str]:
     wrap_resolver = wrap.Resolver(
         build_data.environment.get_source_dir(),
         build_data.subproject_dir,
@@ -101,7 +101,7 @@ def get_nonwrap_subprojects(build_data: build.Build) -> T.Set[str]:
                for sp in build_data.environment.coredata.initialized_subprojects
                if sp and (sp not in wrap_resolver.wraps or wrap_resolver.wraps[sp].type is None))
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     os.chdir(args[0])
     build_data = build.load(os.getcwd())
     subproject_list = get_nonwrap_subprojects(build_data)

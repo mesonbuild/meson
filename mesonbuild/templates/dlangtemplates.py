@@ -4,8 +4,6 @@
 
 from __future__ import annotations
 
-import typing as T
-
 from mesonbuild.templates.sampleimpl import FileImpl
 
 hello_d_template = '''module main;
@@ -139,7 +137,7 @@ class DlangProject(FileImpl):
     lib_test_template = lib_d_test_template
     lib_meson_template = lib_d_meson_template
 
-    def lib_kwargs(self) -> T.Dict[str, str]:
+    def lib_kwargs(self) -> dict[str, str]:
         kwargs = super().lib_kwargs()
         kwargs['module_file'] = self.lowercase_token
         return kwargs

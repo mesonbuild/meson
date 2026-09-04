@@ -6,7 +6,6 @@ import shutil
 import stat
 import subprocess
 import textwrap
-import typing as T
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -26,10 +25,10 @@ class ImageDef:
         assert isinstance(data['env'],  dict)
 
         self.base_image: str = data['base_image']
-        self.args: T.List[str] = data.get('args', [])
-        self.env: T.Dict[str, str] = data['env']
+        self.args: list[str] = data.get('args', [])
+        self.env: dict[str, str] = data['env']
 
-class BuilderBase():
+class BuilderBase:
     def __init__(self, data_dir: Path, temp_dir: Path) -> None:
         self.data_dir = data_dir
         self.temp_dir = temp_dir

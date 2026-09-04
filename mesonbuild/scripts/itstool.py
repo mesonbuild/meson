@@ -9,7 +9,6 @@ import shlex
 import shutil
 import subprocess
 import tempfile
-import typing as T
 
 parser = argparse.ArgumentParser()
 parser.add_argument('command')
@@ -21,7 +20,7 @@ parser.add_argument('--its', action='append', default=[])
 parser.add_argument('mo_files', nargs='+')
 
 
-def run_join(build_dir: str, itstool: str, its_files: T.List[str], mo_files: T.List[str],
+def run_join(build_dir: str, itstool: str, its_files: list[str], mo_files: list[str],
              in_fname: str, out_fname: str) -> int:
     if not mo_files:
         print('No mo files specified to use for translation.')
@@ -58,7 +57,7 @@ def run_join(build_dir: str, itstool: str, its_files: T.List[str], mo_files: T.L
         return subprocess.call(cmd)
 
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     options = parser.parse_args(args)
     command = options.command
     build_dir = os.environ.get('MESON_BUILD_ROOT', os.getcwd())

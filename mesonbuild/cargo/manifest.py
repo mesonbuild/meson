@@ -104,7 +104,7 @@ class DictMergeValue(ConvertValue):
        a user-provided function maps each table to one of the
        entries of the dictionary."""
 
-    def __init__(self, func: T.Callable[[T.Any], T.List[object]],
+    def __init__(self, func: T.Callable[[T.Any], list[object]],
                  merge_key: T.Callable[[T.Any], str],
                  out_key: T.Callable[[T.Any], str],
                  base: T.Mapping[str, object] = None) -> None:
@@ -117,17 +117,17 @@ class DictMergeValue(ConvertValue):
         assert isinstance(out, list) # for mypy
         assert isinstance(self.default, dict) # for mypy
 
-        explicit: T.Set[str] = set(self.merge_key(x) for x in out)
-        out_d: T.Dict[str, object] = {self.out_key(x): x for x in out}
+        explicit: set[str] = set(self.merge_key(x) for x in out)
+        out_d: dict[str, object] = {self.out_key(x): x for x in out}
         for k, v in self.default.items():
             if self.merge_key(v) not in explicit:
                 out_d[self.out_key(v)] = v
         return out_d
 
 
-def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI], msg: str,
-                      raw_from_workspace: T.Optional[T.Mapping[str, object]] = None,
-                      ignored_fields: T.Optional[T.List[str]] = None,
+def _raw_to_dataclass(raw: T.Mapping[str, object], cls: type[_DI], msg: str,
+                      raw_from_workspace: T.Mapping[str, object] | None = None,
+                      ignored_fields: list[str] | None = None,
                       **kwargs: DefaultValue) -> _DI:
     """Fixup raw cargo mappings to a dataclass.
 
@@ -212,27 +212,27 @@ class Package:
 
     name: str
     version: str = "0"
-    description: T.Optional[str] = None
-    resolver: T.Optional[str] = None
-    authors: T.List[str] = dataclasses.field(default_factory=list)
+    description: str | None = None
+    resolver: str | None = None
+    authors: list[str] = dataclasses.field(default_factory=list)
     edition: EDITION = '2015'
-    rust_version: T.Optional[str] = None
-    documentation: T.Optional[str] = None
-    readme: T.Optional[str] = None
-    homepage: T.Optional[str] = None
-    repository: T.Optional[str] = None
-    license: T.Optional[str] = None
-    license_file: T.Optional[str] = None
-    keywords: T.List[str] = dataclasses.field(default_factory=list)
-    categories: T.List[str] = dataclasses.field(default_factory=list)
-    workspace: T.Optional[str] = None
-    build: T.Optional[str] = None
-    links: T.Optional[str] = None
-    exclude: T.List[str] = dataclasses.field(default_factory=list)
-    include: T.List[str] = dataclasses.field(default_factory=list)
+    rust_version: str | None = None
+    documentation: str | None = None
+    readme: str | None = None
+    homepage: str | None = None
+    repository: str | None = None
+    license: str | None = None
+    license_file: str | None = None
+    keywords: list[str] = dataclasses.field(default_factory=list)
+    categories: list[str] = dataclasses.field(default_factory=list)
+    workspace: str | None = None
+    build: str | None = None
+    links: str | None = None
+    exclude: list[str] = dataclasses.field(default_factory=list)
+    include: list[str] = dataclasses.field(default_factory=list)
     publish: bool = True
-    metadata: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
-    default_run: T.Optional[str] = None
+    metadata: dict[str, T.Any] = dataclasses.field(default_factory=dict)
+    default_run: str | None = None
     autolib: bool = True
     autobins: bool = True
     autoexamples: bool = True
@@ -244,7 +244,7 @@ class Package:
         return version.api(self.version)
 
     @classmethod
-    def from_raw(cls, raw_pkg: raw.Package, workspace: T.Optional[Workspace] = None) -> Self:
+    def from_raw(cls, raw_pkg: raw.Package, workspace: Workspace | None = None) -> Self:
         raw_ws_pkg = workspace.package if workspace else None
         return _raw_to_dataclass(raw_pkg, cls, f'Package entry {raw_pkg["name"]}', raw_ws_pkg)
 
@@ -259,14 +259,14 @@ class SystemDependency:
     name: str
     version: str = ''
     optional: bool = False
-    feature: T.Optional[str] = None
+    feature: str | None = None
     # TODO: convert values to dataclass
-    feature_overrides: T.Dict[str, T.Dict[str, str]] = dataclasses.field(default_factory=dict)
+    feature_overrides: dict[str, dict[str, str]] = dataclasses.field(default_factory=dict)
 
     @lazy_property
-    def meson_version(self) -> T.List[str]:
+    def meson_version(self) -> list[str]:
         vers = self.version.split(',') if self.version else []
-        result: T.List[str] = []
+        result: list[str] = []
         for v in vers:
             v = v.strip()
             if v[0] not in '><=':
@@ -274,11 +274,11 @@ class SystemDependency:
             result.append(v)
         return result
 
-    def enabled(self, features: T.Set[str]) -> bool:
+    def enabled(self, features: set[str]) -> bool:
         return self.feature is None or self.feature in features
 
     @classmethod
-    def from_raw(cls, name: str, raw: T.Union[T.Dict[str, T.Any], str]) -> Self:
+    def from_raw(cls, name: str, raw: dict[str, T.Any] | str) -> Self:
         if isinstance(raw, str):
             raw = {'version': raw}
         name = raw.get('name', name)
@@ -297,14 +297,14 @@ class Dependency:
 
     package: str
     version: str = ''
-    registry: T.Optional[str] = None
-    git: T.Optional[str] = None
-    branch: T.Optional[str] = None
-    rev: T.Optional[str] = None
-    path: T.Optional[str] = None
+    registry: str | None = None
+    git: str | None = None
+    branch: str | None = None
+    rev: str | None = None
+    path: str | None = None
     optional: bool = False
     default_features: bool = True
-    features: T.List[str] = dataclasses.field(default_factory=list)
+    features: list[str] = dataclasses.field(default_factory=list)
 
     @lazy_property
     def accepts_version(self) -> T.Callable[[str], bool]:
@@ -336,17 +336,17 @@ class Dependency:
     def _depv_to_dep(depv: raw.DependencyV) -> raw.Dependency: ...
 
     @staticmethod
-    def _depv_to_dep(depv: T.Union[raw.FromWorkspace, raw.DependencyV]) -> T.Union[raw.FromWorkspace, raw.Dependency]:
+    def _depv_to_dep(depv: raw.FromWorkspace | raw.DependencyV) -> raw.FromWorkspace | raw.Dependency:
         return {'version': depv} if isinstance(depv, str) else depv
 
     @classmethod
-    def from_raw(cls, name: str, raw_depv: T.Union[raw.FromWorkspace, raw.DependencyV], member_path: str = '', workspace: T.Optional[Workspace] = None) -> Self:
+    def from_raw(cls, name: str, raw_depv: raw.FromWorkspace | raw.DependencyV, member_path: str = '', workspace: Workspace | None = None) -> Self:
         """Create a dependency from a raw cargo dictionary or string"""
         raw_ws_dep = workspace.dependencies.get(name) if workspace else None
         raw_ws_dep = cls._depv_to_dep(raw_ws_dep or {})
         raw_dep = cls._depv_to_dep(raw_depv)
 
-        def path_convertor(path: T.Optional[str], ws_path: T.Optional[str]) -> T.Optional[str]:
+        def path_convertor(path: str | None, ws_path: str | None) -> str | None:
             if path:
                 return path
             if ws_path:
@@ -372,8 +372,8 @@ class BuildTarget:
     bench: bool = True
     doc: bool = True
     harness: bool = True
-    crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['bin'])
-    required_features: T.List[str] = dataclasses.field(default_factory=list)
+    crate_type: list[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['bin'])
+    required_features: list[str] = dataclasses.field(default_factory=list)
     plugin: bool = False
 
 
@@ -465,12 +465,12 @@ class Lint:
     name: str
     level: LINT_LEVEL
     priority: int
-    check_cfg: T.Optional[T.List[str]]
+    check_cfg: list[str] | None
 
     @classmethod
-    def from_raw(cls, r: T.Union[raw.FromWorkspace, T.Dict[str, T.Dict[str, raw.LintV]]]) -> T.List[Lint]:
-        r = T.cast('T.Dict[str, T.Dict[str, raw.LintV]]', r)
-        lints: T.Dict[str, Lint] = {}
+    def from_raw(cls, r: raw.FromWorkspace | dict[str, dict[str, raw.LintV]]) -> list[Lint]:
+        r = T.cast('dict[str, dict[str, raw.LintV]]', r)
+        lints: dict[str, Lint] = {}
         for tool, raw_lints in r.items():
             prefix = '' if tool == 'rust' else f'{tool}::'
             for name, settings in raw_lints.items():
@@ -489,7 +489,7 @@ class Lint:
         lints_final.sort(key=lambda x: x.priority)
         return lints_final
 
-    def to_arguments(self, check_cfg: bool) -> T.List[str]:
+    def to_arguments(self, check_cfg: bool) -> list[str]:
         if self.level == "deny":
             flag = "-D"
         elif self.level == "allow":
@@ -520,17 +520,17 @@ class Profile:
     See https://doc.rust-lang.org/cargo/reference/profiles.html
     """
 
-    opt_level: T.Optional[str] = None
-    debug: T.Optional[bool] = None
-    strip: T.Optional[bool] = None
-    debug_assertions: T.Optional[bool] = None
-    overflow_checks: T.Optional[bool] = None
-    lto: T.Optional[bool] = None
-    lto_mode: T.Optional[str] = None
-    panic: T.Optional[str] = None
-    incremental: T.Optional[bool] = None
-    codegen_units: T.Optional[int] = None
-    build_override: T.Optional[Profile] = None
+    opt_level: str | None = None
+    debug: bool | None = None
+    strip: bool | None = None
+    debug_assertions: bool | None = None
+    overflow_checks: bool | None = None
+    lto: bool | None = None
+    lto_mode: str | None = None
+    panic: str | None = None
+    incremental: bool | None = None
+    codegen_units: int | None = None
+    build_override: Profile | None = None
 
     # missing: package, split_debuginfo, inherits, rpath
 
@@ -550,11 +550,11 @@ class Profile:
             profile.lto_mode = 'thin' if raw_profile.get('lto') == 'thin' else 'default'
         return profile
 
-    def to_meson_options(self, for_machine: MachineChoice) -> T.Dict[str, ElementaryOptionValues]:
+    def to_meson_options(self, for_machine: MachineChoice) -> dict[str, ElementaryOptionValues]:
         """Map the profile onto Meson option values, only for keys that are set.
            For the build machine, the [build-override] settings are layered on top
            (Cargo applies those to build scripts, proc macros and their deps)."""
-        opts: T.Dict[str, ElementaryOptionValues] = {}
+        opts: dict[str, ElementaryOptionValues] = {}
         if self.opt_level is not None:
             # Meson's 'optimization' has no 'z'; fall back to 's'.
             opts['optimization'] = 's' if self.opt_level == 'z' else self.opt_level
@@ -596,18 +596,18 @@ class Manifest:
     """
 
     package: Package
-    dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
-    dev_dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
-    build_dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
-    lib: T.Optional[Library] = None
-    bin: T.Dict[str, Binary] = dataclasses.field(default_factory=dict)
-    test: T.List[Test] = dataclasses.field(default_factory=list)
-    bench: T.List[Benchmark] = dataclasses.field(default_factory=list)
-    example: T.List[Example] = dataclasses.field(default_factory=list)
-    features: T.Dict[str, T.List[str]] = dataclasses.field(default_factory=dict)
-    target: T.Dict[str, T.Dict[str, Dependency]] = dataclasses.field(default_factory=dict)
-    lints: T.List[Lint] = dataclasses.field(default_factory=list)
-    profile: T.Dict[str, Profile] = dataclasses.field(default_factory=dict)
+    dependencies: dict[str, Dependency] = dataclasses.field(default_factory=dict)
+    dev_dependencies: dict[str, Dependency] = dataclasses.field(default_factory=dict)
+    build_dependencies: dict[str, Dependency] = dataclasses.field(default_factory=dict)
+    lib: Library | None = None
+    bin: dict[str, Binary] = dataclasses.field(default_factory=dict)
+    test: list[Test] = dataclasses.field(default_factory=list)
+    bench: list[Benchmark] = dataclasses.field(default_factory=list)
+    example: list[Example] = dataclasses.field(default_factory=list)
+    features: dict[str, list[str]] = dataclasses.field(default_factory=dict)
+    target: dict[str, dict[str, Dependency]] = dataclasses.field(default_factory=dict)
+    lints: list[Lint] = dataclasses.field(default_factory=list)
+    profile: dict[str, Profile] = dataclasses.field(default_factory=dict)
 
     # Kept in raw form: Meson does not implement [patch], it only validates it
     # for the entry-point crate (see validate_patch).
@@ -644,18 +644,18 @@ class Manifest:
             yield MachineChoice.HOST
 
     @lazy_property
-    def system_dependencies(self) -> T.Dict[str, SystemDependency]:
+    def system_dependencies(self) -> dict[str, SystemDependency]:
         return {k: SystemDependency.from_raw(k, v) for k, v in self.package.metadata.get('system-deps', {}).items()}
 
     @classmethod
-    def from_raw(cls, raw: raw.Manifest, path: str, workspace: T.Optional[Workspace] = None, member_path: str = '') -> Self:
+    def from_raw(cls, raw: raw.Manifest, path: str, workspace: Workspace | None = None, member_path: str = '') -> Self:
         pkg = Package.from_raw(raw['package'], workspace)
 
         autolib = None
         if pkg.autolib and os.path.exists(os.path.join(path, 'src/lib.rs')):
             autolib = Library.from_raw({}, pkg)
 
-        def _discover_targets(subdir: str) -> T.Generator[T.Tuple[str, str], None, None]:
+        def _discover_targets(subdir: str) -> T.Generator[tuple[str, str], None, None]:
             """Discover .rs files in a subdirectory and yield (name, path) tuples."""
             target_dir = os.path.join(path, subdir)
             if os.path.isdir(target_dir):
@@ -664,7 +664,7 @@ class Manifest:
                         target_name = entry[:-3]  # Remove .rs extension
                         yield target_name, f'{subdir}/{entry}'
 
-        autobins: T.Dict[str, Binary] = {}
+        autobins: dict[str, Binary] = {}
         if pkg.autobins:
             # Check for default binary (src/main.rs)
             if os.path.exists(os.path.join(path, 'src/main.rs')):
@@ -676,7 +676,7 @@ class Manifest:
                                          f'({autobins[bin_name].path} and {bin_path})')
                 autobins[bin_name] = Binary.from_raw({'name': bin_name, 'path': bin_path}, pkg)
 
-        def dependencies_from_raw(x: T.Dict[str, T.Any]) -> T.Dict[str, Dependency]:
+        def dependencies_from_raw(x: dict[str, T.Any]) -> dict[str, Dependency]:
             return {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()}
 
         return _raw_to_dataclass(raw, cls, f'Cargo.toml package {pkg.name}',
@@ -706,25 +706,25 @@ class Workspace:
     """
 
     resolver: str = dataclasses.field(default_factory=lambda: '2')
-    members: T.List[str] = dataclasses.field(default_factory=list)
-    exclude: T.List[str] = dataclasses.field(default_factory=list)
-    default_members: T.List[str] = dataclasses.field(default_factory=list)
+    members: list[str] = dataclasses.field(default_factory=list)
+    exclude: list[str] = dataclasses.field(default_factory=list)
+    default_members: list[str] = dataclasses.field(default_factory=list)
 
     # inheritable settings are kept in raw format, for use with _raw_to_dataclass
-    package: T.Optional[raw.Package] = None
-    dependencies: T.Dict[str, raw.Dependency] = dataclasses.field(default_factory=dict)
-    lints: T.Dict[str, T.Dict[str, raw.LintV]] = dataclasses.field(default_factory=dict)
-    metadata: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
-    profile: T.Dict[str, Profile] = dataclasses.field(default_factory=dict)
+    package: raw.Package | None = None
+    dependencies: dict[str, raw.Dependency] = dataclasses.field(default_factory=dict)
+    lints: dict[str, dict[str, raw.LintV]] = dataclasses.field(default_factory=dict)
+    metadata: dict[str, T.Any] = dataclasses.field(default_factory=dict)
+    profile: dict[str, Profile] = dataclasses.field(default_factory=dict)
 
     # A workspace can also have a root package.
-    root_package: T.Optional[Manifest] = None
+    root_package: Manifest | None = None
 
     # Top-level [patch] table, kept in raw form (see Manifest.validate_patch).
     patch: object = None
 
     @lazy_property
-    def inheritable(self) -> T.Dict[str, object]:
+    def inheritable(self) -> dict[str, object]:
         # the whole lints table is inherited.  Do not add package, dependencies
         # etc. because they can only be inherited a field at a time.
         return {
@@ -748,8 +748,8 @@ class Workspace:
         else:
             ws.default_members = ['.'] if ws.root_package else list(ws.members)
 
-        def expand(entries: T.List[str], keep_glob_results: bool) -> T.List[str]:
-            result: T.List[str] = []
+        def expand(entries: list[str], keep_glob_results: bool) -> list[str]:
+            result: list[str] = []
             for entry in entries:
                 if not _glob_has_wildcard(entry):
                     result.append(_remove_simple_globs(entry))
@@ -775,9 +775,9 @@ class CargoLockPackage:
 
     name: str
     version: str
-    source: T.Optional[str] = None
-    checksum: T.Optional[str] = None
-    dependencies: T.List[str] = dataclasses.field(default_factory=list)
+    source: str | None = None
+    checksum: str | None = None
+    dependencies: list[str] = dataclasses.field(default_factory=list)
 
     @lazy_property
     def api(self) -> str:
@@ -798,15 +798,15 @@ class CargoLock:
     """A description of the Cargo.lock file format."""
 
     version: int = 1
-    package: T.List[CargoLockPackage] = dataclasses.field(default_factory=list)
-    metadata: T.Dict[str, str] = dataclasses.field(default_factory=dict)
-    wraps: T.Dict[str, PackageDefinition] = dataclasses.field(default_factory=dict)
+    package: list[CargoLockPackage] = dataclasses.field(default_factory=list)
+    metadata: dict[str, str] = dataclasses.field(default_factory=dict)
+    wraps: dict[str, PackageDefinition] = dataclasses.field(default_factory=dict)
 
     def named(self, name: str) -> T.Sequence[CargoLockPackage]:
         return self._versions[name]
 
     @lazy_property
-    def _versions(self) -> T.Dict[str, T.List[CargoLockPackage]]:
+    def _versions(self) -> dict[str, list[CargoLockPackage]]:
         versions = collections.defaultdict(list)
         for pkg in self.package:
             versions[pkg.name].append(pkg)

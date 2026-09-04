@@ -70,7 +70,7 @@ class AstIndentationGenerator(AstVisitor):
 
 class AstIDGenerator(AstVisitor):
     def __init__(self) -> None:
-        self.counter: T.Dict[str, int] = {}
+        self.counter: dict[str, int] = {}
 
     def visit_default_func(self, node: mparser.BaseNode) -> None:
         name = type(node).__name__

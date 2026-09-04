@@ -97,8 +97,7 @@ def run(options: Arguments) -> int:
                 print('Native File: ' + ' '.join(v))
         elif k == 'compilers':
             for for_machine in MachineChoice:
-                print('Cached {} machine compilers:'.format(
-                    for_machine.get_lower_case_name()))
+                print(f'Cached {for_machine.get_lower_case_name()} machine compilers:')
                 dump_compilers(v[for_machine])
         elif k == 'deps':
             def print_dep(dep_key: TV_DepID, dep: dependencies.Dependency) -> None:

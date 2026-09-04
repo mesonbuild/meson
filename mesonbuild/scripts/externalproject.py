@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import os
 import subprocess
-import typing as T
 from pathlib import Path
 
 from .. import mlog
@@ -67,7 +66,7 @@ class ExternalProject:
 
         return 0
 
-    def _run(self, step: str, command: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> int:
+    def _run(self, step: str, command: list[str], env: dict[str, str] | None = None) -> int:
         m = 'Running command ' + str(command) + ' in directory ' + str(self.build_dir) + '\n'
         logfile = Path(self.log_dir, f'{self.name}-{step}.log')
         output = None
@@ -93,7 +92,7 @@ class ExternalProject:
                 print(contents)
         return p.returncode
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--name')
     parser.add_argument('--srcdir')

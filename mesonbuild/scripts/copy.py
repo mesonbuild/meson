@@ -9,10 +9,9 @@ This is easier than trying to detect whether to use copy, cp, or something else.
 from __future__ import annotations
 
 import shutil
-import typing as T
 
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     try:
         shutil.copy2(args[0], args[1])
     except Exception:

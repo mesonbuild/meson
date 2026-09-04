@@ -31,10 +31,10 @@ class ArLikeLinker:
         # in fact, only the 'ar' id can
         return False
 
-    def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
+    def get_std_link_args(self, env: Environment, is_thin: bool) -> list[str]:
         return self.std_args
 
-    def get_output_args(self, target: str) -> T.List[str]:
+    def get_output_args(self, target: str) -> list[str]:
         return [target]
 
     def rsp_file_syntax(self) -> RSPFileSyntax:

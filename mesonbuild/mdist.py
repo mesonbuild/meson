@@ -79,7 +79,7 @@ def create_hash(fname: str) -> None:
     with open(hashname, 'w', encoding='utf-8') as f:
         # A space and an asterisk because that is the format defined by GNU coreutils
         # and accepted by busybox and the Perl shasum tool.
-        f.write('{} *{}\n'.format(m.hexdigest(), os.path.basename(fname)))
+        f.write(f'{m.hexdigest()} *{os.path.basename(fname)}\n')
 
 
 msg_uncommitted_changes = 'Repository has uncommitted changes that will not be included in the dist tarball'
@@ -136,8 +136,8 @@ class Dist(metaclass=SimpleABC):
     dist_name: str
     src_root: str
     bld_root: str
-    dist_scripts: T.List[ExecutableSerialisation]
-    subprojects: T.Dict[SubProject, str]
+    dist_scripts: list[ExecutableSerialisation]
+    subprojects: dict[SubProject, str]
     options: argparse.Namespace
 
     def __post_init__(self) -> None:
@@ -145,7 +145,7 @@ class Dist(metaclass=SimpleABC):
         self.distdir = os.path.join(self.dist_sub, self.dist_name)
 
     @abc.abstractmethod
-    def create_dist(self, archives: T.List[str]) -> T.List[str]:
+    def create_dist(self, archives: list[str]) -> list[str]:
         pass
 
     def run_dist_scripts(self) -> None:
@@ -192,8 +192,8 @@ class GitDist(Dist):
         ret = subprocess.call(['git', '-C', self.src_root, 'diff-index', '--quiet', 'HEAD'])
         return ret == 1
 
-    def copy_git(self, src: T.Union[str, os.PathLike], distdir: str, revision: str = 'HEAD',
-                 prefix: T.Optional[str] = None, subdir: T.Optional[str] = None) -> None:
+    def copy_git(self, src: str | os.PathLike, distdir: str, revision: str = 'HEAD',
+                 prefix: str | None = None, subdir: str | None = None) -> None:
         cmd = ['git', 'archive', '--format', 'tar', revision]
         if prefix is not None:
             cmd.insert(2, f'--prefix={prefix}/')
@@ -244,7 +244,7 @@ class GitDist(Dist):
 
             self.copy_git(os.path.join(src, subpath), distdir, revision=sha1, prefix=subpath)
 
-    def create_dist(self, archives: T.List[str]) -> T.List[str]:
+    def create_dist(self, archives: list[str]) -> list[str]:
         self.process_git_project(self.src_root, self.distdir)
         for path in self.subprojects.values():
             sub_src_root = os.path.join(self.src_root, path)
@@ -276,7 +276,7 @@ class HgDist(Dist):
         out = subprocess.check_output(['hg', '-R', self.src_root, 'summary'], env=env)
         return b'commit: (clean)' not in out
 
-    def create_dist(self, archives: T.List[str]) -> T.List[str]:
+    def create_dist(self, archives: list[str]) -> list[str]:
         if self.have_dirty_index():
             handle_dirty_opt(msg_uncommitted_changes, self.options.allow_dirty)
         if self.dist_scripts:
@@ -321,7 +321,7 @@ class HgDist(Dist):
         return output_names
 
 
-def run_dist_steps(meson_command: T.List[str], unpacked_src_dir: str, builddir: str, installdir: str, ninja_args: T.List[str]) -> int:
+def run_dist_steps(meson_command: list[str], unpacked_src_dir: str, builddir: str, installdir: str, ninja_args: list[str]) -> int:
     if subprocess.call(meson_command + ['--backend=ninja', unpacked_src_dir, builddir]) != 0:
         print('Running Meson on distribution package failed')
         return 1
@@ -338,7 +338,7 @@ def run_dist_steps(meson_command: T.List[str], unpacked_src_dir: str, builddir: 
         return 1
     return 0
 
-def check_dist(packagename: str, _meson_command: ImmutableListProtocol[str], extra_meson_args: T.List[str], bld_root: str, privdir: str, num_processes: int = 1) -> int:
+def check_dist(packagename: str, _meson_command: ImmutableListProtocol[str], extra_meson_args: list[str], bld_root: str, privdir: str, num_processes: int = 1) -> int:
     print(f'Testing distribution package {packagename}')
     unpackdir = os.path.join(privdir, 'dist-unpack')
     builddir = os.path.join(privdir, 'dist-build')
@@ -368,7 +368,7 @@ def check_dist(packagename: str, _meson_command: ImmutableListProtocol[str], ext
         print(f'Distribution package {packagename} tested')
     return ret
 
-def create_cmdline_args(bld_root: str) -> T.List[str]:
+def create_cmdline_args(bld_root: str) -> list[str]:
     parser = argparse.ArgumentParser()
     msetup_argparse(parser)
     args = T.cast('cmdline.SharedCMDOptions', parser.parse_args([]))
@@ -377,7 +377,7 @@ def create_cmdline_args(bld_root: str) -> T.List[str]:
     args.cmd_line_options.pop(OptionKey('backend'), '')
     return shlex.split(cmdline.format_cmd_line_options(args))
 
-def determine_archives_to_generate(options: argparse.Namespace) -> T.List[str]:
+def determine_archives_to_generate(options: argparse.Namespace) -> list[str]:
     result = []
     for i in options.formats.split(','):
         if i not in archive_choices:
@@ -404,7 +404,7 @@ def run(options: argparse.Namespace) -> int:
 
     archives = determine_archives_to_generate(options)
 
-    subprojects: T.Dict[SubProject, str] = {}
+    subprojects: dict[SubProject, str] = {}
     extra_meson_args = []
     if options.include_subprojects:
         resolver = wrap.Resolver(src_root, b.subproject_dir, silent=True)
@@ -417,7 +417,7 @@ def run(options: argparse.Namespace) -> int:
                 subprojects[sub] = os.path.join(b.subproject_dir, directory)
         extra_meson_args.append('-Dwrap_mode=nodownload')
 
-    cls: T.Type[Dist]
+    cls: type[Dist]
     if is_git(src_root):
         cls = GitDist
     elif is_hg(src_root):

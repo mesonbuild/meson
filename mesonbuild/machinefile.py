@@ -19,11 +19,11 @@ if T.TYPE_CHECKING:
 HOMEDIR = os.path.expanduser('~')
 
 
-class MachineFileParser():
-    def __init__(self, filenames: T.List[str], sourcedir: str) -> None:
+class MachineFileParser:
+    def __init__(self, filenames: list[str], sourcedir: str) -> None:
         self.parser = CmdLineFileParser()
-        self.constants: T.Dict[str, ElementaryOptionValues] = {'True': True, 'False': False, '~': HOMEDIR}
-        self.sections: T.Dict[str, T.Dict[str, ElementaryOptionValues]] = {}
+        self.constants: dict[str, ElementaryOptionValues] = {'True': True, 'False': False, '~': HOMEDIR}
+        self.sections: dict[str, dict[str, ElementaryOptionValues]] = {}
 
         for fname in filenames:
             try:
@@ -48,9 +48,9 @@ class MachineFileParser():
                 continue
             self.sections[s] = self._parse_section(s)
 
-    def _parse_section(self, s: str) -> T.Dict[str, ElementaryOptionValues]:
+    def _parse_section(self, s: str) -> dict[str, ElementaryOptionValues]:
         self.scope = self.constants.copy()
-        section: T.Dict[str, ElementaryOptionValues] = {}
+        section: dict[str, ElementaryOptionValues] = {}
         for entry, value in self.parser.items(s):
             if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
                 raise MesonException(f'Malformed variable name {entry!r} in machine file.')
@@ -81,7 +81,7 @@ class MachineFileParser():
         elif isinstance(node, mparser.ArrayNode):
             a = [self._evaluate_statement(arg) for arg in node.args.arguments]
             assert all(isinstance(s, str) for s in a), 'for mypy'
-            return T.cast('T.List[str]', a)
+            return T.cast('list[str]', a)
         elif isinstance(node, mparser.IdNode):
             return self.scope[node.value]
         elif isinstance(node, mparser.ArithmeticNode):
@@ -97,12 +97,12 @@ class MachineFileParser():
                     return os.path.join(l, r)
         raise MesonException('Unsupported node type')
 
-def parse_machine_files(filenames: T.List[str], sourcedir: str) -> T.Dict[str, T.Dict[str, ElementaryOptionValues]]:
+def parse_machine_files(filenames: list[str], sourcedir: str) -> dict[str, dict[str, ElementaryOptionValues]]:
     parser = MachineFileParser(filenames, sourcedir)
     return parser.sections
 
 
 class MachineFileStore:
-    def __init__(self, native_files: T.Optional[T.List[str]], cross_files: T.Optional[T.List[str]], source_dir: str):
+    def __init__(self, native_files: list[str] | None, cross_files: list[str] | None, source_dir: str):
         self.native = parse_machine_files(native_files if native_files is not None else [], source_dir)
         self.cross = parse_machine_files(cross_files if cross_files is not None else [], source_dir)

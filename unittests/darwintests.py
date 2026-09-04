@@ -7,7 +7,6 @@ import os
 import platform
 import re
 import subprocess
-import typing as T
 import unittest
 
 from mesonbuild.compilers import detect_c_compiler
@@ -98,13 +97,13 @@ class DarwinTests(BasePlatformTests):
         self.assertIsNotNone(m, msg=out)
         return m.groups()
 
-    def _get_darwin_rpaths(self, fname: str) -> T.List[str]:
+    def _get_darwin_rpaths(self, fname: str) -> list[str]:
         out = subprocess.check_output(['otool', '-l', fname], universal_newlines=True)
         pattern = re.compile(r'path (.*) \(offset \d+\)')
         rpaths = pattern.findall(out)
         return rpaths
 
-    def _get_darwin_rpath_libraries(self, fname: str) -> T.List[str]:
+    def _get_darwin_rpath_libraries(self, fname: str) -> list[str]:
         out = subprocess.check_output(['otool', '-L', fname], universal_newlines=True)
         pattern = re.compile(r'@rpath/\S+')
         libs = pattern.findall(out)

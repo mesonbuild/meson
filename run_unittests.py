@@ -14,7 +14,6 @@ import importlib
 import os
 import subprocess
 import time
-import typing as T
 import unittest
 
 import mesonbuild.coredata
@@ -74,7 +73,7 @@ def setup_backend():
     os.environ['MESON_UNIT_TEST_BACKEND'] = be
     sys.argv = filtered
 
-def import_test_cases(suite: unittest.TestSuite) -> T.Set[str]:
+def import_test_cases(suite: unittest.TestSuite) -> set[str]:
     '''
     Imports all test classes into the current module and returns their names
     '''
@@ -90,7 +89,7 @@ def import_test_cases(suite: unittest.TestSuite) -> T.Set[str]:
             setattr(sys.modules[__name__], class_name, test_class)
     return classes
 
-def discover_test_cases() -> T.Set[str]:
+def discover_test_cases() -> set[str]:
     current_dir = os.path.dirname(os.path.realpath(__file__))
     loader = unittest.TestLoader()
     suite = loader.discover(os.path.join(current_dir, 'unittests'), '*tests.py', current_dir)
@@ -139,4 +138,4 @@ if __name__ == '__main__':
     try:
         raise SystemExit(main())
     finally:
-        print('Total time: {:.3f} seconds'.format(time.monotonic() - start))
+        print(f'Total time: {time.monotonic() - start:.3f} seconds')

@@ -12,7 +12,6 @@ is IntelVisualStudioLikeCompiler.
 from __future__ import annotations
 
 import os
-import typing as T
 
 from ... import mesonlib
 from ...options import OptionKey
@@ -41,12 +40,12 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
     minsize: -O2
     """
 
-    DEBUG_ARGS: T.Dict[bool, T.List[str]] = {
+    DEBUG_ARGS: dict[bool, list[str]] = {
         False: [],
         True: ['-g', '-traceback']
     }
 
-    OPTIM_ARGS: T.Dict[str, T.List[str]] = {
+    OPTIM_ARGS: dict[str, list[str]] = {
         'plain': [],
         '0': ['-O0'],
         'g': ['-O0'],
@@ -72,20 +71,20 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
     def get_pch_suffix(self) -> str:
         return 'pchi'
 
-    def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
+    def get_pch_use_args(self, pch_dir: str, header: str) -> list[str]:
         return ['-pch', '-pch_dir', os.path.join(pch_dir), '-x',
                 self.lang_header, '-include', header, '-x', 'none']
 
     def get_pch_name(self, name: str) -> str:
         return os.path.basename(name) + '.' + self.get_pch_suffix()
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self) -> list[str]:
         if mesonlib.version_compare(self.version, '>=15.0.0'):
             return ['-qopenmp']
         else:
             return ['-openmp']
 
-    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> list[str]:
         extra_args = [
             '-diag-error', '10006',  # ignoring unknown option
             '-diag-error', '10148',  # Option not supported
@@ -96,24 +95,24 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         ]
         return super().get_compiler_check_args(mode) + extra_args
 
-    def get_profile_generate_args(self) -> T.List[str]:
+    def get_profile_generate_args(self) -> list[str]:
         return ['-prof-gen=threadsafe']
 
-    def get_profile_use_args(self) -> T.List[str]:
+    def get_profile_use_args(self) -> list[str]:
         return ['-prof-use']
 
-    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+    def get_debug_args(self, is_debug: bool) -> list[str]:
         return self.DEBUG_ARGS[is_debug]
 
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> list[str]:
         return self.OPTIM_ARGS[optimization_level]
 
-    def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
+    def get_has_func_attribute_extra_args(self, name: str) -> list[str]:
         return ['-diag-error', '1292']
 
 
 class IntelLLVMLikeCompiler:
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self) -> list[str]:
         return ['-qopenmp']
 
 
@@ -121,12 +120,12 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     """Abstractions for ICL, the Intel compiler on Windows."""
 
-    DEBUG_ARGS: T.Dict[bool, T.List[str]] = {
+    DEBUG_ARGS: dict[bool, list[str]] = {
         False: [],
         True: ['/Zi', '/traceback']
     }
 
-    OPTIM_ARGS: T.Dict[str, T.List[str]] = {
+    OPTIM_ARGS: dict[str, list[str]] = {
         'plain': [],
         '0': ['/Od'],
         'g': ['/Od'],
@@ -138,7 +137,7 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     id = 'intel-cl'
 
-    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> list[str]:
         args = super().get_compiler_check_args(mode)
         if mode is not CompileCheckMode.LINK:
             args.extend([
@@ -151,13 +150,13 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
             ])
         return args
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self) -> list[str]:
         return ['/Qopenmp']
 
-    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+    def get_debug_args(self, is_debug: bool) -> list[str]:
         return self.DEBUG_ARGS[is_debug]
 
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> list[str]:
         return self.OPTIM_ARGS[optimization_level]
 
     def get_pch_base_name(self, header: str) -> str:

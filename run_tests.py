@@ -81,7 +81,7 @@ if sys.version_info >= (3, 10):
     import warnings
     warnings.filterwarnings('ignore', message="UTF-8 Mode affects .*getpreferredencoding", category=EncodingWarning)
 
-def guess_backend(backend_str: str, msbuild_exe: str) -> T.Tuple['Backend', T.List[str]]:
+def guess_backend(backend_str: str, msbuild_exe: str) -> tuple[Backend, list[str]]:
     # Auto-detect backend if unspecified
     backend_flags = []
     if backend_str is None:
@@ -146,8 +146,8 @@ def get_fake_options(prefix: str = '') -> SharedCMDOptions:
     opts.cmd_line_options = {}
     return opts
 
-def get_fake_env(sdir: str = '', bdir: T.Optional[str] = None, prefix: str = '',
-                 opts: T.Optional[SharedCMDOptions] = None) -> Environment:
+def get_fake_env(sdir: str = '', bdir: str | None = None, prefix: str = '',
+                 opts: SharedCMDOptions | None = None) -> Environment:
     if opts is None:
         opts = get_fake_options(prefix)
     env = Environment(sdir, bdir, opts)
@@ -180,7 +180,7 @@ if mesonlib.is_windows() or mesonlib.is_cygwin():
 else:
     exe_suffix = ''
 
-def handle_meson_skip_test(out: str) -> T.Tuple[bool, str]:
+def handle_meson_skip_test(out: str) -> tuple[bool, str]:
     for line in out.splitlines():
         for prefix in {'Problem encountered', 'Assert failed', 'Failed to configure the CMake subproject'}:
             if f'{prefix}: MESON_SKIP_TEST' in line:
@@ -211,7 +211,7 @@ def get_meson_script() -> str:
         return meson_cmd
     raise RuntimeError(f'Could not find {meson_script!r} or a meson in PATH')
 
-def get_backend_args_for_dir(backend: Backend, builddir: str) -> T.List[str]:
+def get_backend_args_for_dir(backend: Backend, builddir: str) -> list[str]:
     '''
     Visual Studio backend needs to be given the solution to build
     '''
@@ -254,12 +254,12 @@ def get_builddir_target_args(backend: Backend, builddir, target):
     return target_args + dir_args
 
 def get_backend_commands(backend: Backend, debug: bool = False) -> \
-        T.Tuple[T.List[str], T.List[str], T.List[str], T.List[str], T.List[str]]:
-    install_cmd: T.List[str] = []
-    uninstall_cmd: T.List[str] = []
-    clean_cmd: T.List[str]
-    cmd: T.List[str]
-    test_cmd: T.List[str]
+        tuple[list[str], list[str], list[str], list[str], list[str]]:
+    install_cmd: list[str] = []
+    uninstall_cmd: list[str] = []
+    clean_cmd: list[str]
+    cmd: list[str]
+    test_cmd: list[str]
     if backend is Backend.vs:
         cmd = ['msbuild']
         clean_cmd = cmd + ['/target:Clean']
@@ -283,7 +283,7 @@ def get_backend_commands(backend: Backend, debug: bool = False) -> \
         raise AssertionError(f'Unknown backend: {backend!r}')
     return cmd, clean_cmd, test_cmd, install_cmd, uninstall_cmd
 
-def run_mtest_inprocess(commandlist: T.List[str]) -> T.Tuple[int, str]:
+def run_mtest_inprocess(commandlist: list[str]) -> tuple[int, str]:
     out = StringIO()
     with mock.patch.object(sys, 'stdout', out), mock.patch.object(sys, 'stderr', out):
         returncode = mtest.run_with_args(commandlist)
@@ -295,7 +295,7 @@ def clear_meson_configure_class_caches() -> None:
     PkgConfigInterface.class_impl.assign({}, {})
     mesonlib.project_meson_versions.clear()
 
-def run_configure_inprocess(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None, catch_exception: bool = False) -> T.Tuple[int, str, str]:
+def run_configure_inprocess(commandlist: list[str], env: dict[str, str] | None = None, catch_exception: bool = False) -> tuple[int, str, str]:
     stderr = StringIO()
     stdout = StringIO()
     returncode = 0
@@ -312,11 +312,11 @@ def run_configure_inprocess(commandlist: T.List[str], env: T.Optional[T.Dict[str
             clear_meson_configure_class_caches()
     return returncode, stdout.getvalue(), stderr.getvalue()
 
-def run_configure_external(full_command: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str, str]:
+def run_configure_external(full_command: list[str], env: dict[str, str] | None = None) -> tuple[int, str, str]:
     pc, o, e = mesonlib.Popen_safe(full_command, env=env)
     return pc.returncode, o, e
 
-def run_configure(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None, catch_exception: bool = False) -> T.Tuple[bool, T.Tuple[int, str, str]]:
+def run_configure(commandlist: list[str], env: dict[str, str] | None = None, catch_exception: bool = False) -> tuple[bool, tuple[int, str, str]]:
     global meson_exe
     if meson_exe:
         return (False, run_configure_external(meson_exe + commandlist, env=env))

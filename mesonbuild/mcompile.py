@@ -24,7 +24,7 @@ from .options import OptionKey
 if T.TYPE_CHECKING:
     import argparse
 
-def array_arg(value: str) -> T.List[str]:
+def array_arg(value: str) -> list[str]:
     return listify_array_value(value)
 
 def validate_builddir(builddir: Path) -> None:
@@ -34,7 +34,7 @@ def validate_builddir(builddir: Path) -> None:
                              'It is also possible that the build directory was generated with an old\n'
                              'meson version. Please regenerate it in this case.')
 
-def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[dict]]:
+def parse_introspect_data(builddir: Path) -> dict[str, list[dict]]:
     """
     Converts a List of name-to-dict to a dict of name-to-dicts (since names are not unique)
     """
@@ -44,7 +44,7 @@ def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[dict]]:
     with path_to_intro.open(encoding='utf-8') as f:
         schema = json.load(f)
 
-    parsed_data: T.Dict[str, T.List[dict]] = defaultdict(list)
+    parsed_data: dict[str, list[dict]] = defaultdict(list)
     for target in schema:
         parsed_data[target['name']] += [target]
     return parsed_data
@@ -94,7 +94,7 @@ class ParsedTargetName:
         }
         return type in allowed_types
 
-def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introspect_data: T.Dict[str, T.Any]) -> T.Dict[str, T.Any]:
+def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introspect_data: dict[str, T.Any]) -> dict[str, T.Any]:
     if target.name not in introspect_data and target.base_name not in introspect_data:
         raise MesonException(f'Can\'t invoke target `{target.full_name}`: target not found')
 
@@ -102,7 +102,7 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
     # if target.name doesn't find anything, try just the base name
     if not intro_targets:
         intro_targets = introspect_data[target.base_name]
-    found_targets: T.List[T.Dict[str, T.Any]] = []
+    found_targets: list[dict[str, T.Any]] = []
 
     resolved_bdir = builddir.resolve()
 
@@ -129,7 +129,7 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
     if not found_targets:
         raise MesonException(f'Can\'t invoke target `{target.full_name}`: target not found')
     elif len(found_targets) > 1:
-        suggestions: T.List[str] = []
+        suggestions: list[str] = []
         for i in found_targets:
             i_name = i['name']
             split = i['id'].rsplit('@', 1)
@@ -148,7 +148,7 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
 
     return found_targets[0]
 
-def generate_target_names_ninja(target: ParsedTargetName, builddir: Path, introspect_data: dict) -> T.List[str]:
+def generate_target_names_ninja(target: ParsedTargetName, builddir: Path, introspect_data: dict) -> list[str]:
     intro_target = get_target_from_intro_data(target, builddir, introspect_data)
 
     if intro_target['type'] in {'alias', 'run'}:
@@ -156,7 +156,7 @@ def generate_target_names_ninja(target: ParsedTargetName, builddir: Path, intros
     else:
         return [str(Path(out_file).relative_to(builddir.resolve())) for out_file in intro_target['filename']]
 
-def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
+def get_parsed_args_ninja(options: argparse.Namespace, builddir: Path) -> tuple[list[str], dict[str, str] | None]:
     runner = detect_ninja()
     if runner is None:
         raise MesonException('Cannot find ninja.')
@@ -200,7 +200,7 @@ def generate_target_name_vs(target: ParsedTargetName, builddir: Path, introspect
         target_name = str(rel_path / target_name)
     return target_name
 
-def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
+def get_parsed_args_vs(options: argparse.Namespace, builddir: Path) -> tuple[list[str], dict[str, str] | None]:
     slns = list(builddir.glob('*.sln'))
     assert len(slns) == 1, 'More than one solution in a project?'
     sln = slns[0]
@@ -227,7 +227,7 @@ def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple
             cmd += [str(proj.resolve())]
         else:
             cmd += [str(sln.resolve())]
-            cmd.extend(['-target:{}'.format(generate_target_name_vs(ParsedTargetName(t), builddir, intro_data)) for t in options.targets])
+            cmd.extend([f'-target:{generate_target_name_vs(ParsedTargetName(t), builddir, intro_data)}' for t in options.targets])
     else:
         cmd += [str(sln.resolve())]
 
@@ -255,7 +255,7 @@ def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple
 
     return cmd, env
 
-def get_parsed_args_xcode(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
+def get_parsed_args_xcode(options: argparse.Namespace, builddir: Path) -> tuple[list[str], dict[str, str] | None]:
     runner = 'xcodebuild'
     if not shutil.which(runner):
         raise MesonException('Cannot find xcodebuild, did you install XCode?')
@@ -293,7 +293,7 @@ def get_parsed_args_xcode(options: 'argparse.Namespace', builddir: Path) -> T.Tu
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
-def add_arguments(parser: 'argparse.ArgumentParser') -> None:
+def add_arguments(parser: argparse.ArgumentParser) -> None:
     """Add compile specific arguments."""
     parser.add_argument(
         'targets',
@@ -347,7 +347,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
         help='Arguments to pass to `xcodebuild` (applied only on `xcode` backend).'
     )
 
-def run(options: 'argparse.Namespace') -> int:
+def run(options: argparse.Namespace) -> int:
     bdir = Path(options.wd)
     validate_builddir(bdir)
     if options.targets and options.clean:
@@ -359,8 +359,8 @@ def run(options: 'argparse.Namespace') -> int:
     if setup_vsenv(need_vsenv):
         mlog.log(mlog.green('INFO:'), 'automatically activated MSVC compiler environment')
 
-    cmd: T.List[str] = []
-    env: T.Optional[T.Dict[str, str]] = None
+    cmd: list[str] = []
+    env: dict[str, str] | None = None
 
     backend = cdata.optstore.get_value_for(OptionKey('backend'))
     assert isinstance(backend, str)

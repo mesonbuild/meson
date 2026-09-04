@@ -18,7 +18,7 @@ if T.TYPE_CHECKING:
     from ..mesonlib import MachineChoice
 
 
-java_debug_args: T.Dict[bool, T.List[str]] = {
+java_debug_args: dict[bool, list[str]] = {
     False: ['-g:none'],
     True: ['-g']
 }
@@ -28,40 +28,40 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
     language = 'java'
     id = 'unknown'
 
-    _WARNING_LEVELS: T.Dict[str, T.List[str]] = {
+    _WARNING_LEVELS: dict[str, list[str]] = {
         '0': ['-nowarn'],
         '1': ['-Xlint:all'],
         '2': ['-Xlint:all', '-Xdoclint:all'],
         '3': ['-Xlint:all', '-Xdoclint:all'],
     }
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 env: Environment, full_version: T.Optional[str] = None):
+    def __init__(self, exelist: list[str], version: str, for_machine: MachineChoice,
+                 env: Environment, full_version: str | None = None):
         super().__init__([], exelist, version, for_machine, env, full_version=full_version)
         self.javarunner = 'java'
 
-    def get_warn_args(self, level: str) -> T.List[str]:
+    def get_warn_args(self, level: str) -> list[str]:
         return self._WARNING_LEVELS[level]
 
-    def get_werror_args(self) -> T.List[str]:
+    def get_werror_args(self) -> list[str]:
         return ['-Werror']
 
-    def get_output_args(self, outputname: str) -> T.List[str]:
+    def get_output_args(self, outputname: str) -> list[str]:
         if outputname == '':
             outputname = './'
         return ['-d', outputname, '-s', outputname]
 
-    def get_pic_args(self) -> T.List[str]:
+    def get_pic_args(self) -> list[str]:
         return []
 
-    def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
+    def get_pch_use_args(self, pch_dir: str, header: str) -> list[str]:
         return []
 
     def get_pch_name(self, name: str) -> str:
         return ''
 
-    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
-                                               build_dir: str) -> T.List[str]:
+    def compute_parameters_with_absolute_paths(self, parameter_list: list[str],
+                                               build_dir: str) -> list[str]:
         for idx, i in enumerate(parameter_list):
             if i in {'-cp', '-classpath', '-sourcepath'} and idx + 1 < len(parameter_list):
                 path_list = parameter_list[idx + 1].split(os.pathsep)
@@ -70,11 +70,11 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
         return parameter_list
 
-    def _sanity_check_filenames(self) -> T.Tuple[str, T.Optional[str], str]:
+    def _sanity_check_filenames(self) -> tuple[str, str | None, str]:
         sup = super()._sanity_check_filenames()
         return sup[0], None, 'SanityCheck'
 
-    def _sanity_check_run_with_exe_wrapper(self, command: T.List[str]) -> T.List[str]:
+    def _sanity_check_run_with_exe_wrapper(self, command: list[str]) -> list[str]:
         runner = shutil.which(self.javarunner)
         if runner is None:
             m = "Java Virtual Machine wasn't found, but it's needed by Meson. " \
@@ -106,8 +106,8 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def needs_static_linker(self) -> bool:
         return False
 
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> list[str]:
         return []
 
-    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+    def get_debug_args(self, is_debug: bool) -> list[str]:
         return java_debug_args[is_debug]

@@ -30,12 +30,12 @@ if T.TYPE_CHECKING:
     from . import ModuleState
 
     class ArchFlagsKwargs(TypedDict):
-        detected: T.Optional[T.List[str]]
+        detected: list[str] | None
 
-    AutoArch = T.Union[str, T.List[str]]
+    AutoArch = T.Union[str, list[str]]
 
 
-DETECTED_KW: KwargInfo[T.Union[None, T.List[str]]] = KwargInfo('detected', (ContainerTypeInfo(list, str), NoneType), listify=True)
+DETECTED_KW: KwargInfo[None | list[str]] = KwargInfo('detected', (ContainerTypeInfo(list, str), NoneType), listify=True)
 
 
 @dataclasses.dataclass(slots=True)
@@ -45,14 +45,14 @@ class _CudaVersion:
     windows: str
     linux: str
 
-    def compare(self, version: str, machine: str) -> T.Optional[str]:
+    def compare(self, version: str, machine: str) -> str | None:
         if version_compare(version, f'>={self.meson}'):
             return self.windows if machine == 'windows' else self.linux
         return None
 
 
 # Copied from: https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#id7
-_DRIVER_TABLE_VERSION: T.List[_CudaVersion] = [
+_DRIVER_TABLE_VERSION: list[_CudaVersion] = [
     _CudaVersion('13.3.1', 'unknown', '610.43.02'),
     _CudaVersion('13.3.0', 'unknown', '610.43.02'),
     _CudaVersion('13.2.1', 'unknown', '595.58.03'),
@@ -121,9 +121,9 @@ class _IsaDef:
 
     # half-open range, i.e., support for '2.0'/sm_20 is included in CUDA 3.0 <= cuda_version < 9.0
     min_cuda_ver: str  # included
-    max_cuda_ver: T.Optional[str]  # excluded; None = still supported
+    max_cuda_ver: str | None  # excluded; None = still supported
     common: bool       # considered "common" for when user passes 'Common' arg
-    virt: T.Optional[str] = None   # virtual arch, if it differs from the code arch (sm_21 has no compute_21)
+    virt: str | None = None   # virtual arch, if it differs from the code arch (sm_21 has no compute_21)
 
     def cuda_too_old(self, cuda_version: str) -> bool:
         return version_compare(cuda_version, '<' + self.min_cuda_ver)
@@ -191,7 +191,7 @@ _MICROISA_RANGES_DEF: T.Mapping[str, _IsaDef] = {
     '12.1':  _IsaDef('12.9', None,   True),  # GB20B
 }
 
-_FAMILY_TO_MICROISAS: T.Mapping[str, T.FrozenSet[str]] = {
+_FAMILY_TO_MICROISAS: T.Mapping[str, frozenset[str]] = {
     'Fermi':         frozenset(['2.0', '2.1']),
     'Kepler':        frozenset(['3.0', '3.5']),
     'Kepler+Tegra':  frozenset(['3.2']),
@@ -238,9 +238,9 @@ class CudaModule(NewExtensionModule):
         })
 
     @noKwargs
-    def min_driver_version(self, state: 'ModuleState',
-                           args: T.List[TYPE_var],
-                           kwargs: T.Dict[str, T.Any]) -> str:
+    def min_driver_version(self, state: ModuleState,
+                           args: list[TYPE_var],
+                           kwargs: dict[str, T.Any]) -> str:
         argerror = InvalidArguments('min_driver_version must have exactly one positional argument: ' +
                                     'a CUDA Toolkit version string. Beware that, since CUDA 11.0, ' +
                                     'the CUDA Toolkit\'s components (including NVCC) are versioned ' +
@@ -258,35 +258,35 @@ class CudaModule(NewExtensionModule):
 
     @typed_pos_args('cuda.nvcc_arch_flags', (str, CudaCompiler), varargs=str)
     @typed_kwargs('cuda.nvcc_arch_flags', DETECTED_KW)
-    def nvcc_arch_flags(self, state: 'ModuleState',
-                        args: T.Tuple[T.Union[CudaCompiler, str], T.List[str]],
-                        kwargs: ArchFlagsKwargs) -> T.List[str]:
+    def nvcc_arch_flags(self, state: ModuleState,
+                        args: tuple[CudaCompiler | str, list[str]],
+                        kwargs: ArchFlagsKwargs) -> list[str]:
         nvcc_arch_args = self._validate_nvcc_arch_args(args, kwargs)
         ret = self._nvcc_arch_flags(*nvcc_arch_args)[0]
         return ret
 
     @typed_pos_args('cuda.nvcc_arch_readable', (str, CudaCompiler), varargs=str)
     @typed_kwargs('cuda.nvcc_arch_readable', DETECTED_KW)
-    def nvcc_arch_readable(self, state: 'ModuleState',
-                           args: T.Tuple[T.Union[CudaCompiler, str], T.List[str]],
-                           kwargs: ArchFlagsKwargs) -> T.List[str]:
+    def nvcc_arch_readable(self, state: ModuleState,
+                           args: tuple[CudaCompiler | str, list[str]],
+                           kwargs: ArchFlagsKwargs) -> list[str]:
         nvcc_arch_args = self._validate_nvcc_arch_args(args, kwargs)
         ret = self._nvcc_arch_flags(*nvcc_arch_args)[1]
         return ret
 
     @staticmethod
-    def _break_arch_string(s: str) -> T.List[str]:
+    def _break_arch_string(s: str) -> list[str]:
         s = re.sub('[ \t\r\n,;]+', ';', s)
         return s.strip(';').split(';')
 
     @staticmethod
-    def _detected_cc_from_compiler(c: T.Union[str, CudaCompiler]) -> T.List[str]:
+    def _detected_cc_from_compiler(c: str | CudaCompiler) -> list[str]:
         if isinstance(c, CudaCompiler):
             return [c.detected_cc]
         return []
 
-    def _validate_nvcc_arch_args(self, args: T.Tuple[T.Union[str, CudaCompiler], T.List[str]],
-                                 kwargs: ArchFlagsKwargs) -> T.Tuple[str, AutoArch, T.List[str]]:
+    def _validate_nvcc_arch_args(self, args: tuple[str | CudaCompiler, list[str]],
+                                 kwargs: ArchFlagsKwargs) -> tuple[str, AutoArch, list[str]]:
 
         compiler = args[0]
         if isinstance(compiler, CudaCompiler):
@@ -308,18 +308,18 @@ class CudaModule(NewExtensionModule):
         return cuda_version, arch_list, detected
 
     @staticmethod
-    def _nvcc_arch_flags(cuda_version: str, cuda_arch_list: AutoArch, detected: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+    def _nvcc_arch_flags(cuda_version: str, cuda_arch_list: AutoArch, detected: list[str]) -> tuple[list[str], list[str]]:
         """
         Using the CUDA Toolkit version and the target architectures, compute
         the NVCC architecture flags.
         """
 
         # arches the current nvcc supports
-        cuda_supported_gpu_architectures: T.Set[str] = set()
+        cuda_supported_gpu_architectures: set[str] = set()
         # arches you get when asking for 'All'
-        cuda_known_gpu_architectures: T.Set[str] = set()
+        cuda_known_gpu_architectures: set[str] = set()
         # arches you get when asking for 'Common'
-        cuda_common_gpu_architectures: T.Set[str] = set()
+        cuda_common_gpu_architectures: set[str] = set()
         # maximum common arch (used as the PTX saturation target)
         cuda_max_arch: str = '1.0'
 
@@ -358,7 +358,7 @@ class CudaModule(NewExtensionModule):
             if detected:
                 # a detected GPU newer than the toolkit supports can still JIT PTX
                 # for the newest common arch -> saturate instead of dropping
-                saturated: T.List[str] = []
+                saturated: list[str] = []
                 for arch in detected:
                     if _MICROISA_RE.fullmatch(arch) and Version(arch) > Version(cuda_max_arch):
                         saturated.append(cuda_max_arch + '+PTX')
@@ -391,9 +391,9 @@ class CudaModule(NewExtensionModule):
         # (`sm_121`) generated for non family-specific and family-specific GPU arch").
         # 'X.Yf' occupies the same slot as 'X.Y', while 'X.Ya' is a slot of its own.
         # slot -> (family-specific?, spec of first request, {(virtual, output), ...})
-        cuda_arch_bin: T.Dict[str, T.Tuple[bool, str, T.Set[T.Tuple[Version, Version]]]] = {}
+        cuda_arch_bin: dict[str, tuple[bool, str, set[tuple[Version, Version]]]] = {}
         # PTX is embedded per virtual arch and never occupies a SASS slot
-        cuda_arch_ptx: T.Set[Version] = set()
+        cuda_arch_ptx: set[Version] = set()
 
         def add_bin_target(virtarch: str, outarch: str) -> None:
             slot = outarch.rstrip('f')
@@ -489,13 +489,13 @@ class CudaModule(NewExtensionModule):
         # the order we're looking for:
         # - 12.0a < 12.0f < 12.0
         #   by always appending 'z' to the Version, the vanilla '12.0' always goes last
-        def version_key(v: Version) -> T.Tuple[T.Union[int, str], ...]:
+        def version_key(v: Version) -> tuple[int | str, ...]:
             return (*v, 'z')
 
-        bin_pairs: T.List[T.Tuple[Version, Version]] = [pair for _, _, pairs in cuda_arch_bin.values() for pair in pairs]
+        bin_pairs: list[tuple[Version, Version]] = [pair for _, _, pairs in cuda_arch_bin.values() for pair in pairs]
 
         # binary code for each requested arch, with the PTX fallbacks at the end
-        gencode_flags: T.List[str] = []
+        gencode_flags: list[str] = []
         for virtual_target, output_target in sorted(bin_pairs, key=lambda p: (version_key(p[0]), version_key(p[1]))):
             virt = str(virtual_target).replace('.', '')
             output = str(output_target).replace('.', '')
@@ -504,7 +504,7 @@ class CudaModule(NewExtensionModule):
             virt = str(virtual_target).replace('.', '')
             gencode_flags += ['-gencode', f'arch=compute_{virt},code=compute_{virt}']
 
-        arch_names: T.List[str] = []
+        arch_names: list[str] = []
         for _, output_target in sorted(bin_pairs, key=lambda p: version_key(p[1])):
             arch_names.append('sm_' + str(output_target).replace('.', ''))
         for virtual_target in sorted(cuda_arch_ptx, key=version_key):

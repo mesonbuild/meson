@@ -14,7 +14,7 @@ T_None = type(None)
 # Global root object
 root: dict
 
-def assert_has_typed_keys(path: str, data: dict, keys: T.Dict[str, T.Any]) -> dict:
+def assert_has_typed_keys(path: str, data: dict, keys: dict[str, T.Any]) -> dict:
     assert set(data.keys()).issuperset(keys.keys()), f'{path}: DIFF: {set(data.keys()).difference(keys.keys())}'
     res = dict()
     for key, val in keys.items():
@@ -24,7 +24,7 @@ def assert_has_typed_keys(path: str, data: dict, keys: T.Dict[str, T.Any]) -> di
     return res
 
 def validate_base_obj(path: str, name: str, obj: dict) -> None:
-    expected: T.Dict[str, T.Any] = {
+    expected: dict[str, T.Any] = {
         'name': str,
         'description': str,
         'since': (str, T_None),
@@ -40,7 +40,7 @@ def validate_base_obj(path: str, name: str, obj: dict) -> None:
     assert all(isinstance(x, str) and x for x in cur['warnings']), f'{path}.{name}'
 
 def validate_type(path: str, typ: dict) -> None:
-    expected: T.Dict[str, T.Any] = {
+    expected: dict[str, T.Any] = {
         'obj': str,
         'holds': list,
     }
@@ -52,7 +52,7 @@ def validate_type(path: str, typ: dict) -> None:
 
 def validate_arg(path: str, name: str, arg: dict) -> None:
     validate_base_obj(path, name, arg)
-    expected: T.Dict[str, T.Any] = {
+    expected: dict[str, T.Any] = {
         'type': list,
         'type_str': str,
         'required': bool,
@@ -73,7 +73,7 @@ def validate_arg(path: str, name: str, arg: dict) -> None:
 
 def validate_function(path: str, name: str, func: dict) -> None:
     validate_base_obj(path, name, func)
-    expected: T.Dict[str, T.Any] = {
+    expected: dict[str, T.Any] = {
         'returns': list,
         'returns_str': str,
         'example': (str, T_None),
@@ -100,7 +100,7 @@ def validate_function(path: str, name: str, func: dict) -> None:
 
 def validate_object(path: str, name: str, obj: dict) -> None:
     validate_base_obj(path, name, obj)
-    expected: T.Dict[str, T.Any] = {
+    expected: dict[str, T.Any] = {
         'example': (str, T_None),
         'object_type': str,
         'methods': dict,
@@ -146,7 +146,7 @@ def main() -> int:
     root = deepcopy(root_tmp)
     assert isinstance(root, dict)
 
-    expected: T.Dict[str, T.Any] = {
+    expected: dict[str, T.Any] = {
         'version_major': int,
         'version_minor': int,
         'meson_version': str,

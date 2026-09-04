@@ -16,7 +16,6 @@ import json
 import re
 import sys
 import textwrap
-import typing as T
 from pathlib import Path
 
 lib_dir = Path('libs')
@@ -28,8 +27,8 @@ export_modules = False
 
 
 @functools.total_ordering
-class BoostLibrary():
-    def __init__(self, name: str, shared: T.List[str], static: T.List[str], single: T.List[str], multi: T.List[str]):
+class BoostLibrary:
+    def __init__(self, name: str, shared: list[str], static: list[str], single: list[str], multi: list[str]):
         self.name = name
         self.shared = sorted(set(shared))
         self.static = sorted(set(static))
@@ -52,8 +51,8 @@ class BoostLibrary():
         return hash(self.name)
 
 @functools.total_ordering
-class BoostModule():
-    def __init__(self, name: str, key: str, desc: str, libs: T.List[BoostLibrary]):
+class BoostModule:
+    def __init__(self, name: str, key: str, desc: str, libs: list[BoostLibrary]):
         self.name = name
         self.key = key
         self.desc = desc
@@ -65,7 +64,7 @@ class BoostModule():
         return NotImplemented
 
 
-def get_boost_version() -> T.Optional[str]:
+def get_boost_version() -> str | None:
     raw = jamroot.read_text(encoding='utf-8')
     m = re.search(r'BOOST_VERSION\s*:\s*([0-9\.]+)\s*;', raw)
     if m:
@@ -73,12 +72,12 @@ def get_boost_version() -> T.Optional[str]:
     return None
 
 
-def get_libraries(jamfile: Path) -> T.List[BoostLibrary]:
+def get_libraries(jamfile: Path) -> list[BoostLibrary]:
     # Extract libraries from the boost Jamfiles. This includes:
     #  - library name
     #  - compiler flags
 
-    libs: T.List[BoostLibrary] = []
+    libs: list[BoostLibrary] = []
     raw = jamfile.read_text(encoding='utf-8')
     raw = re.sub(r'#.*\n', '\n', raw)  # Remove comments
     raw = re.sub(r'\s+', ' ', raw)     # Force single space
@@ -87,7 +86,7 @@ def get_libraries(jamfile: Path) -> T.List[BoostLibrary]:
     cmds = raw.split(';')              # Commands always terminate with a ; (I hope)
     cmds = [x.strip() for x in cmds]   # Some cleanup
 
-    project_usage_requirements: T.List[str] = []
+    project_usage_requirements: list[str] = []
 
     # "Parse" the relevant sections
     for i in cmds:
@@ -98,8 +97,8 @@ def get_libraries(jamfile: Path) -> T.List[BoostLibrary]:
 
         # Parse project
         if parts[0] in ['project']:
-            attributes: T.Dict[str, T.List[str]] = {}
-            curr: T.Optional[str] = None
+            attributes: dict[str, list[str]] = {}
+            curr: str | None = None
 
             for j in parts:
                 if j == ':':
@@ -128,7 +127,7 @@ def get_libraries(jamfile: Path) -> T.List[BoostLibrary]:
             # Count `:` to only select the 'usage-requirements'
             # See https://boostorg.github.io/build/manual/master/index.html#bbv2.main-target-rule-syntax
             colon_counter = 0
-            usage_requirements: T.List[str] = []
+            usage_requirements: list[str] = []
             for j in parts:
                 if j == ':':
                     colon_counter += 1
@@ -136,10 +135,10 @@ def get_libraries(jamfile: Path) -> T.List[BoostLibrary]:
                     usage_requirements += [j]
 
             # Get shared / static defines
-            shared: T.List[str] = []
-            static: T.List[str] = []
-            single: T.List[str] = []
-            multi: T.List[str] = []
+            shared: list[str] = []
+            static: list[str] = []
+            single: list[str] = []
+            multi: list[str] = []
             for j in usage_requirements + project_usage_requirements:
                 m1 = re.match(r'<link>shared:<define>(.*)', j)
                 m2 = re.match(r'<link>static:<define>(.*)', j)
@@ -160,7 +159,7 @@ def get_libraries(jamfile: Path) -> T.List[BoostLibrary]:
     return libs
 
 
-def process_lib_dir(ldir: Path) -> T.List[BoostModule]:
+def process_lib_dir(ldir: Path) -> list[BoostModule]:
     meta_file = ldir / 'meta' / 'libraries.json'
     bjam_file = ldir / 'build' / 'Jamfile.v2'
     if not meta_file.exists():
@@ -168,7 +167,7 @@ def process_lib_dir(ldir: Path) -> T.List[BoostModule]:
         return []
 
     # Extract libs
-    libs: T.List[BoostLibrary] = []
+    libs: list[BoostLibrary] = []
     if bjam_file.exists():
         libs = get_libraries(bjam_file)
 
@@ -177,15 +176,15 @@ def process_lib_dir(ldir: Path) -> T.List[BoostModule]:
     if not isinstance(data, list):
         data = [data]
 
-    modules: T.List[BoostModule] = []
+    modules: list[BoostModule] = []
     for i in data:
         modules += [BoostModule(i['name'], i['key'], i['description'], libs)]
 
     return modules
 
 
-def get_modules() -> T.List[BoostModule]:
-    modules: T.List[BoostModule] = []
+def get_modules() -> list[BoostModule]:
+    modules: list[BoostModule] = []
     for i in lib_dir.iterdir():
         if not i.is_dir() or i.name in not_modules:
             continue

@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import os
 import shutil
-import typing as T
 
 from . import coredata, mesonlib, mlog
 from .mesonlib import MachineChoice, Popen_safe, quote_arg, search_version, split_args
@@ -14,7 +13,7 @@ from .programs import ExternalProgram
 
 
 def detect_gcovr(gcovr_exe: str = 'gcovr', min_version: str = '3.3', log: bool = False) \
-        -> T.Union[T.Tuple[None, None], T.Tuple[str, str]]:
+        -> tuple[None, None] | tuple[str, str]:
     try:
         p, found = Popen_safe([gcovr_exe, '--version'])[0:2]
     except (FileNotFoundError, PermissionError):
@@ -23,12 +22,12 @@ def detect_gcovr(gcovr_exe: str = 'gcovr', min_version: str = '3.3', log: bool =
     found = search_version(found)
     if p.returncode == 0 and mesonlib.version_compare(found, '>=' + min_version):
         if log:
-            mlog.log('Found gcovr-{} at {}'.format(found, quote_arg(shutil.which(gcovr_exe))))
+            mlog.log(f'Found gcovr-{found} at {quote_arg(shutil.which(gcovr_exe))}')
         return gcovr_exe, found
     return None, None
 
 def detect_lcov(lcov_exe: str = 'lcov', log: bool = False) \
-        -> T.Union[T.Tuple[None, None], T.Tuple[str, str]]:
+        -> tuple[None, None] | tuple[str, str]:
     try:
         p, found = Popen_safe([lcov_exe, '--version'])[0:2]
     except (FileNotFoundError, PermissionError):
@@ -37,11 +36,11 @@ def detect_lcov(lcov_exe: str = 'lcov', log: bool = False) \
     found = search_version(found)
     if p.returncode == 0 and found:
         if log:
-            mlog.log('Found lcov-{} at {}'.format(found, quote_arg(shutil.which(lcov_exe))))
+            mlog.log(f'Found lcov-{found} at {quote_arg(shutil.which(lcov_exe))}')
         return lcov_exe, found
     return None, None
 
-def detect_llvm_cov(suffix: T.Optional[str] = None) -> T.Optional[str]:
+def detect_llvm_cov(suffix: str | None = None) -> str | None:
     # If there's a known suffix or forced lack of suffix, use that
     if suffix is not None:
         if suffix == '':
@@ -58,7 +57,7 @@ def detect_llvm_cov(suffix: T.Optional[str] = None) -> T.Optional[str]:
                 return tool
     return None
 
-def compute_llvm_suffix(coredata: coredata.CoreData) -> T.Optional[str]:
+def compute_llvm_suffix(coredata: coredata.CoreData) -> str | None:
     # Check to see if the user is trying to do coverage for either a C or C++ project
     compilers = coredata.compilers[MachineChoice.BUILD]
     cpp_compiler_is_clang = 'cpp' in compilers and compilers['cpp'].id == 'clang'
@@ -86,7 +85,7 @@ def detect_lcov_genhtml(lcov_exe_: str = 'lcov', genhtml_exe_: str = 'genhtml') 
 
     return lcov_exe, lcov_version, genhtml_exe
 
-def find_coverage_tools(coredata: coredata.CoreData) -> T.Tuple[T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str]]:
+def find_coverage_tools(coredata: coredata.CoreData) -> tuple[str | None, str | None, str | None, str | None, str | None, str | None]:
     gcovr_exe, gcovr_version = detect_gcovr()
 
     llvm_cov_exe = detect_llvm_cov(compute_llvm_suffix(coredata))
@@ -98,11 +97,11 @@ def find_coverage_tools(coredata: coredata.CoreData) -> T.Tuple[T.Optional[str],
 
     return gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe
 
-def detect_ninja(version: str = '1.8.2', log: bool = False) -> T.Optional[T.List[str]]:
+def detect_ninja(version: str = '1.8.2', log: bool = False) -> list[str] | None:
     r = detect_ninja_command_and_version(version, log)
     return r[0] if r else None
 
-def detect_ninja_command_and_version(version: str = '1.8.2', log: bool = False) -> T.Optional[T.Tuple[T.List[str], str]]:
+def detect_ninja_command_and_version(version: str = '1.8.2', log: bool = False) -> tuple[list[str], str] | None:
     env_ninja = os.environ.get('NINJA', None)
     for n in [env_ninja] if env_ninja else ['ninja', 'ninja-build', 'samu']:
         prog = ExternalProgram(n, silent=True)
@@ -130,7 +129,7 @@ def detect_ninja_command_and_version(version: str = '1.8.2', log: bool = False) 
             return (prog.command, found)
     return None
 
-def get_llvm_tool_names(tool: str) -> T.List[str]:
+def get_llvm_tool_names(tool: str) -> list[str]:
     # Ordered list of possible suffixes of LLVM executables to try. Start with
     # base, then try newest back to oldest (3.5 is arbitrary), and finally the
     # devel version. Please note that the development snapshot in Debian does
@@ -172,12 +171,12 @@ def get_llvm_tool_names(tool: str) -> T.List[str]:
         #'-20',    # Debian development snapshot
         '-devel', # FreeBSD development snapshot
     ]
-    names: T.List[str] = []
+    names: list[str] = []
     for suffix in suffixes:
         names.append(tool + suffix)
     return names
 
-def detect_scanbuild() -> T.List[str]:
+def detect_scanbuild() -> list[str]:
     """ Look for scan-build binary on build platform
 
     First, if a SCANBUILD env variable has been provided, give it precedence
@@ -191,7 +190,7 @@ def detect_scanbuild() -> T.List[str]:
     Return: a single-element list of the found scan-build binary ready to be
         passed to Popen()
     """
-    exelist: T.List[str] = []
+    exelist: list[str] = []
     if 'SCANBUILD' in os.environ:
         exelist = split_args(os.environ['SCANBUILD'])
 
@@ -209,7 +208,7 @@ def detect_scanbuild() -> T.List[str]:
             return [tool] + exelist[1:]
     return []
 
-def detect_clangformat() -> T.List[str]:
+def detect_clangformat() -> list[str]:
     """ Look for clang-format binary on build platform
 
     Do the same thing as detect_scanbuild to find clang-format except it
@@ -225,7 +224,7 @@ def detect_clangformat() -> T.List[str]:
             return [path]
     return []
 
-def detect_clangtidy() -> T.List[str]:
+def detect_clangtidy() -> list[str]:
     """ Look for clang-tidy binary on build platform
 
     Return: a single-element list of the found clang-tidy binary ready to be
@@ -238,7 +237,7 @@ def detect_clangtidy() -> T.List[str]:
             return [path]
     return []
 
-def detect_clangapply() -> T.List[str]:
+def detect_clangapply() -> list[str]:
     """ Look for clang-apply-replacements binary on build platform
 
     Return: a single-element list of the found clang-apply-replacements binary

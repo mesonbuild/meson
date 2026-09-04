@@ -19,7 +19,7 @@ class AppleFrameworks(ExternalDependency):
 
     type_name = DependencyTypeName('appleframeworks')
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs) -> None:
         super().__init__(name, env, kwargs)
         modules = kwargs.get('modules', [])
         if not modules:

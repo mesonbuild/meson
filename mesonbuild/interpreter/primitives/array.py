@@ -25,7 +25,7 @@ from ...mparser import PlusAssignmentNode
 if T.TYPE_CHECKING:
     from ...interpreterbase import TYPE_kwargs
 
-class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
+class ArrayHolder(ObjectHolder[list[TYPE_var]], IterableObject):
     # Operators that only require type checks
     TRIVIAL_OPERATORS = {
         MesonOperator.EQUALS: (list, lambda obj, x: obj.held_object == x),
@@ -50,8 +50,8 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
     @noKwargs
     @typed_pos_args('array.contains', object)
     @InterpreterObject.method('contains')
-    def contains_method(self, args: T.Tuple[object], kwargs: TYPE_kwargs) -> bool:
-        def check_contains(el: T.List[TYPE_var]) -> bool:
+    def contains_method(self, args: tuple[object], kwargs: TYPE_kwargs) -> bool:
+        def check_contains(el: list[TYPE_var]) -> bool:
             for element in el:
                 if isinstance(element, list):
                     found = check_contains(element)
@@ -65,14 +65,14 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
     @noKwargs
     @noPosargs
     @InterpreterObject.method('length')
-    def length_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> int:
+    def length_method(self, args: list[TYPE_var], kwargs: TYPE_kwargs) -> int:
         return len(self.held_object)
 
     @noArgsFlattening
     @noKwargs
     @typed_pos_args('array.get', int, optargs=[object])
     @InterpreterObject.method('get')
-    def get_method(self, args: T.Tuple[int, T.Optional[TYPE_var]], kwargs: TYPE_kwargs) -> TYPE_var:
+    def get_method(self, args: tuple[int, TYPE_var | None], kwargs: TYPE_kwargs) -> TYPE_var:
         index, fallback = args
         try:
             return self.held_object[index]
@@ -85,7 +85,7 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
     @typed_kwargs('array.slice', KwargInfo('step', int, default=1))
     @typed_pos_args('array.slice', optargs=[int, int])
     @InterpreterObject.method('slice')
-    def slice_method(self, args: T.Tuple[T.Optional[int], T.Optional[int]], kwargs: T.Dict[str, int]) -> TYPE_var:
+    def slice_method(self, args: tuple[int | None, int | None], kwargs: dict[str, int]) -> TYPE_var:
         start, stop = args
         if start is not None and stop is None:
             raise InvalidArguments('Providing only one positional slice argument is ambiguous.')
@@ -95,7 +95,7 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
 
     @typed_operator(MesonOperator.PLUS, object)
     @InterpreterObject.operator(MesonOperator.PLUS)
-    def op_plus(self, other: TYPE_var) -> T.List[TYPE_var]:
+    def op_plus(self, other: TYPE_var) -> list[TYPE_var]:
         if not isinstance(other, list):
             if not isinstance(self.current_node, PlusAssignmentNode):
                 FeatureNew.single_use('list.<plus>', '0.60.0', self.subproject, 'The right hand operand was not a list.',
@@ -115,7 +115,7 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
     @noKwargs
     @FeatureNew('array.flatten', '1.9.0')
     @InterpreterObject.method('flatten')
-    def flatten_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> TYPE_var:
+    def flatten_method(self, args: list[TYPE_var], kwargs: TYPE_kwargs) -> TYPE_var:
         def flatten(obj: TYPE_var) -> T.Iterable[TYPE_var]:
             if isinstance(obj, list):
                 for o in obj:

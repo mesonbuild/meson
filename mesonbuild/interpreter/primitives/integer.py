@@ -19,7 +19,9 @@ from ...interpreterbase import (
 from ..type_checking import in_set_validator
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing import Literal
+
+    from typing_extensions import TypedDict
 
     from ...interpreterbase import TYPE_kwargs, TYPE_var
 
@@ -58,13 +60,13 @@ class IntegerHolder(ObjectHolder[int]):
     @noKwargs
     @noPosargs
     @InterpreterObject.method('is_even')
-    def is_even_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
+    def is_even_method(self, args: list[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object % 2 == 0
 
     @noKwargs
     @noPosargs
     @InterpreterObject.method('is_odd')
-    def is_odd_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
+    def is_odd_method(self, args: list[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object % 2 != 0
 
     @typed_kwargs(
@@ -75,7 +77,7 @@ class IntegerHolder(ObjectHolder[int]):
     )
     @noPosargs
     @InterpreterObject.method('to_string')
-    def to_string_method(self, args: T.List[TYPE_var], kwargs: ToStringKw) -> str:
+    def to_string_method(self, args: list[TYPE_var], kwargs: ToStringKw) -> str:
         format_codes = {'hex': 'x', 'oct': 'o', 'bin': 'b', 'dec': 'd'}
         return '{:#0{fill}{format}}'.format(self.held_object,
                                             fill=max(0, kwargs['fill']),

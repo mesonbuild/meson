@@ -70,7 +70,7 @@ if T.TYPE_CHECKING:
                         'UnknownValue', 'IntrospectionBuildTarget', 'IntrospectionFile',
                         'IntrospectionDependency', list['TYPE_ivar'], dict[str | UnknownValue, 'TYPE_ivar']]
     TYPE_nvar = T.Union[TYPE_ivar, mparser.BaseNode]
-    TYPE_nkwargs = T.Dict[str, TYPE_nvar]
+    TYPE_nkwargs = dict[str, TYPE_nvar]
 
 _T = T.TypeVar('_T')
 _V = T.TypeVar('_V')
@@ -93,9 +93,9 @@ class IntrospectionFile:
 # `IntrospectionDependency` is to the `IntrospectionInterpreter` what `Dependency` is to the normal `Interpreter`.
 @dataclass
 class IntrospectionDependency(MesonInterpreterObject):
-    name: T.Union[str, UnknownValue]
-    required: T.Union[bool, UnknownValue]
-    version: T.Union[T.List[str], UnknownValue]
+    name: str | UnknownValue
+    required: bool | UnknownValue
+    version: list[str] | UnknownValue
     has_fallback: bool
     conditional: bool
     node: FunctionNode
@@ -109,26 +109,26 @@ class IntrospectionBuildTarget(MesonInterpreterObject):
     typename: str
     defined_in: str
     subdir: str
-    build_by_default: T.Union[bool, UnknownValue]
-    installed: T.Union[bool, UnknownValue]
-    outputs: T.List[str]
-    source_nodes: T.List[BaseNode]
+    build_by_default: bool | UnknownValue
+    installed: bool | UnknownValue
+    outputs: list[str]
+    source_nodes: list[BaseNode]
     extra_files: BaseNode
-    kwargs: T.Dict[str, TYPE_var]
+    kwargs: dict[str, TYPE_var]
     node: FunctionNode
 
-def is_ignored_edge(src: T.Union[BaseNode, UnknownValue]) -> bool:
+def is_ignored_edge(src: BaseNode | UnknownValue) -> bool:
     return (isinstance(src, FunctionNode) and src.func_name.value not in {'files', 'get_variable'}) or isinstance(src, MethodNode)
 
 class DataflowDAG:
-    src_to_tgts: T.DefaultDict[T.Union[BaseNode, UnknownValue], T.Set[T.Union[BaseNode, UnknownValue]]]
-    tgt_to_srcs: T.DefaultDict[T.Union[BaseNode, UnknownValue], T.Set[T.Union[BaseNode, UnknownValue]]]
+    src_to_tgts: defaultdict[BaseNode | UnknownValue, set[BaseNode | UnknownValue]]
+    tgt_to_srcs: defaultdict[BaseNode | UnknownValue, set[BaseNode | UnknownValue]]
 
     def __init__(self) -> None:
         self.src_to_tgts = defaultdict(set)
         self.tgt_to_srcs = defaultdict(set)
 
-    def add_edge(self, source: T.Union[BaseNode, UnknownValue], target: T.Union[BaseNode, UnknownValue]) -> None:
+    def add_edge(self, source: BaseNode | UnknownValue, target: BaseNode | UnknownValue) -> None:
         self.src_to_tgts[source].add(target)
         self.tgt_to_srcs[target].add(source)
 
@@ -136,11 +136,11 @@ class DataflowDAG:
     # In other words, A node `a` is part of the returned set exactly if data
     # from `srcs` flows into `a`, directly or indirectly.
     # Certain edges are ignored.
-    def reachable(self, srcs: T.Set[T.Union[BaseNode, UnknownValue]], reverse: bool) -> T.Set[T.Union[BaseNode, UnknownValue]]:
+    def reachable(self, srcs: set[BaseNode | UnknownValue], reverse: bool) -> set[BaseNode | UnknownValue]:
         reachable = srcs.copy()
         active = srcs.copy()
         while active:
-            new: T.Set[T.Union[BaseNode, UnknownValue]] = set()
+            new: set[BaseNode | UnknownValue] = set()
             if reverse:
                 for tgt in active:
                     new.update(src for src in self.tgt_to_srcs[tgt] if not is_ignored_edge(src))
@@ -155,7 +155,7 @@ class DataflowDAG:
 
     # Returns all paths from src to target.
     # Certain edges are ignored.
-    def find_all_paths(self, src: T.Union[BaseNode, UnknownValue], target: T.Union[BaseNode, UnknownValue]) -> T.List[T.List[T.Union[BaseNode, UnknownValue]]]:
+    def find_all_paths(self, src: BaseNode | UnknownValue, target: BaseNode | UnknownValue) -> list[list[BaseNode | UnknownValue]]:
         queue = [(src, [src])]
         paths = []
         while queue:
@@ -168,12 +168,12 @@ class DataflowDAG:
         return paths
 
 class AstInterpreter(InterpreterBase):
-    def __init__(self, source_root: str, subdir: str, subproject: SubProject, subproject_dir: str, env: environment.Environment, visitors: T.Optional[T.List[AstVisitor]] = None):
+    def __init__(self, source_root: str, subdir: str, subproject: SubProject, subproject_dir: str, env: environment.Environment, visitors: list[AstVisitor] | None = None):
         super().__init__(source_root, subdir, subproject, subproject_dir, env)
         self.visitors = visitors if visitors is not None else []
-        self.nesting: T.List[int] = []
-        self.cur_assignments: T.DefaultDict[str, T.List[T.Tuple[T.List[int], T.Union[BaseNode, UnknownValue]]]] = defaultdict(list)
-        self.all_assignment_nodes: T.DefaultDict[str, T.List[AssignmentNode]] = defaultdict(list)
+        self.nesting: list[int] = []
+        self.cur_assignments: defaultdict[str, list[tuple[list[int], BaseNode | UnknownValue]]] = defaultdict(list)
+        self.all_assignment_nodes: defaultdict[str, list[AssignmentNode]] = defaultdict(list)
         # dataflow_dag is an acyclic directed graph that contains an edge
         # from one instance of `BaseNode` to another instance of `BaseNode` if
         # data flows directly from one to the other. Example: If meson.build
@@ -186,7 +186,7 @@ class AstInterpreter(InterpreterBase):
         # This graph is crucial for e.g. node_to_runtime_value because we have
         # to know that 'var' in line2 is 'foo123' and not 'bar'.
         self.dataflow_dag = DataflowDAG()
-        self.funcvals: T.Dict[BaseNode, T.Any] = {}
+        self.funcvals: dict[BaseNode, T.Any] = {}
         self.tainted = False
         self.predefined_vars = {
             'meson': UnknownValue(),
@@ -256,13 +256,13 @@ class AstInterpreter(InterpreterBase):
                            'debug': self.func_do_nothing,
                            })
 
-    def _unholder_args(self, args: T.Any, kwargs: T.Any) -> T.Tuple[T.Any, T.Any]:
+    def _unholder_args(self, args: T.Any, kwargs: T.Any) -> tuple[T.Any, T.Any]:
         return args, kwargs
 
     def _holderify(self, res: T.Any) -> T.Any:
         return res
 
-    def func_do_nothing(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> UnknownValue:
+    def func_do_nothing(self, node: BaseNode, args: list[TYPE_var], kwargs: dict[str, TYPE_var]) -> UnknownValue:
         return UnknownValue()
 
     def load_root_meson_file(self) -> None:
@@ -270,7 +270,7 @@ class AstInterpreter(InterpreterBase):
         for i in self.visitors:
             self.ast.accept(i)
 
-    def func_subdir(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
+    def func_subdir(self, node: BaseNode, args: list[TYPE_var], kwargs: dict[str, TYPE_var]) -> None:
         args = self.flatten_args_hack(args)
         if len(args) != 1 or not isinstance(args[0], str):
             sys.stderr.write(f'Unable to evaluate subdir({args}) in AstInterpreter --> Skipping\n')
@@ -278,14 +278,14 @@ class AstInterpreter(InterpreterBase):
 
         subdir, is_new = self._resolve_subdir(self.source_root, args[0])
         if not is_new:
-            sys.stderr.write('Trying to enter {} which has already been visited --> Skipping\n'.format(args[0]))
+            sys.stderr.write(f'Trying to enter {args[0]} which has already been visited --> Skipping\n')
             return
 
         if not self._evaluate_subdir(self.source_root, subdir, self.visitors):
             buildfilename = os.path.join(subdir, environment.build_filename)
             sys.stderr.write(f'Unable to find build file {buildfilename} --> Skipping\n')
 
-    def inner_method_call(self, iobj: TYPE_ivar, method_name: str, iargs: T.List[TYPE_ivar], nkwargs: TYPE_nkwargs) -> TYPE_ivar:
+    def inner_method_call(self, iobj: TYPE_ivar, method_name: str, iargs: list[TYPE_ivar], nkwargs: TYPE_nkwargs) -> TYPE_ivar:
         for arg in itertools.chain(iargs, nkwargs.values()):
             if isinstance(arg, UnknownValue):
                 return UnknownValue()
@@ -355,8 +355,8 @@ class AstInterpreter(InterpreterBase):
                 self,
                 args: mparser.ArgumentNode,
                 key_resolver: T.Callable[[mparser.BaseNode], str] = default_resolve_key,
-                duplicate_key_error: T.Optional[str] = None,
-            ) -> T.Tuple[T.List[TYPE_ivar], TYPE_nkwargs]:
+                duplicate_key_error: str | None = None,
+            ) -> tuple[list[TYPE_ivar], TYPE_nkwargs]:
         for arg in args.arguments:
             self.evaluate_statement(arg)
         for value in args.kwargs.values():
@@ -383,7 +383,7 @@ class AstInterpreter(InterpreterBase):
     def evaluate_notstatement(self, cur: NotNode) -> None:
         self.evaluate_statement(cur.value)
 
-    def find_potential_writes(self, node: BaseNode) -> T.Set[str]:
+    def find_potential_writes(self, node: BaseNode) -> set[str]:
         if isinstance(node, mparser.ForeachClauseNode):
             return {el.value for el in node.varnames} | self.find_potential_writes(node.block)
         elif isinstance(node, mparser.CodeBlockNode):
@@ -484,8 +484,8 @@ class AstInterpreter(InterpreterBase):
                     self.dataflow_dag.add_edge(pv, uv)
                 self.cur_assignments[var_name].append((self.nesting.copy(), uv))
 
-    def func_files(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Any:
-        ret: T.List[T.Union[IntrospectionFile, UnknownValue]] = []
+    def func_files(self, node: BaseNode, args: list[TYPE_var], kwargs: dict[str, TYPE_var]) -> T.Any:
+        ret: list[IntrospectionFile | UnknownValue] = []
         for arg in args:
             if isinstance(arg, str):
                 ret.append(IntrospectionFile(self.subdir, arg))
@@ -495,7 +495,7 @@ class AstInterpreter(InterpreterBase):
                 raise TypeError
         return ret
 
-    def get_cur_value_if_defined(self, var_name: str) -> T.Union[BaseNode, UnknownValue, UndefinedVariable]:
+    def get_cur_value_if_defined(self, var_name: str) -> BaseNode | UnknownValue | UndefinedVariable:
         if var_name in self.predefined_vars:
             return self.predefined_vars[var_name]
         for nesting, value in reversed(self.cur_assignments[var_name]):
@@ -505,7 +505,7 @@ class AstInterpreter(InterpreterBase):
             return UnknownValue()
         return UndefinedVariable()
 
-    def get_cur_value(self, var_name: str) -> T.Union[BaseNode, UnknownValue]:
+    def get_cur_value(self, var_name: str) -> BaseNode | UnknownValue:
         ret = self.get_cur_value_if_defined(var_name)
         if isinstance(ret, UndefinedVariable):
             path = mlog.get_relative_path(Path(self.current_node.filename), Path(os.getcwd()))
@@ -546,7 +546,7 @@ class AstInterpreter(InterpreterBase):
     # node = [123, somedep.found()]
     # ```
     # `node_to_runtime_value` will return `[123, UnknownValue()]`.
-    def node_to_runtime_value(self, node: T.Union[UnknownValue, TYPE_ivar, mparser.BaseNode]) -> TYPE_ivar:
+    def node_to_runtime_value(self, node: UnknownValue | TYPE_ivar | mparser.BaseNode) -> TYPE_ivar:
         if isinstance(node, (mparser.StringNode, mparser.BooleanNode, mparser.NumberNode)):
             return node.value
         elif isinstance(node, mparser.StringNode):
@@ -559,7 +559,7 @@ class AstInterpreter(InterpreterBase):
         elif isinstance(node, ArrayNode):
             return [self.node_to_runtime_value(x) for x in node.args.arguments]
         elif isinstance(node, mparser.DictNode):
-            result: T.Dict[str | UnknownValue, TYPE_ivar] = {}
+            result: dict[str | UnknownValue, TYPE_ivar] = {}
             for raw_k, raw_v in node.args.kwargs.items():
                 k = self.node_to_runtime_value(raw_k)
                 if isinstance(k, str):
@@ -706,7 +706,7 @@ class AstInterpreter(InterpreterBase):
         assert isinstance(node, PlusAssignmentNode)
         self.evaluate_statement(node.value)
         lhs = self.get_cur_value(node.var_name.value)
-        newval: T.Union[UnknownValue, ArithmeticNode]
+        newval: UnknownValue | ArithmeticNode
         if isinstance(lhs, UnknownValue):
             newval = UnknownValue()
         else:
@@ -717,7 +717,7 @@ class AstInterpreter(InterpreterBase):
         self.dataflow_dag.add_edge(lhs, newval)
         self.dataflow_dag.add_edge(node.value, newval)
 
-    def func_set_variable(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
+    def func_set_variable(self, node: BaseNode, args: list[TYPE_var], kwargs: dict[str, TYPE_var]) -> None:
         assert isinstance(node, FunctionNode)
         if bool(node.args.kwargs):
             raise InvalidArguments('set_variable accepts no keyword arguments')
@@ -734,18 +734,18 @@ class AstInterpreter(InterpreterBase):
         equiv.ast_id = str(id(equiv))
         self.evaluate_statement(equiv)
 
-    def func_get_variable(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Any:
+    def func_get_variable(self, node: BaseNode, args: list[TYPE_var], kwargs: dict[str, TYPE_var]) -> T.Any:
         assert isinstance(node, FunctionNode)
         var_name = args[0]
         if isinstance(var_name, UnknownValue):
-            val: T.Union[UnknownValue, BaseNode] = UnknownValue()
+            val: UnknownValue | BaseNode = UnknownValue()
         else:
             assert isinstance(var_name, str)
             val = self.get_cur_value(var_name)
         self.dataflow_dag.add_edge(val, node)
         return val
 
-    def func_unset_variable(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
+    def func_unset_variable(self, node: BaseNode, args: list[TYPE_var], kwargs: dict[str, TYPE_var]) -> None:
         assert isinstance(node, FunctionNode)
         if bool(node.args.kwargs):
             raise InvalidArguments('unset_variable accepts no keyword arguments')
@@ -755,8 +755,8 @@ class AstInterpreter(InterpreterBase):
         assert isinstance(var_name, str)
         self.cur_assignments[var_name].append((self.nesting.copy(), node))
 
-    def nodes_to_pretty_filelist(self, root_path: Path, subdir: str, nodes: T.List[BaseNode]) -> T.List[T.Union[str, UnknownValue]]:
-        def src_to_abs(src: TYPE_ivar) -> T.Union[str, UnknownValue]:
+    def nodes_to_pretty_filelist(self, root_path: Path, subdir: str, nodes: list[BaseNode]) -> list[str | UnknownValue]:
+        def src_to_abs(src: TYPE_ivar) -> str | UnknownValue:
             if isinstance(src, str):
                 return os.path.normpath(os.path.join(root_path, subdir, src))
             elif isinstance(src, IntrospectionFile):
@@ -766,11 +766,11 @@ class AstInterpreter(InterpreterBase):
             else:
                 raise TypeError
 
-        rtvals: T.List[TYPE_ivar] = self.flatten_args(nodes)
+        rtvals: list[TYPE_ivar] = self.flatten_args(nodes)
         return [src_to_abs(x) for x in rtvals]
 
-    def flatten_args(self, args: T.Sequence[TYPE_nvar]) -> T.List[TYPE_ivar]:
-        flattened_args: T.List[TYPE_ivar] = []
+    def flatten_args(self, args: T.Sequence[TYPE_nvar]) -> list[TYPE_ivar]:
+        flattened_args: list[TYPE_ivar] = []
 
         # Resolve the contents of args, compare to interpreterbase's flatten
         for i in args:
@@ -789,7 +789,7 @@ class AstInterpreter(InterpreterBase):
                 raise NotImplementedError(f'flatten_args is missing a case for {type(i)}')
         return flattened_args
 
-    def flatten_args_hack(self, args: T.List[TYPE_var]) -> T.List[TYPE_var]:
+    def flatten_args_hack(self, args: list[TYPE_var]) -> list[TYPE_var]:
         # Unlike method calls, functions are invoked even if one or more values
         # are unknown.  The return type is actually T.List[TYPE_ivar], and
         # while callers declare args as T.List[TYPE_var], they receive a
@@ -797,12 +797,12 @@ class AstInterpreter(InterpreterBase):
         # The right solution would involve making TYPE_var an argument to
         # InterpreterBase, so that FunctionType is also changed to not
         # use TYPE_var.
-        return T.cast('T.List[TYPE_var]', self.flatten_args(T.cast('T.List[TYPE_nvar]', args)))
+        return T.cast('list[TYPE_var]', self.flatten_args(T.cast('list[TYPE_nvar]', args)))
 
     def evaluate_testcase(self, node: TestCaseClauseNode) -> Disabler | None:
         return Disabler(subproject=self.subproject)
 
-    def evaluate_statement(self, cur: mparser.BaseNode) -> T.Optional[InterpreterObject]:
+    def evaluate_statement(self, cur: mparser.BaseNode) -> InterpreterObject | None:
         if hasattr(cur, 'args'):
             for arg in cur.args.arguments:
                 self.dataflow_dag.add_edge(arg, cur)

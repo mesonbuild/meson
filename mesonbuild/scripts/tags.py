@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import os
 import subprocess
-import typing as T
 from pathlib import Path
 
 
@@ -35,7 +34,7 @@ def etags() -> int:
     return subprocess.run(['etags', '-'], input=ls).returncode
 
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     tool_name = args[0]
     srcdir_name = args[1]
     os.chdir(srcdir_name)

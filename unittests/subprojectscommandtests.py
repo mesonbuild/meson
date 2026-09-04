@@ -5,7 +5,6 @@ import os
 import subprocess
 import tempfile
 import textwrap
-import typing as T
 from pathlib import Path
 
 from mesonbuild.mesonlib import git, search_version, version_compare
@@ -95,14 +94,14 @@ class SubprojectsCommandTests(BasePlatformTests):
             if depth is None:
                 depth_line = ''
             else:
-                depth_line = 'depth = {}'.format(depth)
+                depth_line = f'depth = {depth}'
             f.write(textwrap.dedent(
-                '''
+                f'''
                 [wrap-git]
-                url={}
-                revision={}
-                {}
-                '''.format(os.path.abspath(str(path)), revision, depth_line)))
+                url={os.path.abspath(str(path))}
+                revision={revision}
+                {depth_line}
+                '''))
 
     def _wrap_create_file(self, name, tarball='dummy.tar.gz'):
         path = self.root_dir / tarball
@@ -261,7 +260,7 @@ class SubprojectsCommandTests(BasePlatformTests):
                 filename = {real_dir}.wrap
                 '''))
 
-        def deleting(s: str) -> T.List[str]:
+        def deleting(s: str) -> list[str]:
             ret = []
             prefix = 'Deleting '
             for l in s.splitlines():

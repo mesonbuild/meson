@@ -9,7 +9,7 @@ import json
 import re
 import textwrap
 import typing as T
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 
 from .. import mlog
@@ -21,14 +21,14 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
 
 class CMakeTraceLine:
-    def __init__(self, file_str: str, line: int, func: str, args: T.List[str]) -> None:
+    def __init__(self, file_str: str, line: int, func: str, args: list[str]) -> None:
         self.file = CMakeTraceLine._to_path(file_str)
         self.line = line
         self.func = func.lower()
         self.args = args
 
     @staticmethod
-    @lru_cache(maxsize=None)
+    @cache
     def _to_path(file_str: str) -> Path:
         return Path(file_str)
 
@@ -37,7 +37,7 @@ class CMakeTraceLine:
         return s.format(self.file, self.line, self.func, self.args)
 
 class CMakeCacheEntry(T.NamedTuple):
-    value: T.List[str]
+    value: list[str]
     type: str
 
 class CMakeTarget:
@@ -45,9 +45,9 @@ class CMakeTarget:
                 self,
                 name:        str,
                 target_type: str,
-                properties:  T.Optional[T.Dict[str, T.List[str]]] = None,
+                properties:  dict[str, list[str]] | None = None,
                 imported:    bool = False,
-                tline:       T.Optional[CMakeTraceLine] = None
+                tline:       CMakeTraceLine | None = None
             ):
         if properties is None:
             properties = {}
@@ -56,15 +56,15 @@ class CMakeTarget:
         self.properties = properties
         self.imported = imported
         self.tline = tline
-        self.depends: T.List[str] = []
-        self.current_bin_dir: T.Optional[Path] = None
-        self.current_src_dir: T.Optional[Path] = None
+        self.depends: list[str] = []
+        self.current_bin_dir: Path | None = None
+        self.current_src_dir: Path | None = None
 
     def __repr__(self) -> str:
         s = 'CMake TARGET:\n  -- name:      {}\n  -- type:      {}\n  -- imported:  {}\n  -- properties: {{\n{}     }}\n  -- tline: {}'
         propSTR = ''
         for i in self.properties:
-            propSTR += "      '{}': {}\n".format(i, self.properties[i])
+            propSTR += f"      '{i}': {self.properties[i]}\n"
         return s.format(self.name, self.type, self.imported, propSTR, self.tline)
 
     def strip_properties(self) -> None:
@@ -78,22 +78,22 @@ class CMakeTarget:
 class CMakeGeneratorTarget(CMakeTarget):
     def __init__(self, name: str) -> None:
         super().__init__(name, 'CUSTOM', {})
-        self.outputs: T.List[Path] = []
-        self._outputs_str: T.List[str] = []
-        self.command: T.List[T.List[str]] = []
-        self.working_dir: T.Optional[Path] = None
+        self.outputs: list[Path] = []
+        self._outputs_str: list[str] = []
+        self.command: list[list[str]] = []
+        self.working_dir: Path | None = None
 
 class CMakeTraceParser:
-    def __init__(self, cmake_version: str, build_dir: Path, env: 'Environment', permissive: bool = True) -> None:
-        self.vars:                      T.Dict[str, T.List[str]] = {}
-        self.vars_by_file: T.Dict[Path, T.Dict[str, T.List[str]]] = {}
-        self.targets:                   T.Dict[str, CMakeTarget] = {}
-        self.cache:                     T.Dict[str, CMakeCacheEntry] = {}
+    def __init__(self, cmake_version: str, build_dir: Path, env: Environment, permissive: bool = True) -> None:
+        self.vars:                      dict[str, list[str]] = {}
+        self.vars_by_file: dict[Path, dict[str, list[str]]] = {}
+        self.targets:                   dict[str, CMakeTarget] = {}
+        self.cache:                     dict[str, CMakeCacheEntry] = {}
 
-        self.explicit_headers: T.Set[Path] = set()
+        self.explicit_headers: set[Path] = set()
 
         # T.List of targes that were added with add_custom_command to generate files
-        self.custom_targets: T.List[CMakeGeneratorTarget] = []
+        self.custom_targets: list[CMakeGeneratorTarget] = []
 
         self.env = env
         self.permissive = permissive
@@ -102,16 +102,16 @@ class CMakeTraceParser:
         self.trace_file_path = build_dir / self.trace_file
         self.trace_format = 'json-v1' if version_compare(cmake_version, '>=3.17') else 'human'
 
-        self.errors: T.List[str] = []
+        self.errors: list[str] = []
 
         # State for delayed command execution. Delayed command execution is realised
         # with a custom CMake file that overrides some functions and adds some
         # introspection information to the trace.
-        self.delayed_commands: T.List[str] = []
-        self.stored_commands: T.List[CMakeTraceLine] = []
+        self.delayed_commands: list[str] = []
+        self.stored_commands: list[CMakeTraceLine] = []
 
         # All supported functions
-        self.functions: T.Dict[str, T.Callable[[CMakeTraceLine], None]] = {
+        self.functions: dict[str, T.Callable[[CMakeTraceLine], None]] = {
             'set': self._cmake_set,
             'unset': self._cmake_unset,
             'add_executable': self._cmake_add_executable,
@@ -147,7 +147,7 @@ class CMakeTraceParser:
                 |   any errors please try upgrading CMake to a newer version first.
             '''), once=True)
 
-    def trace_args(self) -> T.List[str]:
+    def trace_args(self) -> list[str]:
         arg_map = {
             'human': ['--trace', '--trace-expand'],
             'json-v1': ['--trace-expand', '--trace-format=json-v1'],
@@ -162,7 +162,7 @@ class CMakeTraceParser:
     def requires_stderr(self) -> bool:
         return version_compare(self.cmake_version, '<3.16')
 
-    def parse(self, trace: T.Optional[str] = None) -> None:
+    def parse(self, trace: str | None = None) -> None:
         # First load the trace (if required)
         if not self.requires_stderr():
             if not self.trace_file_path.is_file():
@@ -235,7 +235,7 @@ class CMakeTraceParser:
             for command, src in zip(ctgt.command, temp):
                 if command[0] == "":
                     raise CMakeException(
-                        "We evaluated the cmake variable '{}' to an empty string, which is not a valid path to an executable.".format(src[0])
+                        f"We evaluated the cmake variable '{src[0]}' to an empty string, which is not a valid path to an executable."
                     )
             ctgt.working_dir = Path(parse_generator_expressions(str(ctgt.working_dir), self)) if ctgt.working_dir is not None else None
 
@@ -243,7 +243,7 @@ class CMakeTraceParser:
         for tgt in self.targets.values():
             tgt.strip_properties()
 
-    def get_first_cmake_var_of(self, var_list: T.List[str]) -> T.List[str]:
+    def get_first_cmake_var_of(self, var_list: list[str]) -> list[str]:
         # Return the first found CMake variable in list var_list
         for i in var_list:
             if i in self.vars:
@@ -251,20 +251,20 @@ class CMakeTraceParser:
 
         return []
 
-    def get_cmake_var(self, var: str) -> T.List[str]:
+    def get_cmake_var(self, var: str) -> list[str]:
         # Return the value of the CMake variable var or an empty list if var does not exist
         if var in self.vars:
             return self.vars[var]
 
         return []
 
-    def var_to_str(self, var: str) -> T.Optional[str]:
+    def var_to_str(self, var: str) -> str | None:
         if var in self.vars and self.vars[var]:
             return self.vars[var][0]
 
         return None
 
-    def _str_to_bool(self, expr: T.Union[str, T.List[str]]) -> bool:
+    def _str_to_bool(self, expr: str | list[str]) -> bool:
         if not expr:
             return False
         if isinstance(expr, list):
@@ -404,7 +404,7 @@ class CMakeTraceParser:
         else:
             self.targets[args[0]] = CMakeTarget(args[0], 'NORMAL', {}, tline=tline)
 
-    def _cmake_add_custom_command(self, tline: CMakeTraceLine, name: T.Optional[str] = None) -> None:
+    def _cmake_add_custom_command(self, tline: CMakeTraceLine, name: str | None = None) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_command.html
         args = self._flatten_args(list(tline.args))  # Commands can be passed as ';' separated lists
 
@@ -589,10 +589,10 @@ class CMakeTraceParser:
         # With the JSON output format, introduced in CMake 3.17, spaces are
         # handled properly and we don't have to do either options
 
-        arglist: T.List[T.Tuple[str, T.List[str]]] = []
+        arglist: list[tuple[str, list[str]]] = []
         if self.trace_format == 'human':
             name = args.pop(0)
-            values: T.List[str] = []
+            values: list[str] = []
             prop_regex = re.compile(r'^[A-Z_]+$')
             for a in args:
                 if prop_regex.match(a):
@@ -660,7 +660,7 @@ class CMakeTraceParser:
 
         self.errors += [' '.join(args[1:])]
 
-    def _parse_common_target_options(self, func: str, private_prop: str, interface_prop: str, tline: CMakeTraceLine, ignore: T.Optional[T.List[str]] = None, paths: bool = False) -> None:
+    def _parse_common_target_options(self, func: str, private_prop: str, interface_prop: str, tline: CMakeTraceLine, ignore: list[str] | None = None, paths: bool = False) -> None:
         if ignore is None:
             ignore = ['BEFORE']
 
@@ -764,14 +764,14 @@ class CMakeTraceParser:
                 assert isinstance(j, str)
             yield CMakeTraceLine(data['file'], data['line'], data['cmd'], args)
 
-    def _flatten_args(self, args: T.List[str]) -> T.List[str]:
+    def _flatten_args(self, args: list[str]) -> list[str]:
         # Split lists in arguments
-        res: T.List[str] = []
+        res: list[str] = []
         for i in args:
             res += i.split(';')
         return res
 
-    def _guess_files(self, broken_list: T.List[str]) -> T.List[str]:
+    def _guess_files(self, broken_list: list[str]) -> list[str]:
         # Nothing has to be done for newer formats
         if self.trace_format != 'human':
             return broken_list
@@ -781,8 +781,8 @@ class CMakeTraceParser:
         reg_start = re.compile(r'^([A-Za-z]:)?/(.*/)*[^./]+$')
         reg_end = re.compile(r'^.*\.[a-zA-Z]+$')
 
-        fixed_list: T.List[str] = []
-        curr_str: T.Optional[str] = None
+        fixed_list: list[str] = []
+        curr_str: str | None = None
         path_found = False
 
         for i in broken_list:

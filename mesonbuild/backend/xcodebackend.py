@@ -90,7 +90,7 @@ XCODEVERSIONS: T.Mapping[str, tuple[str, int]] = {
     '310': ('Xcode 3.1', 45)
 }
 
-def autodetect_xcode_version() -> T.Tuple[str, int]:
+def autodetect_xcode_version() -> tuple[str, int]:
     try:
         pc, stdout, stderr = mesonlib.Popen_safe(['xcodebuild', '-version'])
     except FileNotFoundError:
@@ -109,14 +109,14 @@ def autodetect_xcode_version() -> T.Tuple[str, int]:
 class FileTreeEntry:
 
     def __init__(self) -> None:
-        self.subdirs: T.Dict[str, FileTreeEntry] = {}
-        self.targets: T.List[build.BuildTarget] = []
+        self.subdirs: dict[str, FileTreeEntry] = {}
+        self.targets: list[build.BuildTarget] = []
 
 class PbxArray:
     def __init__(self) -> None:
-        self.items: T.List[PbxArrayItem] = []
+        self.items: list[PbxArrayItem] = []
 
-    def add_item(self, item: T.Union[PbxArrayItem, str], comment: str = '') -> None:
+    def add_item(self, item: PbxArrayItem | str, comment: str = '') -> None:
         if isinstance(item, PbxArrayItem):
             self.items.append(item)
         else:
@@ -155,7 +155,7 @@ class PbxComment:
 class PbxDictItem:
     value: PbxArray | PbxDict | str | int
 
-    def __init__(self, key: str, value: T.Union[PbxArray, PbxDict, str, int], comment: str = ''):
+    def __init__(self, key: str, value: PbxArray | PbxDict | str | int, comment: str = ''):
         self.key = key
         if isinstance(value, str):
             self.value = self.quote_value(value)
@@ -186,10 +186,10 @@ class PbxDict:
     def __init__(self) -> None:
         # This class is a bit weird, because we want to write PBX dicts in
         # defined order _and_ we want to write intermediate comments also in order.
-        self.keys: T.Set[str] = set()
-        self.items: T.List[T.Union[PbxDictItem, PbxComment]] = []
+        self.keys: set[str] = set()
+        self.items: list[PbxDictItem | PbxComment] = []
 
-    def add_item(self, key: str, value: T.Union[PbxArray, PbxDict, str, int], comment: str = '') -> None:
+    def add_item(self, key: str, value: PbxArray | PbxDict | str | int, comment: str = '') -> None:
         assert key not in self.keys
         item = PbxDictItem(key, value, comment)
         self.keys.add(key)
@@ -261,7 +261,7 @@ class XCodeBackend(backends.Backend):
 
     name = 'xcode'
 
-    def __init__(self, build: T.Optional[build.Build]):
+    def __init__(self, build: build.Build | None):
         super().__init__(build)
         self.project_uid = self.environment.coredata.lang_guids['default'].replace('-', '')[:24]
         self.buildtype = T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype')))
@@ -304,7 +304,7 @@ class XCodeBackend(backends.Backend):
     def gen_id(self) -> str:
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_target_dir_cached(self, target: build.Target) -> str:
         dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))))
         return dirname
@@ -315,7 +315,7 @@ class XCodeBackend(backends.Backend):
         return dirname
 
     def object_filename_from_source(self, target: build.BuildTarget, compiler: Compiler,
-                                    source: mesonlib.File, targetdir: T.Optional[str] = None) -> str:
+                                    source: mesonlib.File, targetdir: str | None = None) -> str:
         # Xcode has the following naming scheme:
         # projectname.build/debug/prog@exe.build/Objects-normal/x86_64/func.o
         project = self.build.project_name
@@ -326,8 +326,8 @@ class XCodeBackend(backends.Backend):
         obj_path = f'build/{project}.build/{buildtype}/{tname}.build/Objects-normal/{self.arch}/{stem}.o'
         return obj_path
 
-    def determine_swift_dep_dirs(self, target: build.BuildTarget) -> T.List[str]:
-        result: T.List[str] = []
+    def determine_swift_dep_dirs(self, target: build.BuildTarget) -> list[str]:
+        result: list[str] = []
         for l in target.link_targets:
             # Xcode does not recognize our private directories, so we have to use its build directories instead.
             result.append(os.path.join(self.environment.get_build_dir(), self.get_target_dir(l)))
@@ -338,7 +338,7 @@ class XCodeBackend(backends.Backend):
         if self.arch == 'aarch64':
             self.arch = 'arm64'
 
-    def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict] = None) -> None:
+    def generate(self, capture: bool = False, vslite_ctx: dict | None = None) -> None:
         if self.arch is None: # The host machine arch may not be set when backend is created
             self.set_arch()
         # Check for (currently) unexpected capture arg use cases -
@@ -523,7 +523,7 @@ class XCodeBackend(backends.Backend):
             self.build_rules[name] = languages
 
     def generate_custom_target_map(self) -> None:
-        self.shell_targets: T.Dict[T.Union[str, T.Tuple[str, int]], str] = {}
+        self.shell_targets: dict[str | tuple[str, int], str] = {}
         self.custom_target_output_buildfile = {}
         self.custom_target_output_fileref = {}
         for tname, t in self.custom_targets.items():
@@ -589,7 +589,7 @@ class XCodeBackend(backends.Backend):
                         self.native_frameworks_fileref[f] = self.gen_id()
 
     def generate_target_dependency_map(self) -> None:
-        self.target_dependency_map: T.Dict[T.Union[str, T.Tuple[str, str]], str] = {}
+        self.target_dependency_map: dict[str | tuple[str, str], str] = {}
         for tname, t in self.build_targets.items():
             for target in t.link_targets:
                 k = (tname, target.get_basename())
@@ -1437,7 +1437,7 @@ class XCodeBackend(backends.Backend):
             custom_dict.add_item('files', PbxArray())
             custom_dict.add_item('inputPaths', PbxArray())
             outarray = PbxArray()
-            custom_dict.add_item('name', '"Generate {}."'.format(ofilenames[0]))
+            custom_dict.add_item('name', f'"Generate {ofilenames[0]}."')
             custom_dict.add_item('outputPaths', outarray)
             for o in ofilenames:
                 outarray.add_item(os.path.join(self.environment.get_build_dir(), o))
@@ -1645,7 +1645,7 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('SDKROOT', 'macosx')
             bt_dict.add_item('name', buildtype)
 
-    def determine_internal_dep_link_args(self, target: build.BuildTarget, buildtype: str) -> T.Tuple[T.List[str], bool]:
+    def determine_internal_dep_link_args(self, target: build.BuildTarget, buildtype: str) -> tuple[list[str], bool]:
         links_dylib = False
         dep_libs = []
         for l in target.link_targets:
@@ -1669,7 +1669,7 @@ class XCodeBackend(backends.Backend):
 
     def generate_single_build_target(self, objects_dict: PbxDict, target_name: str, target: build.BuildTarget) -> None:
         for buildtype in self.buildtypes:
-            dep_libs: T.List[str] = []
+            dep_libs: list[str] = []
             links_dylib = False
             headerdirs = []
             bridging_header = ""
@@ -1755,7 +1755,7 @@ class XCodeBackend(backends.Backend):
                 ldargs += linker.get_std_shared_lib_link_args()
             ldstr = ' '.join(ldargs)
             valid = self.buildconfmap[target_name][buildtype]
-            langargs: T.Dict[str, T.List[str]] = {}
+            langargs: dict[str, list[str]] = {}
             for lang in self.environment.coredata.compilers[target.for_machine]:
                 if lang not in LANGNAMEMAP:
                     continue
@@ -1873,7 +1873,7 @@ class XCodeBackend(backends.Backend):
             warn_array.add_item('"$(inherited)"')
             bt_dict.add_item('name', buildtype)
 
-    def normalize_header_search_paths(self, header_dirs: T.List[str]) -> PbxArray:
+    def normalize_header_search_paths(self, header_dirs: list[str]) -> PbxArray:
         header_arr = PbxArray()
         for i in header_dirs:
             np = os.path.normpath(i)
@@ -1882,7 +1882,7 @@ class XCodeBackend(backends.Backend):
             header_arr.add_item(item)
         return header_arr
 
-    def add_otherargs(self, settings_dict: PbxDict, langargs: T.Dict[str, T.List[str]]) -> None:
+    def add_otherargs(self, settings_dict: PbxDict, langargs: dict[str, list[str]]) -> None:
         for langname, args in langargs.items():
             if args:
                 quoted_args = []

@@ -89,7 +89,7 @@ def _prepend_pkg_config_path(path: str) -> str:
     return path
 
 
-def _clang_at_least(compiler: 'Compiler', minver: str, apple_minver: T.Optional[str]) -> bool:
+def _clang_at_least(compiler: 'Compiler', minver: str, apple_minver: str | None) -> bool:
     """
     check that Clang compiler is at least a specified version, whether AppleClang or regular Clang
 
@@ -1796,20 +1796,20 @@ class LinuxlikeTests(BasePlatformTests):
         wrap_filename = os.path.join(testdir, 'subprojects', 'foo.wrap')
         source_hash = self.compute_sha256(source_filename)
         patch_hash = self.compute_sha256(patch_filename)
-        wrap = textwrap.dedent("""\
+        wrap = textwrap.dedent(f"""\
             [wrap-file]
             directory = foo
 
             source_url = http://server.invalid/foo
-            source_fallback_url = file://{}
+            source_fallback_url = file://{source_filename}
             source_filename = foo.tar.xz
-            source_hash = {}
+            source_hash = {source_hash}
 
             patch_url = http://server.invalid/foo
-            patch_fallback_url = file://{}
+            patch_fallback_url = file://{patch_filename}
             patch_filename = foo-patch.tar.xz
-            patch_hash = {}
-            """.format(source_filename, source_hash, patch_filename, patch_hash))
+            patch_hash = {patch_hash}
+            """)
         with open(wrap_filename, 'w', encoding='utf-8') as f:
             f.write(wrap)
         self.init(testdir)

@@ -47,7 +47,7 @@ class Python3Module(ExtensionModule):
 
     @typed_pos_args('python3.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
     @typed_kwargs('python3.extension_module', *_MOD_KWARGS)
-    def extension_module(self, state: ModuleState, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: SharedModuleKW) -> SharedModule:
+    def extension_module(self, state: ModuleState, args: tuple[str, list[BuildTargetSource]], kwargs: SharedModuleKW) -> SharedModule:
         host_system = state.environment.machines.host.system
         if host_system == 'darwin':
             # Default suffix is 'dylib' but Python does not use it for extensions.
@@ -60,13 +60,13 @@ class Python3Module(ExtensionModule):
         kwargs['name_prefix'] = ''
         kwargs['name_suffix'] = suffix
         m = self.interpreter.build_target(
-            state.current_node, T.cast('T.Tuple[str, SourcesVarargsType]', args), kwargs, SharedModule)
+            state.current_node, T.cast('tuple[str, SourcesVarargsType]', args), kwargs, SharedModule)
         assert isinstance(m, SharedModule), 'for mypy'
         return m
 
     @noPosargs
     @noKwargs
-    def find_python(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> ExternalProgram:
+    def find_python(self, state: ModuleState, args: list[TYPE_var], kwargs: TYPE_kwargs) -> ExternalProgram:
         command = state.environment.lookup_binary_entry(mesonlib.MachineChoice.HOST, 'python3')
         if command is not None:
             py3 = ExternalProgram.from_entry('python3', command)
@@ -76,12 +76,12 @@ class Python3Module(ExtensionModule):
 
     @noPosargs
     @noKwargs
-    def language_version(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+    def language_version(self, state: ModuleState, args: list[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return sysconfig.get_python_version()
 
     @noKwargs
     @typed_pos_args('python3.sysconfig_path', str)
-    def sysconfig_path(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> str:
+    def sysconfig_path(self, state: ModuleState, args: tuple[str], kwargs: TYPE_kwargs) -> str:
         path_name = args[0]
         valid_names = sysconfig.get_path_names()
         if path_name not in valid_names:

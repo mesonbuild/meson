@@ -4,7 +4,6 @@ import argparse
 import os
 import shutil
 import subprocess
-import typing as T
 
 from . import destdir_join
 
@@ -17,7 +16,7 @@ parser.add_argument('--project-version')
 parser.add_argument('--docdir')
 
 
-def run(argv: T.List[str]) -> int:
+def run(argv: list[str]) -> int:
     options, args = parser.parse_known_args(argv)
     subenv = os.environ.copy()
 

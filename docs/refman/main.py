@@ -40,7 +40,7 @@ def main() -> int:
     if args.force_color:
         mlog.colorize_console = lambda: True
 
-    loaders: T.Dict[str, T.Callable[[], LoaderBase]] = {
+    loaders: dict[str, T.Callable[[], LoaderBase]] = {
         'yaml': lambda: LoaderYAML(args.input),
         'fastyaml': lambda: LoaderYAML(args.input, strict=False),
         'pickle': lambda: LoaderPickle(args.input),
@@ -49,7 +49,7 @@ def main() -> int:
     loader = loaders[args.loader]()
     refMan = loader.load()
 
-    generators: T.Dict[str, T.Callable[[], GeneratorBase]] = {
+    generators: dict[str, T.Callable[[], GeneratorBase]] = {
         'print': lambda: GeneratorPrint(refMan),
         'pickle': lambda: GeneratorPickle(refMan, args.out),
         'md': lambda: GeneratorMD(refMan, args.out, args.sitemap, args.link_defs, not args.no_modules),

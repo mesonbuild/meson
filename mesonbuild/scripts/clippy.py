@@ -19,8 +19,8 @@ if T.TYPE_CHECKING:
 
 class ClippyDriver:
     def __init__(self, build: build.Build, tempdir: str, args: list[str]):
-        self.tools: PerMachine[T.List[str]] = PerMachine([], [])
-        self.warned: T.DefaultDict[str, bool] = defaultdict(lambda: False)
+        self.tools: PerMachine[list[str]] = PerMachine([], [])
+        self.warned: defaultdict[str, bool] = defaultdict(lambda: False)
         self.tempdir = tempdir
         for machine in MachineChoice:
             compilers = build.environment.coredata.compilers[machine]
@@ -35,7 +35,7 @@ class ClippyDriver:
         mlog.warning(f'clippy-driver not found for {machine} machine')
         self.warned[machine] = True
 
-    def __call__(self, target: T.Dict[str, T.Any]) -> T.Iterable[T.Coroutine[None, None, int]]:
+    def __call__(self, target: dict[str, T.Any]) -> T.Iterable[T.Coroutine[None, None, int]]:
         for src_block in target['target_sources']:
             if 'compiler' in src_block and src_block['language'] == 'rust':
                 clippy = getattr(self.tools, src_block['machine'])
@@ -74,7 +74,7 @@ class ClippyDriver:
                 cmdlist += self.args
                 yield run_with_buffered_output(cmdlist)
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     os.chdir(args[0])
     build_data = build.load(os.getcwd())
 

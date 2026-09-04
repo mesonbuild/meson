@@ -9,14 +9,13 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import typing as T
 from pathlib import Path
 
 from ..tooldetect import detect_clangapply, detect_clangtidy
 from .run_tool import run_clang_tool_on_sources, run_with_buffered_output
 
 
-async def run_clang_tidy(fname: Path, tidyexe: list, builddir: Path, fixesdir: T.Optional[Path]) -> int:
+async def run_clang_tidy(fname: Path, tidyexe: list, builddir: Path, fixesdir: Path | None) -> int:
     args = []
     if fixesdir is not None:
         handle, name = tempfile.mkstemp(prefix=fname.name + '.', suffix='.yaml', dir=fixesdir)
@@ -24,7 +23,7 @@ async def run_clang_tidy(fname: Path, tidyexe: list, builddir: Path, fixesdir: T
         args.extend(['-export-fixes', name])
     return await run_with_buffered_output(tidyexe + args + ['-quiet', '-p', str(builddir), str(fname)])
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--fix', action='store_true')
     parser.add_argument('--color', default='always')
@@ -43,7 +42,7 @@ def run(args: T.List[str]) -> int:
     if options.color == 'always' or options.color == 'auto' and sys.stdout.isatty():
         tidyexe += ['--use-color']
 
-    fixesdir: T.Optional[Path] = None
+    fixesdir: Path | None = None
     if options.fix:
         applyexe = detect_clangapply()
         if not applyexe:

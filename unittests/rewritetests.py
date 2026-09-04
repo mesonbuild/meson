@@ -28,7 +28,7 @@ class RewriterTests(BasePlatformTests):
             windows_proof_rmtree(self.builddir)
         shutil.copytree(os.path.join(self.rewrite_test_dir, dirname), self.builddir)
 
-    def rewrite_raw(self, directory: str, args: T.Sequence[str]) -> T.Dict:
+    def rewrite_raw(self, directory: str, args: T.Sequence[str]) -> dict:
         if isinstance(args, str):
             args = [args]
         command = self.rewrite_command + ['--verbose', '--skip', '--sourcedir', directory] + args
@@ -45,7 +45,7 @@ class RewriterTests(BasePlatformTests):
             return {}
         return json.loads(p.stdout)
 
-    def rewrite(self, directory: str, args: T.Sequence[str]) -> T.Dict:
+    def rewrite(self, directory: str, args: T.Sequence[str]) -> dict:
         if isinstance(args, str):
             args = [args]
         return self.rewrite_raw(directory, ['command'] + args)

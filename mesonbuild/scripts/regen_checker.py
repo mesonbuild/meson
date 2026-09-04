@@ -7,7 +7,6 @@ import os
 import pickle
 import subprocess
 import sys
-import typing as T
 
 from ..backend.backends import RegenInfo
 from ..coredata import CoreData
@@ -29,7 +28,7 @@ def need_regen(regeninfo: RegenInfo, regen_timestamp: float) -> bool:
     Vs2010Backend.touch_regen_timestamp(regeninfo.build_dir)
     return False
 
-def regen(regeninfo: RegenInfo, meson_command: T.List[str], backend: str) -> None:
+def regen(regeninfo: RegenInfo, meson_command: list[str], backend: str) -> None:
     cmd = meson_command + ['--internal',
                            'regenerate',
                            regeninfo.build_dir,
@@ -37,7 +36,7 @@ def regen(regeninfo: RegenInfo, meson_command: T.List[str], backend: str) -> Non
                            '--backend=' + backend]
     subprocess.check_call(cmd)
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     private_dir = args[0]
     dumpfile = os.path.join(private_dir, 'regeninfo.dump')
     coredata_file = os.path.join(private_dir, 'coredata.dat')

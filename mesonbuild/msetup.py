@@ -128,7 +128,7 @@ class MesonApp:
         fname = os.path.join(dirname, environment.build_filename)
         return os.path.exists(fname)
 
-    def validate_core_dirs(self, dir1: T.Optional[str], dir2: T.Optional[str]) -> T.Tuple[str, str]:
+    def validate_core_dirs(self, dir1: str | None, dir2: str | None) -> tuple[str, str]:
         invalid_msg_prefix = f'Neither directory {dir1!r} nor directory {dir2!r}'
         if dir1 is None:
             if dir2 is None:
@@ -172,7 +172,7 @@ class MesonApp:
         with open(os.path.join(build_dir, 'CACHEDIR.TAG'), 'w', encoding='utf-8') as ofile:
             ofile.write(cachedir_tag_file)
 
-    def validate_dirs(self) -> T.Tuple[str, str]:
+    def validate_dirs(self) -> tuple[str, str]:
         (src_dir, build_dir) = self.validate_core_dirs(self.options.builddir, self.options.sourcedir)
         if Path(build_dir) in Path(src_dir).parents:
             raise MesonException(f'Build directory {build_dir} cannot be a parent of source directory {src_dir}')
@@ -198,7 +198,7 @@ class MesonApp:
         return src_dir, build_dir
 
     # See class Backend's 'generate' for comments on capture args and returned dictionary.
-    def generate(self, capture: bool = False, vslite_ctx: T.Optional[dict] = None) -> T.Optional[dict]:
+    def generate(self, capture: bool = False, vslite_ctx: dict | None = None) -> dict | None:
         env = environment.Environment(self.source_dir, self.build_dir, self.options)
         if not env.first_invocation:
             assert self.options.reconfigure
@@ -213,10 +213,10 @@ class MesonApp:
                                     'Some other Meson process is already using this build directory. Exiting.'):
             return self._generate(env, capture, vslite_ctx)
 
-    def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Dict[OptionKey, str],
-                             all_subprojects: PerMachine[T.Dict[str, SubprojectHolder]]) -> None:
-        errlist: T.List[str] = []
-        known_subprojects: T.Set[str] = set()
+    def check_unused_options(self, coredata: coredata.CoreData, cmd_line_options: dict[OptionKey, str],
+                             all_subprojects: PerMachine[dict[str, SubprojectHolder]]) -> None:
+        errlist: list[str] = []
+        known_subprojects: set[str] = set()
         for m in MachineChoice:
             known_subprojects.update((name for name, obj in all_subprojects[m].items() if obj.found()))
         for opt in cmd_line_options:
@@ -236,7 +236,7 @@ class MesonApp:
             errstr = ', '.join(errlist)
             raise MesonException(f'Unknown options: {errstr}')
 
-    def _generate(self, env: environment.Environment, capture: bool, vslite_ctx: T.Optional[dict]) -> T.Optional[dict]:
+    def _generate(self, env: environment.Environment, capture: bool, vslite_ctx: dict | None) -> dict | None:
         # Get all user defined options, including options that have been defined
         # during a previous invocation or using meson configure.
         user_defined_options = T.cast('CMDOptions', argparse.Namespace(**vars(self.options)))
@@ -278,8 +278,8 @@ class MesonApp:
             mintro.write_meson_info_file(b, [e])
             raise
 
-        cdf: T.Optional[str] = None
-        captured_compile_args: T.Optional[dict] = None
+        cdf: str | None = None
+        captured_compile_args: dict | None = None
         try:
             dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
             # We would like to write coredata as late as possible since we use the existence of
@@ -406,7 +406,7 @@ def run_genvslite_setup(options: CMDOptions) -> None:
     app = MesonApp(options)
     app.generate(capture=False, vslite_ctx=vslite_ctx)
 
-def run(options: T.Union[CMDOptions, T.List[str]]) -> int:
+def run(options: CMDOptions | list[str]) -> int:
     if isinstance(options, list):
         parser = argparse.ArgumentParser()
         add_arguments(parser)

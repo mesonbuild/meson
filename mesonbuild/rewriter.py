@@ -56,8 +56,7 @@ from .mparser import (
 if T.TYPE_CHECKING:
     import argparse
     from argparse import ArgumentParser, _FormatterClass
-
-    from typing_extensions import TypeAlias
+    from typing import TypeAlias
 
     from .mlog import AnsiDecorator
 
@@ -110,28 +109,28 @@ class RequiredKeys:
 
     def __call__(self, f: RewriterFuncT) -> RewriterFuncT:
         @wraps(f)
-        def wrapped(rewriter: 'Rewriter', cmd: dict[str, object]) -> None:
+        def wrapped(rewriter: Rewriter, cmd: dict[str, object]) -> None:
             for key, (typ, default, choices) in self.keys.items():
                 if key not in cmd:
                     if default is not None:
                         cmd[key] = default
                     else:
-                        raise RewriterException('Key "{}" is missing in object for {}'
-                                                .format(key, f.__name__))
+                        raise RewriterException(f'Key "{key}" is missing in object for {f.__name__}'
+                                                )
                 if not isinstance(cmd[key], typ):
-                    raise RewriterException('Invalid type of "{}". Required is {} but provided was {}'
-                                            .format(key, typ.__name__, type(cmd[key]).__name__))
+                    raise RewriterException(f'Invalid type of "{key}". Required is {typ.__name__} but provided was {type(cmd[key]).__name__}'
+                                            )
                 if choices is not None:
                     if cmd[key] not in choices:
-                        raise RewriterException('Invalid value of "{}": Possible values are {} but provided was "{}"'
-                                                .format(key, choices, cmd[key]))
+                        raise RewriterException(f'Invalid value of "{key}": Possible values are {choices} but provided was "{cmd[key]}"'
+                                                )
             return f(rewriter, cmd)
         return wrapped
 
 class MTypeBase:
     node: BaseNode
 
-    def __init__(self, node: T.Optional[BaseNode] = None):
+    def __init__(self, node: BaseNode | None = None):
         if node is None:
             self.node = self.new_node()
         else:
@@ -147,7 +146,7 @@ class MTypeBase:
         raise RewriterException('Internal error: new_node of MTypeBase was called')
 
     @classmethod
-    def supported_nodes(cls) -> T.List[type]:
+    def supported_nodes(cls) -> list[type]:
         # Overwrite in derived class
         return []
 
@@ -170,53 +169,53 @@ class MTypeBase:
         mlog.warning('Cannot remove a regex in type', mlog.bold(type(self).__name__), '--> skipping')
 
 class MTypeStr(MTypeBase):
-    def __init__(self, node: T.Optional[BaseNode] = None):
+    def __init__(self, node: BaseNode | None = None):
         super().__init__(node)
 
     @classmethod
-    def new_node(cls, value: T.Optional[str] = None) -> BaseNode:
+    def new_node(cls, value: str | None = None) -> BaseNode:
         if value is None:
             value = ''
         return StringNode(Token('string', '', 0, 0, 0, None, str(value)))
 
     @classmethod
-    def supported_nodes(cls) -> T.List[type]:
+    def supported_nodes(cls) -> list[type]:
         return [StringNode]
 
 class MTypeBool(MTypeBase):
-    def __init__(self, node: T.Optional[BaseNode] = None):
+    def __init__(self, node: BaseNode | None = None):
         super().__init__(node)
 
     @classmethod
-    def new_node(cls, value: T.Optional[str] = None) -> BaseNode:
+    def new_node(cls, value: str | None = None) -> BaseNode:
         return BooleanNode(Token('', '', 0, 0, 0, None, bool(value)))
 
     @classmethod
-    def supported_nodes(cls) -> T.List[type]:
+    def supported_nodes(cls) -> list[type]:
         return [BooleanNode]
 
 class MTypeID(MTypeBase):
-    def __init__(self, node: T.Optional[BaseNode] = None):
+    def __init__(self, node: BaseNode | None = None):
         super().__init__(node)
 
     @classmethod
-    def new_node(cls, value: T.Optional[str] = None) -> BaseNode:
+    def new_node(cls, value: str | None = None) -> BaseNode:
         if value is None:
             value = ''
         return IdNode(Token('', '', 0, 0, 0, None, str(value)))
 
     @classmethod
-    def supported_nodes(cls) -> T.List[type]:
+    def supported_nodes(cls) -> list[type]:
         return [IdNode]
 
 class MTypeList(MTypeBase):
     node: ArrayNode
 
-    def __init__(self, node: T.Optional[BaseNode] = None):
+    def __init__(self, node: BaseNode | None = None):
         super().__init__(node)
 
     @classmethod
-    def new_node(cls, value: T.Optional[T.List[T.Any]] = None) -> ArrayNode:
+    def new_node(cls, value: list[T.Any] | None = None) -> ArrayNode:
         if value is None:
             value = []
         elif not isinstance(value, list):
@@ -253,12 +252,12 @@ class MTypeList(MTypeBase):
         return self.node
 
     @classmethod
-    def supported_element_nodes(cls) -> T.List[T.Type]:
+    def supported_element_nodes(cls) -> list[type]:
         # Overwrite in derived class
         return []
 
     @classmethod
-    def supported_nodes(cls) -> T.List[T.Type]:
+    def supported_nodes(cls) -> list[type]:
         return [ArrayNode] + cls.supported_element_nodes()
 
     def add_value(self, value: T.Any) -> None:
@@ -295,7 +294,7 @@ class MTypeList(MTypeBase):
         self._remove_helper(regex, self._check_regex_matches)
 
 class MTypeStrList(MTypeList):
-    def __init__(self, node: T.Optional[BaseNode] = None):
+    def __init__(self, node: BaseNode | None = None):
         super().__init__(node)
 
     @classmethod
@@ -315,11 +314,11 @@ class MTypeStrList(MTypeList):
         return False
 
     @classmethod
-    def supported_element_nodes(cls) -> T.List[T.Type]:
+    def supported_element_nodes(cls) -> list[type]:
         return [StringNode]
 
 class MTypeIDList(MTypeList):
-    def __init__(self, node: T.Optional[BaseNode] = None):
+    def __init__(self, node: BaseNode | None = None):
         super().__init__(node)
 
     @classmethod
@@ -339,10 +338,10 @@ class MTypeIDList(MTypeList):
         return False
 
     @classmethod
-    def supported_element_nodes(cls) -> T.List[T.Type]:
+    def supported_element_nodes(cls) -> list[type]:
         return [IdNode]
 
-rewriter_keys: T.Dict[str, RewriterKeysT] = {
+rewriter_keys: dict[str, RewriterKeysT] = {
     'default_options': {
         'operation': (str, None, ['set', 'delete']),
         'options': (dict, {}, None)
@@ -397,15 +396,15 @@ rewriter_func_kwargs = {
 }
 
 class Rewriter:
-    info_dump: T.Optional[T.Dict[str, T.Dict[str, T.Any]]]
+    info_dump: dict[str, dict[str, T.Any]] | None
 
     def __init__(self, sourcedir: str, generator: str = 'ninja', skip_errors: bool = False):
         self.sourcedir = sourcedir
         self.interpreter = IntrospectionInterpreter(sourcedir, '', generator, visitors = [AstIDGenerator(), AstIndentationGenerator(), AstConditionLevel()])
         self.skip_errors = skip_errors
-        self.modified_nodes: T.List[BaseNode] = []
-        self.to_remove_nodes: T.List[BaseNode] = []
-        self.to_add_nodes: T.List[BaseNode] = []
+        self.modified_nodes: list[BaseNode] = []
+        self.to_remove_nodes: list[BaseNode] = []
+        self.to_add_nodes: list[BaseNode] = []
         self.functions = {
             'default_options': self.process_default_options,
             'kwargs': self.process_kwargs,
@@ -431,7 +430,7 @@ class Rewriter:
             return
         sys.stdout.write(json.dumps(self.info_dump, indent=2, cls=IntrospectionEncoder))
 
-    def on_error(self) -> T.Tuple[AnsiDecorator, AnsiDecorator]:
+    def on_error(self) -> tuple[AnsiDecorator, AnsiDecorator]:
         if self.skip_errors:
             return mlog.cyan('-->'), mlog.yellow('skipping')
         return mlog.cyan('-->'), mlog.red('aborting')
@@ -441,7 +440,7 @@ class Rewriter:
             return None
         raise MesonException('Rewriting the meson.build failed')
 
-    def all_assignments(self, varname: str) -> T.List[BaseNode]:
+    def all_assignments(self, varname: str) -> list[BaseNode]:
         assigned_values = []
         for ass in self.interpreter.all_assignment_nodes[varname]:
             if isinstance(ass, PlusAssignmentNode):
@@ -450,7 +449,7 @@ class Rewriter:
             assigned_values.append(ass.value)
         return assigned_values
 
-    def find_target(self, target: str) -> T.Optional[IntrospectionBuildTarget]:
+    def find_target(self, target: str) -> IntrospectionBuildTarget | None:
         for i in self.interpreter.targets:
             if target == i.id:
                 return i
@@ -477,8 +476,8 @@ class Rewriter:
             self.handle_error()
             return None
 
-    def find_dependency(self, dependency: str) -> T.Optional[IntrospectionDependency]:
-        potential_deps: T.List[IntrospectionDependency] = []
+    def find_dependency(self, dependency: str) -> IntrospectionDependency | None:
+        potential_deps: list[IntrospectionDependency] = []
         for i in self.interpreter.dependencies:
             if i.name == dependency:
                 potential_deps.append(i)
@@ -505,9 +504,9 @@ class Rewriter:
             return None
 
     @RequiredKeys(rewriter_keys['default_options'])
-    def process_default_options(self, cmd: T.Dict[str, T.Any]) -> None:
+    def process_default_options(self, cmd: dict[str, T.Any]) -> None:
         # First, remove the old values
-        kwargs_cmd: T.Dict[str, T.Any] = {
+        kwargs_cmd: dict[str, T.Any] = {
             'function': 'project',
             'id': "/",
             'operation': 'remove_regex',
@@ -547,7 +546,7 @@ class Rewriter:
         self.process_kwargs(kwargs_cmd)
 
     @RequiredKeys(rewriter_keys['kwargs'])
-    def process_kwargs(self, cmd: T.Dict[str, T.Any]) -> None:
+    def process_kwargs(self, cmd: dict[str, T.Any]) -> None:
         mlog.log('Processing function type', mlog.bold(cmd['function']), 'with id', mlog.cyan("'" + cmd['id'] + "'"))
         if cmd['function'] not in rewriter_func_kwargs:
             mlog.error('Unknown function type', cmd['function'], *self.on_error())
@@ -591,7 +590,7 @@ class Rewriter:
 
         # Print kwargs info
         if cmd['operation'] == 'info':
-            info_data: T.Dict[str, T.Any] = {}
+            info_data: dict[str, T.Any] = {}
             for key, val in sorted(kwargs.items()):
                 info_data[key] = None
                 if isinstance(val, ElementaryNode):
@@ -671,7 +670,7 @@ class Rewriter:
         if num_changed > 0 and node not in self.modified_nodes:
             self.modified_nodes += [node]
 
-    def find_assignment_node(self, node: BaseNode) -> T.Optional[AssignmentNode]:
+    def find_assignment_node(self, node: BaseNode) -> AssignmentNode | None:
         for k, v in self.interpreter.all_assignment_nodes.items():
             for ass in v:
                 if ass.value == node:
@@ -694,11 +693,11 @@ class Rewriter:
             return None
         return (cwd / next(x for x in all_paths[0] if isinstance(x, FunctionNode)).filename).parent
 
-    def add_src_or_extra(self, op: str, target: IntrospectionBuildTarget, newfiles: T.List[str], to_sort_nodes: T.List[T.Union[FunctionNode, ArrayNode]]) -> None:
+    def add_src_or_extra(self, op: str, target: IntrospectionBuildTarget, newfiles: list[str], to_sort_nodes: list[FunctionNode | ArrayNode]) -> None:
         assert op in {'src_add', 'extra_files_add'}
 
         if op == 'src_add':
-            old: T.Set[T.Union[BaseNode, UnknownValue]] = set(target.source_nodes)
+            old: set[BaseNode | UnknownValue] = set(target.source_nodes)
         elif op == 'extra_files_add':
             if target.extra_files is None:
                 old = set()
@@ -757,7 +756,7 @@ class Rewriter:
 
         candidates2 = {x for x in candidates2 if self.get_relto(target.node, x) is not None}
 
-        chosen: T.Union[FunctionNode, ArrayNode] = None
+        chosen: FunctionNode | ArrayNode = None
         new_kwarg_flag = False
         if len(candidates2) > 0:
             # So that files(['a', 'b']) gets modified to files(['a', 'b', 'c']) instead of files(['a', 'b'], 'c')
@@ -840,7 +839,7 @@ class Rewriter:
             self.modified_nodes += [chosen]
 
     # Utility function to get a list of the sources from a node
-    def arg_list_from_node(self, n: BaseNode) -> T.List[BaseNode]:
+    def arg_list_from_node(self, n: BaseNode) -> list[BaseNode]:
         args = []
         if isinstance(n, FunctionNode):
             args = list(n.args.arguments)
@@ -852,13 +851,13 @@ class Rewriter:
             args = n.arguments
         return args
 
-    def rm_src_or_extra(self, op: str, target: IntrospectionBuildTarget, to_be_removed: T.List[str], to_sort_nodes: T.List[T.Union[FunctionNode, ArrayNode]]) -> None:
+    def rm_src_or_extra(self, op: str, target: IntrospectionBuildTarget, to_be_removed: list[str], to_sort_nodes: list[FunctionNode | ArrayNode]) -> None:
         assert op in {'src_rm', 'extra_files_rm'}
         cwd = Path(os.getcwd())
         source_root_abs = cwd / self.interpreter.source_root
 
         # Helper to find the exact string node and its parent
-        def find_node(src: str) -> T.Tuple[T.Optional[BaseNode], T.Optional[StringNode]]:
+        def find_node(src: str) -> tuple[BaseNode | None, StringNode | None]:
             if op == 'src_rm':
                 nodes = self.interpreter.dataflow_dag.reachable(set(target.source_nodes), True).union({target.node})
             elif op == 'extra_files_rm':
@@ -905,7 +904,7 @@ class Rewriter:
                 self.modified_nodes += [root]
 
     @RequiredKeys(rewriter_keys['target'])
-    def process_target(self, cmd: T.Dict[str, T.Any]) -> None:
+    def process_target(self, cmd: dict[str, T.Any]) -> None:
         mlog.log('Processing target', mlog.bold(cmd['target']), 'operation', mlog.cyan(cmd['operation']))
         target = self.find_target(cmd['target'])
         if target is None and cmd['operation'] != 'target_add':
@@ -925,7 +924,7 @@ class Rewriter:
         if target is not None:
             cmd['sources'] = [rel_source(x) for x in cmd['sources']]
 
-        to_sort_nodes: T.List[T.Union[FunctionNode, ArrayNode]] = []
+        to_sort_nodes: list[FunctionNode | ArrayNode] = []
 
         if cmd['operation'] in {'src_add', 'extra_files_add'}:
             self.add_src_or_extra(cmd['operation'], target, cmd['sources'], to_sort_nodes)
@@ -1000,12 +999,12 @@ class Rewriter:
             else:
                 src_args = i.args.arguments
                 target_name = []
-            unknown: T.List[BaseNode] = [x for x in src_args if not isinstance(x, StringNode)]
-            sources: T.List[StringNode] = [x for x in src_args if isinstance(x, StringNode)]
+            unknown: list[BaseNode] = [x for x in src_args if not isinstance(x, StringNode)]
+            sources: list[StringNode] = [x for x in src_args if isinstance(x, StringNode)]
             sources = sorted(sources, key=lambda x: pathname_sort_key(x.value))
-            i.args.arguments = target_name + unknown + T.cast(T.List[BaseNode], sources)
+            i.args.arguments = target_name + unknown + T.cast(list[BaseNode], sources)
 
-    def process(self, cmd: T.Dict[str, T.Any]) -> None:
+    def process(self, cmd: dict[str, T.Any]) -> None:
         if 'type' not in cmd:
             raise RewriterException('Command has no key "type"')
         if cmd['type'] not in self.functions:
@@ -1042,7 +1041,7 @@ class Rewriter:
             str_list += [data]
 
         # Load build files
-        files: T.Dict[str, T.Any] = {}
+        files: dict[str, T.Any] = {}
         for i in str_list:
             if i['file'] in files:
                 continue
@@ -1070,7 +1069,7 @@ class Rewriter:
             }
 
         # Replace in source code
-        def remove_node(i: T.Dict[str, T.Any]) -> None:
+        def remove_node(i: dict[str, T.Any]) -> None:
             offsets = files[i['file']]['offsets']
             raw = files[i['file']]['raw']
             node = i['node']
@@ -1116,7 +1115,7 @@ target_operation_map = {
     'info': 'info',
 }
 
-def list_to_dict(in_list: T.List[str]) -> T.Dict[str, str]:
+def list_to_dict(in_list: list[str]) -> dict[str, str]:
     result = {}
     it = iter(in_list)
     try:
@@ -1129,14 +1128,14 @@ def list_to_dict(in_list: T.List[str]) -> T.Dict[str, str]:
         raise RewriterException('List of key/value pairs must have an even length.')
     return result
 
-def list_to_dict_for_delete(args: T.List[str]) -> T.Dict[str, T.Optional[str]]:
+def list_to_dict_for_delete(args: list[str]) -> dict[str, str | None]:
     if len(args) % 2 == 0 and all(a == '' for a in args[1::2]):
         mlog.deprecation('Even-numbered arguments are all blank; '
                          'ignoring these for compatibility with Meson < 1.10')
         args = args[::2]
     return {a: None for a in args}
 
-def generate_target(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]:
+def generate_target(options: argparse.Namespace) -> list[dict[str, T.Any]]:
     return [{
         'type': 'target',
         'target': options.target,
@@ -1146,7 +1145,7 @@ def generate_target(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]:
         'target_type': options.tgt_type,
     }]
 
-def generate_kwargs(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]:
+def generate_kwargs(options: argparse.Namespace) -> list[dict[str, T.Any]]:
     if options.operation == 'delete':
         kwargs = list_to_dict_for_delete(options.kwargs)
     else:
@@ -1159,7 +1158,7 @@ def generate_kwargs(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]:
         'kwargs': kwargs,
     }]
 
-def generate_def_opts(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]:
+def generate_def_opts(options: argparse.Namespace) -> list[dict[str, T.Any]]:
     if options.operation == 'delete':
         kwargs = list_to_dict_for_delete(options.options)
     else:
@@ -1170,12 +1169,12 @@ def generate_def_opts(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]
         'options': kwargs,
     }]
 
-def generate_cmd(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]:
+def generate_cmd(options: argparse.Namespace) -> list[dict[str, T.Any]]:
     if os.path.exists(options.json):
         with open(options.json, encoding='utf-8') as fp:
-            return T.cast(T.List[T.Dict[str, T.Any]], json.load(fp))
+            return T.cast(list[dict[str, T.Any]], json.load(fp))
     else:
-        return T.cast(T.List[T.Dict[str, T.Any]], json.loads(options.json))
+        return T.cast(list[dict[str, T.Any]], json.loads(options.json))
 
 # Map options.type to the actual type name
 cli_type_map = {

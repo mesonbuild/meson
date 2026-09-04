@@ -25,16 +25,9 @@ from .model import (
 )
 
 PlaceholderTypes = T.Union[None, str, bool]
-FunctionDictType = T.Dict[
+FunctionDictType = dict[
     str,
-    T.Union[
-        PlaceholderTypes,
-        T.Dict[str, PlaceholderTypes],
-        T.Dict[str, T.Dict[str, PlaceholderTypes]],
-        T.Dict[str, T.List[T.Dict[str, PlaceholderTypes]]],
-        T.List[T.Dict[str, PlaceholderTypes]],
-        T.List[str],
-    ]
+    PlaceholderTypes | dict[str, PlaceholderTypes] | dict[str, dict[str, PlaceholderTypes]] | dict[str, list[dict[str, PlaceholderTypes]]] | list[dict[str, PlaceholderTypes]] | list[str]
 ]
 
 _ROOT_BASENAME = 'Reference-manual'
@@ -70,7 +63,7 @@ class GeneratorMD(GeneratorBase):
         self.link_def_out = link_def_out.resolve()
         self.out_dir = self.sitemap_out.parent
         self.enable_modules = enable_modules
-        self.generated_files: T.Dict[str, str] = {}
+        self.generated_files: dict[str, str] = {}
 
     # Utility functions
     def _gen_filename(self, file_id: str, *, extension: str = 'md') -> str:
@@ -92,7 +85,7 @@ class GeneratorMD(GeneratorBase):
             return f'{base}.{obj.name}'
         return f'root.{_OBJ_ID_MAP[obj.obj_type]}.{obj.name}'
 
-    def _link_to_object(self, obj: T.Union[Function, Object], in_code_block: bool = False) -> str:
+    def _link_to_object(self, obj: Function | Object, in_code_block: bool = False) -> str:
         '''
             Generate a placeholder tag for the function/method/object documentation.
             This tag is then replaced in the custom hotdoc plugin.
@@ -115,7 +108,7 @@ class GeneratorMD(GeneratorBase):
         out_file.write_text(data, encoding='ascii')
         mlog.log('Generated', mlog.bold(out_file.name))
 
-    def _write_template(self, data: T.Dict[str, T.Any], file_id: str, template_name: T.Optional[str] = None) -> None:
+    def _write_template(self, data: dict[str, T.Any], file_id: str, template_name: str | None = None) -> None:
         ''' Render the template mustache files and write the result '''
         template_dir = Path(__file__).resolve().parent / 'templates'
         template_name = template_name or file_id
@@ -164,7 +157,7 @@ class GeneratorMD(GeneratorBase):
             ''')
 
             # Calculate maximum lengths of the type and name
-            all_args: T.List[ArgBase] = []
+            all_args: list[ArgBase] = []
             all_args += func.posargs
             all_args += func.optargs
             all_args += [func.varargs] if func.varargs else []
@@ -176,7 +169,7 @@ class GeneratorMD(GeneratorBase):
                 max_name_len = max([len(x.name) for x in all_args])
 
             # Generate some common strings
-            def prepare(arg: ArgBase, link: bool = True) -> T.Tuple[str, str, str, str]:
+            def prepare(arg: ArgBase, link: bool = True) -> tuple[str, str, str, str]:
                 type_str = render_type(arg.type, True)
                 type_len = len_stripped(type_str)
                 type_space = ' ' * (max_type_len - type_len)
@@ -220,8 +213,8 @@ class GeneratorMD(GeneratorBase):
 
             return signature + ')'
 
-        def gen_arg_data(arg: T.Union[PosArg, Kwarg, VarArgs], *, optional: bool = False) -> T.Dict[str, PlaceholderTypes]:
-            data: T.Dict[str, PlaceholderTypes] = {
+        def gen_arg_data(arg: PosArg | Kwarg | VarArgs, *, optional: bool = False) -> dict[str, PlaceholderTypes]:
+            data: dict[str, PlaceholderTypes] = {
                 'row-id': arg_anchor(arg),
                 'name': arg.name,
                 'type': render_type(arg.type),
@@ -302,8 +295,8 @@ class GeneratorMD(GeneratorBase):
         self._write_template(data, f'root.{_OBJ_ID_MAP[ObjectType.FUNCTIONS]}')
 
     def _root_refman_docs(self) -> None:
-        def gen_obj_links(objs: T.List[Object]) -> T.List[T.Dict[str, str]]:
-            ret: T.List[T.Dict[str, str]] = []
+        def gen_obj_links(objs: list[Object]) -> list[dict[str, str]]:
+            ret: list[dict[str, str]] = []
             for o in objs:
                 ret += [{'indent': '', 'link': self._link_to_object(o), 'brief': self.brief(o)}]
                 for m in self.sorted_and_filtered(o.methods):
@@ -375,7 +368,7 @@ class GeneratorMD(GeneratorBase):
             plugin. The plugin is then responsible for replacing the [[tag]]
             tags with custom HTML elements.
         '''
-        data: T.Dict[str, str] = {}
+        data: dict[str, str] = {}
 
         # Objects and methods
         for obj in self.objects:

@@ -6,10 +6,10 @@ from __future__ import annotations
 import typing as T
 
 
-def parse(lines: T.Iterable[str]) -> T.List[T.Tuple[T.List[str], T.List[str]]]:
-    rules: T.List[T.Tuple[T.List[str], T.List[str]]] = []
-    targets: T.List[str] = []
-    deps: T.List[str] = []
+def parse(lines: T.Iterable[str]) -> list[tuple[list[str], list[str]]]:
+    rules: list[tuple[list[str], list[str]]] = []
+    targets: list[str] = []
+    deps: list[str] = []
     in_deps = False
     out = ''
     for line in lines:
@@ -51,13 +51,13 @@ def parse(lines: T.Iterable[str]) -> T.List[T.Tuple[T.List[str], T.List[str]]]:
 
 class Target(T.NamedTuple):
 
-    deps: T.Set[str]
+    deps: set[str]
 
 
 class DepFile:
     def __init__(self, lines: T.Iterable[str]):
         rules = parse(lines)
-        depfile: T.Dict[str, Target] = {}
+        depfile: dict[str, Target] = {}
         for (targets, deps) in rules:
             for target in targets:
                 t = depfile.setdefault(target, Target(deps=set()))
@@ -65,8 +65,8 @@ class DepFile:
                     t.deps.add(dep)
         self.depfile = depfile
 
-    def get_all_dependencies(self, name: str, visited: T.Optional[T.Set[str]] = None) -> T.List[str]:
-        deps: T.Set[str] = set()
+    def get_all_dependencies(self, name: str, visited: set[str] | None = None) -> list[str]:
+        deps: set[str] = set()
         if not visited:
             visited = set()
         if name in visited:

@@ -29,16 +29,16 @@ if T.TYPE_CHECKING:
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
-def netcdf_factory(env: 'Environment',
+def netcdf_factory(env: Environment,
                    kwargs: DependencyObjectKWs,
-                   methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
+                   methods: list[DependencyMethods]) -> list[DependencyGenerator]:
     language = kwargs.get('language')
     if language is None:
         language = 'c'
     if language not in ('c', 'cpp', 'fortran'):
         raise DependencyException(f'Language {language} is not supported with NetCDF.')
 
-    candidates: T.List['DependencyGenerator'] = []
+    candidates: list[DependencyGenerator] = []
 
     if DependencyMethods.PKGCONFIG in methods:
         if language == 'fortran':
@@ -94,7 +94,7 @@ class AtomicSystemDependency(SystemDependency):
 
 
 class DlBuiltinDependency(BuiltinDependency):
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, env, kwargs)
         self.feature_since = ('0.62.0', "consider checking for `dlopen` with and without `find_library('dl')`")
 
@@ -103,7 +103,7 @@ class DlBuiltinDependency(BuiltinDependency):
 
 
 class DlSystemDependency(SystemDependency):
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, env, kwargs)
         self.feature_since = ('0.62.0', "consider checking for `dlopen` with and without `find_library('dl')`")
 
@@ -131,7 +131,7 @@ class OpenMPDependency(SystemDependency):
         '199810': '1.0',
     }
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs) -> None:
         super().__init__(name, environment, kwargs)
         self.is_found = False
         if self.clib_compiler.get_id() == 'nagfor':
@@ -184,7 +184,7 @@ packages['openmp'] = OpenMPDependency
 
 
 class ThreadDependency(SystemDependency):
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs) -> None:
         super().__init__(name, environment, kwargs)
         self.is_found = True
         # Happens if you are using a language with threads
@@ -198,7 +198,7 @@ class ThreadDependency(SystemDependency):
 
 
 class BlocksDependency(SystemDependency):
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs) -> None:
         super().__init__(name, environment, kwargs)
         self.name = 'blocks'
         self.is_found = False
@@ -241,7 +241,7 @@ class PcapDependencyConfigTool(ConfigToolDependency):
     # version 1.10.3 will hopefully add actual support for --version
     skip_version = '--help'
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
@@ -251,7 +251,7 @@ class PcapDependencyConfigTool(ConfigToolDependency):
             # older pcap-config versions don't support this
             self.version = self.get_pcap_lib_version()
 
-    def get_pcap_lib_version(self) -> T.Optional[str]:
+    def get_pcap_lib_version(self) -> str | None:
         # Since we seem to need to run a program to discover the pcap version,
         # we can't do that when cross-compiling
         # FIXME: this should be handled if we have an exe_wrapper
@@ -270,7 +270,7 @@ class CupsDependencyConfigTool(ConfigToolDependency):
     tools = ['cups-config']
     tool_name = 'cups-config'
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
@@ -283,7 +283,7 @@ class LibWmfDependencyConfigTool(ConfigToolDependency):
     tools = ['libwmf-config']
     tool_name = 'libwmf-config'
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
@@ -296,7 +296,7 @@ class LibGCryptDependencyConfigTool(ConfigToolDependency):
     tools = ['libgcrypt-config']
     tool_name = 'libgcrypt-config'
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
@@ -310,7 +310,7 @@ class GpgmeDependencyConfigTool(ConfigToolDependency):
     tools = ['gpgme-config']
     tool_name = 'gpg-config'
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
@@ -321,7 +321,7 @@ class GpgmeDependencyConfigTool(ConfigToolDependency):
 
 class ShadercDependency(SystemDependency):
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, environment, kwargs)
 
         static_lib = 'shaderc_combined'
@@ -353,7 +353,7 @@ class CursesConfigToolDependency(ConfigToolDependency):
     # ncurses5.4-config is for macOS Catalina
     tools = ['ncursesw6-config', 'ncursesw5-config', 'ncurses6-config', 'ncurses5-config', 'ncurses5.4-config']
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
         exclude_paths = None
         # macOS mistakenly ships /usr/bin/ncurses5.4-config and a man page for
         # it, but none of the headers or libraries. Ignore /usr/bin because it
@@ -377,7 +377,7 @@ class CursesSystemDependency(SystemDependency):
     implementations, and the differences between them can be very annoying.
     """
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, env, kwargs)
 
         candidates = [
@@ -424,7 +424,7 @@ class CursesSystemDependency(SystemDependency):
 
 
 class IconvBuiltinDependency(BuiltinDependency):
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, env, kwargs)
         self.feature_since = ('0.60.0', "consider checking for `iconv_open` with and without `find_library('iconv')`")
         code = '''#include <iconv.h>\n\nint main() {\n    iconv_open("","");\n}''' # [ignore encoding] this is C, not python, Mr. Lint
@@ -434,7 +434,7 @@ class IconvBuiltinDependency(BuiltinDependency):
 
 
 class IconvSystemDependency(SystemDependency):
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, env, kwargs)
         self.feature_since = ('0.60.0', "consider checking for `iconv_open` with and without find_library('iconv')")
 
@@ -446,7 +446,7 @@ class IconvSystemDependency(SystemDependency):
 
 
 class IntlBuiltinDependency(BuiltinDependency):
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, env, kwargs)
         self.feature_since = ('0.59.0', "consider checking for `ngettext` with and without `find_library('intl')`")
         code = '''#include <libintl.h>\n\nint main() {\n    gettext("Hello world");\n}'''
@@ -456,7 +456,7 @@ class IntlBuiltinDependency(BuiltinDependency):
 
 
 class IntlSystemDependency(SystemDependency):
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, env, kwargs)
         self.feature_since = ('0.59.0', "consider checking for `ngettext` with and without `find_library('intl')`")
 
@@ -472,7 +472,7 @@ class IntlSystemDependency(SystemDependency):
 
 
 class OpensslSystemDependency(SystemDependency):
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, env, kwargs)
 
         dependency_kwargs: DependencyObjectKWs = {
@@ -526,7 +526,7 @@ class ObjFWDependency(ConfigToolDependency):
     tools = ['objfw-config']
     tool_name = 'objfw-config'
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, environment, kwargs)
         self.feature_since = ('1.5.0', '')
         if not self.is_found:
@@ -546,10 +546,10 @@ class ObjFWDependency(ConfigToolDependency):
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
-def curses_factory(env: 'Environment',
+def curses_factory(env: Environment,
                    kwargs: DependencyObjectKWs,
-                   methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
-    candidates: T.List['DependencyGenerator'] = []
+                   methods: list[DependencyMethods]) -> list[DependencyGenerator]:
+    candidates: list[DependencyGenerator] = []
     for_machine = kwargs['native']
 
     if DependencyMethods.PKGCONFIG in methods:
@@ -575,16 +575,16 @@ packages['curses'] = curses_factory
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM})
-def shaderc_factory(env: 'Environment',
+def shaderc_factory(env: Environment,
                     kwargs: DependencyObjectKWs,
-                    methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
+                    methods: list[DependencyMethods]) -> list[DependencyGenerator]:
     """Custom DependencyFactory for ShaderC.
 
     ShaderC's odd you get three different libraries from the same build
     thing are just easier to represent as a separate function than
     twisting DependencyFactory even more.
     """
-    candidates: T.List['DependencyGenerator'] = []
+    candidates: list[DependencyGenerator] = []
 
     if DependencyMethods.PKGCONFIG in methods:
         # ShaderC packages their shared and static libs together

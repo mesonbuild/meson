@@ -1571,7 +1571,7 @@ class AllPlatformTests(BasePlatformTests):
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
-        extra_args: T.List[str] = []
+        extra_args: list[str] = []
         if cc.get_id() == 'clang':
             if is_windows():
                 raise SkipTest('LTO not (yet) supported by windows clang')
@@ -3950,7 +3950,7 @@ class AllPlatformTests(BasePlatformTests):
         # First load all files
         res = {}
         for i in root_keylist:
-            curr = os.path.join(infodir, 'intro-{}.json'.format(i[0]))
+            curr = os.path.join(infodir, f'intro-{i[0]}.json')
             self.assertPathExists(curr)
             with open(curr, encoding='utf-8') as fp:
                 res[i[0]] = json.load(fp)
@@ -4820,12 +4820,12 @@ class AllPlatformTests(BasePlatformTests):
             upstream_uri = Path(upstream).as_uri()
             git_init(upstream)
             with open(os.path.join(srcdir, 'subprojects', 'wrap_git.wrap'), 'w', encoding='utf-8') as f:
-                f.write(textwrap.dedent('''
+                f.write(textwrap.dedent(f'''
                   [wrap-git]
-                  url = {}
+                  url = {upstream_uri}
                   patch_directory = wrap_git_builddef
                   revision = master
-                '''.format(upstream_uri)))
+                '''))
             out = self.init(srcdir)
             self.build()
             self.run_tests()
@@ -4837,12 +4837,12 @@ class AllPlatformTests(BasePlatformTests):
             # Change the wrap's revisions, reconfigure, and make sure it does
             # warn on the reconfigure.
             with open(os.path.join(srcdir, 'subprojects', 'wrap_git.wrap'), 'w', encoding='utf-8') as f:
-                f.write(textwrap.dedent('''
+                f.write(textwrap.dedent(f'''
                   [wrap-git]
-                  url = {}
+                  url = {upstream_uri}
                   patch_directory = wrap_git_builddef
                   revision = not-master
-                '''.format(upstream_uri)))
+                '''))
             out = self.init(srcdir, extra_args='--reconfigure')
             self.assertIn(out_of_date_warning, out)
 
@@ -5578,7 +5578,7 @@ class AllPlatformTests(BasePlatformTests):
 
         for data_type, files in expected_fixed.items():
             for file, details in files.items():
-                with self.subTest(key='{}.{}'.format(data_type, file)):
+                with self.subTest(key=f'{data_type}.{file}'):
                     self.assertEqual(res[data_type][file], details)
 
     @skip_if_not_language('rust')

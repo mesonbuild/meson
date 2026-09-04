@@ -23,7 +23,7 @@ if T.TYPE_CHECKING:
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
-def add_arguments(parser: 'argparse.ArgumentParser') -> None:
+def add_arguments(parser: argparse.ArgumentParser) -> None:
     action = parser.add_mutually_exclusive_group(required=True)
     action.add_argument('--cross', default=False, action='store_true',
                         help='Generate a cross compilation file.')
@@ -55,19 +55,19 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
 
 @dataclass
 class MachineInfo:
-    compilers: T.Dict[str, T.List[str]] = field(default_factory=dict)
-    binaries: T.Dict[str, T.List[str]] = field(default_factory=dict)
-    properties: T.Dict[str, T.Union[str, T.List[str]]] = field(default_factory=dict)
-    compile_args: T.Dict[str, T.List[str]] = field(default_factory=dict)
-    link_args: T.Dict[str, T.List[str]] = field(default_factory=dict)
-    cmake: T.Dict[str, T.Union[str, T.List[str]]] = field(default_factory=dict)
+    compilers: dict[str, list[str]] = field(default_factory=dict)
+    binaries: dict[str, list[str]] = field(default_factory=dict)
+    properties: dict[str, str | list[str]] = field(default_factory=dict)
+    compile_args: dict[str, list[str]] = field(default_factory=dict)
+    link_args: dict[str, list[str]] = field(default_factory=dict)
+    cmake: dict[str, str | list[str]] = field(default_factory=dict)
 
-    system: T.Optional[str] = None
-    subsystem: T.Optional[str] = None
-    kernel: T.Optional[str] = None
-    cpu: T.Optional[str] = None
-    cpu_family: T.Optional[str] = None
-    endian: T.Optional[str] = None
+    system: str | None = None
+    subsystem: str | None = None
+    kernel: str | None = None
+    cpu: str | None = None
+    cpu_family: str | None = None
+    endian: str | None = None
 
 #parser = argparse.ArgumentParser(description='''Generate cross compilation definition file for the Meson build system.
 #
@@ -80,7 +80,7 @@ class MachineInfo:
 #'''
 #)
 
-def locate_path(program: str) -> T.List[str]:
+def locate_path(program: str) -> list[str]:
     if os.path.isabs(program):
         return [program]
     for d in os.get_exec_path():
@@ -89,7 +89,7 @@ def locate_path(program: str) -> T.List[str]:
             return [f]
     raise ValueError("%s not found on $PATH" % program)
 
-def write_args_line(ofile: T.TextIO, name: str, args: T.Union[str, T.List[str]]) -> None:
+def write_args_line(ofile: T.TextIO, name: str, args: str | list[str]) -> None:
     if len(args) == 0:
         return
     if isinstance(args, str):
@@ -171,7 +171,7 @@ def replace_special_cases(special_cases: T.Mapping[str, str], name: str) -> str:
     '''
     return special_cases.get(name, name)
 
-def deb_detect_cmake(infos: MachineInfo, data: T.Dict[str, str]) -> None:
+def deb_detect_cmake(infos: MachineInfo, data: dict[str, str]) -> None:
     system_name_map = {'linux': 'Linux', 'kfreebsd': 'kFreeBSD', 'hurd': 'GNU'}
     system_processor_map = {'arm': 'armv7l', 'mips64el': 'mips64', 'powerpc64le': 'ppc64le'}
 
@@ -183,7 +183,7 @@ def deb_detect_cmake(infos: MachineInfo, data: T.Dict[str, str]) -> None:
     infos.cmake["CMAKE_SYSTEM_NAME"] = system_name_map[data['DEB_HOST_ARCH_OS']]
     infos.cmake["CMAKE_SYSTEM_PROCESSOR"] = replace_special_cases(system_processor_map, data['DEB_HOST_GNU_CPU'])
 
-def deb_compiler_lookup(infos: MachineInfo, compilerstems: T.List[T.Tuple[str, str]], host_arch: str, gccsuffix: str) -> None:
+def deb_compiler_lookup(infos: MachineInfo, compilerstems: list[tuple[str, str]], host_arch: str, gccsuffix: str) -> None:
     for langname, stem in compilerstems:
         compilername = f'{host_arch}-{stem}{gccsuffix}'
         try:
@@ -327,7 +327,7 @@ def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bo
 
     os.replace(tmpfilename, ofilename)
 
-def detect_language_args_from_envvars(langname: str, envvar_suffix: str = '') -> T.Tuple[T.List[str], T.List[str]]:
+def detect_language_args_from_envvars(langname: str, envvar_suffix: str = '') -> tuple[list[str], list[str]]:
     compile_args = []
     if langname in compilers.CFLAGS_MAPPING:
         compile_args = shlex.split(os.environ.get(
@@ -400,7 +400,7 @@ def detect_cross_env(options: T.Any) -> MachineInfo:
     detect_properties_from_envvars(infos)
     return infos
 
-def add_compiler_if_missing(infos: MachineInfo, langname: str, exe_names: T.List[str]) -> None:
+def add_compiler_if_missing(infos: MachineInfo, langname: str, exe_names: list[str]) -> None:
     if langname in infos.compilers:
         return
     for exe_name in exe_names:

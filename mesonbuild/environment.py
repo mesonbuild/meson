@@ -59,7 +59,7 @@ def _as_str(val: object) -> str:
     return val
 
 
-def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T.Optional[str]:
+def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> str | None:
     """
     Returns the exact env var and the value.
     """
@@ -116,7 +116,7 @@ class Environment:
 
     exe_wrapper: ExternalProgram | None
 
-    def __init__(self, source_dir: str, build_dir: T.Optional[str], cmd_options: cmdline.SharedCMDOptions) -> None:
+    def __init__(self, source_dir: str, build_dir: str | None, cmd_options: cmdline.SharedCMDOptions) -> None:
         self.source_dir = source_dir
         # Do not try to create build directories when build_dir is none.
         # This reduced mode is used by the --buildoptions introspector
@@ -271,9 +271,9 @@ class Environment:
 
         self.default_cmake = ['cmake']
         self.default_pkgconfig = ['pkg-config']
-        self.wrap_resolver: T.Optional['Resolver'] = None
+        self.wrap_resolver: Resolver | None = None
 
-    def mfilestr2key(self, machine_file_string: str, section: T.Optional[str], section_subproject: T.Optional[str], machine: MachineChoice) -> OptionKey:
+    def mfilestr2key(self, machine_file_string: str, section: str | None, section_subproject: str | None, machine: MachineChoice) -> OptionKey:
         key = OptionKey.from_string(machine_file_string)
         if key.subproject:
             suggestion = section if section == 'project options' else 'built-in options'
@@ -303,7 +303,7 @@ class Environment:
         # Next look for compiler options in the "properties" section, this is
         # also deprecated, and these will also be overwritten by the "built-in
         # options" section. We need to remove these from this section, as well.
-        deprecated_properties: T.Set[str] = set()
+        deprecated_properties: set[str] = set()
         for lang in compilers.all_languages:
             deprecated_properties.add(lang + '_args')
             deprecated_properties.add(lang + '_link_args')
@@ -342,12 +342,12 @@ class Environment:
                     f'Replace `[{section_subproject}:{section}]` with `[{correct_subproject}:{correct_section}]`')
 
     def _set_default_options_from_env(self) -> None:
-        opts: T.List[T.Tuple[str, str]] = (
+        opts: list[tuple[str, str]] = (
             [(v, f'{k}_args') for k, v in compilers.compilers.CFLAGS_MAPPING.items()] +
             NON_LANG_ENV_OPTIONS
         )
 
-        env_opts: T.DefaultDict[OptionKey, T.List[str]] = collections.defaultdict(list)
+        env_opts: collections.defaultdict[OptionKey, list[str]] = collections.defaultdict(list)
 
         for (evar, keyname), for_machine in itertools.product(opts, MachineChoice):
             p_env = _get_env_var(for_machine, self.is_cross_build(), evar)
@@ -428,7 +428,7 @@ class Environment:
     def _set_default_properties_from_env(self) -> None:
         """Properties which can also be set from the environment."""
         # name, evar, split
-        opts: T.List[T.Tuple[str, T.List[str], bool]] = [
+        opts: list[tuple[str, list[str], bool]] = [
             ('boost_includedir', ['BOOST_INCLUDEDIR'], False),
             ('boost_librarydir', ['BOOST_LIBRARYDIR'], False),
             ('boost_root', ['BOOST_ROOT', 'BOOSTROOT'], True),
@@ -481,13 +481,13 @@ class Environment:
         return self.coredata
 
     @staticmethod
-    def get_build_command(unbuffered: bool = False) -> T.List[str]:
+    def get_build_command(unbuffered: bool = False) -> list[str]:
         cmd = mesonlib.get_meson_command().copy()
         if unbuffered and 'python' in os.path.basename(cmd[0]):
             cmd.insert(1, '-u')
         return cmd
 
-    def lookup_binary_entry(self, for_machine: MachineChoice, name: str) -> T.Optional[T.List[str]]:
+    def lookup_binary_entry(self, for_machine: MachineChoice, name: str) -> list[str] | None:
         return self.binaries[for_machine].lookup_entry(name)
 
     def get_scratch_dir(self) -> str:
@@ -547,7 +547,7 @@ class Environment:
     def get_datadir(self) -> str:
         return _as_str(self.coredata.optstore.get_value_for(OptionKey('datadir')))
 
-    def get_compiler_system_lib_dirs(self, for_machine: MachineChoice) -> T.List[str]:
+    def get_compiler_system_lib_dirs(self, for_machine: MachineChoice) -> list[str]:
         for comp in self.coredata.compilers[for_machine].values():
             if comp.id == 'clang':
                 index = 1
@@ -566,7 +566,7 @@ class Environment:
         split = out.split('\n')[index].lstrip('libraries: =').split(':')
         return [os.path.normpath(p) for p in split]
 
-    def get_compiler_system_include_dirs(self, for_machine: MachineChoice) -> T.List[str]:
+    def get_compiler_system_include_dirs(self, for_machine: MachineChoice) -> list[str]:
         for comp in self.coredata.compilers[for_machine].values():
             if comp.id == 'clang':
                 break
@@ -587,7 +587,7 @@ class Environment:
             return False
         return not machine_info_can_run(self.machines[for_machine])
 
-    def get_exe_wrapper(self) -> T.Optional[ExternalProgram]:
+    def get_exe_wrapper(self) -> ExternalProgram | None:
         if not self.need_exe_wrapper():
             return None
         return self.exe_wrapper
@@ -595,7 +595,7 @@ class Environment:
     def has_exe_wrapper(self) -> bool:
         return self.exe_wrapper is not None and self.exe_wrapper.found()
 
-    def get_env_for_paths(self, library_paths: T.Set[str], extra_paths: T.Set[str]) -> mesonlib.EnvironmentVariables:
+    def get_env_for_paths(self, library_paths: set[str], extra_paths: set[str]) -> mesonlib.EnvironmentVariables:
         env = mesonlib.EnvironmentVariables()
         need_wine = not self.machines.build.is_windows() and self.machines.host.is_windows()
         if need_wine:
@@ -617,7 +617,7 @@ class Environment:
             env.prepend('PATH', list(extra_paths))
         return env
 
-    def add_lang_args(self, lang: Language, comp: T.Type['Compiler'],
+    def add_lang_args(self, lang: Language, comp: type[Compiler],
                       for_machine: MachineChoice) -> None:
         """Add global language arguments that are needed before compiler/linker detection."""
         description = f'Extra arguments passed to the {lang}'
@@ -658,7 +658,7 @@ class Environment:
             # autotools compatibility.
             largs.extend_value(comp_options)
 
-    def update_build_machine(self, compilers: T.Optional[CompilerDict] = None) -> None:
+    def update_build_machine(self, compilers: CompilerDict | None = None) -> None:
         """Redetect the build machine and update the machine definitions
 
         :compilers: An optional dictionary of compilers to use instead of the coredata dict.

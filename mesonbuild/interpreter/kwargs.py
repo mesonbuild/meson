@@ -7,8 +7,9 @@
 from __future__ import annotations
 
 import typing as T
+from typing import Literal
 
-from typing_extensions import Literal, NotRequired, Protocol, TypedDict
+from typing_extensions import NotRequired, Protocol, TypedDict
 
 from .. import build, options
 from ..compilers import Compiler
@@ -44,22 +45,22 @@ class FuncAddProjectArgs(TypedDict):
     """
 
     native: MachineChoice
-    language: T.List[Language]
+    language: list[Language]
 
 
 class BaseTest(TypedDict):
 
     """Shared base for the Rust module."""
 
-    should_fail: T.Optional[bool]
-    expected_fail: T.Optional[bool]
-    expected_exitcode: T.Optional[int]
+    should_fail: bool | None
+    expected_fail: bool | None
+    expected_exitcode: int | None
     timeout: int
-    workdir: T.Optional[str]
+    workdir: str | None
     priority: int
     env: EnvironmentVariables
-    depends: T.List[TargetDepends]
-    suite: T.List[str]
+    depends: list[TargetDepends]
+    suite: list[str]
     verbose: bool
 
 
@@ -68,7 +69,7 @@ class FuncBenchmark(BaseTest):
     """Keyword arguments used by `benchmark` and `test`, but not Rust"""
 
     # Needs complex refactor for rust test to go in BaseTest
-    args: T.List[build.CommandTypes]
+    args: list[build.CommandTypes]
     protocol: Literal['exitcode', 'tap', 'gtest', 'rust']
 
 class FuncTest(FuncBenchmark):
@@ -86,7 +87,7 @@ class ExtractRequired(TypedDict):
     a boolean or a feature option should inherit its arguments from this class.
     """
 
-    required: T.Union[bool, Feature]
+    required: bool | Feature
 
 
 class ExtractSearchDirs(TypedDict):
@@ -96,28 +97,28 @@ class ExtractSearchDirs(TypedDict):
     See the not in `ExtractRequired`
     """
 
-    dirs: T.List[str]
+    dirs: list[str]
 
 
 class FuncGenerator(TypedDict):
 
     """Keyword rguments for the generator function."""
 
-    arguments: T.List[str]
-    output: T.List[str]
-    depfile: T.Optional[str]
+    arguments: list[str]
+    output: list[str]
+    depfile: str | None
     capture:  bool
-    depends: T.List[TargetDepends]
+    depends: list[TargetDepends]
 
 
 class GeneratorProcess(TypedDict):
 
     """Keyword Arguments for generator.process."""
 
-    preserve_path_from: T.Optional[str]
-    extra_args: T.List[str]
+    preserve_path_from: str | None
+    extra_args: list[str]
     env: EnvironmentVariables
-    depends: T.List[build.GeneratedTypes]
+    depends: list[build.GeneratedTypes]
 
 class DependencyMethodPartialDependency(TypedDict):
 
@@ -135,53 +136,53 @@ class BuildTargeMethodExtractAllObjects(TypedDict):
 class FuncInstallSubdir(TypedDict):
 
     install_dir: str
-    install_tag: T.Optional[str]
+    install_tag: str | None
     strip_directory: bool
-    exclude_files: T.List[str]
-    exclude_directories: T.List[str]
+    exclude_files: list[str]
+    exclude_directories: list[str]
     install_mode: FileMode
-    follow_symlinks: T.Optional[bool]
+    follow_symlinks: bool | None
 
 
 class FuncInstallData(TypedDict):
 
     install_dir: str
-    sources: T.List[FileOrString]
-    rename: T.List[str]
+    sources: list[FileOrString]
+    rename: list[str]
     install_mode: FileMode
-    install_tag: T.Optional[str]
-    follow_symlinks: T.Optional[bool]
+    install_tag: str | None
+    follow_symlinks: bool | None
     preserve_path: bool
 
 
 class FuncInstallEmptyDir(TypedDict):
 
     install_mode: FileMode
-    install_tag: T.Optional[str]
+    install_tag: str | None
 
 
 class FuncInstallHeaders(TypedDict):
 
-    install_dir: T.Optional[str]
+    install_dir: str | None
     install_mode: FileMode
-    subdir: T.Optional[str]
-    follow_symlinks: T.Optional[bool]
-    install_tag: T.Optional[str]
+    subdir: str | None
+    follow_symlinks: bool | None
+    install_tag: str | None
     preserve_path: bool
 
 
 class FuncInstallMan(TypedDict):
 
-    install_dir: T.Optional[str]
+    install_dir: str | None
     install_mode: FileMode
-    install_tag: T.Optional[str]
-    locale: T.Optional[str]
+    install_tag: str | None
+    locale: str | None
 
 
 class FuncInstallSymlink(TypedDict):
 
-    install_dir: T.Optional[str]
-    install_tag: T.Optional[str]
+    install_dir: str | None
+    install_tag: str | None
     pointing_to: str
 
 
@@ -200,49 +201,49 @@ class FuncAddLanguages(ExtractRequired):
 
 class RunTarget(TypedDict):
 
-    command: T.List[build.CommandTypes]
-    depends: T.List[TargetDepends]
+    command: list[build.CommandTypes]
+    depends: list[TargetDepends]
     env: EnvironmentVariables
 
 
 class CustomTarget(TypedDict):
 
     build_always: bool
-    build_always_stale: T.Optional[bool]
-    build_by_default: T.Optional[bool]
+    build_always_stale: bool | None
+    build_by_default: bool | None
     build_subdir: str
     capture: bool
-    command: T.List[build.CommandTypes]
+    command: list[build.CommandTypes]
     console: bool
-    depend_files: T.List[FileOrString]
-    depends: T.List[TargetDepends]
-    depfile: T.Optional[str]
+    depend_files: list[FileOrString]
+    depends: list[TargetDepends]
+    depfile: str | None
     env: EnvironmentVariables
     feed: bool
-    input: T.List[CustomTargetInputs]
+    input: list[CustomTargetInputs]
     install: bool
-    install_dir: T.List[T.Union[str, T.Literal[False]]]
+    install_dir: list[str | T.Literal[False]]
     install_mode: FileMode
-    install_tag: T.List[T.Optional[str]]
-    output: T.List[str]
+    install_tag: list[str | None]
+    output: list[str]
 
 class AddTestSetup(TypedDict):
 
-    exe_wrapper: T.List[T.Union[str, ExternalProgram]]
+    exe_wrapper: list[str | ExternalProgram]
     gdb: bool
     timeout_multiplier: int
     is_default: bool
-    exclude_suites: T.List[str]
+    exclude_suites: list[str]
     env: EnvironmentVariables
 
 
 class Project(TypedDict):
 
     version: FileOrString
-    meson_version: T.Optional[str]
+    meson_version: str | None
     default_options: options.OptionDict
-    license: T.List[str]
-    license_files: T.List[str]
+    license: list[str]
+    license_files: list[str]
     subproject_dir: str
 
 
@@ -258,68 +259,68 @@ class _FoundProto(Protocol):
 
 class Subdir(TypedDict):
 
-    if_found: T.List[_FoundProto]
+    if_found: list[_FoundProto]
 
 
 class Summary(TypedDict):
 
     section: str
     bool_yn: bool
-    list_sep: T.Optional[str]
+    list_sep: str | None
 
 
 class FindProgram(ExtractRequired, ExtractSearchDirs):
 
-    default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
+    default_options: dict[OptionKey, options.ElementaryOptionValues]
     native: MachineChoice
-    version: T.List[str]
+    version: list[str]
     version_argument: str
 
 
 class RunCommand(TypedDict):
 
     check: bool
-    capture: T.Optional[bool]
-    console: T.Optional[bool]
+    capture: bool | None
+    console: bool | None
     env: EnvironmentVariables
 
 
 class FeatureOptionRequire(TypedDict):
 
-    error_message: T.Optional[str]
+    error_message: str | None
 
 
 class DependencyPkgConfigVar(TypedDict):
 
-    default: T.Optional[str]
+    default: str | None
     define_variable: PkgConfigDefineType
 
 
 class DependencyGetVariable(TypedDict):
 
-    cmake: T.Optional[str]
-    pkgconfig: T.Optional[str]
-    configtool: T.Optional[str]
-    internal: T.Optional[str]
-    system: T.Optional[str]
-    default_value: T.Optional[str]
+    cmake: str | None
+    pkgconfig: str | None
+    configtool: str | None
+    internal: str | None
+    system: str | None
+    default_value: str | None
     pkgconfig_define: PkgConfigDefineType
 
 
 class ConfigurationDataSet(TypedDict):
 
-    description: T.Optional[str]
+    description: str | None
 
 class VcsTag(TypedDict):
 
-    command: T.List[build.CommandTypes]
-    fallback: T.Optional[str]
+    command: list[build.CommandTypes]
+    fallback: str | None
     input: list[CustomTargetInputs]
-    output: T.List[str]
+    output: list[str]
     replace_string: str
     install: bool
-    install_tag: T.Optional[str]
-    install_dir: T.Optional[str]
+    install_tag: str | None
+    install_dir: str | None
     install_mode: FileMode
 
 
@@ -329,33 +330,33 @@ class ConfigureFile(TypedDict):
     capture: bool
     format: T.Literal['meson', 'cmake', 'cmake@']
     output_format: T.Literal['c', 'json', 'nasm']
-    depfile: T.Optional[str]
-    install: T.Optional[bool]
-    install_dir: T.Union[str, T.Literal[False]]
+    depfile: str | None
+    install: bool | None
+    install_dir: str | T.Literal[False]
     install_mode: FileMode
-    install_tag: T.Optional[str]
+    install_tag: str | None
     encoding: str
-    command: T.Optional[T.List[T.Union[build.Executable, Program, Compiler, File, str]]]
-    input: T.List[FileOrString]
-    configuration: T.Optional[T.Union[T.Dict[str, T.Union[str, int, bool]], build.ConfigurationData]]
-    macro_name: T.Optional[str]
+    command: list[build.Executable | Program | Compiler | File | str] | None
+    input: list[FileOrString]
+    configuration: dict[str, str | int | bool] | build.ConfigurationData | None
+    macro_name: str | None
     build_subdir: str
     copy: bool
 
 
 class Subproject(ExtractRequired):
 
-    default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
-    version: T.List[str]
+    default_options: dict[OptionKey, options.ElementaryOptionValues]
+    version: list[str]
     native: MachineChoice
 
 
 class DoSubproject(ExtractRequired):
 
-    default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
-    version: T.List[str]
-    cmake_options: T.List[str]
-    options: T.Optional[CMakeSubprojectOptions]
+    default_options: dict[OptionKey, options.ElementaryOptionValues]
+    version: list[str]
+    cmake_options: list[str]
+    options: CMakeSubprojectOptions | None
     for_machine: MachineChoice
 
 
@@ -370,86 +371,86 @@ class BaseBuildTarget(TypedDict):
     build_by_default: bool
     build_rpath: str
     build_subdir: str
-    dependencies: T.List[Dependency]
-    extra_files: T.List[FileOrString]
+    dependencies: list[Dependency]
+    extra_files: list[FileOrString]
     gnu_symbol_visibility: str
-    include_directories: T.List[T.Union[str, build.IncludeDirs]]
+    include_directories: list[str | build.IncludeDirs]
     install: bool
     install_mode: FileMode
-    install_tag: T.Optional[str]
+    install_tag: str | None
     install_rpath: str
     implicit_include_directories: bool
-    link_depends: T.List[T.Union[str, File, build.BuildTargetTypes]]
-    link_language: T.Optional[Language]
-    link_whole: T.List[build.StaticTargetTypes]
-    link_with: T.List[build.LinkableTargetTypes]
-    name_prefix: T.Optional[str]
-    name_suffix: T.Optional[str]
+    link_depends: list[str | File | build.BuildTargetTypes]
+    link_language: Language | None
+    link_whole: list[build.StaticTargetTypes]
+    link_with: list[build.LinkableTargetTypes]
+    name_prefix: str | None
+    name_suffix: str | None
     native: MachineChoice
-    objects: T.List[BuildTargetObjects]
-    override_options: T.Dict[str, options.ElementaryOptionValues]
-    depend_files: NotRequired[T.List[File]]
-    resources: T.List[str]
-    vala_header: T.Optional[str]
-    vala_vapi: T.Optional[str]
-    vala_gir: T.Optional[str]
+    objects: list[BuildTargetObjects]
+    override_options: dict[str, options.ElementaryOptionValues]
+    depend_files: NotRequired[list[File]]
+    resources: list[str]
+    vala_header: str | None
+    vala_vapi: str | None
+    vala_gir: str | None
 
 
 class BuildTarget(BaseBuildTarget):
 
     """Arguments shared by non-JAR functions"""
 
-    d_debug: T.List[T.Union[str, int]]
-    d_import_dirs: T.List[T.Union[str, build.IncludeDirs]]
-    d_module_versions: T.List[T.Union[str, int]]
+    d_debug: list[str | int]
+    d_import_dirs: list[str | build.IncludeDirs]
+    d_module_versions: list[str | int]
     d_unittest: bool
-    install_dir: T.List[T.Union[str, bool]]
-    install_vala_header: T.Union[str, bool, None]
-    install_vala_vapi: T.Union[str, bool, None]
-    install_vala_gir: T.Union[str, bool, None]
-    rust_crate_type: T.Optional[Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']]
-    rust_dependency_map: T.Dict[str, str]
+    install_dir: list[str | bool]
+    install_vala_header: str | bool | None
+    install_vala_vapi: str | bool | None
+    install_vala_gir: str | bool | None
+    rust_crate_type: Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro'] | None
+    rust_dependency_map: dict[str, str]
     swift_interoperability_mode: Literal['c', 'cpp']
     swift_module_name: str
     sources: SourcesVarargsType
-    link_args: T.List[str]
-    link_early_args: T.List[str]
-    c_pch: T.Optional[T.Tuple[str, T.Optional[str]]]
-    cpp_pch: T.Optional[T.Tuple[str, T.Optional[str]]]
-    c_args: T.List[str]
-    cpp_args: T.List[str]
-    cuda_args: T.List[str]
-    fortran_args: T.List[str]
-    d_args: T.List[str]
-    objc_args: T.List[str]
-    objcpp_args: T.List[str]
-    rust_args: T.List[str]
-    vala_args: T.List[T.Union[str, File]]  # Yes, Vala is really special
-    cs_args: T.List[str]
-    swift_args: T.List[str]
-    cython_args: T.List[str]
-    nasm_args: T.List[str]
-    masm_args: T.List[str]
+    link_args: list[str]
+    link_early_args: list[str]
+    c_pch: tuple[str, str | None] | None
+    cpp_pch: tuple[str, str | None] | None
+    c_args: list[str]
+    cpp_args: list[str]
+    cuda_args: list[str]
+    fortran_args: list[str]
+    d_args: list[str]
+    objc_args: list[str]
+    objcpp_args: list[str]
+    rust_args: list[str]
+    vala_args: list[str | File]  # Yes, Vala is really special
+    cs_args: list[str]
+    swift_args: list[str]
+    cython_args: list[str]
+    nasm_args: list[str]
+    masm_args: list[str]
 
 
 class _LibraryMixin(TypedDict):
 
-    rust_abi: T.Optional[RustAbi]
+    rust_abi: RustAbi | None
 
 
 class _LinkableTargetMixin(TypedDict):
 
-    vs_module_defs: T.Optional[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex]]
-    win_subsystem: T.Optional[str]
+    vs_module_defs: str | File | build.CustomTarget | build.CustomTargetIndex | None
+    win_subsystem: str | None
 
 
 class _ExecutableMixin(TypedDict):
 
-    export_dynamic: T.Optional[bool]
-    gui_app: T.Optional[bool]
-    implib: T.Optional[T.Union[str, bool]]
-    pie: T.Optional[bool]
-    android_exe_type: T.Optional[Literal['application', 'executable']]
+    export_dynamic: bool | None
+    gui_app: bool | None
+    implib: str | bool | None
+    pie: bool | None
+    android_exe_type: Literal['application', 'executable'] | None
 
 
 class Executable(BuildTarget, _ExecutableMixin, _LinkableTargetMixin):
@@ -459,7 +460,7 @@ class Executable(BuildTarget, _ExecutableMixin, _LinkableTargetMixin):
 class _StaticLibMixin(TypedDict):
 
     prelink: bool
-    pic: T.Optional[bool]
+    pic: bool | None
 
 
 class StaticLibrary(BuildTarget, _StaticLibMixin, _LibraryMixin):
@@ -468,9 +469,9 @@ class StaticLibrary(BuildTarget, _StaticLibMixin, _LibraryMixin):
 
 class _SharedLibMixin(TypedDict):
 
-    darwin_versions: T.Optional[T.Tuple[str, str]]
-    soversion: T.Optional[str]
-    version: T.Optional[str]
+    darwin_versions: tuple[str, str] | None
+    soversion: str | None
+    version: str | None
     shortname: str
 
 
@@ -486,46 +487,46 @@ class Library(BuildTarget, _SharedLibMixin, _StaticLibMixin, _LibraryMixin, _Lin
 
     """For library, both_library, and as a base for build_target"""
 
-    c_static_args: NotRequired[T.List[str]]
-    c_shared_args: NotRequired[T.List[str]]
-    cpp_static_args: NotRequired[T.List[str]]
-    cpp_shared_args: NotRequired[T.List[str]]
-    cuda_static_args: NotRequired[T.List[str]]
-    cuda_shared_args: NotRequired[T.List[str]]
-    fortran_static_args: NotRequired[T.List[str]]
-    fortran_shared_args: NotRequired[T.List[str]]
-    d_static_args: NotRequired[T.List[str]]
-    d_shared_args: NotRequired[T.List[str]]
-    objc_static_args: NotRequired[T.List[str]]
-    objc_shared_args: NotRequired[T.List[str]]
-    objcpp_static_args: NotRequired[T.List[str]]
-    objcpp_shared_args: NotRequired[T.List[str]]
-    rust_static_args: NotRequired[T.List[str]]
-    rust_shared_args: NotRequired[T.List[str]]
-    vala_static_args: NotRequired[T.List[T.Union[str, File]]]  # Yes, Vala is really special
-    vala_shared_args: NotRequired[T.List[T.Union[str, File]]]  # Yes, Vala is really special
-    cs_static_args: NotRequired[T.List[str]]
-    cs_shared_args: NotRequired[T.List[str]]
-    swift_static_args: NotRequired[T.List[str]]
-    swift_shared_args: NotRequired[T.List[str]]
-    cython_static_args: NotRequired[T.List[str]]
-    cython_shared_args: NotRequired[T.List[str]]
-    nasm_static_args: NotRequired[T.List[str]]
-    nasm_shared_args: NotRequired[T.List[str]]
-    masm_static_args: NotRequired[T.List[str]]
-    masm_shared_args: NotRequired[T.List[str]]
+    c_static_args: NotRequired[list[str]]
+    c_shared_args: NotRequired[list[str]]
+    cpp_static_args: NotRequired[list[str]]
+    cpp_shared_args: NotRequired[list[str]]
+    cuda_static_args: NotRequired[list[str]]
+    cuda_shared_args: NotRequired[list[str]]
+    fortran_static_args: NotRequired[list[str]]
+    fortran_shared_args: NotRequired[list[str]]
+    d_static_args: NotRequired[list[str]]
+    d_shared_args: NotRequired[list[str]]
+    objc_static_args: NotRequired[list[str]]
+    objc_shared_args: NotRequired[list[str]]
+    objcpp_static_args: NotRequired[list[str]]
+    objcpp_shared_args: NotRequired[list[str]]
+    rust_static_args: NotRequired[list[str]]
+    rust_shared_args: NotRequired[list[str]]
+    vala_static_args: NotRequired[list[str | File]]  # Yes, Vala is really special
+    vala_shared_args: NotRequired[list[str | File]]  # Yes, Vala is really special
+    cs_static_args: NotRequired[list[str]]
+    cs_shared_args: NotRequired[list[str]]
+    swift_static_args: NotRequired[list[str]]
+    swift_shared_args: NotRequired[list[str]]
+    cython_static_args: NotRequired[list[str]]
+    cython_shared_args: NotRequired[list[str]]
+    nasm_static_args: NotRequired[list[str]]
+    nasm_shared_args: NotRequired[list[str]]
+    masm_static_args: NotRequired[list[str]]
+    masm_shared_args: NotRequired[list[str]]
 
 
 class _JarMixin(TypedDict):
 
     main_class: str
-    java_resources: T.Optional[build.StructuredSources]
-    java_args: T.List[str]
+    java_resources: build.StructuredSources | None
+    java_args: list[str]
 
 
 class Jar(BaseBuildTarget, _JarMixin):
 
-    sources: T.Union[str, build.TargetSources, build.ExtractedObjects, build.BuildTarget]
+    sources: str | build.TargetSources | build.ExtractedObjects | build.BuildTarget
 
 
 class BuildTargetFunc(Library, _ExecutableMixin, _JarMixin):
@@ -536,41 +537,41 @@ class BuildTargetFunc(Library, _ExecutableMixin, _JarMixin):
 
 class FuncDeclareDependency(TypedDict):
 
-    compile_args: T.List[str]
-    d_import_dirs: T.List[T.Union[build.IncludeDirs, str]]
-    d_module_versions: T.List[T.Union[str, int]]
-    dependencies: T.List[Dependency]
-    extra_files: T.List[FileOrString]
-    include_directories: T.List[T.Union[build.IncludeDirs, str]]
-    link_args: T.List[str]
-    link_whole: T.List[build.StaticTargetTypes]
-    link_with: T.List[build.LinkableTargetTypes]
-    objects: T.List[build.ExtractedObjects]
-    sources: T.List[str | build.TargetSources]
-    variables: T.Dict[str, str]
-    version: T.Optional[str]
+    compile_args: list[str]
+    d_import_dirs: list[build.IncludeDirs | str]
+    d_module_versions: list[str | int]
+    dependencies: list[Dependency]
+    extra_files: list[FileOrString]
+    include_directories: list[build.IncludeDirs | str]
+    link_args: list[str]
+    link_whole: list[build.StaticTargetTypes]
+    link_with: list[build.LinkableTargetTypes]
+    objects: list[build.ExtractedObjects]
+    sources: list[str | build.TargetSources]
+    variables: dict[str, str]
+    version: str | None
 
 
 class FuncDependency(ExtractRequired):
 
-    allow_fallback: T.Optional[bool]
-    cmake_args: T.List[str]
-    cmake_module_path: T.List[str]
+    allow_fallback: bool | None
+    cmake_args: list[str]
+    cmake_module_path: list[str]
     cmake_package_version: str
-    components: T.List[str]
-    default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
-    fallback: T.Union[str, T.List[str], None]
+    components: list[str]
+    default_options: dict[OptionKey, options.ElementaryOptionValues]
+    fallback: str | list[str] | None
     include_type: IncludeType
-    language: T.Optional[Language]
+    language: Language | None
     main: bool
     method: DependencyMethods
-    modules: T.List[str]
+    modules: list[str]
     native: MachineChoice
     not_found_message: str
-    optional_modules: T.List[str]
+    optional_modules: list[str]
     private_headers: bool
-    static: T.Optional[bool]
-    version: T.List[str]
+    static: bool | None
+    version: list[str]
 
 
 class FuncExpectError(TypedDict):

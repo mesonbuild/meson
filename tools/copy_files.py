@@ -12,7 +12,7 @@ from pathlib import Path
 
 PathLike = T.Union[Path,str]
 
-def copy_files(files: T.List[str], input_dir: PathLike, output_dir: PathLike) -> None:
+def copy_files(files: list[str], input_dir: PathLike, output_dir: PathLike) -> None:
     if not input_dir:
         raise ValueError('Input directory value is not set')
     if not output_dir:
