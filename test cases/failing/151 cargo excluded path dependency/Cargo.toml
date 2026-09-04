@@ -1,0 +1,9 @@
+[workspace]
+resolver = "3"
+members = [
+	"alpha"
+]
+# "excluded" is not a workspace member and is not under subprojects/
+exclude = [
+	"excluded"
+]
