@@ -233,6 +233,7 @@ available on all platforms or with all compilers:
 | b_bitcode           | false                | true, false                                                   | Embed Apple bitcode, see below                                                 |
 | b_colorout          | always               | auto, always, never                                           | Use colored output                                                             |
 | b_coverage          | false                | true, false                                                   | Enable coverage tracking                                                       |
+| b_freestanding      | false                | true, false                                                   | Build without assuming a hosted standard library                               |
 | b_lundef            | true                 | true, false                                                   | Don't allow undefined symbols when linking                                     |
 | b_lto               | false                | true, false                                                   | Use link time optimization                                                     |
 | b_lto_threads       | 0                    | Any integer*                                                  | Use multiple threads for lto. *(Added in 0.57.0)*                              |
