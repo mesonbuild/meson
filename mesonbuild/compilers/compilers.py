@@ -153,7 +153,7 @@ def is_source_suffix(suffix: str) -> bool:
 
 @cache
 def cached_is_source_by_name(fname: str) -> bool:
-    suffix = fname.split('.')[-1].lower()
+    suffix = fname.rsplit('.', maxsplit=1)[-1].lower()
     return is_source_suffix(suffix)
 
 def is_source(fname: mesonlib.FileOrString) -> bool:
@@ -184,7 +184,7 @@ def is_llvm_ir(fname: mesonlib.FileOrString) -> bool:
 
 @cache
 def cached_is_object_by_name(fname: str) -> bool:
-    suffix = fname.split('.')[-1]
+    suffix = fname.rsplit('.', maxsplit=1)[-1]
     return suffix in obj_suffixes
 
 def is_object(fname: mesonlib.FileOrString) -> bool:
@@ -197,7 +197,7 @@ def cached_is_library_by_name(fname: str) -> bool:
     if soregex.match(fname):
         return True
 
-    suffix = fname.split('.')[-1]
+    suffix = fname.rsplit('.', maxsplit=1)[-1]
     return suffix in lib_suffixes
 
 def is_library(fname: mesonlib.FileOrString) -> bool:

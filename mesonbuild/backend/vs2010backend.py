@@ -853,7 +853,7 @@ class Vs2010Backend(backends.Backend):
         # correctly configure these intellisense fields.
         # For now, all sources/headers that fail to find their extension's language in the '...nmake_defs_paths_opts...' map will just adopt the project
         # defs/dirs/opts that are set for the nominal 'primary' src type.
-        ext = src.split('.')[-1]
+        ext = src.rsplit('.', maxsplit=1)[-1]
         lang = compilers.compilers.SUFFIX_TO_LANG.get(ext, None)
         if lang in defs_paths_opts_per_lang_and_buildtype.keys():
             # This is a non-primary src type for which can't simply reference the project's nmake fields;

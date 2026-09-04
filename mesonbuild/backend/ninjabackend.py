@@ -3566,7 +3566,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def generate_gcc_pch_command(self, target: build.BuildTarget, compiler: Compiler, pch: str) -> tuple[CompilerArgs, str, str, list[str]]:
         commands = self._generate_single_compile(target, compiler)
-        if pch.split('.')[-1] == 'h' and compiler.language == 'cpp':
+        if pch.rsplit('.', maxsplit=1)[-1] == 'h' and compiler.language == 'cpp':
             # Explicitly compile pch headers as C++. If Clang is invoked in C++ mode, it actually warns if
             # this option is not set, and for gcc it also makes sense to use it.
             commands += ['-x', 'c++-header']

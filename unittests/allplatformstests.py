@@ -409,7 +409,7 @@ class AllPlatformTests(BasePlatformTests):
         if default_prefix() == '/usr/local':
             expected[None] = expected['/usr/local']
 
-        for prefix in expected:
+        for prefix, exvalues in expected.items():
             args = []
             if prefix:
                 args += ['--prefix', prefix]
@@ -418,7 +418,7 @@ class AllPlatformTests(BasePlatformTests):
             for opt in opts:
                 name = opt['name']
                 value = opt['value']
-                if name in expected[prefix]:
+                if name in exvalues:
                     with self.subTest(prefix=prefix, option=name):
                         self.assertEqual(value, expected[prefix][name], f'For option {name} and prefix {prefix}.')
             self.wipe()

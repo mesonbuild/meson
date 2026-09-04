@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
   target-version = "py310"
 
   [tool.ruff.lint]
-    select = ["E", "F", "I", "PLE", "PLW", "UP"]
+    select = ["E", "F", "I", "PLC", "PLE", "PLW", "UP"]
 
     exclude = [
       "test cases/**",
@@ -16,6 +16,8 @@ build-backend = "setuptools.build_meta"
     ignore = [
       "E501",     # line-too-long. Worth fixing. Also, there's like 4000 violations
       "E741",     # Ambiguous variable. Might be worth fixing, but doesn't like one letter variables in short loops
+      "PLC0105",  # TypeVar naming rules. No thanks.
+      "PLC0415",  # import at top of file rules. We already have this covered
       "PLW0603",  # Global. We should stop using global, but we're already ignoring it
       "PLW1641",  # Lots of objects don't have hash methods, this is a weird error
       "PLW2901",  # for loop overwriting variable. Has a ton of false positives from a loop replace default values

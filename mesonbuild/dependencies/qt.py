@@ -39,7 +39,7 @@ def _qt_get_private_includes(mod_inc_dir: str, module: str, mod_version: str) ->
 
     # on Qt4 when available private folder is directly in module folder
     # like /usr/include/QtCore/private/
-    if int(mod_version.split('.')[0]) < 5:
+    if int(mod_version.split('.', maxsplit=1)[0]) < 5:
         return []
 
     private_dir = os.path.join(mod_inc_dir, mod_version)

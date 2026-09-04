@@ -230,7 +230,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() in {'gcc', 'clang'}:
-            for name in {'ct', 'ct0'}:
+            for name in ('ct', 'ct0'):
                 ct_dep = PkgConfigDependency(name, env, kwargs)
                 self.assertTrue(ct_dep.found())
                 self.assertIn('-lct', ct_dep.get_link_args(raw=True))

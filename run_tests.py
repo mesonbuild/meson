@@ -182,7 +182,7 @@ else:
 
 def handle_meson_skip_test(out: str) -> tuple[bool, str]:
     for line in out.splitlines():
-        for prefix in {'Problem encountered', 'Assert failed', 'Failed to configure the CMake subproject'}:
+        for prefix in ('Problem encountered', 'Assert failed', 'Failed to configure the CMake subproject'):
             if f'{prefix}: MESON_SKIP_TEST' in line:
                 offset = line.index('MESON_SKIP_TEST') + 16
                 reason = line[offset:].strip()

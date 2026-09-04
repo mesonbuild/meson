@@ -425,7 +425,7 @@ class XCodeBackend(backends.Backend):
         self.generate_regen_info()
 
     def get_xcodetype(self, fname: str) -> str:
-        extension = fname.split('.')[-1]
+        extension = fname.rsplit('.', maxsplit=1)[-1]
         if extension == 'C':
             extension = 'cpp'
         xcodetype = XCODETYPEMAP.get(extension.lower())
