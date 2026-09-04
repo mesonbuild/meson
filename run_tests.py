@@ -269,7 +269,6 @@ def get_backend_commands(backend: Backend, debug: bool = False) -> \
         clean_cmd = cmd + ['-alltargets', 'clean']
         test_cmd = cmd + ['-target', 'RUN_TESTS']
     elif backend is Backend.ninja:
-        global NINJA_CMD
         cmd = NINJA_CMD + ['-d', 'explain']
         if not NINJA_1_12_OR_NEWER:
             cmd += ['-w', 'dupbuild=err']
@@ -317,7 +316,6 @@ def run_configure_external(full_command: list[str], env: dict[str, str] | None =
     return pc.returncode, o, e
 
 def run_configure(commandlist: list[str], env: dict[str, str] | None = None, catch_exception: bool = False) -> tuple[bool, tuple[int, str, str]]:
-    global meson_exe
     if meson_exe:
         return (False, run_configure_external(meson_exe + commandlist, env=env))
     return (True, run_configure_inprocess(commandlist, env=env, catch_exception=catch_exception))
