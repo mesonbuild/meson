@@ -106,6 +106,13 @@ prefer-dynamic`](https://doc.rust-lang.org/rustc/codegen-options/index.html#pref
 will be passed to the Rust compiler, and the standard libraries will be
 dynamically linked.
 
+## Building static libraries for `no_std` environments
+
+Meson by default links all the dependencies of `libstd` into executables that depend
+on Rust `staticlib`s.  Specifying `b_freestanding=true` lets Meson know that the
+`staticlib` uses `#[no_std]`, and reduces the set of libraries that are linked into
+its dependencies.
+
 ## Multiple targets for the same crate name
 
 For library targets that have `rust_abi: 'rust'`, the crate name is derived from the
