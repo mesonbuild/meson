@@ -111,7 +111,7 @@ _DATA_DIRS: KwargInfo[list[str]] = KwargInfo(
     'data_dirs',
     ContainerTypeInfo(list, str),
     default=[],
-    listify=True
+    listify=True,
 )
 
 PRESET_ARGS = {
@@ -145,7 +145,7 @@ PRESET_ARGS = {
         '--flag=g_fprintf:2:c-format',
         '--flag=g_sprintf:2:c-format',
         '--flag=g_snprintf:3:c-format',
-    ]
+    ],
 }
 
 

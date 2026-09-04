@@ -182,7 +182,7 @@ class ImageTester(BuilderBase):
             else:
                 test_cmd = [
                     self.docker, 'run', '--rm', '-t', 'meson_test_image',
-                    '/bin/bash', '-xc', 'source /ci/env_vars.sh; cd meson; ./run_tests.py $CI_ARGS'
+                    '/bin/bash', '-xc', 'source /ci/env_vars.sh; cd meson; ./run_tests.py $CI_ARGS',
                 ]
 
             if subprocess.run(test_cmd, check=False).returncode != 0 and not tty:

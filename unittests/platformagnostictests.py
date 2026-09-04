@@ -282,7 +282,7 @@ class PlatformAgnosticTests(BasePlatformTests):
             'mesonbuild.mlog',
             'mesonbuild.scripts',
             'mesonbuild.scripts.meson_exe',
-            'mesonbuild.scripts.test_loaded_modules'
+            'mesonbuild.scripts.test_loaded_modules',
         ]
         self.assertEqual(sorted(expected_meson_modules), sorted(meson_modules))
 

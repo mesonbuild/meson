@@ -2409,7 +2409,7 @@ class NinjaBackend(backends.Backend):
                 enable_word = 'enable' if len(cpp_targets) > 1 else 'enables'
                 raise MesonException(f'Swift target {repr(target.name)} links against {target_word} {first}{and_word}{last} which {enable_word} C++ interoperability. '
                                      f'This requires {repr(target.name)} to also have it enabled. '
-                                     f'Add "swift_interoperability_mode: \'cpp\'" to the definition of {repr(target.name)}.'
+                                     f'Add "swift_interoperability_mode: \'cpp\'" to the definition of {repr(target.name)}.',
                                      )
 
         for i in target.get_sources():
@@ -3117,7 +3117,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return (rel_obj, rel_src)
 
     @cache
-    def generate_inc_dir(self, compiler: Compiler, d: str, basedir: str, is_system: bool
+    def generate_inc_dir(self, compiler: Compiler, d: str, basedir: str, is_system: bool,
                          ) -> tuple[ImmutableListProtocol[str], ImmutableListProtocol[str]]:
         expdir = os.path.normpath(os.path.join(basedir, d))
         srctreedir = os.path.normpath(os.path.join(self.build_to_src, expdir))

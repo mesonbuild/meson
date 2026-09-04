@@ -161,7 +161,7 @@ class CudaDependency(SystemDependency):
             abs_path = os.path.join(self.cuda_path, rel_path)
             mlog.debug(
                 f'Canonical CUDA target "{self.targets_dir}/{canonical_target}" missing; '
-                f'falling back to "{rel_path}".'
+                f'falling back to "{rel_path}".',
             )
 
         mlog.debug(f'CUDA target resolved to "{rel_path}".')

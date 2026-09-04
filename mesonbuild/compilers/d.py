@@ -44,20 +44,20 @@ d_feature_args: dict[str, dict[str, str]] = {
         'unittest': '-funittest',
         'debug': '-fdebug',
         'version': '-fversion',
-        'import_dir': '-J'
+        'import_dir': '-J',
     },
     'llvm': {
         'unittest': '-unittest',
         'debug': '-d-debug',
         'version': '-d-version',
-        'import_dir': '-J'
+        'import_dir': '-J',
     },
     'dmd':  {
         'unittest': '-unittest',
         'debug': '-debug',
         'version': '-version',
-        'import_dir': '-J'
-    }
+        'import_dir': '-J',
+    },
 }
 
 ldc_optimization_args: dict[str, list[str]] = {
@@ -399,7 +399,7 @@ class DCompiler(Compiler):
     def _sanity_check_source_code(self) -> str:
         return 'void main() { }'
 
-    def _sanity_check_compile_args(self, sourcename: str, binname: str
+    def _sanity_check_compile_args(self, sourcename: str, binname: str,
                                    ) -> tuple[list[str], list[str]]:
         args, largs = super()._sanity_check_compile_args(sourcename, binname)
         largs = self.unix_args_to_native(largs)

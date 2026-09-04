@@ -44,7 +44,7 @@ if T.TYPE_CHECKING:
     # See the comment on `lang_suffixes` if modifying this list.
     Language = Literal[
         'c', 'cpp', 'cuda', 'fortran', 'd', 'objc', 'objcpp', 'rust', 'vala',
-        'cs', 'swift', 'java', 'cython', 'nasm', 'masm', 'linearasm'
+        'cs', 'swift', 'java', 'cython', 'nasm', 'masm', 'linearasm',
     ]
     CompilerDict: TypeAlias = dict[Language, 'Compiler']
 
@@ -80,7 +80,7 @@ lang_suffixes: T.Mapping[Language, tuple[str, ...]] = {
     'swift': ('swift',),
     'java': ('java',),
     'cython': ('pyx', ),
-    'nasm': ('asm', 'nasm',),
+    'nasm': ('asm', 'nasm'),
     'masm': ('masm',),
     'linearasm': ('sa',),
 }
@@ -239,7 +239,7 @@ clike_optimization_args: dict[str, list[str]] = {
 
 clike_debug_args: dict[bool, list[str]] = {
     False: [],
-    True: ['-g']
+    True: ['-g'],
 }
 
 
@@ -1068,7 +1068,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         return None
 
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: list[str] | None = None
+                         extra_paths: list[str] | None = None,
                          ) -> tuple[list[str], set[bytes]]:
         return self.linker.build_rpath_args(build_dir, from_dir, target, extra_paths)
 
@@ -1141,8 +1141,8 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
 
     def remove_linkerlike_args(self, args: list[str]) -> list[str]:
         rm_exact = ('-headerpad_max_install_names',)
-        rm_prefixes = ('-Wl,', '-L',)
-        rm_next = ('-L', '-framework',)
+        rm_prefixes = ('-Wl,', '-L')
+        rm_next = ('-L', '-framework')
         ret: list[str] = []
         iargs = iter(args)
         for arg in iargs:
@@ -1421,7 +1421,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         return sourcename, None, binaryname
 
     def _transpiled_sanity_check_compile_args(
-            self, compiler: Compiler, sourcename: str, binname: str
+            self, compiler: Compiler, sourcename: str, binname: str,
             ) -> tuple[list[str], list[str]]:
         """Get arguments to run compiler for sanity check.
 
@@ -1458,7 +1458,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         return list(T.cast('list[str]', optstore.get_value_for(
             OptionKey(f'{self.language}_link_args', machine=self.for_machine))))
 
-    def _sanity_check_compile_args(self, sourcename: str, binname: str
+    def _sanity_check_compile_args(self, sourcename: str, binname: str,
                                    ) -> tuple[list[str], list[str]]:
         """Get arguments to run compiler for sanity check.
 
@@ -1723,7 +1723,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_compileropt_value(self,
                               key: str | OptionKey,
                               target: BuildTarget | None,
-                              subproject: str | None = None
+                              subproject: str | None = None,
                               ) -> options.ElementaryOptionValues:
         if isinstance(key, str):
             key = self.form_compileropt_key(key)

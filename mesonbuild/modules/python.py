@@ -343,7 +343,7 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         _PURE_KW,
         _SUBDIR_KW,
         PRESERVE_PATH_KW,
-        KwargInfo('install_tag', (str, NoneType), since='0.60.0')
+        KwargInfo('install_tag', (str, NoneType), since='0.60.0'),
     )
     @InterpreterObject.method('install_sources')
     def install_sources_method(self, args: tuple[list[str | mesonlib.File]],

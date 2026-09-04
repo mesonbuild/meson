@@ -588,7 +588,7 @@ class Installer:
                 if not self.did_install_something:
                     self.log('Nothing to install.')
                 if not self.options.quiet and self.preserved_file_count > 0:
-                    self.log(f'Preserved {self.preserved_file_count} unchanged files, see {os.path.normpath(self.lf.name)} for the full list'
+                    self.log(f'Preserved {self.preserved_file_count} unchanged files, see {os.path.normpath(self.lf.name)} for the full list',
                              )
         except PermissionError:
             if is_windows() or destdir != '' or not os.isatty(sys.stdout.fileno()) or not os.isatty(sys.stderr.fileno()):

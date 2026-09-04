@@ -519,11 +519,11 @@ Thread model: posix'''), '21.9.0')
             with self.subTest(compiler=comp.id):
                 self.assertEqual(
                     comp.unix_args_to_native(['/usr/lib/libfoo.so', 'libbar.so', 'libbaz.a', 'libqux.lib']),
-                    ['-L=/usr/lib/libfoo.so', '-L=libbar.so', '-L=libbaz.a', '-L=libqux.lib']
+                    ['-L=/usr/lib/libfoo.so', '-L=libbar.so', '-L=libbaz.a', '-L=libqux.lib'],
                 )
                 self.assertEqual(
                     comp.unix_args_to_native(['-lfoo', '-L/usr/local/lib', '-pthread', '-Wl,-rpath=/foo']),
-                    ['-L=-lfoo', '-L=-L/usr/local/lib', '-L=-rpath=/foo']
+                    ['-L=-lfoo', '-L=-L/usr/local/lib', '-L=-rpath=/foo'],
                 )
 
     def _fake_msvc_cc(self, cflags='-DCFLAG', ldflags='/SUBSYSTEM:CONSOLE'):
@@ -850,7 +850,7 @@ Thread model: posix'''), '21.9.0')
 
         desired_value = not detected_value
         config['properties'] = {
-            'needs_exe_wrapper': 'true' if desired_value else 'false'
+            'needs_exe_wrapper': 'true' if desired_value else 'false',
         }
 
         configfile = tempfile.NamedTemporaryFile(mode='w+', delete=False, encoding='utf-8')
@@ -1482,14 +1482,14 @@ Thread model: posix'''), '21.9.0')
 
                 f = F.DependencyFactory(
                     'test_dep',
-                    methods=[b.DependencyMethods.PKGCONFIG, b.DependencyMethods.CMAKE]
+                    methods=[b.DependencyMethods.PKGCONFIG, b.DependencyMethods.CMAKE],
                 )
                 actual = [m() for m in f(env, {'required': False, 'native': MachineChoice.HOST})]
                 self.assertListEqual([m.type_name for m in actual], ['pkgconfig', 'cmake'])
 
                 f = F.DependencyFactory(
                     'test_dep',
-                    methods=[b.DependencyMethods.CMAKE, b.DependencyMethods.PKGCONFIG]
+                    methods=[b.DependencyMethods.CMAKE, b.DependencyMethods.PKGCONFIG],
                 )
                 actual = [m() for m in f(env, {'required': False, 'native': MachineChoice.HOST})]
                 self.assertListEqual([m.type_name for m in actual], ['cmake', 'pkgconfig'])
@@ -1723,7 +1723,7 @@ Thread model: posix'''), '21.9.0')
     def test_typed_kwarg_basic(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('input', str, default='')
+            KwargInfo('input', str, default=''),
         )
         def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             self.assertIsInstance(kwargs['input'], str)
@@ -1836,7 +1836,7 @@ Thread model: posix'''), '21.9.0')
         @typed_kwargs(
             'testfunc',
             KwargInfo('input', str, since='1.0', since_message='It\'s awesome, use it',
-                      deprecated='2.0', deprecated_message='It\'s terrible, don\'t use it')
+                      deprecated='2.0', deprecated_message='It\'s terrible, don\'t use it'),
         )
         def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             self.assertIsInstance(kwargs['input'], str)
@@ -1868,7 +1868,7 @@ Thread model: posix'''), '21.9.0')
     def test_typed_kwarg_validator(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('input', str, default='', validator=lambda x: 'invalid!' if x != 'foo' else None)
+            KwargInfo('input', str, default='', validator=lambda x: 'invalid!' if x != 'foo' else None),
         )
         def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             pass
@@ -1883,7 +1883,7 @@ Thread model: posix'''), '21.9.0')
     def test_typed_kwarg_convertor(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('native', bool, default=False, convertor=lambda n: MachineChoice.BUILD if n else MachineChoice.HOST)
+            KwargInfo('native', bool, default=False, convertor=lambda n: MachineChoice.BUILD if n else MachineChoice.HOST),
         )
         def _(obj, node, args: tuple, kwargs: dict[str, MachineChoice]) -> None:
             assert isinstance(kwargs['native'], MachineChoice)
@@ -2285,7 +2285,7 @@ Thread model: posix'''), '21.9.0')
                     DEB_HOST_GNU_SYSTEM=linux-gnu
                     DEB_HOST_GNU_TYPE=s390x-linux-gnu
                     DEB_HOST_MULTIARCH=s390x-linux-gnu
-                    '''
+                    ''',
                 ),
                 '',
                 {'PATH': '/usr/bin'},
@@ -2327,7 +2327,7 @@ Thread model: posix'''), '21.9.0')
                     DEB_HOST_GNU_SYSTEM=linux-gnu
                     DEB_HOST_GNU_TYPE=x86_64-linux-gnu
                     DEB_HOST_MULTIARCH=x86_64-linux-gnu
-                    '''
+                    ''',
                 ),
                 '',
                 {'PATH': '/usr/bin'},
@@ -2366,7 +2366,7 @@ Thread model: posix'''), '21.9.0')
                     DEB_HOST_GNU_SYSTEM=linux-gnueabihf
                     DEB_HOST_GNU_TYPE=arm-linux-gnueabihf
                     DEB_HOST_MULTIARCH=arm-linux-gnueabihf
-                    '''
+                    ''',
                 ),
                 '-12',
                 {
@@ -2426,7 +2426,7 @@ Thread model: posix'''), '21.9.0')
                     DEB_HOST_GNU_SYSTEM=gnu
                     DEB_HOST_GNU_TYPE=i686-gnu
                     DEB_HOST_MULTIARCH=i386-gnu
-                    '''
+                    ''',
                 ),
                 '',
                 {'PATH': '/usr/bin'},
@@ -2465,7 +2465,7 @@ Thread model: posix'''), '21.9.0')
                     DEB_HOST_GNU_SYSTEM=kfreebsd-gnu
                     DEB_HOST_GNU_TYPE=x86_64-kfreebsd-gnu
                     DEB_HOST_MULTIARCH=x86_64-kfreebsd-gnu
-                    '''
+                    ''',
                 ),
                 '',
                 {'PATH': '/usr/bin'},
@@ -2504,7 +2504,7 @@ Thread model: posix'''), '21.9.0')
                     DEB_HOST_GNU_SYSTEM=linux-gnuabi64
                     DEB_HOST_GNU_TYPE=mips64el-linux-gnuabi64
                     DEB_HOST_MULTIARCH=mips64el-linux-gnuabi64
-                    '''
+                    ''',
                 ),
                 '',
                 {'PATH': '/usr/bin'},
@@ -2543,7 +2543,7 @@ Thread model: posix'''), '21.9.0')
                     DEB_HOST_GNU_SYSTEM=linux-gnu
                     DEB_HOST_GNU_TYPE=powerpc64le-linux-gnu
                     DEB_HOST_MULTIARCH=powerpc64le-linux-gnu
-                    '''
+                    ''',
                 ),
                 '',
                 {'PATH': '/usr/bin'},

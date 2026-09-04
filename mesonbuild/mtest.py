@@ -1481,7 +1481,7 @@ class SingleTestRunner:
                     env['WINEPATH'] = get_wine_shortpath(
                         winecmd,
                         ['Z:' + p for p in self.test.extra_paths] + env.get('WINEPATH', '').split(';'),
-                        self.test.workdir
+                        self.test.workdir,
                     )
                     break
 

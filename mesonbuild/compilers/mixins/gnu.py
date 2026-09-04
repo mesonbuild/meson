@@ -316,7 +316,7 @@ gnu_lang_map = {
     'c': 'c',
     'cpp': 'c++',
     'objc': 'objective-c',
-    'objcpp': 'objective-c++'
+    'objcpp': 'objective-c++',
 }
 
 @functools.cache

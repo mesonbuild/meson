@@ -74,7 +74,7 @@ class ManPage:
 
 class GeneratorMan(GeneratorBase):
     def __init__(
-        self, manual: ReferenceManual, out: Path, enable_modules: bool
+        self, manual: ReferenceManual, out: Path, enable_modules: bool,
     ) -> None:
         super().__init__(manual)
         self.out = out
@@ -160,7 +160,7 @@ class GeneratorMan(GeneratorBase):
         return name
 
     def generate_function_signature(
-        self, page: ManPage, f: Function, o: Object = None
+        self, page: ManPage, f: Function, o: Object = None,
     ) -> None:
         args = []
 
@@ -198,7 +198,7 @@ class GeneratorMan(GeneratorBase):
             page.line(prefix + sig + suffix)
 
     def base_info(
-        self, x: PosArg | VarArgs | Kwarg | Function | Object
+        self, x: PosArg | VarArgs | Kwarg | Function | Object,
     ) -> list[str]:
         info = []
         if x.deprecated:
@@ -260,7 +260,7 @@ class GeneratorMan(GeneratorBase):
         page.unindent()
 
     def generate_sub_sub_section(
-        self, page: ManPage, name: str, text: list[str], process: bool = True
+        self, page: ManPage, name: str, text: list[str], process: bool = True,
     ) -> None:
         page.line(ManPage.bold(name))
         page.indent()
@@ -294,7 +294,7 @@ class GeneratorMan(GeneratorBase):
             self.generate_function_argument_section(page, "VARARGS", [f.varargs])
         self.generate_function_argument_section(page, "OPTARGS", f.optargs, True)
         self.generate_function_argument_section(
-            page, "KWARGS", self.sorted_and_filtered(list(f.kwargs.values()))
+            page, "KWARGS", self.sorted_and_filtered(list(f.kwargs.values())),
         )
 
         if f.notes:
@@ -351,7 +351,7 @@ class GeneratorMan(GeneratorBase):
         page.section("NAME")
         page.par(
             f"meson-reference v{self._extract_meson_version()}"
-             " - a reference for meson functions and objects"
+             " - a reference for meson functions and objects",
         )
 
         page.section("DESCRIPTION")

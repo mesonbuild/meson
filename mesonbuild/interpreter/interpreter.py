@@ -581,7 +581,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             modules to register custom object holders.
         '''
         self.holder_map.update({
-            held_type: holder_type
+            held_type: holder_type,
         })
 
     def process_new_values(self, invalues: list[TYPE_var | InstallScript] | list[build.GeneratedTypes | mesonlib.File]) -> None:
@@ -1195,7 +1195,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     [str(f) for f in cm_int.bs_files],
                     relaxations={
                         InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFERENCES: None,
-                    }
+                    },
             )
             result.cm_interpreter = cm_int
         return result
@@ -1534,7 +1534,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         'summary',
         KwargInfo('section', str, default=''),
         KwargInfo('bool_yn', bool, default=False),
-        KwargInfo('list_sep', (str, NoneType), since='0.54.0')
+        KwargInfo('list_sep', (str, NoneType), since='0.54.0'),
     )
     def func_summary(self, node: mparser.BaseNode, args: tuple[str | dict[str, T.Any], T.Any | None],
                      kwargs: kwtypes.Summary) -> None:
@@ -1761,7 +1761,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         return success
 
-    def program_from_file_for(self, for_machine: MachineChoice, prognames: list[mesonlib.FileOrString]
+    def program_from_file_for(self, for_machine: MachineChoice, prognames: list[mesonlib.FileOrString],
                               ) -> ExternalProgram | None:
         for p in prognames:
             if isinstance(p, mesonlib.File):
@@ -1806,7 +1806,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def program_from_overrides(self, command_names: list[mesonlib.FileOrString],
                                for_machine: MachineChoice,
-                               extra_info: list[mlog.TV_Loggable]
+                               extra_info: list[mlog.TV_Loggable],
                                ) -> Program | None:
         for name in command_names:
             if not isinstance(name, str):
@@ -1846,7 +1846,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                           wanted: str | list[str] = '',
                           search_dirs: list[str] | None = None,
                           version_arg: str | None = '',
-                          version_func: ProgramVersionFunc | None = None
+                          version_func: ProgramVersionFunc | None = None,
                           ) -> Program:
         args = mesonlib.listify(args)
 
@@ -1876,7 +1876,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                        wanted: str | list[str],
                        version_arg: str | None,
                        version_func: ProgramVersionFunc | None,
-                       extra_info: list[mlog.TV_Loggable]
+                       extra_info: list[mlog.TV_Loggable],
                        ) -> Program | None:
         progobj = self.program_from_overrides(args, for_machine, extra_info)
         if progobj:
@@ -1971,7 +1971,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('dirs', ContainerTypeInfo(list, str), default=[], listify=True, since='0.53.0'),
         KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True, since='0.52.0'),
         KwargInfo('version_argument', str, default='', since='1.5.0'),
-        DEFAULT_OPTIONS.evolve(since='1.3.0')
+        DEFAULT_OPTIONS.evolve(since='1.3.0'),
     )
     @disablerIfNotFound
     @apply_machine_map
@@ -2561,7 +2561,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('locale', (str, NoneType), since='0.58.0'),
         INSTALL_MODE_KW.evolve(since='0.47.0'),
         INSTALL_DIR_KW,
-        INSTALL_TAG_KW.evolve(since='1.11.0')
+        INSTALL_TAG_KW.evolve(since='1.11.0'),
     )
     def func_install_man(self, node: mparser.BaseNode,
                          args: tuple[list[mesonlib.FileOrString]],
@@ -2589,7 +2589,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs(
         'install_emptydir',
         INSTALL_MODE_KW,
-        KwargInfo('install_tag', (str, NoneType), since='0.62.0')
+        KwargInfo('install_tag', (str, NoneType), since='0.62.0'),
     )
     def func_install_emptydir(self, node: mparser.BaseNode, args: tuple[str],
                               kwargs: kwtypes.FuncInstallEmptyDir) -> build.EmptyDir:
@@ -3024,7 +3024,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return mesonlib.File.from_built_file(self.subdir, output)
 
     def extract_incdirs(self, prospectives: list[str | build.IncludeDirs],
-                        is_d_import_dirs: bool = False
+                        is_d_import_dirs: bool = False,
                         ) -> list[build.IncludeDirs]:
         result: list[build.IncludeDirs] = []
         for p in prospectives:
@@ -3424,7 +3424,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def source_strings_to_files(self, sources: list[SourceInputs]) -> list[SourceOutputs]: ...  # type: ignore[overload-cannot-match]
 
     def source_strings_to_files(self,
-                                sources: list[str] | list[mesonlib.File | str] | list[mesonlib.File | str | build.CustomTarget | build.CustomTargetIndex] | list[mesonlib.File | str | build.BuildTargetTypes] | list[str | build.TargetSources] | list[str | build.TargetSources | build.StructuredSources] | list[str | build.TargetSources | build.BuildTarget] | list[kwtypes.CustomTargetInputs] | list[mesonlib.File | str | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes] | list[kwtypes.BuildTargetObjects] | list[SourceInputs] | list[SourcesVarargsType]
+                                sources: list[str] | list[mesonlib.File | str] | list[mesonlib.File | str | build.CustomTarget | build.CustomTargetIndex] | list[mesonlib.File | str | build.BuildTargetTypes] | list[str | build.TargetSources] | list[str | build.TargetSources | build.StructuredSources] | list[str | build.TargetSources | build.BuildTarget] | list[kwtypes.CustomTargetInputs] | list[mesonlib.File | str | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes] | list[kwtypes.BuildTargetObjects] | list[SourceInputs] | list[SourcesVarargsType],
                                 ) -> list[mesonlib.File] | list[mesonlib.File | build.BuildTargetTypes] | list[mesonlib.File | build.CustomTarget | build.CustomTargetIndex] | list[build.TargetSources] | list[build.TargetSources | build.StructuredSources] | list[build.TargetSources | build.BuildTarget] | list[mesonlib.File | build.BuildTargetTypes | build.BothLibraries | build.ExtractedObjects | build.GeneratedTypes] | list[build.ObjectTypes | build.GeneratedTypes] | list[CustomTargetSources] | list[SourceOutputs]:
         """Lower inputs to a list of Targets and Files, replacing any strings.
 
@@ -3980,7 +3980,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def build_target(self, node: mparser.BaseNode, args: tuple[str, SourcesVarargsType],
                      kwargs: kwtypes.Executable | kwtypes.StaticLibrary | kwtypes.SharedLibrary | kwtypes.SharedModule | kwtypes.Jar,
                      targetclass: type[build.Executable | build.StaticLibrary | build.SharedModule | build.SharedLibrary | build.Jar],
-                     shared_library_only: bool = True
+                     shared_library_only: bool = True,
                      ) -> build.Executable | build.StaticLibrary | build.SharedModule | build.SharedLibrary | build.Jar:
         if targetclass not in {build.Executable, build.SharedLibrary, build.SharedModule, build.StaticLibrary, build.Jar}:
             mlog.debug('Unknown target type:', str(targetclass))

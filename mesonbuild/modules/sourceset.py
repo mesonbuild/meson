@@ -122,7 +122,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
         mesonlib.check_direntry_issues(to_check)
         return sources, deps
 
-    def check_conditions(self, args: T.Sequence[str | dependencies.Dependency]
+    def check_conditions(self, args: T.Sequence[str | dependencies.Dependency],
                          ) -> tuple[list[str], list[dependencies.Dependency]]:
         keys: list[str] = []
         deps: list[dependencies.Dependency] = []
@@ -177,7 +177,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
             ContainerTypeInfo(list, SourceSet),
             listify=True,
             default=[],
-        )
+        ),
     )
     def add_all_method(self, state: ModuleState, args: tuple[list[SourceSetImpl]],
                        kwargs: AddAllKw) -> None:
@@ -215,7 +215,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
 
     @noKwargs
     @noPosargs
-    def all_sources_method(self, state: ModuleState, args: list[TYPE_var], kwargs: TYPE_kwargs
+    def all_sources_method(self, state: ModuleState, args: list[TYPE_var], kwargs: TYPE_kwargs,
                            ) -> list[str | build.TargetSources]:
         self.frozen = True
         files = self.collect(lambda x: True, True)
@@ -224,7 +224,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
     @noKwargs
     @noPosargs
     @FeatureNew('source_set.all_dependencies() method', '0.52.0')
-    def all_dependencies_method(self, state: ModuleState, args: list[TYPE_var], kwargs: TYPE_kwargs
+    def all_dependencies_method(self, state: ModuleState, args: list[TYPE_var], kwargs: TYPE_kwargs,
                                 ) -> list[dependencies.Dependency]:
         self.frozen = True
         files = self.collect(lambda x: True, True)
@@ -270,13 +270,13 @@ class SourceFilesObject(ModuleObject):
 
     @noPosargs
     @noKwargs
-    def sources_method(self, state: ModuleState, args: list[TYPE_var], kwargs: TYPE_kwargs
+    def sources_method(self, state: ModuleState, args: list[TYPE_var], kwargs: TYPE_kwargs,
                        ) -> list[str | build.TargetSources]:
         return list(self.files.sources)
 
     @noPosargs
     @noKwargs
-    def dependencies_method(self, state: ModuleState, args: list[TYPE_var], kwargs: TYPE_kwargs
+    def dependencies_method(self, state: ModuleState, args: list[TYPE_var], kwargs: TYPE_kwargs,
                             ) -> list[dependencies.Dependency]:
         return list(self.files.deps)
 

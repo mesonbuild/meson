@@ -180,7 +180,7 @@ class HotdocTargetBuilder:
         value = self.kwargs.pop('gi_c_source_roots')
         value.extend([
             os.path.join(self.sourcedir, self.state.root_subdir),
-            os.path.join(self.builddir, self.state.root_subdir)
+            os.path.join(self.builddir, self.state.root_subdir),
         ])
 
         self.cmd += ['--gi-c-source-roots'] + value
@@ -255,14 +255,14 @@ class HotdocTargetBuilder:
         os.chdir(cwd)
 
     @T.overload
-    def ensure_file(self, value: list[str | File | CustomTarget | CustomTargetIndex]
+    def ensure_file(self, value: list[str | File | CustomTarget | CustomTargetIndex],
                     ) -> list[File | CustomTarget | CustomTargetIndex]: ...
 
     @T.overload
-    def ensure_file(self, value: str | File | CustomTarget | CustomTargetIndex
+    def ensure_file(self, value: str | File | CustomTarget | CustomTargetIndex,
                     ) -> File | CustomTarget | CustomTargetIndex: ...
 
-    def ensure_file(self, value: str | File | CustomTarget | CustomTargetIndex | list[str | File | CustomTarget | CustomTargetIndex]
+    def ensure_file(self, value: str | File | CustomTarget | CustomTargetIndex | list[str | File | CustomTarget | CustomTargetIndex],
                     ) -> File | CustomTarget | CustomTargetIndex | list[File | CustomTarget | CustomTargetIndex]:
         if isinstance(value, list):
             res: list[File | CustomTarget | CustomTargetIndex] = []
@@ -460,7 +460,7 @@ class HotDocModule(ExtensionModule):
         KwargInfo('subprojects', ContainerTypeInfo(list, HotdocTarget), listify=True, default=[]),
         KwargInfo('install', bool, default=False),
         KwargInfo('build_by_default', bool, default=False),
-        allow_unknown=True
+        allow_unknown=True,
     )
     def generate_doc(self, state: ModuleState, args: tuple[str], kwargs: GenerateDocKwargs) -> ModuleReturnValue:
         project_name = args[0]

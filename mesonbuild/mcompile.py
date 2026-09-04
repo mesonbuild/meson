@@ -303,7 +303,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         '--clean',
         action='store_true',
-        help='Clean the build directory.'
+        help='Clean the build directory.',
     )
     parser.add_argument('-C', dest='wd', action=RealPathAction,
                         help='directory to cd into before running')
@@ -313,37 +313,37 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         action='store',
         default=0,
         type=int,
-        help='The number of worker jobs to run (if supported). If the value is less than 1 the build program will guess.'
+        help='The number of worker jobs to run (if supported). If the value is less than 1 the build program will guess.',
     )
     parser.add_argument(
         '-l', '--load-average',
         action='store',
         default=0,
         type=float,
-        help='The system load average to try to maintain (if supported).'
+        help='The system load average to try to maintain (if supported).',
     )
     parser.add_argument(
         '-v', '--verbose',
         action='store_true',
-        help='Show more verbose output.'
+        help='Show more verbose output.',
     )
     parser.add_argument(
         '--ninja-args',
         type=array_arg,
         default=[],
-        help='Arguments to pass to `ninja` (applied only on `ninja` backend).'
+        help='Arguments to pass to `ninja` (applied only on `ninja` backend).',
     )
     parser.add_argument(
         '--vs-args',
         type=array_arg,
         default=[],
-        help='Arguments to pass to `msbuild` (applied only on `vs` backend).'
+        help='Arguments to pass to `msbuild` (applied only on `vs` backend).',
     )
     parser.add_argument(
         '--xcode-args',
         type=array_arg,
         default=[],
-        help='Arguments to pass to `xcodebuild` (applied only on `xcode` backend).'
+        help='Arguments to pass to `xcodebuild` (applied only on `xcode` backend).',
     )
 
 def run(options: argparse.Namespace) -> int:

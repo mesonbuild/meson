@@ -94,7 +94,7 @@ def list_install_plan(coredata: cdata.CoreData, builddata: build.Build, backend:
         'data': installdata.data,
         'man': installdata.man,
         'headers': installdata.headers,
-        'install_subdirs': installdata.install_subdirs
+        'install_subdirs': installdata.install_subdirs,
     }.items():
         # Mypy doesn't recognize SubdirInstallData as a subclass of InstallDataBase
         for data in data_list: # type: ignore[attr-defined]
@@ -147,12 +147,12 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> list[dict[str, o
                 'compiler': [],
                 'parameters': [],
                 'sources': sources,
-                'generated_sources': []
+                'generated_sources': [],
             }],
             'depends': [],
             'extra_files': extra_files,
             'subproject': None, # Subprojects are not supported
-            'installed': i.installed
+            'installed': i.installed,
         }]
 
     return tlist
@@ -604,7 +604,7 @@ def generate_introspection_file(builddata: build.Build, backend: backends.Backen
 
 def update_build_options(coredata: cdata.CoreData, info_dir: str) -> None:
     intro_info = [
-        ('buildoptions', _list_buildoptions(coredata))
+        ('buildoptions', _list_buildoptions(coredata)),
     ]
 
     write_intro_info(intro_info, info_dir)
@@ -615,7 +615,7 @@ def split_version_string(version: str) -> dict[str, str | int]:
         'full': version,
         'major': int(vers_list[0] if len(vers_list) > 0 else 0),
         'minor': int(vers_list[1] if len(vers_list) > 1 else 0),
-        'patch': int(vers_list[2] if len(vers_list) > 2 else 0)
+        'patch': int(vers_list[2] if len(vers_list) > 2 else 0),
     }
 
 def write_meson_info_file(builddata: build.Build, errors: list, build_files_updated: bool = False) -> None:
@@ -628,7 +628,7 @@ def write_meson_info_file(builddata: build.Build, errors: list, build_files_upda
             continue
         intro_info[i] = {
             'file': f'intro-{i}.json',
-            'updated': i in updated_introspection_files
+            'updated': i in updated_introspection_files,
         }
 
     info_data = {

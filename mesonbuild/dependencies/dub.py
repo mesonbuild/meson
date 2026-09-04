@@ -344,7 +344,7 @@ class DubDependency(ExternalDependency):
         # Ask dub for the package
         describe_cmd = [
             'describe', '--arch=' + dub_arch,
-            '--build=' + dub_buildtype, '--compiler=' + self.compiler.get_exelist()[-1]
+            '--build=' + dub_buildtype, '--compiler=' + self.compiler.get_exelist()[-1],
         ]
         helper_build = join_args(get_build_command())
         source = DubDescriptionSource.Local
@@ -364,7 +364,7 @@ class DubDependency(ExternalDependency):
 
         describe_cmd = [
             'describe', pack_spec, '--arch=' + dub_arch,
-            '--build=' + dub_buildtype, '--compiler=' + self.compiler.get_exelist()[-1]
+            '--build=' + dub_buildtype, '--compiler=' + self.compiler.get_exelist()[-1],
         ]
         helper_build = join_args(get_build_command() + [pack_spec])
         source = DubDescriptionSource.External
@@ -383,7 +383,7 @@ class DubDependency(ExternalDependency):
     # It returns (target|None, {compatibilities})
     # If None is returned for target, compatibilities will list what other targets were found without full compatibility
     def _find_target_in_cache(self, desc: DubDescription, pkg_desc: DubPackDesc,
-                              tgt_desc: DubTargetDesc, dub_comp_id: str
+                              tgt_desc: DubTargetDesc, dub_comp_id: str,
                               ) -> tuple[str | None, set[str]]:
         mlog.debug('Searching in DUB cache for compatible', pkg_desc['targetFileName'])
 
@@ -470,7 +470,7 @@ class DubDependency(ExternalDependency):
         return [
             {
                 'search': dir_entry,
-                'artifactPath': os.path.join(dub_build_path, dir_entry, pkg_desc['targetFileName'])
+                'artifactPath': os.path.join(dub_build_path, dir_entry, pkg_desc['targetFileName']),
             }
             for dir_entry in os.listdir(dub_build_path)
         ]

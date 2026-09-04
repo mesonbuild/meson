@@ -26,7 +26,7 @@ if T.TYPE_CHECKING:
             'compiled-module-path': NotRequired[str],
             'source-path': NotRequired[str],
             'unique-on-source-path': NotRequired[bool],
-            'lookup-method': NotRequired[Literal['by-name', 'include-angle', 'include-quote']]
+            'lookup-method': NotRequired[Literal['by-name', 'include-angle', 'include-quote']],
         },
     )
 
@@ -48,7 +48,7 @@ if T.TYPE_CHECKING:
             'outputs': NotRequired[list[str]],
             'provides': NotRequired[list[Provide]],
             'requires': NotRequired[list[Require]],
-        }
+        },
     )
 
     class Description(TypedDict):

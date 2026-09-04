@@ -80,7 +80,7 @@ class RewriterTests(BasePlatformTests):
                 'trivialprog11@exe': {'name': 'trivialprog11', 'sources': ['main.cpp', 'fileA.cpp'], 'extra_files': []},
                 'trivialprog12@exe': {'name': 'trivialprog12', 'sources': ['main.cpp', 'fileA.cpp'], 'extra_files': []},
                 'rightName@exe': {'name': 'rightName', 'sources': ['main.cpp'], 'extra_files': []},
-            }
+            },
         }
         self.assertEqualIgnoreOrder(out, expected)
 
@@ -103,7 +103,7 @@ class RewriterTests(BasePlatformTests):
                 'trivialprog11@exe': {'name': 'trivialprog11', 'sources': ['a1.cpp', 'fileA.cpp', 'main.cpp'], 'extra_files': []},
                 'trivialprog12@exe': {'name': 'trivialprog12', 'sources': ['a1.cpp', 'fileA.cpp', 'fileB.cpp', 'main.cpp'], 'extra_files': []},
                 'rightName@exe': {'name': 'rightName', 'sources': ['main.cpp'], 'extra_files': []},
-            }
+            },
         }
         self.assertEqualIgnoreOrder(out, expected)
 
@@ -140,7 +140,7 @@ class RewriterTests(BasePlatformTests):
                 'trivialprog11@exe': {'name': 'trivialprog11', 'sources': ['main.cpp'], 'extra_files': []},
                 'trivialprog12@exe': {'name': 'trivialprog12', 'sources': ['main.cpp', 'fileA.cpp'], 'extra_files': []},
                 'rightName@exe': {'name': 'rightName', 'sources': ['main.cpp'], 'extra_files': []},
-            }
+            },
         }
         self.assertEqualIgnoreOrder(out, expected)
 
@@ -175,7 +175,7 @@ class RewriterTests(BasePlatformTests):
                 'trivialprog10@exe': {'name': 'trivialprog10', 'sources': ['main.cpp', 'fileA.cpp', 'fileB.cpp'], 'extra_files': []},
                 'trivialprog11@exe': {'name': 'trivialprog11', 'sources': ['main.cpp', 'fileA.cpp'], 'extra_files': []},
                 'trivialprog12@exe': {'name': 'trivialprog12', 'sources': ['main.cpp', 'fileA.cpp'], 'extra_files': []},
-            }
+            },
         }
         self.assertEqualIgnoreOrder(out, expected)
 
@@ -201,7 +201,7 @@ class RewriterTests(BasePlatformTests):
                 'trivialprog12@exe': {'name': 'trivialprog12', 'sources': ['main.cpp', 'fileA.cpp'], 'extra_files': []},
                 'trivialprog13@sha': {'name': 'trivialprog13', 'sources': ['new1.cpp', 'new2.cpp'], 'extra_files': []},
                 'rightName@exe': {'name': 'rightName', 'sources': ['main.cpp'], 'extra_files': []},
-            }
+            },
         }
         self.assertEqualIgnoreOrder(out, expected)
 
@@ -256,11 +256,11 @@ class RewriterTests(BasePlatformTests):
                         'a210.c',
                         'a666.c',
                         'b1.c',
-                        'c2.c'
+                        'c2.c',
                     ],
-                    'extra_files': []
-                }
-            }
+                    'extra_files': [],
+                },
+            },
         }
         for v1 in expected.values():
             for v2 in v1.values():
@@ -287,8 +287,8 @@ class RewriterTests(BasePlatformTests):
             'kwargs': {
                 'project#/': {'version': '0.0.1'},
                 'target#tgt1': {'build_by_default': True},
-                'dependency#dep1': {'required': False}
-            }
+                'dependency#dep1': {'required': False},
+            },
         }
         self.assertDictEqual(out, expected)
 
@@ -299,13 +299,13 @@ class RewriterTests(BasePlatformTests):
             'kwargs': {
                 'project#/': {
                     'default_options': {'c_std': 'c11', 'cpp_std': 'c++17'},
-                    'version': '0.0.1'
+                    'version': '0.0.1',
                 },
                 'dependency#dep1': {
                     'default_options': {'foo': 'bar'},
-                    'required': False
-                }
-            }
+                    'required': False,
+                },
+            },
         }
         self.assertDictEqual(out, expected)
 
@@ -317,8 +317,8 @@ class RewriterTests(BasePlatformTests):
             'kwargs': {
                 'project#/': {'version': '0.0.2', 'meson_version': '0.50.0', 'license': ['GPL', 'MIT'], 'license_files': ['GPL.txt', 'MIT.txt']},
                 'target#tgt1': {'build_by_default': False, 'build_rpath': '/usr/local', 'dependencies': 'dep1'},
-                'dependency#dep1': {'required': True, 'method': 'cmake'}
-            }
+                'dependency#dep1': {'required': True, 'method': 'cmake'},
+            },
         }
         self.assertDictEqual(out, expected)
 
@@ -330,8 +330,8 @@ class RewriterTests(BasePlatformTests):
             'kwargs': {
                 'project#/': {'version': '0.0.1', 'license': ['GPL', 'MIT', 'BSD', 'Boost'], 'license_files': 'GPL.txt'},
                 'target#tgt1': {'build_by_default': True},
-                'dependency#dep1': {'required': False}
-            }
+                'dependency#dep1': {'required': False},
+            },
         }
         self.assertDictEqual(out, expected)
 
@@ -343,8 +343,8 @@ class RewriterTests(BasePlatformTests):
             'kwargs': {
                 'project#/': {'version': '0.0.1', 'license': 'GPL'},
                 'target#tgt1': {'build_by_default': True},
-                'dependency#dep1': {'required': False}
-            }
+                'dependency#dep1': {'required': False},
+            },
         }
         self.assertDictEqual(out, expected)
 
@@ -356,8 +356,8 @@ class RewriterTests(BasePlatformTests):
             'kwargs': {
                 'project#/': {'version': '0.0.1', 'default_options': 'debug=true'},
                 'target#tgt1': {'build_by_default': True},
-                'dependency#dep1': {'required': False}
-            }
+                'dependency#dep1': {'required': False},
+            },
         }
         self.assertDictEqual(out, expected)
 
@@ -369,8 +369,8 @@ class RewriterTests(BasePlatformTests):
             'kwargs': {
                 'project#/': {},
                 'target#tgt1': {},
-                'dependency#dep1': {'required': False}
-            }
+                'dependency#dep1': {'required': False},
+            },
         }
         self.assertDictEqual(out, expected)
 
@@ -382,8 +382,8 @@ class RewriterTests(BasePlatformTests):
             'kwargs': {
                 'project#/': {'version': '0.0.1', 'default_options': ['buildtype=release', 'debug=True', 'cpp_std=c++11']},
                 'target#tgt1': {'build_by_default': True},
-                'dependency#dep1': {'required': False}
-            }
+                'dependency#dep1': {'required': False},
+            },
         }
         self.assertDictEqual(out, expected)
 
@@ -395,8 +395,8 @@ class RewriterTests(BasePlatformTests):
             'kwargs': {
                 'project#/': {'version': '0.0.1', 'default_options': ['cpp_std=c++14', 'debug=true']},
                 'target#tgt1': {'build_by_default': True},
-                'dependency#dep1': {'required': False}
-            }
+                'dependency#dep1': {'required': False},
+            },
         }
         self.assertDictEqual(out, expected)
 
@@ -416,7 +416,7 @@ class RewriterTests(BasePlatformTests):
                 'trivialprog8@exe': {'name': 'trivialprog8', 'sources': ['main.cpp'], 'extra_files': ['a2.hpp', 'a7.hpp']},
                 'trivialprog9@exe': {'name': 'trivialprog9', 'sources': ['main.cpp'], 'extra_files': ['a8.hpp', 'a9.hpp']},
                 'trivialprog10@exe': {'name': 'trivialprog10', 'sources': ['main.cpp'], 'extra_files': ['a1.hpp', 'a4.hpp']},
-            }
+            },
         }
         self.assertEqualIgnoreOrder(out, expected)
 
@@ -440,7 +440,7 @@ class RewriterTests(BasePlatformTests):
                 'trivialprog8@exe': {'name': 'trivialprog8', 'sources': ['main.cpp'], 'extra_files': []},
                 'trivialprog9@exe': {'name': 'trivialprog9', 'sources': ['main.cpp'], 'extra_files': []},
                 'trivialprog10@exe': {'name': 'trivialprog10', 'sources': ['main.cpp'], 'extra_files': []},
-            }
+            },
         }
         self.assertEqualIgnoreOrder(out, expected)
 
@@ -453,8 +453,8 @@ class RewriterTests(BasePlatformTests):
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
         expected = {
             'kwargs': {
-                'project#/': {'license': 'MIT'}
-            }
+                'project#/': {'license': 'MIT'},
+            },
         }
         self.assertEqualIgnoreOrder(out, expected)
 
@@ -470,7 +470,7 @@ class RewriterTests(BasePlatformTests):
                 'tgt5@exe': {'name': 'tgt5', 'sources': ['unknown', 'new.c'], 'extra_files': []},
                 'tgt6@exe': {'name': 'tgt6', 'sources': ['unknown', 'new.c'], 'extra_files': []},
                 'tgt7@exe': {'name': 'tgt7', 'sources': ['unknown', 'unknown'], 'extra_files': []},
-            }
+            },
         }
         self.assertEqualIgnoreOrder(out, expected)
 
@@ -503,10 +503,10 @@ class RewriterTests(BasePlatformTests):
             'kwargs': {
                 'project#/': {
                     "default_options": [
-                        'prefix=/export/doocs'
-                    ]
-                }
-            }
+                        'prefix=/export/doocs',
+                    ],
+                },
+            },
         }
         self.assertDictEqual(out, expected)
 

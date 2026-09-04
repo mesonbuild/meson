@@ -27,7 +27,7 @@ from .model import (
 PlaceholderTypes: T.TypeAlias = None | str | bool
 FunctionDictType = dict[
     str,
-    PlaceholderTypes | dict[str, PlaceholderTypes] | dict[str, dict[str, PlaceholderTypes]] | dict[str, list[dict[str, PlaceholderTypes]]] | list[dict[str, PlaceholderTypes]] | list[str]
+    PlaceholderTypes | dict[str, PlaceholderTypes] | dict[str, dict[str, PlaceholderTypes]] | dict[str, list[dict[str, PlaceholderTypes]]] | list[dict[str, PlaceholderTypes]] | list[str],
 ]
 
 _ROOT_BASENAME = 'Reference-manual'
@@ -251,7 +251,7 @@ class GeneratorMD(GeneratorBase):
             'has_args': bool(func.posargs or func.optargs or func.kwargs or func.varargs),
             # Merge posargs and optargs by generating the *[optional]* tag for optargs
             'posargs': {
-                'args': [gen_arg_data(x) for x in func.posargs] + [gen_arg_data(x, optional=True) for x in func.optargs]
+                'args': [gen_arg_data(x) for x in func.posargs] + [gen_arg_data(x, optional=True) for x in func.optargs],
             } if func.posargs or func.optargs else None,
             'kwargs':  {'args': [gen_arg_data(x) for x in self.sorted_and_filtered(list(func.kwargs.values()))]} if func.kwargs else None,
             'varargs': gen_arg_data(func.varargs) if func.varargs else None,
@@ -261,7 +261,7 @@ class GeneratorMD(GeneratorBase):
             'since': func.since or None,
             'deprecated': func.deprecated or None,
             'optional': False,
-            'default': None
+            'default': None,
         }
 
         return data

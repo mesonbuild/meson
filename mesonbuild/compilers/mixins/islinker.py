@@ -107,7 +107,7 @@ class BasicLinkerIsCompilerMixin(Compiler):
         raise MesonException("This linker doesn't support soname args")
 
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: list[str] | None = None
+                         extra_paths: list[str] | None = None,
                          ) -> tuple[list[str], set[bytes]]:
         return ([], set())
 

@@ -109,7 +109,7 @@ class PackageState:
     ws_member: str | None = None
     # Per-machine configuration state
     cfg: PerMachine[PackageConfiguration | None] = dataclasses.field(
-        default_factory=lambda: PerMachine(None, None)
+        default_factory=lambda: PerMachine(None, None),
     )
     # Subproject name as known to the wrap resolver (may differ from the
     # meson dep name for git sources, where the wrap is named after the
@@ -792,7 +792,7 @@ class Interpreter:
             build.assign(build.function('import', [build.string('rust')]),
                          'rust'),
             build.assign(build.method('workspace', build.identifier('rust'), []),
-                         'cargo_ws')
+                         'cargo_ws'),
         ]
 
     def _create_meson_subdir(self, build: builder.Builder) -> list[mparser.BaseNode]:
@@ -810,7 +810,7 @@ class Interpreter:
             build.assign(build.array([]), _extra_deps_varname()),
             build.assign(build.function('import', [build.string('fs')]), 'fs'),
             build.if_(build.method('is_dir', build.identifier('fs'), [build.string('meson')]),
-                      build.block([build.function('subdir', [build.string('meson')])]))
+                      build.block([build.function('subdir', [build.string('meson')])])),
         ]
 
     def _create_lib(self, pkg: PackageState, build: builder.Builder, subdir: str,
@@ -848,13 +848,13 @@ class Interpreter:
                         'version': build.method('version', build.identifier('pkg_obj')),
                     },
                 ),
-                'dep'
+                'dep',
             ),
             build.method(
                 'override_dependency',
                 build.identifier('pkg_obj'),
                 [build.identifier('dep')],
-                {'rust_abi': build.string(lib_type)}
+                {'rust_abi': build.string(lib_type)},
             ),
         ]
 

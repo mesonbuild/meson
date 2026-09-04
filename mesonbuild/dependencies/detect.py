@@ -81,7 +81,7 @@ def get_dep_identifier(name: str, kwargs: DependencyObjectKWs) -> TV_DepID:
             assert isinstance(value, str), 'for mypy'
         else:
             assert value is None or isinstance(value, (str, bool, int)), value
-        identifier = (*identifier, (key, value),)
+        identifier = (*identifier, (key, value))
     return identifier
 
 display_name_map = {
@@ -177,7 +177,7 @@ def find_external_dependency(name: str, env: Environment, kwargs: DependencyObje
     return NotFoundDependency(name, env)
 
 
-def _build_external_dependency_list(name: str, env: Environment, kwargs: DependencyObjectKWs
+def _build_external_dependency_list(name: str, env: Environment, kwargs: DependencyObjectKWs,
                                     ) -> list[DependencyGenerator]:
     # Is there a specific dependency detector for this dependency?
     lname = name.lower()

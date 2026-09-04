@@ -125,7 +125,7 @@ class MesonMain(MesonInterpreterObject):
     @typed_pos_args(
         'meson.add_install_script',
         (str, mesonlib.File, build.Executable, Program),
-        varargs=(str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, Program)
+        varargs=(str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, Program),
     )
     @typed_kwargs(
         'meson.add_install_script',
@@ -150,7 +150,7 @@ class MesonMain(MesonInterpreterObject):
     @typed_pos_args(
         'meson.add_postconf_script',
         (str, mesonlib.File, Program),
-        varargs=(str, mesonlib.File, Program)
+        varargs=(str, mesonlib.File, Program),
     )
     @noKwargs
     @InterpreterObject.method('add_postconf_script')
@@ -167,7 +167,7 @@ class MesonMain(MesonInterpreterObject):
     @typed_pos_args(
         'meson.add_dist_script',
         (str, mesonlib.File, Program),
-        varargs=(str, mesonlib.File, Program)
+        varargs=(str, mesonlib.File, Program),
     )
     @noKwargs
     @FeatureNew('meson.add_dist_script', '0.48.0')

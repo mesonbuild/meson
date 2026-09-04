@@ -27,12 +27,12 @@ ti_optimization_args: dict[str, list[str]] = {
     '1': ['-O1'],
     '2': ['-O2'],
     '3': ['-O3'],
-    's': ['-O4']
+    's': ['-O4'],
 }
 
 ti_debug_args: dict[bool, list[str]] = {
     False: [],
-    True: ['-g']
+    True: ['-g'],
 }
 
 

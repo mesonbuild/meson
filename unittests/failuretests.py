@@ -151,7 +151,7 @@ class FailureTests(BasePlatformTests):
              ("dependency('zlib', version : 1)", r'"dependency" keyword argument "version" was of type "array\[int\]" but should have been "array\[str\]"'),
              ("dependency('zlib', required : 1)", '"dependency" keyword argument "required" was of type "int" but should have been one of: "bool", "Feature"'),
              ("dependency('zlib', method : 1)", '"dependency" keyword argument "method" was of type "int" but should have been "str"'),
-             ("dependency('zlibfail')", self.dnf),)
+             ("dependency('zlibfail')", self.dnf))
         for contents, match in a:
             self.assertMesonRaises(contents, match)
 

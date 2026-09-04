@@ -123,10 +123,10 @@ class MKLPkgConfigDependency(PkgConfigDependency):
                 break
         if self.env.machines[self.for_machine].is_windows() or self.static:
             self.link_args.insert(
-                i, str(libdir / ('mkl_scalapack_lp64' + suffix))
+                i, str(libdir / ('mkl_scalapack_lp64' + suffix)),
             )
             self.link_args.insert(
-                i + 1, str(libdir / ('mkl_blacs_intelmpi_lp64' + suffix))
+                i + 1, str(libdir / ('mkl_blacs_intelmpi_lp64' + suffix)),
             )
         else:
             self.link_args.insert(i, '-lmkl_scalapack_lp64')

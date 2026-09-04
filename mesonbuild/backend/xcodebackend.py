@@ -58,7 +58,7 @@ LANGNAMEMAP: T.Mapping[str, str] = {
     'cpp': 'CPLUSPLUS',
     'objc': 'OBJC',
     'objcpp': 'OBJCPLUSPLUS',
-    'swift': 'SWIFT_'
+    'swift': 'SWIFT_',
 }
 
 OPT2XCODEOPT: T.Mapping[str, str | None] = {
@@ -87,7 +87,7 @@ XCODEVERSIONS: T.Mapping[str, tuple[str, int]] = {
     '800': ('Xcode 8.0', 48),
     '630': ('Xcode 6.3', 47),
     '320': ('Xcode 3.2', 46),
-    '310': ('Xcode 3.1', 45)
+    '310': ('Xcode 3.1', 45),
 }
 
 def autodetect_xcode_version() -> tuple[str, int]:
@@ -616,7 +616,7 @@ class XCodeBackend(backends.Backend):
         self.generate_target_file_maps_impl(self.custom_targets)
 
     def generate_target_file_maps_impl(
-            self, targets: T.Mapping[str, build.BuildTarget | build.CustomTarget]
+            self, targets: T.Mapping[str, build.BuildTarget | build.CustomTarget],
             ) -> None:
         for tname, t in targets.items():
             for s in t.sources:

@@ -731,7 +731,7 @@ class JDKSystemDependency(JNISystemDependency):
         self.featurechecks.append(FeatureDeprecated(
             'jdk system dependency',
             '0.62.0',
-            'Use the jni system dependency instead'
+            'Use the jni system dependency instead',
         ))
 
 packages['jdk'] = JDKSystemDependency

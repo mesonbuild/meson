@@ -29,7 +29,7 @@ tasking_buildtype_args: T.Mapping[str, list[str]] = {
     'debugoptimized': [],
     'release': [],
     'minsize': [],
-    'custom': []
+    'custom': [],
 }
 
 tasking_optimization_args: T.Mapping[str, list[str]] = {
@@ -39,12 +39,12 @@ tasking_optimization_args: T.Mapping[str, list[str]] = {
     '1': ['-O1'],
     '2': ['-O2'],
     '3': ['-O3'],
-    's': ['-Os']
+    's': ['-Os'],
 }
 
 tasking_debug_args: T.Mapping[bool, list[str]] = {
     False: [],
-    True: ['-g3']
+    True: ['-g3'],
 }
 
 class TaskingCompiler(Compiler):
@@ -62,7 +62,7 @@ class TaskingCompiler(Compiler):
             OptionKey(o) for o in [
                 'b_lto',
                 'b_staticpic',
-                'b_ndebug'
+                'b_ndebug',
             ]
         }
 

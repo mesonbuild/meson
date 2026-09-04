@@ -47,7 +47,7 @@ class CMakeTarget:
                 target_type: str,
                 properties:  dict[str, list[str]] | None = None,
                 imported:    bool = False,
-                tline:       CMakeTraceLine | None = None
+                tline:       CMakeTraceLine | None = None,
             ):
         if properties is None:
             properties = {}
@@ -210,7 +210,7 @@ class CMakeTraceParser:
         self.cache = {
             k: CMakeCacheEntry(
                 strlist_gen(v.value),
-                v.type
+                v.type,
             )
             for k, v in self.cache.items()
         }
@@ -235,7 +235,7 @@ class CMakeTraceParser:
             for command, src in zip(ctgt.command, temp):
                 if command[0] == "":
                     raise CMakeException(
-                        f"We evaluated the cmake variable '{src[0]}' to an empty string, which is not a valid path to an executable."
+                        f"We evaluated the cmake variable '{src[0]}' to an empty string, which is not a valid path to an executable.",
                     )
             ctgt.working_dir = Path(parse_generator_expressions(str(ctgt.working_dir), self)) if ctgt.working_dir is not None else None
 

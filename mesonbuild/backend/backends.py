@@ -535,7 +535,7 @@ class Backend:
             yield t
         assert target not in seen, 'should not have self'
 
-    def flatten_object_list(self, target: build.BuildTarget, proj_dir_to_build_root: str = ''
+    def flatten_object_list(self, target: build.BuildTarget, proj_dir_to_build_root: str = '',
                             ) -> tuple[list[str], T.Iterable[build.BuildTarget]]:
         obj_list, deps = self._flatten_object_list(target.get_objects(), proj_dir_to_build_root)
         return unique_list(obj_list), deps
@@ -849,7 +849,7 @@ class Backend:
 
             return (
                 self.environment.get_build_command() + ['--internal', 'exe'] + args + ['--'] + es.cmd_args,
-                ', '.join(reasons)
+                ', '.join(reasons),
             )
 
         if isinstance(exe, (programs.Program,
@@ -2145,7 +2145,7 @@ class Backend:
                 'compiler': compiler,
                 'parameters': [],
                 'sources': source_list,
-                'generated_sources': []
+                'generated_sources': [],
             }]
 
         return []

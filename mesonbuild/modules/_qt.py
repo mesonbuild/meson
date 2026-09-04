@@ -685,7 +685,7 @@ class QtBaseModule(ExtensionModule):
                 'dependencies': kwargs['dependencies'],
                 'method': method,
                 'preserve_paths': kwargs['preserve_paths'],
-                'output_json': kwargs['moc_output_json']
+                'output_json': kwargs['moc_output_json'],
             }
             sources.extend(self._compile_moc_impl(state, moc_kwargs))
 
@@ -784,7 +784,7 @@ class QtBaseModule(ExtensionModule):
                 content_files.append(File.from_source_file(
                     state.environment.get_source_dir(),
                     state.subdir,
-                    s
+                    s,
                 ))
         return content_files
 
@@ -802,7 +802,7 @@ class QtBaseModule(ExtensionModule):
             filenode = ET.SubElement(qresource, 'file', alias=alias)
             filenode.text = source.absolute_path(
                 state.environment.get_source_dir(),
-                state.environment.get_build_dir()
+                state.environment.get_build_dir(),
             )
 
         tree = ET.ElementTree(rcc)
@@ -911,7 +911,7 @@ class QtBaseModule(ExtensionModule):
         for qrc in self._source_to_files(state, [kwargs['qml_qrc']]):
             command_args.extend(['--resource', qrc.absolute_path(
                 state.environment.get_source_dir(),
-                state.environment.get_build_dir()
+                state.environment.get_build_dir(),
             )])
 
         command_args.append('@INPUT@')

@@ -204,7 +204,7 @@ class CMakeSubprojectOptions(ModuleObject):
                 'append_compile_args': self.append_compile_args,
                 'append_link_args': self.append_link_args,
                 'clear': self.clear,
-            }
+            },
         )
 
     def _get_opts(self, kwargs: TargetKW) -> SingleTargetOptions:

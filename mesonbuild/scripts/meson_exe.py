@@ -41,7 +41,7 @@ def run_exe(exe: ExecutableSerialisation, extra_env: dict[str, str] | None = Non
             child_env['WINEPATH'] = mesonlib.get_wine_shortpath(
                 exe.exe_wrapper.get_command(),
                 ['Z:' + p for p in exe.extra_paths] + child_env.get('WINEPATH', '').split(';'),
-                exe.workdir
+                exe.workdir,
             )
 
     stdin = None

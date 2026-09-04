@@ -915,7 +915,7 @@ class LinuxlikeTests(BasePlatformTests):
                           ('-L/me/first', '-L/me/second'),
                           ('-lfoo1', '-lfoo2'),
                           ('-L/me/second', '-L/me/third'),
-                          ('-L/me/third', '-L/me/fourth',),
+                          ('-L/me/third', '-L/me/fourth'),
                           ('-L/me/third', '-lfoo3'),
                           ('-L/me/fourth', '-lfoo4'),
                           ('-lfoo3', '-lfoo4'),
@@ -1072,7 +1072,7 @@ class LinuxlikeTests(BasePlatformTests):
             ('-Wl,--just-symbols=', True),
             ('-Wl,--just-symbols,', True),
             ('-Wl,-R', False),
-            ('-Wl,-R,', False)
+            ('-Wl,-R,', False),
         ]
         for rpath_format, exception in rpath_formats:
             # Build an app that uses that installed library.

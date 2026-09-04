@@ -129,7 +129,7 @@ def get_primary_source_lang(target_sources: list[File], custom_sources: list[str
 # reference and re-use the shared 'primary' language intellisense fields of the vcxproj.
 def get_non_primary_lang_intellisense_fields(vslite_ctx: _VSLITE_CTX,
                                              target_id: str,
-                                             primary_src_lang: Language
+                                             primary_src_lang: Language,
                                              ) -> dict[str, dict[str, tuple[str, str, str]]]:
     defs_paths_opts_per_lang_and_buildtype: dict[str, dict[str, tuple[str, str, str]]] = {}
     for buildtype in coredata.get_genvs_default_buildtype_list():
@@ -233,7 +233,7 @@ class Vs2010Backend(backends.Backend):
                 workdir=tdir_abs,
                 capture=outfiles[0] if generator.capture else None,
                 force_serialize=True,
-                env=genlist.env
+                env=genlist.env,
             )
             deps = cmd[-1:] + deps
             abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
@@ -244,7 +244,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(cbs, 'AdditionalInputs').text = ';'.join(deps)
 
     def generate_custom_generator_commands(
-            self, target: build.BuildTarget | build.CustomTarget, parent_node: ET.Element
+            self, target: build.BuildTarget | build.CustomTarget, parent_node: ET.Element,
             ) -> tuple[list[str], list[str], list[str]]:
         generator_output_files: list[str] = []
         custom_target_include_dirs: list[str] = []
@@ -501,7 +501,7 @@ class Vs2010Backend(backends.Backend):
                 startup_idx = i
             outdir = Path(
                 self.environment.get_build_dir(),
-                self.get_target_dir(target)
+                self.get_target_dir(target),
             )
             outdir.mkdir(exist_ok=True, parents=True)
             fname = name + '.vcxproj'
@@ -969,7 +969,7 @@ class Vs2010Backend(backends.Backend):
             generated_files_include_dirs: list[str],
             proj_to_src_root: str,
             proj_to_src_dir: str,
-            build_args: list[str]
+            build_args: list[str],
             ) -> tuple[tuple[list[str], dict[Language, CompilerArgs]], tuple[list[str], dict[Language, list[str]]], tuple[list[str], dict[Language, list[str]]]]:
         # Arguments, include dirs, defines for all files in the current target
         target_args: list[str] = []
@@ -1221,7 +1221,7 @@ class Vs2010Backend(backends.Backend):
         prop_sheets_grp = ET.SubElement(root, 'ImportGroup', Label='PropertySheets')
         ET.SubElement(prop_sheets_grp, 'Import', {'Project': r'$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props',
                                                   'Condition': r"exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')",
-                                                  'Label': 'LocalAppDataPlatform'
+                                                  'Label': 'LocalAppDataPlatform',
                                                   })
         ET.SubElement(root, 'PropertyGroup', Label='UserMacros')
 
@@ -1286,7 +1286,7 @@ class Vs2010Backend(backends.Backend):
             target_args: list[str],
             target_defines: list[str],
             target_inc_dirs: list[str],
-            file_args: dict[Language, CompilerArgs]
+            file_args: dict[Language, CompilerArgs],
             ) -> None:
         compiler = self._get_cl_compiler(target)
         buildtype_link_args = compiler.get_optimization_link_args(self.optimization)
@@ -1931,7 +1931,7 @@ class Vs2010Backend(backends.Backend):
         (root, type_config) = self.create_basic_project(project_name,
                                                         temp_dir='regen-temp',
                                                         guid=guid,
-                                                        conftype=conftype
+                                                        conftype=conftype,
                                                         )
 
         if self.gen_lite:
@@ -1984,7 +1984,7 @@ class Vs2010Backend(backends.Backend):
             (root, type_config) = self.create_basic_project(project_name,
                                                             temp_dir='install-temp',
                                                             guid=guid,
-                                                            conftype='Makefile'
+                                                            conftype='Makefile',
                                                             )
             (nmake_base_meson_command, exe_search_paths) = Vs2010Backend.get_nmake_base_meson_command_and_exe_search_paths()
             multi_config_buildtype_list = coredata.get_genvs_default_buildtype_list()
@@ -2038,7 +2038,7 @@ class Vs2010Backend(backends.Backend):
             (root, type_config) = self.create_basic_project(project_name,
                                                             temp_dir='install-temp',
                                                             guid=guid,
-                                                            conftype='Makefile'
+                                                            conftype='Makefile',
                                                             )
             (nmake_base_meson_command, exe_search_paths) = Vs2010Backend.get_nmake_base_meson_command_and_exe_search_paths()
             multi_config_buildtype_list = coredata.get_genvs_default_buildtype_list()

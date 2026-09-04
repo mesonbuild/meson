@@ -114,7 +114,7 @@ class ValaCompiler(Compiler):
         # and linked by _transpiled_sanity_check_compile_args()
         return CompileCheckMode.COMPILE
 
-    def _sanity_check_compile_args(self, sourcename: str, binname: str
+    def _sanity_check_compile_args(self, sourcename: str, binname: str,
                                    ) -> tuple[list[str], list[str]]:
         args, largs = super()._sanity_check_compile_args(sourcename, binname)
         if self._has_posix_profile:
@@ -124,7 +124,7 @@ class ValaCompiler(Compiler):
         return args, largs
 
     def _transpiled_sanity_check_compile_args(
-            self, compiler: Compiler, sourcename: str, binname: str
+            self, compiler: Compiler, sourcename: str, binname: str,
             ) -> tuple[list[str], list[str]]:
         args, largs = super()._transpiled_sanity_check_compile_args(compiler, sourcename, binname)
         if self._has_posix_profile:

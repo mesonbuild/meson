@@ -573,7 +573,7 @@ class NvidiaHPC_CPPCompiler(PGICompiler, CPPCompiler):
         opts = super().get_options()
         cppstd_choices = [
             'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++20', 'c++23',
-            'gnu++98', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++20'
+            'gnu++98', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++20',
         ]
         std_opt = opts[self.form_compileropt_key('std')]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
@@ -748,7 +748,7 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
         if std != 'none':
             remap_cpp03 = {
                 'c++03': 'c++98',
-                'gnu++03': 'gnu++98'
+                'gnu++03': 'gnu++98',
             }
             args.append('-std=' + remap_cpp03.get(std, std))
 

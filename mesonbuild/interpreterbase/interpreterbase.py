@@ -53,12 +53,12 @@ if T.TYPE_CHECKING:
     HolderMapType = dict[
         type[mesonlib.HoldableObject] | type[int] | type[bool] | type[str] | type[list] | type[dict],
         # For some reason, this has to be a callable and can't just be ObjectHolder[InterpreterObjectTypeVar]
-        T.Callable[[InterpreterObjectTypeVar, 'Interpreter'], ObjectHolder[InterpreterObjectTypeVar]]
+        T.Callable[[InterpreterObjectTypeVar, 'Interpreter'], ObjectHolder[InterpreterObjectTypeVar]],
     ]
 
     FunctionType = dict[
         str,
-        T.Callable[[mparser.BaseNode, list[TYPE_var], dict[str, TYPE_var]], TYPE_var]
+        T.Callable[[mparser.BaseNode, list[TYPE_var], dict[str, TYPE_var]], TYPE_var],
     ]
 
 
@@ -578,7 +578,7 @@ class InterpreterBase:
                 duplicate_key_error: str | None = None,
             ) -> tuple[
                 list[InterpreterObject],
-                dict[str, InterpreterObject]
+                dict[str, InterpreterObject],
             ]:
         if args.incorrect_order():
             raise InvalidArguments('All keyword arguments must be after positional arguments.')

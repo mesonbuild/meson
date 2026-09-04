@@ -1125,7 +1125,7 @@ class AllPlatformTests(BasePlatformTests):
                         self.assertTrue(
                             parent.endswith(".p"),
                             "pyx.c file should be directly under the .p folder,"
-                            f" got {generated_source!r}"
+                            f" got {generated_source!r}",
                         )
         self.assertTrue(found, "No cython transpiled outputs found")
 
@@ -1930,7 +1930,7 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '39 library chain')
         self.init(testdir)
         self.build()
-        for each in ('prog', 'subdir/liblib1.so', ):
+        for each in ('prog', 'subdir/liblib1.so' ):
             rpath = get_rpath(os.path.join(self.builddir, each))
             self.assertTrue(rpath, f'Rpath could not be determined for {each}.')
             if is_dragonflybsd():
@@ -3352,7 +3352,7 @@ class AllPlatformTests(BasePlatformTests):
             'platform': sysconfig.get_platform(),
             'language': {
                 'version': sysconfig.get_python_version(),
-                'version_info': {key: getattr(sys.version_info, key) for key in VERSION_INFO_KEYS}
+                'version_info': {key: getattr(sys.version_info, key) for key in VERSION_INFO_KEYS},
             },
             'implementation': {
                 attr: (
@@ -3385,7 +3385,7 @@ class AllPlatformTests(BasePlatformTests):
             },
             'c_api': {
                 'headers': sysconfig.get_config_var('INCLUDEPY'),
-            }
+            },
         }
 
         py3library = sysconfig.get_config_var('PY3LIBRARY')
@@ -3435,21 +3435,21 @@ class AllPlatformTests(BasePlatformTests):
                                     textwrap.dedent('''
                                         [binaries]
                                         pkg-config = 'pkg-config'
-                                    ''')
+                                    '''),
                                 )
                                 if build_config_via_cross:
                                     cross_file.write(
                                         textwrap.dedent(f'''
                                             [built-in options]
                                             python.build_config = '{python_build_config_file.name}'
-                                        ''')
+                                        '''),
                                     )
                                 if sys_root is not None:
                                     cross_file.write(
                                         textwrap.dedent(f'''
                                             [properties]
                                             sys_root = '{sys_root}'
-                                        ''')
+                                        '''),
                                     )
                                 cross_file.flush()
 
@@ -3583,7 +3583,7 @@ class AllPlatformTests(BasePlatformTests):
                 {
                     'descriptive_name': 'sub',
                     'name': 'sub',
-                    'version': '1.0'
+                    'version': '1.0',
                 },
                 {
                     'descriptive_name': 'sub_implicit',
@@ -3598,19 +3598,19 @@ class AllPlatformTests(BasePlatformTests):
                 {
                     'descriptive_name': 'sub_static',
                     'name': 'sub_static',
-                    'version': 'undefined'
+                    'version': 'undefined',
                 },
                 {
                     'descriptive_name': 'subsub',
                     'name': 'subsub',
-                    'version': 'undefined'
+                    'version': 'undefined',
                 },
                 {
                     'descriptive_name': 'subsubsub',
                     'name': 'subsubsub',
-                    'version': 'undefined'
+                    'version': 'undefined',
                 },
-            ]
+            ],
         }
         res['subprojects'] = sorted(res['subprojects'], key=lambda i: i['name'])
         self.assertDictEqual(expected, res)
@@ -3623,7 +3623,7 @@ class AllPlatformTests(BasePlatformTests):
         expected = {
             'sublib': 'sublib',
             'simpletest': 'sublib',
-            'user': None
+            'user': None,
         }
 
         for entry in res:
@@ -4023,7 +4023,7 @@ class AllPlatformTests(BasePlatformTests):
                 'license_files': [],
                 'descriptive_name': 'introspection',
                 'subproject_dir': 'subprojects',
-                'subprojects': []
+                'subprojects': [],
             })
 
         with self.subTest('Check targets'):
@@ -4184,7 +4184,7 @@ class AllPlatformTests(BasePlatformTests):
                 'compiler': [],
                 'parameters': [],
                 'sources': sources,
-                'generated_sources': []
+                'generated_sources': [],
             }]
 
         self.maxDiff = None
@@ -4316,35 +4316,35 @@ class AllPlatformTests(BasePlatformTests):
                 'required': True,
                 'version': [],
                 'has_fallback': False,
-                'conditional': False
+                'conditional': False,
             },
             {
                 'name': 'zlib',
                 'required': False,
                 'version': [],
                 'has_fallback': False,
-                'conditional': False
+                'conditional': False,
             },
             {
                 'name': 'bugDep1',
                 'required': 'unknown',
                 'version': [],
                 'has_fallback': False,
-                'conditional': False
+                'conditional': False,
             },
             {
                 'name': 'somethingthatdoesnotexist',
                 'required': True,
                 'version': ['>=1.2.3'],
                 'has_fallback': False,
-                'conditional': True
+                'conditional': True,
             },
             {
                 'name': 'look_i_have_a_fallback',
                 'required': True,
                 'version': ['>=1.0.0', '<=99.9.9'],
                 'has_fallback': True,
-                'conditional': True
+                'conditional': True,
             },
         ]
         self.maxDiff = None
@@ -4995,7 +4995,7 @@ class AllPlatformTests(BasePlatformTests):
             'share/bar/bar.dat',
             'include/bar.h',
             'bin/bar' + exe_suffix,
-            'bar/barfile'
+            'bar/barfile',
         ]
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
@@ -5556,8 +5556,8 @@ class AllPlatformTests(BasePlatformTests):
                     'subproject': None,
                     'exclude_dirs': ['excluded'],
                     'exclude_files': ['excluded.txt'],
-                }
-            }
+                },
+            },
         }
 
         def fix_path(path: str) -> str:

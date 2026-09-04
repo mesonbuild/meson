@@ -33,9 +33,9 @@ if T.TYPE_CHECKING:
         [
             'Environment',
             DependencyObjectKWs,
-            list[DependencyMethods]
+            list[DependencyMethods],
         ],
-        list[DependencyGenerator]
+        list[DependencyGenerator],
     ]
 
     WrappedFactoryFunc = T.Callable[
@@ -43,7 +43,7 @@ if T.TYPE_CHECKING:
             'Environment',
             DependencyObjectKWs,
         ],
-        list[DependencyGenerator]
+        list[DependencyGenerator],
     ]
 
 class DependencyFactory:

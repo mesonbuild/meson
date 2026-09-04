@@ -76,7 +76,7 @@ _ERROR_MSG_KW: KwargInfo[str | None] = KwargInfo('error_message', (str, NoneType
 def extract_required_kwarg(kwargs: kwargs.ExtractRequired,
                            subproject: SubProject,
                            feature_check: FeatureCheckBase | None = None,
-                           default: bool = True
+                           default: bool = True,
                            ) -> tuple[Literal[True], bool, str] | tuple[Literal[False], bool, None]:
     """Check common keyword arguments for required status.
 
@@ -548,7 +548,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
     @typed_kwargs(
         'dependency.get_pkgconfig_variable',
         KwargInfo('default', str, default=''),
-        PKGCONFIG_DEFINE_KW.evolve(name='define_variable')
+        PKGCONFIG_DEFINE_KW.evolve(name='define_variable'),
     )
     @InterpreterObject.method('get_pkgconfig_variable')
     def pkgconfig_method(self, args: tuple[str], kwargs: kwargs.DependencyPkgConfigVar) -> str:
@@ -1079,8 +1079,8 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
                 keyword argument. Meson currently defaults to
                 non-recursive to maintain backward compatibility but
                 the default will be changed in meson 2.0.
-            ''')
-        )
+            '''),
+        ),
     )
     @InterpreterObject.method('extract_all_objects')
     def extract_all_objects_method(self, args: list[TYPE_var], kwargs: kwargs.BuildTargeMethodExtractAllObjects) -> build.ExtractedObjects:

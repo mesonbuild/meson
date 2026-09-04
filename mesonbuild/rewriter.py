@@ -115,14 +115,14 @@ class RequiredKeys:
                     if default is not None:
                         cmd[key] = default
                     else:
-                        raise RewriterException(f'Key "{key}" is missing in object for {f.__name__}'
+                        raise RewriterException(f'Key "{key}" is missing in object for {f.__name__}',
                                                 )
                 if not isinstance(cmd[key], typ):
-                    raise RewriterException(f'Invalid type of "{key}". Required is {typ.__name__} but provided was {type(cmd[key]).__name__}'
+                    raise RewriterException(f'Invalid type of "{key}". Required is {typ.__name__} but provided was {type(cmd[key]).__name__}',
                                             )
                 if choices is not None:
                     if cmd[key] not in choices:
-                        raise RewriterException(f'Invalid value of "{key}": Possible values are {choices} but provided was "{cmd[key]}"'
+                        raise RewriterException(f'Invalid value of "{key}": Possible values are {choices} but provided was "{cmd[key]}"',
                                                 )
             return f(rewriter, cmd)
         return wrapped
@@ -344,13 +344,13 @@ class MTypeIDList(MTypeList):
 rewriter_keys: dict[str, RewriterKeysT] = {
     'default_options': {
         'operation': (str, None, ['set', 'delete']),
-        'options': (dict, {}, None)
+        'options': (dict, {}, None),
     },
     'kwargs': {
         'function': (str, None, None),
         'id': (str, None, None),
         'operation': (str, None, ['set', 'delete', 'add', 'remove', 'remove_regex', 'info']),
-        'kwargs': (dict, {}, None)
+        'kwargs': (dict, {}, None),
     },
     'target': {
         'target': (str, None, None),
@@ -358,7 +358,7 @@ rewriter_keys: dict[str, RewriterKeysT] = {
         'sources': (list, [], None),
         'subdir': (str, '', None),
         'target_type': (str, 'executable', ['both_libraries', 'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library']),
-    }
+    },
 }
 
 rewriter_func_kwargs = {
@@ -370,7 +370,7 @@ rewriter_func_kwargs = {
         'required': MTypeBool,
         'static': MTypeBool,
         'version': MTypeStrList,
-        'modules': MTypeStrList
+        'modules': MTypeStrList,
     },
     'target': {
         'build_by_default': MTypeBool,
@@ -383,7 +383,7 @@ rewriter_func_kwargs = {
         'install': MTypeBool,
         'install_dir': MTypeStr,
         'install_rpath': MTypeStr,
-        'pie': MTypeBool
+        'pie': MTypeBool,
     },
     'project': {
         'default_options': MTypeStrList,
@@ -391,8 +391,8 @@ rewriter_func_kwargs = {
         'license': MTypeStrList,
         'license_files': MTypeStrList,
         'subproject_dir': MTypeStr,
-        'version': MTypeStr
-    }
+        'version': MTypeStr,
+    },
 }
 
 class Rewriter:
@@ -509,8 +509,8 @@ class Rewriter:
             'id': "/",
             'operation': 'remove_regex',
             'kwargs': {
-                'default_options': [f'{x}=.*' for x in cmd['options'].keys()]
-            }
+                'default_options': [f'{x}=.*' for x in cmd['options'].keys()],
+            },
         }
         self.process_kwargs(kwargs_cmd)
 
@@ -956,7 +956,7 @@ class Rewriter:
             tgt_ass_node = AssignmentNode(IdNode(Token('id', filename, 0, 0, 0, (0, 0), target_id)), _symbol('='), tgt_fun_node)
             tgt_arg_node.arguments = [
                 StringNode(Token('string', filename, 0, 0, 0, None, cmd['target'])),
-                IdNode(Token('string', filename, 0, 0, 0, None, source_id))
+                IdNode(Token('string', filename, 0, 0, 0, None, source_id)),
             ]
 
             src_ass_node.accept(AstIndentationGenerator())
@@ -986,7 +986,7 @@ class Rewriter:
             test_data = {
                 'name': target.name,
                 'sources': src_list,
-                'extra_files': extra_files_list
+                'extra_files': extra_files_list,
             }
             self.add_info('target', target.id, test_data)
 
@@ -1036,7 +1036,7 @@ class Rewriter:
                 'file': T.cast(BaseNode, i['node']).filename,
                 'str': new_data,
                 'node': i['node'],
-                'action': i['action']
+                'action': i['action'],
             }
             str_list += [data]
 
@@ -1065,7 +1065,7 @@ class Rewriter:
             files[T.cast(str, i['file'])] = {
                 'path': fpath,
                 'raw': fdata,
-                'offsets': line_offsets
+                'offsets': line_offsets,
             }
 
         # Replace in source code

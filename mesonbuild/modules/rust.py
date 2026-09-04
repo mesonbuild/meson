@@ -781,7 +781,7 @@ class RustModule(ExtensionModule):
             name, base_target.subdir, base_target.for_machine,
             sources, base_target.structured_sources,
             base_target.objects, base_target.environment, base_target.compilers,
-            state.current_build_project, new_target_kwargs
+            state.current_build_project, new_target_kwargs,
         )
         return new_target, tkwargs
 
@@ -1046,13 +1046,13 @@ class RustModule(ExtensionModule):
             outputs.append(kwargs['output_inline_wrapper'])
             inline_wrapper_args = [
                 '--experimental', '--wrap-static-fns',
-                '--wrap-static-fns-path', os.path.join(state.environment.build_dir, '@OUTPUT1@')
+                '--wrap-static-fns-path', os.path.join(state.environment.build_dir, '@OUTPUT1@'),
             ]
 
         cmd = self._bindgen_bin.get_command() + \
             [
                 '@INPUT@', '--output',
-                os.path.join(state.environment.build_dir, '@OUTPUT0@')
+                os.path.join(state.environment.build_dir, '@OUTPUT0@'),
             ] + \
             kwargs['args'] + inline_wrapper_args
         if self._bindgen_rust_target and '--rust-target' not in cmd:

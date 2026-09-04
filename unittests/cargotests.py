@@ -195,7 +195,7 @@ class CargoCfgTest(unittest.TestCase):
             'not(',
             'not(all(unix,))',
             'not(any)',
-            ''
+            '',
         ]
         for data in cases:
             with self.subTest():

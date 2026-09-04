@@ -464,7 +464,7 @@ def _run_ci_include(args: list[str]) -> str:
         return f'Failed to open {args[0]}\n'
 
 ci_commands = {
-    'ci_include': _run_ci_include
+    'ci_include': _run_ci_include,
 }
 
 def run_ci_commands(raw_log: str) -> list[str]:

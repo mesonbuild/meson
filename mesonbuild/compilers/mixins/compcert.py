@@ -26,19 +26,19 @@ ccomp_optimization_args: dict[str, list[str]] = {
     '1': ['-O1'],
     '2': ['-O2'],
     '3': ['-O3'],
-    's': ['-Os']
+    's': ['-Os'],
 }
 
 ccomp_debug_args: dict[bool, list[str]] = {
     False: [],
-    True: ['-g']
+    True: ['-g'],
 }
 
 # As of CompCert 20.04, these arguments should be passed to the underlying gcc linker (via -WUl,<arg>)
 # There are probably (many) more, but these are those used by picolibc
 ccomp_args_to_wul: list[str] = [
         r"^-ffreestanding$",
-        r"^-r$"
+        r"^-r$",
 ]
 
 class CompCertCompiler(Compiler):

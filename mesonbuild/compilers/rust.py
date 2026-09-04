@@ -325,7 +325,7 @@ class RustCompiler(Compiler):
         return rust_optimization_args[optimization_level]
 
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: list[str] | None = None
+                         extra_paths: list[str] | None = None,
                          ) -> tuple[list[str], set[bytes]]:
         # add rustc's sysroot to account for rustup installations
         args, to_remove = super().build_rpath_args(

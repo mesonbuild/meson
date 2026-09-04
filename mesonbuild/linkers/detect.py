@@ -229,7 +229,7 @@ def guess_nix_linker(env: Environment, compiler: list[str], comp_class: type[Com
             __failed_to_detect_linker(compiler, check_args, o, e)
         linker = linkers.AppleDynamicLinker(
             compiler, env, for_machine, comp_class.LINKER_OPTION_STYLE, override,
-            system=system, version=v
+            system=system, version=v,
         )
     # detect linker on MacOS - must be after other platforms because the
     # "(use -v to see invocation)" will match clang on other platforms,
@@ -248,7 +248,7 @@ def guess_nix_linker(env: Environment, compiler: list[str], comp_class: type[Com
             __failed_to_detect_linker(compiler, check_args, o, e)
         linker = linkers.AppleDynamicLinker(
             compiler, env, for_machine, comp_class.LINKER_OPTION_STYLE, override,
-            system=system, version=v
+            system=system, version=v,
         )
     elif 'ld.exe: unrecognized option' in e or 'ld: unrecognized option' in e:
         linker = linkers.OS2AoutDynamicLinker(

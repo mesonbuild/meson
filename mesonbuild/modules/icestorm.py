@@ -51,7 +51,7 @@ class IceStormModule(ExtensionModule):
             'constraint_file',
             (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList),
             required=True,
-        )
+        ),
     )
     def project(self, state: ModuleState,
                 args: tuple[str, list[str | build.TargetSources]],

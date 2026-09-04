@@ -181,7 +181,7 @@ class Conf:
                 items = [l[i] if l[i] else ' ' * four_column[i] for i in range(4)]
                 mlog.log(*items)
 
-    def split_options_per_subproject(self, opts: options.MutableKeyedOptionDictType | options.OptionStore
+    def split_options_per_subproject(self, opts: options.MutableKeyedOptionDictType | options.OptionStore,
                                      ) -> dict[str | None, options.MutableKeyedOptionDictType]:
         result: dict[str | None, options.MutableKeyedOptionDictType] = {}
         for k, o in opts.items():

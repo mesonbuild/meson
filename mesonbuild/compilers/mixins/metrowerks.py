@@ -50,7 +50,7 @@ mwccarm_instruction_set_args: dict[str, list[str]] = {
     'pxa255': ['-proc', 'pxa255'],
     'pxa261': ['-proc', 'pxa261'],
     'pxa262': ['-proc', 'pxa262'],
-    'pxa263': ['-proc', 'pxa263']
+    'pxa263': ['-proc', 'pxa263'],
 }
 
 mwcceppc_instruction_set_args: dict[str, list[str]] = {
@@ -93,7 +93,7 @@ mwasmarm_instruction_set_args: dict[str, list[str]] = {
     'arm5TE': ['-proc', 'arm5TE'],
     'arm5TExP': ['-proc', 'arm5TExP'],
     'arm6': ['-proc', 'arm6'],
-    'xscale': ['-proc', 'xscale']
+    'xscale': ['-proc', 'xscale'],
 }
 
 mwasmeppc_instruction_set_args: dict[str, list[str]] = {
@@ -156,12 +156,12 @@ mwcc_optimization_args: dict[str, list[str]] = {
     '1': ['-O1'],
     '2': ['-O2'],
     '3': ['-O4,p'],
-    's': ['-Os']
+    's': ['-Os'],
 }
 
 mwcc_debug_args: dict[bool, list[str]] = {
     False: [],
-    True: ['-g']
+    True: ['-g'],
 }
 
 

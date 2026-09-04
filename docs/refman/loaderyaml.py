@@ -99,7 +99,7 @@ class StrictTemplate(Template):
             Optional('warnings', default=[]): OrValidator(Seq(Str()), EmptyList()),
             Optional('example', default=''): Str(),
             Optional('methods'): Seq(self.s_function),
-            Optional('is_container', default=False): Bool()
+            Optional('is_container', default=False): Bool(),
         })
 
 class FastTemplate(Template):
@@ -304,8 +304,8 @@ class LoaderYAML(LoaderBase):
                     [self._load_object(ObjectType.ELEMENTARY, x) for x in self.elem_dir.iterdir()],
                     [self._load_object(ObjectType.RETURNED, x) for x in self.objs_dir.iterdir()],
                     [self._load_object(ObjectType.BUILTIN, x) for x in self.builtin_dir.iterdir()],
-                    [self._load_module(x) for x in self.modules_dir.iterdir()]
-                ], flatten=True)
+                    [self._load_module(x) for x in self.modules_dir.iterdir()],
+                ], flatten=True),
             )
 
             if not self.strict:

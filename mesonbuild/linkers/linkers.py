@@ -78,7 +78,7 @@ class StaticLinker:
         return []
 
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: list[str] | None = None
+                         extra_paths: list[str] | None = None,
                          ) -> tuple[list[str], set[bytes]]:
         return ([], set())
 
@@ -314,7 +314,7 @@ class DynamicLinker(metaclass=mesonlib.SimpleABC):
         raise MesonException('This linker does not support bitcode bundles')
 
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: list[str] | None = None
+                         extra_paths: list[str] | None = None,
                          ) -> tuple[list[str], set[bytes]]:
         return ([], set())
 
@@ -752,7 +752,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         return self._apply_prefix('--fatal-warnings')
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
-                        soversion: str, darwin_versions: tuple[str, str]
+                        soversion: str, darwin_versions: tuple[str, str],
                         ) -> list[str]:
         m = self.environment.machines[self.for_machine]
         if m.is_windows() or m.is_cygwin():
@@ -762,7 +762,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         return self._apply_prefix(['-soname', f'{prefix}{shlib_name}.{suffix}{sostr}'])
 
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: list[str] | None = None
+                         extra_paths: list[str] | None = None,
                          ) -> tuple[list[str], set[bytes]]:
         m = self.environment.machines[self.for_machine]
         if m.is_windows() or m.is_cygwin():
@@ -930,7 +930,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return self._apply_prefix('-fatal_warnings') + self.no_warn_duplicate_libraries()
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
-                        soversion: str, darwin_versions: tuple[str, str]
+                        soversion: str, darwin_versions: tuple[str, str],
                         ) -> list[str]:
         install_name = ['@rpath/', prefix, shlib_name]
         if soversion is not None:
@@ -943,7 +943,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return self._apply_prefix(args)
 
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: list[str] | None = None
+                         extra_paths: list[str] | None = None,
                          ) -> tuple[list[str], set[bytes]]:
         rpath_paths = target.determine_rpath_dirs()
         if not rpath_paths and not target.install_rpath and not target.build_rpath and not extra_paths:
@@ -1113,7 +1113,7 @@ class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
         return ['-sERROR_ON_UNDEFINED_SYMBOLS=1']
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
-                        soversion: str, darwin_versions: tuple[str, str]
+                        soversion: str, darwin_versions: tuple[str, str],
                         ) -> list[str]:
         raise MesonException(f'{self.id} does not support shared libraries.')
 
@@ -1121,7 +1121,7 @@ class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
         return []
 
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: list[str] | None = None
+                         extra_paths: list[str] | None = None,
                          ) -> tuple[list[str], set[bytes]]:
         return ([], set())
 
@@ -1156,7 +1156,7 @@ class CcrxDynamicLinker(DynamicLinker):
         return []
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
-                        soversion: str, darwin_versions: tuple[str, str]
+                        soversion: str, darwin_versions: tuple[str, str],
                         ) -> list[str]:
         return []
 
@@ -1196,12 +1196,12 @@ class Xc16DynamicLinker(DynamicLinker):
         return []
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
-                        soversion: str, darwin_versions: tuple[str, str]
+                        soversion: str, darwin_versions: tuple[str, str],
                         ) -> list[str]:
         return []
 
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: list[str] | None = None
+                         extra_paths: list[str] | None = None,
                          ) -> tuple[list[str], set[bytes]]:
         return ([], set())
 
@@ -1283,7 +1283,7 @@ class CompCertDynamicLinker(DynamicLinker):
         return []
 
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: list[str] | None = None
+                         extra_paths: list[str] | None = None,
                          ) -> tuple[list[str], set[bytes]]:
         return ([], set())
 
@@ -1395,7 +1395,7 @@ class NAGDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     id = 'nag'
 
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: list[str] | None = None
+                         extra_paths: list[str] | None = None,
                          ) -> tuple[list[str], set[bytes]]:
         rpath_paths = target.determine_rpath_dirs()
         if not rpath_paths and not target.install_rpath and not target.build_rpath and not extra_paths:
@@ -1431,7 +1431,7 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return []
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
-                        soversion: str, darwin_versions: tuple[str, str]
+                        soversion: str, darwin_versions: tuple[str, str],
                         ) -> list[str]:
         return []
 
@@ -1445,7 +1445,7 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return []
 
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: list[str] | None = None
+                         extra_paths: list[str] | None = None,
                          ) -> tuple[list[str], set[bytes]]:
         if not self.environment.machines[self.for_machine].is_windows():
             rpath_paths = target.determine_rpath_dirs()
@@ -1539,7 +1539,7 @@ class VisualStudioLikeLinkerMixin(DynamicLinkerBase):
         return self._apply_prefix(['/DEF:' + defsfile])
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
-                        soversion: str, darwin_versions: tuple[str, str]
+                        soversion: str, darwin_versions: tuple[str, str],
                         ) -> list[str]:
         return []
 
@@ -1669,7 +1669,7 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return ['-z', 'fatal-warnings']
 
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: list[str] | None = None
+                         extra_paths: list[str] | None = None,
                          ) -> tuple[list[str], set[bytes]]:
         rpath_paths = target.determine_rpath_dirs()
         if not rpath_paths and not target.install_rpath and not target.build_rpath and not extra_paths:
@@ -1700,7 +1700,7 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return (self._apply_prefix(['-rpath', paths]), rpath_dirs_to_remove)
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
-                        soversion: str, darwin_versions: tuple[str, str]
+                        soversion: str, darwin_versions: tuple[str, str],
                         ) -> list[str]:
         sostr = '' if soversion is None else '.' + soversion
         return self._apply_prefix(['-soname', f'{prefix}{shlib_name}.{suffix}{sostr}'])
@@ -1741,7 +1741,7 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return args
 
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: list[str] | None = None
+                         extra_paths: list[str] | None = None,
                          ) -> tuple[list[str], set[bytes]]:
         # Extract rpath information from target
         rpath_paths = target.determine_rpath_dirs()
@@ -1852,7 +1852,7 @@ class CudaLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return []
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
-                        soversion: str, darwin_versions: tuple[str, str]
+                        soversion: str, darwin_versions: tuple[str, str],
                         ) -> list[str]:
         return []
 
@@ -1886,7 +1886,7 @@ class MetrowerksLinker(DynamicLinker):
         return False
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
-                        soversion: str, darwin_versions: tuple[str, str]
+                        soversion: str, darwin_versions: tuple[str, str],
                         ) -> list[str]:
         raise MesonException(f'{self.id} does not support shared libraries.')
 
@@ -1965,7 +1965,7 @@ class OS2DynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return ['-Zdll']
 
     def get_soname_args(self, prefix: str, shlib_name: str, suffix: str,
-                        soversion: str, darwin_versions: tuple[str, str]
+                        soversion: str, darwin_versions: tuple[str, str],
                         ) -> list[str]:
         return []
 

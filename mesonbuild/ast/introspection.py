@@ -41,7 +41,7 @@ _TARGET_KWARGS: T.Mapping[str, set[str]] = {
 # TODO: it would be nice to not have to duplicate this
 BUILD_TARGET_FUNCTIONS = [
     'executable', 'jar', 'library', 'shared_library', 'shared_module',
-    'static_library', 'both_libraries'
+    'static_library', 'both_libraries',
 ]
 
 class IntrospectionHelper:

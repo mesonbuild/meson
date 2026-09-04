@@ -170,7 +170,7 @@ _NAME_KW = KwargInfo('name', str, default='')
 _WERROR_KW = KwargInfo('werror', bool, default=False, since='1.3.0')
 
 _INCLUDE_DIRECTORIES_KW = INCLUDE_DIRECTORIES.evolve(
-    since_values={ContainerTypeInfo(list, str): '1.10.0'}
+    since_values={ContainerTypeInfo(list, str): '1.10.0'},
 )
 
 # Many of the compiler methods take this kwarg signature exactly, this allows
@@ -674,7 +674,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         KwargInfo('static', (bool, NoneType), since='0.51.0'),
         KwargInfo('disabler', bool, default=False, since='0.49.0'),
         KwargInfo('dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
-        *(k.evolve(name=f'header_{k.name}') for k in _HEADER_KWS)
+        *(k.evolve(name=f'header_{k.name}') for k in _HEADER_KWS),
     )
     @InterpreterObject.method('find_library')
     def find_library_method(self, args: tuple[str], kwargs: FindLibraryKW) -> dependencies.ExternalLibrary:
@@ -717,7 +717,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                 libtype_s = 'shared or static'
             else:
                 libtype_s = libtype.name.lower()
-            raise InterpreterException(f'{self.compiler.get_display_language()} {libtype_s} library {libname!r} not found'
+            raise InterpreterException(f'{self.compiler.get_display_language()} {libtype_s} library {libname!r} not found',
                                        )
         return dependencies.ExternalLibrary(libname, linkargs, self.environment,
                                             self.compiler.language, self.held_object.for_machine)
@@ -856,7 +856,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             raise InterpreterException(*logargs)
         logargs += [
             mlog.green('YES') if had else mlog.red('NO'),
-            mlog.blue('(cached)') if cached else ''
+            mlog.blue('(cached)') if cached else '',
         ]
         mlog.log(*logargs)
         return had

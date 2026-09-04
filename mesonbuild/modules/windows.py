@@ -130,7 +130,7 @@ class WindowsModule(ExtensionModule):
             if isinstance(d, build.CustomTarget):
                 extra_args += state.get_include_args([
                     build.IncludeDirs('', [], False, state.current_build_project,
-                                      [self.interpreter.backend.get_target_dir(d)])
+                                      [self.interpreter.backend.get_target_dir(d)]),
                 ])
         extra_args += state.get_include_args(kwargs['include_directories'], kwargs['implicit_include_directories'])
 

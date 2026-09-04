@@ -26,12 +26,12 @@ ccrx_optimization_args: dict[str, list[str]] = {
     '1': ['-optimize=1'],
     '2': ['-optimize=2'],
     '3': ['-optimize=max'],
-    's': ['-optimize=2', '-size']
+    's': ['-optimize=2', '-size'],
 }
 
 ccrx_debug_args: dict[bool, list[str]] = {
     False: [],
-    True: ['-debug']
+    True: ['-debug'],
 }
 
 

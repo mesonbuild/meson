@@ -2089,7 +2089,7 @@ def _substitute_values_check_errors(command: T.Sequence[object], values: dict[st
 
 
 def substitute_values(command: list[_T],
-                      values: dict[str, str | list[str]]
+                      values: dict[str, str | list[str]],
                       ) -> list[_T]:
     '''
     Substitute the template strings in the @values dict into the list of

@@ -196,7 +196,7 @@ class AstInterpreter(InterpreterBase):
             'meson': UnknownValue(),
             'host_machine': UnknownValue(),
             'build_machine': UnknownValue(),
-            'target_machine': UnknownValue()
+            'target_machine': UnknownValue(),
         }
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,

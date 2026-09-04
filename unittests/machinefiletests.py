@@ -674,7 +674,7 @@ class NativeFileTests(BasePlatformTests):
 
         testcase = os.path.join(self.rust_test_dir, '12 bindgen')
         config = self.helper_create_native_file({
-            'properties': {'bindgen_clang_arguments': 'sentinel'}
+            'properties': {'bindgen_clang_arguments': 'sentinel'},
         })
 
         self.init(testcase, extra_args=['--native-file', config])

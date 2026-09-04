@@ -276,7 +276,7 @@ class CLikeCompiler(Compiler):
     def gen_import_library_args(self, implibname: str) -> list[str]:
         return self.linker.import_library_args(implibname)
 
-    def _sanity_check_compile_args(self, sourcename: str, binname: str
+    def _sanity_check_compile_args(self, sourcename: str, binname: str,
                                    ) -> tuple[list[str], list[str]]:
         # _get_basic_compiler_args() already adds c_args/c_link_args (or
         # similar).  Calling super()._sanity_check_compile_args() would
@@ -557,7 +557,7 @@ class CLikeCompiler(Compiler):
             return int(res.stdout), res.cached
         except ValueError:
             raise mesonlib.EnvironmentException(
-                f'Could not determine size of {typename}: compiler output was empty or invalid.'
+                f'Could not determine size of {typename}: compiler output was empty or invalid.',
             )
 
     def _cross_alignment(self, typename: str, prefix: str, *,

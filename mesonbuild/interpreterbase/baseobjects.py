@@ -33,8 +33,8 @@ class InterpreterObject:
         MesonOperator,
         tuple[
             type | tuple[type, ...],
-            TYPE_op_func
-        ]
+            TYPE_op_func,
+        ],
     ] = {}
 
     OPERATORS: dict[MesonOperator, TYPE_op_func] = {}
@@ -61,7 +61,7 @@ class InterpreterObject:
                 # __init_subclass__ does not operate on InterpreterObject itself
                 cls.OPERATORS.update({
                     MesonOperator.EQUALS: InterpreterObject.op_equals,
-                    MesonOperator.NOT_EQUALS: InterpreterObject.op_not_equals
+                    MesonOperator.NOT_EQUALS: InterpreterObject.op_not_equals,
                 })
 
             elif issubclass(superclass, InterpreterObject):
@@ -108,7 +108,7 @@ class InterpreterObject:
                 self,
                 method_name: str,
                 args: list[TYPE_var],
-                kwargs: TYPE_kwargs
+                kwargs: TYPE_kwargs,
             ) -> TYPE_var:
         if method_name in self.METHODS:
             method = self.METHODS[method_name]
@@ -144,7 +144,7 @@ class InterpreterObject:
             f'''
                 Trying to compare values of different types ({self.display_name()}, {type(other).__name__}) using {opt_type}.
                 This was deprecated and undefined behavior previously and is as of 0.60.0 a hard error.
-            '''
+            ''',
         ))
 
     def op_equals(self, other: TYPE_var) -> bool:

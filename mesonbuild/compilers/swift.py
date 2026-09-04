@@ -176,7 +176,7 @@ class SwiftCompiler(Compiler):
 
         return parameter_list
 
-    def _sanity_check_compile_args(self, sourcename: str, binname: str
+    def _sanity_check_compile_args(self, sourcename: str, binname: str,
                                    ) -> tuple[list[str], list[str]]:
         args, largs = super()._sanity_check_compile_args(sourcename, binname)
         if self._sanity_check_mode() is CompileCheckMode.LINK:

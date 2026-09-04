@@ -40,7 +40,7 @@ armclang_optimization_args: dict[str, list[str]] = {
     '1': ['-O1'],
     '2': ['-O2'],
     '3': ['-O3'],
-    's': ['-Oz']
+    's': ['-Oz'],
 }
 
 
@@ -89,7 +89,7 @@ class ArmCompiler(Compiler):
         # PCH files."
         return 'pch'
 
-    def thread_flags(self,) -> list[str]:
+    def thread_flags(self) -> list[str]:
         return []
 
     def get_coverage_args(self) -> list[str]:

@@ -67,7 +67,7 @@ class CythonCompiler(Compiler):
                 f'{os.path.splitext(binname)[0]}.{ext}')
 
     def _transpiled_sanity_check_compile_args(
-            self, compiler: Compiler, sourcename: str, binname: str
+            self, compiler: Compiler, sourcename: str, binname: str,
             ) -> tuple[list[str], list[str]]:
         version = self.get_compileropt_value('version', None)
         assert isinstance(version, str)
@@ -94,7 +94,7 @@ class CythonCompiler(Compiler):
         # and linked by _transpiled_sanity_check_compile_args()
         return CompileCheckMode.COMPILE
 
-    def _sanity_check_compile_args(self, sourcename: str, binname: str
+    def _sanity_check_compile_args(self, sourcename: str, binname: str,
                                    ) -> tuple[list[str], list[str]]:
         args, largs = super()._sanity_check_compile_args(sourcename, binname)
         args.extend(self.get_option_compile_args(None))

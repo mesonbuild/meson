@@ -20,7 +20,7 @@ if T.TYPE_CHECKING:
 
 java_debug_args: dict[bool, list[str]] = {
     False: ['-g:none'],
-    True: ['-g']
+    True: ['-g'],
 }
 
 class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):

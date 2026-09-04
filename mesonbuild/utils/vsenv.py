@@ -67,8 +67,8 @@ def _setup_vsenv(force: bool) -> bool:
             '-products', '*',
             '-utf8',
             '-format',
-            'json'
-        ]
+            'json',
+        ],
     )
     bat_info = json.loads(bat_json)
     if not bat_info:

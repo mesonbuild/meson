@@ -407,7 +407,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
         # FIXME: Add support for OS X and Windows in detect_fortran_compiler so
         # we are sent the type of compiler
         IntelGnuLikeCompiler.__init__(self)
-        self.file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp', )
+        self.file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp')
         default_warn_args = ['-warn', 'general', '-warn', 'truncated_source']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -464,7 +464,7 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
         FortranCompiler.__init__(self, exelist, version, for_machine,
                                  env, linker=linker, full_version=full_version)
         IntelVisualStudioLikeCompiler.__init__(self, target)
-        self.file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp', )
+        self.file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp')
 
         default_warn_args = ['/warn:general', '/warn:truncated_source']
         self.warn_args = {'0': [],

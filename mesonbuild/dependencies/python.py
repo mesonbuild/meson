@@ -139,14 +139,14 @@ class PythonBuildConfig:
         if mesonlib.version_compare(schema_version, '>= 2.0'):
             raise DependencyException(
                 f'Unsupported schema_version {schema_version!r} in python.build_config, '
-                f'but we only implement support for {self.IMPLEMENTED_VERSION!r}'
+                f'but we only implement support for {self.IMPLEMENTED_VERSION!r}',
             )
         # Schema version that we currently understand
         if mesonlib.version_compare(schema_version, f'> {self.IMPLEMENTED_VERSION}'):
             mlog.log(
                 f'python.build_config has schema_version {schema_version!r}, '
                 f'but we only implement support for {self.IMPLEMENTED_VERSION!r}, '
-                'new functionality might be missing'
+                'new functionality might be missing',
             )
 
     def _expand_paths(self) -> None:

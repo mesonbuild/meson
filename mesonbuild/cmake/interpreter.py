@@ -96,7 +96,7 @@ TARGET_TYPE_MAP: T.Mapping[str, str] = {
     'SHARED_LIBRARY': 'shared_library',
     'EXECUTABLE': 'executable',
     'OBJECT_LIBRARY': 'static_library',
-    'INTERFACE_LIBRARY': 'header_only'
+    'INTERFACE_LIBRARY': 'header_only',
 }
 
 SKIP_TARGETS: T.Collection[str] = ['UTILITY']
@@ -129,7 +129,7 @@ BLACKLIST_LINK_LIBS: T.Collection[str] = [
     'oleaut32.lib',
     'uuid.lib',
     'comdlg32.lib',
-    'advapi32.lib'
+    'advapi32.lib',
 ]
 
 TRANSFER_DEPENDENCIES_FROM: T.Collection[str] = ['header_only']
@@ -351,7 +351,7 @@ class ConverterTarget:
                             'Unknown {0}_std "{1}" -> Ignoring. Try setting the project-'
                             'level {0}_std if build errors occur. Known '
                             '{0}_stds are: {2}'.format(i, std, ' '.join(supported)),
-                            once=True
+                            once=True,
                         )
                         continue
                     self.override_options += [f'{i}_std={std}']

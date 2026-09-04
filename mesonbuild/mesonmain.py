@@ -106,9 +106,9 @@ class CommandLineParser:
         self.add_command('setup', msetup.add_arguments, msetup.run,
                          help_msg='Configure the project')
         self.add_command('configure', mconf.add_arguments, mconf.run,
-                         help_msg='Change project options',)
+                         help_msg='Change project options')
         self.add_command('dist', mdist.add_arguments, mdist.run,
-                         help_msg='Generate release archive',)
+                         help_msg='Generate release archive')
         self.add_command('install', minstall.add_arguments, minstall.run,
                          help_msg='Install the project')
         self.add_command('introspect', mintro.add_arguments, mintro.run,

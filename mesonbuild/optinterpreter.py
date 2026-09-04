@@ -180,7 +180,7 @@ class OptionInterpreter:
             'type',
             str,
             required=True,
-            validator=in_set_validator({'string', 'boolean', 'integer', 'combo', 'array', 'feature'})
+            validator=in_set_validator({'string', 'boolean', 'integer', 'combo', 'array', 'feature'}),
         ),
         KwargInfo('description', str, default=''),
         KwargInfo(

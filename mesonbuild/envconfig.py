@@ -83,7 +83,7 @@ known_cpu_families = (
     'x86',
     'x86_64',
     'z80',
-    'tricore'
+    'tricore',
 )
 
 KNOWN_SYSTEMS = frozenset({
@@ -252,7 +252,7 @@ class Properties:
             return CMakeSkipCompilerTest(raw)
         except ValueError:
             raise EnvironmentException(
-                f'"{raw}" is not a valid value for cmake_skip_compiler_test. Supported values are {[e.value for e in CMakeSkipCompilerTest]}'
+                f'"{raw}" is not a valid value for cmake_skip_compiler_test. Supported values are {[e.value for e in CMakeSkipCompilerTest]}',
                 )
 
     def get_cmake_use_exe_wrapper(self) -> bool:

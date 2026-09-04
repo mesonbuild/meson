@@ -65,7 +65,7 @@ class DlangModule(ExtensionModule):
             self._init_dub(state)
 
         config: dict[str, _JSONTypes] = {
-            'name': args[0]
+            'name': args[0],
         }
 
         config_path = os.path.join(args[1], 'dub.json')

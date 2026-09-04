@@ -65,7 +65,7 @@ def coverage(outputs: list[str], source_root: str, subproject_root: str, build_r
         if gcovr_exe and mesonlib.version_compare(gcovr_version, '>=3.3'):
             subprocess.check_call(gcovr_base_cmd + gcovr_config +
                                   ['-x',
-                                   '-o', os.path.join(log_dir, 'coverage.xml')
+                                   '-o', os.path.join(log_dir, 'coverage.xml'),
                                    ] + gcov_exe_args)
             outfiles.append(('Xml', pathlib.Path(log_dir, 'coverage.xml')))
         elif outputs:

@@ -42,7 +42,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
 
     DEBUG_ARGS: dict[bool, list[str]] = {
         False: [],
-        True: ['-g', '-traceback']
+        True: ['-g', '-traceback'],
     }
 
     OPTIM_ARGS: dict[str, list[str]] = {
@@ -121,7 +121,7 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     DEBUG_ARGS: dict[bool, list[str]] = {
         False: [],
-        True: ['/Zi', '/traceback']
+        True: ['/Zi', '/traceback'],
     }
 
     OPTIM_ARGS: dict[str, list[str]] = {

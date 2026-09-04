@@ -9,7 +9,7 @@ Holds typing helper classes, such as the ImmutableProtocol classes
 
 __all__ = [
     'Protocol',
-    'ImmutableListProtocol'
+    'ImmutableListProtocol',
 ]
 
 import typing

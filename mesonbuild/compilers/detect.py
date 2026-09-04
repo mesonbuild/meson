@@ -474,7 +474,7 @@ def _detect_c_or_cpp_compiler(env: Environment, lang: str, for_machine: MachineC
            'TMS320C2000 C/C++': (c.C2000CCompiler, cpp.C2000CPPCompiler, linkers.C2000DynamicLinker),
            'TMS320C6x C/C++': (c.C6000CCompiler, cpp.C6000CPPCompiler, linkers.C6000DynamicLinker),
            'TI ARM C/C++ Compiler': (c.TICCompiler, cpp.TICPPCompiler, linkers.TIDynamicLinker),
-           'MSP430 C/C++': (c.TICCompiler, cpp.TICPPCompiler, linkers.TIDynamicLinker)
+           'MSP430 C/C++': (c.TICCompiler, cpp.TICPPCompiler, linkers.TIDynamicLinker),
         }
         for identifier, compiler_classes in ti_compilers.items():
             if identifier in out:
@@ -892,7 +892,7 @@ def detect_fortran_compiler(env: Environment, for_machine: MachineChoice) -> Com
                     try:
                         linker = guess_win_linker(
                             env, compiler, cls, version,
-                            for_machine, invoked_directly=False
+                            for_machine, invoked_directly=False,
                         )
                     except MesonException:
                         pass

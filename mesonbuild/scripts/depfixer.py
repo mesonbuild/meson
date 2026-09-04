@@ -48,7 +48,7 @@ class XcoffFixedLengthHeader:
     def __init__(self, file: T.BinaryIO) -> None:
         header_data = file.read(self.FL_HDR_SIZE)
         fl_magic, fl_memoff, fl_gstoff, fl_gst64off, fl_fstmoff, fl_lstmoff, fl_freeoff = struct.unpack(
-            self.FL_HDR_FORMAT, header_data
+            self.FL_HDR_FORMAT, header_data,
         )
         self.fl_magic = fl_magic
         self.fl_fstmoff = int(fl_fstmoff)
@@ -62,7 +62,7 @@ class XcoffArchiveHeader:
     def __init__(self, file: T.BinaryIO) -> None:
         header_data = file.read(self.AR_HDR_SIZE)
         ar_size, ar_nxtmem, ar_prvmem, ar_date, ar_uid, ar_gid, ar_mode, ar_namlen, _ar_name = struct.unpack(
-            self.AR_HDR_FORMAT, header_data
+            self.AR_HDR_FORMAT, header_data,
         )
         ar_namlen_int = int(ar_namlen.strip())
         # The Magic number always starts at the even byte boundary
@@ -82,12 +82,12 @@ class XcoffCompositeFileHeader:
         if magic == 0x01DF:
             cfh_header_data = file.read(self.CFH_HDR_SIZE_32)
             f_magic, f_nscns, f_timdat, f_symptr, f_nsyms, f_opthdr, f_flags = struct.unpack(
-                self.CFH_HDR_FORMAT_32, cfh_header_data
+                self.CFH_HDR_FORMAT_32, cfh_header_data,
             )
         else:
             cfh_header_data = file.read(self.CFH_HDR_SIZE)
             f_magic, f_nscns, f_timdat, f_symptr, f_opthdr, f_flags, f_nsyms = struct.unpack(
-                self.CFH_HDR_FORMAT, cfh_header_data
+                self.CFH_HDR_FORMAT, cfh_header_data,
             )
         self.f_flags = int.from_bytes(f_flags, byteorder='big')
         self.f_opthdr = int.from_bytes(f_opthdr, byteorder='big')

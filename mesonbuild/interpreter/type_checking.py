@@ -303,7 +303,7 @@ ENV_KW: KwargInfo[EnvironmentVariables | list | dict | str | None] = KwargInfo(
 DEPFILE_KW: KwargInfo[str | None] = KwargInfo(
     'depfile',
     (str, type(None)),
-    validator=lambda x: 'Depfile must be a plain filename with a subdirectory' if has_path_sep(x) else None
+    validator=lambda x: 'Depfile must be a plain filename with a subdirectory' if has_path_sep(x) else None,
 )
 
 DEPENDS_KW: KwargInfo[list[BuildTarget | CustomTarget | CustomTargetIndex | Program]] = KwargInfo(
@@ -383,7 +383,7 @@ OUTPUT_KW: KwargInfo[str] = KwargInfo(
     'output',
     str,
     required=True,
-    validator=lambda x: _output_validator([x])
+    validator=lambda x: _output_validator([x]),
 )
 
 def _local_program_convertor(raw: list[str | File | BuildTarget | GeneratedTypes | ExtractedObjects | Program]) -> list[CustomTargetInputs]:
@@ -488,7 +488,7 @@ D_MODULE_VERSIONS_KW: KwargInfo[list[str | int]] = KwargInfo(
 
 _LINK_WITH_ERROR = 'Dependency and external_library objects must go in the "dependencies" keyword argument'
 
-def _link_with_validator(values: list[BothLibraries | SharedLibrary | StaticLibrary | CustomTarget | CustomTargetIndex | Jar | Executable]
+def _link_with_validator(values: list[BothLibraries | SharedLibrary | StaticLibrary | CustomTarget | CustomTargetIndex | Jar | Executable],
                          ) -> str | None:
     for value in values:
         if not value.is_linkable_target():
@@ -519,7 +519,7 @@ LINK_WHOLE_KW: KwargInfo[list[BothLibraries | StaticLibrary | CustomTarget | Cus
     listify=True,
     default=[],
     validator=link_whole_validator,
-    extra_types={Dependency: lambda _: _LINK_WITH_ERROR}
+    extra_types={Dependency: lambda _: _LINK_WITH_ERROR},
 )
 
 DEPENDENCY_SOURCES_KW: KwargInfo[list[str | TargetSources]] = KwargInfo(
@@ -611,7 +611,7 @@ RUST_ABI_KW: KwargInfo[str | None] = KwargInfo(
 _VS_MODULE_DEFS_KW: KwargInfo[str | File | CustomTarget | CustomTargetIndex | None] = KwargInfo(
     'vs_module_defs',
     (str, File, CustomTarget, CustomTargetIndex, NoneType),
-    since_values={CustomTargetIndex: '1.3.0'}
+    since_values={CustomTargetIndex: '1.3.0'},
 )
 
 _BASE_LANG_KW: KwargInfo[list[str | File]] = KwargInfo(
@@ -634,14 +634,14 @@ _LANGUAGE_KWS.append(_BASE_LANG_KW.evolve(name='rust_args', since='0.41.0'))
 _JAVA_LANG_KW: KwargInfo[list[str | File]] = _BASE_LANG_KW.evolve(
     name='java_args',
     deprecated='1.3.0',
-    deprecated_message='This does not, and never has, done anything. It should be removed'
+    deprecated_message='This does not, and never has, done anything. It should be removed',
 )
 
 BUILD_SUBDIR_KW: KwargInfo[str] = KwargInfo(
     'build_subdir',
     str,
     default='',
-    since='1.10.0'
+    since='1.10.0',
 )
 
 def _objects_validator(vals: list[ObjectTypes]) -> str | None:
@@ -725,7 +725,7 @@ _ALL_TARGET_KWS: list[KwargInfo] = [
         validator=_objects_validator,
         since_values={
             ContainerTypeInfo(list, (GeneratedList, CustomTarget, CustomTargetIndex)):
-                ('1.1.0', 'generated sources as positional "objects" arguments')
+                ('1.1.0', 'generated sources as positional "objects" arguments'),
         },
     ),
     BUILD_SUBDIR_KW,
@@ -962,7 +962,7 @@ EXCLUSIVE_EXECUTABLE_KWS: list[KwargInfo] = [
         'android_exe_type',
         (str, NoneType),
         validator=in_set_validator({'application', 'executable'}),
-        since='1.8.0'
+        since='1.8.0',
     ),
 ]
 
@@ -1094,15 +1094,15 @@ BUILD_TARGET_KWS = [
         required=True,
         validator=in_set_validator({
             'executable', 'shared_library', 'static_library', 'shared_module',
-            'both_libraries', 'library', 'jar'
+            'both_libraries', 'library', 'jar',
         }),
         since_values={
             'shared_module': '0.51.0',
         },
         deprecated_values={
             'jar': ('1.3.0', 'use the "jar()" function directly'),
-        }
-    )
+        },
+    ),
 ]
 
 def _pkgconfig_define_convertor(x: list[str]) -> PkgConfigDefineType:
@@ -1131,7 +1131,7 @@ INCLUDE_TYPE = KwargInfo(
     str,
     default='preserve',
     since='0.52.0',
-    validator=in_set_validator({'system', 'non-system', 'preserve'})
+    validator=in_set_validator({'system', 'non-system', 'preserve'}),
 )
 
 

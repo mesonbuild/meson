@@ -45,7 +45,7 @@ class CMakeFileAPI:
                 {'kind': 'codemodel', 'version': {'major': 2, 'minor': 0}},
                 {'kind': 'cache', 'version': {'major': 2, 'minor': 0}},
                 {'kind': 'cmakeFiles', 'version': {'major': 1, 'minor': 0}},
-            ]
+            ],
         }
 
         query_file = self.request_dir / 'query.json'

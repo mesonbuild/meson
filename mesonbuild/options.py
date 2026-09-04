@@ -538,7 +538,7 @@ class UserStringArrayOption(UserArrayOption[str]):
                     ', '.join(bad),
                     self.name,
                     'is' if len(bad) == 1 else 'are',
-                    ', '.join(self.choices))
+                    ', '.join(self.choices)),
                 )
         return newvalue
 
@@ -682,7 +682,7 @@ BUILTIN_CORE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
             'Setup multiple buildtype-suffixed ninja-backend build directories, '
             'and a [builddir]_vs containing a Visual Studio meta-backend with multiple configurations that calls into them',
             'vs2022',
-            choices=genvslitelist
+            choices=genvslitelist,
         ),
         UserComboOption('buildtype', 'Build type to use', 'debug', choices=buildtypelist),
         UserBooleanOption('debug', 'Enable debug symbols and other information', True),
@@ -998,7 +998,7 @@ class OptionStore:
                     f"The value of the '{option}' option is '{value}' but "
                     "directory options are not allowed to contain '..'.\n"
                     f"If you need a path outside of the {prefix!r} prefix, "
-                    "please use an absolute path."
+                    "please use an absolute path.",
                 )
         # .as_posix() keeps the posix-like file separators Meson uses.
         return path.as_posix()

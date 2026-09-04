@@ -31,12 +31,12 @@ xc16_optimization_args: dict[str, list[str]] = {
     '1': ['-O1'],
     '2': ['-O2'],
     '3': ['-O3'],
-    's': ['-Os']
+    's': ['-Os'],
 }
 
 xc16_debug_args: dict[bool, list[str]] = {
     False: [],
-    True: []
+    True: [],
 }
 
 

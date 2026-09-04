@@ -302,11 +302,11 @@ class CodeGenModule(ExtensionModule):
             ContainerTypeInfo(list, str),
             default=[],
             listify=True,
-            validator=is_subset_validator({'lex', 'flex', 'reflex', 'win_flex'})
+            validator=is_subset_validator({'lex', 'flex', 'reflex', 'win_flex'}),
         ),
         REQUIRED_KW,
         DISABLER_KW,
-        NATIVE_KW
+        NATIVE_KW,
     )
     @apply_machine_map
     @disablerIfNotFound
@@ -328,7 +328,7 @@ class CodeGenModule(ExtensionModule):
             'lex': kwargs['lex_version'],
             'flex': kwargs['flex_version'],
             'reflex': kwargs['reflex_version'],
-            'win_flex': kwargs['win_flex_version']
+            'win_flex': kwargs['win_flex_version'],
         }
 
         for name in names:
@@ -381,7 +381,7 @@ class CodeGenModule(ExtensionModule):
             ContainerTypeInfo(list, str),
             default=[],
             listify=True,
-            validator=is_subset_validator({'yacc', 'byacc', 'bison', 'win_bison'})
+            validator=is_subset_validator({'yacc', 'byacc', 'bison', 'win_bison'}),
         ),
         REQUIRED_KW,
         DISABLER_KW,

@@ -33,12 +33,12 @@ cuda_optimization_args: dict[str, list[str]] = {
     '1': ['-O1'],
     '2': ['-O2', '-lineinfo'],
     '3': ['-O3'],
-    's': ['-O3']
+    's': ['-O3'],
 }
 
 cuda_debug_args: dict[bool, list[str]] = {
     False: [],
-    True: ['-g']
+    True: ['-g'],
 }
 
 
@@ -529,7 +529,7 @@ class CudaCompiler(Compiler):
             }
             '''
 
-    def _sanity_check_compile_args(self, sourcename: str, binname: str
+    def _sanity_check_compile_args(self, sourcename: str, binname: str,
                                    ) -> tuple[list[str], list[str]]:
         args, largs = super()._sanity_check_compile_args(sourcename, binname)
 
@@ -685,7 +685,7 @@ class CudaCompiler(Compiler):
         return self._to_host_flags(self.host_compiler.get_linker_fatal_warnings(), Phase.LINKER)
 
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: list[str] | None = None
+                         extra_paths: list[str] | None = None,
                          ) -> tuple[list[str], set[bytes]]:
         (rpath_args, rpath_dirs_to_remove) = self.host_compiler.build_rpath_args(
             build_dir, from_dir, target, extra_paths)

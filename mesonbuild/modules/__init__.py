@@ -194,7 +194,7 @@ class ModuleObject(HoldableObject):
     def __init__(self) -> None:
         self.methods: dict[
             str,
-            T.Callable[[ModuleState, list[TYPE_var], TYPE_kwargs], ModuleReturnValue | TYPE_var]
+            T.Callable[[ModuleState, list[TYPE_var], TYPE_kwargs], ModuleReturnValue | TYPE_var],
         ] = {}
 
 

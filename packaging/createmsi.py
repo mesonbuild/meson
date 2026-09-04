@@ -100,7 +100,7 @@ class PackageGenerator:
                 'Title': 'Ninja',
                 'Description': 'Ninja build tool',
                 'Level': '1',
-            }
+            },
         }
         self.feature_components = {}
         for s_d in self.staging_dirs:
@@ -153,7 +153,7 @@ class PackageGenerator:
         '''
         self.root = ET.Element('Wix', {
             'xmlns': 'http://wixtoolset.org/schemas/v4/wxs',
-            'xmlns:ui': 'http://wixtoolset.org/schemas/v4/wxs/ui'
+            'xmlns:ui': 'http://wixtoolset.org/schemas/v4/wxs/ui',
         })
 
         package = ET.SubElement(self.root, 'Package', {

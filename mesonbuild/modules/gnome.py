@@ -596,7 +596,7 @@ class GnomeModule(ExtensionModule):
     @staticmethod
     def _get_gresource_dependencies(
             state: ModuleState, input_file: str, source_dirs: list[str],
-            dependencies: T.Sequence[mesonlib.File | CustomTarget | CustomTargetIndex]
+            dependencies: T.Sequence[mesonlib.File | CustomTarget | CustomTargetIndex],
             ) -> tuple[list[mesonlib.File], list[CustomTarget | CustomTargetIndex], list[str]]:
 
         cmd = ['glib-compile-resources',
@@ -671,7 +671,7 @@ class GnomeModule(ExtensionModule):
                        lib: build.SharedLibrary | build.StaticLibrary,
                        depends: T.Sequence[TargetDepends],
                        include_rpath: bool = False,
-                       use_gir_args: bool = False
+                       use_gir_args: bool = False,
                        ) -> tuple[list[str], list[TargetDepends]]:
         link_command: list[str] = []
         new_depends = list(depends)
@@ -817,7 +817,7 @@ class GnomeModule(ExtensionModule):
 
         return cflags, internal_ldflags, external_ldflags, gi_includes, new_depends
 
-    def _unwrap_gir_target(self, girtarget: Executable | build.StaticLibrary | build.SharedLibrary, state: ModuleState
+    def _unwrap_gir_target(self, girtarget: Executable | build.StaticLibrary | build.SharedLibrary, state: ModuleState,
                            ) -> Executable | build.StaticLibrary | build.SharedLibrary:
         if not isinstance(girtarget, (Executable, build.SharedLibrary,
                                       build.StaticLibrary)):
@@ -868,7 +868,7 @@ class GnomeModule(ExtensionModule):
 
     # May mutate depends and gir_inc_dirs
     @staticmethod
-    def _scan_include(state: ModuleState, includes: list[str | GirTarget]
+    def _scan_include(state: ModuleState, includes: list[str | GirTarget],
                       ) -> tuple[list[str], list[str], list[GirTarget]]:
         ret: list[str] = []
         gir_inc_dirs: list[str] = []
@@ -943,7 +943,7 @@ class GnomeModule(ExtensionModule):
         return ret
 
     @staticmethod
-    def _get_gir_targets_deps(girtargets: T.Sequence[build.BuildTarget]
+    def _get_gir_targets_deps(girtargets: T.Sequence[build.BuildTarget],
                               ) -> list[build.BuildTargetTypes | Dependency]:
         ret: list[build.BuildTargetTypes | Dependency] = []
         for girtarget in girtargets:
@@ -959,7 +959,7 @@ class GnomeModule(ExtensionModule):
         return ret
 
     @staticmethod
-    def _get_langs_compilers_flags(state: ModuleState, langs_compilers: list[tuple[Language, Compiler]]
+    def _get_langs_compilers_flags(state: ModuleState, langs_compilers: list[tuple[Language, Compiler]],
                                    ) -> tuple[list[str], list[str], list[str]]:
         cflags: list[str] = []
         internal_ldflags: list[str] = []
@@ -990,7 +990,7 @@ class GnomeModule(ExtensionModule):
     @staticmethod
     def _make_gir_filelist(state: ModuleState, srcdir: str, ns: str,
                            nsversion: str, girtargets: T.Sequence[build.BuildTarget],
-                           libsources: T.Sequence[str | mesonlib.File | GeneratedList | CustomTarget | CustomTargetIndex]
+                           libsources: T.Sequence[str | mesonlib.File | GeneratedList | CustomTarget | CustomTargetIndex],
                            ) -> str:
         gir_filelist_dir = state.backend.get_target_private_dir_abs(girtargets[0])
         if not os.path.isdir(gir_filelist_dir):
@@ -1105,7 +1105,7 @@ class GnomeModule(ExtensionModule):
     def _gather_typelib_includes_and_update_depends(
             state: ModuleState,
             deps: T.Sequence[Dependency | build.BuildTargetTypes],
-            depends: T.Sequence[TargetDepends]
+            depends: T.Sequence[TargetDepends],
             ) -> tuple[list[str], list[TargetDepends]]:
         # Need to recursively add deps on GirTarget sources from our
         # dependencies and also find the include directories needed for the
@@ -1707,7 +1707,7 @@ class GnomeModule(ExtensionModule):
         KwargInfo(
             'autocleanup', str, default='default', since='0.47.0',
             validator=in_set_validator({'all', 'none', 'objects'})),
-        INSTALL_DIR_KW.evolve(since='0.46.0')
+        INSTALL_DIR_KW.evolve(since='0.46.0'),
     )
     def gdbus_codegen(self, state: ModuleState, args: tuple[str, str | build.TargetSources | None],
                       kwargs: GdbusCodegen) -> ModuleReturnValue:
@@ -2116,7 +2116,7 @@ class GnomeModule(ExtensionModule):
             *,
             install: bool = False,
             install_dir: T.Sequence[str | bool] | None = None,
-            depends: T.Sequence[build.BuildTargetTypes] | None = None
+            depends: T.Sequence[build.BuildTargetTypes] | None = None,
             ) -> build.CustomTarget:
         real_cmd: CommandList = [self._find_tool(state, 'glib-mkenums')]
         real_cmd.extend(cmd)

@@ -157,7 +157,7 @@ class FormatterConfig:
         default=None,
         metadata={'getter': DefaultConfigParser.getint,
                   'default': 4,
-                  }
+                  },
     )
     sort_files: bool | None = field(
         default=None,
@@ -1003,18 +1003,18 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     inplace_group.add_argument(
         '-q', '--check-only',
         action='store_true',
-        help='silently exit with 1 if files would be modified by meson format'
+        help='silently exit with 1 if files would be modified by meson format',
     )
     inplace_group.add_argument(
         '-d', '--check-diff',
         action='store_true',
         default=False,
-        help='exit with 1 and show diff if files would be modified by meson format'
+        help='exit with 1 and show diff if files would be modified by meson format',
     )
     inplace_group.add_argument(
         '-i', '--inplace',
         action='store_true',
-        help='format files in-place'
+        help='format files in-place',
     )
     parser.add_argument(
         '-r', '--recursive',
@@ -1030,29 +1030,29 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         '-c', '--configuration',
         metavar='meson.format',
         type=Path,
-        help='read configuration from meson.format'
+        help='read configuration from meson.format',
     )
     parser.add_argument(
         '-e', '--editor-config',
         action='store_true',
         default=False,
-        help='try to read configuration from .editorconfig'
+        help='try to read configuration from .editorconfig',
     )
     parser.add_argument(
         '-o', '--output',
         type=Path,
-        help='output file (implies having exactly one input)'
+        help='output file (implies having exactly one input)',
     )
     parser.add_argument(
         '--source-file-path',
         type=Path,
-        help='path to use, when reading from stdin'
+        help='path to use, when reading from stdin',
     )
     parser.add_argument(
         'sources',
         nargs='*',
         type=Path,
-        help='meson source files'
+        help='meson source files',
     )
 
 def get_meson_format(sources: list[Path]) -> Path | None:
