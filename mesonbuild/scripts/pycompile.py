@@ -12,7 +12,7 @@ import subprocess
 import sys
 from compileall import compile_file
 
-quiet = int(os.environ.get('MESON_INSTALL_QUIET', 0))
+quiet = int(os.environ.get('MESON_INSTALL_QUIET', '0'))
 
 def compileall(files):
     for f in files:
