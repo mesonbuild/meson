@@ -1,0 +1,8 @@
+line-length = 100
+target-version = "py310"
+
+[lint]
+  select = ["F"]
+
+[lint.per-file-ignores]
+  "mesonbuild/mesonlib.py" = ["F403"]
