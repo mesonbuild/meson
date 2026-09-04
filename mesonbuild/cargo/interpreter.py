@@ -422,7 +422,8 @@ class Interpreter:
                     dep = pkg.manifest.dependencies[depname]
                     if dep.path:
                         dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
-                        _process_member(dep_member)
+                        if not ws.workspace.is_excluded(dep_member):
+                            _process_member(dep_member)
                 found = True
             if not found:
                 raise MesonException(f'Package {pkg.manifest.package.name!r} is not enabled for this build '
@@ -451,8 +452,11 @@ class Interpreter:
         manifest_, _ = self._load_manifest(m_subdir, ws.workspace, m)
         if not isinstance(manifest_, Manifest):
             # Cargo calls this "multiple workspace roots found in the same workspace".
+            # Meson supports excluding them but only if they are subprojects.
             msg = (f'"{os.path.normpath(m_subdir)}" is itself a workspace, therefore it cannot be a member '
                    f'of the workspace at "{ws.subdir}"')
+            if is_parent_path(self.subprojects_dir, m):
+                msg += f'; add "{m}" to the "exclude" list to build it as a separate subproject'
             raise MesonException(msg)
         self._add_workspace_member(manifest_, ws, m)
 
@@ -602,8 +606,17 @@ class Interpreter:
             if is_parent_path(self.subprojects_dir, dep_member):
                 if len(pathlib.PurePath(dep_member).parts) != 2:
                     raise MesonException('found "{self.subprojects_dir}" in path but it is not a valid subproject path')
-            self._load_workspace_member(ws, dep_member)
-            dep_pkg = self._require_workspace_member(ws, dep_member)
+            if ws.workspace.is_excluded(dep_member):
+                # An excluded package is not a member of the workspace, so it is
+                # built as a separate project.  This is only supported for
+                # subprojects, so that each project has a single Cargo.lock.
+                if not is_parent_path(self.subprojects_dir, dep_member):
+                    raise MesonException(f'package "{dep.package}" excluded from the workspace '
+                                         f'must be under "{self.subprojects_dir}"')
+                dep_pkg = self._fetch_package_from_subproject(dep.package, os.path.basename(dep_member))
+            else:
+                self._load_workspace_member(ws, dep_member)
+                dep_pkg = self._require_workspace_member(ws, dep_member)
         elif dep.git:
             _, _, directory = _parse_git_url(dep.git, dep.branch)
             dep_pkg = self._fetch_package_from_subproject(dep.package, directory)

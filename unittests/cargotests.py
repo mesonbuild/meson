@@ -425,6 +425,53 @@ class CargoTomlTest(unittest.TestCase):
         pkg = Manifest.from_raw({'package': {'name': 'bar'}}, 'Cargo.toml', workspace)
         self.assertEqual(pkg.lints, [])
 
+    @staticmethod
+    def _exclude_workspace(tmpdir: str, members: T.List[str], exclude: T.List[str],
+                           default_members: T.Optional[T.List[str]] = None,
+                           root_package: bool = False) -> Workspace:
+        for d in ['a', 'b', 'sub/c', 'sub/d']:
+            os.makedirs(os.path.join(tmpdir, d), exist_ok=True)
+        raw_ws: T.Dict[str, T.Any] = {'members': members, 'exclude': exclude}
+        if default_members is not None:
+            raw_ws['default-members'] = default_members
+        raw: T.Dict[str, T.Any] = {'workspace': raw_ws}
+        if root_package:
+            raw['package'] = {'name': 'root', 'version': '0.1.0'}
+        return Workspace.from_raw(raw, tmpdir)
+
+    def test_cargo_toml_ws_exclude(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # a literal member takes precedence over exclude
+            ws = self._exclude_workspace(tmpdir, ['a', 'b'], ['b'])
+            self.assertEqual(sorted(ws.members), ['a', 'b'])
+
+            # results of glob expansion do not
+            ws = self._exclude_workspace(tmpdir, ['*'], ['b'])
+            self.assertEqual(sorted(ws.members), ['a', 'sub'])
+
+            # exclude entries are not globs
+            ws = self._exclude_workspace(tmpdir, ['*'], ['b*'])
+            self.assertEqual(sorted(ws.members), ['a', 'b', 'sub'])
+
+            # excluding a directory excludes everything below it
+            ws = self._exclude_workspace(tmpdir, ['sub/*'], ['sub'])
+            self.assertEqual(ws.members, [])
+
+            # an excluded package is not built by default either
+            ws = self._exclude_workspace(tmpdir, ['a', 'sub/*'], ['sub/c'], ['a', 'sub/c'])
+            self.assertEqual(sorted(ws.members), ['a', 'sub/d'])
+            self.assertEqual(ws.default_members, ['a'])
+
+            # excluding the workspace directory excludes literal members too
+            ws = self._exclude_workspace(tmpdir, ['a', 'b'], ['.'])
+            self.assertEqual(ws.members, [])
+            self.assertEqual(ws.default_members, [])
+
+            # but the root package remains a member of the workspace
+            ws = self._exclude_workspace(tmpdir, ['a', 'b'], ['.'], root_package=True)
+            self.assertEqual(ws.members, ['.'])
+            self.assertEqual(ws.default_members, ['.'])
+
     def test_cargo_toml_ws_package(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             fname = os.path.join(tmpdir, 'Cargo.toml')

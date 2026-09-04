@@ -205,3 +205,17 @@ if included in `extra_members`.
 
 Note that crates that come from `crates.io` are never workspaces, and
 therefore they are not subject to these differences.
+
+### Subprojects with separate workspaces
+
+*Since 1.13.0* Meson honors the `workspace.exclude` field.  Directories
+listed there are not workspace members, and therefore they are not
+returned by the `packages()` method nor accepted by `package()`.  As with
+Cargo, excluding a directory also excludes everything below it, entries
+are not treated as glob patterns, and a member that is listed literally
+in `workspace.members` takes precedence over `workspace.exclude`.
+
+This is useful, for example, when path dependencies come from subprojects
+that have their own workspace and `Cargo.lock` files.  Because Meson
+only supports one `Cargo.lock` file per project, excluded members must
+be subprojects.
