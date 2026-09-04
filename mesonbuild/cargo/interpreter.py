@@ -449,7 +449,11 @@ class Interpreter:
         # Load member's manifest
         m_subdir = os.path.join(ws.subdir, m)
         manifest_, _ = self._load_manifest(m_subdir, ws.workspace, m)
-        assert isinstance(manifest_, Manifest)
+        if not isinstance(manifest_, Manifest):
+            # Cargo calls this "multiple workspace roots found in the same workspace".
+            msg = (f'"{os.path.normpath(m_subdir)}" is itself a workspace, therefore it cannot be a member '
+                   f'of the workspace at "{ws.subdir}"')
+            raise MesonException(msg)
         self._add_workspace_member(manifest_, ws, m)
 
     def _add_workspace_member(self, manifest_: Manifest, ws: WorkspaceState, m: str) -> None:

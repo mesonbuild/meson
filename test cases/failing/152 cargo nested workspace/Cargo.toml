@@ -1,0 +1,10 @@
+[workspace]
+resolver = "3"
+
+[package]
+name = "toplevel"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+mylib = { path = "vendor" }
