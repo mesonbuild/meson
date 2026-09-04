@@ -38,7 +38,7 @@ class RefmanLinksExtension(Extension):
 
         # Add Arguments with `group.add_argument(...)`
         group.add_argument(
-            f'--refman-data-file',
+            '--refman-data-file',
             help="JSON file with the mappings to replace",
             default=None,
         )

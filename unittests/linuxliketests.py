@@ -1870,14 +1870,14 @@ class LinuxlikeTests(BasePlatformTests):
         # Verify that "gcc -m32" works
         try:
             self.do_one_test_with_nativefile('1 trivial', "['gcc', '-m32']")
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             raise SkipTest('Not GCC, or GCC does not have the -m32 option')
         self.wipe()
 
         # Verify that cmake works
         try:
             self.do_one_test_with_nativefile('../cmake/1 basic', "['gcc']")
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             raise SkipTest('Could not build basic cmake project')
         self.wipe()
 

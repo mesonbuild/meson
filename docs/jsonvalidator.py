@@ -165,7 +165,7 @@ def main() -> int:
         'returned': list,
         'modules': dict,
     }
-    assert_has_typed_keys(f'root.objects_by_type', refs, expected)
+    assert_has_typed_keys('root.objects_by_type', refs, expected)
     assert not refs, f'root.objects_by_type has extra keys: {refs.keys()}'
     assert all(isinstance(x, str) for x in root['objects_by_type']['elementary'])
     assert all(isinstance(x, str) for x in root['objects_by_type']['builtins'])
