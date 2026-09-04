@@ -40,3 +40,15 @@ install_subdir(
   strip_directory: true,
   follow_symlinks: true,
 )
+
+install_subdir(
+  'bar',
+  install_dir: get_option('datadir') / 'subdir',
+  follow_symlinks: false,
+)
+
+install_subdir(
+  'bar',
+  install_dir: get_option('datadir') / 'subdir_followed',
+  follow_symlinks: true,
+)
