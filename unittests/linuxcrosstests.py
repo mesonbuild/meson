@@ -15,7 +15,9 @@ from mesonbuild.mesonlib import MesonException
 
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import *
+from .helpers import (
+    skipIfNoPkgconfig, skipIfNoExecutable
+)
 
 class BaseLinuxCrossTests(BasePlatformTests):
     # Don't pass --libdir when cross-compiling. We have tests that

@@ -15,7 +15,7 @@ from unittest import skipIf, SkipTest
 from pathlib import Path
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import *
+from .helpers import skip_if_not_language, IS_CI
 from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command, windows_proof_rmtree
 from mesonbuild.mformat import Formatter, match_path
 from mesonbuild.optinterpreter import OptionInterpreter, OptionException
@@ -138,7 +138,7 @@ class PlatformAgnosticTests(BasePlatformTests):
     def check_connectivity(self):
         import urllib
         try:
-            with urllib.request.urlopen('https://wrapdb.mesonbuild.com') as p:
+            with urllib.request.urlopen('https://wrapdb.mesonbuild.com'):
                 pass
         except urllib.error.URLError as e:
             self.skipTest('No internet connectivity: ' + str(e))
@@ -474,7 +474,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
         self.init(testdir)
         self.assertEqual(self.getconf('neg_int_opt'), -3)
-        with self.assertRaises(subprocess.CalledProcessError) as e:
+        with self.assertRaises(subprocess.CalledProcessError):
             self.init(testdir, extra_args=['--reconfigure', '-Dneg_int_opt=0'])
         self.assertEqual(self.getconf('neg_int_opt'), -3)
         self.init(testdir, extra_args=['--reconfigure', '-Dneg_int_opt=-2'])

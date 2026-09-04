@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
+import os
 import re
 import unittest
 from itertools import chain
@@ -31,7 +32,7 @@ from run_tests import (
     FakeBuild, get_fake_env
 )
 
-from .helpers import *
+from .helpers import is_tarball
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
