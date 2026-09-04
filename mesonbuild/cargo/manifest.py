@@ -688,6 +688,8 @@ class Workspace:
 
         # meson-specific behavior for glob members: they are allowed as
         # arguments to cargo.package(), but never built by default
+        if ws.root_package and '.' not in ws.members:
+            ws.members.append('.')
         ws.members = expand(ws.members, keep_glob_results=True)
         ws.default_members = expand(ws.default_members, keep_glob_results=False)
         return ws
