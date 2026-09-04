@@ -146,15 +146,20 @@ class RustCompiler(Compiler):
         super().__init__([], exelist, version, for_machine, env,
                          full_version=full_version, linker=linker)
         self.rustup_run_and_args: T.Optional[T.Tuple[T.List[str], T.List[str]]] = get_rustup_run_and_args(exelist)
-        self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_coverage', 'b_ndebug', 'b_pgo']})
+        self.base_options.update({OptionKey(o) for o in [
+            'b_colorout', 'b_coverage', 'b_freestanding', 'b_ndebug', 'b_pgo',
+        ]})
         if isinstance(self.linker, VisualStudioLikeLinkerMixin):
             self.base_options.add(OptionKey('b_vscrt'))
-        self.native_static_libs: T.List[str] = []
+        self.native_static_libs: T.Dict[bool, T.List[str]] = {}
         self.is_beta = '-beta' in full_version
         self.is_nightly = '-nightly' in full_version
         self.has_check_cfg = version_compare(version, '>=1.80.0')
 
     def init_from_options(self) -> None:
+        freestanding = self.environment.coredata.optstore.get_value_for(OptionKey('b_freestanding'))
+        assert isinstance(freestanding, bool)
+        self.freestanding = freestanding
         nightly_opt = self.get_compileropt_value('nightly', None)
         if nightly_opt == 'enabled' and not self.is_nightly:
             raise EnvironmentException(f'Rust compiler {self.name_string()} is not a nightly compiler as required by the "nightly" option.')
@@ -166,39 +171,61 @@ class RustCompiler(Compiler):
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
         cmdlist, largs = super()._sanity_check_compile_args(sourcename, binname)
+        if self.freestanding:
+            cmdlist += ['-C', 'panic=abort', '-C', 'default-linker-libraries=yes']
         if self.info.kernel == 'none' and 'ld.' in self.get_linker_id():
             largs.extend(rustc_link_args(['-nostartfiles']))
         return cmdlist, largs
 
     def _sanity_check_source_code(self) -> str:
-        if self.info.kernel != 'none':
+        if not self.freestanding and self.info.kernel != 'none':
             return textwrap.dedent(
                 '''fn main() {
                 }
                 ''')
+        if self.info.kernel == 'none':
+            entrypoint = '''#[no_mangle]
+            pub extern "C" fn _start() {
+            }'''
+        else:
+            entrypoint = '''#[no_mangle]
+            pub extern "C" fn main() -> i32 {
+                0
+            }'''
         return textwrap.dedent(
             '''#![no_std]
             #![no_main]
-            #[no_mangle]
-            pub fn _start() {
-            }
             #[panic_handler]
             fn panic(_info: &core::panic::PanicInfo) -> ! {
                 loop {}
             }
-            ''')
+            ''' + entrypoint)
 
-    def sanity_check(self, work_dir: str) -> None:
-        super().sanity_check(work_dir)
-        source_name = self._sanity_check_filenames()[0]
-        self._native_static_libs(work_dir, source_name)
-
-    def _native_static_libs(self, work_dir: str, source_name: str) -> None:
+    def get_native_static_libs(self, freestanding: bool) -> T.List[str]:
         # Get libraries needed to link with a Rust staticlib
-        if self.native_static_libs:
-            return
+        if freestanding in self.native_static_libs:
+            return self.native_static_libs[freestanding]
 
-        cmdlist = self.exelist + ['--crate-type', 'staticlib', '--print', 'native-static-libs', source_name]
+        work_dir = self.environment.get_scratch_dir()
+        source_name = f'meson_rust_native_static_libs_{freestanding}.rs'
+        source = 'pub extern "C" fn meson_probe() {}\n'
+        args: T.List[str] = []
+        if freestanding:
+            source = textwrap.dedent(
+                '''
+                #![no_std]
+                #[panic_handler]
+                fn panic(_info: &core::panic::PanicInfo) -> ! {
+                    loop {}
+                }
+                ''') + source
+            args = ['-C', 'panic=abort']
+        with open(os.path.join(work_dir, source_name), 'w', encoding='utf-8') as f:
+            f.write(source)
+
+        cmdlist = self.exelist + args + [
+            '--crate-type', 'staticlib', '--print', 'native-static-libs', source_name,
+        ]
         p, stdo, stde = Popen_safe_logged(cmdlist, cwd=work_dir)
         if p.returncode != 0:
             raise EnvironmentException('Rust compiler cannot compile staticlib.')
@@ -207,17 +234,21 @@ class RustCompiler(Compiler):
             if self.info.kernel == 'none':
                 # no match and kernel == none (i.e. baremetal) is a valid use case.
                 # return and let native_static_libs list empty
-                return
+                self.native_static_libs[freestanding] = []
+                return []
             if self.info.system == 'emscripten':
                 # no match and emscripten is valid after rustc 1.84
-                return
+                self.native_static_libs[freestanding] = []
+                return []
             raise EnvironmentException('Failed to find native-static-libs in Rust compiler output.')
         # Exclude some well known libraries that we don't need because they
         # are always part of C/C++ linkers. Rustc probably should not print
         # them, pkg-config for example never specify them.
         # FIXME: https://github.com/rust-lang/rust/issues/55120
         exclude = {'-lc', '-lgcc_s', '-lkernel32', '-ladvapi32', '/defaultlib:msvcrt'}
-        self.native_static_libs = [i for i in match.group(1).split() if i not in exclude]
+        result = [i for i in match.group(1).split() if i not in exclude]
+        self.native_static_libs[freestanding] = result
+        return result
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['--emit', f'dep-info={outfile}']
