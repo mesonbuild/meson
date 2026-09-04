@@ -76,12 +76,12 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--fatal-meson-warnings', action='store_true', dest='fatal_warnings',
                         help='Make all Meson warnings fatal')
     parser.add_argument('--reconfigure', action='store_true',
-                        help='Set options and reconfigure the project. Useful when new ' +
-                             'options have been added to the project and the default value ' +
+                        help='Set options and reconfigure the project. Useful when new '
+                             'options have been added to the project and the default value '
                              'is not working.')
     parser.add_argument('--wipe', action='store_true',
-                        help='Wipe build directory and reconfigure using previous command line options. ' +
-                             'Useful when build directory got corrupted, or when rebuilding with a ' +
+                        help='Wipe build directory and reconfigure using previous command line options. '
+                             'Useful when build directory got corrupted, or when rebuilding with a '
                              'newer version of meson.')
     parser.add_argument('--clearcache', action='store_true', default=False,
                         help='Clear cached state (e.g. found dependencies). Since 1.3.0.')

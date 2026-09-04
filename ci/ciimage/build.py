@@ -169,14 +169,15 @@ class ImageTester(BuilderBase):
             if tty:
                 test_cmd = [
                     self.docker, 'run', '--rm', '-t', '-i', 'meson_test_image',
-                    '/bin/bash', '-c', ''
-                    + 'cd meson;'
-                    + 'source /ci/env_vars.sh;'
-                    + f'echo -e "\\n\\nInteractive test shell in the {image_namespace}/{self.data_dir.name} container with the current meson tree";'
-                    + 'echo -e "The file ci/ciimage/user.sh will be sourced if it exists to enable user specific configurations";'
-                    + 'echo -e "Run the following command to run all CI tests: ./run_tests.py $CI_ARGS\\n\\n";'
-                    + '[ -f ci/ciimage/user.sh ] && exec /bin/bash --init-file ci/ciimage/user.sh;'
-                    + 'exec /bin/bash;'
+                    '/bin/bash', '-c', (
+                        'cd meson;'
+                        'source /ci/env_vars.sh;'
+                        f'echo -e "\\n\\nInteractive test shell in the {image_namespace}/{self.data_dir.name} container with the current meson tree";'
+                        'echo -e "The file ci/ciimage/user.sh will be sourced if it exists to enable user specific configurations";'
+                        'echo -e "Run the following command to run all CI tests: ./run_tests.py $CI_ARGS\\n\\n";'
+                        '[ -f ci/ciimage/user.sh ] && exec /bin/bash --init-file ci/ciimage/user.sh;'
+                        'exec /bin/bash;'
+                    ),
                 ]
             else:
                 test_cmd = [
@@ -201,14 +202,15 @@ class ImageTTY(BuilderBase):
                 self.docker, 'run',
                 '--name', 'meson_test_container', '-t', '-i', '-v', f'{self.meson_root.as_posix()}:/meson',
                 f'{image_namespace}/{self.data_dir.name}',
-                '/bin/bash', '-c', ''
-                    + 'cd meson;'
-                    + 'source /ci/env_vars.sh;'
-                    + f'echo -e "\\n\\nInteractive test shell in the {image_namespace}/{self.data_dir.name} container with the current meson tree";'
-                    + 'echo -e "The file ci/ciimage/user.sh will be sourced if it exists to enable user specific configurations";'
-                    + 'echo -e "Run the following command to run all CI tests: ./run_tests.py $CI_ARGS\\n\\n";'
-                    + '[ -f ci/ciimage/user.sh ] && exec /bin/bash --init-file ci/ciimage/user.sh;'
-                    + 'exec /bin/bash;'
+                '/bin/bash', '-c', (
+                    'cd meson;'
+                    'source /ci/env_vars.sh;'
+                    f'echo -e "\\n\\nInteractive test shell in the {image_namespace}/{self.data_dir.name} container with the current meson tree";'
+                    'echo -e "The file ci/ciimage/user.sh will be sourced if it exists to enable user specific configurations";'
+                    'echo -e "Run the following command to run all CI tests: ./run_tests.py $CI_ARGS\\n\\n";'
+                    '[ -f ci/ciimage/user.sh ] && exec /bin/bash --init-file ci/ciimage/user.sh;'
+                    'exec /bin/bash;'
+                ),
             ]
             subprocess.run(tty_cmd, check=True)
         finally:

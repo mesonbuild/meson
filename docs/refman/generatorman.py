@@ -351,7 +351,7 @@ class GeneratorMan(GeneratorBase):
         page.section("NAME")
         page.par(
             f"meson-reference v{self._extract_meson_version()}"
-            + " - a reference for meson functions and objects"
+             " - a reference for meson functions and objects"
         )
 
         page.section("DESCRIPTION")

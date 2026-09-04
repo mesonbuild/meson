@@ -147,8 +147,8 @@ class WindowsModule(ExtensionModule):
             suffix = 'o'
             res_args = extra_args + ['@INPUT@', '@OUTPUT@']
 
-            m = 'Argument {!r} has a space which may not work with windres due to ' \
-                'a MinGW bug: https://sourceware.org/bugzilla/show_bug.cgi?id=4933'
+            m = ('Argument {!r} has a space which may not work with windres due to '
+                 'a MinGW bug: https://sourceware.org/bugzilla/show_bug.cgi?id=4933')
             for arg in extra_args:
                 if ' ' in arg:
                     mlog.warning(m.format(arg), fatal=False)

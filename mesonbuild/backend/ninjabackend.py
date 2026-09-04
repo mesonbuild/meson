@@ -1071,8 +1071,8 @@ class NinjaBackend(backends.Backend):
             if langs_cant:
                 langs_are = langs = ', '.join(langs_cant).upper()
                 langs_are += ' are' if len(langs_cant) > 1 else ' is'
-                msg = f'{langs_are} not supported in Unity builds yet, so {langs} ' \
-                      f'sources in the {target.name!r} target will be compiled normally'
+                msg = (f'{langs_are} not supported in Unity builds yet, so {langs} '
+                       f'sources in the {target.name!r} target will be compiled normally')
                 mlog.log(mlog.red('FIXME'), msg)
 
         # Get a list of all generated headers that will be needed while building
@@ -1760,8 +1760,8 @@ class NinjaBackend(backends.Backend):
                     gensrctype = othersgen
                 # Duplicate outputs are disastrous
                 if f in gensrctype and gensrctype[f] != gensrc:
-                    msg = f'Duplicate output {f!r} from {type(gensrc).__name__!r} {gensrc.name!r}; ' \
-                          f'conflicts with {f!r} from {type(gensrctype[f]).__name__!r} {gensrctype[f]!r}'
+                    msg = (f'Duplicate output {f!r} from {type(gensrc).__name__!r} {gensrc.name!r}; '
+                           f'conflicts with {f!r} from {type(gensrctype[f]).__name__!r} {gensrctype[f]!r}')
                     raise InvalidArguments(msg)
                 # Store 'somefile.vala': GeneratedList (or CustomTarget)
                 gensrctype[f] = gensrc

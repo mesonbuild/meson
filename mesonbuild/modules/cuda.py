@@ -241,9 +241,9 @@ class CudaModule(NewExtensionModule):
     def min_driver_version(self, state: ModuleState,
                            args: list[TYPE_var],
                            kwargs: dict[str, T.Any]) -> str:
-        argerror = InvalidArguments('min_driver_version must have exactly one positional argument: ' +
-                                    'a CUDA Toolkit version string. Beware that, since CUDA 11.0, ' +
-                                    'the CUDA Toolkit\'s components (including NVCC) are versioned ' +
+        argerror = InvalidArguments('min_driver_version must have exactly one positional argument: '
+                                    'a CUDA Toolkit version string. Beware that, since CUDA 11.0, '
+                                    'the CUDA Toolkit\'s components (including NVCC) are versioned '
                                     'independently from each other (and the CUDA Toolkit as a whole).')
         if len(args) != 1 or not isinstance(args[0], str):
             raise argerror

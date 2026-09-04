@@ -77,11 +77,11 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def _sanity_check_run_with_exe_wrapper(self, command: list[str]) -> list[str]:
         runner = shutil.which(self.javarunner)
         if runner is None:
-            m = "Java Virtual Machine wasn't found, but it's needed by Meson. " \
-                "Please install a JRE.\nIf you have specific needs where this " \
-                "requirement doesn't make sense, please open a bug at " \
-                "https://github.com/mesonbuild/meson/issues/new and tell us " \
-                "all about it."
+            m = ("Java Virtual Machine wasn't found, but it's needed by Meson. "
+                 "Please install a JRE.\nIf you have specific needs where this "
+                 "requirement doesn't make sense, please open a bug at "
+                 "https://github.com/mesonbuild/meson/issues/new and tell us "
+                 "all about it.")
             raise EnvironmentException(m)
         basedir = os.path.basename(command[0])
         return [runner, '-cp', basedir, basedir]

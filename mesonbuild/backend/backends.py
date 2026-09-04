@@ -749,8 +749,8 @@ class Backend:
             exe_wrapper = None
         elif is_cross_built and self.environment.need_exe_wrapper():
             if not self.environment.has_exe_wrapper():
-                msg = 'An exe_wrapper is needed for ' + exe_cmd[0] + ' but was not found. Please define one ' \
-                      'in cross file and check the command and/or add it to PATH.'
+                msg = (f'An exe_wrapper is needed for {exe_cmd[0]} but was not found. Please define one '
+                       'in cross file and check the command and/or add it to PATH.')
                 raise MesonException(msg)
             exe_wrapper = self.environment.get_exe_wrapper()
         else:
@@ -1714,8 +1714,8 @@ class Backend:
                 if '@DEPFILE@' in i:
                     assert not isinstance(target, build.RunTarget)
                     if target.depfile is None:
-                        msg = f'Custom target {target.name!r} has @DEPFILE@ but no depfile ' \
-                              'keyword argument.'
+                        msg = (f'Custom target {target.name!r} has @DEPFILE@ but no depfile '
+                               'keyword argument.')
                         raise MesonException(msg)
                     dfilename = os.path.join(outdir, target.depfile)
                     i = i.replace('@DEPFILE@', dfilename)
@@ -1866,9 +1866,9 @@ class Backend:
             # Sanity-check the outputs and install_dirs
             num_outdirs, num_out = len(outdirs), len(t.get_outputs())
             if num_outdirs not in {1, num_out}:
-                m = 'Target {!r} has {} outputs: {!r}, but {} "install_dir"s were found: {!r}.\n' \
-                    "Pass 'false' for outputs that should not be installed and 'true' for\n" \
-                    'using the default installation directory for an output.'
+                m = ('Target {!r} has {} outputs: {!r}, but {} "install_dir"s were found: {!r}.\n'
+                     "Pass 'false' for outputs that should not be installed and 'true' for\n"
+                     'using the default installation directory for an output.')
                 raise MesonException(m.format(t.name, num_out, t.get_outputs(), num_outdirs, outdirs))
             assert len(t.install_tag) == num_out
             install_mode = t.get_custom_install_mode() or FileMode()

@@ -122,7 +122,7 @@ def main():
         try:
             import pytest_cov  # noqa: F401
             print('Disabling pytest-cov')
-            pytest_args += ['-p' 'no:cov']
+            pytest_args += ['-pno:cov']
         except ImportError:
             pass
         return subprocess.run(python_command + ['-m', 'pytest'] + pytest_args, check=False).returncode

@@ -315,7 +315,7 @@ class MachineInfo(HoldableObject):
         minimum_literal = {'cpu', 'cpu_family', 'endian', 'system'}
         if minimum_literal - set(literal):
             raise EnvironmentException(
-                f'Machine info is currently {literal}\n' +
+                f'Machine info is currently {literal}\n'
                 f'but is missing {minimum_literal - set(literal)}.')
 
         cpu_family = literal['cpu_family']

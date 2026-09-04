@@ -1502,8 +1502,8 @@ def do_replacement_meson(regex: T.Pattern[str], line: str,
                         mlog.deprecation(msg)
                     var_str = str(var)
                 else:
-                    msg = f'Tried to replace variable {varname!r} value with ' \
-                          f'something other than a string or int: {var!r}'
+                    msg = (f'Tried to replace variable {varname!r} value with '
+                           f'something other than a string or int: {var!r}')
                     raise MesonException(msg)
             else:
                 missing_variables.add(varname)
@@ -1529,8 +1529,8 @@ def do_replacement_cmake(line: str, at_only: bool,
             elif isinstance(var, int):
                 var_str = str(var)
             else:
-                msg = f'Tried to replace variable {varname!r} value with ' \
-                      f'something other than a string or int: {var!r}'
+                msg = (f'Tried to replace variable {varname!r} value with '
+                       f'something other than a string or int: {var!r}')
                 raise MesonException(msg)
         else:
             missing_variables.add(varname)
@@ -1569,8 +1569,8 @@ def do_replacement_cmake(line: str, at_only: bool,
                         elif character_regex.search(line[end_bracket]):
                             invalid_character = line[end_bracket]
                             variable = line[index+2:end_bracket]
-                            msg = f'Found invalid character {invalid_character!r}' \
-                                  f' in variable {variable!r}'
+                            msg = (f'Found invalid character {invalid_character!r}'
+                                   f' in variable {variable!r}')
                             raise MesonException(msg)
                         else:
                             end_bracket += 1
@@ -1584,8 +1584,8 @@ def do_replacement_cmake(line: str, at_only: bool,
                     if match:
                         invalid_character = line[end_bracket-2]
                         variable = line[index+2:end_bracket-3]
-                        msg = f'Found invalid character {invalid_character!r}' \
-                              f' in variable {variable!r}'
+                        msg = (f'Found invalid character {invalid_character!r}'
+                               f' in variable {variable!r}')
                         raise MesonException(msg)
 
                     value = variable_get(varname)

@@ -180,9 +180,9 @@ class FailureTests(BasePlatformTests):
             # Look for pkg-config, cache it, then
             # Use cached pkg-config without erroring out, then
             # Use cached pkg-config to error out
-            code = "dependency('foobarrr', method : 'pkg-config', required : false)\n" \
-                "dependency('foobarrr2', method : 'pkg-config', required : false)\n" \
-                "dependency('sdl2', method : 'pkg-config')"
+            code = ("dependency('foobarrr', method : 'pkg-config', required : false)\n"
+                    "dependency('foobarrr2', method : 'pkg-config', required : false)\n"
+                "   dependency('sdl2', method : 'pkg-config')")
             self.assertMesonRaises(code, self.nopkg)
 
     def test_gnustep_notfound_dependency(self):
@@ -339,12 +339,12 @@ class FailureTests(BasePlatformTests):
         self.assertMesonDoesNotOutput(vcs_tag, msg, meson_version='>=0.43')
 
     def test_missing_subproject_not_required_and_required(self):
-        self.assertMesonRaises("sub1 = subproject('not-found-subproject', required: false)\n" +
+        self.assertMesonRaises("sub1 = subproject('not-found-subproject', required: false)\n"
                                "sub2 = subproject('not-found-subproject', required: true)",
                                """.*Subproject "subprojects/not-found-subproject" required but not found.*""")
 
     def test_get_variable_on_not_found_project(self):
-        self.assertMesonRaises("sub1 = subproject('not-found-subproject', required: false)\n" +
+        self.assertMesonRaises("sub1 = subproject('not-found-subproject', required: false)\n"
                                "sub1.get_variable('naaa')",
                                """Subproject "subprojects/not-found-subproject" disabled can't get_variable on it.""")
 
@@ -357,9 +357,9 @@ class FailureTests(BasePlatformTests):
         self.assertMesonRaises("", match, meson_version='>=2000', options=options)
 
     def test_assert_default_message(self):
-        self.assertMesonRaises("k1 = 'a'\n" +
-                               "assert({\n" +
-                               "  k1: 1,\n" +
+        self.assertMesonRaises("k1 = 'a'\n"
+                               "assert({\n"
+                               "  k1: 1,\n"
                                "}['a'] == 2)\n",
                                r"Assert failed: {k1 : 1}\['a'\] == 2")
 
@@ -377,13 +377,13 @@ class FailureTests(BasePlatformTests):
                                 r"WARNING:.* Array: \['a', 'b'\]")
 
     def test_override_dependency_twice(self):
-        self.assertMesonRaises("meson.override_dependency('foo', declare_dependency())\n" +
+        self.assertMesonRaises("meson.override_dependency('foo', declare_dependency())\n"
                                "meson.override_dependency('foo', declare_dependency())",
                                """Tried to override dependency 'foo' which has already been resolved or overridden""")
 
     @unittest.skipIf(is_windows(), 'zlib is not available on Windows')
     def test_override_resolved_dependency(self):
-        self.assertMesonRaises("dependency('zlib')\n" +
+        self.assertMesonRaises("dependency('zlib')\n"
                                "meson.override_dependency('zlib', declare_dependency())",
                                """Tried to override dependency 'zlib' which has already been resolved or overridden""")
 

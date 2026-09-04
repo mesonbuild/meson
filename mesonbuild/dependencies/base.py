@@ -672,9 +672,8 @@ def detect_compiler(name: str, env: Environment, for_machine: MachineChoice,
     # else try to pick something that looks usable.
     if language:
         if language not in compilers:
-            m = name.capitalize() + ' requires a {0} compiler, but ' \
-                '{0} is not in the list of project languages'
-            raise DependencyException(m.format(language.capitalize()))
+            m = '{0} requires a {1} compiler, but {1} is not in the list of project languages'
+            raise DependencyException(m.format(name.capitalize(), language.capitalize()))
         return compilers[language]
     else:
         # https://github.com/python/mypy/issues/18826

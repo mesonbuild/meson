@@ -679,7 +679,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 
     p = subparsers.add_parser('update', help='Update all subprojects from wrap files')
     p.add_argument('--rebase', default=True, action='store_true',
-                   help='Rebase your branch on top of wrap\'s revision. ' +
+                   help='Rebase your branch on top of wrap\'s revision. '
                         'Deprecated, it is now the default behaviour. (git only)')
     p.add_argument('--reset', default=False, action='store_true',
                    help='Checkout wrap\'s revision and hard reset to that commit. (git only)')
@@ -696,8 +696,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     add_subprojects_argument(p)
     p.set_defaults(subprojects_func=Runner.checkout)
 
-    p = subparsers.add_parser('download', help='Ensure subprojects are fetched, even if not in use. ' +
-                                               'Already downloaded subprojects are not modified. ' +
+    p = subparsers.add_parser('download', help='Ensure subprojects are fetched, even if not in use. '
+                                               'Already downloaded subprojects are not modified. '
                                                'This can be used to pre-fetch all subprojects and avoid downloads during configure.')
     add_common_arguments(p)
     add_subprojects_argument(p)

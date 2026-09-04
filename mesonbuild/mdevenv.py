@@ -37,7 +37,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--workdir', '-w', type=Path, default=None,
                         help='Directory to cd into before running (default: builddir, Since 1.0.0)')
     parser.add_argument('--dump', nargs='?', const=True,
-                        help='Only print required environment (Since 0.62.0) ' +
+                        help='Only print required environment (Since 0.62.0) '
                              'Takes an optional file path (Since 1.1.0)')
     parser.add_argument('--dump-format', default='export',
                         choices=['sh', 'export', 'vscode'],
