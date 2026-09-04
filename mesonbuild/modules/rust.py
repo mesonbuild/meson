@@ -364,7 +364,7 @@ class RustPackage(RustCrate):
         cfg = self.package.cfg[for_machine]
 
         if kwargs['dependencies']:
-            for dep_key, dep_pkg in cfg.dep_packages.items():
+            for dep_pkg in cfg.dep_packages.values():
                 if dep_pkg.manifest.lib:
                     if dep_pkg.ws_subdir != self.rust_ws.subdir or \
                         is_parent_path(os.path.join(self.rust_ws.subdir, state.subproject_dir),

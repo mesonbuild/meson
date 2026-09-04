@@ -69,7 +69,7 @@ class InterpreterObject:
                 cls.OPERATORS.update(superclass.OPERATORS)
                 cls.TRIVIAL_OPERATORS.update(superclass.TRIVIAL_OPERATORS)
 
-        for name, method in cls.__dict__.items():
+        for method in cls.__dict__.values():
             if hasattr(method, 'meson_method'):
                 cls.METHODS[method.meson_method] = method
             if hasattr(method, 'meson_operator'):

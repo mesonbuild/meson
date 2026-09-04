@@ -810,7 +810,7 @@ class AstInterpreter(InterpreterBase):
         if hasattr(cur, 'args'):
             for arg in cur.args.arguments:
                 self.dataflow_dag.add_edge(arg, cur)
-            for k, v in cur.args.kwargs.items():
+            for v in cur.args.kwargs.values():
                 self.dataflow_dag.add_edge(v, cur)
         for attr in ['source_object', 'left', 'right', 'items', 'iobject', 'index', 'condition']:
             if hasattr(cur, attr):

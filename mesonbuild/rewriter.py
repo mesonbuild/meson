@@ -671,7 +671,7 @@ class Rewriter:
             self.modified_nodes += [node]
 
     def find_assignment_node(self, node: BaseNode) -> AssignmentNode | None:
-        for k, v in self.interpreter.all_assignment_nodes.items():
+        for v in self.interpreter.all_assignment_nodes.values():
             for ass in v:
                 if ass.value == node:
                     return ass

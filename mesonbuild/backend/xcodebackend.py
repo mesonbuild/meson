@@ -1274,7 +1274,7 @@ class XCodeBackend(backends.Backend):
 
     def generate_project_tree(self) -> FileTreeEntry:
         tree_info = FileTreeEntry()
-        for tname, t in self.build_targets.items():
+        for t in self.build_targets.values():
             self.add_target_to_tree(tree_info, t)
         return tree_info
 
