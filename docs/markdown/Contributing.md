@@ -477,8 +477,9 @@ following:
 - contact the mailing list before embarking on large scale projects
   to avoid wasted effort
 
-Meson uses Flake8 for style guide enforcement. The Flake8 options for
-the project are contained in .flake8.
+Meson uses Flake8, Pylint, and Ruff for style guide enforcement. The Flake8
+options for the project are contained in `.flake8`, the ruff options are in
+`.ruff.toml`, pylint in `.pylintrc`.
 
 To run Flake8 on your local clone of Meson:
 
@@ -494,6 +495,46 @@ To run it automatically before committing:
 $ flake8 --install-hook=git
 $ git config --bool flake8.strict true
 ```
+
+### Auto formatters
+
+Apart from the configured `ruff check` rules, do not use any formatter. While
+`ruff format` and `black` (the two most popular) apply some useful changes, they also
+make some... choices. These are not only not in line with Meson's coding style,
+but make the code far more difficult to read. Some examples of things that they
+will apply that Meson considers anti-patterns:
+
+```python
+def function(
+    argument_1: int | float | None = None,
+    argument_2: int | float | None = None,
+) -> tuple[int | float, int | float]:
+    return argument_1 or 0, argument_2 or 0
+```
+and
+```python
+(
+    x,
+    y
+) = function(
+    argument_1,
+    argument_2
+)
+```
+and
+```python
+for value in [
+    x,
+    y,
+    z,
+]:
+    print(value)
+```
+
+Because these tools lack the ability for projects to configure how they format,
+we have decided that their use would be a detriment to our project, and do not
+use them.  Please either disable them completely, or selectively apply their
+suggestions only as they make sense and follow our style.
 
 ## C/C++ coding style
 
