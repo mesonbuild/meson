@@ -53,7 +53,7 @@ def run(argsv: list[str]) -> int:
             if j in {'>', '>>'}:
                 stdout = subprocess.PIPE
                 continue
-            elif j in {'&>', '&>>'}:
+            if j in {'&>', '&>>'}:
                 stdout = subprocess.PIPE
                 stderr = subprocess.STDOUT
                 continue

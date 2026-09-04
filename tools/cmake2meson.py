@@ -130,7 +130,7 @@ class Parser:
 def token_or_group(arg: Token | list[Token]) -> str:
     if isinstance(arg, Token):
         return ' ' + arg.value
-    elif isinstance(arg, list):
+    if isinstance(arg, list):
         line = ' ('
         for a in arg:
             line += ' ' + token_or_group(a)

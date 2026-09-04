@@ -64,11 +64,10 @@ def cmake_is_debug(env: Environment) -> bool:
         if env.coredata.optstore.get_value_for('b_vscrt') in {'mdd', 'mtd'}:
             is_debug = True
         return is_debug
-    else:
-        # Don't directly assign to is_debug to make mypy happy
-        debug_opt = env.coredata.optstore.get_value_for('debug')
-        assert isinstance(debug_opt, bool)
-        return debug_opt
+    # Don't directly assign to is_debug to make mypy happy
+    debug_opt = env.coredata.optstore.get_value_for('debug')
+    assert isinstance(debug_opt, bool)
+    return debug_opt
 
 class CMakeException(MesonException):
     pass
@@ -108,8 +107,7 @@ def _flags_to_list(raw: str) -> list[str]:
         else:
             curr += i
     res += [curr]
-    res = [r for r in res if len(r) > 0]
-    return res
+    return [r for r in res if len(r) > 0]
 
 @functools.cache
 def _cmake_get_generator_args(backend_name: str) -> ImmutableListProtocol[str]:

@@ -174,11 +174,10 @@ class ClangCompiler(GnuLikeCompiler):
     def openmp_flags(self) -> list[str]:
         if mesonlib.version_compare(self.version, '>=3.8.0'):
             return ['-fopenmp']
-        elif mesonlib.version_compare(self.version, '>=3.7.0'):
+        if mesonlib.version_compare(self.version, '>=3.7.0'):
             return ['-fopenmp=libomp']
-        else:
-            # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
-            return []
+        # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
+        return []
 
     @classmethod
     def use_linker_args(cls, linker: str, version: str) -> list[str]:
@@ -244,8 +243,7 @@ class ClangCompiler(GnuLikeCompiler):
     def linker_to_compiler_args(self, args: list[str]) -> list[str]:
         if isinstance(self.linker, VisualStudioLikeLinkerMixin):
             return [flag if flag.startswith(('-Wl,', '-fuse-ld=')) else f'-Wl,{flag}' for flag in args]
-        else:
-            return args
+        return args
 
     def get_lto_link_args(self, *, target: BuildTarget | None = None, threads: int = 0,
                           mode: str = 'default', thinlto_cache_dir: str | None = None) -> list[str]:

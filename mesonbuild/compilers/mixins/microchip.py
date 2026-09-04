@@ -99,9 +99,9 @@ class Xc16Compiler(Compiler):
                 i = '-I' + i[2:]
             if i.startswith('-Wl,-rpath='):
                 continue
-            elif i == '--print-search-dirs':
+            if i == '--print-search-dirs':
                 continue
-            elif i.startswith('-L'):
+            if i.startswith('-L'):
                 continue
             result.append(i)
         return result

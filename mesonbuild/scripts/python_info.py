@@ -71,9 +71,8 @@ def links_against_libpython():
         # the only PyPy supported platform that requires linking to libpython
         # is Windows, thus it is easy enough to hardcode the answer.
         return sysconfig.get_platform() == "win-amd64"
-    else:
-        variables = sysconfig.get_config_vars()
-        return bool(variables.get('LIBPYTHON', 'yes'))
+    variables = sysconfig.get_config_vars()
+    return bool(variables.get('LIBPYTHON', 'yes'))
 
 variables = sysconfig.get_config_vars()
 variables.update({'base_prefix': getattr(sys, 'base_prefix', sys.prefix)})

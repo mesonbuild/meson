@@ -71,6 +71,5 @@ def run(args: list[str]) -> int:
                         options.mo_files,
                         options.input,
                         options.output)
-    else:
-        print('Unknown subcommand.')
-        return 1
+    print('Unknown subcommand.')
+    return 1

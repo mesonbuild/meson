@@ -81,8 +81,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
     def openmp_flags(self) -> list[str]:
         if mesonlib.version_compare(self.version, '>=15.0.0'):
             return ['-qopenmp']
-        else:
-            return ['-openmp']
+        return ['-openmp']
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> list[str]:
         extra_args = [

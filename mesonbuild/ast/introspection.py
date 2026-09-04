@@ -356,9 +356,9 @@ class IntrospectionInterpreter(AstInterpreter):
         default_library = self.coredata.optstore.get_value_for(OptionKey('default_library', subproject=self.subproject))
         if default_library == 'shared':
             return self.build_target(node, args, kwargs, SharedLibrary)
-        elif default_library == 'static':
+        if default_library == 'static':
             return self.build_target(node, args, kwargs, StaticLibrary)
-        elif default_library == 'both':
+        if default_library == 'both':
             return self.build_target(node, args, kwargs, SharedLibrary)
         return None
 
@@ -391,15 +391,15 @@ class IntrospectionInterpreter(AstInterpreter):
             target_type = target_type.value
         if target_type == 'executable':
             return self.build_target(node, args, kwargs, Executable)
-        elif target_type == 'shared_library':
+        if target_type == 'shared_library':
             return self.build_target(node, args, kwargs, SharedLibrary)
-        elif target_type == 'static_library':
+        if target_type == 'static_library':
             return self.build_target(node, args, kwargs, StaticLibrary)
-        elif target_type == 'both_libraries':
+        if target_type == 'both_libraries':
             return self.build_target(node, args, kwargs, SharedLibrary)
-        elif target_type == 'library':
+        if target_type == 'library':
             return self.build_library(node, args, kwargs)
-        elif target_type == 'jar':
+        if target_type == 'jar':
             return self.build_target(node, args, kwargs, Jar)
         return None
 

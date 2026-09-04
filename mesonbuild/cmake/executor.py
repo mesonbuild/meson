@@ -65,7 +65,7 @@ class CMakeExecutor:
         if isinstance(CMakeExecutor.class_cmakebin[self.for_machine], NonExistingExternalProgram):
             mlog.debug(f'CMake binary for {self.for_machine} is cached as not found')
             return None, None
-        elif CMakeExecutor.class_cmakebin[self.for_machine] is not None:
+        if CMakeExecutor.class_cmakebin[self.for_machine] is not None:
             mlog.debug(f'CMake binary for {self.for_machine} is cached.')
         else:
             assert CMakeExecutor.class_cmakebin[self.for_machine] is None
@@ -206,11 +206,9 @@ class CMakeExecutor:
             mlog.debug(f'  - "{i}"')
         if not self.print_cmout:
             return self._call_quiet(args, build_dir, env)
-        else:
-            if self.always_capture_stderr:
-                return self._call_cmout_stderr(args, build_dir, env)
-            else:
-                return self._call_cmout(args, build_dir, env)
+        if self.always_capture_stderr:
+            return self._call_cmout_stderr(args, build_dir, env)
+        return self._call_cmout(args, build_dir, env)
 
     def call(self, args: list[str], build_dir: Path, env: dict[str, str] | None = None, disable_cache: bool = False) -> TYPE_result:
         if env is None:

@@ -197,18 +197,16 @@ class InstalledFile:
                 p = p.with_suffix(python_suffix)
                 if env.machines.host.is_windows() and canonical_compiler == 'msvc':
                     return p.with_suffix('.lib')
-                elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
+                if env.machines.host.is_windows() or env.machines.host.is_cygwin():
                     return p.with_suffix('.dll.a')
-                else:
-                    return None
+                return None
             if self.typ == 'py_limited_implib':
                 p = p.with_suffix(python_limited_suffix)
                 if env.machines.host.is_windows() and canonical_compiler == 'msvc':
                     return p.with_suffix('.lib')
-                elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
+                if env.machines.host.is_windows() or env.machines.host.is_cygwin():
                     return p.with_suffix('.dll.a')
-                else:
-                    return None
+                return None
             if self.typ == 'python_bytecode':
                 return p.parent / importlib.util.cache_from_source(p.name)
         elif self.typ in {'file', 'dir', 'link'}:
@@ -241,7 +239,7 @@ class InstalledFile:
         elif self.typ == 'exe':
             if 'mwcc' in canonical_compiler:
                 return p.with_suffix('.nef')
-            elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
+            if env.machines.host.is_windows() or env.machines.host.is_cygwin():
                 return p.with_suffix('.exe')
         elif self.typ == 'pdb':
             if self.version:
@@ -253,10 +251,9 @@ class InstalledFile:
                 if self.typ == 'implibempty' and compiler.get_id() == 'msvc':
                     return None
                 return p.parent / (re.sub(r'^lib', '', p.name) + '.lib')
-            elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
+            if env.machines.host.is_windows() or env.machines.host.is_cygwin():
                 return p.with_suffix('.dll.a')
-            else:
-                return None
+            return None
         elif self.typ == 'expr':
             return Path(platform_fix_name(p.as_posix(), canonical_compiler, env))
         else:
@@ -275,13 +272,12 @@ class InstalledFile:
             if not abs_p.is_dir():
                 raise RuntimeError(f'{p} is not a directory')
             return [x.relative_to(installdir) for x in abs_p.rglob('*') if x.is_file() or x.is_symlink()]
-        elif self.typ == 'link':
+        if self.typ == 'link':
             abs_p = installdir / p
             if not abs_p.is_symlink():
                 raise RuntimeError(f'{p} is not a symlink')
             return [p]
-        else:
-            return [p]
+        return [p]
 
 @functools.total_ordering
 class TestDef:
@@ -391,21 +387,17 @@ def platform_fix_name(fname: str, canonical_compiler: str, env: environment.Envi
     if fname.endswith('?so'):
         if env.machines.host.is_windows() and canonical_compiler == 'msvc':
             fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
-            fname = re.sub(r'/(?:lib|)([^/]*?)\?so$', r'/\1.dll', fname)
-            return fname
-        elif env.machines.host.is_windows():
+            return re.sub(r'/(?:lib|)([^/]*?)\?so$', r'/\1.dll', fname)
+        if env.machines.host.is_windows():
             fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
-            fname = re.sub(r'/([^/]*?)\?so$', r'/\1.dll', fname)
-            return fname
-        elif env.machines.host.is_cygwin():
+            return re.sub(r'/([^/]*?)\?so$', r'/\1.dll', fname)
+        if env.machines.host.is_cygwin():
             fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
             fname = re.sub(r'/lib([^/]*?)\?so$', r'/cyg\1.dll', fname)
-            fname = re.sub(r'/([^/]*?)\?so$', r'/\1.dll', fname)
-            return fname
-        elif env.machines.host.is_darwin():
+            return re.sub(r'/([^/]*?)\?so$', r'/\1.dll', fname)
+        if env.machines.host.is_darwin():
             return fname[:-3] + '.dylib'
-        else:
-            return fname[:-3] + '.so'
+        return fname[:-3] + '.so'
 
     return fname
 
@@ -722,12 +714,11 @@ def _run_test(test: TestDef,
     if should_fail == 'meson':
         if returncode == 1:
             return testresult
-        elif returncode != 0:
+        if returncode != 0:
             testresult.fail(f'Test exited with unexpected status {returncode}.')
             return testresult
-        else:
-            testresult.fail('Test that should have failed succeeded.')
-            return testresult
+        testresult.fail('Test that should have failed succeeded.')
+        return testresult
     if returncode != 0:
         testresult.fail('Generating the build system failed.')
         return testresult
@@ -1102,8 +1093,7 @@ def detect_tests_to_run(only: dict[str, list[str]], use_tmp: bool) -> list[tuple
     if only:
         all_tests = [t for t in all_tests if t.category in only]
 
-    gathered_tests = [(t.category, gather_tests(Path('test cases', t.subdir), t, only[t.category]), t.skip) for t in all_tests]
-    return gathered_tests
+    return [(t.category, gather_tests(Path('test cases', t.subdir), t, only[t.category]), t.skip) for t in all_tests]
 
 def run_tests(all_tests: list[tuple[str, list[TestDef], bool]],
               log_name_base: str,
@@ -1199,8 +1189,7 @@ def _run_tests(all_tests: list[tuple[str, list[TestDef], bool]],
         if skipped:
             futures += [LogRunFuture(['\n', bold(f'Not running {name} tests.'), '\n'])]
             continue
-        else:
-            futures += [LogRunFuture(['\n', bold(f'Running {name} tests.'), '\n'])]
+        futures += [LogRunFuture(['\n', bold(f'Running {name} tests.'), '\n'])]
 
         for t in test_cases:
             # Jenkins screws us over by automatically sorting test cases by name

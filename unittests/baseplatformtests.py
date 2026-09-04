@@ -298,9 +298,8 @@ class BasePlatformTests(TestCase):
     def run_tests(self, *, inprocess=False, override_envvars=None):
         if not inprocess:
             return self._run(self.test_command, workdir=self.builddir, override_envvars=override_envvars)
-        else:
-            with mock.patch.dict(os.environ, override_envvars):
-                return run_mtest_inprocess(['-C', self.builddir])[1]
+        with mock.patch.dict(os.environ, override_envvars):
+            return run_mtest_inprocess(['-C', self.builddir])[1]
 
     def install(self, *, use_destdir=True, override_envvars=None):
         if self.backend is not Backend.ninja:
@@ -339,6 +338,7 @@ class BasePlatformTests(TestCase):
             if x.get('name') == optname:
                 return x.get('value')
         self.fail(f'Option {optname} not found')
+        return None
 
     def wipe(self):
         windows_proof_rmtree(self.builddir)
@@ -384,8 +384,7 @@ class BasePlatformTests(TestCase):
         prefix = 'Command line: `'
         suffix = '` -> 0\n'
         with self._open_meson_log() as log:
-            cmds = [split_args(l[len(prefix):-len(suffix)]) for l in log if l.startswith(prefix)]
-            return cmds
+            return [split_args(l[len(prefix):-len(suffix)]) for l in log if l.startswith(prefix)]
 
     def get_meson_log_sanitychecks(self):
         '''
@@ -393,8 +392,7 @@ class BasePlatformTests(TestCase):
         '''
         prefix = 'Sanity check compiler command line:'
         with self._open_meson_log() as log:
-            cmds = [l[len(prefix):].split() for l in log if l.startswith(prefix)]
-            return cmds
+            return [l[len(prefix):].split() for l in log if l.startswith(prefix)]
 
     def introspect(self, args):
         if isinstance(args, str):

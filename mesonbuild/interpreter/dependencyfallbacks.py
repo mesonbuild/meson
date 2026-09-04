@@ -381,12 +381,12 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                         self.build.dependency_overrides[self.for_machine][identifier] = \
                             build.DependencyOverride(dep, self.interpreter.current_node, explicit=False)
                 return dep
-            elif required and (dep or i == last):
+            if required and (dep or i == last):
                 # This was the last candidate or the dependency has been cached
                 # as not-found, or cached dependency version does not match,
                 # otherwise func() would have returned None instead.
                 raise DependencyException(f'Dependency {self._display_name!r} is required but not found.')
-            elif dep:
+            if dep:
                 # Same as above, but the dependency is not required.
                 return dep
         return self._notfound_dependency()

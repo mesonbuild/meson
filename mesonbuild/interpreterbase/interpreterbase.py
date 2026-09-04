@@ -167,8 +167,7 @@ class InterpreterBase:
             error = 'first statement must be a call to project()'
             if found != p:
                 raise InvalidCode(f'Not the project root: {error}\n\nDid you mean to run meson from the directory: "{found}"?')
-            else:
-                raise InvalidCode(f'Invalid source tree: {error}')
+            raise InvalidCode(f'Invalid source tree: {error}')
 
     def run(self) -> None:
         # Evaluate everything after the first line, which is project() because
@@ -206,7 +205,7 @@ class InterpreterBase:
         self.current_node = cur
         if isinstance(cur, mparser.FunctionNode):
             return self.function_call(cur)
-        elif isinstance(cur, mparser.PlusAssignmentNode):
+        if isinstance(cur, mparser.PlusAssignmentNode):
             self.evaluate_plusassign(cur)
         elif isinstance(cur, mparser.AssignmentNode):
             self.assignment(cur)
@@ -216,10 +215,8 @@ class InterpreterBase:
             if cur.is_fstring:
                 if cur.is_multiline:
                     return self.evaluate_multiline_fstring(cur)
-                else:
-                    return self.evaluate_fstring(cur)
-            else:
-                return self._holderify(cur.value)
+                return self.evaluate_fstring(cur)
+            return self._holderify(cur.value)
         elif isinstance(cur, mparser.BooleanNode):
             return self._holderify(cur.value)
         elif isinstance(cur, mparser.IfClauseNode):
@@ -420,8 +417,7 @@ class InterpreterBase:
         result_bool = result.operator_call(MesonOperator.BOOL, None)
         if result_bool:
             return self.evaluate_statement(node.trueblock)
-        else:
-            return self.evaluate_statement(node.falseblock)
+        return self.evaluate_statement(node.falseblock)
 
     @FeatureNew('multiline format strings', '0.63.0')
     def evaluate_multiline_fstring(self, node: mparser.StringNode) -> InterpreterObject:
@@ -521,13 +517,12 @@ class InterpreterBase:
             self.current_node = node
             res = func(node, func_args, kwargs)
             return self._holderify(res) if res is not None else None
-        else:
-            from difflib import get_close_matches
-            close_matches = get_close_matches(func_name, self.funcs.keys())
-            if close_matches:
-                raise InvalidCode(f'Unknown function "{func_name}". Did you mean "{close_matches[0]}"?')
-            self.unknown_function_called(func_name)
-            return None
+        from difflib import get_close_matches
+        close_matches = get_close_matches(func_name, self.funcs.keys())
+        if close_matches:
+            raise InvalidCode(f'Unknown function "{func_name}". Did you mean "{close_matches[0]}"?')
+        self.unknown_function_called(func_name)
+        return None
 
     def method_call(self, node: mparser.MethodNode) -> InterpreterObject | None:
         invocable = node.source_object
@@ -562,9 +557,9 @@ class InterpreterBase:
                 if isinstance(res, typ):
                     return cls(res, T.cast('Interpreter', self))
             raise mesonlib.MesonBugException(f'Object {res} of type {type(res).__name__} is neither in self.holder_map nor self.bound_holder_map.')
-        elif isinstance(res, ObjectHolder):
+        if isinstance(res, ObjectHolder):
             raise mesonlib.MesonBugException(f'Returned object {res} of type {type(res).__name__} is an object holder.')
-        elif isinstance(res, MesonInterpreterObject):
+        if isinstance(res, MesonInterpreterObject):
             return res
         raise mesonlib.MesonBugException(f'Unknown returned object {res} of type {type(res).__name__} in the parameters.')
 

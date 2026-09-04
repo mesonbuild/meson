@@ -310,11 +310,11 @@ class BoostLibraryFile:
             return True
         if vscrt in {'/MD', '-MD'}:
             return not self.runtime_static and not self.runtime_debug
-        elif vscrt in {'/MDd', '-MDd'}:
+        if vscrt in {'/MDd', '-MDd'}:
             return not self.runtime_static and self.runtime_debug
-        elif vscrt in {'/MT', '-MT'}:
+        if vscrt in {'/MT', '-MT'}:
             return (self.runtime_static or not self.static) and not self.runtime_debug
-        elif vscrt in {'/MTd', '-MTd'}:
+        if vscrt in {'/MTd', '-MTd'}:
             return (self.runtime_static or not self.static) and self.runtime_debug
 
         mlog.warning(f'Boost: unknown vscrt tag {vscrt}. This may cause the compilation to fail. Please consider reporting this as a bug.', once=True)
@@ -420,7 +420,7 @@ class BoostDependency(SystemDependency):
 
             return self.detect_split_root(inc_dir, lib_dir)
 
-        elif incdir or libdir:
+        if incdir or libdir:
             raise DependencyException('Both boost_includedir *and* boost_librarydir have to be set in your machine file (one is not enough)')
 
         rootdir = props.get('boost_root')
@@ -433,6 +433,7 @@ class BoostDependency(SystemDependency):
             raise DependencyException('boost_root path given in machine file must be absolute')
 
         self.check_and_set_roots(paths, use_system=False)
+        return None
 
     def run_check(self, inc_dirs: list[BoostIncludeDir], lib_dirs: list[Path]) -> bool:
         mlog.debug(f'  - potential library dirs: {[x.as_posix() for x in lib_dirs]}')
@@ -645,9 +646,7 @@ class BoostDependency(SystemDependency):
             else:
                 no_python_libs.append(l)
         sorted_pylibs = sorted(python_libs, key=lambda l: l.name, reverse=True)
-        libs = no_python_libs + sorted_pylibs[:1]
-
-        return libs
+        return no_python_libs + sorted_pylibs[:1]
 
     def detect_libraries(self, libdir: Path) -> list[BoostLibraryFile]:
         libs: set[BoostLibraryFile] = set()
@@ -697,10 +696,9 @@ class BoostDependency(SystemDependency):
 
                     self.detect_split_root(Path(boost_inc_dir), Path(boost_lib_dir))
                     return
-                else:
-                    boost_root = boost_pc.get_variable(pkgconfig='prefix')
-                    if boost_root:
-                        roots += [Path(boost_root)]
+                boost_root = boost_pc.get_variable(pkgconfig='prefix')
+                if boost_root:
+                    roots += [Path(boost_root)]
         except DependencyException:
             pass
 

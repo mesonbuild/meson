@@ -211,8 +211,7 @@ class CudaDependency(SystemDependency):
             m = path_version_regex.match(os.path.basename(path))
             if m:
                 return m.group(1)
-            else:
-                mlog.warning(f'Could not detect CUDA Toolkit version for {path}')
+            mlog.warning(f'Could not detect CUDA Toolkit version for {path}')
         except Exception as e:
             mlog.warning(f'Could not detect CUDA Toolkit version for {path}: {e!s}')
 
@@ -262,15 +261,14 @@ class CudaDependency(SystemDependency):
             if arch not in libdirs:
                 raise DependencyException(msg.format(arch, 'Windows'))
             return os.path.join('lib', libdirs[arch])
-        elif machine.is_linux():
+        if machine.is_linux():
             return 'lib'
-        elif machine.is_darwin():
+        if machine.is_darwin():
             libdirs = {'x86_64': 'lib64'}
             if arch not in libdirs:
                 raise DependencyException(msg.format(arch, 'macOS'))
             return libdirs[arch]
-        else:
-            raise DependencyException('CUDA Toolkit: unsupported platform.')
+        raise DependencyException('CUDA Toolkit: unsupported platform.')
 
     def _find_requested_libraries(self) -> bool:
         all_found = True

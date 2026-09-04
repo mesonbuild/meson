@@ -705,7 +705,7 @@ class Elf(DataSizes):
     def remove_rpath_entry(self, entrynum: int) -> None:
         sec = self.find_section(b'.dynamic')
         if sec is None:
-            return None
+            return
         for (i, entry) in enumerate(self.dynamic):
             if entry.d_tag == entrynum:
                 self.clean_rpath_entry_string(entrynum)
@@ -721,7 +721,7 @@ class Elf(DataSizes):
         self.bf.seek(sec.sh_offset)
         for entry in self.dynamic:
             entry.write(self.bf)
-        return None
+        return
 
 def fix_elf(fname: str, rpath_dirs_to_remove: set[bytes], new_rpath: bytes | None, verbose: bool = True) -> None:
     if new_rpath is not None:

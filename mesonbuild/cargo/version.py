@@ -20,7 +20,7 @@ def _api_of(version: str) -> str:
     vers = version.split('.')
     if not vers[0] or int(vers[0]) != 0:
         return vers[0]
-    elif len(vers) >= 2 and int(vers[1]) != 0:
+    if len(vers) >= 2 and int(vers[1]) != 0:
         return f'0.{vers[1]}'
     return '0'
 
@@ -62,10 +62,9 @@ def api(cargo_ver: str) -> str:
             apis.add(_api_of(ver))
     if not apis:
         return ''
-    elif len(apis) == 1:
+    if len(apis) == 1:
         return apis.pop()
-    else:
-        raise MesonException(f'Cannot determine API version from {cargo_ver!r}.')
+    raise MesonException(f'Cannot determine API version from {cargo_ver!r}.')
 
 
 # Tokens: a digit run, an alphanumeric-with-hyphens identifier (covers the

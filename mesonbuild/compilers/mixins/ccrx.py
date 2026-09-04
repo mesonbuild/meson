@@ -94,11 +94,11 @@ class CcrxCompiler(Compiler):
                 i = '-include=' + i[2:]
             if i.startswith('-Wl,-rpath='):
                 continue
-            elif i == '--print-search-dirs':
+            if i == '--print-search-dirs':
                 continue
-            elif i.startswith('-L'):
+            if i.startswith('-L'):
                 continue
-            elif not i.startswith('-lib=') and i.endswith(('.a', '.lib')):
+            if not i.startswith('-lib=') and i.endswith(('.a', '.lib')):
                 i = '-lib=' + i
             result.append(i)
         return result

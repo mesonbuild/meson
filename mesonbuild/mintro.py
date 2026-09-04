@@ -122,8 +122,7 @@ def list_install_plan(coredata: cdata.CoreData, builddata: build.Build, backend:
 def get_target_dir(coredata: cdata.CoreData, subdir: str) -> str:
     if coredata.optstore.get_value_for(OptionKey('layout')) == 'flat':
         return 'meson-out'
-    else:
-        return subdir
+    return subdir
 
 def list_targets_from_source(intr: IntrospectionInterpreter) -> list[dict[str, object]]:
     tlist: list[dict[str, object]] = []
@@ -305,8 +304,7 @@ def find_buildsystem_files_list(src_dir: str) -> list[str]:
 
 def list_buildsystem_files(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> list[str]:
     src_dir = builddata.environment.get_source_dir()
-    filelist = [PurePath(src_dir, x).as_posix() for x in builddata.def_files]
-    return filelist
+    return [PurePath(src_dir, x).as_posix() for x in builddata.def_files]
 
 def list_compilers(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> dict[str, dict[str, dict[str, str]]]:
     compilers: dict[str, dict[str, dict[str, str]]] = {}
@@ -457,7 +455,7 @@ def print_results(options: argparse.Namespace, results: T.Sequence[tuple[str, di
     if not results and not options.force_dict:
         print('No command specified')
         return 1
-    elif len(results) == 1 and not options.force_dict:
+    if len(results) == 1 and not options.force_dict:
         # Make to keep the existing output format for a single option
         print(json.dumps(results[0][1], indent=indent, cls=IntrospectionEncoder))
     else:

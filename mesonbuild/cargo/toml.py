@@ -44,8 +44,7 @@ def load_toml(filename: str) -> dict[str, object]:
         except tomllib.TOMLDecodeError as e:
             if hasattr(e, 'msg'):
                 raise CargoTomlError(e.msg, file=filename, lineno=e.lineno, colno=e.colno) from e
-            else:
-                raise CargoTomlError(str(e), file=filename) from e
+            raise CargoTomlError(str(e), file=filename) from e
     else:
         if toml2json is None:
             raise TomlImplementationMissing('Could not find an implementation of tomllib, nor toml2json')

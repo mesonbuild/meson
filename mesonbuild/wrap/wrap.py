@@ -79,8 +79,7 @@ def patch_command() -> str | None:
                 break
             _exclude_paths.append(os.path.dirname(_patch.get_path()))
         return _patch.get_path() if _patch.found() else None
-    else:
-        return shutil.which('patch')
+    return shutil.which('patch')
 
 
 truststore_message = '''
@@ -156,10 +155,9 @@ def read_and_decompress(resp: http.client.HTTPResponse) -> bytes:
     encoding = resp.headers['Content-Encoding']
     if encoding == 'gzip':
         return gzip.decompress(data)
-    elif encoding:
+    if encoding:
         raise WrapException(f'Unexpected Content-Encoding for {resp.url}: {encoding}')
-    else:
-        return data
+    return data
 
 def get_releases_data(allow_insecure: bool) -> bytes:
     url = open_wrapdburl('https://wrapdb.mesonbuild.com/v2/releases.json', allow_insecure, True, True)
@@ -184,14 +182,13 @@ def parse_patch_url(patch_url: str) -> tuple[str, str]:
     if arr[0] == 'v1':
         # e.g. https://wrapdb.mesonbuild.com/v1/projects/zlib/1.2.11/5/get_zip
         return arr[-3], arr[-2]
-    elif arr[0] == 'v2':
+    if arr[0] == 'v2':
         # e.g. https://wrapdb.mesonbuild.com/v2/zlib_1.2.11-5/get_patch
         tag = arr[-2]
         _, version = tag.rsplit('_', 1)
         version, revision = version.rsplit('-', 1)
         return version, revision
-    else:
-        raise WrapException(f'Invalid wrapdb URL {patch_url}')
+    raise WrapException(f'Invalid wrapdb URL {patch_url}')
 
 
 class WrapType(str, Enum):
@@ -698,21 +695,21 @@ class Resolver:
         if out.startswith('+'):
             mlog.warning('git submodule might be out of date')
             return True
-        elif out.startswith('U'):
+        if out.startswith('U'):
             raise WrapException('git submodule has merge conflicts')
         # Submodule exists, but is deinitialized or wasn't initialized
-        elif out.startswith('-'):
+        if out.startswith('-'):
             if verbose_git(['submodule', 'update', '--init', '.'], self.dirname):
                 return True
             raise WrapException('git submodule failed to init')
         # Submodule looks fine, but maybe it wasn't populated properly. Do a checkout.
-        elif out.startswith(' '):
+        if out.startswith(' '):
             verbose_git(['submodule', 'update', '.'], self.dirname)
             verbose_git(['checkout', '.'], self.dirname)
             # Even if checkout failed, try building it anyway and let the user
             # handle any problems manually.
             return True
-        elif out == '':
+        if out == '':
             # It is not a submodule, just a folder that exists in the main repository.
             return False
         raise WrapException(f'Unknown git submodule output: {out!r}')
@@ -874,8 +871,7 @@ class Resolver:
                 mlog.log(str(e))
                 if isinstance(e, urllib.error.URLError) and isinstance(e.reason, ssl.SSLCertVerificationError) and ssl_truststore() is None:
                     raise WrapException(f'could not get {urlstring}; is the internet available?{truststore_message}')
-                else:
-                    raise WrapException(f'could not get {urlstring}; is the internet available?')
+                raise WrapException(f'could not get {urlstring}; is the internet available?')
         with contextlib.closing(resp) as resp, tmpfile as tmpfile:
             try:
                 dlsize = int(resp.info()['Content-Length'])
@@ -948,6 +944,7 @@ class Resolver:
                          mlog.bold(what + '_fallback_url'), 'key in the wrap file')
             raise
         os.rename(tmpfile, ofname)
+        return None
 
     def _get_file_internal(self, what: str, packagename: str) -> str:
         filename = self.wrap.get(what + '_filename')
@@ -962,14 +959,13 @@ class Resolver:
             os.makedirs(self.cachedir, exist_ok=True)
             self._download(what, cache_path, packagename)
             return cache_path
-        else:
-            path = Path(self.wrap.filesdir) / filename
+        path = Path(self.wrap.filesdir) / filename
 
-            if not path.exists():
-                raise WrapException(f'File "{path}" does not exist')
-            self.check_hash(what, path.as_posix(), hash_required=False)
+        if not path.exists():
+            raise WrapException(f'File "{path}" does not exist')
+        self.check_hash(what, path.as_posix(), hash_required=False)
 
-            return path.as_posix()
+        return path.as_posix()
 
     def apply_patch(self, packagename: str) -> None:
         if 'patch_filename' in self.wrap.values and 'patch_directory' in self.wrap.values:

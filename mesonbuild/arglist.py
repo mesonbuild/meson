@@ -321,7 +321,7 @@ class CompilerArgs(T.MutableSequence[str]):
         # Only allow equality checks against other CompilerArgs and lists instances
         if isinstance(other, CompilerArgs):
             return self.compiler == other.compiler and self._container == other._container
-        elif isinstance(other, list):
+        if isinstance(other, list):
             return self._container == other
         return NotImplemented
 

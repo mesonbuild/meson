@@ -1129,6 +1129,7 @@ Thread model: posix'''), '21.9.0')
                         return 0, f'-L{p2.as_posix()} -lbar', ''
                     if args[-1] == 'internal':
                         return 0, f'-L{p1.as_posix()} -lpthread -lm -lc -lrt -ldl', ''
+                    return None
 
             with mock.patch.object(PkgConfigInterface, 'instance') as instance_method:
                 instance_method.return_value = FakeInstance(env, MachineChoice.HOST, silent=True)

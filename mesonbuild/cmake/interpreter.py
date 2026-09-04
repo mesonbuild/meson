@@ -433,10 +433,9 @@ class ConverterTarget:
                 if path_is_in_root(x, Path(self.env.get_build_dir()), resolve=True):
                     x.mkdir(parents=True, exist_ok=True)
                     return x.relative_to(Path(self.env.get_build_dir()) / subdir)
-                else:
-                    mlog.warning('CMake: path', mlog.bold(x.as_posix()), 'does not exist.')
-                    mlog.warning(' --> Ignoring. This can lead to build errors.')
-                    return None
+                mlog.warning('CMake: path', mlog.bold(x.as_posix()), 'does not exist.')
+                mlog.warning(' --> Ignoring. This can lead to build errors.')
+                return None
             if x in trace.explicit_headers:
                 return None
             if (
@@ -630,8 +629,7 @@ class CustomTargetReference:
     def __repr__(self) -> str:
         if self.valid():
             return f'<{self.__class__.__name__}: {self.ctgt.name} [{self.ctgt.outputs[self.index]}]>'
-        else:
-            return f'<{self.__class__.__name__}: INVALID REFERENCE>'
+        return f'<{self.__class__.__name__}: INVALID REFERENCE>'
 
     def valid(self) -> bool:
         return self.ctgt is not None and self.index >= 0
@@ -686,8 +684,7 @@ class ConverterCustomTarget:
         def ensure_absolute(x: Path) -> Path:
             if x.is_absolute():
                 return x
-            else:
-                return self.current_bin_dir / x
+            return self.current_bin_dir / x
         self.original_outputs = [ensure_absolute(x) for x in self.original_outputs]
 
         # Ensure that there is no duplicate output in the project so
@@ -722,7 +719,7 @@ class ConverterCustomTarget:
                         cmd += self.env.exe_wrapper.get_command()
                     cmd += [target]
                     continue
-                elif j in trace.targets:
+                if j in trace.targets:
                     trace_tgt = trace.targets[j]
                     if trace_tgt.type == 'EXECUTABLE' and 'IMPORTED_LOCATION' in trace_tgt.properties:
                         cmd += trace_tgt.properties['IMPORTED_LOCATION']
@@ -1039,13 +1036,13 @@ class CMakeInterpreter:
                 return string(value)
             if isinstance(value, Path):
                 return string(value.as_posix())
-            elif isinstance(value, bool):
+            if isinstance(value, bool):
                 return BooleanNode(token(val=value))
-            elif isinstance(value, int):
+            if isinstance(value, int):
                 return number(value)
-            elif isinstance(value, list):
+            if isinstance(value, list):
                 return array(value)
-            elif isinstance(value, BaseNode):
+            if isinstance(value, BaseNode):
                 return value
             raise RuntimeError(f'invalid type of value: {type(value).__name__} ({str(value)})')
 
@@ -1068,8 +1065,7 @@ class CMakeInterpreter:
                 args = [args]
             args_n.arguments = [nodeify(x) for x in args if x is not None]
             args_n.kwargs = {id_node(k): nodeify(v) for k, v in kwargs.items() if v is not None}
-            func_n = FunctionNode(id_node(name), symbol('('), args_n, symbol(')'))
-            return func_n
+            return FunctionNode(id_node(name), symbol('('), args_n, symbol(')'))
 
         def method(obj: BaseNode, name: str, args: TYPE_mixed_list | None = None, kwargs: TYPE_mixed_kwargs | None = None) -> MethodNode:
             args = [] if args is None else args
@@ -1117,8 +1113,7 @@ class CMakeInterpreter:
             tgt_var = extract_tgt(ref)
             if len(ref.ctgt.outputs) == 1:
                 return tgt_var
-            else:
-                return indexed(tgt_var, ref.index)
+            return indexed(tgt_var, ref.index)
 
         def process_target(tgt: ConverterTarget) -> None:
             detect_cycle(tgt)
@@ -1287,12 +1282,11 @@ class CMakeInterpreter:
                     if x.name not in processed:
                         process_custom_target(x)
                     return extract_tgt(x)
-                elif isinstance(x, CustomTargetReference):
+                if isinstance(x, CustomTargetReference):
                     if x.ctgt.name not in processed:
                         process_custom_target(x.ctgt)
                     return resolve_ctgt_ref(x)
-                else:
-                    return x
+                return x
 
             # Generate the command list
             command: list[str | IdNode | IndexNode] = []

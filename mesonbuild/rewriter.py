@@ -437,7 +437,7 @@ class Rewriter:
 
     def handle_error(self) -> None:
         if self.skip_errors:
-            return None
+            return
         raise MesonException('Rewriting the meson.build failed')
 
     def all_assignments(self, varname: str) -> list[BaseNode]:
@@ -466,15 +466,14 @@ class Rewriter:
 
         if not potential_tgts:
             return None
-        elif len(potential_tgts) == 1:
+        if len(potential_tgts) == 1:
             return potential_tgts[0]
-        else:
-            mlog.error('There are multiple targets matching', mlog.bold(target))
-            for i in potential_tgts:
-                mlog.error('  -- Target name', mlog.bold(i.name), 'with ID', mlog.bold(i.id))
-            mlog.error('Please try again with the unique ID of the target', *self.on_error())
-            self.handle_error()
-            return None
+        mlog.error('There are multiple targets matching', mlog.bold(target))
+        for i in potential_tgts:
+            mlog.error('  -- Target name', mlog.bold(i.name), 'with ID', mlog.bold(i.id))
+        mlog.error('Please try again with the unique ID of the target', *self.on_error())
+        self.handle_error()
+        return None
 
     def find_dependency(self, dependency: str) -> IntrospectionDependency | None:
         potential_deps: list[IntrospectionDependency] = []
@@ -492,16 +491,15 @@ class Rewriter:
 
         if not potential_deps:
             return None
-        elif len(potential_deps) == 1:
+        if len(potential_deps) == 1:
             return potential_deps[0]
-        else:
-            mlog.error('There are multiple dependencies matching', mlog.bold(dependency))
-            for i in potential_deps:
-                mlog.error('  -- Dependency name', i)
-            if checking_varnames:
-                mlog.error('Please try again with the name of the dependency', *self.on_error())
-            self.handle_error()
-            return None
+        mlog.error('There are multiple dependencies matching', mlog.bold(dependency))
+        for i in potential_deps:
+            mlog.error('  -- Dependency name', i)
+        if checking_varnames:
+            mlog.error('Please try again with the name of the dependency', *self.on_error())
+        self.handle_error()
+        return None
 
     @RequiredKeys(rewriter_keys['default_options'])
     def process_default_options(self, cmd: dict[str, T.Any]) -> None:
@@ -615,7 +613,7 @@ class Rewriter:
                     info_data[key] = data_dict
 
             self.add_info('kwargs', '{}#{}'.format(cmd['function'], cmd['id']), info_data)
-            return # Nothing else to do
+            return None # Nothing else to do
 
         # Modify the kwargs
         num_changed = 0
@@ -669,6 +667,7 @@ class Rewriter:
             k.level = v.level
         if num_changed > 0 and node not in self.modified_nodes:
             self.modified_nodes += [node]
+        return None
 
     def find_assignment_node(self, node: BaseNode) -> AssignmentNode | None:
         for v in self.interpreter.all_assignment_nodes.values():
@@ -916,7 +915,7 @@ class Rewriter:
             subdir = os.path.abspath(os.path.join(self.sourcedir, target.subdir))
             if os.path.isabs(src):
                 return os.path.relpath(src, subdir)
-            elif not os.path.exists(src):
+            if not os.path.exists(src):
                 return src # Trust the user when the source doesn't exist
             # Make sure that the path is relative to the subdir
             return os.path.relpath(os.path.abspath(src), subdir)
@@ -1003,6 +1002,7 @@ class Rewriter:
             sources: list[StringNode] = [x for x in src_args if isinstance(x, StringNode)]
             sources = sorted(sources, key=lambda x: pathname_sort_key(x.value))
             i.args.arguments = target_name + unknown + T.cast(list[BaseNode], sources)
+        return None
 
     def process(self, cmd: dict[str, T.Any]) -> None:
         if 'type' not in cmd:

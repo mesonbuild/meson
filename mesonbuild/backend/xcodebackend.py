@@ -306,8 +306,7 @@ class XCodeBackend(backends.Backend):
 
     @functools.cache
     def get_target_dir_cached(self, target: build.Target) -> str:
-        dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))))
-        return dirname
+        return os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))))
 
     def get_custom_target_output_dir(self, target: build.AnyTargetType) -> str:
         dirname = target.get_subdir()
@@ -323,8 +322,7 @@ class XCodeBackend(backends.Backend):
         tname = target.get_id()
         stem = os.path.splitext(os.path.basename(source.fname))[0]
         # Append "build" before the actual object path to match OBJROOT
-        obj_path = f'build/{project}.build/{buildtype}/{tname}.build/Objects-normal/{self.arch}/{stem}.o'
-        return obj_path
+        return f'build/{project}.build/{buildtype}/{tname}.build/Objects-normal/{self.arch}/{stem}.o'
 
     def determine_swift_dep_dirs(self, target: build.BuildTarget) -> list[str]:
         result: list[str] = []

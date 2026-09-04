@@ -92,11 +92,11 @@ class TestProtocol(enum.Enum):
     def from_str(cls, string: str) -> TestProtocol:
         if string == 'exitcode':
             return cls.EXITCODE
-        elif string == 'tap':
+        if string == 'tap':
             return cls.TAP
-        elif string == 'gtest':
+        if string == 'gtest':
             return cls.GTEST
-        elif string == 'rust':
+        if string == 'rust':
             return cls.RUST
         raise MesonException(f'unknown test format {string}')
 
@@ -104,9 +104,9 @@ class TestProtocol(enum.Enum):
         cls = type(self)
         if self is cls.EXITCODE:
             return 'exitcode'
-        elif self is cls.GTEST:
+        if self is cls.GTEST:
             return 'gtest'
-        elif self is cls.RUST:
+        if self is cls.RUST:
             return 'rust'
         return 'tap'
 
@@ -240,37 +240,37 @@ def get_backend_from_name(backend: str, build: build.Build | None = None) -> Bac
     if backend == 'ninja':
         from . import ninjabackend
         return ninjabackend.NinjaBackend(build)
-    elif backend == 'vs':
+    if backend == 'vs':
         from . import vs2010backend
         return vs2010backend.autodetect_vs_version(build)
-    elif backend == 'vs2010':
+    if backend == 'vs2010':
         from . import vs2010backend
         return vs2010backend.Vs2010Backend(build)
-    elif backend == 'vs2012':
+    if backend == 'vs2012':
         from . import vs2012backend
         return vs2012backend.Vs2012Backend(build)
-    elif backend == 'vs2013':
+    if backend == 'vs2013':
         from . import vs2013backend
         return vs2013backend.Vs2013Backend(build)
-    elif backend == 'vs2015':
+    if backend == 'vs2015':
         from . import vs2015backend
         return vs2015backend.Vs2015Backend(build)
-    elif backend == 'vs2017':
+    if backend == 'vs2017':
         from . import vs2017backend
         return vs2017backend.Vs2017Backend(build)
-    elif backend == 'vs2019':
+    if backend == 'vs2019':
         from . import vs2019backend
         return vs2019backend.Vs2019Backend(build)
-    elif backend == 'vs2022':
+    if backend == 'vs2022':
         from . import vs2022backend
         return vs2022backend.Vs2022Backend(build)
-    elif backend == 'vs2026':
+    if backend == 'vs2026':
         from . import vs2026backend
         return vs2026backend.Vs2026Backend(build)
-    elif backend == 'xcode':
+    if backend == 'xcode':
         from . import xcodebackend
         return xcodebackend.XCodeBackend(build)
-    elif backend == 'none':
+    if backend == 'none':
         from . import nonebackend
         return nonebackend.NoneBackend(build)
     raise MesonException(f'Unknown backend {backend}')
@@ -350,8 +350,7 @@ class Backend:
         if target.get_debug_filename():
             debug_filename = target.get_debug_filename()
             return os.path.join(self.get_target_dir(target), debug_filename)
-        else:
-            return None
+        return None
 
     def get_target_debug_filename_abs(self, target: build.BuildTarget) -> str | None:
         if not target.get_debug_filename():
@@ -386,17 +385,16 @@ class Backend:
             # In AIX, if we archive .so, the blibpath must link to archived shared library otherwise to the .so file.
             link_lib = self.get_aix_so_archive_name(target, link_lib) or link_lib
             return Path(self.get_target_dir(target), link_lib).as_posix()
-        elif isinstance(target, build.StaticLibrary):
+        if isinstance(target, build.StaticLibrary):
             return Path(self.get_target_dir(target), target.get_filename()).as_posix()
-        elif isinstance(target, (build.CustomTarget, build.CustomTargetIndex)):
+        if isinstance(target, (build.CustomTarget, build.CustomTargetIndex)):
             if not target.is_linkable_target():
                 raise MesonException(f'Tried to link against custom target "{target.name}", which is not linkable.')
             return Path(self.get_target_dir(target), target.get_filename()).as_posix()
-        elif isinstance(target, build.Executable):
+        if isinstance(target, build.Executable):
             if target.import_filename:
                 return Path(self.get_target_dir(target), target.get_import_filename()).as_posix()
-            else:
-                return None
+            return None
         raise AssertionError(f'BUG: Tried to link to {target!r} which is not linkable')
 
     @cache
@@ -1693,7 +1691,7 @@ class Backend:
             if isinstance(i, build.BuildTarget):
                 cmd += self.build_target_to_cmd_array(i)
                 continue
-            elif isinstance(i, build.CustomTarget):
+            if isinstance(i, build.CustomTarget):
                 # GIR scanner will attempt to execute this binary but
                 # it assumes that it is in path, so always give it a full path.
                 tmp = i.get_outputs()[0]
@@ -1839,10 +1837,10 @@ class Backend:
         dest_path = Path(prefix, outdir, Path(fname).name) if outdir else Path(prefix, fname)
         if bindir in dest_path.parents or sbindir in dest_path.parents:
             return 'runtime'
-        elif libdir in dest_path.parents:
+        if libdir in dest_path.parents:
             if dest_path.suffix in {'.a', '.pc'}:
                 return 'devel'
-            elif dest_path.suffix in {'.so', '.dll'}:
+            if dest_path.suffix in {'.so', '.dll'}:
                 return 'runtime'
         elif incdir in dest_path.parents:
             return 'devel'

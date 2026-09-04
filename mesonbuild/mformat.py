@@ -57,8 +57,7 @@ def match_path(filename: str, pattern: str) -> bool:
             low, high = m[1].split('\\.\\.')
             num_ranges.append((int(low), int(high)))
             return f'(?P<num{index}>-?[0-9]+)'
-        else:
-            return T.cast(str, m[1].replace(',', '|'))
+        return T.cast(str, m[1].replace(',', '|'))
 
     pattern_re = pattern.replace('.', '\\.')
     pattern_re = re.sub(r'(?<!\\)\?', '.', pattern_re)  # ? -> .

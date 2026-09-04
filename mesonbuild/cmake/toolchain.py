@@ -219,10 +219,9 @@ class CMakeToolchain:
     def is_cmdline_option(compiler: Compiler, arg: str) -> bool:
         if compiler.get_argument_syntax() == 'msvc':
             return arg.startswith('/')
-        else:
-            if os.path.basename(compiler.get_exe()) == 'zig' and arg in {'ar', 'cc', 'c++', 'dlltool', 'lib', 'ranlib', 'objcopy', 'rc'}:
-                return True
-            return arg.startswith('-')
+        if os.path.basename(compiler.get_exe()) == 'zig' and arg in {'ar', 'cc', 'c++', 'dlltool', 'lib', 'ranlib', 'objcopy', 'rc'}:
+            return True
+        return arg.startswith('-')
 
     def update_cmake_compiler_state(self) -> None:
         # Check if all variables are already cached

@@ -769,8 +769,7 @@ class Installer:
                 if t.optional:
                     self.log(f'File {t.fname!r} not found, skipping')
                     continue
-                else:
-                    raise MesonException(f'File {t.fname!r} could not be found')
+                raise MesonException(f'File {t.fname!r} could not be found')
             file_copied = False # not set when a directory is copied
             fname = check_for_stampfile(t.fname)
             outdir = get_destdir_path(destdir, fullprefix, t.outdir)
@@ -782,7 +781,7 @@ class Installer:
             install_mode = t.install_mode
             if not os.path.exists(fname):
                 raise MesonException(f'File {fname!r} could not be found')
-            elif os.path.isfile(fname):
+            if os.path.isfile(fname):
                 file_copied = self.do_copyfile(fname, outname, makedirs=(dm, outdir))
                 if should_strip and d.strip_bin is not None:
                     if fname.endswith('.jar'):
@@ -871,8 +870,7 @@ def rebuild_all(wd: str, backend: str) -> bool:
                     os.setuid(int(orig_uid))
 
             return env, wrapped
-        else:
-            return None, None
+        return None, None
 
     env, preexec_fn = drop_privileges()
     ret = subprocess.run(ninja + ['-C', wd], env=env, preexec_fn=preexec_fn, check=False).returncode

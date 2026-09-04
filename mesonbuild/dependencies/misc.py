@@ -261,8 +261,7 @@ class PcapDependencyConfigTool(ConfigToolDependency):
         v = self.clib_compiler.get_return_value('pcap_lib_version', 'string',
                                                 '#include <pcap.h>', [], [self])
         v = re.sub(r'libpcap version ', '', str(v))
-        v = re.sub(r' -- Apple version.*$', '', v)
-        return v
+        return re.sub(r' -- Apple version.*$', '', v)
 
 
 class CupsDependencyConfigTool(ConfigToolDependency):
@@ -500,10 +499,9 @@ class OpensslSystemDependency(SystemDependency):
                     self._add_sub_dependency(libcrypto_factory(env, dependency_kwargs)):
                 self.is_found = True
             return
-        else:
-            self.link_args = self.clib_compiler.find_library(name.lstrip('lib'), [], self.libtype)
-            if not self.link_args:
-                return
+        self.link_args = self.clib_compiler.find_library(name.lstrip('lib'), [], self.libtype)
+        if not self.link_args:
+            return
 
         if not self.static:
             self.is_found = True

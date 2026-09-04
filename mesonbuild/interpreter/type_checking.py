@@ -282,11 +282,11 @@ def env_convertor_with_method(value: FullEnvInitValueType,
                               separator: str = os.pathsep) -> EnvironmentVariables:
     if isinstance(value, str):
         return EnvironmentVariables(dict([split_equal_string(value)]), init_method, separator)
-    elif isinstance(value, list):
+    if isinstance(value, list):
         return EnvironmentVariables(dict(split_equal_string(v) for v in listify(value)), init_method, separator)
-    elif isinstance(value, dict):
+    if isinstance(value, dict):
         return EnvironmentVariables({k: listify(dv) for k, dv in value.items()}, init_method, separator)
-    elif value is None:
+    if value is None:
         return EnvironmentVariables()
     return value
 
@@ -361,11 +361,11 @@ def _output_validator(outputs: list[str]) -> str | None:
     for i in outputs:
         if i == '':
             return 'Output must not be empty.'
-        elif i.strip() == '':
+        if i.strip() == '':
             return 'Output must not consist only of whitespace.'
-        elif has_path_sep(i):
+        if has_path_sep(i):
             return f'Output {i!r} must not contain a path segment.'
-        elif '@INPUT' in i:
+        if '@INPUT' in i:
             return f'output {i!r} contains "@INPUT", which is invalid. Did you mean "@PLAINNAME@" or "@BASENAME@?'
 
     return None
@@ -650,8 +650,7 @@ def _objects_validator(vals: list[ObjectTypes]) -> str | None:
     for val in vals:
         if isinstance(val, (str, File, ExtractedObjects)):
             continue
-        else:
-            non_objects.extend(o for o in val.get_outputs() if not compilers.is_object(o))
+        non_objects.extend(o for o in val.get_outputs() if not compilers.is_object(o))
 
     if non_objects:
         return f'{", ".join(non_objects)!r} are not objects'
@@ -929,7 +928,7 @@ def _validate_darwin_versions(darwin_versions: list[str | int]) -> str | None:
 def _convert_darwin_versions(val: list[str | int]) -> tuple[str, str] | None:
     if not val:
         return None
-    elif len(val) == 1:
+    if len(val) == 1:
         v = str(val[0])
         return (v, v)
     return (str(val[0]), str(val[1]))

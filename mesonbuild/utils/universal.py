@@ -500,8 +500,7 @@ class File(HoldableObject):
     def rel_to_builddir(self, build_to_src: str) -> str:
         if self.is_built:
             return self.relative_name()
-        else:
-            return os.path.join(build_to_src, self.subdir, self.fname)
+        return os.path.join(build_to_src, self.subdir, self.fname)
 
     @cache
     def absolute_path(self, srcdir: str, builddir: str) -> str:
@@ -871,11 +870,11 @@ def windows_detect_native_arch() -> str:
             # https://docs.microsoft.com/en-us/windows/win32/sysinfo/image-file-machine-constants
             if native_arch.value == 0x8664:
                 return 'amd64'
-            elif native_arch.value == 0x014C:
+            if native_arch.value == 0x014C:
                 return 'x86'
-            elif native_arch.value == 0xAA64:
+            if native_arch.value == 0xAA64:
                 return 'arm64'
-            elif native_arch.value == 0x01C4:
+            if native_arch.value == 0x01C4:
                 return 'arm'
     except (OSError, AttributeError):
         pass
@@ -1210,8 +1209,7 @@ def version_compare_condition_with_min(condition: str | Range[Version], minimum:
         # range should always include versions older than minimum, return False.
         # is_empty=True instead behaves like an absurdly high min and returns True.
         return condition.is_empty
-    else:
-        return Version(minimum) <= condition.min
+    return Version(minimum) <= condition.min
 
 def search_version(text: str) -> str:
     # Usually of the type 4.1.4 but compiler output may contain
@@ -1471,10 +1469,9 @@ def do_replacement(regex: T.Pattern[str], line: str,
                    confdata: dict[str, tuple[str, str | None]] | ConfigurationData) -> tuple[str, set[str]]:
     if variable_format == 'meson':
         return do_replacement_meson(regex, line, confdata)
-    elif variable_format in {'cmake', 'cmake@'}:
+    if variable_format in {'cmake', 'cmake@'}:
         return do_replacement_cmake(line, variable_format == 'cmake@', confdata)
-    else:
-        raise MesonException('Invalid variable format')
+    raise MesonException('Invalid variable format')
 
 def do_replacement_meson(regex: T.Pattern[str], line: str,
                          confdata: dict[str, tuple[str, str | None]] | ConfigurationData) -> tuple[str, set[str]]:
@@ -1486,28 +1483,27 @@ def do_replacement_meson(regex: T.Pattern[str], line: str,
             num_escapes = match.end(0) - match.start(0)
             return '\\' * (num_escapes // 2)
         # \@escaped\@ variables
-        elif match.groupdict().get('escaped') is not None:
+        if match.groupdict().get('escaped') is not None:
             return match.group('escaped')[1:-2]+'@'
-        else:
-            # Template variable to be replaced
-            varname = match.group('variable')
-            var_str = ''
-            if varname in confdata:
-                var, _ = confdata.get(varname)
-                if isinstance(var, str):
-                    var_str = var
-                elif isinstance(var, int):
-                    if isinstance(var, bool):
-                        msg = f'Variable substitution with boolean value {varname!r} is deprecated.'
-                        mlog.deprecation(msg)
-                    var_str = str(var)
-                else:
-                    msg = (f'Tried to replace variable {varname!r} value with '
-                           f'something other than a string or int: {var!r}')
-                    raise MesonException(msg)
+        # Template variable to be replaced
+        varname = match.group('variable')
+        var_str = ''
+        if varname in confdata:
+            var, _ = confdata.get(varname)
+            if isinstance(var, str):
+                var_str = var
+            elif isinstance(var, int):
+                if isinstance(var, bool):
+                    msg = f'Variable substitution with boolean value {varname!r} is deprecated.'
+                    mlog.deprecation(msg)
+                var_str = str(var)
             else:
-                missing_variables.add(varname)
-            return var_str
+                msg = (f'Tried to replace variable {varname!r} value with '
+                       f'something other than a string or int: {var!r}')
+                raise MesonException(msg)
+        else:
+            missing_variables.add(varname)
+        return var_str
     return re.sub(regex, variable_replace, line), missing_variables
 
 def do_replacement_cmake(line: str, at_only: bool,
@@ -1614,15 +1610,13 @@ def do_define_meson(regex: T.Pattern[str], line: str, confdata: ConfigurationDat
         result = f'#define {varname} {v}'.strip() + '\n'
         result, _ = do_replacement_meson(regex, result, confdata)
         return result
-    elif isinstance(v, bool):
+    if isinstance(v, bool):
         if v:
             return f'#define {varname}\n'
-        else:
-            return f'#undef {varname}\n'
-    elif isinstance(v, int):
+        return f'#undef {varname}\n'
+    if isinstance(v, int):
         return f'#define {varname} {v}\n'
-    else:
-        raise MesonException(f'#mesondefine argument "{varname}" is of unknown type.')
+    raise MesonException(f'#mesondefine argument "{varname}" is of unknown type.')
 
 def do_define_cmake(line: str, confdata: ConfigurationData, at_only: bool,
                     subproject: SubProject | None = None) -> str:
@@ -1656,8 +1650,7 @@ def do_define_cmake(line: str, confdata: ConfigurationData, at_only: bool,
     except KeyError:
         if cmake_bool_define:
             return f'#define {varname} 0\n'
-        else:
-            return f'/* #undef {varname} */\n'
+        return f'/* #undef {varname} */\n'
 
     if not cmake_bool_define and not v:
         return f'/* #undef {varname} */\n'
@@ -1693,10 +1686,9 @@ def do_conf_str(src: str, data: list[str], confdata: ConfigurationData,
                 subproject: SubProject | None = None) -> tuple[list[str], set[str], bool]:
     if variable_format == 'meson':
         return do_conf_str_meson(src, data, confdata, subproject)
-    elif variable_format in {'cmake', 'cmake@'}:
+    if variable_format in {'cmake', 'cmake@'}:
         return do_conf_str_cmake(src, data, confdata, variable_format == 'cmake@', subproject)
-    else:
-        raise MesonException('Invalid variable format')
+    raise MesonException('Invalid variable format')
 
 def do_conf_str_meson(src: str, data: list[str], confdata: ConfigurationData,
                       subproject: SubProject | None = None) -> tuple[list[str], set[str], bool]:
@@ -2411,8 +2403,7 @@ def relative_to_if_possible(path: Path, root: Path, resolve: bool = False) -> Pa
     try:
         if resolve:
             return path.resolve().relative_to(root.resolve())
-        else:
-            return path.relative_to(root)
+        return path.relative_to(root)
     except ValueError:
         return path
 

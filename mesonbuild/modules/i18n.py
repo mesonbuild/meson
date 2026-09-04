@@ -397,9 +397,8 @@ class I18nModule(ExtensionModule):
                     mlog.warning('Gettext not found, all translation (po) targets will be ignored.',
                                  once=True, location=state.current_node)
                     return ModuleReturnValue(None, [])
-                else:
-                    mlog.warning(f'{tool!r} not found, maintainer targets will not work',
-                                 once=True, fatal=False, location=state.current_node)
+                mlog.warning(f'{tool!r} not found, maintainer targets will not work',
+                             once=True, fatal=False, location=state.current_node)
         packagename = args[0]
         pkg_arg = f'--pkgname={packagename}'
 

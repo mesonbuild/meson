@@ -316,8 +316,7 @@ class RustCompiler(Compiler):
 
         if not libname.startswith('lib'):
             return None
-        libname = libname[3:]
-        return libname
+        return libname[3:]
 
     def get_debug_args(self, is_debug: bool) -> list[str]:
         return clike_debug_args[is_debug]
@@ -485,10 +484,9 @@ class RustCompiler(Compiler):
     def get_embed_bitcode_args(self, bitcode: bool, lto: bool) -> list[str]:
         if bitcode:
             return ['-C', 'embed-bitcode=yes']
-        elif lto:
+        if lto:
             return []
-        else:
-            return ['-C', 'embed-bitcode=no']
+        return ['-C', 'embed-bitcode=no']
 
     def get_lto_compile_args(self, *, target: BuildTarget | None = None, threads: int = 0,
                              mode: str = 'default') -> list[str]:

@@ -93,12 +93,11 @@ class GeneratorMD(GeneratorBase):
         prefix = '#' if in_code_block else ''
         if isinstance(obj, Object):
             return f'[[{prefix}@{obj.name}]]'
-        elif isinstance(obj, Method):
+        if isinstance(obj, Method):
             return f'[[{prefix}{obj.obj.name}.{obj.name}]]'
-        elif isinstance(obj, Function):
+        if isinstance(obj, Function):
             return f'[[{prefix}{obj.name}]]'
-        else:
-            raise RuntimeError(f'Invalid argument {obj}')
+        raise RuntimeError(f'Invalid argument {obj}')
 
     def _write_file(self, data: str, file_id: str) -> None:#
         ''' Write the data to disk and store the id for the generated data '''

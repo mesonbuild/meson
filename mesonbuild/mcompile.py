@@ -128,7 +128,7 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
 
     if not found_targets:
         raise MesonException(f'Can\'t invoke target `{target.full_name}`: target not found')
-    elif len(found_targets) > 1:
+    if len(found_targets) > 1:
         suggestions: list[str] = []
         for i in found_targets:
             i_name = i['name']
@@ -153,8 +153,7 @@ def generate_target_names_ninja(target: ParsedTargetName, builddir: Path, intros
 
     if intro_target['type'] in {'alias', 'run'}:
         return [target.name]
-    else:
-        return [str(Path(out_file).relative_to(builddir.resolve())) for out_file in intro_target['filename']]
+    return [str(Path(out_file).relative_to(builddir.resolve())) for out_file in intro_target['filename']]
 
 def get_parsed_args_ninja(options: argparse.Namespace, builddir: Path) -> tuple[list[str], dict[str, str] | None]:
     runner = detect_ninja()

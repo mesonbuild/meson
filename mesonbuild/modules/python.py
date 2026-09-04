@@ -332,11 +332,10 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         if disabled:
             mlog.log('Dependency', mlog.bold('python'), 'skipped: feature', mlog.bold(feature), 'disabled')
             return NotFoundDependency('python', self.interpreter.environment)
-        else:
-            dep = self._dependency_method_impl(nkwargs)
-            if required and not dep.found():
-                raise mesonlib.MesonException('Python dependency not found')
-            return dep
+        dep = self._dependency_method_impl(nkwargs)
+        if required and not dep.found():
+            raise mesonlib.MesonException('Python dependency not found')
+        return dep
 
     @typed_pos_args('install_data', varargs=(str, mesonlib.File))
     @typed_kwargs(
@@ -503,8 +502,7 @@ class PythonModule(ExtensionModule):
         directory = stdout.strip()
         if os.path.exists(directory):
             return os.path.join(directory, 'python')
-        else:
-            return None
+        return None
 
     def _find_installation_impl(self, state: ModuleState, display_name: str, name_or_path: str, required: bool) -> MaybePythonProg:
         build_config = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.build_config'))
@@ -533,12 +531,10 @@ class PythonModule(ExtensionModule):
         if python.found():
             if python.sanity(state):
                 return python
-            else:
-                sanitymsg = f'{python} is not a valid python or it is missing distutils'
-                if required:
-                    raise mesonlib.MesonException(sanitymsg)
-                else:
-                    mlog.warning(sanitymsg, location=state.current_node)
+            sanitymsg = f'{python} is not a valid python or it is missing distutils'
+            if required:
+                raise mesonlib.MesonException(sanitymsg)
+            mlog.warning(sanitymsg, location=state.current_node)
 
         return NonExistingExternalProgram(python.name)
 
@@ -609,15 +605,14 @@ class PythonModule(ExtensionModule):
             if required:
                 raise mesonlib.MesonException('{} not found'.format(name_or_path or 'python'))
             return NonExistingExternalProgram(python.name)
-        elif missing_modules:
+        if missing_modules:
             if required:
                 raise mesonlib.MesonException('{} is missing modules: {}'.format(name_or_path or 'python', ', '.join(missing_modules)))
             return NonExistingExternalProgram(python.name)
-        else:
-            assert isinstance(python, PythonExternalProgram), 'for mypy'
-            python = copy.copy(python)
-            python.pure = kwargs['pure']
-            return python
+        assert isinstance(python, PythonExternalProgram), 'for mypy'
+        python = copy.copy(python)
+        python.pure = kwargs['pure']
+        return python
 
         raise mesonlib.MesonBugException('Unreachable code was reached (PythonModule.find_installation).')
 

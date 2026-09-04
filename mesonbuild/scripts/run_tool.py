@@ -43,8 +43,7 @@ async def run_with_buffered_output(cmdlist: list[str], env: dict[str, str] | Non
             p.kill()
             await p.wait()
             return p.returncode or 1
-        else:
-            return 0
+        return 0
 
     if stdo:
         print(mlog.blue('>>>'), quoted_cmdline, flush=True)

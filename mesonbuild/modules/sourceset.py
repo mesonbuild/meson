@@ -257,8 +257,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
                 return config_cache[key]
 
         files = self.collect(_get_from_config_data, False)
-        res = SourceFilesObject(files)
-        return res
+        return SourceFilesObject(files)
 
 class SourceFilesObject(ModuleObject):
     def __init__(self, files: SourceFiles):

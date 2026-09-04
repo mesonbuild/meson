@@ -354,10 +354,9 @@ class QtBaseModule(ExtensionModule):
                 if child.tag != 'file':
                     mlog.warning("malformed rcc file: ", os.path.join(state.subdir, str(rcc_file)))
                     break
-                elif child.text is None:
+                if child.text is None:
                     raise MesonException(f'<file> element without a path in {os.path.join(state.subdir, str(rcc_file))}')
-                else:
-                    result.append(child.text)
+                result.append(child.text)
 
             return rcc_dirname, result
         except MesonException:
@@ -767,8 +766,7 @@ class QtBaseModule(ExtensionModule):
             translations.append(lrelease_target)
         if qresource:
             return ModuleReturnValue(results.return_value[0], [results.new_objects, translations])
-        else:
-            return ModuleReturnValue(translations, [translations])
+        return ModuleReturnValue(translations, [translations])
 
     def _source_to_files(self, state: ModuleState, sources: list[str | build.TargetSources]) -> list[File]:
 

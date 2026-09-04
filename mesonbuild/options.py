@@ -195,7 +195,7 @@ class OptionKey:
         if isinstance(other, OptionKey):
             if self.subproject is None:
                 return other.subproject is not None
-            elif other.subproject is None:
+            if other.subproject is None:
                 return False
             return self._to_tuple() < other._to_tuple()
         return NotImplemented
@@ -204,7 +204,7 @@ class OptionKey:
         if isinstance(other, OptionKey):
             if self.subproject is None and other.subproject is not None:
                 return True
-            elif self.subproject is not None and other.subproject is None:
+            if self.subproject is not None and other.subproject is None:
                 return False
             return self._to_tuple() <= other._to_tuple()
         return NotImplemented
@@ -213,7 +213,7 @@ class OptionKey:
         if isinstance(other, OptionKey):
             if other.subproject is None:
                 return self.subproject is not None
-            elif self.subproject is None:
+            if self.subproject is None:
                 return False
             return self._to_tuple() > other._to_tuple()
         return NotImplemented
@@ -222,7 +222,7 @@ class OptionKey:
         if isinstance(other, OptionKey):
             if self.subproject is None and other.subproject is not None:
                 return False
-            elif self.subproject is not None and other.subproject is None:
+            if self.subproject is not None and other.subproject is None:
                 return True
             return self._to_tuple() >= other._to_tuple()
         return NotImplemented
@@ -565,11 +565,11 @@ def choices_are_different(a: _U, b: _U) -> bool:
         # We expect `a` and `b` to be of the same type, but can't really annotate it that way.
         assert isinstance(b, EnumeratedUserOption), 'for mypy'
         return a.choices != b.choices
-    elif isinstance(a, UserArrayOption):
+    if isinstance(a, UserArrayOption):
         # We expect `a` and `b` to be of the same type, but can't really annotate it that way.
         assert isinstance(b, UserArrayOption), 'for mypy'
         return a.choices != b.choices
-    elif isinstance(a, _UserIntegerBase):
+    if isinstance(a, _UserIntegerBase):
         assert isinstance(b, _UserIntegerBase), 'for mypy'
         return a.max_value != b.max_value or a.min_value != b.min_value
 
@@ -1099,11 +1099,10 @@ class OptionStore:
             old_value = self.pending_options.get(o, None)
             self.pending_options[o] = new_value
             return old_value is None or str(old_value) != new_value
-        elif o.subproject is None:
+        if o.subproject is None:
             o = o.as_root()
             return self.set_option(o, new_value, first_invocation)
-        else:
-            raise MesonException(f'Unknown option: "{o}".')
+        raise MesonException(f'Unknown option: "{o}".')
 
     def set_from_configure_command(self, D_args: dict[OptionKey, str | None]) -> bool:
         dirty = False

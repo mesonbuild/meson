@@ -85,8 +85,7 @@ class PGICompiler(Compiler):
             return ['--pch',
                     '--pch_dir', str(hdr.parent),
                     f'-I{hdr.parent}']
-        else:
-            return []
+        return []
 
     def thread_flags(self) -> list[str]:
         # PGI cannot accept -pthread, it's already threaded

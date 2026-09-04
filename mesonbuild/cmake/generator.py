@@ -36,15 +36,13 @@ def parse_generator_expressions(
         col_pos = arg.find(',')
         if col_pos < 0:
             return '0'
-        else:
-            return '1' if arg[:col_pos] == arg[col_pos + 1:] else '0'
+        return '1' if arg[:col_pos] == arg[col_pos + 1:] else '0'
 
     def vers_comp(op: str, arg: str) -> str:
         col_pos = arg.find(',')
         if col_pos < 0:
             return '0'
-        else:
-            return '1' if mesonlib.version_compare(arg[:col_pos], f'{op}{arg[col_pos + 1:]}') else '0'
+        return '1' if mesonlib.version_compare(arg[:col_pos], f'{op}{arg[col_pos + 1:]}') else '0'
 
     def target_property(arg: str) -> str:
         # We can't really support this since we don't have any context
@@ -168,7 +166,7 @@ def parse_generator_expressions(
             if raw[i] == '>':
                 # End of the generator expression
                 break
-            elif i < len(raw) - 1 and raw[i] == '$' and raw[i + 1] == '<':
+            if i < len(raw) - 1 and raw[i] == '$' and raw[i + 1] == '<':
                 # Nested generator expression
                 exp += eval_generator_expressions()
             else:

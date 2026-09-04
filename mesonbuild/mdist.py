@@ -239,7 +239,7 @@ class GitDist(Dist):
             if status == '-':
                 mlog.warning(f'Submodule {subpath!r} is not checked out and cannot be added to the dist')
                 continue
-            elif status in {'+', 'U'}:
+            if status in {'+', 'U'}:
                 handle_dirty_opt(f'Submodule {subpath!r} has uncommitted changes that will not be included in the dist tarball', self.options.allow_dirty)
 
             self.copy_git(os.path.join(src, subpath), distdir, revision=sha1, prefix=subpath)

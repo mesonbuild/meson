@@ -1600,7 +1600,7 @@ class AllPlatformTests(BasePlatformTests):
             raise SkipTest('Only clang currently supports thinLTO')
         if cc.linker.id not in {'ld.lld', 'ld.gold', 'ld64', 'lld-link'}:
             raise SkipTest('thinLTO requires ld.lld, ld.gold, ld64, or lld-link')
-        elif is_windows():
+        if is_windows():
             raise SkipTest('LTO not (yet) supported by windows clang')
 
         self.init(testdir, extra_args=['-Db_lto=true', '-Db_lto_mode=thin', '-Db_lto_threads=8', '-Dc_args=-Werror=unused-command-line-argument'])
@@ -4460,20 +4460,18 @@ class AllPlatformTests(BasePlatformTests):
         def get_exe_name(basename: str) -> str:
             if is_windows():
                 return f'{basename}.exe'
-            else:
-                return basename
+            return basename
 
         def get_shared_lib_name(basename: str) -> str:
             if mesonbuild.envconfig.detect_msys2_arch():
                 return f'lib{basename}.dll'
-            elif is_windows():
+            if is_windows():
                 return f'{basename}.dll'
-            elif is_cygwin():
+            if is_cygwin():
                 return f'cyg{basename}.dll'
-            elif is_osx():
+            if is_osx():
                 return f'lib{basename}.dylib'
-            else:
-                return f'lib{basename}.so'
+            return f'lib{basename}.so'
 
         def get_static_lib_name(basename: str) -> str:
             return f'lib{basename}.a'
@@ -5146,11 +5144,11 @@ class AllPlatformTests(BasePlatformTests):
         def shared_lib_name(name):
             if cc.get_id() in {'msvc', 'clang-cl'}:
                 return f'bin/{name}.dll'
-            elif is_windows():
+            if is_windows():
                 return f'bin/lib{name}.dll'
-            elif is_cygwin():
+            if is_cygwin():
                 return f'bin/cyg{name}.dll'
-            elif is_osx():
+            if is_osx():
                 return f'lib/lib{name}.dylib'
             return f'lib/lib{name}.so'
 

@@ -50,7 +50,7 @@ def get_shared_library_suffix(environment: Environment, for_machine: MachineChoi
     m = environment.machines[for_machine]
     if m.is_windows():
         return '.dll'
-    elif m.is_darwin():
+    if m.is_darwin():
         return '.dylib'
     return '.so'
 
@@ -108,8 +108,7 @@ class GTestDependencySystem(SystemDependency):
     def log_info(self) -> str:
         if self.prebuilt:
             return 'prebuilt'
-        else:
-            return 'building self'
+        return 'building self'
 
 
 class GTestDependencyPC(PkgConfigDependency):
@@ -178,8 +177,7 @@ class GMockDependencySystem(SystemDependency):
     def log_info(self) -> str:
         if self.prebuilt:
             return 'prebuilt'
-        else:
-            return 'building self'
+        return 'building self'
 
 
 class GMockDependencyPC(PkgConfigDependency):
@@ -500,9 +498,8 @@ class LLVMDependencyCMake(CMakeDependency):
             if not cm_targets:
                 if required:
                     raise self._gen_exception(f'LLVM module {mod} was not found')
-                else:
-                    mlog.warning('Optional LLVM module', mlog.bold(mod), 'was not found', fatal=False)
-                    continue
+                mlog.warning('Optional LLVM module', mlog.bold(mod), 'was not found', fatal=False)
+                continue
             for i in cm_targets:
                 res += [(i, required)]
         return res
@@ -706,19 +703,19 @@ class JNISystemDependency(SystemDependency):
         '''
         if m.is_linux():
             return 'linux'
-        elif m.is_windows():
+        if m.is_windows():
             return 'win32'
-        elif m.is_darwin():
+        if m.is_darwin():
             return 'darwin'
-        elif m.is_sunos():
+        if m.is_sunos():
             return 'solaris'
-        elif m.is_freebsd():
+        if m.is_freebsd():
             return 'freebsd'
-        elif m.is_netbsd():
+        if m.is_netbsd():
             return 'netbsd'
-        elif m.is_openbsd():
+        if m.is_openbsd():
             return 'openbsd'
-        elif m.is_dragonflybsd():
+        if m.is_dragonflybsd():
             return 'dragonfly'
 
         return None

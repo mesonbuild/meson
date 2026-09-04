@@ -153,7 +153,7 @@ def _parse(ast: _LEX_STREAM_AH) -> IR:
             assert value is not None
             return Equal(id_, String(value))
         return id_
-    elif token in {TokenType.ANY, TokenType.ALL}:
+    if token in {TokenType.ANY, TokenType.ALL}:
         type_ = All if token is TokenType.ALL else Any
         args: list[IR] = []
         (token, value), n_stream = next(ast)
@@ -168,15 +168,14 @@ def _parse(ast: _LEX_STREAM_AH) -> IR:
                 break
             assertToken(TokenType.COMMA, '")" or ","')
         return type_(args)
-    elif token is TokenType.NOT:
+    if token is TokenType.NOT:
         (token, value), _ = next(ast)
         assertToken(TokenType.LPAREN, '"("')
         arg = _parse(ast)
         (token, value), _ = next(ast)
         assertToken(TokenType.RPAREN, '")"')
         return Not(arg)
-    else:
-        raise MesonException(f'Unhandled Cargo token:{token} {value}')
+    raise MesonException(f'Unhandled Cargo token:{token} {value}')
 
 
 def parse(ast: _LEX_STREAM) -> IR:
@@ -199,16 +198,15 @@ def parse(ast: _LEX_STREAM) -> IR:
 def _eval_cfg(ir: IR, cfgs: dict[str, str]) -> bool:
     if isinstance(ir, Identifier):
         return ir.value in cfgs
-    elif isinstance(ir, Equal):
+    if isinstance(ir, Equal):
         return cfgs.get(ir.lhs.value) == ir.rhs.value
-    elif isinstance(ir, Not):
+    if isinstance(ir, Not):
         return not _eval_cfg(ir.value, cfgs)
-    elif isinstance(ir, Any):
+    if isinstance(ir, Any):
         return any(_eval_cfg(i, cfgs) for i in ir.args)
-    elif isinstance(ir, All):
+    if isinstance(ir, All):
         return all(_eval_cfg(i, cfgs) for i in ir.args)
-    else:
-        raise MesonBugException(f'Unhandled Cargo cfg IR: {ir}')
+    raise MesonBugException(f'Unhandled Cargo cfg IR: {ir}')
 
 
 def eval_cfg(raw: str, cfgs: dict[str, str]) -> bool:

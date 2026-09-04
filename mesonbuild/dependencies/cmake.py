@@ -410,12 +410,11 @@ class CMakeDependency(ExternalDependency):
             e2 = self._gen_exception(str(e))
             if self.required:
                 raise
-            else:
-                self.compile_args = []
-                self.link_args = []
-                self.is_found = False
-                self.reason = e2
-                return
+            self.compile_args = []
+            self.link_args = []
+            self.is_found = False
+            self.reason = e2
+            return
 
         # Whether the package is found or not is always stored in PACKAGE_FOUND
         self.is_found = self.traceparser.var_to_bool('PACKAGE_FOUND')

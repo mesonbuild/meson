@@ -546,12 +546,11 @@ def format_list(input_list: list[str]) -> str:
     l = len(input_list)
     if l > 2:
         return ' and '.join([', '.join(input_list[:-1]), input_list[-1]])
-    elif l == 2:
+    if l == 2:
         return ' and '.join(input_list)
-    elif l == 1:
+    if l == 1:
         return input_list[0]
-    else:
-        return ''
+    return ''
 
 
 def code_line(text: str, line: str, colno: int) -> str:

@@ -90,10 +90,10 @@ def guess_win_linker(env: Environment, compiler: list[str], comp_class: type[Com
             prefix=comp_class.LINKER_OPTION_STYLE if wrap_linker_args else None,
             exelist=compiler, version=search_version(o), direct=invoked_directly,
             rsp_syntax=rsp_syntax)
-    elif 'OPTLINK' in o:
+    if 'OPTLINK' in o:
         # Optlink's stdout *may* begin with a \r character.
         return linkers.OptlinkDynamicLinker(compiler, env, for_machine, version=search_version(o))
-    elif o.startswith('Microsoft') or e.startswith('Microsoft'):
+    if o.startswith('Microsoft') or e.startswith('Microsoft'):
         out = o or e
         match = re.search(r'.*(X86|X64|ARM|ARM64).*', out)
         if match:
@@ -106,7 +106,7 @@ def guess_win_linker(env: Environment, compiler: list[str], comp_class: type[Com
             prefix=comp_class.LINKER_OPTION_STYLE if wrap_linker_args else None,
             version=search_version(out), direct=invoked_directly,
             rsp_syntax=rsp_syntax)
-    elif 'GNU coreutils' in o:
+    if 'GNU coreutils' in o:
         import shutil
         fullpath = shutil.which(compiler[0])
         raise EnvironmentException(

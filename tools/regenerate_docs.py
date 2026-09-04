@@ -55,8 +55,7 @@ def get_commands_data(root_dir: Path) -> dict[str, T.Any]:
         out = text
         out = re.sub(r'\r\n', r'\r', out, flags=re.MULTILINE) # replace newlines with a linux EOL
         out = re.sub(r'^ +$', '', out, flags=re.MULTILINE) # remove trailing whitespace
-        out = re.sub(r'(?:^\n+|\n+$)', '', out) # remove trailing empty lines
-        return out
+        return re.sub(r'(?:^\n+|\n+$)', '', out) # remove trailing empty lines
 
     def parse_cmd(cmd: str) -> dict[str, str]:
         cmd_len = len(cmd)

@@ -443,14 +443,12 @@ class MachineInfo(HoldableObject):
     def get_exe_suffix(self) -> str:
         if self.is_windows() or self.is_cygwin() or self.is_os2():
             return 'exe'
-        else:
-            return ''
+        return ''
 
     def get_object_suffix(self) -> str:
         if self.is_windows():
             return 'obj'
-        else:
-            return 'o'
+        return 'o'
 
     def libdir_layout_is_win(self) -> bool:
         return self.is_windows() or self.is_cygwin()
@@ -526,7 +524,7 @@ class BinaryTable:
         command = self.binaries.get(name)
         if not command:
             return None
-        elif not command[0].strip():
+        if not command[0].strip():
             return None
         return command
 
@@ -755,7 +753,7 @@ def detect_kernel(system: str) -> str | None:
                          "Please open a Meson issue with the OS you're running and the value detected for your kernel.")
             return None
         return out
-    elif mesonlib.is_os400():
+    if mesonlib.is_os400():
         return 'os400'
     return KERNEL_MAPPINGS.get(system, None)
 

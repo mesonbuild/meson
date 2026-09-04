@@ -53,16 +53,16 @@ def default_resolve_key(key: mparser.BaseNode) -> str:
 def stringifyUserArguments(args: TYPE_var, subproject: SubProject, quote: bool = False) -> str:
     if isinstance(args, str):
         return f"'{args}'" if quote else args
-    elif isinstance(args, bool):
+    if isinstance(args, bool):
         return 'true' if args else 'false'
-    elif isinstance(args, int):
+    if isinstance(args, int):
         return str(args)
-    elif isinstance(args, list):
+    if isinstance(args, list):
         return '[{}]'.format(', '.join([stringifyUserArguments(x, subproject, True) for x in args]))
-    elif isinstance(args, dict):
+    if isinstance(args, dict):
         l = [f'{stringifyUserArguments(k, subproject, True)} : {stringifyUserArguments(v, subproject, True)}' for k, v in args.items()]
         return '{{{}}}'.format(', '.join(l))
-    elif isinstance(args, Feature):
+    if isinstance(args, Feature):
         from .decorators import FeatureNew
         FeatureNew.single_use('User option in string format', '1.3.0', subproject)
         return str(args)

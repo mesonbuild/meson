@@ -262,8 +262,7 @@ class CudaModule(NewExtensionModule):
                         args: tuple[CudaCompiler | str, list[str]],
                         kwargs: ArchFlagsKwargs) -> list[str]:
         nvcc_arch_args = self._validate_nvcc_arch_args(args, kwargs)
-        ret = self._nvcc_arch_flags(*nvcc_arch_args)[0]
-        return ret
+        return self._nvcc_arch_flags(*nvcc_arch_args)[0]
 
     @typed_pos_args('cuda.nvcc_arch_readable', (str, CudaCompiler), varargs=str)
     @typed_kwargs('cuda.nvcc_arch_readable', DETECTED_KW)
@@ -271,8 +270,7 @@ class CudaModule(NewExtensionModule):
                            args: tuple[CudaCompiler | str, list[str]],
                            kwargs: ArchFlagsKwargs) -> list[str]:
         nvcc_arch_args = self._validate_nvcc_arch_args(args, kwargs)
-        ret = self._nvcc_arch_flags(*nvcc_arch_args)[1]
-        return ret
+        return self._nvcc_arch_flags(*nvcc_arch_args)[1]
 
     @staticmethod
     def _break_arch_string(s: str) -> list[str]:

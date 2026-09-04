@@ -106,7 +106,7 @@ def extract_required_kwarg(kwargs: kwargs.ExtractRequired,
         feature = val.name
         if val.is_disabled():
             return True, required, feature
-        elif val.is_enabled():
+        if val.is_enabled():
             required = True
     elif isinstance(val, bool):
         required = val
@@ -459,7 +459,7 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
         name = args[0]
         if name in self.held_object:
             return self.held_object.get(name)[0]
-        elif args[1] is not None:
+        if args[1] is not None:
             return args[1]
         raise InterpreterException(f'Entry {name} not in configuration data.')
 
@@ -581,8 +581,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
     @typed_kwargs('dependency.partial_dependency', *_PARTIAL_DEP_KWARGS)
     @InterpreterObject.method('partial_dependency')
     def partial_dependency_method(self, args: list[TYPE_var], kwargs: kwargs.DependencyMethodPartialDependency) -> Dependency:
-        pdep = self.held_object.get_partial_dependency(**kwargs)
-        return pdep
+        return self.held_object.get_partial_dependency(**kwargs)
 
     @FeatureNew('dependency.get_variable', '0.51.0')
     @typed_pos_args('dependency.get_variable', optargs=[str])
@@ -641,8 +640,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
     def as_link_whole_method(self, args: list[TYPE_var], kwargs: TYPE_kwargs) -> Dependency:
         if not isinstance(self.held_object, InternalDependency):
             raise InterpreterException('as_link_whole method is only supported on declare_dependency() objects')
-        new_dep = self.held_object.generate_link_whole_dependency()
-        return new_dep
+        return self.held_object.generate_link_whole_dependency()
 
     @FeatureNew('dependency.as_static', '1.6.0')
     @noPosargs
@@ -754,8 +752,7 @@ class ExternalLibraryHolder(ObjectHolder[ExternalLibrary]):
     @typed_kwargs('dependency.partial_dependency', *_PARTIAL_DEP_KWARGS)
     @InterpreterObject.method('partial_dependency')
     def partial_dependency_method(self, args: list[TYPE_var], kwargs: kwargs.DependencyMethodPartialDependency) -> Dependency:
-        pdep = self.held_object.get_partial_dependency(**kwargs)
-        return pdep
+        return self.held_object.get_partial_dependency(**kwargs)
 
     @FeatureNew('dependency.name', '1.5.0')
     @noPosargs
@@ -1273,11 +1270,9 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
                 '1.13.0', self.interpreter.subproject)
 
         sources = self.interpreter.source_strings_to_files(args[0])
-        gl = self.held_object.process_files(sources, self.interpreter.subdir,
-                                            preserve_path_from, extra_args=kwargs['extra_args'], env=kwargs['env'],
-                                            extra_depends=kwargs['depends'])
-
-        return gl
+        return self.held_object.process_files(sources, self.interpreter.subdir,
+                                              preserve_path_from, extra_args=kwargs['extra_args'], env=kwargs['env'],
+                                              extra_depends=kwargs['depends'])
 
 
 class StructuredSourcesHolder(ObjectHolder[build.StructuredSources]):

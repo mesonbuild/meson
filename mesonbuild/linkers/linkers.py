@@ -424,8 +424,7 @@ class ArLinker(ArLikeLinker, StaticLinker):
           and not env.machines[self.for_machine].is_sunos() \
           and not env.machines[self.for_machine].is_os2():
             return self.std_thin_args
-        else:
-            return self.std_args
+        return self.std_args
 
 
 class AppleArLinker(ArLinker):
@@ -616,8 +615,7 @@ def prepare_rpaths(raw_rpaths: tuple[str, ...], build_dir: str, from_dir: str) -
     # because otherwise they have different length depending on the build
     # directory. This breaks reproducible builds.
     internal_format_rpaths = [evaluate_rpath(p, build_dir, from_dir) for p in raw_rpaths]
-    ordered_rpaths = order_rpaths(internal_format_rpaths)
-    return ordered_rpaths
+    return order_rpaths(internal_format_rpaths)
 
 
 def order_rpaths(rpath_list: list[str]) -> list[str]:
@@ -635,10 +633,9 @@ def order_rpaths(rpath_list: list[str]) -> list[str]:
 def evaluate_rpath(p: str, build_dir: str, from_dir: str) -> str:
     if p == from_dir:
         return '' # relpath errors out in this case
-    elif path_has_root(p):
+    if path_has_root(p):
         return p # These can be outside of build dir.
-    else:
-        return os.path.relpath(os.path.join(build_dir, p), os.path.join(build_dir, from_dir))
+    return os.path.relpath(os.path.join(build_dir, p), os.path.join(build_dir, from_dir))
 
 
 class PosixDynamicLinkerMixin(DynamicLinkerBase):
@@ -876,14 +873,12 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         # iOS doesn't allow undefined symbols when linking
         if self.system == 'ios':
             return []
-        else:
-            return self._apply_prefix(['-undefined', 'dynamic_lookup'])
+        return self._apply_prefix(['-undefined', 'dynamic_lookup'])
 
     def get_std_shared_module_args(self, target: BuildTarget) -> list[str]:
         if self.system == 'ios':
             return ['-dynamiclib']
-        else:
-            return ['-bundle'] + self.get_allow_undefined_args()
+        return ['-bundle'] + self.get_allow_undefined_args()
 
     def get_pie_args(self) -> list[str]:
         return []
@@ -1095,8 +1090,7 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
             if version is not None:
                 value += f':{version}'
             return self._apply_prefix(['--subsystem', value])
-        else:
-            raise mesonlib.MesonBugException(f'win_subsystem: {value} not handled in lld linker. This should not be possible.')
+        raise mesonlib.MesonBugException(f'win_subsystem: {value} not handled in lld linker. This should not be possible.')
 
 
 class ZigCCDynamicLinker(LLVMDynamicLinker):
@@ -1446,7 +1440,7 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         m = self.environment.machines[self.for_machine]
         if m.is_windows():
             return ['-Bdynamic', '-Mmakedll']
-        elif m.is_linux():
+        if m.is_linux():
             return ['-shared']
         return []
 
@@ -1733,14 +1727,12 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         # For Example shared object can have the name libgio.so.0.7200.1 but the archive
         # must have the name libgio.a having libgio.a (libgio.so.0.7200.1) in the
         # archive. This regular expression is to do the same.
-        filename = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', filename.replace('.so', '.a'))
-        return filename
+        return re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', filename.replace('.so', '.a'))
 
     def get_command_to_archive_shlib(self) -> list[str]:
         # Archive shared library object and remove the shared library object,
         # since it already exists in the archive.
-        command = ['ar', '-X32_64', '-r', '-s', '-v', '$out', '$in', '&&', 'rm', '-f', '$in']
-        return command
+        return ['ar', '-X32_64', '-r', '-s', '-v', '$out', '$in', '&&', 'rm', '-f', '$in']
 
     def get_link_whole_for(self, args: list[str]) -> list[str]:
         # AIX's linker always links the whole archive: "The ld command

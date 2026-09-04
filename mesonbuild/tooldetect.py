@@ -64,13 +64,11 @@ def compute_llvm_suffix(coredata: coredata.CoreData) -> str | None:
     c_compiler_is_clang = 'c' in compilers and compilers['c'].id == 'clang'
     # Extract first the C++ compiler if available. If it's a Clang of some kind, compute the suffix if possible
     if cpp_compiler_is_clang:
-        suffix = compilers['cpp'].version.split('.')[0]
-        return suffix
+        return compilers['cpp'].version.split('.')[0]
 
     # Then the C compiler, again checking if it's some kind of Clang and computing the suffix
     if c_compiler_is_clang:
-        suffix = compilers['c'].version.split('.')[0]
-        return suffix
+        return compilers['c'].version.split('.')[0]
 
     # Neither compiler is a Clang, or no compilers are for C or C++
     return None

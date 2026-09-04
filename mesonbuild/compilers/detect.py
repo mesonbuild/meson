@@ -262,24 +262,22 @@ def detect_static_linker(env: Environment, compiler: Compiler) -> StaticLinker:
         if out.startswith('GNU ar'):
             if 'xc16-ar' in linker_name:
                 return linkers.Xc16Linker(linker, env)
-            elif 'xc32-ar' in linker_name:
+            if 'xc32-ar' in linker_name:
                 return linkers.Xc32ArLinker(compiler.for_machine, linker, env)
             elif 'sdar' in linker_name:
                 return linkers.SdccLinker(linker, env)
         if 'Texas Instruments Incorporated' in out:
             if 'ar2000' in linker_name:
                 return linkers.C2000Linker(linker, env)
-            elif 'ar6000' in linker_name:
+            if 'ar6000' in linker_name:
                 return linkers.C6000Linker(linker, env)
-            else:
-                return linkers.TILinker(linker, env)
+            return linkers.TILinker(linker, env)
         if out.startswith('The CompCert'):
             return linkers.CompCertLinker(linker, env)
         if out.strip().startswith('Metrowerks') or out.strip().startswith('Freescale'):
             if 'ARM' in out:
                 return linkers.MetrowerksStaticLinkerARM(linker, env)
-            else:
-                return linkers.MetrowerksStaticLinkerEmbeddedPowerPC(linker, env)
+            return linkers.MetrowerksStaticLinkerEmbeddedPowerPC(linker, env)
         if 'TASKING VX-toolset' in err:
             return linkers.TaskingStaticLinker(linker, env)
         if p.returncode == 0:
@@ -623,14 +621,13 @@ def _detect_c_or_cpp_compiler(env: Environment, lang: str, for_machine: MachineC
                     ccache, compiler, version, for_machine,
                     env, defines=defines, full_version=full_version,
                     linker=linker)
-            else:
-                cls = c.Xc16CCompiler
-                env.add_lang_args(cls.language, cls, for_machine)
-                linker = linkers.Xc16DynamicLinker(env, for_machine, version=version)
+            cls = c.Xc16CCompiler
+            env.add_lang_args(cls.language, cls, for_machine)
+            linker = linkers.Xc16DynamicLinker(env, for_machine, version=version)
 
-                return cls(
-                    ccache, compiler, version, for_machine, env,
-                    full_version=full_version, linker=linker)
+            return cls(
+                ccache, compiler, version, for_machine, env,
+                full_version=full_version, linker=linker)
 
         if 'CompCert' in out:
             cls = c.CompCertCCompiler
@@ -797,13 +794,12 @@ def detect_fortran_compiler(env: Environment, for_machine: MachineChoice) -> Com
                     return cls(
                         compiler, version, for_machine, env,
                         defines, full_version=full_version, linker=linker)
-                else:
-                    version = _get_gnu_version_from_defines(defines)
-                    cls = fortran.GnuFortranCompiler
-                    linker = guess_nix_linker(env, compiler, cls, version, for_machine)
-                    return cls(
-                        compiler, version, for_machine, env,
-                        defines, full_version=full_version, linker=linker)
+                version = _get_gnu_version_from_defines(defines)
+                cls = fortran.GnuFortranCompiler
+                linker = guess_nix_linker(env, compiler, cls, version, for_machine)
+                return cls(
+                    compiler, version, for_machine, env,
+                    defines, full_version=full_version, linker=linker)
 
             if 'Arm C/C++/Fortran Compiler' in out:
                 cls = fortran.ArmLtdFlangFortranCompiler
@@ -1301,13 +1297,13 @@ def detect_d_compiler(env: Environment, for_machine: MachineChoice) -> Compiler:
                 exelist, version, for_machine, env, arch,
                 full_version=full_version, linker=linker,
                 version_output=out)
-        elif 'gdc' in out:
+        if 'gdc' in out:
             cls = d.GnuDCompiler
             linker = guess_nix_linker(env, exelist, cls, version, for_machine)
             return cls(
                 exelist, version, for_machine, env, arch,
                 full_version=full_version, linker=linker)
-        elif 'The D Language Foundation' in out or 'Digital Mars' in out:
+        if 'The D Language Foundation' in out or 'Digital Mars' in out:
             cls = d.DmdDCompiler
             # DMD seems to require a file
             # We cannot use NamedTemporaryFile on windows, its documented
@@ -1401,19 +1397,18 @@ def detect_nasm_compiler(env: Environment, for_machine: MachineChoice) -> Compil
             comp_class = NasmCompiler
             env.add_lang_args(comp_class.language, comp_class, for_machine)
             return comp_class([], comp, version, for_machine, env, cc.linker)
-        elif 'yasm' in output:
+        if 'yasm' in output:
             comp_class = YasmCompiler
             env.add_lang_args(comp_class.language, comp_class, for_machine)
             return comp_class([], comp, version, for_machine, env, cc.linker)
-        elif 'Metrowerks' in output or 'Freescale' in output:
+        if 'Metrowerks' in output or 'Freescale' in output:
             if 'ARM' in output:
                 comp_class_mwasmarm = MetrowerksAsmCompilerARM
                 env.add_lang_args(comp_class_mwasmarm.language, comp_class_mwasmarm, for_machine)
                 return comp_class_mwasmarm([], comp, version, for_machine, env, cc.linker)
-            else:
-                comp_class_mwasmeppc = MetrowerksAsmCompilerEmbeddedPowerPC
-                env.add_lang_args(comp_class_mwasmeppc.language, comp_class_mwasmeppc, for_machine)
-                return comp_class_mwasmeppc([], comp, version, for_machine, env, cc.linker)
+            comp_class_mwasmeppc = MetrowerksAsmCompilerEmbeddedPowerPC
+            env.add_lang_args(comp_class_mwasmeppc.language, comp_class_mwasmeppc, for_machine)
+            return comp_class_mwasmeppc([], comp, version, for_machine, env, cc.linker)
 
     _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')

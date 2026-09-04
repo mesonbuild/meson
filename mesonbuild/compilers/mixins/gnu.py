@@ -343,8 +343,7 @@ def gnulike_default_include_dirs(compiler: tuple[str, ...], lang: str) -> Immuta
         elif parse_state == 2:
             if line == 'End of search list.':
                 break
-            else:
-                paths.append(line)
+            paths.append(line)
     if not paths:
         mlog.warning('No include directory found parsing "{cmd}" output'.format(cmd=" ".join(cmd)))
     # Append a normalized copy of paths to make path lookup easier
@@ -651,7 +650,7 @@ class GnuCompiler(GnuLikeCompiler):
     def use_linker_args(cls, linker: str, version: str) -> list[str]:
         if linker == 'mold' and mesonlib.version_compare(version, cls._USE_MOLD_VERSION):
             return ['-fuse-ld=mold']
-        elif linker == 'wild' and mesonlib.version_compare(version, cls._USE_WILD_VERSION):
+        if linker == 'wild' and mesonlib.version_compare(version, cls._USE_WILD_VERSION):
             return ['-fuse-ld=wild']
         return super().use_linker_args(linker, version)
 

@@ -100,14 +100,12 @@ class DarwinTests(BasePlatformTests):
     def _get_darwin_rpaths(self, fname: str) -> list[str]:
         out = subprocess.check_output(['otool', '-l', fname], universal_newlines=True)
         pattern = re.compile(r'path (.*) \(offset \d+\)')
-        rpaths = pattern.findall(out)
-        return rpaths
+        return pattern.findall(out)
 
     def _get_darwin_rpath_libraries(self, fname: str) -> list[str]:
         out = subprocess.check_output(['otool', '-L', fname], universal_newlines=True)
         pattern = re.compile(r'@rpath/\S+')
-        libs = pattern.findall(out)
-        return libs
+        return pattern.findall(out)
 
     @skipIfNoPkgconfig
     def test_library_versioning(self):

@@ -81,10 +81,9 @@ def run(args: list[str]) -> int:
 
     if subcmd == 'pot':
         return run_potgen(src_sub, options.xgettext, options.pkgname, options.datadirs, extra_args, options.source_root)
-    elif subcmd == 'update_po':
+    if subcmd == 'update_po':
         if run_potgen(src_sub, options.xgettext, options.pkgname, options.datadirs, extra_args, options.source_root) != 0:
             return 1
         return update_po(src_sub, options.msgmerge, options.msginit, options.pkgname, langs)
-    else:
-        print('Unknown subcommand.')
-        return 1
+    print('Unknown subcommand.')
+    return 1

@@ -47,13 +47,12 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 def stringify(val: T.Any) -> str:
     if isinstance(val, bool):
         return str(val).lower()
-    elif isinstance(val, list):
+    if isinstance(val, list):
         s = ', '.join(stringify(i) for i in val)
         return f'[{s}]'
-    elif val is None:
+    if val is None:
         return ''
-    else:
-        return str(val)
+    return str(val)
 
 
 class ConfException(mesonlib.MesonException):

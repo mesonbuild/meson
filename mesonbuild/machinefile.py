@@ -72,19 +72,19 @@ class MachineFileParser:
     def _evaluate_statement(self, node: mparser.BaseNode) -> ElementaryOptionValues:
         if isinstance(node, (mparser.StringNode)):
             return node.value
-        elif isinstance(node, mparser.BooleanNode):
+        if isinstance(node, mparser.BooleanNode):
             return node.value
-        elif isinstance(node, mparser.NumberNode):
+        if isinstance(node, mparser.NumberNode):
             return node.value
-        elif isinstance(node, mparser.ParenthesizedNode):
+        if isinstance(node, mparser.ParenthesizedNode):
             return self._evaluate_statement(node.inner)
-        elif isinstance(node, mparser.ArrayNode):
+        if isinstance(node, mparser.ArrayNode):
             a = [self._evaluate_statement(arg) for arg in node.args.arguments]
             assert all(isinstance(s, str) for s in a), 'for mypy'
             return T.cast('list[str]', a)
-        elif isinstance(node, mparser.IdNode):
+        if isinstance(node, mparser.IdNode):
             return self.scope[node.value]
-        elif isinstance(node, mparser.ArithmeticNode):
+        if isinstance(node, mparser.ArithmeticNode):
             l = self._evaluate_statement(node.left)
             r = self._evaluate_statement(node.right)
             if node.operation == '+':

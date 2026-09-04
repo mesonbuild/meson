@@ -290,12 +290,11 @@ class ExternalProgram(Program):
             # a) not chmodded executable, or
             # b) we are on windows so they can't be directly executed.
             return self._shebang_to_cmd(trial)
-        else:
-            if mesonlib.is_windows():
-                for ext in self.windows_exts:
-                    trial_ext = f'{trial}.{ext}'
-                    if os.path.exists(trial_ext):
-                        return [trial_ext]
+        if mesonlib.is_windows():
+            for ext in self.windows_exts:
+                trial_ext = f'{trial}.{ext}'
+                if os.path.exists(trial_ext):
+                    return [trial_ext]
         return []
 
     def _search_windows_special_cases(self, name: str, command: str | None, exclude_paths: list[str] | None) -> list[str]:

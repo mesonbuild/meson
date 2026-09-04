@@ -1676,8 +1676,7 @@ class Vs2010Backend(backends.Backend):
             if normalized not in lis:
                 lis.append(normalized)
                 return True
-            else:
-                return False
+            return False
 
         pch_sources: dict[Language, tuple[str, str | None, str, str | None]] = {}
         if self.target_uses_pch(target):
@@ -2172,5 +2171,4 @@ class Vs2010Backend(backends.Backend):
 
         if platform in {'ARM', 'arm64', 'arm64ec'}:
             return 'marmasm'
-        else:
-            return 'masm'
+        return 'masm'

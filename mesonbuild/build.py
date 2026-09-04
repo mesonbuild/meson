@@ -1117,8 +1117,7 @@ class BuildTarget(Target):
         if self.for_machine is MachineChoice.BUILD and self.install:
             if self.environment.is_cross_build():
                 raise InvalidArguments('Tried to install a target for the build machine in a cross build.')
-            else:
-                mlog.warning('Installing target build for the build machine. This will fail in a cross build.')
+            mlog.warning('Installing target build for the build machine. This will fail in a cross build.')
 
     def process_objectlist(self, objects: T.Iterable[ObjectTypes | GeneratedTypes]) -> None:
         assert isinstance(objects, list)
@@ -1630,8 +1629,7 @@ class BuildTarget(Target):
             msg = f'Tried to mix a {t.for_machine} library ("{t.name}") with a {self.for_machine} target "{self.name}"'
             if self.environment.is_cross_build():
                 raise InvalidArguments(msg + ' This is not possible in a cross build.')
-            else:
-                mlog.warning(msg + ' This will fail in cross build.')
+            mlog.warning(msg + ' This will fail in cross build.')
 
     def add_include_dirs(self, args: T.Sequence[IncludeDirs]) -> None:
         self.include_dirs.extend(args)
@@ -1673,8 +1671,7 @@ class BuildTarget(Target):
 
     def get_prelinker(self) -> Compiler:
         if self.link_language:
-            comp = self.all_compilers[self.link_language]
-            return comp
+            return self.all_compilers[self.link_language]
         for l in T.cast('tuple[Language, ...]', clink_langs):
             if l in self.compilers:
                 try:
@@ -1804,7 +1801,7 @@ class BuildTarget(Target):
                 if self.environment.machines[self.for_machine].is_darwin():
                     raise MesonException(
                         f'target {self.name} links against shared module {link_target.name}. This is not permitted on OSX')
-                elif self.environment.machines[self.for_machine].is_android() and isinstance(self, SharedModule):
+                if self.environment.machines[self.for_machine].is_android() and isinstance(self, SharedModule):
                     # Android requires shared modules that use symbols from other shared modules to
                     # be linked before they can be dlopen()ed in the correct order. Not doing so
                     # leads to a missing symbol error: https://github.com/android/ndk/issues/201
@@ -1980,12 +1977,11 @@ class BuildTarget(Target):
         m = self.environment.machines[self.for_machine]
         if m.is_cygwin():
             return 'cygwin'
-        elif m.is_windows():
+        if m.is_windows():
             return 'windows'
-        elif m.is_darwin():
+        if m.is_darwin():
             return 'darwin'
-        else:
-            return 'unix'
+        return 'unix'
 
 
 class LinkableTarget(metaclass=SimpleABC):
@@ -2059,8 +2055,7 @@ class Generator(HoldableObject):
     def get_base_outnames(self, inname: str) -> list[str]:
         plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
-        bases = [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
-        return bases
+        return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
 
     def get_dep_outname(self, inname: str) -> str:
         if self.depfile is None:
@@ -2905,7 +2900,7 @@ class BothLibraries(SecondLevelHolder, LinkableTarget):
     def get_default_object(self) -> StaticLibrary | SharedLibrary:
         if self._preferred_library == 'shared':
             return self.shared
-        elif self._preferred_library == 'static':
+        if self._preferred_library == 'static':
             return self.static
         raise MesonBugException(f'self._preferred_library == "{self._preferred_library}" is neither "shared" nor "static".')
 
@@ -3157,10 +3152,9 @@ class CustomTarget(Target, CustomTargetBase):
             plainname = os.path.basename(infilenames[0])
             basename = os.path.splitext(plainname)[0]
             return self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
-        else:
-            if '@BASENAME@' in self.depfile or '@PLAINNAME@' in self.depfile:
-                raise InvalidArguments('Substitution in depfile for custom_target that does not have an input file.')
-            return self.depfile
+        if '@BASENAME@' in self.depfile or '@PLAINNAME@' in self.depfile:
+            raise InvalidArguments('Substitution in depfile for custom_target that does not have an input file.')
+        return self.depfile
 
     def is_linkable_output(self, output: str) -> bool:
         if output.endswith(('.a', '.dll', '.lib', '.so', '.dylib')):

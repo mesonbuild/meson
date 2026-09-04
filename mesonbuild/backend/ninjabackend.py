@@ -89,9 +89,8 @@ def cmd_quote(arg: str) -> str:
     # any terminal backslashes likewise need doubling
     arg = re.sub(r'(\\*)$', lambda m: '\\' * (len(m.group(1)) * 2), arg)
     # and double quote
-    arg = f'"{arg}"'
+    return f'"{arg}"'
 
-    return arg
 
 # How ninja executes command lines differs between Unix and Windows
 # (see https://ninja-build.org/manual.html#ref_rule_command)
@@ -212,10 +211,9 @@ class NinjaRule:
                     # ninja variables shouldn't be ninja quoted, and their value
                     # is already shell quoted
                     return NinjaCommandArg(c, Quoting.none)
-                else:
-                    # shell quote the use of ninja variables whose value must
-                    # not be shell quoted (as it also used by ninja)
-                    return NinjaCommandArg(c, Quoting.notNinja)
+                # shell quote the use of ninja variables whose value must
+                # not be shell quoted (as it also used by ninja)
+                return NinjaCommandArg(c, Quoting.notNinja)
 
             return NinjaCommandArg(c)
 
@@ -242,9 +240,9 @@ class NinjaRule:
     def _quoter(x: NinjaCommandArg, qf: T.Callable[[str], str] = quote_func) -> str:
         if x.quoting == Quoting.none:
             return x.s
-        elif x.quoting == Quoting.notNinja:
+        if x.quoting == Quoting.notNinja:
             return qf(x.s)
-        elif x.quoting == Quoting.notShell:
+        if x.quoting == Quoting.notShell:
             return ninja_quote(x.s)
         return ninja_quote(qf(str(x)))
 
@@ -2237,17 +2235,17 @@ class NinjaBackend(backends.Backend):
                 if prev == '-framework':
                     args.append(f'-lframework={a}')
                     continue
-                elif a.startswith('-L'):
+                if a.startswith('-L'):
                     args.append(a)
                     continue
-                elif a.startswith('-F'):
+                if a.startswith('-F'):
                     path = a[2:]
                     args.append(f'-Lframework={path}')
                     continue
-                elif a == '-framework':
+                if a == '-framework':
                     # handled once the framework name is available
                     continue
-                elif is_library(a):
+                if is_library(a):
                     if isinstance(target, build.StaticLibrary):
                         static = a.endswith(('.a', '.lib'))
                         _link_library(a, static)
@@ -2883,8 +2881,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         args = [x.replace("@CURRENT_SOURCE_DIR@", source_target_dir) for x in args]
         args = [x.replace("@SOURCE_ROOT@", self.build_to_src).replace("@BUILD_ROOT@", '.')
                 for x in args]
-        args = [x.replace('\\', '/') for x in args]
-        return args
+        return [x.replace('\\', '/') for x in args]
 
     def generate_genlist_for_target(self, genlist: build.GeneratedList, target: build.BuildTarget | build.CustomTarget) -> None:
         for x in genlist.depends:
@@ -3012,8 +3009,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         tdeps = self.fortran_deps[target.get_basename()]
         srcdir = Path(self.source_dir)
 
-        mod_files = _scan_fortran_file_deps(src, srcdir, dirname, tdeps, compiler)
-        return mod_files
+        return _scan_fortran_file_deps(src, srcdir, dirname, tdeps, compiler)
 
     def get_no_stdlib_link_args(self, target: build.BuildTarget, linker: Compiler | StaticLinker) -> list[str]:
         if hasattr(linker, 'language') and linker.language in self.build.stdlibs[target.for_machine]:
@@ -3074,8 +3070,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if not tfilename:
                 tfilename = self.get_target_filename_abs(target)
             return compiler.get_compile_debugfile_args(tfilename, pch=True)
-        else:
-            return compiler.get_compile_debugfile_args(objfile, pch=False)
+        return compiler.get_compile_debugfile_args(objfile, pch=False)
 
     def get_link_debugfile_name(self, linker: Compiler | StaticLinker, target: build.BuildTarget) -> str | None:
         filename = self.get_target_debug_filename(target)
@@ -3465,7 +3460,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             istd_args = ['-fmodules']
             istd_dep = [File(True, '', self.import_std.gen_module_file)]
             return istd_args, istd_dep
-        elif compiler.id == 'msvc':
+        if compiler.id == 'msvc':
             if self.import_std is None:
                 mod_file = 'std.ifc'
                 mod_obj_file = 'std.obj'
@@ -3482,8 +3477,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 self.import_std = ImportStdInfo(elem, mod_file, [mod_obj_file])
             istd_dep = [File(True, '', self.import_std.gen_module_file)]
             return istd_args, istd_dep
-        else:
-            raise MesonException(f'Import std not supported on compiler {compiler.id} yet.')
+        raise MesonException(f'Import std not supported on compiler {compiler.id} yet.')
 
     def add_dependency_scanner_entries_to_element(self, target: build.BuildTarget, compiler: Compiler, element: NinjaBuildElement, src: File) -> None:
         if not self.should_use_dyndeps_for_target(target):
@@ -3720,9 +3714,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 objects_from_static_libs.extend(self.flatten_object_list(dep)[0])
 
             return objects_from_static_libs
-        else:
-            target_args = self.build_target_link_arguments(linker, target.link_whole_targets)
-            return linker.get_link_whole_for(target_args) if target_args else []
+        target_args = self.build_target_link_arguments(linker, target.link_whole_targets)
+        return linker.get_link_whole_for(target_args) if target_args else []
 
     @cache
     def guess_library_absolute_path(self, linker: Compiler, libname: str, search_dirs: tuple[str, ...], patterns: tuple[str, ...]) -> Path | None:
@@ -4013,14 +4006,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if isinstance(t, build.SharedLibrary):
             if t.uses_rust() and t.rust_crate_type == 'proc-macro':
                 return self.get_target_filename(t)
-            else:
-                return self.get_target_shsym_filename(t)
-        elif isinstance(t, mesonlib.File):
+            return self.get_target_shsym_filename(t)
+        if isinstance(t, mesonlib.File):
             if t.is_built:
                 return t.relative_name()
-            else:
-                return t.absolute_path(self.environment.get_source_dir(),
-                                       self.environment.get_build_dir())
+            return t.absolute_path(self.environment.get_source_dir(),
+                                   self.environment.get_build_dir())
         return self.get_target_filename(t)
 
     def generate_shlib_aliases(self, target: build.BuildTarget, outdir: str) -> None:

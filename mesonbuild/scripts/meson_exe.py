@@ -77,7 +77,7 @@ def run_exe(exe: ExecutableSerialisation, extra_env: dict[str, str] | None = Non
         print('--- stderr ---')
         print(stderr.decode(encoding=encoding, errors='replace'))
         return p.returncode
-    elif stderr: # Allow a wrapped subprocess to gracefully communicate warnings
+    if stderr: # Allow a wrapped subprocess to gracefully communicate warnings
         encoding = locale.getpreferredencoding()
         print(stderr.decode(encoding=encoding, errors='replace'))
 

@@ -56,10 +56,9 @@ class RewriterTests(BasePlatformTests):
         def deepsort(x):
             if isinstance(x, list):
                 return sorted(deepsort(el) for el in x)
-            elif isinstance(x, dict):
+            if isinstance(x, dict):
                 return {k: deepsort(v) for k,v in x.items()}
-            else:
-                return x
+            return x
         self.assertDictEqual(deepsort(a), deepsort(b))
 
     def test_target_source_list(self):

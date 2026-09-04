@@ -131,9 +131,8 @@ class CPPCompiler(CLikeCompiler, Compiler):
             if p.returncode == 0:
                 mlog.debug(f'Compiler accepts {cpp_std_value}:', 'YES')
                 return True
-            else:
-                mlog.debug(f'Compiler accepts {cpp_std_value}:', 'NO')
-                return False
+            mlog.debug(f'Compiler accepts {cpp_std_value}:', 'NO')
+            return False
 
     @functools.lru_cache
     def _find_best_cpp_std(self, cpp_std: str) -> str:
@@ -190,8 +189,7 @@ class _StdCPPLibMixin(CompilerMixinBase):
         # https://stackoverflow.com/a/31658120
         header = 'version' if self.has_header('version', '')[0] else 'ciso646'
         is_libcxx = self.has_header_symbol(header, '_LIBCPP_VERSION', '')[0]
-        lib = 'c++' if is_libcxx else 'stdc++'
-        return lib
+        return 'c++' if is_libcxx else 'stdc++'
 
     @functools.lru_cache(None)
     def language_stdlib_only_link_flags(self) -> list[str]:
@@ -535,13 +533,12 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
         # the compiler itself. Anything else isn't supported.
         if self.language_stdlib_provider == 'stdc++':
             return ['-D_GLIBCXX_ASSERTIONS=1']
-        else:
-            # One can use -stdlib=libc++ with GCC, it just (as of 2025) requires
-            # an experimental configure arg to expose that. libc++ supports "multiple"
-            # versions of GCC (only ever one version of GCC per libc++ version), but
-            # that is "multiple" for our purposes as we can't assume a mapping.
-            if version_compare(self.version, '>=18'):
-                return ['-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST']
+        # One can use -stdlib=libc++ with GCC, it just (as of 2025) requires
+        # an experimental configure arg to expose that. libc++ supports "multiple"
+        # versions of GCC (only ever one version of GCC per libc++ version), but
+        # that is "multiple" for our purposes as we can't assume a mapping.
+        if version_compare(self.version, '>=18'):
+            return ['-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST']
 
         return []
 
@@ -887,8 +884,7 @@ class CPP11AsCPP14Mixin(CompilerMixinBase):
                          once=True, fatal=False)
         original_args = super().get_option_std_args(target, subproject)
         std_mapping = {'/std:c++11': '/std:c++14'}
-        processed_args = [std_mapping.get(x, x) for x in original_args]
-        return processed_args
+        return [std_mapping.get(x, x) for x in original_args]
 
 
 class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, MSVCCompiler, CPPCompiler):

@@ -125,3 +125,4 @@ python = pymod.find_installation('python3', required: true)
             self.assertIn(limited_dep_name, output.decode())
         else:
             raise self.skipTest('Test needs either dumpbin(MSVC) or objdump(mingw).')
+        return None

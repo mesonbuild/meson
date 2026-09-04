@@ -139,8 +139,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
     def get_pch_name(self, name: str) -> str:
         chopped = os.path.basename(name).split('.')[:-1]
         chopped.append(self.get_pch_suffix())
-        pchname = '.'.join(chopped)
-        return pchname
+        return '.'.join(chopped)
 
     def get_pch_base_name(self, header: str) -> str:
         # This needs to be implemented by inheriting classes
@@ -181,8 +180,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
     def get_debug_args(self, is_debug: bool) -> list[str]:
         if is_debug:
             return ['/Z7']
-        else:
-            return []
+        return []
 
     def get_optimization_args(self, optimization_level: str) -> list[str]:
         args = msvc_optimization_args[optimization_level]
@@ -238,8 +236,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
                     # With MSVC, these are provided by the C runtime which is
                     # linked in by default
                     continue
-                else:
-                    i = name + '.lib'
+                i = name + '.lib'
             elif i.startswith(('-iquote=', '-isystem=', '-idirafter=')):
                 opt, i = i.split('=',  1)
                 i = cls.include_arg_to_native(opt, i)
@@ -307,8 +304,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
     def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> list[str]:
         pdbarr = rel_obj.split('.')[:-1]
         pdbarr += ['pdb']
-        args = ['/Fd' + '.'.join(pdbarr)]
-        return args
+        return ['/Fd' + '.'.join(pdbarr)]
 
     def get_instruction_set_args(self, instruction_set: str) -> list[str] | None:
         if self.is_64:

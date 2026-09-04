@@ -193,7 +193,7 @@ def _project_version_validator(value: list | str | mesonlib.File | None) -> str 
     if isinstance(value, list):
         if len(value) != 1:
             return 'when passed as array must have a length of 1'
-        elif not isinstance(value[0], mesonlib.File):
+        if not isinstance(value[0], mesonlib.File):
             return 'when passed as array must contain a File'
     return None
 
@@ -838,11 +838,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                     and os.path.isdir(v):
                 variables[k] = P_OBJ.DependencyVariableString(v)
 
-        dep = dependencies.InternalDependency(version, incs, compile_args,
-                                              link_args, libs, libs_whole, sources, extra_files,
-                                              deps, variables, d_module_versions, d_import_dirs,
-                                              objects)
-        return dep
+        return dependencies.InternalDependency(version, incs, compile_args,
+                                               link_args, libs, libs_whole, sources, extra_files,
+                                               deps, variables, d_module_versions, d_import_dirs,
+                                               objects)
 
     @typed_pos_args('assert', bool, optargs=[str])
     @noKwargs
@@ -1257,7 +1256,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if isinstance(option_object, options.UserFeatureOption):
             return Feature(optname, FeatureValue(value))
-        elif optname == 'b_sanitize':
+        if optname == 'b_sanitize':
             assert isinstance(option_object, options.UserStringArrayOption)
             # To ensure backwards compatibility this always returns a string.
             # We may eventually want to introduce a new "format" kwarg that
@@ -1499,18 +1498,17 @@ class Interpreter(InterpreterBase, HoldableObject):
         if for_machine is not None:
             for_machine = self.build.machine_map[for_machine]
             return self.add_languages(langs, required, for_machine)
-        else:
-            # absent 'native' means 'both' for backwards compatibility
-            tv = FeatureNew.get_target_version(self.subproject)
-            if FeatureNew.check_version(tv, '0.54'):
-                mlog.warning('add_languages is missing native:, assuming languages are wanted for both host and build.',
-                             location=node)
+        # absent 'native' means 'both' for backwards compatibility
+        tv = FeatureNew.get_target_version(self.subproject)
+        if FeatureNew.check_version(tv, '0.54'):
+            mlog.warning('add_languages is missing native:, assuming languages are wanted for both host and build.',
+                         location=node)
 
-            # If languages were removed as invalid, then return false
-            success = len(langs) == len(args[0])
-            success &= self.add_languages(langs, required, MachineChoice.HOST)
-            success &= self.add_languages(langs, False, MachineChoice.BUILD)
-            return success
+        # If languages were removed as invalid, then return false
+        success = len(langs) == len(args[0])
+        success &= self.add_languages(langs, required, MachineChoice.HOST)
+        success &= self.add_languages(langs, False, MachineChoice.BUILD)
+        return success
 
     def _stringify_user_arguments(self, args: list[TYPE_var], func_name: str) -> list[str]:
         try:
@@ -1739,8 +1737,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                  'machine not found.')
                         success = False
                         continue
-                    else:
-                        raise
+                    raise
                 if lang == 'cuda' and hasattr(self.backend, 'allow_thin_archives'):
                     # see NinjaBackend.__init__() why we need to disable thin archives for cuda
                     mlog.debug(f'added cuda as language, disabling thin archives for {for_machine}, since nvcc/nvlink cannot handle thin archives natively')
@@ -2118,15 +2115,15 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if target_type == 'executable':
             return self.build_target(node, args, kwargs, build.Executable)
-        elif target_type == 'shared_library':
+        if target_type == 'shared_library':
             return self.build_target(node, args, kwargs, build.SharedLibrary)
-        elif target_type == 'shared_module':
+        if target_type == 'shared_module':
             return self.build_target(node, args, kwargs, build.SharedModule)
-        elif target_type == 'static_library':
+        if target_type == 'static_library':
             return self.build_target(node, args, kwargs, build.StaticLibrary)
-        elif target_type == 'both_libraries':
+        if target_type == 'both_libraries':
             return self.build_both_libraries(node, args, kwargs)
-        elif target_type == 'library':
+        if target_type == 'library':
             return self.build_library(node, args, kwargs)
         # We can't avoid the cast here because of the mis-matched sources types
         # between Jar and BuildTarget types
@@ -2235,7 +2232,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if has_multi_in and ('@PLAINNAME@' in out or '@BASENAME@' in out):
                 raise InvalidArguments(f'{name}: output cannot contain "@PLAINNAME@" or "@BASENAME@" '
                                        'when there is more than one input (we can\'t know which to use)')
-            elif match:
+            if match:
                 FeatureNew.single_use(
                     f'{match} in output', '1.5.0',
                     self.subproject)
@@ -2463,7 +2460,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         exe = args[1]
         if isinstance(exe, Program) and not exe.found():
             raise InvalidArguments('Tried to use not-found external program as test exe')
-        elif isinstance(exe, mesonlib.File):
+        if isinstance(exe, mesonlib.File):
             exe = self.find_program_impl([exe])
         if isinstance(exe, (build.Executable, build.CustomTarget, build.CustomTargetIndex)):
             kwargs.setdefault('depends', []).append(exe.get_target())
@@ -2471,7 +2468,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         expected_fail = False
         if kwargs['should_fail'] is not None and kwargs['expected_fail'] is not None:
             raise InvalidArguments("Tried to use both 'should_fail' and 'expected_fail'")
-        elif kwargs['should_fail'] is not None:
+        if kwargs['should_fail'] is not None:
             expected_fail = kwargs['should_fail']
         elif kwargs['expected_fail'] is not None:
             expected_fail = kwargs['expected_fail']
@@ -2703,8 +2700,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                              'be ignored since Meson 0.64.0', location=self.current_node)
             perms = stat.filemode(mode.perms - stat.S_ISVTX)[1:]
             return FileMode(perms, mode.owner, mode.group)
-        else:
-            return mode
+        return mode
 
     @typed_pos_args('install_data', varargs=(str, mesonlib.File))
     @typed_kwargs(
@@ -2873,11 +2869,11 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException('Must specify an action with one of these '
                                        'keyword arguments: \'configuration\', '
                                        '\'command\', or \'copy\'.')
-        elif num_actions == 2:
+        if num_actions == 2:
             raise InterpreterException('Must not specify both {!r} and {!r} '
                                        'keyword arguments since they are '
                                        'mutually exclusive.'.format(*actions))
-        elif num_actions == 3:
+        if num_actions == 3:
             raise InterpreterException('Must specify one of {!r}, {!r}, and '
                                        '{!r} keyword arguments since they are '
                                        'mutually exclusive.'.format(*actions))
@@ -3083,12 +3079,11 @@ class Interpreter(InterpreterBase, HoldableObject):
                     external dependencies being installed within your source
                     tree - it's not recommended to do this.
                     '''))
-            else:
-                try:
-                    self.validate_within_subproject(self.subdir, a)
-                except InterpreterException:
-                    mlog.warning('include_directories sandbox violation!', location=self.current_node)
-                    print(textwrap.dedent(f'''\
+            try:
+                self.validate_within_subproject(self.subdir, a)
+            except InterpreterException:
+                mlog.warning('include_directories sandbox violation!', location=self.current_node)
+                print(textwrap.dedent(f'''\
                         The project is trying to access the directory {a!r} which belongs to a different
                         subproject. This is a problem as it hardcodes the relative paths of these two projects.
                         This makes it impossible to compile the project in any other directory layout and also
@@ -3114,8 +3109,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             absdir_build = os.path.join(absbase_build, a)
             if not os.path.isdir(absdir_src) and not os.path.isdir(absdir_build):
                 raise InvalidArguments(f'Include dir {a} does not exist.')
-        i = build.IncludeDirs(self.subdir, incdir_strings, is_system, self.current_build_project())
-        return i
+        return build.IncludeDirs(self.subdir, incdir_strings, is_system, self.current_build_project())
 
     @typed_pos_args('add_test_setup', str)
     @typed_kwargs(
@@ -3285,11 +3279,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         ret = os.path.join(*parts).replace('\\', '/')
         if isinstance(parts[0], P_OBJ.DependencyVariableString) and '..' not in other:
             return P_OBJ.DependencyVariableString(ret)
-        elif isinstance(parts[0], P_OBJ.OptionString):
+        if isinstance(parts[0], P_OBJ.OptionString):
             name = os.path.join(parts[0].optname, other)
             return P_OBJ.OptionString(ret, name)
-        else:
-            return ret
+        return ret
 
     def run(self) -> None:
         super().run()
@@ -3495,9 +3488,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             if in_root:
                 raise InvalidArguments(f"Target name '{name}' is reserved for Meson's "
                                        "internal use. Please rename.")
-            else:
-                FeatureNew.single_use(f"Target name '{name}' reserved in the root build directory, but allowed in subdirectories",
-                                      '1.12.0', self.subproject, location=self.current_node)
+            FeatureNew.single_use(f"Target name '{name}' reserved in the root build directory, but allowed in subdirectories",
+                                  '1.12.0', self.subproject, location=self.current_node)
 
     def add_target(self, name: str, tobj: build.Target) -> None:
         if self.backend.name == 'none':
@@ -3622,12 +3614,11 @@ class Interpreter(InterpreterBase, HoldableObject):
             # dependencies' in their headers expect this so that those dependencies
             # are added to the output of 'pkgconfig --cflags'.
             return self.build_target(node, args, T.cast('kwtypes.SharedLibrary', kwargs), build.SharedLibrary, shared_library_only=False)
-        elif default_library == 'static':
+        if default_library == 'static':
             return self.build_target(node, args, T.cast('kwtypes.StaticLibrary', kwargs), build.StaticLibrary)
-        elif default_library == 'both':
+        if default_library == 'both':
             return self.build_both_libraries(node, args, kwargs)
-        else:
-            raise InterpreterException(f'Unknown default_library value: {default_library}.')
+        raise InterpreterException(f'Unknown default_library value: {default_library}.')
 
     def __convert_file_args(self, raw: list[mesonlib.FileOrString]) -> tuple[list[mesonlib.File], list[str]]:
         """Convert raw target arguments from File | str to File.
@@ -4113,7 +4104,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         for s in sources:
             if isinstance(s, (str, mesonlib.File)) and compilers.is_java(s):
                 raise InvalidArguments(f'Build target of type "{targetclass.typename}" cannot build java source: "{s}". Use "{build.Jar.typename}" instead.')
-            elif isinstance(s, build.StructuredSources):
+            if isinstance(s, build.StructuredSources):
                 self.check_for_jar_sources(s.as_list(), targetclass)
             elif isinstance(s, (build.GeneratedList, build.CustomTarget, build.CustomTargetIndex)):
                 self.check_for_jar_sources(s.get_outputs(), targetclass)

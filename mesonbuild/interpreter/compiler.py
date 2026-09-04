@@ -350,7 +350,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         cached_msg = mlog.blue('(cached)') if cached else ''
         if required and not had:
             raise InterpreterException(f'{self.compiler.get_display_language()} member {membername!r} of type {typename!r} not usable')
-        elif had:
+        if had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
@@ -376,7 +376,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         if required and not had:
             # print members as array: ['member1', 'member2']
             raise InterpreterException(f'{self.compiler.get_display_language()} members {membernames!r} of type {typename!r} not usable')
-        elif had:
+        if had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
@@ -401,7 +401,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         cached_msg = mlog.blue('(cached)') if cached else ''
         if required and not had:
             raise InterpreterException(f'{self.compiler.get_display_language()} function {funcname!r} not usable')
-        elif had:
+        if had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
@@ -424,7 +424,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         cached_msg = mlog.blue('(cached)') if cached else ''
         if required and not had:
             raise InterpreterException(f'{self.compiler.get_display_language()} type {typename!r} not usable')
-        elif had:
+        if had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
@@ -602,7 +602,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         cached_msg = mlog.blue('(cached)') if cached else ''
         if required and not haz:
             raise InterpreterException(f'{self.compiler.get_display_language()} header {hname!r} not usable')
-        elif haz:
+        if haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
@@ -621,7 +621,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         cached_msg = mlog.blue('(cached)') if cached else ''
         if required and not haz:
             raise InterpreterException(f'{self.compiler.get_display_language()} header {hname!r} not found')
-        elif haz:
+        if haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
@@ -650,7 +650,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                                                       dependencies=deps)
         if required and not haz:
             raise InterpreterException(f'{self.compiler.get_display_language()} symbol {symbol} not found in header {hname}')
-        elif haz:
+        if haz:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
@@ -659,12 +659,11 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return haz
 
     def notfound_library(self, libname: str) -> dependencies.ExternalLibrary:
-        lib = dependencies.ExternalLibrary(libname, None,
-                                           self.environment,
-                                           self.compiler.language,
-                                           self.held_object.for_machine,
-                                           silent=True)
-        return lib
+        return dependencies.ExternalLibrary(libname, None,
+                                            self.environment,
+                                            self.compiler.language,
+                                            self.held_object.for_machine,
+                                            silent=True)
 
     @disablerIfNotFound
     @typed_pos_args('compiler.find_library', str)
@@ -720,9 +719,8 @@ class CompilerHolder(ObjectHolder['Compiler']):
                 libtype_s = libtype.name.lower()
             raise InterpreterException(f'{self.compiler.get_display_language()} {libtype_s} library {libname!r} not found'
                                        )
-        lib = dependencies.ExternalLibrary(libname, linkargs, self.environment,
-                                           self.compiler.language, self.held_object.for_machine)
-        return lib
+        return dependencies.ExternalLibrary(libname, linkargs, self.environment,
+                                            self.compiler.language, self.held_object.for_machine)
 
     def _has_argument_impl(self, arguments: str | list[str],
                            mode: _TestMode = _TestMode.COMPILER,

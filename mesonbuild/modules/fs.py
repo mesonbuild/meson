@@ -338,10 +338,9 @@ class FSModule(ExtensionModule):
         def to_path(arg: FilePathTypes) -> str:
             if isinstance(arg, File):
                 return arg.absolute_path(state.environment.source_dir, state.environment.build_dir)
-            elif isinstance(arg, (CustomTarget, CustomTargetIndex, BuildTarget)):
+            if isinstance(arg, (CustomTarget, CustomTargetIndex, BuildTarget)):
                 return state.backend.get_target_filename_abs(arg)
-            else:
-                return os.path.join(state.environment.source_dir, state.subdir, arg)
+            return os.path.join(state.environment.source_dir, state.subdir, arg)
 
         t = to_path(args[0])
         f = to_path(args[1])

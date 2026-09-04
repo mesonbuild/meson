@@ -28,7 +28,7 @@ def parse(lines: T.Iterable[str]) -> list[tuple[list[str], list[str]]]:
             if c in {'\\', '$'}:
                 escape = c
                 continue
-            elif c in {' ', '\n'}:
+            if c in {' ', '\n'}:
                 if out != '':
                     if in_deps:
                         deps.append(out)
@@ -41,7 +41,7 @@ def parse(lines: T.Iterable[str]) -> list[tuple[list[str], list[str]]]:
                     deps = []
                     in_deps = False
                 continue
-            elif c == ':':
+            if c == ':':
                 targets.append(out)
                 out = ''
                 in_deps = True

@@ -611,20 +611,20 @@ class LinuxlikeTests(BasePlatformTests):
             # thus, C++ first
             if '++17' in v and not has_cpp17:
                 continue
-            elif '++2a' in v and not has_cpp2a_c17:  # https://en.cppreference.com/w/cpp/compiler_support
+            if '++2a' in v and not has_cpp2a_c17:  # https://en.cppreference.com/w/cpp/compiler_support
                 continue
-            elif '++20' in v and not has_cpp20:
+            if '++20' in v and not has_cpp20:
                 continue
-            elif '++2b' in v and not has_cpp2b:
+            if '++2b' in v and not has_cpp2b:
                 continue
-            elif '++23' in v and not has_cpp23:
+            if '++23' in v and not has_cpp23:
                 continue
-            elif ('++26' in v or '++2c' in v) and not has_cpp26:
+            if ('++26' in v or '++2c' in v) and not has_cpp26:
                 continue
             # now C
-            elif '17' in v and not has_cpp2a_c17:
+            if '17' in v and not has_cpp2a_c17:
                 continue
-            elif '18' in v and not has_c18:
+            if '18' in v and not has_c18:
                 continue
             self.init(testdir, extra_args=[f'-D{key!s}={v}'])
             cmd = self.get_compdb()[0]['command']

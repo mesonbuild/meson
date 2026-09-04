@@ -183,10 +183,9 @@ class YasmCompiler(NasmCompiler):
         if is_debug:
             if isinstance(self.linker, VisualStudioLikeLinkerMixin):
                 return ['-g', 'cv8']
-            elif self.info.is_darwin():
+            if self.info.is_darwin():
                 return ['-g', 'null']
-            else:
-                return ['-g', 'dwarf2']
+            return ['-g', 'dwarf2']
         return []
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> list[str]:

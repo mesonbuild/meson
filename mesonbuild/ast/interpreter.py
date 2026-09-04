@@ -390,45 +390,45 @@ class AstInterpreter(InterpreterBase):
     def find_potential_writes(self, node: BaseNode) -> set[str]:
         if isinstance(node, mparser.ForeachClauseNode):
             return {el.value for el in node.varnames} | self.find_potential_writes(node.block)
-        elif isinstance(node, mparser.CodeBlockNode):
+        if isinstance(node, mparser.CodeBlockNode):
             ret = set()
             for line in node.lines:
                 ret.update(self.find_potential_writes(line))
             return ret
-        elif isinstance(node, (AssignmentNode, PlusAssignmentNode)):
+        if isinstance(node, (AssignmentNode, PlusAssignmentNode)):
             return {node.var_name.value} | self.find_potential_writes(node.value)
-        elif isinstance(node, IdNode):
+        if isinstance(node, IdNode):
             return set()
-        elif isinstance(node, ArrayNode):
+        if isinstance(node, ArrayNode):
             ret = set()
             for arg in node.args.arguments:
                 ret.update(self.find_potential_writes(arg))
             return ret
-        elif isinstance(node, mparser.DictNode):
+        if isinstance(node, mparser.DictNode):
             ret = set()
             for k, v in node.args.kwargs.items():
                 ret.update(self.find_potential_writes(k))
                 ret.update(self.find_potential_writes(v))
             return ret
-        elif isinstance(node, FunctionNode):
+        if isinstance(node, FunctionNode):
             ret = set()
             for arg in node.args.arguments:
                 ret.update(self.find_potential_writes(arg))
             for arg in node.args.kwargs.values():
                 ret.update(self.find_potential_writes(arg))
             return ret
-        elif isinstance(node, MethodNode):
+        if isinstance(node, MethodNode):
             ret = self.find_potential_writes(node.source_object)
             for arg in node.args.arguments:
                 ret.update(self.find_potential_writes(arg))
             for arg in node.args.kwargs.values():
                 ret.update(self.find_potential_writes(arg))
             return ret
-        elif isinstance(node, ArithmeticNode):
+        if isinstance(node, ArithmeticNode):
             return self.find_potential_writes(node.left) | self.find_potential_writes(node.right)
-        elif isinstance(node, (mparser.NumberNode, mparser.StringNode, mparser.BreakNode, mparser.BooleanNode, mparser.ContinueNode)):
+        if isinstance(node, (mparser.NumberNode, mparser.StringNode, mparser.BreakNode, mparser.BooleanNode, mparser.ContinueNode)):
             return set()
-        elif isinstance(node, mparser.IfClauseNode):
+        if isinstance(node, mparser.IfClauseNode):
             if isinstance(node.elseblock, EmptyNode):
                 ret = set()
             else:
@@ -436,19 +436,19 @@ class AstInterpreter(InterpreterBase):
             for i in node.ifs:
                 ret.update(self.find_potential_writes(i))
             return ret
-        elif isinstance(node, mparser.IndexNode):
+        if isinstance(node, mparser.IndexNode):
             return self.find_potential_writes(node.iobject) | self.find_potential_writes(node.index)
-        elif isinstance(node, mparser.IfNode):
+        if isinstance(node, mparser.IfNode):
             return self.find_potential_writes(node.condition) | self.find_potential_writes(node.block)
-        elif isinstance(node, (mparser.ComparisonNode, mparser.OrNode, mparser.AndNode)):
+        if isinstance(node, (mparser.ComparisonNode, mparser.OrNode, mparser.AndNode)):
             return self.find_potential_writes(node.left) | self.find_potential_writes(node.right)
-        elif isinstance(node, mparser.NotNode):
+        if isinstance(node, mparser.NotNode):
             return self.find_potential_writes(node.value)
-        elif isinstance(node, mparser.TernaryNode):
+        if isinstance(node, mparser.TernaryNode):
             return self.find_potential_writes(node.condition) | self.find_potential_writes(node.trueblock) | self.find_potential_writes(node.falseblock)
-        elif isinstance(node, mparser.UMinusNode):
+        if isinstance(node, mparser.UMinusNode):
             return self.find_potential_writes(node.value)
-        elif isinstance(node, mparser.ParenthesizedNode):
+        if isinstance(node, mparser.ParenthesizedNode):
             return self.find_potential_writes(node.inner)
         raise mesonlib.MesonBugException('Unhandled node type')
 
@@ -553,16 +553,15 @@ class AstInterpreter(InterpreterBase):
     def node_to_runtime_value(self, node: UnknownValue | TYPE_ivar | mparser.BaseNode) -> TYPE_ivar:
         if isinstance(node, (mparser.StringNode, mparser.BooleanNode, mparser.NumberNode)):
             return node.value
-        elif isinstance(node, mparser.StringNode):
+        if isinstance(node, mparser.StringNode):
             if node.is_fstring:
                 return UnknownValue()
-            else:
-                return node.value
-        elif isinstance(node, list):
+            return node.value
+        if isinstance(node, list):
             return [self.node_to_runtime_value(x) for x in node]
-        elif isinstance(node, ArrayNode):
+        if isinstance(node, ArrayNode):
             return [self.node_to_runtime_value(x) for x in node.args.arguments]
-        elif isinstance(node, mparser.DictNode):
+        if isinstance(node, mparser.DictNode):
             result: dict[str | UnknownValue, TYPE_ivar] = {}
             for raw_k, raw_v in node.args.kwargs.items():
                 k = self.node_to_runtime_value(raw_k)
@@ -572,17 +571,16 @@ class AstInterpreter(InterpreterBase):
                     # there could be more than one unknown key, so add an unknown mapping
                     result[UnknownValue()] = UnknownValue()
             return result
-        elif isinstance(node, IdNode):
+        if isinstance(node, IdNode):
             assert len(self.dataflow_dag.tgt_to_srcs[node]) == 1
             val = next(iter(self.dataflow_dag.tgt_to_srcs[node]))
             return self.node_to_runtime_value(val)
-        elif isinstance(node, (MethodNode, FunctionNode)):
+        if isinstance(node, (MethodNode, FunctionNode)):
             funcval = self.funcvals[node]
             if isinstance(funcval, (dict, str)):
                 return funcval
-            else:
-                return self.node_to_runtime_value(funcval)
-        elif isinstance(node, ArithmeticNode):
+            return self.node_to_runtime_value(funcval)
+        if isinstance(node, ArithmeticNode):
             left: TYPE_ivar = self.node_to_runtime_value(node.left)
             right: TYPE_ivar = self.node_to_runtime_value(node.right)
             if isinstance(left, list) and isinstance(right, UnknownValue):
@@ -617,15 +615,15 @@ class AstInterpreter(InterpreterBase):
             elif node.operation == '/':
                 if isinstance(left, int) and isinstance(right, int):
                     return left // right
-                elif isinstance(left, str) and isinstance(right, str):
+                if isinstance(left, str) and isinstance(right, str):
                     return os.path.join(left, right).replace('\\', '/')
             elif node.operation == '%':
                 if isinstance(left, int) and isinstance(right, int):
                     return left % right
             raise mesonlib.MesonException(f'invalid types for binary {node.operation}')
-        elif isinstance(node, (UnknownValue, IntrospectionBuildTarget, IntrospectionFile, IntrospectionDependency, str, bool, int)):
+        if isinstance(node, (UnknownValue, IntrospectionBuildTarget, IntrospectionFile, IntrospectionDependency, str, bool, int)):
             return node
-        elif isinstance(node, mparser.IndexNode):
+        if isinstance(node, mparser.IndexNode):
             iobject = self.node_to_runtime_value(node.iobject)
             index = self.node_to_runtime_value(node.index)
             if isinstance(iobject, UnknownValue) or isinstance(index, UnknownValue):
@@ -636,16 +634,16 @@ class AstInterpreter(InterpreterBase):
             if isinstance(iobject, dict) and isinstance(index, str):
                 return iobject[index]
             raise mesonlib.MesonException('invalid types for indexing')
-        elif isinstance(node, mparser.ComparisonNode):
+        if isinstance(node, mparser.ComparisonNode):
             left = self.node_to_runtime_value(node.left)
             right = self.node_to_runtime_value(node.right)
             if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
                 return UnknownValue()
             if node.ctype == '==':
                 return left == right
-            elif node.ctype == '!=':
+            if node.ctype == '!=':
                 return left != right
-            elif node.ctype == 'in':
+            if node.ctype == 'in':
                 if isinstance(right, list):
                     return left in right
                 if isinstance(left, str) and isinstance(right, (str, dict)):
@@ -656,7 +654,7 @@ class AstInterpreter(InterpreterBase):
                 if isinstance(left, str) and isinstance(right, (str, dict)):
                     return left not in right
             raise mesonlib.MesonException(f'invalid types for "{node.ctype}"')
-        elif isinstance(node, mparser.TernaryNode):
+        if isinstance(node, mparser.TernaryNode):
             cond = self.node_to_runtime_value(node.condition)
             if isinstance(cond, UnknownValue):
                 return UnknownValue()
@@ -763,12 +761,11 @@ class AstInterpreter(InterpreterBase):
         def src_to_abs(src: TYPE_ivar) -> str | UnknownValue:
             if isinstance(src, str):
                 return os.path.normpath(os.path.join(root_path, subdir, src))
-            elif isinstance(src, IntrospectionFile):
+            if isinstance(src, IntrospectionFile):
                 return str(src.to_abs_path(root_path))
-            elif isinstance(src, UnknownValue):
+            if isinstance(src, UnknownValue):
                 return src
-            else:
-                raise TypeError
+            raise TypeError
 
         rtvals: list[TYPE_ivar] = self.flatten_args(nodes)
         return [src_to_abs(x) for x in rtvals]
@@ -819,8 +816,7 @@ class AstInterpreter(InterpreterBase):
         if isinstance(cur, mparser.IdNode):
             self.dataflow_dag.add_edge(self.get_cur_value(cur.value), cur)
             return None
-        else:
-            return super().evaluate_statement(cur)
+        return super().evaluate_statement(cur)
 
     def function_call(self, node: mparser.FunctionNode) -> T.Any:
         ret = super().function_call(node)

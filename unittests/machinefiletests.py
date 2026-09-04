@@ -244,7 +244,7 @@ class NativeFileTests(BasePlatformTests):
             # python module breaks. This is fine on other OSes because they
             # don't need the extra indirection.
             raise SkipTest('bat indirection breaks internal sanity checks.')
-        elif is_osx():
+        if is_osx():
             binary = 'python'
             if not shutil.which(binary):
                 raise SkipTest('Not running Python2 tests because it was not found.')
@@ -336,10 +336,9 @@ class NativeFileTests(BasePlatformTests):
             if comp.id == 'dmd':
                 if shutil.which('ldc'):
                     return 'ldc', 'ldc'
-                elif shutil.which('gdc'):
+                if shutil.which('gdc'):
                     return 'gdc', 'gdc'
-                else:
-                    raise SkipTest('No alternative dlang compiler found.')
+                raise SkipTest('No alternative dlang compiler found.')
             if shutil.which('dmd'):
                 return 'dmd', 'dmd'
             raise SkipTest('No alternative dlang compiler found.')
@@ -366,16 +365,16 @@ class NativeFileTests(BasePlatformTests):
                 if shutil.which('lfortran'):
                     return 'lfortran', 'lcc'
                 raise SkipTest('No alternate Fortran implementation.')
-            elif comp.id == 'gcc':
+            if comp.id == 'gcc':
                 if shutil.which('ifort'):
                     # There is an ICC for windows (windows build, linux host),
                     # but we don't support that ATM so let's not worry about it.
                     if is_windows():
                         return 'ifort', 'intel-cl'
                     return 'ifort', 'intel'
-                elif shutil.which('flang'):
+                if shutil.which('flang'):
                     return 'flang', 'flang'
-                elif shutil.which('pgfortran'):
+                if shutil.which('pgfortran'):
                     return 'pgfortran', 'pgi'
                 # XXX: there are several other fortran compilers meson
                 # supports, but I don't have any of them to test with

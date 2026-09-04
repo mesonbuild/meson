@@ -282,7 +282,7 @@ class CoreData:
                 if os.path.isfile(f):
                     real.append(os.path.abspath(f))
                     continue
-                elif os.path.isdir(f):
+                if os.path.isdir(f):
                     found_invalid.append(os.path.abspath(f))
                 else:
                     # in this case we've been passed some kind of pipe, copy

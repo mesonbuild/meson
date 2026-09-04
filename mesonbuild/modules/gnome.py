@@ -265,12 +265,11 @@ def annotations_validator(annotations: list[str | list[str]]) -> str | None:
 
     if not annotations:
         return None
-    elif all(isinstance(annot, str) for annot in annotations):
+    if all(isinstance(annot, str) for annot in annotations):
         if len(annotations) == 3:
             return None
-        else:
-            return badlist
-    elif not all(isinstance(annot, list) for annot in annotations):
+        return badlist
+    if not all(isinstance(annot, list) for annot in annotations):
         for c, annot in enumerate(annotations):
             if not isinstance(annot, list):
                 return f'element {c+1} must be a list'
@@ -537,7 +536,7 @@ class GnomeModule(ExtensionModule):
         if kwargs['install']:
             if not gresource:
                 raise MesonException('The install kwarg only applies to gresource bundles, see install_header')
-            elif not kwargs['install_dir']:
+            if not kwargs['install_dir']:
                 raise MesonException('gnome.compile_resources: "install_dir" keyword argument must be set when "install" is true.')
 
         install_header = kwargs['install_header']
@@ -633,7 +632,7 @@ class GnomeModule(ExtensionModule):
                     dep_files.append(dep)
                     subdirs.append(dep.subdir)
                     break
-                elif isinstance(dep, (CustomTarget, CustomTargetIndex)):
+                if isinstance(dep, (CustomTarget, CustomTargetIndex)):
                     fname = None
                     outputs = {(o, os.path.basename(o)) for o in dep.get_outputs()}
                     for o, baseo in outputs:
@@ -1979,8 +1978,7 @@ class GnomeModule(ExtensionModule):
                 install=kwargs['install_header'],
                 install_dir=kwargs['install_dir'])
             return ModuleReturnValue(target, [target])
-        else:
-            return ModuleReturnValue(targets, targets)
+        return ModuleReturnValue(targets, targets)
 
     @FeatureNew('gnome.mkenums_simple', '0.42.0')
     @typed_pos_args('gnome.mkenums_simple', str)

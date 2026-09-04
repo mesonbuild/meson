@@ -261,8 +261,7 @@ class RustWorkspace(ModuleObject):
         if pkg is None:
             if args[1]:
                 raise MesonException(f'No version of cargo package "{package_name}" provides API {args[1]}')
-            else:
-                raise MesonException(f'Cargo package "{package_name}" not available')
+            raise MesonException(f'Cargo package "{package_name}" not available')
 
         self._do_subproject(state, pkg, kwargs['native'])
         return RustSubproject(state, self, pkg, kwargs['native'])
@@ -474,14 +473,13 @@ class RustPackage(RustCrate):
 
         if static and shared:
             return state._interpreter.build_both_libraries(state.current_node, lib_args, kwargs)
-        elif shared:
+        if shared:
             return state._interpreter.build_target(state.current_node, lib_args,
                                                    T.cast('_kwargs.SharedLibrary', kwargs),
                                                    SharedLibrary)
-        else:
-            return state._interpreter.build_target(state.current_node, lib_args,
-                                                   T.cast('_kwargs.StaticLibrary', kwargs),
-                                                   StaticLibrary)
+        return state._interpreter.build_target(state.current_node, lib_args,
+                                               T.cast('_kwargs.StaticLibrary', kwargs),
+                                               StaticLibrary)
 
     def _proc_macro_method(self, state: ModuleState, args: tuple[
             str | StructuredSources | None,
@@ -1100,8 +1098,7 @@ class RustModule(ExtensionModule):
         if 'rust' in compilers:
             rustc = T.cast('RustCompiler', compilers['rust'])
             return rustc.get_target_triple()
-        else:
-            raise MesonException(f'No Rust compiler was requested for the {for_machine} machine')
+        raise MesonException(f'No Rust compiler was requested for the {for_machine} machine')
 
     @FeatureNew('rust.proc_macro', '1.3.0')
     @typed_pos_args('rust.proc_macro', str, varargs=SOURCES_VARARGS)
@@ -1120,8 +1117,7 @@ class RustModule(ExtensionModule):
                 continue
             kwargs[s.name] = s.default  # type: ignore[literal-required]
 
-        target = state._interpreter.build_target(state.current_node, args, kwargs, SharedLibrary)
-        return target
+        return state._interpreter.build_target(state.current_node, args, kwargs, SharedLibrary)
 
     @FeatureNew('rust.to_system_dependency', '1.11.0')
     @typed_pos_args('rust.to_system_dependency', Dependency, optargs=[str])

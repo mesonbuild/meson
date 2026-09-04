@@ -75,7 +75,7 @@ def gtkdoc_run_check(cmd: list[str], cwd: str, library_paths: list[str] | None =
         if out:
             err_msg.append(out)
         raise MesonException('\n'.join(err_msg))
-    elif out:
+    if out:
         # Unfortunately Windows cmd.exe consoles may be using a codepage
         # that might choke print() with a UnicodeEncodeError, so let's
         # ignore such errors for now, as a compromise as we are outputting

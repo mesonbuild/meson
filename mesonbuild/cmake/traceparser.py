@@ -282,7 +282,7 @@ class CMakeTraceParser:
 
         if self.permissive:
             mlog.debug(f'CMake trace warning: {function}() {error}\n{tline}')
-            return None
+            return
         raise CMakeException(f'CMake: {function}() {error}\n{tline}')
 
     def _cmake_set(self, tline: CMakeTraceLine) -> None:
@@ -345,6 +345,7 @@ class CMakeTraceParser:
         else:
             self.vars[identifier] = value.split(';')
             self.vars_by_file.setdefault(tline.file, {})[identifier] = value.split(';')
+        return None
 
     def _cmake_unset(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/unset.html
@@ -353,6 +354,7 @@ class CMakeTraceParser:
 
         if tline.args[0] in self.vars:
             del self.vars[tline.args[0]]
+        return None
 
     def _cmake_add_executable(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/add_executable.html
@@ -369,6 +371,7 @@ class CMakeTraceParser:
             return self._gen_exception('add_executable', 'requires at least 1 argument', tline)
 
         self.targets[args[0]] = CMakeTarget(args[0], 'EXECUTABLE', {}, tline=tline, imported=is_imported)
+        return None
 
     def _cmake_add_library(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/add_library.html
@@ -403,6 +406,7 @@ class CMakeTraceParser:
             return self._gen_exception('add_library', 'OBJECT libraries are not supported', tline)
         else:
             self.targets[args[0]] = CMakeTarget(args[0], 'NORMAL', {}, tline=tline)
+        return None
 
     def _cmake_add_custom_command(self, tline: CMakeTraceLine, name: str | None = None) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_command.html
@@ -475,6 +479,7 @@ class CMakeTraceParser:
         self.custom_targets += [target]
         if name:
             self.targets[name] = target
+        return None
 
     def _cmake_add_custom_target(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_target.html
@@ -484,6 +489,7 @@ class CMakeTraceParser:
 
         # It's pretty much the same as a custom command
         self._cmake_add_custom_command(tline, tline.args[0])
+        return None
 
     def _cmake_set_property(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/set_property.html
@@ -511,7 +517,7 @@ class CMakeTraceParser:
 
         if len(args) == 1:
             # Tries to set property to nothing so nothing has to be done
-            return
+            return None
 
         identifier = args.pop(0)
         if self.trace_format == 'human':
@@ -519,7 +525,7 @@ class CMakeTraceParser:
         else:
             value = [y for x in args for y in x.split(';')]
         if not value:
-            return
+            return None
 
         def do_target(t: str) -> None:
             if t not in self.targets:
@@ -533,6 +539,7 @@ class CMakeTraceParser:
                 tgt.properties[identifier] += value
             else:
                 tgt.properties[identifier] = value
+            return None
 
         def do_source(src: str) -> None:
             if identifier != 'HEADER_FILE_ONLY' or not self._str_to_bool(value):
@@ -560,6 +567,7 @@ class CMakeTraceParser:
             files = self._guess_files(targets)
             for i in files:
                 do_source(i)
+        return None
 
     def _cmake_set_target_properties(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/set_target_properties.html
@@ -613,6 +621,7 @@ class CMakeTraceParser:
                     return self._gen_exception('set_target_properties', f'TARGET {i} not found', tline)
 
                 self.targets[i].properties[name] = value
+        return None
 
     def _cmake_add_dependencies(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/add_dependencies.html
@@ -627,6 +636,7 @@ class CMakeTraceParser:
 
         for i in args[1:]:
             target.depends += i.split(';')
+        return None
 
     def _cmake_target_compile_definitions(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/target_compile_definitions.html
@@ -656,9 +666,10 @@ class CMakeTraceParser:
             return self._gen_exception('message', 'takes at least 1 argument', tline)
 
         if args[0].upper().strip() not in ['FATAL_ERROR', 'SEND_ERROR']:
-            return
+            return None
 
         self.errors += [' '.join(args[1:])]
+        return None
 
     def _parse_common_target_options(self, func: str, private_prop: str, interface_prop: str, tline: CMakeTraceLine, ignore: list[str] | None = None, paths: bool = False) -> None:
         if ignore is None:
@@ -703,6 +714,7 @@ class CMakeTraceParser:
                 self.targets[target].properties[j[0]] = []
 
             self.targets[target].properties[j[0]] += j[1]
+        return None
 
     def _meson_ps_execute_delayed_calls(self, tline: CMakeTraceLine) -> None:
         for l in self.stored_commands:

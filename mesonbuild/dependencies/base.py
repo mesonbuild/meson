@@ -244,8 +244,7 @@ class Dependency(HoldableObject):
     def get_version(self) -> str:
         if self.version:
             return self.version
-        else:
-            return 'unknown'
+        return 'unknown'
 
     def get_include_dirs(self) -> list[IncludeDirs]:
         return []
@@ -413,7 +412,7 @@ class InternalDependency(Dependency):
             if isinstance(x, SharedLibrary):
                 raise MesonException('Cannot convert a dependency to link_whole when it contains a '
                                      'SharedLibrary')
-            elif isinstance(x, (CustomTarget, CustomTargetIndex)) and x.links_dynamically():
+            if isinstance(x, (CustomTarget, CustomTargetIndex)) and x.links_dynamically():
                 raise MesonException('Cannot convert a dependency to link_whole when it contains a '
                                      'CustomTarget or CustomTargetIndex which is a shared library')
 
@@ -675,15 +674,14 @@ def detect_compiler(name: str, env: Environment, for_machine: MachineChoice,
             m = '{0} requires a {1} compiler, but {1} is not in the list of project languages'
             raise DependencyException(m.format(name.capitalize(), language.capitalize()))
         return compilers[language]
-    else:
-        # https://github.com/python/mypy/issues/18826
-        # However, we need to support versions of mypy that cannot deduce the
-        # tuple.
-        for lang in T.cast('tuple[Language, ...]', clib_langs):
-            try:
-                return compilers[lang]
-            except KeyError:
-                continue
+    # https://github.com/python/mypy/issues/18826
+    # However, we need to support versions of mypy that cannot deduce the
+    # tuple.
+    for lang in T.cast('tuple[Language, ...]', clib_langs):
+        try:
+            return compilers[lang]
+        except KeyError:
+            continue
     return MissingCompiler()
 
 

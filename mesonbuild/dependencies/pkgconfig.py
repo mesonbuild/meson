@@ -362,11 +362,10 @@ class PkgConfigDependency(ExternalDependency):
             mlog.warning(f"Pkg-config error with '{name}': {e}")
             if self.required:
                 raise
-            else:
-                self.compile_args = []
-                self.link_args = []
-                self.is_found = False
-                self.reason = e
+            self.compile_args = []
+            self.link_args = []
+            self.is_found = False
+            self.reason = e
 
     def __repr__(self) -> str:
         s = '<{0} {1}: {2} {3}>'
@@ -501,9 +500,8 @@ class PkgConfigDependency(ExternalDependency):
                 if foundname is None:
                     if lib in libs_notfound:
                         continue
-                    else:
-                        mlog.warning(f'Library {libfilename!r} not found for dependency {self.name!r}, may '
-                                     'not be successfully linked')
+                    mlog.warning(f'Library {libfilename!r} not found for dependency {self.name!r}, may '
+                                 'not be successfully linked')
                     libs_notfound.append(lib)
                 else:
                     lib = foundname

@@ -220,7 +220,7 @@ class BasicPythonExternalProgram(ExternalProgram):
     def _check_version(self, version: str) -> bool:
         if self.name == 'python2':
             return mesonlib.version_compare(version, '< 3.0')
-        elif self.name == 'python3':
+        if self.name == 'python3':
             return mesonlib.version_compare(version, '>= 3.0')
         return True
 
@@ -256,8 +256,7 @@ class BasicPythonExternalProgram(ExternalProgram):
         if info is not None and self._check_version(info['version']):
             self.info = T.cast('PythonIntrospectionDict', info)
             return True
-        else:
-            return False
+        return False
 
 
 class _PythonDependencyBase(_Base):
@@ -353,17 +352,16 @@ class _PythonDependencyBase(_Base):
         if self.platform.startswith('mingw'):
             if 'x86_64' in self.platform:
                 return 'x86_64'
-            elif 'i686' in self.platform:
+            if 'i686' in self.platform:
                 return 'x86'
-            elif 'aarch64' in self.platform:
+            if 'aarch64' in self.platform:
                 return 'aarch64'
-            else:
-                raise DependencyException(f'MinGW Python built with unknown platform {self.platform!r}, please file a bug')
-        elif self.platform == 'win32':
+            raise DependencyException(f'MinGW Python built with unknown platform {self.platform!r}, please file a bug')
+        if self.platform == 'win32':
             return 'x86'
-        elif self.platform in {'win64', 'win-amd64'}:
+        if self.platform in {'win64', 'win-amd64'}:
             return 'x86_64'
-        elif self.platform in {'win-arm64'}:
+        if self.platform in {'win-arm64'}:
             return 'aarch64'
         raise DependencyException('Unknown Windows Python platform {self.platform!r}')
 

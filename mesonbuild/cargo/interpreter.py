@@ -223,10 +223,9 @@ class PackageState:
             if len(supported_abis) > 1:
                 raise MesonException(f'Package {self.manifest.package.name} support more than one ABI')
             return next(iter(supported_abis))
-        else:
-            if rust_abi not in supported_abis:
-                raise MesonException(f'Package {self.manifest.package.name} does not support ABI {rust_abi}')
-            return rust_abi
+        if rust_abi not in supported_abis:
+            raise MesonException(f'Package {self.manifest.package.name} does not support ABI {rust_abi}')
+        return rust_abi
 
     def abi_has_shared(self, rust_abi: RUST_ABI) -> bool:
         if rust_abi == 'proc-macro':
@@ -249,10 +248,9 @@ class PackageState:
 
         if rust_abi in {'rust', 'proc-macro'}:
             return _dependency_name(package_name, api)
-        elif rust_abi == 'c':
+        if rust_abi == 'c':
             return _dependency_name(package_name, api, '')
-        else:
-            raise MesonException(f'Unknown rust_abi: {rust_abi}')
+        raise MesonException(f'Unknown rust_abi: {rust_abi}')
 
     def get_rust_dependency_name(self) -> str:
         """Get the dependency name for a package with the rust or proc-macro ABI."""
@@ -409,9 +407,8 @@ class Interpreter:
             manifest, _ = self._load_manifest(subdir)
             assert isinstance(manifest, Manifest)
             return self.interpret_package(manifest, build, subdir, project_root)
-        else:
-            ws = self.load_workspace(subdir, None)
-            return self.interpret_workspace(ws, build, subdir)
+        ws = self.load_workspace(subdir, None)
+        return self.interpret_workspace(ws, build, subdir)
 
     def interpret_package(self, manifest: Manifest, build: builder.Builder, subdir: str, project_root: str) -> mparser.CodeBlockNode:
         # Build an AST for this package
@@ -896,7 +893,7 @@ def load_cargo_lock(filename: str, subproject_dir: str) -> CargoLock:
         if package.source is None:
             # This is project's package, or one of its workspace members.
             continue
-        elif package.source == 'registry+https://github.com/rust-lang/crates.io-index':
+        if package.source == 'registry+https://github.com/rust-lang/crates.io-index':
             checksum = package.checksum
             if checksum is None:
                 checksum = cargolock.metadata[f'checksum {package.name} {package.version} ({package.source})']

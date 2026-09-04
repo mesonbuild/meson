@@ -420,8 +420,7 @@ class CLikeCompiler(Compiler):
             # breaking form. See arglist._should_prepend
             largs = self.unix_args_to_native(largs)
 
-        args = cargs + extra_args + largs
-        return args
+        return cargs + extra_args + largs
 
     def _compile_int(self, expression: str, prefix: str,
                      extra_args: None | list[str] | T.Callable[[CompileCheckMode], list[str]],
@@ -689,7 +688,7 @@ class CLikeCompiler(Compiler):
             raise mesonlib.EnvironmentException(f'Could not get return value of {fname}()')
         if rtype == 'string':
             return res.stdout
-        elif rtype == 'int':
+        if rtype == 'int':
             try:
                 return int(res.stdout.strip())
             except ValueError:
@@ -905,7 +904,7 @@ class CLikeCompiler(Compiler):
                         mlog.debug("Underscore prefix check found prefixed function in binary")
                         return True
                     # Else, check if the non-underscored form is present
-                    elif symbol_name in line:
+                    if symbol_name in line:
                         mlog.debug("Underscore prefix check found non-prefixed function in binary")
                         return False
         raise RuntimeError(f'BUG: {n!r} check did not find symbol string in binary')
@@ -935,10 +934,9 @@ class CLikeCompiler(Compiler):
             mlog.debug(f'Queried compiler for function prefix: __USER_LABEL_PREFIX__ is "{symbol_prefix!s}"')
             if symbol_prefix == '_':
                 return True
-            elif symbol_prefix == '':
+            if symbol_prefix == '':
                 return False
-            else:
-                return None
+            return None
 
     def _symbols_have_underscore_prefix_list(self) -> bool | None:
         '''

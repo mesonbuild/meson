@@ -225,38 +225,35 @@ class CudaCompiler(Compiler):
                 # Otherwise return bare.
                 if set(arg).intersection(quotable):
                     return SQ+arg+SQ
-                else:
-                    return arg # Easy case: no splits, no quoting.
+                return arg # Easy case: no splits, no quoting.
+            # There are single quotes. Double-quote them, and single-quote the
+            # strings between them.
+            l = [cls._shield_nvcc_list_arg(s) for s in arg.split(SQ)]
+            l = sum([[s, DQSQ] for s in l][:-1], [])  # Interleave l with DQSQs
+            return ''.join(l)
+        # A comma is present, and list mode was active.
+        # We apply (what we guess is) the (primitive) NVCC splitting rule:
+        l = ['']
+        instring = False
+        argit = iter(arg)
+        for c in argit:
+            if c == CM and not instring:
+                l.append('')
+            elif c == DQ:
+                l[-1] += c
+                instring = not instring
+            elif c == BS:
+                try:
+                    l[-1] += next(argit)
+                except StopIteration:
+                    break
             else:
-                # There are single quotes. Double-quote them, and single-quote the
-                # strings between them.
-                l = [cls._shield_nvcc_list_arg(s) for s in arg.split(SQ)]
-                l = sum([[s, DQSQ] for s in l][:-1], [])  # Interleave l with DQSQs
-                return ''.join(l)
-        else:
-            # A comma is present, and list mode was active.
-            # We apply (what we guess is) the (primitive) NVCC splitting rule:
-            l = ['']
-            instring = False
-            argit = iter(arg)
-            for c in argit:
-                if c == CM and not instring:
-                    l.append('')
-                elif c == DQ:
-                    l[-1] += c
-                    instring = not instring
-                elif c == BS:
-                    try:
-                        l[-1] += next(argit)
-                    except StopIteration:
-                        break
-                else:
-                    l[-1] += c
+                l[-1] += c
 
-            # Shield individual strings, without listmode, then return them with
-            # escaped commas between them.
-            l = [cls._shield_nvcc_list_arg(s, listmode=False) for s in l]
-            return r'\,'.join(l)
+        # Shield individual strings, without listmode, then return them with
+        # escaped commas between them.
+        l = [cls._shield_nvcc_list_arg(s, listmode=False) for s in l]
+        return r'\,'.join(l)
 
     @classmethod
     def _merge_flags(cls, flags: list[str]) -> list[str]:
@@ -282,11 +279,10 @@ class CudaCompiler(Compiler):
         def get_xcompiler_val(flag: str, flagit: T.Iterator[str]) -> str:
             if is_xcompiler_flag_glued(flag):
                 return flag[len('-Xcompiler='):]
-            else:
-                try:
-                    return next(flagit)
-                except StopIteration:
-                    return ""
+            try:
+                return next(flagit)
+            except StopIteration:
+                return ""
 
         ingroup = False
         for flag in flagit:
@@ -378,7 +374,7 @@ class CudaCompiler(Compiler):
                 # This is not a flag. It's probably a file input. Pass it through.
                 xflags.append(flag)
                 continue
-            elif flag[:1] == '/':
+            if flag[:1] == '/':
                 # This is ambiguously either an MVSC-style /switch or an absolute path
                 # to a file. For some magical reason the following works acceptably in
                 # both cases.
@@ -388,7 +384,7 @@ class CudaCompiler(Compiler):
                 wrap = '"' if ',' in flag else ''
                 xflags.append(f'{prefix}{wrap}{flag}{wrap}')
                 continue
-            elif len(flag) >= 2 and flag[0] == '-' and flag[1] in 'IDULlmOxmte':
+            if len(flag) >= 2 and flag[0] == '-' and flag[1] in 'IDULlmOxmte':
                 # This is a single-letter short option. These options (with the
                 # exception of -o) are allowed to receive their argument with neither
                 # space nor = sign before them. Detect and separate them in that event.
@@ -714,8 +710,7 @@ class CudaCompiler(Compiler):
             # Reference: [CUDA 10.1](https://docs.nvidia.com/cuda/archive/10.1/cuda-compiler-driver-nvcc/index.html#options-for-specifying-compilation-phase-generate-nonsystem-dependencies)
             # Reference: [CUDA 10.2](https://docs.nvidia.com/cuda/archive/10.2/cuda-compiler-driver-nvcc/index.html#options-for-specifying-compilation-phase-generate-nonsystem-dependencies)
             return ['-MD', '-MT', outtarget, '-MF', outfile]
-        else:
-            return []
+        return []
 
     def get_std_exe_link_args(self) -> list[str]:
         return self._to_host_flags(self.host_compiler.get_std_exe_link_args(), Phase.LINKER)
@@ -755,8 +750,7 @@ class CudaCompiler(Compiler):
             ccbindir = self.environment.coredata.optstore.get_value_for(key)
         if isinstance(ccbindir, str) and ccbindir != '':
             return [self._shield_nvcc_list_arg('-ccbin='+ccbindir, False)]
-        else:
-            return []
+        return []
 
     def get_profile_generate_args(self) -> list[str]:
         return ['-Xcompiler=' + x for x in self.host_compiler.get_profile_generate_args()]

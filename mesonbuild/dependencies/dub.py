@@ -112,10 +112,9 @@ class DubDependency(ExternalDependency):
                 raise DependencyException(
                     f'DUB version {dubver} is not compatible with Meson'
                     " (can't locate artifacts in DUB's cache). Upgrade to Dub >= 1.35.")
-            else:
-                mlog.warning(f'DUB dependency {name} not found because Dub {dubver} '
-                             "is not compatible with Meson. (Can't locate artifacts in DUB's cache)."
-                             ' Upgrade to Dub >= 1.35')
+            mlog.warning(f'DUB dependency {name} not found because Dub {dubver} '
+                         "is not compatible with Meson. (Can't locate artifacts in DUB's cache)."
+                         ' Upgrade to Dub >= 1.35')
             return
 
         mlog.debug(f'Determining dependency {name!r} with DUB executable '
@@ -352,8 +351,7 @@ class DubDependency(ExternalDependency):
         ret, res, err = self._call_dubbin(describe_cmd)
         if ret == 0:
             return (json.loads(res), helper_build, source)
-        else:
-            mlog.debug('DUB describe (raw) failed: ' + err)
+        mlog.debug('DUB describe (raw) failed: ' + err)
 
         pack_spec = self.name
         if self.version_reqs is not None:
@@ -361,7 +359,7 @@ class DubDependency(ExternalDependency):
                 mlog.error('Multiple version requirements are not supported for raw dub dependencies.')
                 mlog.error("Please specify only an exact version like '1.2.3'")
                 raise DependencyException('Multiple version requirements are not solvable for raw dub dependencies')
-            elif len(self.version_reqs) == 1:
+            if len(self.version_reqs) == 1:
                 pack_spec += '@' + self.version_reqs[0]
 
         describe_cmd = [
@@ -394,8 +392,7 @@ class DubDependency(ExternalDependency):
             tgt_file = tgt_desc['cacheArtifactPath']
             if os.path.exists(tgt_file):
                 return (tgt_file, {'configuration', 'platform', 'arch', 'compiler', 'compiler_version', 'build_type'})
-            else:
-                return (None, set())
+            return (None, set())
 
         assert self._search_in_cache
 
@@ -456,8 +453,7 @@ class DubDependency(ExternalDependency):
             if check_list.issubset(comps):
                 mlog.debug('Found', target)
                 return (target, comps)
-            else:
-                compatibilities = set.union(compatibilities, comps)
+            compatibilities = set.union(compatibilities, comps)
 
         return (None, compatibilities)
 

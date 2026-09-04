@@ -216,7 +216,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
                 for la in linkargs:
                     dcargs.append('-L=' + la.strip())
                 continue
-            elif arg.startswith(('-link-defaultlib', '-linker', '-link-internally', '-linkonce-templates', '-lib')):
+            if arg.startswith(('-link-defaultlib', '-linker', '-link-internally', '-linkonce-templates', '-lib')):
                 # these are special arguments to the LDC linker call,
                 # arguments like "-link-defaultlib-shared" do *not*
                 # denote a library to be linked, but change the default
@@ -224,11 +224,11 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
                 # default linker.
                 dcargs.append(arg)
                 continue
-            elif arg.startswith('-l'):
+            if arg.startswith('-l'):
                 # translate library link flag
                 dcargs.append('-L=' + arg)
                 continue
-            elif arg.startswith('-isystem'):
+            if arg.startswith('-isystem'):
                 # translate -isystem system include path
                 # this flag might sometimes be added by C library Cflags via
                 # pkg-config.
@@ -239,14 +239,14 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
                 else:
                     dcargs.append('-I' + arg[8:])
                 continue
-            elif arg.startswith('-idirafter'):
+            if arg.startswith('-idirafter'):
                 # same as -isystem, but appends the path instead
                 if arg.startswith('-idirafter='):
                     dcargs.append('-I=' + arg[11:])
                 else:
                     dcargs.append('-I' + arg[10:])
                 continue
-            elif arg.startswith('-L'):
+            if arg.startswith('-L'):
                 # The D linker expect library search paths in the form of -L=-L/path (the '=' is optional).
                 #
                 # This function receives a mix of arguments already prepended
@@ -298,8 +298,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
                 # ensure libraries are passed through to the linker
                 dcargs.append('-L=' + arg)
                 continue
-            else:
-                dcargs.append(arg)
+            dcargs.append(arg)
 
         return dcargs
 
@@ -485,7 +484,7 @@ class DCompiler(Compiler):
         if self.info.is_windows():
             if self.is_cross:
                 return [f'-mtriple={self.arch}-windows-msvc']
-            elif self.arch == 'x86_64':
+            if self.arch == 'x86_64':
                 return ['-m64']
             return ['-m32']
         return []
@@ -674,7 +673,7 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
     def get_warn_args(self, level: str) -> list[str]:
         if level in {'2', '3'}:
             return ['-wi', '-dw']
-        elif level == '1':
+        if level == '1':
             return ['-wi']
         return []
 
@@ -738,7 +737,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
             # so these needs to be inserted when linking static D libraries.
             if self.arch == 'x86_64':
                 return ['phobos64.lib']
-            elif self.arch == 'x86_mscoff':
+            if self.arch == 'x86_mscoff':
                 return ['phobos32mscoff.lib']
             return ['phobos.lib']
         return []
@@ -761,7 +760,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
         if self.info.is_windows():
             if self.arch == 'x86_64':
                 return ['-m64']
-            elif self.arch == 'x86_mscoff':
+            if self.arch == 'x86_mscoff':
                 return ['-m32mscoff']
             return ['-m32']
         return []

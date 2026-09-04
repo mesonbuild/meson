@@ -92,7 +92,7 @@ class Token(T.Generic[TV_TokenTypes]):
     def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             return self.tid == other
-        elif isinstance(other, Token):
+        if isinstance(other, Token):
             return self.tid == other.tid
         return NotImplemented
 
@@ -798,14 +798,14 @@ class Parser:
             if not isinstance(left, IdNode):
                 raise ParseException('Plusassignment target must be an id.', self.getline(), left.lineno, left.colno)
             return self.create_node(PlusAssignmentNode, left, operator, value)
-        elif self.accept('assign'):
+        if self.accept('assign'):
             operator = self.create_node(SymbolNode, self.previous)
             value = self.e1()
             if not isinstance(left, IdNode):
                 raise ParseException('Assignment target must be an id.',
                                      self.getline(), left.lineno, left.colno)
             return self.create_node(AssignmentNode, left, operator, value)
-        elif self.accept('questionmark'):
+        if self.accept('questionmark'):
             if self.in_ternary:
                 raise ParseException('Nested ternary operators are not allowed.',
                                      self.getline(), left.lineno, left.colno)
@@ -924,20 +924,19 @@ class Parser:
             self.block_expect('rparen', block_start)
             rpar = self.create_node(SymbolNode, self.previous)
             return ParenthesizedNode(lpar, e, rpar)
-        elif self.accept('lbracket'):
+        if self.accept('lbracket'):
             lbracket = self.create_node(SymbolNode, block_start)
             args = self.args()
             self.block_expect('rbracket', block_start)
             rbracket = self.create_node(SymbolNode, self.previous)
             return self.create_node(ArrayNode, lbracket, args, rbracket)
-        elif self.accept('lcurl'):
+        if self.accept('lcurl'):
             lcurl = self.create_node(SymbolNode, block_start)
             key_values = self.key_values()
             self.block_expect('rcurl', block_start)
             rcurl = self.create_node(SymbolNode, self.previous)
             return self.create_node(DictNode, lcurl, key_values, rcurl)
-        else:
-            return self.e10()
+        return self.e10()
 
     def e10(self) -> BaseNode:
         t = self.current

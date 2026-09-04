@@ -198,7 +198,7 @@ def _raw_description(t: object) -> str:
         if t:
             return f"array[{' | '.join(sorted(mesonlib.OrderedSet(type(v).__name__ for v in t)))}]"
         return 'array[]'
-    elif isinstance(t, dict):
+    if isinstance(t, dict):
         if t:
             return f"dict[{' | '.join(sorted(mesonlib.OrderedSet(type(v).__name__ for v in t.values())))}]"
         return 'dict[]'
@@ -299,12 +299,12 @@ def typed_pos_args(name: str, *types: type | tuple[type, ...],
                 max_args = num_types + max_varargs
                 if max_varargs == 0 and num_args < min_args:
                     raise InvalidArguments(f'"{name}" takes at least {min_args} arguments, but got {num_args}.')
-                elif max_varargs != 0 and (num_args < min_args or num_args > max_args):
+                if max_varargs != 0 and (num_args < min_args or num_args > max_args):
                     raise InvalidArguments(f'"{name}" takes between {min_args} and {max_args} arguments, but got {num_args}.')
             elif optargs:
                 if num_args < num_types:
                     raise InvalidArguments(f'"{name}" takes at least {num_types} arguments, but got {num_args}.')
-                elif num_args > num_types + len(optargs):
+                if num_args > num_types + len(optargs):
                     raise InvalidArguments(f'"{name}" takes at most {num_types + len(optargs)} arguments, but got {num_args}.')
                 # Add the number of positional arguments required
                 if num_args > num_types:
@@ -770,17 +770,15 @@ class FeatureNew(FeatureCheckBase):
     def check_version(target_version: MesonVersionTarget, feature_version: str) -> bool:
         if isinstance(target_version, mesonlib.Range):
             return mesonlib.version_compare_condition_with_min(target_version, feature_version)
-        else:
-            # Warn for anything newer than the current semver base slot.
-            major = coredata.version.split('.', maxsplit=1)[0]
-            return mesonlib.version_compare(feature_version, f'<{major}.0')
+        # Warn for anything newer than the current semver base slot.
+        major = coredata.version.split('.', maxsplit=1)[0]
+        return mesonlib.version_compare(feature_version, f'<{major}.0')
 
     @staticmethod
     def get_warning_str_prefix(tv: MesonVersionTarget) -> str:
         if isinstance(tv, mesonlib.Range) and tv.min is not None:
             return f'Project specifies a minimum meson_version \'{tv}\' but uses features which were added in newer versions:'
-        else:
-            return 'Project specifies no minimum version but uses features which were added in versions:'
+        return 'Project specifies no minimum version but uses features which were added in versions:'
 
     @staticmethod
     def get_notice_str_prefix(tv: MesonVersionTarget) -> str:
@@ -815,9 +813,8 @@ class FeatureDeprecated(FeatureCheckBase):
         if isinstance(target_version, mesonlib.Range):
             # For deprecation checks we need to return the inverse of FeatureNew checks
             return not mesonlib.version_compare_condition_with_min(target_version, feature_version)
-        else:
-            # Always warn for functionality deprecated in the current semver slot (i.e. the current version).
-            return False
+        # Always warn for functionality deprecated in the current semver slot (i.e. the current version).
+        return False
 
     @staticmethod
     def get_warning_str_prefix(tv: MesonVersionTarget) -> str:

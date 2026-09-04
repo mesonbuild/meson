@@ -552,7 +552,7 @@ class Environment:
             if comp.id == 'clang':
                 index = 1
                 break
-            elif comp.id == 'gcc':
+            if comp.id == 'gcc':
                 index = 2
                 break
         else:
@@ -570,7 +570,7 @@ class Environment:
         for comp in self.coredata.compilers[for_machine].values():
             if comp.id == 'clang':
                 break
-            elif comp.id == 'gcc':
+            if comp.id == 'gcc':
                 break
         else:
             # This option is only supported by gcc and clang. If we don't get a

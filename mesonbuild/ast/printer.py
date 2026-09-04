@@ -18,16 +18,16 @@ from .visitor import AstVisitor, FullAstVisitor
 def precedence_level(node: mparser.BaseNode) -> int:
     if isinstance(node, (mparser.PlusAssignmentNode, mparser.AssignmentNode, mparser.TernaryNode)):
         return 1
-    elif isinstance(node, mparser.OrNode):
+    if isinstance(node, mparser.OrNode):
         return 2
-    elif isinstance(node, mparser.AndNode):
+    if isinstance(node, mparser.AndNode):
         return 3
-    elif isinstance(node, mparser.ComparisonNode):
+    if isinstance(node, mparser.ComparisonNode):
         return 4
-    elif isinstance(node, mparser.ArithmeticNode):
+    if isinstance(node, mparser.ArithmeticNode):
         if node.operation in {'+', '-'}:
             return 5
-        elif node.operation in {'%', '*', '/'}:
+        if node.operation in {'%', '*', '/'}:
             return 6
     elif isinstance(node, (mparser.NotNode, mparser.UMinusNode)):
         return 7

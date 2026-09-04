@@ -385,9 +385,8 @@ class HotdocTargetHolder(_CustomTargetHolder['HotdocTarget']):
     @noKwargs
     @InterpreterObject.method('config_path')
     def config_path_method(self, *args: T.Any, **kwargs: T.Any) -> str:
-        conf = self.held_object.hotdoc_conf.absolute_path(self.interpreter.environment.source_dir,
+        return self.held_object.hotdoc_conf.absolute_path(self.interpreter.environment.source_dir,
                                                           self.interpreter.environment.build_dir)
-        return conf
 
 
 class HotdocTarget(CustomTarget):

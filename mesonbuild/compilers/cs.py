@@ -119,8 +119,7 @@ class VisualStudioCsCompiler(CsCompiler):
     def get_debug_args(self, is_debug: bool) -> list[str]:
         if is_debug:
             return ['-debug'] if self.info.is_windows() else ['-debug:portable']
-        else:
-            return []
+        return []
 
     def rsp_file_syntax(self) -> RSPFileSyntax:
         return RSPFileSyntax.MSVC

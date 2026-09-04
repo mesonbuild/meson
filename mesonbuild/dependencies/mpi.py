@@ -193,10 +193,9 @@ class MPIConfigToolDependency(ConfigToolDependency):
     def _is_link_arg(self, f: str) -> bool:
         if self.clib_compiler.id == 'intel-cl':
             return f == '/link' or f.startswith('/LIBPATH') or f.endswith('.lib')   # always .lib whether static or dynamic
-        else:
-            return (f.startswith(('-L', '-l', '-Xlinker')) or
-                    f == '-pthread' or
-                    (f.startswith('-W') and f != '-Wall' and not f.startswith('-Werror')))
+        return (f.startswith(('-L', '-l', '-Xlinker')) or
+                f == '-pthread' or
+                (f.startswith('-W') and f != '-Wall' and not f.startswith('-Werror')))
 
     def _check_and_get_version(self, tool: list[str], returncode: int) -> tuple[bool, str | None]:
         p, out = Popen_safe(tool + ['--showme:version'])[:2]

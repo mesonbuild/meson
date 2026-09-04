@@ -1264,13 +1264,12 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         assert isinstance(buildtype, str), 'for mypy'
         if buildtype == 'plain':
             return 'none'
-        elif buildtype == 'debug':
+        if buildtype == 'debug':
             return dbg
-        elif buildtype in {'debugoptimized', 'release', 'minsize'}:
+        if buildtype in {'debugoptimized', 'release', 'minsize'}:
             return rel
-        else:
-            assert buildtype == 'custom'
-            raise EnvironmentException('Requested C runtime based on buildtype, but buildtype is "custom".')
+        assert buildtype == 'custom'
+        raise EnvironmentException('Requested C runtime based on buildtype, but buildtype is "custom".')
 
     def get_crt_compile_args(self, crt_val: str) -> list[str]:
         raise EnvironmentException('This compiler does not support Windows CRT selection')
@@ -1730,8 +1729,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
             key = self.form_compileropt_key(key)
         if target:
             return self.environment.coredata.get_option_for_target(target, key)
-        else:
-            return self.environment.coredata.optstore.get_value_for(key.evolve(subproject=subproject))
+        return self.environment.coredata.optstore.get_value_for(key.evolve(subproject=subproject))
 
     def _update_language_stds(self, opts: MutableKeyedOptionDictType, value: list[str]) -> None:
         key = self.form_compileropt_key('std')

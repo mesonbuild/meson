@@ -697,8 +697,7 @@ class ConsoleLogger(TestLogger):
         lines = log.splitlines()
         if len(lines) < self.max_lines:
             return log
-        else:
-            return str(mlog.bold(f'Listing only the last {self.max_lines} lines from a long log.\n')) + '\n'.join(lines[-self.max_lines:])
+        return str(mlog.bold(f'Listing only the last {self.max_lines} lines from a long log.\n')) + '\n'.join(lines[-self.max_lines:])
 
     def print_log(self, harness: TestHarness, result: TestRun) -> None:
         if not result.verbose:
@@ -1019,10 +1018,9 @@ class TestRun:
     def console_mode(self) -> ConsoleUser:
         if self.interactive:
             return ConsoleUser.INTERACTIVE
-        elif self.direct_stdout:
+        if self.direct_stdout:
             return ConsoleUser.STDOUT
-        else:
-            return ConsoleUser.LOGGER
+        return ConsoleUser.LOGGER
 
     @property
     def direct_stdout(self) -> bool:
@@ -1035,8 +1033,7 @@ class TestRun:
             ran = sum(x.result not in {TestResult.SKIP, TestResult.IGNORED} for x in self.results)
             if passed == ran:
                 return f'{passed} subtests passed'
-            else:
-                return f'{passed}/{ran} subtests passed'
+            return f'{passed}/{ran} subtests passed'
         return ''
 
     def get_exit_status(self) -> str:
@@ -1212,9 +1209,9 @@ class TestRunRust(TestRun):
         def parse_res(n: int, name: str, result: str) -> TAPParser.Test:
             if result == 'ok':
                 return TAPParser.Test(n, name, TestResult.OK, None)
-            elif result.startswith('ignored'):
+            if result.startswith('ignored'):
                 return TAPParser.Test(n, name, TestResult.SKIP, None)
-            elif result == 'FAILED':
+            if result == 'FAILED':
                 return TAPParser.Test(n, name, TestResult.FAIL, None)
             return TAPParser.Test(n, name, TestResult.ERROR,
                                   f'Unsupported output from rust test: {result}')
@@ -1543,7 +1540,7 @@ class SingleTestRunner:
                 # Can not run test on cross compiled executable
                 # because there is no execute wrapper.
                 return None
-            elif self.test.cmd_is_exe:
+            if self.test.cmd_is_exe:
                 # If the command is not built (ie, its a python script),
                 # then we don't check for the exe-wrapper
                 if not self.test.exe_wrapper.found():
@@ -1764,8 +1761,7 @@ class TestHarness:
         if not datafile.is_file():
             raise TestException(f'Directory {self.options.wd!r} does not seem to be a Meson build directory.')
         with datafile.open('rb') as f:
-            objs = check_testdata(pickle.load(f))
-        return objs
+            return check_testdata(pickle.load(f))
 
     def __enter__(self) -> TestHarness:
         return self
@@ -1783,11 +1779,10 @@ class TestHarness:
             if self.options.setup not in self.build_data.test_setups:
                 sys.exit(f"Unknown test setup '{self.options.setup}'.")
             return self.build_data.test_setups[self.options.setup]
-        else:
-            full_name = test.project_name + ":" + self.options.setup
-            if full_name not in self.build_data.test_setups:
-                sys.exit(f"Test setup '{self.options.setup}' not found from project '{test.project_name}'.")
-            return self.build_data.test_setups[full_name]
+        full_name = test.project_name + ":" + self.options.setup
+        if full_name not in self.build_data.test_setups:
+            sys.exit(f"Test setup '{self.options.setup}' not found from project '{test.project_name}'.")
+        return self.build_data.test_setups[full_name]
 
     def merge_setup_options(self, options: argparse.Namespace, test: TestSerialisation) -> dict[str, str]:
         current = self.get_test_setup(test)
@@ -1958,8 +1953,7 @@ class TestHarness:
             split = suite.split(':', 1)
             assert len(split) == 2
             return split[0], split[1]
-        else:
-            return suite, ""
+        return suite, ""
 
     @staticmethod
     def test_in_suites(test: TestSerialisation, suites: list[str]) -> bool:
@@ -2345,8 +2339,7 @@ def run(options: argparse.Namespace) -> int:
             print('Meson test encountered an error:\n')
             if os.environ.get('MESON_FORCE_BACKTRACE'):
                 raise e
-            else:
-                print(e)
+            print(e)
             return 1
 
 def run_with_args(args: list[str]) -> int:
