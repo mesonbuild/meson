@@ -1,0 +1,8 @@
+{
+  "stdout": [
+    {
+      "match": "re",
+      "line": "test cases/failing/151 cargo excluded path dependency/meson\\.build:[0-9]+:[0-9]+: ERROR: package \"excluded\" excluded from the workspace must be under \"subprojects\""
+    }
+  ]
+}
