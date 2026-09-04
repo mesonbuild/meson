@@ -1,11 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
+from __future__ import annotations
+
 import subprocess
 import re
 import os
 import platform
 import unittest
+import typing as T
 
 from mesonbuild.mesonlib import (
     MachineChoice, is_osx, version_compare
@@ -20,7 +23,7 @@ from run_tests import (
 )
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import *
+from .helpers import skip_if_not_language, skipIfNoPkgconfig
 
 @unittest.skipUnless(is_osx(), "requires Darwin")
 class DarwinTests(BasePlatformTests):

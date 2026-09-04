@@ -1,8 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2024 Meson project contributors
 
-from mesonbuild.options import *
+from mesonbuild.options import (
+	OptionStore, OptionKey, UserStringOption, UserStringArrayOption,
+    UserComboOption, UserBooleanOption,
+)
 from mesonbuild.envconfig import MachineInfo
+from mesonbuild.utils.universal import MesonException, MachineChoice
 
 import os
 import unittest
@@ -236,7 +240,6 @@ class OptionTests(unittest.TestCase):
         optstore = OptionStore(False)
         name = 'cpp_std'
         sub_name = 'sub'
-        sub2_name = 'sub2'
         top_value = 'c++11'
         aug_value = 'c++23'
         set_value = 'c++20'

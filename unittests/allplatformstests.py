@@ -68,7 +68,10 @@ from run_tests import (
 )
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import *
+from .helpers import (
+	skip_if_not_language, skipIfNoExecutable, skip_if_no_cmake,
+    skipIfNoPkgconfig, IS_CI, chdir, get_rpath, skip_if_not_base_option,
+)
 
 if T.TYPE_CHECKING:
     from mesonbuild.compilers.compilers import Language
@@ -266,7 +269,6 @@ class AllPlatformTests(BasePlatformTests):
                 with open(os.path.join(self.builddir, header), encoding='utf-8') as f:
                     meson_header = f.read()
 
-                cmake_header_path = os.path.join(cmake_builddir, header)
                 with open(os.path.join(cmake_builddir, header), encoding='utf-8') as f:
                     cmake_header = f.read()
 
@@ -5545,7 +5547,7 @@ class AllPlatformTests(BasePlatformTests):
     @skipIfNoExecutable('rustdoc')
     def test_rustdoc(self) -> None:
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('Rust is only supported with ninja currently')
+            raise SkipTest('Rust is only supported with ninja currently')
         try:
             with tempfile.TemporaryDirectory() as tmpdir:
                 testdir = os.path.join(tmpdir, 'a')
@@ -5563,7 +5565,7 @@ class AllPlatformTests(BasePlatformTests):
     @skipIfNoExecutable('clippy-driver')
     def test_rust_clippy(self) -> None:
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('Rust is only supported with ninja currently')
+            raise SkipTest('Rust is only supported with ninja currently')
         # When clippy is used, we should get an exception since a variable named
         # "foo" is used, but is on our denylist
         testdir = os.path.join(self.rust_test_dir, '1 basic')
@@ -5581,7 +5583,7 @@ class AllPlatformTests(BasePlatformTests):
     @skipIfNoExecutable('clippy-driver')
     def test_rust_clippy_as_rustc(self) -> None:
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('Rust is only supported with ninja currently')
+            raise SkipTest('Rust is only supported with ninja currently')
         # When clippy is used, we should get an exception since a variable named
         # "foo" is used, but is on our denylist
         testdir = os.path.join(self.rust_test_dir, '1 basic')
@@ -5594,14 +5596,14 @@ class AllPlatformTests(BasePlatformTests):
     @skip_if_not_language('rust')
     def test_rust_test_warnings(self) -> None:
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('Rust is only supported with ninja currently')
+            raise SkipTest('Rust is only supported with ninja currently')
         testdir = os.path.join(self.rust_test_dir, '9 unit tests')
         self.init(testdir, extra_args=['--fatal-meson-warnings'])
 
     @skip_if_not_language('rust')
     def test_rust_rlib_linkage(self) -> None:
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('Rust is only supported with ninja currently')
+            raise SkipTest('Rust is only supported with ninja currently')
         template = textwrap.dedent('''\
                 use std::process::exit;
 
@@ -5632,7 +5634,7 @@ class AllPlatformTests(BasePlatformTests):
     @skip_if_not_language('rust')
     def test_bindgen_drops_invalid(self) -> None:
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('Rust is only supported with ninja currently')
+            raise SkipTest('Rust is only supported with ninja currently')
         testdir = os.path.join(self.rust_test_dir, '12 bindgen')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
@@ -5643,7 +5645,7 @@ class AllPlatformTests(BasePlatformTests):
         elif cc.get_id() == 'msvc':
             bad_arg = '/fastfail'
         else:
-            raise unittest.SkipTest('Test only supports GCC and MSVC')
+            raise SkipTest('Test only supports GCC and MSVC')
         self.init(testdir, extra_args=[f"-Dc_args=['-DCMD_ARG', '{bad_arg}']"])
         intro = self.introspect(['--targets'])
         for i in intro:

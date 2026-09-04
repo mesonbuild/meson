@@ -25,7 +25,7 @@ from run_tests import (
 )
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import *
+from .helpers import skipIfNoPkgconfigDep
 
 @contextmanager
 def no_pkgconfig():

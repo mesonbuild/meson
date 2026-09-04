@@ -50,7 +50,15 @@ from run_tests import (
 )
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import *
+from .helpers import (
+    skip_if_not_language, skip_if_not_base_option, get_rpath,
+    skipIfNoExecutable, skipIfNoPkgconfig, skipIfNoPkgconfigDep,
+    chdir, get_soname
+)
+
+if T.TYPE_CHECKING:
+    from mesonbuild.compilers import Compiler
+
 
 def _prepend_pkg_config_path(path: str) -> str:
     """Prepend a string value to pkg_config_path
