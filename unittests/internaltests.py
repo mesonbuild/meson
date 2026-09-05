@@ -37,15 +37,20 @@ from mesonbuild.compilers.d import DmdDCompiler, LLVMDCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
 from mesonbuild.compilers.mixins.visualstudio import MSVCCompiler, ClangClCompiler
 from mesonbuild.linkers import linkers
-from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectHolder
-from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_kwargs, ContainerTypeInfo, KwargInfo
+from mesonbuild.interpreterbase import (
+    ObjectHolder, DefaultObject, InvalidArguments, TypedArgs, ContainerTypeInfo,
+    KwargInfo, PosArgInfo, VarArgInfo,
+)
 from mesonbuild.mesonlib import (
     LibType, MachineChoice, PerMachine, SimpleABC, Version, is_windows, is_osx,
     is_cygwin, is_openbsd, search_version, MesonException, EnvironmentException, python_command,
     version_check_to_range,
 )
 from mesonbuild.options import OptionKey
-from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
+from mesonbuild.interpreter.type_checking import (
+    STR_PARG, INT_PARG, BOOL_PARG, STR_OARG, INT_OARG, STR_VARG,
+    in_set_validator, NoneType,
+)
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface, PkgConfigCLI
 from mesonbuild.programs import ExternalProgram
 import mesonbuild.modules.pkgconfig
@@ -1498,39 +1503,43 @@ Thread model: posix'''), '21.9.0')
         self.assertFalse(errors)
 
     def test_typed_pos_args_types(self) -> None:
-        @typed_pos_args('foo', str, int, bool)
+        @TypedArgs('foo', pos_types=[STR_PARG, INT_PARG, BOOL_PARG])
         def _(obj, node, args: T.Tuple[str, int, bool], kwargs) -> None:
             self.assertIsInstance(args, tuple)
             self.assertIsInstance(args[0], str)
             self.assertIsInstance(args[1], int)
             self.assertIsInstance(args[2], bool)
 
-        _(None, mock.Mock(), ['string', 1, False], None)
+        _(None, mock.Mock(), ['string', 1, False], {})
 
     def test_typed_pos_args_types_invalid(self) -> None:
-        @typed_pos_args('foo', str, int, bool)
+        @TypedArgs('foo', pos_types=[STR_PARG, INT_PARG, BOOL_PARG])
         def _(obj, node, args: T.Tuple[str, int, bool], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
-            _(None, mock.Mock(), ['string', 1.0, False], None)
+            _(None, mock.Mock(), ['string', 1.0, False], {})
         self.assertEqual(str(cm.exception), '"foo" positional argument "2" was of type "float" but should have been "int"')
 
     def test_typed_pos_args_types_wrong_number(self) -> None:
-        @typed_pos_args('foo', str, int, bool)
+        @TypedArgs('foo', pos_types=[STR_PARG, INT_PARG, BOOL_PARG])
         def _(obj, node, args: T.Tuple[str, int, bool], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
-            _(None, mock.Mock(), ['string', 1], None)
+            _(None, mock.Mock(), ['string', 1], {})
         self.assertEqual(str(cm.exception), '"foo" takes exactly 3 arguments, but got 2.')
 
         with self.assertRaises(InvalidArguments) as cm:
-            _(None, mock.Mock(), ['string', 1, True, True], None)
+            _(None, mock.Mock(), ['string', 1, True, True], {})
         self.assertEqual(str(cm.exception), '"foo" takes exactly 3 arguments, but got 4.')
 
     def test_typed_pos_args_varargs(self) -> None:
-        @typed_pos_args('foo', str, varargs=str)
+        @TypedArgs(
+            'foo',
+            pos_types=[STR_PARG],
+            var_types=STR_VARG,
+        )
         def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
             self.assertIsInstance(args, tuple)
             self.assertIsInstance(args[0], str)
@@ -1538,38 +1547,54 @@ Thread model: posix'''), '21.9.0')
             self.assertIsInstance(args[1][0], str)
             self.assertIsInstance(args[1][1], str)
 
-        _(None, mock.Mock(), ['string', 'var', 'args'], None)
+        _(None, mock.Mock(), ['string', 'var', 'args'], {})
 
     def test_typed_pos_args_varargs_not_given(self) -> None:
-        @typed_pos_args('foo', str, varargs=str)
+        @TypedArgs(
+            'foo',
+            pos_types=[STR_PARG],
+            var_types=STR_VARG,
+        )
         def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
             self.assertIsInstance(args, tuple)
             self.assertIsInstance(args[0], str)
             self.assertIsInstance(args[1], list)
             self.assertEqual(args[1], [])
 
-        _(None, mock.Mock(), ['string'], None)
+        _(None, mock.Mock(), ['string'], {})
 
     def test_typed_pos_args_varargs_invalid(self) -> None:
-        @typed_pos_args('foo', str, varargs=str)
+        @TypedArgs(
+            'foo',
+            pos_types=[STR_PARG],
+            var_types=STR_VARG,
+        )
         def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
-            _(None, mock.Mock(), ['string', 'var', 'args', 0], None)
+            _(None, mock.Mock(), ['string', 'var', 'args', 0], {})
         self.assertEqual(str(cm.exception), '"foo" positional argument "4" was of type "int" but should have been "str"')
 
     def test_typed_pos_args_varargs_invalid_multiple_types(self) -> None:
-        @typed_pos_args('foo', str, varargs=(str, list))
+        @TypedArgs(
+            'foo',
+            pos_types=[STR_PARG],
+            var_types=VarArgInfo((str, list)),
+        )
         def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
-            _(None, mock.Mock(), ['string', 'var', 'args', 0], None)
+            _(None, mock.Mock(), ['string', 'var', 'args', 0], {})
         self.assertEqual(str(cm.exception), '"foo" positional argument "4" was of type "int" but should have been one of: "str", "list"')
 
     def test_typed_pos_args_max_varargs(self) -> None:
-        @typed_pos_args('foo', str, varargs=str, max_varargs=5)
+        @TypedArgs(
+            'foo',
+            pos_types=[STR_PARG],
+            var_types=STR_VARG.evolve(max_args=5),
+        )
         def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
             self.assertIsInstance(args, tuple)
             self.assertIsInstance(args[0], str)
@@ -1577,95 +1602,135 @@ Thread model: posix'''), '21.9.0')
             self.assertIsInstance(args[1][0], str)
             self.assertIsInstance(args[1][1], str)
 
-        _(None, mock.Mock(), ['string', 'var', 'args'], None)
+        _(None, mock.Mock(), ['string', 'var', 'args'], {})
 
     def test_typed_pos_args_max_varargs_exceeded(self) -> None:
-        @typed_pos_args('foo', str, varargs=str, max_varargs=1)
+        @TypedArgs(
+            'foo',
+            pos_types=[STR_PARG],
+            var_types=STR_VARG.evolve(max_args=1),
+        )
         def _(obj, node, args: T.Tuple[str, T.Tuple[str, ...]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
-            _(None, mock.Mock(), ['string', 'var', 'args'], None)
+            _(None, mock.Mock(), ['string', 'var', 'args'], {})
         self.assertEqual(str(cm.exception), '"foo" takes between 1 and 2 arguments, but got 3.')
 
     def test_typed_pos_args_min_varargs(self) -> None:
-        @typed_pos_args('foo', varargs=str, max_varargs=2, min_varargs=1)
+        @TypedArgs(
+            'foo',
+            var_types=STR_VARG.evolve(max_args=2, min_args=1),
+        )
         def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
             self.assertIsInstance(args, tuple)
             self.assertIsInstance(args[0], list)
             self.assertIsInstance(args[0][0], str)
             self.assertIsInstance(args[0][1], str)
 
-        _(None, mock.Mock(), ['string', 'var'], None)
+        _(None, mock.Mock(), ['string', 'var'], {})
 
     def test_typed_pos_args_min_varargs_not_met(self) -> None:
-        @typed_pos_args('foo', str, varargs=str, min_varargs=1)
+        @TypedArgs(
+            'foo',
+            pos_types=[STR_PARG],
+            var_types=STR_VARG.evolve(min_args=1),
+        )
         def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
-            _(None, mock.Mock(), ['string'], None)
+            _(None, mock.Mock(), ['string'], {})
         self.assertEqual(str(cm.exception), '"foo" takes at least 2 arguments, but got 1.')
 
     def test_typed_pos_args_min_and_max_varargs_exceeded(self) -> None:
-        @typed_pos_args('foo', str, varargs=str, min_varargs=1, max_varargs=2)
+        @TypedArgs(
+            'foo',
+            pos_types=[STR_PARG],
+            var_types=STR_VARG.evolve(min_args=1, max_args=2),
+        )
         def _(obj, node, args: T.Tuple[str, T.Tuple[str, ...]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
-            _(None, mock.Mock(), ['string', 'var', 'args', 'bar'], None)
+            _(None, mock.Mock(), ['string', 'var', 'args', 'bar'], {})
         self.assertEqual(str(cm.exception), '"foo" takes between 2 and 3 arguments, but got 4.')
 
     def test_typed_pos_args_min_and_max_varargs_not_met(self) -> None:
-        @typed_pos_args('foo', str, varargs=str, min_varargs=1, max_varargs=2)
+        @TypedArgs(
+            'foo',
+            pos_types=[STR_PARG],
+            var_types=STR_VARG.evolve(min_args=1, max_args=2),
+        )
         def _(obj, node, args: T.Tuple[str, T.Tuple[str, ...]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
-            _(None, mock.Mock(), ['string'], None)
+            _(None, mock.Mock(), ['string'], {})
         self.assertEqual(str(cm.exception), '"foo" takes between 2 and 3 arguments, but got 1.')
 
     def test_typed_pos_args_variadic_and_optional(self) -> None:
-        @typed_pos_args('foo', str, optargs=[str], varargs=str, min_varargs=0)
+        @TypedArgs(
+            'foo',
+            pos_types=[STR_PARG],
+            opt_types=[STR_OARG],
+            var_types=STR_VARG.evolve(min_args=0),
+        )
         def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(AssertionError) as cm:
-            _(None, mock.Mock(), ['string'], None)
+            _(None, mock.Mock(), ['string'], {})
         self.assertEqual(
             str(cm.exception),
-            'varargs and optargs not supported together as this would be ambiguous')
+            'Cannot use optional arguments and variadic arguments together due to ambiguity')
 
     def test_typed_pos_args_min_optargs_not_met(self) -> None:
-        @typed_pos_args('foo', str, str, optargs=[str])
+        @TypedArgs(
+            'foo',
+            pos_types=[STR_PARG, STR_PARG],
+            opt_types=[STR_OARG],
+        )
         def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
-            _(None, mock.Mock(), ['string'], None)
+            _(None, mock.Mock(), ['string'], {})
         self.assertEqual(str(cm.exception), '"foo" takes at least 2 arguments, but got 1.')
 
     def test_typed_pos_args_min_optargs_max_exceeded(self) -> None:
-        @typed_pos_args('foo', str, optargs=[str])
+        @TypedArgs(
+            'foo',
+            pos_types=[STR_PARG],
+            opt_types=[STR_OARG],
+        )
         def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
-            _(None, mock.Mock(), ['string', '1', '2'], None)
+            _(None, mock.Mock(), ['string', '1', '2'], {})
         self.assertEqual(str(cm.exception), '"foo" takes at most 2 arguments, but got 3.')
 
     def test_typed_pos_args_optargs_not_given(self) -> None:
-        @typed_pos_args('foo', str, optargs=[str])
+        @TypedArgs(
+            'foo',
+            pos_types=[STR_PARG],
+            opt_types=[STR_OARG],
+        )
         def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
             self.assertEqual(len(args), 2)
             self.assertIsInstance(args[0], str)
             self.assertEqual(args[0], 'string')
             self.assertIsNone(args[1])
 
-        _(None, mock.Mock(), ['string'], None)
+        _(None, mock.Mock(), ['string'], {})
 
     def test_typed_pos_args_optargs_some_given(self) -> None:
-        @typed_pos_args('foo', str, optargs=[str, int])
+        @TypedArgs(
+            'foo',
+            pos_types=[STR_PARG],
+            opt_types=[STR_OARG, INT_OARG],
+        )
         def _(obj, node, args: T.Tuple[str, T.Optional[str], T.Optional[int]], kwargs) -> None:
             self.assertEqual(len(args), 3)
             self.assertIsInstance(args[0], str)
@@ -1674,22 +1739,339 @@ Thread model: posix'''), '21.9.0')
             self.assertEqual(args[1], '1')
             self.assertIsNone(args[2])
 
-        _(None, mock.Mock(), ['string', '1'], None)
+        _(None, mock.Mock(), ['string', '1'], {})
 
     def test_typed_pos_args_optargs_all_given(self) -> None:
-        @typed_pos_args('foo', str, optargs=[str])
+        @TypedArgs(
+            'foo',
+            pos_types=[STR_PARG],
+            opt_types=[STR_OARG],
+        )
         def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
             self.assertEqual(len(args), 2)
             self.assertIsInstance(args[0], str)
             self.assertEqual(args[0], 'string')
             self.assertIsInstance(args[1], str)
 
-        _(None, mock.Mock(), ['string', '1'], None)
+        _(None, mock.Mock(), ['string', '1'], {})
+
+    def test_typed_pos_args_since(self) -> None:
+        @TypedArgs(
+            'testfunc',
+            pos_types=[
+                STR_PARG.evolve(
+                    since='1.0',
+                    since_message='It\'s awesome, use it',
+                    deprecated='2.0',
+                    deprecated_message='It\'s terrible, don\'t use it'),
+            ],
+        )
+        def _(obj, node, args: tuple[str], kwargs: dict) -> None:
+            self.assertIsInstance(args[0], str)
+            self.assertEqual(args[0], 'foo')
+
+        with self.subTest('use before available'), \
+                mock.patch('sys.stdout', io.StringIO()) as out, \
+                mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': version_check_to_range(['>=0.1'])}):
+            # With Meson 0.1 it should trigger the "introduced" warning but not the "deprecated" warning
+            _(None, mock.Mock(subproject=''), ['foo'], {})
+            self.assertRegex(out.getvalue(), r'WARNING:.*introduced.*positional argument "\d" in testfunc. It\'s awesome, use it')
+            self.assertNotRegex(out.getvalue(), r'WARNING:.*deprecated.*argument "\d" in testfunc. It\'s terrible, don\'t use it')
+
+        with self.subTest('no warnings should be triggered'), \
+                mock.patch('sys.stdout', io.StringIO()) as out, \
+                mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': version_check_to_range(['>=1.5'])}):
+            # With Meson 1.5 it shouldn't trigger any warning
+            _(None, mock.Mock(subproject=''), ['foo'], {})
+            self.assertNotRegex(out.getvalue(), r'WARNING:.*')
+
+        with self.subTest('use after deprecated'), \
+                mock.patch('sys.stdout', io.StringIO()) as out, \
+                mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': version_check_to_range(['>=2.0'])}):
+            # With Meson 2.0 it should trigger the "deprecated" warning but not the "introduced" warning
+            _(None, mock.Mock(subproject=''), ['foo'], {})
+            self.assertRegex(out.getvalue(), r'WARNING:.*deprecated.*positional argument "\d" in testfunc. It\'s terrible, don\'t use it')
+            self.assertNotRegex(out.getvalue(), r'WARNING:.*introduced.*positional argument "\d" in testfunc. It\'s awesome, use it')
+
+    def test_typed_pos_args_optional_since(self) -> None:
+        @TypedArgs(
+            'testfunc',
+            opt_types=[
+                STR_OARG.evolve(
+                    default='foo',
+                    optional_since='1.0',
+                    optional_since_message='Woo!',
+                )
+            ],
+        )
+        def _(obj, node, args: tuple[str], kwargs: dict) -> None:
+            self.assertIsInstance(args[0], str)
+            self.assertEqual(args[0], 'foo')
+
+        with self.subTest('use before available'), \
+                mock.patch('sys.stdout', io.StringIO()) as out, \
+                mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': version_check_to_range(['>=0.1'])}):
+            # With Meson 0.1 it should trigger the "introduced" warning but not the "deprecated" warning
+            _(None, mock.Mock(subproject=''), [], {})
+            self.assertIn('WARNING: Project targets \'>= 0.1\' but uses feature introduced in \'1.0\': positional argument "0" in testfunc as optional. Woo!',
+                          out.getvalue())
+
+        with self.subTest('no warnings should be triggered'), \
+                mock.patch('sys.stdout', io.StringIO()) as out, \
+                mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': version_check_to_range(['>=1.5'])}):
+            # With Meson 1.5 it shouldn't trigger any warning
+            _(None, mock.Mock(subproject=''), [], {})
+            self.assertNotRegex(out.getvalue(), r'WARNING:.*')
+
+        with self.subTest('use after deprecated'), \
+                mock.patch('sys.stdout', io.StringIO()) as out, \
+                mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': version_check_to_range(['>=2.0'])}):
+            # With Meson 2.0 it should trigger the "deprecated" warning but not the "introduced" warning
+            _(None, mock.Mock(subproject=''), [], {})
+            self.assertNotIn('WARNING: Project targets \'>= 0.1\' but uses feature introduced in \'1.0\': positional argument "0" in testfunc as optional. Woo!',
+                             out.getvalue())
+
+    def test_typed_pos_args_container(self) -> None:
+        @TypedArgs(
+            'testfunc',
+            pos_types=[PosArgInfo(ContainerTypeInfo(list, str))],
+        )
+        def _(obj, node, args: T.Tuple[list[str]], kwargs: dict) -> None:
+            self.assertEqual(args[0], ['str'])
+
+        with self.subTest('valid'):
+            _(None, mock.Mock(), [['str']], {})
+
+        with self.subTest('invalid'):
+            with self.assertRaises(InvalidArguments) as cm:
+                _(None, mock.Mock(), [0], {})
+            self.assertEqual(str(cm.exception), '"testfunc" positional argument "1" was of type "int" but should have been "array[str]"')
+
+    def test_typed_pos_args_contained(self) -> None:
+        @TypedArgs(
+            'testfunc',
+            pos_types=[PosArgInfo(ContainerTypeInfo(dict, str))],
+        )
+        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.Dict[str, str]]) -> None:
+            self.assertEqual(args[0], {'key': 'value'})
+
+        with self.subTest('valid'):
+            _(None, mock.Mock(), [{'key': 'value'}], {})
+
+        with self.subTest('invalid'):
+            with self.assertRaises(InvalidArguments) as cm:
+                _(None, mock.Mock(), [{'key': 0}], {})
+            self.assertEqual(str(cm.exception), '"testfunc" positional argument "1" was of type "dict[int]" but should have been "dict[str]"')
+
+    def test_typed_pos_args_validator(self) -> None:
+        @TypedArgs(
+            'testfunc',
+            pos_types=[
+                STR_PARG.evolve(validator=lambda x: 'invalid!' if x != 'foo' else None)
+            ]
+        )
+        def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
+            pass
+
+        # Should be valid
+        _(None, mock.Mock(), ['foo'], {})
+
+        with self.assertRaises(MesonException) as cm:
+            _(None, mock.Mock(), ['bar'], {})
+        self.assertEqual(str(cm.exception), "\"testfunc\" positional argument \"1\" invalid!")
+
+    def test_typed_pos_args_convertor(self) -> None:
+        @TypedArgs(
+            'testfunc',
+            pos_types=[
+                BOOL_PARG.evolve(convertor=lambda n: MachineChoice.BUILD if n else MachineChoice.HOST)
+            ],
+        )
+        def _(obj, node, args: T.Tuple[MachineChoice], kwargs: dict) -> None:
+            assert isinstance(args[0], MachineChoice)
+
+        _(None, mock.Mock(), [True], {})
+
+    @mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': version_check_to_range(['>=1.0'])})
+    def test_typed_pos_args_since_values(self) -> None:
+        @TypedArgs(
+            'testfunc',
+            pos_types=[
+                PosArgInfo(ContainerTypeInfo(list, str), listify=True, deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
+            ]
+        )
+        def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
+            pass
+
+        with self.subTest('deprecated array string value'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [['foo']], {})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*deprecated since '0.9': "testfunc" positional argument "1" value "foo".*""")
+
+        with self.subTest('new array string value'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [['bar']], {})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '1.1': "testfunc" positional argument "1" value "bar".*""")
+
+        with self.subTest('deprecated array string value'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), ['foo'], {})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*deprecated since '0.9': "testfunc" positional argument "1" value "foo".*""")
+
+        with self.subTest('new array string value'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), ['bar'], {})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '1.1': "testfunc" positional argument "1" value "bar".*""")
+
+        @TypedArgs(
+            'testfunc',
+            pos_types=[
+                PosArgInfo(ContainerTypeInfo(dict, str), deprecated_values={'foo': '0.9', 'foo2': ('0.9', 'don\'t use it')}, since_values={'bar': '1.1', 'bar2': ('1.1', 'use this')}),
+            ]
+        )
+        def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
+            pass
+
+        with self.subTest('deprecated dict string value'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [{'foo': 'a'}], {})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*deprecated since '0.9': "testfunc" positional argument "1" value "foo".*""")
+
+        with self.subTest('deprecated dict string value with msg'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [{'foo2': 'a'}], {})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*deprecated since '0.9': "testfunc" positional argument "1" value "foo2" in dict keys. don't use it.*""")
+
+        with self.subTest('new dict string value'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [{'bar': 'a'}], {})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '1.1': "testfunc" positional argument "1" value "bar".*""")
+
+        with self.subTest('new dict string value with msg'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [{'bar2': 'a'}], {})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '1.1': "testfunc" positional argument "1" value "bar2" in dict keys. use this.*""")
+
+        @TypedArgs(
+            'testfunc',
+            pos_types=[
+                PosArgInfo(
+                    (str, int, ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str), ContainerTypeInfo(list, int)),
+                    since_values={str: '1.1', ContainerTypeInfo(list, str): '1.2', ContainerTypeInfo(dict, str): '1.3'},
+                    deprecated_values={int: '0.8', ContainerTypeInfo(list, int): '0.9'},
+                ),
+            ]
+        )
+        def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
+            pass
+
+        with self.subTest('new string type'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), ['foo'], {})
+            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '>= 1.0'.*introduced in '1.1': "testfunc" positional argument "1" of type "str".*""")
+
+        with self.subTest('new array of string type'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [['foo']], {})
+            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '>= 1.0'.*introduced in '1.2': "testfunc" positional argument "1" of type "array\[str\]".*""")
+
+        with self.subTest('new dict of string type'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [{'plop': 'foo'}], {})
+            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '>= 1.0'.*introduced in '1.3': "testfunc" positional argument "1" of type "dict\[str\]".*""")
+
+        with self.subTest('deprecated int value'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [1], {})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*deprecated since '0.8': "testfunc" positional argument "1" of type "int".*""")
+
+        with self.subTest('deprecated array int value'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [[1]], {})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*deprecated since '0.9': "testfunc" positional argument "1" of type "array\[int\]".*""")
+
+        @TypedArgs(
+            'testfunc',
+            pos_types=[
+                PosArgInfo(
+                    (ContainerTypeInfo(list, (str, int))),
+                    listify=True,
+                    since_values={ContainerTypeInfo(list, str): '1.1', ContainerTypeInfo(list, int): '1.2'},
+                ),
+            ]
+        )
+        def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
+            pass
+
+        with self.subTest('new list[str] value'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [['foo', 42]], {})
+            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '>= 1.0'.*introduced in '1.1': "testfunc" positional argument "1" of type "array\[str\]".*""")
+            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '>= 1.0'.*introduced in '1.2': "testfunc" positional argument "1" of type "array\[int\]".*""")
+
+        @TypedArgs(
+            'testfunc',
+            pos_types=[
+                PosArgInfo((bool, str, NoneType), deprecated_values={False: '0.9'}),
+            ]
+        )
+        def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
+            pass
+
+        with self.subTest('non string union'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [False], {})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*deprecated since '0.9': "testfunc" positional argument "1" value "False".*""")
+
+        @TypedArgs(
+            'testfunc',
+            pos_types=[
+                PosArgInfo(
+                    (str, type(None)),
+                    validator=in_set_validator({'clean', 'build', 'rebuild', 'deprecated', 'since'}),
+                    deprecated_values={'deprecated': '1.0'},
+                    since_values={'since': '1.1'},
+                ),
+            ]
+        )
+        def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
+            pass
+
+        with self.subTest('deprecated string union'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), ['deprecated'], {})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*deprecated since '1.0': "testfunc" positional argument "1" value "deprecated".*""")
+
+        with self.subTest('new string union'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), ['since'], {})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '1.1': "testfunc" positional argument "1" value "since".*""")
+
+        @TypedArgs(
+            'testfunc',
+            pos_types=[
+                PosArgInfo(
+                    (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)),
+                    since_values={list: '1.9'},
+                ),
+            ]
+        )
+        def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
+            pass
+
+        with self.subTest('new container'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [['a=b']], {})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '>= 1.0'.*introduced in '1.9': "testfunc" positional argument "1" of type "list".*""")
+
+    def test_typed_pos_args_default(self) -> None:
+        @TypedArgs(
+            'testfunc',
+            opt_types=[STR_OARG.evolve(default='foo')],
+        )
+        def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
+            self.assertEqual(len(args), 1)
+            self.assertIsInstance(args[0], str)
+            self.assertEqual(args[0], 'foo')
+
+        with self.subTest('default object before available'), \
+                mock.patch('sys.stdout', io.StringIO()) as out, \
+                mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': version_check_to_range(['>=1.0'])}):
+            _(None, mock.Mock(subproject=''), [DefaultObject()], {})
+            self.assertRegex(out.getvalue(), r'WARNING: Project targets \'>= 1.0\' but uses feature introduced in \'1.13.0\': default\(\) object for optional')
+
+        with self.subTest('default object after available'), \
+                mock.patch('sys.stdout', io.StringIO()) as out, \
+                mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': version_check_to_range(['>=1.13'])}):
+            _(None, mock.Mock(subproject=''), [DefaultObject()], {})
+            self.assertNotRegex(out.getvalue(), r'WARNING: Project targets \'>= 1.0\' but uses feature introduced in \'1.13.0\': default\(\) object for optional')
 
     def test_typed_kwarg_basic(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', str, default='')
+            kw_types=[KwargInfo('input', str, default='')],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertIsInstance(kwargs['input'], str)
@@ -1698,9 +2080,9 @@ Thread model: posix'''), '21.9.0')
         _(None, mock.Mock(), [], {'input': 'foo'})
 
     def test_typed_kwarg_missing_required(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', str, required=True),
+            kw_types=[KwargInfo('input', str, required=True)],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertTrue(False)  # should be unreachable
@@ -1710,9 +2092,9 @@ Thread model: posix'''), '21.9.0')
         self.assertEqual(str(cm.exception), '"testfunc" is missing required keyword argument "input"')
 
     def test_typed_kwarg_missing_optional(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', (str, type(None))),
+            kw_types=[KwargInfo('input', (str, type(None)))],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.Optional[str]]) -> None:
             self.assertIsNone(kwargs['input'])
@@ -1720,9 +2102,9 @@ Thread model: posix'''), '21.9.0')
         _(None, mock.Mock(), [], {})
 
     def test_typed_kwarg_default(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', str, default='default'),
+            kw_types=[KwargInfo('input', str, default='default')],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertEqual(kwargs['input'], 'default')
@@ -1730,9 +2112,9 @@ Thread model: posix'''), '21.9.0')
         _(None, mock.Mock(), [], {})
 
     def test_typed_kwarg_container_valid(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(list, str), default=[], required=True),
+            kw_types=[KwargInfo('input', ContainerTypeInfo(list, str), default=[], required=True)],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
             self.assertEqual(kwargs['input'], ['str'])
@@ -1740,9 +2122,9 @@ Thread model: posix'''), '21.9.0')
         _(None, mock.Mock(), [], {'input': ['str']})
 
     def test_typed_kwarg_container_invalid(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(list, str), required=True),
+            kw_types=[KwargInfo('input', ContainerTypeInfo(list, str), required=True)],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
             self.assertTrue(False)  # should be unreachable
@@ -1752,9 +2134,9 @@ Thread model: posix'''), '21.9.0')
         self.assertEqual(str(cm.exception), '"testfunc" keyword argument "input" was of type "dict[]" but should have been "array[str]"')
 
     def test_typed_kwarg_contained_invalid(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(dict, str), required=True),
+            kw_types=[KwargInfo('input', ContainerTypeInfo(dict, str), required=True)],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.Dict[str, str]]) -> None:
             self.assertTrue(False)  # should be unreachable
@@ -1764,9 +2146,9 @@ Thread model: posix'''), '21.9.0')
         self.assertEqual(str(cm.exception), '"testfunc" keyword argument "input" was of type "dict[int]" but should have been "dict[str]"')
 
     def test_typed_kwarg_container_listify(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(list, str), default=[], listify=True),
+            kw_types=[KwargInfo('input', ContainerTypeInfo(list, str), default=[], listify=True)],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
             self.assertEqual(kwargs['input'], ['str'])
@@ -1775,9 +2157,9 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_kwarg_container_default_copy(self) -> None:
         default: T.List[str] = []
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=default),
+            kw_types=[KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=default)],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
             self.assertIsNot(kwargs['input'], default)
@@ -1785,9 +2167,9 @@ Thread model: posix'''), '21.9.0')
         _(None, mock.Mock(), [], {})
 
     def test_typed_kwarg_container_pairs(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(list, str, pairs=True), listify=True),
+            kw_types=[KwargInfo('input', ContainerTypeInfo(list, str, pairs=True), listify=True)],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
             self.assertEqual(kwargs['input'], ['a', 'b'])
@@ -1799,10 +2181,12 @@ Thread model: posix'''), '21.9.0')
         self.assertEqual(str(cm.exception), '"testfunc" keyword argument "input" was of type "array[str]" but should have been "array[str]" that has even size')
 
     def test_typed_kwarg_since(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', str, since='1.0', since_message='It\'s awesome, use it',
-                      deprecated='2.0', deprecated_message='It\'s terrible, don\'t use it')
+            kw_types=[
+                KwargInfo('input', str, since='1.0', since_message='It\'s awesome, use it',
+                          deprecated='2.0', deprecated_message='It\'s terrible, don\'t use it')
+            ]
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertIsInstance(kwargs['input'], str)
@@ -1832,62 +2216,68 @@ Thread model: posix'''), '21.9.0')
             self.assertNotRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc. It\'s awesome, use it')
 
     def test_typed_kwarg_validator(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', str, default='', validator=lambda x: 'invalid!' if x != 'foo' else None)
+            kw_types=[KwargInfo('input', str, default='', validator=lambda x: 'invalid!' if x != 'foo' else None)]
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             pass
 
         # Should be valid
-        _(None, mock.Mock(), tuple(), dict(input='foo'))
+        _(None, mock.Mock(), [], dict(input='foo'))
 
         with self.assertRaises(MesonException) as cm:
-            _(None, mock.Mock(), tuple(), dict(input='bar'))
+            _(None, mock.Mock(), [], dict(input='bar'))
         self.assertEqual(str(cm.exception), "\"testfunc\" keyword argument \"input\" invalid!")
 
     def test_typed_kwarg_convertor(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('native', bool, default=False, convertor=lambda n: MachineChoice.BUILD if n else MachineChoice.HOST)
+            kw_types=[KwargInfo('native', bool, default=False, convertor=lambda n: MachineChoice.BUILD if n else MachineChoice.HOST)]
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, MachineChoice]) -> None:
             assert isinstance(kwargs['native'], MachineChoice)
 
-        _(None, mock.Mock(), tuple(), dict(native=True))
+        _(None, mock.Mock(), [], dict(native=True))
 
     @mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': version_check_to_range(['>=1.0'])})
     def test_typed_kwarg_since_values(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=[], deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
-            KwargInfo('output', ContainerTypeInfo(dict, str), default={}, deprecated_values={'foo': '0.9', 'foo2': ('0.9', 'don\'t use it')}, since_values={'bar': '1.1', 'bar2': ('1.1', 'use this')}),
-            KwargInfo('install_dir', (bool, str, NoneType), deprecated_values={False: '0.9'}),
-            KwargInfo(
-                'mode',
-                (str, type(None)),
-                validator=in_set_validator({'clean', 'build', 'rebuild', 'deprecated', 'since'}),
-                deprecated_values={'deprecated': '1.0'},
-                since_values={'since': '1.1'}),
-            KwargInfo('dict', (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)), default={},
-                      since_values={list: '1.9'}),
-            KwargInfo('new_dict', (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)), default={},
-                      since_values={dict: '1.1'}),
-            KwargInfo('foo', (str, int, ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str), ContainerTypeInfo(list, int)), default={},
-                      since_values={str: '1.1', ContainerTypeInfo(list, str): '1.2', ContainerTypeInfo(dict, str): '1.3'},
-                      deprecated_values={int: '0.8', ContainerTypeInfo(list, int): '0.9'}),
-            KwargInfo('tuple', (ContainerTypeInfo(list, (str, int))), default=[], listify=True,
-                      since_values={ContainerTypeInfo(list, str): '1.1', ContainerTypeInfo(list, int): '1.2'}),
-            KwargInfo(
-                'types_tuple_since',
-                (bool, int, str, NoneType),
-                since_values={(bool, int): '1.5'},
-            ),
-            KwargInfo(
-                'types_tuple_deprecated',
-                (bool, int, str, NoneType),
-                deprecated_values={(bool, int): '0.9'},
-            ),
+            kw_types=[
+                KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=[], deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
+                KwargInfo('output', ContainerTypeInfo(dict, str), default={}, deprecated_values={'foo': '0.9', 'foo2': ('0.9', 'don\'t use it')}, since_values={'bar': '1.1', 'bar2': ('1.1', 'use this')}),
+                KwargInfo('install_dir', (bool, str, NoneType), deprecated_values={False: '0.9'}),
+                KwargInfo(
+                    'mode',
+                    (str, type(None)),
+                    validator=in_set_validator({'clean', 'build', 'rebuild', 'deprecated', 'since'}),
+                    deprecated_values={'deprecated': '1.0'},
+                    since_values={'since': '1.1'}),
+                KwargInfo(
+                    'dict', (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)), default={},
+                    since_values={list: '1.9'}),
+                KwargInfo(
+                    'new_dict', (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)), default={},
+                    since_values={dict: '1.1'}),
+                KwargInfo(
+                    'foo', (str, int, ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str), ContainerTypeInfo(list, int)), default={},
+                    since_values={str: '1.1', ContainerTypeInfo(list, str): '1.2', ContainerTypeInfo(dict, str): '1.3'},
+                    deprecated_values={int: '0.8', ContainerTypeInfo(list, int): '0.9'}),
+                KwargInfo(
+                    'tuple', (ContainerTypeInfo(list, (str, int))), default=[], listify=True,
+                    since_values={ContainerTypeInfo(list, str): '1.1', ContainerTypeInfo(list, int): '1.2'}),
+                KwargInfo(
+                    'types_tuple_since',
+                    (bool, int, str, NoneType),
+                    since_values={(bool, int): '1.5'},
+                ),
+                KwargInfo(
+                    'types_tuple_deprecated',
+                    (bool, int, str, NoneType),
+                    deprecated_values={(bool, int): '0.9'},
+                ),
+            ],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             pass
@@ -1994,11 +2384,13 @@ Thread model: posix'''), '21.9.0')
         self.assertEqual(v.default, 'bar')
 
     def test_typed_kwarg_default_type(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('no_default', (str, ContainerTypeInfo(list, str), NoneType)),
-            KwargInfo('str_default', (str, ContainerTypeInfo(list, str)), default=''),
-            KwargInfo('list_default', (str, ContainerTypeInfo(list, str)), default=['']),
+            kw_types=[
+                KwargInfo('no_default', (str, ContainerTypeInfo(list, str), NoneType)),
+                KwargInfo('str_default', (str, ContainerTypeInfo(list, str)), default=''),
+                KwargInfo('list_default', (str, ContainerTypeInfo(list, str)), default=['']),
+            ]
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertEqual(kwargs['no_default'], None)
@@ -2007,18 +2399,19 @@ Thread model: posix'''), '21.9.0')
         _(None, mock.Mock(), [], {})
 
     def test_typed_kwarg_invalid_default_type(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('invalid_default', (str, ContainerTypeInfo(list, str), NoneType), default=42),
+            kw_types=[KwargInfo('invalid_default', (str, ContainerTypeInfo(list, str), NoneType), default=42)],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             pass
         self.assertRaises(AssertionError, _, None, mock.Mock(), [], {})
 
     def test_typed_kwarg_container_in_tuple(self) -> None:
-        @typed_kwargs(
+        @TypedArgs(
             'testfunc',
-            KwargInfo('input', (str, ContainerTypeInfo(list, str))),
+            pos_types=[PosArgInfo(object)],
+            kw_types=[KwargInfo('input', (str, ContainerTypeInfo(list, str)))],
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertEqual(kwargs['input'], args[0])

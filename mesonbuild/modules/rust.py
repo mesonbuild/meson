@@ -21,10 +21,14 @@ from ..dependencies import Dependency
 from ..interpreter.decorators import apply_machine_map
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
-    OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NATIVE_KW, NoneType, in_set_validator,
-    EXECUTABLE_KWS, LIBRARY_KWS, SHARED_MOD_KWS, _BASE_LANG_KW, DEPEND_FILES_KW, INSTALL_DIR_KW, INSTALL_KW,
+    OUTPUT_KW, INCLUDE_DIRECTORIES, NATIVE_KW, NoneType, in_set_validator,
+    EXECUTABLE_KWS, LIBRARY_KWS, SHARED_MOD_KWS, _BASE_LANG_KW, DEPEND_FILES_KW,
+    INSTALL_DIR_KW, INSTALL_KW, STR_PARG, STR_OARG, SRC_VARG,
 )
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs
+from ..interpreterbase import (
+    ContainerTypeInfo, InterpreterException, KwargInfo, TypedArgs,
+    PosArgInfo, OptArgInfo,
+)
 from ..interpreter.interpreterobjects import Doctest
 from ..mesonlib import (is_parent_path, File, MachineChoice, MesonException, PerMachine)
 from ..programs import ExternalProgram, NonExistingExternalProgram
@@ -131,6 +135,16 @@ _ALLOWED_PROC_MACRO_KWS = {
 }
 _PROC_MACRO_KWS = [s for s in SHARED_LIB_KWS if s.name in _ALLOWED_PROC_MACRO_KWS]
 
+_RUST_ABI: KwargInfo[str | None] = KwargInfo(
+    'rust_abi',
+    (str, NoneType),
+    default=None,
+    validator=in_set_validator({'rust', 'c', 'proc-macro'}),
+)
+
+_STR_STRUCT_OARG = OptArgInfo((str, StructuredSources))
+_STRUCT_OARG = OptArgInfo(StructuredSources)
+
 
 def no_spaces_validator(arg: T.Optional[T.Union[str, T.List]]) -> T.Optional[str]:
     if any(bool(re.search(r'\s', x)) for x in arg):
@@ -166,8 +180,7 @@ class RustWorkspace(ModuleObject):
     def subdir(self) -> str:
         return self.ws.subdir
 
-    @noPosargs
-    @noKwargs
+    @TypedArgs('rust_workspace.packages')
     def packages_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns list of package names in workspace."""
         package_names = [pkg.manifest.package.name
@@ -175,13 +188,14 @@ class RustWorkspace(ModuleObject):
                          if pkg.cfg.host or pkg.cfg.build]
         return sorted(package_names)
 
-    @typed_pos_args('workspace.package', optargs=[str])
-    @typed_kwargs(
+    @TypedArgs(
         'workspace.package',
-        NATIVE_KW.evolve(since='1.12.0'))
-    def package_method(self, state: 'ModuleState', args: T.List, kwargs: FuncPackage) -> RustPackage:
+        opt_types=[STR_OARG],
+        kw_types=[NATIVE_KW.evolve(since='1.12.0')],
+    )
+    def package_method(self, state: 'ModuleState', args: tuple[str | None], kwargs: FuncPackage) -> RustPackage:
         """Returns a package object."""
-        package_name = args[0] if args else None
+        package_name = args[0]
         return RustPackage(state, self, self.interpreter.cargo.load_package(self.ws, package_name),
                            kwargs['native'])
 
@@ -205,14 +219,16 @@ class RustWorkspace(ModuleObject):
         subp_name = pkg.get_subproject_name()
         self.interpreter.do_subproject(subp_name, kw, force_method='cargo')
 
-    @typed_pos_args('workspace.subproject', str, optargs=[str])
-    @typed_kwargs(
+    @TypedArgs(
         'workspace.subproject',
-        NATIVE_KW.evolve(since='1.12.0'))
-    def subproject_method(self, state: ModuleState, args: T.Tuple[str, T.Optional[str]], kwargs: FuncSubproject) -> RustSubproject:
+        pos_types=[STR_PARG],
+        opt_types=[STR_OARG.evolve(default='')],
+        kw_types=[NATIVE_KW.evolve(since='1.12.0')],
+    )
+    def subproject_method(self, state: ModuleState, args: T.Tuple[str, str], kwargs: FuncSubproject) -> RustSubproject:
         """Returns a package object for a subproject package."""
         package_name = args[0]
-        pkg = self.interpreter.cargo.resolve_package(package_name, args[1] or '')
+        pkg = self.interpreter.cargo.resolve_package(package_name, args[1])
         if pkg is None:
             if args[1]:
                 raise MesonException(f'No version of cargo package "{package_name}" provides API {args[1]}')
@@ -239,58 +255,50 @@ class RustCrate(ModuleObject):
             'name': self.name_method,
             'version': self.version_method,
             'rust_args': self.rust_args_method,
-            'env': self.env_method, # type: ignore[dict-item]
-            'rust_dependency_map': self.rust_dependency_map_method, # type: ignore[dict-item]
+            'env': self.env_method,
+            'rust_dependency_map': self.rust_dependency_map_method,
         })
 
     @property
     def cfg(self) -> PackageConfiguration:
         return self.package.cfg[self.for_machine]
 
-    @noPosargs
-    @noKwargs
+    @TypedArgs('rust_crate.name')
     def name_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> str:
         """Returns the name of the package."""
         return self.package.manifest.package.name
 
-    @noPosargs
-    @noKwargs
+    @TypedArgs('rust_crate.api')
     def api_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> str:
         """Returns the API version of the package."""
         return self.package.manifest.package.api
 
-    @noPosargs
-    @noKwargs
+    @TypedArgs('rust_crate.version')
     def version_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> str:
         """Returns the version of the package."""
         return self.package.manifest.package.version
 
-    @noPosargs
-    @noKwargs
+    @TypedArgs('rust_crate.all_features')
     def all_features_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns all features for specific package."""
         return sorted(list(self.package.manifest.features.keys()))
 
-    @noPosargs
-    @noKwargs
+    @TypedArgs('rust_crate.features')
     def features_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns chosen features for specific package."""
         return sorted(list(self.cfg.features))
 
-    @noPosargs
-    @noKwargs
+    @TypedArgs('rust_crate.rust_args')
     def rust_args_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.List[str]:
         """Returns rustc arguments for this package."""
         return self.package.get_rustc_args(state.environment, state.subdir, self.for_machine)
 
-    @noPosargs
-    @noKwargs
+    @TypedArgs('rust_crate.env')
     def env_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.Dict[str, str]:
         """Returns environment variables for this package."""
         return self.package.get_env_dict(state.environment, state.subdir)
 
-    @noPosargs
-    @noKwargs
+    @TypedArgs('rust_crate.rust_dependency_map')
     def rust_dependency_map_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.Dict[str, str]:
         """Returns rust dependency mapping for this package."""
         return self.cfg.get_dependency_map(self.package.manifest)
@@ -344,11 +352,14 @@ class RustPackage(RustCrate):
 
         return dependencies
 
-    @noPosargs
-    @typed_kwargs('package.dependencies',
-                  KwargInfo('dependencies', bool, default=True),
-                  KwargInfo('dev_dependencies', bool, default=False),
-                  KwargInfo('system_dependencies', bool, default=True))
+    @TypedArgs(
+        'package.dependencies',
+        kw_types=[
+            KwargInfo('dependencies', bool, default=True),
+            KwargInfo('dev_dependencies', bool, default=False),
+            KwargInfo('system_dependencies', bool, default=True),
+        ],
+    )
     def dependencies_method(self, state: ModuleState, args: T.List, kwargs: RustPackageDependencies) -> T.List[Dependency]:
         """Returns the dependencies for this package."""
         return self._dependencies_method(state, kwargs, self.for_machine)
@@ -445,9 +456,11 @@ class RustPackage(RustCrate):
         result = self._library_method(state, args, kwargs, shared=True, static=False)
         return T.cast('SharedLibrary', result)
 
-    @typed_pos_args('package.override_dependency', Dependency)
-    @typed_kwargs('package.override_dependency',
-                  KwargInfo('rust_abi', (str, NoneType), default=None, validator=in_set_validator({'rust', 'c', 'proc-macro'})))
+    @TypedArgs(
+        'package.override_dependency',
+        pos_types=[PosArgInfo(Dependency)],
+        kw_types=[_RUST_ABI],
+    )
     def override_dependency_method(self, state: ModuleState, args: T.Tuple[Dependency], kwargs: FuncDependency) -> None:
         dep = args[0]
         rust_abi = self.package.abi_resolve_default(kwargs['rust_abi'])
@@ -468,14 +481,16 @@ class RustPackage(RustCrate):
         if self.package.abi_has_shared(rust_abi):
             state.override_dependency(depname, dep, static=False, for_machine=self.for_machine)
 
-    @typed_pos_args('package.library', optargs=[(str, StructuredSources), StructuredSources])
-    @typed_kwargs(
+    @TypedArgs(
         'package.library',
-        *LIBRARY_KWS_NO_NATIVE,
-        DEPENDENCIES_KW,
-        LINK_WITH_KW,
-        LINK_WHOLE_KW,
-        _BASE_LANG_KW.evolve(name='rust_args'),
+        opt_types=[_STR_STRUCT_OARG, _STRUCT_OARG],
+        kw_types=[
+            *LIBRARY_KWS_NO_NATIVE,
+            DEPENDENCIES_KW,
+            LINK_WITH_KW,
+            LINK_WHOLE_KW,
+            _BASE_LANG_KW.evolve(name='rust_args'),
+        ],
     )
     def library_method(self, state: ModuleState, args: T.Tuple[
             T.Optional[T.Union[str, StructuredSources]],
@@ -496,14 +511,16 @@ class RustPackage(RustCrate):
                 kwargs['rust_abi'] = rust_abi
         return self._library_method(state, args, kwargs, static=static, shared=shared)
 
-    @typed_pos_args('package.proc_macro', optargs=[(str, StructuredSources), StructuredSources])
-    @typed_kwargs(
+    @TypedArgs(
         'package.proc_macro',
-        *SHARED_LIB_KWS_NO_NATIVE,
-        DEPENDENCIES_KW,
-        LINK_WITH_KW,
-        LINK_WHOLE_KW,
-        _BASE_LANG_KW.evolve(name='rust_args'),
+        opt_types=[_STR_STRUCT_OARG, _STRUCT_OARG],
+        kw_types=[
+            *SHARED_LIB_KWS_NO_NATIVE,
+            DEPENDENCIES_KW,
+            LINK_WITH_KW,
+            LINK_WHOLE_KW,
+            _BASE_LANG_KW.evolve(name='rust_args'),
+        ],
     )
     def proc_macro_method(self, state: 'ModuleState', args: T.Tuple[
             T.Optional[T.Union[str, StructuredSources]],
@@ -514,14 +531,16 @@ class RustPackage(RustCrate):
             raise MesonException("not a procedural macro crate")
         return self._proc_macro_method(state, args, kwargs)
 
-    @typed_pos_args('package.shared_module', optargs=[(str, StructuredSources), StructuredSources])
-    @typed_kwargs(
+    @TypedArgs(
         'package.shared_module',
-        *SHARED_MOD_KWS_NO_NATIVE,
-        DEPENDENCIES_KW,
-        LINK_WITH_KW,
-        LINK_WHOLE_KW,
-        _BASE_LANG_KW.evolve(name='rust_args'),
+        opt_types=[_STR_STRUCT_OARG, _STRUCT_OARG],
+        kw_types=[
+            *SHARED_MOD_KWS_NO_NATIVE,
+            DEPENDENCIES_KW,
+            LINK_WITH_KW,
+            LINK_WHOLE_KW,
+            _BASE_LANG_KW.evolve(name='rust_args'),
+        ],
     )
     def shared_module_method(self, state: 'ModuleState', args: T.Tuple[
             T.Optional[T.Union[str, StructuredSources]],
@@ -536,14 +555,16 @@ class RustPackage(RustCrate):
         result = self._library_method(state, args, kwargs, shared=True, static=False, shared_mod=True)
         return T.cast('SharedModule', result)
 
-    @typed_pos_args('package.executable', optargs=[(str, StructuredSources), StructuredSources])
-    @typed_kwargs(
+    @TypedArgs(
         'package.executable',
-        *EXECUTABLE_KWS_NO_NATIVE,
-        DEPENDENCIES_KW,
-        LINK_WITH_KW,
-        LINK_WHOLE_KW,
-        _BASE_LANG_KW.evolve(name='rust_args'),
+        opt_types=[_STR_STRUCT_OARG, _STRUCT_OARG],
+        kw_types=[
+            *EXECUTABLE_KWS_NO_NATIVE,
+            DEPENDENCIES_KW,
+            LINK_WITH_KW,
+            LINK_WHOLE_KW,
+            _BASE_LANG_KW.evolve(name='rust_args'),
+        ],
     )
     def executable_method(self, state: 'ModuleState', args: T.Tuple[
             T.Optional[T.Union[str, StructuredSources]],
@@ -584,9 +605,7 @@ class RustSubproject(RustCrate):
             'dependency': self.dependency_method,
         })
 
-    @noPosargs
-    @typed_kwargs('package.dependency',
-                  KwargInfo('rust_abi', (str, NoneType), default=None, validator=in_set_validator({'rust', 'c', 'proc-macro'})))
+    @TypedArgs('package.dependency', kw_types=[_RUST_ABI])
     def dependency_method(self, state: ModuleState, args: T.List, kwargs: FuncDependency) -> Dependency:
         """Returns dependency for the package with the given ABI."""
         depname = self.package.get_dependency_name(kwargs['rust_abi'])
@@ -731,14 +750,16 @@ class RustModule(ExtensionModule):
         )
         return new_target, tkwargs
 
-    @typed_pos_args('rust.test', str, BuildTarget)
-    @typed_kwargs(
+    @TypedArgs(
         'rust.test',
-        *TEST_KWS,
-        DEPENDENCIES_KW,
-        LINK_WITH_KW.evolve(since='1.2.0'),
-        LINK_WHOLE_KW.evolve(since='1.8.0'),
-        *RUST_TEST_KWS,
+        pos_types=[STR_PARG, PosArgInfo(BuildTarget)],
+        kw_types=[
+            *TEST_KWS,
+            DEPENDENCIES_KW,
+            LINK_WITH_KW.evolve(since='1.2.0'),
+            LINK_WHOLE_KW.evolve(since='1.8.0'),
+            *RUST_TEST_KWS,
+        ],
     )
     def test(self, state: ModuleState, args: T.Tuple[str, BuildTarget], kwargs: FuncTest) -> ModuleReturnValue:
         name, _ = args
@@ -749,21 +770,23 @@ class RustModule(ExtensionModule):
         return ModuleReturnValue(None, [new_target, test])
 
     @FeatureNew('rust.doctest', '1.8.0')
-    @typed_pos_args('rust.doctest', str, BuildTarget)
-    @typed_kwargs(
+    @TypedArgs(
         'rust.doctest',
-        *TEST_KWS_NO_ARGS,
-        DEPENDENCIES_KW,
-        LINK_WITH_KW,
-        LINK_WHOLE_KW,
-        *RUST_TEST_KWS,
-        KwargInfo(
-            'args',
-            ContainerTypeInfo(list, str),
-            listify=True,
-            default=[],
-            validator=no_spaces_validator,
-        ),
+        pos_types=[STR_PARG, PosArgInfo(BuildTarget)],
+        kw_types=[
+            *TEST_KWS_NO_ARGS,
+            DEPENDENCIES_KW,
+            LINK_WITH_KW,
+            LINK_WHOLE_KW,
+            *RUST_TEST_KWS,
+            KwargInfo(
+                'args',
+                ContainerTypeInfo(list, str),
+                listify=True,
+                default=[],
+                validator=no_spaces_validator,
+            ),
+        ],
     )
     def doctest(self, state: ModuleState, args: T.Tuple[str, T.Union[SharedLibrary, StaticLibrary]], kwargs: FuncDoctest) -> ModuleReturnValue:
         name, base_target = args
@@ -820,29 +843,30 @@ class RustModule(ExtensionModule):
         base_target.doctests = doctests
         return ModuleReturnValue(None, [doctests])
 
-    @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'rust.bindgen',
-        KwargInfo('c_args', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo(
-            'input',
-            ContainerTypeInfo(list, (File, GeneratedList, BuildTarget, BothLibraries, ExtractedObjects, CustomTargetIndex, CustomTarget, str), allow_empty=False),
-            default=[],
-            listify=True,
-            required=True,
-        ),
-        KwargInfo('language', (str, NoneType), since='1.4.0', validator=in_set_validator({'c', 'cpp'})),
-        KwargInfo('bindgen_version', ContainerTypeInfo(list, str), default=[], listify=True, since='1.4.0'),
-        INCLUDE_DIRECTORIES.evolve(since_values={ContainerTypeInfo(list, str): '1.0.0'}),
-        OUTPUT_KW,
-        KwargInfo(
-            'output_inline_wrapper',
-            str,
-            default='',
-            since='1.4.0',
-        ),
-        DEPENDENCIES_KW.evolve(since='1.0.0'),
+        kw_types=[
+            KwargInfo('c_args', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo(
+                'input',
+                ContainerTypeInfo(list, (File, GeneratedList, BuildTarget, BothLibraries, ExtractedObjects, CustomTargetIndex, CustomTarget, str), allow_empty=False),
+                default=[],
+                listify=True,
+                required=True,
+            ),
+            KwargInfo('language', (str, NoneType), since='1.4.0', validator=in_set_validator({'c', 'cpp'})),
+            KwargInfo('bindgen_version', ContainerTypeInfo(list, str), default=[], listify=True, since='1.4.0'),
+            INCLUDE_DIRECTORIES.evolve(since_values={ContainerTypeInfo(list, str): '1.0.0'}),
+            OUTPUT_KW,
+            KwargInfo(
+                'output_inline_wrapper',
+                str,
+                default='',
+                since='1.4.0',
+            ),
+            DEPENDENCIES_KW.evolve(since='1.0.0'),
+        ],
     )
     def bindgen(self, state: ModuleState, args: T.List, kwargs: FuncBindgen) -> ModuleReturnValue:
         """Wrapper around bindgen to simplify its use.
@@ -1034,8 +1058,7 @@ class RustModule(ExtensionModule):
         return ModuleReturnValue(target, [target])
 
     @FeatureNew('rust.compiler_target', '1.11.0')
-    @noPosargs
-    @typed_kwargs('rust.compiler_target', NATIVE_KW)
+    @TypedArgs('rust.compiler_target', kw_types=[NATIVE_KW])
     @apply_machine_map
     def compiler_target(self, state: ModuleState, args: T.List, kwargs: '_kwargs.NativeKW') -> str:
         """Returns the Rust target triple for the specified machine's Rust compiler."""
@@ -1048,8 +1071,12 @@ class RustModule(ExtensionModule):
             raise MesonException(f'No Rust compiler was requested for the {for_machine} machine')
 
     @FeatureNew('rust.proc_macro', '1.3.0')
-    @typed_pos_args('rust.proc_macro', str, varargs=SOURCES_VARARGS)
-    @typed_kwargs('rust.proc_macro', *_PROC_MACRO_KWS)
+    @TypedArgs(
+        'rust.proc_macro',
+        pos_types=[STR_PARG],
+        var_types=SRC_VARG,
+        kw_types=_PROC_MACRO_KWS,
+    )
     def proc_macro(self, state: ModuleState, args: T.Tuple[str, SourcesVarargsType], kwargs: _kwargs.SharedLibrary) -> SharedLibrary:
         # Silently force to native; rust.proc_macro() has always done
         # that even when not cross compiling.
@@ -1067,29 +1094,34 @@ class RustModule(ExtensionModule):
         return target
 
     @FeatureNew('rust.to_system_dependency', '1.11.0')
-    @typed_pos_args('rust.to_system_dependency', Dependency, optargs=[str])
-    @noKwargs
+    @TypedArgs(
+        'rust.to_system_dependency',
+        pos_types=[PosArgInfo(Dependency)],
+        opt_types=[STR_OARG],
+        kw_types=_PROC_MACRO_KWS,
+    )
     def to_system_dependency(self, state: ModuleState, args: T.Tuple[Dependency, T.Optional[str]], kwargs: TYPE_kwargs) -> Dependency:
         dep, depname = args
         return dep_to_system_dependency(dep, depname)
 
     @FeatureNew('rust.workspace', '1.11.0')
-    @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'rust.workspace',
-        KwargInfo('default_features', (bool, NoneType), default=None),
-        KwargInfo(
-            'features',
-            (ContainerTypeInfo(list, str), NoneType),
-            default=None,
-            listify=True,
-        ),
-        KwargInfo(
-            'extra_members',
-            (ContainerTypeInfo(list, str), NoneType),
-            default=None,
-            listify=True,
-        ),
+        kw_types=[
+            KwargInfo('default_features', (bool, NoneType), default=None),
+            KwargInfo(
+                'features',
+                (ContainerTypeInfo(list, str), NoneType),
+                default=None,
+                listify=True,
+            ),
+            KwargInfo(
+                'extra_members',
+                (ContainerTypeInfo(list, str), NoneType),
+                default=None,
+                listify=True,
+            ),
+        ],
     )
     def workspace(self, state: ModuleState, args: T.List, kwargs: FuncWorkspace) -> RustWorkspace:
         """Creates a Rust workspace object, controlling the build of
@@ -1122,24 +1154,29 @@ class RustModule(ExtensionModule):
         return RustWorkspace(self.interpreter, ws)
 
     @FeatureNew('rust.cbindgen', '1.12.0')
-    @typed_pos_args('rust.cbindgen', (str, File, CustomTargetIndex, CustomTarget, StructuredSources), str)
-    @typed_kwargs(
+    @TypedArgs(
         'rust.cbindgen',
-        KwargInfo('config', (str, File, CustomTarget, CustomTargetIndex), required=True, validator=_cbindgen_config_validator),
-        KwargInfo(
-            'language',
-            (str, NoneType),
-            validator=in_set_validator({'c', 'cpp', 'cython'}),
-        ),
-        KwargInfo(
-            'depends',
-            ContainerTypeInfo(list, (CustomTarget, CustomTargetIndex)),
-            default=[],
-            listify=True,
-        ),
-        DEPEND_FILES_KW,
-        INSTALL_KW,
-        INSTALL_DIR_KW,
+        pos_types=[
+            PosArgInfo((str, File, CustomTargetIndex, CustomTarget, StructuredSources)),
+            STR_PARG,
+        ],
+        kw_types=[
+            KwargInfo('config', (str, File, CustomTarget, CustomTargetIndex), required=True, validator=_cbindgen_config_validator),
+            KwargInfo(
+                'language',
+                (str, NoneType),
+                validator=in_set_validator({'c', 'cpp', 'cython'}),
+            ),
+            KwargInfo(
+                'depends',
+                ContainerTypeInfo(list, (CustomTarget, CustomTargetIndex)),
+                default=[],
+                listify=True,
+            ),
+            DEPEND_FILES_KW,
+            INSTALL_KW,
+            INSTALL_DIR_KW,
+        ],
     )
     def cbindgen(self, state: ModuleState,
                  args: tuple[FileOrString | CustomTarget | CustomTargetIndex | StructuredSources, str],

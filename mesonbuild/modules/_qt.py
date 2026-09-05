@@ -16,8 +16,11 @@ from .. import mlog
 from ..dependencies import DependencyMethods, find_external_dependency, Dependency, ExternalLibrary, InternalDependency
 from ..mesonlib import MesonException, File, FileMode, version_compare, Popen_safe
 from ..interpreter import extract_required_kwarg
-from ..interpreter.type_checking import DEPENDENCY_METHOD_KW, INSTALL_DIR_KW, INSTALL_KW, REQUIRED_KW, NoneType
-from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, typed_kwargs, typed_pos_args
+from ..interpreter.type_checking import (
+    DEPENDENCY_METHOD_KW, INSTALL_DIR_KW, INSTALL_KW, REQUIRED_KW, STR_PARG,
+    STR_FILE_VARG, NoneType,
+)
+from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, FeatureNew, TypedArgs
 from ..programs import NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
@@ -379,16 +382,17 @@ class QtBaseModule(ExtensionModule):
         return result
 
     @FeatureNew('qt.has_tools', '0.54.0')
-    @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'qt.has_tools',
-        DEPENDENCY_METHOD_KW,
-        REQUIRED_KW.evolve(default=False),
-        KwargInfo('tools', ContainerTypeInfo(list, str), listify=True,
-                  default=['moc', 'uic', 'rcc', 'lrelease'],
-                  validator=_list_in_set_validator(_set_of_qt_tools),
-                  since='1.6.0'),
-        KwargInfo('version', ContainerTypeInfo(list, str), listify=True, default=[], since='1.11'),
+        kw_types=[
+            DEPENDENCY_METHOD_KW,
+            REQUIRED_KW.evolve(default=False),
+            KwargInfo('tools', ContainerTypeInfo(list, str), listify=True,
+                      default=['moc', 'uic', 'rcc', 'lrelease'],
+                      validator=_list_in_set_validator(_set_of_qt_tools),
+                      since='1.6.0'),
+            KwargInfo('version', ContainerTypeInfo(list, str), listify=True, default=[], since='1.11'),
+        ],
     )
     def has_tools(self, state: ModuleState, args: T.Tuple, kwargs: HasToolKwArgs) -> bool:
         method = kwargs['method']
@@ -409,13 +413,14 @@ class QtBaseModule(ExtensionModule):
         return True
 
     @FeatureNew('qt.compile_resources', '0.59.0')
-    @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'qt.compile_resources',
-        DEPENDENCY_METHOD_KW,
-        _SOURCES_KWS,
-        KwargInfo('name', (str, NoneType)),
-        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+        kw_types=[
+            DEPENDENCY_METHOD_KW,
+            _SOURCES_KWS,
+            KwargInfo('name', (str, NoneType)),
+            KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+        ],
     )
     def compile_resources(self, state: 'ModuleState', args: T.Tuple, kwargs: 'ResourceCompilerKwArgs') -> ModuleReturnValue:
         """Compile Qt resources files.
@@ -498,13 +503,14 @@ class QtBaseModule(ExtensionModule):
         return targets
 
     @FeatureNew('qt.compile_ui', '0.59.0')
-    @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'qt.compile_ui',
-        DEPENDENCY_METHOD_KW,
-        _SOURCES_KWS,
-        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
+        kw_types=[
+            DEPENDENCY_METHOD_KW,
+            _SOURCES_KWS,
+            KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+            KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
+        ],
     )
     def compile_ui(self, state: ModuleState, args: T.Tuple, kwargs: UICompilerKwArgs) -> ModuleReturnValue:
         """Compile UI resources into cpp headers."""
@@ -530,17 +536,18 @@ class QtBaseModule(ExtensionModule):
         return gen.process_files(sources, state.subdir, preserve_path_from)
 
     @FeatureNew('qt.compile_moc', '0.59.0')
-    @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'qt.compile_moc',
-        DEPENDENCY_METHOD_KW,
-        _SOURCES_EMPTY_KWS,
-        _SOURCES_EMPTY_KWS.evolve(name='headers'),
-        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
-        KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
-        KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
-        KwargInfo('output_json', bool, default=False, since='1.7.0'),
+        kw_types=[
+            DEPENDENCY_METHOD_KW,
+            _SOURCES_EMPTY_KWS,
+            _SOURCES_EMPTY_KWS.evolve(name='headers'),
+            KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+            KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
+            KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
+            KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
+            KwargInfo('output_json', bool, default=False, since='1.7.0'),
+        ],
     )
     def compile_moc(self, state: ModuleState, args: T.Tuple, kwargs: MocCompilerKwArgs) -> ModuleReturnValue:
         out = self._compile_moc_impl(state, kwargs)
@@ -606,25 +613,27 @@ class QtBaseModule(ExtensionModule):
 
         return output
 
-    @typed_pos_args('qt.preprocess', varargs=(str, File))
-    @typed_kwargs(
+    @TypedArgs(
         'qt.preprocess',
-        DEPENDENCY_METHOD_KW,
-        KwargInfo('sources', ContainerTypeInfo(list, (File, str)), listify=True, default=[], deprecated='0.59.0'),
-        KwargInfo('qresources', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
-        KwargInfo('ui_files', ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)), listify=True, default=[],
-                  since_values={ContainerTypeInfo(list, (build.CustomTargetIndex, build.GeneratedList)): '1.12'}),
-        KwargInfo('moc_sources', ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)), listify=True, default=[],
-                  since_values={ContainerTypeInfo(list, (build.CustomTargetIndex, build.GeneratedList)): '1.12'}),
-        KwargInfo('moc_headers', ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)), listify=True, default=[],
-                  since_values={ContainerTypeInfo(list, (build.CustomTargetIndex, build.GeneratedList)): '1.12'}),
-        KwargInfo('moc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.44.0'),
-        KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
-        KwargInfo('uic_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
-        KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
-        KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
-        KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
-        KwargInfo('moc_output_json', bool, default=False, since='1.7.0'),
+        var_types=STR_FILE_VARG,
+        kw_types=[
+            DEPENDENCY_METHOD_KW,
+            KwargInfo('sources', ContainerTypeInfo(list, (File, str)), listify=True, default=[], deprecated='0.59.0'),
+            KwargInfo('qresources', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
+            KwargInfo('ui_files', ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)), listify=True, default=[],
+                      since_values={ContainerTypeInfo(list, (build.CustomTargetIndex, build.GeneratedList)): '1.12'}),
+            KwargInfo('moc_sources', ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)), listify=True, default=[],
+                      since_values={ContainerTypeInfo(list, (build.CustomTargetIndex, build.GeneratedList)): '1.12'}),
+            KwargInfo('moc_headers', ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)), listify=True, default=[],
+                      since_values={ContainerTypeInfo(list, (build.CustomTargetIndex, build.GeneratedList)): '1.12'}),
+            KwargInfo('moc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.44.0'),
+            KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
+            KwargInfo('uic_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
+            KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
+            KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
+            KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
+            KwargInfo('moc_output_json', bool, default=False, since='1.7.0'),
+        ],
     )
     def preprocess(self, state: ModuleState, args: tuple[list[str | File]], kwargs: PreprocessKwArgs) -> ModuleReturnValue:
         if args[0]:
@@ -674,16 +683,18 @@ class QtBaseModule(ExtensionModule):
         return ModuleReturnValue(sources, [sources])
 
     @FeatureNew('qt.compile_translations', '0.44.0')
-    @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'qt.compile_translations',
-        KwargInfo('build_by_default', bool, default=False),
-        DEPENDENCY_METHOD_KW,
-        INSTALL_KW,
-        INSTALL_DIR_KW,
-        _SOURCES_KWS.evolve(name='ts_files', required=False),
-        KwargInfo('qresource', (str, NoneType), since='0.56.0'),
-        KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.56.0'),
+        kw_types=[
+            KwargInfo('build_by_default', bool, default=False),
+            DEPENDENCY_METHOD_KW,
+            INSTALL_KW,
+            INSTALL_DIR_KW,
+            _SOURCES_KWS.evolve(name='ts_files', required=False),
+            KwargInfo('qresource', (str, NoneType), since='0.56.0'),
+            KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True,
+                      default=[], since='0.56.0'),
+        ],
     )
     def compile_translations(self, state: ModuleState, args: T.Tuple, kwargs: CompileTranslationsKwArgs) -> ModuleReturnValue:
         ts_files = kwargs['ts_files']
@@ -992,43 +1003,45 @@ class QtBaseModule(ExtensionModule):
         )
 
     @FeatureNew('qt.qml_module', '1.7')
-    @typed_pos_args('qt.qml_module', str)
-    @typed_kwargs(
+    @TypedArgs(
         'qt.qml_module',
-        KwargInfo('version', str, default='254.254'),
-        #qml sources
-        KwargInfo('qml_sources', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
-        KwargInfo('qml_singletons', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
-        KwargInfo('qml_internals', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
-        KwargInfo('resources_prefix', str, default='qt/qml'),
-        #qmldir generation
-        KwargInfo('imports', ContainerTypeInfo(list, (str)), default=[]),
-        KwargInfo('optional_imports', ContainerTypeInfo(list, (str)), default=[]),
-        KwargInfo('default_imports', ContainerTypeInfo(list, (str)), default=[]),
-        #match DEPENDENCIES argument from CMake, but dependencies keyword is already taken
-        KwargInfo('depends_imports', ContainerTypeInfo(list, (str)), default=[]),
-        KwargInfo('designer_supported', bool, default=False),
-        #for type registration, same arguments as moc
-        #moc_sources is voluntary ommited as typeregistrar needs to import a header
-        KwargInfo('moc_headers', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
-        KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
-        KwargInfo('namespace', str, default=''),
-        KwargInfo('typeinfo', str, default=''),
+        pos_types=[STR_PARG],
+        kw_types=[
+            KwargInfo('version', str, default='254.254'),
+            #qml sources
+            KwargInfo('qml_sources', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
+            KwargInfo('qml_singletons', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
+            KwargInfo('qml_internals', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
+            KwargInfo('resources_prefix', str, default='qt/qml'),
+            #qmldir generation
+            KwargInfo('imports', ContainerTypeInfo(list, (str)), default=[]),
+            KwargInfo('optional_imports', ContainerTypeInfo(list, (str)), default=[]),
+            KwargInfo('default_imports', ContainerTypeInfo(list, (str)), default=[]),
+            #match DEPENDENCIES argument from CMake, but dependencies keyword is already taken
+            KwargInfo('depends_imports', ContainerTypeInfo(list, (str)), default=[]),
+            KwargInfo('designer_supported', bool, default=False),
+            #for type registration, same arguments as moc
+            #moc_sources is voluntary ommited as typeregistrar needs to import a header
+            KwargInfo('moc_headers', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
+            KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
+            KwargInfo('namespace', str, default=''),
+            KwargInfo('typeinfo', str, default=''),
 
-        KwargInfo('moc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('qmlcachegen_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('qmltyperegistrar_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[]),
+            KwargInfo('moc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[]),
+            KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[]),
+            KwargInfo('qmlcachegen_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[]),
+            KwargInfo('qmltyperegistrar_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[]),
 
-        KwargInfo('generate_qmldir', bool, default=True),
-        KwargInfo('generate_qmltype', bool, default=True),
-        KwargInfo('cachegen', bool, default=True),
+            KwargInfo('generate_qmldir', bool, default=True),
+            KwargInfo('generate_qmltype', bool, default=True),
+            KwargInfo('cachegen', bool, default=True),
 
-        KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
-        INSTALL_DIR_KW,
-        INSTALL_KW,
-        DEPENDENCY_METHOD_KW,
-        KwargInfo('preserve_paths', bool, default=False),
+            KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
+            INSTALL_DIR_KW,
+            INSTALL_KW,
+            DEPENDENCY_METHOD_KW,
+            KwargInfo('preserve_paths', bool, default=False),
+        ],
     )
     def qml_module(self, state: ModuleState, args: T.Tuple[str], kwargs: QmlModuleKwArgs) -> ModuleReturnValue:
 
