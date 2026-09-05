@@ -75,6 +75,7 @@ from .type_checking import (
     ENV_KW,
     ENV_METHOD_KW,
     ENV_SEPARATOR_KW,
+    EMBED_DIRECTORIES,
     INCLUDE_DIRECTORIES,
     INSTALL_KW,
     INSTALL_DIR_KW,
@@ -754,6 +755,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('compile_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         INCLUDE_DIRECTORIES.evolve(name='d_import_dirs', since='0.62.0'),
         D_MODULE_VERSIONS_KW.evolve(since='0.62.0'),
+        EMBED_DIRECTORIES,
         LINK_ARGS_KW,
         DEPENDENCIES_KW,
         INCLUDE_DIRECTORIES.evolve(since_values={ContainerTypeInfo(list, str): '0.50.0'}),
@@ -769,6 +771,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                 kwargs: kwtypes.FuncDeclareDependency) -> dependencies.Dependency:
         deps = kwargs['dependencies']
         incs = self.extract_incdirs(kwargs['include_directories'])
+        embed_directories = self.extract_incdirs(kwargs['embed_directories'])
         libs = kwargs['link_with']
         libs_whole = kwargs['link_whole']
         objects = kwargs['objects']
@@ -795,7 +798,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     and os.path.isdir(v):
                 variables[k] = P_OBJ.DependencyVariableString(v)
 
-        dep = dependencies.InternalDependency(version, incs, compile_args,
+        dep = dependencies.InternalDependency(version, incs, embed_directories, compile_args,
                                               link_args, libs, libs_whole, sources, extra_files,
                                               deps, variables, d_module_versions, d_import_dirs,
                                               objects)
@@ -3735,6 +3738,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         # Convert into IncludeDirs objects
         final['include_directories'] = self.extract_incdirs(kwargs['include_directories'])
+        final['embed_directories'] = self.extract_incdirs(kwargs['embed_directories'])
         final['d_import_dirs'] = self.extract_incdirs(kwargs['d_import_dirs'], True)
 
         # Convert language arguments

@@ -1734,3 +1734,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_show_dep_args(self) -> T.List[str]:
         """Arguments for printing depfile information in MSVC compatible format"""
         return []
+
+    def get_embed_args(self, path: str) -> list[str]:
+        """Format arguments for C and C++ #embed statements."""
+        raise EnvironmentException(f'{self.get_id()} does not support embed search paths')
