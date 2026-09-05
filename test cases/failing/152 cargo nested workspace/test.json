@@ -1,0 +1,8 @@
+{
+  "stdout": [
+    {
+      "match": "re",
+      "line": "test cases/failing/152 cargo nested workspace/meson\\.build:[0-9]+:[0-9]+: ERROR: \"vendor\" is itself a workspace, therefore it cannot be a member of the workspace at \"\\.\""
+    }
+  ]
+}

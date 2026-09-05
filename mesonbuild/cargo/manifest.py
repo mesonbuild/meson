@@ -15,7 +15,7 @@ from pathlib import PurePath
 
 
 from . import version
-from ..mesonlib import MesonException, lazy_property, MachineChoice
+from ..mesonlib import MesonException, is_parent_path, lazy_property, MachineChoice
 from .. import mlog
 
 if T.TYPE_CHECKING:
@@ -656,6 +656,16 @@ class Workspace:
             'lints': self.lints,
         }
 
+    def is_excluded(self, path: str) -> bool:
+        path = PurePath(path).as_posix()
+        if '.' in self.exclude:
+            # If the workspace directory is excluded, so is everything below it,
+            # even explicitly listed members (Cargo weirdness), but the root
+            # package never is.
+            return path != '.'
+        return path not in self.members and \
+            any(is_parent_path(ex, path) for ex in self.exclude)
+
     @classmethod
     def from_raw(cls, raw: raw.Manifest, path: str) -> Self:
         ws = _raw_to_dataclass(raw['workspace'], cls, 'Workspace')
@@ -668,28 +678,39 @@ class Workspace:
             ws.profile = raw.get('profile')
 
         ws.members = list(PurePath(m).as_posix() for m in ws.members)
+        ws.exclude = list(PurePath(e).as_posix() for e in ws.exclude)
         if ws.default_members:
             ws.default_members = list(PurePath(m).as_posix() for m in ws.default_members)
         else:
             ws.default_members = ['.'] if ws.root_package else list(ws.members)
 
-        def expand(entries: T.List[str], keep_glob_results: bool) -> T.List[str]:
-            result: T.List[str] = []
+        def expand(entries: T.List[str], keep_glob_results: bool) -> T.Tuple[T.List[str], T.List[str]]:
+            """Split *entries* into literal paths and the directories matched by
+               glob patterns; the latter are only computed if *keep_glob_results*."""
+            literals: T.List[str] = []
+            expanded: T.List[str] = []
             for entry in entries:
                 if not _glob_has_wildcard(entry):
-                    result.append(_remove_simple_globs(entry))
+                    literals.append(_remove_simple_globs(entry))
                     continue
 
                 if keep_glob_results:
-                    result.extend(PurePath(exp).as_posix()
-                                  for exp in glob.glob(entry, root_dir=path)
-                                  if os.path.isdir(os.path.join(path, exp)))
-            return result
+                    expanded.extend(PurePath(exp).as_posix()
+                                    for exp in glob.glob(entry, root_dir=path)
+                                    if os.path.isdir(os.path.join(path, exp)))
+            return literals, expanded
 
-        # meson-specific behavior for glob members: they are allowed as
-        # arguments to cargo.package(), but never built by default
-        ws.members = expand(ws.members, keep_glob_results=True)
-        ws.default_members = expand(ws.default_members, keep_glob_results=False)
+        # As in Cargo, excluded directories are dropped, but only if they
+        # were not listed literally.  Meson-specific behavior for glob members
+        # is that they are allowed as arguments to cargo.workspace(), but never
+        # built by default.
+        if ws.root_package and '.' not in ws.members:
+            ws.members.append('.')
+        ws.members, glob_members = expand(ws.members, keep_glob_results=True)
+        ws.members = [m for m in ws.members if not ws.is_excluded(m)]
+        ws.members += [m for m in glob_members if not ws.is_excluded(m)]
+        ws.default_members, _ = expand(ws.default_members, keep_glob_results=False)
+        ws.default_members = [m for m in ws.default_members if not ws.is_excluded(m)]
         return ws
 
 
