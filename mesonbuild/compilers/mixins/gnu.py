@@ -363,6 +363,8 @@ class GnuLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
         self.base_options = {
             OptionKey(o) for o in ['b_pch', 'b_lto', 'b_pgo', 'b_coverage',
                                    'b_ndebug', 'b_staticpic', 'b_pie']}
+        if self.language in {'c', 'cpp', 'objc', 'objcpp'}:
+            self.base_options.add(OptionKey('b_freestanding'))
         if not (self.info.is_windows() or self.info.is_cygwin() or self.info.is_openbsd()):
             self.base_options.add(OptionKey('b_lundef'))
         if not self.info.is_windows() or self.info.is_cygwin():
@@ -380,6 +382,10 @@ class GnuLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
 
     def get_pie_args(self) -> T.List[str]:
         return ['-fPIE']
+
+    def get_freestanding_args(self, freestanding: bool) -> T.List[str]:
+        freestanding = freestanding and OptionKey('b_freestanding') in self.base_options
+        return ['-ffreestanding'] if freestanding else []
 
     @abc.abstractmethod
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:

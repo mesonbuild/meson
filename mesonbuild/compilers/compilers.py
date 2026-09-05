@@ -340,6 +340,8 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
     # This does not need a try...except
     bitcode = option_enabled(compiler.base_options, target, env, 'b_bitcode')
     args.extend(compiler.get_embed_bitcode_args(bitcode, lto))
+    freestanding = option_enabled(compiler.base_options, target, env, 'b_freestanding')
+    args.extend(compiler.get_freestanding_args(freestanding))
     try:
         crt_val = env.coredata.get_option_for_target(target, 'b_vscrt')
         assert isinstance(crt_val, str)
@@ -1150,6 +1152,9 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         return ret
 
     def get_embed_bitcode_args(self, bitcode: bool, lto: bool) -> T.List[str]:
+        return []
+
+    def get_freestanding_args(self, freestanding: bool) -> T.List[str]:
         return []
 
     def get_lto_compile_args(self, *, target: T.Optional[BuildTarget] = None, threads: int = 0,
