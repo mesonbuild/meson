@@ -490,3 +490,30 @@ class WindowsTests(BasePlatformTests):
         with mock.patch.object(self, 'install_command', self.meson_command + ['install']):
             out = self.install(override_envvars=env)
             self.assertIn('Activating VS', out)
+
+    def test_extra_paths_content(self):
+        '''
+        Test that when a test depends on a non-SharedLibrary, the extra_paths
+        not include parent directories from that non-SharedLibrary.
+
+        See: https://github.com/mesonbuild/meson/issues/16010
+        '''
+        testdir = os.path.join(self.platform_test_dir, '13 test argument extra paths')
+        self.init(testdir)
+
+        tests = self.introspect('--tests')
+        run_exe = None
+        for t in tests:
+            if t['name'] == 'run_exe':
+                run_exe = t
+                break
+
+        self.assertIsNotNone(run_exe, 'Test run_exe not found')
+
+        extra_paths = run_exe.get('extra_paths', [])
+        self.assertIsInstance(extra_paths, list)
+
+        # The executable 'barexe' links against libfoo, so the lib directory
+        # should be in extra_paths (so the DLL can be found at runtime).
+        self.assertTrue(any('lib' in p for p in extra_paths) and len(extra_paths) == 1,
+            f'extra_paths should contain a lib directory and nothing else: {extra_paths}')
