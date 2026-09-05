@@ -3124,17 +3124,30 @@ class CustomTarget(Target, CustomTargetBase):
     def get_generated_sources(self) -> T.List[GeneratedList]:
         return self.get_generated_lists()
 
-    def get_dep_outname(self, infilenames: list[str]) -> str:
+    def get_dep_outname(self, infilenames: list[str],
+                        outfilenames: T.Optional[list[str]] = None) -> str:
         if self.depfile is None:
             raise InvalidArguments('Tried to get depfile name for custom_target that does not have depfile defined.')
+        depfile = self.depfile
         if infilenames:
             plainname = os.path.basename(infilenames[0])
             basename = os.path.splitext(plainname)[0]
-            return self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
-        else:
-            if '@BASENAME@' in self.depfile or '@PLAINNAME@' in self.depfile:
-                raise InvalidArguments('Substitution in depfile for custom_target that does not have an input file.')
-            return self.depfile
+            depfile = depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
+        elif '@BASENAME@' in depfile or '@PLAINNAME@' in depfile:
+            raise InvalidArguments('Substitution in depfile for custom_target that does not have an input file.')
+        # @OUTPUT@ in depfile is the output *filename*, not the full path.
+        # The backend joins this with get_target_dir(), which already includes
+        # the meson subdir and build_subdir. Substituting a full @OUTPUT@ path
+        # would double both (issue #14140).
+        outputs = outfilenames if outfilenames is not None else self.outputs
+        if '@OUTPUT@' in depfile:
+            if len(outputs) != 1:
+                raise InvalidArguments("Depfile has '@OUTPUT@' as part of a "
+                                       'string and more than one output file')
+            depfile = depfile.replace('@OUTPUT@', os.path.basename(outputs[0]))
+        for i, ofile in enumerate(outputs):
+            depfile = depfile.replace(f'@OUTPUT{i}@', os.path.basename(ofile))
+        return depfile
 
     def is_linkable_output(self, output: str) -> bool:
         if output.endswith(('.a', '.dll', '.lib', '.so', '.dylib')):

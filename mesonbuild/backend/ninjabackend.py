@@ -1333,7 +1333,7 @@ class NinjaBackend(backends.Backend):
         else:
             cmd_type = ''
         if target.depfile is not None:
-            depfile = target.get_dep_outname(elem.infilenames)
+            depfile = target.get_dep_outname(elem.infilenames, target.get_outputs())
             rel_dfile = os.path.join(self.get_target_dir(target), depfile)
             abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             os.makedirs(abs_pdir, exist_ok=True)
