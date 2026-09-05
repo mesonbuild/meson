@@ -1364,6 +1364,41 @@ Thread model: posix'''), '21.9.0')
             self.assertEqual(quote_arg(arg), expected)
             self.assertEqual(split_args(expected)[0], arg)
 
+    def test_split_args_protecting(self):
+        split_args = mesonbuild.mesonlib.split_args
+        split_args_protecting = mesonbuild.mesonlib.split_args_protecting
+
+        libdir = r'C:\Program Files\LLVM\lib'
+        incdir = r'C:\Program Files\LLVM\include'
+        raw = f'-LIBPATH:{libdir} {libdir}\\LLVMCore.lib -I{incdir}'
+        self.assertNotEqual(split_args(raw), [
+            f'-LIBPATH:{libdir}',
+            f'{libdir}\\LLVMCore.lib',
+            f'-I{incdir}',
+        ])
+        self.assertEqual(split_args_protecting(raw, [libdir, incdir]), [
+            f'-LIBPATH:{libdir}',
+            f'{libdir}\\LLVMCore.lib',
+            f'-I{incdir}',
+        ])
+
+        raw_slash = '-LIBPATH:C:/Program Files/LLVM/lib C:/Program Files/LLVM/lib/LLVMCore.lib'
+        self.assertEqual(split_args_protecting(raw_slash, [libdir]), [
+            '-LIBPATH:C:/Program Files/LLVM/lib',
+            'C:/Program Files/LLVM/lib/LLVMCore.lib',
+        ])
+
+        posix_lib = '/usr/Program Files/LLVM/lib'
+        posix_raw = f'-L{posix_lib} {posix_lib}/libLLVMCore.a'
+        self.assertEqual(split_args_protecting(posix_raw, [posix_lib]), [
+            f'-L{posix_lib}',
+            f'{posix_lib}/libLLVMCore.a',
+        ])
+
+        self.assertEqual(split_args_protecting('-lLLVMCore -L/usr/lib', []),
+                         split_args('-lLLVMCore -L/usr/lib'))
+        self.assertEqual(split_args_protecting('', ['/tmp']), [])
+
     def test_depfile(self):
         for (f, target, expdeps) in [
                 # empty, unknown target
