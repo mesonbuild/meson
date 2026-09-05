@@ -19,14 +19,14 @@ from ..mesonlib import File, MesonException, has_path_sep, is_windows, path_is_i
 
 if T.TYPE_CHECKING:
     from . import ModuleState
-    from ..build import BuildTargetTypes
+    from ..build import BuildTargetProto
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_kwargs
     from ..mesonlib import FileOrString, FileMode
 
     from typing_extensions import TypedDict
 
-    FilePathTypes = str | File | BuildTargetTypes
+    FilePathTypes = str | File | BuildTargetProto
 
     class ReadKwArgs(TypedDict):
         """Keyword Arguments for fs.read."""
@@ -332,10 +332,10 @@ class FSModule(ExtensionModule):
         def to_path(arg: FilePathTypes) -> str:
             if isinstance(arg, File):
                 return arg.absolute_path(state.environment.source_dir, state.environment.build_dir)
-            elif isinstance(arg, (CustomTarget, CustomTargetIndex, BuildTarget)):
-                return state.backend.get_target_filename_abs(arg)
-            else:
+            elif isinstance(arg, str):
                 return os.path.join(state.environment.source_dir, state.subdir, arg)
+            else:
+                return state.backend.get_target_filename_abs(arg)
 
         t = to_path(args[0])
         f = to_path(args[1])
