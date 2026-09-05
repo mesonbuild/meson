@@ -246,13 +246,13 @@ def all_dependencies_recurse(source: object,
 class InvalidArguments(MesonException):
     pass
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class DependencyOverride(HoldableObject):
     dep: dependencies.Dependency
     node: 'BaseNode'
     explicit: bool = True
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class Headers(HoldableObject):
     sources: T.List[File]
     install_subdir: T.Optional[str]
@@ -285,7 +285,7 @@ class Headers(HoldableObject):
         return self.custom_install_mode
 
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class Man(HoldableObject):
     sources: T.List[File]
     custom_install_dir: T.Optional[str]
@@ -304,7 +304,7 @@ class Man(HoldableObject):
         return self.sources
 
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class EmptyDir(HoldableObject):
     path: str
     install_mode: 'FileMode'
@@ -312,7 +312,7 @@ class EmptyDir(HoldableObject):
     install_tag: T.Optional[str] = None
 
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class InstallDir(HoldableObject):
     source_subdir: str
     installable_subdir: str
@@ -326,7 +326,7 @@ class InstallDir(HoldableObject):
     install_tag: T.Optional[str] = None
     follow_symlinks: T.Optional[bool] = None
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class DepManifest:
     version: str
     license: T.List[str]
@@ -572,7 +572,7 @@ class Build:
             raise MesonBugException(f'Required static_linker for {target.for_machine} not found')
         return archiver
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class IncludeDirs(HoldableObject):
 
     """Internal representation of an include_directories call.
@@ -629,7 +629,7 @@ class IncludeDirs(HoldableObject):
         return strlist
 
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class ExtractedObjects(HoldableObject):
     '''
     Holds a list of sources for which the objects must be extracted
@@ -680,7 +680,7 @@ class ExtractedObjects(HoldableObject):
                                      'the object files for each compiler at once.')
 
 
-@dataclass(eq=False, order=False)
+@dataclass(slots=True, eq=False, order=False)
 class StructuredSources(HoldableObject):
 
     """A container for sources in languages that use filesystem hierarchy.
@@ -722,7 +722,7 @@ class StructuredSources(HoldableObject):
         return False
 
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class Target(HoldableObject, metaclass=SimpleABC):
 
     typename: T.ClassVar[str]
@@ -2092,7 +2092,7 @@ class Generator(HoldableObject):
         return output
 
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class GeneratedList(HoldableObject):
 
     """The output of generator.process."""
@@ -3375,7 +3375,7 @@ class Jar(BuildTarget):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_jar_dir(), '{jardir}'
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class CustomTargetIndex(CustomTargetBase, HoldableObject):
 
     """A special opaque object returned by indexing a CustomTarget. This object
@@ -3565,7 +3565,7 @@ class LocalProgram(programs.Program):
 
 # A bit poorly named, but this represents plain data files to copy
 # during install.
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class Data(HoldableObject):
     sources: T.List[File]
     install_dir: str
@@ -3581,7 +3581,7 @@ class Data(HoldableObject):
         if self.rename is None:
             self.rename = [os.path.basename(f.fname) for f in self.sources]
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class SymlinkData(HoldableObject):
     target: str
     name: str
@@ -3594,7 +3594,7 @@ class SymlinkData(HoldableObject):
             raise InvalidArguments(f'Link name is "{self.name}", but link names cannot contain path separators. '
                                    'The dir part should be in install_dir.')
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class TestSetup:
     exe_wrapper: T.List[str]
     gdb: bool

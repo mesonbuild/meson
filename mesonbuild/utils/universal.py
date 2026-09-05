@@ -589,7 +589,7 @@ class ThreeMachineChoice(enum.IntEnum):
         return MACHINE_NAMES[self.value]
 
 
-@dataclasses.dataclass(eq=False, order=False)
+@dataclasses.dataclass(slots=True, eq=False, order=False)
 class PerMachine(T.Generic[_T]):
     build: _T
     host: _T
@@ -627,7 +627,7 @@ class PerMachine(T.Generic[_T]):
         return PerMachine(build, host)
 
 
-@dataclasses.dataclass(eq=False, order=False)
+@dataclasses.dataclass(slots=True, eq=False, order=False)
 class PerThreeMachine(PerMachine[_T]):
     """Like `PerMachine` but includes `target` too.
 
@@ -679,7 +679,7 @@ class PerThreeMachine(PerMachine[_T]):
         return PerThreeMachine(build, host, target)
 
 
-@dataclasses.dataclass(eq=False, order=False)
+@dataclasses.dataclass(slots=True, eq=False, order=False)
 class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
     """Extends `PerMachine` with the ability to default from `None`s.
     """
@@ -711,7 +711,7 @@ class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
         return m.default_missing()
 
 
-@dataclasses.dataclass(eq=False, order=False)
+@dataclasses.dataclass(slots=True, eq=False, order=False)
 class PerThreeMachineDefaultable(PerMachineDefaultable[T.Optional[_T]], PerThreeMachine[T.Optional[_T]]):
     """Extends `PerThreeMachine` with the ability to default from `None`s.
     """
@@ -730,7 +730,7 @@ class PerThreeMachineDefaultable(PerMachineDefaultable[T.Optional[_T]], PerThree
         target = self.target if self.target is not None else host
         return PerThreeMachine(build, host, target)
 
-@dataclasses.dataclass(eq=False)
+@dataclasses.dataclass(slots=True, eq=False)
 class InstallScriptFailure:
 
     name: str
@@ -883,7 +883,7 @@ def windows_detect_native_arch() -> str:
             raise EnvironmentException('Unable to detect native OS architecture')
     return arch
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class VcsData:
     name: str
     cmd: str
@@ -1086,7 +1086,7 @@ def version_compare_many(vstr1: str, conditions: T.Union[str, T.Iterable[str]]) 
 
 _V = T.TypeVar('_V', bound='Comparable')
 
-@dataclasses.dataclass(order=False)
+@dataclasses.dataclass(slots=True, order=False)
 class Range(T.Generic[_V]):
     min: T.Optional[_V] = None
     min_eq: bool = False
@@ -2720,6 +2720,8 @@ class lazy_property(T.Generic[_T]):
     This works by shadowing itself with the calculated value, in the instance.
     Due to Python's MRO that means that the calculated value will be found
     before this property, speeding up subsequent lookups.
+
+    NOTE: Does not work correctly with slotted classes
     """
     def __init__(self, func: T.Callable[[T.Any], _T]) -> None:
         self.__name: T.Optional[str] = None

@@ -10,7 +10,7 @@ as possible for performance reasons.
 """
 
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os
 import typing as T
 
@@ -154,7 +154,7 @@ class EnvironmentVariables(HoldableObject):
         return env
 
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class ExecutableSerialisation:
 
     cmd_args: T.List[str]
@@ -168,8 +168,8 @@ class ExecutableSerialisation:
     verbose: bool = False
     installdir_map: T.Optional[T.Dict[str, str]] = None
 
-    def __post_init__(self) -> None:
-        self.pickled = False
-        self.skip_if_destdir = False
-        self.subproject = T.cast('SubProject', '')  # avoid circular import
-        self.dry_run = False
+    pickled: bool = field(default=False, init=False)
+    skip_if_destdir: bool = field(default=False, init=False)
+    # cast to avoid circular import
+    subproject: SubProject = field(default=T.cast('SubProject', ''), init=False)
+    dry_run: bool = field(default=False, init=False)
