@@ -81,7 +81,10 @@ class WindowsModule(ExtensionModule):
                 return None
 
             comp = self.detect_compiler(state.environment.coredata.compilers[for_machine])
-            if comp.linker and comp.linker.id in {'link', 'lld-link'}:
+            # Pick the resource compiler by toolchain flavour rather than an enumerated
+            # linker-id set: MSVC-style compilers (cl, clang-cl, icl, icx) expect
+            # rc/llvm-rc (.res); GNU-style toolchains use windres.
+            if comp.get_argument_syntax() == 'msvc':
                 rescomp = search_programs(['rc', 'llvm-rc'])
             else:
                 rescomp = search_programs(['windres', 'llvm-windres'])
@@ -191,7 +194,7 @@ class WindowsModule(ExtensionModule):
                                 '--rc', *rescomp.get_command(),
                                 '--cl', *compiler.get_exelist(False)])
 
-                if compiler.id in {'msvc', 'clang-cl', 'intel-cl'}:
+                if compiler.get_argument_syntax() == 'msvc':
                     depfile_type = 'msvc'
                     command.extend(['--Xarg=/showIncludes',
                                     '--Xarg=/EP',
