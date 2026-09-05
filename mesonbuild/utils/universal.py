@@ -193,6 +193,7 @@ __all__ = [
     'windows_detect_native_arch',
     'windows_proof_rm',
     'windows_proof_rmtree',
+    'is_lib_filename',
 ]
 
 SubProject = T.NewType('SubProject', str)
@@ -2872,3 +2873,12 @@ def unwrap_err(value: _T | None, msg: str) -> _T:
     if value is not None:
         return value
     raise MesonException(msg)
+
+LIB_FILE_SUFFIXES = ('.lib', '.dll', '.so', '.dylib', '.a')
+# Match a .so of the form path/to/libfoo.so.0.1.0
+# Only UNIX shared libraries require this. Others have a fixed extension.
+LIB_FILE_REGEX = re.compile(r'([\/\\]|\A)lib.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
+
+def is_lib_filename(filename: str) -> bool:
+    return filename.endswith(LIB_FILE_SUFFIXES) or \
+        re.search(LIB_FILE_REGEX, filename) is not None

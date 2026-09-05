@@ -2645,3 +2645,17 @@ Thread model: posix'''), '21.9.0')
                 mesonbuild.scripts.depfixer.fix_rpath(
                     fname, set(), '', '', {}, system='linux', verbose=False)
                 mock_fix_darwin.assert_not_called()
+
+    def test_is_lib_filename(self) -> None:
+        from mesonbuild.utils.universal import is_lib_filename
+
+        self.assertTrue(is_lib_filename('libfoo.so'))
+        self.assertTrue(is_lib_filename('libfoo.so.1.2.3'))
+        self.assertTrue(is_lib_filename('libfoo.dylib'))
+        self.assertTrue(is_lib_filename('libfoo.a'))
+        self.assertTrue(is_lib_filename('foo.dll'))
+        self.assertTrue(is_lib_filename('foo.lib'))
+
+        self.assertFalse(is_lib_filename('libfoo.so.txt'))
+        self.assertFalse(is_lib_filename('foo.c'))
+        self.assertFalse(is_lib_filename('foo.exe'))
