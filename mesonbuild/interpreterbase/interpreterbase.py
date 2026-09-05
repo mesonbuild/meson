@@ -36,7 +36,7 @@ from .helpers import default_resolve_key, flatten, resolve_second_level_holders,
 from .operator import MesonOperator
 from ._unholder import _unholder
 
-import os, copy, hashlib, re, pathlib
+import contextlib, copy, hashlib, os, pathlib, re
 import typing as T
 import textwrap
 
@@ -101,6 +101,20 @@ class InterpreterBase:
     def handle_meson_version_from_ast(self) -> None:
         # do nothing in an AST interpreter
         return
+
+    @contextlib.contextmanager
+    def set_tmp_project_meson_version(self) -> T.Iterator[None]:
+        prev_meson_version = mesonlib.project_meson_versions[self.subproject]
+        if self.tmp_meson_version and isinstance(prev_meson_version, mesonlib.Range):
+            always = prev_meson_version.always(self.tmp_meson_version)
+            if always is not None:
+                mlog.warning(f"Conditional on version '{self.tmp_meson_version}' always evaluates to {str(always).lower()}",
+                             location=self.current_node)
+            mesonlib.project_meson_versions[self.subproject] = prev_meson_version.intersect(self.tmp_meson_version)
+        try:
+            yield
+        finally:
+            mesonlib.project_meson_versions[self.subproject] = prev_meson_version
 
     def read_buildfile(self, fname: str, errname: str) -> str:
         try:
@@ -310,19 +324,10 @@ class InterpreterBase:
             res = result.operator_call(MesonOperator.BOOL, None)
             if not isinstance(res, bool):
                 raise InvalidCode(f'If clause {result!r} does not evaluate to true or false.')
-            prev_meson_version = mesonlib.project_meson_versions[self.subproject]
-            if self.tmp_meson_version and isinstance(prev_meson_version, mesonlib.Range):
-                always = prev_meson_version.always(self.tmp_meson_version)
-                if always is not None:
-                    mlog.warning(f"Conditional on version '{self.tmp_meson_version}' always evaluates to {str(always).lower()}",
-                                 location=self.current_node)
-                mesonlib.project_meson_versions[self.subproject] = prev_meson_version.intersect(self.tmp_meson_version)
-            try:
+            with self.set_tmp_project_meson_version():
                 if res:
                     self.evaluate_codeblock(i.block)
                     return None
-            finally:
-                mesonlib.project_meson_versions[self.subproject] = prev_meson_version
         if not isinstance(node.elseblock, mparser.EmptyNode):
             self.evaluate_codeblock(node.elseblock.block)
         return None
@@ -414,6 +419,9 @@ class InterpreterBase:
         return self._holderify(res)
 
     def evaluate_ternary(self, node: mparser.TernaryNode) -> T.Optional[InterpreterObject]:
+        # Reset self.tmp_meson_version to know if it gets set during this
+        # statement evaluation.
+        self.tmp_meson_version = None
         result = self.evaluate_statement(node.condition)
         if result is None:
             raise mesonlib.MesonException('Cannot use a void statement as condition for ternary operator.')
@@ -421,10 +429,10 @@ class InterpreterBase:
             return result
         result.current_node = node
         result_bool = result.operator_call(MesonOperator.BOOL, None)
-        if result_bool:
-            return self.evaluate_statement(node.trueblock)
-        else:
-            return self.evaluate_statement(node.falseblock)
+        with self.set_tmp_project_meson_version():
+            if result_bool:
+                return self.evaluate_statement(node.trueblock)
+        return self.evaluate_statement(node.falseblock)
 
     @FeatureNew('multiline format strings', '0.63.0')
     def evaluate_multiline_fstring(self, node: mparser.StringNode) -> InterpreterObject:
