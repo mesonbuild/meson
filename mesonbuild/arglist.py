@@ -8,8 +8,8 @@ from functools import lru_cache
 import collections
 import enum
 import os
-import re
 import typing as T
+from mesonbuild.utils.universal import is_lib_filename
 
 if T.TYPE_CHECKING:
     from .linkers import StaticLinker
@@ -84,10 +84,6 @@ class CompilerArgs(T.MutableSequence[str]):
     # NOTE: not thorough. A list of potential corner cases can be found in
     # https://github.com/mesonbuild/meson/pull/4593#pullrequestreview-182016038
     dedup1_prefixes: T.Tuple[str, ...] = ()
-    dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')
-    # Match a .so of the form path/to/libfoo.so.0.1.0
-    # Only UNIX shared libraries require this. Others have a fixed extension.
-    dedup1_regex = re.compile(r'([\/\\]|\A)lib.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
     dedup1_args: T.Tuple[str, ...] = ()
     # In generate_link() we add external libs without de-dup, but we must
     # *always* de-dup these because they're special arguments to the linker
@@ -226,8 +222,7 @@ class CompilerArgs(T.MutableSequence[str]):
             return Dedup.OVERRIDDEN
         if arg in cls.dedup1_args or \
            arg.startswith(cls.dedup1_prefixes) or \
-           arg.endswith(cls.dedup1_suffixes) or \
-           re.search(cls.dedup1_regex, arg):
+           is_lib_filename(arg):
             return Dedup.UNIQUE
         return Dedup.NO_DEDUP
 
