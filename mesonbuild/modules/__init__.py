@@ -11,7 +11,7 @@ import typing as T
 from .. import build, dependencies, mesonlib, mlog
 from ..options import OptionKey
 from ..build import IncludeDirs
-from ..interpreterbase.decorators import noKwargs, noPosargs
+from ..interpreterbase.decorators import TypedArgs, noPosargs
 from ..mesonlib import relpath, HoldableObject, MachineChoice
 from ..programs import ExternalProgram
 
@@ -158,7 +158,7 @@ class ModuleState:
         # typed_* takes a list, and gives a tuple to func_test. Violating that constraint
         # makes the universe (or at least use of this function) implode
         real_args = list(args)
-        # TODO: Use interpreter internal API, but we need to go through @typed_kwargs
+        # TODO: Use interpreter internal API, but we need to go through @TypedArgs
         self._interpreter.func_test(self.current_node, real_args, kwargs)
 
     def get_option(self, name: str, subproject: str = '',
@@ -229,7 +229,7 @@ class NewExtensionModule(ModuleObject):
         })
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('module.found')
     def found_method(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
         return self.found()
 

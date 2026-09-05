@@ -9,10 +9,10 @@ from .. import build
 from .. import dependencies
 from .. import mesonlib
 from ..interpreterbase import (
-    noPosargs, noKwargs,
+    noPosargs,
     InterpreterException, InvalidArguments, InvalidCode, FeatureNew,
 )
-from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
+from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, TypedArgs, typed_pos_args
 from ..mesonlib import OrderedSet
 
 if T.TYPE_CHECKING:
@@ -131,22 +131,24 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
         return keys, deps
 
     @typed_pos_args('sourceset.add', varargs=(str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, dependencies.Dependency))
-    @typed_kwargs(
+    @TypedArgs(
         'sourceset.add',
-        _WHEN_KW,
-        KwargInfo(
-            'if_true',
-            ContainerTypeInfo(list, (str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, dependencies.Dependency)),
-            listify=True,
-            default=[],
-        ),
-        KwargInfo(
-            'if_false',
-            ContainerTypeInfo(list, (str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, dependencies.Dependency)),
-            listify=True,
-            default=[],
-            since_values={dependencies.Dependency: '1.11.0'},
-        ),
+        kw_types=[
+            _WHEN_KW,
+            KwargInfo(
+                'if_true',
+                ContainerTypeInfo(list, (str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, dependencies.Dependency)),
+                listify=True,
+                default=[],
+            ),
+            KwargInfo(
+                'if_false',
+                ContainerTypeInfo(list, (str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, dependencies.Dependency)),
+                listify=True,
+                default=[],
+                since_values={dependencies.Dependency: '1.11.0'},
+            ),
+        ],
     )
     def add_method(self, state: ModuleState,
                    args: T.Tuple[T.List[T.Union[str, build.TargetSources, dependencies.Dependency]]],
@@ -166,15 +168,17 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
         self.rules.append(SourceSetRule(keys, dependencies, sources, extra_deps, [], if_false_sources, if_false_deps))
 
     @typed_pos_args('sourceset.add_all', varargs=SourceSet)
-    @typed_kwargs(
+    @TypedArgs(
         'sourceset.add_all',
-        _WHEN_KW,
-        KwargInfo(
-            'if_true',
-            ContainerTypeInfo(list, SourceSet),
-            listify=True,
-            default=[],
-        )
+        kw_types=[
+            _WHEN_KW,
+            KwargInfo(
+                'if_true',
+                ContainerTypeInfo(list, SourceSet),
+                listify=True,
+                default=[],
+            ),
+        ],
     )
     def add_all_method(self, state: ModuleState, args: T.Tuple[T.List[SourceSetImpl]],
                        kwargs: AddAllKw) -> None:
@@ -210,7 +214,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
             into.deps.update(entry.if_false_deps)
         return into
 
-    @noKwargs
+    @TypedArgs('sourcset.all_sources')
     @noPosargs
     def all_sources_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs
                            ) -> T.List[str | build.TargetSources]:
@@ -218,7 +222,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
         files = self.collect(lambda x: True, True)
         return list(files.sources)
 
-    @noKwargs
+    @TypedArgs('sourcset.all_dependencies')
     @noPosargs
     @FeatureNew('source_set.all_dependencies() method', '0.52.0')
     def all_dependencies_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs
@@ -228,7 +232,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
         return list(files.deps)
 
     @typed_pos_args('sourceset.apply', (build.ConfigurationData, dict))
-    @typed_kwargs('sourceset.apply', KwargInfo('strict', bool, default=True))
+    @TypedArgs('sourceset.apply', kw_types=[KwargInfo('strict', bool, default=True)])
     def apply_method(self, state: ModuleState, args: T.Tuple[T.Union[build.ConfigurationData, T.Dict[str, TYPE_var]]], kwargs: ApplyKw) -> SourceFilesObject:
         config_data = args[0]
         self.frozen = True
@@ -267,13 +271,13 @@ class SourceFilesObject(ModuleObject):
         })
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('source_set_files.sources')
     def sources_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs
                        ) -> T.List[str | build.TargetSources]:
         return list(self.files.sources)
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('source_set_files.dependencies')
     def dependencies_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs
                             ) -> T.List[dependencies.Dependency]:
         return list(self.files.deps)
@@ -288,7 +292,7 @@ class SourceSetModule(ExtensionModule):
             'source_set': self.source_set,
         })
 
-    @noKwargs
+    @TypedArgs('sourcset.source_set')
     @noPosargs
     def source_set(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> SourceSetImpl:
         return SourceSetImpl(self.interpreter)

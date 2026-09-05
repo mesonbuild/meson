@@ -13,7 +13,7 @@ from .. import build, mesonlib, mlog
 from ..build import CustomTarget, CustomTargetIndex
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase import (
-    InvalidArguments, noPosargs, noKwargs, typed_kwargs, FeatureDeprecated,
+    InvalidArguments, noPosargs, TypedArgs, FeatureDeprecated,
     ContainerTypeInfo, KwargInfo, typed_pos_args, InterpreterObject
 )
 from ..interpreter.interpreterobjects import _CustomTargetHolder
@@ -374,7 +374,7 @@ class HotdocTargetBuilder:
 
 class HotdocTargetHolder(_CustomTargetHolder['HotdocTarget']):
     @noPosargs
-    @noKwargs
+    @TypedArgs('hotdoc_target.config_path')
     @InterpreterObject.method('config_path')
     def config_path_method(self, *args: T.Any, **kwargs: T.Any) -> str:
         conf = self.held_object.hotdoc_conf.absolute_path(self.interpreter.environment.source_dir,
@@ -419,41 +419,43 @@ class HotDocModule(ExtensionModule):
             'generate_doc': self.generate_doc,
         })
 
-    @noKwargs
+    @TypedArgs('hotdoc.has_extensions')
     @typed_pos_args('hotdoc.has_extensions', varargs=str, min_varargs=1)
     def has_extensions(self, state: ModuleState, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> bool:
         return self.hotdoc.run_hotdoc([f'--has-extension={extension}' for extension in args[0]]) == 0
 
     @typed_pos_args('hotdoc.generate_doc', str)
-    @typed_kwargs(
+    @TypedArgs(
         'hotdoc.generate_doc',
-        KwargInfo('sitemap', file_types, required=True),
-        KwargInfo('index', file_types, required=True),
-        KwargInfo('project_version', str, required=True),
-        KwargInfo('html_extra_theme', (str, NoneType)),
-        KwargInfo('include_paths', ContainerTypeInfo(list, str), listify=True, default=[]),
-        # --c-include-directories
-        KwargInfo(
-            'dependencies',
-            ContainerTypeInfo(list, (Dependency, build.StaticLibrary, build.SharedLibrary,
-                                     CustomTarget, CustomTargetIndex)),
-            listify=True,
-            default=[],
-        ),
-        KwargInfo(
-            'depends',
-            ContainerTypeInfo(list, (CustomTarget, CustomTargetIndex)),
-            listify=True,
-            default=[],
-            since='0.64.1',
-        ),
-        KwargInfo('gi_c_source_roots', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('extra_assets', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('extra_extension_paths', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('subprojects', ContainerTypeInfo(list, HotdocTarget), listify=True, default=[]),
-        KwargInfo('install', bool, default=False),
-        KwargInfo('build_by_default', bool, default=False),
-        allow_unknown=True
+        kw_types=[
+            KwargInfo('sitemap', file_types, required=True),
+            KwargInfo('index', file_types, required=True),
+            KwargInfo('project_version', str, required=True),
+            KwargInfo('html_extra_theme', (str, NoneType)),
+            KwargInfo('include_paths', ContainerTypeInfo(list, str), listify=True, default=[]),
+            # --c-include-directories
+            KwargInfo(
+                'dependencies',
+                ContainerTypeInfo(list, (Dependency, build.StaticLibrary, build.SharedLibrary,
+                                         CustomTarget, CustomTargetIndex)),
+                listify=True,
+                default=[],
+            ),
+            KwargInfo(
+                'depends',
+                ContainerTypeInfo(list, (CustomTarget, CustomTargetIndex)),
+                listify=True,
+                default=[],
+                since='0.64.1',
+            ),
+            KwargInfo('gi_c_source_roots', ContainerTypeInfo(list, str), listify=True, default=[]),
+            KwargInfo('extra_assets', ContainerTypeInfo(list, str), listify=True, default=[]),
+            KwargInfo('extra_extension_paths', ContainerTypeInfo(list, str), listify=True, default=[]),
+            KwargInfo('subprojects', ContainerTypeInfo(list, HotdocTarget), listify=True, default=[]),
+            KwargInfo('install', bool, default=False),
+            KwargInfo('build_by_default', bool, default=False),
+        ],
+        unknown_kwargs=True,
     )
     def generate_doc(self, state: ModuleState, args: T.Tuple[str], kwargs: GenerateDocKwargs) -> ModuleReturnValue:
         project_name = args[0]

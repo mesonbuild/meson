@@ -16,10 +16,10 @@ from .. import mesonlib
 from .. import mlog
 from ..compilers import SUFFIX_TO_LANG, RunResult
 from ..compilers.compilers import CompileCheckMode
-from ..interpreterbase import (ObjectHolder, noPosargs, noKwargs,
+from ..interpreterbase import (ObjectHolder, noPosargs,
                                FeatureNew, disablerIfNotFound,
                                InterpreterException, InterpreterObject)
-from ..interpreterbase.decorators import ContainerTypeInfo, typed_kwargs, KwargInfo, typed_pos_args
+from ..interpreterbase.decorators import ContainerTypeInfo, TypedArgs, KwargInfo, typed_pos_args
 from ..options import OptionKey
 from .interpreterobjects import (extract_required_kwarg, extract_search_dirs)
 from .type_checking import INCLUDE_DIRECTORIES, REQUIRED_KW, in_set_validator, NoneType
@@ -111,25 +111,25 @@ class TryRunResultHolder(ObjectHolder['RunResult']):
         super().__init__(res, interpreter)
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('run_result.returncode')
     @InterpreterObject.method('returncode')
     def returncode_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> int:
         return self.held_object.returncode
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('run_result.compiled')
     @InterpreterObject.method('compiled')
     def compiled_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
         return self.held_object.compiled
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('run_result.stdout')
     @InterpreterObject.method('stdout')
     def stdout_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.held_object.stdout
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('run_result.stderr')
     @InterpreterObject.method('stderr')
     def stderr_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.held_object.stderr
@@ -169,7 +169,7 @@ _INCLUDE_DIRECTORIES_KW = INCLUDE_DIRECTORIES.evolve(
 )
 
 # Many of the compiler methods take this kwarg signature exactly, this allows
-# simplifying the `typed_kwargs` calls
+# simplifying the `TypedArgs` calls
 _COMMON_KWS: T.List[KwargInfo] = [
     _ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRECTORIES_KW, _PREFIX_KW,
     _NO_BUILTIN_ARGS_KW,
@@ -220,13 +220,13 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return tpl.format(', '.join(names)) + endl
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('compiler.version')
     @InterpreterObject.method('version')
     def version_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.compiler.version
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('compiler.cmd_array')
     @InterpreterObject.method('cmd_array')
     def cmd_array_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> T.List[str]:
         return self.compiler.exelist
@@ -252,11 +252,13 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return deps, self._dep_msg(deps, compile_only, endl)
 
     @typed_pos_args('compiler.alignment', str)
-    @typed_kwargs(
+    @TypedArgs(
         'compiler.alignment',
-        _PREFIX_KW,
-        _ARGS_KW,
-        _DEPENDENCIES_KW,
+        kw_types=[
+            _PREFIX_KW,
+            _ARGS_KW,
+            _DEPENDENCIES_KW,
+        ],
     )
     @InterpreterObject.method('alignment')
     def alignment_method(self, args: T.Tuple[str], kwargs: 'AlignmentKw') -> int:
@@ -271,7 +273,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return result
 
     @typed_pos_args('compiler.run', (str, mesonlib.File))
-    @typed_kwargs('compiler.run', *_COMPILES_KWS)
+    @TypedArgs('compiler.run', kw_types=_COMPILES_KWS)
     @InterpreterObject.method('run')
     def run_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> 'RunResult':
         if self.compiler.language not in {'d', 'c', 'cpp', 'objc', 'objcpp', 'fortran'}:
@@ -307,20 +309,20 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return result
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('compiler.get_id')
     @InterpreterObject.method('get_id')
     def get_id_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.compiler.get_id()
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('compiler.get_linker_id')
     @FeatureNew('compiler.get_linker_id', '0.53.0')
     @InterpreterObject.method('get_linker_id')
     def get_linker_id_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.compiler.get_linker_id()
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('compiler.symbols_have_underscore_prefix')
     @InterpreterObject.method('symbols_have_underscore_prefix')
     def symbols_have_underscore_prefix_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
         '''
@@ -330,7 +332,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return self.compiler.symbols_have_underscore_prefix()
 
     @typed_pos_args('compiler.has_member', str, str)
-    @typed_kwargs('compiler.has_member', _HAS_REQUIRED_KW, *_COMMON_KWS)
+    @TypedArgs('compiler.has_member', kw_types=[_HAS_REQUIRED_KW, *_COMMON_KWS])
     @InterpreterObject.method('has_member')
     def has_member_method(self, args: T.Tuple[str, str], kwargs: 'HasKW') -> bool:
         typename, membername = args
@@ -354,7 +356,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return had
 
     @typed_pos_args('compiler.has_members', str, varargs=str, min_varargs=1)
-    @typed_kwargs('compiler.has_members', _HAS_REQUIRED_KW, *_COMMON_KWS)
+    @TypedArgs('compiler.has_members', kw_types=[_HAS_REQUIRED_KW, *_COMMON_KWS])
     @InterpreterObject.method('has_members')
     def has_members_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'HasKW') -> bool:
         typename, membernames = args
@@ -380,7 +382,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return had
 
     @typed_pos_args('compiler.has_function', str)
-    @typed_kwargs('compiler.has_function', _HAS_REQUIRED_KW, *_COMMON_KWS)
+    @TypedArgs('compiler.has_function', kw_types=[_HAS_REQUIRED_KW, *_COMMON_KWS])
     @InterpreterObject.method('has_function')
     def has_function_method(self, args: T.Tuple[str], kwargs: 'HasKW') -> bool:
         funcname = args[0]
@@ -404,7 +406,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return had
 
     @typed_pos_args('compiler.has_type', str)
-    @typed_kwargs('compiler.has_type', _HAS_REQUIRED_KW, *_COMMON_KWS)
+    @TypedArgs('compiler.has_type', kw_types=[_HAS_REQUIRED_KW, *_COMMON_KWS])
     @InterpreterObject.method('has_type')
     def has_type_method(self, args: T.Tuple[str], kwargs: 'HasKW') -> bool:
         typename = args[0]
@@ -428,12 +430,14 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
     @FeatureNew('compiler.compute_int', '0.40.0')
     @typed_pos_args('compiler.compute_int', str)
-    @typed_kwargs(
+    @TypedArgs(
         'compiler.compute_int',
-        KwargInfo('low', (int, NoneType)),
-        KwargInfo('high', (int, NoneType)),
-        KwargInfo('guess', (int, NoneType)),
-        *_COMMON_KWS,
+        kw_types=[
+            KwargInfo('low', (int, NoneType)),
+            KwargInfo('high', (int, NoneType)),
+            KwargInfo('guess', (int, NoneType)),
+            *_COMMON_KWS,
+        ],
     )
     @InterpreterObject.method('compute_int')
     def compute_int_method(self, args: T.Tuple[str], kwargs: 'ComputeIntKW') -> int:
@@ -447,7 +451,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return res
 
     @typed_pos_args('compiler.sizeof', str)
-    @typed_kwargs('compiler.sizeof', *_COMMON_KWS)
+    @TypedArgs('compiler.sizeof', kw_types=_COMMON_KWS)
     @InterpreterObject.method('sizeof')
     def sizeof_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> int:
         element = args[0]
@@ -462,7 +466,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
     @FeatureNew('compiler.get_define', '0.40.0')
     @typed_pos_args('compiler.get_define', str)
-    @typed_kwargs('compiler.get_define', *_COMMON_KWS)
+    @TypedArgs('compiler.get_define', kw_types=_COMMON_KWS)
     @InterpreterObject.method('get_define')
     def get_define_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> str:
         element = args[0]
@@ -477,7 +481,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
     @FeatureNew('compiler.has_define', '1.3.0')
     @typed_pos_args('compiler.has_define', str)
-    @typed_kwargs('compiler.has_define', *_COMMON_KWS)
+    @TypedArgs('compiler.has_define', kw_types=_COMMON_KWS)
     @InterpreterObject.method('has_define')
     def has_define_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> bool:
         define_name = args[0]
@@ -492,7 +496,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return value is not None
 
     @typed_pos_args('compiler.compiles', (str, mesonlib.File))
-    @typed_kwargs('compiler.compiles', *_COMPILES_KWS)
+    @TypedArgs('compiler.compiles', kw_types=_COMPILES_KWS)
     @InterpreterObject.method('compiles')
     def compiles_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> bool:
         code = args[0]
@@ -529,7 +533,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return result
 
     @typed_pos_args('compiler.links', (str, mesonlib.File))
-    @typed_kwargs('compiler.links', *_COMPILES_KWS)
+    @TypedArgs('compiler.links', kw_types=_COMPILES_KWS)
     @InterpreterObject.method('links')
     def links_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> bool:
         code = args[0]
@@ -581,7 +585,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
     @FeatureNew('compiler.check_header', '0.47.0')
     @typed_pos_args('compiler.check_header', str)
-    @typed_kwargs('compiler.check_header', *_HEADER_KWS)
+    @TypedArgs('compiler.check_header', kw_types=_HEADER_KWS)
     @InterpreterObject.method('check_header')
     def check_header_method(self, args: T.Tuple[str], kwargs: 'HeaderKW') -> bool:
         hname = args[0]
@@ -624,13 +628,13 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return haz
 
     @typed_pos_args('compiler.has_header', str)
-    @typed_kwargs('compiler.has_header', *_HEADER_KWS)
+    @TypedArgs('compiler.has_header', kw_types=_HEADER_KWS)
     @InterpreterObject.method('has_header')
     def has_header_method(self, args: T.Tuple[str], kwargs: 'HeaderKW') -> bool:
         return self._has_header_impl(args[0], kwargs)
 
     @typed_pos_args('compiler.has_header_symbol', str, str)
-    @typed_kwargs('compiler.has_header_symbol', *_HEADER_KWS)
+    @TypedArgs('compiler.has_header_symbol', kw_types=_HEADER_KWS)
     @InterpreterObject.method('has_header_symbol')
     def has_header_symbol_method(self, args: T.Tuple[str, str], kwargs: 'HeaderKW') -> bool:
         hname, symbol = args
@@ -663,14 +667,16 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
     @disablerIfNotFound
     @typed_pos_args('compiler.find_library', str)
-    @typed_kwargs(
+    @TypedArgs(
         'compiler.find_library',
-        REQUIRED_KW,
-        KwargInfo('has_headers', ContainerTypeInfo(list, str), listify=True, default=[], since='0.50.0'),
-        KwargInfo('static', (bool, NoneType), since='0.51.0'),
-        KwargInfo('disabler', bool, default=False, since='0.49.0'),
-        KwargInfo('dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
-        *(k.evolve(name=f'header_{k.name}') for k in _HEADER_KWS)
+        kw_types=[
+            REQUIRED_KW,
+            KwargInfo('has_headers', ContainerTypeInfo(list, str), listify=True, default=[], since='0.50.0'),
+            KwargInfo('static', (bool, NoneType), since='0.51.0'),
+            KwargInfo('disabler', bool, default=False, since='0.49.0'),
+            KwargInfo('dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
+            *(k.evolve(name=f'header_{k.name}') for k in _HEADER_KWS)
+        ],
     )
     @InterpreterObject.method('find_library')
     def find_library_method(self, args: T.Tuple[str], kwargs: 'FindLibraryKW') -> 'dependencies.ExternalLibrary':
@@ -754,13 +760,13 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return result
 
     @typed_pos_args('compiler.has_argument', str)
-    @typed_kwargs('compiler.has_argument', _HAS_REQUIRED_KW)
+    @TypedArgs('compiler.has_argument', kw_types=[_HAS_REQUIRED_KW])
     @InterpreterObject.method('has_argument')
     def has_argument_method(self, args: T.Tuple[str], kwargs: 'HasArgumentKW') -> bool:
         return self._has_argument_impl([args[0]], kwargs=kwargs)
 
     @typed_pos_args('compiler.has_multi_arguments', varargs=str)
-    @typed_kwargs('compiler.has_multi_arguments', _HAS_REQUIRED_KW)
+    @TypedArgs('compiler.has_multi_arguments', kw_types=[_HAS_REQUIRED_KW])
     @FeatureNew('compiler.has_multi_arguments', '0.37.0')
     @InterpreterObject.method('has_multi_arguments')
     def has_multi_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'HasArgumentKW') -> bool:
@@ -768,10 +774,17 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
     @FeatureNew('compiler.get_supported_arguments', '0.43.0')
     @typed_pos_args('compiler.get_supported_arguments', varargs=str)
-    @typed_kwargs(
+    @TypedArgs(
         'compiler.get_supported_arguments',
-        KwargInfo('checked', str, default='off', since='0.59.0',
-                  validator=in_set_validator({'warn', 'require', 'off'})),
+        kw_types=[
+            KwargInfo(
+                'checked',
+                str,
+                default='off',
+                since='0.59.0',
+                validator=in_set_validator({'warn', 'require', 'off'}),
+            ),
+        ],
     )
     @InterpreterObject.method('get_supported_arguments')
     def get_supported_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'GetSupportedArgumentKw') -> T.List[str]:
@@ -789,8 +802,8 @@ class CompilerHolder(ObjectHolder['Compiler']):
                 supported_args.append(arg)
         return supported_args
 
-    @noKwargs
     @typed_pos_args('compiler.first_supported_argument', varargs=str)
+    @TypedArgs('compiler.first_supported_argument')
     @InterpreterObject.method('first_supported_argument')
     def first_supported_argument_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[str]:
         for arg in args[0]:
@@ -802,20 +815,20 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
     @FeatureNew('compiler.has_link_argument', '0.46.0')
     @typed_pos_args('compiler.has_link_argument', str)
-    @typed_kwargs('compiler.has_link_argument', _HAS_REQUIRED_KW)
+    @TypedArgs('compiler.has_link_argument', kw_types=[_HAS_REQUIRED_KW])
     @InterpreterObject.method('has_link_argument')
     def has_link_argument_method(self, args: T.Tuple[str], kwargs: 'HasArgumentKW') -> bool:
         return self._has_argument_impl([args[0]], mode=_TestMode.LINKER, kwargs=kwargs)
 
     @FeatureNew('compiler.has_multi_link_argument', '0.46.0')
     @typed_pos_args('compiler.has_multi_link_argument', varargs=str)
-    @typed_kwargs('compiler.has_multi_link_argument', _HAS_REQUIRED_KW)
+    @TypedArgs('compiler.has_multi_link_argument', kw_types=[_HAS_REQUIRED_KW])
     @InterpreterObject.method('has_multi_link_arguments')
     def has_multi_link_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'HasArgumentKW') -> bool:
         return self._has_argument_impl(args[0], mode=_TestMode.LINKER, kwargs=kwargs)
 
     @FeatureNew('compiler.get_supported_link_arguments', '0.46.0')
-    @noKwargs
+    @TypedArgs('compiler.get_supported_link_arguments')
     @typed_pos_args('compiler.get_supported_link_arguments', varargs=str)
     @InterpreterObject.method('get_supported_link_arguments')
     def get_supported_link_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[str]:
@@ -826,7 +839,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return supported_args
 
     @FeatureNew('compiler.first_supported_link_argument', '0.46.0')
-    @noKwargs
+    @TypedArgs('compiler.first_supported_link_arguments')
     @typed_pos_args('compiler.first_supported_link_argument', varargs=str)
     @InterpreterObject.method('first_supported_link_argument')
     def first_supported_link_argument_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[str]:
@@ -861,13 +874,13 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
     @FeatureNew('compiler.has_function_attribute', '0.48.0')
     @typed_pos_args('compiler.has_function_attribute', str)
-    @typed_kwargs('compiler.has_function_attribute', _HAS_REQUIRED_KW)
+    @TypedArgs('compiler.has_function_attribute', kw_types=[_HAS_REQUIRED_KW])
     @InterpreterObject.method('has_function_attribute')
     def has_func_attribute_method(self, args: T.Tuple[str], kwargs: 'HasArgumentKW') -> bool:
         return self._has_function_attribute_impl(args[0], kwargs)
 
     @FeatureNew('compiler.get_supported_function_attributes', '0.48.0')
-    @noKwargs
+    @TypedArgs('compiler.first_supported_function_attributes')
     @typed_pos_args('compiler.get_supported_function_attributes', varargs=str)
     @InterpreterObject.method('get_supported_function_attributes')
     def get_supported_function_attributes_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[str]:
@@ -875,27 +888,29 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
     @FeatureNew('compiler.get_argument_syntax', '0.49.0')
     @noPosargs
-    @noKwargs
+    @TypedArgs('compiler.get_argument_syntax')
     @InterpreterObject.method('get_argument_syntax')
     def get_argument_syntax_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.compiler.get_argument_syntax()
 
     @FeatureNew('compiler.preprocess', '0.64.0')
     @typed_pos_args('compiler.preprocess', varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), min_varargs=1)
-    @typed_kwargs(
+    @TypedArgs(
         'compiler.preprocess',
-        KwargInfo('output', str, default='@PLAINNAME@.i'),
-        KwargInfo(
-            'compile_args',
-            ContainerTypeInfo(list, str),
-            listify=True,
-            default=[],
-            since='1.3.2',
-            since_message='compile_args were ignored before this version',
-        ),
-        _INCLUDE_DIRECTORIES_KW,
-        _DEPENDENCIES_KW.evolve(since='1.1.0'),
-        _DEPENDS_KW.evolve(since='1.4.0'),
+        kw_types=[
+            KwargInfo('output', str, default='@PLAINNAME@.i'),
+            KwargInfo(
+                'compile_args',
+                ContainerTypeInfo(list, str),
+                listify=True,
+                default=[],
+                since='1.3.2',
+                since_message='compile_args were ignored before this version',
+            ),
+            _INCLUDE_DIRECTORIES_KW,
+            _DEPENDENCIES_KW.evolve(since='1.1.0'),
+            _DEPENDS_KW.evolve(since='1.4.0'),
+        ],
     )
     @InterpreterObject.method('preprocess')
     def preprocess_method(self, args: T.Tuple[T.List['mesonlib.FileOrString']], kwargs: 'PreprocessKW') -> T.List[build.CustomTargetIndex]:

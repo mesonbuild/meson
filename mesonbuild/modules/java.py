@@ -9,7 +9,7 @@ import typing as T
 from mesonbuild import mesonlib
 from mesonbuild.build import CustomTarget, CustomTargetIndex, GeneratedList, Target
 from mesonbuild.compilers import detect_compiler_for
-from mesonbuild.interpreterbase.decorators import ContainerTypeInfo, FeatureDeprecated, FeatureNew, KwargInfo, typed_pos_args, typed_kwargs
+from mesonbuild.interpreterbase.decorators import ContainerTypeInfo, FeatureDeprecated, FeatureNew, KwargInfo, typed_pos_args, TypedArgs
 from mesonbuild.mesonlib import version_compare, MachineChoice
 from . import NewExtensionModule, ModuleReturnValue, ModuleInfo
 from ..interpreter.type_checking import NoneType
@@ -40,10 +40,13 @@ class JavaModule(NewExtensionModule):
     @typed_pos_args(
         'java.generate_native_headers',
         varargs=(str, mesonlib.File, Target, CustomTargetIndex, GeneratedList))
-    @typed_kwargs(
+    @TypedArgs(
         'java.generate_native_headers',
-        KwargInfo('classes', ContainerTypeInfo(list, str), default=[], listify=True, required=True),
-        KwargInfo('package', (str, NoneType), default=None))
+        kw_types=[
+            KwargInfo('classes', ContainerTypeInfo(list, str), default=[], listify=True, required=True),
+            KwargInfo('package', (str, NoneType), default=None),
+        ],
+    )
     def generate_native_headers(self, state: ModuleState, args: T.Tuple[T.List[mesonlib.FileOrString]],
                                 kwargs: T.Dict[str, T.Optional[str]]) -> ModuleReturnValue:
         return self.__native_headers(state, args, kwargs)
@@ -52,10 +55,13 @@ class JavaModule(NewExtensionModule):
     @typed_pos_args(
         'java.native_headers',
         varargs=(str, mesonlib.File, Target, CustomTargetIndex, GeneratedList))
-    @typed_kwargs(
+    @TypedArgs(
         'java.native_headers',
-        KwargInfo('classes', ContainerTypeInfo(list, str), default=[], listify=True, required=True),
-        KwargInfo('package', (str, NoneType), default=None))
+        kw_types=[
+            KwargInfo('classes', ContainerTypeInfo(list, str), default=[], listify=True, required=True),
+            KwargInfo('package', (str, NoneType), default=None),
+        ],
+    )
     def native_headers(self, state: ModuleState, args: T.Tuple[T.List[mesonlib.FileOrString]],
                        kwargs: T.Dict[str, T.Optional[str]]) -> ModuleReturnValue:
         return self.__native_headers(state, args, kwargs)

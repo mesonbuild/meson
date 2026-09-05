@@ -16,7 +16,7 @@ from . import NewExtensionModule, ModuleInfo
 
 from ..utils.universal import Version
 from ..interpreterbase import (
-    ContainerTypeInfo, InvalidArguments, KwargInfo, noKwargs, typed_kwargs, typed_pos_args,
+    ContainerTypeInfo, InvalidArguments, KwargInfo, TypedArgs, typed_pos_args,
 )
 
 if T.TYPE_CHECKING:
@@ -234,7 +234,7 @@ class CudaModule(NewExtensionModule):
             "nvcc_arch_readable": self.nvcc_arch_readable,
         })
 
-    @noKwargs
+    @TypedArgs('cuda.min_driver_version')
     def min_driver_version(self, state: 'ModuleState',
                            args: T.List[TYPE_var],
                            kwargs: T.Dict[str, T.Any]) -> str:
@@ -254,7 +254,7 @@ class CudaModule(NewExtensionModule):
         return 'unknown'
 
     @typed_pos_args('cuda.nvcc_arch_flags', (str, CudaCompiler), varargs=str)
-    @typed_kwargs('cuda.nvcc_arch_flags', DETECTED_KW)
+    @TypedArgs('cuda.nvcc_arch_flags', kw_types=[DETECTED_KW])
     def nvcc_arch_flags(self, state: 'ModuleState',
                         args: T.Tuple[T.Union[CudaCompiler, str], T.List[str]],
                         kwargs: ArchFlagsKwargs) -> T.List[str]:
@@ -263,7 +263,7 @@ class CudaModule(NewExtensionModule):
         return ret
 
     @typed_pos_args('cuda.nvcc_arch_readable', (str, CudaCompiler), varargs=str)
-    @typed_kwargs('cuda.nvcc_arch_readable', DETECTED_KW)
+    @TypedArgs('cuda.nvcc_arch_readable', kw_types=[DETECTED_KW])
     def nvcc_arch_readable(self, state: 'ModuleState',
                            args: T.Tuple[T.Union[CudaCompiler, str], T.List[str]],
                            kwargs: ArchFlagsKwargs) -> T.List[str]:

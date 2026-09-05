@@ -118,15 +118,6 @@ def noPosargs(f: TV_func) -> TV_func:
         return f(*wrapped_args, **wrapped_kwargs)
     return T.cast('TV_func', wrapped)
 
-def noKwargs(f: TV_func) -> TV_func:
-    @wraps(f)
-    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-        kwargs = get_callee_args(wrapped_args)[2]
-        if kwargs:
-            raise InvalidArguments('Function does not take keyword arguments.')
-        return f(*wrapped_args, **wrapped_kwargs)
-    return T.cast('TV_func', wrapped)
-
 def noArgsFlattening(f: TV_func) -> TV_func:
     setattr(f, 'no-args-flattening', True)  # noqa: B010
     return f
@@ -436,7 +427,7 @@ class KwargInfo(T.Generic[_T]):
 
     """A description of a keyword argument to a meson function
 
-    This is used to describe a value to the :func:typed_kwargs function.
+    This is used to describe a value to the :func:TypedArgs function.
 
     :param name: the name of the parameter
     :param types: A type or tuple of types that are allowed, or a :class:ContainerType
@@ -446,7 +437,7 @@ class KwargInfo(T.Generic[_T]):
         a container, but internally we only want to work with containers
     :param default: A default value to use if this isn't set. defaults to None,
         this may be safely set to a mutable type, as long as that type does not
-        itself contain mutable types, typed_kwargs will copy the default
+        itself contain mutable types, TypedArgs will copy the default
     :param since: Meson version in which this argument has been added. defaults to None
     :param since_message: An extra message to pass to FeatureNew when since is triggered
     :param deprecated: Meson version in which this argument has been deprecated. defaults to None
@@ -512,66 +503,62 @@ class KwargInfo(T.Generic[_T]):
         return dataclasses.replace(self, **kwargs)
 
 
-def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T.Callable[..., T.Any]:
-    """Decorator for type checking keyword arguments.
+@dataclasses.dataclass(slots=True, eq=False)
+class TypedArgs:
 
-    Used to wrap a meson DSL implementation function, where it checks various
-    things about keyword arguments, including the type, and various other
-    information. For non-required values it sets the value to a default, which
-    means the value will always be provided.
+    name: str
+    kw_types: list[KwargInfo] = dataclasses.field(default_factory=list, kw_only=True)
+    unknown_kwargs: bool = dataclasses.field(default=False, kw_only=True)
 
-    If type is a :class:ContainerTypeInfo, then the default value will be
-    passed as an argument to the container initializer, making a shallow copy
+    def _emit_feature_change(self, value: object, values: dict[_T, str | tuple[str, str]],
+                             feature: type['FeatureDeprecated'] | type['FeatureNew'],
+                             subproject: SubProject, node: mparser.BaseNode, info: KwargInfo) -> None:
+        for n, version in values.items():
+            if isinstance(version, tuple):
+                version, msg = version
+            else:
+                msg = None
 
-    :param name: the name of the function, including the object it's attached to
-        (if applicable)
-    :param *types: KwargInfo entries for each keyword argument.
-    """
-    def inner(f: TV_func) -> TV_func:
+            warning: str | None = None
+            if isinstance(n, ContainerTypeInfo):
+                if n.check_any(value):
+                    d, extra = n.description()
+                    warning = f'of type "{d}"'
+                    if extra:
+                        warning = f'{warning} {extra}'
+            elif isinstance(n, (type, tuple)):
+                if isinstance(value, n):
+                    warning = f'of type "{type(value).__name__}"'
+            elif isinstance(value, list):
+                if n in value:
+                    warning = f'value "{n}" in list'
+            elif isinstance(value, dict):
+                if n in value:
+                    warning = f'value "{n}" in dict keys'
+            elif n == value:
+                warning = f'value "{n}"'
+            if warning:
+                feature.single_use(f'"{self.name}" keyword argument "{info.name}" {warning}', version, subproject, msg, location=node)
 
+    # TODO: need to use two different types here to avoid passing the original type through
+    def __call__(self, f: TV_func) -> T.Callable[..., T.Any]:
         @wraps(f)
         def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-
-            def emit_feature_change(values: _FeatureValues, feature: T.Union[T.Type['FeatureDeprecated'], T.Type['FeatureNew']]) -> None:
-                for n, version in values.items():
-                    if isinstance(version, tuple):
-                        version, msg = version
-                    else:
-                        msg = None
-
-                    warning: T.Optional[str] = None
-                    if isinstance(n, ContainerTypeInfo):
-                        if n.check_any(value):
-                            d, extra = n.description()
-                            warning = f'of type "{d}"'
-                            if extra:
-                                warning = f'{warning} {extra}'
-                    elif isinstance(n, (type, tuple)):
-                        if isinstance(value, n):
-                            warning = f'of type "{type(value).__name__}"'
-                    elif isinstance(value, list):
-                        if n in value:
-                            warning = f'value "{n}" in list'
-                    elif isinstance(value, dict):
-                        if n in value:
-                            warning = f'value "{n}" in dict keys'
-                    elif n == value:
-                        warning = f'value "{n}"'
-                    if warning:
-                        feature.single_use(f'"{name}" keyword argument "{info.name}" {warning}', version, subproject, msg, location=node)
-
             node, _, _kwargs, subproject = get_callee_args(wrapped_args)
             # Cast here, as the convertor function may place something other than a TYPE_var in the kwargs
             kwargs = T.cast('T.Dict[str, object]', _kwargs)
 
-            if not allow_unknown:
-                all_names = {t.name for t in types}
+            if not self.unknown_kwargs:
+                all_names = {t.name for t in self.kw_types}
                 unknowns = set(kwargs).difference(all_names)
                 if unknowns:
                     ustr = ', '.join(kwargs_get_close_matches(unknowns, all_names))
-                    raise InvalidArguments(f'"{name}" got unknown keyword arguments {ustr}')
+                    has_args = '.'
+                    if not self.kw_types:
+                        has_args = '. Function expects no keyword arguments.'
+                    raise InvalidArguments(f'{self.name} got unknown keyword arguments {ustr}{has_args}')
 
-            for info in types:
+            for info in self.kw_types:
                 types_tuple = info.types if isinstance(info.types, tuple) else (info.types,)
                 value = kwargs.get(info.name)
                 if isinstance(value, DefaultObject):
@@ -579,17 +566,17 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                     # Otherwise, set the value to None, which will send us down
                     # the "unset" path
                     if info.required:
-                        raise InvalidArguments(f'"{name}" got a default() value for the required keyword argument "{info.name}". '
+                        raise InvalidArguments(f'"{self.name}" got a default() value for the required keyword argument "{info.name}". '
                                                'default() may not be used for required keyword arguments.')
                     value = None
 
                 if value is not None:
                     extra: str | None
                     if info.since:
-                        feature_name = info.name + ' arg in ' + name
+                        feature_name = info.name + ' arg in ' + self.name
                         FeatureNew.single_use(feature_name, info.since, subproject, info.since_message, location=node)
                     if info.deprecated:
-                        feature_name = info.name + ' arg in ' + name
+                        feature_name = info.name + ' arg in ' + self.name
                         FeatureDeprecated.single_use(feature_name, info.deprecated, subproject, info.deprecated_message, location=node)
                     if info.as_default:
                         found = mesonlib.first(info.as_default, lambda x: value == x[0])
@@ -617,29 +604,29 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                             extra = '. '.join(extra_desc)
 
                         raise InvalidArguments(
-                            _shouldbe_format(name, 'keyword', info.name, value, types_tuple, extra))
+                            _shouldbe_format(self.name, 'keyword', info.name, value, types_tuple, extra))
 
                     if info.validator is not None:
                         msg = info.validator(value)
                         if msg is not None:
-                            raise InvalidArguments(f'"{name}" keyword argument "{info.name}" {msg}')
+                            raise InvalidArguments(f'"{self.name}" keyword argument "{info.name}" {msg}')
 
                     if info.feature_validator is not None:
                         for each in info.feature_validator(value):
                             each.use(subproject, node)
 
                     if info.deprecated_values is not None:
-                        emit_feature_change(info.deprecated_values, FeatureDeprecated)
+                        self._emit_feature_change(value, info.deprecated_values, FeatureDeprecated, subproject, node, info)
 
                     if info.since_values is not None:
-                        emit_feature_change(info.since_values, FeatureNew)
+                        self._emit_feature_change(value, info.since_values, FeatureNew, subproject, node, info)
 
                 elif info.required:
-                    raise InvalidArguments(f'"{name}" is missing required keyword argument "{info.name}"')
+                    raise InvalidArguments(f'"{self.name}" is missing required keyword argument "{info.name}"')
                 else:
                     # set the value to the default, this ensuring all kwargs are present
                     # This both simplifies the typing checking and the usage
-                    assert _check_value_type(types_tuple, info.default), f'In function "{name}" default value of {info.name} is not a valid type, got {type(info.default)} expected {_types_description(types_tuple)}'
+                    assert _check_value_type(types_tuple, info.default), f'In function {self.name} default value of {info.name} is not a valid type, got {type(info.default)} expected {_types_description(types_tuple)}'
                     # Create a shallow copy of the container. This allows mutable
                     # types to be used safely as default values
                     kwargs[info.name] = copy.copy(info.default)
@@ -650,8 +637,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                     kwargs[info.name] = info.convertor(kwargs[info.name])
 
             return f(*wrapped_args, **wrapped_kwargs)
-        return T.cast('TV_func', wrapper)
-    return inner
+        return T.cast('T.Callable[..., T.Any]', wrapper)
 
 
 # This cannot be a dataclass due to https://github.com/python/mypy/issues/5374

@@ -7,8 +7,8 @@ from ...interpreterbase import (
     MesonOperator,
     ObjectHolder,
     typed_pos_args,
-    noKwargs,
     noPosargs,
+    TypedArgs,
 
     InvalidArguments
 )
@@ -29,13 +29,13 @@ class BooleanHolder(ObjectHolder[bool]):
     def display_name(self) -> str:
         return 'bool'
 
-    @noKwargs
+    @TypedArgs('bool.to_int')
     @noPosargs
     @InterpreterObject.method('to_int')
     def to_int_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> int:
         return 1 if self.held_object else 0
 
-    @noKwargs
+    @TypedArgs('bool.to_string')
     @typed_pos_args('bool.to_string', optargs=[str, str])
     @InterpreterObject.method('to_string')
     def to_string_method(self, args: T.Tuple[T.Optional[str], T.Optional[str]], kwargs: TYPE_kwargs) -> str:
