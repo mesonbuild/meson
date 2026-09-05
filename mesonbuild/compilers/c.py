@@ -17,6 +17,7 @@ from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
 from .mixins.microchip import Xc16Compiler, Xc32Compiler, Xc32CStds
 from .mixins.compcert import CompCertCompiler
+from .mixins.sdcc import SdccCompiler
 from .mixins.ti import TICompiler
 from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
@@ -679,6 +680,33 @@ class CompCertCCompiler(CompCertCompiler, CCompiler):
         if path == '':
             path = '.'
         return ['-I' + path]
+
+
+class SdccCCompiler(SdccCompiler, CCompiler):
+    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 env: Environment,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        CCompiler.__init__(self, ccache, exelist, version, for_machine,
+                           env, linker=linker, full_version=full_version)
+        SdccCompiler.__init__(self)
+
+    def get_options(self) -> 'MutableKeyedOptionDictType':
+        opts = super().get_options()
+        key = self.form_compileropt_key('std')
+        std_opt = opts[key]
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
+        std_opt.set_versions(['c89', 'c90', 'c99', 'c11', 'c17', 'c23', 'c2y'])
+        return opts
+
+    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+        args = []
+        std = self.get_compileropt_value('std', target, subproject)
+        assert isinstance(std, str)
+        if std != 'none':
+            args.append('--std-' + std)
+        return args
+
 
 class TICCompiler(TICompiler, CCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,

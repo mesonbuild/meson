@@ -36,6 +36,7 @@ These are return values of the `get_id` (Compiler family) and
 | pathscale | The Pathscale Fortran compiler   |                 |
 | pgi       | Portland PGI C/C++/Fortran compilers |             |
 | rustc     | Rust compiler                    |                 |
+| sdcc      | Small Device C Compiler          |                 |
 | sun       | Sun Fortran compiler             |                 |
 | c2000     | Texas Instruments C/C++ Compiler (C2000) |                 |
 | c6000     | Texas Instruments C/C++ Compiler (C6000) |                 |
@@ -86,6 +87,7 @@ These are return values of the `get_linker_id` method in a compiler object.
 | mwldarm    | The Metrowerks Linker with the ARM interface, used with mwccarm only |
 | mwldeppc   | The Metrowerks Linker with the PowerPC interface, used with mwcceppc only |
 | tasking    | TASKING VX-toolset                          |
+| sdcc       | SDCC used as the linker driver              |
 
 For languages that don't have separate dynamic linkers such as C# and Java, the
 `get_linker_id` will return the compiler name.
@@ -119,19 +121,25 @@ set in the cross file.
 | csky                | 32 bit CSky processor    |
 | dspic               | 16 bit Microchip dsPIC   |
 | e2k                 | MCST Elbrus processor    |
+| f8                  | 8 bit SDCC F8            |
 | ft32                | 32 bit Bridgetek MCU     |
+| hc08                | 8 bit Motorola HC08/S08  |
 | ia64                | Itanium processor        |
 | loongarch64         | 64 bit Loongson processor|
 | m68k                | Motorola 68000 processor |
+| mcs51               | 8 bit Intel MCS-51       |
 | microblaze          | MicroBlaze processor     |
 | mips                | 32 bit MIPS processor    |
 | mips64              | 64 bit MIPS processor    |
+| mos6502             | 8 bit MOS 6502/65C02     |
 | msp430              | 16 bit MSP430 processor  |
+| padauk              | 8 bit Padauk PDK         |
 | parisc              | HP PA-RISC processor     |
 | pic24               | 16 bit Microchip PIC24   |
 | pic32               | 32 bit Microchip PIC32   |
 | ppc                 | 32 bit PPC processors    |
 | ppc64               | 64 bit PPC processors    |
+| rabbit              | 8 bit Rabbit 2000/3000   |
 | riscv32             | 32 bit RISC-V Open ISA   |
 | riscv64             | 64 bit RISC-V Open ISA   |
 | rl78                | Renesas RL78             |
@@ -139,13 +147,17 @@ set in the cross file.
 | s390                | IBM zSystem s390         |
 | s390x               | IBM zSystem s390x        |
 | sh4                 | SuperH SH-4              |
+| sm83                | 8 bit Sharp SM83         |
 | sparc               | 32 bit SPARC             |
 | sparc64             | SPARC v9 processor       |
+| stm8                | 8 bit STMicro STM8       |
 | sw_64               | 64 bit sunway processor  |
+| tlcs90              | 8 bit Toshiba TLCS-90    |
 | wasm32              | 32 bit Webassembly       |
 | wasm64              | 64 bit Webassembly       |
 | x86                 | 32 bit x86 processor     |
 | x86_64              | 64 bit x86 processor     |
+| z80                 | 8 bit Zilog Z80 family   |
 | tricore             | Tricore 32 bit processor |
 
 
