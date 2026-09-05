@@ -499,6 +499,22 @@ class Xc16Linker(StaticLinker):
         return ['rcs']
 
 
+class SdccLinker(StaticLinker):
+
+    """Static linker for the Small Device C Compiler."""
+
+    id = 'sdar'
+
+    def can_linker_accept_rsp(self) -> bool:
+        return False
+
+    def get_output_args(self, target: str) -> T.List[str]:
+        return [target]
+
+    def get_linker_always_args(self) -> T.List[str]:
+        return ['-rc']
+
+
 class Xc32ArLinker(ArLinker):
 
     """Static linker for Microchip XC32 compiler."""
@@ -1213,6 +1229,29 @@ class Xc32DynamicLinker(GnuDynamicLinker):
 
     def thread_flags(self) -> T.List[str]:
         return []
+
+
+class SdccDynamicLinker(DynamicLinker):
+
+    """Linker for the Small Device C Compiler."""
+
+    id = 'sdcc'
+
+    def __init__(self, exelist: T.List[str], env: Environment, for_machine: mesonlib.MachineChoice,
+                 *, version: str = 'unknown version'):
+        super().__init__(exelist, env, for_machine, None, [], version=version)
+
+    def get_accepts_rsp(self) -> bool:
+        return False
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return []
+
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
+
+    def get_search_args(self, dirname: str) -> T.List[str]:
+        return ['-L' + dirname]
 
 
 class CompCertDynamicLinker(DynamicLinker):

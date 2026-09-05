@@ -1,0 +1,21 @@
+# This file assumes that path to the SDCC toolchain is added
+# to the environment(PATH) variable, so that Meson can find
+# sdcc and sdar while building.
+[binaries]
+c = 'sdcc'
+ar = 'sdar'
+
+[host_machine]
+system = 'bare metal'
+cpu_family = 'mcs51'
+cpu = '8051'
+endian = 'little'
+
+[properties]
+needs_exe_wrapper = true
+
+[built-in options]
+# SDCC selects the target port with '-m'; it must be passed when
+# compiling and when linking.
+c_args = ['-mmcs51']
+c_link_args = ['-mmcs51']

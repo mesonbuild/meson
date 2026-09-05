@@ -1549,6 +1549,10 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_depfile_suffix(self) -> str:
         raise EnvironmentException(f'{self.id} does not implement get_depfile_suffix')
 
+    def get_object_suffix(self) -> str:
+        """Suffix for object files."""
+        return self.environment.machines[self.for_machine].get_object_suffix()
+
     def get_no_stdinc_args(self) -> T.List[str]:
         """Arguments to turn off default inclusion of standard libraries."""
         return []

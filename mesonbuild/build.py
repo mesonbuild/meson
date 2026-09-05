@@ -2242,6 +2242,8 @@ class Executable(BuildTarget, LinkableTarget):
                 self.suffix = 'nef'
             elif ('c' in self.compilers and self.compilers['c'].get_id() == 'tasking'):
                 self.suffix = 'elf'
+            elif ('c' in self.compilers and self.compilers['c'].get_id() == 'sdcc'):
+                self.suffix = 'ihx'
             else:
                 self.suffix = machine.get_exe_suffix()
         self.filename = self.name
@@ -2406,6 +2408,8 @@ class StaticLibrary(BuildTarget, LinkableTarget):
                 elif self.rust_crate_type == 'staticlib':
                     suffix = 'a'
             elif self.environment.machines[self.for_machine].is_os2() and self.environment.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
+                suffix = 'lib'
+            elif 'c' in self.compilers and self.compilers['c'].get_id() == 'sdcc':
                 suffix = 'lib'
             else:
                 suffix = 'a'

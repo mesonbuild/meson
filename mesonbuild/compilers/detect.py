@@ -82,6 +82,7 @@ defaults['cuda_static_linker'] = ['nvlink']
 defaults['gcc_static_linker'] = ['gcc-ar']
 defaults['clang_static_linker'] = ['llvm-ar']
 defaults['emxomf_static_linker'] = ['emxomfar']
+defaults['sdcc_static_linker'] = ['sdar']
 defaults['nasm'] = ['nasm', 'yasm']
 
 
@@ -212,6 +213,8 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             trials = [defaults['clang_cl_static_linker']] + trials
             if 'vs_static_linker' in defaults:
                 trials = [defaults['vs_static_linker']] + trials
+        elif compiler.id == 'sdcc':
+            trials = [defaults['sdcc_static_linker']] + trials
 
     popen_exceptions = {}
     for linker in trials:
@@ -254,6 +257,8 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
                 return linkers.Xc16Linker(linker, env)
             elif 'xc32-ar' in linker_name:
                 return linkers.Xc32ArLinker(compiler.for_machine, linker, env)
+            elif 'sdar' in linker_name:
+                return linkers.SdccLinker(linker, env)
         if 'Texas Instruments Incorporated' in out:
             if 'ar2000' in linker_name:
                 return linkers.C2000Linker(linker, env)
@@ -624,6 +629,16 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             cls = c.CompCertCCompiler
             env.add_lang_args(cls.language, cls, for_machine)
             linker = linkers.CompCertDynamicLinker(env, for_machine, version=version)
+            return cls(
+                ccache, compiler, version, for_machine, env,
+                full_version=full_version, linker=linker)
+
+        if out.startswith('SDCC'):
+            if lang != 'c':
+                raise EnvironmentException(f'SDCC does not support {lang}')
+            cls = c.SdccCCompiler
+            env.add_lang_args(cls.language, cls, for_machine)
+            linker = linkers.SdccDynamicLinker(compiler, env, for_machine, version=version)
             return cls(
                 ccache, compiler, version, for_machine, env,
                 full_version=full_version, linker=linker)
