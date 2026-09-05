@@ -679,6 +679,15 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_output_args(self, outputname: str) -> T.List[str]:
         pass
 
+    def get_output_args_for_mode(self, outputname: str, mode: CompileCheckMode) -> T.List[str]:
+        """
+        Output arguments for preprocessor output, object file or executable.
+        get_output_args() can discriminate between preprocessor or compiler
+        object file; use this to name an executable by passing CompileCheckMode.LINK
+        as the mode.
+        """
+        return self.get_output_args(outputname)
+
     def get_linker_output_args(self, outputname: str) -> T.List[str]:
         return self.linker.get_output_args(outputname)
 
@@ -961,7 +970,7 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
             # Preprocess mode outputs to stdout, so no output args
             if mode != CompileCheckMode.PREPROCESS:
                 output = self._get_compile_output(tmpdirname, mode)
-                commands += self.get_output_args(output)
+                commands += self.get_output_args_for_mode(output, mode)
             commands.extend(self.get_compiler_args_for_mode(CompileCheckMode(mode)))
 
             # extra_args must be last because it could contain '/link' to
@@ -1433,6 +1442,9 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
 
     def _sanity_check_mode(self) -> CompileCheckMode:
         """Whether the sanity check links a binary, or only compiles one."""
+        # Cross-compiling is hard. For example, you might need -nostdlib, or to pass --target, etc.
+        if self.is_cross and not self.environment.has_exe_wrapper():
+            return CompileCheckMode.COMPILE
         return CompileCheckMode.LINK
 
     def get_external_compile_args(self) -> T.List[str]:
@@ -1461,12 +1473,12 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
         cargs = self.exelist_no_ccache \
             + self.get_always_args() \
             + self.get_compiler_check_args(CompileCheckMode.COMPILE) \
-            + self.get_output_args(binname) \
+            + self.get_output_args_for_mode(binname, mode) \
             + [sourcename] \
             + self.get_external_compile_args()
         if mode is CompileCheckMode.COMPILE:
-            return cargs, []
-        largs = self.get_external_link_args()
+            return cargs + self.get_compile_only_args(), []
+        largs = self.get_linker_always_args() + self.get_external_link_args()
         return cargs, largs
 
     @abc.abstractmethod

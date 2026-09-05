@@ -275,12 +275,6 @@ class CLikeCompiler(Compiler):
     def gen_import_library_args(self, implibname: str) -> T.List[str]:
         return self.linker.import_library_args(implibname)
 
-    def _sanity_check_mode(self) -> CompileCheckMode:
-        # Cross-compiling is hard. For example, you might need -nostdlib, or to pass --target, etc.
-        if self.is_cross and not self.environment.has_exe_wrapper():
-            return CompileCheckMode.COMPILE
-        return CompileCheckMode.LINK
-
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
         # _get_basic_compiler_args() already adds c_args/c_link_args (or
@@ -291,7 +285,7 @@ class CLikeCompiler(Compiler):
         b_cargs, b_largs = self._get_basic_compiler_args(mode)
         cargs = self.exelist_no_ccache + \
             self.get_compiler_check_args(CompileCheckMode.COMPILE) + \
-            self.get_output_args(binname) + \
+            self.get_output_args_for_mode(binname, mode) + \
             [sourcename] + \
             b_cargs
         if mode is CompileCheckMode.COMPILE:
@@ -1121,6 +1115,9 @@ class CLikeCompiler(Compiler):
     def _find_library_real(self, libname: str, extra_dirs: T.List[str], code: str, libtype: LibType,
                            lib_prefix_warning: bool, ignore_system_dirs: bool,
                            skip_link_check: bool = False) -> T.Optional[T.List[str]]:
+        largs = self.get_allow_undefined_link_args()
+        lcargs = self.linker_to_compiler_args(largs)
+
         # First try if we can just add the library as -l.
         # Gcc + co seem to prefer builtin lib dirs to -L dirs.
         # Only try to find std libs if no extra dirs specified.
@@ -1129,10 +1126,7 @@ class CLikeCompiler(Compiler):
         if ((not extra_dirs and libtype is LibType.PREFER_SHARED) or
                 libname in self.internal_libs):
             cargs = ['-l' + libname]
-            largs = self.get_allow_undefined_link_args()
-            extra_args = cargs + self.linker_to_compiler_args(largs)
-
-            if self.links(code, extra_args=extra_args, disable_cache=True)[0]:
+            if self.links(code, extra_args=cargs + lcargs, disable_cache=True)[0]:
                 return cargs
             # Don't do a manual search for internal libs
             if libname in self.internal_libs:
@@ -1151,8 +1145,6 @@ class CLikeCompiler(Compiler):
         except (mesonlib.MesonException, KeyError): # TODO evaluate if catching KeyError is wanted here
             elf_class = 0
         # Search in the specified dirs, and then in the system libraries
-        largs = self.get_allow_undefined_link_args()
-        lcargs = self.linker_to_compiler_args(largs)
         for d in itertools.chain(extra_dirs, [] if ignore_system_dirs else self.get_library_dirs(elf_class)):
             for p in patterns:
                 trials = self._get_trials_from_pattern(p, d, libname)

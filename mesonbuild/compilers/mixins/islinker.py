@@ -15,6 +15,7 @@ classes for those cases.
 import typing as T
 
 from ...mesonlib import EnvironmentException, MesonException, is_windows
+from ..compilers import CompileCheckMode
 
 if T.TYPE_CHECKING:
     from ...compilers.compilers import Compiler
@@ -55,6 +56,11 @@ class BasicLinkerIsCompilerMixin(Compiler):
 
     def get_linker_always_args(self) -> T.List[str]:
         return []
+
+    def _sanity_check_mode(self) -> CompileCheckMode:
+        # These compilers produce an executable in one step, there is no
+        # separate link phase that could be skipped.
+        return CompileCheckMode.LINK
 
     def get_linker_lib_prefix(self) -> str:
         return ''

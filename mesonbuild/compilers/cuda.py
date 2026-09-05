@@ -528,34 +528,20 @@ class CudaCompiler(Compiler):
             }
             '''
 
-    def _sanity_check_mode(self) -> CompileCheckMode:
-        # Linking cross built apps is painful. You can't really
-        # tell if you should use -nostdlib or not and for example
-        # on OSX the compiler binary is the same but you need
-        # a ton of compiler flags to differentiate between
-        # arm and x86_64. So just compile.
-        if self.is_cross and not self.environment.has_exe_wrapper():
-            return CompileCheckMode.COMPILE
-        return CompileCheckMode.LINK
-
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
+        args, largs = super()._sanity_check_compile_args(sourcename, binname)
+
         # Disable warnings, compile with statically-linked runtime for minimum
         # reliance on the system.
-        flags = ['-w', '-cudart', 'static', sourcename]
+        args += ['-w', '-cudart', 'static']
 
         # Use the -ccbin option, if available, even during sanity checking.
         # Otherwise, on systems where CUDA does not support the default compiler,
         # NVCC becomes unusable.
-        flags += self._get_ccbin_args(None, '')
+        args += self._get_ccbin_args(None, '')
 
-        # If cross-compiling, we can't run the sanity check, only compile it.
-        mode = self._sanity_check_mode()
-        if mode is CompileCheckMode.COMPILE:
-            flags += self.get_compile_only_args()
-        flags += self.get_output_args(binname)
-
-        return self.exelist + flags, []
+        return args, largs
 
     def has_header_symbol(self, hname: str, symbol: str, prefix: str, *,
                           extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
