@@ -226,6 +226,8 @@ packages.defaults.update({
     'libcrypto': 'misc',
     'libssl': 'misc',
     'objfw': 'misc',
+    'cpp-filesystem': 'misc',
+    'cpp-experimental-filesystem': 'misc',
 
     # From platform:
     'appleframeworks': 'platform',
