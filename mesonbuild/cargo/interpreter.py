@@ -517,18 +517,57 @@ class Interpreter:
         if workspace.root_package:
             self._add_workspace_member(workspace.root_package, ws, '.')
 
-        if extra_members is not None:
-            for m in extra_members:
-                m = PurePath(m).as_posix()
-                if m not in workspace.members:
-                    l = ', '.join(sorted(list(workspace.members)))
-                    raise MesonException(f'{m} is not a workspace member for {subdir}/Cargo.toml (valid members are {l})')
-                if m not in workspace.default_members:
-                    workspace.default_members.append(m)
         for m in workspace.members:
             self._load_workspace_member(ws, m)
+
+        if extra_members is not None:
+            wanted = [PurePath(m).as_posix() for m in extra_members]
+            self._load_extra_members(ws, wanted)
+            for m in wanted:
+                if m not in workspace.members:
+                    workspace.members.append(m)
+                if m not in workspace.default_members:
+                    workspace.default_members.append(m)
         self.workspaces[subdir] = ws
         return ws
+
+    def _load_extra_members(self, ws: WorkspaceState, wanted: T.List[str]) -> None:
+        """Look for *wanted* among the path dependencies of the workspace members.
+
+           Every path dependency inside the workspace directory is potentially a
+           member, even one that no [target] condition ever enables; such a
+           dependency can therefore be requested explicitly even though it is
+           absent from [workspace] members (in Cargo, with `-p`; in Meson, with
+           `extra_members`).
+
+           Force loading of all of the path dependencies that are in *wanted*.
+
+           Raises a MesonException for an entry of *wanted* that is neither a
+           declared member nor a path dependency, or that the workspace excludes.
+           """
+        valid: T.Set[str] = set(ws.workspace.members)
+        # Accepting a member makes its own path dependencies candidates in turn,
+        # so this is a worklist rather than a single pass.  Every member has
+        # been loaded already, so ws.packages holds the starting points.
+        queue = list(ws.packages)
+        while queue:
+            member = queue.pop(0)
+            pkg = ws.packages[member]
+            for dep in pkg.manifest.path_dependencies():
+                assert dep.path is not None
+                dep_member = PurePath(os.path.normpath(os.path.join(member, dep.path))).as_posix()
+                if ws.workspace.is_excluded(dep_member):
+                    continue
+                valid.add(dep_member)
+                if dep_member in wanted and dep_member not in ws.packages:
+                    self._load_workspace_member(ws, dep_member)
+                    queue.append(dep_member)
+
+        for m in wanted:
+            if m not in valid:
+                l = ', '.join(sorted(list(valid)))
+                raise MesonException(f'{m} is not a workspace member for '
+                                     f'{ws.subdir}/Cargo.toml (valid members are {l})')
 
     def _record_package(self, pkg: PackageState) -> None:
         key = PackageKey(pkg.manifest.package.name, pkg.manifest.package.api)
