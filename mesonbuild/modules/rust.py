@@ -92,6 +92,7 @@ if T.TYPE_CHECKING:
         default_features: T.Optional[bool]
         features: T.List[str]
         extra_members: T.List[str]
+        dev_dependencies: T.Optional[bool]
 
     class FuncDependency(TypedDict):
         rust_abi: T.Optional[RUST_ABI]
@@ -338,7 +339,7 @@ class RustPackage(RustCrate):
             dependencies_collect_kind(cargo.DependencyKind.NORMAL)
 
         if kwargs['dev_dependencies']:
-            raise MesonException('dev_dependencies is not implemented yet')
+            dependencies_collect_kind(cargo.DependencyKind.DEV)
 
         if kwargs['system_dependencies']:
             for name, sys_dep in self.package.manifest.system_dependencies.items():
@@ -1109,6 +1110,7 @@ class RustModule(ExtensionModule):
             default=None,
             listify=True,
         ),
+        KwargInfo('dev_dependencies', (bool, NoneType), default=None, since='1.13.0'),
     )
     def workspace(self, state: ModuleState, args: T.List, kwargs: FuncWorkspace) -> RustWorkspace:
         """Creates a Rust workspace object, controlling the build of
@@ -1131,6 +1133,10 @@ class RustModule(ExtensionModule):
                 cargo_features.extend(features)
             self.interpreter.cargo.features = cargo_features
 
+        # Leaving the argument out does not override what a previous call chose,
+        # just like the features arguments above.
+        if kwargs['dev_dependencies'] is not None:
+            self.interpreter.cargo.dev_dependencies = kwargs['dev_dependencies']
         ws = self.interpreter.cargo.load_workspace(state.root_subdir, kwargs['extra_members'])
 
         # Cargo projects may not have a subprojects directory, because
