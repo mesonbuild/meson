@@ -185,27 +185,40 @@ class ConvertInstanceBuildTarget:
                 if not file.fname.endswith('.h') and not file.fname.endswith('.hpp'):
                     self.srcs.append(ConvertId.from_local_file(file))
 
+    def _add_external_dep(self, d: dependency_base.ExternalDependency,
+                          project_config: ConvertProjectConfig,
+                          shared_only: bool = False) -> None:  # fmt: skip
+        """Classify and register a single external dependency.
+
+        When ``shared_only`` is True (used when propagating external deps from
+        statically linked targets into a SharedLibrary or Executable), only
+        shared-library-kind deps are added. Header, static, and Rust library
+        deps are intentionally left out because they were already pulled in via
+        the static-library link edge.
+        """
+        found = project_config.lookup_external_dependency(d.name)
+        if not found:
+            return
+
+        (dep, is_proc_macro) = found
+        if not shared_only and d.name in project_config.dependencies.header_libraries:
+            self.header_libs.append(dep)
+        elif not shared_only and d.name in project_config.dependencies.rust_libraries:
+            if is_proc_macro:
+                self.proc_macros.append(dep)
+            else:
+                self.rust_libs.append(dep)
+        elif not shared_only and d.name in project_config.dependencies.static_libraries:
+            self.static_libs.append(dep)
+        elif d.name in project_config.dependencies.shared_libraries:
+            if dep not in self.shared_libs:
+                self.shared_libs.append(dep)
+
     def _handle_external_dependencies(self, build_target: build.BuildTarget,
                                       project_config: ConvertProjectConfig) -> None:  # fmt: skip
         for d in build_target.external_deps:
             if d.found() and isinstance(d, dependency_base.ExternalDependency):
-                found = project_config.lookup_external_dependency(d.name)
-                if not found:
-                    continue
-
-                (dep, is_proc_macro) = found
-                if d.name in project_config.dependencies.header_libraries:
-                    self.header_libs.append(dep)
-                elif d.name in project_config.dependencies.rust_libraries:  # fmt: skip
-                    if is_proc_macro:
-                        self.proc_macros.append(dep)
-                    else:
-                        self.rust_libs.append(dep)
-                elif d.name in project_config.dependencies.static_libraries:
-                    self.static_libs.append(dep)
-                else:
-                    if project_config.is_dependency_necessary(d.name):
-                        self.shared_libs.append(dep)
+                self._add_external_dep(d, project_config)
             elif isinstance(d, dependency_base.InternalDependency):
                 # meson likes to put link + compile args as internal dependencies
                 # for some reason
@@ -277,6 +290,11 @@ class ConvertInstanceBuildTarget:
                     self.rust_libs.append(dep)
                 elif dep not in self.static_libs or self.whole_static_libs:
                     self.static_libs.append(dep)
+
+                if isinstance(build_target, (build.SharedLibrary, build.Executable)):
+                    for d in linked_target.external_deps:
+                        if d.found() and isinstance(d, dependency_base.ExternalDependency):
+                            self._add_external_dep(d, project_config, shared_only=True)
             elif isinstance(linked_target, build.SharedLibrary):
                 if dep not in self.shared_libs:
                     self.shared_libs.append(dep)
