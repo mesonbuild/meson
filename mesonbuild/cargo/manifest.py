@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import collections
 import dataclasses
+import enum
 import glob
 import os
 import re
@@ -50,6 +51,20 @@ def fixup_meson_varname(name: str) -> str:
     :return: the fixed name
     """
     return name.replace('-', '_')
+
+
+class DependencyKind(enum.Enum):
+
+    """The Cargo manifest tables that can hold dependencies."""
+
+    NORMAL = 'dependencies'
+    DEV = 'dev-dependencies'
+    BUILD = 'build-dependencies'
+
+    @property
+    def field(self) -> str:
+        """The name of the corresponding Manifest field."""
+        return fixup_meson_varname(self.value)
 
 
 _BRACKET_ESCAPE_RE = re.compile(r'\[(.)\]')
@@ -628,14 +643,24 @@ class Manifest:
                     raise MesonException(f'dev-dependency "{name}" of package '
                                          f'"{self.package.name}" cannot be optional')
 
-    def path_dependencies(self) -> T.Iterable[Dependency]:
+    def deps_for(self, kind: DependencyKind) -> T.Dict[str, T.List[Dependency]]:
+        """The dependency table of the given kind."""
+        return T.cast('T.Dict[str, T.List[Dependency]]', getattr(self, kind.field))
+
+    def iter_dependencies(self) -> T.Iterator[T.Tuple[DependencyKind, str, Dependency]]:
+        """Every dependency of the package, including target-specific ones."""
+        for kind in DependencyKind:
+            for name, deps in self.deps_for(kind).items():
+                for dep in deps:
+                    yield kind, name, dep
+
+    def path_dependencies(self) -> T.Iterable[T.Tuple[DependencyKind, Dependency]]:
         """Every path dependency of the package, including the ones that a
            [target] condition or an unused optional keeps out of the resolved
            dependency graph."""
-        for deps in self.dependencies.values():
-            for dep in deps:
-                if dep.path:
-                    yield dep
+        for kind, _, dep in self.iter_dependencies():
+            if dep.path:
+                yield kind, dep
 
     def machines_from(self, parent_machine: MachineChoice, is_cross: bool,
                       bin: bool = False) -> T.Iterable[MachineChoice]:
@@ -723,9 +748,9 @@ class Manifest:
         # overrides the plain declaration of the same name.
         target_tables = T.cast('RawTargetTables', raw.get('target', {}))
         for condition, tables in target_tables.items():
-            for table_name in ('dependencies', 'dev-dependencies', 'build-dependencies'):
-                deps = getattr(manifest, fixup_meson_varname(table_name))
-                for name, v in tables.get(table_name, {}).items():
+            for kind in DependencyKind:
+                deps = manifest.deps_for(kind)
+                for name, v in tables.get(kind.value, {}).items():
                     dep = Dependency.from_raw(name, v, member_path, workspace, target=condition)
                     deps.setdefault(name, []).append(dep)
 

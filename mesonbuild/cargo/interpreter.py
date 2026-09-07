@@ -24,8 +24,8 @@ from . import builder, version
 from .cfg import eval_cfg
 from .toml import load_toml
 from .manifest import (
-    Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname,
-    validate_patch,
+    DependencyKind, Manifest, CargoLock, CargoLockPackage, Workspace,
+    fixup_meson_varname, validate_patch,
 )
 from ..mesonlib import (
     is_parent_path, lazy_property, MesonException, MachineChoice,
@@ -64,11 +64,13 @@ def _extra_deps_varname() -> str:
 class PackageConfiguration:
     """Configuration for a package during dependency resolution."""
     for_machine: MachineChoice
-    # Dependency table of the package, with the [target.*] sections that apply
+    # Dependency tables of the package, with the [target.*] sections that apply
     # to this machine merged in.
-    dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
+    dependencies: T.Dict[DependencyKind, T.Dict[str, Dependency]] = \
+        dataclasses.field(default_factory=dict)
     features: T.Set[str] = dataclasses.field(default_factory=set)
-    required_deps: T.Set[str] = dataclasses.field(default_factory=set)
+    required_deps: T.Dict[DependencyKind, T.Set[str]] = \
+        dataclasses.field(default_factory=lambda: collections.defaultdict(set))
     optional_deps_features: T.Dict[str, T.Set[str]] = dataclasses.field(default_factory=lambda: collections.defaultdict(set))
     # Cache of resolved dependency packages
     dep_packages: T.Dict[PackageKey, PackageState] = dataclasses.field(default_factory=dict)
@@ -80,14 +82,29 @@ class PackageConfiguration:
             args.extend(['--cfg', f'feature="{feature}"'])
         return args
 
-    def get_dependency_map(self) -> T.Dict[str, str]:
-        """Get the rust dependency mapping for this package configuration."""
+    def iter_dependencies(self, kinds: T.Iterable[DependencyKind] = DependencyKind) -> \
+            T.Iterator[T.Tuple[DependencyKind, str, Dependency]]:
+        for kind in kinds:
+            if kind not in self.dependencies:
+                continue
+            for name, dep in self.dependencies[kind].items():
+                yield kind, name, dep
+
+    def iter_required_dependencies(self, kinds: T.Iterable[DependencyKind] = DependencyKind) -> \
+            T.Iterator[T.Tuple[DependencyKind, str, Dependency]]:
+        for kind in kinds:
+            if kind not in self.required_deps:
+                continue
+            for name in sorted(self.required_deps[kind]):
+                yield kind, name, self.dependencies[kind][name]
+
+    def get_dependency_map(self, kinds: T.Sequence[DependencyKind] = (DependencyKind.NORMAL,)) -> T.Dict[str, str]:
+        """Get the rust dependency mapping for the given kinds of dependency."""
         dependency_map: T.Dict[str, str] = {}
         # A crate name can only mean one thing within a single target, even if
         # it is listed in more than one dependency table.
         crate_packages: T.Dict[str, str] = {}
-        for name in sorted(self.required_deps):
-            dep = self.dependencies[name]
+        for _, name, dep in self.iter_required_dependencies(kinds):
             dep_key = PackageKey(dep.package, dep.api)
             dep_pkg = self.dep_packages[dep_key]
             dep_lib_name = dep_pkg.library_name(self.for_machine)
@@ -98,7 +115,7 @@ class PackageConfiguration:
                                      f'"{previous}" and "{dep_lib_name}"')
             previous_crate = dependency_map.setdefault(dep_lib_name, dep_crate_name)
             if previous_crate != dep_crate_name:
-                raise MesonException(f'crate "{dep_lib_name}" is renamed to both '
+                raise MesonException(f'"{dep_lib_name}" is renamed to both '
                                      f'"{previous_crate}" and "{dep_crate_name}"')
         return dependency_map
 
@@ -473,8 +490,7 @@ class Interpreter:
                 cfg = pkg.cfg[machine]
                 if not cfg:
                     continue
-                for depname in cfg.required_deps:
-                    dep = cfg.dependencies[depname]
+                for _, _, dep in cfg.iter_required_dependencies():
                     if dep.path:
                         dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
                         if not ws.workspace.is_excluded(dep_member):
@@ -567,7 +583,7 @@ class Interpreter:
         while queue:
             member = queue.pop(0)
             pkg = ws.packages[member]
-            for dep in pkg.manifest.path_dependencies():
+            for kind, dep in pkg.manifest.path_dependencies():
                 assert dep.path is not None
                 dep_member = PurePath(os.path.normpath(os.path.join(member, dep.path))).as_posix()
                 if ws.workspace.is_excluded(dep_member):
@@ -682,9 +698,10 @@ class Interpreter:
             return dep.target is None or dep.target == rustc.get_target_triple() or \
                 eval_cfg(dep.target, target_cfgs)
 
-        cfg.dependencies = {name: dep
-                            for name, deps in pkg.manifest.dependencies.items()
-                            for dep in deps if enabled(dep)}
+        cfg.dependencies = {kind: {name: dep
+                                   for name, deps in pkg.manifest.deps_for(kind).items()
+                                   for dep in deps if enabled(dep)}
+                            for kind in DependencyKind}
 
         # If you specify the optional dependency with the dep: prefix anywhere in the [features]
         # table, that disables the implicit feature.
@@ -700,9 +717,9 @@ class Interpreter:
                     explicit.add(name)
 
         # Fetch required dependencies recursively for this machine
-        for depname, dep in cfg.dependencies.items():
+        for kind, depname, dep in cfg.iter_dependencies(self._dependency_kinds(pkg)):
             if not dep.optional:
-                self._add_dependency(pkg, depname, machine)
+                self._add_dependency(pkg, depname, machine, kind)
 
     def _dep_package(self, pkg: PackageState, dep: Dependency, cfg: PackageConfiguration) -> PackageState:
         if dep.path:
@@ -760,15 +777,28 @@ class Interpreter:
         self.manifests[subdir] = manifest_
         return manifest_, False
 
-    def _add_dependency(self, pkg: PackageState, depname: str, machine: MachineChoice) -> None:
+    def _dependency_kinds(self, pkg: PackageState) -> T.Iterable[DependencyKind]:
+        """The dependency tables that take part in resolution for this package."""
+        yield DependencyKind.NORMAL
+
+    def _required_dep_kinds(self, pkg: PackageState, depname: str, machine: MachineChoice) -> \
+            T.List[DependencyKind]:
+        """The kinds of edge that were found for the edge from
+           pkg.cfg[machine] to depname."""
         cfg = pkg.cfg[machine]
-        if depname in cfg.required_deps:
+        return [kind for kind in self._dependency_kinds(pkg)
+                if depname in cfg.required_deps[kind]]
+
+    def _add_dependency(self, pkg: PackageState, depname: str, machine: MachineChoice,
+                        kind: DependencyKind) -> None:
+        cfg = pkg.cfg[machine]
+        if depname in cfg.required_deps[kind]:
             return
-        dep = cfg.dependencies.get(depname)
+        dep = cfg.dependencies[kind].get(depname)
         if not dep:
             # It could be build/dev/target dependency. Just ignore it.
             return
-        cfg.required_deps.add(depname)
+        cfg.required_deps[kind].add(depname)
         dep_pkg = self._dep_package(pkg, dep, cfg)
         # Use machines_from() to determine which machines the dependency needs
         for dep_machine in dep_pkg.manifest.machines_from(machine, self.is_cross):
@@ -793,19 +823,23 @@ class Interpreter:
                 if depname[-1] == '?':
                     depname = depname[:-1]
                 else:
-                    self._add_dependency(pkg, depname, machine)
-                if depname in cfg.required_deps:
-                    dep = cfg.dependencies[depname]
+                    # Only an optional dependency has to be added here, and since
+                    # [dev-dependencies] cannot be optional it must be [dependencies]
+                    self._add_dependency(pkg, depname, machine, DependencyKind.NORMAL)
+                # Apply "dep/feature" to any kind of dependency.
+                dep_kinds = self._required_dep_kinds(pkg, depname, machine)
+                for dep_kind in dep_kinds:
+                    dep = cfg.dependencies[dep_kind][depname]
                     dep_pkg = self._dep_package(pkg, dep, cfg)
                     # Use machines_from() to determine which machines the dependency needs
                     for dep_machine in dep_pkg.manifest.machines_from(machine, self.is_cross):
                         self._enable_feature(dep_pkg, dep_f, dep_machine)
-                else:
+                if not dep_kinds:
                     # This feature will be enabled only if that dependency
                     # is later added.
                     cfg.optional_deps_features[depname].add(dep_f)
             elif f.startswith('dep:'):
-                self._add_dependency(pkg, f[4:], machine)
+                self._add_dependency(pkg, f[4:], machine, DependencyKind.NORMAL)
             else:
                 self._enable_feature(pkg, f, machine)
 
