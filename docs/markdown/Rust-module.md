@@ -274,6 +274,12 @@ A project that wishes to use Cargo subprojects should have `Cargo.lock` and `Car
 files in the root source directory, and should call this function before using
 Cargo subprojects.
 
+*Since 1.13.0*, `extra_members` accepts, in addition to the entries of the
+`members` list, any package that a workspace member depends on through a
+`path` dependency.  This includes packages that `cargo` would not build,
+either because the dependency is optional and no feature enables it,
+or because it is declared under a `target` clause that is never true.
+
 The first invocation of `workspace()` establishes the *Cargo interpreter*
 that resolves dependencies and features for both the toplevel project (the one
 containing `Cargo.lock`) and all subprojects that are invoked with the `cargo` method,
