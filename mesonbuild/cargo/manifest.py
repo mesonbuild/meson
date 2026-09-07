@@ -26,6 +26,8 @@ if T.TYPE_CHECKING:
     from ..options import ElementaryOptionValues
     from ..wrap.wrap import PackageDefinition
 
+    RawTargetTables = T.Mapping[str, T.Mapping[str, T.Mapping[str, raw.FromWorkspace | raw.DependencyV | str]]]
+
     # Copied from typeshed. Blarg that they don't expose this
     class DataclassInstance(Protocol):
         __dataclass_fields__: T.ClassVar[dict[str, dataclasses.Field[T.Any]]]
@@ -306,6 +308,8 @@ class Dependency:
     optional: bool = False
     default_features: bool = True
     features: T.List[str] = dataclasses.field(default_factory=list)
+    # The [target.<cfg>] condition this entry was declared under, if any.
+    target: T.Optional[str] = None
 
     @lazy_property
     def accepts_version(self) -> T.Callable[[str], bool]:
@@ -341,7 +345,7 @@ class Dependency:
         return {'version': depv} if isinstance(depv, str) else depv
 
     @classmethod
-    def from_raw(cls, name: str, raw_depv: T.Union[raw.FromWorkspace, raw.DependencyV], member_path: str = '', workspace: T.Optional[Workspace] = None) -> Self:
+    def from_raw(cls, name: str, raw_depv: T.Union[raw.FromWorkspace, raw.DependencyV], member_path: str = '', workspace: T.Optional[Workspace] = None, target: T.Optional[str] = None) -> Self:
         """Create a dependency from a raw cargo dictionary or string"""
         raw_ws_dep = workspace.dependencies.get(name) if workspace else None
         raw_ws_dep = cls._depv_to_dep(raw_ws_dep or {})
@@ -354,10 +358,12 @@ class Dependency:
                 return os.path.relpath(ws_path, member_path)
             return None
 
-        return _raw_to_dataclass(raw_dep, cls, f'Dependency entry {name}', raw_ws_dep,
-                                 package=DefaultValue(name),
-                                 path=MergeValue(path_convertor),
-                                 features=MergeValue(lambda features, ws_features: (features or []) + (ws_features or [])))
+        dep = _raw_to_dataclass(raw_dep, cls, f'Dependency entry {name}', raw_ws_dep,
+                                package=DefaultValue(name),
+                                path=MergeValue(path_convertor),
+                                features=MergeValue(lambda features, ws_features: (features or []) + (ws_features or [])))
+        dep.target = target
+        return dep
 
 
 @dataclasses.dataclass
@@ -597,16 +603,16 @@ class Manifest:
     """
 
     package: Package
-    dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
-    dev_dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
-    build_dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
+    # Note that these three fields also include the [target] sections.
+    dependencies: T.Dict[str, T.List[Dependency]] = dataclasses.field(default_factory=dict)
+    dev_dependencies: T.Dict[str, T.List[Dependency]] = dataclasses.field(default_factory=dict)
+    build_dependencies: T.Dict[str, T.List[Dependency]] = dataclasses.field(default_factory=dict)
     lib: T.Optional[Library] = None
     bin: T.Dict[str, Binary] = dataclasses.field(default_factory=dict)
     test: T.List[Test] = dataclasses.field(default_factory=list)
     bench: T.List[Benchmark] = dataclasses.field(default_factory=list)
     example: T.List[Example] = dataclasses.field(default_factory=list)
     features: T.Dict[str, T.List[str]] = dataclasses.field(default_factory=dict)
-    target: T.Dict[str, T.Dict[str, Dependency]] = dataclasses.field(default_factory=dict)
     lints: T.List[Lint] = dataclasses.field(default_factory=list)
     profile: T.Dict[str, Profile] = dataclasses.field(default_factory=dict)
 
@@ -621,11 +627,8 @@ class Manifest:
         """Every path dependency of the package, including the ones that a
            [target] condition or an unused optional keeps out of the resolved
            dependency graph."""
-        for dep in self.dependencies.values():
-            if dep.path:
-                yield dep
-        for deps in self.target.values():
-            for dep in deps.values():
+        for deps in self.dependencies.values():
+            for dep in deps:
                 if dep.path:
                     yield dep
 
@@ -689,27 +692,39 @@ class Manifest:
                                          f'({autobins[bin_name].path} and {bin_path})')
                 autobins[bin_name] = Binary.from_raw({'name': bin_name, 'path': bin_path}, pkg)
 
-        def dependencies_from_raw(x: T.Dict[str, T.Any]) -> T.Dict[str, Dependency]:
-            return {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()}
+        def dependencies_from_raw(x: T.Dict[str, T.Any]) -> T.Dict[str, T.List[Dependency]]:
+            return {k: [Dependency.from_raw(k, v, member_path, workspace)] for k, v in x.items()}
 
-        return _raw_to_dataclass(raw, cls, f'Cargo.toml package {pkg.name}',
-                                 raw_from_workspace=workspace.inheritable if workspace else None,
-                                 ignored_fields=['badges', 'workspace'],
-                                 package=ConvertValue(lambda _: pkg),
-                                 dependencies=ConvertValue(dependencies_from_raw),
-                                 dev_dependencies=ConvertValue(dependencies_from_raw),
-                                 build_dependencies=ConvertValue(dependencies_from_raw),
-                                 lints=ConvertValue(Lint.from_raw),
-                                 lib=ConvertValue(lambda x: Library.from_raw(x, pkg), default=autolib),
-                                 bin=DictMergeValue(lambda x: [Binary.from_raw(b, pkg) for b in x],
-                                                    merge_key=lambda x: x.path,
-                                                    out_key=lambda x: x.name,
-                                                    base=autobins),
-                                 test=ConvertValue(lambda x: [Test.from_raw(b, pkg) for b in x]),
-                                 bench=ConvertValue(lambda x: [Benchmark.from_raw(b, pkg) for b in x]),
-                                 example=ConvertValue(lambda x: [Example.from_raw(b, pkg) for b in x]),
-                                 target=ConvertValue(lambda x: {k: dependencies_from_raw(v.get('dependencies', {})) for k, v in x.items()}),
-                                 profile=ConvertValue(lambda x: {k: Profile.from_raw(v) for k, v in x.items()}))
+        manifest = _raw_to_dataclass(raw, cls, f'Cargo.toml package {pkg.name}',
+                                     raw_from_workspace=workspace.inheritable if workspace else None,
+                                     ignored_fields=['badges', 'workspace', 'target'],
+                                     package=ConvertValue(lambda _: pkg),
+                                     dependencies=ConvertValue(dependencies_from_raw),
+                                     dev_dependencies=ConvertValue(dependencies_from_raw),
+                                     build_dependencies=ConvertValue(dependencies_from_raw),
+                                     lints=ConvertValue(Lint.from_raw),
+                                     lib=ConvertValue(lambda x: Library.from_raw(x, pkg), default=autolib),
+                                     bin=DictMergeValue(lambda x: [Binary.from_raw(b, pkg) for b in x],
+                                                        merge_key=lambda x: x.path,
+                                                        out_key=lambda x: x.name,
+                                                        base=autobins),
+                                     test=ConvertValue(lambda x: [Test.from_raw(b, pkg) for b in x]),
+                                     bench=ConvertValue(lambda x: [Benchmark.from_raw(b, pkg) for b in x]),
+                                     example=ConvertValue(lambda x: [Example.from_raw(b, pkg) for b in x]),
+                                     profile=ConvertValue(lambda x: {k: Profile.from_raw(v) for k, v in x.items()}))
+
+        # Merge [target.<cfg>] into the three tables for unconditional dependencies.
+        # They go in after the unconditional entries, so that a matching condition
+        # overrides the plain declaration of the same name.
+        target_tables = T.cast('RawTargetTables', raw.get('target', {}))
+        for condition, tables in target_tables.items():
+            for table_name in ('dependencies', 'dev-dependencies', 'build-dependencies'):
+                deps = getattr(manifest, fixup_meson_varname(table_name))
+                for name, v in tables.get(table_name, {}).items():
+                    dep = Dependency.from_raw(name, v, member_path, workspace, target=condition)
+                    deps.setdefault(name, []).append(dep)
+
+        return manifest
 
 
 @dataclasses.dataclass

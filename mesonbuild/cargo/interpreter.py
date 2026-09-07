@@ -64,6 +64,9 @@ def _extra_deps_varname() -> str:
 class PackageConfiguration:
     """Configuration for a package during dependency resolution."""
     for_machine: MachineChoice
+    # Dependency table of the package, with the [target.*] sections that apply
+    # to this machine merged in.
+    dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
     features: T.Set[str] = dataclasses.field(default_factory=set)
     required_deps: T.Set[str] = dataclasses.field(default_factory=set)
     optional_deps_features: T.Dict[str, T.Set[str]] = dataclasses.field(default_factory=lambda: collections.defaultdict(set))
@@ -77,11 +80,11 @@ class PackageConfiguration:
             args.extend(['--cfg', f'feature="{feature}"'])
         return args
 
-    def get_dependency_map(self, manifest: Manifest) -> T.Dict[str, str]:
+    def get_dependency_map(self) -> T.Dict[str, str]:
         """Get the rust dependency mapping for this package configuration."""
         dependency_map: T.Dict[str, str] = {}
         for name in sorted(self.required_deps):
-            dep = manifest.dependencies[name]
+            dep = self.dependencies[name]
             dep_key = PackageKey(dep.package, dep.api)
             dep_pkg = self.dep_packages[dep_key]
             dep_lib_name = dep_pkg.library_name(self.for_machine)
@@ -457,7 +460,7 @@ class Interpreter:
                 if not cfg:
                     continue
                 for depname in cfg.required_deps:
-                    dep = pkg.manifest.dependencies[depname]
+                    dep = cfg.dependencies[depname]
                     if dep.path:
                         dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
                         if not ws.workspace.is_excluded(dep_member):
@@ -649,30 +652,38 @@ class Interpreter:
         if pkg.cfg[machine] is not None:
             return  # Already prepared for this machine
 
-        pkg.cfg[machine] = PackageConfiguration(for_machine=machine)
+        cfg = PackageConfiguration(for_machine=machine)
+        pkg.cfg[machine] = cfg
 
-        # Merge target-specific dependencies that are enabled for this machine
+        # Keep the dependencies whose [target.*] condition holds for this machine.
+        # A later entry wins, so an unconditional declaration is the fallback for
+        # the name and a matching [target.*] one overrides it.
         rustc = T.cast('RustCompiler', self.environment.coredata.compilers[machine]['rust'])
         target_cfgs = self._get_cfgs(machine, pkg.get_subproject_name())
-        for condition, dependencies in pkg.manifest.target.items():
-            if condition == rustc.get_target_triple() or eval_cfg(condition, target_cfgs):
-                pkg.manifest.dependencies.update(dependencies)
+
+        def enabled(dep: Dependency) -> bool:
+            return dep.target is None or dep.target == rustc.get_target_triple() or \
+                eval_cfg(dep.target, target_cfgs)
+
+        cfg.dependencies = {name: dep
+                            for name, deps in pkg.manifest.dependencies.items()
+                            for dep in deps if enabled(dep)}
 
         # If you specify the optional dependency with the dep: prefix anywhere in the [features]
         # table, that disables the implicit feature.
-        deps = set(feature[4:]
-                   for feature in itertools.chain.from_iterable(pkg.manifest.features.values())
-                   if feature.startswith('dep:'))
-        for name, dep in itertools.chain(pkg.manifest.dependencies.items(),
-                                         pkg.manifest.dev_dependencies.items(),
-                                         pkg.manifest.build_dependencies.items()):
-            if dep.optional and name not in deps:
-                pkg.manifest.features.setdefault(name, [])
-                pkg.manifest.features[name].append(f'dep:{name}')
-                deps.add(name)
+        explicit = set(feature[4:]
+                       for feature in itertools.chain.from_iterable(pkg.manifest.features.values())
+                       if feature.startswith('dep:'))
+        # Cargo forbids [dev-dependencies] to be optional, so skip them
+        for table in (pkg.manifest.dependencies, pkg.manifest.build_dependencies):
+            for name, deps in table.items():
+                if any(dep.optional for dep in deps) and name not in explicit:
+                    pkg.manifest.features.setdefault(name, [])
+                    pkg.manifest.features[name].append(f'dep:{name}')
+                    explicit.add(name)
 
         # Fetch required dependencies recursively for this machine
-        for depname, dep in pkg.manifest.dependencies.items():
+        for depname, dep in cfg.dependencies.items():
             if not dep.optional:
                 self._add_dependency(pkg, depname, machine)
 
@@ -736,7 +747,7 @@ class Interpreter:
         cfg = pkg.cfg[machine]
         if depname in cfg.required_deps:
             return
-        dep = pkg.manifest.dependencies.get(depname)
+        dep = cfg.dependencies.get(depname)
         if not dep:
             # It could be build/dev/target dependency. Just ignore it.
             return
@@ -767,7 +778,7 @@ class Interpreter:
                 else:
                     self._add_dependency(pkg, depname, machine)
                 if depname in cfg.required_deps:
-                    dep = pkg.manifest.dependencies[depname]
+                    dep = cfg.dependencies[depname]
                     dep_pkg = self._dep_package(pkg, dep, cfg)
                     # Use machines_from() to determine which machines the dependency needs
                     for dep_machine in dep_pkg.manifest.machines_from(machine, self.is_cross):
