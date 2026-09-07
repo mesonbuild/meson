@@ -269,6 +269,9 @@ class WorkspaceState:
     packages_to_member: T.Dict[str, str] = dataclasses.field(default_factory=dict)
     # member paths that are required to be built
     required_members: T.List[str] = dataclasses.field(default_factory=list)
+    # dictionary of members that are the root of feature/dependency resolution,
+    # as pairs of member path and the machines it has to be built for
+    entry_points: T.Dict[str, T.Set[MachineChoice]] = dataclasses.field(default_factory=dict)
 
 
 class Interpreter:
@@ -330,12 +333,13 @@ class Interpreter:
         return ws
 
     def _prepare_entry_point(self, ws: WorkspaceState) -> None:
-        pkgs = [self._require_workspace_member(ws, m) for m in ws.workspace.default_members]
-        for pkg in pkgs:
-            for machine in pkg.manifest.machines_from(MachineChoice.HOST, bin=True, is_cross=self.is_cross):
-                self._prepare_package(pkg, machine)
-                for feature in self.features:
-                    self._enable_feature(pkg, feature, machine)
+        for m, machines in ws.entry_points.items():
+            pkg = self._require_workspace_member(ws, m)
+            for parent in machines:
+                for machine in pkg.manifest.machines_from(parent, bin=True, is_cross=self.is_cross):
+                    self._prepare_package(pkg, machine)
+                    for feature in self.features:
+                        self._enable_feature(pkg, feature, machine)
 
     def load_package(self, ws: WorkspaceState, package_name: T.Optional[str]) -> PackageState:
         if package_name is None:
@@ -523,14 +527,11 @@ class Interpreter:
         for m in workspace.members:
             self._load_workspace_member(ws, m)
 
+        ws.entry_points = {m: {MachineChoice.HOST} for m in workspace.default_members}
         if extra_members is not None:
             wanted = [PurePath(m).as_posix() for m in extra_members]
             self._load_extra_members(ws, wanted)
-            for m in wanted:
-                if m not in workspace.members:
-                    workspace.members.append(m)
-                if m not in workspace.default_members:
-                    workspace.default_members.append(m)
+
         self.workspaces[subdir] = ws
         return ws
 
@@ -562,11 +563,17 @@ class Interpreter:
                 if ws.workspace.is_excluded(dep_member):
                     continue
                 valid.add(dep_member)
-                if dep_member in wanted and dep_member not in ws.packages:
+                if dep_member not in wanted:
+                    continue
+                ws.entry_points.setdefault(dep_member, set()).add(MachineChoice.HOST)
+                if dep_member not in ws.packages:
                     self._load_workspace_member(ws, dep_member)
                     queue.append(dep_member)
 
         for m in wanted:
+            if m in ws.workspace.members:
+                # A declared member that is not a default member.
+                ws.entry_points.setdefault(m, set()).add(MachineChoice.HOST)
             if m not in valid:
                 l = ', '.join(sorted(list(valid)))
                 raise MesonException(f'{m} is not a workspace member for '
