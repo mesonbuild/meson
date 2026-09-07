@@ -1,0 +1,8 @@
+{
+  "stdout": [
+    {
+      "match": "re",
+      "line": "test cases/failing/153 cargo extra_members not a member/meson\\.build:[0-9]+:[0-9]+: ERROR: dep2 is not a workspace member for \\./Cargo\\.toml \\(valid members are app, dep\\)"
+    }
+  ]
+}
