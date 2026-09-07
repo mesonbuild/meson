@@ -302,7 +302,7 @@ class RustCrate(ModuleObject):
     @TypedArgs('rust_crate.rust_dependency_map')
     def rust_dependency_map_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.Dict[str, str]:
         """Returns rust dependency mapping for this package."""
-        return self.cfg.get_dependency_map(self.package.manifest)
+        return self.cfg.get_dependency_map()
 
 
 class RustPackage(RustCrate):
@@ -396,7 +396,7 @@ class RustPackage(RustCrate):
         kwargs['dependencies'].extend(deps)
 
         depmap = kwargs['rust_dependency_map']
-        kwargs['rust_dependency_map'] = cfg.get_dependency_map(self.package.manifest)
+        kwargs['rust_dependency_map'] = cfg.get_dependency_map()
         kwargs['rust_dependency_map'].update(depmap)
 
         rust_args = kwargs['rust_args']
