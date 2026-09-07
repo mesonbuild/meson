@@ -617,6 +617,18 @@ class Manifest:
     def __post_init__(self) -> None:
         self.features.setdefault('default', [])
 
+    def path_dependencies(self) -> T.Iterable[Dependency]:
+        """Every path dependency of the package, including the ones that a
+           [target] condition or an unused optional keeps out of the resolved
+           dependency graph."""
+        for dep in self.dependencies.values():
+            if dep.path:
+                yield dep
+        for deps in self.target.values():
+            for dep in deps.values():
+                if dep.path:
+                    yield dep
+
     def machines_from(self, parent_machine: MachineChoice, is_cross: bool,
                       bin: bool = False) -> T.Iterable[MachineChoice]:
         """Return the machines this manifest should be built for based on the machine
