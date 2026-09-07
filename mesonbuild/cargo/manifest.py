@@ -622,6 +622,11 @@ class Manifest:
 
     def __post_init__(self) -> None:
         self.features.setdefault('default', [])
+        for name, deps in self.dev_dependencies.items():
+            for dep in deps:
+                if dep.optional:
+                    raise MesonException(f'dev-dependency "{name}" of package '
+                                         f'"{self.package.name}" cannot be optional')
 
     def path_dependencies(self) -> T.Iterable[Dependency]:
         """Every path dependency of the package, including the ones that a
