@@ -83,13 +83,23 @@ class PackageConfiguration:
     def get_dependency_map(self) -> T.Dict[str, str]:
         """Get the rust dependency mapping for this package configuration."""
         dependency_map: T.Dict[str, str] = {}
+        # A crate name can only mean one thing within a single target, even if
+        # it is listed in more than one dependency table.
+        crate_packages: T.Dict[str, str] = {}
         for name in sorted(self.required_deps):
             dep = self.dependencies[name]
             dep_key = PackageKey(dep.package, dep.api)
             dep_pkg = self.dep_packages[dep_key]
             dep_lib_name = dep_pkg.library_name(self.for_machine)
             dep_crate_name = name if name != dep.package else dep_pkg.manifest.lib.name
-            dependency_map[dep_lib_name] = dep_crate_name
+            previous = crate_packages.setdefault(dep_crate_name, dep_lib_name)
+            if previous != dep_lib_name:
+                raise MesonException(f'crate "{dep_crate_name}" resolves to both '
+                                     f'"{previous}" and "{dep_lib_name}"')
+            previous_crate = dependency_map.setdefault(dep_lib_name, dep_crate_name)
+            if previous_crate != dep_crate_name:
+                raise MesonException(f'crate "{dep_lib_name}" is renamed to both '
+                                     f'"{previous_crate}" and "{dep_crate_name}"')
         return dependency_map
 
 
