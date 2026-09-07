@@ -419,8 +419,8 @@ class Installer:
         # allow overwriting a previous install. If the target is not a file, we
         # want to give a readable error.
         if os.path.exists(to_file):
-            if not os.path.isfile(to_file):
-                raise MesonException(f'Destination {to_file!r} already exists and is not a file')
+            if not os.path.isfile(to_file) and not os.path.islink(to_file):
+                raise MesonException(f'Destination {to_file!r} already exists and is not a file or a link')
             if self.should_preserve_existing_file(from_file, to_file):
                 append_to_log(self.lf, f'# Preserving old file {to_file}\n')
                 self.preserved_file_count += 1
