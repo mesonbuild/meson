@@ -29,7 +29,7 @@ class CMakeExecutor:
     # multiple times in the same Meson invocation.
     class_cmakebin: PerMachine[T.Optional[ExternalProgram]] = PerMachine(None, None)
     class_cmakevers: PerMachine[T.Optional[str]] = PerMachine(None, None)
-    class_cmake_cache: T.Dict[T.Any, TYPE_result] = {}
+    class_cmake_cache: T.Dict[object, TYPE_result] = {}
 
     def __init__(self, environment: 'Environment', version: str, for_machine: MachineChoice, silent: bool = False):
         self.min_version = version
