@@ -1537,8 +1537,8 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
     def get_depfile_suffix(self) -> str:
         raise EnvironmentException(f'{self.id} does not implement get_depfile_suffix')
 
-    def get_object_suffix(self) -> str:
-        """Suffix for object files."""
+    def get_object_suffix(self, target: BuildTarget, source: str) -> str:
+        """Suffix for the object file built from a source file of the given target."""
         return self.environment.machines[self.for_machine].get_object_suffix()
 
     def get_no_stdinc_args(self) -> T.List[str]:
