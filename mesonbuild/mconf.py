@@ -50,7 +50,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('-U', action=cmdline.KeyNoneAction, dest='cmd_line_options', default={},
                         help='Remove a subproject option.')
 
-def stringify(val: T.Any) -> str:
+def stringify(val: object) -> str:
     if isinstance(val, bool):
         return str(val).lower()
     elif isinstance(val, list):
@@ -207,7 +207,7 @@ class Conf:
         self.choices_col.append(choices)
         self.descr_col.append(descr)
 
-    def add_option(self, key: OptionKey, descr: str, value: T.Any, choices: T.Any) -> None:
+    def add_option(self, key: OptionKey, descr: str, value: object, choices: object) -> None:
         self._add_section()
         value = stringify(value)
         choices = stringify(choices)

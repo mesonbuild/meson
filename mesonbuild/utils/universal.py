@@ -1876,15 +1876,16 @@ def replace_if_different(dst: str, dst_tmp: str) -> None:
         os.unlink(dst_tmp)
 
 
-def listify(item: T.Any, flatten: bool = True) -> T.List[T.Any]:
+def listify(item: object, flatten: bool = True) -> T.List[T.Any]:
     '''
     Returns a list with all args embedded in a list if they are not a list.
-    This function preserves order.
+    This function preserves order.  Do not use if possible, as the
+    return type of Any blocks type checking.
     @flatten: Convert lists of lists to a flat list
     '''
     if not isinstance(item, list):
         return [item]
-    result: T.List[T.Any] = []
+    result: T.List[object] = []
     for i in item:
         if flatten and isinstance(i, list):
             result += listify(i, flatten=True)
@@ -1913,7 +1914,7 @@ def listify_array_value(value: object, shlex_split_args: bool = False) -> T.List
     assert isinstance(newvalue, list)
     return newvalue
 
-def typeslistify(item: 'T.Union[_T, T.Sequence[_T]]',
+def typeslistify(item: T.Union[object, T.Sequence[object]],
                  types: 'T.Union[T.Type[_T], T.Tuple[T.Type[_T]]]') -> T.List[_T]:
     '''
     Ensure that type(@item) is one of @types or a
@@ -1929,7 +1930,7 @@ def typeslistify(item: 'T.Union[_T, T.Sequence[_T]]',
     return item
 
 
-def stringlistify(item: T.Union[T.Any, T.Sequence[T.Any]]) -> T.List[str]:
+def stringlistify(item: T.Union[object, T.Sequence[object]]) -> T.List[str]:
     return typeslistify(item, str)
 
 def underscorify(item: str) -> str:

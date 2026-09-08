@@ -200,7 +200,7 @@ def _raw_description(t: object) -> str:
 
 
 def _check_value_type(types: tuple[type | ContainerTypeInfo, ...] | type | ContainerTypeInfo,
-                      value: T.Any) -> bool:
+                      value: object) -> bool:
     types_tuple = types if isinstance(types, tuple) else (types, )
     for t in types_tuple:
         if isinstance(t, ContainerTypeInfo):
@@ -246,7 +246,7 @@ class ContainerTypeInfo:
         self.pairs = pairs
         self.allow_empty = allow_empty
 
-    def check(self, value: T.Any) -> bool:
+    def check(self, value: object) -> bool:
         """Check that a value is valid.
 
         :param value: A value to check
@@ -263,7 +263,7 @@ class ContainerTypeInfo:
             return False
         return True
 
-    def check_any(self, value: T.Any) -> bool:
+    def check_any(self, value: object) -> bool:
         """Check a value should emit new/deprecated feature.
 
         :param value: A value to check
