@@ -31,6 +31,7 @@ from .core import MesonException, MesonBugException, HoldableObject, ExecutableS
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Protocol, Self
+    from types import TracebackType
 
     from .._typing import ImmutableListProtocol
     from ..build import ConfigurationData
@@ -2286,7 +2287,7 @@ class TemporaryDirectoryWinProof(TemporaryDirectory):
     windows_proof_rmtree()
     """
 
-    def __exit__(self, exc: T.Any, value: T.Any, tb: T.Any) -> None:
+    def __exit__(self, exc: T.Type[BaseException] | None, value: BaseException | None, tb: TracebackType | None) -> None:
         try:
             super().__exit__(exc, value, tb)
         except OSError:
