@@ -25,6 +25,7 @@ if T.TYPE_CHECKING:
 
     from . import ModuleState
     from ..interpreter import Interpreter
+    from ..interpreterbase import NoKwArgs
 
     class ArchFlagsKwargs(TypedDict):
         detected: T.Optional[T.List[str]]
@@ -236,8 +237,8 @@ class CudaModule(NewExtensionModule):
 
     @TypedArgs('cuda.min_driver_version', pos_types=[STR_PARG])
     def min_driver_version(self, state: 'ModuleState',
-                           args: tuple[str],
-                           kwargs: T.Dict[str, T.Any]) -> str:
+                           args: T.List[str],
+                           kwargs: NoKwArgs) -> str:
         cuda_version = args[0]
 
         for d in _DRIVER_TABLE_VERSION:
