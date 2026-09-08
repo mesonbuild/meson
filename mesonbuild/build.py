@@ -3366,10 +3366,10 @@ class CustomTarget(Target, CustomTargetBase, CommandTargetProto):
     def __getitem__(self, index: int) -> 'CustomTargetIndex':
         return CustomTargetIndex(self, self.outputs[index])
 
-    def __setitem__(self, index: T.Any, value: T.Any) -> T.Any:
+    def __setitem__(self, index: object, value: object) -> None:
         raise NotImplementedError
 
-    def __delitem__(self, index: T.Any) -> T.Any:
+    def __delitem__(self, index: object) -> None:
         raise NotImplementedError
 
     def __iter__(self) -> T.Iterator[CustomTargetIndex]:

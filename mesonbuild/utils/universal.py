@@ -312,7 +312,7 @@ class SimpleABC(type):
     __abstractmethods__: T.FrozenSet[str]
 
     def __new__(mcs, name: str, bases: T.Tuple[type, ...],
-                namespace: T.Dict[str, T.Any], **kwargs: T.Any) -> SimpleABC:
+                namespace: T.Dict[str, object], **kwargs: object) -> SimpleABC:
         cls = super().__new__(mcs, name, bases, namespace, **kwargs)
         abstracts = {n for n, v in namespace.items()
                      if getattr(v, '__isabstractmethod__', False)}
@@ -323,7 +323,7 @@ class SimpleABC(type):
         cls.__abstractmethods__ = frozenset(abstracts)
         return cls
 
-    def __call__(cls, *args: T.Any, **kwargs: T.Any) -> T.Any:
+    def __call__(cls, *args: object, **kwargs: object) -> T.Any:
         if cls.__abstractmethods__:
             raise TypeError(
                 f"Can't instantiate abstract class {cls.__name__} without an "
@@ -2564,7 +2564,7 @@ class RealPathAction(argparse.Action):
         super().__init__(option_strings, dest, nargs=None, default=default, **kwargs)
 
     def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace,
-                 values: T.Union[str, T.Sequence[T.Any], None], option_string: T.Optional[str] = None) -> None:
+                 values: T.Union[str, T.Sequence[object], None], option_string: T.Optional[str] = None) -> None:
         assert isinstance(values, str)
         setattr(namespace, self.dest, os.path.abspath(os.path.realpath(values)))
 
@@ -2722,7 +2722,7 @@ class lazy_property(T.Generic[_T]):
         self.__name: T.Optional[str] = None
         self.__func = func
 
-    def __set_name__(self, owner: T.Any, name: str) -> None:
+    def __set_name__(self, owner: object, name: str) -> None:
         if self.__name is None:
             self.__name = name
         else:
@@ -2753,7 +2753,7 @@ class late_property(T.Generic[_T]):
         else:
             assert self.__name == name
 
-    def __get__(self, instance: T.Any, cls: type) -> _T:
+    def __get__(self, instance: object, cls: type) -> _T:
         raise MesonBugException(f'Attempted to access attribute {self.__name} before it is set')
 
 

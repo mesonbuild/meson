@@ -92,7 +92,7 @@ class IntrospectionInterpreter(AstInterpreter):
     def _get_default_options(self, kwargs: T.Dict[str, TYPE_var]) -> OptionDict:
         raw_options = self.flatten_kwargs(kwargs).get('default_options', {})
 
-        def has_unknown_value(value: T.Any) -> bool:
+        def has_unknown_value(value: object) -> bool:
             if isinstance(value, UnknownValue):
                 return True
             if isinstance(value, list):

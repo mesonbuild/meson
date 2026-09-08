@@ -989,7 +989,7 @@ class TestRun:
     TEST_NUM = 0
     PROTOCOL_TO_CLASS: T.Dict[TestProtocol, T.Type['TestRun']] = {}
 
-    def __new__(cls, test: TestSerialisation, *args: T.Any, **kwargs: T.Any) -> T.Any:
+    def __new__(cls, test: TestSerialisation, *args: object, **kwargs: object) -> T.Any:
         return super().__new__(TestRun.PROTOCOL_TO_CLASS[test.protocol])
 
     def __init__(self, test: TestSerialisation, test_env: T.Dict[str, str],
@@ -1787,7 +1787,7 @@ class TestHarness:
     def __enter__(self) -> 'TestHarness':
         return self
 
-    def __exit__(self, exc_type: T.Any, exc_value: T.Any, traceback: T.Any) -> None:
+    def __exit__(self, exc_type: object, exc_value: object, traceback: object) -> None:
         self.close_logfiles()
 
     def close_logfiles(self) -> None:
