@@ -553,7 +553,7 @@ class BinaryTable:
         return command
 
 class CMakeVariables:
-    def __init__(self, variables: T.Optional[T.Dict[str, T.Any]] = None) -> None:
+    def __init__(self, variables: T.Optional[T.Mapping[str, object]] = None) -> None:
         variables = variables or {}
         self.variables: T.Dict[str, T.List[str]] = {}
 
