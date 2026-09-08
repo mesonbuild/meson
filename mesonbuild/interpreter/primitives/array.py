@@ -11,11 +11,8 @@ from ...interpreterbase import (
     MesonOperator,
     ObjectHolder,
     typed_operator,
-    noKwargs,
-    noPosargs,
     noArgsFlattening,
-    typed_kwargs,
-    typed_pos_args,
+    TypedArgs,
     FeatureNew,
 
     TYPE_var,
@@ -23,6 +20,9 @@ from ...interpreterbase import (
     InvalidArguments,
 )
 from ...mparser import PlusAssignmentNode
+from ...interpreter.type_checking import (
+    OBJ_PARG, INT_PARG, OBJ_OARG, INT_OARG,
+)
 
 if T.TYPE_CHECKING:
     from ...interpreterbase import TYPE_kwargs
@@ -49,8 +49,7 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
         return len(self.held_object)
 
     @noArgsFlattening
-    @noKwargs
-    @typed_pos_args('array.contains', object)
+    @TypedArgs('array.contains', pos_types=[OBJ_PARG])
     @InterpreterObject.method('contains')
     def contains_method(self, args: T.Tuple[object], kwargs: TYPE_kwargs) -> bool:
         def check_contains(el: T.List[TYPE_var]) -> bool:
@@ -64,15 +63,13 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
             return False
         return check_contains(self.held_object)
 
-    @noKwargs
-    @noPosargs
+    @TypedArgs('array.length')
     @InterpreterObject.method('length')
     def length_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> int:
         return len(self.held_object)
 
     @noArgsFlattening
-    @noKwargs
-    @typed_pos_args('array.get', int, optargs=[object])
+    @TypedArgs('array.get', pos_types=[INT_PARG], opt_types=[OBJ_OARG])
     @InterpreterObject.method('get')
     def get_method(self, args: T.Tuple[int, T.Optional[TYPE_var]], kwargs: TYPE_kwargs) -> TYPE_var:
         index, fallback = args
@@ -84,8 +81,11 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
             raise InvalidArguments(f'Array index {index} is out of bounds for array of size {len(self.held_object)}.')
 
     @FeatureNew('array.slice', '1.10.0')
-    @typed_kwargs('array.slice', KwargInfo('step', int, default=1))
-    @typed_pos_args('array.slice', optargs=[int, int])
+    @TypedArgs(
+        'array.slice',
+        opt_types=[INT_OARG, INT_OARG],
+        kw_types=[KwargInfo('step', int, default=1)],
+    )
     @InterpreterObject.method('slice')
     def slice_method(self, args: T.Tuple[T.Optional[int], T.Optional[int]], kwargs: T.Dict[str, int]) -> TYPE_var:
         start, stop = args
@@ -113,8 +113,7 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
         except IndexError:
             raise InvalidArguments(f'Index {other} out of bounds of array of size {len(self.held_object)}.')
 
-    @noPosargs
-    @noKwargs
+    @TypedArgs('array.flatten')
     @FeatureNew('array.flatten', '1.9.0')
     @InterpreterObject.method('flatten')
     def flatten_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> TYPE_var:

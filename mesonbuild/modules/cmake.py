@@ -14,19 +14,19 @@ from ..options import OptionKey
 from ..cmake import TargetOptions, cmake_defines_to_args
 from ..dependencies.cmake import CMakeDependency
 from ..interpreter import SubprojectHolder
-from ..interpreter.type_checking import NATIVE_KW, REQUIRED_KW, INSTALL_DIR_KW, INCLUDE_TYPE, NoneType, in_set_validator
+from ..interpreter.type_checking import (
+    NATIVE_KW, REQUIRED_KW, INSTALL_DIR_KW, INCLUDE_TYPE, STR_PARG,
+    STR_OARG, BOOL_PARG, STR_VARG_1, NoneType, in_set_validator,
+)
 from ..interpreterbase import (
     FeatureNew,
-
-    noPosargs,
-    noKwargs,
 
     InvalidArguments,
     InterpreterException,
 
-    typed_pos_args,
-    typed_kwargs,
+    TypedArgs,
     KwargInfo,
+    VarArgInfo,
     ContainerTypeInfo,
 )
 
@@ -129,13 +129,11 @@ class CMakeSubproject(ModuleObject):
         assert all(x in res for x in ['inc', 'src', 'dep', 'tgt', 'func'])
         return res
 
-    @noKwargs
-    @typed_pos_args('cmake.subproject.get_variable', str, optargs=[str])
+    @TypedArgs('cmake.subproject.get_variable', pos_types=[STR_PARG], opt_types=[STR_OARG])
     def get_variable(self, state: ModuleState, args: T.Tuple[str, T.Optional[str]], kwargs: TYPE_kwargs) -> T.Union[TYPE_var, InterpreterObject]:
         return self.subp.get_variable(args, kwargs)
 
-    @typed_pos_args('cmake.subproject.dependency', str)
-    @typed_kwargs('cmake.subproject.dependency', INCLUDE_TYPE.evolve(since='0.56.0'))
+    @TypedArgs('cmake.subproject.dependency', pos_types=[STR_PARG], kw_types=[INCLUDE_TYPE.evolve(since='0.56.0')])
     def dependency(self, state: ModuleState, args: T.Tuple[str], kwargs: DependencyKW) -> dependencies.Dependency:
         info = self._args_to_info(args[0])
         if info['func'] == 'executable':
@@ -149,8 +147,7 @@ class CMakeSubproject(ModuleObject):
             return orig.generate_system_dependency(kwargs['include_type'])
         return orig
 
-    @noKwargs
-    @typed_pos_args('cmake.subproject.include_directories', str)
+    @TypedArgs('cmake.subproject.include_directories', pos_types=[STR_PARG])
     def include_directories(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> T.List[build.IncludeDirs]:
         info = self._args_to_info(args[0])
         inc = self.get_variable(state, [info['inc']], kwargs)
@@ -158,27 +155,23 @@ class CMakeSubproject(ModuleObject):
         assert isinstance(inc[0], build.IncludeDirs), 'for mypy'
         return inc
 
-    @noKwargs
-    @typed_pos_args('cmake.subproject.target', str)
+    @TypedArgs('cmake.subproject.target', pos_types=[STR_PARG])
     def target(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> build.Target:
         info = self._args_to_info(args[0])
         tgt = self.get_variable(state, [info['tgt']], kwargs)
         assert isinstance(tgt, build.Target), 'for mypy'
         return tgt
 
-    @noKwargs
-    @typed_pos_args('cmake.subproject.target_type', str)
+    @TypedArgs('cmake.subproject.target_type', pos_types=[STR_PARG])
     def target_type(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> str:
         info = self._args_to_info(args[0])
         return info['func']
 
-    @noPosargs
-    @noKwargs
+    @TypedArgs('cmake.subproject.target_list')
     def target_list(self, state: ModuleState, args: TYPE_var, kwargs: TYPE_kwargs) -> T.List[str]:
         return self.cm_interpreter.target_list()
 
-    @noPosargs
-    @noKwargs
+    @TypedArgs('cmake.subproject.found')
     @FeatureNew('CMakeSubproject.found()', '0.53.2')
     def found_method(self, state: ModuleState, args: TYPE_var, kwargs: TYPE_kwargs) -> bool:
         return self.subp is not None
@@ -206,33 +199,43 @@ class CMakeSubprojectOptions(ModuleObject):
             return self.target_options[kwargs['target']]
         return self.target_options.global_options
 
-    @typed_pos_args('subproject_options.add_cmake_defines', varargs=dict)
-    @noKwargs
+    @TypedArgs(
+        'cmake.subproject_options.add_cmake_defines',
+        var_types=VarArgInfo(ContainerTypeInfo(dict, (str, int, bool)))
+    )
     def add_cmake_defines(self, state: ModuleState, args: T.Tuple[T.List[T.Dict[str, TYPE_var]]], kwargs: TYPE_kwargs) -> None:
         self.cmake_options += cmake_defines_to_args(args[0])
 
-    @typed_pos_args('subproject_options.set_override_option', str, str)
-    @typed_kwargs('subproject_options.set_override_option', _TARGET_KW)
+    @TypedArgs(
+        'subproject_options.set_override_option',
+        pos_types=[STR_PARG, STR_PARG],
+        kw_types=[_TARGET_KW],
+    )
     def set_override_option(self, state: ModuleState, args: T.Tuple[str, str], kwargs: TargetKW) -> None:
         self._get_opts(kwargs).set_opt(args[0], args[1])
 
-    @typed_pos_args('subproject_options.set_install', bool)
-    @typed_kwargs('subproject_options.set_install', _TARGET_KW)
+    @TypedArgs('subproject_options.set_install', pos_types=[BOOL_PARG], kw_types=[_TARGET_KW])
     def set_install(self, state: ModuleState, args: T.Tuple[bool], kwargs: TargetKW) -> None:
         self._get_opts(kwargs).set_install(args[0])
 
-    @typed_pos_args('subproject_options.append_compile_args', str, varargs=str, min_varargs=1)
-    @typed_kwargs('subproject_options.append_compile_args', _TARGET_KW)
+    @TypedArgs(
+        'subproject_options.append_compile_args',
+        pos_types=[STR_PARG],
+        var_types=STR_VARG_1,
+        kw_types=[_TARGET_KW],
+    )
     def append_compile_args(self, state: ModuleState, args: T.Tuple[str, T.List[str]], kwargs: TargetKW) -> None:
         self._get_opts(kwargs).append_args(args[0], args[1])
 
-    @typed_pos_args('subproject_options.append_link_args', varargs=str, min_varargs=1)
-    @typed_kwargs('subproject_options.append_link_args', _TARGET_KW)
+    @TypedArgs(
+        'subproject_options.append_link_args',
+        var_types=STR_VARG_1,
+        kw_types=[_TARGET_KW],
+    )
     def append_link_args(self, state: ModuleState, args: T.Tuple[T.List[str]], kwargs: TargetKW) -> None:
         self._get_opts(kwargs).append_link_args(args[0])
 
-    @noPosargs
-    @noKwargs
+    @TypedArgs('cmake.subproject_options.clear')
     def clear(self, state: ModuleState, args: TYPE_var, kwargs: TYPE_kwargs) -> None:
         self.cmake_options.clear()
         self.target_options = TargetOptions()
@@ -295,14 +298,15 @@ class CmakeModule(ExtensionModule):
         self.cmake_detected = True
         return True
 
-    @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'cmake.write_basic_package_version_file',
-        KwargInfo('arch_independent', bool, default=False, since='0.62.0'),
-        KwargInfo('compatibility', str, default='AnyNewerVersion', validator=in_set_validator(set(COMPATIBILITIES))),
-        KwargInfo('name', str, required=True),
-        KwargInfo('version', str, required=True),
-        INSTALL_DIR_KW,
+        kw_types=[
+            KwargInfo('arch_independent', bool, default=False, since='0.62.0'),
+            KwargInfo('compatibility', str, default='AnyNewerVersion', validator=in_set_validator(set(COMPATIBILITIES))),
+            KwargInfo('name', str, required=True),
+            KwargInfo('version', str, required=True),
+            INSTALL_DIR_KW,
+        ],
     )
     def write_basic_package_version_file(self, state: ModuleState, args: TYPE_var, kwargs: 'WriteBasicPackageVersionFile') -> ModuleReturnValue:
         arch_independent = kwargs['arch_independent']
@@ -363,21 +367,24 @@ class CmakeModule(ExtensionModule):
         shutil.copymode(infile, outfile_tmp)
         mesonlib.replace_if_different(outfile, outfile_tmp)
 
-    @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'cmake.configure_package_config_file',
-        KwargInfo(
-            'configuration',
-            (build.ConfigurationData, dict),
-            required=True,
-            since_values={dict: '0.62.0'},
-        ),
-        KwargInfo('input',
-                  (str, mesonlib.File, ContainerTypeInfo(list, mesonlib.File)), required=True,
-                  validator=lambda x: 'requires exactly one file' if isinstance(x, list) and len(x) != 1 else None,
-                  convertor=lambda x: x[0] if isinstance(x, list) else x),
-        KwargInfo('name', str, required=True),
-        INSTALL_DIR_KW,
+        kw_types=[
+            KwargInfo(
+                'configuration',
+                (build.ConfigurationData, dict),
+                required=True,
+                since_values={dict: '0.62.0'},
+            ),
+            KwargInfo(
+                'input',
+                (str, mesonlib.File, ContainerTypeInfo(list, mesonlib.File)), required=True,
+                validator=lambda x: 'requires exactly one file' if isinstance(x, list) and len(x) != 1 else None,
+                convertor=lambda x: x[0] if isinstance(x, list) else x,
+            ),
+            KwargInfo('name', str, required=True),
+            INSTALL_DIR_KW,
+        ]
     )
     def configure_package_config_file(self, state: ModuleState, args: TYPE_var, kwargs: 'ConfigurePackageConfigFile') -> build.Data:
         inputfile = kwargs['input']
@@ -426,20 +433,22 @@ class CmakeModule(ExtensionModule):
         return res
 
     @FeatureNew('subproject', '0.51.0')
-    @typed_pos_args('cmake.subproject', str)
-    @typed_kwargs(
+    @TypedArgs(
         'cmake.subproject',
-        REQUIRED_KW,
-        NATIVE_KW.evolve(since='1.12.0'),
-        KwargInfo('options', (CMakeSubprojectOptions, NoneType), since='0.55.0'),
-        KwargInfo(
-            'cmake_options',
-            ContainerTypeInfo(list, str),
-            default=[],
-            listify=True,
-            deprecated='0.55.0',
-            deprecated_message='Use options instead',
-        ),
+        pos_types=[STR_PARG],
+        kw_types=[
+            REQUIRED_KW,
+            NATIVE_KW.evolve(since='1.12.0'),
+            KwargInfo('options', (CMakeSubprojectOptions, NoneType), since='0.55.0'),
+            KwargInfo(
+                'cmake_options',
+                ContainerTypeInfo(list, str),
+                default=[],
+                listify=True,
+                deprecated='0.55.0',
+                deprecated_message='Use options instead',
+            ),
+        ],
     )
     def subproject(self, state: ModuleState, args: T.Tuple[str], kwargs_: Subproject) -> T.Union[SubprojectHolder, CMakeSubproject]:
         if kwargs_['cmake_options'] and kwargs_['options'] is not None:
@@ -459,8 +468,7 @@ class CmakeModule(ExtensionModule):
         return CMakeSubproject(subp)
 
     @FeatureNew('subproject_options', '0.55.0')
-    @noKwargs
-    @noPosargs
+    @TypedArgs('cmake.subproject_options')
     def subproject_options(self, state: ModuleState, args: TYPE_var, kwargs: TYPE_kwargs) -> CMakeSubprojectOptions:
         return CMakeSubprojectOptions()
 

@@ -15,7 +15,8 @@ from .. import mlog
 from ..build import InvalidArguments
 from ..dependencies import Dependency
 from ..dependencies.dub import DubDependency
-from ..interpreterbase import typed_pos_args
+from ..interpreterbase import TypedArgs
+from ..interpreter.type_checking import STR_PARG
 from ..mesonlib import Popen_safe, MesonException, listify
 
 if T.TYPE_CHECKING:
@@ -60,7 +61,11 @@ class DlangModule(ExtensionModule):
             if not self.dubbin:
                 raise MesonException('DUB not found.')
 
-    @typed_pos_args('dlang.generate_dub_file', str, str)
+    @TypedArgs(
+        'dlang.generate_dub_file',
+        pos_types=[STR_PARG, STR_PARG],
+        unknown_kwargs=True,
+    )
     def generate_dub_file(self, state: ModuleState, args: T.Tuple[str, str], kwargs: TYPE_kwargs) -> None:
         if not DlangModule.init_dub:
             self._init_dub(state)

@@ -14,7 +14,10 @@ from ..build import (CustomTarget, BuildTarget,
 from ..options import OptionKey
 from ..dependencies import Dependency, DependencyMethods, InternalDependency
 from ..interpreterbase import Feature
-from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken, FeatureDeprecated, FeatureNew
+from ..interpreterbase.decorators import (
+    KwargInfo, ContainerTypeInfo, FeatureBroken, FeatureDeprecated, FeatureNew,
+    PosArgInfo, OptArgInfo, VarArgInfo,
+)
 from ..mesonlib import (File, FileMode, MachineChoice, has_path_sep, listify, stringlistify,
                         EnvironmentVariables)
 from ..programs import Program, ExternalProgram
@@ -61,7 +64,7 @@ def _language_validator(l: T.List[str]) -> T.Optional[str]:
     """
     diff = {a.lower() for a in l}.difference(compilers.all_languages)
     if diff:
-        return f'unknown languages: {", ".join(_quote(diff))}'
+        return f'unknown languages: {", ".join(_quote(diff))}. This may be a typing mistake, or a newer version of Meson is required.'
     return None
 
 
@@ -1101,12 +1104,16 @@ PKGCONFIG_DEFINE_KW: KwargInfo[list[str]] = KwargInfo(
     feature_validator=_pkgconfig_define_feature_validator,
 )
 
+
+INCLUDE_TYPE_VALIDATOR = in_set_validator({'system', 'non-system', 'preserve'})
+
+
 INCLUDE_TYPE = KwargInfo(
     'include_type',
     str,
     default='preserve',
     since='0.52.0',
-    validator=in_set_validator({'system', 'non-system', 'preserve'})
+    validator=INCLUDE_TYPE_VALIDATOR,
 )
 
 
@@ -1161,3 +1168,28 @@ DEPENDENCY_KWS: T.List[KwargInfo] = [
     KwargInfo('static', (bool, NoneType)),
     KwargInfo('version', ContainerTypeInfo(list, str), listify=True, default=[]),
 ]
+
+_TGT_VALUES = (str, File, CustomTarget, CustomTargetIndex, GeneratedList)
+
+STR_PARG = PosArgInfo(str)
+STR_FILE_PARG = PosArgInfo((str, File))
+INT_PARG = PosArgInfo(int)
+BOOL_PARG = PosArgInfo(bool)
+OBJ_PARG = PosArgInfo(object)
+ENV_PARG = PosArgInfo((str, list, dict, EnvironmentVariables), validator=_env_validator)
+LANG_PARG = STR_PARG.evolve(validator=lambda x: _language_validator([x]))
+TGT_PARG = PosArgInfo(ContainerTypeInfo(list, _TGT_VALUES), listify=True)
+
+STR_OARG = OptArgInfo(str)
+INT_OARG = OptArgInfo(int)
+BOOL_OARG = OptArgInfo(bool)
+OBJ_OARG = OptArgInfo(object)
+
+STR_VARG = VarArgInfo(str)
+STR_VARG_1 = VarArgInfo(str, min_args=1)
+STR_FILE_VARG = VarArgInfo((str, File))
+INT_VARG = VarArgInfo(int)
+BOOL_VARG = VarArgInfo(bool)
+OBJ_VARG = VarArgInfo(object)
+SRC_VARG = VarArgInfo(SOURCES_VARARGS)
+TGT_VARG = VarArgInfo(_TGT_VALUES)

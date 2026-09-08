@@ -8,8 +8,8 @@ import typing as T
 from .. import mlog
 from .. import build
 from ..compilers import Compiler
-from ..interpreter.type_checking import BT_SOURCES_KW, STATIC_LIB_KWS
-from ..interpreterbase.decorators import KwargInfo, typed_pos_args, typed_kwargs
+from ..interpreter.type_checking import BT_SOURCES_KW, STATIC_LIB_KWS, STR_PARG
+from ..interpreterbase.decorators import KwargInfo, TypedArgs
 
 from . import ExtensionModule, ModuleInfo
 
@@ -60,11 +60,15 @@ class SimdModule(ExtensionModule):
             'check': self.check,
         })
 
-    @typed_pos_args('simd.check', str)
-    @typed_kwargs('simd.check',
-                  KwargInfo('compiler', Compiler, required=True),
-                  *[BT_SOURCES_KW.evolve(name=iset, default=None) for iset in ISETS],
-                  *[a for a in STATIC_LIB_KWS if a.name != 'sources'])
+    @TypedArgs(
+        'simd.check',
+        pos_types=[STR_PARG],
+        kw_types=[
+            KwargInfo('compiler', Compiler, required=True),
+            *[BT_SOURCES_KW.evolve(name=iset, default=None) for iset in ISETS],
+            *[a for a in STATIC_LIB_KWS if a.name != 'sources'],
+        ],
+    )
     def check(self, state: ModuleState, args: T.Tuple[str], kwargs: CheckKw) -> T.List[T.Union[T.List[build.StaticLibrary], build.ConfigurationData]]:
         result: T.List[build.StaticLibrary] = []
 

@@ -14,10 +14,13 @@ from .. import mesonlib
 from ..options import OptionKey
 from .. import mlog
 from ..interpreter.primitives import OptionString
-from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, INSTALL_TAG_KW, OUTPUT_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, in_set_validator
+from ..interpreter.type_checking import (
+    CT_BUILD_BY_DEFAULT, CT_INPUT_KW, INSTALL_TAG_KW, OUTPUT_KW, INSTALL_DIR_KW,
+    INSTALL_KW, STR_PARG, NoneType, in_set_validator,
+)
 from ..interpreterbase import FeatureNew
 from ..interpreterbase.exceptions import InvalidArguments
-from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, noPosargs, typed_kwargs, typed_pos_args
+from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, TypedArgs, VarArgInfo
 from ..programs import ExternalProgram
 from ..scripts.gettext import read_linguas
 
@@ -285,19 +288,20 @@ class I18nModule(ExtensionModule):
         return [path.join(src_dir, d) for d in dirs]
 
     @FeatureNew('i18n.merge_file', '0.37.0')
-    @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'i18n.merge_file',
-        CT_BUILD_BY_DEFAULT,
-        CT_INPUT_KW,
-        KwargInfo('install_dir', (str, NoneType)),
-        INSTALL_TAG_KW,
-        OUTPUT_KW,
-        INSTALL_KW,
-        _ARGS.evolve(since='0.51.0'),
-        _DATA_DIRS.evolve(since='0.41.0'),
-        KwargInfo('po_dir', str, required=True),
-        KwargInfo('type', str, default='xml', validator=in_set_validator({'xml', 'desktop'})),
+        kw_types=[
+            CT_BUILD_BY_DEFAULT,
+            CT_INPUT_KW,
+            KwargInfo('install_dir', (str, NoneType)),
+            INSTALL_TAG_KW,
+            OUTPUT_KW,
+            INSTALL_KW,
+            _ARGS.evolve(since='0.51.0'),
+            _DATA_DIRS.evolve(since='0.41.0'),
+            KwargInfo('po_dir', str, required=True),
+            KwargInfo('type', str, default='xml', validator=in_set_validator({'xml', 'desktop'})),
+        ],
     )
     def merge_file(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'MergeFile') -> ModuleReturnValue:
         if kwargs['install'] and not kwargs['install_dir']:
@@ -356,21 +360,23 @@ class I18nModule(ExtensionModule):
 
         return ModuleReturnValue(ct, [ct])
 
-    @typed_pos_args('i18n.gettext', str)
-    @typed_kwargs(
+    @TypedArgs(
         'i18n.gettext',
-        _ARGS,
-        _MSGFMT_ARGS,
-        _DATA_DIRS.evolve(since='0.36.0'),
-        INSTALL_KW.evolve(default=True),
-        INSTALL_DIR_KW.evolve(since='0.50.0'),
-        KwargInfo('languages', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo(
-            'preset',
-            (str, NoneType),
-            validator=in_set_validator(set(PRESET_ARGS)),
-            since='0.37.0',
-        ),
+        pos_types=[STR_PARG],
+        kw_types=[
+            _ARGS,
+            _MSGFMT_ARGS,
+            _DATA_DIRS.evolve(since='0.36.0'),
+            INSTALL_KW.evolve(default=True),
+            INSTALL_DIR_KW.evolve(since='0.50.0'),
+            KwargInfo('languages', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo(
+                'preset',
+                (str, NoneType),
+                validator=in_set_validator(set(PRESET_ARGS)),
+                since='0.37.0',
+            ),
+        ],
     )
     def gettext(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'Gettext') -> ModuleReturnValue:
         for tool, strict in [('msgfmt', True), ('msginit', False), ('msgmerge', False), ('xgettext', False)]:
@@ -480,18 +486,19 @@ class I18nModule(ExtensionModule):
         return ModuleReturnValue([gmotargets, pottarget, updatepotarget], targets)
 
     @FeatureNew('i18n.itstool_join', '0.62.0')
-    @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'i18n.itstool_join',
-        CT_BUILD_BY_DEFAULT,
-        CT_INPUT_KW,
-        KwargInfo('install_dir', (str, NoneType)),
-        INSTALL_TAG_KW,
-        OUTPUT_KW,
-        INSTALL_KW,
-        _ARGS.evolve(),
-        KwargInfo('its_files', ContainerTypeInfo(list, str)),
-        KwargInfo('mo_targets', ContainerTypeInfo(list, build.CustomTarget), required=True),
+        kw_types=[
+            CT_BUILD_BY_DEFAULT,
+            CT_INPUT_KW,
+            KwargInfo('install_dir', (str, NoneType)),
+            INSTALL_TAG_KW,
+            OUTPUT_KW,
+            INSTALL_KW,
+            _ARGS.evolve(),
+            KwargInfo('its_files', ContainerTypeInfo(list, str)),
+            KwargInfo('mo_targets', ContainerTypeInfo(list, build.CustomTarget), required=True),
+        ],
     )
     def itstool_join(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'ItsJoinFile') -> ModuleReturnValue:
         if kwargs['install'] and not kwargs['install_dir']:
@@ -550,21 +557,26 @@ class I18nModule(ExtensionModule):
         return ModuleReturnValue(ct, [ct])
 
     @FeatureNew('i18n.xgettext', '1.8.0')
-    @typed_pos_args('i18n.xgettext', str, varargs=(str, mesonlib.File, build.BuildTarget, build.BothLibraries, build.CustomTarget, build.CustomTargetIndex), min_varargs=1)
-    @typed_kwargs(
+    @TypedArgs(
         'i18n.xgettext',
-        _ARGS,
-        KwargInfo('recursive', bool, default=False),
-        INSTALL_KW,
-        INSTALL_DIR_KW,
-        INSTALL_TAG_KW,
+        pos_types=[STR_PARG],
+        var_types=VarArgInfo(
+            (str, mesonlib.File, build.BuildTarget, build.BothLibraries, build.CustomTarget, build.CustomTargetIndex),
+            min_args=1,
+            since_values={
+                build.CustomTarget: '1.10.0',
+                build.CustomTargetIndex: '1.10.0',
+            }
+        ),
+        kw_types=[
+            _ARGS,
+            KwargInfo('recursive', bool, default=False),
+            INSTALL_KW,
+            INSTALL_DIR_KW,
+            INSTALL_TAG_KW,
+        ],
     )
     def xgettext(self, state: ModuleState, args: T.Tuple[str, T.List[SourcesType]], kwargs: XgettextProgramT) -> build.CustomTarget:
-        if any(isinstance(a, build.CustomTarget) for a in args[1]):
-            FeatureNew.single_use('i18n.xgettext with custom_target is broken until 1.10', '1.10.0', self.interpreter.subproject, location=self.interpreter.current_node)
-        if any(isinstance(a, build.CustomTargetIndex) for a in args[1]):
-            FeatureNew.single_use('i18n.xgettext with custom_target index', '1.10.0', self.interpreter.subproject, location=self.interpreter.current_node)
-
         toolname = 'xgettext'
         if self.tools[toolname] is None or not self.tools[toolname].found():
             self.tools[toolname] = state.find_program(toolname, required=True, for_machine=mesonlib.MachineChoice.BUILD)
