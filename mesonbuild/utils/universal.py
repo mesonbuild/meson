@@ -2433,59 +2433,7 @@ class LibType(enum.IntEnum):
 
 class ProgressBarFallback(T.Generic[_T]):
     '''
-    Fallback progress bar implementation when tqdm is not foundclass OptionType(enum.IntEnum):
-
-    """Enum used to specify what kind of argument a thing is."""
-
-    BUILTIN = 0
-    BACKEND = 1
-    BASE = 2
-    COMPILER = 3
-    PROJECT = 4
-
-# This is copied from coredata. There is no way to share this, because this
-# is used in the OptionKey constructor, and the coredata lists are
-# OptionKeys...
-_BUILTIN_NAMES = {
-    'prefix',
-    'bindir',
-    'datadir',
-    'includedir',
-    'infodir',
-    'libdir',
-    'licensedir',
-    'libexecdir',
-    'localedir',
-    'localstatedir',
-    'mandir',
-    'sbindir',
-    'sharedstatedir',
-    'sysconfdir',
-    'auto_features',
-    'backend',
-    'buildtype',
-    'debug',
-    'default_library',
-    'errorlogs',
-    'genvslite',
-    'install_umask',
-    'layout',
-    'optimization',
-    'prefer_static',
-    'stdsplit',
-    'strip',
-    'unity',
-    'unity_size',
-    'warning_level',
-    'werror',
-    'wrap_mode',
-    'force_fallback_for',
-    'pkg_config_path',
-    'cmake_prefix_path',
-    'vsenv',
-    'os2_emxomf',
-}
-
+    Fallback progress bar implementation when tqdm is not found
 
     Since this class is not an actual iterator, but only provides a minimal
     fallback, it is safe to ignore the 'Iterator does not return self from
