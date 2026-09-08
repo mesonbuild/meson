@@ -3093,7 +3093,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             src_filename = src
         obj_basename = self.canonicalize_filename(src_filename)
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
-        rel_obj += '.' + compiler.get_object_suffix()
+        rel_obj += '.' + compiler.get_object_suffix(target, src_filename)
         commands += self.get_compile_debugfile_args(compiler, target, rel_obj)
         if isinstance(src, File):
             if src.is_built:
@@ -3319,12 +3319,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # If TASKING compiler family is used and MIL linking is enabled for the target,
         # then compilation rule name is a special one to output MIL files
         # instead of object files for .c files
-        if compiler.get_id() == 'tasking':
-            target_lto = self.get_target_option(target, OptionKey('b_lto', machine=target.for_machine, subproject=target.subproject))
-            if ((isinstance(target, build.StaticLibrary) and target.prelink) or target_lto) and src.rsplit('.', 1)[1] in compilers.lang_suffixes['c']:
-                compiler_name = self.get_compiler_rule_name('tasking_mil_compile', compiler.for_machine)
-            else:
-                compiler_name = self.compiler_to_rule_name(compiler)
+        if compiler.get_id() == 'tasking' and compiler.get_object_suffix(target, src.fname) == 'mil':
+            compiler_name = self.get_compiler_rule_name('tasking_mil_compile', compiler.for_machine)
         else:
             compiler_name = self.compiler_to_rule_name(compiler)
         extra_deps = self.get_target_depend_files(target).copy()

@@ -9,6 +9,7 @@ import os
 import typing as T
 
 if T.TYPE_CHECKING:
+    from ...build import BuildTarget
     from ...compilers.compilers import Compiler
 else:
     Compiler = object
@@ -55,7 +56,7 @@ class SdccCompiler(Compiler):
     def get_no_optimization_args(self) -> T.List[str]:
         return []
 
-    def get_object_suffix(self) -> str:
+    def get_object_suffix(self, target: BuildTarget, source: str) -> str:
         return 'rel'
 
     def _sanity_check_filenames(self) -> T.Tuple[str, T.Optional[str], str]:

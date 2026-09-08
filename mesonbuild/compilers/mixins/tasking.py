@@ -7,11 +7,13 @@ from __future__ import annotations
 import os
 import typing as T
 
-from ...compilers.compilers import SimplePrefixLinkerOptionStyle
+from ...build import StaticLibrary
+from ...compilers.compilers import SimplePrefixLinkerOptionStyle, lang_suffixes
 from ...mesonlib import EnvironmentException
 from ...options import OptionKey
 
 if T.TYPE_CHECKING:
+    from ...build import BuildTarget
     from ...compilers.compilers import Compiler
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
@@ -112,6 +114,17 @@ class TaskingCompiler(Compiler):
 
     def get_no_optimization_args(self) -> T.List[str]:
         return ['-O0']
+
+    def get_object_suffix(self, target: BuildTarget, source: str) -> str:
+        # In case of LTO or prelinking the object suffix has to be .mil
+        use_lto = self.environment.coredata.get_option_for_target(target, 'b_lto')
+        if use_lto or (isinstance(target, StaticLibrary) and target.prelink):
+            if not source.rsplit('.', 1)[1] in lang_suffixes['c']:
+                if isinstance(target, StaticLibrary) and not target.prelink:
+                    raise EnvironmentException('Tried using MIL linking for a static library with a assembly file. This can only be done if the static library is prelinked or disable \'b_lto\'.')
+            else:
+                return 'mil'
+        return super().get_object_suffix(target, source)
 
     def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
         mil_link_list = []

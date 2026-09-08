@@ -25,10 +25,10 @@ from .. import programs
 from .. import mesonlib
 from .. import mlog
 from .. import compilers
-from ..compilers import detect, lang_suffixes
+from ..compilers import detect
 from ..mesonlib import (
     File, MachineChoice, MesonException, MesonBugException, OrderedSet,
-    ExecutableSerialisation, EnvironmentException, FileMode, InstallScriptFailure,
+    ExecutableSerialisation, FileMode, InstallScriptFailure,
     classify_unity_sources, get_compiler_for_source,
     get_rsp_threshold, unique_list
 )
@@ -943,16 +943,7 @@ class Backend:
             else:
                 gen_source = os.path.relpath(os.path.join(build_dir, rel_src),
                                              os.path.join(self.environment.get_source_dir(), target.get_subdir()))
-        object_suffix = compiler.get_object_suffix()
-        # For the TASKING compiler, in case of LTO or prelinking the object suffix has to be .mil
-        if compiler.get_id() == 'tasking':
-            use_lto = self.get_target_option(target, 'b_lto')
-            if use_lto or (isinstance(target, build.StaticLibrary) and target.prelink):
-                if not source.rsplit('.', 1)[1] in lang_suffixes['c']:
-                    if isinstance(target, build.StaticLibrary) and not target.prelink:
-                        raise EnvironmentException('Tried using MIL linking for a static library with a assembly file. This can only be done if the static library is prelinked or disable \'b_lto\'.')
-                else:
-                    object_suffix = 'mil'
+        object_suffix = compiler.get_object_suffix(target, source.fname)
         ret = self.canonicalize_filename(gen_source) + '.' + object_suffix
         if targetdir is not None:
             return os.path.join(targetdir, ret)
