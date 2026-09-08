@@ -79,7 +79,7 @@ class DefaultValue:
     def __init__(self, default: object = None) -> None:
         self.default = default
 
-    def convert(self, v: T.Any, ws_v: T.Any) -> object:
+    def convert(self, v: object, ws_v: object) -> object:
         return v if v is not None else ws_v
 
 
@@ -88,7 +88,7 @@ class MergeValue(DefaultValue):
         super().__init__(default)
         self.func = func
 
-    def convert(self, v: T.Any, ws_v: T.Any) -> object:
+    def convert(self, v: object, ws_v: object) -> object:
         return self.func(v, ws_v)
 
 
@@ -97,7 +97,7 @@ class ConvertValue(DefaultValue):
         super().__init__(default)
         self.func = func
 
-    def convert(self, v: T.Any, ws_v: T.Any) -> object:
+    def convert(self, v: object, ws_v: object) -> object:
         return self.func(v if v is not None else ws_v)
 
 
@@ -114,7 +114,7 @@ class DictMergeValue(ConvertValue):
         self.merge_key = merge_key
         self.out_key = out_key
 
-    def convert(self, v: T.Any, ws_v: T.Any) -> object:
+    def convert(self, v: object, ws_v: object) -> object:
         out = self.func(v if v is not None else ws_v)
         assert isinstance(out, list) # for mypy
         assert isinstance(self.default, dict) # for mypy

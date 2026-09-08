@@ -45,7 +45,7 @@ class InterpreterObject:
         TYPE_method_func,
     ] = {}
 
-    def __init_subclass__(cls: T.Type[InterpreterObject], **kwargs: T.Any) -> None:
+    def __init_subclass__(cls: T.Type[InterpreterObject], **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
         saved_trivial_operators = cls.TRIVIAL_OPERATORS
 

@@ -462,7 +462,7 @@ class Elf(DataSizes):
     def __del__(self) -> None:
         self.close_bf()
 
-    def __exit__(self, exc_type: T.Any, exc_value: T.Any, traceback: T.Any) -> None:
+    def __exit__(self, exc_type: object, exc_value: object, traceback: object) -> None:
         self.close_bf()
 
     def detect_elf_type(self) -> T.Tuple[int, bool]:
