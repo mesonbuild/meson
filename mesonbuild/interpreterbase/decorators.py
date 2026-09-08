@@ -127,14 +127,14 @@ def get_callee_args(wrapped_args: T.Union[
 
 def unholder_return(f: TV_func) -> T.Callable[..., TYPE_var]:
     @wraps(f)
-    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
+    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: object) -> object:
         res = f(*wrapped_args, **wrapped_kwargs)
         return _unholder(res)
     return T.cast('T.Callable[..., TYPE_var]', wrapped)
 
 def disablerIfNotFound(f: TV_func) -> TV_func:
     @wraps(f)
-    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
+    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: object) -> object:
         kwargs = get_callee_args(wrapped_args)[2]
         disabler = kwargs.pop('disabler', False)
         ret = f(*wrapped_args, **wrapped_kwargs)
@@ -820,7 +820,7 @@ class FeatureCheckBase(metaclass=mesonlib.SimpleABC):
 
     def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
-        def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
+        def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: object) -> object:
             node, _, _, subproject = get_callee_args(wrapped_args)
             self.use(subproject, node)
             return f(*wrapped_args, **wrapped_kwargs)
