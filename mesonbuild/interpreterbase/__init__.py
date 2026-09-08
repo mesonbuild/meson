@@ -53,6 +53,7 @@ __all__ = [
     'TYPE_HoldableTypes',
 
     'HoldableTypes',
+    'NoKwArgs',
 
     'UnknownValue',
     'UndefinedVariable',
@@ -71,6 +72,7 @@ from .baseobjects import (
     TYPE_elementary,
     TYPE_var,
     TYPE_kwargs,
+    NoKwArgs,
     TYPE_key_resolver,
     TYPE_HoldableTypes,
 

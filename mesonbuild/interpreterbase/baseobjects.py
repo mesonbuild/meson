@@ -29,6 +29,9 @@ TYPE_op_arg = T.TypeVar('TYPE_op_arg', bound='TYPE_var', contravariant=True)
 TYPE_op_func = T.Callable[[TYPE_op_arg, TYPE_op_arg], TYPE_var]
 TYPE_method_func = T.Callable[['InterpreterObject', T.List[TYPE_var], TYPE_kwargs], TYPE_var | None]
 
+# For functions decorated with @noKwargs, which ignore their keyword arguments.
+NoKwArgs = T.Mapping[str, object]
+
 class InterpreterObject:
     TRIVIAL_OPERATORS: T.Dict[
         MesonOperator,
