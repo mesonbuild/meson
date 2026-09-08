@@ -303,6 +303,9 @@ class WorkspaceState:
 
 class Interpreter:
     _features: T.Optional[T.List[str]] = None
+    _dev_dependencies: T.Optional[bool] = None
+    # Subdir of the workspace that rust.workspace() was called for.
+    entry_ws_subdir: T.Optional[str] = None
 
     def __init__(self, env: Environment, subdir: str, subprojects_dir: str) -> None:
         self.environment = env
@@ -342,12 +345,28 @@ class Interpreter:
             raise MesonException("Cannot modify features after they have been selected or used")
         self._features = value_unique
 
+    @property
+    def dev_dependencies(self) -> bool:
+        """Whether dev-dependencies take part in resolution.  Once read, it
+           cannot be modified."""
+        if self._dev_dependencies is None:
+            self._dev_dependencies = False
+        return self._dev_dependencies
+
+    @dev_dependencies.setter
+    def dev_dependencies(self, value: bool) -> None:
+        if self._dev_dependencies is not None and value != self._dev_dependencies:
+            raise MesonException("Cannot modify dev_dependencies after they have been used")
+        self._dev_dependencies = value
+
     def get_build_def_files(self) -> T.List[str]:
         return self.build_def_files
 
     def load_workspace(self, subdir: str, extra_members: T.Optional[T.List[str]]) -> WorkspaceState:
         """Load the root Cargo.toml package and prepare it with features and dependencies."""
         subdir = os.path.normpath(subdir)
+        if self.entry_ws_subdir is None:
+            self.entry_ws_subdir = subdir
         manifest, cached = self._load_manifest(subdir)
         ws = self._get_workspace(manifest, subdir, extra_members, False)
         if not cached:
@@ -578,10 +597,13 @@ class Interpreter:
         valid: T.Set[str] = set(ws.workspace.members)
         # Accepting a member makes its own path dependencies candidates in turn,
         # so this is a worklist rather than a single pass.  Every member has
-        # been loaded already, so ws.packages holds the starting points.
-        queue = list(ws.packages)
+        # been loaded already, so ws.packages holds the starting points.  Each
+        # entry carries the machine that the member itself is built for, because
+        # what is below a [build-dependencies] edge stays on the build machine.
+        queue = [(m, MachineChoice.HOST) for m in ws.packages]
+        loaded = set(queue)
         while queue:
-            member = queue.pop(0)
+            member, member_machine = queue.pop(0)
             pkg = ws.packages[member]
             for kind, dep in pkg.manifest.path_dependencies():
                 assert dep.path is not None
@@ -591,10 +613,12 @@ class Interpreter:
                 valid.add(dep_member)
                 if dep_member not in wanted:
                     continue
-                ws.entry_points.setdefault(dep_member, set()).add(MachineChoice.HOST)
-                if dep_member not in ws.packages:
+                machine = MachineChoice.BUILD if kind is DependencyKind.BUILD and self.is_cross else member_machine
+                ws.entry_points.setdefault(dep_member, set()).add(machine)
+                if (dep_member, machine) not in loaded:
+                    loaded.add((dep_member, machine))
                     self._load_workspace_member(ws, dep_member)
-                    queue.append(dep_member)
+                    queue.append((dep_member, machine))
 
         for m in wanted:
             if m in ws.workspace.members:
@@ -780,6 +804,14 @@ class Interpreter:
     def _dependency_kinds(self, pkg: PackageState) -> T.Iterable[DependencyKind]:
         """The dependency tables that take part in resolution for this package."""
         yield DependencyKind.NORMAL
+        # Cargo only resolves dev-dependencies are only resolved for the packages
+        # whose tests are built, which in this case are the entry points of the
+        # workspace that rust.workspace() was called for, and not the packages
+        # that are merely pulled in as dependencies of one.
+        if self.dev_dependencies and pkg.ws_subdir == self.entry_ws_subdir:
+            ws = self.workspaces[pkg.ws_subdir]
+            if pkg.ws_member in ws.entry_points:
+                yield DependencyKind.DEV
 
     def _required_dep_kinds(self, pkg: PackageState, depname: str, machine: MachineChoice) -> \
             T.List[DependencyKind]:
