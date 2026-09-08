@@ -334,5 +334,5 @@ class FSModule(ExtensionModule):
         return relpath(t, f)
 
 
-def initialize(*args: T.Any, **kwargs: T.Any) -> FSModule:
-    return FSModule(*args, **kwargs)
+def initialize(interp: Interpreter) -> FSModule:
+    return FSModule(interp)
