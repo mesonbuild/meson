@@ -21,18 +21,18 @@ so you could have examples like:
 """
 
 from __future__ import annotations
+
 import dataclasses
 import enum
 import typing as T
-
 
 from ..mesonlib import MesonBugException, MesonException, lookahead
 
 if T.TYPE_CHECKING:
     _T = T.TypeVar('_T')
-    _LEX_TOKEN = T.Tuple['TokenType', T.Optional[str]]
+    _LEX_TOKEN = tuple['TokenType', str | None]
     _LEX_STREAM = T.Iterator[_LEX_TOKEN]
-    _LEX_STREAM_AH = T.Iterator[T.Tuple[_LEX_TOKEN, T.Optional[_LEX_TOKEN]]]
+    _LEX_STREAM_AH = T.Iterator[tuple[_LEX_TOKEN, _LEX_TOKEN | None]]
 
 
 class TokenType(enum.Enum):
@@ -117,13 +117,13 @@ class Equal(IR):
 @dataclasses.dataclass
 class Any(IR):
 
-    args: T.List[IR]
+    args: list[IR]
 
 
 @dataclasses.dataclass
 class All(IR):
 
-    args: T.List[IR]
+    args: list[IR]
 
 
 @dataclasses.dataclass
@@ -153,9 +153,9 @@ def _parse(ast: _LEX_STREAM_AH) -> IR:
             assert value is not None
             return Equal(id_, String(value))
         return id_
-    elif token in {TokenType.ANY, TokenType.ALL}:
+    if token in {TokenType.ANY, TokenType.ALL}:
         type_ = All if token is TokenType.ALL else Any
-        args: T.List[IR] = []
+        args: list[IR] = []
         (token, value), n_stream = next(ast)
         assertToken(TokenType.LPAREN, '"("')
         if n_stream and n_stream[0] == TokenType.RPAREN:
@@ -168,15 +168,14 @@ def _parse(ast: _LEX_STREAM_AH) -> IR:
                 break
             assertToken(TokenType.COMMA, '")" or ","')
         return type_(args)
-    elif token is TokenType.NOT:
+    if token is TokenType.NOT:
         (token, value), _ = next(ast)
         assertToken(TokenType.LPAREN, '"("')
         arg = _parse(ast)
         (token, value), _ = next(ast)
         assertToken(TokenType.RPAREN, '")"')
         return Not(arg)
-    else:
-        raise MesonException(f'Unhandled Cargo token:{token} {value}')
+    raise MesonException(f'Unhandled Cargo token:{token} {value}')
 
 
 def parse(ast: _LEX_STREAM) -> IR:
@@ -196,22 +195,21 @@ def parse(ast: _LEX_STREAM) -> IR:
     return ir
 
 
-def _eval_cfg(ir: IR, cfgs: T.Dict[str, str]) -> bool:
+def _eval_cfg(ir: IR, cfgs: dict[str, str]) -> bool:
     if isinstance(ir, Identifier):
         return ir.value in cfgs
-    elif isinstance(ir, Equal):
+    if isinstance(ir, Equal):
         return cfgs.get(ir.lhs.value) == ir.rhs.value
-    elif isinstance(ir, Not):
+    if isinstance(ir, Not):
         return not _eval_cfg(ir.value, cfgs)
-    elif isinstance(ir, Any):
+    if isinstance(ir, Any):
         return any(_eval_cfg(i, cfgs) for i in ir.args)
-    elif isinstance(ir, All):
+    if isinstance(ir, All):
         return all(_eval_cfg(i, cfgs) for i in ir.args)
-    else:
-        raise MesonBugException(f'Unhandled Cargo cfg IR: {ir}')
+    raise MesonBugException(f'Unhandled Cargo cfg IR: {ir}')
 
 
-def eval_cfg(raw: str, cfgs: T.Dict[str, str]) -> bool:
+def eval_cfg(raw: str, cfgs: dict[str, str]) -> bool:
     if raw.startswith('cfg(') and raw.endswith(')'):
         return _eval_cfg(parse(lexer(raw[4:-1])), cfgs)
     return False

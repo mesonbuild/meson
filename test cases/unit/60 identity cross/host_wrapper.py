@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-import subprocess, sys, platform
+import subprocess
+import sys
+import platform
 
 # Meson does not yet support Studio cc on Solaris, only gcc or clang
 if platform.system() == 'SunOS':

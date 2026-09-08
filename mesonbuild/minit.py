@@ -5,31 +5,32 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from enum import Enum
-import subprocess
-import shutil
-import sys
 import os
 import re
-from glob import glob
+import shutil
+import subprocess
+import sys
 import typing as T
+from enum import Enum
+from glob import glob
+from pathlib import Path
 
 from mesonbuild import build, mesonlib, mlog
 from mesonbuild.coredata import FORBIDDEN_TARGET_NAMES
-from mesonbuild.tooldetect import detect_ninja
+from mesonbuild.options import OptionKey
 from mesonbuild.templates.mesontemplates import create_meson_build
 from mesonbuild.templates.samplefactory import sample_generator
-from mesonbuild.options import OptionKey
+from mesonbuild.tooldetect import detect_ninja
 
 if T.TYPE_CHECKING:
     import argparse
+    from typing import Literal
 
-    from typing_extensions import Protocol, Literal
+    from typing_extensions import Protocol
 
     class Arguments(Protocol):
 
-        srcfiles: T.List[Path]
+        srcfiles: list[Path]
         wd: str
         name: str
         executable: str
@@ -95,7 +96,7 @@ def autodetect_options(options: Arguments, sample: bool = False) -> None:
         # The rest of the autodetection is not applicable to generating sample projects.
         return
     if not options.srcfiles:
-        srcfiles: T.List[Path] = []
+        srcfiles: list[Path] = []
         for f in (f for f in Path().iterdir() if f.is_file()):
             if f.suffix in LANG_SUFFIXES:
                 srcfiles.append(f)
@@ -145,7 +146,7 @@ def autodetect_options(options: Arguments, sample: bool = False) -> None:
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
-def add_arguments(parser: 'argparse.ArgumentParser') -> None:
+def add_arguments(parser: argparse.ArgumentParser) -> None:
     '''
     Here we add args for that the user can passed when making a new
     Meson project.
@@ -188,7 +189,7 @@ def run(options: Arguments) -> int:
             shutil.rmtree(options.builddir)
         print('Building...')
         cmd = mesonlib.get_meson_command() + ['setup', options.builddir]
-        ret = subprocess.run(cmd)
+        ret = subprocess.run(cmd, check=False)
         if ret.returncode:
             raise SystemExit
 
@@ -200,7 +201,7 @@ def run(options: Arguments) -> int:
 
         ninja = mesonlib.unwrap_err(detect_ninja(), 'Could not detect ninja and it is required')
         cmd = ninja + ['-C', options.builddir]
-        ret = subprocess.run(cmd)
+        ret = subprocess.run(cmd, check=False)
         if ret.returncode:
             raise SystemExit
     return 0

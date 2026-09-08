@@ -116,7 +116,7 @@ class RustProject(FileImpl):
         super().__init__(args)
         self.meson_version = '1.3.0'
 
-    def lib_kwargs(self) -> T.Dict[str, str]:
+    def lib_kwargs(self) -> dict[str, str]:
         kwargs = super().lib_kwargs()
         kwargs['crate_file'] = self.lowercase_token
         return kwargs

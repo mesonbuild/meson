@@ -2,24 +2,25 @@
 # Copyright 2024 The Meson development team
 
 from __future__ import annotations
-from collections import defaultdict
+
 import os
+import subprocess
 import tempfile
 import typing as T
-import subprocess
+from collections import defaultdict
 
-from .run_tool import run_tool_on_targets, run_with_buffered_output
 from .. import build, mlog
 from ..mesonlib import MachineChoice, PerMachine
 from ..tooldetect import detect_ninja
+from .run_tool import run_tool_on_targets, run_with_buffered_output
 
 if T.TYPE_CHECKING:
     from ..compilers.rust import RustCompiler
 
 class ClippyDriver:
     def __init__(self, build: build.Build, tempdir: str, args: list[str]):
-        self.tools: PerMachine[T.List[str]] = PerMachine([], [])
-        self.warned: T.DefaultDict[str, bool] = defaultdict(lambda: False)
+        self.tools: PerMachine[list[str]] = PerMachine([], [])
+        self.warned: defaultdict[str, bool] = defaultdict(lambda: False)
         self.tempdir = tempdir
         for machine in MachineChoice:
             compilers = build.environment.coredata.compilers[machine]
@@ -34,7 +35,7 @@ class ClippyDriver:
         mlog.warning(f'clippy-driver not found for {machine} machine')
         self.warned[machine] = True
 
-    def __call__(self, target: T.Dict[str, T.Any]) -> T.Iterable[T.Coroutine[None, None, int]]:
+    def __call__(self, target: dict[str, T.Any]) -> T.Iterable[T.Coroutine[None, None, int]]:
         for src_block in target['target_sources']:
             if 'compiler' in src_block and src_block['language'] == 'rust':
                 clippy = getattr(self.tools, src_block['machine'])
@@ -73,14 +74,14 @@ class ClippyDriver:
                 cmdlist += self.args
                 yield run_with_buffered_output(cmdlist)
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     os.chdir(args[0])
     build_data = build.load(os.getcwd())
 
     # Build as much of the project as possible, or else
     # we get errors about missing libraries in the build directory and
     # other related errors.
-    subprocess.run(detect_ninja() + ['clippy-json-prereq', '-k0'])
+    subprocess.run(detect_ninja() + ['clippy-json-prereq', '-k0'], check=False)
 
     with tempfile.TemporaryDirectory() as d:
         return run_tool_on_targets(ClippyDriver(build_data, d, args[1:]))

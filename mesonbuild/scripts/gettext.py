@@ -3,13 +3,12 @@
 
 from __future__ import annotations
 
-import os
 import argparse
+import os
 import subprocess
-import typing as T
 
-from .meson_exe import run_exe
 from ..utils.core import ExecutableSerialisation
+from .meson_exe import run_exe
 
 parser = argparse.ArgumentParser()
 parser.add_argument('command')
@@ -24,7 +23,7 @@ parser.add_argument('--msgmerge', default='msgmerge')
 parser.add_argument('--msginit', default='msginit')
 parser.add_argument('--extra-args', default='')
 
-def read_linguas(src_sub: str) -> T.List[str]:
+def read_linguas(src_sub: str) -> list[str]:
     # Syntax of this file is documented here:
     # https://www.gnu.org/software/gettext/manual/html_node/po_002fLINGUAS.html
     linguas = os.path.join(src_sub, 'LINGUAS')
@@ -40,12 +39,12 @@ def read_linguas(src_sub: str) -> T.List[str]:
         print(f'Could not find file LINGUAS in {src_sub}')
         return []
 
-def run_potgen(src_sub: str, xgettext: str, pkgname: str, datadirs: str, args: T.List[str], source_root: str) -> int:
+def run_potgen(src_sub: str, xgettext: str, pkgname: str, datadirs: str, args: list[str], source_root: str) -> int:
     listfile = os.path.join(src_sub, 'POTFILES.in')
     if not os.path.exists(listfile):
         listfile = os.path.join(src_sub, 'POTFILES')
         if not os.path.exists(listfile):
-            print('Could not find file POTFILES in %s' % src_sub)
+            print(f'Could not find file POTFILES in {src_sub}')
             return 1
 
     child_env = os.environ.copy()
@@ -57,7 +56,7 @@ def run_potgen(src_sub: str, xgettext: str, pkgname: str, datadirs: str, args: T
                             '-D', source_root, '-k_', '-o', ofile] + args,
                            env=child_env)
 
-def update_po(src_sub: str, msgmerge: str, msginit: str, pkgname: str, langs: T.List[str]) -> int:
+def update_po(src_sub: str, msgmerge: str, msginit: str, pkgname: str, langs: list[str]) -> int:
     potfile = os.path.join(src_sub, pkgname + '.pot')
     for l in langs:
         pofile = os.path.join(src_sub, l + '.po')
@@ -69,7 +68,7 @@ def update_po(src_sub: str, msgmerge: str, msginit: str, pkgname: str, langs: T.
             subprocess.check_call([msginit, '--input', potfile, '--output-file', pofile, '--locale', l, '--no-translator'])
     return 0
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     options = parser.parse_args(args)
     subcmd = options.command
     langs = options.langs.split('@@') if options.langs else None
@@ -82,10 +81,9 @@ def run(args: T.List[str]) -> int:
 
     if subcmd == 'pot':
         return run_potgen(src_sub, options.xgettext, options.pkgname, options.datadirs, extra_args, options.source_root)
-    elif subcmd == 'update_po':
+    if subcmd == 'update_po':
         if run_potgen(src_sub, options.xgettext, options.pkgname, options.datadirs, extra_args, options.source_root) != 0:
             return 1
         return update_po(src_sub, options.msgmerge, options.msginit, options.pkgname, langs)
-    else:
-        print('Unknown subcommand.')
-        return 1
+    print('Unknown subcommand.')
+    return 1

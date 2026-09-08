@@ -1,32 +1,33 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2021 The Meson development team
 
-from abc import ABCMeta, abstractmethod
-from pathlib import Path
 import re
 import typing as T
-
-from .model import (
-    NamedObject,
-    FeatureCheck,
-    ArgBase,
-    PosArg,
-    DataTypeInfo,
-    Type,
-    Function,
-    Method,
-    Object,
-    ObjectType,
-    ReferenceManual,
-)
+from abc import ABCMeta, abstractmethod
+from pathlib import Path
 
 from mesonbuild import mlog
 
+from .model import (
+    ArgBase,
+    DataTypeInfo,
+    FeatureCheck,
+    Function,
+    Method,
+    NamedObject,
+    Object,
+    ObjectType,
+    PosArg,
+    ReferenceManual,
+    Type,
+)
+
+
 class _Resolver:
     def __init__(self) -> None:
-        self.type_map: T.Dict[str, Object] = {}
-        self.func_map: T.Dict[str, T.Union[Function, Method]] = {}
-        self.processed_funcs: T.Set[str] = set()
+        self.type_map: dict[str, Object] = {}
+        self.func_map: dict[str, Function | Method] = {}
+        self.processed_funcs: set[str] = set()
 
     def _validate_named_object(self, obj: NamedObject) -> None:
         name_regex = re.compile(r'[a-zA-Z0-9_]+')
@@ -48,7 +49,7 @@ class _Resolver:
     def _resolve_type(self, raw: str) -> Type:
         typ = Type(raw)
         # We can't use `types = raw.split('|')`, because of `list[str | env]`
-        types: T.List[str] = ['']
+        types: list[str] = ['']
         stack = 0
         for c in raw:
             if stack == 0 and c == '|':
@@ -73,7 +74,7 @@ class _Resolver:
             typ.resolved += [DataTypeInfo(obj, held_type)]
         return typ
 
-    def _validate_func(self, func: T.Union[Function, Method]) -> None:
+    def _validate_func(self, func: Function | Method) -> None:
         # Always run basic checks, since they also slightly post-process (strip) some strings
         self._validate_named_object(func)
         self._validate_feature_check(func)
@@ -84,7 +85,7 @@ class _Resolver:
 
         func.returns = self._resolve_type(func.returns.raw)
 
-        all_args: T.List[ArgBase] = []
+        all_args: list[ArgBase] = []
         all_args += func.posargs
         all_args += func.optargs
         all_args += func.kwargs.values()
@@ -113,7 +114,7 @@ class _Resolver:
             func.kwargs.update(missing)
 
         # Handle other args inheritance
-        _T = T.TypeVar('_T', bound=T.Union[ArgBase, T.List[PosArg]])
+        _T = T.TypeVar('_T', bound=ArgBase | list[PosArg])
         def resolve_inherit(name: str, curr: _T, resolver: T.Callable[[Function], _T]) -> _T:
             if name and not curr:
                 name = name.strip()
@@ -181,10 +182,10 @@ class _Resolver:
 
 class LoaderBase(metaclass=ABCMeta):
     def __init__(self) -> None:
-        self._input_files: T.List[Path] = []
+        self._input_files: list[Path] = []
 
     @property
-    def input_files(self) -> T.List[Path]:
+    def input_files(self) -> list[Path]:
         return list(self._input_files)
 
     def read_file(self, f: Path) -> str:

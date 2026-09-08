@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from mesonbuild.templates.sampleimpl import ClassImpl
 
-
 hello_cs_template = '''using System;
 
 public class {class_name} {{

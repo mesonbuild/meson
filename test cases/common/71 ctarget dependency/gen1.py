@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import time, sys
+import time
+import sys
 
 # Make sure other script runs first if dependency
 # is missing.

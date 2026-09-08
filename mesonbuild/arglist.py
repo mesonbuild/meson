@@ -4,16 +4,17 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
 import collections
 import enum
 import os
 import typing as T
+from functools import cache
+
 from mesonbuild.utils.universal import is_lib_filename
 
 if T.TYPE_CHECKING:
-    from .linkers import StaticLinker
     from .compilers import Compiler
+    from .linkers import StaticLinker
 
 # execinfo is a compiler lib on BSD
 UNIXY_COMPILER_INTERNAL_LIBS = ['m', 'c', 'pthread', 'dl', 'rt', 'execinfo']
@@ -72,26 +73,26 @@ class CompilerArgs(T.MutableSequence[str]):
 
     '''
     # Arg prefixes that override by prepending instead of appending
-    prepend_prefixes: T.Tuple[str, ...] = ()
+    prepend_prefixes: tuple[str, ...] = ()
 
     # Arg prefixes and standalone args that must be de-duped by returning 2
-    dedup2_prefixes: T.Tuple[str, ...] = ()
-    dedup2_suffixes: T.Tuple[str, ...] = ()
-    dedup2_args: T.Tuple[str, ...] = ()
+    dedup2_prefixes: tuple[str, ...] = ()
+    dedup2_suffixes: tuple[str, ...] = ()
+    dedup2_args: tuple[str, ...] = ()
 
     # Arg prefixes and standalone args that must be de-duped by returning 1
     #
     # NOTE: not thorough. A list of potential corner cases can be found in
     # https://github.com/mesonbuild/meson/pull/4593#pullrequestreview-182016038
-    dedup1_prefixes: T.Tuple[str, ...] = ()
-    dedup1_args: T.Tuple[str, ...] = ()
+    dedup1_prefixes: tuple[str, ...] = ()
+    dedup1_args: tuple[str, ...] = ()
     # In generate_link() we add external libs without de-dup, but we must
     # *always* de-dup these because they're special arguments to the linker
     # TODO: these should probably move too
     always_dedup_args = tuple('-l' + lib for lib in UNIXY_COMPILER_INTERNAL_LIBS)
 
-    def __init__(self, compiler: T.Union['Compiler', 'StaticLinker'],
-                 iterable: T.Optional[T.Iterable[str]] = None):
+    def __init__(self, compiler: Compiler | StaticLinker,
+                 iterable: T.Iterable[str] | None = None):
         self.compiler = compiler
 
         if isinstance(iterable, CompilerArgs):
@@ -99,10 +100,10 @@ class CompilerArgs(T.MutableSequence[str]):
             # list(iter(x)) is over two times slower than list(x), so
             # pass the underlying list to list() directly, instead of an iterator
             iterable = iterable._container
-        self._container: T.List[str] = list(iterable) if iterable is not None else []
+        self._container: list[str] = list(iterable) if iterable is not None else []
 
-        self.pre: T.Deque[str] = collections.deque()
-        self.post: T.List[str] = []
+        self.pre: collections.deque[str] = collections.deque()
+        self.post: list[str] = []
         self.needs_override_check: bool = False
 
     # Flush the saved pre and post list into the _container list
@@ -119,10 +120,10 @@ class CompilerArgs(T.MutableSequence[str]):
                 self.post.clear()
             return
 
-        new: T.List[str] = []
-        pre_flush_set: T.Set[str] = set()
-        post_flush: T.Deque[str] = collections.deque()
-        post_flush_set: T.Set[str] = set()
+        new: list[str] = []
+        pre_flush_set: set[str] = set()
+        post_flush: collections.deque[str] = collections.deque()
+        post_flush_set: set[str] = set()
 
         #The two lists are here walked from the front to the back, in order to not need removals for deduplication
         for a in self.pre:
@@ -163,7 +164,7 @@ class CompilerArgs(T.MutableSequence[str]):
     def __getitem__(self, index: slice) -> T.MutableSequence[str]:  # noqa: F811
         pass
 
-    def __getitem__(self, index: T.Union[int, slice]) -> T.Union[str, T.MutableSequence[str]]:  # noqa: F811
+    def __getitem__(self, index: int | slice) -> str | T.MutableSequence[str]:  # noqa: F811
         self.flush_pre_post()
         return self._container[index]
 
@@ -175,11 +176,11 @@ class CompilerArgs(T.MutableSequence[str]):
     def __setitem__(self, index: slice, value: T.Iterable[str]) -> None:  # noqa: F811
         pass
 
-    def __setitem__(self, index: T.Union[int, slice], value: T.Union[str, T.Iterable[str]]) -> None:  # noqa: F811
+    def __setitem__(self, index: int | slice, value: str | T.Iterable[str]) -> None:  # noqa: F811
         self.flush_pre_post()
         self._container[index] = value  # type: ignore  # TODO: fix 'Invalid index type' and 'Incompatible types in assignment' errors
 
-    def __delitem__(self, index: T.Union[int, slice]) -> None:
+    def __delitem__(self, index: int | slice) -> None:
         self.flush_pre_post()
         del self._container[index]
 
@@ -190,12 +191,12 @@ class CompilerArgs(T.MutableSequence[str]):
         self.flush_pre_post()
         self._container.insert(index, value)
 
-    def copy(self) -> 'CompilerArgs':
+    def copy(self) -> CompilerArgs:
         self.flush_pre_post()
         return type(self)(self.compiler, self._container.copy())
 
     @classmethod
-    @lru_cache(maxsize=None)
+    @cache
     def _can_dedup(cls, arg: str) -> Dedup:
         """Returns whether the argument can be safely de-duped.
 
@@ -227,11 +228,11 @@ class CompilerArgs(T.MutableSequence[str]):
         return Dedup.NO_DEDUP
 
     @classmethod
-    @lru_cache(maxsize=None)
+    @cache
     def _should_prepend(cls, arg: str) -> bool:
         return arg.startswith(cls.prepend_prefixes)
 
-    def to_native(self, copy: bool = False) -> T.List[str]:
+    def to_native(self, copy: bool = False) -> list[str]:
         # Check if we need to add --start/end-group for circular dependencies
         # between static libraries, and for recursively searching for symbols
         # needed by static libraries that are provided by object files or
@@ -269,25 +270,25 @@ class CompilerArgs(T.MutableSequence[str]):
         normal_flags = []
         lflags = []
         for i in iterable:
-            if i not in self.always_dedup_args and (i.startswith('-l') or i.startswith('-L')):
+            if i not in self.always_dedup_args and i.startswith(('-l', '-L')):
                 lflags.append(i)
             else:
                 normal_flags.append(i)
         self.extend(normal_flags)
         self.extend_direct(lflags)
 
-    def __add__(self, args: T.Iterable[str]) -> 'CompilerArgs':
+    def __add__(self, args: T.Iterable[str]) -> CompilerArgs:
         self.flush_pre_post()
         new = self.copy()
         new += args
         return new
 
-    def __iadd__(self, args: T.Iterable[str]) -> 'CompilerArgs':
+    def __iadd__(self, args: T.Iterable[str]) -> CompilerArgs:
         '''
         Add two CompilerArgs while taking into account overriding of arguments
         and while preserving the order of arguments as much as possible
         '''
-        tmp_pre: T.Deque[str] = collections.deque()
+        tmp_pre: collections.deque[str] = collections.deque()
         if not isinstance(args, collections.abc.Iterable):
             raise TypeError(f'can only concatenate Iterable[str] (not "{args}") to CompilerArgs')
         for arg in args:
@@ -309,18 +310,18 @@ class CompilerArgs(T.MutableSequence[str]):
         #pre and post is going to be merged later before a iter call
         return self
 
-    def __radd__(self, args: T.Iterable[str]) -> 'CompilerArgs':
+    def __radd__(self, args: T.Iterable[str]) -> CompilerArgs:
         self.flush_pre_post()
         new = type(self)(self.compiler, args)
         new += self
         return new
 
-    def __eq__(self, other: object) -> T.Union[bool]:
+    def __eq__(self, other: object) -> bool:
         self.flush_pre_post()
         # Only allow equality checks against other CompilerArgs and lists instances
         if isinstance(other, CompilerArgs):
             return self.compiler == other.compiler and self._container == other._container
-        elif isinstance(other, list):
+        if isinstance(other, list):
             return self._container == other
         return NotImplemented
 

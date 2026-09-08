@@ -5,7 +5,9 @@
 
 # This script must be run from the source root.
 
-import pathlib, shutil, subprocess
+import pathlib
+import shutil
+import subprocess
 
 gendir = pathlib.Path('distgendir')
 distdir = pathlib.Path('dist')

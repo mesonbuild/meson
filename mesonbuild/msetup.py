@@ -4,19 +4,29 @@
 
 from __future__ import annotations
 
-import argparse, datetime, glob, json, os, platform, shutil, sys, tempfile, time
+import argparse
 import cProfile as profile
-from pathlib import Path
+import datetime
+import glob
+import json
+import os
+import platform
+import shutil
+import sys
+import tempfile
+import time
 import typing as T
+from pathlib import Path
 
 from . import build, cmdline, coredata, environment, interpreter, mesonlib, mintro, mlog
 from .dependencies import Dependency
-from .mesonlib import MesonException, MachineChoice
 from .interpreterbase import ObjectHolder
+from .mesonlib import MachineChoice, MesonException
 from .options import OptionKey
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
+
     from .cmdline import SharedCMDOptions
     from .interpreter import SubprojectHolder
     from .mesonlib import PerMachine
@@ -66,12 +76,12 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--fatal-meson-warnings', action='store_true', dest='fatal_warnings',
                         help='Make all Meson warnings fatal')
     parser.add_argument('--reconfigure', action='store_true',
-                        help='Set options and reconfigure the project. Useful when new ' +
-                             'options have been added to the project and the default value ' +
+                        help='Set options and reconfigure the project. Useful when new '
+                             'options have been added to the project and the default value '
                              'is not working.')
     parser.add_argument('--wipe', action='store_true',
-                        help='Wipe build directory and reconfigure using previous command line options. ' +
-                             'Useful when build directory got corrupted, or when rebuilding with a ' +
+                        help='Wipe build directory and reconfigure using previous command line options. '
+                             'Useful when build directory got corrupted, or when rebuilding with a '
                              'newer version of meson.')
     parser.add_argument('--clearcache', action='store_true', default=False,
                         help='Clear cached state (e.g. found dependencies). Since 1.3.0.')
@@ -118,7 +128,7 @@ class MesonApp:
         fname = os.path.join(dirname, environment.build_filename)
         return os.path.exists(fname)
 
-    def validate_core_dirs(self, dir1: T.Optional[str], dir2: T.Optional[str]) -> T.Tuple[str, str]:
+    def validate_core_dirs(self, dir1: str | None, dir2: str | None) -> tuple[str, str]:
         invalid_msg_prefix = f'Neither directory {dir1!r} nor directory {dir2!r}'
         if dir1 is None:
             if dir2 is None:
@@ -162,7 +172,7 @@ class MesonApp:
         with open(os.path.join(build_dir, 'CACHEDIR.TAG'), 'w', encoding='utf-8') as ofile:
             ofile.write(cachedir_tag_file)
 
-    def validate_dirs(self) -> T.Tuple[str, str]:
+    def validate_dirs(self) -> tuple[str, str]:
         (src_dir, build_dir) = self.validate_core_dirs(self.options.builddir, self.options.sourcedir)
         if Path(build_dir) in Path(src_dir).parents:
             raise MesonException(f'Build directory {build_dir} cannot be a parent of source directory {src_dir}')
@@ -188,7 +198,7 @@ class MesonApp:
         return src_dir, build_dir
 
     # See class Backend's 'generate' for comments on capture args and returned dictionary.
-    def generate(self, capture: bool = False, vslite_ctx: T.Optional[dict] = None) -> T.Optional[dict]:
+    def generate(self, capture: bool = False, vslite_ctx: dict | None = None) -> dict | None:
         env = environment.Environment(self.source_dir, self.build_dir, self.options)
         if not env.first_invocation:
             assert self.options.reconfigure
@@ -203,10 +213,10 @@ class MesonApp:
                                     'Some other Meson process is already using this build directory. Exiting.'):
             return self._generate(env, capture, vslite_ctx)
 
-    def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Dict[OptionKey, str],
-                             all_subprojects: PerMachine[T.Dict[str, SubprojectHolder]]) -> None:
-        errlist: T.List[str] = []
-        known_subprojects: T.Set[str] = set()
+    def check_unused_options(self, coredata: coredata.CoreData, cmd_line_options: dict[OptionKey, str],
+                             all_subprojects: PerMachine[dict[str, SubprojectHolder]]) -> None:
+        errlist: list[str] = []
+        known_subprojects: set[str] = set()
         for m in MachineChoice:
             known_subprojects.update((name for name, obj in all_subprojects[m].items() if obj.found()))
         for opt in cmd_line_options:
@@ -226,7 +236,7 @@ class MesonApp:
             errstr = ', '.join(errlist)
             raise MesonException(f'Unknown options: {errstr}')
 
-    def _generate(self, env: environment.Environment, capture: bool, vslite_ctx: T.Optional[dict]) -> T.Optional[dict]:
+    def _generate(self, env: environment.Environment, capture: bool, vslite_ctx: dict | None) -> dict | None:
         # Get all user defined options, including options that have been defined
         # during a previous invocation or using meson configure.
         user_defined_options = T.cast('CMDOptions', argparse.Namespace(**vars(self.options)))
@@ -268,8 +278,8 @@ class MesonApp:
             mintro.write_meson_info_file(b, [e])
             raise
 
-        cdf: T.Optional[str] = None
-        captured_compile_args: T.Optional[dict] = None
+        cdf: str | None = None
+        captured_compile_args: dict | None = None
         try:
             dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
             # We would like to write coredata as late as possible since we use the existence of
@@ -396,7 +406,7 @@ def run_genvslite_setup(options: CMDOptions) -> None:
     app = MesonApp(options)
     app.generate(capture=False, vslite_ctx=vslite_ctx)
 
-def run(options: T.Union[CMDOptions, T.List[str]]) -> int:
+def run(options: CMDOptions | list[str]) -> int:
     if isinstance(options, list):
         parser = argparse.ArgumentParser()
         add_arguments(parser)

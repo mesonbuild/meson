@@ -3,28 +3,28 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import os
 import typing as T
+from pathlib import Path
 
 from ..options import OptionKey
 from .base import DependencyCandidate, DependencyException, DependencyMethods
 from .cmake import CMakeDependency
 from .detect import packages
-from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
+from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from .factory import DependencyGenerator
     from .base import DependencyObjectKWs
+    from .factory import DependencyGenerator
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
-def scalapack_factory(env: 'Environment',
+def scalapack_factory(env: Environment,
                       kwargs: DependencyObjectKWs,
-                      methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
-    candidates: T.List['DependencyGenerator'] = []
+                      methods: list[DependencyMethods]) -> list[DependencyGenerator]:
+    candidates: list[DependencyGenerator] = []
 
     if DependencyMethods.PKGCONFIG in methods:
         static_opt = kwargs['static'] if kwargs.get('static') is not None else env.coredata.optstore.get_value_for(OptionKey('prefer_static'))
@@ -53,7 +53,7 @@ class MKLPkgConfigDependency(PkgConfigDependency):
     bunch of fixups to make it work correctly.
     """
 
-    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, env: Environment, kwargs: DependencyObjectKWs):
         _m = os.environ.get('MKLROOT')
         self.__mklroot = Path(_m).resolve() if _m else None
 
@@ -123,10 +123,10 @@ class MKLPkgConfigDependency(PkgConfigDependency):
                 break
         if self.env.machines[self.for_machine].is_windows() or self.static:
             self.link_args.insert(
-                i, str(libdir / ('mkl_scalapack_lp64' + suffix))
+                i, str(libdir / ('mkl_scalapack_lp64' + suffix)),
             )
             self.link_args.insert(
-                i + 1, str(libdir / ('mkl_blacs_intelmpi_lp64' + suffix))
+                i + 1, str(libdir / ('mkl_blacs_intelmpi_lp64' + suffix)),
             )
         else:
             self.link_args.insert(i, '-lmkl_scalapack_lp64')

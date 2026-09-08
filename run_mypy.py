@@ -2,13 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright © 2024 Intel Corporation
 
-from pathlib import Path
 import argparse
 import concurrent.futures
 import os
 import subprocess
 import sys
-import typing as T
+from pathlib import Path
 
 from mesonbuild.mesonlib import version_compare
 
@@ -26,7 +25,7 @@ additional = [
 
 def check_mypy() -> None:
     try:
-        import mypy
+        import mypy  # noqa: F401
     except ImportError:
         print('Failed import mypy')
         sys.exit(1)
@@ -56,8 +55,8 @@ def main() -> int:
     if opts.clear:
         print('\x1bc', end='', flush=True)
 
-    to_check = [] # type: T.List[str]
-    additional_to_check = [] # type: T.List[str]
+    to_check: list[str] = []
+    additional_to_check: list[str] = []
     if opts.files:
         for f in opts.files:
             if f.startswith(MESONBUILD):
@@ -87,7 +86,7 @@ def main() -> int:
     else:
         versions = ['default']
 
-    def run_mypy_version(version: str) -> T.Tuple[int, str, str]:
+    def run_mypy_version(version: str) -> tuple[int, str, str]:
         if version == 'default':
             cmd = command + args + to_check + additional_to_check
         else:
@@ -102,7 +101,8 @@ def main() -> int:
             cwd=root,
             capture_output=True,
             text=True,
-            env=env
+            env=env,
+            check=False,
         )
 
         return (result.returncode, version, result.stdout + result.stderr)

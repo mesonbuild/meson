@@ -3,50 +3,48 @@
 
 from __future__ import annotations
 
-from .. import mparser
-from .exceptions import InvalidCode, InvalidArguments
-from .helpers import flatten, resolve_second_level_holders
-from .operator import MesonOperator
-from ..mesonlib import HoldableObject, MesonBugException, SimpleABC, SubProject, ROOT_SUBPROJECT
 import textwrap
-
 import typing as T
 from contextlib import AbstractContextManager
 
-if T.TYPE_CHECKING:
-    from typing_extensions import TypeAlias
+from .. import mparser
+from ..mesonlib import ROOT_SUBPROJECT, HoldableObject, MesonBugException, SimpleABC, SubProject
+from .exceptions import InvalidArguments, InvalidCode
+from .helpers import flatten, resolve_second_level_holders
+from .operator import MesonOperator
 
+if T.TYPE_CHECKING:
     # Object holders need the actual interpreter
     from ..interpreter import Interpreter
 
 
 TV_func = T.TypeVar('TV_func', bound=T.Callable[..., T.Any])
 
-TYPE_elementary: TypeAlias = T.Union[str, int, bool, T.Sequence['TYPE_elementary'], T.Dict[str, 'TYPE_elementary']]
-TYPE_var: TypeAlias = T.Union[TYPE_elementary, HoldableObject, 'MesonInterpreterObject', T.Sequence['TYPE_var'], T.Dict[str, 'TYPE_var']]
-TYPE_kwargs = T.Dict[str, TYPE_var]
-TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
+TYPE_elementary: T.TypeAlias = str | int | bool | T.Sequence['TYPE_elementary'] | dict[str, 'TYPE_elementary']
+TYPE_var: T.TypeAlias = T.Union[TYPE_elementary, HoldableObject, 'MesonInterpreterObject', T.Sequence['TYPE_var'], dict[str, 'TYPE_var']]
+TYPE_kwargs: T.TypeAlias = dict[str, TYPE_var]
+TYPE_key_resolver: T.TypeAlias = T.Callable[[mparser.BaseNode], str]
 TYPE_op_arg = T.TypeVar('TYPE_op_arg', bound='TYPE_var', contravariant=True)
-TYPE_op_func = T.Callable[[TYPE_op_arg, TYPE_op_arg], TYPE_var]
-TYPE_method_func = T.Callable[['InterpreterObject', T.List[TYPE_var], TYPE_kwargs], TYPE_var]
+TYPE_op_func: T.TypeAlias = T.Callable[[TYPE_op_arg, TYPE_op_arg], TYPE_var]
+TYPE_method_func: T.TypeAlias = T.Callable[['InterpreterObject', list[TYPE_var], TYPE_kwargs], TYPE_var]
 
 class InterpreterObject:
-    TRIVIAL_OPERATORS: T.Dict[
+    TRIVIAL_OPERATORS: dict[
         MesonOperator,
-        T.Tuple[
-            T.Union[T.Type, T.Tuple[T.Type, ...]],
-            TYPE_op_func
-        ]
+        tuple[
+            type | tuple[type, ...],
+            TYPE_op_func,
+        ],
     ] = {}
 
-    OPERATORS: T.Dict[MesonOperator, TYPE_op_func] = {}
+    OPERATORS: dict[MesonOperator, TYPE_op_func] = {}
 
-    METHODS: T.Dict[
+    METHODS: dict[
         str,
         TYPE_method_func,
     ] = {}
 
-    def __init_subclass__(cls: T.Type[InterpreterObject], **kwargs: T.Any) -> None:
+    def __init_subclass__(cls: type[InterpreterObject], **kwargs: T.Any) -> None:
         super().__init_subclass__(**kwargs)
         saved_trivial_operators = cls.TRIVIAL_OPERATORS
 
@@ -63,7 +61,7 @@ class InterpreterObject:
                 # __init_subclass__ does not operate on InterpreterObject itself
                 cls.OPERATORS.update({
                     MesonOperator.EQUALS: InterpreterObject.op_equals,
-                    MesonOperator.NOT_EQUALS: InterpreterObject.op_not_equals
+                    MesonOperator.NOT_EQUALS: InterpreterObject.op_not_equals,
                 })
 
             elif issubclass(superclass, InterpreterObject):
@@ -71,7 +69,7 @@ class InterpreterObject:
                 cls.OPERATORS.update(superclass.OPERATORS)
                 cls.TRIVIAL_OPERATORS.update(superclass.TRIVIAL_OPERATORS)
 
-        for name, method in cls.__dict__.items():
+        for method in cls.__dict__.values():
             if hasattr(method, 'meson_method'):
                 cls.METHODS[method.meson_method] = method
             if hasattr(method, 'meson_operator'):
@@ -96,7 +94,7 @@ class InterpreterObject:
             return f
         return decorator
 
-    def __init__(self, *, subproject: T.Optional['SubProject'] = None) -> None:
+    def __init__(self, *, subproject: SubProject | None = None) -> None:
         # Current node set during a method call. This can be used as location
         # when printing a warning message during a method call.
         self.current_node:  mparser.BaseNode = None
@@ -109,8 +107,8 @@ class InterpreterObject:
     def method_call(
                 self,
                 method_name: str,
-                args: T.List[TYPE_var],
-                kwargs: TYPE_kwargs
+                args: list[TYPE_var],
+                kwargs: TYPE_kwargs,
             ) -> TYPE_var:
         if method_name in self.METHODS:
             method = self.METHODS[method_name]
@@ -146,7 +144,7 @@ class InterpreterObject:
             f'''
                 Trying to compare values of different types ({self.display_name()}, {type(other).__name__}) using {opt_type}.
                 This was deprecated and undefined behavior previously and is as of 0.60.0 a hard error.
-            '''
+            ''',
         ))
 
     def op_equals(self, other: TYPE_var) -> bool:
@@ -179,11 +177,11 @@ class UndefinedVariable(MesonInterpreterObject):
     represents the `value` a meson-variable has if it was never written to.'''
 
 HoldableTypes = (HoldableObject, int, bool, str, list, dict)
-TYPE_HoldableTypes = T.Union[TYPE_var, HoldableObject]
+TYPE_HoldableTypes: T.TypeAlias = TYPE_var | HoldableObject
 InterpreterObjectTypeVar = T.TypeVar('InterpreterObjectTypeVar', bound=TYPE_HoldableTypes)
 
 class ObjectHolder(InterpreterObject, T.Generic[InterpreterObjectTypeVar]):
-    def __init__(self, obj: InterpreterObjectTypeVar, interpreter: 'Interpreter') -> None:
+    def __init__(self, obj: InterpreterObjectTypeVar, interpreter: Interpreter) -> None:
         super().__init__(subproject=interpreter.subproject)
         # This causes some type checkers to assume that obj is a base
         # HoldableObject, not the specialized type, so only do this assert in
@@ -218,18 +216,18 @@ class ObjectHolder(InterpreterObject, T.Generic[InterpreterObjectTypeVar]):
 class IterableObject(metaclass=SimpleABC):
     '''Base class for all objects that can be iterated over in a foreach loop'''
 
-    def iter_tuple_size(self) -> T.Optional[int]:
+    def iter_tuple_size(self) -> int | None:
         '''Return the size of the tuple for each iteration. Returns None if only a single value is returned.'''
         raise MesonBugException(f'iter_tuple_size not implemented for {self.__class__.__name__}')
 
-    def iter_self(self) -> T.Iterator[T.Union[TYPE_var, T.Tuple[TYPE_var, ...]]]:
+    def iter_self(self) -> T.Iterator[TYPE_var | tuple[TYPE_var, ...]]:
         raise MesonBugException(f'iter not implemented for {self.__class__.__name__}')
 
     def size(self) -> int:
         raise MesonBugException(f'size not implemented for {self.__class__.__name__}')
 
 class ContextManagerObject(MesonInterpreterObject, AbstractContextManager):
-    def __init__(self, subproject: 'SubProject') -> None:
+    def __init__(self, subproject: SubProject) -> None:
         super().__init__(subproject=subproject)
 
 

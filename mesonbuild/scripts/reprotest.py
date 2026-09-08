@@ -3,8 +3,11 @@
 
 from __future__ import annotations
 
-import sys, os, subprocess, shutil
+import os
 import pathlib
+import shutil
+import subprocess
+import sys
 import typing as T
 
 if T.TYPE_CHECKING:
@@ -12,9 +15,10 @@ if T.TYPE_CHECKING:
 
 from ..mesonlib import get_meson_command
 
+
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
-def add_arguments(parser: 'argparse.ArgumentParser') -> None:
+def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--intermediaries',
                         default=False,
                         action='store_true',
@@ -42,7 +46,7 @@ class ReproTester:
         self.meson = get_meson_command()[:]
         self.builddir = pathlib.Path('buildrepro')
         self.storagedir = pathlib.Path('buildrepro.1st')
-        self.issues: T.List[str] = []
+        self.issues: list[str] = []
         self.check_intermediaries = options.intermediaries
 
     def run(self) -> int:

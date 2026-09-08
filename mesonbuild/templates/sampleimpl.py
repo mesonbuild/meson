@@ -3,12 +3,12 @@
 # Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
-from pathlib import Path
 
 import abc
 import os
 import re
 import typing as T
+from pathlib import Path
 
 from ..mesonlib import SimpleABC
 
@@ -55,7 +55,7 @@ class SampleImpl(metaclass=SimpleABC):
 
     @property
     @abc.abstractmethod
-    def lib_test_template(self) -> T.Optional[str]:
+    def lib_test_template(self) -> str | None:
         pass
 
     @property
@@ -74,7 +74,7 @@ class SampleImpl(metaclass=SimpleABC):
     def _format_sources(self) -> str:
         return ''.join(f"\n  '{x}'," for x in self.sources)
 
-    def _detect_sources(self, srcfiles: T.List[Path], transform: T.Callable[[str], str]) -> T.Tuple[str, T.List[Path]]:
+    def _detect_sources(self, srcfiles: list[Path], transform: T.Callable[[str], str]) -> tuple[str, list[Path]]:
         # Try a source based on the executable name, fallback to one based
         # on the project name if none is found.
         expected_name = f'{transform(self.executable_name)}.{self.source_ext}'
@@ -159,7 +159,7 @@ class FileImpl(SampleImpl):
                                                        dependencies=self._format_dependencies(),
                                                        source_files=self._format_sources()))
 
-    def lib_kwargs(self) -> T.Dict[str, str]:
+    def lib_kwargs(self) -> dict[str, str]:
         """Get Language specific keyword arguments
 
         :return: A dictionary of key: values to fill in the templates
@@ -209,7 +209,7 @@ class FileHeaderImpl(FileImpl):
     def lib_header_template(self) -> str:
         pass
 
-    def lib_kwargs(self) -> T.Dict[str, str]:
+    def lib_kwargs(self) -> dict[str, str]:
         kwargs = super().lib_kwargs()
         kwargs['header_file'] = f'{self.lowercase_token}.{self.header_ext}'
         return kwargs

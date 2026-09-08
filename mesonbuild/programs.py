@@ -1,31 +1,31 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2020 The Meson development team
 
-from __future__ import annotations
-
 """Representations and logic for External and Internal Programs."""
+
+from __future__ import annotations
 
 import functools
 import os
+import re
 import shutil
 import stat
 import sys
-import re
 import typing as T
-from pathlib import Path
 from abc import abstractmethod
+from pathlib import Path
 
-from . import mesonlib
-from . import mlog
+from . import mesonlib, mlog
 from .mesonlib import MachineChoice, OrderedSet, SimpleABC
 
 if T.TYPE_CHECKING:
-    from typing_extensions import TypeAlias
+    from typing import TypeAlias
+
     from .environment import Environment
     from .interpreter import Interpreter
 
-    CommandListEntry: TypeAlias = T.Union[str, 'Program']
-    CommandList: TypeAlias = T.List[CommandListEntry]
+    CommandListEntry: TypeAlias = str | 'Program'
+    CommandList: TypeAlias = list[CommandListEntry]
 
 
 class Program(mesonlib.HoldableObject, metaclass=SimpleABC):
@@ -39,19 +39,19 @@ class Program(mesonlib.HoldableObject, metaclass=SimpleABC):
         pass
 
     @abstractmethod
-    def get_version(self, interpreter: T.Optional[Interpreter] = None) -> str:
+    def get_version(self, interpreter: Interpreter | None = None) -> str:
         pass
 
     @abstractmethod
-    def get_command(self) -> T.List[str]:
+    def get_command(self) -> list[str]:
         pass
 
     @abstractmethod
-    def get_path(self) -> T.Optional[str]:
+    def get_path(self) -> str | None:
         pass
 
     @abstractmethod
-    def get_name(self) -> T.Optional[str]:
+    def get_name(self) -> str | None:
         pass
 
     @abstractmethod
@@ -76,12 +76,12 @@ class ExternalProgram(Program):
     windows_exts = ('exe', 'msc', 'com', 'bat', 'cmd')
     command: list[str]
 
-    def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
-                 silent: bool = False, search_dirs: T.Optional[T.List[T.Optional[str]]] = None,
-                 exclude_paths: T.Optional[T.List[str]] = None):
+    def __init__(self, name: str, command: list[str] | None = None,
+                 silent: bool = False, search_dirs: list[str | None] | None = None,
+                 exclude_paths: list[str] | None = None):
         self.name = name
-        self.path: T.Optional[str] = None
-        self.cached_version: T.Optional[str] = None
+        self.path: str | None = None
+        self.cached_version: str | None = None
         self.version_arg = '--version'
         if command is not None:
             self.command = command.copy()
@@ -127,11 +127,11 @@ class ExternalProgram(Program):
             # method, and thus only the found() method of this class is ever executed
             if self.found():  # lgtm [py/init-calls-subclass]
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
-                         '(%s)' % ' '.join(self.command))
+                         '({})'.format(' '.join(self.command)))
             else:
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.red('NO'))
 
-    def summary_value(self) -> T.Union[str, mlog.AnsiDecorator, None]:
+    def summary_value(self) -> str | mlog.AnsiDecorator | None:
         if not self.found():
             return mlog.red('NO')
         return self.path
@@ -144,7 +144,7 @@ class ExternalProgram(Program):
         '''Human friendly description of the command'''
         return ' '.join(self.command)
 
-    def get_version(self, interpreter: T.Optional['Interpreter'] = None) -> str:
+    def get_version(self, interpreter: Interpreter | None = None) -> str:
         if not self.cached_version:
             raw_cmd = self.get_command() + [self.version_arg]
             if interpreter:
@@ -173,7 +173,7 @@ class ExternalProgram(Program):
         return self.cached_version
 
     @classmethod
-    def from_bin_list(cls, env: 'Environment', for_machine: MachineChoice, name: str) -> 'ExternalProgram':
+    def from_bin_list(cls, env: Environment, for_machine: MachineChoice, name: str) -> ExternalProgram:
         # This is not the static `for_machine` in this class, which represents
         # that the binary always runs on the build platform. (Its host platform
         # is our build platform.) Some external programs have a target platform,
@@ -184,7 +184,7 @@ class ExternalProgram(Program):
         return cls.from_entry(name, command)
 
     @staticmethod
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _windows_sanitize_path(path: str) -> str:
         # Ensure that we use USERPROFILE even when inside MSYS, MSYS2, Cygwin, etc.
         if 'USERPROFILE' not in os.environ:
@@ -208,7 +208,7 @@ class ExternalProgram(Program):
         return os.pathsep.join(paths)
 
     @staticmethod
-    def from_entry(name: str, command: T.Union[str, T.List[str]]) -> 'ExternalProgram':
+    def from_entry(name: str, command: str | list[str]) -> ExternalProgram:
         if isinstance(command, list):
             if len(command) == 1:
                 command = command[0]
@@ -279,7 +279,7 @@ class ExternalProgram(Program):
             return not os.path.isdir(path)
         return False
 
-    def _search_dir(self, name: str, search_dir: T.Optional[str]) -> list[str]:
+    def _search_dir(self, name: str, search_dir: str | None) -> list[str]:
         if search_dir is None:
             return []
         trial = os.path.join(search_dir, name)
@@ -290,15 +290,14 @@ class ExternalProgram(Program):
             # a) not chmodded executable, or
             # b) we are on windows so they can't be directly executed.
             return self._shebang_to_cmd(trial)
-        else:
-            if mesonlib.is_windows():
-                for ext in self.windows_exts:
-                    trial_ext = f'{trial}.{ext}'
-                    if os.path.exists(trial_ext):
-                        return [trial_ext]
+        if mesonlib.is_windows():
+            for ext in self.windows_exts:
+                trial_ext = f'{trial}.{ext}'
+                if os.path.exists(trial_ext):
+                    return [trial_ext]
         return []
 
-    def _search_windows_special_cases(self, name: str, command: T.Optional[str], exclude_paths: T.Optional[T.List[str]]) -> list[str]:
+    def _search_windows_special_cases(self, name: str, command: str | None, exclude_paths: list[str] | None) -> list[str]:
         '''
         Lots of weird Windows quirks:
         1. PATH search for @name returns files with extensions from PATHEXT,
@@ -349,7 +348,7 @@ class ExternalProgram(Program):
                 return commands
         return []
 
-    def _search(self, name: str, search_dirs: T.List[T.Optional[str]], exclude_paths: T.Optional[T.List[str]]) -> list[str]:
+    def _search(self, name: str, search_dirs: list[str | None], exclude_paths: list[str] | None) -> list[str]:
         '''
         Search in the specified dirs for the specified executable by name
         and if not found search in PATH
@@ -386,10 +385,10 @@ class ExternalProgram(Program):
     def found(self) -> bool:
         return bool(self.command)
 
-    def get_command(self) -> T.List[str]:
+    def get_command(self) -> list[str]:
         return self.command[:]
 
-    def get_path(self) -> T.Optional[str]:
+    def get_path(self) -> str | None:
         return self.path
 
     def get_name(self) -> str:
@@ -412,10 +411,10 @@ class NonExistingExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-i
         return False
 
 
-def find_external_program(env: 'Environment', for_machine: MachineChoice, name: str,
-                          display_name: str, default_names: T.List[str],
+def find_external_program(env: Environment, for_machine: MachineChoice, name: str,
+                          display_name: str, default_names: list[str],
                           allow_default_for_cross: bool = True,
-                          exclude_paths: T.Optional[T.List[str]] = None) -> T.Generator['ExternalProgram', None, None]:
+                          exclude_paths: list[str] | None = None) -> T.Generator[ExternalProgram, None, None]:
     """Find an external program, checking the cross file plus any default options."""
     potential_names = OrderedSet(default_names)
     potential_names.add(name)

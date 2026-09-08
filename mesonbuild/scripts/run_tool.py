@@ -9,25 +9,25 @@ import itertools
 import json
 import signal
 import sys
+import typing as T
 from pathlib import Path
 
 from .. import mlog
 from ..compilers import lang_suffixes
-from ..mesonlib import quiet_git, join_args, determine_worker_count
+from ..mesonlib import determine_worker_count, join_args, quiet_git
 from ..mtest import complete_all
-import typing as T
 
 if T.TYPE_CHECKING:
     from ..compilers.compilers import Language
 
 Info = T.TypeVar("Info")
 
-async def run_with_buffered_output(cmdlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> int:
+async def run_with_buffered_output(cmdlist: list[str], env: dict[str, str] | None = None) -> int:
     """Run the command in cmdlist, buffering the output so that it is
        not mixed for multiple child processes.  Kill the child on
        cancellation."""
     quoted_cmdline = join_args(cmdlist)
-    p: T.Optional[asyncio.subprocess.Process] = None
+    p: asyncio.subprocess.Process | None = None
     try:
         p = await asyncio.create_subprocess_exec(*cmdlist, env=env,
                                                  stdin=asyncio.subprocess.DEVNULL,
@@ -43,8 +43,7 @@ async def run_with_buffered_output(cmdlist: T.List[str], env: T.Optional[T.Dict[
             p.kill()
             await p.wait()
             return p.returncode or 1
-        else:
-            return 0
+        return 0
 
     if stdo:
         print(mlog.blue('>>>'), quoted_cmdline, flush=True)
@@ -53,7 +52,7 @@ async def run_with_buffered_output(cmdlist: T.List[str], env: T.Optional[T.Dict[
 
 async def _run_workers(infos: T.Iterable[Info],
                        fn: T.Callable[[Info], T.Iterable[T.Coroutine[None, None, int]]]) -> int:
-    futures: T.List[asyncio.Future[int]] = []
+    futures: list[asyncio.Future[int]] = []
     semaphore = asyncio.Semaphore(determine_worker_count())
 
     async def run_one(worker_coro: T.Coroutine[None, None, int]) -> int:
@@ -74,7 +73,7 @@ async def _run_workers(infos: T.Iterable[Info],
         loop.add_signal_handler(signal.SIGTERM, sigterm_handler)
 
     for i in infos:
-        futures.extend((asyncio.ensure_future(run_one(x)) for x in fn(i)))
+        futures.extend(asyncio.ensure_future(run_one(x)) for x in fn(i))
     if not futures:
         return 0
 
@@ -87,7 +86,7 @@ async def _run_workers(infos: T.Iterable[Info],
 
     return max(f.result() for f in futures if f.done() and not f.cancelled())
 
-def parse_pattern_file(fname: Path) -> T.List[str]:
+def parse_pattern_file(fname: Path) -> list[str]:
     patterns = []
     try:
         with fname.open(encoding='utf-8') as f:
@@ -101,7 +100,7 @@ def parse_pattern_file(fname: Path) -> T.List[str]:
 
 def all_clike_files(name: str, srcdir: Path, builddir: Path) -> T.Iterable[Path]:
     patterns = parse_pattern_file(srcdir / f'.{name}-include')
-    globs: T.Sequence[T.Union[T.List[Path], T.Iterator[Path], T.Generator[Path, None, None]]]
+    globs: T.Sequence[list[Path] | T.Iterator[Path] | T.Generator[Path, None, None]]
     if patterns:
         globs = [srcdir.glob(p) for p in patterns]
     else:
@@ -152,7 +151,7 @@ def run_clang_tool_on_sources(name: str, srcdir: Path, builddir: Path, fn: T.Cal
         yield fn(path, *args)
     return asyncio.run(_run_workers(source_files, wrapper))
 
-def run_tool_on_targets(fn: T.Callable[[T.Dict[str, T.Any]],
+def run_tool_on_targets(fn: T.Callable[[dict[str, T.Any]],
                                        T.Iterable[T.Coroutine[None, None, int]]]) -> int:
     if sys.platform == 'win32' and sys.version_info < (3, 8):
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())

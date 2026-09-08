@@ -13,25 +13,26 @@
 # limitations under the License.
 
 from __future__ import annotations
+
 import textwrap
 import typing as T
-
 from pathlib import Path
 
-from . import NewExtensionModule, ModuleInfo
-from ..interpreterbase import KwargInfo, typed_kwargs, typed_pos_args
-from ..interpreter.type_checking import NoneType
 from .. import mesonlib
+from ..interpreter.type_checking import NoneType
+from ..interpreterbase import KwargInfo, typed_kwargs, typed_pos_args
+from . import ModuleInfo, NewExtensionModule
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
+
     from . import ModuleState
 
     class SymbolVisibilityHeaderKW(TypedDict):
-        namespace: T.Optional[str]
-        api: T.Optional[str]
-        compilation: T.Optional[str]
-        static_compilation: T.Optional[str]
+        namespace: str | None
+        api: str | None
+        compilation: str | None
+        static_compilation: str | None
         static_only: bool
 
 
@@ -52,7 +53,7 @@ class SnippetsModule(NewExtensionModule):
                   KwargInfo('static_compilation', (str, NoneType)),
                   KwargInfo('static_only', (bool, NoneType)))
     @typed_pos_args('snippets.symbol_visibility_header', str)
-    def symbol_visibility_header_method(self, state: ModuleState, args: T.Tuple[str], kwargs: 'SymbolVisibilityHeaderKW') -> mesonlib.File:
+    def symbol_visibility_header_method(self, state: ModuleState, args: tuple[str], kwargs: SymbolVisibilityHeaderKW) -> mesonlib.File:
         header_name = args[0]
         namespace = kwargs['namespace'] or state.project_name
         namespace = mesonlib.underscorify(namespace).upper()

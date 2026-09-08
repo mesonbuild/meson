@@ -2,24 +2,22 @@
 # Copyright 2021 The Meson development team
 from __future__ import annotations
 
-from pathlib import Path
 import json
 import re
+from pathlib import Path
 
-from .generatorbase import GeneratorBase
 from . import jsonschema as J
+from .generatorbase import GeneratorBase
 from .model import (
-    ReferenceManual,
     Function,
-    Object,
-    Type,
-
-    PosArg,
-    VarArgs,
     Kwarg,
+    Object,
+    PosArg,
+    ReferenceManual,
+    Type,
+    VarArgs,
 )
 
-import typing as T
 
 class GeneratorJSON(GeneratorBase):
     def __init__(self, manual: ReferenceManual, out: Path, enable_modules: bool) -> None:
@@ -27,7 +25,7 @@ class GeneratorJSON(GeneratorBase):
         self.out = out
         self.enable_modules = enable_modules
 
-    def _generate_type(self, typ: Type) -> T.List[J.Type]:
+    def _generate_type(self, typ: Type) -> list[J.Type]:
         return [
             {
                 'obj': x.data_type.name,
@@ -40,7 +38,7 @@ class GeneratorJSON(GeneratorBase):
         # Remove all whitespaces
         return re.sub(r'[ \n\r\t]', '', typ.raw)
 
-    def _generate_arg(self, arg: T.Union[PosArg, VarArgs, Kwarg], isOptarg: bool = False) -> J.Argument:
+    def _generate_arg(self, arg: PosArg | VarArgs | Kwarg, isOptarg: bool = False) -> J.Argument:
         return {
             'name': arg.name,
             'description': arg.description,

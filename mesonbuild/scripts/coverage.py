@@ -3,12 +3,19 @@
 
 from __future__ import annotations
 
-from mesonbuild import tooldetect, mesonlib
+import argparse
+import os
+import pathlib
+import re
+import shutil
+import stat
+import subprocess
+import sys
 
-import argparse, re, sys, os, subprocess, pathlib, stat, shutil
-import typing as T
+from mesonbuild import mesonlib, tooldetect
 
-def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build_root: str, log_dir: str, use_llvm_cov: bool,
+
+def coverage(outputs: list[str], source_root: str, subproject_root: str, build_root: str, log_dir: str, use_llvm_cov: bool,
              gcovr_exe: str, llvm_cov_exe: str) -> int:
     outfiles = []
     exitcode = 0
@@ -58,7 +65,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
         if gcovr_exe and mesonlib.version_compare(gcovr_version, '>=3.3'):
             subprocess.check_call(gcovr_base_cmd + gcovr_config +
                                   ['-x',
-                                   '-o', os.path.join(log_dir, 'coverage.xml')
+                                   '-o', os.path.join(log_dir, 'coverage.xml'),
                                    ] + gcov_exe_args)
             outfiles.append(('Xml', pathlib.Path(log_dir, 'coverage.xml')))
         elif outputs:
@@ -186,7 +193,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
 
     return exitcode
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     if not os.path.isfile('build.ninja'):
         print('Coverage currently only works with the Ninja backend.')
         return 1

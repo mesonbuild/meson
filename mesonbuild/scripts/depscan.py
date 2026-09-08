@@ -13,7 +13,10 @@ import re
 import typing as T
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict, NotRequired
+    from typing import Literal
+
+    from typing_extensions import NotRequired, TypedDict
+
     from ..backend.ninjabackend import TargetDependencyScannerInfo
 
     Require = TypedDict(
@@ -23,7 +26,7 @@ if T.TYPE_CHECKING:
             'compiled-module-path': NotRequired[str],
             'source-path': NotRequired[str],
             'unique-on-source-path': NotRequired[bool],
-            'lookup-method': NotRequired[Literal['by-name', 'include-angle', 'include-quote']]
+            'lookup-method': NotRequired[Literal['by-name', 'include-angle', 'include-quote']],
         },
     )
 
@@ -42,17 +45,17 @@ if T.TYPE_CHECKING:
         'Rule',
         {
             'primary-output': NotRequired[str],
-            'outputs': NotRequired[T.List[str]],
-            'provides': NotRequired[T.List[Provide]],
-            'requires': NotRequired[T.List[Require]],
-        }
+            'outputs': NotRequired[list[str]],
+            'provides': NotRequired[list[Provide]],
+            'requires': NotRequired[list[Require]],
+        },
     )
 
     class Description(TypedDict):
 
         version: int
         revision: int
-        rules: T.List[Rule]
+        rules: list[Rule]
 
 
 CPP_IMPORT_RE = re.compile(r'\w*import ([a-zA-Z0-9]+);')
@@ -73,10 +76,10 @@ class DependencyScanner:
             self.target_data: TargetDependencyScannerInfo = pickle.load(pf)
         self.outfile = outfile
         self.sources = self.target_data.sources
-        self.provided_by: T.Dict[str, str] = {}
-        self.exports: T.Dict[str, str] = {}
-        self.imports: collections.defaultdict[str, T.List[str]] = collections.defaultdict(list)
-        self.sources_with_exports: T.List[str] = []
+        self.provided_by: dict[str, str] = {}
+        self.exports: dict[str, str] = {}
+        self.imports: collections.defaultdict[str, list[str]] = collections.defaultdict(list)
+        self.sources_with_exports: list[str] = []
 
     def scan_file(self, fname: str, lang: Literal['cpp', 'fortran']) -> None:
         if lang == 'fortran':
@@ -156,7 +159,7 @@ class DependencyScanner:
             else:
                 extension = 'mod'
             return os.path.join(self.target_data.private_dir, f'{namebase}.{extension}')
-        return '{}.ifc'.format(self.exports[src])
+        return f'{self.exports[src]}.ifc'
 
     def scan(self) -> int:
         for s, lang in self.sources:
@@ -201,7 +204,7 @@ class DependencyScanner:
 
         return 0
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     assert len(args) == 2, 'got wrong number of arguments!'
     outfile, pickle_file = args
     scanner = DependencyScanner(pickle_file, outfile)

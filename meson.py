@@ -7,11 +7,14 @@ import sys
 
 # Check python version before importing anything else, we might have an older
 # Python that would error on f-string syntax for example.
+
+# ruff: disable[UP036]
 if sys.version_info < (3, 10):
     print('Meson works correctly only with python 3.10+.')
-    print('You have python {}.'.format(sys.version))
+    print(f'You have python {sys.version}.')
     print('Please update your environment')
     sys.exit(1)
+# ruff: enable[UP036]
 
 from pathlib import Path
 
@@ -21,7 +24,7 @@ meson_exe = Path(sys.argv[0]).resolve()
 if (meson_exe.parent / 'mesonbuild').is_dir():
     sys.path.insert(0, str(meson_exe.parent))
 
-from mesonbuild import mesonmain
+from mesonbuild import mesonmain  # noqa: E402
 
 if __name__ == '__main__':
     sys.exit(mesonmain.main())

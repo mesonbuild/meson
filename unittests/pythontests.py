@@ -1,19 +1,23 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
-import glob, os, pathlib, shutil, subprocess, sys, unittest
-
-from run_tests import (
-    Backend
-)
-
-from .allplatformstests import git_init
-from .baseplatformtests import BasePlatformTests
-from .helpers import *
+import glob
+import os
+import pathlib
+import shutil
+import subprocess
+import sys
+import unittest
 
 from mesonbuild.compilers.detect import detect_c_compiler
 from mesonbuild.mesonlib import MachineChoice, TemporaryDirectoryWinProof, is_windows
 from mesonbuild.modules.python import PythonModule
+from run_tests import Backend
+
+from .allplatformstests import git_init
+from .baseplatformtests import BasePlatformTests
+from .helpers import get_fake_env
+
 
 class PythonTests(BasePlatformTests):
     '''
@@ -121,3 +125,4 @@ python = pymod.find_installation('python3', required: true)
             self.assertIn(limited_dep_name, output.decode())
         else:
             raise self.skipTest('Test needs either dumpbin(MSVC) or objdump(mingw).')
+        return None

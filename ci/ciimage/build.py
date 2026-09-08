@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
-import json
 import argparse
-import stat
-import textwrap
+import json
 import shutil
+import stat
 import subprocess
-from tempfile import TemporaryDirectory
+import textwrap
 from pathlib import Path
-import typing as T
+from tempfile import TemporaryDirectory
 
 image_namespace = 'mesonbuild'
 
@@ -21,15 +20,15 @@ class ImageDef:
         data = json.loads(path.read_text(encoding='utf-8'))
 
         assert isinstance(data, dict)
-        assert all([x in data for x in ['base_image', 'env']])
+        assert all(x in data for x in ['base_image', 'env'])
         assert isinstance(data['base_image'], str)
         assert isinstance(data['env'],  dict)
 
         self.base_image: str = data['base_image']
-        self.args: T.List[str] = data.get('args', [])
-        self.env: T.Dict[str, str] = data['env']
+        self.args: list[str] = data.get('args', [])
+        self.env: dict[str, str] = data['env']
 
-class BuilderBase():
+class BuilderBase:
     def __init__(self, data_dir: Path, temp_dir: Path) -> None:
         self.data_dir = data_dir
         self.temp_dir = temp_dir
@@ -109,7 +108,7 @@ class Builder(BuilderBase):
         self.gen_dockerfile()
 
         cmd_git = [self.git, 'rev-parse', '--short', 'HEAD']
-        res = subprocess.run(cmd_git, cwd=self.data_dir, stdout=subprocess.PIPE)
+        res = subprocess.run(cmd_git, cwd=self.data_dir, stdout=subprocess.PIPE, check=False)
         if res.returncode != 0:
             raise RuntimeError('Failed to get the current commit hash')
         commit_hash = res.stdout.decode().strip()
@@ -121,7 +120,7 @@ class Builder(BuilderBase):
             '--pull',
             self.temp_dir.as_posix(),
         ]
-        if subprocess.run(cmd).returncode != 0:
+        if subprocess.run(cmd, check=False).returncode != 0:
             raise RuntimeError('Failed to build the docker image')
 
 class ImageTester(BuilderBase):
@@ -163,33 +162,34 @@ class ImageTester(BuilderBase):
                 '-t', 'meson_test_image',
                 self.temp_dir.as_posix(),
             ]
-            if subprocess.run(build_cmd).returncode != 0:
+            if subprocess.run(build_cmd, check=False).returncode != 0:
                 raise RuntimeError('Failed to build the test docker image')
 
             test_cmd = []
             if tty:
                 test_cmd = [
                     self.docker, 'run', '--rm', '-t', '-i', 'meson_test_image',
-                    '/bin/bash', '-c', ''
-                    + 'cd meson;'
-                    + 'source /ci/env_vars.sh;'
-                    + f'echo -e "\\n\\nInteractive test shell in the {image_namespace}/{self.data_dir.name} container with the current meson tree";'
-                    + 'echo -e "The file ci/ciimage/user.sh will be sourced if it exists to enable user specific configurations";'
-                    + 'echo -e "Run the following command to run all CI tests: ./run_tests.py $CI_ARGS\\n\\n";'
-                    + '[ -f ci/ciimage/user.sh ] && exec /bin/bash --init-file ci/ciimage/user.sh;'
-                    + 'exec /bin/bash;'
+                    '/bin/bash', '-c', (
+                        'cd meson;'
+                        'source /ci/env_vars.sh;'
+                        f'echo -e "\\n\\nInteractive test shell in the {image_namespace}/{self.data_dir.name} container with the current meson tree";'
+                        'echo -e "The file ci/ciimage/user.sh will be sourced if it exists to enable user specific configurations";'
+                        'echo -e "Run the following command to run all CI tests: ./run_tests.py $CI_ARGS\\n\\n";'
+                        '[ -f ci/ciimage/user.sh ] && exec /bin/bash --init-file ci/ciimage/user.sh;'
+                        'exec /bin/bash;'
+                    ),
                 ]
             else:
                 test_cmd = [
                     self.docker, 'run', '--rm', '-t', 'meson_test_image',
-                    '/bin/bash', '-xc', 'source /ci/env_vars.sh; cd meson; ./run_tests.py $CI_ARGS'
+                    '/bin/bash', '-xc', 'source /ci/env_vars.sh; cd meson; ./run_tests.py $CI_ARGS',
                 ]
 
-            if subprocess.run(test_cmd).returncode != 0 and not tty:
+            if subprocess.run(test_cmd, check=False).returncode != 0 and not tty:
                 raise RuntimeError('Running tests failed')
         finally:
             cleanup_cmd = [self.docker, 'rmi', '-f', 'meson_test_image']
-            subprocess.run(cleanup_cmd).returncode
+            subprocess.run(cleanup_cmd, check=True)
 
 class ImageTTY(BuilderBase):
     def __init__(self, data_dir: Path, temp_dir: Path, ci_root: Path) -> None:
@@ -202,19 +202,20 @@ class ImageTTY(BuilderBase):
                 self.docker, 'run',
                 '--name', 'meson_test_container', '-t', '-i', '-v', f'{self.meson_root.as_posix()}:/meson',
                 f'{image_namespace}/{self.data_dir.name}',
-                '/bin/bash', '-c', ''
-                    + 'cd meson;'
-                    + 'source /ci/env_vars.sh;'
-                    + f'echo -e "\\n\\nInteractive test shell in the {image_namespace}/{self.data_dir.name} container with the current meson tree";'
-                    + 'echo -e "The file ci/ciimage/user.sh will be sourced if it exists to enable user specific configurations";'
-                    + 'echo -e "Run the following command to run all CI tests: ./run_tests.py $CI_ARGS\\n\\n";'
-                    + '[ -f ci/ciimage/user.sh ] && exec /bin/bash --init-file ci/ciimage/user.sh;'
-                    + 'exec /bin/bash;'
+                '/bin/bash', '-c', (
+                    'cd meson;'
+                    'source /ci/env_vars.sh;'
+                    f'echo -e "\\n\\nInteractive test shell in the {image_namespace}/{self.data_dir.name} container with the current meson tree";'
+                    'echo -e "The file ci/ciimage/user.sh will be sourced if it exists to enable user specific configurations";'
+                    'echo -e "Run the following command to run all CI tests: ./run_tests.py $CI_ARGS\\n\\n";'
+                    '[ -f ci/ciimage/user.sh ] && exec /bin/bash --init-file ci/ciimage/user.sh;'
+                    'exec /bin/bash;'
+                ),
             ]
-            subprocess.run(tty_cmd).returncode != 0
+            subprocess.run(tty_cmd, check=True)
         finally:
             cleanup_cmd = [self.docker, 'rm', '-f', 'meson_test_container']
-            subprocess.run(cleanup_cmd).returncode
+            subprocess.run(cleanup_cmd, check=True)
 
 
 def main() -> None:

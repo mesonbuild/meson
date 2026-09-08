@@ -2,18 +2,18 @@
 # Copyright © 2022-2023 Intel Corporation
 
 from __future__ import annotations
-import unittest
+
 import os
 import tempfile
 import textwrap
-import typing as T
+import unittest
 
 from mesonbuild.cargo import cfg
 from mesonbuild.cargo.cfg import TokenType
 from mesonbuild.cargo.interpreter import load_cargo_lock
-from mesonbuild.cargo.manifest import Dependency, Lint, Manifest, Package, Workspace, validate_patch
+from mesonbuild.cargo.manifest import Dependency, Manifest, Package, Workspace, validate_patch
 from mesonbuild.cargo.toml import load_toml
-from mesonbuild.cargo.version import api, cargo_parse, SemVer
+from mesonbuild.cargo.version import SemVer, api, cargo_parse
 from mesonbuild.mesonlib import MachineChoice, MesonException
 
 
@@ -23,7 +23,7 @@ class CargoVersionTest(unittest.TestCase):
         # Each case is (cargo_requirement, accepted_versions, rejected_versions).
         # The conversion from Cargo to Meson constraints is opaque, so probe the
         # resulting predicate on versions around the boundaries.
-        cases: T.List[T.Tuple[str, T.List[str], T.List[str]]] = [
+        cases: list[tuple[str, list[str], list[str]]] = [
             # Basic comparison requirements
             ('>= 1', ['1', '1.0', '1.5', '2'], ['0.9']),
             ('> 1', ['1.0.1', '1.5', '2'], ['0.9', '1']),
@@ -131,7 +131,7 @@ class CargoVersionTest(unittest.TestCase):
         self.assertEqual(SemVer('1.2.3-rc.1+exp.sha'), SemVer('1.2.3-rc.1'))
 
     def test_api(self) -> None:
-        cases: T.List[T.Tuple[str, str]] = [
+        cases: list[tuple[str, str]] = [
             # Plain versions
             ('1.2.3', '1'),
             ('0.4.5', '0.4'),
@@ -148,7 +148,7 @@ class CargoVersionTest(unittest.TestCase):
 class CargoCfgTest(unittest.TestCase):
 
     def test_lex(self) -> None:
-        cases: T.List[T.Tuple[str, T.List[T.Tuple[TokenType, T.Optional[str]]]]] = [
+        cases: list[tuple[str, list[tuple[TokenType, str | None]]]] = [
             ('"unix"', [(TokenType.STRING, 'unix')]),
             ('unix', [(TokenType.IDENTIFIER, 'unix')]),
             ('not(unix)', [
@@ -195,7 +195,7 @@ class CargoCfgTest(unittest.TestCase):
             'not(',
             'not(all(unix,))',
             'not(any)',
-            ''
+            '',
         ]
         for data in cases:
             with self.subTest():

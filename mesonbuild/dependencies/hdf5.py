@@ -6,27 +6,27 @@ from __future__ import annotations
 
 import os
 import re
+import typing as T
 from pathlib import Path
 
 from ..mesonlib import OrderedSet, join_args
 from .base import DependencyCandidate, DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
 from .detect import packages
-from .pkgconfig import PkgConfigDependency, PkgConfigInterface
 from .factory import factory_methods
-import typing as T
+from .pkgconfig import PkgConfigDependency, PkgConfigInterface
 
 if T.TYPE_CHECKING:
-    from .factory import DependencyGenerator
     from ..environment import Environment
     from .base import DependencyObjectKWs
+    from .factory import DependencyGenerator
 
 
 class HDF5PkgConfigDependency(PkgConfigDependency):
 
     """Handle brokenness in the HDF5 pkg-config files."""
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs) -> None:
         language = kwargs.get('language') or 'c'
         if language not in {'c', 'cpp', 'fortran'}:
             raise DependencyException(f'Language {language} is not supported with HDF5.')
@@ -36,7 +36,7 @@ class HDF5PkgConfigDependency(PkgConfigDependency):
             return
 
         # some broken pkgconfig don't actually list the full path to the needed includes
-        newinc: T.List[str] = []
+        newinc: list[str] = []
         for arg in self.compile_args:
             if arg.startswith('-I'):
                 stem = 'static' if self.static else 'shared'
@@ -44,7 +44,7 @@ class HDF5PkgConfigDependency(PkgConfigDependency):
                     newinc.append('-I' + str(Path(arg[2:]) / stem))
         self.compile_args += newinc
 
-        link_args: T.List[str] = []
+        link_args: list[str] = []
         for larg in self.get_link_args():
             lpath = Path(larg)
             # some pkg-config hdf5.pc (e.g. Ubuntu) don't include the commonly-used HL HDF5 libraries,
@@ -77,7 +77,7 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
     version_arg = '-showconfig'
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs) -> None:
         language = kwargs.get('language') or 'c'
         if language not in {'c', 'cpp', 'fortran'}:
             raise DependencyException(f'Language {language} is not supported with HDF5.')
@@ -141,9 +141,9 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL})
-def hdf5_factory(env: 'Environment', kwargs: DependencyObjectKWs,
-                 methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
-    candidates: T.List['DependencyGenerator'] = []
+def hdf5_factory(env: Environment, kwargs: DependencyObjectKWs,
+                 methods: list[DependencyMethods]) -> list[DependencyGenerator]:
+    candidates: list[DependencyGenerator] = []
     for_machine = kwargs['native']
 
     if DependencyMethods.PKGCONFIG in methods:

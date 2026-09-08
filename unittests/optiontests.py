@@ -1,11 +1,19 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2024 Meson project contributors
 
-from mesonbuild.options import *
-from mesonbuild.envconfig import MachineInfo
-
 import os
 import unittest
+
+from mesonbuild.envconfig import MachineInfo
+from mesonbuild.options import (
+    OptionKey,
+    OptionStore,
+    UserBooleanOption,
+    UserComboOption,
+    UserStringArrayOption,
+    UserStringOption,
+)
+from mesonbuild.utils.universal import MachineChoice, MesonException
 
 
 def make_machine(system: str) -> MachineInfo:
@@ -236,7 +244,6 @@ class OptionTests(unittest.TestCase):
         optstore = OptionStore(False)
         name = 'cpp_std'
         sub_name = 'sub'
-        sub2_name = 'sub2'
         top_value = 'c++11'
         aug_value = 'c++23'
         set_value = 'c++20'

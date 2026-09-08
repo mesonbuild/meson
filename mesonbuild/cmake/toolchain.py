@@ -3,30 +3,30 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from .traceparser import CMakeTraceParser
-from ..envconfig import CMakeSkipCompilerTest
-from .common import language_map, cmake_get_generator_args
-from .. import mlog
-
 import os.path
 import shutil
 import typing as T
 from enum import Enum
+from pathlib import Path
 from textwrap import dedent
 
+from .. import mlog
+from ..envconfig import CMakeSkipCompilerTest
+from .common import cmake_get_generator_args, language_map
+from .traceparser import CMakeTraceParser
+
 if T.TYPE_CHECKING:
-    from .executor import CMakeExecutor
-    from ..environment import Environment
     from ..compilers import Compiler
+    from ..environment import Environment
     from ..mesonlib import MachineChoice
+    from .executor import CMakeExecutor
 
 class CMakeExecScope(Enum):
     SUBPROJECT = 'subproject'
     DEPENDENCY = 'dependency'
 
 class CMakeToolchain:
-    def __init__(self, cmakebin: 'CMakeExecutor', env: 'Environment', for_machine: MachineChoice, exec_scope: CMakeExecScope, build_dir: Path, preload_file: T.Optional[Path] = None) -> None:
+    def __init__(self, cmakebin: CMakeExecutor, env: Environment, for_machine: MachineChoice, exec_scope: CMakeExecScope, build_dir: Path, preload_file: Path | None = None) -> None:
         self.env = env
         self.cmakebin = cmakebin
         self.for_machine = for_machine
@@ -63,14 +63,14 @@ class CMakeToolchain:
         mlog.cmd_ci_include(self.toolchain_file.as_posix())
         return self.toolchain_file
 
-    def get_cmake_args(self) -> T.List[str]:
+    def get_cmake_args(self) -> list[str]:
         args = ['-DCMAKE_TOOLCHAIN_FILE=' + self.toolchain_file.as_posix()]
         if self.preload_file is not None:
             args += ['-DMESON_PRELOAD_FILE=' + self.preload_file.as_posix()]
         return args
 
     @staticmethod
-    def _print_vars(vars: T.Dict[str, T.List[str]]) -> str:
+    def _print_vars(vars: dict[str, list[str]]) -> str:
         res = ''
         for key, value in vars.items():
             res += 'set(' + key
@@ -117,11 +117,11 @@ class CMakeToolchain:
         # Add the user provided toolchain file
         user_file = self.properties.get_cmake_toolchain_file()
         if user_file is not None:
-            res += dedent('''
+            res += dedent(f'''
                 # Load the CMake toolchain file specified by the user
-                include("{}")
+                include("{user_file.as_posix()}")
 
-            '''.format(user_file.as_posix()))
+            ''')
 
         return res
 
@@ -134,8 +134,8 @@ class CMakeToolchain:
             res += f'{name}:{v.type}={";".join(v.value)}\n'
         return res
 
-    def get_defaults(self) -> T.Dict[str, T.List[str]]:
-        defaults: T.Dict[str, T.List[str]] = {}
+    def get_defaults(self) -> dict[str, list[str]]:
+        defaults: dict[str, list[str]] = {}
 
         # Do nothing if the user does not want automatic defaults
         if not self.properties.get_cmake_defaults():
@@ -144,7 +144,7 @@ class CMakeToolchain:
         # Best effort to map the meson system name to CMAKE_SYSTEM_NAME, which
         # is not trivial since CMake lacks a list of all supported
         # CMAKE_SYSTEM_NAME values.
-        SYSTEM_MAP: T.Dict[str, str] = {
+        SYSTEM_MAP: dict[str, str] = {
             'android': 'Android',
             'linux': 'Linux',
             'windows': 'Windows',
@@ -196,7 +196,7 @@ class CMakeToolchain:
             if not language:
                 continue # unsupported language
 
-            prefix = 'CMAKE_{}_'.format(language)
+            prefix = f'CMAKE_{language}_'
 
             exe_list = comp_obj.get_exelist()
             if not exe_list:
@@ -216,13 +216,12 @@ class CMakeToolchain:
         return defaults
 
     @staticmethod
-    def is_cmdline_option(compiler: 'Compiler', arg: str) -> bool:
+    def is_cmdline_option(compiler: Compiler, arg: str) -> bool:
         if compiler.get_argument_syntax() == 'msvc':
             return arg.startswith('/')
-        else:
-            if os.path.basename(compiler.get_exe()) == 'zig' and arg in {'ar', 'cc', 'c++', 'dlltool', 'lib', 'ranlib', 'objcopy', 'rc'}:
-                return True
-            return arg.startswith('-')
+        if os.path.basename(compiler.get_exe()) == 'zig' and arg in {'ar', 'cc', 'c++', 'dlltool', 'lib', 'ranlib', 'objcopy', 'rc'}:
+            return True
+        return arg.startswith('-')
 
     def update_cmake_compiler_state(self) -> None:
         # Check if all variables are already cached

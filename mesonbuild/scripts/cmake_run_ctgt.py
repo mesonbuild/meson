@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 import argparse
-import subprocess
 import shutil
+import subprocess
 import sys
 from pathlib import Path
-import typing as T
 
-def run(argsv: T.List[str]) -> int:
-    commands: T.List[T.List[str]] = [[]]
+
+def run(argsv: list[str]) -> int:
+    commands: list[list[str]] = [[]]
     SEPARATOR = ';;;'
 
     # Generate CMD parameters
@@ -53,7 +53,7 @@ def run(argsv: T.List[str]) -> int:
             if j in {'>', '>>'}:
                 stdout = subprocess.PIPE
                 continue
-            elif j in {'&>', '&>>'}:
+            if j in {'&>', '&>>'}:
                 stdout = subprocess.PIPE
                 stderr = subprocess.STDOUT
                 continue

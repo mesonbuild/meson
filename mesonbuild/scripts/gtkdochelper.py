@@ -3,16 +3,21 @@
 
 from __future__ import annotations
 
-import sys, os
-import subprocess
-import shutil
 import argparse
+import os
+import shutil
+import subprocess
+import sys
+
 from ..mesonlib import (
-    MesonException, Popen_safe, is_windows, is_cygwin, is_parent_path,
+    MesonException,
+    Popen_safe,
+    is_cygwin,
+    is_parent_path,
+    is_windows,
     split_args,
 )
 from . import destdir_join
-import typing as T
 
 parser = argparse.ArgumentParser()
 
@@ -45,7 +50,7 @@ for tool in ['scan', 'scangobj', 'mkdb', 'mkhtml', 'fixxref']:
     program_name = 'gtkdoc-' + tool
     parser.add_argument('--' + program_name, dest=program_name.replace('-', '_'))
 
-def gtkdoc_run_check(cmd: T.List[str], cwd: str, library_paths: T.Optional[T.List[str]] = None) -> None:
+def gtkdoc_run_check(cmd: list[str], cwd: str, library_paths: list[str] | None = None) -> None:
     if library_paths is None:
         library_paths = []
 
@@ -70,7 +75,7 @@ def gtkdoc_run_check(cmd: T.List[str], cwd: str, library_paths: T.Optional[T.Lis
         if out:
             err_msg.append(out)
         raise MesonException('\n'.join(err_msg))
-    elif out:
+    if out:
         # Unfortunately Windows cmd.exe consoles may be using a codepage
         # that might choke print() with a UnicodeEncodeError, so let's
         # ignore such errors for now, as a compromise as we are outputting
@@ -80,13 +85,13 @@ def gtkdoc_run_check(cmd: T.List[str], cwd: str, library_paths: T.Optional[T.Lis
         except UnicodeEncodeError:
             pass
 
-def build_gtkdoc(source_root: str, build_root: str, doc_subdir: str, src_subdirs: T.List[str],
+def build_gtkdoc(source_root: str, build_root: str, doc_subdir: str, src_subdirs: list[str],
                  main_file: str, module: str, module_version: str,
-                 html_args: T.List[str], scan_args: T.List[str], fixxref_args: T.List[str], mkdb_args: T.List[str],
-                 gobject_typesfile: str, scanobjs_args: T.List[str], run: str, ld: str, cc: str, ldflags: str, cflags: str,
-                 html_assets: T.List[str], content_files: T.List[str], ignore_headers: T.List[str], namespace: str,
-                 expand_content_files: T.List[str], mode: str, options: argparse.Namespace) -> None:
-    print("Building documentation for %s" % module)
+                 html_args: list[str], scan_args: list[str], fixxref_args: list[str], mkdb_args: list[str],
+                 gobject_typesfile: str, scanobjs_args: list[str], run: str, ld: str, cc: str, ldflags: str, cflags: str,
+                 html_assets: list[str], content_files: list[str], ignore_headers: list[str], namespace: str,
+                 expand_content_files: list[str], mode: str, options: argparse.Namespace) -> None:
+    print(f"Building documentation for {module}")
 
     src_dir_args = []
     for src_dir in src_subdirs:
@@ -198,7 +203,7 @@ def build_gtkdoc(source_root: str, build_root: str, doc_subdir: str, src_subdirs
     if main_file:
         mkhtml_cmd.append('../' + main_file)
     else:
-        mkhtml_cmd.append('%s-docs.xml' % module)
+        mkhtml_cmd.append(f'{module}-docs.xml')
     # html gen must be run in the HTML dir
     gtkdoc_run_check(mkhtml_cmd, htmldir)
 
@@ -218,7 +223,7 @@ def install_gtkdoc(build_root: str, doc_subdir: str, install_prefix: str, datadi
     shutil.rmtree(final_destination, ignore_errors=True)
     shutil.copytree(source, final_destination)
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     options = parser.parse_args(args)
     if options.htmlargs:
         htmlargs = options.htmlargs.split('@@')

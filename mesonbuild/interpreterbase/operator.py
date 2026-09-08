@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
-from enum import Enum
 import typing as T
+from enum import Enum
+
 
 class MesonOperator(Enum):
     # Arithmetic

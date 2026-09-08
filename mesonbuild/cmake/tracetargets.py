@@ -2,19 +2,19 @@
 # Copyright 2021 The Meson development team
 from __future__ import annotations
 
-from .common import cmake_is_debug
-from .. import mlog
-from ..mesonlib import Version
-
-from pathlib import Path
 import re
 import typing as T
+from pathlib import Path
+
+from .. import mlog
+from ..mesonlib import Version
+from .common import cmake_is_debug
 
 if T.TYPE_CHECKING:
-    from .traceparser import CMakeTraceParser
-    from ..environment import Environment
     from ..compilers import Compiler
     from ..dependencies import MissingCompiler
+    from ..environment import Environment
+    from .traceparser import CMakeTraceParser
 
 # Small duplication of ExtraFramework to parse full
 # framework paths as exposed by CMake
@@ -28,9 +28,9 @@ def _get_framework_latest_version(path: Path) -> str:
     if len(versions) == 0:
         # most system frameworks do not have a 'Versions' directory
         return 'Headers'
-    return 'Versions/{}/Headers'.format(sorted(versions)[-1]._s)
+    return f'Versions/{sorted(versions)[-1]._s}/Headers'
 
-def _get_framework_include_path(path: Path) -> T.Optional[str]:
+def _get_framework_include_path(path: Path) -> str | None:
     trials = ('Headers', 'Versions/Current/Headers', _get_framework_latest_version(path))
     for each in trials:
         trial = path / each
@@ -40,18 +40,18 @@ def _get_framework_include_path(path: Path) -> T.Optional[str]:
 
 class ResolvedTarget:
     def __init__(self) -> None:
-        self.include_directories: T.List[str] = []
-        self.link_flags:          T.List[str] = []
-        self.public_link_flags:   T.List[str] = []
-        self.public_compile_opts: T.List[str] = []
-        self.libraries:           T.List[str] = []
-        self.target_dependencies: T.List[str] = []
+        self.include_directories: list[str] = []
+        self.link_flags:          list[str] = []
+        self.public_link_flags:   list[str] = []
+        self.public_compile_opts: list[str] = []
+        self.libraries:           list[str] = []
+        self.target_dependencies: list[str] = []
 
 def resolve_cmake_trace_targets(target_name: str,
-                                trace: 'CMakeTraceParser',
-                                env: 'Environment',
+                                trace: CMakeTraceParser,
+                                env: Environment,
                                 *,
-                                clib_compiler: T.Union['MissingCompiler', 'Compiler'] = None,
+                                clib_compiler: MissingCompiler | Compiler = None,
                                 not_found_warning: T.Callable[[str], None] = lambda x: None) -> ResolvedTarget:
     res = ResolvedTarget()
     targets = [target_name]
@@ -62,7 +62,7 @@ def resolve_cmake_trace_targets(target_name: str,
 
     is_debug = cmake_is_debug(env)
 
-    processed_targets: T.List[str] = []
+    processed_targets: list[str] = []
     while len(targets) > 0:
         curr = targets.pop(0)
 

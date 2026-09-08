@@ -2,66 +2,62 @@
 # Copyright 2015-2022 The Meson development team
 
 from __future__ import annotations
-from collections import defaultdict
-from dataclasses import dataclass
-from pathlib import PurePath, PurePosixPath
+
 import itertools
 import os
 import typing as T
+from collections import defaultdict
+from dataclasses import dataclass
+from pathlib import PurePath, PurePosixPath
 
-from . import NewExtensionModule, ModuleInfo
-from . import ModuleReturnValue
-from .. import build
-from .. import dependencies
-from .. import mesonlib
-from ..options import OptionKey
-from .. import mlog
-from ..options import BUILTIN_DIR_OPTIONS
+from .. import build, dependencies, mesonlib, mlog
 from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
 from ..interpreter.primitives import OptionString
 from ..interpreter.type_checking import D_MODULE_VERSIONS_KW, INSTALL_DIR_KW, VARIABLES_KW, NoneType
-from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken
+from ..interpreterbase import FeatureBroken, FeatureDeprecated, FeatureNew
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
+from ..options import BUILTIN_DIR_OPTIONS, OptionKey
+from . import ModuleInfo, ModuleReturnValue, NewExtensionModule
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
-    from . import ModuleState
     from .. import mparser
     from ..interpreter import Interpreter
+    from . import ModuleState
 
-    ANY_DEP = T.Union[dependencies.Dependency, build.LinkableTargetTypes, str]
-    REQS = T.Union[dependencies.Dependency, build.LibTypes, str]
-    LIBS = T.Union[build.LibTypes, str]
+    ANY_DEP: T.TypeAlias = dependencies.Dependency | build.LinkableTargetTypes | str
+    REQS: T.TypeAlias = dependencies.Dependency | build.LibTypes | str
+    LIBS: T.TypeAlias = build.LibTypes | str
 
     class GenerateKw(TypedDict):
 
-        version: T.Optional[str]
-        name: T.Optional[str]
-        filebase: T.Optional[str]
-        description: T.Optional[str]
+        version: str | None
+        name: str | None
+        filebase: str | None
+        description: str | None
         url: str
         license: str
-        subdirs: T.List[str]
-        conflicts: T.List[str]
+        subdirs: list[str]
+        conflicts: list[str]
         dataonly: bool
         # Executable is not accepted by the DSL, but the DependenciesHelper
         # has to handle it for link_with so use ANY_DEP here.
-        libraries: T.List[ANY_DEP]
-        libraries_private: T.List[ANY_DEP]
-        requires: T.List[REQS]
-        requires_private: T.List[REQS]
-        install_dir: T.Optional[str]
-        d_module_versions: T.List[T.Union[str, int]]
-        extra_cflags: T.List[str]
-        cflags_private: T.List[str]
-        variables: T.Dict[str, str]
-        uninstalled_variables: T.Dict[str, str]
-        unescaped_variables: T.Dict[str, str]
-        unescaped_uninstalled_variables: T.Dict[str, str]
+        libraries: list[ANY_DEP]
+        libraries_private: list[ANY_DEP]
+        requires: list[REQS]
+        requires_private: list[REQS]
+        install_dir: str | None
+        d_module_versions: list[str | int]
+        extra_cflags: list[str]
+        cflags_private: list[str]
+        variables: dict[str, str]
+        uninstalled_variables: dict[str, str]
+        unescaped_variables: dict[str, str]
+        unescaped_uninstalled_variables: dict[str, str]
 
 
-_PKG_LIBRARIES: KwargInfo[T.List[ANY_DEP]] = KwargInfo(
+_PKG_LIBRARIES: KwargInfo[list[ANY_DEP]] = KwargInfo(
     'libraries',
     ContainerTypeInfo(list, (str, dependencies.Dependency,
                              build.SharedLibrary, build.StaticLibrary,
@@ -70,7 +66,7 @@ _PKG_LIBRARIES: KwargInfo[T.List[ANY_DEP]] = KwargInfo(
     listify=True,
 )
 
-_PKG_REQUIRES: KwargInfo[T.List[REQS]] = KwargInfo(
+_PKG_REQUIRES: KwargInfo[list[REQS]] = KwargInfo(
     'requires',
     ContainerTypeInfo(list, (str, build.SharedLibrary, build.StaticLibrary, dependencies.Dependency)),
     default=[],
@@ -100,45 +96,45 @@ class _LibDeps:
     source: object
     link_targets: T.Sequence[build.LinkableTargetTypes]
     link_whole_targets: T.Sequence[build.StaticTargetTypes]
-    external_deps: T.List[dependencies.Dependency]
+    external_deps: list[dependencies.Dependency]
     public: bool
 
 
 class DependenciesHelper:
-    def __init__(self, state: ModuleState, name: str, metadata: T.Dict[str, MetaData],
+    def __init__(self, state: ModuleState, name: str, metadata: dict[str, MetaData],
                  static: bool) -> None:
         self.state = state
         self.name = name
         self.metadata = metadata
         self.static = static
-        self.pub_libs: T.List[LIBS] = []
-        self.pub_reqs: T.List[str] = []
-        self.priv_libs: T.List[LIBS] = []
-        self.priv_reqs: T.List[str] = []
-        self.cflags: T.List[str] = []
-        self.cflags_private: T.List[str] = []
-        self.version_reqs: T.DefaultDict[str, T.Set[str]] = defaultdict(set)
-        self.link_whole_targets: T.List[build.StaticTargetTypes] = []
+        self.pub_libs: list[LIBS] = []
+        self.pub_reqs: list[str] = []
+        self.priv_libs: list[LIBS] = []
+        self.priv_reqs: list[str] = []
+        self.cflags: list[str] = []
+        self.cflags_private: list[str] = []
+        self.version_reqs: defaultdict[str, set[str]] = defaultdict(set)
+        self.link_whole_targets: list[build.StaticTargetTypes] = []
         self.uninstalled_incdirs: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
         # Libraries whose recursive dependencies still have to be added.
-        self._dep_stack: T.List[_LibDeps] = []
+        self._dep_stack: list[_LibDeps] = []
 
-    def add_pub_libs(self, libs: T.List[ANY_DEP]) -> None:
+    def add_pub_libs(self, libs: list[ANY_DEP]) -> None:
         # Libraries come before their dependencies: appending gives the right
         # order because the arguments of generate() are added first, and when
         # _add_recursive_lib_dependencies() provides the dependencies sorted
         # from ancestors to descendants, they are processed in LIFO order.
         self._process_libs(libs, True, self.pub_libs, self.pub_reqs, self.cflags)
 
-    def add_priv_libs(self, libs: T.List[ANY_DEP]) -> None:
+    def add_priv_libs(self, libs: list[ANY_DEP]) -> None:
         # Cflags of private libraries are not part of the generated file, so
         # they are thrown away.
         self._process_libs(libs, False, self.priv_libs, self.priv_reqs, [])
 
-    def add_pub_reqs(self, reqs: T.List[REQS]) -> None:
+    def add_pub_reqs(self, reqs: list[REQS]) -> None:
         self.pub_reqs += self._process_reqs(reqs)
 
-    def add_priv_reqs(self, reqs: T.List[REQS]) -> None:
+    def add_priv_reqs(self, reqs: list[REQS]) -> None:
         self.priv_reqs += self._process_reqs(reqs)
 
     def _check_generated_pc_deprecation(self, obj: build.LibTypes) -> None:
@@ -158,9 +154,9 @@ class DependenciesHelper:
                          location=data.location)
         data.warned = True
 
-    def _process_reqs(self, reqs: T.Sequence[REQS]) -> T.List[str]:
+    def _process_reqs(self, reqs: T.Sequence[REQS]) -> list[str]:
         '''Returns string names of requirements'''
-        processed_reqs: T.List[str] = []
+        processed_reqs: list[str] = []
         for obj in mesonlib.listify(reqs):
             if not isinstance(obj, str):
                 FeatureNew.single_use('pkgconfig.generate requirement from non-string object', '0.46.0', self.state.subproject)
@@ -200,13 +196,13 @@ class DependenciesHelper:
                                               f'pkgconfig-generated file, got {obj!r}')
         return processed_reqs
 
-    def add_cflags(self, cflags: T.List[str]) -> None:
+    def add_cflags(self, cflags: list[str]) -> None:
         self.cflags += mesonlib.stringlistify(cflags)
 
-    def add_cflags_private(self, cflags_private: T.List[str]) -> None:
+    def add_cflags_private(self, cflags_private: list[str]) -> None:
         self.cflags_private += mesonlib.stringlistify(cflags_private)
 
-    def _add_uninstalled_incdirs(self, incdirs: T.List[build.IncludeDirs], subdir: T.Optional[str] = None) -> None:
+    def _add_uninstalled_incdirs(self, incdirs: list[build.IncludeDirs], subdir: str | None = None) -> None:
         for i in incdirs:
             curdir = i.curdir
             for d in itertools.chain(i.incdirs, i.extra_build_dirs):
@@ -216,9 +212,9 @@ class DependenciesHelper:
             self.uninstalled_incdirs.add(subdir)
 
     def _process_libs(
-            self, libs: T.List[ANY_DEP], public: bool,
-            processed_libs: T.List[LIBS], processed_reqs: T.List[str],
-            processed_cflags: T.List[str]) -> None:
+            self, libs: list[ANY_DEP], public: bool,
+            processed_libs: list[LIBS], processed_reqs: list[str],
+            processed_cflags: list[str]) -> None:
         for obj in libs:
             if (isinstance(obj, (build.CustomTarget, build.CustomTargetIndex, build.SharedLibrary, build.StaticLibrary))
                     and obj.get_id() in self.metadata):
@@ -289,8 +285,8 @@ class DependenciesHelper:
                 raise mesonlib.MesonException(f'library argument of type {type(obj).__name__} not a string, library or dependency object.')
 
     def _add_recursive_lib_dependencies(self) -> None:
-        visited: T.Set[T.Tuple[object, bool, bool]] = set()
-        visited_priv: T.Set[T.Tuple[object, bool, bool]] = set()
+        visited: set[tuple[object, bool, bool]] = set()
+        visited_priv: set[tuple[object, bool, bool]] = set()
 
         while self._dep_stack:
             step = self._dep_stack.pop()
@@ -311,21 +307,21 @@ class DependenciesHelper:
                     # These are not passed to _process_libs(), so pick up whatever
                     # they contribute to Requires.private and Libs.private here.
                     if isinstance(t, build.BuildTarget):
-                        add_libs(T.cast('T.List[ANY_DEP]', t.get_external_deps()))
+                        add_libs(T.cast('list[ANY_DEP]', t.get_external_deps()))
                 else:
                     add_libs([t])
 
             # And finally its external dependencies
-            add_libs(T.cast('T.List[ANY_DEP]', step.external_deps))
+            add_libs(T.cast('list[ANY_DEP]', step.external_deps))
 
-    def add_version_reqs(self, name: str, version_reqs: T.Optional[T.List[str]]) -> None:
+    def add_version_reqs(self, name: str, version_reqs: list[str] | None) -> None:
         if version_reqs:
             # Note that pkg-config is picky about whitespace.
             # 'foo > 1.2' is ok but 'foo>1.2' is not.
             # foo, bar' is ok, but 'foo,bar' is not.
             self.version_reqs[name].update(version_reqs)
 
-    def split_version_req(self, s: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
+    def split_version_req(self, s: str) -> tuple[str | None, str | None]:
         stripped_str = s.strip()
         if not stripped_str:
             mlog.warning('Required dependency was found to be an empty string. Did you mean to pass an empty array?')
@@ -349,8 +345,8 @@ class DependenciesHelper:
                 return op + ' ' + vreq[len(op):]
         return vreq
 
-    def format_reqs(self, reqs: T.List[str]) -> str:
-        result: T.List[str] = []
+    def format_reqs(self, reqs: list[str]) -> str:
+        result: list[str] = []
         for name in reqs:
             vreqs = self.version_reqs.get(name, None)
             if vreqs:
@@ -361,7 +357,7 @@ class DependenciesHelper:
 
     def remove_dups(self) -> None:
         # Set of ids that have already been handled and should not be added any more
-        exclude: T.Set[str] = set()
+        exclude: set[str] = set()
 
         # We can't just check if 'x' is excluded because we could have copies of
         # the same SharedLibrary object for example.
@@ -392,12 +388,12 @@ class DependenciesHelper:
         # pylance/pyright gets this right, but for mypy we have to ignore the
         # error
         @T.overload
-        def _fn(xs: T.List[str], libs: bool = False) -> T.List[str]: ...
+        def _fn(xs: list[str], libs: bool = False) -> list[str]: ...
 
         @T.overload
-        def _fn(xs: T.List[LIBS], libs: bool = False) -> T.List[LIBS]: ...
+        def _fn(xs: list[LIBS], libs: bool = False) -> list[LIBS]: ...
 
-        def _fn(xs: T.Union[T.List[str], T.List[LIBS]], libs: bool = False) -> T.Union[T.List[str], T.List[LIBS]]:
+        def _fn(xs: list[str] | list[LIBS], libs: bool = False) -> list[str] | list[LIBS]:
             # Remove duplicates whilst preserving original order
             result = []
             for x in xs:
@@ -429,8 +425,8 @@ class PkgConfigModule(NewExtensionModule):
 
     # Track already generated pkg-config files This is stored as a class
     # variable so that multiple `import()`s share metadata
-    devenv: T.Optional[mesonlib.EnvironmentVariables] = None
-    _metadata: T.ClassVar[T.Dict[str, MetaData]] = {}
+    devenv: mesonlib.EnvironmentVariables | None = None
+    _metadata: T.ClassVar[dict[str, MetaData]] = {}
 
     def __init__(self) -> None:
         super().__init__()
@@ -466,7 +462,7 @@ class PkgConfigModule(NewExtensionModule):
         mlog.warning(msg.format(l.name, 'name_prefix', l.name, pcfile))
         return l.name
 
-    def _escape(self, value: T.Union[str, PurePath]) -> str:
+    def _escape(self, value: str | PurePath) -> str:
         '''
         We cannot use quote_arg because it quotes with ' and " which does not
         work with pkg-config and pkgconf at all.
@@ -478,8 +474,8 @@ class PkgConfigModule(NewExtensionModule):
             value = value.as_posix()
         return value.replace(' ', r'\ ')
 
-    def _make_relative(self, prefix: T.Union[PurePath, str], subdir: T.Union[PurePath, str],
-                       path_class: T.Type[PurePath]) -> PurePosixPath:
+    def _make_relative(self, prefix: PurePath | str, subdir: PurePath | str,
+                       path_class: type[PurePath]) -> PurePosixPath:
         prefix = path_class(prefix)
         subdir = path_class(subdir)
         try:
@@ -490,7 +486,7 @@ class PkgConfigModule(NewExtensionModule):
         return '${prefix}' / PurePosixPath(libdir)
 
     def _get_relocatable_prefix(self, pkgroot: str, prefix: PurePath,
-                                path_class: T.Type[PurePath]) -> PurePosixPath:
+                                path_class: type[PurePath]) -> PurePosixPath:
         '''Compute the prefix variable for relocatable pkg-config files.
 
         Returns a path expression like '${pcfiledir}/../..' that represents
@@ -508,14 +504,14 @@ class PkgConfigModule(NewExtensionModule):
         return '${pcfiledir}' / PurePosixPath(*(['..'] * len(rel.parts)))
 
     def _generate_pkgconfig_file(self, state: ModuleState, deps: DependenciesHelper,
-                                 subdirs: T.List[str], name: str,
+                                 subdirs: list[str], name: str,
                                  description: str, url: str, version: str,
                                  license: str,
-                                 pcfile: str, conflicts: T.List[str],
-                                 variables: T.List[T.Tuple[str, str]],
-                                 unescaped_variables: T.List[T.Tuple[str, str]],
+                                 pcfile: str, conflicts: list[str],
+                                 variables: list[tuple[str, str]],
+                                 unescaped_variables: list[tuple[str, str]],
                                  uninstalled: bool = False, dataonly: bool = False,
-                                 pkgroot: T.Optional[str] = None) -> None:
+                                 pkgroot: str | None = None) -> None:
         coredata = state.environment.get_coredata()
         referenced_vars = set()
         optnames = [x.name for x in BUILTIN_DIR_OPTIONS.keys()]
@@ -573,16 +569,16 @@ class PkgConfigModule(NewExtensionModule):
             for optname in optnames:
                 if optname in referenced_vars - varnames:
                     if optname == 'prefix':
-                        ofile.write('prefix={}\n'.format(self._escape(prefix)))
+                        ofile.write(f'prefix={self._escape(prefix)}\n')
                     else:
                         dirpath = PurePath(_as_str(coredata.optstore.get_value_for(OptionKey(optname))))
                         ofile.write('{}={}\n'.format(optname, self._escape('${prefix}' / dirpath)))
             if uninstalled and not dataonly:
-                ofile.write('srcdir={}\n'.format(self._escape(srcdir)))
+                ofile.write(f'srcdir={self._escape(srcdir)}\n')
             if variables or unescaped_variables:
                 ofile.write('\n')
             for k, v in variables:
-                ofile.write('{}={}\n'.format(k, self._escape(v)))
+                ofile.write(f'{k}={self._escape(v)}\n')
             for k, v in unescaped_variables:
                 ofile.write(f'{k}={v}\n')
             ofile.write('\n')
@@ -603,16 +599,16 @@ class PkgConfigModule(NewExtensionModule):
             if conflicts:
                 ofile.write('Conflicts: {}\n'.format(' '.join(conflicts)))
 
-            def generate_libs_flags(libs: T.List[LIBS]) -> T.Iterable[str]:
-                msg = 'Library target {0!r} has {1!r} set. Compilers ' \
-                      'may not find it from its \'-l{2}\' linker flag in the ' \
-                      '{3!r} pkg-config file.'
+            def generate_libs_flags(libs: list[LIBS]) -> T.Iterable[str]:
+                msg = ('Library target {0!r} has {1!r} set. Compilers '
+                       'may not find it from its \'-l{2}\' linker flag in the '
+                       '{3!r} pkg-config file.')
                 Lflags = []
                 for l in libs:
                     if isinstance(l, str):
                         yield l
                     else:
-                        install_dir: T.Union[str, bool]
+                        install_dir: str | bool
                         if uninstalled:
                             install_dir = os.path.dirname(state.backend.get_target_filename_abs(l))
                             custom_install_dir = True
@@ -627,13 +623,12 @@ class PkgConfigModule(NewExtensionModule):
                             continue
                         if isinstance(l, build.BuildTarget) and 'cs' in l.compilers:
                             if custom_install_dir:
-                                Lflag = '-r{}/{}'.format(self._escape(self._make_relative(prefix, install_dir, pure_path_class)),
-                                                         l.filename)
+                                Lflag = f'-r{self._escape(self._make_relative(prefix, install_dir, pure_path_class))}/{l.filename}'
                             else:
-                                Lflag = '-r${libdir}/%s' % l.filename
+                                Lflag = f'-r${{libdir}}/{l.filename}'
                         else:
                             if custom_install_dir:
-                                Lflag = '-L{}'.format(self._escape(self._make_relative(prefix, install_dir, pure_path_class)))
+                                Lflag = f'-L{self._escape(self._make_relative(prefix, install_dir, pure_path_class))}'
                             else:
                                 Lflag = '-L${libdir}'
                         if Lflag not in Lflags:
@@ -652,7 +647,7 @@ class PkgConfigModule(NewExtensionModule):
             if deps.priv_libs:
                 ofile.write('Libs.private: {}\n'.format(' '.join(generate_libs_flags(deps.priv_libs))))
 
-            cflags: T.List[str] = []
+            cflags: list[str] = []
             if uninstalled:
                 for d in deps.uninstalled_incdirs:
                     for basedir in ['${prefix}', '${srcdir}']:
@@ -668,7 +663,7 @@ class PkgConfigModule(NewExtensionModule):
             if cflags and not dataonly:
                 ofile.write('Cflags: {}\n'.format(' '.join(cflags)))
 
-            cflags_private: T.List[str] = [self._escape(f) for f in deps.cflags_private]
+            cflags_private: list[str] = [self._escape(f) for f in deps.cflags_private]
             if cflags_private and not dataonly:
                 ofile.write('Cflags.private: {}\n'.format(' '.join(cflags_private)))
 
@@ -698,13 +693,13 @@ class PkgConfigModule(NewExtensionModule):
         _PKG_REQUIRES.evolve(name='requires_private'),
     )
     def generate(self, state: ModuleState,
-                 args: T.Tuple[T.Optional[T.Union[build.SharedLibrary, build.StaticLibrary]]],
+                 args: tuple[build.SharedLibrary | build.StaticLibrary | None],
                  kwargs: GenerateKw) -> ModuleReturnValue:
         default_version = state.project_version
-        default_install_dir: T.Optional[str] = None
-        default_description: T.Optional[str] = None
-        default_name: T.Optional[str] = None
-        mainlib: T.Optional[T.Union[build.SharedLibrary, build.StaticLibrary]] = None
+        default_install_dir: str | None = None
+        default_description: str | None = None
+        default_name: str | None = None
+        mainlib: build.SharedLibrary | build.StaticLibrary | None = None
         default_subdirs = ['.']
         if args[0]:
             FeatureNew.single_use('pkgconfig.generate optional positional argument', '0.46.0', state.subproject)
@@ -777,7 +772,7 @@ class PkgConfigModule(NewExtensionModule):
 
         deps.remove_dups()
 
-        def parse_variable_list(vardict: T.Dict[str, str]) -> T.List[T.Tuple[str, str]]:
+        def parse_variable_list(vardict: dict[str, str]) -> list[tuple[str, str]]:
             reserved = ['prefix', 'libdir', 'includedir']
             variables = []
             for name, value in vardict.items():

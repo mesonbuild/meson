@@ -3,14 +3,14 @@
 
 from __future__ import annotations
 
-import os
 import argparse
+import os
 import subprocess
 from pathlib import Path
-import typing as T
 
-from ..mesonlib import Popen_safe, split_args, determine_worker_count
 from .. import mlog
+from ..mesonlib import Popen_safe, determine_worker_count, split_args
+
 
 class ExternalProject:
     def __init__(self, options: argparse.Namespace):
@@ -66,7 +66,7 @@ class ExternalProject:
 
         return 0
 
-    def _run(self, step: str, command: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> int:
+    def _run(self, step: str, command: list[str], env: dict[str, str] | None = None) -> int:
         m = 'Running command ' + str(command) + ' in directory ' + str(self.build_dir) + '\n'
         logfile = Path(self.log_dir, f'{self.name}-{step}.log')
         output = None
@@ -92,7 +92,7 @@ class ExternalProject:
                 print(contents)
         return p.returncode
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--name')
     parser.add_argument('--srcdir')

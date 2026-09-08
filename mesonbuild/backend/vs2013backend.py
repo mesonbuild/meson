@@ -3,9 +3,10 @@
 
 from __future__ import annotations
 
-from .vs2010backend import Vs2010Backend
-from ..mesonlib import MesonException
 import typing as T
+
+from ..mesonlib import MesonException
+from .vs2010backend import Vs2010Backend
 
 if T.TYPE_CHECKING:
     from ..build import Build
@@ -14,7 +15,7 @@ class Vs2013Backend(Vs2010Backend):
 
     name = 'vs2013'
 
-    def __init__(self, build: T.Optional[Build]):
+    def __init__(self, build: Build | None):
         super().__init__(build)
         self.vs_version = '2013'
         self.sln_file_version = '12.00'

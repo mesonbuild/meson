@@ -3,11 +3,14 @@
 # Copyright 2016 The Meson development team
 
 
-import os, sys
+import os
+import sys
 
+# ruff: disable[UP036]
 if sys.version_info < (3, 10):
-    raise SystemExit('ERROR: Tried to install Meson with an unsupported Python version: \n{}'
-                     '\nMeson requires Python 3.10.0 or greater'.format(sys.version))
+    raise SystemExit(f'ERROR: Tried to install Meson with an unsupported Python version: \n{sys.version}'
+                     '\nMeson requires Python 3.10.0 or greater')
+# ruff: enable[UP036]
 
 from setuptools import setup
 
@@ -15,7 +18,7 @@ scm_args = {}
 HERE = os.path.dirname(__file__)
 if os.path.exists(os.path.join(HERE, '.git')):
     try:
-        import setuptools_scm
+        import setuptools_scm  # noqa: F401
     except ModuleNotFoundError:
         pass
     else:

@@ -18,8 +18,7 @@ def get_all_modules_from_dir(dirname):
     '''
     modname = os.path.basename(dirname)
     modules = [os.path.splitext(os.path.split(x)[1])[0] for x in glob(os.path.join(dirname, '*'))]
-    modules = ['mesonbuild.' + modname + '.' + x for x in modules if not x.startswith('_')]
-    return modules
+    return ['mesonbuild.' + modname + '.' + x for x in modules if not x.startswith('_')]
 
 datas += collect_data_files('mesonbuild.scripts', include_py_files=True, excludes=['**/__pycache__'])
 datas += collect_data_files('mesonbuild.cmake.data')

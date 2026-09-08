@@ -3,22 +3,29 @@
 
 from __future__ import annotations
 
-import sys, os
 import configparser
+import os
 import shutil
+import sys
 import typing as T
-
 from glob import glob
-from .wrap import (open_wrapdburl, read_and_decompress, WrapException, get_releases,
-                   get_releases_data, parse_patch_url)
+
 from .. import mesonlib, msubprojects
+from .wrap import (
+    WrapException,
+    get_releases,
+    get_releases_data,
+    open_wrapdburl,
+    parse_patch_url,
+    read_and_decompress,
+)
 
 if T.TYPE_CHECKING:
     import argparse
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
-def add_arguments(parser: 'argparse.ArgumentParser') -> None:
+def add_arguments(parser: argparse.ArgumentParser) -> None:
     subparsers = parser.add_subparsers(title='Commands', dest='command')
     subparsers.required = True
 
@@ -62,12 +69,12 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
                    help='Allow insecure server connections.')
     p.set_defaults(wrap_func=update_db)
 
-def list_projects(options: 'argparse.Namespace') -> None:
+def list_projects(options: argparse.Namespace) -> None:
     releases = get_releases(options.allow_insecure)
     for p in releases.keys():
         print(p)
 
-def search(options: 'argparse.Namespace') -> None:
+def search(options: argparse.Namespace) -> None:
     name = options.name
     releases = get_releases(options.allow_insecure)
     for p, info in releases.items():
@@ -78,7 +85,7 @@ def search(options: 'argparse.Namespace') -> None:
                 if dep.find(name) != -1:
                     print(f'Dependency {dep} found in wrap {p}')
 
-def get_latest_version(name: str, allow_insecure: bool) -> T.Tuple[str, str]:
+def get_latest_version(name: str, allow_insecure: bool) -> tuple[str, str]:
     releases = get_releases(allow_insecure)
     info = releases.get(name)
     if not info:
@@ -100,7 +107,7 @@ def install_one(name: str, allow_insecure: bool) -> None:
         f.write(read_and_decompress(url))
     print(f'Installed {name} version {version} revision {revision}')
 
-def install(options: 'argparse.Namespace') -> None:
+def install(options: argparse.Namespace) -> None:
     subproject_dir_name = mesonlib.get_subproject_dir()
     if subproject_dir_name is None or not os.path.isdir(subproject_dir_name):
         raise SystemExit('Subprojects dir not found. Run this script in your source root directory.')
@@ -117,7 +124,7 @@ def install(options: 'argparse.Namespace') -> None:
     if failed > 0:
         raise SystemExit(1)
 
-def get_current_version(wrapfile: str) -> T.Tuple[str, str, str, str, T.Optional[str]]:
+def get_current_version(wrapfile: str) -> tuple[str, str, str, str, str | None]:
     cp = configparser.ConfigParser(interpolation=None)
     cp.read(wrapfile)
     try:
@@ -137,7 +144,7 @@ def get_current_version(wrapfile: str) -> T.Tuple[str, str, str, str, T.Optional
         patch_filename = wrap_data['patch_filename']
     return branch, revision, wrap_data['directory'], wrap_data['source_filename'], patch_filename
 
-def info(options: 'argparse.Namespace') -> None:
+def info(options: argparse.Namespace) -> None:
     name = options.name
     releases = get_releases(options.allow_insecure)
     info = releases.get(name)
@@ -165,7 +172,7 @@ def do_promotion(from_path: str, spdir_name: str) -> None:
 
         shutil.copytree(from_path, outputdir, ignore=ignore)
 
-def promote(options: 'argparse.Namespace') -> None:
+def promote(options: argparse.Namespace) -> None:
     argument = options.project_path
     spdir_name = mesonlib.get_subproject_dir()
     if spdir_name is None:
@@ -190,7 +197,7 @@ def promote(options: 'argparse.Namespace') -> None:
         raise SystemExit(1)
     do_promotion(matches[0], spdir_name)
 
-def status(options: 'argparse.Namespace') -> None:
+def status(options: argparse.Namespace) -> None:
     print('Subproject status')
     subdir = mesonlib.unwrap(mesonlib.get_subproject_dir(), "This should only happen in a non-native subproject")
     for w in glob(f'{subdir}/*.wrap'):
@@ -210,7 +217,7 @@ def status(options: 'argparse.Namespace') -> None:
         else:
             print('', name, f'not up to date. Have {current_branch} {current_revision}, but {latest_branch} {latest_revision} is available.')
 
-def update_db(options: 'argparse.Namespace') -> None:
+def update_db(options: argparse.Namespace) -> None:
     data = get_releases_data(options.allow_insecure)
     subproject_dir_name = mesonlib.get_subproject_dir()
     if subproject_dir_name is None:
@@ -220,6 +227,6 @@ def update_db(options: 'argparse.Namespace') -> None:
     with open(os.path.join(subproject_dir_name, 'wrapdb.json'), 'wb') as f:
         f.write(data)
 
-def run(options: 'argparse.Namespace') -> int:
+def run(options: argparse.Namespace) -> int:
     options.wrap_func(options)
     return 0

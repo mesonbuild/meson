@@ -3,88 +3,103 @@
 
 from __future__ import annotations
 
-from os import path
-from pathlib import Path
 import shlex
 import typing as T
+from os import path
+from pathlib import Path
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo
-from .. import build
-from .. import mesonlib
-from ..options import OptionKey
-from .. import mlog
+from .. import build, mesonlib, mlog
 from ..interpreter.primitives import OptionString
-from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, INSTALL_TAG_KW, OUTPUT_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, in_set_validator
+from ..interpreter.type_checking import (
+    CT_BUILD_BY_DEFAULT,
+    CT_INPUT_KW,
+    INSTALL_DIR_KW,
+    INSTALL_KW,
+    INSTALL_TAG_KW,
+    OUTPUT_KW,
+    NoneType,
+    in_set_validator,
+)
 from ..interpreterbase import FeatureNew
+from ..interpreterbase.decorators import (
+    ContainerTypeInfo,
+    KwargInfo,
+    noPosargs,
+    typed_kwargs,
+    typed_pos_args,
+)
 from ..interpreterbase.exceptions import InvalidArguments
-from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, noPosargs, typed_kwargs, typed_pos_args
+from ..options import OptionKey
 from ..programs import ExternalProgram
 from ..scripts.gettext import read_linguas
+from . import ExtensionModule, ModuleInfo, ModuleReturnValue
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing import Literal
 
-    from . import ModuleState
+    from typing_extensions import TypedDict
+
     from ..build import CommandTypes, Target
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import CustomTargetSources
     from ..interpreter.kwargs import CustomTargetInputs
     from ..interpreterbase import TYPE_var
     from ..programs import Program
+    from . import ModuleState
 
     class MergeFile(TypedDict):
 
-        input: T.List[CustomTargetInputs]
+        input: list[CustomTargetInputs]
         output: str
         build_by_default: bool
         install: bool
-        install_dir: T.Optional[str]
-        install_tag: T.Optional[str]
-        args: T.List[str]
-        data_dirs: T.List[str]
+        install_dir: str | None
+        install_tag: str | None
+        args: list[str]
+        data_dirs: list[str]
         po_dir: str
         type: Literal['xml', 'desktop']
 
     class Gettext(TypedDict):
 
-        args: T.List[str]
-        msgfmt_args: T.List[str]
-        data_dirs: T.List[str]
+        args: list[str]
+        msgfmt_args: list[str]
+        data_dirs: list[str]
         install: bool
-        install_dir: T.Optional[str]
-        languages: T.List[str]
-        preset: T.Optional[str]
+        install_dir: str | None
+        languages: list[str]
+        preset: str | None
 
     class ItsJoinFile(TypedDict):
 
-        input: T.List[CustomTargetInputs]
+        input: list[CustomTargetInputs]
         output: str
         build_by_default: bool
         install: bool
-        install_dir: T.Optional[str]
-        install_tag: T.Optional[str]
-        its_files: T.List[str]
-        mo_targets: T.List[build.BuildTargetTypes]
+        install_dir: str | None
+        install_tag: str | None
+        its_files: list[str]
+        mo_targets: list[build.BuildTargetTypes]
 
     class XgettextProgramT(TypedDict):
 
-        args: T.List[str]
+        args: list[str]
         recursive: bool
         install: bool
-        install_dir: T.Optional[str]
-        install_tag: T.Optional[str]
+        install_dir: str | None
+        install_tag: str | None
 
-    SourcesType = T.Union[str, mesonlib.File, build.BuildTargetTypes, build.BothLibraries]
+    SourcesType: T.TypeAlias = str | mesonlib.File | build.BuildTargetTypes | build.BothLibraries
 
 
-_ARGS: KwargInfo[T.List[str]] = KwargInfo(
+_ARGS: KwargInfo[list[str]] = KwargInfo(
     'args',
     ContainerTypeInfo(list, str),
     default=[],
     listify=True,
 )
 
-_MSGFMT_ARGS: KwargInfo[T.List[str]] = KwargInfo(
+_MSGFMT_ARGS: KwargInfo[list[str]] = KwargInfo(
     'msgfmt_args',
     ContainerTypeInfo(list, str),
     default=[],
@@ -92,11 +107,11 @@ _MSGFMT_ARGS: KwargInfo[T.List[str]] = KwargInfo(
     since='1.12.0',
 )
 
-_DATA_DIRS: KwargInfo[T.List[str]] = KwargInfo(
+_DATA_DIRS: KwargInfo[list[str]] = KwargInfo(
     'data_dirs',
     ContainerTypeInfo(list, str),
     default=[],
-    listify=True
+    listify=True,
 )
 
 PRESET_ARGS = {
@@ -130,13 +145,13 @@ PRESET_ARGS = {
         '--flag=g_fprintf:2:c-format',
         '--flag=g_sprintf:2:c-format',
         '--flag=g_snprintf:3:c-format',
-    ]
+    ],
 }
 
 
 class XgettextProgram:
 
-    pot_files: T.Dict[str, build.CustomTarget] = {}
+    pot_files: dict[str, build.CustomTarget] = {}
 
     def __init__(self, xgettext: ExternalProgram, interpreter: Interpreter):
         self.xgettext = xgettext
@@ -145,12 +160,12 @@ class XgettextProgram:
     def extract(self,
                 state: ModuleState,
                 name: str,
-                sources: T.List[SourcesType],
-                args: T.List[str],
+                sources: list[SourcesType],
+                args: list[str],
                 recursive: bool,
                 install: bool,
-                install_dir: T.Optional[str],
-                install_tag: T.Optional[str]) -> build.CustomTarget:
+                install_dir: str | None,
+                install_tag: str | None) -> build.CustomTarget:
 
         if not name.endswith('.pot'):
             name += '.pot'
@@ -164,7 +179,7 @@ class XgettextProgram:
 
         depends = list(self._get_depends(sources)) if recursive else []
         rsp_file = self._get_rsp_file(name, source_files, depends, command)
-        inputs: T.List[T.Union[mesonlib.File, build.CustomTarget]]
+        inputs: list[mesonlib.File | build.CustomTarget]
         if rsp_file:
             inputs = [rsp_file]
             depend_files = list(source_files)
@@ -198,7 +213,7 @@ class XgettextProgram:
         self.interpreter.add_target(ct.name, ct)
         return ct
 
-    def _get_source_files(self, sources: T.Iterable[SourcesType]) -> T.Set[mesonlib.File]:
+    def _get_source_files(self, sources: T.Iterable[SourcesType]) -> set[mesonlib.File]:
         source_files = set()
         for source in sources:
             if isinstance(source, mesonlib.File):
@@ -214,7 +229,7 @@ class XgettextProgram:
                 source_files.update(mesonlib.File.from_built_file(source.get_subdir(), f) for f in source.get_outputs())
         return source_files
 
-    def _get_depends(self, sources: T.Iterable[SourcesType]) -> T.Set[build.CustomTarget]:
+    def _get_depends(self, sources: T.Iterable[SourcesType]) -> set[build.CustomTarget]:
         depends = set()
         for source in sources:
             if isinstance(source, build.BuildTarget):
@@ -234,7 +249,7 @@ class XgettextProgram:
                       name: str,
                       source_files: T.Iterable[mesonlib.File],
                       depends: T.Iterable[build.CustomTarget],
-                      arguments: T.List[str]) -> T.Optional[mesonlib.File]:
+                      arguments: list[str]) -> mesonlib.File | None:
         source_list = '\n'.join(source.relative_name() for source in source_files)
         for dep in depends:
             source_list += '\n' + path.join(dep.subdir, dep.get_filename())
@@ -262,7 +277,7 @@ class I18nModule(ExtensionModule):
 
     INFO = ModuleInfo('i18n')
 
-    def __init__(self, interpreter: 'Interpreter'):
+    def __init__(self, interpreter: Interpreter):
         super().__init__(interpreter)
         self.methods.update({
             'merge_file': self.merge_file,
@@ -270,7 +285,7 @@ class I18nModule(ExtensionModule):
             'itstool_join': self.itstool_join,
             'xgettext': self.xgettext,
         })
-        self.tools: T.Dict[str, T.Optional[Program]] = {
+        self.tools: dict[str, Program | None] = {
             'itstool': None,
             'msgfmt': None,
             'msginit': None,
@@ -279,7 +294,7 @@ class I18nModule(ExtensionModule):
         }
 
     @staticmethod
-    def _get_data_dirs(state: 'ModuleState', dirs: T.Iterable[str]) -> T.List[str]:
+    def _get_data_dirs(state: ModuleState, dirs: T.Iterable[str]) -> list[str]:
         """Returns source directories of relative paths"""
         src_dir = path.join(state.environment.get_source_dir(), state.subdir)
         return [path.join(src_dir, d) for d in dirs]
@@ -299,7 +314,7 @@ class I18nModule(ExtensionModule):
         KwargInfo('po_dir', str, required=True),
         KwargInfo('type', str, default='xml', validator=in_set_validator({'xml', 'desktop'})),
     )
-    def merge_file(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'MergeFile') -> ModuleReturnValue:
+    def merge_file(self, state: ModuleState, args: list[TYPE_var], kwargs: MergeFile) -> ModuleReturnValue:
         if kwargs['install'] and not kwargs['install_dir']:
             raise InvalidArguments('i18n.merge_file: "install_dir" keyword argument must be set when "install" is true.')
 
@@ -319,7 +334,7 @@ class I18nModule(ExtensionModule):
         ddirs = self._get_data_dirs(state, kwargs['data_dirs'])
         datadirs = '--datadirs=' + ':'.join(ddirs) if ddirs else None
 
-        command: T.List[CommandTypes] = []
+        command: list[CommandTypes] = []
         command.extend(state.environment.get_build_command())
         command.extend([
             '--internal', 'msgfmthelper',
@@ -338,7 +353,7 @@ class I18nModule(ExtensionModule):
 
         install_tag = [kwargs['install_tag']] if kwargs['install_tag'] is not None else None
 
-        inputs: T.List[CustomTargetSources] = self.interpreter.source_strings_to_files(kwargs['input'])
+        inputs: list[CustomTargetSources] = self.interpreter.source_strings_to_files(kwargs['input'])
         ct = build.CustomTarget(
             '',
             state.subdir,
@@ -372,7 +387,7 @@ class I18nModule(ExtensionModule):
             since='0.37.0',
         ),
     )
-    def gettext(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'Gettext') -> ModuleReturnValue:
+    def gettext(self, state: ModuleState, args: tuple[str], kwargs: Gettext) -> ModuleReturnValue:
         for tool, strict in [('msgfmt', True), ('msginit', False), ('msgmerge', False), ('xgettext', False)]:
             if self.tools[tool] is None:
                 self.tools[tool] = state.find_program(tool, required=False, for_machine=mesonlib.MachineChoice.BUILD)
@@ -382,9 +397,8 @@ class I18nModule(ExtensionModule):
                     mlog.warning('Gettext not found, all translation (po) targets will be ignored.',
                                  once=True, location=state.current_node)
                     return ModuleReturnValue(None, [])
-                else:
-                    mlog.warning(f'{tool!r} not found, maintainer targets will not work',
-                                 once=True, fatal=False, location=state.current_node)
+                mlog.warning(f'{tool!r} not found, maintainer targets will not work',
+                             once=True, fatal=False, location=state.current_node)
         packagename = args[0]
         pkg_arg = f'--pkgname={packagename}'
 
@@ -395,8 +409,8 @@ class I18nModule(ExtensionModule):
         datadirs = f'--datadirs={_datadirs}' if _datadirs else None
 
         extra_args = kwargs['args']
-        targets: T.List['Target'] = []
-        gmotargets: T.List['build.CustomTarget'] = []
+        targets: list[Target] = []
+        gmotargets: list[build.CustomTarget] = []
 
         preset = kwargs['preset']
         if preset:
@@ -493,7 +507,7 @@ class I18nModule(ExtensionModule):
         KwargInfo('its_files', ContainerTypeInfo(list, str)),
         KwargInfo('mo_targets', ContainerTypeInfo(list, build.CustomTarget), required=True),
     )
-    def itstool_join(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'ItsJoinFile') -> ModuleReturnValue:
+    def itstool_join(self, state: ModuleState, args: list[TYPE_var], kwargs: ItsJoinFile) -> ModuleReturnValue:
         if kwargs['install'] and not kwargs['install_dir']:
             raise InvalidArguments('i18n.itstool_join: "install_dir" keyword argument must be set when "install" is true.')
 
@@ -506,7 +520,7 @@ class I18nModule(ExtensionModule):
         for target in mo_targets:
             mo_fnames.append(path.join(target.get_builddir(), target.get_outputs()[0]))
 
-        command: T.List[CommandTypes] = []
+        command: list[CommandTypes] = []
         command.extend(state.environment.get_build_command())
 
         itstool_cmd = self.tools['itstool'].get_command()
@@ -530,7 +544,7 @@ class I18nModule(ExtensionModule):
 
         install_tag = [kwargs['install_tag']] if kwargs['install_tag'] is not None else None
 
-        inputs: T.List[CustomTargetSources] = self.interpreter.source_strings_to_files(kwargs['input'])
+        inputs: list[CustomTargetSources] = self.interpreter.source_strings_to_files(kwargs['input'])
         ct = build.CustomTarget(
             '',
             state.subdir,
@@ -559,7 +573,7 @@ class I18nModule(ExtensionModule):
         INSTALL_DIR_KW,
         INSTALL_TAG_KW,
     )
-    def xgettext(self, state: ModuleState, args: T.Tuple[str, T.List[SourcesType]], kwargs: XgettextProgramT) -> build.CustomTarget:
+    def xgettext(self, state: ModuleState, args: tuple[str, list[SourcesType]], kwargs: XgettextProgramT) -> build.CustomTarget:
         if any(isinstance(a, build.CustomTarget) for a in args[1]):
             FeatureNew.single_use('i18n.xgettext with custom_target is broken until 1.10', '1.10.0', self.interpreter.subproject, location=self.interpreter.current_node)
         if any(isinstance(a, build.CustomTargetIndex) for a in args[1]):
@@ -576,5 +590,5 @@ class I18nModule(ExtensionModule):
         return xgettext_program.extract(state, *args, **kwargs)
 
 
-def initialize(interp: 'Interpreter') -> I18nModule:
+def initialize(interp: Interpreter) -> I18nModule:
     return I18nModule(interp)

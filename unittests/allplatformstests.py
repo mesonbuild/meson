@@ -3,74 +3,108 @@
 # Copyright © 2023-2026 Intel Corporation
 
 from __future__ import annotations
+
 import itertools
-import subprocess
-import re
 import json
-import tempfile
-import textwrap
 import os
-import shutil
-import platform
 import pickle
-import zipfile, tarfile
+import platform
+import re
+import shutil
+import subprocess
 import sys
 import sysconfig
-from unittest import mock, SkipTest, skipIf, skipUnless, expectedFailure
+import tarfile
+import tempfile
+import textwrap
+import typing as T
+import zipfile
 from contextlib import contextmanager
 from glob import glob
-from pathlib import (PurePath, Path)
-import typing as T
+from pathlib import Path, PurePath
+from unittest import SkipTest, mock, skipIf, skipUnless
 
-from mesonbuild.build import BuildProject
-import mesonbuild.mlog
-import mesonbuild.depfile
+import mesonbuild.coredata
 import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
+import mesonbuild.depfile
 import mesonbuild.envconfig
 import mesonbuild.environment
-import mesonbuild.coredata
 import mesonbuild.machinefile
+import mesonbuild.mlog
 import mesonbuild.modules.gnome
+import mesonbuild.modules.pkgconfig
 import mesonbuild.tooldetect
-from mesonbuild.mesonlib import (
-    DirectoryLock, DirectoryLockAction, MachineChoice, is_windows, is_osx, is_cygwin, is_dragonflybsd,
-    is_sunos, windows_proof_rmtree, python_command, version_compare, split_args, quote_arg,
-    relpath, is_linux, git, search_version, do_conf_file, do_conf_str, default_prefix,
-    SubProject, MesonException, EnvironmentException,
-    windows_proof_rm, first
+from mesonbuild import mtest
+from mesonbuild.build import (
+    BuildProject,
+    ConfigurationData,
+    Executable,
+    SharedLibrary,
+    StaticLibrary,
+    Target,
 )
-from mesonbuild.options import OptionKey
-from mesonbuild.programs import ExternalProgram
-
+from mesonbuild.compilers import (
+    compiler_from_language,
+    detect_c_compiler,
+    detect_compiler_for,
+    detect_static_linker,
+)
+from mesonbuild.compilers.c import ClangClCCompiler, VisualStudioCCompiler
+from mesonbuild.compilers.cpp import ClangClCPPCompiler, VisualStudioCPPCompiler
 from mesonbuild.compilers.mixins.clang import ClangCompiler
 from mesonbuild.compilers.mixins.elbrus import ElbrusCompiler
 from mesonbuild.compilers.mixins.gnu import GnuCompiler
 from mesonbuild.compilers.mixins.intel import IntelGnuLikeCompiler
-from mesonbuild.compilers.c import VisualStudioCCompiler, ClangClCCompiler
-from mesonbuild.compilers.cpp import VisualStudioCPPCompiler, ClangClCPPCompiler
-from mesonbuild.compilers import (
-    detect_static_linker, detect_c_compiler, compiler_from_language,
-    detect_compiler_for
-)
-from mesonbuild.linkers import linkers
-
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency
-from mesonbuild.build import Target, ConfigurationData, Executable, SharedLibrary, StaticLibrary
-from mesonbuild import mtest
-import mesonbuild.modules.pkgconfig
-from mesonbuild.scripts import destdir_join
-
-from mesonbuild.wrap.wrap import PackageDefinition, WrapException
-
-from run_tests import (
-    Backend, exe_suffix, get_fake_env, get_convincing_fake_env_and_cc
+from mesonbuild.linkers import linkers
+from mesonbuild.mesonlib import (
+    DirectoryLock,
+    DirectoryLockAction,
+    EnvironmentException,
+    MachineChoice,
+    MesonException,
+    SubProject,
+    default_prefix,
+    do_conf_file,
+    do_conf_str,
+    first,
+    git,
+    is_cygwin,
+    is_dragonflybsd,
+    is_linux,
+    is_osx,
+    is_sunos,
+    is_windows,
+    python_command,
+    quote_arg,
+    relpath,
+    search_version,
+    split_args,
+    version_compare,
+    windows_proof_rm,
+    windows_proof_rmtree,
 )
+from mesonbuild.options import OptionKey
+from mesonbuild.programs import ExternalProgram
+from mesonbuild.scripts import destdir_join
+from mesonbuild.wrap.wrap import PackageDefinition, WrapException
+from run_tests import Backend, exe_suffix, get_convincing_fake_env_and_cc, get_fake_env
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import *
+from .helpers import (
+    IS_CI,
+    chdir,
+    get_rpath,
+    skip_if_no_cmake,
+    skip_if_not_base_option,
+    skip_if_not_language,
+    skipIfNoExecutable,
+    skipIfNoPkgconfig,
+)
 
 if T.TYPE_CHECKING:
+    from mesonbuild.build import BuildTarget
     from mesonbuild.compilers.compilers import Language
     from mesonbuild.environment import Environment
 
@@ -266,7 +300,6 @@ class AllPlatformTests(BasePlatformTests):
                 with open(os.path.join(self.builddir, header), encoding='utf-8') as f:
                     meson_header = f.read()
 
-                cmake_header_path = os.path.join(cmake_builddir, header)
                 with open(os.path.join(cmake_builddir, header), encoding='utf-8') as f:
                     cmake_header = f.read()
 
@@ -376,7 +409,7 @@ class AllPlatformTests(BasePlatformTests):
         if default_prefix() == '/usr/local':
             expected[None] = expected['/usr/local']
 
-        for prefix in expected:
+        for prefix, exvalues in expected.items():
             args = []
             if prefix:
                 args += ['--prefix', prefix]
@@ -385,7 +418,7 @@ class AllPlatformTests(BasePlatformTests):
             for opt in opts:
                 name = opt['name']
                 value = opt['value']
-                if name in expected[prefix]:
+                if name in exvalues:
                     with self.subTest(prefix=prefix, option=name):
                         self.assertEqual(value, expected[prefix][name], f'For option {name} and prefix {prefix}.')
             self.wipe()
@@ -640,9 +673,8 @@ class AllPlatformTests(BasePlatformTests):
     def read_install_logs(self):
         # Find logged files and directories
         with Path(self.builddir, 'meson-logs', 'install-log.txt').open(encoding='utf-8') as f:
-            return list(map(lambda l: Path(l.strip()),
-                              filter(lambda l: not l.startswith('#'),
-                                     f.readlines())))
+            return [Path(l.strip()) for l in filter(lambda l: not l.startswith('#'),
+                                     f.readlines())]
 
     def test_install_log_content(self):
         '''
@@ -784,7 +816,7 @@ class AllPlatformTests(BasePlatformTests):
         line_number = 0
         i = 1
         while line_number < len(lines) and i < 100001:
-            print('---> %s' % lines[line_number])
+            print(f'---> {lines[line_number]}')
             if f'# Iteration {i} to stdout' in lines[line_number]:
                 i += 1
             line_number += 1
@@ -899,8 +931,8 @@ class AllPlatformTests(BasePlatformTests):
     def assertFailedTestCount(self, failure_count, command):
         try:
             self._run(command)
-            self.assertEqual(0, failure_count, 'Expected %d tests to fail.' % failure_count)
-        except subprocess.CalledProcessError as e:
+            self.assertEqual(0, failure_count, f'Expected {failure_count} tests to fail.')
+        except subprocess.CalledProcessError:
             actual_fails = 0
             with open(os.path.join(self.logdir, 'testlog.json'), encoding='utf-8') as f:
                 for line in f:
@@ -1081,7 +1113,7 @@ class AllPlatformTests(BasePlatformTests):
         for target in targets:
             for target_sources in target["target_sources"]:
                 for generated_source in target_sources.get("generated_sources", []):
-                    if generated_source.endswith(".pyx.c") or generated_source.endswith("pyx.cpp"):
+                    if generated_source.endswith((".pyx.c", "pyx.cpp")):
                         found = True
                         parts = os.path.normpath(generated_source).split(os.sep)
                         parent = parts[-2]
@@ -1093,7 +1125,7 @@ class AllPlatformTests(BasePlatformTests):
                         self.assertTrue(
                             parent.endswith(".p"),
                             "pyx.c file should be directly under the .p folder,"
-                            f" got {generated_source!r}"
+                            f" got {generated_source!r}",
                         )
         self.assertTrue(found, "No cython transpiled outputs found")
 
@@ -1538,7 +1570,7 @@ class AllPlatformTests(BasePlatformTests):
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
-        extra_args: T.List[str] = []
+        extra_args: list[str] = []
         if cc.get_id() == 'clang':
             if is_windows():
                 raise SkipTest('LTO not (yet) supported by windows clang')
@@ -1568,7 +1600,7 @@ class AllPlatformTests(BasePlatformTests):
             raise SkipTest('Only clang currently supports thinLTO')
         if cc.linker.id not in {'ld.lld', 'ld.gold', 'ld64', 'lld-link'}:
             raise SkipTest('thinLTO requires ld.lld, ld.gold, ld64, or lld-link')
-        elif is_windows():
+        if is_windows():
             raise SkipTest('LTO not (yet) supported by windows clang')
 
         self.init(testdir, extra_args=['-Db_lto=true', '-Db_lto_mode=thin', '-Db_lto_threads=8', '-Dc_args=-Werror=unused-command-line-argument'])
@@ -1898,7 +1930,7 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '39 library chain')
         self.init(testdir)
         self.build()
-        for each in ('prog', 'subdir/liblib1.so', ):
+        for each in ('prog', 'subdir/liblib1.so' ):
             rpath = get_rpath(os.path.join(self.builddir, each))
             self.assertTrue(rpath, f'Rpath could not be determined for {each}.')
             if is_dragonflybsd():
@@ -3212,7 +3244,8 @@ class AllPlatformTests(BasePlatformTests):
                 pc = subprocess.run(self.setup_command,
                                     cwd=srcdir,
                                     stdout=subprocess.PIPE,
-                                    stderr=subprocess.DEVNULL)
+                                    stderr=subprocess.DEVNULL,
+                                    check=False)
                 self.assertIn(b'Must specify at least one directory name', pc.stdout)
                 with tempfile.TemporaryDirectory(dir=srcdir) as builddir:
                     subprocess.run(self.setup_command,
@@ -3319,7 +3352,7 @@ class AllPlatformTests(BasePlatformTests):
             'platform': sysconfig.get_platform(),
             'language': {
                 'version': sysconfig.get_python_version(),
-                'version_info': {key: getattr(sys.version_info, key) for key in VERSION_INFO_KEYS}
+                'version_info': {key: getattr(sys.version_info, key) for key in VERSION_INFO_KEYS},
             },
             'implementation': {
                 attr: (
@@ -3352,7 +3385,7 @@ class AllPlatformTests(BasePlatformTests):
             },
             'c_api': {
                 'headers': sysconfig.get_config_var('INCLUDEPY'),
-            }
+            },
         }
 
         py3library = sysconfig.get_config_var('PY3LIBRARY')
@@ -3399,24 +3432,24 @@ class AllPlatformTests(BasePlatformTests):
 
                             with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as cross_file:
                                 cross_file.write(
-                                    textwrap.dedent(f'''
+                                    textwrap.dedent('''
                                         [binaries]
                                         pkg-config = 'pkg-config'
-                                    ''')
+                                    '''),
                                 )
                                 if build_config_via_cross:
                                     cross_file.write(
                                         textwrap.dedent(f'''
                                             [built-in options]
                                             python.build_config = '{python_build_config_file.name}'
-                                        ''')
+                                        '''),
                                     )
                                 if sys_root is not None:
                                     cross_file.write(
                                         textwrap.dedent(f'''
                                             [properties]
                                             sys_root = '{sys_root}'
-                                        ''')
+                                        '''),
                                     )
                                 cross_file.flush()
 
@@ -3550,7 +3583,7 @@ class AllPlatformTests(BasePlatformTests):
                 {
                     'descriptive_name': 'sub',
                     'name': 'sub',
-                    'version': '1.0'
+                    'version': '1.0',
                 },
                 {
                     'descriptive_name': 'sub_implicit',
@@ -3565,19 +3598,19 @@ class AllPlatformTests(BasePlatformTests):
                 {
                     'descriptive_name': 'sub_static',
                     'name': 'sub_static',
-                    'version': 'undefined'
+                    'version': 'undefined',
                 },
                 {
                     'descriptive_name': 'subsub',
                     'name': 'subsub',
-                    'version': 'undefined'
+                    'version': 'undefined',
                 },
                 {
                     'descriptive_name': 'subsubsub',
                     'name': 'subsubsub',
-                    'version': 'undefined'
+                    'version': 'undefined',
                 },
-            ]
+            ],
         }
         res['subprojects'] = sorted(res['subprojects'], key=lambda i: i['name'])
         self.assertDictEqual(expected, res)
@@ -3590,7 +3623,7 @@ class AllPlatformTests(BasePlatformTests):
         expected = {
             'sublib': 'sublib',
             'simpletest': 'sublib',
-            'user': None
+            'user': None,
         }
 
         for entry in res:
@@ -3917,7 +3950,7 @@ class AllPlatformTests(BasePlatformTests):
         # First load all files
         res = {}
         for i in root_keylist:
-            curr = os.path.join(infodir, 'intro-{}.json'.format(i[0]))
+            curr = os.path.join(infodir, f'intro-{i[0]}.json')
             self.assertPathExists(curr)
             with open(curr, encoding='utf-8') as fp:
                 res[i[0]] = json.load(fp)
@@ -3973,7 +4006,7 @@ class AllPlatformTests(BasePlatformTests):
         with self.subTest('Check buildsystem_files'):
             bs_files = ['meson.build', 'meson_options.txt', 'sharedlib/meson.build', 'staticlib/meson.build']
             bs_files = [os.path.join(testdir, x) for x in bs_files]
-            self.assertPathListEqual(list(sorted(res['buildsystem_files'])), list(sorted(bs_files)))
+            self.assertPathListEqual(sorted(res['buildsystem_files']), sorted(bs_files))
 
         with self.subTest('Check dependencies'):
             dependencies_to_find = ['threads']
@@ -3990,7 +4023,7 @@ class AllPlatformTests(BasePlatformTests):
                 'license_files': [],
                 'descriptive_name': 'introspection',
                 'subproject_dir': 'subprojects',
-                'subprojects': []
+                'subprojects': [],
             })
 
         with self.subTest('Check targets'):
@@ -4151,7 +4184,7 @@ class AllPlatformTests(BasePlatformTests):
                 'compiler': [],
                 'parameters': [],
                 'sources': sources,
-                'generated_sources': []
+                'generated_sources': [],
             }]
 
         self.maxDiff = None
@@ -4283,35 +4316,35 @@ class AllPlatformTests(BasePlatformTests):
                 'required': True,
                 'version': [],
                 'has_fallback': False,
-                'conditional': False
+                'conditional': False,
             },
             {
                 'name': 'zlib',
                 'required': False,
                 'version': [],
                 'has_fallback': False,
-                'conditional': False
+                'conditional': False,
             },
             {
                 'name': 'bugDep1',
                 'required': 'unknown',
                 'version': [],
                 'has_fallback': False,
-                'conditional': False
+                'conditional': False,
             },
             {
                 'name': 'somethingthatdoesnotexist',
                 'required': True,
                 'version': ['>=1.2.3'],
                 'has_fallback': False,
-                'conditional': True
+                'conditional': True,
             },
             {
                 'name': 'look_i_have_a_fallback',
                 'required': True,
                 'version': ['>=1.0.0', '<=99.9.9'],
                 'has_fallback': True,
-                'conditional': True
+                'conditional': True,
             },
         ]
         self.maxDiff = None
@@ -4427,20 +4460,18 @@ class AllPlatformTests(BasePlatformTests):
         def get_exe_name(basename: str) -> str:
             if is_windows():
                 return f'{basename}.exe'
-            else:
-                return basename
+            return basename
 
         def get_shared_lib_name(basename: str) -> str:
             if mesonbuild.envconfig.detect_msys2_arch():
                 return f'lib{basename}.dll'
-            elif is_windows():
+            if is_windows():
                 return f'{basename}.dll'
-            elif is_cygwin():
+            if is_cygwin():
                 return f'cyg{basename}.dll'
-            elif is_osx():
+            if is_osx():
                 return f'lib{basename}.dylib'
-            else:
-                return f'lib{basename}.so'
+            return f'lib{basename}.so'
 
         def get_static_lib_name(basename: str) -> str:
             return f'lib{basename}.a'
@@ -4590,8 +4621,8 @@ class AllPlatformTests(BasePlatformTests):
         ## Get command sections
 
         section_pattern = re.compile(r'^### (.+)$', re.MULTILINE)
-        md_command_section_matches = [i for i in section_pattern.finditer(md)]
-        md_command_sections = dict()
+        md_command_section_matches = list(section_pattern.finditer(md))
+        md_command_sections = {}
         for i, s in enumerate(md_command_section_matches):
             section_end = len(md) if i == len(md_command_section_matches) - 1 else md_command_section_matches[i + 1].start()
             md_command_sections[s.group(1)] = (s.start(), section_end)
@@ -4787,12 +4818,12 @@ class AllPlatformTests(BasePlatformTests):
             upstream_uri = Path(upstream).as_uri()
             git_init(upstream)
             with open(os.path.join(srcdir, 'subprojects', 'wrap_git.wrap'), 'w', encoding='utf-8') as f:
-                f.write(textwrap.dedent('''
+                f.write(textwrap.dedent(f'''
                   [wrap-git]
-                  url = {}
+                  url = {upstream_uri}
                   patch_directory = wrap_git_builddef
                   revision = master
-                '''.format(upstream_uri)))
+                '''))
             out = self.init(srcdir)
             self.build()
             self.run_tests()
@@ -4804,12 +4835,12 @@ class AllPlatformTests(BasePlatformTests):
             # Change the wrap's revisions, reconfigure, and make sure it does
             # warn on the reconfigure.
             with open(os.path.join(srcdir, 'subprojects', 'wrap_git.wrap'), 'w', encoding='utf-8') as f:
-                f.write(textwrap.dedent('''
+                f.write(textwrap.dedent(f'''
                   [wrap-git]
-                  url = {}
+                  url = {upstream_uri}
                   patch_directory = wrap_git_builddef
                   revision = not-master
-                '''.format(upstream_uri)))
+                '''))
             out = self.init(srcdir, extra_args='--reconfigure')
             self.assertIn(out_of_date_warning, out)
 
@@ -4964,7 +4995,7 @@ class AllPlatformTests(BasePlatformTests):
             'share/bar/bar.dat',
             'include/bar.h',
             'bin/bar' + exe_suffix,
-            'bar/barfile'
+            'bar/barfile',
         ]
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
@@ -4979,7 +5010,7 @@ class AllPlatformTests(BasePlatformTests):
         def check_installed_files(extra_args, expected):
             args = ['install', '--destdir', self.installdir] + extra_args
             self._run(self.meson_command + args, workdir=self.builddir)
-            all_files = [p for p in Path(self.installdir).rglob('*')]
+            all_files = list(Path(self.installdir).rglob('*'))
             self.assertEqual(sorted(expected), sorted(all_files))
             windows_proof_rmtree(self.installdir)
 
@@ -5034,7 +5065,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertIn('export TEST_C', o)
 
         cmd = self.meson_command + ['devenv', '-C', self.builddir] + python_command + ['-c', 'import sys; sys.exit(42)']
-        result = subprocess.run(cmd, encoding='utf-8')
+        result = subprocess.run(cmd, encoding='utf-8', check=False)
         self.assertEqual(result.returncode, 42)
 
     @skipIfNoExecutable('clang-format')
@@ -5113,11 +5144,11 @@ class AllPlatformTests(BasePlatformTests):
         def shared_lib_name(name):
             if cc.get_id() in {'msvc', 'clang-cl'}:
                 return f'bin/{name}.dll'
-            elif is_windows():
+            if is_windows():
                 return f'bin/lib{name}.dll'
-            elif is_cygwin():
+            if is_cygwin():
                 return f'bin/cyg{name}.dll'
-            elif is_osx():
+            if is_osx():
                 return f'lib/lib{name}.dylib'
             return f'lib/lib{name}.so'
 
@@ -5283,7 +5314,7 @@ class AllPlatformTests(BasePlatformTests):
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
 
-        def output_name(name, type_):
+        def output_name(name: str, type_: type[BuildTarget]) -> str:
             target = type_(name=name, subdir='',
                            orig_for_machine=MachineChoice.HOST, sources=[],
                            structured_sources=None,
@@ -5293,9 +5324,14 @@ class AllPlatformTests(BasePlatformTests):
             target.process_compilers_late()
             return target.filename
 
-        shared_lib_name = lambda name: output_name(name, SharedLibrary)
-        static_lib_name = lambda name: output_name(name, StaticLibrary)
-        exe_name = lambda name: output_name(name, Executable)
+        def shared_lib_name(name: str) -> str:
+            return output_name(name, SharedLibrary)
+
+        def static_lib_name(name: str) -> str:
+            return output_name(name, StaticLibrary)
+
+        def exe_name(name: str) -> str:
+            return output_name(name, Executable)
 
         expected = {
             'targets': {
@@ -5520,11 +5556,13 @@ class AllPlatformTests(BasePlatformTests):
                     'subproject': None,
                     'exclude_dirs': ['excluded'],
                     'exclude_files': ['excluded.txt'],
-                }
-            }
+                },
+            },
         }
 
-        fix_path = lambda path: os.path.sep.join(path.split('/'))
+        def fix_path(path: str) -> str:
+            return os.path.sep.join(path.split('/'))
+
         expected_fixed = {
             data_type: {
                 fix_path(source): {
@@ -5538,14 +5576,14 @@ class AllPlatformTests(BasePlatformTests):
 
         for data_type, files in expected_fixed.items():
             for file, details in files.items():
-                with self.subTest(key='{}.{}'.format(data_type, file)):
+                with self.subTest(key=f'{data_type}.{file}'):
                     self.assertEqual(res[data_type][file], details)
 
     @skip_if_not_language('rust')
     @skipIfNoExecutable('rustdoc')
     def test_rustdoc(self) -> None:
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('Rust is only supported with ninja currently')
+            raise SkipTest('Rust is only supported with ninja currently')
         try:
             with tempfile.TemporaryDirectory() as tmpdir:
                 testdir = os.path.join(tmpdir, 'a')
@@ -5563,7 +5601,7 @@ class AllPlatformTests(BasePlatformTests):
     @skipIfNoExecutable('clippy-driver')
     def test_rust_clippy(self) -> None:
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('Rust is only supported with ninja currently')
+            raise SkipTest('Rust is only supported with ninja currently')
         # When clippy is used, we should get an exception since a variable named
         # "foo" is used, but is on our denylist
         testdir = os.path.join(self.rust_test_dir, '1 basic')
@@ -5581,7 +5619,7 @@ class AllPlatformTests(BasePlatformTests):
     @skipIfNoExecutable('clippy-driver')
     def test_rust_clippy_as_rustc(self) -> None:
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('Rust is only supported with ninja currently')
+            raise SkipTest('Rust is only supported with ninja currently')
         # When clippy is used, we should get an exception since a variable named
         # "foo" is used, but is on our denylist
         testdir = os.path.join(self.rust_test_dir, '1 basic')
@@ -5594,14 +5632,14 @@ class AllPlatformTests(BasePlatformTests):
     @skip_if_not_language('rust')
     def test_rust_test_warnings(self) -> None:
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('Rust is only supported with ninja currently')
+            raise SkipTest('Rust is only supported with ninja currently')
         testdir = os.path.join(self.rust_test_dir, '9 unit tests')
         self.init(testdir, extra_args=['--fatal-meson-warnings'])
 
     @skip_if_not_language('rust')
     def test_rust_rlib_linkage(self) -> None:
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('Rust is only supported with ninja currently')
+            raise SkipTest('Rust is only supported with ninja currently')
         template = textwrap.dedent('''\
                 use std::process::exit;
 
@@ -5632,7 +5670,7 @@ class AllPlatformTests(BasePlatformTests):
     @skip_if_not_language('rust')
     def test_bindgen_drops_invalid(self) -> None:
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('Rust is only supported with ninja currently')
+            raise SkipTest('Rust is only supported with ninja currently')
         testdir = os.path.join(self.rust_test_dir, '12 bindgen')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
@@ -5643,7 +5681,7 @@ class AllPlatformTests(BasePlatformTests):
         elif cc.get_id() == 'msvc':
             bad_arg = '/fastfail'
         else:
-            raise unittest.SkipTest('Test only supports GCC and MSVC')
+            raise SkipTest('Test only supports GCC and MSVC')
         self.init(testdir, extra_args=[f"-Dc_args=['-DCMD_ARG', '{bad_arg}']"])
         intro = self.introspect(['--targets'])
         for i in intro:

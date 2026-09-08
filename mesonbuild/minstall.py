@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from glob import glob
 import argparse
 import errno
 import os
@@ -13,15 +12,25 @@ import shutil
 import subprocess
 import sys
 import typing as T
+from glob import glob
 
 from . import build, tooldetect
 from .backend.backends import InstallData
-from .mesonlib import (InstallScriptFailure, MesonException, Popen_safe, RealPathAction,
-                       is_windows, setup_vsenv, path_has_root, pickle_load,
-                       unwrap)
+from .mesonlib import (
+    InstallScriptFailure,
+    MesonException,
+    Popen_safe,
+    RealPathAction,
+    is_windows,
+    path_has_root,
+    pickle_load,
+    setup_vsenv,
+    unwrap,
+)
 from .options import OptionKey
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
+
 main_file: str | None
 try:
     from __main__ import __file__ as main_file
@@ -32,10 +41,12 @@ except ImportError:
 
 if T.TYPE_CHECKING:
     from .backend.backends import (
-            InstallDataBase, InstallEmptyDir,
-            InstallSymlinkData, TargetInstallData
+        InstallDataBase,
+        InstallEmptyDir,
+        InstallSymlinkData,
+        TargetInstallData,
     )
-    from .mesonlib import FileMode, EnvironOrDict, ExecutableSerialisation, InstallScript
+    from .mesonlib import EnvironOrDict, ExecutableSerialisation, FileMode, InstallScript
 
     try:
         from typing import Protocol
@@ -62,7 +73,7 @@ the file by default, but will be changed in a future version of Meson to copy
 the link instead.  Set follow_symlinks to true to preserve current behavior, or
 false to copy the link.'''
 
-selinux_updates: T.List[str] = []
+selinux_updates: list[str] = []
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
@@ -91,8 +102,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 class DirMaker:
     def __init__(self, lf: T.TextIO, makedirs: T.Callable[..., None]):
         self.lf = lf
-        self.dirs: T.List[str] = []
-        self.all_dirs: T.Set[str] = set()
+        self.dirs: list[str] = []
+        self.all_dirs: set[str] = set()
         self.makedirs_impl = makedirs
 
     def makedirs(self, path: str, exist_ok: bool = False) -> None:
@@ -117,10 +128,10 @@ class DirMaker:
         dirs.reverse()
         self.dirs += dirs
 
-    def __enter__(self) -> 'DirMaker':
+    def __enter__(self) -> DirMaker:
         return self
 
-    def __exit__(self, exception_type: T.Type[Exception], value: T.Any, traceback: T.Any) -> None:
+    def __exit__(self, exception_type: type[Exception], value: T.Any, traceback: T.Any) -> None:
         self.dirs.reverse()
         for d in self.dirs:
             append_to_log(self.lf, d)
@@ -140,9 +151,9 @@ def append_to_log(lf: T.TextIO, line: str) -> None:
         lf.write('\n')
     lf.flush()
 
-def set_chown(path: str, user: T.Union[str, int, None] = None,
-              group: T.Union[str, int, None] = None,
-              dir_fd: T.Optional[int] = None, follow_symlinks: bool = True) -> None:
+def set_chown(path: str, user: str | int | None = None,
+              group: str | int | None = None,
+              dir_fd: int | None = None, follow_symlinks: bool = True) -> None:
     # shutil.chown will call os.chown without passing all the parameters
     # and particularly follow_symlinks, thus we replace it temporary
     # with a lambda with all the parameters so that follow_symlinks will
@@ -164,9 +175,6 @@ def set_chown(path: str, user: T.Union[str, int, None] = None,
     assert user is not None or group is not None, 'ensure that calls to chown are valid'
 
     if sys.version_info >= (3, 13):
-        # pylint: disable=unexpected-keyword-arg
-        # cannot handle sys.version_info, https://github.com/pylint-dev/pylint/issues/9622
-        #
         # Mypy does not understand that the assert above ensures that user,
         # group is either `None, int | str` or `int | str, None`, so we need to
         # ignore the warning
@@ -174,8 +182,8 @@ def set_chown(path: str, user: T.Union[str, int, None] = None,
     else:
         real_os_chown = os.chown
 
-        def chown(path: T.Union[int, str, 'os.PathLike[str]', bytes, 'os.PathLike[bytes]'],
-                  uid: int, gid: int, *, dir_fd: T.Optional[int] = dir_fd,
+        def chown(path: int | str | os.PathLike[str] | bytes | os.PathLike[bytes],
+                  uid: int, gid: int, *, dir_fd: int | None = dir_fd,
                   follow_symlinks: bool = follow_symlinks) -> None:
             """Override the default behavior of os.chown
 
@@ -194,7 +202,7 @@ def set_chown(path: str, user: T.Union[str, int, None] = None,
             os.chown = real_os_chown
 
 
-def set_chmod(path: str, mode: int, dir_fd: T.Optional[int] = None,
+def set_chmod(path: str, mode: int, dir_fd: int | None = None,
               follow_symlinks: bool = True) -> None:
     try:
         os.chmod(path, mode, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
@@ -203,7 +211,7 @@ def set_chmod(path: str, mode: int, dir_fd: T.Optional[int] = None,
             os.chmod(path, mode, dir_fd=dir_fd)
 
 
-def sanitize_permissions(path: str, umask: T.Union[str, int]) -> None:
+def sanitize_permissions(path: str, umask: str | int) -> None:
     # TODO: with python 3.8 or typing_extensions we could replace this with
     # `umask: T.Union[T.Literal['preserve'], int]`, which would be more correct
     if umask == 'preserve':
@@ -217,7 +225,7 @@ def sanitize_permissions(path: str, umask: T.Union[str, int]) -> None:
         print(f'{path!r}: Unable to set permissions {new_perms!r}: {e.strerror}, ignoring...')
 
 
-def set_mode(path: str, mode: T.Optional['FileMode'], default_umask: T.Union[str, int]) -> None:
+def set_mode(path: str, mode: FileMode | None, default_umask: str | int) -> None:
     if mode is None or all(m is None for m in [mode.perms_s, mode.owner, mode.group]):
         # Just sanitize permissions with the default umask
         sanitize_permissions(path, default_umask)
@@ -287,7 +295,7 @@ def check_for_stampfile(fname: str) -> str:
     whose names are not known at configure time.
     Check if this is the case and return the real
     file instead.'''
-    if fname.endswith('.so') or fname.endswith('.dll'):
+    if fname.endswith(('.so', '.dll')):
         if os.stat(fname).st_size == 0:
             (base, suffix) = os.path.splitext(fname)
             files = glob(base + '-*' + suffix)
@@ -296,7 +304,7 @@ def check_for_stampfile(fname: str) -> str:
                 sys.exit(1)
             if len(files) == 1:
                 return files[0]
-    elif fname.endswith('.a') or fname.endswith('.lib'):
+    elif fname.endswith(('.a', '.lib')):
         if os.stat(fname).st_size == 0:
             (base, suffix) = os.path.splitext(fname)
             files = glob(base + '-*' + '.rlib')
@@ -310,7 +318,7 @@ def check_for_stampfile(fname: str) -> str:
 
 class Installer:
 
-    def __init__(self, options: 'ArgumentType', lf: T.TextIO):
+    def __init__(self, options: ArgumentType, lf: T.TextIO):
         self.did_install_something = False
         self.printed_symlink_error = False
         self.options = options
@@ -375,20 +383,18 @@ class Installer:
         if not self.dry_run and not destdir:
             restore_selinux_contexts()
 
-    def Popen_safe(self, *args: T.Any, **kwargs: T.Any) -> T.Tuple[int, str, str]:
+    def Popen_safe(self, *args: T.Any, **kwargs: T.Any) -> tuple[int, str, str]:
         if not self.dry_run:
             p, o, e = Popen_safe(*args, **kwargs)
             return p.returncode, o, e
         return 0, '', ''
 
-    def run_exe(self, exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]] = None) -> int:
+    def run_exe(self, exe: ExecutableSerialisation, extra_env: dict[str, str] | None = None) -> int:
         if (not self.dry_run) or exe.dry_run:
             return run_exe(exe, extra_env)
         return 0
 
-    def should_install(self, d: T.Union[TargetInstallData, InstallEmptyDir,
-                                        InstallDataBase, InstallSymlinkData,
-                                        InstallScript]) -> bool:
+    def should_install(self, d: TargetInstallData | InstallEmptyDir | InstallDataBase | InstallSymlinkData | InstallScript) -> bool:
         if d.subproject and (d.subproject in self.skip_subprojects or '*' in self.skip_subprojects):
             return False
         if self.tags and d.tag not in self.tags:
@@ -410,8 +416,8 @@ class Installer:
         return from_time <= to_time
 
     def do_copyfile(self, from_file: str, to_file: str,
-                    makedirs: T.Optional[T.Tuple[T.Any, str]] = None,
-                    follow_symlinks: T.Optional[bool] = None) -> bool:
+                    makedirs: tuple[T.Any, str] | None = None,
+                    follow_symlinks: bool | None = None) -> bool:
         outdir = os.path.split(to_file)[0]
         if not os.path.isfile(from_file) and not os.path.islink(from_file):
             raise MesonException(f'Tried to install something that isn\'t a file: {from_file!r}')
@@ -473,8 +479,8 @@ class Installer:
         return True
 
     def do_copydir(self, data: InstallData, src_dir: str, dst_dir: str,
-                   exclude: T.Optional[T.Tuple[T.Set[str], T.Set[str]]],
-                   install_mode: 'FileMode', dm: DirMaker, follow_symlinks: T.Optional[bool] = None) -> None:
+                   exclude: tuple[set[str], set[str]] | None,
+                   install_mode: FileMode, dm: DirMaker, follow_symlinks: bool | None = None) -> None:
         '''
         Copies the contents of directory @src_dir into @dst_dir.
 
@@ -579,8 +585,8 @@ class Installer:
                 if not self.did_install_something:
                     self.log('Nothing to install.')
                 if not self.options.quiet and self.preserved_file_count > 0:
-                    self.log('Preserved {} unchanged files, see {} for the full list'
-                             .format(self.preserved_file_count, os.path.normpath(self.lf.name)))
+                    self.log(f'Preserved {self.preserved_file_count} unchanged files, see {os.path.normpath(self.lf.name)} for the full list',
+                             )
         except PermissionError:
             if is_windows() or destdir != '' or not os.isatty(sys.stdout.fileno()) or not os.isatty(sys.stderr.fileno()):
                 # can't elevate to root except in an interactive unix environment *and* when not doing a destdir install
@@ -620,7 +626,7 @@ class Installer:
                               '-C', os.getcwd(), '--no-rebuild')
             raise
 
-    def do_strip(self, strip_bin: T.List[str], fname: str, outname: str, system: str) -> None:
+    def do_strip(self, strip_bin: list[str], fname: str, outname: str, system: str) -> None:
         self.log(f'Stripping target {fname!r}.')
         if system == 'darwin':
             # macOS expects dynamic objects to be stripped with -x maximum.
@@ -760,8 +766,7 @@ class Installer:
                 if t.optional:
                     self.log(f'File {t.fname!r} not found, skipping')
                     continue
-                else:
-                    raise MesonException(f'File {t.fname!r} could not be found')
+                raise MesonException(f'File {t.fname!r} could not be found')
             file_copied = False # not set when a directory is copied
             fname = check_for_stampfile(t.fname)
             outdir = get_destdir_path(destdir, fullprefix, t.outdir)
@@ -773,11 +778,11 @@ class Installer:
             install_mode = t.install_mode
             if not os.path.exists(fname):
                 raise MesonException(f'File {fname!r} could not be found')
-            elif os.path.isfile(fname):
+            if os.path.isfile(fname):
                 file_copied = self.do_copyfile(fname, outname, makedirs=(dm, outdir))
                 if should_strip and d.strip_bin is not None:
                     if fname.endswith('.jar'):
-                        self.log('Not stripping jar target: {}'.format(os.path.basename(fname)))
+                        self.log(f'Not stripping jar target: {os.path.basename(fname)}')
                         continue
                     self.do_strip(d.strip_bin, fname, outname, t.system)
                 if fname.endswith('.js'):
@@ -820,7 +825,7 @@ def rebuild_all(wd: str, backend: str) -> bool:
         print("Can't find ninja, can't rebuild test.")
         return False
 
-    def drop_privileges() -> T.Tuple[T.Optional[EnvironOrDict], T.Optional[T.Callable[[], None]]]:
+    def drop_privileges() -> tuple[EnvironOrDict | None, T.Callable[[], None] | None]:
         if not is_windows() and os.geteuid() == 0:
             import pwd
             env = os.environ.copy()
@@ -862,11 +867,10 @@ def rebuild_all(wd: str, backend: str) -> bool:
                     os.setuid(int(orig_uid))
 
             return env, wrapped
-        else:
-            return None, None
+        return None, None
 
     env, preexec_fn = drop_privileges()
-    ret = subprocess.run(ninja + ['-C', wd], env=env, preexec_fn=preexec_fn).returncode
+    ret = subprocess.run(ninja + ['-C', wd], env=env, preexec_fn=preexec_fn, check=False).returncode
     if ret != 0:
         print(f'Could not rebuild {wd}')
         return False
@@ -874,7 +878,7 @@ def rebuild_all(wd: str, backend: str) -> bool:
     return True
 
 
-def run(opts: 'ArgumentType') -> int:
+def run(opts: ArgumentType) -> int:
     datafilename = 'meson-private/install.dat'
     private_dir = os.path.dirname(datafilename)
     log_dir = os.path.join(private_dir, '../meson-logs')

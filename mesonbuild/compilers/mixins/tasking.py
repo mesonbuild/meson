@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2023 The Meson development team
-from __future__ import annotations
 
 """Representations specific to the TASKING embedded C/C++ compiler family."""
+
+from __future__ import annotations
 
 import os
 import typing as T
@@ -22,28 +23,28 @@ else:
     # do). This gives us DRYer type checking, with no runtime impact
     Compiler = object
 
-tasking_buildtype_args: T.Mapping[str, T.List[str]] = {
+tasking_buildtype_args: T.Mapping[str, list[str]] = {
     'plain': [],
     'debug': [],
     'debugoptimized': [],
     'release': [],
     'minsize': [],
-    'custom': []
+    'custom': [],
 }
 
-tasking_optimization_args: T.Mapping[str, T.List[str]] = {
+tasking_optimization_args: T.Mapping[str, list[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-O1'], # There is no debug specific level, O1 is recommended by the compiler
     '1': ['-O1'],
     '2': ['-O2'],
     '3': ['-O3'],
-    's': ['-Os']
+    's': ['-Os'],
 }
 
-tasking_debug_args: T.Mapping[bool, T.List[str]] = {
+tasking_debug_args: T.Mapping[bool, list[str]] = {
     False: [],
-    True: ['-g3']
+    True: ['-g3'],
 }
 
 class TaskingCompiler(Compiler):
@@ -61,7 +62,7 @@ class TaskingCompiler(Compiler):
             OptionKey(o) for o in [
                 'b_lto',
                 'b_staticpic',
-                'b_ndebug'
+                'b_ndebug',
             ]
         }
 
@@ -74,59 +75,59 @@ class TaskingCompiler(Compiler):
         # TODO: add additional compilable files so that meson can detect it
         self.can_compile_suffixes.add('asm')
 
-    def get_pic_args(self) -> T.List[str]:
+    def get_pic_args(self) -> list[str]:
         return ['--pic']
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
+    def get_buildtype_args(self, buildtype: str) -> list[str]:
         return tasking_buildtype_args[buildtype]
 
-    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+    def get_debug_args(self, is_debug: bool) -> list[str]:
         return tasking_debug_args[is_debug]
 
-    def get_compile_only_args(self) -> T.List[str]:
+    def get_compile_only_args(self) -> list[str]:
         return ['-c']
 
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> list[str]:
         return [f'--dep-file={outfile}']
 
     def get_depfile_suffix(self) -> str:
         return 'dep'
 
-    def get_no_stdinc_args(self) -> T.List[str]:
+    def get_no_stdinc_args(self) -> list[str]:
         return ['--no-stdinc']
 
-    def get_werror_args(self) -> T.List[str]:
+    def get_werror_args(self) -> list[str]:
         return ['--warnings-as-errors']
 
-    def get_no_stdlib_link_args(self) -> T.List[str]:
+    def get_no_stdlib_link_args(self) -> list[str]:
         return ['--no-default-libraries']
 
-    def get_output_args(self, outputname: str) -> T.List[str]:
+    def get_output_args(self, outputname: str) -> list[str]:
         return ['-o', outputname]
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, is_system: bool) -> list[str]:
         if path == '':
             path = '.'
         return ['-I' + path]
 
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> list[str]:
         return tasking_optimization_args[optimization_level]
 
-    def get_no_optimization_args(self) -> T.List[str]:
+    def get_no_optimization_args(self) -> list[str]:
         return ['-O0']
 
     def get_object_suffix(self, target: BuildTarget, source: str) -> str:
         # In case of LTO or prelinking the object suffix has to be .mil
         use_lto = self.environment.coredata.get_option_for_target(target, 'b_lto')
         if use_lto or (isinstance(target, StaticLibrary) and target.prelink):
-            if not source.rsplit('.', 1)[1] in lang_suffixes['c']:
+            if source.rsplit('.', 1)[1] not in lang_suffixes['c']:
                 if isinstance(target, StaticLibrary) and not target.prelink:
                     raise EnvironmentException('Tried using MIL linking for a static library with a assembly file. This can only be done if the static library is prelinked or disable \'b_lto\'.')
             else:
                 return 'mil'
         return super().get_object_suffix(target, source)
 
-    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+    def get_prelink_args(self, prelink_name: str, obj_list: list[str]) -> tuple[list[str], list[str]]:
         mil_link_list = []
         obj_file_list = []
         for obj in obj_list:
@@ -141,12 +142,12 @@ class TaskingCompiler(Compiler):
     def get_prelink_append_compile_args(self) -> bool:
         return True
 
-    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
+    def compute_parameters_with_absolute_paths(self, parameter_list: list[str], build_dir: str) -> list[str]:
         for idx, i in enumerate(parameter_list):
             if i[:2] == '-I' or i[:2] == '-L':
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
 
         return parameter_list
 
-    def get_preprocess_only_args(self) -> T.List[str]:
+    def get_preprocess_only_args(self) -> list[str]:
         return ['-E']

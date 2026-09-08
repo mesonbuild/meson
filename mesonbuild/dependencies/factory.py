@@ -8,19 +8,24 @@ import functools
 import typing as T
 
 from ..mesonlib import MachineChoice
-from .base import DependencyCandidate, DependencyException, DependencyMethods
-from .base import process_method_kw
-from .base import BuiltinDependency, SystemDependency
+from .base import (
+    BuiltinDependency,
+    DependencyCandidate,
+    DependencyException,
+    DependencyMethods,
+    SystemDependency,
+    process_method_kw,
+)
 from .cmake import CMakeDependency
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
-    from typing_extensions import TypeAlias
+    from typing import TypeAlias
 
-    from .base import DependencyObjectKWs, ExternalDependency, DepType
-    from .configtool import ConfigToolDependency
     from ..environment import Environment
+    from .base import DependencyObjectKWs, DepType, ExternalDependency
+    from .configtool import ConfigToolDependency
 
     # TODO: remove this?
     DependencyGenerator: TypeAlias = DependencyCandidate[ExternalDependency]
@@ -28,9 +33,9 @@ if T.TYPE_CHECKING:
         [
             'Environment',
             DependencyObjectKWs,
-            T.List[DependencyMethods]
+            list[DependencyMethods],
         ],
-        T.List[DependencyGenerator]
+        list[DependencyGenerator],
     ]
 
     WrappedFactoryFunc = T.Callable[
@@ -38,7 +43,7 @@ if T.TYPE_CHECKING:
             'Environment',
             DependencyObjectKWs,
         ],
-        T.List[DependencyGenerator]
+        list[DependencyGenerator],
     ]
 
 class DependencyFactory:
@@ -71,14 +76,14 @@ class DependencyFactory:
         this must be set.
     """
 
-    def __init__(self, name: str, methods: T.List[DependencyMethods], *,
-                 extra_kwargs: T.Optional[DependencyObjectKWs] = None,
-                 pkgconfig: T.Union[DependencyCandidate[PkgConfigDependency], T.Type[PkgConfigDependency], None] = PkgConfigDependency,
-                 cmake: T.Union[DependencyCandidate[CMakeDependency], T.Type[CMakeDependency], None] = CMakeDependency,
-                 framework: T.Union[DependencyCandidate[ExtraFrameworkDependency], T.Type[ExtraFrameworkDependency], None] = ExtraFrameworkDependency,
-                 configtool: T.Union[DependencyCandidate[ConfigToolDependency], T.Type[ConfigToolDependency], None] = None,
-                 builtin: T.Union[DependencyCandidate[BuiltinDependency], T.Type[BuiltinDependency], None] = None,
-                 system: T.Union[DependencyCandidate[SystemDependency], T.Type[SystemDependency], None] = None):
+    def __init__(self, name: str, methods: list[DependencyMethods], *,
+                 extra_kwargs: DependencyObjectKWs | None = None,
+                 pkgconfig: DependencyCandidate[PkgConfigDependency] | type[PkgConfigDependency] | None = PkgConfigDependency,
+                 cmake: DependencyCandidate[CMakeDependency] | type[CMakeDependency] | None = CMakeDependency,
+                 framework: DependencyCandidate[ExtraFrameworkDependency] | type[ExtraFrameworkDependency] | None = ExtraFrameworkDependency,
+                 configtool: DependencyCandidate[ConfigToolDependency] | type[ConfigToolDependency] | None = None,
+                 builtin: DependencyCandidate[BuiltinDependency] | type[BuiltinDependency] | None = None,
+                 system: DependencyCandidate[SystemDependency] | type[SystemDependency] | None = None):
 
         if DependencyMethods.CONFIG_TOOL in methods and not configtool:
             raise DependencyException('A configtool dependency must have a custom class')
@@ -87,14 +92,14 @@ class DependencyFactory:
         if DependencyMethods.SYSTEM in methods and not system:
             raise DependencyException('A system dependency must have a custom class')
 
-        def make(arg: T.Union[DependencyCandidate[DepType], T.Type[DepType], None]) -> T.Optional[DependencyCandidate[DepType]]:
+        def make(arg: DependencyCandidate[DepType] | type[DepType] | None) -> DependencyCandidate[DepType] | None:
             if arg is None or isinstance(arg, DependencyCandidate):
                 return arg
             return DependencyCandidate.from_dependency(name, arg)
 
         self.extra_kwargs = extra_kwargs
         self.methods = methods
-        self.classes: T.Mapping[DependencyMethods, T.Optional[DependencyCandidate[ExternalDependency]]] = {
+        self.classes: T.Mapping[DependencyMethods, DependencyCandidate[ExternalDependency] | None] = {
             # Just attach the correct name right now, either the generic name
             # or the method specific name.
             DependencyMethods.EXTRAFRAMEWORK: make(framework),
@@ -106,7 +111,7 @@ class DependencyFactory:
         }
 
     @staticmethod
-    def _process_method(method: DependencyMethods, env: 'Environment', for_machine: MachineChoice) -> bool:
+    def _process_method(method: DependencyMethods, env: Environment, for_machine: MachineChoice) -> bool:
         """Report whether a method is valid or not.
 
         If the method is valid, return true, otherwise return false. This is
@@ -120,7 +125,7 @@ class DependencyFactory:
             return False
         return True
 
-    def __call__(self, env: 'Environment', kwargs: DependencyObjectKWs) -> T.List['DependencyGenerator']:
+    def __call__(self, env: Environment, kwargs: DependencyObjectKWs) -> list[DependencyGenerator]:
         """Return a list of Dependencies with the arguments already attached."""
         methods = process_method_kw(self.methods, kwargs)
         if self.extra_kwargs:
@@ -129,7 +134,7 @@ class DependencyFactory:
         else:
             nwargs = kwargs.copy()
 
-        ret: T.List[DependencyGenerator] = []
+        ret: list[DependencyGenerator] = []
         for m in methods:
             if self._process_method(m, env, kwargs['native']):
                 c = self.classes[m]
@@ -140,7 +145,7 @@ class DependencyFactory:
         return ret
 
 
-def factory_methods(methods: T.Set[DependencyMethods]) -> T.Callable[['FactoryFunc'], 'WrappedFactoryFunc']:
+def factory_methods(methods: set[DependencyMethods]) -> T.Callable[[FactoryFunc], WrappedFactoryFunc]:
     """Decorator for handling methods for dependency factory functions.
 
     This helps to make factory functions self documenting
@@ -149,10 +154,10 @@ def factory_methods(methods: T.Set[DependencyMethods]) -> T.Callable[['FactoryFu
     >>>     pass
     """
 
-    def inner(func: 'FactoryFunc') -> 'WrappedFactoryFunc':
+    def inner(func: FactoryFunc) -> WrappedFactoryFunc:
 
         @functools.wraps(func)
-        def wrapped(env: 'Environment', kwargs: DependencyObjectKWs) -> T.List['DependencyGenerator']:
+        def wrapped(env: Environment, kwargs: DependencyObjectKWs) -> list[DependencyGenerator]:
             return func(env, kwargs, process_method_kw(methods, kwargs))
 
         return wrapped

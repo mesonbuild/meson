@@ -19,14 +19,13 @@ to this:
 This directory must be run from source root as it touches run_unittests.py.
 '''
 
-import typing as T
 import os
-import sys
 import subprocess
-
+import sys
 from glob import glob
 
-def get_entries() -> T.List[T.Tuple[int, str]]:
+
+def get_entries() -> list[tuple[int, str]]:
     entries = []
     for e in glob('*'):
         if not os.path.isdir(e):
@@ -42,7 +41,7 @@ def get_entries() -> T.List[T.Tuple[int, str]]:
     entries.sort()
     return entries
 
-def replace_source(sourcefile: str, replacements: T.List[T.Tuple[str, str]]) -> None:
+def replace_source(sourcefile: str, replacements: list[tuple[str, str]]) -> None:
     with open(sourcefile, encoding='utf-8') as f:
         contents = f.read()
     for old_name, new_name in replacements:

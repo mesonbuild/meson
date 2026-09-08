@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-import os, subprocess, shutil
+import os
+import shutil
+import subprocess
+from glob import glob
 
 assert os.getcwd() == '/home/jpakkane'
-
-from glob import glob
 
 def purge(fname: str) -> None:
     if not os.path.exists(fname):

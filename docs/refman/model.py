@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2021 The Meson development team
 
+import typing as T
 from dataclasses import dataclass, field
 from enum import Enum
-import typing as T
+
 
 # Utils
 @dataclass
@@ -28,7 +29,7 @@ class DataTypeInfo:
 @dataclass
 class Type:
     raw: str
-    resolved: T.List[DataTypeInfo] = field(init=False, default_factory=list)
+    resolved: list[DataTypeInfo] = field(init=False, default_factory=list)
 
 
 # Arguments
@@ -54,18 +55,18 @@ class Kwarg(ArgBase):
 # Function
 @dataclass
 class Function(NamedObject, FeatureCheck):
-    notes: T.List[str]
-    warnings: T.List[str]
+    notes: list[str]
+    warnings: list[str]
     returns: Type
     example: str
-    posargs: T.List[PosArg]
-    optargs: T.List[PosArg]
-    varargs: T.Optional[VarArgs]
-    kwargs: T.Dict[str, Kwarg]
+    posargs: list[PosArg]
+    optargs: list[PosArg]
+    varargs: VarArgs | None
+    kwargs: dict[str, Kwarg]
     posargs_inherit: str
     optargs_inherit: str
     varargs_inherit: str
-    kwargs_inherit: T.List[str]
+    kwargs_inherit: list[str]
     arg_flattening: bool
 
 @dataclass
@@ -83,22 +84,22 @@ class ObjectType(Enum):
 
 @dataclass
 class Object(NamedObject, FeatureCheck):
-    notes: T.List[str]
-    warnings: T.List[str]
+    notes: list[str]
+    warnings: list[str]
     long_name: str
     example: str
     obj_type: ObjectType
-    methods: T.List[Method]
+    methods: list[Method]
     is_container: bool
     extends: str
     extends_obj: T.Optional['Object'] = None
     defined_by_module: T.Optional['Object'] = None
-    returned_by: T.List[T.Union[Function, Method]] = field(default_factory=list)
-    extended_by: T.List['Object'] = field(default_factory=list)
-    inherited_methods: T.List[Method] = field(default_factory=list)
+    returned_by: list[Function | Method] = field(default_factory=list)
+    extended_by: list['Object'] = field(default_factory=list)
+    inherited_methods: list[Method] = field(default_factory=list)
 
 # ROOT
 @dataclass
 class ReferenceManual:
-    functions: T.List[Function]
-    objects: T.List[Object]
+    functions: list[Function]
+    objects: list[Object]

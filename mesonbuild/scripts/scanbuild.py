@@ -3,18 +3,19 @@
 
 from __future__ import annotations
 
-import subprocess
-import shutil
-import tempfile
-from ..cmdline import get_cmd_line_file, CmdLineFileParser
-from ..tooldetect import detect_ninja, detect_scanbuild
-from ..mesonlib import windows_proof_rmtree, determine_worker_count
-from pathlib import Path
-import typing as T
-from ast import literal_eval
 import os
+import shutil
+import subprocess
+import tempfile
+from ast import literal_eval
+from pathlib import Path
 
-def scanbuild(exelist: T.List[str], srcdir: Path, blddir: Path, privdir: Path, logdir: Path, subprojdir: Path, args: T.List[str]) -> int:
+from ..cmdline import CmdLineFileParser, get_cmd_line_file
+from ..mesonlib import determine_worker_count, windows_proof_rmtree
+from ..tooldetect import detect_ninja, detect_scanbuild
+
+
+def scanbuild(exelist: list[str], srcdir: Path, blddir: Path, privdir: Path, logdir: Path, subprojdir: Path, args: list[str]) -> int:
     # In case of problems leave the temp directory around
     # so it can be debugged.
     scandir = tempfile.mkdtemp(dir=str(privdir))
@@ -28,7 +29,7 @@ def scanbuild(exelist: T.List[str], srcdir: Path, blddir: Path, privdir: Path, l
         windows_proof_rmtree(scandir)
     return rc
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     srcdir = Path(args[0])
     bldpath = Path(args[1])
     subprojdir = srcdir / Path(args[2])
@@ -51,7 +52,7 @@ def run(args: T.List[str]) -> int:
 
     exelist = detect_scanbuild()
     if not exelist:
-        print('Could not execute scan-build "%s"' % ' '.join(exelist))
+        print('Could not execute scan-build "{}"'.format(' '.join(exelist)))
         return 1
 
     return scanbuild(exelist, srcdir, bldpath, privdir, logdir, subprojdir, meson_cmd)

@@ -2,9 +2,9 @@
 # Copyright 2019-2022 The meson development team
 # Copyright © 2023-2025 Intel Corporation
 
-from __future__ import annotations
-
 """Provides mixins for GNU compilers and GNU-like compilers."""
+
+from __future__ import annotations
 
 import abc
 import functools
@@ -14,10 +14,14 @@ import re
 import subprocess
 import typing as T
 
-from ... import mesonlib
-from ... import mlog
+from mesonbuild.compilers.compilers import (
+    CompileCheckMode,
+    ManyInOneLinkerOptionStyle,
+    PrefixArgumentLinkerOptionStyle,
+)
+
+from ... import mesonlib, mlog
 from ...options import OptionKey, UserStdOption
-from mesonbuild.compilers.compilers import CompileCheckMode, ManyInOneLinkerOptionStyle, PrefixArgumentLinkerOptionStyle
 
 if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
@@ -33,12 +37,12 @@ else:
 
 # XXX: prevent circular references.
 # FIXME: this really is a posix interface not a c-like interface
-clike_debug_args: T.Dict[bool, T.List[str]] = {
+clike_debug_args: dict[bool, list[str]] = {
     False: [],
     True: ['-g'],
 }
 
-gnu_optimization_args: T.Dict[str, T.List[str]] = {
+gnu_optimization_args: dict[str, list[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-Og'],
@@ -48,7 +52,7 @@ gnu_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-Os'],
 }
 
-gnulike_instruction_set_args: T.Dict[str, T.List[str]] = {
+gnulike_instruction_set_args: dict[str, list[str]] = {
     'mmx': ['-mmmx'],
     'sse': ['-msse'],
     'sse2': ['-msse2'],
@@ -61,7 +65,7 @@ gnulike_instruction_set_args: T.Dict[str, T.List[str]] = {
     'neon': ['-mfpu=neon'],
 }
 
-gnu_symbol_visibility_args: T.Dict[str, T.List[str]] = {
+gnu_symbol_visibility_args: dict[str, list[str]] = {
     '': [],
     'default': ['-fvisibility=default'],
     'internal': ['-fvisibility=internal'],
@@ -70,7 +74,7 @@ gnu_symbol_visibility_args: T.Dict[str, T.List[str]] = {
     'inlineshidden': ['-fvisibility=hidden', '-fvisibility-inlines-hidden'],
 }
 
-gnu_color_args: T.Dict[str, T.List[str]] = {
+gnu_color_args: dict[str, list[str]] = {
     'auto': ['-fdiagnostics-color=auto'],
     'always': ['-fdiagnostics-color=always'],
     'never': ['-fdiagnostics-color=never'],
@@ -100,7 +104,7 @@ gnu_color_args: T.Dict[str, T.List[str]] = {
 #
 # Omitted warnings enabled elsewhere in meson:
 #   -Winvalid-pch (GCC 3.4.0)
-gnu_common_warning_args: T.Dict[str, T.List[str]] = {
+gnu_common_warning_args: dict[str, list[str]] = {
     "0.0.0": [
         "-Wcast-qual",
         "-Wconversion",
@@ -206,7 +210,7 @@ gnu_common_warning_args: T.Dict[str, T.List[str]] = {
 #   -Wtraditional
 #   -Wtraditional-conversion
 #   -Wunsuffixed-float-constants
-gnu_c_warning_args: T.Dict[str, T.List[str]] = {
+gnu_c_warning_args: dict[str, list[str]] = {
     "0.0.0": [
         "-Wbad-function-cast",
         "-Wmissing-prototypes",
@@ -230,7 +234,7 @@ gnu_c_warning_args: T.Dict[str, T.List[str]] = {
 #   -Wctad-maybe-unsupported
 #   -Wnamespaces
 #   -Wtemplates
-gnu_cpp_warning_args: T.Dict[str, T.List[str]] = {
+gnu_cpp_warning_args: dict[str, list[str]] = {
     "0.0.0": [
         "-Wctor-dtor-privacy",
         "-Weffc++",
@@ -295,7 +299,7 @@ gnu_cpp_warning_args: T.Dict[str, T.List[str]] = {
 # Omitted non-general or legacy warnings:
 #   -Wtraditional
 #   -Wtraditional-conversion
-gnu_objc_warning_args: T.Dict[str, T.List[str]] = {
+gnu_objc_warning_args: dict[str, list[str]] = {
     "0.0.0": [
         "-Wselector",
     ],
@@ -312,11 +316,11 @@ gnu_lang_map = {
     'c': 'c',
     'cpp': 'c++',
     'objc': 'objective-c',
-    'objcpp': 'objective-c++'
+    'objcpp': 'objective-c++',
 }
 
-@functools.lru_cache(maxsize=None)
-def gnulike_default_include_dirs(compiler: T.Tuple[str, ...], lang: str) -> 'ImmutableListProtocol[str]':
+@functools.cache
+def gnulike_default_include_dirs(compiler: tuple[str, ...], lang: str) -> ImmutableListProtocol[str]:
     if lang not in gnu_lang_map:
         return []
     lang = gnu_lang_map[lang]
@@ -325,7 +329,7 @@ def gnulike_default_include_dirs(compiler: T.Tuple[str, ...], lang: str) -> 'Imm
     cmd = list(compiler) + [f'-x{lang}', '-E', '-v', '-']
     _, stdout, _ = mesonlib.Popen_safe(cmd, stderr=subprocess.STDOUT, env=env)
     parse_state = 0
-    paths: T.List[str] = []
+    paths: list[str] = []
     for line in stdout.split('\n'):
         line = line.strip(' \n\r\t')
         if parse_state == 0:
@@ -339,8 +343,7 @@ def gnulike_default_include_dirs(compiler: T.Tuple[str, ...], lang: str) -> 'Imm
         elif parse_state == 2:
             if line == 'End of search list.':
                 break
-            else:
-                paths.append(line)
+            paths.append(line)
     if not paths:
         mlog.warning('No include directory found parsing "{cmd}" output'.format(cmd=" ".join(cmd)))
     # Append a normalized copy of paths to make path lookup easier
@@ -373,39 +376,39 @@ class GnuLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
         self.can_compile_suffixes.add('s')
         self.can_compile_suffixes.add('sx')
 
-    def get_pic_args(self) -> T.List[str]:
+    def get_pic_args(self) -> list[str]:
         if self.info.is_windows() or self.info.is_cygwin() or self.info.is_darwin() or self.info.is_os2():
             return [] # On Window, OS X and OS/2, pic is always on.
         return ['-fPIC']
 
-    def get_pie_args(self) -> T.List[str]:
+    def get_pie_args(self) -> list[str]:
         return ['-fPIE']
 
     @abc.abstractmethod
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> list[str]:
         pass
 
-    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+    def get_debug_args(self, is_debug: bool) -> list[str]:
         return clike_debug_args[is_debug]
 
     @abc.abstractmethod
     def get_pch_suffix(self) -> str:
         pass
 
-    def split_shlib_to_parts(self, fname: str) -> T.Tuple[str, str]:
+    def split_shlib_to_parts(self, fname: str) -> tuple[str, str]:
         return os.path.dirname(fname), fname
 
-    def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
+    def get_instruction_set_args(self, instruction_set: str) -> list[str] | None:
         return gnulike_instruction_set_args.get(instruction_set, None)
 
-    def get_default_include_dirs(self) -> T.List[str]:
+    def get_default_include_dirs(self) -> list[str]:
         return gnulike_default_include_dirs(tuple(self.get_exelist(ccache=False)), self.language).copy()
 
     @abc.abstractmethod
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self) -> list[str]:
         pass
 
-    def gnu_symbol_visibility_args(self, vistype: str) -> T.List[str]:
+    def gnu_symbol_visibility_args(self, vistype: str) -> list[str]:
         if vistype == 'inlineshidden' and self.language not in {'cpp', 'objcpp'}:
             vistype = 'hidden'
         return gnu_symbol_visibility_args[vistype]
@@ -414,20 +417,20 @@ class GnuLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
     def get_argument_syntax() -> str:
         return 'gcc'
 
-    def get_profile_generate_args(self) -> T.List[str]:
+    def get_profile_generate_args(self) -> list[str]:
         return ['-fprofile-generate']
 
-    def get_profile_use_args(self) -> T.List[str]:
+    def get_profile_use_args(self) -> list[str]:
         return ['-fprofile-use']
 
-    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
+    def compute_parameters_with_absolute_paths(self, parameter_list: list[str], build_dir: str) -> list[str]:
         for idx, i in enumerate(parameter_list):
             if i[:2] == '-I' or i[:2] == '-L':
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
 
         return parameter_list
 
-    @functools.lru_cache()
+    @functools.lru_cache
     def _get_search_dirs(self) -> str:
         extra_args = ['--print-search-dirs']
         with self._build_wrapper('', extra_args=extra_args,
@@ -435,7 +438,7 @@ class GnuLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
                                  want_output=True) as p:
             return p.stdout
 
-    def _split_fetch_real_dirs(self, pathstr: str) -> T.List[str]:
+    def _split_fetch_real_dirs(self, pathstr: str) -> list[str]:
         # We need to use the path separator used by the compiler for printing
         # lists of paths ("gcc --print-search-dirs"). By default
         # we assume it uses the platform native separator.
@@ -449,7 +452,7 @@ class GnuLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
         # pathlib treats empty paths as '.', so filter those out
         paths = [p for p in pathstr.split(pathsep) if p]
 
-        result: T.List[str] = []
+        result: list[str] = []
         for p in paths:
             # GCC returns paths like this:
             # /usr/lib/gcc/x86_64-linux-gnu/8/../../../../x86_64-linux-gnu/lib
@@ -472,7 +475,7 @@ class GnuLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
                     result.append(unresolved)
         return result
 
-    def get_compiler_dirs(self, name: str) -> T.List[str]:
+    def get_compiler_dirs(self, name: str) -> list[str]:
         '''
         Get dirs from the compiler, either `libraries:` or `programs:`
         '''
@@ -482,13 +485,13 @@ class GnuLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
                 return self._split_fetch_real_dirs(line.split('=', 1)[1])
         return []
 
-    def get_lto_compile_args(self, *, target: T.Optional[BuildTarget] = None, threads: int = 0,
-                             mode: str = 'default') -> T.List[str]:
+    def get_lto_compile_args(self, *, target: BuildTarget | None = None, threads: int = 0,
+                             mode: str = 'default') -> list[str]:
         # This provides a base for many compilers, GCC and Clang override this
         # for their specific arguments
         return ['-flto']
 
-    def sanitizer_compile_args(self, target: T.Optional[BuildTarget], value: T.List[str]) -> T.List[str]:
+    def sanitizer_compile_args(self, target: BuildTarget | None, value: list[str]) -> list[str]:
         if not value:
             return value
         args = ['-fsanitize=' + ','.join(value)]
@@ -496,16 +499,16 @@ class GnuLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
             args.append('-fno-omit-frame-pointer')
         return args
 
-    def get_output_args(self, outputname: str) -> T.List[str]:
+    def get_output_args(self, outputname: str) -> list[str]:
         return ['-o', outputname]
 
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> list[str]:
         return ['-MD', '-MQ', outtarget, '-MF', outfile]
 
-    def get_compile_only_args(self) -> T.List[str]:
+    def get_compile_only_args(self) -> list[str]:
         return ['-c']
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, is_system: bool) -> list[str]:
         if not path:
             path = '.'
         if is_system:
@@ -513,16 +516,16 @@ class GnuLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
         return ['-I' + path]
 
     @classmethod
-    def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
+    def use_linker_args(cls, linker: str, version: str) -> list[str]:
         if linker not in {'bfd', 'eld', 'gold', 'lld'}:
             raise mesonlib.MesonException(
                 f'Unsupported linker, only bfd, eld, gold, and lld are supported, not {linker}.')
         return [f'-fuse-ld={linker}']
 
-    def get_coverage_args(self) -> T.List[str]:
+    def get_coverage_args(self) -> list[str]:
         return ['--coverage']
 
-    def get_preprocess_to_file_args(self) -> T.List[str]:
+    def get_preprocess_to_file_args(self) -> list[str]:
         # We want to allow preprocessing files with any extension, such as
         # foo.c.in. In that case we need to tell GCC/CLANG to treat them as
         # assembly file.
@@ -546,7 +549,7 @@ class GnuCompiler(GnuLikeCompiler):
     _USE_MOLD_VERSION = '>=12.0.1'
     _USE_WILD_VERSION = '>=16.0.1'
 
-    def __init__(self, defines: T.Optional[T.Dict[str, str]]):
+    def __init__(self, defines: dict[str, str] | None):
         super().__init__()
         self.defines = defines or {}
         self.base_options.update({OptionKey('b_colorout'), OptionKey('b_lto_threads'),
@@ -556,12 +559,12 @@ class GnuCompiler(GnuLikeCompiler):
         self._has_lto_auto_support = mesonlib.version_compare(self.version, self._LTO_AUTO_VERSION)
         self._has_lto_cache_support = mesonlib.version_compare(self.version, self._LTO_CACHE_VERSION)
 
-    def get_colorout_args(self, colortype: str) -> T.List[str]:
+    def get_colorout_args(self, colortype: str) -> list[str]:
         if self._has_color_support:
             return gnu_color_args[colortype][:]
         return []
 
-    def get_warn_args(self, level: str) -> T.List[str]:
+    def get_warn_args(self, level: str) -> list[str]:
         # Mypy doesn't understand cooperative inheritance
         args = super().get_warn_args(level)
         if not self._has_wpedantic_support and '-Wpedantic' in args:
@@ -570,8 +573,8 @@ class GnuCompiler(GnuLikeCompiler):
             args[args.index('-Wpedantic')] = '-pedantic'
         return args
 
-    def supported_warn_args(self, warn_args_by_version: T.Dict[str, T.List[str]]) -> T.List[str]:
-        result: T.List[str] = []
+    def supported_warn_args(self, warn_args_by_version: dict[str, list[str]]) -> list[str]:
+        result: list[str] = []
         for version, warn_args in warn_args_by_version.items():
             if mesonlib.version_compare(self.version, '>=' + version):
                 result += warn_args
@@ -580,22 +583,22 @@ class GnuCompiler(GnuLikeCompiler):
     def has_builtin_define(self, define: str) -> bool:
         return define in self.defines
 
-    def get_builtin_define(self, define: str) -> T.Optional[str]:
+    def get_builtin_define(self, define: str) -> str | None:
         if define in self.defines:
             return self.defines[define]
         return None
 
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> list[str]:
         return gnu_optimization_args[optimization_level]
 
     def get_pch_suffix(self) -> str:
         return 'gch'
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self) -> list[str]:
         return ['-fopenmp']
 
-    def has_arguments(self, args: T.List[str], code: str,
-                      mode: CompileCheckMode) -> T.Tuple[bool, bool]:
+    def has_arguments(self, args: list[str], code: str,
+                      mode: CompileCheckMode) -> tuple[bool, bool]:
         # For some compiler command line arguments, the GNU compilers will
         # emit a warning on stderr indicating that an option is valid for a
         # another language, but still complete with exit_success
@@ -607,17 +610,17 @@ class GnuCompiler(GnuLikeCompiler):
                 result = False
         return result, p.cached
 
-    def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
+    def get_has_func_attribute_extra_args(self, name: str) -> list[str]:
         # GCC only warns about unknown or ignored attributes, so force an
         # error.
         return ['-Werror=attributes']
 
-    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+    def get_prelink_args(self, prelink_name: str, obj_list: list[str]) -> tuple[list[str], list[str]]:
         return [prelink_name], ['-r', '-o', prelink_name] + obj_list
 
-    def get_lto_compile_args(self, *, target: T.Optional[BuildTarget] = None, threads: int = 0,
-                             mode: str = 'default', thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
-        args: T.List[str] = []
+    def get_lto_compile_args(self, *, target: BuildTarget | None = None, threads: int = 0,
+                             mode: str = 'default', thinlto_cache_dir: str | None = None) -> list[str]:
+        args: list[str] = []
 
         if threads == 0:
             if self._has_lto_auto_support:
@@ -638,30 +641,30 @@ class GnuCompiler(GnuLikeCompiler):
 
         return args
 
-    def get_thinlto_cache_args(self, path: str) -> T.List[str]:
+    def get_thinlto_cache_args(self, path: str) -> list[str]:
         # Unlike the ThinLTO support for Clang, everything is handled in GCC
         # and the linker has no direct involvement other than the usual w/ LTO.
         return [f'-flto-incremental={path}']
 
     @classmethod
-    def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
+    def use_linker_args(cls, linker: str, version: str) -> list[str]:
         if linker == 'mold' and mesonlib.version_compare(version, cls._USE_MOLD_VERSION):
             return ['-fuse-ld=mold']
-        elif linker == 'wild' and mesonlib.version_compare(version, cls._USE_WILD_VERSION):
+        if linker == 'wild' and mesonlib.version_compare(version, cls._USE_WILD_VERSION):
             return ['-fuse-ld=wild']
         return super().use_linker_args(linker, version)
 
-    def get_lto_link_args(self, *, target: T.Optional[BuildTarget] = None, threads: int = 0,
-                          mode: str = 'default', thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
-        args: T.List[str] = []
+    def get_lto_link_args(self, *, target: BuildTarget | None = None, threads: int = 0,
+                          mode: str = 'default', thinlto_cache_dir: str | None = None) -> list[str]:
+        args: list[str] = []
         args.extend(self.get_lto_compile_args(target=target, threads=threads, thinlto_cache_dir=thinlto_cache_dir))
         return args
 
-    def get_profile_use_args(self) -> T.List[str]:
+    def get_profile_use_args(self) -> list[str]:
         return super().get_profile_use_args() + ['-fprofile-correction']
 
-    def get_always_args(self) -> T.List[str]:
-        args: T.List[str] = []
+    def get_always_args(self) -> list[str]:
+        args: list[str] = []
         if self.info.is_os2() and self.environment.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
             args += ['-Zomf']
         return super().get_always_args() + args

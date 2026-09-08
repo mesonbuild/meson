@@ -6,7 +6,6 @@ from __future__ import annotations
 import typing as T
 
 from ..options import OptionKey, UserStdOption
-
 from .c import ALL_STDS
 from .compilers import Compiler
 from .mixins.apple import AppleCStdsMixin
@@ -15,10 +14,10 @@ from .mixins.clike import CLikeCompiler
 from .mixins.gnu import GnuCompiler, GnuCStds, gnu_common_warning_args, gnu_objc_warning_args
 
 if T.TYPE_CHECKING:
+    from ..build import BuildTarget
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
-    from ..build import BuildTarget
     from ..options import MutableKeyedOptionDictType
 
 
@@ -26,10 +25,10 @@ class ObjCCompiler(CLikeCompiler, Compiler):
 
     language = 'objc'
 
-    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
+    def __init__(self, ccache: list[str], exelist: list[str], version: str, for_machine: MachineChoice,
                  env: Environment,
-                 linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None):
+                 linker: DynamicLinker | None = None,
+                 full_version: str | None = None):
         Compiler.__init__(self, ccache, exelist, version, for_machine, env,
                           full_version=full_version,
                           linker=linker)
@@ -57,11 +56,11 @@ class ObjCCompiler(CLikeCompiler, Compiler):
 
 
 class GnuObjCCompiler(GnuCStds, GnuCompiler, ObjCCompiler):
-    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
+    def __init__(self, ccache: list[str], exelist: list[str], version: str, for_machine: MachineChoice,
                  env: Environment,
-                 defines: T.Optional[T.Dict[str, str]] = None,
-                 linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None):
+                 defines: dict[str, str] | None = None,
+                 linker: DynamicLinker | None = None,
+                 full_version: str | None = None):
         ObjCCompiler.__init__(self, ccache, exelist, version, for_machine,
                               env, linker=linker, full_version=full_version)
         GnuCompiler.__init__(self, defines)
@@ -74,8 +73,8 @@ class GnuObjCCompiler(GnuCStds, GnuCompiler, ObjCCompiler):
                                          self.supported_warn_args(gnu_common_warning_args) +
                                          self.supported_warn_args(gnu_objc_warning_args))}
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
-        args: T.List[str] = []
+    def get_option_std_args(self, target: BuildTarget, subproject: str | None = None) -> list[str]:
+        args: list[str] = []
         key = OptionKey('c_std', subproject=subproject, machine=self.for_machine)
         if target:
             std = self.environment.coredata.get_option_for_target(target, key)
@@ -87,11 +86,11 @@ class GnuObjCCompiler(GnuCStds, GnuCompiler, ObjCCompiler):
         return args
 
 class ClangObjCCompiler(ClangCStds, ClangCompiler, ObjCCompiler):
-    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
+    def __init__(self, ccache: list[str], exelist: list[str], version: str, for_machine: MachineChoice,
                  env: Environment,
-                 defines: T.Optional[T.Dict[str, str]] = None,
-                 linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None):
+                 defines: dict[str, str] | None = None,
+                 linker: DynamicLinker | None = None,
+                 full_version: str | None = None):
         ObjCCompiler.__init__(self, ccache, exelist, version, for_machine,
                               env, linker=linker, full_version=full_version)
         ClangCompiler.__init__(self, defines)
@@ -112,7 +111,7 @@ class ClangObjCCompiler(ClangCStds, ClangCompiler, ObjCCompiler):
             return 'c_std'
         return super().make_option_name(key)
 
-    def get_option_std_args(self, target: BuildTarget, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, subproject: str | None = None) -> list[str]:
         args = []
         key = OptionKey('c_std', machine=self.for_machine)
         std = self.get_compileropt_value(key, target, subproject)

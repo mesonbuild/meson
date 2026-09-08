@@ -2,30 +2,31 @@
 # Copyright 2016-2021 The Meson development team
 
 from __future__ import annotations
-import subprocess
-import tempfile
+
 import os
 import shutil
-import unittest
+import subprocess
+import tempfile
 import typing as T
+import unittest
 from contextlib import contextmanager
 
+from mesonbuild.compilers import detect_objc_compiler, detect_objcpp_compiler
 from mesonbuild.mesonlib import (
-    MachineChoice, is_windows, is_osx, windows_proof_rmtree, windows_proof_rm
+    EnvironmentException,
+    MachineChoice,
+    MesonException,
+    is_osx,
+    is_windows,
+    windows_proof_rm,
+    windows_proof_rmtree,
 )
-from mesonbuild.compilers import (
-    detect_objc_compiler, detect_objcpp_compiler
-)
-from mesonbuild.mesonlib import EnvironmentException, MesonException
 from mesonbuild.programs import ExternalProgram
-
-
-from run_tests import (
-    get_fake_env
-)
+from run_tests import get_fake_env
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import *
+from .helpers import skipIfNoPkgconfigDep
+
 
 @contextmanager
 def no_pkgconfig():
@@ -78,12 +79,12 @@ class FailureTests(BasePlatformTests):
         windows_proof_rmtree(self.srcdir)
 
     def assertMesonRaises(self, contents: str,
-                          match: T.Union[str, T.Pattern[str]], *,
-                          extra_args: T.Optional[T.List[str]] = None,
-                          langs: T.Optional[T.List[str]] = None,
-                          meson_version: T.Optional[str] = None,
-                          options: T.Optional[str] = None,
-                          override_envvars: T.Optional[T.MutableMapping[str, str]] = None) -> None:
+                          match: str | T.Pattern[str], *,
+                          extra_args: list[str] | None = None,
+                          langs: list[str] | None = None,
+                          meson_version: str | None = None,
+                          options: str | None = None,
+                          override_envvars: T.MutableMapping[str, str] | None = None) -> None:
         '''
         Assert that running meson configure on the specified @contents raises
         a error message matching regex @match.
@@ -150,7 +151,7 @@ class FailureTests(BasePlatformTests):
              ("dependency('zlib', version : 1)", r'"dependency" keyword argument "version" was of type "array\[int\]" but should have been "array\[str\]"'),
              ("dependency('zlib', required : 1)", '"dependency" keyword argument "required" was of type "int" but should have been one of: "bool", "Feature"'),
              ("dependency('zlib', method : 1)", '"dependency" keyword argument "method" was of type "int" but should have been "str"'),
-             ("dependency('zlibfail')", self.dnf),)
+             ("dependency('zlibfail')", self.dnf))
         for contents, match in a:
             self.assertMesonRaises(contents, match)
 
@@ -179,9 +180,9 @@ class FailureTests(BasePlatformTests):
             # Look for pkg-config, cache it, then
             # Use cached pkg-config without erroring out, then
             # Use cached pkg-config to error out
-            code = "dependency('foobarrr', method : 'pkg-config', required : false)\n" \
-                "dependency('foobarrr2', method : 'pkg-config', required : false)\n" \
-                "dependency('sdl2', method : 'pkg-config')"
+            code = ("dependency('foobarrr', method : 'pkg-config', required : false)\n"
+                    "dependency('foobarrr2', method : 'pkg-config', required : false)\n"
+                "   dependency('sdl2', method : 'pkg-config')")
             self.assertMesonRaises(code, self.nopkg)
 
     def test_gnustep_notfound_dependency(self):
@@ -338,12 +339,12 @@ class FailureTests(BasePlatformTests):
         self.assertMesonDoesNotOutput(vcs_tag, msg, meson_version='>=0.43')
 
     def test_missing_subproject_not_required_and_required(self):
-        self.assertMesonRaises("sub1 = subproject('not-found-subproject', required: false)\n" +
+        self.assertMesonRaises("sub1 = subproject('not-found-subproject', required: false)\n"
                                "sub2 = subproject('not-found-subproject', required: true)",
                                """.*Subproject "subprojects/not-found-subproject" required but not found.*""")
 
     def test_get_variable_on_not_found_project(self):
-        self.assertMesonRaises("sub1 = subproject('not-found-subproject', required: false)\n" +
+        self.assertMesonRaises("sub1 = subproject('not-found-subproject', required: false)\n"
                                "sub1.get_variable('naaa')",
                                """Subproject "subprojects/not-found-subproject" disabled can't get_variable on it.""")
 
@@ -356,9 +357,9 @@ class FailureTests(BasePlatformTests):
         self.assertMesonRaises("", match, meson_version='>=2000', options=options)
 
     def test_assert_default_message(self):
-        self.assertMesonRaises("k1 = 'a'\n" +
-                               "assert({\n" +
-                               "  k1: 1,\n" +
+        self.assertMesonRaises("k1 = 'a'\n"
+                               "assert({\n"
+                               "  k1: 1,\n"
                                "}['a'] == 2)\n",
                                r"Assert failed: {k1 : 1}\['a'\] == 2")
 
@@ -376,13 +377,13 @@ class FailureTests(BasePlatformTests):
                                 r"WARNING:.* Array: \['a', 'b'\]")
 
     def test_override_dependency_twice(self):
-        self.assertMesonRaises("meson.override_dependency('foo', declare_dependency())\n" +
+        self.assertMesonRaises("meson.override_dependency('foo', declare_dependency())\n"
                                "meson.override_dependency('foo', declare_dependency())",
                                """Tried to override dependency 'foo' which has already been resolved or overridden""")
 
     @unittest.skipIf(is_windows(), 'zlib is not available on Windows')
     def test_override_resolved_dependency(self):
-        self.assertMesonRaises("dependency('zlib')\n" +
+        self.assertMesonRaises("dependency('zlib')\n"
                                "meson.override_dependency('zlib', declare_dependency())",
                                """Tried to override dependency 'zlib' which has already been resolved or overridden""")
 

@@ -3,17 +3,18 @@
 
 from __future__ import annotations
 
-from .base import ExternalDependency, DependencyException, DependencyTypeName
-from .pkgconfig import PkgConfigDependency
-from ..mesonlib import (Popen_safe, join_args, version_compare, version_compare_many)
+import json
+import os
+import re
+import typing as T
+from enum import Enum
+
+from .. import mlog
+from ..mesonlib import Popen_safe, join_args, version_compare, version_compare_many
 from ..options import OptionKey
 from ..programs import ExternalProgram
-from .. import mlog
-from enum import Enum
-import re
-import os
-import json
-import typing as T
+from .base import DependencyException, DependencyTypeName, ExternalDependency
+from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
@@ -23,11 +24,11 @@ if T.TYPE_CHECKING:
 
     # Definition of what `dub describe` returns (only the fields used by Meson)
     class DubDescription(TypedDict):
-        platform: T.List[str]
-        architecture: T.List[str]
+        platform: list[str]
+        architecture: list[str]
         buildType: str
-        packages: T.List[DubPackDesc]
-        targets: T.List[DubTargetDesc]
+        packages: list[DubPackDesc]
+        targets: list[DubTargetDesc]
 
     class DubPackDesc(TypedDict):
         name: str
@@ -40,19 +41,19 @@ if T.TYPE_CHECKING:
 
     class DubTargetDesc(TypedDict):
         rootPackage: str
-        linkDependencies: T.List[str]
+        linkDependencies: list[str]
         buildSettings: DubBuildSettings
         cacheArtifactPath: str
 
     class DubBuildSettings(TypedDict):
-        importPaths: T.List[str]
-        stringImportPaths: T.List[str]
-        versions: T.List[str]
+        importPaths: list[str]
+        stringImportPaths: list[str]
+        versions: list[str]
         mainSourceFile: str
-        sourceFiles: T.List[str]
-        dflags: T.List[str]
-        libs: T.List[str]
-        lflags: T.List[str]
+        sourceFiles: list[str]
+        dflags: list[str]
+        libs: list[str]
+        lflags: list[str]
 
     class FindTargetEntry(TypedDict):
         search: str
@@ -64,7 +65,7 @@ class DubDescriptionSource(Enum):
 
 class DubDependency(ExternalDependency):
     # dub program and version
-    class_dubbin: T.Optional[T.Tuple[ExternalProgram, str]] = None
+    class_dubbin: tuple[ExternalProgram, str] | None = None
     class_dubbin_searched = False
     class_cache_dir = ''
 
@@ -77,7 +78,7 @@ class DubDependency(ExternalDependency):
         'llvm': 'ldc',
     }
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs):
         kwargs['language'] = 'd'
         super().__init__(name, environment, kwargs)
         from ..compilers.d import DCompiler, d_feature_args
@@ -97,7 +98,7 @@ class DubDependency(ExternalDependency):
                 raise DependencyException('DUB not found.')
             return
 
-        (self.dubbin, dubver) = DubDependency.class_dubbin  # pylint: disable=unpacking-non-sequence
+        (self.dubbin, dubver) = DubDependency.class_dubbin
 
         assert isinstance(self.dubbin, ExternalProgram)
 
@@ -111,14 +112,13 @@ class DubDependency(ExternalDependency):
                 raise DependencyException(
                     f'DUB version {dubver} is not compatible with Meson'
                     " (can't locate artifacts in DUB's cache). Upgrade to Dub >= 1.35.")
-            else:
-                mlog.warning(f'DUB dependency {name} not found because Dub {dubver} '
-                             "is not compatible with Meson. (Can't locate artifacts in DUB's cache)."
-                             ' Upgrade to Dub >= 1.35')
+            mlog.warning(f'DUB dependency {name} not found because Dub {dubver} '
+                         "is not compatible with Meson. (Can't locate artifacts in DUB's cache)."
+                         ' Upgrade to Dub >= 1.35')
             return
 
-        mlog.debug('Determining dependency {!r} with DUB executable '
-                   '{!r}'.format(name, self.dubbin.get_path()))
+        mlog.debug(f'Determining dependency {name!r} with DUB executable '
+                   f'{self.dubbin.get_path()!r}')
 
         # we need to know the target architecture
         dub_arch = self.compiler.arch
@@ -195,7 +195,7 @@ class DubDependency(ExternalDependency):
         # 4. Add other build settings (imports, versions etc.)
 
         # 1
-        packages: T.Dict[str, DubPackDesc] = {}
+        packages: dict[str, DubPackDesc] = {}
         found_it = False
         for pkg in description['packages']:
             packages[pkg['name']] = pkg
@@ -292,7 +292,7 @@ class DubDependency(ExternalDependency):
 
         for file in bs['sourceFiles']:
             # sourceFiles may contain static libraries
-            if file.endswith('.lib') or file.endswith('.a'):
+            if file.endswith(('.lib', '.a')):
                 self.link_args.append(file)
 
         for flag in bs['lflags']:
@@ -328,8 +328,8 @@ class DubDependency(ExternalDependency):
     # Get the dub description needed to resolve the dependency and a
     # build command that can be used to build the dependency in case it is
     # not present.
-    def _get_dub_description(self, dub_arch: str, dub_buildtype: str) -> T.Optional[T.Tuple[DubDescription, str, DubDescriptionSource]]:
-        def get_build_command() -> T.List[str]:
+    def _get_dub_description(self, dub_arch: str, dub_buildtype: str) -> tuple[DubDescription, str, DubDescriptionSource] | None:
+        def get_build_command() -> list[str]:
             if self._dub_has_build_deep:
                 cmd = ['dub', 'build', '--deep']
             else:
@@ -344,15 +344,14 @@ class DubDependency(ExternalDependency):
         # Ask dub for the package
         describe_cmd = [
             'describe', '--arch=' + dub_arch,
-            '--build=' + dub_buildtype, '--compiler=' + self.compiler.get_exelist()[-1]
+            '--build=' + dub_buildtype, '--compiler=' + self.compiler.get_exelist()[-1],
         ]
         helper_build = join_args(get_build_command())
         source = DubDescriptionSource.Local
         ret, res, err = self._call_dubbin(describe_cmd)
         if ret == 0:
             return (json.loads(res), helper_build, source)
-        else:
-            mlog.debug('DUB describe (raw) failed: ' + err)
+        mlog.debug('DUB describe (raw) failed: ' + err)
 
         pack_spec = self.name
         if self.version_reqs is not None:
@@ -360,12 +359,12 @@ class DubDependency(ExternalDependency):
                 mlog.error('Multiple version requirements are not supported for raw dub dependencies.')
                 mlog.error("Please specify only an exact version like '1.2.3'")
                 raise DependencyException('Multiple version requirements are not solvable for raw dub dependencies')
-            elif len(self.version_reqs) == 1:
+            if len(self.version_reqs) == 1:
                 pack_spec += '@' + self.version_reqs[0]
 
         describe_cmd = [
             'describe', pack_spec, '--arch=' + dub_arch,
-            '--build=' + dub_buildtype, '--compiler=' + self.compiler.get_exelist()[-1]
+            '--build=' + dub_buildtype, '--compiler=' + self.compiler.get_exelist()[-1],
         ]
         helper_build = join_args(get_build_command() + [pack_spec])
         source = DubDescriptionSource.External
@@ -384,8 +383,8 @@ class DubDependency(ExternalDependency):
     # It returns (target|None, {compatibilities})
     # If None is returned for target, compatibilities will list what other targets were found without full compatibility
     def _find_target_in_cache(self, desc: DubDescription, pkg_desc: DubPackDesc,
-                              tgt_desc: DubTargetDesc, dub_comp_id: str
-                              ) -> T.Tuple[T.Optional[str], T.Set[str]]:
+                              tgt_desc: DubTargetDesc, dub_comp_id: str,
+                              ) -> tuple[str | None, set[str]]:
         mlog.debug('Searching in DUB cache for compatible', pkg_desc['targetFileName'])
 
         # recent DUB versions include a direct path to a compatible cached artifact
@@ -393,8 +392,7 @@ class DubDependency(ExternalDependency):
             tgt_file = tgt_desc['cacheArtifactPath']
             if os.path.exists(tgt_file):
                 return (tgt_file, {'configuration', 'platform', 'arch', 'compiler', 'compiler_version', 'build_type'})
-            else:
-                return (None, set())
+            return (None, set())
 
         assert self._search_in_cache
 
@@ -414,7 +412,7 @@ class DubDependency(ExternalDependency):
         # We do show a WARNING that the build type is not the same.
         # It might be critical in release builds, and acceptable otherwise
         check_list = {'configuration', 'platform', 'arch', 'compiler', 'compiler_version'}
-        compatibilities: T.Set[str] = set()
+        compatibilities: set[str] = set()
 
         for entry in self._cache_entries(pkg_desc):
             target = entry['artifactPath']
@@ -427,7 +425,7 @@ class DubDependency(ExternalDependency):
             # we build a new set for each entry, because if this target is returned
             # we want to return only the compatibilities associated to this target
             # otherwise we could miss the WARNING about build_type
-            comps: T.Set[str] = set()
+            comps: set[str] = set()
 
             search = entry['search']
 
@@ -455,12 +453,11 @@ class DubDependency(ExternalDependency):
             if check_list.issubset(comps):
                 mlog.debug('Found', target)
                 return (target, comps)
-            else:
-                compatibilities = set.union(compatibilities, comps)
+            compatibilities = set.union(compatibilities, comps)
 
         return (None, compatibilities)
 
-    def _cache_entries(self, pkg_desc: DubPackDesc) -> T.List[FindTargetEntry]:
+    def _cache_entries(self, pkg_desc: DubPackDesc) -> list[FindTargetEntry]:
         # the "old" cache is the `.dub` directory in every package of ~/.dub/packages
         dub_build_path = os.path.join(pkg_desc['path'], '.dub', 'build')
 
@@ -473,12 +470,12 @@ class DubDependency(ExternalDependency):
         return [
             {
                 'search': dir_entry,
-                'artifactPath': os.path.join(dub_build_path, dir_entry, pkg_desc['targetFileName'])
+                'artifactPath': os.path.join(dub_build_path, dir_entry, pkg_desc['targetFileName']),
             }
             for dir_entry in os.listdir(dub_build_path)
         ]
 
-    def _get_comp_versions_to_find(self, dub_comp_id: str) -> T.List[str]:
+    def _get_comp_versions_to_find(self, dub_comp_id: str) -> list[str]:
         # Get D frontend version implemented in the compiler, or the compiler version itself
         # gdc doesn't support this
 
@@ -501,18 +498,18 @@ class DubDependency(ExternalDependency):
 
         return comp_versions
 
-    def _call_dubbin(self, args: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str, str]:
+    def _call_dubbin(self, args: list[str], env: dict[str, str] | None = None) -> tuple[int, str, str]:
         assert isinstance(self.dubbin, ExternalProgram)
         p, out, err = Popen_safe(self.dubbin.get_command() + args, env=env, cwd=self.env.get_source_dir())
         return p.returncode, out.strip(), err.strip()
 
-    def _call_compbin(self, args: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str, str]:
+    def _call_compbin(self, args: list[str], env: dict[str, str] | None = None) -> tuple[int, str, str]:
         p, out, err = Popen_safe(self.compiler.get_exelist() + args, env=env)
         return p.returncode, out.strip(), err.strip()
 
-    def _check_dub(self) -> T.Optional[T.Tuple[ExternalProgram, str]]:
+    def _check_dub(self) -> tuple[ExternalProgram, str] | None:
 
-        def find() -> T.Optional[T.Tuple[ExternalProgram, str]]:
+        def find() -> tuple[ExternalProgram, str] | None:
             dubbin = ExternalProgram('dub', silent=True)
 
             if not dubbin.found():
@@ -544,6 +541,6 @@ class DubDependency(ExternalDependency):
         else:
             (dubbin, dubver) = found
             mlog.log('Found DUB:', mlog.bold(dubbin.get_path()),
-                     '(version %s)' % dubver)
+                     f'(version {dubver})')
 
         return found

@@ -1,19 +1,20 @@
 from __future__ import annotations
 
 import importlib
-import shutil
 import json
+import shutil
 import typing as T
 
 from ..mesonlib import MesonException, Popen_safe
+
 if T.TYPE_CHECKING:
     from types import ModuleType
 
 
 # tomllib is present in python 3.11, before that it is a pypi module called tomli,
 # we try to import tomllib, then tomli,
-tomllib: T.Optional[ModuleType] = None
-toml2json: T.Optional[str] = None
+tomllib: ModuleType | None = None
+toml2json: str | None = None
 for t in ['tomllib', 'tomli']:
     try:
         tomllib = importlib.import_module(t)
@@ -35,7 +36,7 @@ class CargoTomlError(MesonException):
     """Exception for TOML parsing errors, keeping proper location info."""
 
 
-def load_toml(filename: str) -> T.Dict[str, object]:
+def load_toml(filename: str) -> dict[str, object]:
     if tomllib:
         try:
             with open(filename, 'rb') as f:
@@ -43,8 +44,7 @@ def load_toml(filename: str) -> T.Dict[str, object]:
         except tomllib.TOMLDecodeError as e:
             if hasattr(e, 'msg'):
                 raise CargoTomlError(e.msg, file=filename, lineno=e.lineno, colno=e.colno) from e
-            else:
-                raise CargoTomlError(str(e), file=filename) from e
+            raise CargoTomlError(str(e), file=filename) from e
     else:
         if toml2json is None:
             raise TomlImplementationMissing('Could not find an implementation of tomllib, nor toml2json')
@@ -57,4 +57,4 @@ def load_toml(filename: str) -> T.Dict[str, object]:
         raw = json.loads(out)
 
     # tomllib.load() returns T.Dict[str, T.Any] but not other implementations.
-    return T.cast('T.Dict[str, object]', raw)
+    return T.cast('dict[str, object]', raw)

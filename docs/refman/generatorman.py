@@ -1,17 +1,16 @@
 import re
+import typing as T
 from pathlib import Path
 
 from .generatorbase import GeneratorBase
 from .model import (
-    ReferenceManual,
     Function,
+    Kwarg,
     Object,
     PosArg,
+    ReferenceManual,
     VarArgs,
-    Kwarg,
 )
-
-import typing as T
 
 
 class ManPage:
@@ -75,12 +74,12 @@ class ManPage:
 
 class GeneratorMan(GeneratorBase):
     def __init__(
-        self, manual: ReferenceManual, out: Path, enable_modules: bool
+        self, manual: ReferenceManual, out: Path, enable_modules: bool,
     ) -> None:
         super().__init__(manual)
         self.out = out
         self.enable_modules = enable_modules
-        self.links: T.List[str] = []
+        self.links: list[str] = []
 
     def generate_description(self, page: ManPage, desc: str) -> None:
         def italicise(match: T.Match[str]) -> str:
@@ -161,7 +160,7 @@ class GeneratorMan(GeneratorBase):
         return name
 
     def generate_function_signature(
-        self, page: ManPage, f: Function, o: Object = None
+        self, page: ManPage, f: Function, o: Object = None,
     ) -> None:
         args = []
 
@@ -199,8 +198,8 @@ class GeneratorMan(GeneratorBase):
             page.line(prefix + sig + suffix)
 
     def base_info(
-        self, x: T.Union[PosArg, VarArgs, Kwarg, Function, Object]
-    ) -> T.List[str]:
+        self, x: PosArg | VarArgs | Kwarg | Function | Object,
+    ) -> list[str]:
         info = []
         if x.deprecated:
             info += [ManPage.bold("deprecated") + f" since {x.deprecated}"]
@@ -212,7 +211,7 @@ class GeneratorMan(GeneratorBase):
     def generate_function_arg(
         self,
         page: ManPage,
-        arg: T.Union[PosArg, VarArgs, Kwarg],
+        arg: PosArg | VarArgs | Kwarg,
         isOptarg: bool = False,
     ) -> None:
         required = (
@@ -248,7 +247,7 @@ class GeneratorMan(GeneratorBase):
         self,
         page: ManPage,
         name: str,
-        args: T.Sequence[T.Union[PosArg, VarArgs, Kwarg]],
+        args: T.Sequence[PosArg | VarArgs | Kwarg],
         isOptarg: bool = False,
     ) -> None:
         if not args:
@@ -261,7 +260,7 @@ class GeneratorMan(GeneratorBase):
         page.unindent()
 
     def generate_sub_sub_section(
-        self, page: ManPage, name: str, text: T.List[str], process: bool = True
+        self, page: ManPage, name: str, text: list[str], process: bool = True,
     ) -> None:
         page.line(ManPage.bold(name))
         page.indent()
@@ -295,7 +294,7 @@ class GeneratorMan(GeneratorBase):
             self.generate_function_argument_section(page, "VARARGS", [f.varargs])
         self.generate_function_argument_section(page, "OPTARGS", f.optargs, True)
         self.generate_function_argument_section(
-            page, "KWARGS", self.sorted_and_filtered(list(f.kwargs.values()))
+            page, "KWARGS", self.sorted_and_filtered(list(f.kwargs.values())),
         )
 
         if f.notes:
@@ -352,7 +351,7 @@ class GeneratorMan(GeneratorBase):
         page.section("NAME")
         page.par(
             f"meson-reference v{self._extract_meson_version()}"
-            + " - a reference for meson functions and objects"
+             " - a reference for meson functions and objects",
         )
 
         page.section("DESCRIPTION")

@@ -2,21 +2,26 @@
 # Copyright © 2024 Intel Corporation
 
 from __future__ import annotations
-import subprocess
-import os
-import shutil
-import unittest
+
 import functools
+import os
 import re
+import shutil
+import subprocess
 import typing as T
+import unittest
 import zipfile
-from pathlib import Path
 from contextlib import contextmanager
+from pathlib import Path
 from unittest import mock
 
 from mesonbuild.compilers import compiler_from_language
 from mesonbuild.mesonlib import (
-    MachineChoice, is_osx, is_cygwin, OrderedSet, EnvironmentException,
+    EnvironmentException,
+    MachineChoice,
+    OrderedSet,
+    is_cygwin,
+    is_osx,
 )
 from mesonbuild.options import OptionKey
 from run_tests import get_fake_env
@@ -48,7 +53,7 @@ class _CompilerSkip:
         self._env = get_fake_env()
         self._cache: CompilerDict = {}
 
-    def _compiler(self, lang: Language) -> T.Optional[Compiler]:
+    def _compiler(self, lang: Language) -> Compiler | None:
         try:
             return self._cache[lang]
         except KeyError:
@@ -99,7 +104,7 @@ class _PkgConfigSkip:
 
     def __init__(self) -> None:
         self.pkgconf = shutil.which('pkg-config') or shutil.which('pkgconf')
-        self.depcache: T.Dict[str, bool] = {}
+        self.depcache: dict[str, bool] = {}
 
     def require_pkgconf(self, f: T.Callable[P, R]) -> T.Callable[P, R]:
         '''
@@ -155,7 +160,7 @@ skipIfNoPkgconfigDep = _pkgconf.require_dep
 class _ExecutableHelper:
 
     def __init__(self) -> None:
-        self._cache: T.Dict[str, bool] = {}
+        self._cache: dict[str, bool] = {}
 
     def _exists(self, name: str) -> bool:
         try:
@@ -231,7 +236,7 @@ def chdir(path: str) -> T.Iterator[None]:
         os.chdir(curdir)
 
 
-def get_dynamic_section_entry(fname: str, entry: str) -> T.Optional[str]:
+def get_dynamic_section_entry(fname: str, entry: str) -> str | None:
     if is_cygwin() or is_osx():
         raise unittest.SkipTest('Test only applicable to ELF platforms')
 
@@ -249,11 +254,11 @@ def get_dynamic_section_entry(fname: str, entry: str) -> T.Optional[str]:
     return None # The file did not contain the specified entry.
 
 
-def get_soname(fname: str) -> T.Optional[str]:
+def get_soname(fname: str) -> str | None:
     return get_dynamic_section_entry(fname, 'soname')
 
 
-def get_rpath(fname: str) -> T.Optional[str]:
+def get_rpath(fname: str) -> str | None:
     raw = get_dynamic_section_entry(fname, r'(?:rpath|runpath)')
     # Get both '' and None here
     if not raw:
@@ -267,11 +272,11 @@ def get_rpath(fname: str) -> T.Optional[str]:
     return final
 
 
-def get_classpath(fname: str) -> T.Optional[str]:
+def get_classpath(fname: str) -> str | None:
     with zipfile.ZipFile(fname) as zip:
         with zip.open('META-INF/MANIFEST.MF') as member:
             contents = member.read().decode().strip()
-    lines: T.List[str] = []
+    lines: list[str] = []
     for line in contents.splitlines():
         if line.startswith(' '):
             # continuation line

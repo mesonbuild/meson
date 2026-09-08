@@ -3,17 +3,16 @@
 
 from __future__ import annotations
 
-
-import sys
 import os
+import shutil
 import stat
 import struct
-import shutil
 import subprocess
+import sys
 import typing as T
 import zipfile
 
-from ..mesonlib import OrderedSet, generate_list, Popen_safe
+from ..mesonlib import OrderedSet, Popen_safe, generate_list
 
 SHT_STRTAB = 3
 DT_NEEDED = 1
@@ -49,7 +48,7 @@ class XcoffFixedLengthHeader:
     def __init__(self, file: T.BinaryIO) -> None:
         header_data = file.read(self.FL_HDR_SIZE)
         fl_magic, fl_memoff, fl_gstoff, fl_gst64off, fl_fstmoff, fl_lstmoff, fl_freeoff = struct.unpack(
-            self.FL_HDR_FORMAT, header_data
+            self.FL_HDR_FORMAT, header_data,
         )
         self.fl_magic = fl_magic
         self.fl_fstmoff = int(fl_fstmoff)
@@ -63,7 +62,7 @@ class XcoffArchiveHeader:
     def __init__(self, file: T.BinaryIO) -> None:
         header_data = file.read(self.AR_HDR_SIZE)
         ar_size, ar_nxtmem, ar_prvmem, ar_date, ar_uid, ar_gid, ar_mode, ar_namlen, _ar_name = struct.unpack(
-            self.AR_HDR_FORMAT, header_data
+            self.AR_HDR_FORMAT, header_data,
         )
         ar_namlen_int = int(ar_namlen.strip())
         # The Magic number always starts at the even byte boundary
@@ -83,12 +82,12 @@ class XcoffCompositeFileHeader:
         if magic == 0x01DF:
             cfh_header_data = file.read(self.CFH_HDR_SIZE_32)
             f_magic, f_nscns, f_timdat, f_symptr, f_nsyms, f_opthdr, f_flags = struct.unpack(
-                self.CFH_HDR_FORMAT_32, cfh_header_data
+                self.CFH_HDR_FORMAT_32, cfh_header_data,
             )
         else:
             cfh_header_data = file.read(self.CFH_HDR_SIZE)
             f_magic, f_nscns, f_timdat, f_symptr, f_opthdr, f_flags, f_nsyms = struct.unpack(
-                self.CFH_HDR_FORMAT, cfh_header_data
+                self.CFH_HDR_FORMAT, cfh_header_data,
             )
         self.f_flags = int.from_bytes(f_flags, byteorder='big')
         self.f_opthdr = int.from_bytes(f_opthdr, byteorder='big')
@@ -171,7 +170,7 @@ class XcoffLoaderHeader:
         self.l_istlen = int.from_bytes(l_istlen, byteorder='big')
 
 
-def traverse_xcoff(file: T.BinaryIO, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Optional[bytes], verbose: bool = True) -> None:
+def traverse_xcoff(file: T.BinaryIO, rpath_dirs_to_remove: set[bytes], new_rpath: bytes | None, verbose: bool = True) -> None:
     """Traverse XCOFF file or archive and modify Libpath entries.
 
     Handles both standalone XCOFF shared objects (.so) and XCOFF archives (.a).
@@ -187,7 +186,7 @@ def traverse_xcoff(file: T.BinaryIO, rpath_dirs_to_remove: T.Set[bytes], new_rpa
     file.seek(0)
 
     # Read archive headers if this is an archive
-    ar_header: T.Optional[XcoffArchiveHeader] = None
+    ar_header: XcoffArchiveHeader | None = None
     if magic_check == b'<bigaf>\n':
         fl_header = XcoffFixedLengthHeader(file)
         file.seek(fl_header.fl_fstmoff)
@@ -274,7 +273,7 @@ def traverse_xcoff(file: T.BinaryIO, rpath_dirs_to_remove: T.Set[bytes], new_rpa
     log_msg(f'Successfully changed libpath from {build_libpath!r} to {install_rpath!r}')
 
 
-def fix_aix(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Optional[bytes], verbose: bool = True) -> None:
+def fix_aix(fname: str, rpath_dirs_to_remove: set[bytes], new_rpath: bytes | None, verbose: bool = True) -> None:
     """Writes Libpath to an xcoff shared object.
 
     In AIX, shared modules are .so files and shared libraries are in .a archives.
@@ -407,10 +406,10 @@ class Elf(DataSizes):
     def __init__(self, bfile: str, verbose: bool = True) -> None:
         self.bfile = bfile
         self.verbose = verbose
-        self.sections: T.List[SectionHeader] = []
-        self.dynamic: T.List[DynamicEntry] = []
-        self.dynsym: T.List[DynsymEntry] = []
-        self.dynsym_strings: T.List[str] = []
+        self.sections: list[SectionHeader] = []
+        self.dynamic: list[DynamicEntry] = []
+        self.dynsym: list[DynsymEntry] = []
+        self.dynsym_strings: list[str] = []
         self.open_bf(bfile)
         try:
             (self.ptrsize, self.is_le) = self.detect_elf_type()
@@ -447,7 +446,7 @@ class Elf(DataSizes):
             self.bf.close()
             self.bf = None
 
-    def __enter__(self) -> 'Elf':
+    def __enter__(self) -> Elf:
         return self
 
     def __del__(self) -> None:
@@ -456,7 +455,7 @@ class Elf(DataSizes):
     def __exit__(self, exc_type: T.Any, exc_value: T.Any, traceback: T.Any) -> None:
         self.close_bf()
 
-    def detect_elf_type(self) -> T.Tuple[int, bool]:
+    def detect_elf_type(self) -> tuple[int, bool]:
         data = self.bf.read(6)
         if data[1:4] != b'ELF':
             # This script gets called to non-elf targets too
@@ -510,7 +509,7 @@ class Elf(DataSizes):
                 raise RuntimeError('Tried to read past the end of the file')
         return b''.join(arr)
 
-    def find_section(self, target_name: bytes) -> T.Optional[SectionHeader]:
+    def find_section(self, target_name: bytes) -> SectionHeader | None:
         section_names = self.sections[self.e_shstrndx]
         for i in self.sections:
             self.bf.seek(section_names.sh_offset + i.sh_name)
@@ -554,7 +553,7 @@ class Elf(DataSizes):
             self.bf.seek(section_names.sh_offset + i.sh_name)
             yield self.read_str().decode()
 
-    def get_soname(self) -> T.Optional[str]:
+    def get_soname(self) -> str | None:
         soname = None
         strtab = None
         for i in self.dynamic:
@@ -567,7 +566,7 @@ class Elf(DataSizes):
         self.bf.seek(strtab.val + soname.val)
         return self.read_str().decode()
 
-    def get_entry_offset(self, entrynum: int) -> T.Optional[int]:
+    def get_entry_offset(self, entrynum: int) -> int | None:
         sec = self.find_section(b'.dynstr')
         for i in self.dynamic:
             if i.d_tag == entrynum:
@@ -576,14 +575,14 @@ class Elf(DataSizes):
                 return res
         return None
 
-    def get_rpath(self) -> T.Optional[str]:
+    def get_rpath(self) -> str | None:
         offset = self.get_entry_offset(DT_RPATH)
         if offset is None:
             return None
         self.bf.seek(offset)
         return self.read_str().decode()
 
-    def get_runpath(self) -> T.Optional[str]:
+    def get_runpath(self) -> str | None:
         offset = self.get_entry_offset(DT_RUNPATH)
         if offset is None:
             return None
@@ -617,13 +616,13 @@ class Elf(DataSizes):
                 self.bf.seek(offset)
                 self.bf.write(newname)
 
-    def fix_rpath(self, fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: bytes) -> None:
+    def fix_rpath(self, fname: str, rpath_dirs_to_remove: set[bytes], new_rpath: bytes) -> None:
         # The path to search for can be either rpath or runpath.
         # Fix both of them to be sure.
         self.fix_rpathtype_entry(fname, rpath_dirs_to_remove, new_rpath, DT_RPATH)
         self.fix_rpathtype_entry(fname, rpath_dirs_to_remove, new_rpath, DT_RUNPATH)
 
-    def fix_rpathtype_entry(self, fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: bytes, entrynum: int) -> None:
+    def fix_rpathtype_entry(self, fname: str, rpath_dirs_to_remove: set[bytes], new_rpath: bytes, entrynum: int) -> None:
         rp_off = self.get_entry_offset(entrynum)
         if rp_off is None:
             if self.verbose:
@@ -706,7 +705,7 @@ class Elf(DataSizes):
     def remove_rpath_entry(self, entrynum: int) -> None:
         sec = self.find_section(b'.dynamic')
         if sec is None:
-            return None
+            return
         for (i, entry) in enumerate(self.dynamic):
             if entry.d_tag == entrynum:
                 self.clean_rpath_entry_string(entrynum)
@@ -722,9 +721,9 @@ class Elf(DataSizes):
         self.bf.seek(sec.sh_offset)
         for entry in self.dynamic:
             entry.write(self.bf)
-        return None
+        return
 
-def fix_elf(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Optional[bytes], verbose: bool = True) -> None:
+def fix_elf(fname: str, rpath_dirs_to_remove: set[bytes], new_rpath: bytes | None, verbose: bool = True) -> None:
     if new_rpath is not None:
         with Elf(fname, verbose) as e:
             # note: e.get_rpath() and e.get_runpath() may be useful
@@ -751,7 +750,7 @@ def get_darwin_rpaths(fname: str) -> OrderedSet[str]:
             result.add(rp)
     return result
 
-def fix_darwin(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: str, final_path: str, install_name_mappings: T.Dict[str, str]) -> None:
+def fix_darwin(fname: str, rpath_dirs_to_remove: set[bytes], new_rpath: str, final_path: str, install_name_mappings: dict[str, str]) -> None:
     try:
         old_rpaths = get_darwin_rpaths(fname)
     except subprocess.CalledProcessError:
@@ -834,8 +833,8 @@ def fix_jar(fname: str) -> None:
         raise
     os.replace(tmpname, fname)
 
-def fix_rpath(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Union[str, bytes], final_path: str, install_name_mappings: T.Dict[str, str], system: str, verbose: bool = True) -> None:
-    global INSTALL_NAME_TOOL  # pylint: disable=global-statement
+def fix_rpath(fname: str, rpath_dirs_to_remove: set[bytes], new_rpath: str | bytes, final_path: str, install_name_mappings: dict[str, str], system: str, verbose: bool = True) -> None:
+    global INSTALL_NAME_TOOL
     # Static libraries, import libraries, debug information, headers, etc
     # never have rpaths
     # DLLs and EXE currently do not need runtime path fixing

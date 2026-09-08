@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
-import shutil, sys, subprocess, argparse, pathlib
+import shutil
+import sys
+import subprocess
+import argparse
+import pathlib
 import platform
 
 parser = argparse.ArgumentParser()

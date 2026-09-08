@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from functools import wraps
 import typing as T
+from functools import wraps
 
 from ..interpreterbase import ObjectHolder
 from ..interpreterbase.decorators import get_callee_args

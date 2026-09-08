@@ -8,27 +8,27 @@ some to logging dir and some goes to both."""
 from __future__ import annotations
 
 import enum
-import os
 import io
-import sys
-import time
+import os
 import platform
 import shlex
-import subprocess
 import shutil
+import subprocess
+import sys
+import time
 import typing as T
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing import Literal
 
-    from ._typing import StringProtocol, SizedStringProtocol
+    from ._typing import SizedStringProtocol, StringProtocol
     from .mparser import BaseNode
 
-    TV_Loggable = T.Union[str, 'AnsiDecorator', StringProtocol]
-    TV_LoggableList = T.List[TV_Loggable]
+    TV_Loggable: T.TypeAlias = 'str | AnsiDecorator | StringProtocol'
+    TV_LoggableList: T.TypeAlias = list[TV_Loggable]
 
 def is_windows() -> bool:
     platname = platform.system().lower()
@@ -36,7 +36,7 @@ def is_windows() -> bool:
 
 def _windows_ansi() -> bool:
     # windll only exists on windows, so mypy will get mad
-    from ctypes import windll, byref  # type: ignore
+    from ctypes import byref, windll  # type: ignore
     from ctypes.wintypes import DWORD
 
     kernel = windll.kernel32
@@ -63,18 +63,18 @@ class _Severity(enum.Enum):
 @dataclass
 class _Logger:
 
-    log_dir: T.Optional[str] = None
-    log_depth: T.List[str] = field(default_factory=list)
+    log_dir: str | None = None
+    log_depth: list[str] = field(default_factory=list)
     log_to_stderr: bool = False
-    log_file: T.Optional[T.TextIO] = None
-    slog_file: T.Optional[T.TextIO] = None
-    log_timestamp_start: T.Optional[float] = None
+    log_file: T.TextIO | None = None
+    slog_file: T.TextIO | None = None
+    log_timestamp_start: float | None = None
     log_fatal_warnings = False
     log_disable_stdout = False
     log_errors_only = False
-    logged_once: T.Set[T.Tuple[str, ...]] = field(default_factory=set)
+    logged_once: set[tuple[str, ...]] = field(default_factory=set)
     log_warnings_counter = 0
-    log_pager: T.Optional['subprocess.Popen'] = None
+    log_pager: subprocess.Popen | None = None
 
     _LOG_FNAME: T.ClassVar[str] = 'meson-log.txt'
     _SLOG_FNAME: T.ClassVar[str] = 'meson-setup.txt'
@@ -105,7 +105,7 @@ class _Logger:
     def set_timestamp_start(self, start: float) -> None:
         self.log_timestamp_start = start
 
-    def shutdown(self) -> T.Optional[str]:
+    def shutdown(self) -> str | None:
         if self.log_file is not None:
             path = self.log_file.name
             exception_around_goer = self.log_file
@@ -175,10 +175,10 @@ class _Logger:
         self.slog_file = open(os.path.join(logdir, self._SLOG_FNAME), 'w', encoding='utf-8')
         self.log_fatal_warnings = fatal_warnings
 
-    def process_markup(self, args: T.Sequence[TV_Loggable], keep: bool, display_timestamp: bool = True) -> T.List[str]:
-        arr: T.List[str] = []
+    def process_markup(self, args: T.Sequence[TV_Loggable], keep: bool, display_timestamp: bool = True) -> list[str]:
+        arr: list[str] = []
         if self.log_timestamp_start is not None and display_timestamp:
-            arr = ['[{:.3f}]'.format(time.monotonic() - self.log_timestamp_start)]
+            arr = [f'[{time.monotonic() - self.log_timestamp_start:.3f}]']
         for arg in args:
             if arg is None:
                 continue
@@ -190,8 +190,8 @@ class _Logger:
                 arr.append(str(arg))
         return arr
 
-    def force_print(self, *args: str, nested: bool, sep: T.Optional[str] = None,
-                    end: T.Optional[str] = None) -> None:
+    def force_print(self, *args: str, nested: bool, sep: str | None = None,
+                    end: str | None = None) -> None:
         if self.log_disable_stdout:
             return
         iostr = io.StringIO()
@@ -219,16 +219,16 @@ class _Logger:
             cleaned = raw.encode('ascii', 'replace').decode('ascii')
             print(cleaned, end='', file=output)
 
-    def debug(self, *args: TV_Loggable, sep: T.Optional[str] = None,
-              end: T.Optional[str] = None, display_timestamp: bool = True) -> None:
+    def debug(self, *args: TV_Loggable, sep: str | None = None,
+              end: str | None = None, display_timestamp: bool = True) -> None:
         arr = process_markup(args, False, display_timestamp)
         if self.log_file is not None:
             print(*arr, file=self.log_file, sep=sep, end=end)
             self.log_file.flush()
 
     def _log(self, *args: TV_Loggable, is_error: bool = False,
-             nested: bool = True, sep: T.Optional[str] = None,
-             end: T.Optional[str] = None, display_timestamp: bool = True) -> None:
+             nested: bool = True, sep: str | None = None,
+             end: str | None = None, display_timestamp: bool = True) -> None:
         arr = process_markup(args, False, display_timestamp)
         if self.log_file is not None:
             print(*arr, file=self.log_file, sep=sep, end=end)
@@ -241,7 +241,7 @@ class _Logger:
         if not self.log_errors_only or is_error:
             force_print(*arr, nested=nested, sep=sep, end=end)
 
-    def _debug_log_cmd(self, cmd: str, args: T.List[str]) -> None:
+    def _debug_log_cmd(self, cmd: str, args: list[str]) -> None:
         if not _in_ci:
             return
         args = [f'"{x}"' for x in args]  # Quote all args, just in case
@@ -252,8 +252,8 @@ class _Logger:
 
     def log(self, *args: TV_Loggable, is_error: bool = False,
             once: bool = False, nested: bool = True,
-            sep: T.Optional[str] = None,
-            end: T.Optional[str] = None,
+            sep: str | None = None,
+            end: str | None = None,
             display_timestamp: bool = True) -> None:
         if self._should_log(*args, once=once):
             self._log(*args, is_error=is_error, nested=nested, sep=sep, end=end, display_timestamp=display_timestamp)
@@ -279,9 +279,9 @@ class _Logger:
 
     def _log_error(self, severity: _Severity, *rargs: TV_Loggable,
                    once: bool = False, fatal: bool = True,
-                   location: T.Optional[BaseNode] = None,
-                   nested: bool = True, sep: T.Optional[str] = None,
-                   end: T.Optional[str] = None,
+                   location: BaseNode | None = None,
+                   nested: bool = True, sep: str | None = None,
+                   end: str | None = None,
                    is_error: bool = True) -> None:
         from .mesonlib import MesonException, relpath
 
@@ -318,41 +318,41 @@ class _Logger:
 
     def error(self, *args: TV_Loggable,
               once: bool = False, fatal: bool = True,
-              location: T.Optional[BaseNode] = None,
-              nested: bool = True, sep: T.Optional[str] = None,
-              end: T.Optional[str] = None) -> None:
+              location: BaseNode | None = None,
+              nested: bool = True, sep: str | None = None,
+              end: str | None = None) -> None:
         return self._log_error(_Severity.ERROR, *args, once=once, fatal=fatal, location=location,
                                nested=nested, sep=sep, end=end, is_error=True)
 
     def warning(self, *args: TV_Loggable,
                 once: bool = False, fatal: bool = True,
-                location: T.Optional[BaseNode] = None,
-                nested: bool = True, sep: T.Optional[str] = None,
-                end: T.Optional[str] = None) -> None:
+                location: BaseNode | None = None,
+                nested: bool = True, sep: str | None = None,
+                end: str | None = None) -> None:
         return self._log_error(_Severity.WARNING, *args, once=once, fatal=fatal, location=location,
                                nested=nested, sep=sep, end=end, is_error=True)
 
     def deprecation(self, *args: TV_Loggable,
                     once: bool = False, fatal: bool = True,
-                    location: T.Optional[BaseNode] = None,
-                    nested: bool = True, sep: T.Optional[str] = None,
-                    end: T.Optional[str] = None) -> None:
+                    location: BaseNode | None = None,
+                    nested: bool = True, sep: str | None = None,
+                    end: str | None = None) -> None:
         return self._log_error(_Severity.DEPRECATION, *args, once=once, fatal=fatal, location=location,
                                nested=nested, sep=sep, end=end, is_error=True)
 
     def notice(self, *args: TV_Loggable,
                once: bool = False, fatal: bool = True,
-               location: T.Optional[BaseNode] = None,
-               nested: bool = True, sep: T.Optional[str] = None,
-               end: T.Optional[str] = None) -> None:
+               location: BaseNode | None = None,
+               nested: bool = True, sep: str | None = None,
+               end: str | None = None) -> None:
         return self._log_error(_Severity.NOTICE, *args, once=once, fatal=fatal, location=location,
                                nested=nested, sep=sep, end=end, is_error=False)
 
-    def exception(self, e: Exception, prefix: T.Optional[AnsiDecorator] = None) -> None:
+    def exception(self, e: Exception, prefix: AnsiDecorator | None = None) -> None:
         if prefix is None:
             prefix = red('ERROR:')
         self.log()
-        args: T.List[T.Union[AnsiDecorator, str]] = []
+        args: list[AnsiDecorator | str] = []
         if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
             # Mypy doesn't follow hasattr, and it's pretty easy to visually inspect
             # that this is correct, so we'll just ignore it.
@@ -473,7 +473,7 @@ class AnsiDecorator:
         return self.get_text(colorize_console())
 
 class AnsiText:
-    def __init__(self, *args: 'SizedStringProtocol'):
+    def __init__(self, *args: SizedStringProtocol):
         self.args = args
 
     def __len__(self) -> int:
@@ -542,16 +542,15 @@ def get_relative_path(target: Path, current: Path) -> Path:
 
 # Format a list for logging purposes as a string. It separates
 # all but the last item with commas, and the last with 'and'.
-def format_list(input_list: T.List[str]) -> str:
+def format_list(input_list: list[str]) -> str:
     l = len(input_list)
     if l > 2:
         return ' and '.join([', '.join(input_list[:-1]), input_list[-1]])
-    elif l == 2:
+    if l == 2:
         return ' and '.join(input_list)
-    elif l == 1:
+    if l == 1:
         return input_list[0]
-    else:
-        return ''
+    return ''
 
 
 def code_line(text: str, line: str, colno: int) -> str:
@@ -565,12 +564,12 @@ def code_line(text: str, line: str, colno: int) -> str:
     return f'{text}\n{line}\n{" " * colno}^'
 
 @T.overload
-def ci_fold_file(fname: T.Union[str, os.PathLike], banner: str, force: Literal[True] = True) -> str: ...
+def ci_fold_file(fname: str | os.PathLike, banner: str, force: Literal[True] = True) -> str: ...
 
 @T.overload
-def ci_fold_file(fname: T.Union[str, os.PathLike], banner: str, force: Literal[False] = False) -> T.Optional[str]: ...
+def ci_fold_file(fname: str | os.PathLike, banner: str, force: Literal[False] = False) -> str | None: ...
 
-def ci_fold_file(fname: T.Union[str, os.PathLike], banner: str, force: bool = False) -> T.Optional[str]:
+def ci_fold_file(fname: str | os.PathLike, banner: str, force: bool = False) -> str | None:
     if not _in_ci and not force:
         return None
 
@@ -587,6 +586,6 @@ def ci_fold_file(fname: T.Union[str, os.PathLike], banner: str, force: bool = Fa
         # only github is implemented
         return None
 
-    with open(fname, 'r', encoding='utf-8') as f:
+    with open(fname, encoding='utf-8') as f:
         data = f.read()
     return f'{header}\n{data}\n{footer}\n'

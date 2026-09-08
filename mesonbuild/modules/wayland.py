@@ -2,23 +2,26 @@
 # Copyright 2022 Mark Bolhuis <mark@bolhuis.dev>
 
 from __future__ import annotations
+
 import os
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from ..build import CustomTarget
 from ..interpreter.type_checking import NoneType, in_set_validator
-from ..interpreterbase import typed_pos_args, typed_kwargs, KwargInfo, FeatureNew
+from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_args
 from ..mesonlib import File, MesonException
+from . import ExtensionModule, ModuleInfo, ModuleReturnValue
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing import Literal
 
-    from . import ModuleState
+    from typing_extensions import TypedDict
+
     from ..dependencies import Dependency
     from ..interpreter import Interpreter
-    from ..programs import CommandList, Program
     from ..mesonlib import FileOrString
+    from ..programs import CommandList, Program
+    from . import ModuleState
 
     class ScanXML(TypedDict):
 
@@ -30,7 +33,7 @@ if T.TYPE_CHECKING:
     class FindProtocol(TypedDict):
 
         state: Literal['stable', 'staging', 'unstable']
-        version: T.Optional[int]
+        version: int | None
 
 class WaylandModule(ExtensionModule):
 
@@ -39,9 +42,9 @@ class WaylandModule(ExtensionModule):
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
 
-        self.protocols_dep: T.Optional[Dependency] = None
-        self.pkgdatadir: T.Optional[str] = None
-        self.scanner_bin: T.Optional[Program] = None
+        self.protocols_dep: Dependency | None = None
+        self.pkgdatadir: str | None = None
+        self.scanner_bin: Program | None = None
 
         self.methods.update({
             'scan_xml': self.scan_xml,
@@ -56,7 +59,7 @@ class WaylandModule(ExtensionModule):
         KwargInfo('server', bool, default=False),
         KwargInfo('include_core_only', bool, default=True, since='0.64.0'),
     )
-    def scan_xml(self, state: ModuleState, args: T.Tuple[T.List[FileOrString]], kwargs: ScanXML) -> ModuleReturnValue:
+    def scan_xml(self, state: ModuleState, args: tuple[list[FileOrString]], kwargs: ScanXML) -> ModuleReturnValue:
         if self.scanner_bin is None:
             # wayland-scanner from BUILD machine must have same version as wayland
             # libraries from HOST machine.
@@ -66,12 +69,12 @@ class WaylandModule(ExtensionModule):
 
         scope = 'public' if kwargs['public'] else 'private'
         # We have to cast because mypy can't deduce these are literals
-        sides = [i for i in T.cast("T.List[Literal['client', 'server']]", ['client', 'server']) if kwargs[i]]
+        sides = [i for i in T.cast("list[Literal['client', 'server']]", ['client', 'server']) if kwargs[i]]
         if not sides:
             raise MesonException('At least one of client or server keyword argument must be set to true.')
 
         xml_files = self.interpreter.source_strings_to_files(args[0])
-        targets: T.List[CustomTarget] = []
+        targets: list[CustomTarget] = []
         for xml_file in xml_files:
             name = os.path.splitext(os.path.basename(xml_file.fname))[0]
 
@@ -112,7 +115,7 @@ class WaylandModule(ExtensionModule):
         KwargInfo('state', str, default='stable', validator=in_set_validator({'stable', 'staging', 'unstable'})),
         KwargInfo('version', (int, NoneType)),
     )
-    def find_protocol(self, state: ModuleState, args: T.Tuple[str], kwargs: FindProtocol) -> File:
+    def find_protocol(self, state: ModuleState, args: tuple[str], kwargs: FindProtocol) -> File:
         base_name = args[0]
         xml_state = kwargs['state']
         version = kwargs['version']

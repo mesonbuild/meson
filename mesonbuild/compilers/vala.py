@@ -6,25 +6,24 @@ from __future__ import annotations
 import os.path
 import typing as T
 
-from .. import mlog
-from .. import mesonlib
-from ..mesonlib import version_compare, LibType
+from .. import mesonlib, mlog
+from ..mesonlib import LibType, version_compare
 from ..options import OptionKey
 from .compilers import CompileCheckMode, Compiler
 
 if T.TYPE_CHECKING:
     from ..arglist import CompilerArgs
+    from ..build import BuildTarget
+    from ..dependencies import Dependency
     from ..environment import Environment
     from ..mesonlib import MachineChoice
-    from ..dependencies import Dependency
-    from ..build import BuildTarget
 
 class ValaCompiler(Compiler):
 
     language = 'vala'
     id = 'valac'
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+    def __init__(self, exelist: list[str], version: str, for_machine: MachineChoice,
                  environment: Environment):
         super().__init__([], exelist, version, for_machine, environment)
         self.version = version
@@ -36,10 +35,10 @@ class ValaCompiler(Compiler):
     def needs_static_linker(self) -> bool:
         return False # Because compiles into C.
 
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> list[str]:
         return []
 
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> list[str]:
         if version_compare(self.version, '>=0.47.2'):
             return ['--depfile', outfile]
         return []
@@ -47,17 +46,17 @@ class ValaCompiler(Compiler):
     def get_depfile_suffix(self) -> str:
         return 'depfile'
 
-    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+    def get_debug_args(self, is_debug: bool) -> list[str]:
         return ['--debug'] if is_debug else []
 
-    def get_output_args(self, outputname: str) -> T.List[str]:
+    def get_output_args(self, outputname: str) -> list[str]:
         return [] # Because compiles into C.
 
-    def get_compile_only_args(self) -> T.List[str]:
+    def get_compile_only_args(self) -> list[str]:
         return [] # Because compiles into C.
 
-    def get_compiler_args_for_mode(self, mode: CompileCheckMode) -> T.List[str]:
-        args: T.List[str] = []
+    def get_compiler_args_for_mode(self, mode: CompileCheckMode) -> list[str]:
+        args: list[str] = []
         if mode is CompileCheckMode.LINK and self.force_link:
             return args
         args += self.get_always_args()
@@ -67,34 +66,34 @@ class ValaCompiler(Compiler):
             args += self.get_preprocess_only_args()
         return args
 
-    def get_preprocess_only_args(self) -> T.List[str]:
+    def get_preprocess_only_args(self) -> list[str]:
         return []
 
-    def get_pic_args(self) -> T.List[str]:
+    def get_pic_args(self) -> list[str]:
         return []
 
-    def get_pie_args(self) -> T.List[str]:
+    def get_pie_args(self) -> list[str]:
         return []
 
-    def get_pie_link_args(self) -> T.List[str]:
+    def get_pie_link_args(self) -> list[str]:
         return []
 
-    def get_always_args(self) -> T.List[str]:
+    def get_always_args(self) -> list[str]:
         return ['-C']
 
-    def get_warn_args(self, level: str) -> T.List[str]:
+    def get_warn_args(self, level: str) -> list[str]:
         return []
 
-    def get_werror_args(self) -> T.List[str]:
+    def get_werror_args(self) -> list[str]:
         return ['--fatal-warnings']
 
-    def get_colorout_args(self, colortype: str) -> T.List[str]:
+    def get_colorout_args(self, colortype: str) -> list[str]:
         if self._has_color_support:
             return ['--color=' + colortype]
         return []
 
-    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
-                                               build_dir: str) -> T.List[str]:
+    def compute_parameters_with_absolute_paths(self, parameter_list: list[str],
+                                               build_dir: str) -> list[str]:
         for idx, i in enumerate(parameter_list):
             if i[:9] == '--girdir=':
                 parameter_list[idx] = i[:9] + os.path.normpath(os.path.join(build_dir, i[9:]))
@@ -115,8 +114,8 @@ class ValaCompiler(Compiler):
         # and linked by _transpiled_sanity_check_compile_args()
         return CompileCheckMode.COMPILE
 
-    def _sanity_check_compile_args(self, sourcename: str, binname: str
-                                   ) -> T.Tuple[T.List[str], T.List[str]]:
+    def _sanity_check_compile_args(self, sourcename: str, binname: str,
+                                   ) -> tuple[list[str], list[str]]:
         args, largs = super()._sanity_check_compile_args(sourcename, binname)
         if self._has_posix_profile:
             # This removes the glib requirement. Posix and libc are equivalent,
@@ -125,8 +124,8 @@ class ValaCompiler(Compiler):
         return args, largs
 
     def _transpiled_sanity_check_compile_args(
-            self, compiler: Compiler, sourcename: str, binname: str
-            ) -> T.Tuple[T.List[str], T.List[str]]:
+            self, compiler: Compiler, sourcename: str, binname: str,
+            ) -> tuple[list[str], list[str]]:
         args, largs = super()._transpiled_sanity_check_compile_args(compiler, sourcename, binname)
         if self._has_posix_profile:
             return args, largs
@@ -144,20 +143,20 @@ class ValaCompiler(Compiler):
         largs.extend(dep.get_all_link_args())
         return args, largs
 
-    def _sanity_check_filenames(self) -> T.Tuple[str, T.Optional[str], str]:
+    def _sanity_check_filenames(self) -> tuple[str, str | None, str]:
         sourcename, _, binname = super()._sanity_check_filenames()
         return sourcename, f'{os.path.splitext(sourcename)[0]}.c', binname
 
-    def find_library(self, libname: str, extra_dirs: T.List[str], libtype: LibType = LibType.PREFER_SHARED,
+    def find_library(self, libname: str, extra_dirs: list[str], libtype: LibType = LibType.PREFER_SHARED,
                      lib_prefix_warning: bool = True, ignore_system_dirs: bool = False,
-                     skip_link_check: bool = False) -> T.Optional[T.List[str]]:
+                     skip_link_check: bool = False) -> list[str] | None:
         if extra_dirs and isinstance(extra_dirs, str):
             extra_dirs = [extra_dirs]
         # Valac always looks in the default vapi dir, so only search there if
         # no extra dirs are specified.
         if not extra_dirs:
             code = 'class MesonFindLibrary : Object { }'
-            args: T.List[str] = self.get_external_compile_args()
+            args: list[str] = self.get_external_compile_args()
             vapi_args = ['--pkg', libname]
             args += vapi_args
             with self.cached_compile(code, extra_args=args, mode=CompileCheckMode.COMPILE) as p:
@@ -171,18 +170,18 @@ class ValaCompiler(Compiler):
         mlog.debug(f'Searched {extra_dirs!r} and {libname!r} wasn\'t found')
         return None
 
-    def thread_flags(self) -> T.List[str]:
+    def thread_flags(self) -> list[str]:
         return []
 
-    def thread_link_flags(self) -> T.List[str]:
+    def thread_link_flags(self) -> list[str]:
         return []
 
-    def get_option_link_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: BuildTarget, subproject: str | None = None) -> list[str]:
         return []
 
     def build_wrapper_args(self,
-                           extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
-                           dependencies: T.Optional[T.List['Dependency']],
+                           extra_args: None | CompilerArgs | list[str] | T.Callable[[CompileCheckMode], list[str]],
+                           dependencies: list[Dependency] | None,
                            mode: CompileCheckMode = CompileCheckMode.COMPILE) -> CompilerArgs:
         if callable(extra_args):
             extra_args = extra_args(mode)
@@ -224,11 +223,11 @@ class ValaCompiler(Compiler):
         args += extra_args
         return args
 
-    def links(self, code: 'mesonlib.FileOrString', *,
-              compiler: T.Optional['Compiler'] = None,
-              extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
-              dependencies: T.Optional[T.List['Dependency']] = None,
-              disable_cache: bool = False) -> T.Tuple[bool, bool]:
+    def links(self, code: mesonlib.FileOrString, *,
+              compiler: Compiler | None = None,
+              extra_args: None | list[str] | CompilerArgs | T.Callable[[CompileCheckMode], list[str]] = None,
+              dependencies: list[Dependency] | None = None,
+              disable_cache: bool = False) -> tuple[bool, bool]:
         self.force_link = True
         if compiler:
             with compiler._build_wrapper(code, dependencies=dependencies, want_output=True) as r:

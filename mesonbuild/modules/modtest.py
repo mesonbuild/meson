@@ -2,15 +2,16 @@
 # Copyright 2015 The Meson development team
 
 from __future__ import annotations
+
 import typing as T
 
-from . import NewExtensionModule, ModuleInfo
 from ..interpreterbase import noKwargs, noPosargs
+from . import ModuleInfo, NewExtensionModule
 
 if T.TYPE_CHECKING:
-    from . import ModuleState
     from ..interpreter.interpreter import Interpreter
     from ..interpreterbase.baseobjects import TYPE_kwargs, TYPE_var
+    from . import ModuleState
 
 
 class TestModule(NewExtensionModule):
@@ -25,7 +26,7 @@ class TestModule(NewExtensionModule):
 
     @noKwargs
     @noPosargs
-    def print_hello(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> None:
+    def print_hello(self, state: ModuleState, args: list[TYPE_var], kwargs: TYPE_kwargs) -> None:
         print('Hello from a Meson module')
 
 

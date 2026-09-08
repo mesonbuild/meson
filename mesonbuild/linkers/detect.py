@@ -3,25 +3,28 @@
 
 from __future__ import annotations
 
-from .base import RSPFileSyntax
-from .. import mlog
-from ..mesonlib import (
-    EnvironmentException,
-    Popen_safe, Popen_safe_logged, join_args, search_version
-)
-from ..options import OptionKey
-
 import re
 import shlex
 import typing as T
 
-if T.TYPE_CHECKING:
-    from .linkers import DynamicLinker, GnuDynamicLinker
-    from ..environment import Environment
-    from ..compilers import Compiler
-    from ..mesonlib import MachineChoice
+from .. import mlog
+from ..mesonlib import (
+    EnvironmentException,
+    Popen_safe,
+    Popen_safe_logged,
+    join_args,
+    search_version,
+)
+from ..options import OptionKey
+from .base import RSPFileSyntax
 
-defaults: T.Dict[str, T.List[str]] = {}
+if T.TYPE_CHECKING:
+    from ..compilers import Compiler
+    from ..environment import Environment
+    from ..mesonlib import MachineChoice
+    from .linkers import DynamicLinker, GnuDynamicLinker
+
+defaults: dict[str, list[str]] = {}
 defaults['static_linker'] = ['ar', 'gar']
 defaults['vs_static_linker'] = ['lib']
 defaults['clang_cl_static_linker'] = ['llvm-lib']
@@ -30,16 +33,15 @@ defaults['gcc_static_linker'] = ['gcc-ar']
 defaults['clang_static_linker'] = ['llvm-ar']
 defaults['emxomf_static_linker'] = ['emxomfar']
 
-def __failed_to_detect_linker(compiler: T.List[str], args: T.List[str], stdout: str, stderr: str) -> 'T.NoReturn':
-    msg = 'Unable to detect linker for compiler `{}`\nstdout: {}\nstderr: {}'.format(
-        join_args(compiler + args), stdout, stderr)
+def __failed_to_detect_linker(compiler: list[str], args: list[str], stdout: str, stderr: str) -> T.NoReturn:
+    msg = f'Unable to detect linker for compiler `{join_args(compiler + args)}`\nstdout: {stdout}\nstderr: {stderr}'
     raise EnvironmentException(msg)
 
 
-def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Type['Compiler'],
+def guess_win_linker(env: Environment, compiler: list[str], comp_class: type[Compiler],
                      comp_version: str, for_machine: MachineChoice, *,
                      wrap_linker_args: bool = True, invoked_directly: bool = True,
-                     extra_args: T.Optional[T.List[str]] = None) -> 'DynamicLinker':
+                     extra_args: list[str] | None = None) -> DynamicLinker:
     from . import linkers
     env.add_lang_args(comp_class.language, comp_class, for_machine)
 
@@ -54,10 +56,10 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     else:
         check_args = comp_class.LINKER_OPTION_STYLE.wrap(['/logo', '--version'])
 
-    check_args += T.cast('T.List[str]', env.coredata.optstore.get_value_for(
+    check_args += T.cast('list[str]', env.coredata.optstore.get_value_for(
         OptionKey(f'{comp_class.language}_link_args', machine=for_machine)))
 
-    override: T.List[str] = []
+    override: list[str] = []
     value = env.lookup_binary_entry(for_machine, comp_class.language + '_ld')
     if value is not None:
         override = comp_class.use_linker_args(value[0], comp_version)
@@ -88,10 +90,10 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             prefix=comp_class.LINKER_OPTION_STYLE if wrap_linker_args else None,
             exelist=compiler, version=search_version(o), direct=invoked_directly,
             rsp_syntax=rsp_syntax)
-    elif 'OPTLINK' in o:
+    if 'OPTLINK' in o:
         # Optlink's stdout *may* begin with a \r character.
         return linkers.OptlinkDynamicLinker(compiler, env, for_machine, version=search_version(o))
-    elif o.startswith('Microsoft') or e.startswith('Microsoft'):
+    if o.startswith('Microsoft') or e.startswith('Microsoft'):
         out = o or e
         match = re.search(r'.*(X86|X64|ARM|ARM64).*', out)
         if match:
@@ -104,7 +106,7 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             prefix=comp_class.LINKER_OPTION_STYLE if wrap_linker_args else None,
             version=search_version(out), direct=invoked_directly,
             rsp_syntax=rsp_syntax)
-    elif 'GNU coreutils' in o:
+    if 'GNU coreutils' in o:
         import shutil
         fullpath = shutil.which(compiler[0])
         raise EnvironmentException(
@@ -113,9 +115,9 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             "You may need to reorder entries to your %PATH% variable to resolve this.")
     __failed_to_detect_linker(compiler, check_args, o, e)
 
-def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Type['Compiler'],
+def guess_nix_linker(env: Environment, compiler: list[str], comp_class: type[Compiler],
                      comp_version: str, for_machine: MachineChoice, *,
-                     extra_args: T.Optional[T.List[str]] = None) -> 'DynamicLinker':
+                     extra_args: list[str] | None = None) -> DynamicLinker:
     """Helper for guessing what linker to use on Unix-Like OSes.
 
     :compiler: Invocation to use to get linker
@@ -129,12 +131,12 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     extra_args = extra_args or []
 
     system = env.machines[for_machine].system
-    ldflags = T.cast('T.List[str]', env.coredata.optstore.get_value_for(
+    ldflags = T.cast('list[str]', env.coredata.optstore.get_value_for(
         OptionKey(f'{comp_class.language}_link_args', machine=for_machine)))
     extra_args += comp_class._unix_args_to_native(ldflags, env.machines[for_machine])
     check_args = comp_class.LINKER_OPTION_STYLE.wrap(['--version']) + extra_args
 
-    override: T.List[str] = []
+    override: list[str] = []
     value = env.lookup_binary_entry(for_machine, comp_class.language + '_ld')
     if value is not None:
         override = comp_class.use_linker_args(value[0], comp_version)
@@ -152,7 +154,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         cmd = compiler + override + comp_class.LINKER_OPTION_STYLE.wrap(['-v']) + extra_args
         _, newo, newerr = Popen_safe_logged(cmd, msg='Detecting LLD linker via')
 
-        lld_cls: T.Type[DynamicLinker]
+        lld_cls: type[DynamicLinker]
         if 'ld64.lld' in newerr:
             lld_cls = linkers.LLVMLD64DynamicLinker
         else:
@@ -185,7 +187,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
 
         linker = linkers.LLVMDynamicLinker(compiler, env, for_machine, comp_class.LINKER_OPTION_STYLE, override, version=v)
     elif 'GNU' in o or 'GNU' in e:
-        gnu_cls: T.Type[GnuDynamicLinker]
+        gnu_cls: type[GnuDynamicLinker]
         # this is always the only thing on stdout, except for swift
         # which may or may not redirect the linker stdout to stderr
         if o.startswith('GNU gold') or e.startswith('GNU gold'):
@@ -227,7 +229,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             __failed_to_detect_linker(compiler, check_args, o, e)
         linker = linkers.AppleDynamicLinker(
             compiler, env, for_machine, comp_class.LINKER_OPTION_STYLE, override,
-            system=system, version=v
+            system=system, version=v,
         )
     # detect linker on MacOS - must be after other platforms because the
     # "(use -v to see invocation)" will match clang on other platforms,
@@ -246,7 +248,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             __failed_to_detect_linker(compiler, check_args, o, e)
         linker = linkers.AppleDynamicLinker(
             compiler, env, for_machine, comp_class.LINKER_OPTION_STYLE, override,
-            system=system, version=v
+            system=system, version=v,
         )
     elif 'ld.exe: unrecognized option' in e or 'ld: unrecognized option' in e:
         linker = linkers.OS2AoutDynamicLinker(

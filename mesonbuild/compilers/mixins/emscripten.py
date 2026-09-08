@@ -1,18 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The meson development team
 
-from __future__ import annotations
-
 """Provides a mixin for shared code between C and C++ Emscripten compilers."""
+
+from __future__ import annotations
 
 import os.path
 import typing as T
 
-from ... import options
-from ... import mesonlib
-from ...options import OptionKey
-from ...mesonlib import LibType
 from mesonbuild.compilers.compilers import CompileCheckMode
+
+from ... import mesonlib, options
+from ...mesonlib import LibType
+from ...options import OptionKey
 
 if T.TYPE_CHECKING:
     from ...compilers.compilers import Compiler
@@ -25,8 +25,8 @@ else:
     Compiler = object
 
 
-def wrap_js_includes(args: T.List[str]) -> T.List[str]:
-    final_args: T.List[str] = []
+def wrap_js_includes(args: list[str]) -> list[str]:
+    final_args: list[str] = []
     for i in args:
         if i.endswith('.js') and not i.startswith('-'):
             final_args += ['--js-library', i]
@@ -47,7 +47,7 @@ class EmscriptenMixin(Compiler):
             suffix = 'o'
         return os.path.join(dirname, 'output.' + suffix)
 
-    def thread_link_flags(self) -> T.List[str]:
+    def thread_link_flags(self) -> list[str]:
         args = ['-pthread']
         count = self.environment.coredata.optstore.get_value_for(OptionKey(f'{self.language}_thread_count', machine=self.for_machine))
         assert isinstance(count, int)
@@ -68,15 +68,15 @@ class EmscriptenMixin(Compiler):
         return opts
 
     @classmethod
-    def native_args_to_unix(cls, args: T.List[str]) -> T.List[str]:
+    def native_args_to_unix(cls, args: list[str]) -> list[str]:
         return wrap_js_includes(super().native_args_to_unix(args))
 
-    def get_dependency_link_args(self, dep: 'Dependency') -> T.List[str]:
+    def get_dependency_link_args(self, dep: Dependency) -> list[str]:
         return wrap_js_includes(super().get_dependency_link_args(dep))
 
-    def find_library(self, libname: str, extra_dirs: T.List[str], libtype: LibType = LibType.PREFER_SHARED,
+    def find_library(self, libname: str, extra_dirs: list[str], libtype: LibType = LibType.PREFER_SHARED,
                      lib_prefix_warning: bool = True, ignore_system_dirs: bool = False,
-                     skip_link_check: bool = False) -> T.Optional[T.List[str]]:
+                     skip_link_check: bool = False) -> list[str] | None:
         if not libname.endswith('.js'):
             return super().find_library(libname, extra_dirs, libtype, lib_prefix_warning, ignore_system_dirs, skip_link_check)
         if os.path.isabs(libname):

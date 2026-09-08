@@ -3,24 +3,23 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-import typing as T
-from enum import Enum
 import os
 import platform
 import sys
-
-from . import mesonlib
-from .mesonlib import EnvironmentException, HoldableObject, lazy_property, Popen_safe
-from .programs import ExternalProgram
-from . import mlog
+import typing as T
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path, PurePath, PurePosixPath, PureWindowsPath
 
+from . import mesonlib, mlog
+from .mesonlib import EnvironmentException, HoldableObject, Popen_safe, lazy_property
+from .programs import ExternalProgram
+
 if T.TYPE_CHECKING:
-    from .options import ElementaryOptionValues
+    from ._typing import ImmutableListProtocol
     from .compilers.compilers import CompilerDict
     from .compilers.mixins.visualstudio import VisualStudioLikeCompiler
-    from ._typing import ImmutableListProtocol
+    from .options import ElementaryOptionValues
 
 
 # These classes contains all the data pulled from configuration files (native
@@ -84,7 +83,7 @@ known_cpu_families = (
     'x86',
     'x86_64',
     'z80',
-    'tricore'
+    'tricore',
 )
 
 KNOWN_SYSTEMS = frozenset({
@@ -190,7 +189,7 @@ class CMakeSkipCompilerTest(Enum):
 class Properties:
     def __init__(
             self,
-            properties: T.Optional[T.Dict[str, ElementaryOptionValues]] = None,
+            properties: dict[str, ElementaryOptionValues] | None = None,
     ):
         self.properties = properties or {}
 
@@ -200,7 +199,7 @@ class Properties:
     # Some of get_stdlib, get_root, get_sys_root are wider than is actually
     # true, but without heterogeneous dict annotations it's not practical to
     # narrow them
-    def get_stdlib(self, language: str) -> T.Union[str, T.List[str]]:
+    def get_stdlib(self, language: str) -> str | list[str]:
         stdlib = self.properties[language + '_stdlib']
         if isinstance(stdlib, str):
             return stdlib
@@ -209,17 +208,17 @@ class Properties:
             assert isinstance(i, str)
         return stdlib
 
-    def get_root(self) -> T.Optional[str]:
+    def get_root(self) -> str | None:
         root = self.properties.get('root', None)
         assert root is None or isinstance(root, str)
         return root
 
-    def get_sys_root(self) -> T.Optional[str]:
+    def get_sys_root(self) -> str | None:
         sys_root = self.properties.get('sys_root', None)
         assert sys_root is None or isinstance(sys_root, str)
         return sys_root
 
-    def get_pkg_config_libdir(self) -> T.Optional[T.List[str]]:
+    def get_pkg_config_libdir(self) -> list[str] | None:
         p = self.properties.get('pkg_config_libdir', None)
         if p is None:
             return p
@@ -235,7 +234,7 @@ class Properties:
         assert isinstance(res, bool)
         return res
 
-    def get_cmake_toolchain_file(self) -> T.Optional[Path]:
+    def get_cmake_toolchain_file(self) -> Path | None:
         if 'cmake_toolchain_file' not in self.properties:
             return None
         raw = self.properties['cmake_toolchain_file']
@@ -253,8 +252,8 @@ class Properties:
             return CMakeSkipCompilerTest(raw)
         except ValueError:
             raise EnvironmentException(
-                '"{}" is not a valid value for cmake_skip_compiler_test. Supported values are {}'
-                .format(raw, [e.value for e in CMakeSkipCompilerTest]))
+                f'"{raw}" is not a valid value for cmake_skip_compiler_test. Supported values are {[e.value for e in CMakeSkipCompilerTest]}',
+                )
 
     def get_cmake_use_exe_wrapper(self) -> bool:
         if 'cmake_use_exe_wrapper' not in self.properties:
@@ -263,15 +262,15 @@ class Properties:
         assert isinstance(res, bool)
         return res
 
-    def get_java_home(self) -> T.Optional[Path]:
-        value = T.cast('T.Optional[str]', self.properties.get('java_home'))
+    def get_java_home(self) -> Path | None:
+        value = T.cast('str | None', self.properties.get('java_home'))
         return Path(value) if value else None
 
-    def get_bindgen_clang_args(self) -> T.List[str]:
+    def get_bindgen_clang_args(self) -> list[str]:
         value = mesonlib.listify(self.properties.get('bindgen_clang_arguments', []))
         if not all(isinstance(v, str) for v in value):
             raise EnvironmentException('bindgen_clang_arguments must be a string or an array of strings')
-        return T.cast('T.List[str]', value)
+        return T.cast('list[str]', value)
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, type(self)):
@@ -279,15 +278,15 @@ class Properties:
         return NotImplemented
 
     # TODO consider removing so Properties is less freeform
-    def __getitem__(self, key: str) -> T.Optional[T.Union[str, bool, int, T.List[str]]]:
+    def __getitem__(self, key: str) -> str | bool | int | list[str] | None:
         return self.properties[key]
 
     # TODO consider removing so Properties is less freeform
-    def __contains__(self, item: T.Union[str, bool, int, T.List[str]]) -> bool:
+    def __contains__(self, item: str | bool | int | list[str]) -> bool:
         return item in self.properties
 
     # TODO consider removing, for same reasons as above
-    def get(self, key: str, default: T.Optional[T.Union[str, bool, int, T.List[str]]] = None) -> T.Optional[T.Union[str, bool, int, T.List[str]]]:
+    def get(self, key: str, default: str | bool | int | list[str] | None = None) -> str | bool | int | list[str] | None:
         return self.properties.get(key, default)
 
 @dataclass(unsafe_hash=True)
@@ -296,8 +295,8 @@ class MachineInfo(HoldableObject):
     cpu_family: str | None
     cpu: str | None
     endian: str
-    kernel: T.Optional[str]
-    subsystem: T.Optional[str]
+    kernel: str | None
+    subsystem: str | None
 
     def __post_init__(self) -> None:
         self.is_64_bit: bool = self.cpu_family in CPU_FAMILIES_64_BIT
@@ -306,18 +305,18 @@ class MachineInfo(HoldableObject):
         return f'<MachineInfo: {self.system} {self.cpu_family} ({self.cpu})>'
 
     @classmethod
-    def from_literal(cls, raw: T.Dict[str, ElementaryOptionValues]) -> 'MachineInfo':
+    def from_literal(cls, raw: dict[str, ElementaryOptionValues]) -> MachineInfo:
         # We don't have enough type information to be sure of what we loaded
         # So we need to accept that this might have ElementaryOptionValues, but
         # then ensure that it's actually strings, since that's what the
         # [*_machine] section should have.
         assert all(isinstance(v, str) for v in raw.values()), 'for mypy'
-        literal = T.cast('T.Dict[str, str]', raw)
+        literal = T.cast('dict[str, str]', raw)
         minimum_literal = {'cpu', 'cpu_family', 'endian', 'system'}
         if minimum_literal - set(literal):
             raise EnvironmentException(
-                f'Machine info is currently {literal}\n' +
-                'but is missing {}.'.format(minimum_literal - set(literal)))
+                f'Machine info is currently {literal}\n'
+                f'but is missing {minimum_literal - set(literal)}.')
 
         cpu_family = literal['cpu_family']
         if cpu_family not in known_cpu_families:
@@ -348,7 +347,7 @@ class MachineInfo(HoldableObject):
         return self.system == 'cygwin'
 
     @lazy_property
-    def pure_path_class(self) -> T.Type[PurePath]:
+    def pure_path_class(self) -> type[PurePath]:
         """Get the appropriate PurePath class for this machine."""
         if self.is_windows():
             return PureWindowsPath
@@ -444,14 +443,12 @@ class MachineInfo(HoldableObject):
     def get_exe_suffix(self) -> str:
         if self.is_windows() or self.is_cygwin() or self.is_os2():
             return 'exe'
-        else:
-            return ''
+        return ''
 
     def get_object_suffix(self) -> str:
         if self.is_windows():
             return 'obj'
-        else:
-            return 'o'
+        return 'o'
 
     def libdir_layout_is_win(self) -> bool:
         return self.is_windows() or self.is_cygwin()
@@ -460,9 +457,9 @@ class BinaryTable:
 
     def __init__(
             self,
-            binaries: T.Optional[T.Mapping[str, ElementaryOptionValues]] = None,
+            binaries: T.Mapping[str, ElementaryOptionValues] | None = None,
     ):
-        self.binaries: T.Dict[str, T.List[str]] = {}
+        self.binaries: dict[str, list[str]] = {}
         if binaries:
             for name, command in binaries.items():
                 if not isinstance(command, (list, str)):
@@ -501,7 +498,7 @@ class BinaryTable:
         return BinaryTable.detect_ccache()
 
     @classmethod
-    def parse_entry(cls, entry: T.Union[str, T.List[str]]) -> T.Tuple[T.List[str], T.Union[None, ExternalProgram]]:
+    def parse_entry(cls, entry: str | list[str]) -> tuple[list[str], None | ExternalProgram]:
         parts = mesonlib.stringlistify(entry)
         # Ensure ccache exists and remove it if it doesn't
         if parts[0] == 'ccache':
@@ -518,7 +515,7 @@ class BinaryTable:
         # Return value has to be a list of compiler 'choices'
         return compiler, ccache
 
-    def lookup_entry(self, name: str) -> T.Optional[T.List[str]]:
+    def lookup_entry(self, name: str) -> list[str] | None:
         """Lookup binary in cross/native file and fallback to environment.
 
         Returns command with args as list if found, Returns `None` if nothing is
@@ -527,14 +524,14 @@ class BinaryTable:
         command = self.binaries.get(name)
         if not command:
             return None
-        elif not command[0].strip():
+        if not command[0].strip():
             return None
         return command
 
 class CMakeVariables:
-    def __init__(self, variables: T.Optional[T.Dict[str, T.Any]] = None) -> None:
+    def __init__(self, variables: dict[str, T.Any] | None = None) -> None:
         variables = variables or {}
-        self.variables: T.Dict[str, T.List[str]] = {}
+        self.variables: dict[str, list[str]] = {}
 
         for key, value in variables.items():
             value = mesonlib.listify(value)
@@ -543,7 +540,7 @@ class CMakeVariables:
                     raise EnvironmentException(f"Value '{i}' of CMake variable '{key}' defined in a machine file is a {type(i).__name__} and not a str")
             self.variables[key] = value
 
-    def get_variables(self) -> T.Dict[str, T.List[str]]:
+    def get_variables(self) -> dict[str, list[str]]:
         return self.variables
 
 
@@ -642,7 +639,7 @@ def detect_cpu_family(compilers: CompilerDict) -> str:
     elif trial.startswith('aarch64'):
         # This can be `aarch64_be`
         trial = 'aarch64'
-    elif trial.startswith('arm') or trial.startswith('earm'):
+    elif trial.startswith(('arm', 'earm')):
         trial = 'arm'
     elif trial.startswith(('powerpc64', 'ppc64')):
         trial = 'ppc64'
@@ -709,7 +706,7 @@ def detect_cpu(compilers: CompilerDict) -> str:
         # Same check as above for cpu_family
         if any_compiler_has_define(compilers, '__i386__'):
             trial = 'i686' # All 64 bit cpus have at least this level of x86 support.
-    elif trial.startswith('aarch64') or trial.startswith('arm64'):
+    elif trial.startswith(('aarch64', 'arm64')):
         # Same check as above for cpu_family
         if any_compiler_has_define(compilers, '__arm__'):
             trial = 'arm'
@@ -738,7 +735,7 @@ def detect_cpu(compilers: CompilerDict) -> str:
     # detect_cpu_family() above.
     return trial
 
-def detect_kernel(system: str) -> T.Optional[str]:
+def detect_kernel(system: str) -> str | None:
     if system == 'sunos':
         # Solaris 5.10 uname doesn't support the -o switch, and illumos started
         # with version 5.11 so shortcut the logic to report 'solaris' in such
@@ -756,11 +753,11 @@ def detect_kernel(system: str) -> T.Optional[str]:
                          "Please open a Meson issue with the OS you're running and the value detected for your kernel.")
             return None
         return out
-    elif mesonlib.is_os400():
+    if mesonlib.is_os400():
         return 'os400'
     return KERNEL_MAPPINGS.get(system, None)
 
-def detect_subsystem(system: str) -> T.Optional[str]:
+def detect_subsystem(system: str) -> str | None:
     if system == 'darwin':
         return 'macos'
     return system
@@ -774,10 +771,10 @@ def detect_system() -> str:
         return 'aix'
     return system
 
-def detect_msys2_arch() -> T.Optional[str]:
+def detect_msys2_arch() -> str | None:
     return os.environ.get('MSYSTEM_CARCH', None)
 
-def detect_machine_info(compilers: T.Optional[CompilerDict] = None) -> MachineInfo:
+def detect_machine_info(compilers: CompilerDict | None = None) -> MachineInfo:
     """Detect the machine we're running on
 
     If compilers are not provided, we cannot know as much. None out those

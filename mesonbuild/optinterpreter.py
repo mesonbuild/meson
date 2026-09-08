@@ -6,21 +6,28 @@ from __future__ import annotations
 import re
 import typing as T
 
-from . import options
-from . import mesonlib
-from .options import OptionKey
-from . import mparser
-from . import mlog
-from .interpreterbase import FeatureNew, FeatureDeprecated, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo
+from . import mesonlib, mlog, mparser, options
 from .interpreter.type_checking import NoneType, in_set_validator
+from .interpreterbase import (
+    ContainerTypeInfo,
+    FeatureDeprecated,
+    FeatureNew,
+    KwargInfo,
+    typed_kwargs,
+    typed_pos_args,
+)
+from .options import OptionKey
 
 if T.TYPE_CHECKING:
-    from .interpreterbase import TYPE_var, TYPE_kwargs
+    from typing import Literal, TypeAlias
+
+    from typing_extensions import NotRequired, TypedDict
+
+    from .interpreterbase import TYPE_kwargs, TYPE_var
     from .mesonlib import SubProject
-    from typing_extensions import TypeAlias, TypedDict, Literal, NotRequired
     from .options import OptionStore
 
-    _DEPRECATED_ARGS = T.Union[bool, str, T.Dict[str, str], T.List[str]]
+    _DEPRECATED_ARGS: T.TypeAlias = bool | str | dict[str, str] | list[str]
 
     ParserFuncT: TypeAlias = T.Callable[[tuple[str, str, bool, _DEPRECATED_ARGS], TYPE_kwargs], options.AnyOptionType]
 
@@ -43,20 +50,20 @@ if T.TYPE_CHECKING:
 
     class ComboArgs(TypedDict):
         value: str
-        choices: T.List[str]
+        choices: list[str]
 
     class IntegerArgs(TypedDict):
         value: int
-        min: T.Optional[int]
-        max: T.Optional[int]
+        min: int | None
+        max: int | None
 
     class StringArrayArgs(TypedDict):
-        value: T.Optional[T.Union[str, T.List[str]]]
-        choices: T.List[str]
+        value: str | list[str] | None
+        choices: list[str]
 
     class FeatureArgs(TypedDict):
         value: Literal['enabled', 'disabled', 'auto']
-        choices: T.List[str]
+        choices: list[str]
 
 
 class OptionException(mesonlib.MesonException):
@@ -67,7 +74,7 @@ optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
 
 class OptionInterpreter:
-    def __init__(self, optionstore: 'OptionStore', subproject: 'SubProject') -> None:
+    def __init__(self, optionstore: OptionStore, subproject: SubProject) -> None:
         self.options: options.MutableKeyedOptionDictType = {}
         self.subproject = subproject
         self.option_types: dict[str, ParserFuncT] = {
@@ -109,45 +116,44 @@ class OptionInterpreter:
                 raise mesonlib.MesonException(
                     str(e), lineno=cur.lineno, colno=cur.colno, file=option_file)
 
-    def reduce_single(self, arg: T.Union[str, mparser.BaseNode]) -> 'TYPE_var':
+    def reduce_single(self, arg: str | mparser.BaseNode) -> TYPE_var:
         if isinstance(arg, str):
             return arg
         if isinstance(arg, mparser.ParenthesizedNode):
             return self.reduce_single(arg.inner)
-        elif isinstance(arg, (mparser.StringNode, mparser.BooleanNode, mparser.NumberNode)):
+        if isinstance(arg, (mparser.StringNode, mparser.BooleanNode, mparser.NumberNode)):
             return arg.value
-        elif isinstance(arg, mparser.ArrayNode):
+        if isinstance(arg, mparser.ArrayNode):
             return [self.reduce_single(curarg) for curarg in arg.args.arguments]
-        elif isinstance(arg, mparser.DictNode):
+        if isinstance(arg, mparser.DictNode):
             d = {}
             for k, v in arg.args.kwargs.items():
                 if not isinstance(k, mparser.StringNode):
                     raise OptionException('Dictionary keys must be a string literal')
                 d[k.value] = self.reduce_single(v)
             return d
-        elif isinstance(arg, mparser.UMinusNode):
+        if isinstance(arg, mparser.UMinusNode):
             res = self.reduce_single(arg.value)
             if not isinstance(res, (int, float)):
                 raise OptionException('Token after "-" is not a number')
             FeatureNew.single_use('negative numbers in meson_options.txt', '0.54.1', self.subproject)
             return -res
-        elif isinstance(arg, mparser.NotNode):
+        if isinstance(arg, mparser.NotNode):
             res = self.reduce_single(arg.value)
             if not isinstance(res, bool):
                 raise OptionException('Token after "not" is not a a boolean')
             FeatureNew.single_use('negation ("not") in meson_options.txt', '0.54.1', self.subproject)
             return not res
-        elif isinstance(arg, mparser.ArithmeticNode):
+        if isinstance(arg, mparser.ArithmeticNode):
             l = self.reduce_single(arg.left)
             r = self.reduce_single(arg.right)
             if not (arg.operation == '+' and isinstance(l, str) and isinstance(r, str)):
                 raise OptionException('Only string concatenation with the "+" operator is allowed')
             FeatureNew.single_use('string concatenation in meson_options.txt', '0.55.0', self.subproject)
             return l + r
-        else:
-            raise OptionException('Arguments may only be string, int, bool, or array of those.')
+        raise OptionException('Arguments may only be string, int, bool, or array of those.')
 
-    def reduce_arguments(self, args: mparser.ArgumentNode) -> T.Tuple['TYPE_var', 'TYPE_kwargs']:
+    def reduce_arguments(self, args: mparser.ArgumentNode) -> tuple[TYPE_var, TYPE_kwargs]:
         if args.incorrect_order():
             raise OptionException('All keyword arguments must be after positional arguments.')
         reduced_pos = [self.reduce_single(arg) for arg in args.arguments]
@@ -174,7 +180,7 @@ class OptionInterpreter:
             'type',
             str,
             required=True,
-            validator=in_set_validator({'string', 'boolean', 'integer', 'combo', 'array', 'feature'})
+            validator=in_set_validator({'string', 'boolean', 'integer', 'combo', 'array', 'feature'}),
         ),
         KwargInfo('description', str, default=''),
         KwargInfo(
@@ -188,13 +194,13 @@ class OptionInterpreter:
         allow_unknown=True,
     )
     @typed_pos_args('option', str)
-    def func_option(self, args: T.Tuple[str], kwargs: 'FuncOptionArgs') -> None:
+    def func_option(self, args: tuple[str], kwargs: FuncOptionArgs) -> None:
         opt_name = args[0]
         if optname_regex.search(opt_name) is not None:
             raise OptionException('Option names can only contain letters, numbers or dashes.')
         key = OptionKey.from_string(opt_name).evolve(subproject=self.subproject)
         if self.optionstore.is_reserved_name(key):
-            raise OptionException('Option name %s is reserved.' % opt_name)
+            raise OptionException(f'Option name {opt_name} is reserved.')
 
         opt_type = kwargs['type']
         parser = self.option_types[opt_type]
@@ -214,7 +220,7 @@ class OptionInterpreter:
         'string option',
         KwargInfo('value', str, default=''),
     )
-    def string_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: StringArgs) -> options.UserOption:
+    def string_parser(self, args: tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: StringArgs) -> options.UserOption:
         name, description, yielding, deprecated = args
         return options.UserStringOption(name, description, kwargs['value'], yielding, deprecated)
 
@@ -228,7 +234,7 @@ class OptionInterpreter:
             deprecated_values={str: ('1.1.0', 'use a boolean, not a string')},
         ),
     )
-    def boolean_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: BooleanArgs) -> options.UserOption:
+    def boolean_parser(self, args: tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: BooleanArgs) -> options.UserOption:
         name, description, yielding, deprecated = args
         return options.UserBooleanOption(name, description, kwargs['value'], yielding=yielding, deprecated=deprecated)
 
@@ -237,7 +243,7 @@ class OptionInterpreter:
         KwargInfo('value', (str, NoneType)),
         KwargInfo('choices', ContainerTypeInfo(list, str, allow_empty=False), required=True),
     )
-    def combo_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: ComboArgs) -> options.UserOption:
+    def combo_parser(self, args: tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: ComboArgs) -> options.UserOption:
         choices = kwargs['choices']
         value = kwargs['value']
         if value is None:
@@ -257,7 +263,7 @@ class OptionInterpreter:
         KwargInfo('min', (int, NoneType)),
         KwargInfo('max', (int, NoneType)),
     )
-    def integer_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: IntegerArgs) -> options.UserOption:
+    def integer_parser(self, args: tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: IntegerArgs) -> options.UserOption:
         name, description, yielding, deprecated = args
         return options.UserIntegerOption(
             name, description, kwargs['value'], yielding, deprecated, min_value=kwargs['min'], max_value=kwargs['max'])
@@ -267,7 +273,7 @@ class OptionInterpreter:
         KwargInfo('value', (ContainerTypeInfo(list, str), str, NoneType)),
         KwargInfo('choices', ContainerTypeInfo(list, str), default=[]),
     )
-    def string_array_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: StringArrayArgs) -> options.UserOption:
+    def string_array_parser(self, args: tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: StringArrayArgs) -> options.UserOption:
         choices = kwargs['choices']
         value = kwargs['value'] if kwargs['value'] is not None else choices
         if isinstance(value, str):
@@ -286,6 +292,6 @@ class OptionInterpreter:
         'feature option',
         KwargInfo('value', str, default='auto', validator=in_set_validator({'auto', 'enabled', 'disabled'})),
     )
-    def feature_parser(self, args: T.Tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: FeatureArgs) -> options.UserOption:
+    def feature_parser(self, args: tuple[str, str, bool, _DEPRECATED_ARGS], kwargs: FeatureArgs) -> options.UserOption:
         name, description, yielding, deprecated = args
         return options.UserFeatureOption(name, description, kwargs['value'], yielding, deprecated)

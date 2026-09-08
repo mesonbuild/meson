@@ -2,25 +2,25 @@
 # Copyright 2017 The Meson development team
 
 from __future__ import annotations
+
 import itertools
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo
-from .. import build
-from .. import mesonlib
+from .. import build, mesonlib
 from ..interpreter.type_checking import CT_INPUT_KW
 from ..interpreterbase.decorators import KwargInfo, typed_kwargs, typed_pos_args
+from . import ExtensionModule, ModuleInfo, ModuleReturnValue
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
-    from . import ModuleState
     from ..interpreter import Interpreter
     from ..programs import Program
+    from . import ModuleState
 
     class ProjectKwargs(TypedDict):
 
-        sources: T.List[str | build.TargetSources]
+        sources: list[str | build.TargetSources]
         constraint_file: str | build.TargetSources
 
 class IceStormModule(ExtensionModule):
@@ -29,7 +29,7 @@ class IceStormModule(ExtensionModule):
 
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
-        self.tools: T.Dict[str, Program] = {}
+        self.tools: dict[str, Program] = {}
         self.methods.update({
             'project': self.project,
         })
@@ -51,10 +51,10 @@ class IceStormModule(ExtensionModule):
             'constraint_file',
             (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList),
             required=True,
-        )
+        ),
     )
     def project(self, state: ModuleState,
-                args: T.Tuple[str, T.List[str | build.TargetSources]],
+                args: tuple[str, list[str | build.TargetSources]],
                 kwargs: ProjectKwargs) -> ModuleReturnValue:
         if not self.tools:
             self.detect_tools(state)

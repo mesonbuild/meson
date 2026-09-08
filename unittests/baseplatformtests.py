@@ -3,41 +3,51 @@
 # Copyright © 2024 Intel Corporation
 
 from __future__ import annotations
-from pathlib import PurePath
-from unittest import mock, TestCase, SkipTest
-import json
+
 import io
+import json
 import os
 import re
+import shutil
 import subprocess
 import sys
-import shutil
 import tempfile
 import typing as T
+from pathlib import PurePath
+from unittest import SkipTest, TestCase, mock
 
-import mesonbuild.mlog
-import mesonbuild.depfile
+import mesonbuild.compilers
+import mesonbuild.coredata
 import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
-import mesonbuild.compilers
+import mesonbuild.depfile
 import mesonbuild.envconfig
 import mesonbuild.environment
-import mesonbuild.coredata
+import mesonbuild.mlog
 import mesonbuild.modules.gnome
-from mesonbuild.mesonlib import (
-    is_windows, is_cygwin, join_args, split_args, windows_proof_rmtree, python_command
-)
 import mesonbuild.modules.pkgconfig
-
-
+from mesonbuild.mesonlib import (
+    is_cygwin,
+    is_windows,
+    join_args,
+    python_command,
+    split_args,
+    windows_proof_rmtree,
+)
 from run_tests import (
-    Backend, get_backend_commands,
-    get_builddir_target_args, get_meson_script, run_configure_inprocess,
-    run_mtest_inprocess, handle_meson_skip_test,
+    Backend,
+    get_backend_commands,
+    get_builddir_target_args,
+    get_meson_script,
+    handle_meson_skip_test,
+    run_configure_inprocess,
+    run_mtest_inprocess,
 )
 
 if T.TYPE_CHECKING:
-    from typing_extensions import TypeAlias, TypedDict
+    from typing import TypeAlias
+
+    from typing_extensions import TypedDict
 
     class CompDbEntry(TypedDict):
 
@@ -49,7 +59,7 @@ if T.TYPE_CHECKING:
         file: str
         output: str
 
-    CompDB: TypeAlias = T.List[CompDbEntry]
+    CompDB: TypeAlias = list[CompDbEntry]
 
 
 # magic attribute used by unittest.result.TestResult._is_relevant_tb_level
@@ -160,7 +170,7 @@ class BasePlatformTests(TestCase):
         log = os.path.join(self.logdir, 'meson-log.txt')
         return open(log, encoding='utf-8')
 
-    def _get_meson_log(self) -> T.Optional[str]:
+    def _get_meson_log(self) -> str | None:
         try:
             with self._open_meson_log() as f:
                 return f.read()
@@ -173,7 +183,7 @@ class BasePlatformTests(TestCase):
         if log:
             print(log)
 
-    def _run(self, command, *, workdir=None, override_envvars: T.Optional[T.Mapping[str, str]] = None, stderr=True):
+    def _run(self, command, *, workdir=None, override_envvars: T.Mapping[str, str] | None = None, stderr=True):
         '''
         Run a command while printing the stdout and stderr to stdout,
         and also return a copy of it
@@ -191,7 +201,8 @@ class BasePlatformTests(TestCase):
                               stderr=subprocess.STDOUT if stderr else subprocess.PIPE,
                               env=env,
                               encoding='utf-8',
-                              text=True, cwd=workdir, timeout=60 * 5)
+                              text=True, cwd=workdir, timeout=60 * 5,
+                              check=False)
         print('$', join_args(command))
         print('stdout:')
         print(proc.stdout)
@@ -209,7 +220,7 @@ class BasePlatformTests(TestCase):
              extra_args=None,
              default_args=True,
              inprocess=False,
-             override_envvars: T.Optional[T.Mapping[str, str]] = None,
+             override_envvars: T.Mapping[str, str] | None = None,
              workdir=None,
              allow_fail: bool = False) -> str:
         """Call `meson setup`
@@ -238,7 +249,7 @@ class BasePlatformTests(TestCase):
         if inprocess:
             try:
                 returncode, out, err = run_configure_inprocess(['setup'] + self.meson_args + args + extra_args + build_and_src_dir_args, override_envvars)
-            except Exception as e:
+            except Exception:
                 if not allow_fail:
                     self._print_meson_log()
                     raise
@@ -287,9 +298,8 @@ class BasePlatformTests(TestCase):
     def run_tests(self, *, inprocess=False, override_envvars=None):
         if not inprocess:
             return self._run(self.test_command, workdir=self.builddir, override_envvars=override_envvars)
-        else:
-            with mock.patch.dict(os.environ, override_envvars):
-                return run_mtest_inprocess(['-C', self.builddir])[1]
+        with mock.patch.dict(os.environ, override_envvars):
+            return run_mtest_inprocess(['-C', self.builddir])[1]
 
     def install(self, *, use_destdir=True, override_envvars=None):
         if self.backend is not Backend.ninja:
@@ -328,6 +338,7 @@ class BasePlatformTests(TestCase):
             if x.get('name') == optname:
                 return x.get('value')
         self.fail(f'Option {optname} not found')
+        return None
 
     def wipe(self):
         windows_proof_rmtree(self.builddir)
@@ -373,8 +384,7 @@ class BasePlatformTests(TestCase):
         prefix = 'Command line: `'
         suffix = '` -> 0\n'
         with self._open_meson_log() as log:
-            cmds = [split_args(l[len(prefix):-len(suffix)]) for l in log if l.startswith(prefix)]
-            return cmds
+            return [split_args(l[len(prefix):-len(suffix)]) for l in log if l.startswith(prefix)]
 
     def get_meson_log_sanitychecks(self):
         '''
@@ -382,8 +392,7 @@ class BasePlatformTests(TestCase):
         '''
         prefix = 'Sanity check compiler command line:'
         with self._open_meson_log() as log:
-            cmds = [l[len(prefix):].split() for l in log if l.startswith(prefix)]
-            return cmds
+            return [l[len(prefix):].split() for l in log if l.startswith(prefix)]
 
     def introspect(self, args):
         if isinstance(args, str):

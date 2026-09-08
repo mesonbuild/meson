@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-import os, sys, shutil
+import os
+import sys
+import shutil
 
 ifile = sys.argv[1]
 ofile = sys.argv[2]

@@ -1,18 +1,17 @@
-from pathlib import Path
-from json import loads
 import os
 import re
+import typing as T
+from json import loads
+from pathlib import Path
 
 from hotdoc.core.exceptions import HotdocSourceException
 from hotdoc.core.extension import Extension
-from hotdoc.core.tree import Page
-from hotdoc.core.project import Project
-from hotdoc.core.symbols import *
-from hotdoc.run_hotdoc import Application
 from hotdoc.core.formatter import Formatter
-from hotdoc.utils.loggable import Logger, warn, info
-
-import typing as T
+from hotdoc.core.project import Project
+from hotdoc.core.symbols import ClassSymbol, FunctionSymbol, Link, MethodSymbol
+from hotdoc.core.tree import Page
+from hotdoc.run_hotdoc import Application
+from hotdoc.utils.loggable import Logger, info, warn
 
 if T.TYPE_CHECKING:
     import argparse
@@ -26,8 +25,8 @@ class RefmanLinksExtension(Extension):
     def __init__(self, app: Application, project: Project):
         self.project: Project
         super().__init__(app, project)
-        self._data_file: T.Optional[Path] = None
-        self._data: T.Dict[str, str] = {}
+        self._data_file: Path | None = None
+        self._data: dict[str, str] = {}
 
     @staticmethod
     def add_arguments(parser: 'argparse.ArgumentParser'):
@@ -38,12 +37,12 @@ class RefmanLinksExtension(Extension):
 
         # Add Arguments with `group.add_argument(...)`
         group.add_argument(
-            f'--refman-data-file',
+            '--refman-data-file',
             help="JSON file with the mappings to replace",
             default=None,
         )
 
-    def parse_config(self, config: T.Dict[str, T.Any]) -> None:
+    def parse_config(self, config: dict[str, T.Any]) -> None:
         super().parse_config(config)
         self._data_file = config.get('refman_data_file')
 
@@ -136,11 +135,11 @@ class RefmanLinksExtension(Extension):
 
     def create_symbol(self, *args, **kwargs):
         kwargs['language'] = 'meson'
-        return super(RefmanLinksExtension, self).create_symbol(*args, **kwargs)
+        return super().create_symbol(*args, **kwargs)
 
     @staticmethod
-    def get_dependencies() -> T.List[T.Type[Extension]]:
+    def get_dependencies() -> list[type[Extension]]:
         return []  # In case this extension has dependencies on other extensions
 
-def get_extension_classes() -> T.List[T.Type[Extension]]:
+def get_extension_classes() -> list[type[Extension]]:
     return [RefmanLinksExtension]

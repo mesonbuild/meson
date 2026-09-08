@@ -2,21 +2,20 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
-from ...interpreterbase import (
-    InterpreterObject,
-    MesonOperator,
-    ObjectHolder,
-    typed_pos_args,
-    noKwargs,
-    noPosargs,
-
-    InvalidArguments
-)
-
 import typing as T
 
+from ...interpreterbase import (
+    InterpreterObject,
+    InvalidArguments,
+    MesonOperator,
+    ObjectHolder,
+    noKwargs,
+    noPosargs,
+    typed_pos_args,
+)
+
 if T.TYPE_CHECKING:
-    from ...interpreterbase import TYPE_var, TYPE_kwargs
+    from ...interpreterbase import TYPE_kwargs, TYPE_var
 
 class BooleanHolder(ObjectHolder[bool]):
     TRIVIAL_OPERATORS = {
@@ -32,13 +31,13 @@ class BooleanHolder(ObjectHolder[bool]):
     @noKwargs
     @noPosargs
     @InterpreterObject.method('to_int')
-    def to_int_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> int:
+    def to_int_method(self, args: list[TYPE_var], kwargs: TYPE_kwargs) -> int:
         return 1 if self.held_object else 0
 
     @noKwargs
     @typed_pos_args('bool.to_string', optargs=[str, str])
     @InterpreterObject.method('to_string')
-    def to_string_method(self, args: T.Tuple[T.Optional[str], T.Optional[str]], kwargs: TYPE_kwargs) -> str:
+    def to_string_method(self, args: tuple[str | None, str | None], kwargs: TYPE_kwargs) -> str:
         true_str = args[0] or 'true'
         false_str = args[1] or 'false'
         if any(x is not None for x in args) and not all(x is not None for x in args):

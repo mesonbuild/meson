@@ -2,77 +2,87 @@
 # Copyright © 2024-2025 Intel Corporation
 
 from __future__ import annotations
+
 import dataclasses
 import os
 import typing as T
 
-from . import ExtensionModule, ModuleInfo
+from .. import mlog
 from ..build import CustomTarget, CustomTargetIndex, GeneratedList
 from ..compilers.compilers import lang_suffixes
 from ..interpreter.decorators import apply_machine_map
 from ..interpreter.interpreterobjects import extract_required_kwarg
-from ..interpreter.type_checking import NoneType, REQUIRED_KW, DISABLER_KW, NATIVE_KW
+from ..interpreter.type_checking import DISABLER_KW, NATIVE_KW, REQUIRED_KW, NoneType
 from ..interpreterbase import (
-    ContainerTypeInfo, ObjectHolder, KwargInfo, typed_pos_args, typed_kwargs,
-    noPosargs, noKwargs, disablerIfNotFound, InterpreterObject
+    ContainerTypeInfo,
+    InterpreterObject,
+    KwargInfo,
+    ObjectHolder,
+    disablerIfNotFound,
+    noKwargs,
+    noPosargs,
+    typed_kwargs,
+    typed_pos_args,
 )
 from ..mesonlib import File, MesonException, Popen_safe, version_compare
-from ..programs import Program, ExternalProgram, NonExistingExternalProgram
+from ..programs import ExternalProgram, NonExistingExternalProgram, Program
 from ..utils.core import HoldableObject
-from .. import mlog
+from . import ExtensionModule, ModuleInfo
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing import Literal
 
-    from . import ModuleState
+    from typing_extensions import TypedDict
+
     from .._typing import ImmutableListProtocol
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import ExtractRequired
-    from ..interpreterbase import TYPE_var, TYPE_kwargs
+    from ..interpreterbase import TYPE_kwargs, TYPE_var
     from ..mesonlib import MachineChoice
     from ..programs import CommandList
+    from . import ModuleState
 
     LexImpls = Literal['lex', 'flex', 'reflex', 'win_flex']
     YaccImpls = Literal['yacc', 'byacc', 'bison', 'win_bison']
 
     class LexGenerateKwargs(TypedDict):
 
-        args: T.List[str]
-        source: T.Optional[str]
-        header: T.Optional[str]
-        table: T.Optional[str]
+        args: list[str]
+        source: str | None
+        header: str | None
+        table: str | None
         plainname: bool
 
     class FindLexKwargs(ExtractRequired):
 
-        lex_version: T.List[str]
-        flex_version: T.List[str]
-        reflex_version: T.List[str]
-        win_flex_version: T.List[str]
-        implementations: T.List[LexImpls]
+        lex_version: list[str]
+        flex_version: list[str]
+        reflex_version: list[str]
+        win_flex_version: list[str]
+        implementations: list[LexImpls]
         native: MachineChoice
 
     class YaccGenerateKWargs(TypedDict):
 
-        args: T.List[str]
-        source: T.Optional[str]
-        header: T.Optional[str]
-        locations: T.Optional[str]
+        args: list[str]
+        source: str | None
+        header: str | None
+        locations: str | None
         plainname: bool
 
     class FindYaccKwargs(ExtractRequired):
 
-        yacc_version: T.List[str]
-        byacc_version: T.List[str]
-        bison_version: T.List[str]
-        win_bison_version: T.List[str]
-        implementations: T.List[YaccImpls]
+        yacc_version: list[str]
+        byacc_version: list[str]
+        bison_version: list[str]
+        win_bison_version: list[str]
+        implementations: list[YaccImpls]
         native: MachineChoice
 
 
-def is_subset_validator(choices: T.Set[str]) -> T.Callable[[T.List[str]], T.Optional[str]]:
+def is_subset_validator(choices: set[str]) -> T.Callable[[list[str]], str | None]:
 
-    def inner(check: T.List[str]) -> T.Optional[str]:
+    def inner(check: list[str]) -> str | None:
         if not set(check).issubset(choices):
             invalid = ', '.join(sorted(set(check).difference(choices)))
             valid = ', '.join(sorted(choices))
@@ -107,13 +117,13 @@ class LexHolder(ObjectHolder[LexGenerator]):
     @noPosargs
     @noKwargs
     @InterpreterObject.method('implementation')
-    def implementation_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+    def implementation_method(self, args: list[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.name
 
     @noPosargs
     @noKwargs
     @InterpreterObject.method('found')
-    def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
+    def found_method(self, args: list[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.found()
 
     @typed_pos_args('codegen.lex.generate', (str, File, GeneratedList, CustomTarget, CustomTargetIndex))
@@ -126,7 +136,7 @@ class LexHolder(ObjectHolder[LexGenerator]):
         KwargInfo('plainname', bool, default=False),
     )
     @InterpreterObject.method('generate')
-    def generate_method(self, args: T.Tuple[T.Union[str, File, GeneratedList, CustomTarget, CustomTargetIndex]], kwargs: LexGenerateKwargs) -> CustomTarget:
+    def generate_method(self, args: tuple[str | File | GeneratedList | CustomTarget | CustomTargetIndex], kwargs: LexGenerateKwargs) -> CustomTarget:
         if not self.held_object.found():
             raise MesonException('Attempted to call generate without finding a lex implementation')
 
@@ -186,7 +196,7 @@ class LexHolder(ObjectHolder[LexGenerator]):
             outputs,
             self.interpreter.current_build_project(),
             backend=self.interpreter.backend,
-            description='Generating lexer {{}} with {}'.format(self.held_object.name),
+            description=f'Generating lexer {{}} with {self.held_object.name}',
         )
         self.interpreter.add_target(target.name, target)
 
@@ -203,13 +213,13 @@ class YaccHolder(ObjectHolder[YaccGenerator]):
     @noPosargs
     @noKwargs
     @InterpreterObject.method('implementation')
-    def implementation_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+    def implementation_method(self, args: list[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.name
 
     @noPosargs
     @noKwargs
     @InterpreterObject.method('found')
-    def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
+    def found_method(self, args: list[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.found()
 
     @typed_pos_args('codegen.yacc.generate', (str, File, GeneratedList, CustomTarget, CustomTargetIndex))
@@ -222,7 +232,7 @@ class YaccHolder(ObjectHolder[YaccGenerator]):
         KwargInfo('plainname', bool, default=False),
     )
     @InterpreterObject.method('generate')
-    def generate_method(self, args: T.Tuple[T.Union[str, File, CustomTarget, CustomTargetIndex, GeneratedList]], kwargs: YaccGenerateKWargs) -> CustomTarget:
+    def generate_method(self, args: tuple[str | File | CustomTarget | CustomTargetIndex | GeneratedList], kwargs: YaccGenerateKWargs) -> CustomTarget:
         if not self.held_object.found():
             raise MesonException('Attempted to call generate without finding a yacc implementation')
 
@@ -245,7 +255,7 @@ class YaccHolder(ObjectHolder[YaccGenerator]):
         header_ext = 'hpp' if is_cpp else 'h'
 
         base = '@PLAINNAME@' if kwargs['plainname'] else '@BASENAME@'
-        outputs: T.List[str] = []
+        outputs: list[str] = []
         outputs.append(f'{base}.{source_ext}' if kwargs['source'] is None else kwargs['source'])
         outputs.append(f'{base}.{header_ext}' if kwargs['header'] is None else kwargs['header'])
         if kwargs['locations'] is not None:
@@ -261,7 +271,7 @@ class YaccHolder(ObjectHolder[YaccGenerator]):
             outputs,
             self.interpreter.current_build_project(),
             backend=self.interpreter.backend,
-            description='Generating parser {{}} with {}'.format(self.held_object.name),
+            description=f'Generating parser {{}} with {self.held_object.name}',
         )
         self.interpreter.add_target(target.name, target)
         return target
@@ -292,21 +302,21 @@ class CodeGenModule(ExtensionModule):
             ContainerTypeInfo(list, str),
             default=[],
             listify=True,
-            validator=is_subset_validator({'lex', 'flex', 'reflex', 'win_flex'})
+            validator=is_subset_validator({'lex', 'flex', 'reflex', 'win_flex'}),
         ),
         REQUIRED_KW,
         DISABLER_KW,
-        NATIVE_KW
+        NATIVE_KW,
     )
     @apply_machine_map
     @disablerIfNotFound
-    def lex_method(self, state: ModuleState, args: T.Tuple, kwargs: FindLexKwargs) -> LexGenerator:
+    def lex_method(self, state: ModuleState, args: tuple, kwargs: FindLexKwargs) -> LexGenerator:
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject)
         if disabled:
             mlog.log('generator lex skipped: feature', mlog.bold(feature), 'disabled')
             return LexGenerator('lex', NonExistingExternalProgram('lex'), kwargs['native'])
 
-        names: T.List[LexImpls] = []
+        names: list[LexImpls] = []
         if kwargs['implementations']:
             names = kwargs['implementations']
         else:
@@ -314,11 +324,11 @@ class CodeGenModule(ExtensionModule):
                 names.append('win_flex')
             names.extend(['flex', 'reflex', 'lex'])
 
-        versions: T.Mapping[str, T.List[str]] = {
+        versions: T.Mapping[str, list[str]] = {
             'lex': kwargs['lex_version'],
             'flex': kwargs['flex_version'],
             'reflex': kwargs['reflex_version'],
-            'win_flex': kwargs['win_flex_version']
+            'win_flex': kwargs['win_flex_version'],
         }
 
         for name in names:
@@ -351,7 +361,7 @@ class CodeGenModule(ExtensionModule):
                     node=state.current_node)
             return LexGenerator(name, bin, kwargs['native'])
 
-        lex_args: T.List[str] = []
+        lex_args: list[str] = []
         # This option allows compiling with MSVC
         # https://github.com/lexxmark/winflexbison/blob/master/UNISTD_ERROR.readme
         if bin.name == 'win_flex' and state.environment.machines[kwargs['native']].is_windows():
@@ -371,7 +381,7 @@ class CodeGenModule(ExtensionModule):
             ContainerTypeInfo(list, str),
             default=[],
             listify=True,
-            validator=is_subset_validator({'yacc', 'byacc', 'bison', 'win_bison'})
+            validator=is_subset_validator({'yacc', 'byacc', 'bison', 'win_bison'}),
         ),
         REQUIRED_KW,
         DISABLER_KW,
@@ -379,12 +389,12 @@ class CodeGenModule(ExtensionModule):
     )
     @apply_machine_map
     @disablerIfNotFound
-    def yacc_method(self, state: ModuleState, args: T.Tuple, kwargs: FindYaccKwargs) -> YaccGenerator:
+    def yacc_method(self, state: ModuleState, args: tuple, kwargs: FindYaccKwargs) -> YaccGenerator:
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject)
         if disabled:
             mlog.log('generator yacc skipped: feature', mlog.bold(feature), 'disabled')
             return YaccGenerator('yacc', NonExistingExternalProgram('yacc'), kwargs['native'])
-        names: T.List[YaccImpls]
+        names: list[YaccImpls]
         if kwargs['implementations']:
             names = kwargs['implementations']
         else:
@@ -393,7 +403,7 @@ class CodeGenModule(ExtensionModule):
             else:
                 names = ['bison', 'byacc', 'yacc']
 
-        versions: T.Mapping[YaccImpls, T.List[str]] = {
+        versions: T.Mapping[YaccImpls, list[str]] = {
             'yacc': kwargs['yacc_version'],
             'byacc': kwargs['byacc_version'],
             'bison': kwargs['bison_version'],
@@ -412,7 +422,7 @@ class CodeGenModule(ExtensionModule):
                     node=state.current_node)
             return YaccGenerator(name, bin, kwargs['native'])
 
-        yacc_args: T.List[str] = []
+        yacc_args: list[str] = []
 
         impl = T.cast('YaccImpls', bin.name)
         if impl == 'yacc' and isinstance(bin, ExternalProgram):

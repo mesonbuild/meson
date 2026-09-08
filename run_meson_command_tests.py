@@ -3,15 +3,14 @@
 # Copyright 2018 The Meson development team
 
 import os
+import subprocess
+import sysconfig
 import tempfile
 import unittest
-import subprocess
-import zipapp
-import sysconfig
 from pathlib import Path
 
-from mesonbuild.mesonlib import windows_proof_rmtree, python_command, is_windows
 from mesonbuild.coredata import version as meson_version
+from mesonbuild.mesonlib import is_windows, python_command, windows_proof_rmtree
 
 scheme = None
 
@@ -47,7 +46,7 @@ def get_pybindir():
     return sysconfig.get_path('scripts', vars={'base': ''}).strip('\\/')
 
 def has_python_module(module: str) -> bool:
-    result = subprocess.run(python_command + ['-c', f'import {module}'])
+    result = subprocess.run(python_command + ['-c', f'import {module}'], check=False)
     return result.returncode == 0
 
 
@@ -90,7 +89,8 @@ class CommandTests(unittest.TestCase):
                            encoding='utf-8',
                            text=True,
                            cwd=workdir,
-                           timeout=60 * 5)
+                           timeout=60 * 5,
+                           check=False)
         print(p.stdout)
         if p.returncode != 0:
             raise subprocess.CalledProcessError(p.returncode, command)

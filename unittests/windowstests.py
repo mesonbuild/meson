@@ -1,39 +1,46 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
-import subprocess
-import re
 import os
+import re
 import shutil
-from unittest import mock, SkipTest, skipUnless, skipIf
+import subprocess
 from glob import glob
+from unittest import SkipTest, mock, skipIf, skipUnless
 
-import mesonbuild.mlog
-import mesonbuild.depfile
+import mesonbuild.coredata
+import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
+import mesonbuild.depfile
 import mesonbuild.envconfig
 import mesonbuild.environment
-import mesonbuild.coredata
+import mesonbuild.mlog
 import mesonbuild.modules.gnome
-from mesonbuild.mesonlib import (
-    MachineChoice, is_windows, is_cygwin, python_command, version_compare,
-    EnvironmentException
-)
-from mesonbuild.options import OptionKey
+import mesonbuild.modules.pkgconfig
 from mesonbuild.compilers import (
-    detect_c_compiler, detect_d_compiler, compiler_from_language,
+    compiler_from_language,
+    detect_c_compiler,
+    detect_d_compiler,
+)
+from mesonbuild.mesonlib import (
+    EnvironmentException,
+    MachineChoice,
+    is_cygwin,
+    is_windows,
+    python_command,
+    version_compare,
 )
 from mesonbuild.programs import ExternalProgram
-import mesonbuild.dependencies.base
-import mesonbuild.modules.pkgconfig
-
-
-from run_tests import (
-    Backend, get_fake_env
-)
+from run_tests import Backend, get_fake_env
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import *
+from .helpers import (
+    IS_CI,
+    get_path_without_cmd,
+    skip_if_not_base_option,
+    skip_if_not_language,
+)
+
 
 @skipUnless(is_windows() or is_cygwin(), "requires Windows (or Windows via Cygwin)")
 class WindowsTests(BasePlatformTests):
@@ -253,7 +260,7 @@ class WindowsTests(BasePlatformTests):
             # Check this has actually built the appropriate exes
             exe_path = str(os.path.join(self.builddir+'_debug', 'genvslite.exe'))
             self.assertTrue(os.path.exists(exe_path))
-            rc = subprocess.run([exe_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            rc = subprocess.run([exe_path], capture_output=True, check=False)
             self.assertEqual(rc.returncode, 0, rc.stdout + rc.stderr)
             output_debug = rc.stdout
             self.assertEqual(output_debug, b'Debug\r\n' )
@@ -459,7 +466,7 @@ class WindowsTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Dtest-failure=true'])
         self.assertRaises(subprocess.CalledProcessError, self.build)
 
-    @unittest.skipIf(is_cygwin(), "Needs visual studio")
+    @skipIf(is_cygwin(), "Needs visual studio")
     def test_vsenv_option(self):
         if self.backend is not Backend.ninja:
             raise SkipTest('Only ninja backend is valid for test')

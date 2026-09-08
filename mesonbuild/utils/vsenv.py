@@ -3,19 +3,23 @@
 
 from __future__ import annotations
 
-import os
-import subprocess
 import json
+import os
 import pathlib
-import shutil
-import tempfile
 import pickle
+import shutil
+import subprocess
+import tempfile
 
 from .. import mlog
 from .core import MesonException
-from .universal import (is_windows, windows_detect_native_arch, windows_proof_rm,
-                        get_meson_command, join_args)
-
+from .universal import (
+    get_meson_command,
+    is_windows,
+    join_args,
+    windows_detect_native_arch,
+    windows_proof_rm,
+)
 
 __all__ = [
     'setup_vsenv',
@@ -63,8 +67,8 @@ def _setup_vsenv(force: bool) -> bool:
             '-products', '*',
             '-utf8',
             '-format',
-            'json'
-        ]
+            'json',
+        ],
     )
     bat_info = json.loads(bat_json)
     if not bat_info:

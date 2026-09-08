@@ -3,10 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2025 The Meson development team
 
-import sys
-import re
-import aiohttp
 import asyncio
+import re
+import sys
+
+import aiohttp
 
 LINK = re.compile(r'\[(?P<name>[^\]]+)\]\((?P<url>.*?)\)')
 

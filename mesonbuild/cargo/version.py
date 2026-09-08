@@ -4,12 +4,14 @@
 """Convert Cargo versions into Meson compatible ones."""
 
 from __future__ import annotations
-from functools import lru_cache
+
 import operator
 import re
 import typing as T
+from functools import cache
 
 from ..mesonlib import MesonException
+
 
 def _api_of(version: str) -> str:
     # x.y.z -> x
@@ -18,7 +20,7 @@ def _api_of(version: str) -> str:
     vers = version.split('.')
     if not vers[0] or int(vers[0]) != 0:
         return vers[0]
-    elif len(vers) >= 2 and int(vers[1]) != 0:
+    if len(vers) >= 2 and int(vers[1]) != 0:
         return f'0.{vers[1]}'
     return '0'
 
@@ -54,16 +56,15 @@ def api(cargo_ver: str) -> str:
         major version (or ``"0.x"`` / ``"0"`` for 0.x.y / 0.0.x versions).
         Raise exception if constraints disagree on the API.
     """
-    apis: T.Set[str] = set()
+    apis: set[str] = set()
     for op, ver in split(cargo_ver):
         if op in {'>=', '=', '^', '~'}:
             apis.add(_api_of(ver))
     if not apis:
         return ''
-    elif len(apis) == 1:
+    if len(apis) == 1:
         return apis.pop()
-    else:
-        raise MesonException(f'Cannot determine API version from {cargo_ver!r}.')
+    raise MesonException(f'Cannot determine API version from {cargo_ver!r}.')
 
 
 # Tokens: a digit run, an alphanumeric-with-hyphens identifier (covers the
@@ -192,7 +193,7 @@ class SemVer:
         return SemVer(v)
 
 
-@lru_cache(maxsize=None)
+@cache
 def cargo_parse(cargo_ver: str) -> T.Callable[[str], bool]:
     """Return a function that checks a Version against a Cargo version
        requirement.

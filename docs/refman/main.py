@@ -1,23 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2021 The Meson development team
 
-from pathlib import Path
 import argparse
 import typing as T
+from pathlib import Path
 
 from mesonbuild import mlog
 
+from .generatorbase import GeneratorBase
+from .generatorjson import GeneratorJSON
+from .generatorman import GeneratorMan
+from .generatormd import GeneratorMD
+from .generatorpickle import GeneratorPickle
+from .generatorprint import GeneratorPrint
+from .generatorvim import GeneratorVim
 from .loaderbase import LoaderBase
 from .loaderpickle import LoaderPickle
 from .loaderyaml import LoaderYAML
-
-from .generatorbase import GeneratorBase
-from .generatorjson import GeneratorJSON
-from .generatorprint import GeneratorPrint
-from .generatorpickle import GeneratorPickle
-from .generatormd import GeneratorMD
-from .generatorman import GeneratorMan
-from .generatorvim import GeneratorVim
 
 meson_root = Path(__file__).absolute().parents[2]
 
@@ -41,7 +40,7 @@ def main() -> int:
     if args.force_color:
         mlog.colorize_console = lambda: True
 
-    loaders: T.Dict[str, T.Callable[[], LoaderBase]] = {
+    loaders: dict[str, T.Callable[[], LoaderBase]] = {
         'yaml': lambda: LoaderYAML(args.input),
         'fastyaml': lambda: LoaderYAML(args.input, strict=False),
         'pickle': lambda: LoaderPickle(args.input),
@@ -50,7 +49,7 @@ def main() -> int:
     loader = loaders[args.loader]()
     refMan = loader.load()
 
-    generators: T.Dict[str, T.Callable[[], GeneratorBase]] = {
+    generators: dict[str, T.Callable[[], GeneratorBase]] = {
         'print': lambda: GeneratorPrint(refMan),
         'pickle': lambda: GeneratorPickle(refMan, args.out),
         'md': lambda: GeneratorMD(refMan, args.out, args.sitemap, args.link_defs, not args.no_modules),

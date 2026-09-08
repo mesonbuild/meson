@@ -21,7 +21,7 @@ class GeneratorVim(GeneratorBase):
 
         builtin_funcs = [f.name for f in self.sorted_and_filtered(self.functions)]
         data = {
-            'builtin_funcs': '\n  \\ '.join(builtin_funcs)
+            'builtin_funcs': '\n  \\ '.join(builtin_funcs),
         }
 
         # Import here, so that other generators don't also depend on it

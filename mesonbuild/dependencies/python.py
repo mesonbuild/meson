@@ -3,43 +3,56 @@
 
 from __future__ import annotations
 
-import functools, json, operator, os, textwrap
-from pathlib import Path
+import functools
+import json
+import operator
+import os
+import textwrap
 import typing as T
+from pathlib import Path
 
 from .. import mesonlib, mlog
-from .base import process_method_kw, DependencyCandidate, DependencyException, DependencyMethods, ExternalDependency, SystemDependency
+from ..envconfig import detect_cpu_family
+from ..mesonlib import MachineChoice, path_is_in_root
+from ..options import OptionKey
+from ..programs import ExternalProgram
+from ..scripts import destdir_join
+from .base import (
+    DependencyCandidate,
+    DependencyException,
+    DependencyMethods,
+    ExternalDependency,
+    SystemDependency,
+    process_method_kw,
+)
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import DependencyFactory
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
-from ..envconfig import detect_cpu_family
-from ..mesonlib import MachineChoice, path_is_in_root
-from ..programs import ExternalProgram
-from ..options import OptionKey
-from ..scripts import destdir_join
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Final, TypedDict
+    from typing import Final
 
-    from .factory import DependencyGenerator
+    from typing_extensions import TypedDict
+
     from ..environment import Environment
     from .base import DependencyObjectKWs
+    from .factory import DependencyGenerator
 
     class PythonIntrospectionDict(TypedDict):
 
-        install_paths: T.Dict[str, str]
+        install_paths: dict[str, str]
         is_pypy: bool
         is_venv: bool
         is_freethreaded: bool
         link_libpython: bool
-        sysconfig_paths: T.Dict[str, str]
-        paths: T.Dict[str, str]
+        sysconfig_paths: dict[str, str]
+        paths: dict[str, str]
         platform: str
         suffix: str
         limited_api_suffix: str
-        variables: T.Dict[str, str]
+        variables: dict[str, str]
         version: str
 
     _Base = ExternalDependency
@@ -126,14 +139,14 @@ class PythonBuildConfig:
         if mesonlib.version_compare(schema_version, '>= 2.0'):
             raise DependencyException(
                 f'Unsupported schema_version {schema_version!r} in python.build_config, '
-                f'but we only implement support for {self.IMPLEMENTED_VERSION!r}'
+                f'but we only implement support for {self.IMPLEMENTED_VERSION!r}',
             )
         # Schema version that we currently understand
         if mesonlib.version_compare(schema_version, f'> {self.IMPLEMENTED_VERSION}'):
             mlog.log(
                 f'python.build_config has schema_version {schema_version!r}, '
                 f'but we only implement support for {self.IMPLEMENTED_VERSION!r}, '
-                'new functionality might be missing'
+                'new functionality might be missing',
             )
 
     def _expand_paths(self) -> None:
@@ -161,9 +174,9 @@ class PythonBuildConfig:
 
 
 class BasicPythonExternalProgram(ExternalProgram):
-    def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
-                 ext_prog: T.Optional[ExternalProgram] = None,
-                 build_config_path: T.Optional[str] = None):
+    def __init__(self, name: str, command: list[str] | None = None,
+                 ext_prog: ExternalProgram | None = None,
+                 build_config_path: str | None = None):
         if ext_prog is None:
             super().__init__(name, command=command, silent=True)
         else:
@@ -179,7 +192,7 @@ class BasicPythonExternalProgram(ExternalProgram):
         # Otherwise to make the type checkers happy we'd have to do .get() for
         # everycall, even though we know that the introspection data will be
         # complete
-        self.info: 'PythonIntrospectionDict' = {
+        self.info: PythonIntrospectionDict = {
             'install_paths': {},
             'is_pypy': False,
             'is_venv': False,
@@ -207,7 +220,7 @@ class BasicPythonExternalProgram(ExternalProgram):
     def _check_version(self, version: str) -> bool:
         if self.name == 'python2':
             return mesonlib.version_compare(version, '< 3.0')
-        elif self.name == 'python3':
+        if self.name == 'python3':
             return mesonlib.version_compare(version, '>= 3.0')
         return True
 
@@ -234,7 +247,7 @@ class BasicPythonExternalProgram(ExternalProgram):
             info = json.loads(stdout)
         except json.JSONDecodeError:
             info = None
-            mlog.debug('Could not introspect Python (%s): exit code %d' % (str(p.args), p.returncode))
+            mlog.debug(f'Could not introspect Python ({p.args!s}): exit code {p.returncode}')
             mlog.debug('Program stdout:\n')
             mlog.debug(stdout)
             mlog.debug('Program stderr:\n')
@@ -243,8 +256,7 @@ class BasicPythonExternalProgram(ExternalProgram):
         if info is not None and self._check_version(info['version']):
             self.info = T.cast('PythonIntrospectionDict', info)
             return True
-        else:
-            return False
+        return False
 
 
 class _PythonDependencyBase(_Base):
@@ -255,7 +267,7 @@ class _PythonDependencyBase(_Base):
     def is_windows_python(self) -> bool:
         return self.platform.startswith(('win', 'mingw'))
 
-    def __init__(self, python_holder: 'BasicPythonExternalProgram', embed: bool):
+    def __init__(self, python_holder: BasicPythonExternalProgram, embed: bool):
         self.embed = embed
         self.build_config = python_holder.build_config
 
@@ -290,7 +302,7 @@ class _PythonDependencyBase(_Base):
         if not self.link_libpython:
             self.link_libpython = embed
 
-        self.info: T.Optional[T.Dict[str, str]] = None
+        self.info: dict[str, str] | None = None
         if mesonlib.version_compare(self.version, '>= 3.0'):
             self.major_version = 3
         else:
@@ -302,7 +314,7 @@ class _PythonDependencyBase(_Base):
         if self.is_windows_python() and self.is_freethreaded:
             self.compile_args += ['-DPy_GIL_DISABLED']
 
-    def find_libpy(self, environment: 'Environment') -> None:
+    def find_libpy(self, environment: Environment) -> None:
         if self.build_config:
             path = self.build_config['libpython'].get('dynamic')
             if not path:
@@ -340,21 +352,20 @@ class _PythonDependencyBase(_Base):
         if self.platform.startswith('mingw'):
             if 'x86_64' in self.platform:
                 return 'x86_64'
-            elif 'i686' in self.platform:
+            if 'i686' in self.platform:
                 return 'x86'
-            elif 'aarch64' in self.platform:
+            if 'aarch64' in self.platform:
                 return 'aarch64'
-            else:
-                raise DependencyException(f'MinGW Python built with unknown platform {self.platform!r}, please file a bug')
-        elif self.platform == 'win32':
+            raise DependencyException(f'MinGW Python built with unknown platform {self.platform!r}, please file a bug')
+        if self.platform == 'win32':
             return 'x86'
-        elif self.platform in {'win64', 'win-amd64'}:
+        if self.platform in {'win64', 'win-amd64'}:
             return 'x86_64'
-        elif self.platform in {'win-arm64'}:
+        if self.platform in {'win-arm64'}:
             return 'aarch64'
         raise DependencyException('Unknown Windows Python platform {self.platform!r}')
 
-    def get_windows_link_args(self, limited_api: bool, environment: 'Environment') -> T.Optional[T.List[str]]:
+    def get_windows_link_args(self, limited_api: bool, environment: Environment) -> list[str] | None:
         if self.build_config:
             if self.static:
                 key = 'static'
@@ -435,11 +446,11 @@ class _PythonDependencyBase(_Base):
             raise mesonlib.MesonBugException(
                 'On a Windows path, but the OS doesn\'t appear to be Windows or MinGW.')
         if not lib.exists():
-            mlog.log('Could not find Python3 library {!r}'.format(str(lib)))
+            mlog.log(f'Could not find Python3 library {str(lib)!r}')
             return None
         return [str(lib)]
 
-    def find_libpy_windows(self, env: 'Environment', limited_api: bool = False) -> None:
+    def find_libpy_windows(self, env: Environment, limited_api: bool = False) -> None:
         '''
         Find python3 libraries on Windows and also verify that the arch matches
         what we are building for.
@@ -468,7 +479,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 
     # name is needed for polymorphism
     def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs,
-                 installation: 'BasicPythonExternalProgram'):
+                 installation: BasicPythonExternalProgram):
         embed = kwargs.get('embed', False)
         pkg_embed = '-embed' if embed and mesonlib.version_compare(installation.info['version'], '>=3.8') else ''
         pkg_name = f'python-{installation.version}{pkg_embed}'
@@ -520,15 +531,15 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 
 class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase):
 
-    def __init__(self, name: str, environment: 'Environment',
-                 kwargs: DependencyObjectKWs, installation: 'BasicPythonExternalProgram'):
+    def __init__(self, name: str, environment: Environment,
+                 kwargs: DependencyObjectKWs, installation: BasicPythonExternalProgram):
         ExtraFrameworkDependency.__init__(self, name, environment, kwargs)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
 
 
 class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
-    def __init__(self, name: str, environment: 'Environment',
+    def __init__(self, name: str, environment: Environment,
                  kwargs: DependencyObjectKWs, installation: BasicPythonExternalProgram):
         SystemDependency.__init__(self, name, environment, kwargs)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
@@ -573,11 +584,11 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             self.is_found = False
 
 def python_factory(env: Environment, kwargs: DependencyObjectKWs,
-                   installation: T.Optional['BasicPythonExternalProgram'] = None) -> T.List['DependencyGenerator']:
+                   installation: BasicPythonExternalProgram | None = None) -> list[DependencyGenerator]:
     # We can't use the factory_methods decorator here, as we need to pass the
     # extra installation argument
     methods = process_method_kw({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM}, kwargs)
-    candidates: T.List['DependencyGenerator'] = []
+    candidates: list[DependencyGenerator] = []
     from_installation = installation is not None
     # When not invoked through the python module, default installation.
     if installation is None:

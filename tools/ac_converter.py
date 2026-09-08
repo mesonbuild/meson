@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2015 The Meson development team
 
+import sys
+
 help_message = """Usage: {} <config.h.meson>
 
 This script reads config.h.meson, looks for header
@@ -12,8 +14,6 @@ with #mesondefine and run this. We can't do this automatically
 because some configure scripts have #undef statements
 that are unrelated to configure checks.
 """
-
-import sys
 
 
 # Add stuff here as it is encountered.

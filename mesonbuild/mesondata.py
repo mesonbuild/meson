@@ -3,10 +3,9 @@
 
 from __future__ import annotations
 
-
 import importlib.resources
-from pathlib import PurePosixPath, Path
 import typing as T
+from pathlib import Path, PurePosixPath
 
 if T.TYPE_CHECKING:
     from .environment import Environment
@@ -23,7 +22,7 @@ class DataFile:
                     encoding='utf-8')
             path.write_text(data, encoding='utf-8')
 
-    def write_to_private(self, env: 'Environment') -> Path:
+    def write_to_private(self, env: Environment) -> Path:
         try:
             # The issue that mypy/pyright see here is caused by a bug in typeshed:
             # https://github.com/python/typeshed/pull/15108

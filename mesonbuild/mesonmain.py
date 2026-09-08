@@ -3,29 +3,33 @@
 
 from __future__ import annotations
 
-# Work around some pathlib bugs...
-
-from . import _pathlib
 import sys
+
+# Work around some pathlib bugs...
+from . import _pathlib
+
 sys.modules['pathlib'] = _pathlib
 
 # This file is an entry point for all commands, including scripts. Include the
 # strict minimum python modules for performance reasons.
+# ruff: disable[E402]
+import argparse
+import importlib
 import os.path
 import platform
-import importlib
-import argparse
 import typing as T
 
-from .utils.core import MesonException, MesonBugException
 from . import mlog
+from .utils.core import MesonBugException, MesonException
+
+# ruff: enable[E402]
 
 if T.TYPE_CHECKING:
 
     class MesonMainCMDOptions(T.Protocol):
 
         command: str
-        run_func: T.Callable[['MesonMainCMDOptions'], int]
+        run_func: T.Callable[[MesonMainCMDOptions], int]
 
 
 def errorhandler(e: Exception, command: str) -> int:
@@ -41,56 +45,70 @@ def errorhandler(e: Exception, command: str) -> int:
         if os.environ.get('MESON_FORCE_BACKTRACE'):
             raise e
         return 1
-    else:
-        # We assume many types of traceback are Meson logic bugs, but most
-        # particularly anything coming from the interpreter during `setup`.
-        # Some things definitely aren't:
-        # - PermissionError is always a problem in the user environment
-        # - runpython doesn't run Meson's own code, even though it is
-        #   dispatched by our run()
-        if os.environ.get('MESON_FORCE_BACKTRACE'):
-            raise e
-        traceback.print_exc()
+    # We assume many types of traceback are Meson logic bugs, but most
+    # particularly anything coming from the interpreter during `setup`.
+    # Some things definitely aren't:
+    # - PermissionError is always a problem in the user environment
+    # - runpython doesn't run Meson's own code, even though it is
+    #   dispatched by our run()
+    if os.environ.get('MESON_FORCE_BACKTRACE'):
+        raise e
+    traceback.print_exc()
 
-        if command == 'runpython':
-            return 2
-        elif isinstance(e, OSError):
-            mlog.exception(Exception("Unhandled python OSError. This is probably not a Meson bug, "
-                           "but an issue with your build environment."))
-            return e.errno or 0
-        else: # Exception
-            msg = 'Unhandled python exception'
-            if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
-                e = MesonBugException(msg, e.file, e.lineno, e.colno) # type: ignore
-            else:
-                e = MesonBugException(msg)
-            mlog.exception(e)
+    if command == 'runpython':
         return 2
+    if isinstance(e, OSError):
+        mlog.exception(Exception("Unhandled python OSError. This is probably not a Meson bug, "
+                       "but an issue with your build environment."))
+        return e.errno or 0
+    # Exception
+    msg = 'Unhandled python exception'
+    if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
+        e = MesonBugException(msg, e.file, e.lineno, e.colno) # type: ignore
+    else:
+        e = MesonBugException(msg)
+    mlog.exception(e)
+    return 2
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
 class CommandLineParser:
     def __init__(self) -> None:
         # only import these once we do full argparse processing
-        from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv, mformat
+        import shutil
+
+        from . import (
+            mcompile,
+            mconf,
+            mdevenv,
+            mdist,
+            mformat,
+            minit,
+            minstall,
+            mintro,
+            msetup,
+            msubprojects,
+            mtest,
+            munstable_coredata,
+            rewriter,
+        )
         from .scripts import env2mfile, reprotest
         from .wrap import wraptool
-        import shutil
 
         self.term_width = shutil.get_terminal_size().columns
         self.formatter = lambda prog: argparse.HelpFormatter(prog, max_help_position=int(self.term_width / 2), width=self.term_width)
 
-        self.commands: T.Dict[str, argparse.ArgumentParser] = {}
-        self.hidden_commands: T.List[str] = []
+        self.commands: dict[str, argparse.ArgumentParser] = {}
+        self.hidden_commands: list[str] = []
         self.parser = argparse.ArgumentParser(prog='meson', formatter_class=self.formatter)
         self.subparsers = self.parser.add_subparsers(title='Commands', dest='command',
                                                      description='If no command is specified it defaults to setup command.')
         self.add_command('setup', msetup.add_arguments, msetup.run,
                          help_msg='Configure the project')
         self.add_command('configure', mconf.add_arguments, mconf.run,
-                         help_msg='Change project options',)
+                         help_msg='Change project options')
         self.add_command('dist', mdist.add_arguments, mdist.run,
-                         help_msg='Generate release archive',)
+                         help_msg='Generate release archive')
         self.add_command('install', minstall.add_arguments, minstall.run,
                          help_msg='Install the project')
         self.add_command('introspect', mintro.add_arguments, mintro.run,
@@ -127,7 +145,7 @@ class CommandLineParser:
 
     def add_command(self, name: str, add_arguments_func: T.Callable[[argparse.ArgumentParser], None],
                     run_func: T.Callable[[argparse.Namespace], int], help_msg: str,
-                    aliases: T.List[str] | None = None) -> None:
+                    aliases: list[str] | None = None) -> None:
         aliases = aliases or []
         # FIXME: Cannot have hidden subparser:
         # https://bugs.python.org/issue22848
@@ -167,7 +185,7 @@ class CommandLineParser:
             self.parser.print_help()
         return 0
 
-    def run(self, args: T.List[str]) -> int:
+    def run(self, args: list[str]) -> int:
         implicit_setup_command_notice = False
         # If first arg is not a known command, assume user wants to run the setup
         # command.
@@ -211,7 +229,7 @@ class CommandLineParser:
                             'Meson will require Python 3.10 or newer', fatal=False)
             mlog.shutdown()
 
-def run_script_command(script_name: str, script_args: T.List[str]) -> int:
+def run_script_command(script_name: str, script_args: list[str]) -> int:
     # Map script name to module name for those that doesn't match
     script_map = {'exe': 'meson_exe',
                   'install': 'meson_install',
@@ -245,8 +263,9 @@ def set_meson_command(mainfile: str) -> None:
     mesonlib.set_meson_command(mainfile)
 
 def validate_original_args(args: list[str]) -> None:
-    import mesonbuild.options
     import itertools
+
+    import mesonbuild.options
 
     def has_startswith(coll: list[str], target: str) -> bool:
         for entry in coll:
@@ -262,7 +281,7 @@ def validate_original_args(args: list[str]) -> None:
                 f'Got argument {optionkey.name} as both {shortarg} and {longarg}. Pick one.')
 
 
-def run(original_args: T.List[str], mainfile: str) -> int:
+def run(original_args: list[str], mainfile: str) -> int:
     if os.environ.get('MESON_SHOW_DEPRECATIONS'):
         # workaround for https://bugs.python.org/issue34624
         import warnings

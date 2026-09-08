@@ -3,30 +3,32 @@
 
 from __future__ import annotations
 
-from .. import coredata, mesonlib, mlog
-from .disabler import Disabler
-from .baseobjects import DefaultObject
-from .exceptions import InterpreterException, InvalidArguments
-from ._unholder import _unholder
-
-from functools import wraps
 import abc
+import copy
 import dataclasses
 import itertools
-import copy
 import typing as T
+from functools import wraps
+
+from .. import coredata, mesonlib, mlog
+from ._unholder import _unholder
+from .baseobjects import DefaultObject
+from .disabler import Disabler
+from .exceptions import InterpreterException, InvalidArguments
 
 _T = T.TypeVar('_T')
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Protocol, TypeAlias, TypeIs, Unpack
+    from typing import TypeAlias
+
+    from typing_extensions import Protocol, TypeIs, Unpack
 
     from .. import mparser
     from ..mesonlib import SubProject
     from ..modules import ModuleObject, ModuleState
     from ..mparser import FunctionNode
     from ..optinterpreter import OptionInterpreter
-    from .baseobjects import InterpreterObject, ObjectHolder, TV_func, TYPE_var, TYPE_kwargs
+    from .baseobjects import InterpreterObject, ObjectHolder, TV_func, TYPE_kwargs, TYPE_var
     from .interpreterbase import InterpreterBase
     from .operator import MesonOperator
 
@@ -37,7 +39,7 @@ if T.TYPE_CHECKING:
         def __call__(s, self: _TV_IntegerObject, other: _TV_ARG1) -> TYPE_var: ...
     _TV_FN_Operator = T.TypeVar('_TV_FN_Operator', bound=FN_Operator)
 
-    CalleeArgs: TypeAlias = T.Tuple[mparser.BaseNode, T.Optional[T.List[TYPE_var]], T.Optional[TYPE_kwargs], SubProject]
+    CalleeArgs: TypeAlias = tuple[mparser.BaseNode, list[TYPE_var] | None, TYPE_kwargs | None, SubProject]
 
     MesonVersionTarget = mesonlib.Range[mesonlib.Version] | mesonlib.NoProjectVersion | None
 
@@ -69,40 +71,34 @@ def is_module(obj: object) -> TypeIs[ModuleObject]:
 
 
 @T.overload
-def get_callee_args(wrapped_args: T.Tuple[InterpreterObject, T.List[TYPE_var], TYPE_kwargs]) -> CalleeArgs: ...
+def get_callee_args(wrapped_args: tuple[InterpreterObject, list[TYPE_var], TYPE_kwargs]) -> CalleeArgs: ...
 
 
 @T.overload
-def get_callee_args(wrapped_args: T.Tuple[ObjectHolder, object]) -> CalleeArgs: ...
+def get_callee_args(wrapped_args: tuple[ObjectHolder, object]) -> CalleeArgs: ...
 
 
 @T.overload
-def get_callee_args(wrapped_args: T.Tuple[InterpreterBase, FunctionNode, T.List[TYPE_var], TYPE_kwargs]) -> CalleeArgs: ...
+def get_callee_args(wrapped_args: tuple[InterpreterBase, FunctionNode, list[TYPE_var], TYPE_kwargs]) -> CalleeArgs: ...
 
 
 @T.overload
-def get_callee_args(wrapped_args: T.Tuple[ModuleObject, ModuleState, T.List[TYPE_var], TYPE_kwargs]) -> CalleeArgs: ...
+def get_callee_args(wrapped_args: tuple[ModuleObject, ModuleState, list[TYPE_var], TYPE_kwargs]) -> CalleeArgs: ...
 
 
 @T.overload
-def get_callee_args(wrapped_args: T.Tuple[OptionInterpreter, T.List[TYPE_var], TYPE_kwargs]) -> CalleeArgs: ...
+def get_callee_args(wrapped_args: tuple[OptionInterpreter, list[TYPE_var], TYPE_kwargs]) -> CalleeArgs: ...
 
 
-def get_callee_args(wrapped_args: T.Union[
-            T.Tuple[InterpreterObject, T.List[TYPE_var], TYPE_kwargs],
-            T.Tuple[ObjectHolder, object],
-            T.Tuple[InterpreterBase, FunctionNode, T.List[TYPE_var], TYPE_kwargs],
-            T.Tuple[ModuleObject, ModuleState, T.List[TYPE_var], TYPE_kwargs],
-            T.Tuple[OptionInterpreter, T.List[TYPE_var], TYPE_kwargs],
-        ]) -> CalleeArgs:
+def get_callee_args(wrapped_args: tuple[InterpreterObject, list[TYPE_var], TYPE_kwargs] | tuple[ObjectHolder, object] | tuple[InterpreterBase, FunctionNode, list[TYPE_var], TYPE_kwargs] | tuple[ModuleObject, ModuleState, list[TYPE_var], TYPE_kwargs] | tuple[OptionInterpreter, list[TYPE_var], TYPE_kwargs]) -> CalleeArgs:
     if is_module(wrapped_args[0]):
         s = wrapped_args[1]
     else:
         s = wrapped_args[0]
     node = s.current_node
     subproject = s.subproject
-    args: T.Optional[T.List[TYPE_var]] = None
-    kwargs: T.Optional[TYPE_kwargs] = None
+    args: list[TYPE_var] | None = None
+    kwargs: TYPE_kwargs | None = None
     if len(wrapped_args) >= 3:
         args = wrapped_args[-2]
         kwargs = wrapped_args[-1]
@@ -153,7 +149,7 @@ def disablerIfNotFound(f: TV_func) -> TV_func:
         return ret
     return T.cast('TV_func', wrapped)
 
-def kwargs_get_close_matches(invalid_kwargs: T.Set[str], valid_kwargs: T.Set[str]) -> T.List[str]:
+def kwargs_get_close_matches(invalid_kwargs: set[str], valid_kwargs: set[str]) -> list[str]:
     with_close_matches = []
     from difflib import get_close_matches
     for invalid in sorted(invalid_kwargs):
@@ -162,15 +158,15 @@ def kwargs_get_close_matches(invalid_kwargs: T.Set[str], valid_kwargs: T.Set[str
     return with_close_matches
 
 def typed_operator(operator: MesonOperator,
-                   types: T.Union[T.Type, T.Tuple[T.Type, ...]]) -> T.Callable[['_TV_FN_Operator'], '_TV_FN_Operator']:
+                   types: type | tuple[type, ...]) -> T.Callable[[_TV_FN_Operator], _TV_FN_Operator]:
     """Decorator that does type checking for operator calls.
 
     The principle here is similar to typed_pos_args, however much simpler
     since only one other object ever is passed
     """
-    def inner(f: '_TV_FN_Operator') -> '_TV_FN_Operator':
+    def inner(f: _TV_FN_Operator) -> _TV_FN_Operator:
         @wraps(f)
-        def wrapper(self: 'InterpreterObject', other: TYPE_var) -> TYPE_var:
+        def wrapper(self: InterpreterObject, other: TYPE_var) -> TYPE_var:
             if not isinstance(other, types):
                 raise InvalidArguments(f'The `{operator.value}` of {self.display_name()} does not accept objects of type {type(other).__name__} ({other})')
             return f(self, other)
@@ -202,7 +198,7 @@ def _raw_description(t: object) -> str:
         if t:
             return f"array[{' | '.join(sorted(mesonlib.OrderedSet(type(v).__name__ for v in t)))}]"
         return 'array[]'
-    elif isinstance(t, dict):
+    if isinstance(t, dict):
         if t:
             return f"dict[{' | '.join(sorted(mesonlib.OrderedSet(type(v).__name__ for v in t.values())))}]"
         return 'dict[]'
@@ -232,9 +228,9 @@ def _shouldbe_format(name: str, argument_type: T.Literal['positional', 'keyword'
             f'"{_raw_description(argument)}" but should have been {should_be}')
 
 
-def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
-                   varargs: T.Optional[T.Union[T.Type, T.Tuple[T.Type, ...]]] = None,
-                   optargs: T.Optional[T.List[T.Union[T.Type, T.Tuple[T.Type, ...]]]] = None,
+def typed_pos_args(name: str, *types: type | tuple[type, ...],
+                   varargs: type | tuple[type, ...] | None = None,
+                   optargs: list[type | tuple[type, ...]] | None = None,
                    min_varargs: int = 0, max_varargs: int = 0) -> T.Callable[..., T.Any]:
     """Decorator that types type checking of positional arguments.
 
@@ -303,12 +299,12 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
                 max_args = num_types + max_varargs
                 if max_varargs == 0 and num_args < min_args:
                     raise InvalidArguments(f'"{name}" takes at least {min_args} arguments, but got {num_args}.')
-                elif max_varargs != 0 and (num_args < min_args or num_args > max_args):
+                if max_varargs != 0 and (num_args < min_args or num_args > max_args):
                     raise InvalidArguments(f'"{name}" takes between {min_args} and {max_args} arguments, but got {num_args}.')
             elif optargs:
                 if num_args < num_types:
                     raise InvalidArguments(f'"{name}" takes at least {num_types} arguments, but got {num_args}.')
-                elif num_args > num_types + len(optargs):
+                if num_args > num_types + len(optargs):
                     raise InvalidArguments(f'"{name}" takes at most {num_types + len(optargs)} arguments, but got {num_args}.')
                 # Add the number of positional arguments required
                 if num_args > num_types:
@@ -377,7 +373,7 @@ class ContainerTypeInfo:
         not be empty, and other cases where an empty container is allowed.
     """
 
-    def __init__(self, container: T.Type, contains: T.Union[T.Type, T.Tuple[T.Type, ...]], *,
+    def __init__(self, container: type[list] | type[dict], contains: type | tuple[type, ...], *,
                  pairs: bool = False, allow_empty: bool = True):
         self.container = container
         self.contains = contains
@@ -532,14 +528,14 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
         @wraps(f)
         def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
 
-            def emit_feature_change(values: _FeatureValues, feature: T.Union[T.Type['FeatureDeprecated'], T.Type['FeatureNew']]) -> None:
+            def emit_feature_change(values: _FeatureValues, feature: type[FeatureDeprecated] | type[FeatureNew]) -> None:
                 for n, version in values.items():
                     if isinstance(version, tuple):
                         version, msg = version
                     else:
                         msg = None
 
-                    warning: T.Optional[str] = None
+                    warning: str | None = None
                     if isinstance(n, ContainerTypeInfo):
                         if n.check_any(value):
                             d, extra = n.description()
@@ -562,7 +558,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
 
             node, _, _kwargs, subproject = get_callee_args(wrapped_args)
             # Cast here, as the convertor function may place something other than a TYPE_var in the kwargs
-            kwargs = T.cast('T.Dict[str, object]', _kwargs)
+            kwargs = T.cast('dict[str, object]', _kwargs)
 
             if not allow_unknown:
                 all_names = {t.name for t in types}
@@ -605,7 +601,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                     if not _check_value_type(types_tuple, value):
                         extra = None
                         if info.extra_types:
-                            extra_desc: T.List[str] = []
+                            extra_desc: list[str] = []
                             if isinstance(value, list):
                                 for (t, cb), v in itertools.product(info.extra_types.items(), value):
                                     if isinstance(v, t):
@@ -658,7 +654,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
 class FeatureCheckBase(metaclass=mesonlib.SimpleABC):
     "Base class for feature version checks"
 
-    feature_registry: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[T.Tuple[str, T.Optional['mparser.BaseNode']]]]]]
+    feature_registry: T.ClassVar[dict[str, dict[str, set[tuple[str, mparser.BaseNode | None]]]]]
     emit_notice = False
     unconditional = False
 
@@ -688,7 +684,7 @@ class FeatureCheckBase(metaclass=mesonlib.SimpleABC):
     def check_version(target_version: MesonVersionTarget, feature_version: str) -> bool:
         pass
 
-    def use(self, subproject: 'SubProject', location: T.Optional['mparser.BaseNode'] = None) -> None:
+    def use(self, subproject: SubProject, location: mparser.BaseNode | None = None) -> None:
         tv = self.get_target_version(subproject)
         # No target version
         if tv is None and not self.unconditional:
@@ -726,15 +722,15 @@ class FeatureCheckBase(metaclass=mesonlib.SimpleABC):
         for version in sorted(fv.keys()):
             message = ', '.join(sorted({f"'{i[0]}'" for i in fv[version]}))
             if cls.check_version(tv, version):
-                notice_str += '\n * {}: {{{}}}'.format(version, message)
+                notice_str += f'\n * {version}: {{{message}}}'
             else:
-                warning_str += '\n * {}: {{{}}}'.format(version, message)
+                warning_str += f'\n * {version}: {{{message}}}'
         if '\n' in notice_str:
             mlog.notice(notice_str, fatal=False)
         if '\n' in warning_str:
             mlog.warning(warning_str)
 
-    def log_usage_warning(self, tv: MesonVersionTarget, location: T.Optional['mparser.BaseNode']) -> None:
+    def log_usage_warning(self, tv: MesonVersionTarget, location: mparser.BaseNode | None) -> None:
         raise InterpreterException('log_usage_warning not implemented')
 
     @staticmethod
@@ -756,8 +752,8 @@ class FeatureCheckBase(metaclass=mesonlib.SimpleABC):
         return T.cast('TV_func', wrapped)
 
     @classmethod
-    def single_use(cls, feature_name: str, version: str, subproject: 'SubProject',
-                   extra_message: str = '', location: T.Optional['mparser.BaseNode'] = None) -> None:
+    def single_use(cls, feature_name: str, version: str, subproject: SubProject,
+                   extra_message: str = '', location: mparser.BaseNode | None = None) -> None:
         """Oneline version that instantiates and calls use()."""
         cls(feature_name, version, extra_message).use(subproject, location)
 
@@ -774,23 +770,21 @@ class FeatureNew(FeatureCheckBase):
     def check_version(target_version: MesonVersionTarget, feature_version: str) -> bool:
         if isinstance(target_version, mesonlib.Range):
             return mesonlib.version_compare_condition_with_min(target_version, feature_version)
-        else:
-            # Warn for anything newer than the current semver base slot.
-            major = coredata.version.split('.', maxsplit=1)[0]
-            return mesonlib.version_compare(feature_version, f'<{major}.0')
+        # Warn for anything newer than the current semver base slot.
+        major = coredata.version.split('.', maxsplit=1)[0]
+        return mesonlib.version_compare(feature_version, f'<{major}.0')
 
     @staticmethod
     def get_warning_str_prefix(tv: MesonVersionTarget) -> str:
         if isinstance(tv, mesonlib.Range) and tv.min is not None:
             return f'Project specifies a minimum meson_version \'{tv}\' but uses features which were added in newer versions:'
-        else:
-            return 'Project specifies no minimum version but uses features which were added in versions:'
+        return 'Project specifies no minimum version but uses features which were added in versions:'
 
     @staticmethod
     def get_notice_str_prefix(tv: MesonVersionTarget) -> str:
         return ''
 
-    def log_usage_warning(self, tv: MesonVersionTarget, location: T.Optional['mparser.BaseNode']) -> None:
+    def log_usage_warning(self, tv: MesonVersionTarget, location: mparser.BaseNode | None) -> None:
         if isinstance(tv, mesonlib.Range) and tv.min is not None:
             prefix = f"Project targets '{tv}'"
         else:
@@ -819,9 +813,8 @@ class FeatureDeprecated(FeatureCheckBase):
         if isinstance(target_version, mesonlib.Range):
             # For deprecation checks we need to return the inverse of FeatureNew checks
             return not mesonlib.version_compare_condition_with_min(target_version, feature_version)
-        else:
-            # Always warn for functionality deprecated in the current semver slot (i.e. the current version).
-            return False
+        # Always warn for functionality deprecated in the current semver slot (i.e. the current version).
+        return False
 
     @staticmethod
     def get_warning_str_prefix(tv: MesonVersionTarget) -> str:
@@ -831,7 +824,7 @@ class FeatureDeprecated(FeatureCheckBase):
     def get_notice_str_prefix(tv: MesonVersionTarget) -> str:
         return 'Future-deprecated features used:'
 
-    def log_usage_warning(self, tv: MesonVersionTarget, location: T.Optional['mparser.BaseNode']) -> None:
+    def log_usage_warning(self, tv: MesonVersionTarget, location: mparser.BaseNode | None) -> None:
         if isinstance(tv, mesonlib.Range):
             prefix = f"Project targets '{tv}'"
         else:
@@ -869,7 +862,7 @@ class FeatureBroken(FeatureCheckBase):
     def get_notice_str_prefix(tv: MesonVersionTarget) -> str:
         return ''
 
-    def log_usage_warning(self, tv: MesonVersionTarget, location: T.Optional['mparser.BaseNode']) -> None:
+    def log_usage_warning(self, tv: MesonVersionTarget, location: mparser.BaseNode | None) -> None:
         args = [
             'Project uses feature that was always broken,',
             'and is now deprecated since',

@@ -2,14 +2,16 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2017-2021 The Meson development team
 
+import os
+import shutil
 import subprocess
-import shutil, sys, os
-from glob import glob
-
+import sys
 import xml.etree.ElementTree as ET
+from glob import glob
 
 sys.path.append(os.getcwd())
 from mesonbuild import coredata
+
 
 class PkgGenerator:
 

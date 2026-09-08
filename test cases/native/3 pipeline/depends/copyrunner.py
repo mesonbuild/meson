@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import sys, subprocess
+import sys
+import subprocess
 
 prog, infile, outfile = sys.argv[1:]
 

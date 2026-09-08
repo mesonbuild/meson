@@ -9,14 +9,13 @@ Holds typing helper classes, such as the ImmutableProtocol classes
 
 __all__ = [
     'Protocol',
-    'ImmutableListProtocol'
+    'ImmutableListProtocol',
 ]
 
 import typing
 
 # We can change this to typing when we require python 3.8
 from typing_extensions import Protocol
-
 
 T = typing.TypeVar('T')
 
@@ -45,7 +44,7 @@ class ImmutableListProtocol(Protocol[T]):
     @typing.overload
     def __getitem__(self, index: int, /) -> T: ...
     @typing.overload
-    def __getitem__(self, index: slice, /) -> typing.List[T]: ...
+    def __getitem__(self, index: slice, /) -> list[T]: ...
 
     def __contains__(self, item: T, /) -> bool: ...
 
@@ -53,7 +52,7 @@ class ImmutableListProtocol(Protocol[T]):
 
     def __len__(self) -> int: ...
 
-    def __add__(self, other: typing.List[T], /) -> typing.List[T]: ...
+    def __add__(self, other: list[T], /) -> list[T]: ...
 
     def __eq__(self, other: typing.Any, /) -> bool: ...
     def __ne__(self, other: typing.Any, /) -> bool: ...
@@ -66,4 +65,4 @@ class ImmutableListProtocol(Protocol[T]):
 
     def index(self, item: T, /) -> int: ...
 
-    def copy(self) -> typing.List[T]: ...
+    def copy(self) -> list[T]: ...

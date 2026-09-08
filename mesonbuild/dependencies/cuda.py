@@ -4,32 +4,31 @@
 from __future__ import annotations
 
 import glob
-import re
 import os
+import re
 import typing as T
 from pathlib import Path
 
-from .. import mesonlib
-from .. import mlog
+from .. import mesonlib, mlog
+from ..mesonlib import LibType
 from .base import DependencyException, SystemDependency
 from .detect import packages
-from ..mesonlib import LibType
 
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
-    from ..environment import Environment
-    from ..compilers.compilers import Language, CompilerDict
+    from ..compilers.compilers import CompilerDict, Language
     from ..envconfig import MachineInfo
+    from ..environment import Environment
     from .base import DependencyObjectKWs
 
-    TV_ResultTuple = T.Tuple[T.Optional[str], T.Optional[str], bool]
+    TV_ResultTuple = tuple[str | None, str | None, bool]
 
 class CudaDependency(SystemDependency):
 
     supported_languages: ImmutableListProtocol[Language] = ['cpp', 'c', 'cuda']
     targets_dir = 'targets' # Directory containing CUDA targets.
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs) -> None:
         for_machine = kwargs['native']
         compilers = environment.coredata.compilers[for_machine]
         machine = environment.machines[for_machine]
@@ -40,7 +39,7 @@ class CudaDependency(SystemDependency):
             raise DependencyException(f'Language \'{kwargs["language"]}\' is not supported by the CUDA Toolkit. Supported languages are {self.supported_languages}.')
 
         super().__init__(name, environment, kwargs)
-        self.lib_modules: T.Dict[str, T.List[str]] = {}
+        self.lib_modules: dict[str, list[str]] = {}
         self.requested_modules = kwargs.get('modules', [])
         if not any(runtime in self.requested_modules for runtime in ['cudart', 'cudart_static']):
             # By default, we prefer to link the static CUDA runtime, since this is what nvcc also does by default:
@@ -118,10 +117,12 @@ class CudaDependency(SystemDependency):
         msg = f'Please specify the desired CUDA Toolkit version (e.g. dependency(\'cuda\', version : \'>=10.1\')) or {platform_msg} to point to the location of your desired version.'
         return self._report_dependency_error(msg, (None, None, False))
 
-    def _find_matching_toolkit(self, paths: T.List[TV_ResultTuple], version_reqs: T.List[str], nvcc_version: T.Optional[str]) -> TV_ResultTuple:
+    def _find_matching_toolkit(self, paths: list[TV_ResultTuple], version_reqs: list[str], nvcc_version: str | None) -> TV_ResultTuple:
         # keep the default paths order intact, sort the rest in the descending order
         # according to the toolkit version
-        part_func: T.Callable[[TV_ResultTuple], bool] = lambda t: not t[2]
+        def part_func(v: TV_ResultTuple) -> bool:
+            return not v[2]
+
         defaults_it, rest_it = mesonlib.partition(part_func, paths)
         defaults = list(defaults_it)
         paths = defaults + sorted(rest_it, key=lambda t: mesonlib.Version(t[1]), reverse=True)
@@ -129,7 +130,7 @@ class CudaDependency(SystemDependency):
 
         if nvcc_version and defaults:
             default_src = f"the {self.env_var} environment variable" if self.env_var else "the \'/usr/local/cuda\' symbolic link"
-            nvcc_warning = 'The default CUDA Toolkit as designated by {} ({}) doesn\'t match the current nvcc version {} and will be ignored.'.format(default_src, os.path.realpath(defaults[0][0]), nvcc_version)
+            nvcc_warning = f'The default CUDA Toolkit as designated by {default_src} ({os.path.realpath(defaults[0][0])}) doesn\'t match the current nvcc version {nvcc_version} and will be ignored.'
         else:
             nvcc_warning = None
 
@@ -160,7 +161,7 @@ class CudaDependency(SystemDependency):
             abs_path = os.path.join(self.cuda_path, rel_path)
             mlog.debug(
                 f'Canonical CUDA target "{self.targets_dir}/{canonical_target}" missing; '
-                f'falling back to "{rel_path}".'
+                f'falling back to "{rel_path}".',
             )
 
         mlog.debug(f'CUDA target resolved to "{rel_path}".')
@@ -170,7 +171,7 @@ class CudaDependency(SystemDependency):
 
         return rel_path
 
-    def _default_path_env_var(self) -> T.Optional[str]:
+    def _default_path_env_var(self) -> str | None:
         env_vars = ['CUDA_PATH'] if self._is_windows() else ['CUDA_PATH', 'CUDA_HOME', 'CUDA_ROOT']
         env_vars = [var for var in env_vars if var in os.environ]
         user_defaults = {os.environ[var] for var in env_vars}
@@ -178,15 +179,15 @@ class CudaDependency(SystemDependency):
             mlog.warning('Environment variables {} point to conflicting toolkit locations ({}). Toolkit selection might produce unexpected results.'.format(', '.join(env_vars), ', '.join(user_defaults)))
         return env_vars[0] if env_vars else None
 
-    def _cuda_paths(self) -> T.List[T.Tuple[str, bool]]:
+    def _cuda_paths(self) -> list[tuple[str, bool]]:
         return ([(os.environ[self.env_var], True)] if self.env_var else []) \
             + (self._cuda_paths_win() if self._is_windows() else self._cuda_paths_nix())
 
-    def _cuda_paths_win(self) -> T.List[T.Tuple[str, bool]]:
+    def _cuda_paths_win(self) -> list[tuple[str, bool]]:
         env_vars = os.environ.keys()
         return [(os.environ[var], False) for var in env_vars if var.startswith('CUDA_PATH_')]
 
-    def _cuda_paths_nix(self) -> T.List[T.Tuple[str, bool]]:
+    def _cuda_paths_nix(self) -> list[tuple[str, bool]]:
         # include /usr/local/cuda default only if no env_var was found
         pattern = '/usr/local/cuda-*' if self.env_var else '/usr/local/cuda*'
         return [(path, os.path.basename(path) == 'cuda') for path in glob.iglob(pattern)]
@@ -210,14 +211,13 @@ class CudaDependency(SystemDependency):
             m = path_version_regex.match(os.path.basename(path))
             if m:
                 return m.group(1)
-            else:
-                mlog.warning(f'Could not detect CUDA Toolkit version for {path}')
+            mlog.warning(f'Could not detect CUDA Toolkit version for {path}')
         except Exception as e:
             mlog.warning(f'Could not detect CUDA Toolkit version for {path}: {e!s}')
 
         return '0.0'
 
-    def _read_cuda_runtime_api_version(self, path_str: str) -> T.Optional[str]:
+    def _read_cuda_runtime_api_version(self, path_str: str) -> str | None:
         path = Path(path_str)
         for i in path.rglob('cuda_runtime_api.h'):
             raw = i.read_text(encoding='utf-8')
@@ -234,7 +234,7 @@ class CudaDependency(SystemDependency):
             return f'{major}.{minor}'
         return None
 
-    def _read_toolkit_version_txt(self, path: str) -> T.Optional[str]:
+    def _read_toolkit_version_txt(self, path: str) -> str | None:
         # Read 'version.txt' at the root of the CUDA Toolkit directory to determine the toolkit version
         version_file_path = os.path.join(path, 'version.txt')
         try:
@@ -261,15 +261,14 @@ class CudaDependency(SystemDependency):
             if arch not in libdirs:
                 raise DependencyException(msg.format(arch, 'Windows'))
             return os.path.join('lib', libdirs[arch])
-        elif machine.is_linux():
+        if machine.is_linux():
             return 'lib'
-        elif machine.is_darwin():
+        if machine.is_darwin():
             libdirs = {'x86_64': 'lib64'}
             if arch not in libdirs:
                 raise DependencyException(msg.format(arch, 'macOS'))
             return libdirs[arch]
-        else:
-            raise DependencyException('CUDA Toolkit: unsupported platform.')
+        raise DependencyException('CUDA Toolkit: unsupported platform.')
 
     def _find_requested_libraries(self) -> bool:
         all_found = True
@@ -302,7 +301,7 @@ class CudaDependency(SystemDependency):
     @T.overload
     def _report_dependency_error(self, msg: str, ret_val: TV_ResultTuple) -> TV_ResultTuple: ... # noqa: F811
 
-    def _report_dependency_error(self, msg: str, ret_val: T.Optional[TV_ResultTuple] = None) -> T.Optional[TV_ResultTuple]: # noqa: F811
+    def _report_dependency_error(self, msg: str, ret_val: TV_ResultTuple | None = None) -> TV_ResultTuple | None: # noqa: F811
         if self.required:
             raise DependencyException(msg)
 
@@ -316,7 +315,7 @@ class CudaDependency(SystemDependency):
     def log_info(self) -> str:
         return self.cuda_path if self.cuda_path else ''
 
-    def get_link_args(self, language: T.Optional[Language] = None, raw: bool = False) -> T.List[str]:
+    def get_link_args(self, language: Language | None = None, raw: bool = False) -> list[str]:
         # when using nvcc to link, we should instead use the native driver options
         REWRITE_MODULES = {
             'cudart': ['-cudart', 'shared'],
@@ -324,7 +323,7 @@ class CudaDependency(SystemDependency):
             'cudadevrt': ['-cudadevrt'],
         }
 
-        args: T.List[str] = []
+        args: list[str] = []
         for lib in self.requested_modules:
             link_args = self.lib_modules[lib]
             if language == 'cuda' and lib in REWRITE_MODULES:

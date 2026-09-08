@@ -3,24 +3,33 @@
 # Copyright © 2024-2025 Intel Corporation
 
 from __future__ import annotations
+
 import json
 import os
 import pickle
+import shutil
 import subprocess
 import tempfile
-import subprocess
 import textwrap
-import shutil
-from unittest import skipIf, SkipTest
 from pathlib import Path
+from unittest import SkipTest, skipIf
 
-from .baseplatformtests import BasePlatformTests
-from .helpers import *
-from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command, windows_proof_rmtree
+from mesonbuild.mesonlib import (
+    EnvironmentVariables,
+    ExecutableSerialisation,
+    MesonException,
+    is_linux,
+    python_command,
+    windows_proof_rmtree,
+)
 from mesonbuild.mformat import Formatter, match_path
-from mesonbuild.optinterpreter import OptionInterpreter, OptionException
+from mesonbuild.optinterpreter import OptionException, OptionInterpreter
 from mesonbuild.options import OptionStore
 from run_tests import Backend
+
+from .baseplatformtests import BasePlatformTests
+from .helpers import IS_CI, skip_if_not_language
+
 
 @skipIf(IS_CI and not is_linux(), "Run only on fast platforms")
 class PlatformAgnosticTests(BasePlatformTests):
@@ -101,7 +110,7 @@ class PlatformAgnosticTests(BasePlatformTests):
             self.new_builddir()
             self.init(testdir, extra_args=[f'-Dglib-version={run["version"]}'])
             try:
-                with open(os.path.join(self.builddir, 'meson-info', 'intro-targets.json'), 'r', encoding='utf-8') as tgt_intro:
+                with open(os.path.join(self.builddir, 'meson-info', 'intro-targets.json'), encoding='utf-8') as tgt_intro:
                     intro = json.load(tgt_intro)
                     target = list(filter(lambda tgt: tgt['name'] == 'vala-tgt', intro))
                     self.assertLength(target, 1)
@@ -138,7 +147,7 @@ class PlatformAgnosticTests(BasePlatformTests):
     def check_connectivity(self):
         import urllib
         try:
-            with urllib.request.urlopen('https://wrapdb.mesonbuild.com') as p:
+            with urllib.request.urlopen('https://wrapdb.mesonbuild.com'):
                 pass
         except urllib.error.URLError as e:
             self.skipTest('No internet connectivity: ' + str(e))
@@ -261,7 +270,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         with p.open('wb') as f:
             pickle.dump(es, f)
         cmd = self.meson_command + ['--internal', 'test_loaded_modules', '--unpickle', str(p)]
-        p = subprocess.run(cmd, stdout=subprocess.PIPE)
+        p = subprocess.run(cmd, stdout=subprocess.PIPE, check=True)
         all_modules = json.loads(p.stdout.splitlines()[0])
         meson_modules = [m for m in all_modules if m.startswith('mesonbuild')]
         expected_meson_modules = [
@@ -273,7 +282,7 @@ class PlatformAgnosticTests(BasePlatformTests):
             'mesonbuild.mlog',
             'mesonbuild.scripts',
             'mesonbuild.scripts.meson_exe',
-            'mesonbuild.scripts.test_loaded_modules'
+            'mesonbuild.scripts.test_loaded_modules',
         ]
         self.assertEqual(sorted(expected_meson_modules), sorted(meson_modules))
 
@@ -459,7 +468,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         """Removing an options without reconfiguring should still give an error."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
         self.init(testdir)
-        with open(os.path.join(testdir, 'meson_options.txt'), 'r', encoding='utf-8') as f:
+        with open(os.path.join(testdir, 'meson_options.txt'), encoding='utf-8') as f:
             opts = f.readlines()
         with open(os.path.join(testdir, 'meson_options.txt'), 'w', encoding='utf-8') as f:
             for line in opts:
@@ -474,7 +483,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
         self.init(testdir)
         self.assertEqual(self.getconf('neg_int_opt'), -3)
-        with self.assertRaises(subprocess.CalledProcessError) as e:
+        with self.assertRaises(subprocess.CalledProcessError):
             self.init(testdir, extra_args=['--reconfigure', '-Dneg_int_opt=0'])
         self.assertEqual(self.getconf('neg_int_opt'), -3)
         self.init(testdir, extra_args=['--reconfigure', '-Dneg_int_opt=-2'])
@@ -484,7 +493,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         """Changing the constraints of an option without reconfiguring should work."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
         self.init(testdir)
-        with open(os.path.join(testdir, 'meson_options.txt'), 'r', encoding='utf-8') as f:
+        with open(os.path.join(testdir, 'meson_options.txt'), encoding='utf-8') as f:
             opts = f.readlines()
         with open(os.path.join(testdir, 'meson_options.txt'), 'w', encoding='utf-8') as f:
             for line in opts:
@@ -499,7 +508,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         """Changing from a meson_options.txt to meson.options should still be detected."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
         self.init(testdir)
-        with open(os.path.join(testdir, 'meson_options.txt'), 'r', encoding='utf-8') as f:
+        with open(os.path.join(testdir, 'meson_options.txt'), encoding='utf-8') as f:
             opts = f.readlines()
         with open(os.path.join(testdir, 'meson_options.txt'), 'w', encoding='utf-8') as f:
             for line in opts:

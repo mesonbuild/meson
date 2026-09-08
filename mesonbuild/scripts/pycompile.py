@@ -4,12 +4,14 @@
 # ignore all lints for this file, since it is run by python2 as well
 
 # type: ignore
-# pylint: disable=deprecated-module
 
-import json, os, subprocess, sys
+import json
+import os
+import subprocess
+import sys
 from compileall import compile_file
 
-quiet = int(os.environ.get('MESON_INSTALL_QUIET', 0))
+quiet = int(os.environ.get('MESON_INSTALL_QUIET', '0'))
 
 def compileall(files):
     for f in files:

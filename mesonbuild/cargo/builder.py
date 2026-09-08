@@ -8,6 +8,7 @@ build descriptions easier.
 """
 
 from __future__ import annotations
+
 import dataclasses
 import typing as T
 
@@ -62,7 +63,7 @@ class Builder:
         """
         return mparser.BooleanNode(self._token('bool', value))
 
-    def array(self, value: T.List[mparser.BaseNode]) -> mparser.ArrayNode:
+    def array(self, value: list[mparser.BaseNode]) -> mparser.ArrayNode:
         """Build an Array Node
 
         :param value: A list of nodes to insert into the array
@@ -72,7 +73,7 @@ class Builder:
         args.arguments = value
         return mparser.ArrayNode(self._symbol('['), args, self._symbol(']'))
 
-    def dict(self, value: T.Dict[mparser.BaseNode, mparser.BaseNode]) -> mparser.DictNode:
+    def dict(self, value: builtins.dict[mparser.BaseNode, mparser.BaseNode]) -> mparser.DictNode:
         """Build an Dictionary Node
 
         :param value: A dict of nodes to insert into the dictionary
@@ -92,8 +93,8 @@ class Builder:
         return mparser.IdNode(self._token('id', value))
 
     def method(self, name: str, id_: mparser.BaseNode,
-               pos: T.Optional[T.List[mparser.BaseNode]] = None,
-               kw: T.Optional[T.Mapping[str, mparser.BaseNode]] = None,
+               pos: list[mparser.BaseNode] | None = None,
+               kw: T.Mapping[str, mparser.BaseNode] | None = None,
                ) -> mparser.MethodNode:
         """Create a method call.
 
@@ -111,8 +112,8 @@ class Builder:
         return mparser.MethodNode(id_, self._symbol('.'), self.identifier(name), self._symbol('('), args, self._symbol(')'))
 
     def function(self, name: str,
-                 pos: T.Optional[T.List[mparser.BaseNode]] = None,
-                 kw: T.Optional[T.Mapping[str, mparser.BaseNode]] = None,
+                 pos: list[mparser.BaseNode] | None = None,
+                 kw: T.Mapping[str, mparser.BaseNode] | None = None,
                  ) -> mparser.FunctionNode:
         """Create a function call.
 
@@ -190,7 +191,7 @@ class Builder:
         """
         return mparser.NotNode(self._token('not', ''), self._symbol('not'), value)
 
-    def block(self, lines: T.List[mparser.BaseNode]) -> mparser.CodeBlockNode:
+    def block(self, lines: list[mparser.BaseNode]) -> mparser.CodeBlockNode:
         block = mparser.CodeBlockNode(self._token('node', ''))
         block.lines = lines
         return block
@@ -225,7 +226,7 @@ class Builder:
         clause.elseblock = mparser.EmptyNode(-1, -1, self.filename)
         return clause
 
-    def foreach(self, varnames: T.List[str], items: mparser.BaseNode, block: mparser.CodeBlockNode) -> mparser.ForeachClauseNode:
+    def foreach(self, varnames: list[str], items: mparser.BaseNode, block: mparser.CodeBlockNode) -> mparser.ForeachClauseNode:
         """Create a "foreach" loop
 
         :param varnames: Iterator variable names (one for list, two for dict).

@@ -3,9 +3,12 @@
 import unittest
 
 from mesonbuild.mesonlib import (
-    Range, Version, version_compare,
-    version_compare_many, version_compare_condition_with_min,
+    Range,
+    Version,
     search_version,
+    version_compare,
+    version_compare_condition_with_min,
+    version_compare_many,
 )
 
 

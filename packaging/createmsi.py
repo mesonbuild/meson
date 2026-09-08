@@ -7,13 +7,13 @@ This script is for generating MSI packages
 for Windows users.
 '''
 
-import subprocess
-import shutil
-import uuid
-import sys
 import os
-from glob import glob
+import shutil
+import subprocess
+import sys
+import uuid
 import xml.etree.ElementTree as ET
+from glob import glob
 
 sys.path.append(os.getcwd())
 from mesonbuild import coredata
@@ -100,7 +100,7 @@ class PackageGenerator:
                 'Title': 'Ninja',
                 'Description': 'Ninja build tool',
                 'Level': '1',
-            }
+            },
         }
         self.feature_components = {}
         for s_d in self.staging_dirs:
@@ -153,7 +153,7 @@ class PackageGenerator:
         '''
         self.root = ET.Element('Wix', {
             'xmlns': 'http://wixtoolset.org/schemas/v4/wxs',
-            'xmlns:ui': 'http://wixtoolset.org/schemas/v4/wxs/ui'
+            'xmlns:ui': 'http://wixtoolset.org/schemas/v4/wxs/ui',
         })
 
         package = ET.SubElement(self.root, 'Package', {
@@ -309,14 +309,14 @@ def is_nuget_source_active():
     '''
        Check if nuget source is active
     '''
-    result = subprocess.run(['dotnet', 'nuget', 'list', 'source', '--format', 'Short'], stdout=subprocess.PIPE)
+    result = subprocess.run(['dotnet', 'nuget', 'list', 'source', '--format', 'Short'], stdout=subprocess.PIPE, check=False)
     return f'E {NUGET_INDEX}' in result.stdout.decode('utf-8')
 
 def is_wixext_installed():
     '''
        Check if wix extension is installed
     '''
-    result = subprocess.run(['wix', 'extension', 'list'], stdout=subprocess.PIPE)
+    result = subprocess.run(['wix', 'extension', 'list'], stdout=subprocess.PIPE, check=False)
     return WIXEXT_TOOL in result.stdout.decode('utf-8')
 
 def install_wix():

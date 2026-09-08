@@ -4,17 +4,17 @@
 """Abstraction for Cython language compilers."""
 
 from __future__ import annotations
+
 import os
 import typing as T
 
-from .. import options
-from .. import mlog
-from ..mesonlib import version_compare, EnvironmentException
+from .. import mlog, options
+from ..mesonlib import EnvironmentException, version_compare
 from .compilers import CompileCheckMode, Compiler
 
 if T.TYPE_CHECKING:
-    from ..options import MutableKeyedOptionDictType
     from ..build import BuildTarget
+    from ..options import MutableKeyedOptionDictType
 
 
 class CythonCompiler(Compiler):
@@ -28,21 +28,21 @@ class CythonCompiler(Compiler):
         # We transpile into C, so we don't need any linker
         return False
 
-    def get_always_args(self) -> T.List[str]:
+    def get_always_args(self) -> list[str]:
         return ['--fast-fail']
 
-    def get_werror_args(self) -> T.List[str]:
+    def get_werror_args(self) -> list[str]:
         return ['-Werror']
 
-    def get_output_args(self, outputname: str) -> T.List[str]:
+    def get_output_args(self, outputname: str) -> list[str]:
         return ['-o', outputname]
 
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> list[str]:
         # Cython doesn't have optimization levels itself, the underlying
         # compiler might though
         return []
 
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> list[str]:
         if version_compare(self.version, '>=0.29.33'):
             return ['-M']
         return []
@@ -50,11 +50,11 @@ class CythonCompiler(Compiler):
     def get_depfile_suffix(self) -> str:
         return 'dep'
 
-    def get_pic_args(self) -> T.List[str]:
+    def get_pic_args(self) -> list[str]:
         # We can lie here, it's fine
         return []
 
-    def _sanity_check_filenames(self) -> T.Tuple[str, T.Optional[str], str]:
+    def _sanity_check_filenames(self) -> tuple[str, str | None, str]:
         sourcename, _, binname = super()._sanity_check_filenames()
 
         lang = self.get_compileropt_value('language', None)
@@ -67,8 +67,8 @@ class CythonCompiler(Compiler):
                 f'{os.path.splitext(binname)[0]}.{ext}')
 
     def _transpiled_sanity_check_compile_args(
-            self, compiler: Compiler, sourcename: str, binname: str
-            ) -> T.Tuple[T.List[str], T.List[str]]:
+            self, compiler: Compiler, sourcename: str, binname: str,
+            ) -> tuple[list[str], list[str]]:
         version = self.get_compileropt_value('version', None)
         assert isinstance(version, str)
 
@@ -94,8 +94,8 @@ class CythonCompiler(Compiler):
         # and linked by _transpiled_sanity_check_compile_args()
         return CompileCheckMode.COMPILE
 
-    def _sanity_check_compile_args(self, sourcename: str, binname: str
-                                   ) -> T.Tuple[T.List[str], T.List[str]]:
+    def _sanity_check_compile_args(self, sourcename: str, binname: str,
+                                   ) -> tuple[list[str], list[str]]:
         args, largs = super()._sanity_check_compile_args(sourcename, binname)
         args.extend(self.get_option_compile_args(None))
         return args, largs
@@ -103,21 +103,21 @@ class CythonCompiler(Compiler):
     def _sanity_check_source_code(self) -> str:
         return 'def func():\n    print("Hello world")'
 
-    def _run_sanity_check(self, cmdlist: T.List[str], work_dir: str) -> None:
+    def _run_sanity_check(self, cmdlist: list[str], work_dir: str) -> None:
         # XXX: this is a punt
         # This means we transpile the Cython .pyx file into C or C++, and we
         # link it, but we don't actually attempt to run it.
         return
 
-    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
-                                               build_dir: str) -> T.List[str]:
-        new: T.List[str] = []
+    def compute_parameters_with_absolute_paths(self, parameter_list: list[str],
+                                               build_dir: str) -> list[str]:
+        new: list[str] = []
         for i in parameter_list:
             new.append(i)
 
         return new
 
-    def get_options(self) -> 'MutableKeyedOptionDictType':
+    def get_options(self) -> MutableKeyedOptionDictType:
         opts = super().get_options()
 
         key = self.form_compileropt_key('version')
@@ -136,8 +136,8 @@ class CythonCompiler(Compiler):
 
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', subproject: T.Optional[str] = None) -> T.List[str]:
-        args: T.List[str] = []
+    def get_option_compile_args(self, target: BuildTarget, subproject: str | None = None) -> list[str]:
+        args: list[str] = []
         version = self.get_compileropt_value('version', target, subproject)
         assert isinstance(version, str)
         args.append(f'-{version}')

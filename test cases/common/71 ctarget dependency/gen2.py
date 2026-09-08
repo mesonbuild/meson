@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import sys, os
+import sys
+import os
 from glob import glob
 
 files = glob(os.path.join(sys.argv[1], '*.tmp'))

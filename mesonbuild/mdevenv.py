@@ -1,20 +1,28 @@
 from __future__ import annotations
 
-import os, subprocess
 import argparse
-import tempfile
-import shutil
-import sys
 import itertools
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
 import typing as T
-
 from pathlib import Path
-from . import build, minstall
-from .mesonlib import (EnvironmentVariables, MesonException, join_args, is_windows, setup_vsenv,
-                       get_wine_shortpath, MachineChoice, relpath, is_osx)
-from .options import OptionKey
-from . import mlog
 
+from . import build, minstall, mlog
+from .mesonlib import (
+    EnvironmentVariables,
+    MachineChoice,
+    MesonException,
+    get_wine_shortpath,
+    is_osx,
+    is_windows,
+    join_args,
+    relpath,
+    setup_vsenv,
+)
+from .options import OptionKey
 
 if T.TYPE_CHECKING:
     from .backend.backends import InstallData
@@ -29,7 +37,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--workdir', '-w', type=Path, default=None,
                         help='Directory to cd into before running (default: builddir, Since 1.0.0)')
     parser.add_argument('--dump', nargs='?', const=True,
-                        help='Only print required environment (Since 0.62.0) ' +
+                        help='Only print required environment (Since 0.62.0) '
                              'Takes an optional file path (Since 1.1.0)')
     parser.add_argument('--dump-format', default='export',
                         choices=['sh', 'export', 'vscode'],
@@ -37,7 +45,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('devcmd', nargs=argparse.REMAINDER, metavar='command',
                         help='Command to run in developer environment (default: interactive shell)')
 
-def get_windows_shell() -> T.Optional[str]:
+def get_windows_shell() -> str | None:
     mesonbuild = Path(__file__).parent
     script = mesonbuild / 'scripts' / 'cmd_or_ps.ps1'
     for shell in POWERSHELL_EXES:
@@ -49,7 +57,7 @@ def get_windows_shell() -> T.Optional[str]:
             pass
     return None
 
-def reduce_winepath(env: T.Dict[str, str]) -> None:
+def reduce_winepath(env: dict[str, str]) -> None:
     winepath = env.get('WINEPATH')
     if not winepath:
         return
@@ -59,7 +67,7 @@ def reduce_winepath(env: T.Dict[str, str]) -> None:
     env['WINEPATH'] = get_wine_shortpath([winecmd], winepath.split(';'))
     mlog.log('Meson detected wine and has set WINEPATH accordingly')
 
-def get_env(b: build.Build, dump_fmt: T.Optional[str]) -> T.Tuple[T.Dict[str, str], T.Set[str]]:
+def get_env(b: build.Build, dump_fmt: str | None) -> tuple[dict[str, str], set[str]]:
     extra_env = EnvironmentVariables()
     extra_env.set('MESON_DEVENV', ['1'])
     extra_env.set('MESON_PROJECT_NAME', [b.project_name])
@@ -91,7 +99,7 @@ def get_env(b: build.Build, dump_fmt: T.Optional[str]) -> T.Tuple[T.Dict[str, st
 
     return env, varnames
 
-def bash_completion_files(b: build.Build, install_data: 'InstallData') -> T.List[str]:
+def bash_completion_files(b: build.Build, install_data: InstallData) -> list[str]:
     from .dependencies.pkgconfig import PkgConfigDependency
     result = []
     dep = PkgConfigDependency('bash-completion', b.environment,
@@ -122,7 +130,7 @@ def add_gdb_auto_load(autoload_path: Path, gdb_helper: str, fname: Path) -> None
     except (FileExistsError, shutil.SameFileError):
         pass
 
-def write_gdb_script(privatedir: Path, install_data: 'InstallData', workdir: Path) -> None:
+def write_gdb_script(privatedir: Path, install_data: InstallData, workdir: Path) -> None:
     if not shutil.which('gdb'):
         return
     bdir = privatedir.parent
@@ -166,12 +174,12 @@ def write_gdb_script(privatedir: Path, install_data: 'InstallData', workdir: Pat
 def macos_sip_enabled() -> bool:
     if not is_osx():
         return False
-    ret = subprocess.run(["csrutil", "status"], text=True, capture_output=True, encoding='utf-8')
+    ret = subprocess.run(["csrutil", "status"], text=True, capture_output=True, encoding='utf-8', check=False)
     if not ret.stdout:
         return True
     return 'enabled' in ret.stdout
 
-def dump(devenv: T.Dict[str, str], varnames: T.Set[str], dump_format: T.Optional[str], output: T.Optional[T.TextIO] = None) -> None:
+def dump(devenv: dict[str, str], varnames: set[str], dump_format: str | None, output: T.TextIO | None = None) -> None:
     for name in varnames:
         print(f'{name}="{devenv[name]}"', file=output)
         if dump_format == 'export':
@@ -265,7 +273,7 @@ def run(options: argparse.Namespace) -> int:
         if is_windows():
             # execvpe doesn't return exit code on Windows
             # see https://github.com/python/cpython/issues/63323
-            result = subprocess.run(args, env=devenv, cwd=workdir)
+            result = subprocess.run(args, env=devenv, cwd=workdir, check=False)
             sys.exit(result.returncode)
         else:
             os.chdir(workdir)

@@ -4,30 +4,24 @@
 
 from __future__ import annotations
 
-import itertools
+import collections
 import hashlib
-import shutil
+import itertools
 import os
+import shutil
 import textwrap
 import typing as T
-import collections
 
-from . import build
-from . import cmdline
-from . import coredata
-from . import options
-from . import environment
-from . import mesonlib
-from . import mintro
-from . import mlog
+from . import build, cmdline, coredata, environment, mesonlib, mintro, mlog, options
 from .ast import AstIDGenerator, IntrospectionInterpreter
 from .mesonlib import MachineChoice, unwrap
-from .options import OptionKey
 from .optinterpreter import OptionInterpreter
+from .options import OptionKey
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Protocol
     import argparse
+
+    from typing_extensions import Protocol
 
     class CMDOptions(cmdline.SharedCMDOptions, Protocol):
 
@@ -36,11 +30,11 @@ if T.TYPE_CHECKING:
         pager: bool
 
     # cannot be TV_Loggable, because non-ansidecorators do direct string concat
-    LOGLINE = T.Union[str, mlog.AnsiDecorator]
+    LOGLINE: T.TypeAlias = str | mlog.AnsiDecorator
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
-def add_arguments(parser: 'argparse.ArgumentParser') -> None:
+def add_arguments(parser: argparse.ArgumentParser) -> None:
     cmdline.register_builtin_arguments(parser)
     parser.add_argument('builddir', nargs='?', default='.')
     parser.add_argument('--clearcache', action='store_true', default=False,
@@ -53,13 +47,12 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
 def stringify(val: T.Any) -> str:
     if isinstance(val, bool):
         return str(val).lower()
-    elif isinstance(val, list):
+    if isinstance(val, list):
         s = ', '.join(stringify(i) for i in val)
         return f'[{s}]'
-    elif val is None:
+    if val is None:
         return ''
-    else:
-        return str(val)
+    return str(val)
 
 
 class ConfException(mesonlib.MesonException):
@@ -73,12 +66,12 @@ class Conf:
             self.build_dir = os.path.dirname(self.build_dir)
         self.build = None
         self.max_choices_line_length = 60
-        self.pending_section: T.Optional[str] = None
-        self.name_col: T.List[LOGLINE] = []
-        self.value_col: T.List[LOGLINE] = []
-        self.choices_col: T.List[LOGLINE] = []
-        self.descr_col: T.List[LOGLINE] = []
-        self.all_subprojects: T.Set[str] = set()
+        self.pending_section: str | None = None
+        self.name_col: list[LOGLINE] = []
+        self.value_col: list[LOGLINE] = []
+        self.choices_col: list[LOGLINE] = []
+        self.descr_col: list[LOGLINE] = []
+        self.all_subprojects: set[str] = set()
 
         if os.path.isdir(os.path.join(self.build_dir, 'meson-private')):
             self.build = build.load(self.build_dir)
@@ -169,9 +162,9 @@ class Conf:
                 # We cast this because https://github.com/python/mypy/issues/1965
                 # mlog.TV_LoggableList does not provide __len__ for stringprotocol
                 if isinstance(text, mlog.AnsiDecorator):
-                    wrapped = T.cast('T.List[LOGLINE]', [mlog.AnsiDecorator(i, text.code) for i in wrapped_])
+                    wrapped = T.cast('list[LOGLINE]', [mlog.AnsiDecorator(i, text.code) for i in wrapped_])
                 else:
-                    wrapped = T.cast('T.List[LOGLINE]', wrapped_)
+                    wrapped = T.cast('list[LOGLINE]', wrapped_)
                 # Add padding here to get even rows, as `textwrap.wrap()` will
                 # only shorten, not lengthen each item
                 return [str(i) + ' ' * (width - len(i)) for i in wrapped]
@@ -188,9 +181,9 @@ class Conf:
                 items = [l[i] if l[i] else ' ' * four_column[i] for i in range(4)]
                 mlog.log(*items)
 
-    def split_options_per_subproject(self, opts: T.Union[options.MutableKeyedOptionDictType, options.OptionStore]
-                                     ) -> T.Dict[str | None, options.MutableKeyedOptionDictType]:
-        result: T.Dict[str | None, options.MutableKeyedOptionDictType] = {}
+    def split_options_per_subproject(self, opts: options.MutableKeyedOptionDictType | options.OptionStore,
+                                     ) -> dict[str | None, options.MutableKeyedOptionDictType]:
+        result: dict[str | None, options.MutableKeyedOptionDictType] = {}
         for k, o in opts.items():
             if k.subproject is not None:
                 self.all_subprojects.add(k.subproject)
@@ -236,7 +229,7 @@ class Conf:
     def add_section(self, section: str) -> None:
         self.pending_section = section
 
-    def print_options(self, title: str, opts: T.Union[options.MutableKeyedOptionDictType, options.OptionStore]) -> None:
+    def print_options(self, title: str, opts: options.MutableKeyedOptionDictType | options.OptionStore) -> None:
         if not opts:
             return
         if title:
@@ -272,7 +265,7 @@ class Conf:
         dir_options: options.MutableKeyedOptionDictType = {}
         test_options: options.MutableKeyedOptionDictType = {}
         core_options: options.MutableKeyedOptionDictType = {}
-        module_options: T.Dict[str, options.MutableKeyedOptionDictType] = collections.defaultdict(dict)
+        module_options: dict[str, options.MutableKeyedOptionDictType] = collections.defaultdict(dict)
         for k, v in self.coredata.optstore.options.items():
             if k in dir_option_names:
                 dir_options[k] = v

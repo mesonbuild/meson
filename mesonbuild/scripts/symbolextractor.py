@@ -10,12 +10,13 @@
 # http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aac75a48ff3b2ad67c
 from __future__ import annotations
 
-import typing as T
-import os, sys
-from .. import mesonlib
-from .. import mlog
-from ..mesonlib import Popen_safe
 import argparse
+import os
+import sys
+import typing as T
+
+from .. import mesonlib, mlog
+from ..mesonlib import Popen_safe
 
 if T.TYPE_CHECKING:
     class Arguments(T.Protocol):
@@ -45,7 +46,7 @@ def write_if_changed(text: str, outfilename: str) -> None:
     with open(outfilename, 'w', encoding='utf-8') as f:
         f.write(text)
 
-def print_tool_warning(tools: T.List[str], msg: str, stderr: T.Optional[str] = None) -> None:
+def print_tool_warning(tools: list[str], msg: str, stderr: str | None = None) -> None:
     if os.path.exists(TOOL_WARNING_FILE):
         return
     m = f'{tools!r} {msg}. {RELINKING_WARNING}'
@@ -56,14 +57,14 @@ def print_tool_warning(tools: T.List[str], msg: str, stderr: T.Optional[str] = N
     with open(TOOL_WARNING_FILE, 'w', encoding='utf-8'):
         pass
 
-def get_tool(name: str) -> T.List[str]:
+def get_tool(name: str) -> list[str]:
     evar = name.upper()
     if evar in os.environ:
         import shlex
         return shlex.split(os.environ[evar])
     return [name]
 
-def call_tool(name: str, args: T.List[str], **kwargs: T.Any) -> str | None:
+def call_tool(name: str, args: list[str], **kwargs: T.Any) -> str | None:
     tool = get_tool(name)
     try:
         p, output, e = Popen_safe(tool + args, **kwargs)
@@ -78,13 +79,13 @@ def call_tool(name: str, args: T.List[str], **kwargs: T.Any) -> str | None:
         return None
     return output
 
-def call_tool_nowarn(tool: T.List[str], **kwargs: T.Any) -> T.Tuple[str | None, str | None]:
+def call_tool_nowarn(tool: list[str], **kwargs: T.Any) -> tuple[str | None, str | None]:
     try:
         p, output, e = Popen_safe(tool, **kwargs)
     except FileNotFoundError:
-        return None, '{!r} not found\n'.format(tool[0])
+        return None, f'{tool[0]!r} not found\n'
     except PermissionError:
-        return None, '{!r} not usable\n'.format(tool[0])
+        return None, f'{tool[0]!r} not usable\n'
     if p.returncode != 0:
         return None, e
     return output, None
@@ -201,7 +202,7 @@ def cygwin_syms(impfilename: str, outfilename: str) -> None:
         result.append(line.split(maxsplit=1)[0])
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
-def _get_implib_dllname(impfilename: str) -> T.Tuple[T.List[str], str | None]:
+def _get_implib_dllname(impfilename: str) -> tuple[list[str], str | None]:
     all_stderr = ''
     # First try lib.exe, which is provided by MSVC. Then llvm-lib.exe, by LLVM
     # for clang-cl.
@@ -227,7 +228,7 @@ def _get_implib_dllname(impfilename: str) -> T.Tuple[T.List[str], str | None]:
         all_stderr += e
     return ([], all_stderr)
 
-def _get_implib_exports(impfilename: str) -> T.Tuple[T.List[str], str | None]:
+def _get_implib_exports(impfilename: str) -> tuple[list[str], str | None]:
     all_stderr = ''
     # Force dumpbin.exe to use en-US so we can parse its output
     env = os.environ.copy()
@@ -343,8 +344,8 @@ def gen_symbols(options: Arguments) -> None:
                 pass
         dummy_syms(options.outfilename)
 
-def run(args: T.List[str]) -> int:
-    global TOOL_WARNING_FILE  # pylint: disable=global-statement
+def run(args: list[str]) -> int:
+    global TOOL_WARNING_FILE
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--cross-host', default=None, dest='cross_host',

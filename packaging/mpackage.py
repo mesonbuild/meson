@@ -4,10 +4,13 @@
 
 # This script only works on Jussi's private release machine.
 
-import os, sys, subprocess, re, shutil
+import os
+import pathlib
+import shutil
+import subprocess
+import sys
 import tarfile
 from glob import glob
-import pathlib
 
 assert(os.getcwd() == '/home/jpakkane')
 

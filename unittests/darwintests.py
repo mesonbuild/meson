@@ -1,26 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
-import subprocess
-import re
+from __future__ import annotations
+
 import os
 import platform
+import re
+import subprocess
 import unittest
 
-from mesonbuild.mesonlib import (
-    MachineChoice, is_osx, version_compare
-)
-from mesonbuild.compilers import (
-    detect_c_compiler
-)
-
-
-from run_tests import (
-    get_fake_env
-)
+from mesonbuild.compilers import detect_c_compiler
+from mesonbuild.mesonlib import MachineChoice, is_osx, version_compare
+from run_tests import get_fake_env
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import *
+from .helpers import skip_if_not_language, skipIfNoPkgconfig
+
 
 @unittest.skipUnless(is_osx(), "requires Darwin")
 class DarwinTests(BasePlatformTests):
@@ -102,17 +97,15 @@ class DarwinTests(BasePlatformTests):
         self.assertIsNotNone(m, msg=out)
         return m.groups()
 
-    def _get_darwin_rpaths(self, fname: str) -> T.List[str]:
+    def _get_darwin_rpaths(self, fname: str) -> list[str]:
         out = subprocess.check_output(['otool', '-l', fname], universal_newlines=True)
         pattern = re.compile(r'path (.*) \(offset \d+\)')
-        rpaths = pattern.findall(out)
-        return rpaths
+        return pattern.findall(out)
 
-    def _get_darwin_rpath_libraries(self, fname: str) -> T.List[str]:
+    def _get_darwin_rpath_libraries(self, fname: str) -> list[str]:
         out = subprocess.check_output(['otool', '-L', fname], universal_newlines=True)
         pattern = re.compile(r'@rpath/\S+')
-        libs = pattern.findall(out)
-        return libs
+        return pattern.findall(out)
 
     @skipIfNoPkgconfig
     def test_library_versioning(self):

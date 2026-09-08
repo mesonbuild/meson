@@ -5,20 +5,29 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
-from .. import environment, mparser, mesonlib
+import copy
+import hashlib
+import os
+import pathlib
+import re
+import textwrap
+import typing as T
 
+from .. import environment, mesonlib, mlog, mparser
+from . import operator
+from ._unholder import _unholder
 from .baseobjects import (
+    ContextManagerObject,
+    DefaultObject,
+    HoldableTypes,
     InterpreterObject,
+    IterableObject,
     MesonInterpreterObject,
     MutableInterpreterObject,
     ObjectHolder,
-    IterableObject,
-    ContextManagerObject,
-    DefaultObject,
-
-    HoldableTypes,
 )
-
+from .decorators import FeatureNew
+from .disabler import Disabler, is_disabled
 from .exceptions import (
     BreakRequest,
     ContinueRequest,
@@ -27,41 +36,29 @@ from .exceptions import (
     InvalidCode,
     SubdirDoneRequest,
 )
-
-from .. import mlog
-from . import operator
-from .decorators import FeatureNew
-from .disabler import Disabler, is_disabled
-from .helpers import default_resolve_key, flatten, resolve_second_level_holders, stringifyUserArguments
+from .helpers import (
+    default_resolve_key,
+    flatten,
+    resolve_second_level_holders,
+    stringifyUserArguments,
+)
 from .operator import MesonOperator
-from ._unholder import _unholder
-
-import os, copy, hashlib, re, pathlib
-import typing as T
-import textwrap
 
 if T.TYPE_CHECKING:
-    from .baseobjects import InterpreterObjectTypeVar, TYPE_kwargs, TYPE_var
     from ..ast import AstVisitor
     from ..interpreter import Interpreter
     from ..mesonlib import SubProject
+    from .baseobjects import InterpreterObjectTypeVar, TYPE_kwargs, TYPE_var
 
-    HolderMapType = T.Dict[
-        T.Union[
-            T.Type[mesonlib.HoldableObject],
-            T.Type[int],
-            T.Type[bool],
-            T.Type[str],
-            T.Type[list],
-            T.Type[dict],
-        ],
+    HolderMapType = dict[
+        type[mesonlib.HoldableObject] | type[int] | type[bool] | type[str] | type[list] | type[dict],
         # For some reason, this has to be a callable and can't just be ObjectHolder[InterpreterObjectTypeVar]
-        T.Callable[[InterpreterObjectTypeVar, 'Interpreter'], ObjectHolder[InterpreterObjectTypeVar]]
+        T.Callable[[InterpreterObjectTypeVar, 'Interpreter'], ObjectHolder[InterpreterObjectTypeVar]],
     ]
 
-    FunctionType = T.Dict[
+    FunctionType = dict[
         str,
-        T.Callable[[mparser.BaseNode, T.List[TYPE_var], T.Dict[str, TYPE_var]], TYPE_var]
+        T.Callable[[mparser.BaseNode, list[TYPE_var], dict[str, TYPE_var]], TYPE_var],
     ]
 
 
@@ -75,19 +72,19 @@ class InterpreterBase:
     def __init__(self, source_root: str, subdir: str, subproject: SubProject, subproject_dir: str, env: environment.Environment):
         self.source_root = source_root
         self.funcs: FunctionType = {}
-        self.builtin: T.Dict[str, InterpreterObject] = {}
+        self.builtin: dict[str, InterpreterObject] = {}
         # Holder maps store a mapping from an HoldableObject to a class ObjectHolder
         self.holder_map: HolderMapType = {}
         self.bound_holder_map: HolderMapType = {}
         self.build_def_files: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
-        self.processed_buildfiles: T.Set[str] = set()
+        self.processed_buildfiles: set[str] = set()
         self.subdir = subdir
         self.root_subdir = subdir
         self.subproject = subproject
         self.subproject_dir = subproject_dir
         self.environment = env
         self.coredata = env.get_coredata()
-        self.variables: T.Dict[str, InterpreterObject] = {}
+        self.variables: dict[str, InterpreterObject] = {}
         self.argument_depth = 0
         # Current node set during a function call. This can be used as location
         # when printing a warning message during a method call.
@@ -96,7 +93,7 @@ class InterpreterBase:
         # meson.version().compare_version(version_string)
         # If it was part of a if-clause, it is used to temporally override the
         # current meson version target within that if-block.
-        self.tmp_meson_version: T.Optional[mesonlib.Range[mesonlib.Version]] = None
+        self.tmp_meson_version: mesonlib.Range[mesonlib.Version] | None = None
 
     def handle_meson_version_from_ast(self) -> None:
         # do nothing in an AST interpreter
@@ -170,8 +167,7 @@ class InterpreterBase:
             error = 'first statement must be a call to project()'
             if found != p:
                 raise InvalidCode(f'Not the project root: {error}\n\nDid you mean to run meson from the directory: "{found}"?')
-            else:
-                raise InvalidCode(f'Invalid source tree: {error}')
+            raise InvalidCode(f'Invalid source tree: {error}')
 
     def run(self) -> None:
         # Evaluate everything after the first line, which is project() because
@@ -181,7 +177,7 @@ class InterpreterBase:
         except SubdirDoneRequest:
             pass
 
-    def evaluate_codeblock(self, node: mparser.CodeBlockNode, start: int = 0, end: T.Optional[int] = None) -> None:
+    def evaluate_codeblock(self, node: mparser.CodeBlockNode, start: int = 0, end: int | None = None) -> None:
         if node is None:
             return
         if not isinstance(node, mparser.CodeBlockNode):
@@ -205,11 +201,11 @@ class InterpreterBase:
                 raise e
             i += 1 # In THE FUTURE jump over blocks and stuff.
 
-    def evaluate_statement(self, cur: mparser.BaseNode) -> T.Optional[InterpreterObject]:
+    def evaluate_statement(self, cur: mparser.BaseNode) -> InterpreterObject | None:
         self.current_node = cur
         if isinstance(cur, mparser.FunctionNode):
             return self.function_call(cur)
-        elif isinstance(cur, mparser.PlusAssignmentNode):
+        if isinstance(cur, mparser.PlusAssignmentNode):
             self.evaluate_plusassign(cur)
         elif isinstance(cur, mparser.AssignmentNode):
             self.assignment(cur)
@@ -219,10 +215,8 @@ class InterpreterBase:
             if cur.is_fstring:
                 if cur.is_multiline:
                     return self.evaluate_multiline_fstring(cur)
-                else:
-                    return self.evaluate_fstring(cur)
-            else:
-                return self._holderify(cur.value)
+                return self.evaluate_fstring(cur)
+            return self._holderify(cur.value)
         elif isinstance(cur, mparser.BooleanNode):
             return self._holderify(cur.value)
         elif isinstance(cur, mparser.IfClauseNode):
@@ -295,7 +289,7 @@ class InterpreterBase:
             return v
         return self._holderify(v.operator_call(MesonOperator.NOT, None))
 
-    def evaluate_if(self, node: mparser.IfClauseNode) -> T.Optional[Disabler]:
+    def evaluate_if(self, node: mparser.IfClauseNode) -> Disabler | None:
         for i in node.ifs:
             # Reset self.tmp_meson_version to know if it gets set during this
             # statement evaluation.
@@ -327,7 +321,7 @@ class InterpreterBase:
             self.evaluate_codeblock(node.elseblock.block)
         return None
 
-    def evaluate_testcase(self, node: mparser.TestCaseClauseNode) -> T.Optional[Disabler]:
+    def evaluate_testcase(self, node: mparser.TestCaseClauseNode) -> Disabler | None:
         result = self.evaluate_statement(node.condition)
         if isinstance(result, Disabler):
             return result
@@ -413,7 +407,7 @@ class InterpreterBase:
         res = l.operator_call(operator.MAPPING[cur.operation], _unholder(r))
         return self._holderify(res)
 
-    def evaluate_ternary(self, node: mparser.TernaryNode) -> T.Optional[InterpreterObject]:
+    def evaluate_ternary(self, node: mparser.TernaryNode) -> InterpreterObject | None:
         result = self.evaluate_statement(node.condition)
         if result is None:
             raise mesonlib.MesonException('Cannot use a void statement as condition for ternary operator.')
@@ -423,8 +417,7 @@ class InterpreterBase:
         result_bool = result.operator_call(MesonOperator.BOOL, None)
         if result_bool:
             return self.evaluate_statement(node.trueblock)
-        else:
-            return self.evaluate_statement(node.falseblock)
+        return self.evaluate_statement(node.falseblock)
 
     @FeatureNew('multiline format strings', '0.63.0')
     def evaluate_multiline_fstring(self, node: mparser.StringNode) -> InterpreterObject:
@@ -508,7 +501,7 @@ class InterpreterBase:
         iobject.current_node = node
         return self._holderify(iobject.operator_call(MesonOperator.INDEX, index))
 
-    def function_call(self, node: mparser.FunctionNode) -> T.Optional[InterpreterObject]:
+    def function_call(self, node: mparser.FunctionNode) -> InterpreterObject | None:
         func_name = node.func_name.value
         (h_posargs, h_kwargs) = self.reduce_arguments(node.args)
         (posargs, kwargs) = self._unholder_args(h_posargs, h_kwargs)
@@ -524,17 +517,16 @@ class InterpreterBase:
             self.current_node = node
             res = func(node, func_args, kwargs)
             return self._holderify(res) if res is not None else None
-        else:
-            from difflib import get_close_matches
-            close_matches = get_close_matches(func_name, self.funcs.keys())
-            if close_matches:
-                raise InvalidCode(f'Unknown function "{func_name}". Did you mean "{close_matches[0]}"?')
-            self.unknown_function_called(func_name)
-            return None
+        from difflib import get_close_matches
+        close_matches = get_close_matches(func_name, self.funcs.keys())
+        if close_matches:
+            raise InvalidCode(f'Unknown function "{func_name}". Did you mean "{close_matches[0]}"?')
+        self.unknown_function_called(func_name)
+        return None
 
-    def method_call(self, node: mparser.MethodNode) -> T.Optional[InterpreterObject]:
+    def method_call(self, node: mparser.MethodNode) -> InterpreterObject | None:
         invocable = node.source_object
-        obj: T.Optional[InterpreterObject]
+        obj: InterpreterObject | None
         if isinstance(invocable, mparser.IdNode):
             object_display_name = f'variable "{invocable.value}"'
             obj = self.get_variable(invocable.value)
@@ -552,7 +544,7 @@ class InterpreterBase:
         res = obj.method_call(method_name, args, kwargs)
         return self._holderify(res) if res is not None else None
 
-    def _holderify(self, res: T.Union[TYPE_var, InterpreterObject]) -> InterpreterObject:
+    def _holderify(self, res: TYPE_var | InterpreterObject) -> InterpreterObject:
         if isinstance(res, HoldableTypes):
             # Always check for an exact match first.
             cls = self.holder_map.get(type(res), None)
@@ -565,15 +557,15 @@ class InterpreterBase:
                 if isinstance(res, typ):
                     return cls(res, T.cast('Interpreter', self))
             raise mesonlib.MesonBugException(f'Object {res} of type {type(res).__name__} is neither in self.holder_map nor self.bound_holder_map.')
-        elif isinstance(res, ObjectHolder):
+        if isinstance(res, ObjectHolder):
             raise mesonlib.MesonBugException(f'Returned object {res} of type {type(res).__name__} is an object holder.')
-        elif isinstance(res, MesonInterpreterObject):
+        if isinstance(res, MesonInterpreterObject):
             return res
         raise mesonlib.MesonBugException(f'Unknown returned object {res} of type {type(res).__name__} in the parameters.')
 
     def _unholder_args(self,
-                       args: T.List[InterpreterObject],
-                       kwargs: T.Dict[str, InterpreterObject]) -> T.Tuple[T.List[TYPE_var], TYPE_kwargs]:
+                       args: list[InterpreterObject],
+                       kwargs: dict[str, InterpreterObject]) -> tuple[list[TYPE_var], TYPE_kwargs]:
         return [_unholder(x) for x in args], {k: _unholder(v) for k, v in kwargs.items()}
 
     def unknown_function_called(self, func_name: str) -> None:
@@ -583,10 +575,10 @@ class InterpreterBase:
                 self,
                 args: mparser.ArgumentNode,
                 key_resolver: T.Callable[[mparser.BaseNode], str] = default_resolve_key,
-                duplicate_key_error: T.Optional[str] = None,
-            ) -> T.Tuple[
-                T.List[InterpreterObject],
-                T.Dict[str, InterpreterObject]
+                duplicate_key_error: str | None = None,
+            ) -> tuple[
+                list[InterpreterObject],
+                dict[str, InterpreterObject],
             ]:
         if args.incorrect_order():
             raise InvalidArguments('All keyword arguments must be after positional arguments.')
@@ -594,7 +586,7 @@ class InterpreterBase:
         reduced_pos = [self.evaluate_statement(arg) for arg in args.arguments]
         if any(x is None for x in reduced_pos):
             raise InvalidArguments('At least one value in the arguments is void.')
-        reduced_kw: T.Dict[str, InterpreterObject] = {}
+        reduced_kw: dict[str, InterpreterObject] = {}
         for key, val in args.kwargs.items():
             reduced_key = key_resolver(key)
             reduced_val = self.evaluate_statement(val)
@@ -608,7 +600,7 @@ class InterpreterBase:
         final_kw = self.expand_default_kwargs(reduced_kw)
         return reduced_pos, final_kw
 
-    def expand_default_kwargs(self, kwargs: T.Dict[str, T.Optional[InterpreterObject]]) -> T.Dict[str, T.Optional[InterpreterObject]]:
+    def expand_default_kwargs(self, kwargs: dict[str, InterpreterObject | None]) -> dict[str, InterpreterObject | None]:
         if 'kwargs' not in kwargs:
             return kwargs
 
@@ -642,7 +634,7 @@ class InterpreterBase:
             value = copy.deepcopy(value)
         self.set_variable(var_name, value)
 
-    def set_variable(self, varname: str, variable: T.Union[TYPE_var, InterpreterObject], *, holderify: bool = False) -> None:
+    def set_variable(self, varname: str, variable: TYPE_var | InterpreterObject, *, holderify: bool = False) -> None:
         if variable is None:
             raise InvalidCode('Can not assign void to variable.')
         if holderify:
@@ -700,7 +692,7 @@ class InterpreterBase:
         else:
             self.coredata.options_files[self.subproject] = None
 
-    def _resolve_subdir(self, rootdir: str, new_subdir: str) -> T.Tuple[str, bool]:
+    def _resolve_subdir(self, rootdir: str, new_subdir: str) -> tuple[str, bool]:
         subdir = os.path.join(self.subdir, new_subdir)
         absdir = os.path.join(rootdir, subdir)
         symlinkless_dir = os.path.realpath(absdir)
@@ -710,7 +702,7 @@ class InterpreterBase:
         self.processed_buildfiles.add(build_file)
         return subdir, True
 
-    def _evaluate_subdir(self, rootdir: str, subdir: str, visitors: T.Optional[T.Iterable[AstVisitor]] = None) -> bool:
+    def _evaluate_subdir(self, rootdir: str, subdir: str, visitors: T.Iterable[AstVisitor] | None = None) -> bool:
         buildfilename = os.path.join(subdir, environment.build_filename)
         self.build_def_files.add(buildfilename)
 
@@ -728,7 +720,7 @@ class InterpreterBase:
         return True
 
     def _evaluate_codeblock(self, codeblock: mparser.CodeBlockNode, subdir: str,
-                            visitors: T.Optional[T.Iterable[AstVisitor]] = None) -> None:
+                            visitors: T.Iterable[AstVisitor] | None = None) -> None:
         try:
             prev_subdir = self.subdir
             self.subdir = subdir

@@ -1,24 +1,32 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, InitVar
-import sys, os, subprocess
 import argparse
 import asyncio
-import fnmatch
-import threading
 import copy
+import fnmatch
+import os
 import shutil
-from concurrent.futures.thread import ThreadPoolExecutor
-from pathlib import Path
-import typing as T
+import subprocess
+import sys
 import tarfile
+import threading
+import typing as T
 import zipfile
+from concurrent.futures.thread import ThreadPoolExecutor
+from dataclasses import InitVar, dataclass
+from pathlib import Path
 
 from . import mlog
 from .ast import IntrospectionInterpreter
-from .mesonlib import quiet_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
-from .wrap.wrap import (Resolver, WrapException, WrapType,
-                        parse_patch_url, update_wrap_file, get_releases)
+from .mesonlib import GitException, MesonException, Popen_safe, quiet_git, windows_proof_rmtree
+from .wrap.wrap import (
+    Resolver,
+    WrapException,
+    WrapType,
+    get_releases,
+    parse_patch_url,
+    update_wrap_file,
+)
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
@@ -30,7 +38,7 @@ if T.TYPE_CHECKING:
     class Arguments(Protocol):
         sourcedir: str
         num_processes: int
-        subprojects: T.List[str]
+        subprojects: list[str]
         types: str
         subprojects_func: T.Callable[[], bool]
         allow_insecure: bool
@@ -41,7 +49,7 @@ if T.TYPE_CHECKING:
 
     class UpdateWrapDBArguments(Arguments):
         force: bool
-        releases: T.Dict[str, T.Any]
+        releases: dict[str, T.Any]
 
     class CheckoutArguments(Arguments):
         b: bool
@@ -49,7 +57,7 @@ if T.TYPE_CHECKING:
 
     class ForeachArguments(Arguments):
         command: str
-        args: T.List[str]
+        args: list[str]
 
     class PurgeArguments(Arguments):
         confirm: bool
@@ -64,7 +72,7 @@ ALL_TYPES_STRING = ', '.join(WrapType)
 if sys.version_info >= (3, 14):
     tarfile.TarFile.extraction_filter = staticmethod(tarfile.fully_trusted_filter)
 
-def read_archive_files(path: Path, base_path: Path) -> T.Set[Path]:
+def read_archive_files(path: Path, base_path: Path) -> set[Path]:
     if path.suffix == '.zip':
         with zipfile.ZipFile(path, 'r') as zip_archive:
             archive_files = {base_path / i.filename for i in zip_archive.infolist()}
@@ -78,7 +86,7 @@ class Logger:
         self.lock = threading.Lock()
         self.total_tasks = total_tasks
         self.completed_tasks = 0
-        self.running_tasks: T.Set[str] = set()
+        self.running_tasks: set[str] = set()
         self.should_erase_line = ''
 
     def flush(self) -> None:
@@ -101,7 +109,7 @@ class Logger:
             self.running_tasks.add(wrap_name)
             self.print_progress()
 
-    def done(self, wrap_name: str, log_queue: T.List[T.Tuple[mlog.TV_LoggableList, T.Any]]) -> None:
+    def done(self, wrap_name: str, log_queue: list[tuple[mlog.TV_LoggableList, T.Any]]) -> None:
         with self.lock:
             self.flush()
             for args, kwargs in log_queue:
@@ -117,7 +125,7 @@ class Runner:
     r: InitVar[Resolver]
     wrap: PackageDefinition
     repo_dir: str
-    options: 'Arguments'
+    options: Arguments
 
     def __post_init__(self, r: Resolver) -> None:
         # FIXME: Do a copy because Resolver.resolve() is stateful method that
@@ -126,7 +134,7 @@ class Runner:
         self.wrap_resolver.dirname = os.path.join(r.subdir_root, self.wrap.directory)
         self.wrap_resolver.wrap = self.wrap
         self.run_method: T.Callable[[], bool] = self.options.subprojects_func.__get__(self)
-        self.log_queue: T.List[T.Tuple[mlog.TV_LoggableList, T.Any]] = []
+        self.log_queue: list[tuple[mlog.TV_LoggableList, T.Any]] = []
 
     def log(self, *args: mlog.TV_Loggable, **kwargs: T.Any) -> None:
         self.log_queue.append((list(args), kwargs))
@@ -142,7 +150,7 @@ class Runner:
         return result
 
     @staticmethod
-    def pre_update_wrapdb(options: 'UpdateWrapDBArguments') -> None:
+    def pre_update_wrapdb(options: UpdateWrapDBArguments) -> None:
         options.releases = get_releases(options.allow_insecure)
 
     def update_wrapdb(self) -> bool:
@@ -214,10 +222,10 @@ class Runner:
             self.log('     Pass --reset option to delete directory and redownload.')
             return False
 
-    def git_output(self, cmd: T.List[str]) -> str:
+    def git_output(self, cmd: list[str]) -> str:
         return quiet_git(cmd, self.repo_dir, check=True)[1]
 
-    def git_verbose(self, cmd: T.List[str]) -> None:
+    def git_verbose(self, cmd: list[str]) -> None:
         self.log(self.git_output(cmd))
 
     def git_stash(self) -> None:
@@ -587,7 +595,7 @@ class Runner:
         return True
 
     @staticmethod
-    def post_purge(options: 'PurgeArguments') -> None:
+    def post_purge(options: PurgeArguments) -> None:
         if not options.confirm:
             mlog.log('')
             mlog.log('Nothing has been deleted, run again with --confirm to apply.')
@@ -653,7 +661,7 @@ def add_subprojects_argument(p: argparse.ArgumentParser, name: str = None) -> No
         p.add_argument('subprojects', metavar='pattern', nargs='*', default=[],
                        help=helpstr)
 
-def add_wrap_update_parser(subparsers: 'SubParsers') -> argparse.ArgumentParser:
+def add_wrap_update_parser(subparsers: SubParsers) -> argparse.ArgumentParser:
     p = subparsers.add_parser('update', help='Update wrap files from WrapDB (Since 0.63.0)')
     p.add_argument('--force', default=False, action='store_true',
                    help='Update wraps that does not seems to come from WrapDB')
@@ -671,7 +679,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 
     p = subparsers.add_parser('update', help='Update all subprojects from wrap files')
     p.add_argument('--rebase', default=True, action='store_true',
-                   help='Rebase your branch on top of wrap\'s revision. ' +
+                   help='Rebase your branch on top of wrap\'s revision. '
                         'Deprecated, it is now the default behaviour. (git only)')
     p.add_argument('--reset', default=False, action='store_true',
                    help='Checkout wrap\'s revision and hard reset to that commit. (git only)')
@@ -688,8 +696,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     add_subprojects_argument(p)
     p.set_defaults(subprojects_func=Runner.checkout)
 
-    p = subparsers.add_parser('download', help='Ensure subprojects are fetched, even if not in use. ' +
-                                               'Already downloaded subprojects are not modified. ' +
+    p = subparsers.add_parser('download', help='Ensure subprojects are fetched, even if not in use. '
+                                               'Already downloaded subprojects are not modified. '
                                                'This can be used to pre-fetch all subprojects and avoid downloads during configure.')
     add_common_arguments(p)
     add_subprojects_argument(p)
@@ -719,7 +727,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     p.add_argument('--save', action='store_true', default=False, help='Save packagefiles from the subproject')
     p.set_defaults(subprojects_func=Runner.packagefiles)
 
-def run(options: 'Arguments') -> int:
+def run(options: Arguments) -> int:
     source_dir = os.path.relpath(os.path.realpath(options.sourcedir))
     if not os.path.isfile(os.path.join(source_dir, 'meson.build')):
         mlog.error('Directory', mlog.bold(source_dir), 'does not seem to be a Meson source directory.')
@@ -741,8 +749,8 @@ def run(options: 'Arguments') -> int:
     for t in types:
         if t not in tuple(WrapType):
             raise MesonException(f'Unknown subproject type {t!r}, supported types are: {ALL_TYPES_STRING}')
-    tasks: T.List[T.Awaitable[bool]] = []
-    task_names: T.List[str] = []
+    tasks: list[T.Awaitable[bool]] = []
+    task_names: list[str] = []
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     executor = ThreadPoolExecutor(options.num_processes)

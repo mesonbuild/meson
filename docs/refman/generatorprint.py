@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2021 The Meson development team
 
-from .generatorbase import GeneratorBase
-from .model import ReferenceManual, Object, Function, DataTypeInfo, Type, ObjectType
+import typing as T
 
 from mesonbuild import mlog
-import typing as T
+
+from .generatorbase import GeneratorBase
+from .model import DataTypeInfo, Function, Object, ObjectType, Type
+
 
 def my_nested() -> T.ContextManager[None]:
     prefix = '|' * mlog.get_log_depth()

@@ -1,56 +1,81 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2022 The Meson development team
 
+import hashlib
+import os
+import re
+import shutil
 import stat
 import subprocess
-import re
 import tempfile
 import textwrap
-import os
-import shutil
-import hashlib
+import typing as T
 import zipfile
-from unittest import mock, skipUnless, SkipTest
 from glob import glob
 from pathlib import Path
-import typing as T
+from unittest import SkipTest, mock, skipUnless
 
-import mesonbuild.mlog
-import mesonbuild.depfile
+import mesonbuild.coredata
 import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
+import mesonbuild.depfile
 import mesonbuild.envconfig
 import mesonbuild.environment
-import mesonbuild.coredata
+import mesonbuild.mlog
 import mesonbuild.modules.gnome
-from mesonbuild.mesonlib import (
-    MachineChoice, is_windows, is_osx, is_cygwin, is_openbsd, is_haiku,
-    is_sunos, windows_proof_rmtree, version_compare, is_linux,
-    EnvironmentException
-)
-from mesonbuild.options import OptionKey
+import mesonbuild.modules.pkgconfig
 from mesonbuild.compilers import (
-    detect_c_compiler, detect_cpp_compiler, compiler_from_language,
+    compiler_from_language,
+    detect_c_compiler,
+    detect_cpp_compiler,
 )
 from mesonbuild.compilers.c import AppleClangCCompiler, ElbrusCompiler
 from mesonbuild.compilers.cpp import AppleClangCPPCompiler
 from mesonbuild.compilers.objc import AppleClangObjCCompiler
 from mesonbuild.compilers.objcpp import AppleClangObjCPPCompiler
 from mesonbuild.dependencies.pkgconfig import (
-    PkgConfigDependency, PkgConfigCLI, PkgConfigCLIImplementation, PkgConfigInterface,
+    PkgConfigCLI,
+    PkgConfigCLIImplementation,
+    PkgConfigDependency,
+    PkgConfigInterface,
 )
+from mesonbuild.mesonlib import (
+    EnvironmentException,
+    MachineChoice,
+    is_cygwin,
+    is_haiku,
+    is_linux,
+    is_openbsd,
+    is_osx,
+    is_sunos,
+    is_windows,
+    version_compare,
+    windows_proof_rmtree,
+)
+from mesonbuild.options import OptionKey
 from mesonbuild.programs import NonExistingExternalProgram
-import mesonbuild.modules.pkgconfig
-
-PKG_CONFIG = os.environ.get('PKG_CONFIG', 'pkg-config')
-
-
 from run_tests import (
-    get_fake_env, Backend,
+    Backend,
+    get_fake_env,
 )
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import *
+from .helpers import (
+    chdir,
+    get_rpath,
+    get_soname,
+    skip_if_not_base_option,
+    skip_if_not_language,
+    skipIfNoExecutable,
+    skipIfNoPkgconfig,
+    skipIfNoPkgconfigDep,
+)
+
+if T.TYPE_CHECKING:
+    from mesonbuild.compilers import Compiler
+
+PKG_CONFIG = os.environ.get('PKG_CONFIG', 'pkg-config')
+
 
 def _prepend_pkg_config_path(path: str) -> str:
     """Prepend a string value to pkg_config_path
@@ -64,7 +89,7 @@ def _prepend_pkg_config_path(path: str) -> str:
     return path
 
 
-def _clang_at_least(compiler: 'Compiler', minver: str, apple_minver: T.Optional[str]) -> bool:
+def _clang_at_least(compiler: 'Compiler', minver: str, apple_minver: str | None) -> bool:
     """
     check that Clang compiler is at least a specified version, whether AppleClang or regular Clang
 
@@ -205,7 +230,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() in {'gcc', 'clang'}:
-            for name in {'ct', 'ct0'}:
+            for name in ('ct', 'ct0'):
                 ct_dep = PkgConfigDependency(name, env, kwargs)
                 self.assertTrue(ct_dep.found())
                 self.assertIn('-lct', ct_dep.get_link_args(raw=True))
@@ -586,20 +611,20 @@ class LinuxlikeTests(BasePlatformTests):
             # thus, C++ first
             if '++17' in v and not has_cpp17:
                 continue
-            elif '++2a' in v and not has_cpp2a_c17:  # https://en.cppreference.com/w/cpp/compiler_support
+            if '++2a' in v and not has_cpp2a_c17:  # https://en.cppreference.com/w/cpp/compiler_support
                 continue
-            elif '++20' in v and not has_cpp20:
+            if '++20' in v and not has_cpp20:
                 continue
-            elif '++2b' in v and not has_cpp2b:
+            if '++2b' in v and not has_cpp2b:
                 continue
-            elif '++23' in v and not has_cpp23:
+            if '++23' in v and not has_cpp23:
                 continue
-            elif ('++26' in v or '++2c' in v) and not has_cpp26:
+            if ('++26' in v or '++2c' in v) and not has_cpp26:
                 continue
             # now C
-            elif '17' in v and not has_cpp2a_c17:
+            if '17' in v and not has_cpp2a_c17:
                 continue
-            elif '18' in v and not has_c18:
+            if '18' in v and not has_c18:
                 continue
             self.init(testdir, extra_args=[f'-D{key!s}={v}'])
             cmd = self.get_compdb()[0]['command']
@@ -607,7 +632,7 @@ class LinuxlikeTests(BasePlatformTests):
             skiplist = frozenset([
                 ('intel', 'c++03'),
                 ('intel', 'gnu++03')])
-            if v != 'none' and not (compiler.get_id(), v) in skiplist:
+            if v != 'none' and (compiler.get_id(), v) not in skiplist:
                 cmd_std = f" -std={v} "
                 self.assertIn(cmd_std, cmd)
             try:
@@ -749,8 +774,7 @@ class LinuxlikeTests(BasePlatformTests):
             f = os.path.join(self.installdir, 'usr', *fsobj.split('/'))
             found_mode = stat.filemode(os.stat(f).st_mode)
             self.assertEqual(want_mode, found_mode,
-                             msg=('Expected file %s to have mode %s but found %s instead.' %
-                                  (fsobj, want_mode, found_mode)))
+                             msg=(f'Expected file {fsobj} to have mode {want_mode} but found {found_mode} instead.'))
         # Ensure that introspect --installed works on all types of files
         # FIXME: also verify the files list
         self.introspect('--installed')
@@ -790,8 +814,7 @@ class LinuxlikeTests(BasePlatformTests):
             found_mode = stat.filemode(os.stat(f).st_mode)
             want_mode = '-rwxr-xr-x'
             self.assertEqual(want_mode, found_mode,
-                             msg=('Expected file %s to have mode %s but found %s instead.' %
-                                  (executable, want_mode, found_mode)))
+                             msg=(f'Expected file {executable} to have mode {want_mode} but found {found_mode} instead.'))
 
         for directory in [
                 'usr',
@@ -806,8 +829,7 @@ class LinuxlikeTests(BasePlatformTests):
             found_mode = stat.filemode(os.stat(f).st_mode)
             want_mode = 'drwxr-xr-x'
             self.assertEqual(want_mode, found_mode,
-                             msg=('Expected directory %s to have mode %s but found %s instead.' %
-                                  (directory, want_mode, found_mode)))
+                             msg=(f'Expected directory {directory} to have mode {want_mode} but found {found_mode} instead.'))
 
         for datafile in [
                 'include/sample.h',
@@ -820,8 +842,7 @@ class LinuxlikeTests(BasePlatformTests):
             found_mode = stat.filemode(os.stat(f).st_mode)
             want_mode = '-rw-r--r--'
             self.assertEqual(want_mode, found_mode,
-                             msg=('Expected file %s to have mode %s but found %s instead.' %
-                                  (datafile, want_mode, found_mode)))
+                             msg=(f'Expected file {datafile} to have mode {want_mode} but found {found_mode} instead.'))
 
     def test_cpp_std_override(self):
         testdir = os.path.join(self.unit_test_dir, '6 std override')
@@ -894,7 +915,7 @@ class LinuxlikeTests(BasePlatformTests):
                           ('-L/me/first', '-L/me/second'),
                           ('-lfoo1', '-lfoo2'),
                           ('-L/me/second', '-L/me/third'),
-                          ('-L/me/third', '-L/me/fourth',),
+                          ('-L/me/third', '-L/me/fourth'),
                           ('-L/me/third', '-lfoo3'),
                           ('-L/me/fourth', '-lfoo4'),
                           ('-lfoo3', '-lfoo4'),
@@ -1051,7 +1072,7 @@ class LinuxlikeTests(BasePlatformTests):
             ('-Wl,--just-symbols=', True),
             ('-Wl,--just-symbols,', True),
             ('-Wl,-R', False),
-            ('-Wl,-R,', False)
+            ('-Wl,-R,', False),
         ]
         for rpath_format, exception in rpath_formats:
             # Build an app that uses that installed library.
@@ -1771,20 +1792,20 @@ class LinuxlikeTests(BasePlatformTests):
         wrap_filename = os.path.join(testdir, 'subprojects', 'foo.wrap')
         source_hash = self.compute_sha256(source_filename)
         patch_hash = self.compute_sha256(patch_filename)
-        wrap = textwrap.dedent("""\
+        wrap = textwrap.dedent(f"""\
             [wrap-file]
             directory = foo
 
             source_url = http://server.invalid/foo
-            source_fallback_url = file://{}
+            source_fallback_url = file://{source_filename}
             source_filename = foo.tar.xz
-            source_hash = {}
+            source_hash = {source_hash}
 
             patch_url = http://server.invalid/foo
-            patch_fallback_url = file://{}
+            patch_fallback_url = file://{patch_filename}
             patch_filename = foo-patch.tar.xz
-            patch_hash = {}
-            """.format(source_filename, source_hash, patch_filename, patch_hash))
+            patch_hash = {patch_hash}
+            """)
         with open(wrap_filename, 'w', encoding='utf-8') as f:
             f.write(wrap)
         self.init(testdir)
@@ -1848,7 +1869,8 @@ class LinuxlikeTests(BasePlatformTests):
         p = subprocess.run([ar, 't', outlib],
                            stdout=subprocess.PIPE,
                            stderr=subprocess.DEVNULL,
-                           encoding='utf-8', text=True, timeout=1)
+                           encoding='utf-8', text=True, timeout=1,
+                           check=True)
         obj_files = p.stdout.strip().split('\n')
         self.assertTrue(any(o.endswith('-prelink.o') for o in obj_files))
 
@@ -1870,14 +1892,14 @@ class LinuxlikeTests(BasePlatformTests):
         # Verify that "gcc -m32" works
         try:
             self.do_one_test_with_nativefile('1 trivial', "['gcc', '-m32']")
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             raise SkipTest('Not GCC, or GCC does not have the -m32 option')
         self.wipe()
 
         # Verify that cmake works
         try:
             self.do_one_test_with_nativefile('../cmake/1 basic', "['gcc']")
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             raise SkipTest('Could not build basic cmake project')
         self.wipe()
 

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 import argparse
-from pathlib import Path
 import shutil
 import sys
 import tempfile
 import zipapp
+from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument('source', nargs='?', default='.', help='Source directory')

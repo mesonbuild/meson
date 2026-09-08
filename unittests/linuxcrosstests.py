@@ -2,20 +2,15 @@
 # Copyright 2016-2021 The Meson development team
 
 import os
-import shutil
+import platform
 import subprocess
 import unittest
-import platform
 
-from mesonbuild.mesonlib import (
-    is_windows, is_cygwin
-)
-from mesonbuild.mesonlib import MesonException
-
-
+from mesonbuild.mesonlib import MesonException, is_cygwin, is_windows
 
 from .baseplatformtests import BasePlatformTests
-from .helpers import *
+from .helpers import skipIfNoExecutable, skipIfNoPkgconfig
+
 
 class BaseLinuxCrossTests(BasePlatformTests):
     # Don't pass --libdir when cross-compiling. We have tests that

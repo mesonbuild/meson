@@ -2,19 +2,28 @@
 # Copyright 2021 The Meson development team
 from __future__ import annotations
 
+import typing as T
+
 from ...interpreterbase import (
-    InterpreterObject, MesonOperator, ObjectHolder,
-    FeatureBroken, InvalidArguments, KwargInfo,
-    noKwargs, noPosargs, typed_operator, typed_kwargs
+    FeatureBroken,
+    InterpreterObject,
+    InvalidArguments,
+    KwargInfo,
+    MesonOperator,
+    ObjectHolder,
+    noKwargs,
+    noPosargs,
+    typed_kwargs,
+    typed_operator,
 )
 from ..type_checking import in_set_validator
 
-import typing as T
-
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing import Literal
 
-    from ...interpreterbase import TYPE_var, TYPE_kwargs
+    from typing_extensions import TypedDict
+
+    from ...interpreterbase import TYPE_kwargs, TYPE_var
 
     class ToStringKw(TypedDict):
         fill: int
@@ -51,13 +60,13 @@ class IntegerHolder(ObjectHolder[int]):
     @noKwargs
     @noPosargs
     @InterpreterObject.method('is_even')
-    def is_even_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
+    def is_even_method(self, args: list[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object % 2 == 0
 
     @noKwargs
     @noPosargs
     @InterpreterObject.method('is_odd')
-    def is_odd_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
+    def is_odd_method(self, args: list[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object % 2 != 0
 
     @typed_kwargs(
@@ -68,7 +77,7 @@ class IntegerHolder(ObjectHolder[int]):
     )
     @noPosargs
     @InterpreterObject.method('to_string')
-    def to_string_method(self, args: T.List[TYPE_var], kwargs: ToStringKw) -> str:
+    def to_string_method(self, args: list[TYPE_var], kwargs: ToStringKw) -> str:
         format_codes = {'hex': 'x', 'oct': 'o', 'bin': 'b', 'dec': 'd'}
         return '{:#0{fill}{format}}'.format(self.held_object,
                                             fill=max(0, kwargs['fill']),

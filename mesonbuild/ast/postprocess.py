@@ -5,8 +5,9 @@
 # or an interpreter-based tool
 from __future__ import annotations
 
-from .visitor import AstVisitor, FullAstVisitor
 import typing as T
+
+from .visitor import AstVisitor, FullAstVisitor
 
 if T.TYPE_CHECKING:
     from .. import mparser
@@ -69,7 +70,7 @@ class AstIndentationGenerator(AstVisitor):
 
 class AstIDGenerator(AstVisitor):
     def __init__(self) -> None:
-        self.counter: T.Dict[str, int] = {}
+        self.counter: dict[str, int] = {}
 
     def visit_default_func(self, node: mparser.BaseNode) -> None:
         name = type(node).__name__

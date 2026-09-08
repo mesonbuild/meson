@@ -1,9 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
-from configparser import ConfigParser
-from pathlib import Path
-from unittest import mock
 import argparse
 import contextlib
 import io
@@ -17,43 +14,66 @@ import tempfile
 import textwrap
 import typing as T
 import unittest
+from configparser import ConfigParser
+from pathlib import Path
+from unittest import mock
 
-import mesonbuild.mlog
-import mesonbuild.depfile
 import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
+import mesonbuild.depfile
 import mesonbuild.envconfig
 import mesonbuild.environment
+import mesonbuild.mlog
 import mesonbuild.modules.cuda
 import mesonbuild.modules.gnome
+import mesonbuild.modules.pkgconfig
 import mesonbuild.scripts.depfixer
 import mesonbuild.scripts.env2mfile
 from mesonbuild import coredata
 from mesonbuild.compilers import Compiler
-from mesonbuild.compilers.c import ClangCCompiler, ClangClCCompiler, GnuCCompiler, VisualStudioCCompiler
+from mesonbuild.compilers.c import (
+    ClangCCompiler,
+    ClangClCCompiler,
+    GnuCCompiler,
+    VisualStudioCCompiler,
+)
 from mesonbuild.compilers.compilers import CompileCheckMode, ManyInOneLinkerOptionStyle
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler, LLVMDCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
-from mesonbuild.compilers.mixins.visualstudio import MSVCCompiler, ClangClCompiler
+from mesonbuild.compilers.mixins.visualstudio import ClangClCompiler, MSVCCompiler
+from mesonbuild.dependencies.pkgconfig import PkgConfigCLI, PkgConfigDependency, PkgConfigInterface
+from mesonbuild.interpreter.type_checking import NoneType, in_set_validator
+from mesonbuild.interpreterbase import (
+    ContainerTypeInfo,
+    InvalidArguments,
+    KwargInfo,
+    ObjectHolder,
+    typed_kwargs,
+    typed_pos_args,
+)
 from mesonbuild.linkers import linkers
-from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectHolder
-from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_kwargs, ContainerTypeInfo, KwargInfo
 from mesonbuild.mesonlib import (
-    LibType, MachineChoice, PerMachine, SimpleABC, Version, is_windows, is_osx,
-    is_cygwin, is_openbsd, search_version, MesonException, EnvironmentException, python_command,
+    EnvironmentException,
+    LibType,
+    MachineChoice,
+    MesonException,
+    SimpleABC,
+    Version,
+    is_cygwin,
+    is_openbsd,
+    is_osx,
+    is_windows,
+    python_command,
+    search_version,
     version_check_to_range,
 )
 from mesonbuild.options import OptionKey
-from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
-from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface, PkgConfigCLI
 from mesonbuild.programs import ExternalProgram
-import mesonbuild.modules.pkgconfig
-from mesonbuild import utils
-
 from run_tests import get_fake_env, get_fake_options
 
-from .helpers import *
+from .helpers import IS_CI, chdir, skipIfNoPkgconfig
+
 
 class InternalTests(unittest.TestCase):
 
@@ -499,11 +519,11 @@ Thread model: posix'''), '21.9.0')
             with self.subTest(compiler=comp.id):
                 self.assertEqual(
                     comp.unix_args_to_native(['/usr/lib/libfoo.so', 'libbar.so', 'libbaz.a', 'libqux.lib']),
-                    ['-L=/usr/lib/libfoo.so', '-L=libbar.so', '-L=libbaz.a', '-L=libqux.lib']
+                    ['-L=/usr/lib/libfoo.so', '-L=libbar.so', '-L=libbaz.a', '-L=libqux.lib'],
                 )
                 self.assertEqual(
                     comp.unix_args_to_native(['-lfoo', '-L/usr/local/lib', '-pthread', '-Wl,-rpath=/foo']),
-                    ['-L=-lfoo', '-L=-L/usr/local/lib', '-L=-rpath=/foo']
+                    ['-L=-lfoo', '-L=-L/usr/local/lib', '-L=-rpath=/foo'],
                 )
 
     def _fake_msvc_cc(self, cflags='-DCFLAG', ldflags='/SUBSYSTEM:CONSOLE'):
@@ -522,7 +542,7 @@ Thread model: posix'''), '21.9.0')
                             ManyInOneLinkerOptionStyle('-Wl,', ','), [])
         return GnuCCompiler([], [], 'fake', MachineChoice.HOST, env, linker=linker)
 
-    def assertAfterLink(self, args: T.List[str], flag: str) -> None:
+    def assertAfterLink(self, args: list[str], flag: str) -> None:
         '''Assert that a linker-only flag is passed exactly once, after /link.'''
         self.assertEqual(args.count(flag), 1, f'{flag} not passed exactly once in {args}')
         self.assertIn('/link', args)
@@ -830,7 +850,7 @@ Thread model: posix'''), '21.9.0')
 
         desired_value = not detected_value
         config['properties'] = {
-            'needs_exe_wrapper': 'true' if desired_value else 'false'
+            'needs_exe_wrapper': 'true' if desired_value else 'false',
         }
 
         configfile = tempfile.NamedTemporaryFile(mode='w+', delete=False, encoding='utf-8')
@@ -1080,7 +1100,6 @@ Thread model: posix'''), '21.9.0')
             return
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            pkgbin = ExternalProgram('pkg-config', command=['pkg-config'], silent=True)
             env = get_fake_env()
             compiler = detect_c_compiler(env, MachineChoice.HOST)
             env.coredata.compilers.host = {'c': compiler}
@@ -1110,6 +1129,7 @@ Thread model: posix'''), '21.9.0')
                         return 0, f'-L{p2.as_posix()} -lbar', ''
                     if args[-1] == 'internal':
                         return 0, f'-L{p1.as_posix()} -lpthread -lm -lc -lrt -ldl', ''
+                    return None
 
             with mock.patch.object(PkgConfigInterface, 'instance') as instance_method:
                 instance_method.return_value = FakeInstance(env, MachineChoice.HOST, silent=True)
@@ -1462,14 +1482,14 @@ Thread model: posix'''), '21.9.0')
 
                 f = F.DependencyFactory(
                     'test_dep',
-                    methods=[b.DependencyMethods.PKGCONFIG, b.DependencyMethods.CMAKE]
+                    methods=[b.DependencyMethods.PKGCONFIG, b.DependencyMethods.CMAKE],
                 )
                 actual = [m() for m in f(env, {'required': False, 'native': MachineChoice.HOST})]
                 self.assertListEqual([m.type_name for m in actual], ['pkgconfig', 'cmake'])
 
                 f = F.DependencyFactory(
                     'test_dep',
-                    methods=[b.DependencyMethods.CMAKE, b.DependencyMethods.PKGCONFIG]
+                    methods=[b.DependencyMethods.CMAKE, b.DependencyMethods.PKGCONFIG],
                 )
                 actual = [m() for m in f(env, {'required': False, 'native': MachineChoice.HOST})]
                 self.assertListEqual([m.type_name for m in actual], ['cmake', 'pkgconfig'])
@@ -1477,26 +1497,28 @@ Thread model: posix'''), '21.9.0')
     def test_validate_json(self) -> None:
         """Validate the json schema for the test cases."""
         try:
-            from fastjsonschema import compile, JsonSchemaValueException as JsonSchemaFailure
+            from fastjsonschema import JsonSchemaValueException as JsonSchemaFailure
+            from fastjsonschema import compile
             fast = True
         except ImportError:
             try:
-                from jsonschema import validate, ValidationError as JsonSchemaFailure
+                from jsonschema import ValidationError as JsonSchemaFailure
+                from jsonschema import validate
                 fast = False
-            except:
+            except ImportError:
                 if IS_CI:
                     raise
                 raise unittest.SkipTest('neither Python fastjsonschema nor jsonschema module not found.')
 
-        with open('data/test.schema.json', 'r', encoding='utf-8') as f:
+        with open('data/test.schema.json', encoding='utf-8') as f:
             data = json.loads(f.read())
 
         if fast:
             schema_validator = compile(data)
         else:
-            schema_validator = lambda x: validate(x, schema=data)
+            schema_validator = lambda x: validate(x, schema=data)  # noqa: E731
 
-        errors: T.List[T.Tuple[Path, Exception]] = []
+        errors: list[tuple[Path, Exception]] = []
         for p in Path('test cases').glob('**/test.json'):
             try:
                 schema_validator(json.loads(p.read_text(encoding='utf-8')))
@@ -1511,7 +1533,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_types(self) -> None:
         @typed_pos_args('foo', str, int, bool)
-        def _(obj, node, args: T.Tuple[str, int, bool], kwargs) -> None:
+        def _(obj, node, args: tuple[str, int, bool], kwargs) -> None:
             self.assertIsInstance(args, tuple)
             self.assertIsInstance(args[0], str)
             self.assertIsInstance(args[1], int)
@@ -1521,7 +1543,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_types_invalid(self) -> None:
         @typed_pos_args('foo', str, int, bool)
-        def _(obj, node, args: T.Tuple[str, int, bool], kwargs) -> None:
+        def _(obj, node, args: tuple[str, int, bool], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1530,7 +1552,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_types_wrong_number(self) -> None:
         @typed_pos_args('foo', str, int, bool)
-        def _(obj, node, args: T.Tuple[str, int, bool], kwargs) -> None:
+        def _(obj, node, args: tuple[str, int, bool], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1543,7 +1565,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_varargs(self) -> None:
         @typed_pos_args('foo', str, varargs=str)
-        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, list[str]], kwargs) -> None:
             self.assertIsInstance(args, tuple)
             self.assertIsInstance(args[0], str)
             self.assertIsInstance(args[1], list)
@@ -1554,7 +1576,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_varargs_not_given(self) -> None:
         @typed_pos_args('foo', str, varargs=str)
-        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, list[str]], kwargs) -> None:
             self.assertIsInstance(args, tuple)
             self.assertIsInstance(args[0], str)
             self.assertIsInstance(args[1], list)
@@ -1564,7 +1586,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_varargs_invalid(self) -> None:
         @typed_pos_args('foo', str, varargs=str)
-        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, list[str]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1573,7 +1595,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_varargs_invalid_multiple_types(self) -> None:
         @typed_pos_args('foo', str, varargs=(str, list))
-        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, list[str]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1582,7 +1604,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_max_varargs(self) -> None:
         @typed_pos_args('foo', str, varargs=str, max_varargs=5)
-        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, list[str]], kwargs) -> None:
             self.assertIsInstance(args, tuple)
             self.assertIsInstance(args[0], str)
             self.assertIsInstance(args[1], list)
@@ -1593,7 +1615,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_max_varargs_exceeded(self) -> None:
         @typed_pos_args('foo', str, varargs=str, max_varargs=1)
-        def _(obj, node, args: T.Tuple[str, T.Tuple[str, ...]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, tuple[str, ...]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1602,7 +1624,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_min_varargs(self) -> None:
         @typed_pos_args('foo', varargs=str, max_varargs=2, min_varargs=1)
-        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, list[str]], kwargs) -> None:
             self.assertIsInstance(args, tuple)
             self.assertIsInstance(args[0], list)
             self.assertIsInstance(args[0][0], str)
@@ -1612,7 +1634,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_min_varargs_not_met(self) -> None:
         @typed_pos_args('foo', str, varargs=str, min_varargs=1)
-        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, list[str]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1621,7 +1643,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_min_and_max_varargs_exceeded(self) -> None:
         @typed_pos_args('foo', str, varargs=str, min_varargs=1, max_varargs=2)
-        def _(obj, node, args: T.Tuple[str, T.Tuple[str, ...]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, tuple[str, ...]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1630,7 +1652,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_min_and_max_varargs_not_met(self) -> None:
         @typed_pos_args('foo', str, varargs=str, min_varargs=1, max_varargs=2)
-        def _(obj, node, args: T.Tuple[str, T.Tuple[str, ...]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, tuple[str, ...]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1639,7 +1661,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_variadic_and_optional(self) -> None:
         @typed_pos_args('foo', str, optargs=[str], varargs=str, min_varargs=0)
-        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, list[str]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(AssertionError) as cm:
@@ -1650,7 +1672,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_min_optargs_not_met(self) -> None:
         @typed_pos_args('foo', str, str, optargs=[str])
-        def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, str | None], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1659,7 +1681,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_min_optargs_max_exceeded(self) -> None:
         @typed_pos_args('foo', str, optargs=[str])
-        def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, str | None], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1668,7 +1690,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_optargs_not_given(self) -> None:
         @typed_pos_args('foo', str, optargs=[str])
-        def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, str | None], kwargs) -> None:
             self.assertEqual(len(args), 2)
             self.assertIsInstance(args[0], str)
             self.assertEqual(args[0], 'string')
@@ -1678,7 +1700,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_optargs_some_given(self) -> None:
         @typed_pos_args('foo', str, optargs=[str, int])
-        def _(obj, node, args: T.Tuple[str, T.Optional[str], T.Optional[int]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, str | None, int | None], kwargs) -> None:
             self.assertEqual(len(args), 3)
             self.assertIsInstance(args[0], str)
             self.assertEqual(args[0], 'string')
@@ -1690,7 +1712,7 @@ Thread model: posix'''), '21.9.0')
 
     def test_typed_pos_args_optargs_all_given(self) -> None:
         @typed_pos_args('foo', str, optargs=[str])
-        def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
+        def _(obj, node, args: tuple[str, str | None], kwargs) -> None:
             self.assertEqual(len(args), 2)
             self.assertIsInstance(args[0], str)
             self.assertEqual(args[0], 'string')
@@ -1701,9 +1723,9 @@ Thread model: posix'''), '21.9.0')
     def test_typed_kwarg_basic(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('input', str, default='')
+            KwargInfo('input', str, default=''),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             self.assertIsInstance(kwargs['input'], str)
             self.assertEqual(kwargs['input'], 'foo')
 
@@ -1714,7 +1736,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', str, required=True),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             self.assertTrue(False)  # should be unreachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1726,7 +1748,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', (str, type(None))),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.Optional[str]]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str | None]) -> None:
             self.assertIsNone(kwargs['input'])
 
         _(None, mock.Mock(), [], {})
@@ -1736,7 +1758,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', str, default='default'),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             self.assertEqual(kwargs['input'], 'default')
 
         _(None, mock.Mock(), [], {})
@@ -1746,7 +1768,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(list, str), default=[], required=True),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, list[str]]) -> None:
             self.assertEqual(kwargs['input'], ['str'])
 
         _(None, mock.Mock(), [], {'input': ['str']})
@@ -1756,7 +1778,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(list, str), required=True),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, list[str]]) -> None:
             self.assertTrue(False)  # should be unreachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1768,7 +1790,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(dict, str), required=True),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.Dict[str, str]]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, dict[str, str]]) -> None:
             self.assertTrue(False)  # should be unreachable
 
         with self.assertRaises(InvalidArguments) as cm:
@@ -1780,18 +1802,18 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(list, str), default=[], listify=True),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, list[str]]) -> None:
             self.assertEqual(kwargs['input'], ['str'])
 
         _(None, mock.Mock(), [], {'input': 'str'})
 
     def test_typed_kwarg_container_default_copy(self) -> None:
-        default: T.List[str] = []
+        default: list[str] = []
         @typed_kwargs(
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=default),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, list[str]]) -> None:
             self.assertIsNot(kwargs['input'], default)
 
         _(None, mock.Mock(), [], {})
@@ -1801,7 +1823,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(list, str, pairs=True), listify=True),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, list[str]]) -> None:
             self.assertEqual(kwargs['input'], ['a', 'b'])
 
         _(None, mock.Mock(), [], {'input': ['a', 'b']})
@@ -1814,9 +1836,9 @@ Thread model: posix'''), '21.9.0')
         @typed_kwargs(
             'testfunc',
             KwargInfo('input', str, since='1.0', since_message='It\'s awesome, use it',
-                      deprecated='2.0', deprecated_message='It\'s terrible, don\'t use it')
+                      deprecated='2.0', deprecated_message='It\'s terrible, don\'t use it'),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             self.assertIsInstance(kwargs['input'], str)
             self.assertEqual(kwargs['input'], 'foo')
 
@@ -1846,27 +1868,27 @@ Thread model: posix'''), '21.9.0')
     def test_typed_kwarg_validator(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('input', str, default='', validator=lambda x: 'invalid!' if x != 'foo' else None)
+            KwargInfo('input', str, default='', validator=lambda x: 'invalid!' if x != 'foo' else None),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             pass
 
         # Should be valid
-        _(None, mock.Mock(), tuple(), dict(input='foo'))
+        _(None, mock.Mock(), (), {'input': 'foo'})
 
         with self.assertRaises(MesonException) as cm:
-            _(None, mock.Mock(), tuple(), dict(input='bar'))
+            _(None, mock.Mock(), (), {'input': 'bar'})
         self.assertEqual(str(cm.exception), "\"testfunc\" keyword argument \"input\" invalid!")
 
     def test_typed_kwarg_convertor(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('native', bool, default=False, convertor=lambda n: MachineChoice.BUILD if n else MachineChoice.HOST)
+            KwargInfo('native', bool, default=False, convertor=lambda n: MachineChoice.BUILD if n else MachineChoice.HOST),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, MachineChoice]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, MachineChoice]) -> None:
             assert isinstance(kwargs['native'], MachineChoice)
 
-        _(None, mock.Mock(), tuple(), dict(native=True))
+        _(None, mock.Mock(), (), {'native': True})
 
     @mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': version_check_to_range(['>=1.0'])})
     def test_typed_kwarg_since_values(self) -> None:
@@ -1901,7 +1923,7 @@ Thread model: posix'''), '21.9.0')
                 deprecated_values={(bool, int): '0.9'},
             ),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             pass
 
         with self.subTest('deprecated array string value'), mock.patch('sys.stdout', io.StringIO()) as out:
@@ -2012,7 +2034,7 @@ Thread model: posix'''), '21.9.0')
             KwargInfo('str_default', (str, ContainerTypeInfo(list, str)), default=''),
             KwargInfo('list_default', (str, ContainerTypeInfo(list, str)), default=['']),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             self.assertEqual(kwargs['no_default'], None)
             self.assertEqual(kwargs['str_default'], '')
             self.assertEqual(kwargs['list_default'], [''])
@@ -2023,7 +2045,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('invalid_default', (str, ContainerTypeInfo(list, str), NoneType), default=42),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             pass
         self.assertRaises(AssertionError, _, None, mock.Mock(), [], {})
 
@@ -2032,7 +2054,7 @@ Thread model: posix'''), '21.9.0')
             'testfunc',
             KwargInfo('input', (str, ContainerTypeInfo(list, str))),
         )
-        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+        def _(obj, node, args: tuple, kwargs: dict[str, str]) -> None:
             self.assertEqual(kwargs['input'], args[0])
         _(None, mock.Mock(), [''], {'input': ''})
         _(None, mock.Mock(), [['']], {'input': ['']})
@@ -2205,7 +2227,7 @@ Thread model: posix'''), '21.9.0')
 
         # For testing purposes, behave as though all cross-programs
         # exist in /usr/bin
-        def locate_path(program: str) -> T.List[str]:
+        def locate_path(program: str) -> list[str]:
             if os.path.isabs(program):
                 return [program]
             return ['/usr/bin/' + program]
@@ -2213,7 +2235,7 @@ Thread model: posix'''), '21.9.0')
         def expected_compilers(
             gnu_tuple: str,
             gcc_suffix: str = '',
-        ) -> T.Dict[str, T.List[str]]:
+        ) -> dict[str, list[str]]:
             return {
                 'c': [f'/usr/bin/{gnu_tuple}-gcc{gcc_suffix}'],
                 'cpp': [f'/usr/bin/{gnu_tuple}-g++{gcc_suffix}'],
@@ -2222,7 +2244,7 @@ Thread model: posix'''), '21.9.0')
                 'vala': [f'/usr/bin/{gnu_tuple}-valac'],
             }
 
-        def expected_binaries(gnu_tuple: str) -> T.Dict[str, T.List[str]]:
+        def expected_binaries(gnu_tuple: str) -> dict[str, list[str]]:
             return {
                 'ar': [f'/usr/bin/{gnu_tuple}-ar'],
                 'strip': [f'/usr/bin/{gnu_tuple}-strip'],
@@ -2263,7 +2285,7 @@ Thread model: posix'''), '21.9.0')
                     DEB_HOST_GNU_SYSTEM=linux-gnu
                     DEB_HOST_GNU_TYPE=s390x-linux-gnu
                     DEB_HOST_MULTIARCH=s390x-linux-gnu
-                    '''
+                    ''',
                 ),
                 '',
                 {'PATH': '/usr/bin'},
@@ -2305,7 +2327,7 @@ Thread model: posix'''), '21.9.0')
                     DEB_HOST_GNU_SYSTEM=linux-gnu
                     DEB_HOST_GNU_TYPE=x86_64-linux-gnu
                     DEB_HOST_MULTIARCH=x86_64-linux-gnu
-                    '''
+                    ''',
                 ),
                 '',
                 {'PATH': '/usr/bin'},
@@ -2344,7 +2366,7 @@ Thread model: posix'''), '21.9.0')
                     DEB_HOST_GNU_SYSTEM=linux-gnueabihf
                     DEB_HOST_GNU_TYPE=arm-linux-gnueabihf
                     DEB_HOST_MULTIARCH=arm-linux-gnueabihf
-                    '''
+                    ''',
                 ),
                 '-12',
                 {
@@ -2404,7 +2426,7 @@ Thread model: posix'''), '21.9.0')
                     DEB_HOST_GNU_SYSTEM=gnu
                     DEB_HOST_GNU_TYPE=i686-gnu
                     DEB_HOST_MULTIARCH=i386-gnu
-                    '''
+                    ''',
                 ),
                 '',
                 {'PATH': '/usr/bin'},
@@ -2443,7 +2465,7 @@ Thread model: posix'''), '21.9.0')
                     DEB_HOST_GNU_SYSTEM=kfreebsd-gnu
                     DEB_HOST_GNU_TYPE=x86_64-kfreebsd-gnu
                     DEB_HOST_MULTIARCH=x86_64-kfreebsd-gnu
-                    '''
+                    ''',
                 ),
                 '',
                 {'PATH': '/usr/bin'},
@@ -2482,7 +2504,7 @@ Thread model: posix'''), '21.9.0')
                     DEB_HOST_GNU_SYSTEM=linux-gnuabi64
                     DEB_HOST_GNU_TYPE=mips64el-linux-gnuabi64
                     DEB_HOST_MULTIARCH=mips64el-linux-gnuabi64
-                    '''
+                    ''',
                 ),
                 '',
                 {'PATH': '/usr/bin'},
@@ -2521,7 +2543,7 @@ Thread model: posix'''), '21.9.0')
                     DEB_HOST_GNU_SYSTEM=linux-gnu
                     DEB_HOST_GNU_TYPE=powerpc64le-linux-gnu
                     DEB_HOST_MULTIARCH=powerpc64le-linux-gnu
-                    '''
+                    ''',
                 ),
                 '',
                 {'PATH': '/usr/bin'},

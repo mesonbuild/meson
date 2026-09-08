@@ -7,6 +7,7 @@ See: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p1689r5.html
 """
 
 from __future__ import annotations
+
 import json
 import re
 import textwrap
@@ -35,10 +36,10 @@ def quote(text: str) -> str:
     return _QUOTE_PAT.sub(r'$\g<0>', text)
 
 
-_PROVIDER_CACHE: T.Dict[str, str] = {}
+_PROVIDER_CACHE: dict[str, str] = {}
 
 
-def get_provider(rules: T.List[Rule], name: str) -> T.Optional[str]:
+def get_provider(rules: list[Rule], name: str) -> str | None:
     """Get the object that a module from another Target provides
 
     We must rely on the object file here instead of the module itself, because
@@ -66,9 +67,9 @@ def get_provider(rules: T.List[Rule], name: str) -> T.Optional[str]:
     return None
 
 
-def process_rules(rules: T.List[Rule],
-                  extra_rules: T.List[Rule],
-                  ) -> T.Iterable[T.Tuple[str, T.Optional[T.List[str]], T.List[str]]]:
+def process_rules(rules: list[Rule],
+                  extra_rules: list[Rule],
+                  ) -> T.Iterable[tuple[str, list[str] | None, list[str]]]:
     """Process the rules for this Target
 
     :param rules: the rules for this target
@@ -76,8 +77,8 @@ def process_rules(rules: T.List[Rule],
     :yield: A tuple of the output, the exported modules, and the consumed modules
     """
     for rule in rules:
-        prov: T.Optional[T.List[str]] = None
-        req: T.List[str] = []
+        prov: list[str] | None = None
+        req: list[str] = []
         if 'provides' in rule:
             prov = [p['compiled-module-path'] for p in rule['provides']]
         if 'requires' in rule:
@@ -94,14 +95,14 @@ def process_rules(rules: T.List[Rule],
         yield rule['primary-output'], prov, req
 
 
-def formatter(files: T.Optional[T.List[str]]) -> str:
+def formatter(files: list[str] | None) -> str:
     if files:
         fmt = ' '.join(quote(f) for f in files)
         return f'| {fmt}'
     return ''
 
 
-def gen(outfile: str, desc: Description, extra_rules: T.List[Rule]) -> int:
+def gen(outfile: str, desc: Description, extra_rules: list[Rule]) -> int:
     with open(outfile, 'w', encoding='utf-8') as f:
         f.write('ninja_dyndep_version = 1\n\n')
 
@@ -113,10 +114,10 @@ def gen(outfile: str, desc: Description, extra_rules: T.List[Rule]) -> int:
     return 0
 
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     assert len(args) >= 2, 'got wrong number of arguments!'
     outfile, jsonfile, *jsondeps = args
-    with open(jsonfile, 'r', encoding='utf-8') as f:
+    with open(jsonfile, encoding='utf-8') as f:
         desc: Description = json.load(f)
 
     # All rules, necessary for fulfilling across TU and target boundaries

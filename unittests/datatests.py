@@ -1,37 +1,33 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
+import os
 import re
 import unittest
 from itertools import chain
 from pathlib import Path
 from unittest import mock
 
-import mesonbuild.mlog
-import mesonbuild.mparser
-import mesonbuild.depfile
+import mesonbuild.coredata
 import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
+import mesonbuild.depfile
 import mesonbuild.envconfig
 import mesonbuild.environment
-import mesonbuild.coredata
-import mesonbuild.options
+import mesonbuild.mlog
 import mesonbuild.modules.gnome
-from mesonbuild.interpreter import Interpreter
+import mesonbuild.modules.pkgconfig
+import mesonbuild.mparser
+import mesonbuild.options
 from mesonbuild.ast import AstInterpreter
+from mesonbuild.compilers import detect_c_compiler, detect_cpp_compiler
+from mesonbuild.interpreter import Interpreter
 from mesonbuild.mesonlib import MachineChoice
 from mesonbuild.options import OptionKey
-from mesonbuild.compilers import (
-    detect_c_compiler, detect_cpp_compiler
-)
-import mesonbuild.modules.pkgconfig
+from run_tests import FakeBuild, get_fake_env
 
+from .helpers import is_tarball
 
-from run_tests import (
-    FakeBuild, get_fake_env
-)
-
-from .helpers import *
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
@@ -193,7 +189,7 @@ class DataTests(unittest.TestCase):
         with open("docs/sitemap.txt", encoding='utf-8') as f:
             md = f.read()
         self.assertIsNotNone(md)
-        toc = list(m.group(1) for m in re.finditer(r"^\s*(\w.*)$", md, re.MULTILINE))
+        toc = [m.group(1) for m in re.finditer(r"^\s*(\w.*)$", md, re.MULTILINE)]
         markdownfiles = [f.name for f in Path("docs/markdown").iterdir() if f.is_file() and f.suffix == '.md']
         exceptions = ['_Sidebar.md']
         for f in markdownfiles:

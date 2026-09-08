@@ -3,31 +3,37 @@
 
 from __future__ import annotations
 
-import collections, importlib
+import collections
 import enum
+import importlib
 import typing as T
 
-from .base import DependencyCandidate, ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
-
-from ..mesonlib import listify, PerMachine, MesonBugException, MesonException
 from .. import mlog
+from ..mesonlib import MesonBugException, MesonException, PerMachine, listify
+from .base import (
+    DependencyCandidate,
+    DependencyException,
+    DependencyMethods,
+    ExternalDependency,
+    NotFoundDependency,
+)
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from .factory import DependencyFactory, DependencyGenerator, WrappedFactoryFunc
     from .base import DependencyObjectKWs
+    from .factory import DependencyFactory, DependencyGenerator, WrappedFactoryFunc
 
-    TV_DepIDEntry = T.Union[str, bool, int, None, T.Tuple[str, ...]]
-    TV_DepID = T.Tuple[T.Tuple[str, TV_DepIDEntry], ...]
-    PackageTypes = T.Union[T.Type[ExternalDependency], DependencyFactory, DependencyCandidate, WrappedFactoryFunc]
+    TV_DepIDEntry: T.TypeAlias = str | bool | int | None | tuple[str, ...]
+    TV_DepID: T.TypeAlias = tuple[tuple[str, TV_DepIDEntry], ...]
+    PackageTypes: T.TypeAlias = type[ExternalDependency] | DependencyFactory | DependencyCandidate | WrappedFactoryFunc
     # Workaround for older python
     DependencyPackagesType = collections.UserDict[str, PackageTypes]
 else:
     DependencyPackagesType = collections.UserDict
 
 class DependencyPackages(DependencyPackagesType):
-    data: T.Dict[str, PackageTypes]
-    defaults: T.Dict[str, str] = {}
+    data: dict[str, PackageTypes]
+    defaults: dict[str, str] = {}
 
     def __missing__(self, key: str) -> PackageTypes:
         if key in self.defaults:
@@ -42,10 +48,10 @@ class DependencyPackages(DependencyPackagesType):
 
 # These must be defined in this file to avoid cyclical references.
 packages = DependencyPackages()
-_packages_accept_language: T.Set[str] = set()
+_packages_accept_language: set[str] = set()
 
-def get_dep_identifier(name: str, kwargs: DependencyObjectKWs) -> 'TV_DepID':
-    identifier: 'TV_DepID' = (('name', name), )
+def get_dep_identifier(name: str, kwargs: DependencyObjectKWs) -> TV_DepID:
+    identifier: TV_DepID = (('name', name), )
     from ..interpreter.type_checking import DEPENDENCY_KWS
     nkwargs = T.cast('DependencyObjectKWs', {k.name: k.default for k in DEPENDENCY_KWS})
     nkwargs.update(kwargs)
@@ -75,7 +81,7 @@ def get_dep_identifier(name: str, kwargs: DependencyObjectKWs) -> 'TV_DepID':
             assert isinstance(value, str), 'for mypy'
         else:
             assert value is None or isinstance(value, (str, bool, int)), value
-        identifier = (*identifier, (key, value),)
+        identifier = (*identifier, (key, value))
     return identifier
 
 display_name_map = {
@@ -92,7 +98,7 @@ display_name_map = {
     'wxwidgets': 'WxWidgets',
 }
 
-def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyObjectKWs, candidates: T.Optional[T.List['DependencyGenerator']] = None) -> T.Union['ExternalDependency', NotFoundDependency]:
+def find_external_dependency(name: str, env: Environment, kwargs: DependencyObjectKWs, candidates: list[DependencyGenerator] | None = None) -> ExternalDependency | NotFoundDependency:
     assert name
     required = kwargs.get('required', True)
     lname = name.lower()
@@ -109,10 +115,10 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
     if candidates is None:
         candidates = _build_external_dependency_list(name, env, kwargs)
 
-    pkg_exc: T.List[DependencyException] = []
-    pkgdep:  T.List[ExternalDependency] = []
+    pkg_exc: list[DependencyException] = []
+    pkgdep:  list[ExternalDependency] = []
     details = ''
-    tried_methods: T.List[str] = []
+    tried_methods: list[str] = []
 
     for c in candidates:
         # try this dependency method
@@ -154,7 +160,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
             tried_methods.append(c.method)
 
     # otherwise, the dependency could not be found
-    tried = ' (tried {})'.format(mlog.format_list(tried_methods)) if tried_methods else ''
+    tried = f' (tried {mlog.format_list(tried_methods)})' if tried_methods else ''
     mlog.log(type_text, mlog.bold(display_name), details + 'found:', mlog.red('NO'), tried)
 
     if required:
@@ -171,8 +177,8 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
     return NotFoundDependency(name, env)
 
 
-def _build_external_dependency_list(name: str, env: 'Environment', kwargs: DependencyObjectKWs
-                                    ) -> T.List['DependencyGenerator']:
+def _build_external_dependency_list(name: str, env: Environment, kwargs: DependencyObjectKWs,
+                                    ) -> list[DependencyGenerator]:
     # Is there a specific dependency detector for this dependency?
     lname = name.lower()
     if lname in packages:
@@ -189,7 +195,7 @@ def _build_external_dependency_list(name: str, env: 'Environment', kwargs: Depen
             dep = entry(env, kwargs)
         return dep
 
-    candidates: T.List['DependencyGenerator'] = []
+    candidates: list[DependencyGenerator] = []
 
     method = kwargs.get('method', DependencyMethods.AUTO)
     if method is DependencyMethods.AUTO:

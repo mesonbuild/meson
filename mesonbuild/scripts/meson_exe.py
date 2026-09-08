@@ -3,15 +3,15 @@
 
 from __future__ import annotations
 
-import os
-import sys
 import argparse
+import locale
+import os
 import pickle
 import subprocess
-import typing as T
-import locale
+import sys
 
 from ..utils.core import ExecutableSerialisation
+
 
 def buildparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='Custom executable wrapper for Meson. Do not run on your own, mmm\'kay?')
@@ -20,11 +20,11 @@ def buildparser() -> argparse.ArgumentParser:
     parser.add_argument('--feed')
     return parser
 
-def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]] = None) -> int:
+def run_exe(exe: ExecutableSerialisation, extra_env: dict[str, str] | None = None) -> int:
     if exe.exe_wrapper:
         if not exe.exe_wrapper.found():
-            raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found '
-                                 'wrapper {!r}'.format(exe.cmd_args[0], exe.exe_wrapper.get_path()))
+            raise AssertionError(f'BUG: Can\'t run cross-compiled exe {exe.cmd_args[0]!r} with not-found '
+                                 f'wrapper {exe.exe_wrapper.get_path()!r}')
         cmd_args = exe.exe_wrapper.get_command() + exe.cmd_args
     else:
         cmd_args = exe.cmd_args
@@ -41,7 +41,7 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]
             child_env['WINEPATH'] = mesonlib.get_wine_shortpath(
                 exe.exe_wrapper.get_command(),
                 ['Z:' + p for p in exe.extra_paths] + child_env.get('WINEPATH', '').split(';'),
-                exe.workdir
+                exe.workdir,
             )
 
     stdin = None
@@ -77,7 +77,7 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]
         print('--- stderr ---')
         print(stderr.decode(encoding=encoding, errors='replace'))
         return p.returncode
-    elif stderr: # Allow a wrapped subprocess to gracefully communicate warnings
+    if stderr: # Allow a wrapped subprocess to gracefully communicate warnings
         encoding = locale.getpreferredencoding()
         print(stderr.decode(encoding=encoding, errors='replace'))
 
@@ -94,7 +94,7 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]
 
     return 0
 
-def run(args: T.List[str]) -> int:
+def run(args: list[str]) -> int:
     parser = buildparser()
     options, cmd_args = parser.parse_known_args(args)
     # argparse supports double dash to separate options and positional arguments,

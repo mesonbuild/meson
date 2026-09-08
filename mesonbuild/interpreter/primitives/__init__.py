@@ -22,8 +22,11 @@ from .dict import DictHolder
 from .integer import IntegerHolder
 from .range import RangeHolder
 from .string import (
+    DependencyVariableString,
+    DependencyVariableStringHolder,
+    MesonVersionString,
+    MesonVersionStringHolder,
+    OptionString,
+    OptionStringHolder,
     StringHolder,
-    MesonVersionString, MesonVersionStringHolder,
-    DependencyVariableString, DependencyVariableStringHolder,
-    OptionString, OptionStringHolder,
 )

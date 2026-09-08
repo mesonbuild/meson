@@ -1,36 +1,44 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2018 The Meson development team
 
-from __future__ import annotations
-
 '''This module provides helper functions for generating documentation using hotdoc'''
 
-import os, subprocess
+from __future__ import annotations
+
+import os
+import subprocess
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import build, mesonlib, mlog
 from ..build import CustomTarget, CustomTargetIndex
 from ..dependencies import Dependency, InternalDependency
-from ..interpreterbase import (
-    InvalidArguments, noPosargs, noKwargs, typed_kwargs, FeatureDeprecated,
-    ContainerTypeInfo, KwargInfo, typed_pos_args, InterpreterObject
-)
 from ..interpreter.interpreterobjects import _CustomTargetHolder
 from ..interpreter.type_checking import NoneType
+from ..interpreterbase import (
+    ContainerTypeInfo,
+    FeatureDeprecated,
+    InterpreterObject,
+    InvalidArguments,
+    KwargInfo,
+    noKwargs,
+    noPosargs,
+    typed_kwargs,
+    typed_pos_args,
+)
 from ..mesonlib import File, MesonException
-from ..programs import ExternalProgram
 from ..options import OptionKey
+from ..programs import ExternalProgram
+from . import ExtensionModule, ModuleInfo, ModuleReturnValue
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
-    from . import ModuleState
     from ..build import BuildProject
     from ..environment import Environment
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import TargetDepends
     from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from . import ModuleState
 
     _T = T.TypeVar('_T')
 
@@ -40,22 +48,22 @@ if T.TYPE_CHECKING:
     # PEP-728, which is due in Python 3.15, will fix this, we can then add a new
     # extra_items=str keyword argument.
     class GenerateDocKwargs(TypedDict, total=False):
-        sitemap: T.Union[str, File, CustomTarget, CustomTargetIndex]
-        index: T.Union[str, File, CustomTarget, CustomTargetIndex]
+        sitemap: str | File | CustomTarget | CustomTargetIndex
+        index: str | File | CustomTarget | CustomTargetIndex
         project_version: str
-        html_extra_theme: T.Optional[str]
-        include_paths: T.List[str]
-        dependencies: T.List[T.Union[Dependency, build.StaticLibrary, build.SharedLibrary, CustomTarget, CustomTargetIndex]]
-        depends: T.List[T.Union[CustomTarget, CustomTargetIndex]]
-        gi_c_source_roots: T.List[str]
-        extra_assets: T.List[str]
-        extra_extension_paths: T.List[str]
-        subprojects: T.List['HotdocTarget']
+        html_extra_theme: str | None
+        include_paths: list[str]
+        dependencies: list[Dependency | build.StaticLibrary | build.SharedLibrary | CustomTarget | CustomTargetIndex]
+        depends: list[CustomTarget | CustomTargetIndex]
+        gi_c_source_roots: list[str]
+        extra_assets: list[str]
+        extra_extension_paths: list[str]
+        subprojects: list[HotdocTarget]
         install: bool
         build_by_default: bool
 
 
-def ensure_list(value: T.Union[_T, T.List[_T]]) -> T.List[_T]:
+def ensure_list(value: _T | list[_T]) -> list[_T]:
     if not isinstance(value, list):
         return [value]
     return value
@@ -67,8 +75,9 @@ file_types = (str, File, CustomTarget, CustomTargetIndex)
 
 
 class HotdocExternalProgram(ExternalProgram):
-    def run_hotdoc(self, cmd: T.List[str]) -> int:
-        return subprocess.run(self.get_command() + cmd, stdout=subprocess.DEVNULL).returncode
+    def run_hotdoc(self, cmd: list[str]) -> int:
+        return subprocess.run(self.get_command() + cmd, stdout=subprocess.DEVNULL,
+                              check=False).returncode
 
 
 class HotdocTargetBuilder:
@@ -87,14 +96,14 @@ class HotdocTargetBuilder:
         self.subdir = state.subdir
         self.build_command = state.environment.get_build_command()
 
-        self.cmd: T.List[TYPE_var] = ['conf', '--project-name', name, "--disable-incremental-build",
-                                      '--output', os.path.join(self.builddir, self.subdir, self.name + '-doc')]
+        self.cmd: list[TYPE_var] = ['conf', '--project-name', name, "--disable-incremental-build",
+                                    '--output', os.path.join(self.builddir, self.subdir, self.name + '-doc')]
 
         self._extra_extension_paths: set[str] = set()
         self.extra_depends: list[build.BuildTargetTypes] = []
         self._subprojects: list[HotdocTarget] = []
 
-    def process_known_arg(self, option: str, argname: T.Optional[str] = None, value_processor: T.Optional[T.Callable] = None) -> None:
+    def process_known_arg(self, option: str, argname: str | None = None, value_processor: T.Callable | None = None) -> None:
         if not argname:
             argname = option.strip("-").replace("-", "_")
 
@@ -121,7 +130,7 @@ class HotdocTargetBuilder:
                 escaped_value = []
                 for e in value:
                     if isinstance(e, str) and e.startswith('-'):
-                        escaped_value += [' %s' % e]
+                        escaped_value += [f' {e}']
                     else:
                         escaped_value += [e]
                 if option:
@@ -145,8 +154,7 @@ class HotdocTargetBuilder:
 
         valid_types = (str, bool, File, build.IncludeDirs, CustomTarget, CustomTargetIndex, build.BuildTarget)
         if not isinstance(value, valid_types):
-            raise InvalidArguments('Argument "{}={}" should be of type: {}.'.format(
-                arg, value, [t.__name__ for t in valid_types]))
+            raise InvalidArguments(f'Argument "{arg}={value}" should be of type: {[t.__name__ for t in valid_types]}.')
 
     def process_extra_args(self) -> None:
         for arg, value in self.kwargs.items():
@@ -154,7 +162,7 @@ class HotdocTargetBuilder:
             self.check_extra_arg_type(arg, value)  # type: ignore[arg-type]
             self.set_arg_value(option, value)  # type: ignore[arg-type]
 
-    def add_extension_paths(self, paths: T.Union[T.List[str], T.Set[str]]) -> None:
+    def add_extension_paths(self, paths: list[str] | set[str]) -> None:
         for path in paths:
             if path in self._extra_extension_paths:
                 continue
@@ -172,12 +180,12 @@ class HotdocTargetBuilder:
         value = self.kwargs.pop('gi_c_source_roots')
         value.extend([
             os.path.join(self.sourcedir, self.state.root_subdir),
-            os.path.join(self.builddir, self.state.root_subdir)
+            os.path.join(self.builddir, self.state.root_subdir),
         ])
 
         self.cmd += ['--gi-c-source-roots'] + value
 
-    def process_dependencies(self, deps: T.Sequence[TargetDepends | Dependency | File | build.ExtractedObjects]) -> T.List[str]:
+    def process_dependencies(self, deps: T.Sequence[TargetDepends | Dependency | File | build.ExtractedObjects]) -> list[str]:
         # build.ExtractedObjects shouldn't actually
         # happen here, but we get them from Dependency.
         cflags = set()
@@ -220,7 +228,7 @@ class HotdocTargetBuilder:
         self.process_dependencies(value)
         self._subprojects.extend(value)
 
-    def flatten_config_command(self) -> T.List[str]:
+    def flatten_config_command(self) -> list[str]:
         cmd = []
         for arg in mesonlib.listify(self.cmd, flatten=True):
             if isinstance(arg, File):
@@ -247,14 +255,14 @@ class HotdocTargetBuilder:
         os.chdir(cwd)
 
     @T.overload
-    def ensure_file(self, value: list[str | File | CustomTarget | CustomTargetIndex]
+    def ensure_file(self, value: list[str | File | CustomTarget | CustomTargetIndex],
                     ) -> list[File | CustomTarget | CustomTargetIndex]: ...
 
     @T.overload
-    def ensure_file(self, value: str | File | CustomTarget | CustomTargetIndex
+    def ensure_file(self, value: str | File | CustomTarget | CustomTargetIndex,
                     ) -> File | CustomTarget | CustomTargetIndex: ...
 
-    def ensure_file(self, value: str | File | CustomTarget | CustomTargetIndex | list[str | File | CustomTarget | CustomTargetIndex]
+    def ensure_file(self, value: str | File | CustomTarget | CustomTargetIndex | list[str | File | CustomTarget | CustomTargetIndex],
                     ) -> File | CustomTarget | CustomTargetIndex | list[File | CustomTarget | CustomTargetIndex]:
         if isinstance(value, list):
             res: list[File | CustomTarget | CustomTargetIndex] = []
@@ -283,7 +291,7 @@ class HotdocTargetBuilder:
             if arg in self.kwargs:
                 raise InvalidArguments(f'Argument "{arg}" is forbidden.')
 
-    def make_targets(self) -> T.Tuple[HotdocTarget, mesonlib.ExecutableSerialisation]:
+    def make_targets(self) -> tuple[HotdocTarget, mesonlib.ExecutableSerialisation]:
         self.check_forbidden_args()
         self.process_known_arg("--index", value_processor=self.ensure_file)
         self.process_known_arg("--project-version")
@@ -377,15 +385,14 @@ class HotdocTargetHolder(_CustomTargetHolder['HotdocTarget']):
     @noKwargs
     @InterpreterObject.method('config_path')
     def config_path_method(self, *args: T.Any, **kwargs: T.Any) -> str:
-        conf = self.held_object.hotdoc_conf.absolute_path(self.interpreter.environment.source_dir,
+        return self.held_object.hotdoc_conf.absolute_path(self.interpreter.environment.source_dir,
                                                           self.interpreter.environment.build_dir)
-        return conf
 
 
 class HotdocTarget(CustomTarget):
     def __init__(self, name: str, subdir: str, hotdoc_conf: File,
-                 extra_extension_paths: T.Set[str], extra_assets: T.List[str],
-                 subprojects: T.List['HotdocTarget'], environment: Environment,
+                 extra_extension_paths: set[str], extra_assets: list[str],
+                 subprojects: list[HotdocTarget], environment: Environment,
                  build_project: BuildProject, **kwargs: T.Any):
         super().__init__(name, subdir, environment, **kwargs, build_project=build_project, absolute_paths=True)
         self.hotdoc_conf = hotdoc_conf
@@ -421,7 +428,7 @@ class HotDocModule(ExtensionModule):
 
     @noKwargs
     @typed_pos_args('hotdoc.has_extensions', varargs=str, min_varargs=1)
-    def has_extensions(self, state: ModuleState, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> bool:
+    def has_extensions(self, state: ModuleState, args: tuple[list[str]], kwargs: TYPE_kwargs) -> bool:
         return self.hotdoc.run_hotdoc([f'--has-extension={extension}' for extension in args[0]]) == 0
 
     @typed_pos_args('hotdoc.generate_doc', str)
@@ -453,16 +460,16 @@ class HotDocModule(ExtensionModule):
         KwargInfo('subprojects', ContainerTypeInfo(list, HotdocTarget), listify=True, default=[]),
         KwargInfo('install', bool, default=False),
         KwargInfo('build_by_default', bool, default=False),
-        allow_unknown=True
+        allow_unknown=True,
     )
-    def generate_doc(self, state: ModuleState, args: T.Tuple[str], kwargs: GenerateDocKwargs) -> ModuleReturnValue:
+    def generate_doc(self, state: ModuleState, args: tuple[str], kwargs: GenerateDocKwargs) -> ModuleReturnValue:
         project_name = args[0]
         if any(isinstance(x, (CustomTarget, CustomTargetIndex)) for x in kwargs['dependencies']):
             FeatureDeprecated.single_use('hotdoc.generate_doc dependencies argument with custom_target',
                                          '0.64.1', state.subproject, 'use `depends`', state.current_node)
         builder = HotdocTargetBuilder(project_name, state, self.hotdoc, self.interpreter, kwargs)
         target, install_script = builder.make_targets()
-        targets: T.List[T.Union[HotdocTarget, mesonlib.ExecutableSerialisation]] = [target]
+        targets: list[HotdocTarget | mesonlib.ExecutableSerialisation] = [target]
         if install_script:
             targets.append(install_script)
 

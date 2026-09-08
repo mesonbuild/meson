@@ -5,20 +5,19 @@ from __future__ import annotations
 
 import typing as T
 
-from .. import mlog
-from .. import build
+from .. import build, mlog
 from ..compilers import Compiler
 from ..interpreter.type_checking import BT_SOURCES_KW, STATIC_LIB_KWS
-from ..interpreterbase.decorators import KwargInfo, typed_pos_args, typed_kwargs
-
+from ..interpreterbase.decorators import KwargInfo, typed_kwargs, typed_pos_args
 from . import ExtensionModule, ModuleInfo
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing import Literal
 
-    from . import ModuleState
-    from ..interpreter import Interpreter, kwargs as kwtypes
+    from ..interpreter import Interpreter
+    from ..interpreter import kwargs as kwtypes
     from ..interpreter.type_checking import SourcesVarargsType
+    from . import ModuleState
 
     class CheckKw(kwtypes.StaticLibrary):
 
@@ -65,10 +64,10 @@ class SimdModule(ExtensionModule):
                   KwargInfo('compiler', Compiler, required=True),
                   *[BT_SOURCES_KW.evolve(name=iset, default=None) for iset in ISETS],
                   *[a for a in STATIC_LIB_KWS if a.name != 'sources'])
-    def check(self, state: ModuleState, args: T.Tuple[str], kwargs: CheckKw) -> T.List[T.Union[T.List[build.StaticLibrary], build.ConfigurationData]]:
-        result: T.List[build.StaticLibrary] = []
+    def check(self, state: ModuleState, args: tuple[str], kwargs: CheckKw) -> list[list[build.StaticLibrary] | build.ConfigurationData]:
+        result: list[build.StaticLibrary] = []
 
-        local_kwargs = set((*ISETS, 'compiler'))
+        local_kwargs = {*ISETS, 'compiler'}
         static_lib_kwargs = T.cast('kwtypes.StaticLibrary', {k: v for k, v in kwargs.items() if k not in local_kwargs})
 
         prefix = args[0]

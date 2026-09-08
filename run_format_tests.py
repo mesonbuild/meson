@@ -15,14 +15,15 @@ import os
 import re
 from pathlib import Path
 
+
 def check_file(file: Path) -> None:
     lines = file.read_bytes().split(b'\n')
     tabdetector = re.compile(br' *\t')
     for i, line in enumerate(lines):
         if re.match(tabdetector, line):
-            raise SystemExit("File {} contains a tab indent on line {:d}. Only spaces are permitted.".format(file, i + 1))
+            raise SystemExit(f"File {file} contains a tab indent on line {i + 1:d}. Only spaces are permitted.")
         if line.endswith(b'\r'):
-            raise SystemExit("File {} contains DOS line ending on line {:d}. Only unix-style line endings are permitted.".format(file, i + 1))
+            raise SystemExit(f"File {file} contains DOS line ending on line {i + 1:d}. Only unix-style line endings are permitted.")
 
 def check_format() -> None:
     check_suffixes = {'.c',
@@ -55,7 +56,7 @@ def check_format() -> None:
         '3 editorconfig',
     }
     for (root, _, filenames) in os.walk('.'):
-        if any([x in root for x in skip_dirs]):
+        if any(x in root for x in skip_dirs):
             continue
         for fname in filenames:
             file = Path(fname)

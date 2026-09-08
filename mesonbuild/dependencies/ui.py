@@ -10,13 +10,15 @@ import re
 import subprocess
 import typing as T
 
-from .. import mlog
-from .. import mesonlib
-from ..mesonlib import (
-    Popen_safe, version_compare_many
+from .. import mesonlib, mlog
+from ..mesonlib import Popen_safe, version_compare_many
+from .base import (
+    DependencyCandidate,
+    DependencyException,
+    DependencyMethods,
+    DependencyTypeName,
+    SystemDependency,
 )
-
-from .base import DependencyCandidate, DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
@@ -28,7 +30,7 @@ if T.TYPE_CHECKING:
 
 
 class GLDependencySystem(SystemDependency):
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs) -> None:
         super().__init__(name, environment, kwargs)
 
         if self.env.machines[self.for_machine].is_darwin():
@@ -37,27 +39,26 @@ class GLDependencySystem(SystemDependency):
             self.link_args = ['-framework', 'OpenGL']
             # FIXME: Detect version using self.clib_compiler
             return
-        elif self.env.machines[self.for_machine].is_windows():
+        if self.env.machines[self.for_machine].is_windows():
             self.is_found = True
             # FIXME: Use self.clib_compiler.find_library()
             self.link_args = ['-lopengl32']
             # FIXME: Detect version using self.clib_compiler
             return
-        else:
-            links = self.clib_compiler.find_library('GL', [])
-            has_header = self.clib_compiler.has_header('GL/gl.h', '')[0]
-            if links and has_header:
-                self.is_found = True
-                self.link_args = links
-            elif links:
-                raise DependencyException('Found GL runtime library but no development header files')
+        links = self.clib_compiler.find_library('GL', [])
+        has_header = self.clib_compiler.has_header('GL/gl.h', '')[0]
+        if links and has_header:
+            self.is_found = True
+            self.link_args = links
+        elif links:
+            raise DependencyException('Found GL runtime library but no development header files')
 
 class GnuStepDependency(ConfigToolDependency):
 
     tools = ['gnustep-config']
     tool_name = 'gnustep-config'
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs) -> None:
         kwargs['language'] = 'objc'
         super().__init__(name, environment, kwargs)
         if not self.is_found:
@@ -69,7 +70,7 @@ class GnuStepDependency(ConfigToolDependency):
             ['--gui-libs' if 'gui' in self.modules else '--base-libs'],
             'link_args'))
 
-    def find_config(self, versions: T.Optional[T.List[str]] = None, returncode: int = 0, exclude_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.Optional[T.List[str]], T.Optional[str]]:
+    def find_config(self, versions: list[str] | None = None, returncode: int = 0, exclude_paths: list[str] | None = None) -> tuple[list[str] | None, str | None]:
         tool = [self.tools[0]]
         try:
             p, out = Popen_safe(tool + ['--help'])[:2]
@@ -85,7 +86,7 @@ class GnuStepDependency(ConfigToolDependency):
         return (tool, found_version)
 
     @staticmethod
-    def weird_filter(elems: T.List[str]) -> T.List[str]:
+    def weird_filter(elems: list[str]) -> list[str]:
         """When building packages, the output of the enclosing Make is
         sometimes mixed among the subprocess output. I have no idea why. As a
         hack filter out everything that is not a flag.
@@ -93,17 +94,14 @@ class GnuStepDependency(ConfigToolDependency):
         return [e for e in elems if e.startswith('-')]
 
     @staticmethod
-    def filter_args(args: T.List[str]) -> T.List[str]:
+    def filter_args(args: list[str]) -> list[str]:
         """gnustep-config returns a bunch of garbage args such as -O2 and so
         on. Drop everything that is not needed.
         """
         result = []
         for f in args:
-            if f.startswith('-D') \
-                    or f.startswith('-f') \
-                    or f.startswith('-I') \
-                    or f == '-pthread' \
-                    or (f.startswith('-W') and not f == '-Wall'):
+            if (f.startswith(('-D', '-f', '-I')) or f == '-pthread' or
+                    (f.startswith('-W') and not f == '-Wall')):
                 result.append(f)
         return result
 
@@ -137,7 +135,7 @@ class SDL2DependencyConfigTool(ConfigToolDependency):
     tools = ['sdl2-config']
     tool_name = 'sdl2-config'
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
@@ -152,7 +150,7 @@ class WxDependency(ConfigToolDependency):
 
     # name is intentionally ignored to maintain existing capitalization,
     # but is needed for polymorphism
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs):
         kwargs['language'] = 'cpp'
         super().__init__('WxWidgets', environment, kwargs)
         if not self.is_found:
@@ -179,7 +177,7 @@ packages['wxwidgets'] = WxDependency
 
 class VulkanDependencySystem(SystemDependency):
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyObjectKWs) -> None:
         super().__init__(name, environment, kwargs)
 
         self.vulkan_sdk = os.environ.get('VULKAN_SDK', os.environ.get('VK_SDK_PATH'))

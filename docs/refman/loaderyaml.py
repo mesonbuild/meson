@@ -1,36 +1,46 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2021 The Meson development team
 
+import typing as T
+from pathlib import Path
+
+from mesonbuild import mesonlib, mlog
+
 from .loaderbase import LoaderBase
 from .model import (
-    Type,
-    PosArg,
-    VarArgs,
-    Kwarg,
     Function,
+    Kwarg,
     Method,
-    ObjectType,
     Object,
+    ObjectType,
+    PosArg,
     ReferenceManual,
+    Type,
+    VarArgs,
 )
 
-from mesonbuild import mlog
-from mesonbuild import mesonlib
-
-from pathlib import Path
-import typing as T
 
 class Template:
-    d_feature_check: T.Dict[str, T.Any] = {}
-    s_posarg: T.Dict[str, T.Any] = {}
-    s_varargs: T.Dict[str, T.Any] = {}
-    s_kwarg: T.Dict[str, T.Any] = {}
-    s_function: T.Dict[str, T.Any] = {}
-    s_object: T.Dict[str, T.Any] = {}
+    d_feature_check: dict[str, T.Any] = {}
+    s_posarg: dict[str, T.Any] = {}
+    s_varargs: dict[str, T.Any] = {}
+    s_kwarg: dict[str, T.Any] = {}
+    s_function: dict[str, T.Any] = {}
+    s_object: dict[str, T.Any] = {}
 
 class StrictTemplate(Template):
     def __init__(self) -> None:
-        from strictyaml import Map, MapPattern, Optional, Str, Seq, Int, Bool, EmptyList, OrValidator # type: ignore[import-untyped]
+        from strictyaml import (  # type: ignore[import-untyped]
+            Bool,
+            EmptyList,
+            Int,
+            Map,
+            MapPattern,
+            Optional,
+            OrValidator,
+            Seq,
+            Str,
+        )
 
         d_named_object = {
             'name': Str(),
@@ -89,11 +99,11 @@ class StrictTemplate(Template):
             Optional('warnings', default=[]): OrValidator(Seq(Str()), EmptyList()),
             Optional('example', default=''): Str(),
             Optional('methods'): Seq(self.s_function),
-            Optional('is_container', default=False): Bool()
+            Optional('is_container', default=False): Bool(),
         })
 
 class FastTemplate(Template):
-    d_feature_check: T.Dict[str, T.Any] = {
+    d_feature_check: dict[str, T.Any] = {
         'since': '',
         'deprecated': '',
     }
@@ -103,7 +113,7 @@ class FastTemplate(Template):
         'default': '',
     }
 
-    s_varargs: T.Dict[str, T.Any] = {
+    s_varargs: dict[str, T.Any] = {
         **d_feature_check,
         'min_varargs': -1,
         'max_varargs': -1,
@@ -155,8 +165,8 @@ class LoaderYAML(LoaderBase):
         template: Template
         if self.strict:
             import strictyaml
-            def loader(file: str, template: T.Any, label: str) -> T.Dict:
-                r: T.Dict = strictyaml.load(file, template, label=label).data
+            def loader(file: str, template: T.Any, label: str) -> dict:
+                r: dict = strictyaml.load(file, template, label=label).data
                 return r
 
             self._load = loader
@@ -164,7 +174,7 @@ class LoaderYAML(LoaderBase):
         else:
             import yaml
             from yaml import CLoader
-            def loader(file: str, template: T.Any, label: str) -> T.Dict:
+            def loader(file: str, template: T.Any, label: str) -> dict:
                 return {**template, **yaml.load(file, Loader=CLoader)}
 
             self._load = loader
@@ -172,7 +182,7 @@ class LoaderYAML(LoaderBase):
 
         self.template = template
 
-    def _fix_default(self, v: T.Dict) -> None:
+    def _fix_default(self, v: dict) -> None:
         if v["default"] is False:
             v["default"] = "false"
         elif v["default"] is True:
@@ -180,7 +190,7 @@ class LoaderYAML(LoaderBase):
         else:
             v["default"] = str(v["default"])
 
-    def _process_function_base(self, raw: T.Dict, obj: T.Optional[Object] = None) -> Function:
+    def _process_function_base(self, raw: dict, obj: Object | None = None) -> Function:
         # Handle arguments
         posargs = raw.pop('posargs', {})
         optargs = raw.pop('optargs', {})
@@ -192,10 +202,10 @@ class LoaderYAML(LoaderBase):
             raw['kwargs_inherit'] = [raw['kwargs_inherit']]
 
         # Parse args
-        posargs_mapped: T.List[PosArg] = []
-        optargs_mapped: T.List[PosArg] = []
-        varargs_mapped: T.Optional[VarArgs] = None
-        kwargs_mapped: T.Dict[str, Kwarg] = {}
+        posargs_mapped: list[PosArg] = []
+        optargs_mapped: list[PosArg] = []
+        varargs_mapped: VarArgs | None = None
+        kwargs_mapped: dict[str, Kwarg] = {}
 
         for k, v in posargs.items():
             if not self.strict:
@@ -244,7 +254,7 @@ class LoaderYAML(LoaderBase):
             **raw,
         )
 
-    def _load_function(self, path: Path, obj: T.Optional[Object] = None) -> Function:
+    def _load_function(self, path: Path, obj: Object | None = None) -> Function:
         path_label = path.relative_to(self.yaml_dir).as_posix()
         mlog.log('Loading', mlog.bold(path_label))
         raw = self._load(self.read_file(path), self.template.s_function, label=path_label)
@@ -252,11 +262,11 @@ class LoaderYAML(LoaderBase):
 
     def _load_object(self, obj_type: ObjectType, path: Path) -> Object:
         path_label = path.relative_to(self.yaml_dir).as_posix()
-        mlog.log(f'Loading', mlog.bold(path_label))
+        mlog.log('Loading', mlog.bold(path_label))
         raw = self._load(self.read_file(path), self.template.s_object, label=path_label)
 
-        def as_methods(mlist: T.List[Function]) -> T.List[Method]:
-            res: T.List[Method] = []
+        def as_methods(mlist: list[Function]) -> list[Method]:
+            res: list[Method] = []
             for i in mlist:
                 assert isinstance(i, Method)
                 res += [i]
@@ -273,7 +283,7 @@ class LoaderYAML(LoaderBase):
         obj.methods = as_methods(newmethods)
         return obj
 
-    def _load_module(self, path: Path) -> T.List[Object]:
+    def _load_module(self, path: Path) -> list[Object]:
         assert path.is_dir()
         module = self._load_object(ObjectType.MODULE, path / 'module.yaml')
         objs = []
@@ -294,8 +304,8 @@ class LoaderYAML(LoaderBase):
                     [self._load_object(ObjectType.ELEMENTARY, x) for x in self.elem_dir.iterdir()],
                     [self._load_object(ObjectType.RETURNED, x) for x in self.objs_dir.iterdir()],
                     [self._load_object(ObjectType.BUILTIN, x) for x in self.builtin_dir.iterdir()],
-                    [self._load_module(x) for x in self.modules_dir.iterdir()]
-                ], flatten=True)
+                    [self._load_module(x) for x in self.modules_dir.iterdir()],
+                ], flatten=True),
             )
 
             if not self.strict:

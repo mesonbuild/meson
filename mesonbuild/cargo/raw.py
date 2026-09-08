@@ -4,9 +4,11 @@
 """Type definitions for cargo manifest files."""
 
 from __future__ import annotations
-import typing as T
 
-from typing_extensions import Literal, TypedDict, Required
+import typing as T
+from typing import Literal
+
+from typing_extensions import Required, TypedDict
 
 EDITION = Literal['2015', '2018', '2021']
 CRATE_TYPE = Literal['bin', 'lib', 'dylib', 'staticlib', 'cdylib', 'rlib', 'proc-macro']
@@ -24,26 +26,26 @@ Package = TypedDict(
     'Package',
     {
         'name': Required[str],
-        'version': Required[T.Union[FromWorkspace, str]],
-        'authors': T.Union[FromWorkspace, T.List[str]],
-        'edition': T.Union[FromWorkspace, EDITION],
-        'rust-version': T.Union[FromWorkspace, str],
-        'description': T.Union[FromWorkspace, str],
-        'readme': T.Union[FromWorkspace, str],
-        'license': T.Union[FromWorkspace, str],
-        'license-file': T.Union[FromWorkspace, str],
-        'keywords': T.Union[FromWorkspace, T.List[str]],
-        'categories': T.Union[FromWorkspace, T.List[str]],
-        'homepage': T.Union[FromWorkspace, str],
-        'repository': T.Union[FromWorkspace, str],
-        'documentation': T.Union[FromWorkspace, str],
+        'version': Required[FromWorkspace | str],
+        'authors': FromWorkspace | list[str],
+        'edition': FromWorkspace | EDITION,
+        'rust-version': FromWorkspace | str,
+        'description': FromWorkspace | str,
+        'readme': FromWorkspace | str,
+        'license': FromWorkspace | str,
+        'license-file': FromWorkspace | str,
+        'keywords': FromWorkspace | list[str],
+        'categories': FromWorkspace | list[str],
+        'homepage': FromWorkspace | str,
+        'repository': FromWorkspace | str,
+        'documentation': FromWorkspace | str,
         'workspace': str,
         'build': str,
         'links': str,
-        'include': T.Union[FromWorkspace, T.List[str]],
-        'exclude': T.Union[FromWorkspace, T.List[str]],
-        'publish': T.Union[FromWorkspace, bool],
-        'metadata': T.Dict[str, T.Dict[str, str]],
+        'include': FromWorkspace | list[str],
+        'exclude': FromWorkspace | list[str],
+        'publish': FromWorkspace | bool,
+        'metadata': dict[str, dict[str, str]],
         'default-run': str,
         'autolib': bool,
         'autobins': bool,
@@ -75,14 +77,14 @@ Dependency = TypedDict(
         'optional': bool,
         'package': str,
         'default-features': bool,
-        'features': T.List[str],
+        'features': list[str],
     },
     total=False,
 )
 """An entry in the *dependencies sections."""
 
 
-DependencyV = T.Union[Dependency, str]
+DependencyV: T.TypeAlias = Dependency | str
 """A Dependency entry, either a string or a Dependency Dict."""
 
 
@@ -98,8 +100,8 @@ _BaseBuildTarget = TypedDict(
         'proc-macro': bool,
         'harness': bool,
         'edition': EDITION,
-        'crate-type': T.List[CRATE_TYPE],
-        'required-features': T.List[str],
+        'crate-type': list[CRATE_TYPE],
+        'required-features': list[str],
     },
     total=False,
 )
@@ -119,7 +121,7 @@ class Target(TypedDict):
 
     """Target entry in the Manifest File."""
 
-    dependencies: T.Dict[str, T.Union[FromWorkspace, DependencyV]]
+    dependencies: dict[str, FromWorkspace | DependencyV]
 
 
 Lint = TypedDict(
@@ -127,7 +129,7 @@ Lint = TypedDict(
     {
         'level': Required[LINT_LEVEL],
         'priority': int,
-        'check-cfg': T.List[str],
+        'check-cfg': list[str],
     },
     total=True,
 )
@@ -138,7 +140,7 @@ dictionaries that point to Lint.
 """
 
 
-LintV = T.Union[Lint, str]
+LintV: T.TypeAlias = Lint | str
 """A Lint entry, either a string or a Lint Dict."""
 
 
@@ -153,28 +155,28 @@ class Workspace(TypedDict):
     the :attribute:`exclude` is always optional
     """
 
-    members: T.List[str]
-    exclude: T.List[str]
+    members: list[str]
+    exclude: list[str]
     package: Package
-    dependencies: T.Dict[str, DependencyV]
+    dependencies: dict[str, DependencyV]
 
 
 Profile = TypedDict(
     'Profile',
     {
-        'opt-level': T.Union[int, str],
-        'debug': T.Union[bool, int, str],
+        'opt-level': int | str,
+        'debug': bool | int | str,
         'split-debuginfo': str,
-        'strip': T.Union[bool, str],
+        'strip': bool | str,
         'debug-assertions': bool,
         'overflow-checks': bool,
-        'lto': T.Union[bool, str],
+        'lto': bool | str,
         'panic': str,
         'incremental': bool,
         'codegen-units': int,
         'rpath': bool,
         'inherits': str,
-        'package': T.Dict[str, 'Profile'],
+        'package': dict[str, 'Profile'],
         'build-override': 'Profile',
     },
     total=False,
@@ -189,21 +191,21 @@ Manifest = TypedDict(
     'Manifest',
     {
         'package': Package,
-        'badges': T.Dict[str, Badge],
-        'dependencies': T.Dict[str, T.Union[FromWorkspace, DependencyV]],
-        'dev-dependencies': T.Dict[str, T.Union[FromWorkspace, DependencyV]],
-        'build-dependencies': T.Dict[str, T.Union[FromWorkspace, DependencyV]],
+        'badges': dict[str, Badge],
+        'dependencies': dict[str, FromWorkspace | DependencyV],
+        'dev-dependencies': dict[str, FromWorkspace | DependencyV],
+        'build-dependencies': dict[str, FromWorkspace | DependencyV],
         'lib': LibTarget,
-        'bin': T.List[BuildTarget],
-        'test': T.List[BuildTarget],
-        'bench': T.List[BuildTarget],
-        'example': T.List[BuildTarget],
-        'features': T.Dict[str, T.List[str]],
-        'target': T.Dict[str, Target],
+        'bin': list[BuildTarget],
+        'test': list[BuildTarget],
+        'bench': list[BuildTarget],
+        'example': list[BuildTarget],
+        'features': dict[str, list[str]],
+        'target': dict[str, Target],
         'workspace': Workspace,
-        'lints': T.Union[FromWorkspace, T.Dict[str, T.Dict[str, LintV]]],
-        'patch': T.Dict[str, object],
-        'profile': T.Dict[str, Profile],
+        'lints': FromWorkspace | dict[str, dict[str, LintV]],
+        'patch': dict[str, object],
+        'profile': dict[str, Profile],
 
         # TODO: replace?
     },
@@ -227,5 +229,5 @@ class CargoLock(TypedDict, total=False):
     """A description of the Cargo.lock file format."""
 
     version: int
-    package: T.List[CargoLockPackage]
-    metadata: T.Dict[str, str]
+    package: list[CargoLockPackage]
+    metadata: dict[str, str]

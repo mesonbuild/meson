@@ -5,28 +5,28 @@ from __future__ import annotations
 
 import difflib
 import re
+import sys
 import typing as T
 from configparser import ConfigParser, MissingSectionHeaderError, ParsingError
 from copy import deepcopy
-from dataclasses import dataclass, field, fields, asdict
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
-import sys
 
 from . import mparser
-from .mesonlib import MesonException, pathname_sort_key
 from .ast.postprocess import AstConditionLevel
 from .ast.printer import RawPrinter
 from .ast.visitor import FullAstVisitor
 from .environment import build_filename
+from .mesonlib import MesonException, pathname_sort_key
 
 if T.TYPE_CHECKING:
     import argparse
-    from typing_extensions import Literal
+    from typing import Literal
 
 
 class DefaultConfigParser(ConfigParser):
 
-    def __init__(self, delimiters: T.Tuple[str, ...] = ('=', ':')):
+    def __init__(self, delimiters: tuple[str, ...] = ('=', ':')):
         super().__init__(delimiters=delimiters, interpolation=None)
 
     def read_default(self, filename: Path) -> None:
@@ -37,8 +37,8 @@ class DefaultConfigParser(ConfigParser):
         except MissingSectionHeaderError:
             self.read_string(f'[{self.default_section}]\n' + filename.read_text(encoding='utf-8'))
 
-    def getstr(self, section: str, key: str, fallback: T.Optional[str] = None) -> T.Optional[str]:
-        value: T.Optional[str] = self.get(section, key, fallback=fallback)
+    def getstr(self, section: str, key: str, fallback: str | None = None) -> str | None:
+        value: str | None = self.get(section, key, fallback=fallback)
         if value:
             value = value.strip('"').strip("'")
         return value
@@ -47,7 +47,7 @@ class DefaultConfigParser(ConfigParser):
 def match_path(filename: str, pattern: str) -> bool:
     '''recursive glob match for editorconfig sections'''
     index = 0
-    num_ranges: T.List[T.Tuple[int, int]] = []
+    num_ranges: list[tuple[int, int]] = []
 
     def curl_replace(m: re.Match) -> str:
         nonlocal index
@@ -57,8 +57,7 @@ def match_path(filename: str, pattern: str) -> bool:
             low, high = m[1].split('\\.\\.')
             num_ranges.append((int(low), int(high)))
             return f'(?P<num{index}>-?[0-9]+)'
-        else:
-            return T.cast(str, m[1].replace(',', '|'))
+        return T.cast(str, m[1].replace(',', '|'))
 
     pattern_re = pattern.replace('.', '\\.')
     pattern_re = re.sub(r'(?<!\\)\?', '.', pattern_re)  # ? -> .
@@ -88,89 +87,89 @@ def match_path(filename: str, pattern: str) -> bool:
 @dataclass
 class EditorConfig:
 
-    indent_style: T.Optional[Literal['space', 'tab']] = field(default=None, metadata={'getter': DefaultConfigParser.get})
-    indent_size: T.Optional[int] = field(default=None, metadata={'getter': DefaultConfigParser.getint})
-    tab_width: T.Optional[int] = field(default=None, metadata={'getter': DefaultConfigParser.getint})
-    end_of_line: T.Optional[Literal['lf', 'cr', 'crlf']] = field(default=None, metadata={'getter': DefaultConfigParser.get})
-    charset: T.Optional[Literal['latin1', 'utf-8', 'utf-8-bom', 'utf-16be', 'utf-16le']] = field(default=None, metadata={'getter': DefaultConfigParser.get})
-    trim_trailing_whitespace: T.Optional[bool] = field(default=None, metadata={'getter': DefaultConfigParser.getboolean})
-    insert_final_newline: T.Optional[bool] = field(default=None, metadata={'getter': DefaultConfigParser.getboolean})
-    max_line_length: T.Optional[T.Union[Literal['off'], int]] = field(default=None, metadata={'getter': DefaultConfigParser.get})
+    indent_style: Literal['space', 'tab'] | None = field(default=None, metadata={'getter': DefaultConfigParser.get})
+    indent_size: int | None = field(default=None, metadata={'getter': DefaultConfigParser.getint})
+    tab_width: int | None = field(default=None, metadata={'getter': DefaultConfigParser.getint})
+    end_of_line: Literal['lf', 'cr', 'crlf'] | None = field(default=None, metadata={'getter': DefaultConfigParser.get})
+    charset: Literal['latin1', 'utf-8', 'utf-8-bom', 'utf-16be', 'utf-16le'] | None = field(default=None, metadata={'getter': DefaultConfigParser.get})
+    trim_trailing_whitespace: bool | None = field(default=None, metadata={'getter': DefaultConfigParser.getboolean})
+    insert_final_newline: bool | None = field(default=None, metadata={'getter': DefaultConfigParser.getboolean})
+    max_line_length: Literal['off'] | int | None = field(default=None, metadata={'getter': DefaultConfigParser.get})
 
 
 @dataclass
 class FormatterConfig:
 
     # Config keys compatible with muon
-    max_line_length: T.Optional[int] = field(
+    max_line_length: int | None = field(
         default=None,
         metadata={'getter': DefaultConfigParser.getint,
                   'default': 80,
                   })
-    indent_by: T.Optional[str] = field(
+    indent_by: str | None = field(
         default=None,
         metadata={'getter': DefaultConfigParser.getstr,
                   'default': '    ',
                   })
-    space_array: T.Optional[bool] = field(
+    space_array: bool | None = field(
         default=None,
         metadata={'getter': DefaultConfigParser.getboolean,
                   'default': False,
                   })
-    kwargs_force_multiline: T.Optional[bool] = field(
+    kwargs_force_multiline: bool | None = field(
         default=None,  # kwa_ml
         metadata={'getter': DefaultConfigParser.getboolean,
                   'default': False,
                   })
-    wide_colon: T.Optional[bool] = field(
+    wide_colon: bool | None = field(
         default=None,
         metadata={'getter': DefaultConfigParser.getboolean,
                   'default': False,
                   })
-    no_single_comma_function: T.Optional[bool] = field(
+    no_single_comma_function: bool | None = field(
         default=None,
         metadata={'getter': DefaultConfigParser.getboolean,
                   'default': False,
                   })
 
     # Additional config keys
-    end_of_line: T.Optional[Literal['cr', 'lf', 'crlf', 'native']] = field(
+    end_of_line: Literal['cr', 'lf', 'crlf', 'native'] | None = field(
         default=None,
         metadata={'getter': DefaultConfigParser.getstr,
                   'default': 'native',
                   })
-    indent_before_comments: T.Optional[str] = field(
+    indent_before_comments: str | None = field(
         default=None,
         metadata={'getter': DefaultConfigParser.getstr,
                   'default': '  ',
                   })
-    simplify_string_literals: T.Optional[bool] = field(
+    simplify_string_literals: bool | None = field(
         default=None,
         metadata={'getter': DefaultConfigParser.getboolean,
                   'default': True,
                   })
-    insert_final_newline: T.Optional[bool] = field(
+    insert_final_newline: bool | None = field(
         default=None,
         metadata={'getter': DefaultConfigParser.getboolean,
                   'default': True,
                   })
-    tab_width: T.Optional[int] = field(
+    tab_width: int | None = field(
         default=None,
         metadata={'getter': DefaultConfigParser.getint,
                   'default': 4,
-                  }
+                  },
     )
-    sort_files: T.Optional[bool] = field(
+    sort_files: bool | None = field(
         default=None,
         metadata={'getter': DefaultConfigParser.getboolean,
                   'default': False,
                   })
-    group_arg_value: T.Optional[bool] = field(
+    group_arg_value: bool | None = field(
         default=None,
         metadata={'getter': DefaultConfigParser.getboolean,
                   'default': False,
                   })
-    use_editor_config: T.Optional[bool] = field(
+    use_editor_config: bool | None = field(
         default=None,
         metadata={'getter': DefaultConfigParser.getboolean,
                   'default': False,
@@ -216,7 +215,7 @@ class FormatterConfig:
         return config
 
     @property
-    def newline(self) -> T.Optional[str]:
+    def newline(self) -> str | None:
         if self.end_of_line == 'crlf':
             return '\r\n'
         if self.end_of_line == 'lf':
@@ -259,7 +258,7 @@ class MultilineArgumentDetector(FullAstVisitor):
 class MultilineParenthesesDetector(FullAstVisitor):
 
     def __init__(self) -> None:
-        self.last_whitespaces: T.Optional[mparser.WhitespaceNode] = None
+        self.last_whitespaces: mparser.WhitespaceNode | None = None
 
     def enter_node(self, node: mparser.BaseNode) -> None:
         self.last_whitespaces = None
@@ -767,9 +766,9 @@ class ComputeLineLengths(FullAstVisitor):
 
     def __init__(self, config: FormatterConfig, level: int):
         self.config = config
-        self.lengths: T.List[int] = []
+        self.lengths: list[int] = []
         self.length = 0
-        self.argument_stack: T.List[mparser.ArgumentNode] = []
+        self.argument_stack: list[mparser.ArgumentNode] = []
         self.level = level
         self.need_regenerate = False
 
@@ -877,7 +876,7 @@ class SubdirFetcher(FullAstVisitor):
     def __init__(self, current_dir: Path, fetch_subprojects: bool):
         self.current_dir = current_dir
         self.fetch_subprojects = fetch_subprojects
-        self.subdirs: T.List[Path] = []
+        self.subdirs: list[Path] = []
 
     def visit_FunctionNode(self, node: mparser.FunctionNode) -> None:
         if self.fetch_subprojects and node.func_name.value == 'subproject':
@@ -893,7 +892,7 @@ class SubdirFetcher(FullAstVisitor):
 
 class Formatter:
 
-    def __init__(self, configuration_file: T.Optional[Path], use_editor_config: bool, fetch_subdirs: bool, fetch_subprojects: bool = False):
+    def __init__(self, configuration_file: Path | None, use_editor_config: bool, fetch_subdirs: bool, fetch_subprojects: bool = False):
         self.fetch_subdirs = fetch_subdirs
         self.fetch_subprojects = fetch_subprojects
         self.use_editor_config = use_editor_config
@@ -901,7 +900,7 @@ class Formatter:
         self.current_config = self.config
 
         self.current_dir = Path()
-        self.subdirs: T.List[Path] = []
+        self.subdirs: list[Path] = []
 
     def load_editor_config(self, source_file: Path) -> EditorConfig:
         # See https://editorconfig.org/
@@ -943,7 +942,7 @@ class Formatter:
 
         return config
 
-    def load_configuration(self, configuration_file: T.Optional[Path]) -> FormatterConfig:
+    def load_configuration(self, configuration_file: Path | None) -> FormatterConfig:
         config = FormatterConfig()
         if configuration_file:
             cp = DefaultConfigParser()
@@ -1004,18 +1003,18 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     inplace_group.add_argument(
         '-q', '--check-only',
         action='store_true',
-        help='silently exit with 1 if files would be modified by meson format'
+        help='silently exit with 1 if files would be modified by meson format',
     )
     inplace_group.add_argument(
         '-d', '--check-diff',
         action='store_true',
         default=False,
-        help='exit with 1 and show diff if files would be modified by meson format'
+        help='exit with 1 and show diff if files would be modified by meson format',
     )
     inplace_group.add_argument(
         '-i', '--inplace',
         action='store_true',
-        help='format files in-place'
+        help='format files in-place',
     )
     parser.add_argument(
         '-r', '--recursive',
@@ -1031,32 +1030,32 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         '-c', '--configuration',
         metavar='meson.format',
         type=Path,
-        help='read configuration from meson.format'
+        help='read configuration from meson.format',
     )
     parser.add_argument(
         '-e', '--editor-config',
         action='store_true',
         default=False,
-        help='try to read configuration from .editorconfig'
+        help='try to read configuration from .editorconfig',
     )
     parser.add_argument(
         '-o', '--output',
         type=Path,
-        help='output file (implies having exactly one input)'
+        help='output file (implies having exactly one input)',
     )
     parser.add_argument(
         '--source-file-path',
         type=Path,
-        help='path to use, when reading from stdin'
+        help='path to use, when reading from stdin',
     )
     parser.add_argument(
         'sources',
         nargs='*',
         type=Path,
-        help='meson source files'
+        help='meson source files',
     )
 
-def get_meson_format(sources: T.List[Path]) -> T.Optional[Path]:
+def get_meson_format(sources: list[Path]) -> Path | None:
     for src_file in sources:
         for parent in src_file.resolve().parents:
             target = parent / 'meson.format'
@@ -1082,7 +1081,7 @@ def run(options: argparse.Namespace) -> int:
     if from_stdin and options.editor_config and not options.source_file_path:
         raise MesonException('using --editor-config with stdin input requires --source-file-path argument')
 
-    sources: T.List[Path] = options.sources.copy() or [Path(build_filename)]
+    sources: list[Path] = options.sources.copy() or [Path(build_filename)]
 
     if not options.configuration:
         options.configuration = get_meson_format(sources)
@@ -1101,7 +1100,7 @@ def run(options: argparse.Namespace) -> int:
                 code = sys.stdin.read()
             else:
                 code = src_file.read_text(encoding='utf-8')
-        except IOError as e:
+        except OSError as e:
             raise MesonException(f'Unable to read from {src_file}') from e
 
         formatted = formatter.format(code, src_file)
@@ -1112,7 +1111,7 @@ def run(options: argparse.Namespace) -> int:
             try:
                 with src_file.open('w', encoding='utf-8', newline=formatter.current_config.newline) as sf:
                     sf.write(formatted)
-            except IOError as e:
+            except OSError as e:
                 raise MesonException(f'Unable to write to {src_file}') from e
         elif options.check_only or options.check_diff:
             if code != formatted:
@@ -1129,7 +1128,7 @@ def run(options: argparse.Namespace) -> int:
             try:
                 with options.output.open('w', encoding='utf-8', newline=formatter.current_config.newline) as of:
                     of.write(formatted)
-            except IOError as e:
+            except OSError as e:
                 raise MesonException(f'Unable to write to {options.output}') from e
         else:
             print(formatted, end='')

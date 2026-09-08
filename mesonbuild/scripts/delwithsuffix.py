@@ -3,10 +3,11 @@
 
 from __future__ import annotations
 
-import os, sys
-import typing as T
+import os
+import sys
 
-def run(args: T.List[str]) -> int:
+
+def run(args: list[str]) -> int:
     if len(args) != 2:
         print('delwithsuffix.py <root of subdir to process> <suffix to delete>')
         sys.exit(1)
