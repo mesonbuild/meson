@@ -373,7 +373,7 @@ class ContainerTypeInfo:
         not be empty, and other cases where an empty container is allowed.
     """
 
-    def __init__(self, container: type, contains: type | tuple[type, ...], *,
+    def __init__(self, container: type[list] | type[dict], contains: type | tuple[type, ...], *,
                  pairs: bool = False, allow_empty: bool = True):
         self.container = container
         self.contains = contains
