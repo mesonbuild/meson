@@ -306,8 +306,10 @@ class InterpreterBase:
             if not isinstance(res, bool):
                 raise InvalidCode(f'If clause {result!r} does not evaluate to true or false.')
             prev_meson_version = mesonlib.project_meson_versions[self.subproject]
-            if self.tmp_meson_version and isinstance(prev_meson_version, mesonlib.Range):
-                always = prev_meson_version.always(self.tmp_meson_version)
+            # mypy does not know that evaluating the condition can set
+            # self.tmp_meson_version.
+            if self.tmp_meson_version and isinstance(prev_meson_version, mesonlib.Range): # type: ignore[unreachable]
+                always = prev_meson_version.always(self.tmp_meson_version) # type: ignore[unreachable]
                 if always is not None:
                     mlog.warning(f"Conditional on version '{self.tmp_meson_version}' always evaluates to {str(always).lower()}",
                                  location=self.current_node)
