@@ -1003,7 +1003,7 @@ SHARED_MOD_KWS = [
 _EXCLUSIVE_JAR_KWS: T.List[KwargInfo] = [
     KwargInfo('main_class', str, default=''),
     KwargInfo('java_resources', (StructuredSources, NoneType), since='0.62.0'),
-    _JAVA_LANG_KW.evolve(deprecated=None, deprecated_message=None),
+    _JAVA_LANG_KW.evolve(deprecated=None),
 ]
 
 # The total list of arguments used by JAR

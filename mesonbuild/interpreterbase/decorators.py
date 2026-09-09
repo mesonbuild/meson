@@ -51,10 +51,10 @@ if T.TYPE_CHECKING:
         listify: bool
         default: _T | None
         since: str | None
-        since_message: str | None
+        since_message: str
         since_values: _FeatureValues | None
         deprecated: str | None
-        deprecated_message: str | None
+        deprecated_message: str
         deprecated_values: _FeatureValues | None
         feature_validator: T.Callable[[_T], T.Iterable[FeatureCheckBase]] | None
         validator: T.Callable[[T.Any], str | None] | None
@@ -470,10 +470,10 @@ class KwargInfo(T.Generic[_T]):
     listify: bool = dataclasses.field(default=False, kw_only=True)
     default: _T | None = dataclasses.field(default=None, kw_only=True)
     since: str | None = dataclasses.field(default=None, kw_only=True)
-    since_message: str | None = dataclasses.field(default=None, kw_only=True)
+    since_message: str = dataclasses.field(default='', kw_only=True)
     since_values: _FeatureValues | None = dataclasses.field(default=None, kw_only=True)
     deprecated: str | None = dataclasses.field(default=None, kw_only=True)
-    deprecated_message: str | None = dataclasses.field(default=None, kw_only=True)
+    deprecated_message: str = dataclasses.field(default='', kw_only=True)
     deprecated_values: _FeatureValues | None = dataclasses.field(default=None, kw_only=True)
     feature_validator: T.Callable[[_T], T.Iterable[FeatureCheckBase]] | None = \
         dataclasses.field(default=None, kw_only=True)
@@ -526,7 +526,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                     if isinstance(version, tuple):
                         version, msg = version
                     else:
-                        msg = None
+                        msg = ''
 
                     warning: T.Optional[str] = None
                     if isinstance(n, ContainerTypeInfo):
