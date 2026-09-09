@@ -153,12 +153,16 @@ _DEPENDS_KW: KwargInfo[T.List[build.BuildTargetTypes]] = KwargInfo(
     listify=True,
     default=[],
 )
+
+def _prefix_convertor(x: T.List[str] | str) -> str:
+    return '\n'.join(x) if isinstance(x, list) else x
+
 _PREFIX_KW: KwargInfo[str] = KwargInfo(
     'prefix',
     (str, ContainerTypeInfo(list, str)),
     default='',
     since_values={list: '1.0.0'},
-    convertor=lambda x: '\n'.join(x) if isinstance(x, list) else x)
+    convertor=_prefix_convertor)
 
 _NO_BUILTIN_ARGS_KW = KwargInfo('no_builtin_args', bool, default=False)
 _NAME_KW = KwargInfo('name', str, default='')
