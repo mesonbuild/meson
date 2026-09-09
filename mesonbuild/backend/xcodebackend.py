@@ -434,32 +434,23 @@ class XCodeBackend(backends.Backend):
         self.target_filemap: dict[str, str] = {}
         for name, t in self.build_targets.items():
             for s in t.sources:
-                if isinstance(s, mesonlib.File):
-                    if '/' in s.fname:
-                        # From the top level down, add the folders containing the source file.
-                        folder = os.path.split(os.path.dirname(s.fname))
-                        while folder:
-                            fpath = os.path.join(*folder)
-                            # Multiple targets might use the same folders, so store their targets with them.
-                            # Otherwise, folders and their source files will appear in the wrong places in Xcode.
-                            if (fpath, t) not in self.foldermap:
-                                self.foldermap[(fpath, t)] = self.gen_id()
-                            else:
-                                break
-                            folder = folder[:-1]
-                    s = os.path.join(s.subdir, s.fname)
-                    self.filemap[s] = self.gen_id()
-            for o in t.objects:
-                if isinstance(o, str):
-                    o = os.path.join(t.subdir, o)
-                    self.filemap[o] = self.gen_id()
+                if '/' in s.fname:
+                    # From the top level down, add the folders containing the source file.
+                    folder = os.path.split(os.path.dirname(s.fname))
+                    while folder:
+                        fpath = os.path.join(*folder)
+                        # Multiple targets might use the same folders, so store their targets with them.
+                        # Otherwise, folders and their source files will appear in the wrong places in Xcode.
+                        if (fpath, t) not in self.foldermap:
+                            self.foldermap[(fpath, t)] = self.gen_id()
+                        else:
+                            break
+                        folder = folder[:-1]
+                s = os.path.join(s.subdir, s.fname)
+                self.filemap[s] = self.gen_id()
             for e in t.extra_files:
-                if isinstance(e, mesonlib.File):
-                    e = os.path.join(e.subdir, e.fname)
-                    self.filemap[e] = self.gen_id()
-                else:
-                    e = os.path.join(t.subdir, e)
-                    self.filemap[e] = self.gen_id()
+                e = os.path.join(e.subdir, e.fname)
+                self.filemap[e] = self.gen_id()
             self.target_filemap[name] = self.gen_id()
 
     def generate_buildstylemap(self) -> None:
@@ -523,8 +514,6 @@ class XCodeBackend(backends.Backend):
         self.custom_target_output_fileref = {}
         for tname, t in self.custom_targets.items():
             self.shell_targets[tname] = self.gen_id()
-            if not isinstance(t, build.CustomTarget):
-                continue
             (srcs, ofilenames, cmd) = self.eval_custom_target_command(t)
             for o in ofilenames:
                 self.custom_target_output_buildfile[o] = self.gen_id()
@@ -751,8 +740,6 @@ class XCodeBackend(backends.Backend):
                         fw_dict.add_item('fileRef', self.native_frameworks_fileref[f], f)
 
             for s in t.sources:
-                if not isinstance(s, mesonlib.File):
-                    continue
                 in_build_dir = s.is_built
                 s = os.path.join(s.subdir, s.fname)
                 sdict = PbxDict()
@@ -775,8 +762,6 @@ class XCodeBackend(backends.Backend):
                     continue
                 if isinstance(o, mesonlib.File):
                     o = os.path.join(o.subdir, o.fname)
-                elif isinstance(o, str):
-                    o = os.path.join(t.subdir, o)
                 else:
                     # TODO: handle CustomTarget | CustomTargetIndex | GeneratedList
                     raise MesonBugException('Not implemented, patches highly welcome')
@@ -801,8 +786,6 @@ class XCodeBackend(backends.Backend):
 
         # Custom targets are shell build phases in Xcode terminology.
         for tname, t in self.custom_targets.items():
-            if not isinstance(t, build.CustomTarget):
-                continue
             (srcs, ofilenames, cmd) = self.eval_custom_target_command(t)
             for o in ofilenames:
                 custom_dict = PbxDict()
@@ -910,8 +893,6 @@ class XCodeBackend(backends.Backend):
                         fw_dict.add_item('path', f'System/Library/Frameworks/{f}.framework')
                         fw_dict.add_item('sourceTree', 'SDKROOT')
             for s in t.sources:
-                if not isinstance(s, mesonlib.File):
-                    continue
                 in_build_dir = s.is_built
                 s = os.path.join(s.subdir, s.fname)
                 idval = self.fileref_ids[(tname, s)]
@@ -964,9 +945,6 @@ class XCodeBackend(backends.Backend):
                 if isinstance(o, mesonlib.File):
                     fullpath = o.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
                     o = os.path.join(o.subdir, o.fname)
-                elif isinstance(o, str):
-                    o = os.path.join(t.subdir, o)
-                    fullpath = os.path.join(self.environment.get_source_dir(), o)
                 else:
                     # TODO: handle CustomTarget, CustomTargeIndex, and GeneratedList
                     raise MesonBugException('Not implemented, patches highly welcome')
@@ -983,16 +961,12 @@ class XCodeBackend(backends.Backend):
                 o_dict.add_item('sourceTree', 'SOURCE_ROOT')
 
             for e in t.extra_files:
-                if isinstance(e, mesonlib.File):
-                    e = os.path.join(e.subdir, e.fname)
-                else:
-                    e = os.path.join(t.subdir, e)
-                idval = self.fileref_ids[(tname, e)]
-                fullpath = os.path.join(self.environment.get_source_dir(), e)
+                path = os.path.join(e.subdir, e.fname)
+                idval = self.fileref_ids[(tname, path)]
+                fullpath = os.path.join(self.environment.get_source_dir(), path)
                 e_dict = PbxDict()
-                xcodetype = self.get_xcodetype(e)
-                name = os.path.basename(e)
-                path = e
+                xcodetype = self.get_xcodetype(path)
+                name = os.path.basename(path)
                 objects_dict.add_item(idval, e_dict, fullpath)
                 e_dict.add_item('isa', 'PBXFileReference')
                 e_dict.add_item('explicitFileType', xcodetype)
@@ -1021,8 +995,6 @@ class XCodeBackend(backends.Backend):
             target_dict.add_item('sourceTree', 'BUILT_PRODUCTS_DIR')
 
         for tname, t in self.custom_targets.items():
-            if not isinstance(t, build.CustomTarget):
-                continue
             (srcs, ofilenames, cmd) = self.eval_custom_target_command(t)
             for s in t.sources:
                 if not isinstance(s, mesonlib.File):
@@ -1191,8 +1163,6 @@ class XCodeBackend(backends.Backend):
         target_dict.add_item('sourceTree', '<group>')
         source_files_dict = PbxDict()
         for s in t.sources:
-            if not isinstance(s, mesonlib.File):
-                continue
             # If the file is in a folder, add it to the group representing that folder.
             if '/' in s.fname:
                 folder = '/'.join(s.fname.split('/')[:-1])
@@ -1214,20 +1184,13 @@ class XCodeBackend(backends.Backend):
                 continue
             if isinstance(o, mesonlib.File):
                 o = os.path.join(o.subdir, o.fname)
-            elif isinstance(o, str):
-                o = os.path.join(t.subdir, o)
             else:
                 # TODO: handle CustomTarget, CustomTargeIndex, and GeneratedList
                 raise MesonBugException('Not implemented, patches highly welcome')
             target_children.add_item(self.fileref_ids[(tid, o)], o)
         for e in t.extra_files:
-            if isinstance(e, mesonlib.File):
-                e = os.path.join(e.subdir, e.fname)
-            elif isinstance(e, str):
-                e = os.path.join(t.subdir, e)
-            else:
-                continue
-            target_children.add_item(self.fileref_ids[(tid, e)], e)
+            f = os.path.join(e.subdir, e.fname)
+            target_children.add_item(self.fileref_ids[(tid, f)], f)
         source_files_dict.add_item('name', 'Source files')
         source_files_dict.add_item('sourceTree', '<group>')
         return group_id
@@ -1417,8 +1380,6 @@ class XCodeBackend(backends.Backend):
     def generate_custom_target_shell_build_phases(self, objects_dict: PbxDict) -> None:
         # Custom targets are shell build phases in Xcode terminology.
         for tname, t in self.custom_targets.items():
-            if not isinstance(t, build.CustomTarget):
-                continue
             (srcs, ofilenames, cmd) = self.eval_custom_target_command(t, absolute_outputs=True)
             fixed_cmd, _ = self.as_meson_exe_cmdline(cmd[0],
                                                      cmd[1:],
