@@ -1198,7 +1198,6 @@ class _CustomTargetHolder(ObjectHolder[_CT]):
     def to_list_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[build.CustomTargetIndex]:
         return list(self.held_object)
 
-    @noKwargs
     @typed_operator(MesonOperator.INDEX, int)
     @InterpreterObject.operator(MesonOperator.INDEX)
     def op_index(self, other: int) -> build.CustomTargetIndex:
