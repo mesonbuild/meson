@@ -613,7 +613,7 @@ BUILD_SUBDIR_KW: KwargInfo[str] = KwargInfo(
     since='1.10.0'
 )
 
-def _objects_validator(vals: T.List[ObjectTypes]) -> T.Optional[str]:
+def _objects_validator(vals: T.List[ObjectTypes | GeneratedTypes]) -> T.Optional[str]:
     non_objects: T.List[str] = []
 
     for val in vals:
