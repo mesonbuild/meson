@@ -155,7 +155,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
         # If no bounds are given, compute them in the limit of int32
         maxint = 0x7fffffff
         minint = -0x80000000
-        if not isinstance(low, int) or not isinstance(high, int):
+        if low is None or high is None:
             if self._compile_int(f'{expression} >= 0', prefix, extra_args, dependencies):
                 low = cur = 0
                 while self._compile_int(f'{expression} > {cur}', prefix, extra_args, dependencies):

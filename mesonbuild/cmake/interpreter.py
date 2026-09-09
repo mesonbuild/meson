@@ -346,7 +346,7 @@ class ConverterTarget:
                     self.override_options += [f'{i}_std={std}']
                 elif j in {'-fPIC', '-fpic', '-fPIE', '-fpie'}:
                     self.pie = True
-                elif isinstance(ctgt, ConverterCustomTarget):
+                elif ctgt is not None:
                     # Sometimes projects pass generated source files as compiler
                     # flags. Add these as generated sources to ensure that the
                     # corresponding custom target is run.2
