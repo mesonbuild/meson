@@ -35,6 +35,8 @@ if T.TYPE_CHECKING:
 class RewriterException(MesonException):
     pass
 
+_T = T.TypeVar('_T')
+
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: ArgumentParser, formatter: _FormatterClass) -> None:
@@ -177,31 +179,35 @@ class MTypeID(MTypeBase):
     def supported_nodes(cls) -> T.List[type]:
         return [IdNode]
 
-class MTypeList(MTypeBase):
+class MTypeList(MTypeBase, T.Generic[_T]):
     node: ArrayNode
 
     def __init__(self, node: T.Optional[BaseNode] = None):
         super().__init__(node)
 
     @classmethod
-    def new_node(cls, value: T.Optional[T.List[T.Any]] = None) -> ArrayNode:
+    def new_node(cls, value: T.Union[_T, T.List[_T], None] = None) -> BaseNode:
         if value is None:
-            value = []
-        elif not isinstance(value, list):
-            return cls._new_element_node(value)
+            return cls._new_array_node([])
+        elif isinstance(value, list):
+            return cls._new_array_node(value)
+        return cls._new_element_node(value)
+
+    @classmethod
+    def _new_array_node(cls, value: T.List[_T]) -> ArrayNode:
         args = ArgumentNode(Token('', '', 0, 0, 0, None, ''))
         args.arguments = [cls._new_element_node(i) for i in value]
         return ArrayNode(_symbol('['), args, _symbol(']'))
 
     @classmethod
-    def _new_element_node(cls, value: T.Any) -> BaseNode:
+    def _new_element_node(cls, value: _T) -> BaseNode:
         # Overwrite in derived class
         raise RewriterException('Internal error: _new_element_node of MTypeList was called')
 
     def _ensure_array_node(self) -> None:
         if not isinstance(self.node, ArrayNode):
             tmp = self.node
-            self.node = self.new_node()
+            self.node = self._new_array_node([])
             self.node.args.arguments = [tmp]
 
     @staticmethod
@@ -262,7 +268,7 @@ class MTypeList(MTypeBase):
     def remove_regex(self, regex: str) -> None:
         self._remove_helper(regex, self._check_regex_matches)
 
-class MTypeStrList(MTypeList):
+class MTypeStrList(MTypeList[str]):
     def __init__(self, node: T.Optional[BaseNode] = None):
         super().__init__(node)
 
@@ -286,7 +292,7 @@ class MTypeStrList(MTypeList):
     def supported_element_nodes(cls) -> T.List[T.Type]:
         return [StringNode]
 
-class MTypeIDList(MTypeList):
+class MTypeIDList(MTypeList[str]):
     def __init__(self, node: T.Optional[BaseNode] = None):
         super().__init__(node)
 
