@@ -34,7 +34,7 @@ if T.TYPE_CHECKING:
         name: str
         executable: str
         deps: str
-        language: Literal['c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp', 'vala']
+        language: Literal['c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp', 'vala'] | None
         build: bool
         builddir: str
         force: bool
