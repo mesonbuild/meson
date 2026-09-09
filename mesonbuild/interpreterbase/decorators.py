@@ -37,7 +37,7 @@ if T.TYPE_CHECKING:
         def __call__(s, self: _TV_IntegerObject, other: _TV_ARG1) -> TYPE_var: ...
     _TV_FN_Operator = T.TypeVar('_TV_FN_Operator', bound=FN_Operator)
 
-    CalleeArgs: TypeAlias = T.Tuple[mparser.BaseNode, T.List[TYPE_var], TYPE_kwargs, SubProject]
+    CalleeArgs: TypeAlias = T.Tuple[mparser.BaseNode | None, T.List[TYPE_var], TYPE_kwargs, SubProject]
 
     MesonVersionTarget = mesonlib.Range[mesonlib.Version] | mesonlib.NoProjectVersion | None
 
@@ -306,6 +306,7 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
                 raise InvalidArguments(f'"{name}" takes exactly {num_types} arguments, but got {num_args}.')
 
             for i, (arg, type_) in enumerate(itertools.zip_longest(args, a_types, fillvalue=varargs), start=1):
+                assert type_ is not None, 'variadic arguments should have been filtered above'
                 if not isinstance(arg, type_):
                     # if DefaultObject is an explicit allowed allowed type allow
                     # it through.
@@ -464,7 +465,7 @@ class KwargInfo(T.Generic[_T]):
     """
 
     name: str
-    types: type[_T] | ContainerTypeInfo | tuple[type[_T] | ContainerTypeInfo, ...]
+    types: type[None] | type[_T] | ContainerTypeInfo | tuple[type[None] | type[_T] | ContainerTypeInfo, ...]
     required: bool = dataclasses.field(default=False, kw_only=True)
     listify: bool = dataclasses.field(default=False, kw_only=True)
     default: _T | None = dataclasses.field(default=None, kw_only=True)

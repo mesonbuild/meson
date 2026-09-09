@@ -34,7 +34,7 @@ class InterpreterObject:
     TRIVIAL_OPERATORS: T.Dict[
         MesonOperator,
         T.Tuple[
-            T.Union[T.Type, T.Tuple[T.Type, ...]],
+            T.Type | T.Tuple[T.Type, ...] | None,
             TYPE_op_func
         ]
     ] = {}
@@ -99,7 +99,7 @@ class InterpreterObject:
     def __init__(self, *, subproject: T.Optional['SubProject'] = None) -> None:
         # Current node set during a method call. This can be used as location
         # when printing a warning message during a method call.
-        self.current_node:  mparser.BaseNode = None
+        self.current_node: mparser.BaseNode | None = None
         self.subproject = subproject or ROOT_SUBPROJECT
 
     # The type of the object that can be printed to the user
