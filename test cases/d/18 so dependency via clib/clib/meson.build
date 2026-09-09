@@ -6,7 +6,7 @@ exampleshlib_dep = exampleshlib_proj.get_variable('exampleshlib_dep')
 # D standard runtime library (Phobos) bundles a copy of zlib (etc.c.zlib) and exports zlib C symbols globally
 # thus any reference to zlib functions get resolved via D's standard library and that prevents reproducing the bug.
 # We try with libxml2 as another widely deployed library instead.
-libxml2_dep = dependency('libxml-2.0')
+libxml2_dep = dependency('libxml-2.0', required: false)
 if not libxml2_dep.found()
   error('MESON_SKIP_TEST requires libxml2')
 endif
