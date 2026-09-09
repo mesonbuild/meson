@@ -937,7 +937,7 @@ class SubprojectHolder(MesonInterpreterObject):
         return self.get_variable(args, kwargs)
 
 class ModuleObjectHolder(ObjectHolder[ModuleObject]):
-    def method_call(self, method_name: str, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> TYPE_var:
+    def method_call(self, method_name: str, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> TYPE_var | None:
         modobj = self.held_object
         method = modobj.methods.get(method_name)
         if not method:
