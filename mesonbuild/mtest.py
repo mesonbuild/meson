@@ -1396,6 +1396,13 @@ class TestSubprocess:
 
         return self.stdo_task, self.stde_task
 
+    @staticmethod
+    async def _wait_for_exit(p: asyncio.subprocess.Process, timeout: float) -> bool:
+        """Wait for the process to exit, return True if it did."""
+        with suppress(asyncio.TimeoutError):
+            await asyncio.wait_for(p.wait(), timeout=timeout)
+        return p.returncode is not None
+
     async def _kill(self) -> T.Optional[str]:
         # Python does not provide multiplatform support for
         # killing a process and all its children so we need
@@ -1411,25 +1418,19 @@ class TestSubprocess:
 
                 # Make sure the termination signal actually kills the process
                 # group, otherwise retry with a SIGKILL.
-                with suppress(asyncio.TimeoutError):
-                    await asyncio.wait_for(p.wait(), timeout=0.5)
-                if p.returncode is not None:
+                if await self._wait_for_exit(p, 0.5):
                     return None
 
                 os.killpg(p.pid, signal.SIGKILL)
 
-            with suppress(asyncio.TimeoutError):
-                await asyncio.wait_for(p.wait(), timeout=1)
-            if p.returncode is not None:
+            if await self._wait_for_exit(p, 1):
                 return None
 
             # An earlier kill attempt has not worked for whatever reason.
             # Try to kill it one last time with a direct call.
             # If the process has spawned children, they will remain around.
             p.kill()
-            with suppress(asyncio.TimeoutError):
-                await asyncio.wait_for(p.wait(), timeout=1)
-            if p.returncode is not None:
+            if await self._wait_for_exit(p, 1):
                 return None
             return 'Test process could not be killed.'
         except ProcessLookupError:
