@@ -177,7 +177,6 @@ class IntrospectionInterpreter(AstInterpreter):
             # Like flatten_args_hack(), the values are really TYPE_nvar.
             spdirname = T.cast('TYPE_nvar', kwargs['subproject_dir'])
             if isinstance(spdirname, StringNode):
-                assert isinstance(spdirname.value, str)
                 self.subproject_dir = spdirname.value
         if not self.is_subproject():
             self.project_data['subprojects'] = []

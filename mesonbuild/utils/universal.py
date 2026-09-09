@@ -1494,9 +1494,8 @@ def do_replacement_meson(regex: T.Pattern[str], line: str,
                         mlog.deprecation(msg)
                     var_str = str(var)
                 else:
-                    msg = f'Tried to replace variable {varname!r} value with ' \
-                          f'something other than a string or int: {var!r}'
-                    raise MesonException(msg)
+                    raise MesonBugException(f'Tried to replace variable {varname!r} value with '
+                                            f'something other than a string or int: {var!r}')
             else:
                 missing_variables.add(varname)
             return var_str
@@ -1521,9 +1520,8 @@ def do_replacement_cmake(line: str, at_only: bool,
             elif isinstance(var, int):
                 var_str = str(var)
             else:
-                msg = f'Tried to replace variable {varname!r} value with ' \
-                      f'something other than a string or int: {var!r}'
-                raise MesonException(msg)
+                raise MesonBugException(f'Tried to replace variable {varname!r} value with '
+                                        f'something other than a string or int: {var!r}')
         else:
             missing_variables.add(varname)
         return var_str

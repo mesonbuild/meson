@@ -2170,9 +2170,6 @@ class Vs2010Backend(backends.Backend):
     #
     # For now, assume it's the native ones. (same behavior as ninja backend)
     def get_masm_type(self, target: build.BuildTarget) -> T.Literal['marmasm', 'masm'] | None:
-        if not isinstance(target, build.BuildTarget):
-            return None
-
         if 'masm' not in target.compilers:
             return None
 

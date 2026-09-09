@@ -137,10 +137,8 @@ def cmake_defines_to_args(raw: T.List[T.Dict[str, TYPE_var]], permissive: bool =
                 mlog.warning('  --> Ignoring this option')
                 continue
             if isinstance(val, (str, int, float)):
+                # FIXME: should bool use ON/OFF instead?
                 res += [f'-D{key}={val}']
-            elif isinstance(val, bool):
-                val_str = 'ON' if val else 'OFF'
-                res += [f'-D{key}={val_str}']
             else:
                 raise MesonException('Type "{}" of "{}" is not supported as for a CMake define value'.format(type(val).__name__, key))
 

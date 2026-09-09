@@ -344,7 +344,8 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                 subp_name, varname = self.wrap_resolver.find_dep_provider(name)
                 if subp_name:
                     self.forcefallback |= subp_name in force_fallback_for
-                    if self.forcefallback or self.allow_fallback is True or required or self._get_subproject(subp_name):
+                    # allow_fallback's "| None" is invisible until this module is compiled with strict_optoinal
+                    if self.forcefallback or self.allow_fallback is True or required or self._get_subproject(subp_name): # type: ignore[unreachable]
                         self._subproject_impl(subp_name, varname)
                     break
 
