@@ -207,7 +207,7 @@ class TestSerialisation:
     needs_exe_wrapper: bool
     is_parallel: bool
     cmd_args: T.List[str]
-    env: mesonlib.EnvironmentVariables
+    env: T.Optional[mesonlib.EnvironmentVariables]
     expected_fail: bool
     expected_exitcode: T.Optional[int]
     timeout: T.Optional[int]
