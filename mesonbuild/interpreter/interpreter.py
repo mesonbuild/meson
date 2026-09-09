@@ -4030,9 +4030,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 outputs: T.Set[str] = set()
                 for f in v:
                     o: T.List[str]
-                    if isinstance(f, str):
-                        o = [os.path.basename(f)]
-                    elif isinstance(f, mesonlib.File):
+                    if isinstance(f, mesonlib.File):
                         o = [f.fname]
                     else:
                         o = f.get_outputs()

@@ -1317,7 +1317,8 @@ class NinjaBackend(backends.Backend):
         elif target.depfile_type == 'msvc':
             rulename = 'CUSTOM_COMMAND_MSVC_DEP'
         else:
-            rulename = 'CUSTOM_COMMAND'
+            # mypy does not see the "| None" until build.py is changed to strict_optional = True
+            rulename = 'CUSTOM_COMMAND' # type: ignore[unreachable]
         elem = NinjaBuildElement(self.all_outputs, ofilenames, rulename, srcs)
         elem.add_dep(deps)
 

@@ -241,13 +241,9 @@ class PbxDict:
                         ofile.write(indent_level*INDENT + f'{i.key} = ')
                     i.value.write(ofile, indent_level)
                 else:
-                    print(i)
-                    print(i.key)
-                    print(i.value)
-                    raise RuntimeError('missing code')
+                    raise MesonBugException('should be unreachable')
             else:
-                print(i)
-                raise RuntimeError('missing code2')
+                raise MesonBugException('should be unreachable')
 
         indent_level -= 1
         ofile.write(indent_level*INDENT + '}')

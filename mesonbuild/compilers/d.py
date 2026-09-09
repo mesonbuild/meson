@@ -502,8 +502,6 @@ class DCompiler(Compiler):
                 extra_args = extra_args(CompileCheckMode.COMPILE)
             if isinstance(extra_args, list):
                 args.extend(extra_args)
-            elif isinstance(extra_args, str):
-                args.append(extra_args)
         return args
 
     def run(self, code: 'mesonlib.FileOrString',

@@ -91,11 +91,6 @@ class OptionInterpreter:
         except mesonlib.MesonException as me:
             me.file = option_file
             raise me
-        if not isinstance(ast, mparser.CodeBlockNode):
-            e = OptionException('Option file is malformed.')
-            e.lineno = ast.lineno()
-            e.file = option_file
-            raise e
         for cur in ast.lines:
             try:
                 self.current_node = cur
