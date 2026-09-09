@@ -103,7 +103,6 @@ class ConvertAttrNode:
             list
         )
         self.all_select_instances: T.Dict[str, T.Set[SelectInstance]] = defaultdict(set)
-        self.common_custom_instances: T.Optional[T.Set[SelectInstance]] = None
         self.select_nodes: T.List[SelectNode] = []
 
     def add_common_values(self, values: T.List[str]) -> None:
@@ -115,13 +114,6 @@ class ConvertAttrNode:
 
     def add_conditional_values(self, label: T.Set[SelectInstance],
                                values: T.List[str]) -> None:  # fmt: skip
-        for select_instance in label:
-            if select_instance.select_id.select_kind is SelectKind.CUSTOM:
-                if self.common_custom_instances is None:
-                    self.common_custom_instances = {select_instance}
-                else:
-                    self.common_custom_instances &= {select_instance}
-
         for value in values:
             self.grouped_select_instances[value].append(label)
             for select_instance in label:
@@ -152,6 +144,16 @@ class ConvertAttrNode:
         as clean and minimal as possible.
         """
         for value, labels_list in self.grouped_select_instances.items():
+            common_custom_instances: T.Optional[T.Set[SelectInstance]] = None
+            for label in labels_list:
+                custom_instances = {
+                    inst for inst in label if inst.select_id.select_kind is SelectKind.CUSTOM
+                }
+                if common_custom_instances is None:
+                    common_custom_instances = set(custom_instances)
+                else:
+                    common_custom_instances &= custom_instances
+
             processed_labels: T.List[T.Set[SelectInstance]] = []
             for label in labels_list:
                 current_label = label.copy()
@@ -161,8 +163,8 @@ class ConvertAttrNode:
                         current_label -= group
 
                 # Remove common custom instances
-                if self.common_custom_instances is not None:
-                    for instance in self.common_custom_instances:
+                if common_custom_instances is not None:
+                    for instance in common_custom_instances:
                         if instance in all_custom_defaults:
                             current_label -= {instance}
 
