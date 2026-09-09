@@ -24,6 +24,7 @@ if T.TYPE_CHECKING:
     from ..compilers.compilers import Language
     from ..interpreterbase import TYPE_var
     from ..options import ElementaryOptionValues, OptionDict
+    from .interpreter import TYPE_nkwargs, TYPE_nvar
     from .visitor import AstVisitor
 
 
@@ -173,7 +174,8 @@ class IntrospectionInterpreter(AstInterpreter):
             )
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
-            spdirname = kwargs['subproject_dir']
+            # Like flatten_args_hack(), the values are really TYPE_nvar.
+            spdirname = T.cast('TYPE_nvar', kwargs['subproject_dir'])
             if isinstance(spdirname, StringNode):
                 assert isinstance(spdirname.value, str)
                 self.subproject_dir = spdirname.value
@@ -437,12 +439,13 @@ class IntrospectionInterpreter(AstInterpreter):
         return None
 
     def flatten_kwargs(self, kwargs: T.Dict[str, TYPE_var], include_unknown_args: bool = False) -> T.Dict[str, TYPE_var]:
-        flattened_kwargs = {}
-        for key, val in kwargs.items():
+        # Like flatten_args_hack(), the values are really TYPE_nvar.
+        flattened_kwargs: TYPE_nkwargs = {}
+        for key, val in T.cast('TYPE_nkwargs', kwargs).items():
             if isinstance(val, BaseNode):
                 resolved = self.node_to_runtime_value(val)
                 if resolved is not None:
                     flattened_kwargs[key] = resolved
             elif isinstance(val, (str, bool, int, float)) or include_unknown_args:
                 flattened_kwargs[key] = val
-        return flattened_kwargs
+        return T.cast('T.Dict[str, TYPE_var]', flattened_kwargs)
