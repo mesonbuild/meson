@@ -88,6 +88,8 @@ def match_path(filename: str, pattern: str) -> bool:
 @dataclass
 class EditorConfig:
 
+    # FIXME: these literals are not type-checked
+
     indent_style: T.Optional[Literal['space', 'tab']] = field(default=None, metadata={'getter': DefaultConfigParser.get})
     indent_size: T.Optional[int] = field(default=None, metadata={'getter': DefaultConfigParser.getint})
     tab_width: T.Optional[int] = field(default=None, metadata={'getter': DefaultConfigParser.getint})
