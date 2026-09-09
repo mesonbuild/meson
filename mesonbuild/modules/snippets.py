@@ -32,7 +32,7 @@ if T.TYPE_CHECKING:
         api: T.Optional[str]
         compilation: T.Optional[str]
         static_compilation: T.Optional[str]
-        static_only: bool
+        static_only: T.Optional[bool]
 
 
 class SnippetsModule(NewExtensionModule):

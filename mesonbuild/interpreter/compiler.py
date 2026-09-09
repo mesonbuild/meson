@@ -79,7 +79,7 @@ if T.TYPE_CHECKING:
 
         disabler: bool
         has_headers: T.List[str]
-        static: bool
+        static: bool | None
 
         # This list must be all of the `HeaderKW` values with `header_`
         # prepended to the key
