@@ -92,6 +92,10 @@ class CMakeTraceParser:
 
         self.explicit_headers: T.Set[Path] = set()
 
+        # Object dependencies set via set_source_files_properties(... OBJECT_DEPENDS ...),
+        # mapping the source file to the files its compilation depends on
+        self.object_depends: T.Dict[Path, T.List[str]] = {}
+
         # T.List of targes that were added with add_custom_command to generate files
         self.custom_targets: T.List[CMakeGeneratorTarget] = []
 
@@ -525,9 +529,10 @@ class CMakeTraceParser:
             else:
                 tgt.properties[identifier] = value
 
-        def do_source(src: str) -> None:
-            if identifier != 'HEADER_FILE_ONLY' or not self._str_to_bool(value):
-                return
+        def resolve_source(src: str) -> Path:
+            src_p = Path(src)
+            if src_p.is_absolute():
+                return src_p
 
             current_src_dir = self.var_to_str('MESON_PS_CMAKE_CURRENT_SOURCE_DIR')
             if not current_src_dir:
@@ -537,12 +542,14 @@ class CMakeTraceParser:
                 '''))
                 current_src_dir = '.'
 
-            cur_p = Path(current_src_dir)
-            src_p = Path(src)
+            return Path(current_src_dir) / src_p
 
-            if not src_p.is_absolute():
-                src_p = cur_p / src_p
-            self.explicit_headers.add(src_p)
+        def do_source(src: str) -> None:
+            if identifier == 'HEADER_FILE_ONLY':
+                if self._str_to_bool(value):
+                    self.explicit_headers.add(resolve_source(src))
+            elif identifier == 'OBJECT_DEPENDS':
+                self.object_depends.setdefault(resolve_source(src), []).extend(value)
 
         if scope == 'TARGET':
             for i in targets:
