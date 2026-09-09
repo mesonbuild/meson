@@ -93,10 +93,7 @@ class DlangModule(ExtensionModule):
                         ret, res = self._call_dubbin(['describe', name])
                         if ret == 0:
                             version = dep.get_version()
-                            if version is None:
-                                data[name] = ''
-                            else:
-                                data[name] = version
+                            data[name] = version
                 config[key] = data
             else:
                 def _do_validate(v: object) -> _JSONTypes:

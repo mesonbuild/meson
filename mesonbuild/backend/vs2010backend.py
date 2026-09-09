@@ -2173,13 +2173,7 @@ class Vs2010Backend(backends.Backend):
         if 'masm' not in target.compilers:
             return None
 
-        if target.for_machine == MachineChoice.BUILD:
-            platform = self.build_platform
-        elif target.for_machine == MachineChoice.HOST:
-            platform = self.platform
-        else:
-            return None
-
+        platform = self.build_platform if target.for_machine is MachineChoice.BUILD else self.platform
         if platform in {'ARM', 'arm64', 'arm64ec'}:
             return 'marmasm'
         else:

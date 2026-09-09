@@ -422,8 +422,6 @@ def run(options: argparse.Namespace) -> int:
     project = cls(dist_name, src_root, bld_root, b.dist_scripts, subprojects, options)
     names = project.create_dist(archives)
 
-    if names is None:
-        return 1
     rc = 0
     if not options.no_tests:
         # Check only one.
