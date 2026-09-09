@@ -26,7 +26,7 @@ if T.TYPE_CHECKING:
     from ..modules import ModuleObject, ModuleState
     from ..mparser import FunctionNode
     from ..optinterpreter import OptionInterpreter
-    from .baseobjects import InterpreterObject, ObjectHolder, TV_func, TYPE_var, TYPE_kwargs
+    from .baseobjects import InterpreterObject, TV_func, TYPE_var, TYPE_kwargs
     from .interpreterbase import InterpreterBase
     from .operator import MesonOperator
 
@@ -37,7 +37,7 @@ if T.TYPE_CHECKING:
         def __call__(s, self: _TV_IntegerObject, other: _TV_ARG1) -> TYPE_var: ...
     _TV_FN_Operator = T.TypeVar('_TV_FN_Operator', bound=FN_Operator)
 
-    CalleeArgs: TypeAlias = T.Tuple[mparser.BaseNode, T.Optional[T.List[TYPE_var]], T.Optional[TYPE_kwargs], SubProject]
+    CalleeArgs: TypeAlias = T.Tuple[mparser.BaseNode, T.List[TYPE_var], TYPE_kwargs, SubProject]
 
     MesonVersionTarget = mesonlib.Range[mesonlib.Version] | mesonlib.NoProjectVersion | None
 
@@ -73,10 +73,6 @@ def get_callee_args(wrapped_args: T.Tuple[InterpreterObject, T.List[TYPE_var], T
 
 
 @T.overload
-def get_callee_args(wrapped_args: T.Tuple[ObjectHolder, object]) -> CalleeArgs: ...
-
-
-@T.overload
 def get_callee_args(wrapped_args: T.Tuple[InterpreterBase, FunctionNode, T.List[TYPE_var], TYPE_kwargs]) -> CalleeArgs: ...
 
 
@@ -90,7 +86,6 @@ def get_callee_args(wrapped_args: T.Tuple[OptionInterpreter, T.List[TYPE_var], T
 
 def get_callee_args(wrapped_args: T.Union[
             T.Tuple[InterpreterObject, T.List[TYPE_var], TYPE_kwargs],
-            T.Tuple[ObjectHolder, object],
             T.Tuple[InterpreterBase, FunctionNode, T.List[TYPE_var], TYPE_kwargs],
             T.Tuple[ModuleObject, ModuleState, T.List[TYPE_var], TYPE_kwargs],
             T.Tuple[OptionInterpreter, T.List[TYPE_var], TYPE_kwargs],
@@ -99,14 +94,7 @@ def get_callee_args(wrapped_args: T.Union[
         s = wrapped_args[1]
     else:
         s = wrapped_args[0]
-    node = s.current_node
-    subproject = s.subproject
-    args: T.Optional[T.List[TYPE_var]] = None
-    kwargs: T.Optional[TYPE_kwargs] = None
-    if len(wrapped_args) >= 3:
-        args = wrapped_args[-2]
-        kwargs = wrapped_args[-1]
-    return node, args, kwargs, subproject
+    return s.current_node, wrapped_args[-2], wrapped_args[-1], s.subproject
 
 
 def noPosargs(f: TV_func) -> TV_func:
@@ -749,8 +737,6 @@ class FeatureCheckBase(metaclass=mesonlib.SimpleABC):
         @wraps(f)
         def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
             node, _, _, subproject = get_callee_args(wrapped_args)
-            if subproject is None:
-                raise AssertionError(f'{wrapped_args!r}')
             self.use(subproject, node)
             return f(*wrapped_args, **wrapped_kwargs)
         return T.cast('TV_func', wrapped)
