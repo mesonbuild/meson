@@ -11,7 +11,6 @@ of this is to have mixin's, which are classes that are designed *not* to be
 standalone, they only work through inheritance.
 """
 
-import collections
 import functools
 import glob
 import itertools
@@ -386,9 +385,6 @@ class CLikeCompiler(Compiler):
 
         if dependencies is None:
             dependencies = []
-        elif not isinstance(dependencies, collections.abc.Iterable):
-            # TODO: we want to ensure the front end does the listifing here
-            dependencies = [dependencies]
         # Collect compiler arguments
         cargs: arglist.CompilerArgs = self.compiler_args()
         largs: T.List[str] = []
@@ -1210,8 +1206,6 @@ class CLikeCompiler(Compiler):
         # These libraries are either built-in or invalid
         if libname in self.ignore_libs:
             return []
-        if isinstance(extra_dirs, str):
-            extra_dirs = [extra_dirs]
         key = (tuple(self.exelist), libname, tuple(extra_dirs), code, libtype, ignore_system_dirs, skip_link_check)
         if key not in self.find_library_cache:
             value = self._find_library_real(libname, extra_dirs, code, libtype, lib_prefix_warning, ignore_system_dirs, skip_link_check)
@@ -1270,8 +1264,6 @@ class CLikeCompiler(Compiler):
 
     def _find_framework_impl(self, name: str, extra_dirs: T.List[str],
                              allow_system: bool) -> T.Optional[T.List[str]]:
-        if isinstance(extra_dirs, str):
-            extra_dirs = [extra_dirs]
         key = (tuple(self.exelist), name, tuple(extra_dirs), allow_system)
         if key in self.find_framework_cache:
             value = self.find_framework_cache[key]
