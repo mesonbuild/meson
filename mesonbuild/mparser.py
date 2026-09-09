@@ -8,7 +8,7 @@ import codecs
 import os
 import typing as T
 
-from .mesonlib import MesonException
+from .mesonlib import MesonException, unwrap
 from . import mlog
 
 if T.TYPE_CHECKING:
@@ -855,7 +855,8 @@ class Parser:
                     temp_node.append_whitespaces(w)
 
                 not_token.bytespan = (not_token.bytespan[0], in_token.bytespan[1])
-                not_token.value += temp_node.whitespaces.value + in_token.value
+                # whitespace between not and in must have been added above
+                not_token.value += unwrap(temp_node.whitespaces).value + in_token.value
                 operator = self.create_node(SymbolNode, not_token)
                 return self.create_node(ComparisonNode, 'not in', left, operator, self.e5())
         return left
