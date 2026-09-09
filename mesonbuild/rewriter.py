@@ -180,6 +180,7 @@ class MTypeID(MTypeBase):
         return [IdNode]
 
 class MTypeList(MTypeBase, T.Generic[_T]):
+    # FIXME: incorrect, any node can be passed to __init__
     node: ArrayNode
 
     def __init__(self, node: T.Optional[BaseNode] = None):
@@ -205,7 +206,7 @@ class MTypeList(MTypeBase, T.Generic[_T]):
         raise RewriterException('Internal error: _new_element_node of MTypeList was called')
 
     def _ensure_array_node(self) -> None:
-        if not isinstance(self.node, ArrayNode):
+        if not isinstance(T.cast('BaseNode', self.node), ArrayNode):
             tmp = self.node
             self.node = self._new_array_node([])
             self.node.args.arguments = [tmp]
