@@ -19,9 +19,6 @@ if T.TYPE_CHECKING:
 
 
 def flatten(args: T.Union['TYPE_var', T.List['TYPE_var']]) -> T.List['TYPE_var']:
-    if isinstance(args, mparser.StringNode):
-        assert isinstance(args.value, str)
-        return [args.value]
     if not isinstance(args, collections.abc.Sequence):
         return [args]
     result: T.List['TYPE_var'] = []
