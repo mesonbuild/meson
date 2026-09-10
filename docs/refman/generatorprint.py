@@ -2,7 +2,7 @@
 # Copyright 2021 The Meson development team
 
 from .generatorbase import GeneratorBase
-from .model import ReferenceManual, Object, Function, DataTypeInfo, Type, ObjectType
+from .model import Object, Function, DataTypeInfo, Type, ObjectType
 
 from mesonbuild import mlog
 import typing as T

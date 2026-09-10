@@ -238,7 +238,7 @@ class BasePlatformTests(TestCase):
         if inprocess:
             try:
                 returncode, out, err = run_configure_inprocess(['setup'] + self.meson_args + args + extra_args + build_and_src_dir_args, override_envvars)
-            except Exception as e:
+            except Exception:
                 if not allow_fail:
                     self._print_meson_log()
                     raise
