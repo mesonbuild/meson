@@ -14,9 +14,9 @@ PathLike = T.Union[Path,str]
 
 def copy_files(files: T.List[str], input_dir: PathLike, output_dir: PathLike) -> None:
     if not input_dir:
-        raise ValueError(f'Input directory value is not set')
+        raise ValueError('Input directory value is not set')
     if not output_dir:
-        raise ValueError(f'Output directory value is not set')
+        raise ValueError('Output directory value is not set')
 
     input_dir = Path(input_dir).resolve()
     output_dir = Path(output_dir).resolve()

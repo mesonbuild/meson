@@ -6,7 +6,6 @@
 
 """Helper functions and classes."""
 
-import os
 
 from .utils.core import *
 from .utils.vsenv import *
