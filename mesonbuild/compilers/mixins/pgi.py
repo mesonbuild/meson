@@ -50,6 +50,9 @@ class PGICompiler(Compiler):
             return ['-fPIC']
         return []
 
+    def get_cpp_permissive_args(self) -> T.List[str]:
+        return ['-fpermissive']
+
     def openmp_flags(self) -> T.List[str]:
         return ['-mp']
 

@@ -140,6 +140,9 @@ class ArmclangCompiler(Compiler):
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         return clang_color_args[colortype][:]
 
+    def get_cpp_permissive_args(self) -> T.List[str]:
+        return ['-fpermissive']
+
     def get_pch_suffix(self) -> str:
         return 'gch'
 
