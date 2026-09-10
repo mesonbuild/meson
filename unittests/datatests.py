@@ -61,7 +61,7 @@ class DataTests(unittest.TestCase):
                 self.assertFalse(in_code_block, 'Unclosed code block.')
             else:
                 if f.name != 'add_release_note_snippets_here':
-                    self.assertTrue(False, 'A file without .md suffix in snippets dir: ' + f.name)
+                    self.fail('A file without .md suffix in snippets dir: ' + f.name)
 
     def test_compiler_options_documented(self):
         '''

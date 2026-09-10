@@ -1521,7 +1521,7 @@ Thread model: posix'''), '21.9.0')
     def test_typed_pos_args_types_invalid(self) -> None:
         @typed_pos_args('foo', str, int, bool)
         def _(obj, node, args: T.Tuple[str, int, bool], kwargs) -> None:
-            self.assertTrue(False)  # should not be reachable
+            self.fail('Should not be reachable')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 1.0, False], None)
@@ -1530,7 +1530,7 @@ Thread model: posix'''), '21.9.0')
     def test_typed_pos_args_types_wrong_number(self) -> None:
         @typed_pos_args('foo', str, int, bool)
         def _(obj, node, args: T.Tuple[str, int, bool], kwargs) -> None:
-            self.assertTrue(False)  # should not be reachable
+            self.fail('Should not be reachable')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 1], None)
@@ -1564,7 +1564,7 @@ Thread model: posix'''), '21.9.0')
     def test_typed_pos_args_varargs_invalid(self) -> None:
         @typed_pos_args('foo', str, varargs=str)
         def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
-            self.assertTrue(False)  # should not be reachable
+            self.fail('Should not be reachable')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 'var', 'args', 0], None)
@@ -1573,7 +1573,7 @@ Thread model: posix'''), '21.9.0')
     def test_typed_pos_args_varargs_invalid_multiple_types(self) -> None:
         @typed_pos_args('foo', str, varargs=(str, list))
         def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
-            self.assertTrue(False)  # should not be reachable
+            self.fail('Should not be reachable')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 'var', 'args', 0], None)
@@ -1593,7 +1593,7 @@ Thread model: posix'''), '21.9.0')
     def test_typed_pos_args_max_varargs_exceeded(self) -> None:
         @typed_pos_args('foo', str, varargs=str, max_varargs=1)
         def _(obj, node, args: T.Tuple[str, T.Tuple[str, ...]], kwargs) -> None:
-            self.assertTrue(False)  # should not be reachable
+            self.fail('Should not be reachable')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 'var', 'args'], None)
@@ -1612,7 +1612,7 @@ Thread model: posix'''), '21.9.0')
     def test_typed_pos_args_min_varargs_not_met(self) -> None:
         @typed_pos_args('foo', str, varargs=str, min_varargs=1)
         def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
-            self.assertTrue(False)  # should not be reachable
+            self.fail('Should not be reachable')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string'], None)
@@ -1621,7 +1621,7 @@ Thread model: posix'''), '21.9.0')
     def test_typed_pos_args_min_and_max_varargs_exceeded(self) -> None:
         @typed_pos_args('foo', str, varargs=str, min_varargs=1, max_varargs=2)
         def _(obj, node, args: T.Tuple[str, T.Tuple[str, ...]], kwargs) -> None:
-            self.assertTrue(False)  # should not be reachable
+            self.fail('Should not be reachable')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', 'var', 'args', 'bar'], None)
@@ -1630,7 +1630,7 @@ Thread model: posix'''), '21.9.0')
     def test_typed_pos_args_min_and_max_varargs_not_met(self) -> None:
         @typed_pos_args('foo', str, varargs=str, min_varargs=1, max_varargs=2)
         def _(obj, node, args: T.Tuple[str, T.Tuple[str, ...]], kwargs) -> None:
-            self.assertTrue(False)  # should not be reachable
+            self.fail('Should not be reachable')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string'], None)
@@ -1639,7 +1639,7 @@ Thread model: posix'''), '21.9.0')
     def test_typed_pos_args_variadic_and_optional(self) -> None:
         @typed_pos_args('foo', str, optargs=[str], varargs=str, min_varargs=0)
         def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
-            self.assertTrue(False)  # should not be reachable
+            self.fail('Should not be reachable')
 
         with self.assertRaises(AssertionError) as cm:
             _(None, mock.Mock(), ['string'], None)
@@ -1650,7 +1650,7 @@ Thread model: posix'''), '21.9.0')
     def test_typed_pos_args_min_optargs_not_met(self) -> None:
         @typed_pos_args('foo', str, str, optargs=[str])
         def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
-            self.assertTrue(False)  # should not be reachable
+            self.fail('Should not be reachable')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string'], None)
@@ -1659,7 +1659,7 @@ Thread model: posix'''), '21.9.0')
     def test_typed_pos_args_min_optargs_max_exceeded(self) -> None:
         @typed_pos_args('foo', str, optargs=[str])
         def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
-            self.assertTrue(False)  # should not be reachable
+            self.fail('Should not be reachable')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), ['string', '1', '2'], None)
@@ -1714,7 +1714,7 @@ Thread model: posix'''), '21.9.0')
             KwargInfo('input', str, required=True),
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
-            self.assertTrue(False)  # should be unreachable
+            self.fail('Should not be reachable')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), [], {})
@@ -1756,7 +1756,7 @@ Thread model: posix'''), '21.9.0')
             KwargInfo('input', ContainerTypeInfo(list, str), required=True),
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
-            self.assertTrue(False)  # should be unreachable
+            self.fail('Should not be reachable')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), [], {'input': {}})
@@ -1768,7 +1768,7 @@ Thread model: posix'''), '21.9.0')
             KwargInfo('input', ContainerTypeInfo(dict, str), required=True),
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.Dict[str, str]]) -> None:
-            self.assertTrue(False)  # should be unreachable
+            self.fail('Should not be reachable')
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), [], {'input': {'key': 1, 'bar': 2}})
