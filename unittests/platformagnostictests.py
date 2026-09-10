@@ -8,7 +8,6 @@ import os
 import pickle
 import subprocess
 import tempfile
-import subprocess
 import textwrap
 import shutil
 from unittest import skipIf, SkipTest

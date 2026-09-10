@@ -146,7 +146,7 @@ def generate_wrapdb_table(output_dir: Path) -> None:
 def regenerate_docs(output_dir: PathLike,
                     dummy_output_file: T.Optional[PathLike]) -> None:
     if not output_dir:
-        raise ValueError(f'Output directory value is not set')
+        raise ValueError('Output directory value is not set')
 
     output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)

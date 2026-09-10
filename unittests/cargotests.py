@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 import unittest
-from unittest import mock
 import os
 import tempfile
 import textwrap
@@ -12,7 +11,7 @@ import typing as T
 from mesonbuild.cargo import cfg
 from mesonbuild.cargo.cfg import TokenType
 from mesonbuild.cargo.interpreter import load_cargo_lock
-from mesonbuild.cargo.manifest import Dependency, Lint, Manifest, Package, Workspace
+from mesonbuild.cargo.manifest import Dependency, Manifest, Package, Workspace
 from mesonbuild.cargo.toml import load_toml
 from mesonbuild.cargo.version import api, cargo_parse, SemVer
 from mesonbuild.mesonlib import MachineChoice, MesonException

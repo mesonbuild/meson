@@ -6,7 +6,6 @@ import os
 import tempfile
 import unittest
 import subprocess
-import zipapp
 import sysconfig
 from pathlib import Path
 

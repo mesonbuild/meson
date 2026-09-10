@@ -45,7 +45,7 @@ from mesonbuild.interpreterbase import (
     KwargInfo, PosArgInfo, VarArgInfo,
 )
 from mesonbuild.mesonlib import (
-    FileMode, LibType, MachineChoice, PerMachine, SimpleABC, Version, is_windows, is_osx,
+    FileMode, LibType, MachineChoice, SimpleABC, Version, is_windows, is_osx,
     is_cygwin, is_openbsd, search_version, MesonException, EnvironmentException, python_command,
     version_check_to_range,
 )
@@ -57,7 +57,6 @@ from mesonbuild.interpreter.type_checking import (
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface, PkgConfigCLI
 from mesonbuild.programs import ExternalProgram
 import mesonbuild.modules.pkgconfig
-from mesonbuild import utils
 
 from run_tests import get_fake_env, get_fake_options
 
