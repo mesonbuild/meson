@@ -402,6 +402,7 @@ class DCompiler(Compiler):
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
         args, largs = super()._sanity_check_compile_args(sourcename, binname)
+        largs = self.unix_args_to_native(largs)
         largs.extend(self._get_target_arch_args())
         return args, largs
 

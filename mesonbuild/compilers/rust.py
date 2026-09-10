@@ -165,12 +165,9 @@ class RustCompiler(Compiler):
 
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
-        cmdlist = self.exelist.copy()
-        largs: T.List[str] = []
+        cmdlist, largs = super()._sanity_check_compile_args(sourcename, binname)
         if self.info.kernel == 'none' and 'ld.' in self.get_linker_id():
             largs.extend(rustc_link_args(['-nostartfiles']))
-        cmdlist.extend(self.get_output_args(binname))
-        cmdlist.append(sourcename)
         return cmdlist, largs
 
     def _sanity_check_source_code(self) -> str:
@@ -409,6 +406,9 @@ class RustCompiler(Compiler):
         if colortype in {'always', 'never', 'auto'}:
             return [f'--color={colortype}']
         raise MesonException(f'Invalid color type for rust {colortype}')
+
+    def get_external_link_args(self) -> T.List[str]:
+        return rustc_link_args(super().get_external_link_args())
 
     @functools.lru_cache(maxsize=None)
     def get_linker_always_args(self) -> T.List[str]:

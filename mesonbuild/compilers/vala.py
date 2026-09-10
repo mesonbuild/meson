@@ -110,6 +110,11 @@ class ValaCompiler(Compiler):
     def _sanity_check_source_code(self) -> str:
         return 'public static int main() { return 0; }'
 
+    def _sanity_check_mode(self) -> CompileCheckMode:
+        # the sanity check only transpiles, the generated source is compiled
+        # and linked by _transpiled_sanity_check_compile_args()
+        return CompileCheckMode.COMPILE
+
     def _sanity_check_compile_args(self, sourcename: str, binname: str
                                    ) -> T.Tuple[T.List[str], T.List[str]]:
         args, largs = super()._sanity_check_compile_args(sourcename, binname)
@@ -152,8 +157,7 @@ class ValaCompiler(Compiler):
         # no extra dirs are specified.
         if not extra_dirs:
             code = 'class MesonFindLibrary : Object { }'
-            args: T.List[str] = []
-            args += self.environment.coredata.get_external_args(self.for_machine, self.language)
+            args: T.List[str] = self.get_external_compile_args()
             vapi_args = ['--pkg', libname]
             args += vapi_args
             with self.cached_compile(code, extra_args=args, mode=CompileCheckMode.COMPILE) as p:
@@ -212,10 +216,10 @@ class ValaCompiler(Compiler):
 
         if mode is CompileCheckMode.COMPILE:
             # Add DFLAGS from the env
-            args += self.environment.coredata.get_external_args(self.for_machine, self.language)
+            args += self.get_external_compile_args()
         elif mode is CompileCheckMode.LINK:
             # Add LDFLAGS from the env
-            args += self.environment.coredata.get_external_link_args(self.for_machine, self.language)
+            args += self.get_external_link_args()
         # extra_args must override all other arguments, so we add them last
         args += extra_args
         return args
