@@ -1991,7 +1991,7 @@ class LinuxlikeTests(BasePlatformTests):
             if src in i['file']:
                 self.assertIn(argument, i['command'])
                 return
-        self.assertTrue(False, f'Source {src} not found in compdb')
+        self.fail(f'Source {src} not found in compdb')
 
     def test_persp_options(self):
         if self.backend is not Backend.ninja:
