@@ -15,7 +15,7 @@ scm_args = {}
 HERE = os.path.dirname(__file__)
 if os.path.exists(os.path.join(HERE, '.git')):
     try:
-        import setuptools_scm
+        import setuptools_scm  # noqa: F401
     except ModuleNotFoundError:
         pass
     else:
