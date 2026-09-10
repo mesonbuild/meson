@@ -11,7 +11,7 @@ import typing as T
 from mesonbuild.interpreterbase.decorators import FeatureNew
 
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo, ModuleObject
-from .. import mesonlib, mlog
+from .. import cargo, mesonlib, mlog
 from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
                      CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary, StaticLibrary,
                      SharedModule)
@@ -31,7 +31,6 @@ from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
-    from .. import cargo
     from ..build import ExecutableKeywordArguments, GeneratedTypes, IncludeDirs, LinkableTargetTypes, CommandTypes
     from ..cargo.interpreter import RUST_ABI, PackageConfiguration
     from ..compilers.compilers import Language
@@ -317,9 +316,11 @@ class RustPackage(RustCrate):
                              for_machine: MachineChoice) -> T.List[Dependency]:
         dependencies: T.List[Dependency] = []
         cfg = self.package.cfg[for_machine]
+        seen: T.Set[str] = set()
 
-        if kwargs['dependencies']:
-            for dep_key, dep_pkg in cfg.dep_packages.items():
+        def dependencies_collect_kind(kind: cargo.DependencyKind) -> None:
+            for _, name, dep in cfg.iter_required_dependencies((kind,)):
+                dep_pkg = cfg.dep_packages[cargo.PackageKey(dep.package, dep.api)]
                 if dep_pkg.manifest.lib:
                     if dep_pkg.ws_subdir != self.rust_ws.subdir or \
                         is_parent_path(os.path.join(self.rust_ws.subdir, state.subproject_dir),
@@ -327,8 +328,14 @@ class RustPackage(RustCrate):
                         self.rust_ws._do_subproject(state, dep_pkg, for_machine)
                     # Get the dependency name for this package (rust or proc-macro ABI)
                     depname = dep_pkg.get_rust_dependency_name()
+                    if depname in seen:
+                        continue
+                    seen.add(depname)
                     dependency = state.overridden_dependency(depname, for_machine)
                     dependencies.append(dependency)
+
+        if kwargs['dependencies']:
+            dependencies_collect_kind(cargo.DependencyKind.NORMAL)
 
         if kwargs['dev_dependencies']:
             raise MesonException('dev_dependencies is not implemented yet')
