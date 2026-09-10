@@ -139,11 +139,17 @@ class ConfigToolDependency(ExternalDependency):
 
         return self.config is not None
 
-    def get_config_value(self, args: T.List[str], stage: str, required: bool = False) -> T.List[str]:
+    def get_config_output(self, args: T.List[str], stage: str, required: bool = False) -> str:
         p, out, err = Popen_safe_logged(self.config + args)
         if p.returncode != 0:
             if self.required or required:
                 raise DependencyException(f'Could not generate {stage} for {self.name}.\n{err}')
+            return ''
+        return out.strip()
+
+    def get_config_value(self, args: T.List[str], stage: str, required: bool = False) -> T.List[str]:
+        out = self.get_config_output(args, stage, required)
+        if not out:
             return []
         return split_args(out)
 
