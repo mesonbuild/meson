@@ -12,7 +12,7 @@ import typing as T
 
 from mesonbuild.ast import IntrospectionInterpreter, AstIDGenerator
 from mesonbuild.ast.printer import RawPrinter
-from mesonbuild.mesonlib import windows_proof_rmtree, is_windows, is_linux
+from mesonbuild.mesonlib import windows_proof_rmtree
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import skip_if_not_language

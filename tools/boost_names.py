@@ -256,12 +256,12 @@ def main() -> int:
         """), '    '))
 
     if export_modules:
-        print(textwrap.dedent(f'''\
-            }}
+        print(textwrap.dedent('''\
+            }
 
 
             # dict of all modules with metadata
-            boost_modules = {{\
+            boost_modules = {\
         '''))
 
         for mod in modules:
@@ -275,8 +275,8 @@ def main() -> int:
                 ),\
             """), '    '))
 
-    print(textwrap.dedent(f'''\
-        }}
+    print(textwrap.dedent('''\
+        }
 
         #                                           #
         ####       ---- END GENERATED ----       ####\

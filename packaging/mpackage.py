@@ -4,7 +4,7 @@
 
 # This script only works on Jussi's private release machine.
 
-import os, sys, subprocess, re, shutil
+import os, sys, subprocess, shutil
 import tarfile
 from glob import glob
 import pathlib
