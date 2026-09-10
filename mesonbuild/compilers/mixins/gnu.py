@@ -381,6 +381,9 @@ class GnuLikeCompiler(Compiler, metaclass=mesonlib.SimpleABC):
     def get_pie_args(self) -> T.List[str]:
         return ['-fPIE']
 
+    def get_cpp_permissive_args(self) -> T.List[str]:
+        return ['-fpermissive']
+
     @abc.abstractmethod
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         pass
