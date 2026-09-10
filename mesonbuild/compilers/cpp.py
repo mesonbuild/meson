@@ -861,6 +861,9 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
             args.append('/permissive-')
         return args
 
+    def get_cpp_permissive_args(self) -> T.List[str]:
+        return ['/permissive']
+
 class CPP11AsCPP14Mixin(CompilerMixinBase):
 
     """Mixin class for VisualStudio and ClangCl to replace C++11 std with C++14.
