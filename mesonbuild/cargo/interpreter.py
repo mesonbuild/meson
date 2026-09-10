@@ -93,10 +93,9 @@ class PackageConfiguration:
 @dataclasses.dataclass
 class PackageState:
     manifest: Manifest
+    ws_subdir: str
+    ws_member: str
     downloaded: bool = False
-    # If this package is member of a workspace.
-    ws_subdir: T.Optional[str] = None
-    ws_member: T.Optional[str] = None
     # Per-machine configuration state
     cfg: PerMachine[T.Optional[PackageConfiguration]] = dataclasses.field(
         default_factory=lambda: PerMachine(None, None)
@@ -107,9 +106,7 @@ class PackageState:
     subproject_name: T.Optional[str] = None
 
     @lazy_property
-    def path(self) -> T.Optional[str]:
-        if not self.ws_subdir:
-            return None
+    def path(self) -> str:
         return os.path.normpath(os.path.join(self.ws_subdir, self.ws_member))
 
     def library_name(self, machine: MachineChoice = MachineChoice.HOST, lib_type: RUST_ABI = 'rust') -> str:
