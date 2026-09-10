@@ -252,7 +252,7 @@ class LoaderYAML(LoaderBase):
 
     def _load_object(self, obj_type: ObjectType, path: Path) -> Object:
         path_label = path.relative_to(self.yaml_dir).as_posix()
-        mlog.log(f'Loading', mlog.bold(path_label))
+        mlog.log('Loading', mlog.bold(path_label))
         raw = self._load(self.read_file(path), self.template.s_object, label=path_label)
 
         def as_methods(mlist: T.List[Function]) -> T.List[Method]:

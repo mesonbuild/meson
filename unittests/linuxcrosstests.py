@@ -2,7 +2,6 @@
 # Copyright 2016-2021 The Meson development team
 
 import os
-import shutil
 import subprocess
 import unittest
 import platform
