@@ -403,6 +403,7 @@ class BuildTarget(BaseBuildTarget):
     d_import_dirs: T.List[T.Union[str, build.IncludeDirs]]
     d_module_versions: T.List[T.Union[str, int]]
     d_unittest: bool
+    embed_directories: list[str | build.IncludeDirs]
     install_dir: T.List[T.Union[str, bool]]
     install_vala_header: T.Union[str, bool, None]
     install_vala_vapi: T.Union[str, bool, None]
@@ -540,6 +541,7 @@ class FuncDeclareDependency(TypedDict):
     d_import_dirs: T.List[T.Union[build.IncludeDirs, str]]
     d_module_versions: T.List[T.Union[str, int]]
     dependencies: T.List[Dependency]
+    embed_directories: list[str | build.IncludeDirs]
     extra_files: T.List[FileOrString]
     include_directories: T.List[T.Union[build.IncludeDirs, str]]
     link_args: T.List[str]
