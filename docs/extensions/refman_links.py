@@ -7,7 +7,7 @@ from hotdoc.core.exceptions import HotdocSourceException
 from hotdoc.core.extension import Extension
 from hotdoc.core.tree import Page
 from hotdoc.core.project import Project
-from hotdoc.core.symbols import *
+from hotdoc.core.symbols import ClassSymbol, FunctionSymbol, Link, MethodSymbol
 from hotdoc.run_hotdoc import Application
 from hotdoc.core.formatter import Formatter
 from hotdoc.utils.loggable import Logger, warn, info
@@ -38,7 +38,7 @@ class RefmanLinksExtension(Extension):
 
         # Add Arguments with `group.add_argument(...)`
         group.add_argument(
-            f'--refman-data-file',
+            '--refman-data-file',
             help="JSON file with the mappings to replace",
             default=None,
         )
