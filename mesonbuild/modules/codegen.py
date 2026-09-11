@@ -13,8 +13,8 @@ from ..interpreter.decorators import apply_machine_map
 from ..interpreter.interpreterobjects import extract_required_kwarg
 from ..interpreter.type_checking import NoneType, REQUIRED_KW, DISABLER_KW, NATIVE_KW
 from ..interpreterbase import (
-    ContainerTypeInfo, ObjectHolder, KwargInfo, typed_pos_args, typed_kwargs,
-    noPosargs, noKwargs, disablerIfNotFound, InterpreterObject
+    ContainerTypeInfo, ObjectHolder, KwargInfo, typed_pos_args, TypedArgs,
+    noPosargs, disablerIfNotFound, InterpreterObject
 )
 from ..mesonlib import File, MesonException, Popen_safe, version_compare
 from ..programs import Program, ExternalProgram, NonExistingExternalProgram
@@ -105,25 +105,27 @@ class LexGenerator(_CodeGenerator):
 class LexHolder(ObjectHolder[LexGenerator]):
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('codegen.lex.implementation')
     @InterpreterObject.method('implementation')
     def implementation_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.name
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('codegen.lex.found')
     @InterpreterObject.method('found')
     def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.found()
 
     @typed_pos_args('codegen.lex.generate', (str, File, GeneratedList, CustomTarget, CustomTargetIndex))
-    @typed_kwargs(
+    @TypedArgs(
         'codegen.lex.generate',
-        KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('source', (str, NoneType)),
-        KwargInfo('header', (str, NoneType)),
-        KwargInfo('table', (str, NoneType)),
-        KwargInfo('plainname', bool, default=False),
+        kw_types=[
+            KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('source', (str, NoneType)),
+            KwargInfo('header', (str, NoneType)),
+            KwargInfo('table', (str, NoneType)),
+            KwargInfo('plainname', bool, default=False),
+        ],
     )
     @InterpreterObject.method('generate')
     def generate_method(self, args: T.Tuple[T.Union[str, File, GeneratedList, CustomTarget, CustomTargetIndex]], kwargs: LexGenerateKwargs) -> CustomTarget:
@@ -201,25 +203,27 @@ class YaccGenerator(_CodeGenerator):
 class YaccHolder(ObjectHolder[YaccGenerator]):
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('codegen.yacc.implementation')
     @InterpreterObject.method('implementation')
     def implementation_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.name
 
     @noPosargs
-    @noKwargs
+    @TypedArgs('codegen.yacc.found')
     @InterpreterObject.method('found')
     def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.found()
 
     @typed_pos_args('codegen.yacc.generate', (str, File, GeneratedList, CustomTarget, CustomTargetIndex))
-    @typed_kwargs(
+    @TypedArgs(
         'codegen.yacc.generate',
-        KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('source', (str, NoneType)),
-        KwargInfo('header', (str, NoneType)),
-        KwargInfo('locations', (str, NoneType)),
-        KwargInfo('plainname', bool, default=False),
+        kw_types=[
+            KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('source', (str, NoneType)),
+            KwargInfo('header', (str, NoneType)),
+            KwargInfo('locations', (str, NoneType)),
+            KwargInfo('plainname', bool, default=False),
+        ],
     )
     @InterpreterObject.method('generate')
     def generate_method(self, args: T.Tuple[T.Union[str, File, CustomTarget, CustomTargetIndex, GeneratedList]], kwargs: YaccGenerateKWargs) -> CustomTarget:
@@ -281,22 +285,24 @@ class CodeGenModule(ExtensionModule):
         })
 
     @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'codegen.lex',
-        KwargInfo('lex_version', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('flex_version', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('reflex_version', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('win_flex_version', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo(
-            'implementations',
-            ContainerTypeInfo(list, str),
-            default=[],
-            listify=True,
-            validator=is_subset_validator({'lex', 'flex', 'reflex', 'win_flex'})
-        ),
-        REQUIRED_KW,
-        DISABLER_KW,
-        NATIVE_KW
+        kw_types=[
+            KwargInfo('lex_version', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('flex_version', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('reflex_version', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('win_flex_version', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo(
+                'implementations',
+                ContainerTypeInfo(list, str),
+                default=[],
+                listify=True,
+                validator=is_subset_validator({'lex', 'flex', 'reflex', 'win_flex'})
+            ),
+            REQUIRED_KW,
+            DISABLER_KW,
+            NATIVE_KW
+        ],
     )
     @apply_machine_map
     @disablerIfNotFound
@@ -360,22 +366,24 @@ class CodeGenModule(ExtensionModule):
         return LexGenerator(name, bin, kwargs['native'], T.cast('ImmutableListProtocol[str]', lex_args))
 
     @noPosargs
-    @typed_kwargs(
+    @TypedArgs(
         'codegen.yacc',
-        KwargInfo('yacc_version', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('byacc_version', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('bison_version', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('win_bison_version', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo(
-            'implementations',
-            ContainerTypeInfo(list, str),
-            default=[],
-            listify=True,
-            validator=is_subset_validator({'yacc', 'byacc', 'bison', 'win_bison'})
-        ),
-        REQUIRED_KW,
-        DISABLER_KW,
-        NATIVE_KW,
+        kw_types=[
+            KwargInfo('yacc_version', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('byacc_version', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('bison_version', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo('win_bison_version', ContainerTypeInfo(list, str), default=[], listify=True),
+            KwargInfo(
+                'implementations',
+                ContainerTypeInfo(list, str),
+                default=[],
+                listify=True,
+                validator=is_subset_validator({'yacc', 'byacc', 'bison', 'win_bison'})
+            ),
+            REQUIRED_KW,
+            DISABLER_KW,
+            NATIVE_KW,
+        ],
     )
     @apply_machine_map
     @disablerIfNotFound

@@ -30,7 +30,6 @@ __all__ = [
     'FeatureValue',
 
     'noPosargs',
-    'noKwargs',
     'noArgsFlattening',
     'noSecondLevelHolderResolving',
     'unholder_return',
@@ -39,11 +38,12 @@ __all__ = [
     'typed_pos_args',
     'ContainerTypeInfo',
     'KwargInfo',
-    'typed_kwargs',
+    'TypedArgs',
     'FeatureCheckBase',
     'FeatureNew',
     'FeatureDeprecated',
     'FeatureBroken',
+    'TypedArgs',
 
     'InterpreterBase',
 
@@ -84,7 +84,6 @@ from .baseobjects import (
 
 from .decorators import (
     noPosargs,
-    noKwargs,
     noArgsFlattening,
     noSecondLevelHolderResolving,
     unholder_return,
@@ -93,11 +92,11 @@ from .decorators import (
     ContainerTypeInfo,
     KwargInfo,
     typed_operator,
-    typed_kwargs,
     FeatureCheckBase,
     FeatureNew,
     FeatureDeprecated,
     FeatureBroken,
+    TypedArgs,
 )
 
 from .exceptions import (
