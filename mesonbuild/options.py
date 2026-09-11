@@ -318,7 +318,7 @@ class OptionKey:
 if T.TYPE_CHECKING:
     OptionDict: TypeAlias = T.Dict[OptionKey, ElementaryOptionValues]
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class UserOption(T.Generic[_T], HoldableObject):
 
     name: str
@@ -361,7 +361,7 @@ class UserOption(T.Generic[_T], HoldableObject):
         self.value = self.validate_value(newvalue)
         return self.value != oldvalue
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class EnumeratedUserOption(UserOption[_T]):
 
     """A generic UserOption that has enumerated values."""
@@ -379,7 +379,7 @@ class UserStringOption(UserOption[str]):
             raise MesonException(f'The value of option "{self.name}" is "{value}", which is not a string.')
         return value
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class UserBooleanOption(EnumeratedUserOption[bool]):
 
     choices: T.List[bool] = dataclasses.field(default_factory=lambda: [True, False])
@@ -431,7 +431,7 @@ class _UserIntegerBase(UserOption[_T]):
         return T.cast('_T', value)
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class UserIntegerOption(_UserIntegerBase[int]):
 
     min_value: T.Optional[int] = None
@@ -452,7 +452,7 @@ class OctalInt(int):
         return oct(int(self))
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class UserUmaskOption(_UserIntegerBase[T.Union["Literal['preserve']", OctalInt]]):
 
     min_value: T.Optional[int] = dataclasses.field(default=0, init=False)
@@ -475,7 +475,7 @@ class UserUmaskOption(_UserIntegerBase[T.Union["Literal['preserve']", OctalInt]]
             raise MesonException(f'Invalid mode for option "{self.name}" {e}')
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class UserComboOption(EnumeratedUserOption[str]):
 
     def validate_value(self, value: object) -> str:
@@ -494,7 +494,7 @@ class UserComboOption(EnumeratedUserOption[str]):
         assert isinstance(value, str), 'for mypy'
         return value
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class UserArrayOption(UserOption[T.List[_T]]):
 
     value_: dataclasses.InitVar[T.Union[_T, T.List[_T]]]
@@ -513,7 +513,7 @@ class UserArrayOption(UserOption[T.List[_T]]):
         return [str(c) for c in self.choices]
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class UserStringArrayOption(UserArrayOption[str]):
 
     def listify(self, value: object) -> T.List[str]:
@@ -545,7 +545,7 @@ class UserStringArrayOption(UserArrayOption[str]):
         return newvalue
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class UserFeatureOption(UserComboOption):
 
     choices: T.List[str] = dataclasses.field(

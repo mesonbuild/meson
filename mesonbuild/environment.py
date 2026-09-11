@@ -81,7 +81,7 @@ def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T
     return value
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class MachineMap:
     # BUILD if cross compiling, HOST if not cross compiling
     build: MachineChoice

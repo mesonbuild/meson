@@ -695,7 +695,7 @@ class BuiltinDependency(ExternalDependency):
     type_name = DependencyTypeName('builtin')
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class DependencyCandidate(T.Generic[DepType]):
 
     callable: T.Union[T.Type[DepType], T.Callable[[str, Environment, DependencyObjectKWs], DepType]]
