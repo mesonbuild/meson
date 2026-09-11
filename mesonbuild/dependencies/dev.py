@@ -711,6 +711,8 @@ class JNISystemDependency(SystemDependency):
             return 'openbsd'
         elif m.is_dragonflybsd():
             return 'dragonfly'
+        elif m.is_qnx():
+            return 'qnx'
 
         return None
 

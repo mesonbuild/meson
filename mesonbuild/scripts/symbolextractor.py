@@ -301,7 +301,7 @@ def gen_symbols(options: Arguments) -> None:
             windows_syms(options.impfilename, options.outfilename)
         else:
             dummy_syms(options.outfilename)
-    elif mesonlib.is_linux() or mesonlib.is_hurd() or mesonlib.is_haiku():
+    elif mesonlib.is_linux() or mesonlib.is_hurd() or mesonlib.is_haiku() or mesonlib.is_qnx():
         gnu_syms(options.libfilename, options.outfilename)
     elif mesonlib.is_osx():
         osx_syms(options.libfilename, options.outfilename)

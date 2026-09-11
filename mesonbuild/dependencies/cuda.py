@@ -145,17 +145,16 @@ class CudaDependency(SystemDependency):
         return (None, None, False)
 
     def _detect_target_path(self, machine: MachineInfo) -> str:
-        # Non-Linux hosts: nothing to detect.
-        if not machine.is_linux():
+        if not (machine.is_linux() or machine.is_qnx()):
             return '.'
 
-        # Canonical target: '<arch>-<system>', e.g. 'x86_64-linux'.
+        # Canonical target: '<arch>-<system>', e.g. 'x86_64-linux' or 'aarch64-qnx'.
         canonical_target = f'{machine.cpu_family}-{machine.system}'
         rel_path = os.path.join(self.targets_dir, canonical_target)
         abs_path = os.path.join(self.cuda_path, rel_path)
 
-        # AArch64 may need the SBSA fallback.
-        if machine.cpu_family == 'aarch64' and not os.path.exists(abs_path):
+        # AArch64 Linux may need the SBSA fallback
+        if machine.is_linux() and machine.cpu_family == 'aarch64' and not os.path.exists(abs_path):
             rel_path = os.path.join(self.targets_dir, f"sbsa-{machine.system}")
             abs_path = os.path.join(self.cuda_path, rel_path)
             mlog.debug(
@@ -261,7 +260,7 @@ class CudaDependency(SystemDependency):
             if arch not in libdirs:
                 raise DependencyException(msg.format(arch, 'Windows'))
             return os.path.join('lib', libdirs[arch])
-        elif machine.is_linux():
+        elif machine.is_linux() or machine.is_qnx():
             return 'lib'
         elif machine.is_darwin():
             libdirs = {'x86_64': 'lib64'}
