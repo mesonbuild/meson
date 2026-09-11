@@ -1,0 +1,12 @@
+# Copyright 2026 The Meson Development Team
+# SPDX-License-Identifier: Apache-2.0
+
+[shared_libraries]
+
+[static_libraries]
+
+[header_libraries]
+
+[programs]
+python3 = { version = "3.11" }
+cp = { version = "1.0" }
