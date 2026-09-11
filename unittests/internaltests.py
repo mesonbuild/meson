@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright 2016-2021 The Meson development team
+# Copyright 2016-2025 The Meson development team
 
 from configparser import ConfigParser
 from pathlib import Path
