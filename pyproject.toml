@@ -1,3 +1,58 @@
 [build-system]
 requires = ["setuptools>=42"]
 build-backend = "setuptools.build_meta"
+
+# Meson discourages "Black"-style formatters.  If you use these
+# tools, be prepared to add "fmt: skip" in areas where the tool produces
+# questionable output.  Questionable outputs include, but are not
+# limited to, the following:
+#
+# 1) Hanging indent on function definitions
+#
+#    Wrong way:
+#
+#      def my_function(
+#        arg1: str,
+#        arg2: T.List[str],
+#        arg3: PREFER_X,
+#        arg4: bool = True,
+#        arg5: bool = False,
+#      ) -> T.Optional[T.List[str]]:
+#
+#    One of the Correct ways:
+#
+#      def my_function(arg1: str, arg2: T.List[str],
+#                      arg3: PREFER_X, arg4: bool = True,
+#                      arg5: bool = False) -> T.Optional[T.List[str]]: # fmt: skip
+#
+#
+# 2) Weird conditionals
+#
+#   Wrong way:
+#
+#    if (my_function1_returns_correct_result)
+#    and my_function2_returns_correct_result2
+#    ):
+#
+#   Correct way:
+#
+#    if (my_function1_returns_correct_result
+#        and my_function2_returns_correct_result2):  # fmt: skip
+#
+# Below is a ruff config that tries to codify the conventions, but is no by
+# means 100% correct. When in doubt, look at other areas in the codebase.
+#
+# This config is used for:
+#
+#  - mconvert.py
+#  - mcheckplatforms.py
+#  - mesonbuild/checkplatforms/*
+#  - mesonbuild/convert/*
+#
+# The rest of the project does not follow a single formatter.
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.format]
+quote-style = "single"
+skip-magic-trailing-comma = true
