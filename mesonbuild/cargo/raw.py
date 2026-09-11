@@ -115,11 +115,16 @@ class LibTarget(_BaseBuildTarget, total=False):
     name: str
 
 
-class Target(TypedDict):
-
-    """Target entry in the Manifest File."""
-
-    dependencies: T.Dict[str, T.Union[FromWorkspace, DependencyV]]
+Target = TypedDict(
+    'Target',
+    {
+        'dependencies': T.Dict[str, T.Union[FromWorkspace, DependencyV]],
+        'dev-dependencies': T.Dict[str, T.Union[FromWorkspace, DependencyV]],
+        'build-dependencies': T.Dict[str, T.Union[FromWorkspace, DependencyV]],
+    },
+    total=False,
+)
+"""Target entry in the Manifest File."""
 
 
 Lint = TypedDict(

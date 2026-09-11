@@ -11,7 +11,7 @@ import typing as T
 from mesonbuild.interpreterbase.decorators import FeatureNew
 
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo, ModuleObject
-from .. import mesonlib, mlog
+from .. import cargo, mesonlib, mlog
 from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
                      CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary, StaticLibrary,
                      SharedModule)
@@ -31,7 +31,6 @@ from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
-    from .. import cargo
     from ..build import ExecutableKeywordArguments, GeneratedTypes, IncludeDirs, LinkableTargetTypes, CommandTypes
     from ..cargo.interpreter import RUST_ABI, PackageConfiguration
     from ..compilers.compilers import Language
@@ -93,6 +92,7 @@ if T.TYPE_CHECKING:
         default_features: T.Optional[bool]
         features: T.List[str]
         extra_members: T.List[str]
+        dev_dependencies: T.Optional[bool]
 
     class FuncDependency(TypedDict):
         rust_abi: T.Optional[RUST_ABI]
@@ -293,7 +293,7 @@ class RustCrate(ModuleObject):
     @noKwargs
     def rust_dependency_map_method(self, state: ModuleState, args: T.List, kwargs: TYPE_kwargs) -> T.Dict[str, str]:
         """Returns rust dependency mapping for this package."""
-        return self.cfg.get_dependency_map(self.package.manifest)
+        return self.cfg.get_dependency_map()
 
 
 class RustPackage(RustCrate):
@@ -317,9 +317,11 @@ class RustPackage(RustCrate):
                              for_machine: MachineChoice) -> T.List[Dependency]:
         dependencies: T.List[Dependency] = []
         cfg = self.package.cfg[for_machine]
+        seen: T.Set[str] = set()
 
-        if kwargs['dependencies']:
-            for dep_key, dep_pkg in cfg.dep_packages.items():
+        def dependencies_collect_kind(kind: cargo.DependencyKind) -> None:
+            for _, name, dep in cfg.iter_required_dependencies((kind,)):
+                dep_pkg = cfg.dep_packages[cargo.PackageKey(dep.package, dep.api)]
                 if dep_pkg.manifest.lib:
                     if dep_pkg.ws_subdir != self.rust_ws.subdir or \
                         is_parent_path(os.path.join(self.rust_ws.subdir, state.subproject_dir),
@@ -327,11 +329,17 @@ class RustPackage(RustCrate):
                         self.rust_ws._do_subproject(state, dep_pkg, for_machine)
                     # Get the dependency name for this package (rust or proc-macro ABI)
                     depname = dep_pkg.get_rust_dependency_name()
+                    if depname in seen:
+                        continue
+                    seen.add(depname)
                     dependency = state.overridden_dependency(depname, for_machine)
                     dependencies.append(dependency)
 
+        if kwargs['dependencies']:
+            dependencies_collect_kind(cargo.DependencyKind.NORMAL)
+
         if kwargs['dev_dependencies']:
-            raise MesonException('dev_dependencies is not implemented yet')
+            dependencies_collect_kind(cargo.DependencyKind.DEV)
 
         if kwargs['system_dependencies']:
             for name, sys_dep in self.package.manifest.system_dependencies.items():
@@ -383,7 +391,7 @@ class RustPackage(RustCrate):
         kwargs['dependencies'].extend(deps)
 
         depmap = kwargs['rust_dependency_map']
-        kwargs['rust_dependency_map'] = cfg.get_dependency_map(self.package.manifest)
+        kwargs['rust_dependency_map'] = cfg.get_dependency_map()
         kwargs['rust_dependency_map'].update(depmap)
 
         rust_args = kwargs['rust_args']
@@ -1102,6 +1110,7 @@ class RustModule(ExtensionModule):
             default=None,
             listify=True,
         ),
+        KwargInfo('dev_dependencies', (bool, NoneType), default=None, since='1.13.0'),
     )
     def workspace(self, state: ModuleState, args: T.List, kwargs: FuncWorkspace) -> RustWorkspace:
         """Creates a Rust workspace object, controlling the build of
@@ -1124,6 +1133,10 @@ class RustModule(ExtensionModule):
                 cargo_features.extend(features)
             self.interpreter.cargo.features = cargo_features
 
+        # Leaving the argument out does not override what a previous call chose,
+        # just like the features arguments above.
+        if kwargs['dev_dependencies'] is not None:
+            self.interpreter.cargo.dev_dependencies = kwargs['dev_dependencies']
         ws = self.interpreter.cargo.load_workspace(state.root_subdir, kwargs['extra_members'])
 
         # Cargo projects may not have a subprojects directory, because

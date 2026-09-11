@@ -269,10 +269,48 @@ Keyword arguments:
 - `features`: (`array[str]`, optional) List of additional features to enable globally.
 - `extra_members`: (`array[str]`, optional) *Since 1.12.0* list of non-default
   workspace members to configure.
+- `dev_dependencies`: (`bool`, default: false) *Since 1.13.0* Whether to resolve the
+  `[dev-dependencies]` of the members that are built, so that their tests can be built too.
 
 A project that wishes to use Cargo subprojects should have `Cargo.lock` and `Cargo.toml`
 files in the root source directory, and should call this function before using
 Cargo subprojects.
+
+*Since 1.13.0*, `extra_members` accepts, in addition to the entries of the
+`members` list, any package that a workspace member depends on through a
+`path` dependency.  This includes packages that `cargo` would not build,
+either because the dependency is optional and no feature enables it,
+or because it is declared under a `target` clause that is never true.
+
+A package requested this way is built for the machine it is reachable from: the build
+machine for a `[build-dependencies]` entry, the host machine otherwise, or both if it
+is reachable both ways.  `[build-dependencies]` are never resolved on their own; a
+build-time crate is only built if it is listed in `extra_members`.
+
+For example, this can be used to mark a generator declared as
+
+```toml
+[target.'cfg(any())'.build-dependencies]
+generator = { path = "generator" }
+```
+
+as a package for the build machine, and to ensure its dependencies are also configured
+for the build machine.  Because the package is built for the build machine, `native: true`
+has to be passed when retrieving it:
+
+```meson
+cargo = rust.workspace(extra_members: ['generator'])
+gen_pkg = cargo.package('generator', native: true)
+gen = gen_pkg.executable()
+```
+
+Enabling `dev_dependencies` resolves the `[dev-dependencies]` of the members that are
+built as entry points, that is the default members plus any `extra_members`; this is the
+same set of packages that `cargo test` would build.  As with `cargo test`, the
+features that dev-dependencies request are unified with the rest of the build, so
+enabling this argument can change the features of the libraries that are built.  Unlike
+Cargo, Meson does not build separate artifacts for tests, so a library and the tests
+that link it always share one set of features.
 
 The first invocation of `workspace()` establishes the *Cargo interpreter*
 that resolves dependencies and features for both the toplevel project (the one
@@ -450,7 +488,9 @@ The returned dependencies can be used directly in build target declarations.
 
 Keyword arguments:
 - `dependencies`: (`bool`, default: true) Whether to include regular Rust crate dependencies
-- `dev_dependencies`: (`bool`, default: false) Whether to include development dependencies (not yet implemented)
+- `dev_dependencies`: (`bool`, default: false) Whether to include development dependencies.
+  This requires `dev_dependencies: true` in the call to [`workspace()`](#workspace); without
+  it the `[dev-dependencies]` of the package are not resolved and the list is empty.
 - `system_dependencies`: (`bool`, default: true) Whether to include system dependencies
 
 #### package.library()
