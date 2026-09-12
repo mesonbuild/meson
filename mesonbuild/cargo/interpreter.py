@@ -698,6 +698,10 @@ class Interpreter:
         assert dep.path is not None
         ws = self.workspaces[pkg.ws_subdir]
         dep_member = as_posix(pkg.ws_member, dep.path)
+        dep_subdir = as_posix(pkg.ws_subdir, dep_member)
+        if is_parent_path(self.subprojects_dir, pkg.ws_subdir) and \
+                not is_parent_path(pkg.ws_subdir, dep_subdir):
+            raise MesonException(f'path dependency "{dep.package}" points outside the current subproject')
         if is_parent_path(self.subprojects_dir, dep_member):
             if len(pathlib.PurePath(dep_member).parts) != 2:
                 raise MesonException('found "{self.subprojects_dir}" in path but it is not a valid subproject path')
