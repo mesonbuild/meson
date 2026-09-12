@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+members = ["app", "leaf", "patched"]
+
+[patch.crates-io]
+patched = { path = "patched" }
+leaf = { path = "leaf" }
