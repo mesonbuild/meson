@@ -554,7 +554,7 @@ class Interpreter:
            Raises a MesonException for an entry of *wanted* that is neither a
            declared member nor a path dependency, or that the workspace excludes.
            """
-        valid: T.Set[str] = set(ws.workspace.members)
+        valid: T.Set[str] = set(ws.packages)
         # Accepting a member makes its own path dependencies candidates in turn,
         # so this is a worklist rather than a single pass.  Every member has
         # been loaded already, so ws.packages holds the starting points.
@@ -698,9 +698,14 @@ class Interpreter:
         assert dep.path is not None
         ws = self.workspaces[pkg.ws_subdir]
         dep_member = as_posix(pkg.ws_member, dep.path)
-        dep_subdir = as_posix(pkg.ws_subdir, dep_member)
-        if is_parent_path(self.subprojects_dir, pkg.ws_subdir) and \
-                not is_parent_path(pkg.ws_subdir, dep_subdir):
+        if dep.patched:
+            # Patch paths are relative to the root workspace.
+            ws = self.root_workspace
+            dep_member = as_posix(pkg.ws_subdir, dep_member, relative_to=ws.subdir)
+
+        dep_subdir = as_posix(ws.subdir, dep_member)
+        if is_parent_path(self.subprojects_dir, ws.subdir) and \
+                not is_parent_path(ws.subdir, dep_subdir):
             raise MesonException(f'path dependency "{dep.package}" points outside the current subproject')
         if is_parent_path(self.subprojects_dir, dep_member):
             if len(pathlib.PurePath(dep_member).parts) != 2:
