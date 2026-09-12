@@ -166,6 +166,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Do not redirect stdout and stderr')
     parser.add_argument('-q', '--quiet', default=False, action='store_true',
                         help='Produce less output to the terminal.')
+    parser.add_argument('--raw-logs', default=False, action='store_true',
+                        help='Show the raw logs for each test')
     parser.add_argument('-t', '--timeout-multiplier', type=float, default=None,
                         help='Define a multiplier for test timeout, for example '
                         ' when running tests in particular conditions they might take'
@@ -711,6 +713,13 @@ class ConsoleLogger(TestLogger):
             print_safe(log)
             print(self.output_end)
 
+    def print_raw_logs(self, harness: 'TestHarness', result: 'TestRun') -> None:
+        log = result.get_log(mlog.colorize_console())
+        if log:
+            print(self.output_start)
+            print_safe(log)
+            print(self.output_end)
+
     def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, result: TestResult, explanation: T.Optional[str]) -> None:
         if test.verbose or (harness.options.print_errorlogs and result.is_bad()):
             self.flush()
@@ -741,6 +750,9 @@ class ConsoleLogger(TestLogger):
                       flush=True)
                 if result.verbose or harness.is_bad_result(result):
                     self.print_log(harness, result)
+                if harness.options.raw_logs:
+                    self.print_raw_logs(harness, result)
+
             if result.warnings:
                 print(flush=True)
                 for w in result.warnings:
