@@ -261,6 +261,7 @@ class PackageKey:
 @dataclasses.dataclass
 class WorkspaceState:
     workspace: Workspace
+    source_dir: str
     subdir: str
     downloaded: bool = False
     # member path -> PackageState, for all members of this workspace
@@ -516,7 +517,8 @@ class Interpreter:
             return ws
         workspace = manifest if isinstance(manifest, Workspace) else \
             Workspace(root_package=manifest, members=['.'], default_members=['.'])
-        ws = WorkspaceState(workspace, subdir, downloaded=downloaded)
+        ws = WorkspaceState(workspace, self.environment.source_dir, subdir,
+                            downloaded=downloaded)
         if workspace.root_package:
             self._add_workspace_member(workspace.root_package, ws, '.')
 
