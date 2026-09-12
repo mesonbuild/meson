@@ -25,7 +25,6 @@ from .cfg import eval_cfg
 from .toml import load_toml
 from .manifest import (
     Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname,
-    validate_patch,
 )
 from ..mesonlib import (
     is_parent_path, late_property, lazy_property, MesonException, MachineChoice,
@@ -325,9 +324,7 @@ class Interpreter:
         ws = self._get_workspace(manifest, subdir, extra_members, False)
         if is_root:
             self.root_workspace = ws
-            # [patch] only takes effect in the top-level Cargo.toml
-            for warning in validate_patch(ws.workspace.patch, ws.packages_to_member):
-                mlog.warning(warning)
+            ws.workspace.validate_patches(ws.packages_to_member)
 
             self.profiles = ws.workspace.profile
             self._prepare_entry_point(ws)
@@ -519,7 +516,9 @@ class Interpreter:
         if ws:
             return ws
         workspace = manifest if isinstance(manifest, Workspace) else \
-            Workspace(root_package=manifest, members=['.'], default_members=['.'])
+            Workspace(root_package=manifest, members=['.'], default_members=['.'],
+                      patches=manifest.patches,
+                      manifest_path=os.path.join(self.environment.source_dir, subdir))
         ws = WorkspaceState(workspace, self.environment.source_dir, subdir,
                             downloaded=downloaded)
         if workspace.root_package:
@@ -740,10 +739,14 @@ class Interpreter:
             raise MesonException(f'could not load {subdir}/Cargo.toml: {e}')
 
         self.build_def_files.append(filename)
+        # [patch] always comes from the top-level Cargo.toml
+        patches = self.root_workspace.workspace.patches if self.workspaces else None
         if 'workspace' in raw_manifest:
-            manifest_ = Workspace.from_raw(raw_manifest, path)
+            manifest_ = Workspace.from_raw(raw_manifest, path, patches)
         elif 'package' in raw_manifest:
-            manifest_ = Manifest.from_raw(raw_manifest, path, workspace, member_path)
+            if workspace is not None:
+                patches = workspace.patches
+            manifest_ = Manifest.from_raw(raw_manifest, path, workspace, member_path, patches)
         else:
             raise MesonException(f'{subdir}/Cargo.toml does not have [package] or [workspace] section')
         self.manifests[subdir] = manifest_

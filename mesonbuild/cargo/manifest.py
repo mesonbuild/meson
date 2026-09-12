@@ -616,9 +616,8 @@ class Manifest:
     lints: T.List[Lint] = dataclasses.field(default_factory=list)
     profile: T.Dict[str, Profile] = dataclasses.field(default_factory=dict)
 
-    # Kept in raw form: Meson does not implement [patch], it only validates it
-    # for the entry-point crate (see validate_patch).
-    patch: object = None
+    # Absolute paths collected from the entry-point [patch] table.
+    patches: T.Dict[str, str] = dataclasses.field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.features.setdefault('default', [])
@@ -664,7 +663,10 @@ class Manifest:
         return {k: SystemDependency.from_raw(k, v) for k, v in self.package.metadata.get('system-deps', {}).items()}
 
     @classmethod
-    def from_raw(cls, raw: raw.Manifest, path: str, workspace: T.Optional[Workspace] = None, member_path: str = '') -> Self:
+    def from_raw(cls, raw: raw.Manifest, path: str, workspace: T.Optional[Workspace] = None,
+                 member_path: str = '', patches: T.Optional[T.Dict[str, str]] = None) -> Self:
+        if patches is None:
+            patches = _parse_patches(raw.get('patch'), path)
         pkg = Package.from_raw(raw['package'], workspace)
 
         autolib = None
@@ -697,7 +699,7 @@ class Manifest:
 
         manifest = _raw_to_dataclass(raw, cls, f'Cargo.toml package {pkg.name}',
                                      raw_from_workspace=workspace.inheritable if workspace else None,
-                                     ignored_fields=['badges', 'workspace', 'target'],
+                                     ignored_fields=['badges', 'patch', 'workspace', 'target'],
                                      package=ConvertValue(lambda _: pkg),
                                      dependencies=ConvertValue(dependencies_from_raw),
                                      dev_dependencies=ConvertValue(dependencies_from_raw),
@@ -724,6 +726,7 @@ class Manifest:
                     dep = Dependency.from_raw(name, v, member_path, workspace, target=condition)
                     deps.setdefault(name, []).append(dep)
 
+        manifest.patches = patches
         return manifest
 
 
@@ -748,8 +751,18 @@ class Workspace:
     # A workspace can also have a root package.
     root_package: T.Optional[Manifest] = None
 
-    # Top-level [patch] table, kept in raw form (see Manifest.validate_patch).
-    patch: object = None
+    # Absolute paths collected from the entry-point [patch] table.
+    patches: T.Dict[str, str] = dataclasses.field(default_factory=dict)
+    manifest_path: str = ''
+
+    def iter_patch_paths(self) -> T.Iterator[T.Tuple[str, str]]:
+        for name, path in self.patches.items():
+            yield name, os.path.relpath(path, self.manifest_path)
+
+    def validate_patches(self, resolved: T.Mapping[str, str]) -> None:
+        for name, path in self.iter_patch_paths():
+            if resolved.get(name) != os.path.normpath(path):
+                mlog.warning(f'[patch.crates-io] entry {name!r} is not for a dependency')
 
     @lazy_property
     def inheritable(self) -> T.Dict[str, object]:
@@ -772,14 +785,18 @@ class Workspace:
             any(is_parent_path(ex, path) for ex in self.exclude)
 
     @classmethod
-    def from_raw(cls, raw: raw.Manifest, path: str) -> Self:
+    def from_raw(cls, raw: raw.Manifest, path: str,
+                 patches: T.Optional[T.Dict[str, str]] = None) -> Self:
+        if patches is None:
+            patches = _parse_patches(raw.get('patch'), path)
+
         ws = _raw_to_dataclass(raw['workspace'], cls, 'Workspace')
+        ws.manifest_path = path
+        ws.patches = patches
         if 'package' in raw:
-            ws.root_package = Manifest.from_raw(raw, path, ws, '.')
-            ws.patch = ws.root_package.patch
+            ws.root_package = Manifest.from_raw(raw, path, ws, '.', ws.patches)
             ws.profile = ws.root_package.profile
         else:
-            ws.patch = raw.get('patch')
             ws.profile = {k: Profile.from_raw(v) for k, v in raw.get('profile', {}).items()}
 
         ws.members = list(PurePath(m).as_posix() for m in ws.members)
@@ -869,25 +886,25 @@ class CargoLock:
                                  package=ConvertValue(lambda x: [CargoLockPackage.from_raw(p) for p in x]))
 
 
-def validate_patch(patch: object, resolved: T.Mapping[str, str]) -> T.Iterator[str]:
-    # Meson does not implement [patch]; recognize entries that simply point
-    # at a package Meson already builds from the workspace ('resolved' maps
-    # each such package name to its path), and warn for everything else.
-    # This is only done for the top-level Cargo.toml, since Cargo ignores
-    # [patch] in a dependency's manifest too.
+def _parse_patches(patch: object, path: str) -> T.Dict[str, str]:
+    """Parse supported top-level [patch] entries and warn about the rest."""
+    result: T.Dict[str, str] = {}
     if not patch:
-        return
+        return result
     if not isinstance(patch, dict):
-        yield '[patch] format not recognized'
-    elif list(patch.keys()) != ['crates-io']:
-        yield 'Found [patch] for a registry other than crates.io'
-    elif not isinstance(patch['crates-io'], dict):
-        yield '[patch.crates-io] format not recognized'
-    else:
-        for name, value in patch['crates-io'].items():
-            if not isinstance(value, dict) or not isinstance(value.get('path'), str):
-                yield f'Unrecognized [patch.crates-io] entry {name!r}'
-            elif resolved.get(name) == os.path.normpath(value['path']):
-                continue
-            else:
-                yield f'[patch.crates-io] entry {name!r} is not for a dependency'
+        mlog.warning('[patch] format not recognized')
+        return result
+    if any(registry != 'crates-io' for registry in patch):
+        mlog.warning('Found [patch] for a registry other than crates.io')
+    crates_io = patch.get('crates-io')
+    if crates_io is None:
+        return result
+    if not isinstance(crates_io, dict):
+        mlog.warning('[patch.crates-io] format not recognized')
+        return result
+    for name, value in crates_io.items():
+        if not isinstance(value, dict) or not isinstance(value.get('path'), str):
+            mlog.warning(f'Unrecognized [patch.crates-io] entry {name!r}')
+        else:
+            result[name] = os.path.join(path, value['path'])
+    return result
