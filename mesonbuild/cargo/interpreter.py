@@ -463,7 +463,7 @@ class Interpreter:
                     dep = cfg.dependencies[depname]
                     if dep.path:
                         dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
-                        if not ws.workspace.is_excluded(dep_member):
+                        if dep_member in ws.packages:
                             _process_member(dep_member)
                 found = True
             if not found:
