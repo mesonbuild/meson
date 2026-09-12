@@ -1,0 +1,7 @@
+[package]
+name = "outer"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+patched = "1"
