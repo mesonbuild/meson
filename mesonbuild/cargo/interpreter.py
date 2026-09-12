@@ -527,6 +527,14 @@ class Interpreter:
         for m in workspace.members:
             self._load_workspace_member(ws, m)
 
+        if not self.workspaces:
+            # The top-level workspace also has [patch] as a possible source
+            # of path dependencies.
+            for _, path in workspace.iter_patch_paths():
+                member = PurePath(os.path.normpath(path)).as_posix()
+                if not workspace.is_excluded(member):
+                    self._load_workspace_member(ws, member)
+
         if extra_members is not None:
             wanted = [PurePath(m).as_posix() for m in extra_members]
             self._load_extra_members(ws, wanted)
@@ -552,7 +560,7 @@ class Interpreter:
            Raises a MesonException for an entry of *wanted* that is neither a
            declared member nor a path dependency, or that the workspace excludes.
            """
-        valid: T.Set[str] = set(ws.workspace.members)
+        valid: T.Set[str] = set(ws.packages)
         # Accepting a member makes its own path dependencies candidates in turn,
         # so this is a worklist rather than a single pass.  Every member has
         # been loaded already, so ws.packages holds the starting points.
@@ -692,13 +700,22 @@ class Interpreter:
                 self._add_dependency(pkg, depname, machine)
 
     def _load_path_package(self, pkg: PackageState, dep: Dependency) -> PackageState:
-        """Load a path dependency as a member of the consumer's workspace."""
         assert dep.path is not None
-        ws = self.workspaces[pkg.ws_subdir]
-        dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
-        dep_subdir = os.path.normpath(os.path.join(pkg.ws_subdir, dep_member))
-        if is_parent_path(self.subprojects_dir, pkg.ws_subdir) and \
-                not is_parent_path(pkg.ws_subdir, dep_subdir):
+        if dep.patched:
+            # Patched dependencies are always members of the root workspace
+            source_dir = self.environment.source_dir
+            dep_path = os.path.normpath(os.path.join(source_dir, pkg.ws_subdir,
+                                                     pkg.ws_member, dep.path))
+            root_path = os.path.join(source_dir, self.root_workspace.subdir)
+            ws = self.root_workspace
+            dep_member = os.path.normpath(os.path.relpath(dep_path, root_path))
+        else:
+            ws = self.workspaces[pkg.ws_subdir]
+            dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
+
+        dep_subdir = os.path.normpath(os.path.join(ws.subdir, dep_member))
+        if is_parent_path(self.subprojects_dir, ws.subdir) and \
+                not is_parent_path(ws.subdir, dep_subdir):
             raise MesonException(f'path dependency "{dep.package}" points outside the current subproject')
         if is_parent_path(self.subprojects_dir, dep_member):
             if len(pathlib.PurePath(dep_member).parts) != 2:

@@ -310,6 +310,8 @@ class Dependency:
     features: T.List[str] = dataclasses.field(default_factory=list)
     # The [target.<cfg>] condition this entry was declared under, if any.
     target: T.Optional[str] = None
+    # Whether [patch] replaced this dependency's registry source with a path.
+    patched: bool = False
 
     @lazy_property
     def accepts_version(self) -> T.Callable[[str], bool]:
@@ -631,6 +633,17 @@ class Manifest:
                 if dep.path:
                     yield dep
 
+    def patch_dependencies(self, path: str) -> None:
+        """Replace crates.io sources with validated workspace paths."""
+        for table in (self.dependencies, self.dev_dependencies, self.build_dependencies):
+            for dependencies in table.values():
+                for dep in dependencies:
+                    if dep.path is None and dep.git is None:
+                        patch = self.patches.get(dep.package)
+                        if patch is not None:
+                            dep.path = os.path.relpath(patch, path)
+                            dep.patched = True
+
     def machines_from(self, parent_machine: MachineChoice, is_cross: bool,
                       bin: bool = False) -> T.Iterable[MachineChoice]:
         """Return the machines this manifest should be built for based on the machine
@@ -727,6 +740,7 @@ class Manifest:
                     deps.setdefault(name, []).append(dep)
 
         manifest.patches = patches
+        manifest.patch_dependencies(path)
         return manifest
 
 
