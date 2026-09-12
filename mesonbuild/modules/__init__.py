@@ -130,12 +130,17 @@ class ModuleState:
         self.dependency_overrides[for_machine][identifier] = \
             build.DependencyOverride(dep, self._interpreter.current_node)
 
-    def overridden_dependency(self, depname: str, for_machine: MachineChoice = MachineChoice.HOST) -> Dependency:
+    def find_overridden_dependency(self, depname: str,
+                                   for_machine: MachineChoice = MachineChoice.HOST) -> T.Optional[Dependency]:
         identifier = dependencies.get_dep_identifier(depname, {'native': for_machine})
-        try:
-            return self.dependency_overrides[for_machine][identifier].dep
-        except KeyError:
+        override = self.dependency_overrides[for_machine].get(identifier)
+        return override.dep if override else None
+
+    def overridden_dependency(self, depname: str, for_machine: MachineChoice = MachineChoice.HOST) -> Dependency:
+        dependency = self.find_overridden_dependency(depname, for_machine)
+        if dependency is None:
             raise mesonlib.MesonException(f'dependency "{depname}" was not overridden for the {for_machine}')
+        return dependency
 
     def dependency(self, depname: str, native: bool = False, required: bool = True,
                    wanted: T.Optional[T.Union[str, T.List[str]]] = None) -> 'Dependency':

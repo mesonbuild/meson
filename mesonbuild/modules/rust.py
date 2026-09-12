@@ -321,12 +321,15 @@ class RustPackage(RustCrate):
         if kwargs['dependencies']:
             for dep_key, dep_pkg in cfg.dep_packages.items():
                 if dep_pkg.manifest.lib:
-                    if dep_pkg.ws_subdir != self.rust_ws.subdir or \
-                        is_parent_path(os.path.join(self.rust_ws.subdir, state.subproject_dir),
-                                       dep_pkg.path):
-                        self.rust_ws._do_subproject(state, dep_pkg, for_machine)
                     # Get the dependency name for this package (rust or proc-macro ABI)
                     depname = dep_pkg.get_rust_dependency_name()
+                    dependency = state.find_overridden_dependency(depname, for_machine)
+                    if dependency is None:
+                        if dep_pkg.ws_subdir != self.rust_ws.subdir or \
+                             is_parent_path(os.path.join(self.rust_ws.subdir, state.subproject_dir),
+                                            dep_pkg.path):
+                            self.rust_ws._do_subproject(state, dep_pkg, for_machine)
+
                     dependency = state.overridden_dependency(depname, for_machine)
                     dependencies.append(dependency)
 
