@@ -720,7 +720,14 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     p.set_defaults(subprojects_func=Runner.packagefiles)
 
 def run(options: 'Arguments') -> int:
-    source_dir = os.path.relpath(os.path.realpath(options.sourcedir))
+    real_source_dir = os.path.realpath(options.sourcedir)
+    try:
+        source_dir = os.path.relpath(real_source_dir)
+    except ValueError:
+        # On Windows, os.path.relpath raises ValueError when the source
+        # directory is on a different mount/UNC share than the current
+        # working directory. Fall back to the absolute path in that case.
+        source_dir = real_source_dir
     if not os.path.isfile(os.path.join(source_dir, 'meson.build')):
         mlog.error('Directory', mlog.bold(source_dir), 'does not seem to be a Meson source directory.')
         return 1
