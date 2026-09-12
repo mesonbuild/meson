@@ -28,8 +28,8 @@ from .manifest import (
     validate_patch,
 )
 from ..mesonlib import (
-    as_posix, is_parent_path, lazy_property, MesonException, MachineChoice,
-    PerMachine, unique_list, SubProject,
+    as_posix, is_parent_path, late_property, lazy_property, MesonException,
+    MachineChoice, PerMachine, unique_list, SubProject,
 )
 from .. import coredata, mlog
 from ..options import OptionKey
@@ -274,6 +274,7 @@ class WorkspaceState:
 
 class Interpreter:
     _features: T.Optional[T.List[str]] = None
+    root_workspace: late_property[WorkspaceState] = late_property()
 
     def __init__(self, env: Environment, subdir: str, subprojects_dir: str) -> None:
         self.environment = env
@@ -318,9 +319,11 @@ class Interpreter:
 
     def load_workspace(self, subdir: str, extra_members: T.Optional[T.List[str]]) -> WorkspaceState:
         """Load the root Cargo.toml package and prepare it with features and dependencies."""
-        manifest, cached = self._load_manifest(subdir)
+        is_root = not self.workspaces
+        manifest = self._load_manifest(subdir)
         ws = self._get_workspace(manifest, subdir, extra_members, False)
-        if not cached:
+        if is_root:
+            self.root_workspace = ws
             # [patch] only takes effect in the top-level Cargo.toml
             for warning in validate_patch(ws.workspace.patch, ws.packages_to_member):
                 mlog.warning(warning)
@@ -396,7 +399,7 @@ class Interpreter:
         build = builder.Builder(filename)
         if project_root:
             # this is a subdir()
-            manifest, _ = self._load_manifest(subdir)
+            manifest = self._load_manifest(subdir)
             assert isinstance(manifest, Manifest)
             # canonicalize it
             project_root = as_posix(project_root)
@@ -492,7 +495,7 @@ class Interpreter:
             return
         # Load member's manifest
         m_subdir = as_posix(ws.subdir, m)
-        manifest_, _ = self._load_manifest(m_subdir, ws.workspace, m)
+        manifest_ = self._load_manifest(m_subdir, ws.workspace, m)
         if not isinstance(manifest_, Manifest):
             # Cargo calls this "multiple workspace roots found in the same workspace".
             # Meson supports excluding them but only if they are subprojects.
@@ -638,7 +641,7 @@ class Interpreter:
         subdir, _ = self.environment.wrap_resolver.resolve(subp_name)
         subprojects_dir = os.path.join(subdir, 'subprojects')
         self.environment.wrap_resolver.load_and_merge(subprojects_dir, SubProject(subp_name))
-        manifest, _ = self._load_manifest(subdir)
+        manifest = self._load_manifest(subdir)
         downloaded = \
             subp_name in self.environment.wrap_resolver.wraps and \
             self.environment.wrap_resolver.wraps[subp_name].type is not None
@@ -727,12 +730,13 @@ class Interpreter:
         assert cfg.dep_packages[dep_key] == dep_pkg
         return dep_pkg
 
-    def _load_manifest(self, subdir: str, workspace: T.Optional[Workspace] = None, member_path: str = '') -> T.Tuple[T.Union[Manifest, Workspace], bool]:
+    def _load_manifest(self, subdir: str, workspace: T.Optional[Workspace] = None,
+                       member_path: str = '') -> T.Union[Manifest, Workspace]:
         # Canonicalize before accessing self.manifests
         subdir = as_posix(subdir)
         manifest_ = self.manifests.get(subdir)
         if manifest_:
-            return manifest_, True
+            return manifest_
         path = os.path.join(self.environment.source_dir, subdir)
         filename = os.path.join(path, 'Cargo.toml')
         try:
@@ -748,7 +752,7 @@ class Interpreter:
         else:
             raise MesonException(f'{subdir}/Cargo.toml does not have [package] or [workspace] section')
         self.manifests[subdir] = manifest_
-        return manifest_, False
+        return manifest_
 
     def _add_dependency(self, pkg: PackageState, depname: str, machine: MachineChoice) -> None:
         cfg = pkg.cfg[machine]
