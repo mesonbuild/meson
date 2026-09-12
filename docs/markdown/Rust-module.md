@@ -280,6 +280,28 @@ Cargo subprojects.
 either because the dependency is optional and no feature enables it,
 or because it is declared under a `target` clause that is never true.
 
+A package requested this way is built for the machine it is reachable from: the build
+machine for a `[build-dependencies]` entry, the host machine otherwise, or both if it
+is reachable both ways.  `[build-dependencies]` are never resolved on their own; a
+build-time crate is only built if it is listed in `extra_members`.
+
+For example, this can be used to mark a generator declared as
+
+```toml
+[target.'cfg(any())'.build-dependencies]
+generator = { path = "generator" }
+```
+
+as a package for the build machine, and to ensure its dependencies are also configured
+for the build machine.  Because the package is built for the build machine, `native: true`
+has to be passed when retrieving it:
+
+```meson
+cargo = rust.workspace(extra_members: ['generator'])
+gen_pkg = cargo.package('generator', native: true)
+gen = gen_pkg.executable()
+```
+
 The first invocation of `workspace()` establishes the *Cargo interpreter*
 that resolves dependencies and features for both the toplevel project (the one
 containing `Cargo.lock`) and all subprojects that are invoked with the `cargo` method,

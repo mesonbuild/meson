@@ -588,10 +588,13 @@ class Interpreter:
         valid: T.Set[str] = set(ws.packages)
         # Accepting a member makes its own path dependencies candidates in turn,
         # so this is a worklist rather than a single pass.  Every member has
-        # been loaded already, so ws.packages holds the starting points.
-        queue = list(ws.packages)
+        # been loaded already, so ws.packages holds the starting points.  Each
+        # entry carries the machine that the member itself is built for, because
+        # what is below a [build-dependencies] edge stays on the build machine.
+        queue = [(m, MachineChoice.HOST) for m in ws.packages]
+        loaded = set(queue)
         while queue:
-            member = queue.pop(0)
+            member, member_machine = queue.pop(0)
             pkg = ws.packages[member]
             for kind, dep in pkg.manifest.path_dependencies():
                 assert dep.path is not None
@@ -601,10 +604,12 @@ class Interpreter:
                 valid.add(dep_member)
                 if dep_member not in wanted:
                     continue
-                ws.entry_points.setdefault(dep_member, set()).add(MachineChoice.HOST)
-                if dep_member not in ws.packages:
+                machine = MachineChoice.BUILD if kind is DependencyKind.BUILD and self.is_cross else member_machine
+                ws.entry_points.setdefault(dep_member, set()).add(machine)
+                if (dep_member, machine) not in loaded:
+                    loaded.add((dep_member, machine))
                     self._load_workspace_member(ws, dep_member)
-                    queue.append(dep_member)
+                    queue.append((dep_member, machine))
 
         for m in wanted:
             if m in ws.workspace.members:
@@ -822,6 +827,14 @@ class Interpreter:
     def _dependency_kinds(self, pkg: PackageState) -> T.Iterable[DependencyKind]:
         """The dependency tables that take part in resolution for this package."""
         yield DependencyKind.NORMAL
+        # Cargo only resolves dev-dependencies are only resolved for the packages
+        # whose tests are built, which in this case are the entry points of the
+        # workspace that rust.workspace() was called for, and not the packages
+        # that are merely pulled in as dependencies of one.
+        if self.root_workspace is not None and pkg.ws_subdir == self.root_workspace.subdir:
+            ws = self.workspaces[pkg.ws_subdir]
+            if pkg.ws_member in ws.entry_points:
+                yield DependencyKind.DEV
 
     def _required_dep_kinds(self, pkg: PackageState, depname: str, machine: MachineChoice) -> \
             T.List[DependencyKind]:
