@@ -691,24 +691,30 @@ class Interpreter:
             if not dep.optional:
                 self._add_dependency(pkg, depname, machine)
 
+    def _load_path_package(self, pkg: PackageState, dep: Dependency) -> PackageState:
+        """Load a path dependency as a member of the consumer's workspace."""
+        assert dep.path is not None
+        ws = self.workspaces[pkg.ws_subdir]
+        dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
+        if is_parent_path(self.subprojects_dir, dep_member):
+            if len(pathlib.PurePath(dep_member).parts) != 2:
+                raise MesonException('found "{self.subprojects_dir}" in path but it is not a valid subproject path')
+
+        if ws.workspace.is_excluded(dep_member):
+            # An excluded package is not a member of the workspace, so it is
+            # built as a separate project.  This is only supported for
+            # subprojects, so that each project has a single Cargo.lock.
+            if not is_parent_path(self.subprojects_dir, dep_member):
+                raise MesonException(f'package "{dep.package}" excluded from the workspace '
+                                     f'must be under "{self.subprojects_dir}"')
+            return self._fetch_package_from_subproject(dep.package, os.path.basename(dep_member))
+        else:
+            self._load_workspace_member(ws, dep_member)
+            return self._require_workspace_member(ws, dep_member)
+
     def _dep_package(self, pkg: PackageState, dep: Dependency, cfg: PackageConfiguration) -> PackageState:
         if dep.path:
-            ws = self.workspaces[pkg.ws_subdir]
-            dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
-            if is_parent_path(self.subprojects_dir, dep_member):
-                if len(pathlib.PurePath(dep_member).parts) != 2:
-                    raise MesonException('found "{self.subprojects_dir}" in path but it is not a valid subproject path')
-            if ws.workspace.is_excluded(dep_member):
-                # An excluded package is not a member of the workspace, so it is
-                # built as a separate project.  This is only supported for
-                # subprojects, so that each project has a single Cargo.lock.
-                if not is_parent_path(self.subprojects_dir, dep_member):
-                    raise MesonException(f'package "{dep.package}" excluded from the workspace '
-                                         f'must be under "{self.subprojects_dir}"')
-                dep_pkg = self._fetch_package_from_subproject(dep.package, os.path.basename(dep_member))
-            else:
-                self._load_workspace_member(ws, dep_member)
-                dep_pkg = self._require_workspace_member(ws, dep_member)
+            dep_pkg = self._load_path_package(pkg, dep)
         elif dep.git:
             _, _, directory = _parse_git_url(dep.git, dep.branch)
             dep_pkg = self._fetch_package_from_subproject(dep.package, directory)
