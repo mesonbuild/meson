@@ -194,6 +194,13 @@ class MesonApp:
             assert self.options.reconfigure
             env.coredata.set_from_configure_command(self.options)
         mlog.initialize(env.get_log_dir(), self.options.fatal_warnings)
+        # Honor b_colorout option for setup output
+        colorout = env.coredata.optstore.get_value_for('b_colorout') \
+            if OptionKey('b_colorout') in env.coredata.optstore else 'auto'
+        if colorout == 'always':
+            mlog.set_colorize(True)
+        elif colorout == 'never':
+            mlog.set_colorize(False)
         if self.options.profile:
             mlog.set_timestamp_start(time.monotonic())
         if self.options.clearcache:
