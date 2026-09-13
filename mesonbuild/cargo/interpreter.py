@@ -24,8 +24,8 @@ from . import builder, version
 from .cfg import eval_cfg
 from .toml import load_toml
 from .manifest import (
-    Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname,
-    validate_patch,
+    DependencyKind, Manifest, CargoLock, CargoLockPackage, Workspace,
+    fixup_meson_varname, validate_patch,
 )
 from ..mesonlib import (
     is_parent_path, lazy_property, MesonException, MachineChoice,
@@ -64,8 +64,13 @@ def _extra_deps_varname() -> str:
 class PackageConfiguration:
     """Configuration for a package during dependency resolution."""
     for_machine: MachineChoice
+    # Dependency tables of the package, with the [target.*] sections that apply
+    # to this machine merged in.
+    dependencies: T.Dict[DependencyKind, T.Dict[str, Dependency]] = \
+        dataclasses.field(default_factory=dict)
     features: T.Set[str] = dataclasses.field(default_factory=set)
-    required_deps: T.Set[str] = dataclasses.field(default_factory=set)
+    required_deps: T.Dict[DependencyKind, T.Set[str]] = \
+        dataclasses.field(default_factory=lambda: collections.defaultdict(set))
     optional_deps_features: T.Dict[str, T.Set[str]] = dataclasses.field(default_factory=lambda: collections.defaultdict(set))
     # Cache of resolved dependency packages
     dep_packages: T.Dict[PackageKey, PackageState] = dataclasses.field(default_factory=dict)
@@ -77,26 +82,50 @@ class PackageConfiguration:
             args.extend(['--cfg', f'feature="{feature}"'])
         return args
 
-    def get_dependency_map(self, manifest: Manifest) -> T.Dict[str, str]:
-        """Get the rust dependency mapping for this package configuration."""
+    def iter_dependencies(self, kinds: T.Iterable[DependencyKind] = DependencyKind) -> \
+            T.Iterator[T.Tuple[DependencyKind, str, Dependency]]:
+        for kind in kinds:
+            if kind not in self.dependencies:
+                continue
+            for name, dep in self.dependencies[kind].items():
+                yield kind, name, dep
+
+    def iter_required_dependencies(self, kinds: T.Iterable[DependencyKind] = DependencyKind) -> \
+            T.Iterator[T.Tuple[DependencyKind, str, Dependency]]:
+        for kind in kinds:
+            if kind not in self.required_deps:
+                continue
+            for name in sorted(self.required_deps[kind]):
+                yield kind, name, self.dependencies[kind][name]
+
+    def get_dependency_map(self, kinds: T.Sequence[DependencyKind] = (DependencyKind.NORMAL,)) -> T.Dict[str, str]:
+        """Get the rust dependency mapping for the given kinds of dependency."""
         dependency_map: T.Dict[str, str] = {}
-        for name in sorted(self.required_deps):
-            dep = manifest.dependencies[name]
+        # A crate name can only mean one thing within a single target, even if
+        # it is listed in more than one dependency table.
+        crate_packages: T.Dict[str, str] = {}
+        for _, name, dep in self.iter_required_dependencies(kinds):
             dep_key = PackageKey(dep.package, dep.api)
             dep_pkg = self.dep_packages[dep_key]
             dep_lib_name = dep_pkg.library_name(self.for_machine)
             dep_crate_name = name if name != dep.package else dep_pkg.manifest.lib.name
-            dependency_map[dep_lib_name] = dep_crate_name
+            previous = crate_packages.setdefault(dep_crate_name, dep_lib_name)
+            if previous != dep_lib_name:
+                raise MesonException(f'crate "{dep_crate_name}" resolves to both '
+                                     f'"{previous}" and "{dep_lib_name}"')
+            previous_crate = dependency_map.setdefault(dep_lib_name, dep_crate_name)
+            if previous_crate != dep_crate_name:
+                raise MesonException(f'"{dep_lib_name}" is renamed to both '
+                                     f'"{previous_crate}" and "{dep_crate_name}"')
         return dependency_map
 
 
 @dataclasses.dataclass
 class PackageState:
     manifest: Manifest
+    ws_subdir: str
+    ws_member: str
     downloaded: bool = False
-    # If this package is member of a workspace.
-    ws_subdir: T.Optional[str] = None
-    ws_member: T.Optional[str] = None
     # Per-machine configuration state
     cfg: PerMachine[T.Optional[PackageConfiguration]] = dataclasses.field(
         default_factory=lambda: PerMachine(None, None)
@@ -107,9 +136,7 @@ class PackageState:
     subproject_name: T.Optional[str] = None
 
     @lazy_property
-    def path(self) -> T.Optional[str]:
-        if not self.ws_subdir:
-            return None
+    def path(self) -> str:
         return os.path.normpath(os.path.join(self.ws_subdir, self.ws_member))
 
     def library_name(self, machine: MachineChoice = MachineChoice.HOST, lib_type: RUST_ABI = 'rust') -> str:
@@ -269,10 +296,16 @@ class WorkspaceState:
     packages_to_member: T.Dict[str, str] = dataclasses.field(default_factory=dict)
     # member paths that are required to be built
     required_members: T.List[str] = dataclasses.field(default_factory=list)
+    # dictionary of members that are the root of feature/dependency resolution,
+    # as pairs of member path and the machines it has to be built for
+    entry_points: T.Dict[str, T.Set[MachineChoice]] = dataclasses.field(default_factory=dict)
 
 
 class Interpreter:
     _features: T.Optional[T.List[str]] = None
+    _dev_dependencies: T.Optional[bool] = None
+    # Subdir of the workspace that rust.workspace() was called for.
+    entry_ws_subdir: T.Optional[str] = None
 
     def __init__(self, env: Environment, subdir: str, subprojects_dir: str) -> None:
         self.environment = env
@@ -312,12 +345,28 @@ class Interpreter:
             raise MesonException("Cannot modify features after they have been selected or used")
         self._features = value_unique
 
+    @property
+    def dev_dependencies(self) -> bool:
+        """Whether dev-dependencies take part in resolution.  Once read, it
+           cannot be modified."""
+        if self._dev_dependencies is None:
+            self._dev_dependencies = False
+        return self._dev_dependencies
+
+    @dev_dependencies.setter
+    def dev_dependencies(self, value: bool) -> None:
+        if self._dev_dependencies is not None and value != self._dev_dependencies:
+            raise MesonException("Cannot modify dev_dependencies after they have been used")
+        self._dev_dependencies = value
+
     def get_build_def_files(self) -> T.List[str]:
         return self.build_def_files
 
     def load_workspace(self, subdir: str, extra_members: T.Optional[T.List[str]]) -> WorkspaceState:
         """Load the root Cargo.toml package and prepare it with features and dependencies."""
         subdir = os.path.normpath(subdir)
+        if self.entry_ws_subdir is None:
+            self.entry_ws_subdir = subdir
         manifest, cached = self._load_manifest(subdir)
         ws = self._get_workspace(manifest, subdir, extra_members, False)
         if not cached:
@@ -330,12 +379,13 @@ class Interpreter:
         return ws
 
     def _prepare_entry_point(self, ws: WorkspaceState) -> None:
-        pkgs = [self._require_workspace_member(ws, m) for m in ws.workspace.default_members]
-        for pkg in pkgs:
-            for machine in pkg.manifest.machines_from(MachineChoice.HOST, bin=True, is_cross=self.is_cross):
-                self._prepare_package(pkg, machine)
-                for feature in self.features:
-                    self._enable_feature(pkg, feature, machine)
+        for m, machines in ws.entry_points.items():
+            pkg = self._require_workspace_member(ws, m)
+            for parent in machines:
+                for machine in pkg.manifest.machines_from(parent, bin=True, is_cross=self.is_cross):
+                    self._prepare_package(pkg, machine)
+                    for feature in self.features:
+                        self._enable_feature(pkg, feature, machine)
 
     def load_package(self, ws: WorkspaceState, package_name: T.Optional[str]) -> PackageState:
         if package_name is None:
@@ -459,8 +509,7 @@ class Interpreter:
                 cfg = pkg.cfg[machine]
                 if not cfg:
                     continue
-                for depname in cfg.required_deps:
-                    dep = pkg.manifest.dependencies[depname]
+                for _, _, dep in cfg.iter_required_dependencies():
                     if dep.path:
                         dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
                         if not ws.workspace.is_excluded(dep_member):
@@ -520,18 +569,65 @@ class Interpreter:
         if workspace.root_package:
             self._add_workspace_member(workspace.root_package, ws, '.')
 
-        if extra_members is not None:
-            for m in extra_members:
-                m = PurePath(m).as_posix()
-                if m not in workspace.members:
-                    l = ', '.join(sorted(list(workspace.members)))
-                    raise MesonException(f'{m} is not a workspace member for {subdir}/Cargo.toml (valid members are {l})')
-                if m not in workspace.default_members:
-                    workspace.default_members.append(m)
         for m in workspace.members:
             self._load_workspace_member(ws, m)
+
+        ws.entry_points = {m: {MachineChoice.HOST} for m in workspace.default_members}
+        if extra_members is not None:
+            wanted = [PurePath(m).as_posix() for m in extra_members]
+            self._load_extra_members(ws, wanted)
+
         self.workspaces[subdir] = ws
         return ws
+
+    def _load_extra_members(self, ws: WorkspaceState, wanted: T.List[str]) -> None:
+        """Look for *wanted* among the path dependencies of the workspace members.
+
+           Every path dependency inside the workspace directory is potentially a
+           member, even one that no [target] condition ever enables; such a
+           dependency can therefore be requested explicitly even though it is
+           absent from [workspace] members (in Cargo, with `-p`; in Meson, with
+           `extra_members`).
+
+           Force loading of all of the path dependencies that are in *wanted*.
+
+           Raises a MesonException for an entry of *wanted* that is neither a
+           declared member nor a path dependency, or that the workspace excludes.
+           """
+        valid: T.Set[str] = set(ws.workspace.members)
+        # Accepting a member makes its own path dependencies candidates in turn,
+        # so this is a worklist rather than a single pass.  Every member has
+        # been loaded already, so ws.packages holds the starting points.  Each
+        # entry carries the machine that the member itself is built for, because
+        # what is below a [build-dependencies] edge stays on the build machine.
+        queue = [(m, MachineChoice.HOST) for m in ws.packages]
+        loaded = set(queue)
+        while queue:
+            member, member_machine = queue.pop(0)
+            pkg = ws.packages[member]
+            for kind, dep in pkg.manifest.path_dependencies():
+                assert dep.path is not None
+                dep_member = PurePath(os.path.normpath(os.path.join(member, dep.path))).as_posix()
+                if ws.workspace.is_excluded(dep_member):
+                    continue
+                valid.add(dep_member)
+                if dep_member not in wanted:
+                    continue
+                machine = MachineChoice.BUILD if kind is DependencyKind.BUILD and self.is_cross else member_machine
+                ws.entry_points.setdefault(dep_member, set()).add(machine)
+                if (dep_member, machine) not in loaded:
+                    loaded.add((dep_member, machine))
+                    self._load_workspace_member(ws, dep_member)
+                    queue.append((dep_member, machine))
+
+        for m in wanted:
+            if m in ws.workspace.members:
+                # A declared member that is not a default member.
+                ws.entry_points.setdefault(m, set()).add(MachineChoice.HOST)
+            if m not in valid:
+                l = ', '.join(sorted(list(valid)))
+                raise MesonException(f'{m} is not a workspace member for '
+                                     f'{ws.subdir}/Cargo.toml (valid members are {l})')
 
     def _record_package(self, pkg: PackageState) -> None:
         key = PackageKey(pkg.manifest.package.name, pkg.manifest.package.api)
@@ -613,32 +709,41 @@ class Interpreter:
         if pkg.cfg[machine] is not None:
             return  # Already prepared for this machine
 
-        pkg.cfg[machine] = PackageConfiguration(for_machine=machine)
+        cfg = PackageConfiguration(for_machine=machine)
+        pkg.cfg[machine] = cfg
 
-        # Merge target-specific dependencies that are enabled for this machine
+        # Keep the dependencies whose [target.*] condition holds for this machine.
+        # A later entry wins, so an unconditional declaration is the fallback for
+        # the name and a matching [target.*] one overrides it.
         rustc = T.cast('RustCompiler', self.environment.coredata.compilers[machine]['rust'])
         target_cfgs = self._get_cfgs(machine, pkg.get_subproject_name())
-        for condition, dependencies in pkg.manifest.target.items():
-            if condition == rustc.get_target_triple() or eval_cfg(condition, target_cfgs):
-                pkg.manifest.dependencies.update(dependencies)
+
+        def enabled(dep: Dependency) -> bool:
+            return dep.target is None or dep.target == rustc.get_target_triple() or \
+                eval_cfg(dep.target, target_cfgs)
+
+        cfg.dependencies = {kind: {name: dep
+                                   for name, deps in pkg.manifest.deps_for(kind).items()
+                                   for dep in deps if enabled(dep)}
+                            for kind in DependencyKind}
 
         # If you specify the optional dependency with the dep: prefix anywhere in the [features]
         # table, that disables the implicit feature.
-        deps = set(feature[4:]
-                   for feature in itertools.chain.from_iterable(pkg.manifest.features.values())
-                   if feature.startswith('dep:'))
-        for name, dep in itertools.chain(pkg.manifest.dependencies.items(),
-                                         pkg.manifest.dev_dependencies.items(),
-                                         pkg.manifest.build_dependencies.items()):
-            if dep.optional and name not in deps:
-                pkg.manifest.features.setdefault(name, [])
-                pkg.manifest.features[name].append(f'dep:{name}')
-                deps.add(name)
+        explicit = set(feature[4:]
+                       for feature in itertools.chain.from_iterable(pkg.manifest.features.values())
+                       if feature.startswith('dep:'))
+        # Cargo forbids [dev-dependencies] to be optional, so skip them
+        for table in (pkg.manifest.dependencies, pkg.manifest.build_dependencies):
+            for name, deps in table.items():
+                if any(dep.optional for dep in deps) and name not in explicit:
+                    pkg.manifest.features.setdefault(name, [])
+                    pkg.manifest.features[name].append(f'dep:{name}')
+                    explicit.add(name)
 
         # Fetch required dependencies recursively for this machine
-        for depname, dep in pkg.manifest.dependencies.items():
+        for kind, depname, dep in cfg.iter_dependencies(self._dependency_kinds(pkg)):
             if not dep.optional:
-                self._add_dependency(pkg, depname, machine)
+                self._add_dependency(pkg, depname, machine, kind)
 
     def _dep_package(self, pkg: PackageState, dep: Dependency, cfg: PackageConfiguration) -> PackageState:
         if dep.path:
@@ -696,15 +801,36 @@ class Interpreter:
         self.manifests[subdir] = manifest_
         return manifest_, False
 
-    def _add_dependency(self, pkg: PackageState, depname: str, machine: MachineChoice) -> None:
+    def _dependency_kinds(self, pkg: PackageState) -> T.Iterable[DependencyKind]:
+        """The dependency tables that take part in resolution for this package."""
+        yield DependencyKind.NORMAL
+        # Cargo only resolves dev-dependencies are only resolved for the packages
+        # whose tests are built, which in this case are the entry points of the
+        # workspace that rust.workspace() was called for, and not the packages
+        # that are merely pulled in as dependencies of one.
+        if self.dev_dependencies and pkg.ws_subdir == self.entry_ws_subdir:
+            ws = self.workspaces[pkg.ws_subdir]
+            if pkg.ws_member in ws.entry_points:
+                yield DependencyKind.DEV
+
+    def _required_dep_kinds(self, pkg: PackageState, depname: str, machine: MachineChoice) -> \
+            T.List[DependencyKind]:
+        """The kinds of edge that were found for the edge from
+           pkg.cfg[machine] to depname."""
         cfg = pkg.cfg[machine]
-        if depname in cfg.required_deps:
+        return [kind for kind in self._dependency_kinds(pkg)
+                if depname in cfg.required_deps[kind]]
+
+    def _add_dependency(self, pkg: PackageState, depname: str, machine: MachineChoice,
+                        kind: DependencyKind) -> None:
+        cfg = pkg.cfg[machine]
+        if depname in cfg.required_deps[kind]:
             return
-        dep = pkg.manifest.dependencies.get(depname)
+        dep = cfg.dependencies[kind].get(depname)
         if not dep:
             # It could be build/dev/target dependency. Just ignore it.
             return
-        cfg.required_deps.add(depname)
+        cfg.required_deps[kind].add(depname)
         dep_pkg = self._dep_package(pkg, dep, cfg)
         # Use machines_from() to determine which machines the dependency needs
         for dep_machine in dep_pkg.manifest.machines_from(machine, self.is_cross):
@@ -729,19 +855,23 @@ class Interpreter:
                 if depname[-1] == '?':
                     depname = depname[:-1]
                 else:
-                    self._add_dependency(pkg, depname, machine)
-                if depname in cfg.required_deps:
-                    dep = pkg.manifest.dependencies[depname]
+                    # Only an optional dependency has to be added here, and since
+                    # [dev-dependencies] cannot be optional it must be [dependencies]
+                    self._add_dependency(pkg, depname, machine, DependencyKind.NORMAL)
+                # Apply "dep/feature" to any kind of dependency.
+                dep_kinds = self._required_dep_kinds(pkg, depname, machine)
+                for dep_kind in dep_kinds:
+                    dep = cfg.dependencies[dep_kind][depname]
                     dep_pkg = self._dep_package(pkg, dep, cfg)
                     # Use machines_from() to determine which machines the dependency needs
                     for dep_machine in dep_pkg.manifest.machines_from(machine, self.is_cross):
                         self._enable_feature(dep_pkg, dep_f, dep_machine)
-                else:
+                if not dep_kinds:
                     # This feature will be enabled only if that dependency
                     # is later added.
                     cfg.optional_deps_features[depname].add(dep_f)
             elif f.startswith('dep:'):
-                self._add_dependency(pkg, f[4:], machine)
+                self._add_dependency(pkg, f[4:], machine, DependencyKind.NORMAL)
             else:
                 self._enable_feature(pkg, f, machine)
 
