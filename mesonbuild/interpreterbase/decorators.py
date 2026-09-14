@@ -9,7 +9,7 @@ from .baseobjects import DefaultObject
 from .exceptions import InterpreterException, InvalidArguments
 from ._unholder import _unholder
 
-from functools import wraps
+from functools import partial, wraps
 import abc
 import dataclasses
 import itertools
@@ -533,6 +533,7 @@ class TypedArgs:
     def _process_kwargs(self, node: mparser.BaseNode | None, _kwargs: TYPE_kwargs, subproject: SubProject) -> None:
         # Cast here, as the convertor function may place something other than a TYPE_var in the kwargs
         kwargs = T.cast('T.Dict[str, object]', _kwargs)
+        make_err = partial(InvalidArguments.from_node, node=node) if node else InvalidArguments
 
         if not self.unknown_kwargs:
             all_names = {t.name for t in self.kw_types}
@@ -542,7 +543,7 @@ class TypedArgs:
                 has_args = ''
                 if not self.kw_types:
                     has_args = ' Function expects no keyword arguments.'
-                raise InvalidArguments(f'"{self.name}" got unknown keyword arguments {ustr}.{has_args}')
+                raise make_err(f'"{self.name}" got unknown keyword arguments {ustr}.{has_args}')
 
         for info in self.kw_types:
             types_tuple = info.types if isinstance(info.types, tuple) else (info.types,)
@@ -552,8 +553,8 @@ class TypedArgs:
                 # Otherwise, set the value to None, which will send us down
                 # the "unset" path
                 if info.required:
-                    raise InvalidArguments(f'"{self.name}" got a default() value for the required keyword argument "{info.name}". '
-                                           'default() may not be used for required keyword arguments.')
+                    raise make_err(f'"{self.name}" got a default() value for the required keyword argument "{info.name}". '
+                                   'default() may not be used for required keyword arguments.')
                 value = None
 
             if value is not None:
@@ -589,13 +590,13 @@ class TypedArgs:
                                     extra_desc.append(cb(value))
                         extra = '. '.join(extra_desc)
 
-                    raise InvalidArguments(
+                    raise make_err(
                         _shouldbe_format(self.name, 'keyword', info.name, value, types_tuple, extra))
 
                 if info.validator is not None:
                     msg = info.validator(value)
                     if msg is not None:
-                        raise InvalidArguments(f'"{self.name}" keyword argument "{info.name}" {msg}')
+                        raise make_err(f'"{self.name}" keyword argument "{info.name}" {msg}')
 
                 if info.feature_validator is not None:
                     for each in info.feature_validator(value):
@@ -608,7 +609,7 @@ class TypedArgs:
                     self._emit_feature_change(value, info.since_values, FeatureNew, subproject, node, info)
 
             elif info.required:
-                raise InvalidArguments(f'"{self.name}" is missing required keyword argument "{info.name}"')
+                raise make_err(f'"{self.name}" is missing required keyword argument "{info.name}"')
             else:
                 # set the value to the default, this ensuring all kwargs are present
                 # This both simplifies the typing checking and the usage
