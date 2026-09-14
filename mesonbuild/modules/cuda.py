@@ -18,13 +18,13 @@ from ..utils.universal import Version
 from ..interpreterbase import (
     ContainerTypeInfo, InvalidArguments, KwargInfo, TypedArgs, typed_pos_args,
 )
+from ..interpreter.type_checking import STR_PARG
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from . import ModuleState
     from ..interpreter import Interpreter
-    from ..interpreterbase import TYPE_var
 
     class ArchFlagsKwargs(TypedDict):
         detected: T.Optional[T.List[str]]
@@ -234,17 +234,10 @@ class CudaModule(NewExtensionModule):
             "nvcc_arch_readable": self.nvcc_arch_readable,
         })
 
-    @TypedArgs('cuda.min_driver_version')
+    @TypedArgs('cuda.min_driver_version', pos_types=[STR_PARG])
     def min_driver_version(self, state: 'ModuleState',
-                           args: T.List[TYPE_var],
+                           args: tuple[str],
                            kwargs: T.Dict[str, T.Any]) -> str:
-        argerror = InvalidArguments('min_driver_version must have exactly one positional argument: ' +
-                                    'a CUDA Toolkit version string. Beware that, since CUDA 11.0, ' +
-                                    'the CUDA Toolkit\'s components (including NVCC) are versioned ' +
-                                    'independently from each other (and the CUDA Toolkit as a whole).')
-        if len(args) != 1 or not isinstance(args[0], str):
-            raise argerror
-
         cuda_version = args[0]
 
         for d in _DRIVER_TABLE_VERSION:
