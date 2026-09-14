@@ -20,6 +20,15 @@ compiler with environment variables `CC` and/or `CXX` when first
 running Meson (remember that once specified the compiler cannot be
 changed). Meson will then use the specified compiler without Ccache.
 
+[sccache](https://github.com/mozilla/sccache) is auto-detected the
+same way, and is preferred over Ccache when both are installed.
+
+[kache](https://github.com/kunobi-ninja/kache) is also supported, but
+is never added automatically: it must be invoked with a compiler
+subcommand (`kache cc`, `kache c++`, ...), so Meson cannot safely
+prepend it to an arbitrary compiler. To use it, put it in front of
+the compiler yourself, e.g. `CC="kache cc"`.
+
 Coverage
 --
 

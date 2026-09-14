@@ -180,6 +180,9 @@ strip = '/usr/i586-mingw32msvc/bin/strip'
 pkg-config = '/usr/bin/i586-mingw32msvc-pkg-config'
 ```
 
+The compiler may be prefixed with a supported compiler cache wrapper,
+namely ccache, sccache or kache, e.g. `c = ['kache', 'cc']`.
+
 An incomplete list of internally used programs that can be overridden
 here is:
 
