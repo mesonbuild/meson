@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from collections import deque
-from dataclasses import dataclass, InitVar
+from dataclasses import dataclass, field, InitVar
 from functools import lru_cache
 from itertools import chain
 from pathlib import Path
@@ -71,7 +71,7 @@ if T.TYPE_CHECKING:
 # Assembly files cannot be unitified and neither can LLVM IR files
 LANGS_CANT_UNITY: T.FrozenSet[Language] = frozenset({'d', 'fortran', 'vala', 'rust'})
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class RegenInfo:
     source_dir: str
     build_dir: str
@@ -107,7 +107,7 @@ class TestProtocol(enum.Enum):
         return 'tap'
 
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class CleanTrees:
     '''
     Directories outputted by custom targets that have to be manually cleaned
@@ -116,7 +116,7 @@ class CleanTrees:
     build_dir: str
     trees: T.List[str]
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class InstallData:
     source_dir: str
     build_dir: str
@@ -129,17 +129,17 @@ class InstallData:
     mesonintrospect: T.List[str]
     version: str
 
-    def __post_init__(self) -> None:
-        self.targets: T.List[TargetInstallData] = []
-        self.headers: T.List[InstallDataBase] = []
-        self.man: T.List[InstallDataBase] = []
-        self.emptydir: T.List[InstallEmptyDir] = []
-        self.data: T.List[InstallDataBase] = []
-        self.symlinks: T.List[InstallSymlinkData] = []
-        self.install_scripts: T.List[InstallScript] = []
-        self.install_subdirs: T.List[SubdirInstallData] = []
+    # Additional fields that are not part of the public initializer
+    targets: list[TargetInstallData] = field(default_factory=list, init=False)
+    headers: list[InstallDataBase] = field(default_factory=list, init=False)
+    man: list[InstallDataBase] = field(default_factory=list, init=False)
+    emptydir: list[InstallEmptyDir] = field(default_factory=list, init=False)
+    data: list[InstallDataBase] = field(default_factory=list, init=False)
+    symlinks: list[InstallSymlinkData] = field(default_factory=list, init=False)
+    install_scripts: list[InstallScript] = field(default_factory=list, init=False)
+    install_subdirs: list[SubdirInstallData] = field(default_factory=list, init=False)
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class TargetInstallData:
     fname: str
     outdir: str
@@ -154,20 +154,21 @@ class TargetInstallData:
     optional: bool = False
     tag: T.Optional[str] = None
     can_strip: bool = False
+    out_name: str = field(init=False)
 
     def __post_init__(self, outdir_name: T.Optional[str]) -> None:
         if outdir_name is None:
             outdir_name = os.path.join('{prefix}', self.outdir)
         self.out_name = os.path.join(outdir_name, os.path.basename(self.fname))
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class InstallEmptyDir:
     path: str
     install_mode: 'FileMode'
     subproject: str
     tag: T.Optional[str] = None
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class InstallDataBase:
     path: str
     install_path: str
@@ -178,7 +179,7 @@ class InstallDataBase:
     data_type: T.Optional[str] = None
     follow_symlinks: T.Optional[bool] = None
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class InstallSymlinkData:
     target: str
     name: str
@@ -196,7 +197,7 @@ class SubdirInstallData(InstallDataBase):
         self.exclude = exclude
 
 
-@dataclass(eq=False)
+@dataclass(slots=True, eq=False)
 class TestSerialisation:
     name: str
     project_name: str

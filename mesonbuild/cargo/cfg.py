@@ -89,44 +89,44 @@ def lexer(raw: str) -> _LEX_STREAM:
         yield (TokenType.IDENTIFIER, val)
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class IR:
 
     """Base IR node for Cargo CFG."""
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class String(IR):
 
     value: str
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class Identifier(IR):
 
     value: str
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class Equal(IR):
 
     lhs: Identifier
     rhs: String
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class Any(IR):
 
     args: T.List[IR]
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class All(IR):
 
     args: T.List[IR]
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class Not(IR):
 
     value: IR

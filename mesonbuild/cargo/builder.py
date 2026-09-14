@@ -17,7 +17,7 @@ if T.TYPE_CHECKING:
     import builtins
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class Builder:
 
     filename: str
