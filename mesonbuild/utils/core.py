@@ -16,7 +16,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from hashlib import _Hash
-    from typing_extensions import Literal
+    from typing_extensions import Literal, Self
     from ..mparser import BaseNode
     from .. import programs
     from .universal import SubProject
@@ -37,7 +37,7 @@ class MesonException(Exception):
         self.colno = colno
 
     @classmethod
-    def from_node(cls, *args: object, node: BaseNode) -> MesonException:
+    def from_node(cls, *args: object, node: BaseNode) -> Self:
         """Create a MesonException with location data from a BaseNode
 
         :param node: A BaseNode to set location data from
