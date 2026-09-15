@@ -493,6 +493,4 @@ class MesonMain(MesonInterpreterObject):
     @InterpreterObject.method('build_options')
     def build_options_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         options = self.interpreter.user_defined_options
-        if options is None:
-            return ''
         return cmdline.format_cmd_line_options(options)

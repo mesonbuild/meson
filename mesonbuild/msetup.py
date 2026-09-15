@@ -203,7 +203,7 @@ class MesonApp:
                                     'Some other Meson process is already using this build directory. Exiting.'):
             return self._generate(env, capture, vslite_ctx)
 
-    def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Dict[OptionKey, str],
+    def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Dict[OptionKey, str | None],
                              all_subprojects: PerMachine[T.Dict[str, SubprojectHolder]]) -> None:
         errlist: T.List[str] = []
         known_subprojects: T.Set[str] = set()
@@ -247,7 +247,7 @@ class MesonApp:
         b = build.Build(env)
 
         env.init_user_options(user_defined_options.cmd_line_options)
-        intr = interpreter.Interpreter(b, user_defined_options=user_defined_options)
+        intr = interpreter.Interpreter(b, user_defined_options)
         # Super hack because mlog.log and mlog.debug have different signatures,
         # and there is currently no way to annotate them correctly, unionize them, or
         # even to write `T.Callable[[*mlog.TV_Loggable], None]`
