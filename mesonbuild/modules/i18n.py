@@ -39,7 +39,7 @@ if T.TYPE_CHECKING:
 
         input: T.List[CustomTargetInputs]
         output: str
-        build_by_default: bool
+        build_by_default: T.Optional[bool]
         install: bool
         install_dir: T.Optional[str]
         install_tag: T.Optional[str]
@@ -62,7 +62,7 @@ if T.TYPE_CHECKING:
 
         input: T.List[CustomTargetInputs]
         output: str
-        build_by_default: bool
+        build_by_default: T.Optional[bool]
         install: bool
         install_dir: T.Optional[str]
         install_tag: T.Optional[str]

@@ -2258,7 +2258,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         ],
     )
     @apply_machine_map
-    def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[str],
+    def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[T.Optional[str]],
                            kwargs: 'kwtypes.CustomTarget') -> build.CustomTarget:
         if kwargs['depfile'] and ('@BASENAME@' in kwargs['depfile'] or '@PLAINNAME@' in kwargs['depfile']):
             FeatureNew.single_use('substitutions in custom_target depfile', '0.47.0', self.subproject, location=node)
