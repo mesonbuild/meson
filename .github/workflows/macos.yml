@@ -31,7 +31,7 @@ jobs:
   unittests-appleclang:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - run: brew update
     # github actions overwrites brew's python. Force it to reassert itself, by running in a separate step.
     - name: unbreak python in github actions
@@ -78,7 +78,7 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: 1
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     # Avoid picking up an older version of LLVM that does not work.
     - run: brew update
     # github actions overwrites brew's python. Force it to reassert itself, by running in a separate step.
