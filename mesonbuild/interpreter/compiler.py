@@ -226,8 +226,6 @@ class CompilerHolder(ObjectHolder['Compiler']):
         if not names:
             return endl
         tpl = msg_many if len(names) > 1 else msg_single
-        if endl is None:
-            endl = ''
         return tpl.format(', '.join(names)) + endl
 
     @TypedArgs('compiler.version')
@@ -301,7 +299,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             code = mesonlib.File.from_absolute_file(
                 code.rel_to_builddir(self.environment.source_dir))
         extra_args = functools.partial(self._determine_args, kwargs)
-        deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False, endl=None)
+        deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False, endl='')
         result = self.compiler.run(code, extra_args=extra_args, dependencies=deps)
         if required and result.returncode != 0:
             raise InterpreterException(f'Could not run {testname if testname else "code"}')
@@ -493,7 +491,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def has_define_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> bool:
         define_name = args[0]
         extra_args = functools.partial(self._determine_args, kwargs)
-        deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
+        deps, msg = self._determine_dependencies(kwargs['dependencies'], endl='')
         has_value, cached = self.compiler.has_define(define_name, kwargs['prefix'],
                                                      extra_args=extra_args,
                                                      dependencies=deps)
@@ -520,7 +518,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             code = mesonlib.File.from_absolute_file(
                 code.absolute_path(self.environment.source_dir, self.environment.build_dir))
         extra_args = functools.partial(self._determine_args, kwargs)
-        deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
+        deps, msg = self._determine_dependencies(kwargs['dependencies'], endl='')
         result, cached = self.compiler.compiles(code,
                                                 extra_args=extra_args,
                                                 dependencies=deps)
@@ -566,7 +564,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                     compiler = clist[SUFFIX_TO_LANG[suffix]]
 
         extra_args = functools.partial(self._determine_args, kwargs)
-        deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False, endl=None)
+        deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False, endl='')
         result, cached = self.compiler.links(code,
                                              compiler=compiler,
                                              extra_args=extra_args,
