@@ -14,7 +14,7 @@ import typing as T
 from contextlib import AbstractContextManager
 
 if T.TYPE_CHECKING:
-    from typing_extensions import TypeAlias
+    from typing_extensions import Literal, TypeAlias
 
     # Object holders need the actual interpreter
     from ..interpreter import Interpreter
@@ -125,7 +125,27 @@ class InterpreterObject:
             ustr += f' Did you mean "{close_matches[0]}"?'
         raise InvalidCode(ustr)
 
-    def operator_call(self, operator: MesonOperator, other: TYPE_var) -> TYPE_var:
+    @T.overload
+    def operator_call(self, operator: Literal[MesonOperator.PLUS, MesonOperator.MINUS,
+                                              MesonOperator.TIMES, MesonOperator.DIV,
+                                              MesonOperator.MOD, MesonOperator.INDEX], other: TYPE_var) -> TYPE_var: ...
+
+    @T.overload
+    def operator_call(self, operator: Literal[MesonOperator.EQUALS, MesonOperator.NOT_EQUALS,
+                                              MesonOperator.GREATER, MesonOperator.LESS,
+                                              MesonOperator.GREATER_EQUALS, MesonOperator.LESS_EQUALS,
+                                              MesonOperator.IN, MesonOperator.NOT_IN], other: TYPE_var) -> bool: ...
+
+    @T.overload
+    def operator_call(self, operator: Literal[MesonOperator.UMINUS], other: None) -> TYPE_var: ...
+
+    @T.overload
+    def operator_call(self, operator: Literal[MesonOperator.BOOL, MesonOperator.NOT], other: None) -> bool: ...
+
+    @T.overload
+    def operator_call(self, operator: MesonOperator, other: TYPE_var) -> TYPE_var: ...
+
+    def operator_call(self, operator: MesonOperator, other: TYPE_var | None) -> TYPE_var:
         if operator in self.TRIVIAL_OPERATORS:
             op = self.TRIVIAL_OPERATORS[operator]
             if op[0] is None and other is not None:
