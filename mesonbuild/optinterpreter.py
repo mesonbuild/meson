@@ -42,7 +42,7 @@ if T.TYPE_CHECKING:
         value: bool
 
     class ComboArgs(TypedDict):
-        value: str
+        value: str | None
         choices: T.List[str]
 
     class IntegerArgs(TypedDict):
