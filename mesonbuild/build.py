@@ -59,6 +59,8 @@ if T.TYPE_CHECKING:
     CommandTypes: TypeAlias = T.Union['programs.Program', 'BuildTargetTypes', File, str]
     GeneratedTypes: TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     BuildTargetTypes: TypeAlias = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
+    LinkableTypes: TypeAlias = T.Union['LinkableTargetProto', 'BothLibraries']
+    StaticTypes: TypeAlias = T.Union['StaticTargetProto', 'BothLibraries']
     ObjectTypes: TypeAlias = T.Union['File', 'ExtractedObjects']
     RustCrateType: TypeAlias = Literal['bin', 'lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro']
     _LibraryType: TypeAlias = Literal['auto', 'shared', 'static']
@@ -163,8 +165,8 @@ if T.TYPE_CHECKING:
         link_early_args: T.List[str]
         link_depends: T.Sequence[T.Union[File, BuildTargetProto]]
         link_language: Language
-        link_whole: T.List[StaticTargetProto]
-        link_with: T.List[LinkableTargetProto]
+        link_whole: T.List[StaticTypes]
+        link_with: T.List[LinkableTypes]
         name_prefix: T.Optional[str]
         name_suffix: T.Optional[str]
         native: MachineChoice
@@ -1884,7 +1886,7 @@ class BuildTarget(Target, BuildTargetProto):
         assert isinstance(bl_type, str), 'for mypy'
         return T.cast('_LibraryType', bl_type)
 
-    def _extract_link_with(self, link_with: list[LinkableTargetProto]) -> list[LinkableTargetProto]:
+    def _extract_link_with(self, link_with: T.Sequence[LinkableTypes]) -> list[LinkableTargetProto]:
         bl_type = self._default_library_type()
 
         lib_list: list[LinkableTargetProto] = []
@@ -1898,7 +1900,7 @@ class BuildTarget(Target, BuildTargetProto):
                 lib_list.append(lib.get(bl_type))
         return lib_list
 
-    def _extract_link_whole(self, link_whole: list[StaticTargetProto]) -> list[StaticTargetProto]:
+    def _extract_link_whole(self, link_whole: T.Sequence[StaticTypes]) -> list[StaticTargetProto]:
         lib_list: list[StaticTargetProto] = []
         for lib in itertools.chain(link_whole, self.link_whole_targets):
             if isinstance(lib, BothLibraries):
@@ -3416,8 +3418,8 @@ class Jar(BuildTarget):
         self.main_class = kwargs.get('main_class', '')
         self.java_resources: T.Optional[StructuredSources] = kwargs.get('java_resources', None)
 
-    def _extract_link_with(self, link_with: list[LinkableTargetProto]) -> list[LinkableTargetProto]:
-        return link_with
+    def _extract_link_with(self, link_with: T.Sequence[LinkableTypes]) -> list[LinkableTargetProto]:
+        return T.cast('list[LinkableTargetProto]', list(link_with))
 
     def get_main_class(self) -> str:
         return self.main_class
