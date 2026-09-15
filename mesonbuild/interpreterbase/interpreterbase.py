@@ -182,8 +182,6 @@ class InterpreterBase:
             pass
 
     def evaluate_codeblock(self, node: mparser.CodeBlockNode, start: int = 0, end: T.Optional[int] = None) -> None:
-        if node is None:
-            return
         statements = node.lines[start:end]
         i = 0
         while i < len(statements):

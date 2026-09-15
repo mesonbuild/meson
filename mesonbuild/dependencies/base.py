@@ -172,8 +172,6 @@ class Dependency(HoldableObject):
         return False
 
     def is_named(self) -> bool:
-        if self.name is None:
-            return False
         return self.name != f'dep{self._id}'
 
     def summary_value(self) -> T.Union[str, mlog.AnsiDecorator, mlog.AnsiText]:
