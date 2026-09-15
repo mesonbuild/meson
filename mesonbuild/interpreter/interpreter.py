@@ -2291,8 +2291,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         # These are nullable so that we can know whether they're explicitly
         # set or not. If they haven't been overwritten, set them to their true
         # default
-        if build_by_default is None:
-            build_by_default = False
         if build_always_stale is None:
             build_always_stale = False
 
