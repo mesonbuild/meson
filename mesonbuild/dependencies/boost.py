@@ -300,7 +300,7 @@ class BoostLibraryFile():
             return True
         return self.version_lib == version_lib
 
-    def arch_matches(self, arch: str) -> bool:
+    def arch_matches(self, arch: str | None) -> bool:
         # If no version tag is present, assume that it fits
         if not self.arch or not arch:
             return True
