@@ -2899,9 +2899,10 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
         build = mock.Mock()
         build.environment = mock.Mock()
         build.environment.get_source_dir = mock.Mock(return_value='')
+        user_cmd_options = mock.Mock()
         with mock.patch('mesonbuild.interpreter.Interpreter._redetect_machines', mock.Mock()), \
                 self.assertRaises(mesonbuild.mesonlib.MesonBugException):
-            i = mesonbuild.interpreter.Interpreter(build)
+            i = mesonbuild.interpreter.Interpreter(build, user_cmd_options)
             pickle.dumps(i)
 
     def test_major_versions_differ(self) -> None:

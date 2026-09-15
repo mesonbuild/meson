@@ -227,6 +227,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def __init__(
                 self,
                 _build: build.Build,
+                user_defined_options: SharedCMDOptions,
                 backend: T.Optional[Backend] = None,
                 subproject: SubProject = mesonlib.ROOT_SUBPROJECT,
                 subdir: str = '',
@@ -234,7 +235,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                 invoker_method_default_options: T.Optional[OptionDict] = None,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
                 relaxations: T.Optional[T.Dict[InterpreterRuleRelaxation, T.Optional[FeatureCheckBase]]] = None,
-                user_defined_options: T.Optional[SharedCMDOptions] = None,
                 cargo: T.Optional[cargo.Interpreter] = None,
             ) -> None:
         super().__init__(_build.environment.get_source_dir(), subdir, subproject, subproject_dir, _build.environment)
@@ -1054,9 +1054,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             if ast:
                 self._save_ast(subdir, ast)
 
-            subi = Interpreter(new_build, self.backend, subp_name, subdir, self.subproject_dir,
-                               default_options, ast=ast, relaxations=relaxations,
-                               user_defined_options=self.user_defined_options,
+            subi = Interpreter(new_build, self.user_defined_options, self.backend, subp_name, subdir,
+                               self.subproject_dir, default_options, ast=ast, relaxations=relaxations,
                                cargo=cargo)
             # Those lists are shared by all interpreters. That means that
             # even if the subproject fails, any modification that the subproject
