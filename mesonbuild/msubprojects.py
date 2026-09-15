@@ -644,7 +644,7 @@ def add_common_arguments(p: argparse.ArgumentParser) -> None:
     p.add_argument('--allow-insecure', default=False, action='store_true',
                    help='Allow insecure server connections.')
 
-def add_subprojects_argument(p: argparse.ArgumentParser, name: str = None) -> None:
+def add_subprojects_argument(p: argparse.ArgumentParser, name: str | None = None) -> None:
     helpstr = 'Patterns of subprojects to operate on (default: all)'
     if name:
         p.add_argument(name, dest='subprojects', metavar='pattern', nargs=1, action='append',

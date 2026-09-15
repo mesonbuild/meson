@@ -156,8 +156,8 @@ class ModuleState:
 
     def test(self, args: T.Tuple[str, T.Union[build.Executable, build.Jar, Program, mesonlib.File]],
              workdir: T.Optional[str] = None,
-             env: T.Union[T.List[str], T.Dict[str, str], str] = None,
-             depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]] = None) -> None:
+             env: T.Optional[T.Union[T.List[str], T.Dict[str, str], str]] = None,
+             depends: T.Optional[T.List[T.Union[build.CustomTarget, build.BuildTarget]]] = None) -> None:
         kwargs = {'workdir': workdir,
                   'env': env,
                   'depends': depends,

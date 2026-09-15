@@ -1377,7 +1377,7 @@ async def complete_all(futures: T.Iterable[asyncio.Future],
 class TestSubprocess:
     def __init__(self, p: asyncio.subprocess.Process,
                  stdout: T.Optional[int], stderr: T.Optional[int],
-                 postwait_fn: T.Callable[[], None] = None):
+                 postwait_fn: T.Callable[[], None] | None = None):
         self._process = p
         self.stdout = stdout
         self.stderr = stderr
