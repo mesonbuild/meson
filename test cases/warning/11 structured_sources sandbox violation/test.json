@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "sub| test cases/warning/11 structured_sources sandbox violation/subprojects/sub/meson.build:3: DEPRECATION: Project uses feature that was always broken, and is now deprecated since '1.13.0': grabbing structured_sources from outside the current project."
+    }
+  ]
+}

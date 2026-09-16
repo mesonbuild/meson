@@ -26,7 +26,7 @@ test(
 srcs = structured_sources(
   'lib2.rs',
   {
-    'sub' : 'sub.rs',
+    'sub' : 'sub/mod.rs',
   }
 )
 

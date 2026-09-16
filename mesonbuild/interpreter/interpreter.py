@@ -2624,25 +2624,25 @@ class Interpreter(InterpreterBase, HoldableObject):
             self, node: mparser.BaseNode,
             args: T.Tuple[object, T.Optional[T.Dict[str, object]]],
             kwargs: 'TYPE_kwargs') -> build.StructuredSources:
-        valid_types = (str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)
         sources: T.DefaultDict[str, T.List[T.Union[build.TargetSources]]] = collections.defaultdict(list)
 
-        for arg in mesonlib.listify(args[0]):
-            if not isinstance(arg, valid_types):
-                raise InvalidArguments(f'structured_sources: type "{type(arg)}" is not valid')
-            if isinstance(arg, str):
-                arg = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, arg)
-            sources[''].append(arg)
+        def add(key: str, value: object) -> None:
+            items: T.List[T.Union[str, build.TargetSources]] = []
+            for arg in mesonlib.listify(value):
+                if not isinstance(arg, (str, mesonlib.File, build.GeneratedList,
+                                        build.CustomTarget, build.CustomTargetIndex)):
+                    raise InvalidArguments(f'structured_sources: type "{type(arg)}" is not valid')
+                items.append(arg)
+            with self.relaxing(InterpreterRuleRelaxation.ALLOW_SANDBOX_VIOLATION,
+                               FeatureBroken('grabbing structured_sources from outside the current project', '1.13.0')):
+                sources[key].extend(self.source_strings_to_files(items))
+
+        add('', args[0])
         if args[1]:
             if '' in args[1]:
                 raise InvalidArguments('structured_sources: keys to dictionary argument may not be an empty string.')
             for k, v in args[1].items():
-                for arg in mesonlib.listify(v):
-                    if not isinstance(arg, valid_types):
-                        raise InvalidArguments(f'structured_sources: type "{type(arg)}" is not valid')
-                    if isinstance(arg, str):
-                        arg = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, arg)
-                    sources[k].append(arg)
+                add(k, v)
         return build.StructuredSources(sources)
 
     @typed_pos_args('subdir', str)
