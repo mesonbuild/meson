@@ -746,7 +746,6 @@ class ExtractedObjects(HoldableObject):
                                      'the object files for each compiler at once.')
 
 
-@dataclass(eq=False, order=False)
 class StructuredSources(HoldableObject):
 
     """A container for sources in languages that use filesystem hierarchy.
@@ -756,36 +755,71 @@ class StructuredSources(HoldableObject):
     represent the required filesystem layout.
     """
 
-    sources: T.DefaultDict[str, T.List[TargetSources]] = field(
-        default_factory=lambda: defaultdict(list))
+    # Directory of the source tree that anchors the structure, if it can
+    # be used in place without copying.
+    root: str | None = None
+
+    def __init__(self, sources: T.Optional[T.Mapping[str, T.List[TargetSources]]] = None) -> None:
+        self.sources: T.DefaultDict[str, T.List[TargetSources]] = defaultdict(list)
+        self.needs_copy = False
+
+        sources = sources or {}
+        for path, files in sources.items():
+            self.extend(path, files)
+
+    def __repr__(self) -> str:
+        return f'<StructuredSources: {dict(self.sources)!r}>'
+
+    @staticmethod
+    def canonicalize(path: str) -> str:
+        """Canonicalize a path within the structure.
+
+        The root of the structure is spelled as an empty string.
+        """
+        if not path:
+            return ''
+        path = pathlib.PurePath(os.path.normpath(path)).as_posix()
+        return '' if path == '.' else path
+
+    def extend(self, path: str, sources: T.Iterable[TargetSources]) -> None:
+        """Add sources to be placed in PATH, relative to the root of the structure."""
+        path = self.canonicalize(path)
+        if os.path.isabs(path) or path == '..' or path.startswith('../'):
+            raise InvalidArguments(f'structured_sources: {path!r} is outside the root of the structure.')
+        files = list(sources)
+        if not files:
+            return
+
+        if self.root is None:
+            # To use the structured_sources without copying, all the files must
+            # be in the source tree and anchored at a common path.  For simplicity,
+            # the first file at the root of the structure decides the anchor.
+            if path == '' and isinstance(files[0], File) and not files[0].is_built:
+                self.root = self.canonicalize(os.path.dirname(files[0].relative_name()))
+            else:
+                self.needs_copy = True
+
+        if not self.needs_copy:
+            expected_path = self.canonicalize(os.path.join(self.root, path))
+            for f in files:
+                if not isinstance(f, File) or f.is_built \
+                        or self.canonicalize(os.path.dirname(f.relative_name())) != expected_path:
+                    self.needs_copy = True
+                    break
+
+        self.sources[path].extend(files)
 
     def __add__(self, other: StructuredSources) -> StructuredSources:
-        sources = self.sources.copy()
-        for k, v in other.sources.items():
-            sources[k].extend(v)
-        return StructuredSources(sources)
+        result = StructuredSources(self.sources)
+        for path, files in other.sources.items():
+            result.extend(path, files)
+        return result
 
     def __bool__(self) -> bool:
         return bool(self.sources)
 
     def as_list(self) -> T.List[TargetSources]:
         return list(itertools.chain.from_iterable(self.sources.values()))
-
-    def needs_copy(self) -> bool:
-        """Do we need to create a structure in the build directory.
-
-        This allows us to avoid making copies if the structures exists in the
-        source dir. Which could happen in situations where a generated source
-        only exists in some configurations
-        """
-        for files in self.sources.values():
-            for f in files:
-                if isinstance(f, File):
-                    if f.is_built:
-                        return True
-                else:
-                    return True
-        return False
 
 
 @dataclass(eq=False)

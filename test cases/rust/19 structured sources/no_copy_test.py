@@ -10,7 +10,7 @@ def main() -> None:
     args = parser.parse_args()
 
     for _, _, files in os.walk(args.builddir):
-        if 'main-unique.rs' in files:
+        if 'main-nocopy.rs' in files:
             exit(1)
 
 
