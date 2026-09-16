@@ -13,8 +13,8 @@ from ..interpreter.decorators import apply_machine_map
 from ..interpreter.interpreterobjects import extract_required_kwarg
 from ..interpreter.type_checking import NoneType, REQUIRED_KW, DISABLER_KW, NATIVE_KW
 from ..interpreterbase import (
-    ContainerTypeInfo, ObjectHolder, KwargInfo, typed_pos_args, TypedArgs,
-    noPosargs, disablerIfNotFound, InterpreterObject
+    ContainerTypeInfo, ObjectHolder, KwargInfo, TypedArgs,
+    disablerIfNotFound, InterpreterObject, PosArgInfo,
 )
 from ..mesonlib import File, MesonException, Popen_safe, version_compare
 from ..programs import Program, ExternalProgram, NonExistingExternalProgram
@@ -70,6 +70,8 @@ if T.TYPE_CHECKING:
         native: MachineChoice
 
 
+_SRC_PARG = PosArgInfo((str, File, GeneratedList, CustomTarget, CustomTargetIndex))
+
 def is_subset_validator(choices: T.Set[str]) -> T.Callable[[T.List[str]], T.Optional[str]]:
 
     def inner(check: T.List[str]) -> T.Optional[str]:
@@ -104,21 +106,19 @@ class LexGenerator(_CodeGenerator):
 
 class LexHolder(ObjectHolder[LexGenerator]):
 
-    @noPosargs
     @TypedArgs('codegen.lex.implementation')
     @InterpreterObject.method('implementation')
     def implementation_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.name
 
-    @noPosargs
     @TypedArgs('codegen.lex.found')
     @InterpreterObject.method('found')
     def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.found()
 
-    @typed_pos_args('codegen.lex.generate', (str, File, GeneratedList, CustomTarget, CustomTargetIndex))
     @TypedArgs(
         'codegen.lex.generate',
+        pos_types=[_SRC_PARG],
         kw_types=[
             KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
             KwargInfo('source', (str, NoneType)),
@@ -202,21 +202,19 @@ class YaccGenerator(_CodeGenerator):
 
 class YaccHolder(ObjectHolder[YaccGenerator]):
 
-    @noPosargs
     @TypedArgs('codegen.yacc.implementation')
     @InterpreterObject.method('implementation')
     def implementation_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.name
 
-    @noPosargs
     @TypedArgs('codegen.yacc.found')
     @InterpreterObject.method('found')
     def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.found()
 
-    @typed_pos_args('codegen.yacc.generate', (str, File, GeneratedList, CustomTarget, CustomTargetIndex))
     @TypedArgs(
         'codegen.yacc.generate',
+        pos_types=[_SRC_PARG],
         kw_types=[
             KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
             KwargInfo('source', (str, NoneType)),
@@ -284,7 +282,6 @@ class CodeGenModule(ExtensionModule):
             'yacc': self.yacc_method,
         })
 
-    @noPosargs
     @TypedArgs(
         'codegen.lex',
         kw_types=[
@@ -365,7 +362,6 @@ class CodeGenModule(ExtensionModule):
         lex_args.extend(['-o', '@OUTPUT0@'])
         return LexGenerator(name, bin, kwargs['native'], T.cast('ImmutableListProtocol[str]', lex_args))
 
-    @noPosargs
     @TypedArgs(
         'codegen.yacc',
         kw_types=[

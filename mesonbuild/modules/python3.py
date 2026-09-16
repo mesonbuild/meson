@@ -8,12 +8,9 @@ import typing as T
 
 from .. import mesonlib
 from . import ExtensionModule, ModuleInfo
-from ..build import (
-    BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects,
-    GeneratedList, SharedModule, StructuredSources
-)
-from ..interpreter.type_checking import SHARED_MOD_KWS
-from ..interpreterbase import TypedArgs, typed_pos_args, noPosargs
+from ..build import SharedModule
+from ..interpreter.type_checking import SHARED_MOD_KWS, STR_PARG, SRC_VARG
+from ..interpreterbase import TypedArgs
 from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
@@ -40,8 +37,12 @@ class Python3Module(ExtensionModule):
             'sysconfig_path': self.sysconfig_path,
         })
 
-    @typed_pos_args('python3.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
-    @TypedArgs('python3.extension_module', kw_types=_MOD_KWARGS)
+    @TypedArgs(
+        'python3.extension_module',
+        pos_types=[STR_PARG],
+        var_types=SRC_VARG,
+        kw_types=_MOD_KWARGS,
+    )
     def extension_module(self, state: ModuleState, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: SharedModuleKW) -> SharedModule:
         host_system = state.environment.machines.host.system
         if host_system == 'darwin':
@@ -59,7 +60,6 @@ class Python3Module(ExtensionModule):
         assert isinstance(m, SharedModule), 'for mypy'
         return m
 
-    @noPosargs
     @TypedArgs('python3.find_python')
     def find_python(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> ExternalProgram:
         command = state.environment.lookup_binary_entry(mesonlib.MachineChoice.HOST, 'python3')
@@ -69,13 +69,14 @@ class Python3Module(ExtensionModule):
             py3 = ExternalProgram('python3', mesonlib.python_command, silent=True)
         return py3
 
-    @noPosargs
     @TypedArgs('python3.sysconfig_path')
     def language_version(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return sysconfig.get_python_version()
 
-    @typed_pos_args('python3.sysconfig_path', str)
-    @TypedArgs('python3.sysconfig_path')
+    @TypedArgs(
+        'python3.sysconfig_path',
+        pos_types=[STR_PARG],
+    )
     def sysconfig_path(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> str:
         path_name = args[0]
         valid_names = sysconfig.get_path_names()

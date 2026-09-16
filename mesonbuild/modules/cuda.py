@@ -10,21 +10,21 @@ import typing as T
 from .. import mlog
 from ..mesonlib import listify, version_compare
 from ..compilers.cuda import CudaCompiler
-from ..interpreter.type_checking import NoneType
+from ..interpreter.type_checking import STR_VARG, NoneType
 
 from . import NewExtensionModule, ModuleInfo
 
 from ..utils.universal import Version
 from ..interpreterbase import (
-    ContainerTypeInfo, InvalidArguments, KwargInfo, TypedArgs, typed_pos_args,
+    ContainerTypeInfo, InvalidArguments, KwargInfo, TypedArgs, PosArgInfo,
 )
+from ..interpreter.type_checking import STR_PARG
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from . import ModuleState
     from ..interpreter import Interpreter
-    from ..interpreterbase import TYPE_var
 
     class ArchFlagsKwargs(TypedDict):
         detected: T.Optional[T.List[str]]
@@ -33,7 +33,7 @@ if T.TYPE_CHECKING:
 
 
 DETECTED_KW: KwargInfo[T.Union[None, T.List[str]]] = KwargInfo('detected', (ContainerTypeInfo(list, str), NoneType), listify=True)
-
+_STR_COMP_PARG = PosArgInfo((str, CudaCompiler))
 
 @dataclasses.dataclass(slots=True)
 class _CudaVersion:
@@ -234,17 +234,10 @@ class CudaModule(NewExtensionModule):
             "nvcc_arch_readable": self.nvcc_arch_readable,
         })
 
-    @TypedArgs('cuda.min_driver_version')
+    @TypedArgs('cuda.min_driver_version', pos_types=[STR_PARG])
     def min_driver_version(self, state: 'ModuleState',
-                           args: T.List[TYPE_var],
+                           args: tuple[str],
                            kwargs: T.Dict[str, T.Any]) -> str:
-        argerror = InvalidArguments('min_driver_version must have exactly one positional argument: ' +
-                                    'a CUDA Toolkit version string. Beware that, since CUDA 11.0, ' +
-                                    'the CUDA Toolkit\'s components (including NVCC) are versioned ' +
-                                    'independently from each other (and the CUDA Toolkit as a whole).')
-        if len(args) != 1 or not isinstance(args[0], str):
-            raise argerror
-
         cuda_version = args[0]
 
         for d in _DRIVER_TABLE_VERSION:
@@ -253,8 +246,12 @@ class CudaModule(NewExtensionModule):
                 return driver_version
         return 'unknown'
 
-    @typed_pos_args('cuda.nvcc_arch_flags', (str, CudaCompiler), varargs=str)
-    @TypedArgs('cuda.nvcc_arch_flags', kw_types=[DETECTED_KW])
+    @TypedArgs(
+        'cuda.nvcc_arch_flags',
+        pos_types=[_STR_COMP_PARG],
+        var_types=STR_VARG,
+        kw_types=[DETECTED_KW],
+    )
     def nvcc_arch_flags(self, state: 'ModuleState',
                         args: T.Tuple[T.Union[CudaCompiler, str], T.List[str]],
                         kwargs: ArchFlagsKwargs) -> T.List[str]:
@@ -262,8 +259,12 @@ class CudaModule(NewExtensionModule):
         ret = self._nvcc_arch_flags(*nvcc_arch_args)[0]
         return ret
 
-    @typed_pos_args('cuda.nvcc_arch_readable', (str, CudaCompiler), varargs=str)
-    @TypedArgs('cuda.nvcc_arch_readable', kw_types=[DETECTED_KW])
+    @TypedArgs(
+        'cuda.nvcc_arch_readable',
+        pos_types=[_STR_COMP_PARG],
+        var_types=STR_VARG,
+        kw_types=[DETECTED_KW],
+    )
     def nvcc_arch_readable(self, state: 'ModuleState',
                            args: T.Tuple[T.Union[CudaCompiler, str], T.List[str]],
                            kwargs: ArchFlagsKwargs) -> T.List[str]:

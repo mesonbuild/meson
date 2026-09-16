@@ -8,8 +8,8 @@ import typing as T
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import build
 from .. import mesonlib
-from ..interpreter.type_checking import CT_INPUT_KW
-from ..interpreterbase.decorators import KwargInfo, TypedArgs, typed_pos_args
+from ..interpreter.type_checking import CT_INPUT_KW, STR_PARG, TGT_VARG
+from ..interpreterbase.decorators import KwargInfo, TypedArgs
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
@@ -41,11 +41,10 @@ class IceStormModule(ExtensionModule):
         self.tools['iceprog'] = state.find_program('iceprog')
         self.tools['icetime'] = state.find_program('icetime')
 
-    @typed_pos_args('icestorm.project', str,
-                    varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex,
-                             build.GeneratedList))
     @TypedArgs(
         'icestorm.project',
+        pos_types=[STR_PARG],
+        var_types=TGT_VARG,
         kw_types=[
             CT_INPUT_KW.evolve(name='sources'),
             KwargInfo(
