@@ -138,6 +138,52 @@ _RUST_ABI: KwargInfo[str | None] = KwargInfo(
     validator=in_set_validator({'rust', 'c', 'proc-macro'}),
 )
 
+BINDGEN_KWS: T.List[KwargInfo] = [
+    KwargInfo('c_args', ContainerTypeInfo(list, str), default=[], listify=True),
+    KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
+    KwargInfo(
+        'input',
+        ContainerTypeInfo(list, (File, GeneratedList, BuildTarget, BothLibraries, ExtractedObjects, CustomTargetIndex, CustomTarget, str), allow_empty=False),
+        default=[],
+        listify=True,
+        required=True,
+    ),
+    KwargInfo('language', (str, NoneType), since='1.4.0', validator=in_set_validator({'c', 'cpp'})),
+    KwargInfo('bindgen_version', ContainerTypeInfo(list, str), default=[], listify=True, since='1.4.0'),
+    INCLUDE_DIRECTORIES.evolve(since_values={ContainerTypeInfo(list, str): '1.0.0'}),
+    OUTPUT_KW,
+    KwargInfo(
+        'output_inline_wrapper',
+        str,
+        default='',
+        since='1.4.0',
+    ),
+    DEPENDENCIES_KW.evolve(since='1.0.0'),
+]
+
+def cbindgen_config_validator(val: str) -> T.Optional[str]:
+    if os.path.splitext(val)[1] != '.toml':
+        return 'config file must be a .toml file'
+    return None
+
+
+CBINDGEN_KWS: T.List[KwargInfo] = [
+    KwargInfo('config', (str, File, CustomTarget, CustomTargetIndex), required=True, validator=cbindgen_config_validator),
+    KwargInfo(
+        'language',
+        (str, NoneType),
+        validator=in_set_validator({'c', 'cpp', 'cython'}),
+    ),
+    KwargInfo(
+        'depends',
+        ContainerTypeInfo(list, (CustomTarget, CustomTargetIndex)),
+        default=[],
+        listify=True,
+    ),
+    DEPEND_FILES_KW,
+    INSTALL_KW,
+    INSTALL_DIR_KW,
+]
 
 def no_spaces_validator(arg: T.Optional[T.Union[str, T.List]]) -> T.Optional[str]:
     if any(bool(re.search(r'\s', x)) for x in arg):
@@ -617,12 +663,6 @@ class RustSubproject(RustCrate):
         return state.overridden_dependency(depname, for_machine=self.for_machine)
 
 
-def _cbindgen_config_validator(val: str) -> T.Optional[str]:
-    if os.path.splitext(val)[1] != '.toml':
-        return 'config file must be a .toml file'
-    return None
-
-
 class RustModule(ExtensionModule):
 
     """A module that holds helper functions for rust."""
@@ -855,31 +895,7 @@ class RustModule(ExtensionModule):
         return ModuleReturnValue(None, [doctests])
 
     @noPosargs
-    @TypedArgs(
-        'rust.bindgen',
-        kw_types=[
-            KwargInfo('c_args', ContainerTypeInfo(list, str), default=[], listify=True),
-            KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
-            KwargInfo(
-                'input',
-                ContainerTypeInfo(list, (File, GeneratedList, BuildTarget, BothLibraries, ExtractedObjects, CustomTargetIndex, CustomTarget, str), allow_empty=False),
-                default=[],
-                listify=True,
-                required=True,
-            ),
-            KwargInfo('language', (str, NoneType), since='1.4.0', validator=in_set_validator({'c', 'cpp'})),
-            KwargInfo('bindgen_version', ContainerTypeInfo(list, str), default=[], listify=True, since='1.4.0'),
-            INCLUDE_DIRECTORIES.evolve(since_values={ContainerTypeInfo(list, str): '1.0.0'}),
-            OUTPUT_KW,
-            KwargInfo(
-                'output_inline_wrapper',
-                str,
-                default='',
-                since='1.4.0',
-            ),
-            DEPENDENCIES_KW.evolve(since='1.0.0'),
-        ],
-    )
+    @TypedArgs('rust.bindgen', kw_types=BINDGEN_KWS)
     def bindgen(self, state: ModuleState, args: T.List, kwargs: FuncBindgen) -> ModuleReturnValue:
         """Wrapper around bindgen to simplify its use.
 
@@ -977,7 +993,7 @@ class RustModule(ExtensionModule):
 
         # bindgen assumes that C++ headers will be called .hpp. We want to
         # ensure that anything Meson considers a C++ header is treated as one.
-        language = kwargs['language']
+        language: T.Optional[T.Union[Language, str]] = kwargs['language']
         if language is None:
             ext = os.path.splitext(name)[1][1:]
             if ext in lang_suffixes['cpp']:
@@ -1162,26 +1178,7 @@ class RustModule(ExtensionModule):
 
     @FeatureNew('rust.cbindgen', '1.12.0')
     @typed_pos_args('rust.cbindgen', (str, File, CustomTargetIndex, CustomTarget, StructuredSources), str)
-    @TypedArgs(
-        'rust.cbindgen',
-        kw_types=[
-            KwargInfo('config', (str, File, CustomTarget, CustomTargetIndex), required=True, validator=_cbindgen_config_validator),
-            KwargInfo(
-                'language',
-                (str, NoneType),
-                validator=in_set_validator({'c', 'cpp', 'cython'}),
-            ),
-            KwargInfo(
-                'depends',
-                ContainerTypeInfo(list, (CustomTarget, CustomTargetIndex)),
-                default=[],
-                listify=True,
-            ),
-            DEPEND_FILES_KW,
-            INSTALL_KW,
-            INSTALL_DIR_KW,
-        ],
-    )
+    @TypedArgs('rust.cbindgen', kw_types=CBINDGEN_KWS)
     def cbindgen(self, state: ModuleState,
                  args: tuple[FileOrString | CustomTarget | CustomTargetIndex | StructuredSources, str],
                  kwargs: FuncCBindgen) -> ModuleReturnValue:
@@ -1227,7 +1224,7 @@ class RustModule(ExtensionModule):
                 'outfile name must not contain a path segment', node=state.current_node)
 
         # Detect langauge from output file extension
-        language = kwargs['language']
+        language: T.Optional[str] = kwargs['language']
         if language is None:
             ext = os.path.splitext(outfile)[1][1:]
             if ext in lang_suffixes['cpp']:
