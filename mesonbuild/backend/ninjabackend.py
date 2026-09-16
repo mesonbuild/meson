@@ -2064,24 +2064,11 @@ class NinjaBackend(backends.Backend):
                 if main_rust_file is None:
                     raise MesonException('Could not find a rust file to treat as the main file for ', target.name)
             else:
-                # The only way to get here is to have only files in the "root"
-                # positional argument, which are all generated into the same
-                # directory
+                # The only way to get here is to have only non-generated fiels
                 for g in target.structured_sources.sources['']:
-                    if isinstance(g, File):
-                        if g.endswith('.rs'):
-                            main_rust_file = g.rel_to_builddir(self.build_to_src)
-                    elif isinstance(g, GeneratedList):
-                        for h in g.get_outputs():
-                            if h.endswith('.rs'):
-                                main_rust_file = os.path.join(self.get_target_private_dir(target), h)
-                                break
-                    else:
-                        for h in g.get_outputs():
-                            if h.endswith('.rs'):
-                                main_rust_file = os.path.join(g.get_builddir(), h)
-                                break
-                    if main_rust_file is not None:
+                    assert isinstance(g, File)
+                    if g.endswith('.rs'):
+                        main_rust_file = g.rel_to_builddir(self.build_to_src)
                         break
 
                 _ods = []
