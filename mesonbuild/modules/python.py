@@ -12,7 +12,7 @@ from .. import mlog
 from ..build import SharedModule
 from ..dependencies import NotFoundDependency
 from ..dependencies.detect import get_dep_identifier, find_external_dependency
-from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase
+from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase, _encode_api_version_as_py_version_hex
 from ..interpreter import extract_required_kwarg, primitives as P_OBJ
 from ..interpreter.interpreterobjects import ProgramHolder
 from ..interpreter.type_checking import (
@@ -213,32 +213,13 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
             if self.interpreter.environment.machines[for_machine].is_windows():
                 pydep_copy = copy.copy(pydep)
                 if isinstance(pydep_copy, _PythonDependencyBase):
-                    pydep_copy.find_libpy_windows(self.env, limited_api=True)
+                    pydep_copy.limited_api = limited_api_version
+                    pydep_copy.find_libpy_windows(self.env)
                 if not pydep_copy.found():
                     raise mesonlib.MesonException('Python dependency supporting limited API not found')
 
                 new_deps.remove(pydep)
                 new_deps.append(pydep_copy)
-
-            # When compiled under MSVC, Python's PC/pyconfig.h forcibly inserts pythonMAJOR.MINOR.lib
-            # into the linker path when not running in debug mode via a series #pragma comment(lib, "")
-            # directives. We manually override these here as this interferes with the intended
-            # use of the 'limited_api' kwarg
-            compilers = self.interpreter.environment.coredata.compilers[for_machine]
-            if any(compiler.get_id() == 'msvc' for compiler in compilers.values()):
-                pyver = pydep.version.replace('.', '')
-                python_windows_debug_link_exception = f'/NODEFAULTLIB:python{pyver}_d.lib'
-                python_windows_release_link_exception = f'/NODEFAULTLIB:python{pyver}.lib'
-
-                new_link_args = kwargs['link_args'].copy()
-
-                is_debug = self.interpreter.environment.coredata.optstore.get_value_for('debug')
-                if is_debug:
-                    new_link_args.append(python_windows_debug_link_exception)
-                else:
-                    new_link_args.append(python_windows_release_link_exception)
-
-                target_kwargs['link_args'] = new_link_args
 
         target_kwargs['dependencies'] = new_deps
 
@@ -268,11 +249,7 @@ class PythonInstallation(ProgramHolder['PythonExternalProgram']):
         if mesonlib.version_compare(api_version, '>' + detected_version):
             raise InvalidArguments(f'Python Limited API version too high: {api_version} (detected {detected_version})')
 
-        version_components = api_version.split('.')
-        major = int(version_components[0])
-        minor = int(version_components[1])
-
-        return '0x{:02x}{:02x}0000'.format(major, minor)
+        return _encode_api_version_as_py_version_hex(api_version)
 
     def _dependency_method_impl(self, kwargs: DependencyObjectKWs) -> Dependency:
         for_machine = self.interpreter.build.machine_map[kwargs['native']]
