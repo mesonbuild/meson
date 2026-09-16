@@ -2058,7 +2058,7 @@ class NinjaBackend(backends.Backend):
         # statements and magic.
         main_rust_file: T.Optional[str] = None
         if target.structured_sources:
-            if target.structured_sources.needs_copy():
+            if target.structured_sources.needs_copy:
                 _ods, main_rust_file = self.__generate_sources_structure(Path(
                     self.get_target_private_dir(target)) / 'structured', target.structured_sources, '.rs')
                 if main_rust_file is None:
