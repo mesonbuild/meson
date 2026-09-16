@@ -175,7 +175,7 @@ class HotdocTargetBuilder:
 
         self.cmd += ['--gi-c-source-roots'] + value
 
-    def process_dependencies(self, deps: T.Sequence[TargetDepends | Dependency | File | build.ExtractedObjects]) -> T.List[str]:
+    def process_dependencies(self, deps: T.Sequence[TargetDepends | build.BothLibraries | Dependency | File | build.ExtractedObjects]) -> T.List[str]:
         # build.ExtractedObjects shouldn't actually
         # happen here, but we get them from Dependency.
         cflags = set()
@@ -189,6 +189,11 @@ class HotdocTargetBuilder:
                 cflags.update(self.process_dependencies(dep.ext_deps))
             elif isinstance(dep, Dependency):
                 cflags.update(dep.get_compile_args())
+            elif isinstance(dep, build.BothLibraries):
+                dep = dep.get_default_object()
+                self.extra_depends.append(dep)
+                for incd in dep.get_include_dirs():
+                    cflags.update(incd.incdirs)
             elif isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
                 self.extra_depends.append(dep)
                 for incd in dep.get_include_dirs():

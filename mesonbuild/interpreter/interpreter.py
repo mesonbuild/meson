@@ -2058,7 +2058,6 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @typed_pos_args('both_libraries', str, varargs=SOURCES_VARARGS)
     @TypedArgs('both_libraries', kw_types=LIBRARY_KWS)
-    @noSecondLevelHolderResolving
     def func_both_lib(self, node: mparser.BaseNode,
                       args: T.Tuple[str, SourcesVarargsType],
                       kwargs: kwtypes.Library) -> build.BothLibraries:
@@ -2074,7 +2073,6 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @typed_pos_args('library', str, varargs=SOURCES_VARARGS)
     @TypedArgs('library', kw_types=LIBRARY_KWS)
-    @noSecondLevelHolderResolving
     def func_library(self, node: mparser.BaseNode,
                      args: T.Tuple[str, SourcesVarargsType],
                      kwargs: kwtypes.Library) -> build.StaticLibrary | build.SharedLibrary | build.BothLibraries:

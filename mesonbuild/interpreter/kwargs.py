@@ -381,8 +381,8 @@ class BaseBuildTarget(TypedDict):
     implicit_include_directories: bool
     link_depends: T.List[T.Union[str, File, build.BuildTargetProto]]
     link_language: T.Optional[Language]
-    link_whole: T.List[build.StaticTargetProto]
-    link_with: T.List[build.LinkableTargetProto]
+    link_whole: T.List[build.StaticTypes]
+    link_with: T.List[build.LinkableTypes]
     name_prefix: T.Optional[str]
     name_suffix: T.Optional[str]
     native: MachineChoice
@@ -545,8 +545,8 @@ class FuncDeclareDependency(TypedDict):
     extra_files: T.List[FileOrString]
     include_directories: T.List[T.Union[build.IncludeDirs, str]]
     link_args: T.List[str]
-    link_whole: T.List[build.StaticTargetProto]
-    link_with: T.List[build.LinkableTargetProto]
+    link_whole: T.List[build.StaticTypes]
+    link_with: T.List[build.LinkableTypes]
     objects: T.List[build.ExtractedObjects]
     sources: T.List[str | build.TargetSources]
     variables: T.Dict[str, str]

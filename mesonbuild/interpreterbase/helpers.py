@@ -32,16 +32,22 @@ def flatten(args: T.Union['TYPE_var', T.List['TYPE_var']]) -> T.List['TYPE_var']
             result.append(a)
     return result
 
+# link_with/link_whole may contain BothLibraries objects, which are resolved
+# on demand (against the linking target's own default_library) in
+# BuildTarget._extract_link_with()/._extract_link_whole()
+SECOND_LEVEL_HOLDER_KWARGS = {'link_with', 'link_whole'}
+
 def resolve_second_level_holders(args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> T.Tuple[T.List['TYPE_var'], 'TYPE_kwargs']:
-    def resolver(arg: 'TYPE_var') -> 'TYPE_var':
+    def resolver(arg: 'TYPE_var', second_level_holder_resolution: bool = True) -> 'TYPE_var':
         if isinstance(arg, list):
-            return [resolver(x) for x in arg]
+            return [resolver(x, second_level_holder_resolution) for x in arg]
         if isinstance(arg, dict):
-            return {k: resolver(v) for k, v in arg.items()}
-        if isinstance(arg, mesonlib.SecondLevelHolder):
+            return {k: resolver(v, second_level_holder_resolution) for k, v in arg.items()}
+        if second_level_holder_resolution and isinstance(arg, mesonlib.SecondLevelHolder):
             return arg.get_default_object()
         return arg
-    return [resolver(x) for x in args], {k: resolver(v) for k, v in kwargs.items()}
+    return ([resolver(x) for x in args],
+            {k: resolver(v, k not in SECOND_LEVEL_HOLDER_KWARGS) for k, v in kwargs.items()})
 
 def default_resolve_key(key: mparser.BaseNode) -> str:
     if not isinstance(key, mparser.IdNode):

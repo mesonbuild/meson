@@ -26,7 +26,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from .kwargs import CustomTargetInputs
-    from ..build import ObjectTypes, GeneratedTypes, CommandTypes, TargetSources
+    from ..build import ObjectTypes, GeneratedTypes, CommandTypes, TargetSources, LinkableTypes, StaticTypes
     from ..interpreterbase import TYPE_var
     from ..options import ElementaryOptionValues
     from ..mesonlib import EnvInitValueType
@@ -455,10 +455,7 @@ D_MODULE_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
 
 _LINK_WITH_ERROR = 'Dependency and external_library objects must go in the "dependencies" keyword argument'
 
-def _link_with_validator(values: T.List[T.Union[BothLibraries, SharedLibrary, StaticLibrary,
-                                                CustomTarget, CustomTargetIndex, Jar, Executable,
-                                                ]]
-                         ) -> T.Optional[str]:
+def _link_with_validator(values: T.List[LinkableTypes]) -> T.Optional[str]:
     for value in values:
         if not value.is_linkable_target():
             return f'Link target "{value!s}" is not linkable'
@@ -474,7 +471,7 @@ LINK_WITH_KW: KwargInfo[T.List[T.Union[BothLibraries, SharedLibrary, StaticLibra
     validator=_link_with_validator,
 )
 
-def link_whole_validator(values: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]) -> T.Optional[str]:
+def link_whole_validator(values: T.List[StaticTypes]) -> T.Optional[str]:
     for l in values:
         if isinstance(l, (CustomTarget, CustomTargetIndex)) and l.links_dynamically():
             return f'{type(l).__name__} returning a shared library is not allowed'

@@ -100,7 +100,7 @@ if T.TYPE_CHECKING:
         install_dir_gir: T.Union[str, None, Literal[False]]
         install_typelib: T.Optional[bool]
         install_dir_typelib: T.Union[str, None, Literal[False]]
-        link_with: T.List[T.Union[build.SharedLibrary, build.StaticLibrary]]
+        link_with: T.List[T.Union[build.SharedLibrary, build.StaticLibrary, build.BothLibraries]]
         namespace: str
         nsversion: str
         sources: T.List[str | build.TargetSources]
@@ -639,13 +639,15 @@ class GnomeModule(ExtensionModule):
         return dep_files, depends, subdirs
 
     def _get_link_args(self, state: 'ModuleState',
-                       lib: T.Union[build.SharedLibrary, build.StaticLibrary],
+                       lib: T.Union[build.SharedLibrary, build.StaticLibrary, build.BothLibraries],
                        depends: T.Sequence[TargetDepends],
                        include_rpath: bool = False,
                        use_gir_args: bool = False
                        ) -> T.Tuple[T.List[str], T.List[TargetDepends]]:
         link_command: T.List[str] = []
         new_depends = list(depends)
+        if isinstance(lib, build.BothLibraries):
+            lib = lib.get_default_object()
         # Construct link args
         if isinstance(lib, build.SharedLibrary):
             libdir = os.path.join(state.environment.get_build_dir(), state.backend.get_target_dir(lib))
@@ -695,6 +697,8 @@ class GnomeModule(ExtensionModule):
                 cflags.update(dep.get_compile_args())
                 cflags.update(state.get_include_args(dep.include_directories))
                 for lib in dep.libraries:
+                    if isinstance(lib, build.BothLibraries):
+                        lib = lib.get_default_object()
                     if isinstance(lib, build.SharedLibrary):
                         _ld, depends = self._get_link_args(state, lib, depends, include_rpath)
                         internal_ldflags.update(_ld)
@@ -1163,7 +1167,7 @@ class GnomeModule(ExtensionModule):
             KwargInfo('install_dir_typelib', (str, bool, NoneType),
                       deprecated_values={False: ('0.61.0', 'Use install_typelib to disable installation')},
                       validator=lambda x: 'as boolean can only be false' if x is True else None),
-            KwargInfo('link_with', ContainerTypeInfo(list, (build.SharedLibrary, build.StaticLibrary)), default=[], listify=True),
+            KwargInfo('link_with', ContainerTypeInfo(list, (build.SharedLibrary, build.StaticLibrary, build.BothLibraries)), default=[], listify=True),
             KwargInfo('namespace', str, required=True),
             KwargInfo('nsversion', str, required=True),
             KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File, GeneratedList, CustomTarget, CustomTargetIndex)), default=[], listify=True),

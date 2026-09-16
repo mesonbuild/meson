@@ -32,7 +32,7 @@ from ..programs import ExternalProgram, NonExistingExternalProgram
 if T.TYPE_CHECKING:
     from . import ModuleState
     from .. import cargo
-    from ..build import ExecutableKeywordArguments, GeneratedTypes, IncludeDirs, LinkableTargetProto, CommandTypes, StaticTargetProto
+    from ..build import ExecutableKeywordArguments, GeneratedTypes, IncludeDirs, LinkableTypes, CommandTypes, StaticTypes
     from ..cargo.interpreter import RUST_ABI, PackageConfiguration
     from ..compilers.compilers import Language
     from ..compilers.rust import RustCompiler
@@ -55,8 +55,8 @@ if T.TYPE_CHECKING:
         args: T.List[ArgsType]
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         is_parallel: bool
-        link_with: T.List[LinkableTargetProto]
-        link_whole: T.List[StaticTargetProto]
+        link_with: T.List[LinkableTypes]
+        link_whole: T.List[StaticTypes]
         rust_args: T.List[str]
 
     FuncTest = FuncRustTest[CommandTypes]
