@@ -745,7 +745,6 @@ class ExtractedObjects(HoldableObject):
                                      'the object files for each compiler at once.')
 
 
-@dataclass(eq=False, order=False)
 class StructuredSources(HoldableObject):
 
     """A container for sources in languages that use filesystem hierarchy.
@@ -755,14 +754,42 @@ class StructuredSources(HoldableObject):
     represent the required filesystem layout.
     """
 
-    sources: T.DefaultDict[str, T.List[TargetSources]] = field(
-        default_factory=lambda: defaultdict(list))
+    def __init__(self, sources: T.Optional[T.Mapping[str, T.List[TargetSources]]] = None) -> None:
+        self.sources: T.DefaultDict[str, T.List[TargetSources]] = defaultdict(list)
+
+        sources = sources or {}
+        for path, files in sources.items():
+            self.extend(path, files)
+
+    def __repr__(self) -> str:
+        return f'<StructuredSources: {dict(self.sources)!r}>'
+
+    @staticmethod
+    def canonicalize(path: str) -> str:
+        """Canonicalize a path within the structure.
+
+        The root of the structure is spelled as an empty string.
+        """
+        if not path:
+            return ''
+        path = pathlib.PurePath(os.path.normpath(path)).as_posix()
+        return '' if path == '.' else path
+
+    def extend(self, path: str, sources: T.Iterable[TargetSources]) -> None:
+        """Add sources to be placed in PATH, relative to the root of the structure."""
+        path = self.canonicalize(path)
+        if os.path.isabs(path) or path == '..' or path.startswith('../'):
+            raise InvalidArguments(f'structured_sources: {path!r} is outside the root of the structure.')
+        files = list(sources)
+        if not files:
+            return
+        self.sources[path].extend(files)
 
     def __add__(self, other: StructuredSources) -> StructuredSources:
-        sources = self.sources.copy()
-        for k, v in other.sources.items():
-            sources[k].extend(v)
-        return StructuredSources(sources)
+        result = StructuredSources(self.sources)
+        for path, files in other.sources.items():
+            result.extend(path, files)
+        return result
 
     def __bool__(self) -> bool:
         return bool(self.sources)
