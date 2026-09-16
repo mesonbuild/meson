@@ -1,0 +1,9 @@
+{
+  "stdout": [
+    {
+      "comment": "referring to a generated file by name must warn, not silently treat it as a source file",
+      "match": "re",
+      "line": "test cases/warning/12 structured_sources build dir reference/meson.build:4: WARNING: '.*[\\\\/]gen\\.rs' is a generated file, and should be passed by reference instead of string name\\."
+    }
+  ]
+}
