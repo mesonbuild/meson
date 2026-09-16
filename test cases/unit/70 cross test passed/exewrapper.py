@@ -15,7 +15,11 @@ def main():
     defined = 'MESON_EXE_WRAPPER' in os.environ
 
     if args.expected != defined:
-        print(os.environ, file=sys.stderr)
+        print(
+            'MESON_EXE_WRAPPER presence mismatch: '
+            f'expected={args.expected}, actual={defined}',
+            file=sys.stderr,
+        )
         return 1
     return 0
 
