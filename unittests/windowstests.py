@@ -19,7 +19,6 @@ from mesonbuild.mesonlib import (
     MachineChoice, is_windows, is_cygwin, python_command, version_compare,
     EnvironmentException
 )
-from mesonbuild.options import OptionKey
 from mesonbuild.compilers import (
     detect_c_compiler, detect_d_compiler, compiler_from_language,
 )
