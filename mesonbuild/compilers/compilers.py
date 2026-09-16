@@ -170,7 +170,7 @@ def is_java(fname: mesonlib.FileOrString) -> bool:
     return suffix in lang_suffixes['java']
 
 def is_separate_compile(fname: mesonlib.FileOrString) -> bool:
-    return not fname.endswith('.rs')
+    return not fname.endswith(('.rs', '.java', '.cs'))
 
 def is_llvm_ir(fname: 'mesonlib.FileOrString') -> bool:
     if isinstance(fname, mesonlib.File):
