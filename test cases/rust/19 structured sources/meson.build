@@ -68,6 +68,23 @@ executable('gen-no-copy', structured_sources([m_src, m_src2]))
 
 executable('gen-no-copy-with-non-rust', structured_sources(['empty.file', m_src, m_src2]))
 
+# The dictionary key does not match the directory in the source tree, so the
+# files cannot be used in place.
+executable(
+  'key_mismatch',
+  structured_sources(
+    ['src3/main-mismatch.rs'],
+    {'bar' : 'src3/foo/mod.rs'},
+  ),
+)
+
+# The root of the structure does not exist in the source tree, because the
+# files at the root come from two different directories.
+executable(
+  'root_mismatch',
+  structured_sources(['src4/main-split.rs', 'src5/split.rs']),
+)
+
 testcase expect_error('structured_sources: \'../escape\' is outside the root of the structure.')
     structured_sources('src/main.rs', {'../escape' : 'priv.rs'})
 endtestcase
