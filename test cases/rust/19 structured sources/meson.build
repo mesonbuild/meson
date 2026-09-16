@@ -31,7 +31,7 @@ target = executable(
 executable(
   'no_copy_target',
   structured_sources(
-    ['src2/main-unique.rs'],
+    ['src2/main-nocopy.rs'],
     {'foo': 'src2/foo/mod.rs'},
   ),
 )
