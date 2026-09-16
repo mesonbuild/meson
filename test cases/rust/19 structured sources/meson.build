@@ -36,6 +36,15 @@ executable(
   ),
 )
 
+# Keys are not canonicalized, but still laid out correctly in the source tree.
+executable(
+  'no_copy_not_canonical',
+  structured_sources(
+    ['src2/main-nocopy.rs'],
+    {'./foo/' : 'src2/foo/mod.rs'},
+  ),
+)
+
 test('no-copy', find_program('no_copy_test.py'), args : meson.current_build_dir())
 
 subdir('src2')
@@ -58,3 +67,7 @@ m_src2 = configure_file(
 executable('gen-no-copy', structured_sources([m_src, m_src2]))
 
 executable('gen-no-copy-with-non-rust', structured_sources(['empty.file', m_src, m_src2]))
+
+testcase expect_error('structured_sources: \'../escape\' is outside the root of the structure.')
+    structured_sources('src/main.rs', {'../escape' : 'priv.rs'})
+endtestcase
