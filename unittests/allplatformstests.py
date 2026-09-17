@@ -38,7 +38,7 @@ from mesonbuild.mesonlib import (
     is_sunos, windows_proof_rmtree, python_command, version_compare, split_args, quote_arg,
     relpath, is_linux, git, search_version, do_conf_file, do_conf_str, default_prefix,
     SubProject, MesonException, EnvironmentException,
-    windows_proof_rm, first
+    as_posix, windows_proof_rm, first
 )
 from mesonbuild.options import OptionKey
 from mesonbuild.programs import ExternalProgram
@@ -2126,7 +2126,7 @@ class AllPlatformTests(BasePlatformTests):
                         Version: 1.0.0
                         Libs: {}
                         ''').format(
-                            Path(linkfile).as_posix().replace(' ', r'\ '),
+                            as_posix(linkfile).replace(' ', r'\ '),
                         ))
 
                 # Run the test

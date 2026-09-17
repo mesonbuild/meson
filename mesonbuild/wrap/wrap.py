@@ -26,13 +26,13 @@ import gzip
 from base64 import b64encode
 from enum import Enum
 from netrc import netrc
-from pathlib import Path, PurePath
+from pathlib import Path
 from functools import lru_cache
 
 from . import WrapMode
 from .. import coredata
 from ..mesonlib import (
-    DirectoryLock, DirectoryLockAction, quiet_git, GIT, ProgressBar, MesonException,
+    as_posix, DirectoryLock, DirectoryLockAction, quiet_git, GIT, ProgressBar, MesonException,
     windows_proof_rmtree, Popen_safe, SubProject,
 )
 from ..interpreterbase import FeatureNew
@@ -585,7 +585,7 @@ class Resolver:
                 with open(main_fname, 'w', encoding='utf-8') as f:
                     f.write(textwrap.dedent(f'''\
                         [wrap-redirect]
-                        filename = {PurePath(os.path.relpath(self.wrap.original_filename, self.subdir_root)).as_posix()}
+                        filename = {as_posix(self.wrap.original_filename, relative_to=self.subdir_root)}
                         '''))
 
         # Map each supported method to a file that must exist at the root of source tree.
@@ -997,7 +997,7 @@ class Resolver:
                 # Always pass a POSIX path to patch, because on Windows it's MSYS
                 # Ignore whitespace when applying patches to workaround
                 # line-ending differences
-                cmd = [patch_command(), '-l', '-f', '-p1', '-i', str(Path(relpath).as_posix())]
+                cmd = [patch_command(), '-l', '-f', '-p1', '-i', as_posix(relpath)]
             elif GIT:
                 # If the `patch` command is not available, fall back to `git
                 # apply`. The `--work-tree` is necessary in case we're inside a

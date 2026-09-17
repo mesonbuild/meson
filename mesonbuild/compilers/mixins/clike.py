@@ -25,7 +25,7 @@ from ... import arglist
 from ... import mesonlib
 from ... import mlog
 from ...linkers.linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
-from ...mesonlib import LibType
+from ...mesonlib import as_posix, LibType
 from .. import compilers
 from ..compilers import CompileCheckMode
 from .visualstudio import VisualStudioLikeCompiler
@@ -1197,7 +1197,7 @@ class CLikeCompiler(Compiler):
                     continue
                 if libname.startswith('lib') and trial_result.startswith(libname) and lib_prefix_warning:
                     mlog.warning(f'find_library({libname!r}) starting in "lib" only works by accident and is not portable')
-                return [Path(trial_result).as_posix()]
+                return [as_posix(trial_result)]
         return None
 
     def _find_library_impl(self, libname: str, extra_dirs: T.List[str], code: str, libtype: LibType,

@@ -99,6 +99,7 @@ __all__ = [
     'RealPathAction',
     'TemporaryDirectoryWinProof',
     'Version',
+    'as_posix',
     'check_direntry_issues',
     'classify_unity_sources',
     'current_vs_supports_modules',
@@ -1355,6 +1356,18 @@ def determine_worker_count(varnames: T.Optional[T.List[str]] = None) -> int:
         except Exception:
             num_workers = 1
     return num_workers
+
+def as_posix(*args: str, relative_to: T.Optional[str] = None) -> str:
+    '''Join and normalize @args into a path that uses forward slashes as the separator,
+       so that it can be compared with other paths and used as a dictionary key.  If
+       @relative_to is given, the result is relative to that directory.'''
+    path = os.path.normpath(os.path.join(*args))
+    if relative_to is not None:
+        path = os.path.relpath(path, relative_to)
+    if is_windows():
+        path = path.replace('\\', '/')
+    return path
+
 
 def is_parent_path(parent: str, trial: str) -> bool:
     '''Checks if @trial is a file under the directory @parent. Both @trial and @parent should be
