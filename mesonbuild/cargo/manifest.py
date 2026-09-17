@@ -164,7 +164,10 @@ def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI], msg: str,
         ws_v = None
         if isinstance(v, dict) and v.get('workspace', False):
             # foo.workspace = true, take value from workspace.
-            ws_v = raw_from_workspace[orig_k]
+            try:
+                ws_v = raw_from_workspace[orig_k]
+            except KeyError as e:
+                raise MesonException(f'could not find key "{orig_k}" in workspace') from e
             v = None
         elif inherit:
             # foo = {}, give the workspace value, if any, to the converter
