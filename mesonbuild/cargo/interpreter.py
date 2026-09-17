@@ -755,19 +755,28 @@ class Interpreter:
         try:
             raw_manifest = T.cast('raw.Manifest', load_toml(filename))
         except OSError as e:
-            raise MesonException(f'could not load {subdir}/Cargo.toml: {e}')
+            raise MesonException(f'could not load {subdir}/Cargo.toml: {e}') from e
 
         self.build_def_files.append(filename)
         # [patch] always comes from the top-level Cargo.toml
         patches = self.root_workspace.workspace.patches if self.workspaces else None
         if 'workspace' in raw_manifest:
-            manifest_ = Workspace.from_raw(raw_manifest, path, patches)
+            try:
+                manifest_ = Workspace.from_raw(raw_manifest, path, patches)
+            except Exception as e:
+                raise MesonException(f'could not load {subdir}/Cargo.toml: {e}') from e
+
         elif 'package' in raw_manifest:
             if workspace is not None:
                 patches = workspace.patches
-            manifest_ = Manifest.from_raw(raw_manifest, path, workspace, member_path, patches)
+            try:
+                manifest_ = Manifest.from_raw(raw_manifest, path, workspace, member_path, patches)
+            except Exception as e:
+                raise MesonException(f'could not load {subdir}/Cargo.toml: {e}') from e
+
         else:
             raise MesonException(f'{subdir}/Cargo.toml does not have [package] or [workspace] section')
+
         self.manifests[subdir] = manifest_
         return manifest_
 
