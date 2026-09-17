@@ -27,7 +27,7 @@ from .. import mlog
 from .. import compilers
 from ..compilers import detect
 from ..mesonlib import (
-    File, MachineChoice, MesonException, MesonBugException, OrderedSet,
+    as_posix, File, MachineChoice, MesonException, MesonBugException, OrderedSet,
     ExecutableSerialisation, FileMode, InstallScriptFailure,
     classify_unity_sources, get_compiler_for_source,
     get_rsp_threshold, unique_list
@@ -374,16 +374,16 @@ class Backend:
             link_lib = target.get_import_filename() or target.get_filename()
             # In AIX, if we archive .so, the blibpath must link to archived shared library otherwise to the .so file.
             link_lib = self.get_aix_so_archive_name(target, link_lib) or link_lib
-            return Path(self.get_target_dir(target), link_lib).as_posix()
+            return as_posix(self.get_target_dir(target), link_lib)
         elif isinstance(target, build.StaticLibrary):
-            return Path(self.get_target_dir(target), target.get_filename()).as_posix()
+            return as_posix(self.get_target_dir(target), target.get_filename())
         elif isinstance(target, (build.CustomTarget, build.CustomTargetIndex)):
             if not target.is_linkable_target():
                 raise MesonException(f'Tried to link against custom target "{target.name}", which is not linkable.')
-            return Path(self.get_target_dir(target), target.get_filename()).as_posix()
+            return as_posix(self.get_target_dir(target), target.get_filename())
         elif isinstance(target, build.Executable):
             if target.import_filename:
-                return Path(self.get_target_dir(target), target.get_import_filename()).as_posix()
+                return as_posix(self.get_target_dir(target), target.get_import_filename())
             else:
                 return None
         raise AssertionError(f'BUG: Tried to link to {target!r} which is not linkable')

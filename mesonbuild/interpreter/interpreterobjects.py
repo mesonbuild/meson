@@ -7,7 +7,7 @@ import textwrap
 import threading
 import sys
 
-from pathlib import Path, PurePath
+from pathlib import Path
 
 from .. import mesonlib
 from .. import build
@@ -26,7 +26,7 @@ from ..interpreterbase import (
 from ..interpreter.type_checking import NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import Program
-from ..mesonlib import File, HoldableObject, listify, MachineChoice, MesonException
+from ..mesonlib import as_posix, File, HoldableObject, listify, MachineChoice, MesonException
 
 import typing as T
 
@@ -907,7 +907,7 @@ class SubprojectHolder(MesonInterpreterObject):
         self.warnings = warnings
         self.disabled_feature = disabled_feature
         self.exception = exception
-        self.subdir = PurePath(subdir).as_posix()
+        self.subdir = as_posix(subdir)
         self.cm_interpreter: T.Optional[CMakeInterpreter] = None
         self.callstack = callstack
 

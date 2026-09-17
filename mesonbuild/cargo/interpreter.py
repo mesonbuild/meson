@@ -25,11 +25,10 @@ from .cfg import eval_cfg
 from .toml import load_toml
 from .manifest import (
     Manifest, CargoLock, CargoLockPackage, Workspace, fixup_meson_varname,
-    validate_patch,
 )
 from ..mesonlib import (
-    is_parent_path, lazy_property, MesonException, MachineChoice,
-    PerMachine, unique_list, SubProject,
+    as_posix, is_parent_path, late_property, lazy_property, MesonException,
+    MachineChoice, PerMachine, unique_list, SubProject,
 )
 from .. import coredata, mlog
 from ..options import OptionKey
@@ -64,6 +63,9 @@ def _extra_deps_varname() -> str:
 class PackageConfiguration:
     """Configuration for a package during dependency resolution."""
     for_machine: MachineChoice
+    # Dependency table of the package, with the [target.*] sections that apply
+    # to this machine merged in.
+    dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
     features: T.Set[str] = dataclasses.field(default_factory=set)
     required_deps: T.Set[str] = dataclasses.field(default_factory=set)
     optional_deps_features: T.Dict[str, T.Set[str]] = dataclasses.field(default_factory=lambda: collections.defaultdict(set))
@@ -77,11 +79,11 @@ class PackageConfiguration:
             args.extend(['--cfg', f'feature="{feature}"'])
         return args
 
-    def get_dependency_map(self, manifest: Manifest) -> T.Dict[str, str]:
+    def get_dependency_map(self) -> T.Dict[str, str]:
         """Get the rust dependency mapping for this package configuration."""
         dependency_map: T.Dict[str, str] = {}
         for name in sorted(self.required_deps):
-            dep = manifest.dependencies[name]
+            dep = self.dependencies[name]
             dep_key = PackageKey(dep.package, dep.api)
             dep_pkg = self.dep_packages[dep_key]
             dep_lib_name = dep_pkg.library_name(self.for_machine)
@@ -93,10 +95,9 @@ class PackageConfiguration:
 @dataclasses.dataclass
 class PackageState:
     manifest: Manifest
+    ws_subdir: str
+    ws_member: str
     downloaded: bool = False
-    # If this package is member of a workspace.
-    ws_subdir: T.Optional[str] = None
-    ws_member: T.Optional[str] = None
     # Per-machine configuration state
     cfg: PerMachine[T.Optional[PackageConfiguration]] = dataclasses.field(
         default_factory=lambda: PerMachine(None, None)
@@ -107,10 +108,8 @@ class PackageState:
     subproject_name: T.Optional[str] = None
 
     @lazy_property
-    def path(self) -> T.Optional[str]:
-        if not self.ws_subdir:
-            return None
-        return os.path.normpath(os.path.join(self.ws_subdir, self.ws_member))
+    def path(self) -> str:
+        return as_posix(self.ws_subdir, self.ws_member)
 
     def library_name(self, machine: MachineChoice = MachineChoice.HOST, lib_type: RUST_ABI = 'rust') -> str:
         # Add the API version to the library name to avoid conflicts when multiple
@@ -261,6 +260,7 @@ class PackageKey:
 @dataclasses.dataclass
 class WorkspaceState:
     workspace: Workspace
+    source_dir: str
     subdir: str
     downloaded: bool = False
     # member path -> PackageState, for all members of this workspace
@@ -273,6 +273,7 @@ class WorkspaceState:
 
 class Interpreter:
     _features: T.Optional[T.List[str]] = None
+    root_workspace: late_property[WorkspaceState] = late_property()
 
     def __init__(self, env: Environment, subdir: str, subprojects_dir: str) -> None:
         self.environment = env
@@ -317,16 +318,14 @@ class Interpreter:
 
     def load_workspace(self, subdir: str, extra_members: T.Optional[T.List[str]]) -> WorkspaceState:
         """Load the root Cargo.toml package and prepare it with features and dependencies."""
-        subdir = os.path.normpath(subdir)
-        manifest, cached = self._load_manifest(subdir)
+        is_root = not self.workspaces
+        manifest = self._load_manifest(subdir)
         ws = self._get_workspace(manifest, subdir, extra_members, False)
-        if not cached:
-            # [patch] only takes effect in the top-level Cargo.toml
-            for warning in validate_patch(ws.workspace.patch, ws.packages_to_member):
-                mlog.warning(warning)
-
+        if is_root:
+            self.root_workspace = ws
             self.profiles = ws.workspace.profile
             self._prepare_entry_point(ws)
+            ws.workspace.validate_patches(ws.packages_to_member)
         return ws
 
     def _prepare_entry_point(self, ws: WorkspaceState) -> None:
@@ -396,8 +395,10 @@ class Interpreter:
         build = builder.Builder(filename)
         if project_root:
             # this is a subdir()
-            manifest, _ = self._load_manifest(subdir)
+            manifest = self._load_manifest(subdir)
             assert isinstance(manifest, Manifest)
+            # canonicalize it
+            project_root = as_posix(project_root)
             return self.interpret_package(manifest, build, subdir, project_root)
         else:
             ws = self.load_workspace(subdir, None)
@@ -460,10 +461,10 @@ class Interpreter:
                 if not cfg:
                     continue
                 for depname in cfg.required_deps:
-                    dep = pkg.manifest.dependencies[depname]
+                    dep = cfg.dependencies[depname]
                     if dep.path:
-                        dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
-                        if not ws.workspace.is_excluded(dep_member):
+                        dep_member = as_posix(pkg.ws_member, dep.path)
+                        if dep_member in ws.packages:
                             _process_member(dep_member)
                 found = True
             if not found:
@@ -485,16 +486,16 @@ class Interpreter:
         return build.block(ast)
 
     def _load_workspace_member(self, ws: WorkspaceState, m: str) -> None:
-        m = os.path.normpath(m)
+        m = as_posix(m)
         if m in ws.packages:
             return
         # Load member's manifest
-        m_subdir = os.path.join(ws.subdir, m)
-        manifest_, _ = self._load_manifest(m_subdir, ws.workspace, m)
+        m_subdir = as_posix(ws.subdir, m)
+        manifest_ = self._load_manifest(m_subdir, ws.workspace, m)
         if not isinstance(manifest_, Manifest):
             # Cargo calls this "multiple workspace roots found in the same workspace".
             # Meson supports excluding them but only if they are subprojects.
-            msg = (f'"{os.path.normpath(m_subdir)}" is itself a workspace, therefore it cannot be a member '
+            msg = (f'"{m_subdir}" is itself a workspace, therefore it cannot be a member '
                    f'of the workspace at "{ws.subdir}"')
             if is_parent_path(self.subprojects_dir, m):
                 msg += f'; add "{m}" to the "exclude" list to build it as a separate subproject'
@@ -511,27 +512,71 @@ class Interpreter:
             ws.packages[m] = PackageState(manifest_, ws_subdir=ws.subdir, ws_member=m, downloaded=ws.downloaded)
 
     def _get_workspace(self, manifest: T.Union[Workspace, Manifest], subdir: str, extra_members: T.Optional[T.List[str]], downloaded: bool) -> WorkspaceState:
+        # Canonicalize before accessing self.workspaces
+        subdir = as_posix(subdir)
         ws = self.workspaces.get(subdir)
         if ws:
             return ws
         workspace = manifest if isinstance(manifest, Workspace) else \
-            Workspace(root_package=manifest, members=['.'], default_members=['.'])
-        ws = WorkspaceState(workspace, subdir, downloaded=downloaded)
+            Workspace(root_package=manifest, members=['.'], default_members=['.'],
+                      patches=manifest.patches,
+                      manifest_path=os.path.join(self.environment.source_dir, subdir))
+        ws = WorkspaceState(workspace, self.environment.source_dir, subdir,
+                            downloaded=downloaded)
         if workspace.root_package:
             self._add_workspace_member(workspace.root_package, ws, '.')
 
-        if extra_members is not None:
-            for m in extra_members:
-                m = PurePath(m).as_posix()
-                if m not in workspace.members:
-                    l = ', '.join(sorted(list(workspace.members)))
-                    raise MesonException(f'{m} is not a workspace member for {subdir}/Cargo.toml (valid members are {l})')
-                if m not in workspace.default_members:
-                    workspace.default_members.append(m)
         for m in workspace.members:
             self._load_workspace_member(ws, m)
+
+        if extra_members is not None:
+            wanted = [as_posix(m) for m in extra_members]
+            self._load_extra_members(ws, wanted)
+            for m in wanted:
+                if m not in workspace.members:
+                    workspace.members.append(m)
+                if m not in workspace.default_members:
+                    workspace.default_members.append(m)
         self.workspaces[subdir] = ws
         return ws
+
+    def _load_extra_members(self, ws: WorkspaceState, wanted: T.List[str]) -> None:
+        """Look for *wanted* among the path dependencies of the workspace members.
+
+           Every path dependency inside the workspace directory is potentially a
+           member, even one that no [target] condition ever enables; such a
+           dependency can therefore be requested explicitly even though it is
+           absent from [workspace] members (in Cargo, with `-p`; in Meson, with
+           `extra_members`).
+
+           Force loading of all of the path dependencies that are in *wanted*.
+
+           Raises a MesonException for an entry of *wanted* that is neither a
+           declared member nor a path dependency, or that the workspace excludes.
+           """
+        valid: T.Set[str] = set(ws.packages)
+        # Accepting a member makes its own path dependencies candidates in turn,
+        # so this is a worklist rather than a single pass.  Every member has
+        # been loaded already, so ws.packages holds the starting points.
+        queue = list(ws.packages)
+        while queue:
+            member = queue.pop(0)
+            pkg = ws.packages[member]
+            for dep in pkg.manifest.path_dependencies():
+                assert dep.path is not None
+                dep_member = as_posix(member, dep.path)
+                if ws.workspace.is_excluded(dep_member):
+                    continue
+                valid.add(dep_member)
+                if dep_member in wanted and dep_member not in ws.packages:
+                    self._load_workspace_member(ws, dep_member)
+                    queue.append(dep_member)
+
+        for m in wanted:
+            if m not in valid:
+                l = ', '.join(sorted(list(valid)))
+                raise MesonException(f'{m} is not a workspace member for '
+                                     f'{ws.subdir}/Cargo.toml (valid members are {l})')
 
     def _record_package(self, pkg: PackageState) -> None:
         key = PackageKey(pkg.manifest.package.name, pkg.manifest.package.api)
@@ -539,7 +584,7 @@ class Interpreter:
             self.packages[key] = pkg
 
     def _require_workspace_member(self, ws: WorkspaceState, member: str) -> PackageState:
-        member = os.path.normpath(member)
+        member = as_posix(member)
         pkg = ws.packages[member]
         if member not in ws.required_members:
             self._record_package(pkg)
@@ -594,7 +639,7 @@ class Interpreter:
         subdir, _ = self.environment.wrap_resolver.resolve(subp_name)
         subprojects_dir = os.path.join(subdir, 'subprojects')
         self.environment.wrap_resolver.load_and_merge(subprojects_dir, SubProject(subp_name))
-        manifest, _ = self._load_manifest(subdir)
+        manifest = self._load_manifest(subdir)
         downloaded = \
             subp_name in self.environment.wrap_resolver.wraps and \
             self.environment.wrap_resolver.wraps[subp_name].type is not None
@@ -613,51 +658,74 @@ class Interpreter:
         if pkg.cfg[machine] is not None:
             return  # Already prepared for this machine
 
-        pkg.cfg[machine] = PackageConfiguration(for_machine=machine)
+        cfg = PackageConfiguration(for_machine=machine)
+        pkg.cfg[machine] = cfg
 
-        # Merge target-specific dependencies that are enabled for this machine
+        # Keep the dependencies whose [target.*] condition holds for this machine.
+        # A later entry wins, so an unconditional declaration is the fallback for
+        # the name and a matching [target.*] one overrides it.
         rustc = T.cast('RustCompiler', self.environment.coredata.compilers[machine]['rust'])
         target_cfgs = self._get_cfgs(machine, pkg.get_subproject_name())
-        for condition, dependencies in pkg.manifest.target.items():
-            if condition == rustc.get_target_triple() or eval_cfg(condition, target_cfgs):
-                pkg.manifest.dependencies.update(dependencies)
+
+        def enabled(dep: Dependency) -> bool:
+            return dep.target is None or dep.target == rustc.get_target_triple() or \
+                eval_cfg(dep.target, target_cfgs)
+
+        cfg.dependencies = {name: dep
+                            for name, deps in pkg.manifest.dependencies.items()
+                            for dep in deps if enabled(dep)}
 
         # If you specify the optional dependency with the dep: prefix anywhere in the [features]
         # table, that disables the implicit feature.
-        deps = set(feature[4:]
-                   for feature in itertools.chain.from_iterable(pkg.manifest.features.values())
-                   if feature.startswith('dep:'))
-        for name, dep in itertools.chain(pkg.manifest.dependencies.items(),
-                                         pkg.manifest.dev_dependencies.items(),
-                                         pkg.manifest.build_dependencies.items()):
-            if dep.optional and name not in deps:
-                pkg.manifest.features.setdefault(name, [])
-                pkg.manifest.features[name].append(f'dep:{name}')
-                deps.add(name)
+        explicit = set(feature[4:]
+                       for feature in itertools.chain.from_iterable(pkg.manifest.features.values())
+                       if feature.startswith('dep:'))
+        # Cargo forbids [dev-dependencies] to be optional, so skip them
+        for table in (pkg.manifest.dependencies, pkg.manifest.build_dependencies):
+            for name, deps in table.items():
+                if any(dep.optional for dep in deps) and name not in explicit:
+                    pkg.manifest.features.setdefault(name, [])
+                    pkg.manifest.features[name].append(f'dep:{name}')
+                    explicit.add(name)
 
         # Fetch required dependencies recursively for this machine
-        for depname, dep in pkg.manifest.dependencies.items():
+        for depname, dep in cfg.dependencies.items():
             if not dep.optional:
                 self._add_dependency(pkg, depname, machine)
 
+    def _load_path_package(self, pkg: PackageState, dep: Dependency) -> PackageState:
+        """Load a path dependency as a member of the consumer's workspace."""
+        assert dep.path is not None
+        ws = self.workspaces[pkg.ws_subdir]
+        dep_member = as_posix(pkg.ws_member, dep.path)
+        if dep.patched:
+            # Patch paths are relative to the root workspace.
+            ws = self.root_workspace
+            dep_member = as_posix(pkg.ws_subdir, dep_member, relative_to=ws.subdir)
+
+        dep_subdir = as_posix(ws.subdir, dep_member)
+        if is_parent_path(self.subprojects_dir, ws.subdir) and \
+                not is_parent_path(ws.subdir, dep_subdir):
+            raise MesonException(f'path dependency "{dep.package}" points outside the current subproject')
+        if is_parent_path(self.subprojects_dir, dep_member):
+            if len(pathlib.PurePath(dep_member).parts) != 2:
+                raise MesonException('found "{self.subprojects_dir}" in path but it is not a valid subproject path')
+
+        if ws.workspace.is_excluded(dep_member):
+            # An excluded package is not a member of the workspace, so it is
+            # built as a separate project.  This is only supported for
+            # subprojects, so that each project has a single Cargo.lock.
+            if not is_parent_path(self.subprojects_dir, dep_member):
+                raise MesonException(f'package "{dep.package}" excluded from the workspace '
+                                     f'must be under "{self.subprojects_dir}"')
+            return self._fetch_package_from_subproject(dep.package, os.path.basename(dep_member))
+        else:
+            self._load_workspace_member(ws, dep_member)
+            return self._require_workspace_member(ws, dep_member)
+
     def _dep_package(self, pkg: PackageState, dep: Dependency, cfg: PackageConfiguration) -> PackageState:
         if dep.path:
-            ws = self.workspaces[pkg.ws_subdir]
-            dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
-            if is_parent_path(self.subprojects_dir, dep_member):
-                if len(pathlib.PurePath(dep_member).parts) != 2:
-                    raise MesonException('found "{self.subprojects_dir}" in path but it is not a valid subproject path')
-            if ws.workspace.is_excluded(dep_member):
-                # An excluded package is not a member of the workspace, so it is
-                # built as a separate project.  This is only supported for
-                # subprojects, so that each project has a single Cargo.lock.
-                if not is_parent_path(self.subprojects_dir, dep_member):
-                    raise MesonException(f'package "{dep.package}" excluded from the workspace '
-                                         f'must be under "{self.subprojects_dir}"')
-                dep_pkg = self._fetch_package_from_subproject(dep.package, os.path.basename(dep_member))
-            else:
-                self._load_workspace_member(ws, dep_member)
-                dep_pkg = self._require_workspace_member(ws, dep_member)
+            dep_pkg = self._load_path_package(pkg, dep)
         elif dep.git:
             _, _, directory = _parse_git_url(dep.git, dep.branch)
             dep_pkg = self._fetch_package_from_subproject(dep.package, directory)
@@ -675,32 +743,48 @@ class Interpreter:
         assert cfg.dep_packages[dep_key] == dep_pkg
         return dep_pkg
 
-    def _load_manifest(self, subdir: str, workspace: T.Optional[Workspace] = None, member_path: str = '') -> T.Tuple[T.Union[Manifest, Workspace], bool]:
+    def _load_manifest(self, subdir: str, workspace: T.Optional[Workspace] = None,
+                       member_path: str = '') -> T.Union[Manifest, Workspace]:
+        # Canonicalize before accessing self.manifests
+        subdir = as_posix(subdir)
         manifest_ = self.manifests.get(subdir)
         if manifest_:
-            return manifest_, True
+            return manifest_
         path = os.path.join(self.environment.source_dir, subdir)
         filename = os.path.join(path, 'Cargo.toml')
         try:
             raw_manifest = T.cast('raw.Manifest', load_toml(filename))
         except OSError as e:
-            raise MesonException(f'could not load {subdir}/Cargo.toml: {e}')
+            raise MesonException(f'could not load {subdir}/Cargo.toml: {e}') from e
 
         self.build_def_files.append(filename)
+        # [patch] always comes from the top-level Cargo.toml
+        patches = self.root_workspace.workspace.patches if self.workspaces else None
         if 'workspace' in raw_manifest:
-            manifest_ = Workspace.from_raw(raw_manifest, path)
+            try:
+                manifest_ = Workspace.from_raw(raw_manifest, path, patches)
+            except Exception as e:
+                raise MesonException(f'could not load {subdir}/Cargo.toml: {e}') from e
+
         elif 'package' in raw_manifest:
-            manifest_ = Manifest.from_raw(raw_manifest, path, workspace, member_path)
+            if workspace is not None:
+                patches = workspace.patches
+            try:
+                manifest_ = Manifest.from_raw(raw_manifest, path, workspace, member_path, patches)
+            except Exception as e:
+                raise MesonException(f'could not load {subdir}/Cargo.toml: {e}') from e
+
         else:
             raise MesonException(f'{subdir}/Cargo.toml does not have [package] or [workspace] section')
+
         self.manifests[subdir] = manifest_
-        return manifest_, False
+        return manifest_
 
     def _add_dependency(self, pkg: PackageState, depname: str, machine: MachineChoice) -> None:
         cfg = pkg.cfg[machine]
         if depname in cfg.required_deps:
             return
-        dep = pkg.manifest.dependencies.get(depname)
+        dep = cfg.dependencies.get(depname)
         if not dep:
             # It could be build/dev/target dependency. Just ignore it.
             return
@@ -731,7 +815,7 @@ class Interpreter:
                 else:
                     self._add_dependency(pkg, depname, machine)
                 if depname in cfg.required_deps:
-                    dep = pkg.manifest.dependencies[depname]
+                    dep = cfg.dependencies[depname]
                     dep_pkg = self._dep_package(pkg, dep, cfg)
                     # Use machines_from() to determine which machines the dependency needs
                     for dep_machine in dep_pkg.manifest.machines_from(machine, self.is_cross):
