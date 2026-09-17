@@ -9,7 +9,6 @@ from __future__ import annotations
 import abc
 import re
 import os
-from pathlib import Path
 import typing as T
 
 from .base import DependencyException, DependencyMethods
@@ -53,7 +52,7 @@ def _qt_get_private_includes(mod_inc_dir: str, module: str, mod_version: str) ->
             if len(dirname.split('.')) == 3:
                 private_dir = dirname
                 break
-    return [private_dir, Path(private_dir, f'Qt{module}').as_posix()]
+    return [private_dir, mesonlib.as_posix(private_dir, f'Qt{module}')]
 
 
 def get_qmake_host_bins(qvars: T.Dict[str, str]) -> str:
@@ -322,7 +321,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=mesonlib.Simple
         modules_lib_suffix = _get_modules_lib_suffix(self.version, self.env.machines[self.for_machine], is_debug)
 
         for module in self.requested_modules:
-            mincdir = Path(incdir, f'Qt{module}').as_posix()
+            mincdir = mesonlib.as_posix(incdir, f'Qt{module}')
             self.compile_args.append('-I' + mincdir)
 
             if module == 'QuickTest':

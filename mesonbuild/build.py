@@ -21,7 +21,7 @@ from . import mlog
 from . import programs
 from .environment import MachineMap
 from .mesonlib import (
-    HoldableObject, SecondLevelHolder, SimpleABC, SubProject,
+    as_posix, HoldableObject, SecondLevelHolder, SimpleABC, SubProject,
     File, MesonException, MachineChoice, ThreeMachineChoice, PerMachine,
     OrderedSet, classify_unity_sources, ROOT_SUBPROJECT,
     get_filenames_templates_dict, substitute_values, has_path_sep,
@@ -1347,7 +1347,7 @@ class BuildTarget(Target, BuildTargetProto):
                         break
                 else:
                     if is_known_suffix(s) and not is_header(s):
-                        path = pathlib.Path(str(s)).as_posix()
+                        path = as_posix(str(s))
                         m = f'No {self.for_machine.get_lower_case_name()} machine compiler for {path!r}'
                         raise MesonException(m)
 

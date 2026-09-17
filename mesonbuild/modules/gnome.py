@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import copy
 import itertools
-import pathlib
 import functools
 import os
 import subprocess
@@ -1018,7 +1017,7 @@ class GnomeModule(ExtensionModule):
         # g-ir-scanner uses distutils/setuptools which splits CC with both Posix
         # and Windows rules to get the first argument, which breaks if there are
         # backslashes, so best avoid them entirely.
-        cc_exelist = [pathlib.Path(exe).as_posix() for exe in cc_exelist]
+        cc_exelist = [mesonlib.as_posix(exe) for exe in cc_exelist]
         run_env.set('CC', [quote_arg(x) for x in cc_exelist], ' ')
         run_env.set('CFLAGS', [quote_arg(x) for x in env_flags], ' ')
         run_env.merge(kwargs['env'])

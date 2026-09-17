@@ -33,7 +33,7 @@ from ..mesonlib import (
     File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg, unique_list
 )
-from ..mesonlib import get_compiler_for_source, has_path_sep, is_parent_path, lookbehind, path_has_root
+from ..mesonlib import as_posix, get_compiler_for_source, has_path_sep, is_parent_path, lookbehind, path_has_root
 from ..options import OptionKey
 from .backends import CleanTrees
 from ..build import GeneratedList, InvalidArguments
@@ -1341,7 +1341,7 @@ class NinjaBackend(backends.Backend):
             elem.add_item('DEPFILE', rel_dfile)
         if target.console:
             elem.add_item('pool', 'console')
-        full_name = Path(target.subdir, target.name).as_posix()
+        full_name = as_posix(target.subdir, target.name)
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', target.description.format(full_name) + cmd_type)
         self.add_build(elem)
