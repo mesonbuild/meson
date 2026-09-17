@@ -4,13 +4,13 @@
 from __future__ import annotations
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
-from ..mesonlib import (EnvironmentVariables, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged, MachineChoice,
-                        join_args, MesonException, path_has_root)
+from ..mesonlib import (as_posix, EnvironmentVariables, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged,
+                        MachineChoice, join_args, MesonException, path_has_root)
 from ..options import OptionKey
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
 from enum import Enum
-from pathlib import Path, PurePath
+from pathlib import PurePath
 from functools import lru_cache
 import re
 import os
@@ -287,7 +287,7 @@ class PkgConfigCLI(PkgConfigInterface):
             bpath = self.env.get_build_dir()
             if bpath is not None:
                 # uninstalled can only be used if a build dir exists.
-                uninstalled_path = Path(bpath, 'meson-uninstalled').as_posix()
+                uninstalled_path = as_posix(bpath, 'meson-uninstalled')
                 if uninstalled_path not in extra_paths:
                     extra_paths.insert(0, uninstalled_path)
         env.set('PKG_CONFIG_PATH', extra_paths)

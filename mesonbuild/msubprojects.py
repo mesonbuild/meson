@@ -16,7 +16,7 @@ import zipfile
 
 from . import mlog
 from .ast import IntrospectionInterpreter
-from .mesonlib import quiet_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
+from .mesonlib import as_posix, quiet_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
 from .wrap.wrap import (Resolver, WrapException, WrapType,
                         parse_patch_url, update_wrap_file, get_releases)
 
@@ -753,7 +753,7 @@ def run(options: 'Arguments') -> int:
         pre_func(options)
     logger = Logger(len(wraps))
     for wrap in wraps:
-        dirname = Path(source_dir, subproject_dir, wrap.directory).as_posix()
+        dirname = as_posix(source_dir, subproject_dir, wrap.directory)
         runner = Runner(logger, r, wrap, dirname, options)
         task = loop.run_in_executor(executor, runner.run)
         tasks.append(task)

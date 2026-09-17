@@ -11,11 +11,10 @@ import glob
 import os
 import re
 import typing as T
-from pathlib import PurePath
 
 
 from . import version
-from ..mesonlib import MesonException, is_parent_path, lazy_property, MachineChoice
+from ..mesonlib import MesonException, as_posix, is_parent_path, lazy_property, MachineChoice
 from .. import mlog
 
 if T.TYPE_CHECKING:
@@ -733,7 +732,7 @@ class Workspace:
         }
 
     def is_excluded(self, path: str) -> bool:
-        path = PurePath(path).as_posix()
+        path = as_posix(path)
         if '.' in self.exclude:
             # If the workspace directory is excluded, so is everything below it,
             # even explicitly listed members (Cargo weirdness), but the root
@@ -755,10 +754,10 @@ class Workspace:
             ws.patch = raw.get('patch')
             ws.profile = {k: Profile.from_raw(v) for k, v in raw.get('profile', {}).items()}
 
-        ws.members = list(PurePath(m).as_posix() for m in ws.members)
-        ws.exclude = list(PurePath(e).as_posix() for e in ws.exclude)
+        ws.members = list(as_posix(m) for m in ws.members)
+        ws.exclude = list(as_posix(e) for e in ws.exclude)
         if ws.default_members:
-            ws.default_members = list(PurePath(m).as_posix() for m in ws.default_members)
+            ws.default_members = list(as_posix(m) for m in ws.default_members)
         else:
             ws.default_members = ['.'] if ws.root_package else list(ws.members)
 
@@ -773,7 +772,7 @@ class Workspace:
                     continue
 
                 if keep_glob_results:
-                    expanded.extend(PurePath(exp).as_posix()
+                    expanded.extend(as_posix(exp)
                                     for exp in glob.glob(entry, root_dir=path)
                                     if os.path.isdir(os.path.join(path, exp)))
             return literals, expanded
