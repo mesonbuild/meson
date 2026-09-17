@@ -28,7 +28,7 @@ from .manifest import (
     validate_patch,
 )
 from ..mesonlib import (
-    is_parent_path, lazy_property, MesonException, MachineChoice,
+    as_posix, is_parent_path, lazy_property, MesonException, MachineChoice,
     PerMachine, unique_list, SubProject,
 )
 from .. import coredata, mlog
@@ -519,7 +519,7 @@ class Interpreter:
 
         if extra_members is not None:
             for m in extra_members:
-                m = PurePath(m).as_posix()
+                m = as_posix(m)
                 if m not in workspace.members:
                     l = ', '.join(sorted(list(workspace.members)))
                     raise MesonException(f'{m} is not a workspace member for {subdir}/Cargo.toml (valid members are {l})')

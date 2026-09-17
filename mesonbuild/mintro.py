@@ -316,7 +316,7 @@ def find_buildsystem_files_list(src_dir: str) -> T.List[str]:
 
 def list_buildsystem_files(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[str]:
     src_dir = builddata.environment.get_source_dir()
-    filelist = [PurePath(src_dir, x).as_posix() for x in builddata.def_files]
+    filelist = [mesonlib.as_posix(src_dir, x) for x in builddata.def_files]
     return filelist
 
 def list_compilers(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.Dict[str, T.Dict[str, T.Dict[str, str]]]:
