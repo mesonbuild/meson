@@ -536,7 +536,7 @@ class CargoTomlTest(unittest.TestCase):
         self.assertEqual(dep.package, 'glib')
         self.assertEqual(dep.version, '')
         self.assertTrue(dep.accepts_version('9999'))
-        self.assertEqual(dep.path, os.path.join('..', 'glib'))
+        self.assertEqual(dep.path, '../glib')
         self.assertEqual(dep.features, [])
 
         dep = Dependency.from_raw('gtk', {'workspace': True}, 'member', workspace)
@@ -816,12 +816,12 @@ class CargoTomlTest(unittest.TestCase):
         self.assertEqual(build['rust_panic'], 'abort')
 
     def test_validate_patch(self) -> None:
-        # packages_to_member values are normalized with os.path.normpath (see
-        # _load_workspace_member), so do the same here
+        # packages_to_member values are normalized with as_posix,
+        # so do the same here
         resolved = {
             'cxx': '.',
-            'cxx-build': os.path.normpath('gen/build'),
-            'member': os.path.normpath('vendor/member'),
+            'cxx-build': 'gen/build',
+            'member': 'vendor/member',
         }
 
         patch = {'crates-io': {
