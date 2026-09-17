@@ -348,9 +348,9 @@ class Dependency:
 
         def path_convertor(path: T.Optional[str], ws_path: T.Optional[str]) -> T.Optional[str]:
             if path:
-                return path
+                return as_posix(path)
             if ws_path:
-                return os.path.relpath(ws_path, member_path)
+                return as_posix(ws_path, relative_to=member_path)
             return None
 
         return _raw_to_dataclass(raw_dep, cls, f'Dependency entry {name}', raw_ws_dep,
@@ -859,7 +859,7 @@ def validate_patch(patch: object, resolved: T.Mapping[str, str]) -> T.Iterator[s
         for name, value in patch['crates-io'].items():
             if not isinstance(value, dict) or not isinstance(value.get('path'), str):
                 yield f'Unrecognized [patch.crates-io] entry {name!r}'
-            elif resolved.get(name) == os.path.normpath(value['path']):
+            elif resolved.get(name) == as_posix(value['path']):
                 continue
             else:
                 yield f'[patch.crates-io] entry {name!r} is not for a dependency'

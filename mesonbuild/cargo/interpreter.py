@@ -107,7 +107,7 @@ class PackageState:
 
     @lazy_property
     def path(self) -> str:
-        return os.path.normpath(os.path.join(self.ws_subdir, self.ws_member))
+        return as_posix(self.ws_subdir, self.ws_member)
 
     def library_name(self, machine: MachineChoice = MachineChoice.HOST, lib_type: RUST_ABI = 'rust') -> str:
         # Add the API version to the library name to avoid conflicts when multiple
@@ -314,7 +314,6 @@ class Interpreter:
 
     def load_workspace(self, subdir: str, extra_members: T.Optional[T.List[str]]) -> WorkspaceState:
         """Load the root Cargo.toml package and prepare it with features and dependencies."""
-        subdir = os.path.normpath(subdir)
         manifest, cached = self._load_manifest(subdir)
         ws = self._get_workspace(manifest, subdir, extra_members, False)
         if not cached:
@@ -395,6 +394,8 @@ class Interpreter:
             # this is a subdir()
             manifest, _ = self._load_manifest(subdir)
             assert isinstance(manifest, Manifest)
+            # canonicalize it
+            project_root = as_posix(project_root)
             return self.interpret_package(manifest, build, subdir, project_root)
         else:
             ws = self.load_workspace(subdir, None)
@@ -459,7 +460,7 @@ class Interpreter:
                 for depname in cfg.required_deps:
                     dep = pkg.manifest.dependencies[depname]
                     if dep.path:
-                        dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
+                        dep_member = as_posix(pkg.ws_member, dep.path)
                         if not ws.workspace.is_excluded(dep_member):
                             _process_member(dep_member)
                 found = True
@@ -482,16 +483,16 @@ class Interpreter:
         return build.block(ast)
 
     def _load_workspace_member(self, ws: WorkspaceState, m: str) -> None:
-        m = os.path.normpath(m)
+        m = as_posix(m)
         if m in ws.packages:
             return
         # Load member's manifest
-        m_subdir = os.path.join(ws.subdir, m)
+        m_subdir = as_posix(ws.subdir, m)
         manifest_, _ = self._load_manifest(m_subdir, ws.workspace, m)
         if not isinstance(manifest_, Manifest):
             # Cargo calls this "multiple workspace roots found in the same workspace".
             # Meson supports excluding them but only if they are subprojects.
-            msg = (f'"{os.path.normpath(m_subdir)}" is itself a workspace, therefore it cannot be a member '
+            msg = (f'"{m_subdir}" is itself a workspace, therefore it cannot be a member '
                    f'of the workspace at "{ws.subdir}"')
             if is_parent_path(self.subprojects_dir, m):
                 msg += f'; add "{m}" to the "exclude" list to build it as a separate subproject'
@@ -508,6 +509,8 @@ class Interpreter:
             ws.packages[m] = PackageState(manifest_, ws_subdir=ws.subdir, ws_member=m, downloaded=ws.downloaded)
 
     def _get_workspace(self, manifest: T.Union[Workspace, Manifest], subdir: str, extra_members: T.Optional[T.List[str]], downloaded: bool) -> WorkspaceState:
+        # Canonicalize before accessing self.workspaces
+        subdir = as_posix(subdir)
         ws = self.workspaces.get(subdir)
         if ws:
             return ws
@@ -536,7 +539,7 @@ class Interpreter:
             self.packages[key] = pkg
 
     def _require_workspace_member(self, ws: WorkspaceState, member: str) -> PackageState:
-        member = os.path.normpath(member)
+        member = as_posix(member)
         pkg = ws.packages[member]
         if member not in ws.required_members:
             self._record_package(pkg)
@@ -640,7 +643,7 @@ class Interpreter:
     def _dep_package(self, pkg: PackageState, dep: Dependency, cfg: PackageConfiguration) -> PackageState:
         if dep.path:
             ws = self.workspaces[pkg.ws_subdir]
-            dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
+            dep_member = as_posix(pkg.ws_member, dep.path)
             if is_parent_path(self.subprojects_dir, dep_member):
                 if len(pathlib.PurePath(dep_member).parts) != 2:
                     raise MesonException('found "{self.subprojects_dir}" in path but it is not a valid subproject path')
@@ -673,6 +676,8 @@ class Interpreter:
         return dep_pkg
 
     def _load_manifest(self, subdir: str, workspace: T.Optional[Workspace] = None, member_path: str = '') -> T.Tuple[T.Union[Manifest, Workspace], bool]:
+        # Canonicalize before accessing self.manifests
+        subdir = as_posix(subdir)
         manifest_ = self.manifests.get(subdir)
         if manifest_:
             return manifest_, True
