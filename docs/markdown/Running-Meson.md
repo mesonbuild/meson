@@ -148,6 +148,13 @@ build) and others only every now and then (such as a "static analysis"
 build). Any configuration can be built just by `cd`'ing to the
 corresponding directory and running Ninja.
 
+To force Meson to reconfigure without building any targets, use the
+`reconfigure` target.
+
+```sh
+ninja -C builddir reconfigure
+```
+
 ## Running tests
 
 Meson provides native support for running tests. The command to do
