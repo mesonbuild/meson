@@ -1341,7 +1341,7 @@ class AllPlatformTests(BasePlatformTests):
         for cmd in self.get_compdb():
             # Get compiler
             split = split_args(cmd['command'])
-            if os.path.basename(split[0]) in ('ccache', 'sccache'):
+            if os.path.basename(split[0]) in ('ccache', 'sccache', 'buildcache'):
                 compiler = split[1]
             else:
                 compiler = split[0]
