@@ -23,6 +23,9 @@ changed). Meson will then use the specified compiler without Ccache.
 [sccache](https://github.com/mozilla/sccache) is auto-detected the
 same way, and is preferred over Ccache when both are installed.
 
+[BuildCache](https://gitlab.com/bits-n-bites/buildcache) is
+auto-detected as well, after Ccache and sccache.
+
 [kache](https://github.com/kunobi-ninja/kache) is also supported, but
 is never added automatically: it must be invoked with a compiler
 subcommand (`kache cc`, `kache c++`, ...), so Meson cannot safely

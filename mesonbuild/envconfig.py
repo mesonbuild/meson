@@ -497,12 +497,19 @@ class BinaryTable:
         return ExternalProgram('kache', silent=True)
 
     @staticmethod
+    def detect_buildcache() -> ExternalProgram:
+        return ExternalProgram('buildcache', silent=True)
+
+    @staticmethod
     def detect_compiler_cache() -> ExternalProgram:
         # Sccache is "newer" so it is assumed that people would prefer it by default.
         cache = BinaryTable.detect_sccache()
         if cache.found():
             return cache
-        return BinaryTable.detect_ccache()
+        cache = BinaryTable.detect_ccache()
+        if cache.found():
+            return cache
+        return BinaryTable.detect_buildcache()
 
     @classmethod
     def parse_entry(cls, entry: T.Union[str, T.List[str]]) -> T.Tuple[T.List[str], T.Union[None, ExternalProgram]]:
@@ -517,6 +524,9 @@ class BinaryTable:
         elif parts[0] == 'kache':
             compiler = parts[1:]
             ccache = cls.detect_kache()
+        elif parts[0] == 'buildcache':
+            compiler = parts[1:]
+            ccache = cls.detect_buildcache()
         else:
             compiler = parts
             ccache = None
