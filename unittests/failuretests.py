@@ -394,3 +394,12 @@ class FailureTests(BasePlatformTests):
         self.assertMesonRaises('',
                                'Compiler cache specified without compiler: ccache',
                                override_envvars={'CC': 'ccache'})
+        self.assertMesonRaises('',
+                               'Compiler cache specified without compiler: sccache',
+                               override_envvars={'CC': 'sccache'})
+        self.assertMesonRaises('',
+                               'Compiler cache specified without compiler: kache',
+                               override_envvars={'CC': 'kache'})
+        self.assertMesonRaises('',
+                               'Compiler cache specified without compiler: buildcache',
+                               override_envvars={'CC': 'buildcache'})
