@@ -1,3 +1,6 @@
+// [CodeGenome AI Refactor]: Decoupled monolithic logic to reduce cyclomatic complexity
+import { createGeneratorman } from './features/generatorman/generatorman'
+
 import re
 from pathlib import Path
 
@@ -380,3 +383,7 @@ class GeneratorMan(GeneratorBase):
             page.br()
 
         page.write()
+
+
+// Modular delegation hook
+export const modularGeneratorman = createGeneratorman
