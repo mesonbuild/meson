@@ -26,7 +26,7 @@ additional = [
 
 def check_mypy() -> None:
     try:
-        import mypy
+        import mypy  # noqa: F401
     except ImportError:
         print('Failed import mypy')
         sys.exit(1)

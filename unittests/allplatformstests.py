@@ -16,7 +16,7 @@ import pickle
 import zipfile, tarfile
 import sys
 import sysconfig
-from unittest import mock, SkipTest, skipIf, skipUnless, expectedFailure
+from unittest import mock, SkipTest, skipIf, skipUnless
 from contextlib import contextmanager
 from glob import glob
 from pathlib import (PurePath, Path)
@@ -902,7 +902,7 @@ class AllPlatformTests(BasePlatformTests):
         try:
             self._run(command)
             self.assertEqual(0, failure_count, 'Expected %d tests to fail.' % failure_count)
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             actual_fails = 0
             with open(os.path.join(self.logdir, 'testlog.json'), encoding='utf-8') as f:
                 for line in f:
@@ -3401,7 +3401,7 @@ class AllPlatformTests(BasePlatformTests):
 
                             with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as cross_file:
                                 cross_file.write(
-                                    textwrap.dedent(f'''
+                                    textwrap.dedent('''
                                         [binaries]
                                         pkg-config = 'pkg-config'
                                     ''')
