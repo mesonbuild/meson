@@ -149,11 +149,10 @@ class OptionInterpreter:
                 'All keyword arguments must be after positional arguments.', node=self.current_node)
         reduced_pos = [self.reduce_single(arg) for arg in args.arguments]
         reduced_kw = {}
-        for key in args.kwargs.keys():
+        for key, a in args.kwargs.items():
             if not isinstance(key, mparser.IdNode):
                 raise OptionException.from_node(
                     'Keyword argument name is not a string.', node=self.current_node)
-            a = args.kwargs[key]
             reduced_kw[key.value] = self.reduce_single(a)
         return reduced_pos, reduced_kw
 
