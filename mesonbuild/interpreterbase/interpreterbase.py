@@ -32,7 +32,7 @@ from .. import mlog
 from . import operator
 from .decorators import FeatureFixed, FeatureNew
 from .disabler import Disabler, is_disabled
-from .helpers import default_resolve_key, flatten, stringifyUserArguments
+from .helpers import default_resolve_key, stringifyUserArguments
 from .operator import MesonOperator
 from ._unholder import _unholder
 
@@ -509,11 +509,8 @@ class InterpreterBase:
             return Disabler()
         if func_name in self.funcs:
             func = self.funcs[func_name]
-            func_args = posargs
-            if not getattr(func, 'no-args-flattening', False):
-                func_args = flatten(posargs)
             self.current_node = node
-            res = func(node, func_args, kwargs)
+            res = func(node, posargs, kwargs)
             return self._holderify(res) if res is not None else None
         else:
             from difflib import get_close_matches

@@ -11,7 +11,6 @@ from ...interpreterbase import (
     MesonOperator,
     ObjectHolder,
     typed_operator,
-    noArgsFlattening,
     TypedArgs,
     FeatureNew,
 
@@ -48,8 +47,7 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
     def size(self) -> int:
         return len(self.held_object)
 
-    @noArgsFlattening
-    @TypedArgs('array.contains', pos_types=[OBJ_PARG])
+    @TypedArgs('array.contains', pos_types=[OBJ_PARG], flatten=False)
     @InterpreterObject.method('contains')
     def contains_method(self, args: T.Tuple[object], kwargs: TYPE_kwargs) -> bool:
         def check_contains(el: T.List[TYPE_var]) -> bool:
@@ -68,8 +66,9 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
     def length_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> int:
         return len(self.held_object)
 
-    @noArgsFlattening
-    @TypedArgs('array.get', pos_types=[INT_PARG], opt_types=[OBJ_OARG])
+    @TypedArgs('array.get',
+               pos_types=[INT_PARG], opt_types=[OBJ_OARG],
+               flatten=False)
     @InterpreterObject.method('get')
     def get_method(self, args: T.Tuple[int, T.Optional[TYPE_var]], kwargs: TYPE_kwargs) -> TYPE_var:
         index, fallback = args

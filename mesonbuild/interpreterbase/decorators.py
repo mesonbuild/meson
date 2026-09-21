@@ -7,7 +7,7 @@ from .. import coredata, mesonlib, mlog
 from .disabler import Disabler
 from .baseobjects import DefaultObject
 from .exceptions import InterpreterException, InvalidArguments
-from .helpers import resolve_second_level_holders
+from .helpers import flatten, resolve_second_level_holders
 from ._unholder import _unholder
 
 from functools import partial, wraps
@@ -124,10 +124,6 @@ def get_callee_args(wrapped_args: T.Union[
     else:
         s = wrapped_args[0]
     return s.current_node, wrapped_args[-2], wrapped_args[-1], s.subproject
-
-def noArgsFlattening(f: TV_func) -> TV_func:
-    setattr(f, 'no-args-flattening', True)  # noqa: B010
-    return f
 
 def unholder_return(f: TV_func) -> T.Callable[..., TYPE_var]:
     @wraps(f)
@@ -437,6 +433,7 @@ class TypedArgs:
     kw_types: list[KwargInfo] = dataclasses.field(default_factory=list, kw_only=True)
     unknown_kwargs: bool = dataclasses.field(default=False, kw_only=True)
     process_posargs: bool = dataclasses.field(default=True, kw_only=True)
+    flatten: bool = dataclasses.field(default=True, kw_only=True)
 
     def _emit_feature_change(self, value: object, values: dict[_T, str | tuple[str, str]],
                              feature: type[FeatureDeprecated | FeatureNew],
@@ -599,6 +596,8 @@ class TypedArgs:
         assert not (self.opt_types and self.var_types), \
             'Cannot use optional arguments and variadic arguments together due to ambiguity'
 
+        if self.flatten:
+            args = flatten(args)
         nargs = T.cast('list[object]', args).copy()
         num_args = len(args)
         num_types = len(self.pos_types)
