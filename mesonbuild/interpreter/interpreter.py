@@ -2679,7 +2679,12 @@ class Interpreter(InterpreterBase, HoldableObject):
                     if isinstance(arg, str):
                         arg = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, arg)
                     sources[k].append(arg)
-        return build.StructuredSources(sources)
+
+        result = build.StructuredSources(sources)
+        if result.needs_copy and not result.has_built_files():
+            FeatureNew.single_use('structured_sources() that only remaps source files', '1.13.0', self.subproject,
+                                  'This was broken and would not copy the source files to the build tree', node)
+        return result
 
     @TypedArgs(
         'subdir',
