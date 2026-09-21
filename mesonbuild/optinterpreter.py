@@ -79,6 +79,7 @@ class OptionInterpreter:
             'feature': self.feature_parser,
         }
         self.optionstore = optionstore
+        self.current_node: mparser.BaseNode = mparser.BaseNode(-1, -1, 'sentinel')
 
     def process(self, option_file: str) -> None:
         try:
