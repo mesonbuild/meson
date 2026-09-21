@@ -2160,6 +2160,7 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
         @TypedArgs(
             'testfunc',
             pos_types=[PosArgInfo(ContainerTypeInfo(list, str))],
+            flatten=False,
         )
         def _(obj, node, args: T.Tuple[list[str]], kwargs: dict) -> None:
             self.assertEqual(args[0], ['str'])
@@ -2223,7 +2224,7 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
             'testfunc',
             pos_types=[
                 PosArgInfo(ContainerTypeInfo(list, str), listify=True, deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
-            ]
+            ],
         )
         def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
             pass
@@ -2277,7 +2278,8 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
                     since_values={str: '1.1', ContainerTypeInfo(list, str): '1.2', ContainerTypeInfo(dict, str): '1.3'},
                     deprecated_values={int: '0.8', ContainerTypeInfo(list, int): '0.9'},
                 ),
-            ]
+            ],
+            flatten=False,
         )
         def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
             pass
@@ -2310,7 +2312,8 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
                     listify=True,
                     since_values={ContainerTypeInfo(list, str): '1.1', ContainerTypeInfo(list, int): '1.2'},
                 ),
-            ]
+            ],
+            flatten=False,
         )
         def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
             pass
@@ -2362,7 +2365,8 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
                     (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)),
                     since_values={list: '1.9'},
                 ),
-            ]
+            ],
+            flatten=False,
         )
         def _(obj, node, args: T.Tuple[str], kwargs: dict) -> None:
             pass
@@ -2737,6 +2741,7 @@ InstalledDir: /usr/bin'''), '14.0.0-1ubuntu1.1')
             'testfunc',
             pos_types=[PosArgInfo(object)],
             kw_types=[KwargInfo('input', (str, ContainerTypeInfo(list, str)))],
+            flatten=False,
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertEqual(kwargs['input'], args[0])

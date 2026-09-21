@@ -28,7 +28,6 @@ __all__ = [
     'Feature',
     'FeatureValue',
 
-    'noArgsFlattening',
     'unholder_return',
     'disablerIfNotFound',
     'typed_operator',
@@ -82,7 +81,6 @@ from .baseobjects import (
 )
 
 from .decorators import (
-    noArgsFlattening,
     unholder_return,
     disablerIfNotFound,
     ContainerTypeInfo,
