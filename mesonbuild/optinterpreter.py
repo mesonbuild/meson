@@ -101,9 +101,7 @@ class OptionInterpreter:
             except Exception as e:
                 raise mesonlib.MesonException.from_node(str(e), node=self.current_node)
 
-    def reduce_single(self, arg: T.Union[str, mparser.BaseNode]) -> 'TYPE_var':
-        if isinstance(arg, str):
-            return arg
+    def reduce_single(self, arg: mparser.BaseNode) -> 'TYPE_var':
         if isinstance(arg, mparser.ParenthesizedNode):
             return self.reduce_single(arg.inner)
         elif isinstance(arg, (mparser.StringNode, mparser.BooleanNode, mparser.NumberNode)):
