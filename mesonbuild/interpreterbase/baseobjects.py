@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from .. import mparser
 from .exceptions import InvalidCode, InvalidArguments
-from .helpers import flatten, resolve_second_level_holders
+from .helpers import flatten
 from .operator import MesonOperator
 from ..mesonlib import HoldableObject, MesonBugException, SimpleABC, SubProject, ROOT_SUBPROJECT
 import textwrap
@@ -116,8 +116,6 @@ class InterpreterObject:
             method = self.METHODS[method_name]
             if not getattr(method, 'no-args-flattening', False):
                 args = flatten(args)
-            if not getattr(method, 'no-second-level-holder-flattening', False):
-                args, kwargs = resolve_second_level_holders(args, kwargs)
             return method(self, args, kwargs)
 
         ustr = f'Unknown method "{method_name}" in object {self} of type {type(self).__name__}.'

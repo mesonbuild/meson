@@ -24,13 +24,11 @@ __all__ = [
 
     'default_resolve_key',
     'flatten',
-    'resolve_second_level_holders',
     'stringifyUserArguments',
     'Feature',
     'FeatureValue',
 
     'noArgsFlattening',
-    'noSecondLevelHolderResolving',
     'unholder_return',
     'disablerIfNotFound',
     'typed_operator',
@@ -84,7 +82,6 @@ from .baseobjects import (
 
 from .decorators import (
     noArgsFlattening,
-    noSecondLevelHolderResolving,
     unholder_return,
     disablerIfNotFound,
     ContainerTypeInfo,
@@ -113,7 +110,6 @@ from .disabler import Disabler, is_disabled
 from .helpers import (
     default_resolve_key,
     flatten,
-    resolve_second_level_holders,
     stringifyUserArguments,
     Feature,
     FeatureValue,

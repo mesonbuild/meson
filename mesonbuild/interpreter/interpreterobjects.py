@@ -21,7 +21,7 @@ from ..interpreterbase import (PosArgInfo, OptArgInfo, VarArgInfo,
                                FeatureNew, FeatureDeprecated,
                                TypedArgs, typed_operator,
                                noArgsFlattening, unholder_return,
-                               flatten, resolve_second_level_holders, Feature, FeatureValue,
+                               flatten, Feature, FeatureValue,
                                InterpreterException, InvalidArguments, InvalidCode)
 from ..interpreter.type_checking import (
     NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW, TGT_VARG, STR_PARG,
@@ -939,8 +939,6 @@ class ModuleObjectHolder(ObjectHolder[ModuleObject]):
             raise InvalidCode(ustr)
         if not getattr(method, 'no-args-flattening', False):
             args = flatten(args)
-        if not getattr(method, 'no-second-level-holder-flattening', False):
-            args, kwargs = resolve_second_level_holders(args, kwargs)
         if not self.interpreter.active_projectname:
             assert isinstance(modobj, (ExtensionModule, NewExtensionModule)), 'for mypy'
             full_method_name = f'{modobj.INFO.name}.{method_name}'
