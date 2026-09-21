@@ -1299,7 +1299,8 @@ class Vs2010Backend(backends.Backend):
             target_args: list[str],
             target_defines: list[str],
             target_inc_dirs: list[str],
-            file_args: dict[Language, CompilerArgs]
+            file_args: dict[Language, CompilerArgs],
+            has_own_link_inputs: bool
             ) -> None:
         compiler = self._get_cl_compiler(target)
         buildtype_link_args = compiler.get_optimization_link_args(self.optimization)
@@ -1502,7 +1503,11 @@ class Vs2010Backend(backends.Backend):
                 trelpath = self.get_target_dir_relative_to(t, target)
                 tvcxproj = os.path.join(trelpath, t.get_id() + '.vcxproj')
                 tid = self.environment.coredata.target_guids[t.get_id()]
-                self.add_project_reference(root, tvcxproj, tid, link_outputs=True)
+                # MSBuild skips the link step altogether if a project has no inputs of its
+                # own, so a target whose only inputs are link_whole libraries has to let
+                # the referenced projects' outputs be linked in automatically; see
+                # https://github.com/mesonbuild/meson/issues/2180.
+                self.add_project_reference(root, tvcxproj, tid, link_outputs=not has_own_link_inputs)
                 # Mark the dependency as already handled to not have
                 # multiple references to the same target.
                 self.handled_target_deps[target.get_id()].append(t.get_id())
@@ -1677,7 +1682,10 @@ class Vs2010Backend(backends.Backend):
             primary_src_lang = get_primary_source_lang(target.sources, custom_src)
             self.add_gen_lite_makefile_vcxproj_elements(root, platform, tfilename[1], vslite_ctx, target, proj_to_build_root, primary_src_lang)
         else:
-            self.add_non_makefile_vcxproj_elements(root, type_config, target, platform, subsystem, version, build_args, target_args, target_defines, target_inc_dirs, file_args)
+            # Whether the project will have ClCompile or Object items of its own,
+            # see the ItemGroups generated below.
+            has_own_link_inputs = bool(sources or gen_src or objects or gen_objs or custom_objs or target.objects)
+            self.add_non_makefile_vcxproj_elements(root, type_config, target, platform, subsystem, version, build_args, target_args, target_defines, target_inc_dirs, file_args, has_own_link_inputs)
 
         meson_file_group = ET.SubElement(root, 'ItemGroup')
         ET.SubElement(meson_file_group, 'None', Include=os.path.join(proj_to_src_dir, build_filename))
