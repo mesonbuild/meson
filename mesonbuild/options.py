@@ -873,12 +873,7 @@ class OptionStore:
         option_object, current_value = self.get_option_and_value_for_untyped(key)
         return option_object.validate_value(value) == current_value
 
-    def get_value_for_untyped(self, name: OptionKey | str, subproject: str | None = None) -> ElementaryOptionValues:
-        if isinstance(name, str):
-            key = OptionKey(name, subproject)
-        else:
-            assert subproject is None
-            key = name
+    def get_value_for_untyped(self, key: OptionKey) -> ElementaryOptionValues:
         _, resolved_value = self.get_option_and_value_for_untyped(key)
         return resolved_value
 
@@ -894,21 +889,16 @@ class OptionStore:
             raise MesonBugException(f'Expected {key!s} to have type {type_!s}, but had type {type(val)!s}')
         return val
 
-    def get_option_for_target_untyped(self, target: BuildTarget, key: str | OptionKey) -> ElementaryOptionValues:
-        if isinstance(key, str):
-            assert ':' not in key
-            newkey = OptionKey(key, target.subproject)
-        else:
-            newkey = key
-        if newkey.subproject != target.subproject:
+    def get_option_for_target_untyped(self, target: BuildTarget, key: OptionKey) -> ElementaryOptionValues:
+        if key.subproject != target.subproject:
             # FIXME: this should be an error. The caller needs to ensure that
             # key and target have the same subproject for consistency.
             # Now just do this to get things going.
-            newkey = newkey.evolve(subproject=target.subproject)
+            key = key.evolve(subproject=target.subproject)
         if self.is_cross:
-            newkey = newkey.evolve(machine=target.for_machine)
-        option_object, value = self.get_option_and_value_for_untyped(newkey)
-        override = target.get_override(newkey.name)
+            key = key.evolve(machine=target.for_machine)
+        option_object, value = self.get_option_and_value_for_untyped(key)
+        override = target.get_override(key.name)
         if override is not None:
             try:
                 return option_object.validate_value(override)
