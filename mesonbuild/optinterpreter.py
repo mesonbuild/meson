@@ -102,6 +102,7 @@ class OptionInterpreter:
                 raise mesonlib.MesonException.from_node(str(e), node=self.current_node)
 
     def reduce_single(self, arg: mparser.BaseNode) -> 'TYPE_var':
+        self.current_node = arg
         match arg:
             case mparser.ParenthesizedNode(inner=inner):
                 return self.reduce_single(inner)
