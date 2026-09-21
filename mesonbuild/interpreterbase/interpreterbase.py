@@ -191,12 +191,10 @@ class InterpreterBase:
             try:
                 self.evaluate_statement(cur)
             except Exception as e:
-                if getattr(e, 'lineno', None) is None:
-                    # We are doing the equivalent to setattr here and mypy does not like it
-                    # NOTE: self.current_node is continually updated during processing
-                    e.lineno = self.current_node.lineno                                               # type: ignore
-                    e.colno = self.current_node.colno                                                 # type: ignore
-                    e.file = os.path.join(self.source_root, self.subdir, environment.build_filename)  # type: ignore
+                if isinstance(e, mesonlib.MesonException):
+                    e.lineno = self.current_node.lineno
+                    e.colno = self.current_node.colno
+                    e.file = os.path.join(self.source_root, self.subdir, environment.build_filename)
                 raise e
             i += 1 # In THE FUTURE jump over blocks and stuff.
 
