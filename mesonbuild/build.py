@@ -757,8 +757,13 @@ class StructuredSources(HoldableObject):
     represent the required filesystem layout.
     """
 
+    # Directory of the source tree that anchors the structure, if it can
+    # be used in place without copying.
+    root: str | None = None
+
     def __init__(self, sources: T.Optional[T.Mapping[str, T.List[TargetSources]]] = None) -> None:
         self.sources: T.DefaultDict[str, T.List[TargetSources]] = defaultdict(list)
+        self.needs_copy = False
 
         sources = sources or {}
         for path, files in sources.items():
@@ -786,6 +791,24 @@ class StructuredSources(HoldableObject):
         files = list(sources)
         if not files:
             return
+
+        if self.root is None:
+            # To use the structured_sources without copying, all the files must
+            # be in the source tree and anchored at a common path.  For simplicity,
+            # the first file at the root of the structure decides the anchor.
+            if path == '' and isinstance(files[0], File) and not files[0].is_built:
+                self.root = self.canonicalize(os.path.dirname(files[0].relative_name()))
+            else:
+                self.needs_copy = True
+
+        if not self.needs_copy:
+            expected_path = self.canonicalize(os.path.join(self.root, path))
+            for f in files:
+                if not isinstance(f, File) or f.is_built \
+                        or self.canonicalize(os.path.dirname(f.relative_name())) != expected_path:
+                    self.needs_copy = True
+                    break
+
         self.sources[path].extend(files)
 
     def __add__(self, other: StructuredSources) -> StructuredSources:
@@ -800,13 +823,7 @@ class StructuredSources(HoldableObject):
     def as_list(self) -> T.List[TargetSources]:
         return list(itertools.chain.from_iterable(self.sources.values()))
 
-    def needs_copy(self) -> bool:
-        """Do we need to create a structure in the build directory.
-
-        This allows us to avoid making copies if the structures exists in the
-        source dir. Which could happen in situations where a generated source
-        only exists in some configurations
-        """
+    def has_built_files(self) -> bool:
         for files in self.sources.values():
             for f in files:
                 if isinstance(f, File):
