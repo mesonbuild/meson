@@ -28,7 +28,7 @@ from ..programs import ExternalProgram, NonExistingExternalProgram, Program
 from ..dependencies import Dependency
 from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, TypedArgs, PosArgInfo, OptArgInfo, VarArgInfo
-from ..interpreterbase import noArgsFlattening, noSecondLevelHolderResolving, unholder_return
+from ..interpreterbase import noArgsFlattening, unholder_return
 from .decorators import apply_machine_map
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
@@ -2040,7 +2040,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=SRC_VARG,
         kw_types=EXECUTABLE_KWS,
     )
-    @noSecondLevelHolderResolving
     def func_executable(self, node: mparser.BaseNode,
                         args: T.Tuple[str, SourcesVarargsType],
                         kwargs: kwtypes.Executable) -> T.Union[build.Executable, build.SharedLibrary]:
@@ -2052,7 +2051,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=SRC_VARG,
         kw_types=STATIC_LIB_KWS,
     )
-    @noSecondLevelHolderResolving
     def func_static_lib(self, node: mparser.BaseNode,
                         args: T.Tuple[str, SourcesVarargsType],
                         kwargs: kwtypes.StaticLibrary) -> build.StaticLibrary:
@@ -2064,7 +2062,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=SRC_VARG,
         kw_types=SHARED_LIB_KWS,
     )
-    @noSecondLevelHolderResolving
     def func_shared_lib(self, node: mparser.BaseNode,
                         args: T.Tuple[str, SourcesVarargsType],
                         kwargs: kwtypes.SharedLibrary) -> build.SharedLibrary:
@@ -2076,7 +2073,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=SRC_VARG,
         kw_types=LIBRARY_KWS
     )
-    @noSecondLevelHolderResolving
     def func_both_lib(self, node: mparser.BaseNode,
                       args: T.Tuple[str, SourcesVarargsType],
                       kwargs: kwtypes.Library) -> build.BothLibraries:
@@ -2089,7 +2085,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=SRC_VARG,
         kw_types=SHARED_MOD_KWS
     )
-    @noSecondLevelHolderResolving
     def func_shared_module(self, node: mparser.BaseNode,
                            args: T.Tuple[str, SourcesVarargsType],
                            kwargs: kwtypes.SharedModule) -> build.SharedModule:
@@ -2101,7 +2096,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=SRC_VARG,
         kw_types=LIBRARY_KWS
     )
-    @noSecondLevelHolderResolving
     def func_library(self, node: mparser.BaseNode,
                      args: T.Tuple[str, SourcesVarargsType],
                      kwargs: kwtypes.Library) -> build.StaticLibrary | build.SharedLibrary | build.BothLibraries:
@@ -2113,7 +2107,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=VarArgInfo((str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.ExtractedObjects, build.BuildTarget)),
         kw_types=JAR_KWS,
     )
-    @noSecondLevelHolderResolving
     def func_jar(self, node: mparser.BaseNode,
                  args: T.Tuple[str, T.List[str | build.TargetSources]],
                  kwargs: kwtypes.Jar) -> build.Jar:
@@ -2125,7 +2118,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         var_types=SRC_VARG,
         kw_types=BUILD_TARGET_KWS,
     )
-    @noSecondLevelHolderResolving
     def func_build_target(self, node: mparser.BaseNode,
                           args: T.Tuple[str, SourcesVarargsType],
                           kwargs: kwtypes.BuildTargetFunc,
@@ -4243,11 +4235,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         'set_variable',
         pos_types=[
             STR_PARG.evolve(validator=lambda x: f'Invalid variable name: "{x}"' if mparser.IDENT_RE.fullmatch(x) is None else None),
-            PosArgInfo((object, DefaultObject)),
+            PosArgInfo((object, DefaultObject), accept_second_level_holder=True),
         ],
     )
     @noArgsFlattening
-    @noSecondLevelHolderResolving
     def func_set_variable(self, node: mparser.BaseNode, args: T.Tuple[str, TYPE_var | InterpreterObject], kwargs: 'TYPE_kwargs') -> None:
         self.set_variable(*args, holderify=True)
 

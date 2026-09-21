@@ -468,6 +468,7 @@ def _link_with_validator(values: T.List[LinkableTypes]) -> T.Optional[str]:
 LINK_WITH_KW: KwargInfo[T.List[T.Union[BothLibraries, SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex, Jar, Executable]]] = KwargInfo(
     'link_with',
     ContainerTypeInfo(list, (BothLibraries, SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex, Jar, Executable)),
+    accept_second_level_holder=True,
     listify=True,
     default=[],
     extra_types={Dependency: lambda _: _LINK_WITH_ERROR},
@@ -485,6 +486,7 @@ def link_whole_validator(values: T.List[StaticTypes]) -> T.Optional[str]:
 LINK_WHOLE_KW: KwargInfo[T.List[T.Union[BothLibraries, StaticLibrary, CustomTarget, CustomTargetIndex]]] = KwargInfo(
     'link_whole',
     ContainerTypeInfo(list, (BothLibraries, StaticLibrary, CustomTarget, CustomTargetIndex)),
+    accept_second_level_holder=True,
     listify=True,
     default=[],
     validator=link_whole_validator,
